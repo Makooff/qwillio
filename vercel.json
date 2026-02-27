@@ -1,0 +1,13 @@
+{
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "http://localhost:3000/api/$1" },
+    { "source": "/demo.html", "destination": "/demo.html" },
+    { "source": "/demo-marie.html", "destination": "/demo-marie.html" },
+    { "source": "/onboarding.html", "destination": "/onboarding.html" },
+    { "source": "/client-portal.html", "destination": "/client-portal.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
