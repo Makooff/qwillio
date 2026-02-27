@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 120" width="500" height="120">
+  <!-- Connect Dots - Horizontal -->
+  <defs>
+    <radialGradient id="dhh" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2dd4bf"/><stop offset="100%" stop-color="#0d9488"/>
+    </radialGradient>
+  </defs>
+  <!-- Lines -->
+  <line x1="60" y1="60" x2="25" y2="25" stroke="#14b8a6" stroke-width="2" opacity="0.5"/>
+  <line x1="60" y1="60" x2="95" y2="20" stroke="#14b8a6" stroke-width="2" opacity="0.5"/>
+  <line x1="60" y1="60" x2="18" y2="65" stroke="#14b8a6" stroke-width="2" opacity="0.5"/>
+  <line x1="60" y1="60" x2="100" y2="70" stroke="#14b8a6" stroke-width="2" opacity="0.5"/>
+  <line x1="60" y1="60" x2="30" y2="98" stroke="#14b8a6" stroke-width="2" opacity="0.5"/>
+  <line x1="60" y1="60" x2="90" y2="100" stroke="#14b8a6" stroke-width="2" opacity="0.5"/>
+  <!-- Nodes -->
+  <circle cx="25" cy="25" r="7" fill="#5eead4" opacity="0.7"/>
+  <circle cx="95" cy="20" r="8" fill="#2dd4bf" opacity="0.8"/>
+  <circle cx="18" cy="65" r="6" fill="#14b8a6" opacity="0.6"/>
+  <circle cx="100" cy="70" r="7" fill="#0d9488" opacity="0.7"/>
+  <circle cx="30" cy="98" r="7" fill="#2dd4bf" opacity="0.7"/>
+  <circle cx="90" cy="100" r="6" fill="#14b8a6" opacity="0.6"/>
+  <!-- Hub -->
+  <circle cx="60" cy="60" r="14" fill="url(#dhh)"/>
+  <circle cx="60" cy="60" r="5" fill="white" opacity="0.9"/>
+  <!-- Text -->
+  <text x="145" y="72" font-family="'Trebuchet MS', sans-serif" font-size="48" font-weight="700" fill="#134e4a" letter-spacing="3">Qwillio</text>
+</svg>

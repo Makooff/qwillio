@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V2-03: Q Outline - Anneau sans remplissage, style linéaire -->
+  <defs>
+    <linearGradient id="v3g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5" />
+      <stop offset="100%" style="stop-color:#8b5cf6" />
+    </linearGradient>
+  </defs>
+  <!-- Anneau du Q (stroke uniquement) -->
+  <circle cx="190" cy="160" r="90" fill="none" stroke="url(#v3g)" stroke-width="26" stroke-linecap="round"/>
+  <!-- Queue du Q : part du bord extérieur de l'anneau (190+90*0.707, 160+90*0.707) = (254, 224) -->
+  <line x1="254" y1="224" x2="305" y2="275" stroke="url(#v3g)" stroke-width="26" stroke-linecap="round"/>
+  <!-- Wordmark medium weight -->
+  <text x="200" y="360" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="46" font-weight="600" fill="#312e81" letter-spacing="6">Qwillio</text>
+</svg>

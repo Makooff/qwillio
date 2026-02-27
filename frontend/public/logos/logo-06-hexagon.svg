@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- Logo 6: Hexagone tech avec Q circuit -->
+  <defs>
+    <linearGradient id="g6a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#312e81;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="g6b" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#818cf8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a78bfa;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Hexagone -->
+  <polygon points="200,30 340,100 340,240 200,310 60,240 60,100" fill="url(#g6a)" stroke="url(#g6b)" stroke-width="3"/>
+  <!-- Q en circuit/tech -->
+  <circle cx="195" cy="165" r="55" fill="none" stroke="#818cf8" stroke-width="10" stroke-linecap="round"/>
+  <!-- Queue du Q comme connecteur circuit -->
+  <line x1="230" y1="200" x2="270" y2="240" stroke="#a78bfa" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="270" cy="240" r="6" fill="#c4b5fd"/>
+  <!-- Points de circuit -->
+  <circle cx="140" cy="130" r="4" fill="#6366f1"/>
+  <circle cx="250" cy="110" r="4" fill="#6366f1"/>
+  <circle cx="130" cy="200" r="4" fill="#6366f1"/>
+  <line x1="140" y1="130" x2="155" y2="130" stroke="#6366f1" stroke-width="2"/>
+  <line x1="236" y1="110" x2="250" y2="110" stroke="#6366f1" stroke-width="2"/>
+  <line x1="130" y1="200" x2="148" y2="190" stroke="#6366f1" stroke-width="2"/>
+  <!-- Texte -->
+  <text x="200" y="370" text-anchor="middle" font-family="'JetBrains Mono', 'Fira Code', monospace" font-size="40" font-weight="700" fill="#312e81" letter-spacing="5">QWILLIO</text>
+</svg>

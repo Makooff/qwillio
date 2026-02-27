@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V2-05: Q Abstrait Triple - 3 cercles superposés -->
+  <defs>
+    <linearGradient id="v5a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4338ca" />
+      <stop offset="100%" style="stop-color:#6366f1" />
+    </linearGradient>
+    <linearGradient id="v5b" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:0.7" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0.6" />
+    </linearGradient>
+    <linearGradient id="v5c" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a855f7;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#c084fc;stop-opacity:0.4" />
+    </linearGradient>
+  </defs>
+  <!-- 3 cercles : grand, moyen, petit — décalés -->
+  <circle cx="165" cy="145" r="90" fill="url(#v5a)"/>
+  <circle cx="225" cy="175" r="65" fill="url(#v5b)"/>
+  <circle cx="260" cy="215" r="42" fill="url(#v5c)"/>
+  <!-- Trou du Q au centre du cercle principal -->
+  <circle cx="175" cy="155" r="36" fill="white"/>
+  <!-- Queue du Q : part depuis le bord bas-droit du cercle principal (165+90*0.707, 145+90*0.707) = (229, 209) -->
+  <line x1="229" y1="209" x2="280" y2="260" stroke="#4338ca" stroke-width="20" stroke-linecap="round"/>
+  <!-- Wordmark -->
+  <text x="200" y="350" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="46" font-weight="700" fill="#1e1b4b" letter-spacing="4">Qwillio</text>
+</svg>

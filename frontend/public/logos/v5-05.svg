@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 05: BRAIN CIRCUIT — Cerveau IA stylisé avec connexions neuronales -->
+  <defs>
+    <linearGradient id="e1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
+    </linearGradient>
+  </defs>
+  <!-- Moitié cerveau stylisé (courbes organiques) -->
+  <path d="M200 60 C145 60 100 85 95 130 C90 160 105 180 95 200 C85 220 90 250 115 265 C140 280 165 275 185 280 C205 285 210 290 200 290" fill="none" stroke="url(#e1)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M200 60 C255 60 300 85 305 130 C310 160 295 180 305 200 C315 220 310 250 285 265 C260 280 235 275 215 280 C195 285 190 290 200 290" fill="none" stroke="url(#e1)" stroke-width="8" stroke-linecap="round"/>
+  <!-- Connexions neuronales internes -->
+  <line x1="150" y1="110" x2="250" y2="140" stroke="#ec4899" stroke-width="2" opacity="0.3"/>
+  <line x1="130" y1="170" x2="270" y2="190" stroke="#ec4899" stroke-width="2" opacity="0.3"/>
+  <line x1="140" y1="230" x2="260" y2="240" stroke="#ec4899" stroke-width="2" opacity="0.3"/>
+  <line x1="160" y1="140" x2="180" y2="220" stroke="#ec4899" stroke-width="1.5" opacity="0.2"/>
+  <line x1="240" y1="130" x2="220" y2="210" stroke="#ec4899" stroke-width="1.5" opacity="0.2"/>
+  <!-- Nœuds neuronaux -->
+  <circle cx="150" cy="110" r="5" fill="#ec4899"/>
+  <circle cx="250" cy="140" r="4" fill="#f43f5e"/>
+  <circle cx="130" cy="170" r="4" fill="#ec4899"/>
+  <circle cx="270" cy="190" r="5" fill="#f43f5e"/>
+  <circle cx="140" cy="230" r="4" fill="#ec4899"/>
+  <circle cx="260" cy="240" r="4" fill="#f43f5e"/>
+  <circle cx="200" cy="175" r="7" fill="#ec4899"/>
+  <circle cx="200" cy="175" r="3" fill="white"/>
+  <!-- Signal sortant en bas -->
+  <line x1="200" y1="290" x2="200" y2="310" stroke="url(#e1)" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="200" cy="315" r="4" fill="url(#e1)"/>
+  <!-- Wordmark -->
+  <text x="200" y="362" text-anchor="middle" font-family="'Georgia', serif" font-size="48" font-weight="700" fill="#881337" letter-spacing="2">Qwillio</text>
+</svg>

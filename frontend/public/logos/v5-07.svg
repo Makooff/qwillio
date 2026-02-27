@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 07: SHIELD TRUST — Bouclier de confiance avec coche vocale -->
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+  </defs>
+  <!-- Bouclier -->
+  <path d="M200 40 L320 85 C325 87 328 92 328 97 L328 190 C328 250 275 305 200 330 C125 305 72 250 72 190 L72 97 C72 92 75 87 80 85 Z" fill="url(#g1)"/>
+  <!-- Coche stylisée (checkmark) -->
+  <path d="M148 175 L185 212 L258 138" fill="none" stroke="white" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Petites ondes autour de la coche (confiance vocale) -->
+  <path d="M268 148 C278 142 278 128 268 122" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+  <path d="M280 155 C295 145 295 118 280 108" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.25"/>
+  <!-- Wordmark -->
+  <text x="200" y="375" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="46" font-weight="700" fill="#064e3b" letter-spacing="3">Qwillio</text>
+</svg>

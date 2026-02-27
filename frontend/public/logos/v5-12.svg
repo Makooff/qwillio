@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 12: CHAT WINDOW — Fenêtre de chat UI avec messages -->
+  <defs>
+    <linearGradient id="l1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <filter id="l_sh">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  <!-- Fenêtre de chat -->
+  <rect x="75" y="35" width="250" height="240" rx="16" fill="url(#l1)" filter="url(#l_sh)"/>
+  <!-- Barre de titre -->
+  <rect x="75" y="35" width="250" height="36" rx="16" fill="#1e293b"/>
+  <rect x="75" y="55" width="250" height="16" fill="#1e293b"/>
+  <!-- Dots de fenêtre -->
+  <circle cx="98" cy="53" r="5" fill="#f87171"/>
+  <circle cx="115" cy="53" r="5" fill="#fbbf24"/>
+  <circle cx="132" cy="53" r="5" fill="#4ade80"/>
+  <!-- Message entrant (gauche) -->
+  <rect x="95" y="88" width="120" height="28" rx="14" fill="#334155"/>
+  <rect x="95" y="88" width="120" height="28" rx="14" fill="#334155"/>
+  <line x1="108" y1="100" x2="148" y2="100" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+  <line x1="155" y1="100" x2="200" y2="100" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+  <!-- Message IA (droite, coloré) -->
+  <rect x="155" y="128" width="150" height="28" rx="14" fill="#3b82f6"/>
+  <line x1="170" y1="140" x2="210" y2="140" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <line x1="218" y1="140" x2="288" y2="140" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+  <!-- Message entrant 2 -->
+  <rect x="95" y="168" width="90" height="28" rx="14" fill="#334155"/>
+  <line x1="108" y1="180" x2="170" y2="180" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+  <!-- IA typing indicator -->
+  <rect x="155" y="208" width="80" height="28" rx="14" fill="#3b82f6" opacity="0.5"/>
+  <circle cx="178" cy="220" r="4" fill="white" opacity="0.6"/>
+  <circle cx="195" cy="220" r="4" fill="white" opacity="0.4"/>
+  <circle cx="212" cy="220" r="4" fill="white" opacity="0.2"/>
+  <!-- Wordmark -->
+  <text x="200" y="340" text-anchor="middle" font-family="'Verdana', sans-serif" font-size="48" font-weight="700" fill="#0f172a" letter-spacing="2">Qwillio</text>
+</svg>

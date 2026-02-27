@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 17: GEAR + PHONE — Engrenage avec combiné téléphonique = automatisation téléphonique -->
+  <defs>
+    <linearGradient id="q1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <linearGradient id="q2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <!-- Engrenage (gear) -->
+  <circle cx="200" cy="155" r="70" fill="url(#q1)"/>
+  <circle cx="200" cy="155" r="30" fill="white"/>
+  <!-- Dents de l'engrenage -->
+  <rect x="188" y="72" width="24" height="26" rx="4" fill="url(#q1)"/>
+  <rect x="188" y="212" width="24" height="26" rx="4" fill="url(#q1)"/>
+  <rect x="118" y="143" width="26" height="24" rx="4" fill="url(#q1)"/>
+  <rect x="258" y="143" width="26" height="24" rx="4" fill="url(#q1)"/>
+  <rect x="135" y="92" width="24" height="24" rx="4" fill="url(#q1)" transform="rotate(45, 147, 104)"/>
+  <rect x="241" y="92" width="24" height="24" rx="4" fill="url(#q1)" transform="rotate(45, 253, 104)"/>
+  <rect x="135" y="194" width="24" height="24" rx="4" fill="url(#q1)" transform="rotate(45, 147, 206)"/>
+  <rect x="241" y="194" width="24" height="24" rx="4" fill="url(#q1)" transform="rotate(45, 253, 206)"/>
+  <!-- Icône téléphone au centre -->
+  <path d="M185 145 C182 138 186 132 192 132 L208 132 C214 132 218 138 215 145 L212 150 C210 154 206 155 203 152 L200 150 L197 152 C194 155 190 154 188 150 Z" fill="url(#q2)" stroke="url(#q2)" stroke-width="1"/>
+  <path d="M185 168 C182 175 186 180 192 180 L208 180 C214 180 218 175 215 168 L212 162 C210 158 206 157 203 160 L200 162 L197 160 C194 157 190 158 188 162 Z" fill="url(#q2)" stroke="url(#q2)" stroke-width="1"/>
+  <!-- Wordmark -->
+  <text x="200" y="330" text-anchor="middle" font-family="'Verdana', sans-serif" font-size="44" font-weight="700" fill="#0f172a" letter-spacing="3">Qwillio</text>
+  <text x="200" y="360" text-anchor="middle" font-family="'Verdana', sans-serif" font-size="10" fill="#0ea5e9" letter-spacing="6">AUTOMATED CALLS</text>
+</svg>

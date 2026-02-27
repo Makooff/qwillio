@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V2-02: Q Minimal Light - Dégradé subtil, wordmark thin/light -->
+  <defs>
+    <linearGradient id="v2g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#818cf8" />
+      <stop offset="100%" style="stop-color:#a78bfa" />
+    </linearGradient>
+    <linearGradient id="v2g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1" />
+      <stop offset="100%" style="stop-color:#8b5cf6" />
+    </linearGradient>
+  </defs>
+  <!-- Ombre douce derrière -->
+  <circle cx="195" cy="165" r="100" fill="#c7d2fe" opacity="0.4"/>
+  <!-- Corps du Q -->
+  <circle cx="190" cy="160" r="100" fill="url(#v2g)"/>
+  <!-- Trou central -->
+  <circle cx="190" cy="160" r="48" fill="white"/>
+  <!-- Queue du Q : (190+100*0.707, 160+100*0.707) = (261, 231) -->
+  <line x1="261" y1="231" x2="305" y2="275" stroke="url(#v2g2)" stroke-width="26" stroke-linecap="round"/>
+  <!-- Wordmark light -->
+  <text x="200" y="358" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="48" font-weight="300" fill="#312e81" letter-spacing="10">qwillio</text>
+</svg>

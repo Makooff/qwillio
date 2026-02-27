@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- LAYERED V4: Décalage horizontal (pas diagonal), plus graphique -->
+  <circle cx="225" cy="165" r="72" fill="none" stroke="#e0e7ff" stroke-width="15"/>
+  <line x1="276" y1="216" x2="308" y2="248" stroke="#e0e7ff" stroke-width="15" stroke-linecap="round"/>
+  <circle cx="200" cy="165" r="72" fill="none" stroke="#a5b4fc" stroke-width="16"/>
+  <line x1="251" y1="216" x2="283" y2="248" stroke="#a5b4fc" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="175" cy="165" r="72" fill="none" stroke="#4f46e5" stroke-width="17"/>
+  <line x1="226" y1="216" x2="258" y2="248" stroke="#4f46e5" stroke-width="17" stroke-linecap="round"/>
+  <text x="200" y="348" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="46" font-weight="700" fill="#1e1b4b" letter-spacing="4">Qwillio</text>
+</svg>

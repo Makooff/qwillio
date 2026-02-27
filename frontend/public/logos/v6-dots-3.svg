@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- DOTS V3: Disposition hexagonale, plus structuré -->
+  <defs>
+    <linearGradient id="dt3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <!-- Hexagonal layout -->
+  <g stroke="#99f6e4" stroke-width="1.5" opacity="0.3">
+    <!-- Outer ring connections -->
+    <line x1="200" y1="55" x2="280" y2="100"/><line x1="280" y1="100" x2="305" y2="175"/>
+    <line x1="305" y1="175" x2="280" y2="250"/><line x1="280" y1="250" x2="200" y2="290"/>
+    <line x1="200" y1="290" x2="120" y2="250"/><line x1="120" y1="250" x2="95" y2="175"/>
+    <line x1="95" y1="175" x2="120" y2="100"/><line x1="120" y1="100" x2="200" y2="55"/>
+    <!-- Spokes to center -->
+    <line x1="200" y1="175" x2="200" y2="55"/><line x1="200" y1="175" x2="280" y2="100"/>
+    <line x1="200" y1="175" x2="305" y2="175"/><line x1="200" y1="175" x2="280" y2="250"/>
+    <line x1="200" y1="175" x2="200" y2="290"/><line x1="200" y1="175" x2="120" y2="250"/>
+    <line x1="200" y1="175" x2="95" y2="175"/><line x1="200" y1="175" x2="120" y2="100"/>
+  </g>
+  <!-- Outer nodes -->
+  <circle cx="200" cy="55" r="9" fill="url(#dt3)"/>
+  <circle cx="280" cy="100" r="8" fill="#14b8a6"/>
+  <circle cx="305" cy="175" r="8" fill="#2dd4bf"/>
+  <circle cx="280" cy="250" r="8" fill="#14b8a6"/>
+  <circle cx="200" cy="290" r="9" fill="url(#dt3)"/>
+  <circle cx="120" cy="250" r="8" fill="#14b8a6"/>
+  <circle cx="95" cy="175" r="8" fill="#2dd4bf"/>
+  <circle cx="120" cy="100" r="8" fill="#14b8a6"/>
+  <!-- Center hub -->
+  <circle cx="200" cy="175" r="20" fill="url(#dt3)"/>
+  <circle cx="200" cy="175" r="8" fill="white"/>
+  <text x="200" y="362" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="46" font-weight="700" fill="#134e4a" letter-spacing="3">Qwillio</text>
+</svg>

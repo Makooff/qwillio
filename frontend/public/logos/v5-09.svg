@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 09: SIGNAL TOWER — Tour/antenne émettant des ondes (réseau de communication) -->
+  <defs>
+    <linearGradient id="i1" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <linearGradient id="i2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+  </defs>
+  <!-- Tour/antenne triangulaire -->
+  <polygon points="200,50 165,270 235,270" fill="url(#i1)"/>
+  <!-- Traverses horizontales -->
+  <line x1="178" y1="140" x2="222" y2="140" stroke="#475569" stroke-width="4"/>
+  <line x1="172" y1="190" x2="228" y2="190" stroke="#475569" stroke-width="4"/>
+  <line x1="168" y1="235" x2="232" y2="235" stroke="#475569" stroke-width="4"/>
+  <!-- Socle -->
+  <rect x="150" y="265" width="100" height="12" rx="4" fill="url(#i1)"/>
+  <!-- Point lumineux au sommet -->
+  <circle cx="200" cy="50" r="8" fill="url(#i2)"/>
+  <circle cx="200" cy="50" r="14" fill="#38bdf8" opacity="0.2"/>
+  <circle cx="200" cy="50" r="22" fill="#38bdf8" opacity="0.08"/>
+  <!-- Ondes émises -->
+  <path d="M155 35 C140 20 140 0 155 -15" fill="none" stroke="url(#i2)" stroke-width="4" stroke-linecap="round" opacity="0.6" transform="rotate(-20,200,50)"/>
+  <path d="M140 45 C118 25 118 -5 140 -25" fill="none" stroke="url(#i2)" stroke-width="3.5" stroke-linecap="round" opacity="0.4" transform="rotate(-20,200,50)"/>
+  <path d="M245 35 C260 20 260 0 245 -15" fill="none" stroke="url(#i2)" stroke-width="4" stroke-linecap="round" opacity="0.6" transform="rotate(20,200,50)"/>
+  <path d="M260 45 C282 25 282 -5 260 -25" fill="none" stroke="url(#i2)" stroke-width="3.5" stroke-linecap="round" opacity="0.4" transform="rotate(20,200,50)"/>
+  <!-- Wordmark -->
+  <text x="200" y="340" text-anchor="middle" font-family="'Verdana', sans-serif" font-size="44" font-weight="700" fill="#0f172a" letter-spacing="4">Qwillio</text>
+  <text x="200" y="370" text-anchor="middle" font-family="'Verdana', sans-serif" font-size="10" fill="#0ea5e9" letter-spacing="6">ALWAYS CONNECTED</text>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- Logo 2: Bouclier/Badge avec Q et micro -->
+  <defs>
+    <linearGradient id="g2a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="g2b" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e0e7ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#c7d2fe;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Forme bouclier arrondi -->
+  <path d="M200 30 L340 80 Q360 85 360 105 L360 220 Q360 300 200 370 Q40 300 40 220 L40 105 Q40 85 60 80 Z" fill="url(#g2a)" rx="20"/>
+  <!-- Q intérieur -->
+  <circle cx="195" cy="175" r="65" fill="none" stroke="white" stroke-width="18" stroke-linecap="round"/>
+  <line x1="235" y1="215" x2="275" y2="255" stroke="white" stroke-width="18" stroke-linecap="round"/>
+  <!-- Point micro au centre -->
+  <circle cx="195" cy="175" r="12" fill="white" opacity="0.6"/>
+  <!-- Texte -->
+  <text x="200" y="370" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="14" font-weight="600" fill="white" letter-spacing="5" opacity="0">QWILLIO</text>
+</svg>

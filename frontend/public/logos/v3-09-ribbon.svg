@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V3-09: RIBBON - Q formé par un ruban qui se plie -->
+  <defs>
+    <linearGradient id="r1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="r2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+  </defs>
+  <!-- Ruban formant un Q (chemin continu) -->
+  <!-- Arc supérieur (face avant) -->
+  <path d="M190 55 C265 55 325 110 325 175 C325 220 305 255 270 270" fill="none" stroke="url(#r1)" stroke-width="28" stroke-linecap="round"/>
+  <!-- Arc inférieur (face arrière, plus clair) -->
+  <path d="M270 270 C235 285 195 290 160 275 C110 255 65 210 65 160 C65 105 110 55 190 55" fill="none" stroke="url(#r2)" stroke-width="20" stroke-linecap="round" opacity="0.6"/>
+  <!-- Queue du ruban -->
+  <line x1="270" y1="270" x2="315" y2="315" stroke="url(#r1)" stroke-width="22" stroke-linecap="round"/>
+  <!-- Wordmark -->
+  <text x="200" y="370" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-size="48" font-weight="700" fill="#1e1b4b" letter-spacing="3">Qwillio</text>
+</svg>

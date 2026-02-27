@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V2-04: Q Abstrait Glow - Cercles superposés avec effet glow -->
+  <defs>
+    <linearGradient id="v4g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1" />
+      <stop offset="100%" style="stop-color:#a855f7" />
+    </linearGradient>
+    <linearGradient id="v4g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#c084fc;stop-opacity:0.7" />
+      <stop offset="100%" style="stop-color:#818cf8;stop-opacity:0.5" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Glow derrière -->
+  <circle cx="180" cy="155" r="100" fill="#6366f1" opacity="0.15" filter="url(#glow)"/>
+  <!-- Cercle principal -->
+  <circle cx="180" cy="155" r="88" fill="url(#v4g)"/>
+  <!-- Cercle secondaire -->
+  <circle cx="235" cy="200" r="60" fill="url(#v4g2)"/>
+  <!-- Trou du Q -->
+  <circle cx="190" cy="165" r="35" fill="white"/>
+  <!-- Queue du Q : part de (190+88*0.707, 165+88*0.707) = (252, 227) ajusté pour le visuel -->
+  <line x1="248" y1="225" x2="295" y2="272" stroke="url(#v4g)" stroke-width="22" stroke-linecap="round" filter="url(#glow)"/>
+  <!-- Wordmark -->
+  <text x="200" y="348" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="46" font-weight="700" fill="#1e1b4b" letter-spacing="4">Qwillio</text>
+  <text x="200" y="378" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="11" font-weight="600" fill="#8b5cf6" letter-spacing="6">SMART VOICE AI</text>
+</svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200" width="500" height="200">
+  <!-- 05: MONOLINE SCRIPT — Single-weight elegant flowing script -->
+  <defs>
+    <linearGradient id="v405a" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#b45309"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <!-- Elegant flowing Q as first letter -->
+  <path d="M55 120 C55 60 95 35 135 35 C175 35 210 60 210 105 C210 150 175 175 135 175 C110 175 88 165 75 148" fill="none" stroke="url(#v405a)" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Q tail flowing into w -->
+  <path d="M175 145 C195 175 215 180 225 155 L235 105 L250 155 L265 105 L275 145" fill="none" stroke="url(#v405a)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- i -->
+  <line x1="295" y1="100" x2="295" y2="155" stroke="url(#v405a)" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="295" cy="82" r="4" fill="#d97706"/>
+  <!-- l -->
+  <line x1="315" y1="65" x2="315" y2="155" stroke="url(#v405a)" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- l -->
+  <line x1="335" y1="65" x2="335" y2="155" stroke="url(#v405a)" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- i -->
+  <line x1="355" y1="100" x2="355" y2="155" stroke="url(#v405a)" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="355" cy="82" r="4" fill="#d97706"/>
+  <!-- o -->
+  <ellipse cx="385" cy="130" rx="22" ry="27" fill="none" stroke="url(#v405a)" stroke-width="3.5"/>
+  <!-- Decorative swirl ending -->
+  <path d="M407 130 C420 130 430 145 420 158 C410 170 395 168 390 160" fill="none" stroke="url(#v405a)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <!-- Thin rule line -->
+  <line x1="55" y1="180" x2="420" y2="180" stroke="#d97706" stroke-width="0.5" opacity="0.3"/>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 03: ROTARY DIAL — Q inspired by vintage rotary phone dial -->
+  <defs>
+    <radialGradient id="v403a" cx="45%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#374151"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </radialGradient>
+  </defs>
+  <!-- Outer dial ring -->
+  <circle cx="195" cy="165" r="115" fill="url(#v403a)"/>
+  <circle cx="195" cy="165" r="108" fill="none" stroke="#4b5563" stroke-width="1"/>
+  <!-- Dial holes arranged in a C-shape (like Q without the tail) -->
+  <circle cx="195" cy="60" r="14" fill="#f9fafb"/>
+  <circle cx="260" cy="75" r="14" fill="#f9fafb"/>
+  <circle cx="305" cy="120" r="14" fill="#f9fafb"/>
+  <circle cx="315" cy="175" r="14" fill="#f9fafb"/>
+  <circle cx="295" cy="230" r="14" fill="#f9fafb"/>
+  <circle cx="250" cy="262" r="14" fill="#f9fafb"/>
+  <circle cx="195" cy="272" r="14" fill="#f9fafb"/>
+  <circle cx="140" cy="262" r="14" fill="#f9fafb"/>
+  <circle cx="95" cy="230" r="14" fill="#f9fafb"/>
+  <circle cx="78" cy="175" r="14" fill="#f9fafb"/>
+  <circle cx="90" cy="120" r="14" fill="#f9fafb"/>
+  <circle cx="130" cy="75" r="14" fill="#f9fafb"/>
+  <!-- Center circle -->
+  <circle cx="195" cy="165" r="38" fill="#1f2937"/>
+  <circle cx="195" cy="165" r="32" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <!-- Q tail — the finger stop -->
+  <rect x="298" y="238" width="42" height="12" rx="6" fill="#dc2626" transform="rotate(40, 319, 244)"/>
+  <!-- Wordmark -->
+  <text x="200" y="355" text-anchor="middle" font-family="'Courier New', monospace" font-size="42" font-weight="700" fill="#1f2937" letter-spacing="5">QWILLIO</text>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- BUBBLE V4: Outline au lieu de fill, minimaliste -->
+  <defs>
+    <linearGradient id="bb4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d9488"/><stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="155" cy="148" rx="82" ry="68" fill="none" stroke="url(#bb4)" stroke-width="5"/>
+  <polygon points="118,202 100,242 158,196" fill="none" stroke="url(#bb4)" stroke-width="5" stroke-linejoin="round"/>
+  <ellipse cx="240" cy="138" rx="75" ry="62" fill="none" stroke="#06b6d4" stroke-width="4" opacity="0.6"/>
+  <polygon points="275,185 302,218 250,182" fill="none" stroke="#06b6d4" stroke-width="4" stroke-linejoin="round" opacity="0.6"/>
+  <!-- Audio bars (en couleur cette fois) -->
+  <line x1="128" y1="132" x2="128" y2="164" stroke="url(#bb4)" stroke-width="4" stroke-linecap="round"/>
+  <line x1="142" y1="122" x2="142" y2="174" stroke="url(#bb4)" stroke-width="4" stroke-linecap="round"/>
+  <line x1="156" y1="128" x2="156" y2="168" stroke="url(#bb4)" stroke-width="4" stroke-linecap="round"/>
+  <line x1="170" y1="134" x2="170" y2="162" stroke="url(#bb4)" stroke-width="4" stroke-linecap="round"/>
+  <!-- Dots outline -->
+  <circle cx="220" cy="138" r="5" fill="none" stroke="#06b6d4" stroke-width="2.5"/>
+  <circle cx="242" cy="138" r="5" fill="none" stroke="#06b6d4" stroke-width="2.5"/>
+  <circle cx="264" cy="138" r="5" fill="none" stroke="#06b6d4" stroke-width="2.5"/>
+  <text x="200" y="330" text-anchor="middle" font-family="'Georgia', serif" font-size="46" font-weight="700" fill="#134e4a" letter-spacing="3">Qwillio</text>
+</svg>

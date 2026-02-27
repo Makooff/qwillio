@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qwillio - Client Onboarding</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-light: #818cf8;
+      --accent: #22c55e;
+      --accent-dark: #16a34a;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --border: #e2e8f0;
+      --border-focus: #6366f1;
+      --error: #ef4444;
+      --error-bg: #fef2f2;
+      --warning: #f59e0b;
+      --warning-bg: #fffbeb;
+      --success-bg: #f0fdf4;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.06);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Header ──────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 40%, #7c3aed 100%);
+      padding: 40px 24px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 24px;
+      background: var(--bg);
+      border-radius: 24px 24px 0 0;
+    }
+    .header-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(12px);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .logo-text {
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+      letter-spacing: -0.5px;
+    }
+    .header-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 6px;
+    }
+    .header-subtitle {
+      font-size: 15px;
+      color: rgba(255,255,255,0.8);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 13px;
+      color: white;
+      margin-top: 14px;
+      font-weight: 500;
+    }
+
+    /* ── Container ────────────────────────────────── */
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+
+    /* ── Progress Bar ────────────────────────────── */
+    .progress-container {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .progress-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .progress-count {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 99px;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 0%;
+    }
+    .progress-sections {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .progress-dot {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 3px 10px;
+      border-radius: 99px;
+      background: #f1f5f9;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .progress-dot.active {
+      background: rgba(99,102,241,0.1);
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .progress-dot.completed {
+      background: rgba(34,197,94,0.1);
+      color: var(--accent-dark);
+    }
+    .progress-dot .dot-icon {
+      font-size: 11px;
+    }
+
+    /* ── Section Card ────────────────────────────── */
+    .section-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 0;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: box-shadow 0.3s ease;
+    }
+    .section-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    .section-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(to right, #fafaff, #f8fafc);
+    }
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .section-description {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .section-fields {
+      padding: 20px 24px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── Form Fields ─────────────────────────────── */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .field-required {
+      color: var(--error);
+      font-size: 13px;
+      font-weight: 400;
+    }
+    .field-optional {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      transition: all 0.2s ease;
+      outline: none;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--text-muted);
+    }
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+    input[type="number"] {
+      max-width: 200px;
+    }
+
+    /* ── Multiselect (checkboxes) ─────────────────── */
+    .multiselect-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px;
+    }
+    .multiselect-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--surface);
+    }
+    .multiselect-option:hover {
+      border-color: var(--primary-light);
+      background: #fafaff;
+    }
+    .multiselect-option.selected {
+      border-color: var(--primary);
+      background: rgba(99,102,241,0.06);
+      color: var(--primary-dark);
+      font-weight: 500;
+    }
+    .multiselect-checkbox {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #cbd5e1;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+    .multiselect-option.selected .multiselect-checkbox {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .multiselect-check {
+      display: none;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .multiselect-option.selected .multiselect-check {
+      display: block;
+    }
+
+    /* ── Submit Area ──────────────────────────────── */
+    .submit-area {
+      text-align: center;
+      padding: 32px 0;
+    }
+    .submit-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 48px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+      letter-spacing: -0.2px;
+    }
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99,102,241,0.45);
+    }
+    .submit-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    .submit-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    .submit-btn .spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    .submit-btn.loading .spinner {
+      display: block;
+    }
+    .submit-btn.loading .btn-text {
+      opacity: 0.8;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .submit-note {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ── Add-ons Section ─────────────────────────── */
+    .addons-section {
+      margin-top: 40px;
+    }
+    .addons-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .addons-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .addon-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow);
+    }
+    .addon-card:hover {
+      border-color: var(--primary-light);
+      box-shadow: var(--shadow-md);
+    }
+    .addon-card.active {
+      border-color: var(--accent);
+      background: var(--success-bg);
+    }
+    .addon-info {
+      flex: 1;
+    }
+    .addon-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .addon-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .addon-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .addon-price {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      white-space: nowrap;
+    }
+    .addon-toggle {
+      position: relative;
+      width: 48px;
+      height: 28px;
+      background: #cbd5e1;
+      border-radius: 99px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      border: none;
+      padding: 0;
+    }
+    .addon-toggle.active {
+      background: var(--accent);
+    }
+    .addon-toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .addon-toggle.active::after {
+      transform: translateX(20px);
+    }
+
+    /* ── Loading State ────────────────────────────── */
+    .loading-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e2e8f0;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 20px;
+    }
+    .loading-text {
+      font-size: 16px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .loading-subtext {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* ── Error State ──────────────────────────────── */
+    .error-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .error-icon {
+      width: 72px;
+      height: 72px;
+      background: var(--error-bg);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+    .error-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .error-message {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 400px;
+      line-height: 1.6;
+    }
+    .error-retry {
+      margin-top: 24px;
+      padding: 12px 32px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .error-retry:hover {
+      background: var(--primary-dark);
+    }
+
+    /* ── Already Completed State ─────────────────── */
+    .completed-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 50vh;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .completed-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.08));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin-bottom: 20px;
+      border: 2px solid rgba(34,197,94,0.2);
+    }
+    .completed-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .completed-message {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 450px;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .completed-edit-btn {
+      margin-top: 18px;
+      padding: 12px 28px;
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .completed-edit-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* ── Success Screen ──────────────────────────── */
+    .success-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .success-animation {
+      width: 100px;
+      height: 100px;
+      background: linear-gradient(135deg, var(--accent), #16a34a);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      margin-bottom: 24px;
+      animation: successPop 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+      box-shadow: 0 8px 30px rgba(34,197,94,0.3);
+    }
+    @keyframes successPop {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .success-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .success-message {
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 480px;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+    .success-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      text-align: left;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: var(--shadow);
+    }
+    .success-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .success-step-icon {
+      width: 28px;
+      height: 28px;
+      background: rgba(34,197,94,0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+      color: var(--accent-dark);
+      font-weight: 700;
+    }
+
+    /* ── Confetti ──────────────────────────────────── */
+    .confetti-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999;
+      overflow: hidden;
+    }
+    .confetti {
+      position: absolute;
+      top: -10px;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      animation: confettiFall linear forwards;
+    }
+    @keyframes confettiFall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ── Validation ────────────────────────────────── */
+    .field-error {
+      border-color: var(--error) !important;
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important;
+    }
+    .field-error-msg {
+      font-size: 12px;
+      color: var(--error);
+      margin-top: 2px;
+      display: none;
+    }
+    .field-error-msg.visible {
+      display: block;
+    }
+
+    /* ── Footer ───────────────────────────────────── */
+    .footer {
+      text-align: center;
+      padding: 32px 20px;
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+    .footer-text {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .footer-text a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .footer-secure {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* ── Responsive ───────────────────────────────── */
+    @media (max-width: 640px) {
+      .header {
+        padding: 28px 16px 36px;
+      }
+      .header-title {
+        font-size: 18px;
+      }
+      .logo-text {
+        font-size: 24px;
+      }
+      .container {
+        padding: 0 12px 40px;
+      }
+      .progress-container {
+        padding: 14px 16px;
+      }
+      .progress-sections {
+        gap: 4px;
+      }
+      .progress-dot {
+        font-size: 11px;
+        padding: 3px 8px;
+      }
+      .section-header {
+        padding: 16px 18px;
+      }
+      .section-fields {
+        padding: 16px 18px 20px;
+      }
+      .multiselect-grid {
+        grid-template-columns: 1fr;
+      }
+      .addon-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .addon-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .submit-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 16px 24px;
+      }
+      .success-steps {
+        padding: 18px 20px;
+      }
+    }
+
+    /* ── Utility ──────────────────────────────────── */
+    .hidden { display: none !important; }
+
+    /* ── Tooltip for required fields ─────────────── */
+    .required-note {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading State -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading your onboarding form...</div>
+    <div class="loading-subtext">This only takes a moment</div>
+  </div>
+
+  <!-- Error State -->
+  <div id="errorScreen" class="error-screen hidden">
+    <div class="error-icon">!</div>
+    <div class="error-title" id="errorTitle">Something went wrong</div>
+    <div class="error-message" id="errorMessage">We couldn't load your onboarding form. Please check the link in your email and try again.</div>
+    <button class="error-retry" onclick="location.reload()">Try Again</button>
+  </div>
+
+  <!-- Main Content -->
+  <div id="mainContent" class="hidden">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-logo">
+        <div class="logo-icon">P</div>
+        <div class="logo-text">Qwillio</div>
+      </div>
+      <div class="header-title">Welcome, <span id="contactName"></span>!</div>
+      <div class="header-subtitle">Set up your AI receptionist for <strong id="businessNameHeader"></strong>. The more detail you provide, the smarter your assistant becomes.</div>
+      <div class="header-badge" id="planBadge"></div>
+    </div>
+
+    <!-- Already Completed State -->
+    <div id="completedBanner" class="hidden">
+      <div class="completed-screen">
+        <div class="completed-icon">&#10003;</div>
+        <div class="completed-title">Onboarding Already Completed</div>
+        <div class="completed-message">
+          You've already submitted your onboarding form. Your AI receptionist is configured and ready to go!
+        </div>
+        <div class="completed-message" style="font-size: 13px; color: var(--text-muted);">
+          Need to update your answers? Click below to edit.
+        </div>
+        <button class="completed-edit-btn" onclick="showForm()">Edit My Answers</button>
+      </div>
+    </div>
+
+    <!-- Form Content -->
+    <div id="formContent" class="container hidden">
+
+      <!-- Progress Bar -->
+      <div class="progress-container">
+        <div class="progress-header">
+          <span class="progress-label">Your progress</span>
+          <span class="progress-count" id="progressCount">0 / 0 sections</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-sections" id="progressSections"></div>
+      </div>
+
+      <!-- Required Note -->
+      <div class="required-note">
+        Fields marked with <span style="color: var(--error); font-weight: 600;">*</span> are required. Optional fields help your AI give even better answers.
+      </div>
+
+      <!-- Dynamic Sections -->
+      <div id="formSections"></div>
+
+      <!-- Submit Area -->
+      <div class="submit-area">
+        <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+          <div class="spinner"></div>
+          <span class="btn-text">Submit Onboarding Form</span>
+        </button>
+        <div class="submit-note">Your information is encrypted and secure. You can update it anytime.</div>
+      </div>
+
+      <!-- Add-ons Section -->
+      <div class="addons-section" id="addonsSection" style="display: none;">
+        <div class="addons-title">Supercharge Your AI</div>
+        <div class="addons-subtitle">Optional add-ons to extend your plan's capabilities</div>
+        <div id="addonsList"></div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <div class="footer-text">Powered by <a href="#">Qwillio</a> &mdash; AI Receptionists for Modern Businesses</div>
+        <div class="footer-secure">&#128274; Your data is protected with 256-bit encryption</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Screen -->
+  <div id="successScreen" class="hidden">
+    <div class="header">
+      <div class="header-logo">
+        <div class="logo-icon">P</div>
+        <div class="logo-text">Qwillio</div>
+      </div>
+    </div>
+    <div class="success-screen">
+      <div class="success-animation">&#10003;</div>
+      <div class="success-title">You're All Set!</div>
+      <div class="success-message">
+        Your onboarding form has been submitted successfully. Our team is now building your personalized AI receptionist.
+      </div>
+      <div class="success-steps">
+        <div class="success-step">
+          <div class="success-step-icon">1</div>
+          <span>We're configuring your AI with your business data</span>
+        </div>
+        <div class="success-step">
+          <div class="success-step-icon">2</div>
+          <span>You'll receive a personalized setup video within 24h</span>
+        </div>
+        <div class="success-step">
+          <div class="success-step-icon">3</div>
+          <span>Your AI receptionist will be live within 48 hours</span>
+        </div>
+        <div class="success-step">
+          <div class="success-step-icon">4</div>
+          <span>Check your email for dashboard access & next steps</span>
+        </div>
+      </div>
+    </div>
+    <div class="confetti-container" id="confettiContainer"></div>
+  </div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── Configuration ──────────────────────────────────
+  const API_BASE = window.location.hostname === 'localhost'
+    ? 'http://localhost:3000/api'
+    : '/api';
+
+  // ── Parse URL ──────────────────────────────────────
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  // Expected path: /onboarding/{clientId}
+  const onboardingIndex = pathParts.indexOf('onboarding');
+  const clientId = onboardingIndex !== -1 ? pathParts[onboardingIndex + 1] : null;
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+
+  // ── State ──────────────────────────────────────────
+  let formTemplate = null;
+  let clientData = null;
+  let existingData = null;
+  let sectionCompletion = {};
+  let addOnsData = null;
+  let activeAddOns = {};
+
+  // ── Initialize ─────────────────────────────────────
+  async function init() {
+    if (!clientId || !token) {
+      showError('Invalid Link', 'This onboarding link appears to be invalid or incomplete. Please use the link from your welcome email.');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        API_BASE + '/onboarding/' + encodeURIComponent(clientId) + '/form?token=' + encodeURIComponent(token)
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(function() { return {}; });
+        if (response.status === 404) {
+          showError('Client Not Found', 'We couldn\'t find your account. Please contact support or check the link in your email.');
+        } else if (response.status === 403) {
+          showError('Access Denied', 'This link has expired or is no longer valid. Please request a new onboarding link from your account manager.');
+        } else {
+          showError('Something Went Wrong', data.error || 'Please try again or contact support.');
+        }
+        return;
+      }
+
+      var data = await response.json();
+      clientData = data.client;
+      formTemplate = data.template;
+      existingData = data.existingData || {};
+
+      renderPage();
+      loadAddOns();
+
+    } catch (err) {
+      console.error('Failed to load onboarding form:', err);
+      showError('Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.');
+    }
+  }
+
+  // ── Show Error ─────────────────────────────────────
+  function showError(title, message) {
+    document.getElementById('loadingScreen').classList.add('hidden');
+    document.getElementById('errorTitle').textContent = title;
+    document.getElementById('errorMessage').textContent = message;
+    document.getElementById('errorScreen').classList.remove('hidden');
+  }
+
+  // ── Render Main Page ───────────────────────────────
+  function renderPage() {
+    document.getElementById('loadingScreen').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+
+    // Header info
+    document.getElementById('contactName').textContent = clientData.contactName || 'there';
+    document.getElementById('businessNameHeader').textContent = clientData.businessName || 'your business';
+
+    var planLabels = { basic: 'Starter Plan', pro: 'Pro Plan', enterprise: 'Enterprise Plan' };
+    var planEmojis = { basic: '&#9733;', pro: '&#9733;&#9733;', enterprise: '&#9733;&#9733;&#9733;' };
+    document.getElementById('planBadge').innerHTML =
+      (planEmojis[clientData.planType] || '&#9733;') + ' ' + (planLabels[clientData.planType] || clientData.planType);
+
+    document.title = 'Qwillio - Onboarding for ' + (clientData.businessName || 'Client');
+
+    // Check if already completed
+    if (clientData.onboardingFormDoneAt && !Object.keys(existingData).length === false) {
+      // If we have existingData OR onboardingFormDoneAt, show completed banner
+    }
+    if (clientData.onboardingFormDoneAt) {
+      document.getElementById('completedBanner').classList.remove('hidden');
+    } else {
+      showForm();
+    }
+  }
+
+  // ── Show Form (also used from "Edit My Answers") ───
+  window.showForm = function showFormFn() {
+    document.getElementById('completedBanner').classList.add('hidden');
+    document.getElementById('formContent').classList.remove('hidden');
+    renderForm();
+    renderProgress();
+  };
+
+  // ── Render Form Sections ───────────────────────────
+  function renderForm() {
+    var sectionsContainer = document.getElementById('formSections');
+    sectionsContainer.innerHTML = '';
+
+    var sections = formTemplate.sections || [];
+    var fields = formTemplate.fields || [];
+
+    sections.forEach(function(section) {
+      var sectionFields = fields.filter(function(f) { return f.section === section.id; });
+      if (sectionFields.length === 0) return;
+
+      var card = document.createElement('div');
+      card.className = 'section-card';
+      card.id = 'section-' + section.id;
+
+      var headerHtml = '<div class="section-header">' +
+        '<div class="section-title">' + escapeHtml(section.title) + '</div>' +
+        '<div class="section-description">' + escapeHtml(section.description) + '</div>' +
+        '</div>';
+
+      var fieldsHtml = '<div class="section-fields">';
+      sectionFields.forEach(function(field) {
+        fieldsHtml += renderField(field);
+      });
+      fieldsHtml += '</div>';
+
+      card.innerHTML = headerHtml + fieldsHtml;
+      sectionsContainer.appendChild(card);
+
+      // Initialize multiselect click handlers
+      sectionFields.forEach(function(field) {
+        if (field.type === 'multiselect') {
+          initMultiselect(field);
+        }
+      });
+    });
+
+    // Pre-fill existing data
+    if (existingData && Object.keys(existingData).length > 0) {
+      prefillForm(existingData);
+    }
+
+    // Listen for changes to update progress
+    sectionsContainer.addEventListener('input', function() {
+      updateProgress();
+    });
+
+    updateProgress();
+  }
+
+  // ── Render a Single Field ──────────────────────────
+  function renderField(field) {
+    var requiredMark = field.required
+      ? '<span class="field-required">*</span>'
+      : '<span class="field-optional">optional</span>';
+
+    var html = '<div class="field-group">' +
+      '<label class="field-label" for="field-' + field.id + '">' +
+        escapeHtml(field.label) + ' ' + requiredMark +
+      '</label>';
+
+    switch (field.type) {
+      case 'text':
+        html += '<input type="text" id="field-' + field.id + '" ' +
+          'data-field-id="' + field.id + '" ' +
+          'data-section="' + field.section + '" ' +
+          'data-required="' + field.required + '" ' +
+          (field.placeholder ? 'placeholder="' + escapeHtml(field.placeholder) + '"' : '') +
+          ' />';
+        break;
+
+      case 'number':
+        html += '<input type="number" id="field-' + field.id + '" ' +
+          'data-field-id="' + field.id + '" ' +
+          'data-section="' + field.section + '" ' +
+          'data-required="' + field.required + '" ' +
+          (field.placeholder ? 'placeholder="' + escapeHtml(field.placeholder) + '"' : '') +
+          ' />';
+        break;
+
+      case 'textarea':
+        html += '<textarea id="field-' + field.id + '" ' +
+          'data-field-id="' + field.id + '" ' +
+          'data-section="' + field.section + '" ' +
+          'data-required="' + field.required + '" ' +
+          (field.placeholder ? 'placeholder="' + escapeHtml(field.placeholder) + '"' : '') +
+          '></textarea>';
+        break;
+
+      case 'select':
+        html += '<select id="field-' + field.id + '" ' +
+          'data-field-id="' + field.id + '" ' +
+          'data-section="' + field.section + '" ' +
+          'data-required="' + field.required + '">' +
+          '<option value="">Select an option...</option>';
+        (field.options || []).forEach(function(opt) {
+          html += '<option value="' + escapeHtml(opt) + '">' + escapeHtml(opt) + '</option>';
+        });
+        html += '</select>';
+        break;
+
+      case 'multiselect':
+        html += '<div class="multiselect-grid" id="multiselect-' + field.id + '" ' +
+          'data-field-id="' + field.id + '" ' +
+          'data-section="' + field.section + '" ' +
+          'data-required="' + field.required + '" ' +
+          'data-type="multiselect">';
+        (field.options || []).forEach(function(opt) {
+          html += '<div class="multiselect-option" data-value="' + escapeHtml(opt) + '">' +
+            '<div class="multiselect-checkbox"><span class="multiselect-check">&#10003;</span></div>' +
+            '<span>' + escapeHtml(opt) + '</span>' +
+          '</div>';
+        });
+        html += '</div>';
+        break;
+    }
+
+    html += '<div class="field-error-msg" id="error-' + field.id + '">This field is required</div>';
+    html += '</div>';
+    return html;
+  }
+
+  // ── Initialize Multiselect Click Handlers ──────────
+  function initMultiselect(field) {
+    var container = document.getElementById('multiselect-' + field.id);
+    if (!container) return;
+
+    var options = container.querySelectorAll('.multiselect-option');
+    options.forEach(function(opt) {
+      opt.addEventListener('click', function() {
+        opt.classList.toggle('selected');
+        updateProgress();
+      });
+    });
+  }
+
+  // ── Pre-fill Form with Existing Data ───────────────
+  function prefillForm(data) {
+    Object.keys(data).forEach(function(key) {
+      var value = data[key];
+
+      // Handle multiselect
+      var multiContainer = document.getElementById('multiselect-' + key);
+      if (multiContainer && Array.isArray(value)) {
+        var options = multiContainer.querySelectorAll('.multiselect-option');
+        options.forEach(function(opt) {
+          if (value.indexOf(opt.getAttribute('data-value')) !== -1) {
+            opt.classList.add('selected');
+          }
+        });
+        return;
+      }
+
+      // Handle regular fields
+      var el = document.getElementById('field-' + key);
+      if (el) {
+        el.value = value;
+      }
+    });
+  }
+
+  // ── Progress Tracking ──────────────────────────────
+  function renderProgress() {
+    var progressSections = document.getElementById('progressSections');
+    progressSections.innerHTML = '';
+
+    var sections = formTemplate.sections || [];
+    sections.forEach(function(section) {
+      var sectionFields = (formTemplate.fields || []).filter(function(f) { return f.section === section.id; });
+      if (sectionFields.length === 0) return;
+
+      var dot = document.createElement('span');
+      dot.className = 'progress-dot';
+      dot.setAttribute('data-section-id', section.id);
+      dot.innerHTML = '<span class="dot-icon"></span>' + escapeHtml(section.title.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}]\s*/u, ''));
+      dot.addEventListener('click', function() {
+        var sectionEl = document.getElementById('section-' + section.id);
+        if (sectionEl) {
+          sectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+      progressSections.appendChild(dot);
+    });
+  }
+
+  function updateProgress() {
+    var sections = formTemplate.sections || [];
+    var fields = formTemplate.fields || [];
+    var completedCount = 0;
+    var totalSections = 0;
+
+    sections.forEach(function(section) {
+      var sectionFields = fields.filter(function(f) { return f.section === section.id; });
+      if (sectionFields.length === 0) return;
+      totalSections++;
+
+      var requiredFields = sectionFields.filter(function(f) { return f.required; });
+      var allFilled = true;
+
+      if (requiredFields.length === 0) {
+        // If no required fields, check if at least one optional field is filled
+        var anyFilled = sectionFields.some(function(f) {
+          return getFieldValue(f.id, f.type) !== '' && getFieldValue(f.id, f.type) !== null;
+        });
+        // Count section as "completed" if any field has data or if there are no required fields
+        allFilled = true;
+      } else {
+        requiredFields.forEach(function(f) {
+          var val = getFieldValue(f.id, f.type);
+          if (!val || (Array.isArray(val) && val.length === 0)) {
+            allFilled = false;
+          }
+        });
+      }
+
+      sectionCompletion[section.id] = allFilled;
+      if (allFilled) completedCount++;
+
+      // Update progress dots
+      var dot = document.querySelector('[data-section-id="' + section.id + '"]');
+      if (dot) {
+        dot.classList.remove('completed', 'active');
+        if (allFilled) {
+          dot.classList.add('completed');
+          dot.querySelector('.dot-icon').innerHTML = '&#10003;';
+        } else {
+          dot.querySelector('.dot-icon').innerHTML = '';
+        }
+      }
+    });
+
+    // Update progress bar
+    var percent = totalSections > 0 ? Math.round((completedCount / totalSections) * 100) : 0;
+    document.getElementById('progressFill').style.width = percent + '%';
+    document.getElementById('progressCount').textContent = completedCount + ' / ' + totalSections + ' sections';
+  }
+
+  function getFieldValue(fieldId, fieldType) {
+    if (fieldType === 'multiselect') {
+      var container = document.getElementById('multiselect-' + fieldId);
+      if (!container) return [];
+      var selected = container.querySelectorAll('.multiselect-option.selected');
+      var values = [];
+      selected.forEach(function(opt) {
+        values.push(opt.getAttribute('data-value'));
+      });
+      return values;
+    }
+
+    var el = document.getElementById('field-' + fieldId);
+    if (!el) return '';
+    return el.value.trim();
+  }
+
+  // ── Collect Form Data ──────────────────────────────
+  function collectFormData() {
+    var data = {};
+    var fields = formTemplate.fields || [];
+
+    fields.forEach(function(field) {
+      var value = getFieldValue(field.id, field.type);
+      if (field.type === 'multiselect') {
+        if (value.length > 0) data[field.id] = value;
+      } else if (field.type === 'number') {
+        if (value !== '') data[field.id] = Number(value);
+      } else {
+        if (value !== '') data[field.id] = value;
+      }
+    });
+
+    return data;
+  }
+
+  // ── Validate Form ──────────────────────────────────
+  function validateForm() {
+    var fields = formTemplate.fields || [];
+    var isValid = true;
+    var firstErrorField = null;
+
+    // Clear all errors first
+    fields.forEach(function(field) {
+      var errorEl = document.getElementById('error-' + field.id);
+      if (errorEl) errorEl.classList.remove('visible');
+
+      if (field.type === 'multiselect') {
+        var mc = document.getElementById('multiselect-' + field.id);
+        if (mc) mc.style.outline = '';
+      } else {
+        var el = document.getElementById('field-' + field.id);
+        if (el) el.classList.remove('field-error');
+      }
+    });
+
+    // Validate required fields
+    fields.forEach(function(field) {
+      if (!field.required) return;
+
+      var value = getFieldValue(field.id, field.type);
+      var isEmpty = false;
+
+      if (field.type === 'multiselect') {
+        isEmpty = !value || value.length === 0;
+      } else {
+        isEmpty = !value || value === '';
+      }
+
+      if (isEmpty) {
+        isValid = false;
+        var errorEl = document.getElementById('error-' + field.id);
+        if (errorEl) errorEl.classList.add('visible');
+
+        if (field.type === 'multiselect') {
+          var mc = document.getElementById('multiselect-' + field.id);
+          if (mc) mc.style.outline = '2px solid var(--error)';
+        } else {
+          var el = document.getElementById('field-' + field.id);
+          if (el) el.classList.add('field-error');
+        }
+
+        if (!firstErrorField) {
+          firstErrorField = field;
+        }
+      }
+    });
+
+    // Scroll to first error
+    if (firstErrorField) {
+      var errorFieldEl = document.getElementById('field-' + firstErrorField.id) ||
+                         document.getElementById('multiselect-' + firstErrorField.id);
+      if (errorFieldEl) {
+        errorFieldEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    return isValid;
+  }
+
+  // ── Submit Form ────────────────────────────────────
+  window.submitForm = async function() {
+    if (!validateForm()) return;
+
+    var btn = document.getElementById('submitBtn');
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    var formData = collectFormData();
+
+    try {
+      var response = await fetch(
+        API_BASE + '/onboarding/' + encodeURIComponent(clientId) + '/form?token=' + encodeURIComponent(token),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ formData: formData, token: token }),
+        }
+      );
+
+      if (!response.ok) {
+        var errData = await response.json().catch(function() { return {}; });
+        throw new Error(errData.error || 'Submission failed');
+      }
+
+      await response.json();
+
+      // Show success screen
+      document.getElementById('mainContent').classList.add('hidden');
+      document.getElementById('successScreen').classList.remove('hidden');
+      window.scrollTo(0, 0);
+      launchConfetti();
+
+    } catch (err) {
+      console.error('Submit error:', err);
+      alert('Failed to submit: ' + (err.message || 'Unknown error. Please try again.'));
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  };
+
+  // ── Load Add-ons ───────────────────────────────────
+  async function loadAddOns() {
+    try {
+      var response = await fetch(
+        API_BASE + '/onboarding/' + encodeURIComponent(clientId) + '/add-ons'
+      );
+      if (!response.ok) return;
+
+      var data = await response.json();
+      addOnsData = data.available || [];
+      activeAddOns = data.active || {};
+
+      if (addOnsData.length > 0) {
+        renderAddOns();
+        document.getElementById('addonsSection').style.display = 'block';
+      }
+    } catch (err) {
+      console.error('Failed to load add-ons:', err);
+    }
+  }
+
+  // ── Render Add-ons ─────────────────────────────────
+  function renderAddOns() {
+    var container = document.getElementById('addonsList');
+    container.innerHTML = '';
+
+    addOnsData.forEach(function(addon) {
+      var isActive = activeAddOns[addon.id] && activeAddOns[addon.id].active;
+
+      var card = document.createElement('div');
+      card.className = 'addon-card' + (isActive ? ' active' : '');
+      card.id = 'addon-card-' + addon.id;
+      card.innerHTML =
+        '<div class="addon-info">' +
+          '<div class="addon-name">' + escapeHtml(addon.name) + '</div>' +
+          '<div class="addon-desc">' + escapeHtml(addon.description) + '</div>' +
+        '</div>' +
+        '<div class="addon-right">' +
+          '<div class="addon-price">+$' + addon.price + '/mo</div>' +
+          '<button class="addon-toggle' + (isActive ? ' active' : '') + '" ' +
+            'id="addon-toggle-' + addon.id + '" ' +
+            'onclick="toggleAddOn(\'' + addon.id + '\')" ' +
+            (isActive ? 'disabled' : '') +
+            ' aria-label="Toggle ' + escapeHtml(addon.name) + '">' +
+          '</button>' +
+        '</div>';
+
+      container.appendChild(card);
+    });
+  }
+
+  // ── Toggle Add-on ──────────────────────────────────
+  window.toggleAddOn = async function(addOnId) {
+    var toggleBtn = document.getElementById('addon-toggle-' + addOnId);
+    var card = document.getElementById('addon-card-' + addOnId);
+    if (!toggleBtn || toggleBtn.disabled) return;
+
+    toggleBtn.disabled = true;
+
+    try {
+      var response = await fetch(
+        API_BASE + '/onboarding/' + encodeURIComponent(clientId) + '/add-ons/' + encodeURIComponent(addOnId),
+        { method: 'POST' }
+      );
+
+      if (!response.ok) throw new Error('Failed to activate');
+
+      activeAddOns[addOnId] = { active: true, activatedAt: new Date().toISOString() };
+      toggleBtn.classList.add('active');
+      card.classList.add('active');
+
+    } catch (err) {
+      console.error('Add-on activation error:', err);
+      toggleBtn.disabled = false;
+    }
+  };
+
+  // ── Confetti Animation ─────────────────────────────
+  function launchConfetti() {
+    var container = document.getElementById('confettiContainer');
+    var colors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
+    var totalPieces = 80;
+
+    for (var i = 0; i < totalPieces; i++) {
+      (function(index) {
+        setTimeout(function() {
+          var piece = document.createElement('div');
+          piece.className = 'confetti';
+          piece.style.left = (Math.random() * 100) + '%';
+          piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          piece.style.width = (Math.random() * 8 + 6) + 'px';
+          piece.style.height = (Math.random() * 8 + 6) + 'px';
+          piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+          piece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+          piece.style.animationDelay = '0s';
+          piece.style.opacity = (Math.random() * 0.5 + 0.5).toString();
+          container.appendChild(piece);
+
+          setTimeout(function() {
+            if (piece.parentNode) piece.parentNode.removeChild(piece);
+          }, 4500);
+        }, index * 30);
+      })(i);
+    }
+  }
+
+  // ── Utility ────────────────────────────────────────
+  function escapeHtml(str) {
+    if (!str) return '';
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
+  // ── Start ──────────────────────────────────────────
+  init();
+
+})();
+</script>
+
+</body>
+</html>

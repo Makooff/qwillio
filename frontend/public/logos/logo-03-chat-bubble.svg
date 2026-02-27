@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- Logo 3: Bulle de chat avec Q et ondes -->
+  <defs>
+    <linearGradient id="g3a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Bulle de conversation -->
+  <path d="M60 80 Q60 40 100 40 L300 40 Q340 40 340 80 L340 220 Q340 260 300 260 L160 260 L100 310 L120 260 L100 260 Q60 260 60 220 Z" fill="url(#g3a)" rx="30"/>
+  <!-- Lignes d'ondes sonores dans la bulle -->
+  <line x1="120" y1="120" x2="200" y2="120" stroke="white" stroke-width="10" stroke-linecap="round" opacity="0.9"/>
+  <line x1="120" y1="155" x2="260" y2="155" stroke="white" stroke-width="10" stroke-linecap="round" opacity="0.7"/>
+  <line x1="120" y1="190" x2="230" y2="190" stroke="white" stroke-width="10" stroke-linecap="round" opacity="0.5"/>
+  <!-- Petit cercle Q -->
+  <circle cx="285" cy="105" r="22" fill="white" opacity="0.2"/>
+  <text x="285" y="114" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-size="28" font-weight="800" fill="white" opacity="0.5">Q</text>
+  <!-- Texte sous la bulle -->
+  <text x="200" y="370" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="44" font-weight="700" fill="#4f46e5" letter-spacing="4">Qwillio</text>
+</svg>

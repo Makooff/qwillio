@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- Logo 4: Téléphone avec ondes circulaires -->
+  <defs>
+    <linearGradient id="g4a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Cercles concentriques (ondes) -->
+  <circle cx="200" cy="170" r="140" fill="none" stroke="#e0e7ff" stroke-width="3"/>
+  <circle cx="200" cy="170" r="110" fill="none" stroke="#c7d2fe" stroke-width="4"/>
+  <circle cx="200" cy="170" r="80" fill="none" stroke="#a5b4fc" stroke-width="5"/>
+  <!-- Fond central -->
+  <circle cx="200" cy="170" r="55" fill="url(#g4a)"/>
+  <!-- Icone téléphone -->
+  <path d="M178 148 C178 148 172 148 172 155 L172 165 C172 168 174 170 177 170 L183 170 L188 180 C188 180 195 185 200 170 C205 185 212 180 212 180 L217 170 L223 170 C226 170 228 168 228 165 L228 155 C228 148 222 148 222 148" fill="none" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Point AI -->
+  <circle cx="200" cy="160" r="5" fill="white"/>
+  <!-- Texte -->
+  <text x="200" y="355" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="44" font-weight="700" fill="#1e1b4b" letter-spacing="3">Qwillio</text>
+  <text x="200" y="385" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="14" font-weight="500" fill="#6366f1" letter-spacing="8">AI RECEPTIONIST</text>
+</svg>

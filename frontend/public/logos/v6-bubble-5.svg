@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- BUBBLE V5: Fond sombre, bulles lumineuses -->
+  <rect width="400" height="400" rx="20" fill="#0f172a"/>
+  <defs>
+    <linearGradient id="bb5a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf"/><stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="bb5b" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <filter id="bb5gl">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <ellipse cx="155" cy="148" rx="82" ry="68" fill="url(#bb5a)" opacity="0.9" filter="url(#bb5gl)"/>
+  <polygon points="118,202 100,242 158,196" fill="url(#bb5a)" opacity="0.9"/>
+  <ellipse cx="240" cy="138" rx="75" ry="62" fill="url(#bb5b)" opacity="0.7" filter="url(#bb5gl)"/>
+  <polygon points="275,185 302,218 250,182" fill="url(#bb5b)" opacity="0.7"/>
+  <line x1="125" y1="130" x2="125" y2="166" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+  <line x1="140" y1="120" x2="140" y2="176" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <line x1="155" y1="126" x2="155" y2="170" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+  <line x1="170" y1="132" x2="170" y2="164" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+  <circle cx="220" cy="138" r="4.5" fill="white" opacity="0.85"/>
+  <circle cx="240" cy="138" r="4.5" fill="white" opacity="0.85"/>
+  <circle cx="260" cy="138" r="4.5" fill="white" opacity="0.85"/>
+  <text x="200" y="325" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="46" font-weight="700" fill="#e2e8f0" letter-spacing="3">Qwillio</text>
+  <text x="200" y="358" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="11" fill="#2dd4bf" letter-spacing="6">AI RECEPTIONIST</text>
+</svg>

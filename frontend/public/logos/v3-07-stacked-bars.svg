@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V3-07: STACKED BARS - Q formé par des barres horizontales empilées -->
+  <defs>
+    <linearGradient id="sb1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(100, 30)">
+    <!-- Barres formant le Q -->
+    <rect x="50" y="0" width="100" height="16" rx="8" fill="#4f46e5" opacity="0.6"/>
+    <rect x="25" y="28" width="155" height="16" rx="8" fill="#4f46e5" opacity="0.7"/>
+    <rect x="10" y="56" width="55" height="16" rx="8" fill="#4f46e5" opacity="0.85"/>
+    <rect x="140" y="56" width="55" height="16" rx="8" fill="#6366f1" opacity="0.85"/>
+    <rect x="0" y="84" width="48" height="16" rx="8" fill="#4f46e5"/>
+    <rect x="155" y="84" width="48" height="16" rx="8" fill="#6366f1"/>
+    <rect x="0" y="112" width="48" height="16" rx="8" fill="#4f46e5"/>
+    <rect x="155" y="112" width="48" height="16" rx="8" fill="#7c3aed"/>
+    <rect x="0" y="140" width="48" height="16" rx="8" fill="#4f46e5"/>
+    <rect x="155" y="140" width="48" height="16" rx="8" fill="#7c3aed"/>
+    <rect x="10" y="168" width="55" height="16" rx="8" fill="#6366f1" opacity="0.85"/>
+    <rect x="140" y="168" width="55" height="16" rx="8" fill="#7c3aed" opacity="0.85"/>
+    <rect x="25" y="196" width="155" height="16" rx="8" fill="#7c3aed" opacity="0.7"/>
+    <rect x="50" y="224" width="100" height="16" rx="8" fill="#8b5cf6" opacity="0.6"/>
+    <!-- Queue -->
+    <rect x="150" y="240" width="60" height="14" rx="7" fill="#8b5cf6" opacity="0.8" transform="rotate(45, 180, 247)"/>
+    <rect x="170" y="258" width="50" height="14" rx="7" fill="#a855f7" opacity="0.6" transform="rotate(45, 195, 265)"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="200" y="365" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-size="46" font-weight="700" fill="#1e1b4b" letter-spacing="4">Qwillio</text>
+</svg>

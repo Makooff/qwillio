@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V3-12: LAYERED - Trois Q empilés en perspective -->
+  <!-- Q arrière (le plus clair) -->
+  <circle cx="210" cy="140" r="75" fill="none" stroke="#e0e7ff" stroke-width="18"/>
+  <line x1="263" y1="193" x2="298" y2="228" stroke="#e0e7ff" stroke-width="18" stroke-linecap="round"/>
+  <!-- Q milieu -->
+  <circle cx="198" cy="155" r="75" fill="none" stroke="#a5b4fc" stroke-width="18"/>
+  <line x1="251" y1="208" x2="286" y2="243" stroke="#a5b4fc" stroke-width="18" stroke-linecap="round"/>
+  <!-- Q avant (le plus foncé) -->
+  <circle cx="186" cy="170" r="75" fill="none" stroke="#4f46e5" stroke-width="18"/>
+  <line x1="239" y1="223" x2="274" y2="258" stroke="#4f46e5" stroke-width="18" stroke-linecap="round"/>
+  <!-- Wordmark -->
+  <text x="200" y="355" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-size="48" font-weight="700" fill="#1e1b4b" letter-spacing="4">Qwillio</text>
+</svg>

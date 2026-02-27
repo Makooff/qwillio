@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 02: VOICE WAVE CIRCLE — Onde vocale circulaire, micro stylisé au centre -->
+  <defs>
+    <linearGradient id="b1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <!-- Cercle extérieur -->
+  <circle cx="200" cy="165" r="115" fill="url(#b1)"/>
+  <!-- Onde vocale symétrique (barres verticales) -->
+  <g transform="translate(200, 165)">
+    <rect x="-48" y="-18" width="7" height="36" rx="3.5" fill="white" opacity="0.5"/>
+    <rect x="-36" y="-28" width="7" height="56" rx="3.5" fill="white" opacity="0.6"/>
+    <rect x="-24" y="-38" width="7" height="76" rx="3.5" fill="white" opacity="0.7"/>
+    <rect x="-12" y="-48" width="7" height="96" rx="3.5" fill="white" opacity="0.85"/>
+    <rect x="0" y="-55" width="7" height="110" rx="3.5" fill="white" opacity="1"/>
+    <rect x="12" y="-45" width="7" height="90" rx="3.5" fill="white" opacity="0.85"/>
+    <rect x="24" y="-35" width="7" height="70" rx="3.5" fill="white" opacity="0.7"/>
+    <rect x="36" y="-25" width="7" height="50" rx="3.5" fill="white" opacity="0.6"/>
+    <rect x="48" y="-15" width="7" height="30" rx="3.5" fill="white" opacity="0.5"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="200" y="340" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="48" font-weight="700" fill="#1e3a5f" letter-spacing="3">Qwillio</text>
+</svg>

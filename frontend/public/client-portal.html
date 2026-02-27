@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qwillio - Client Dashboard</title>
+  <style>
+    /* ─── Reset & Base ──────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-light: #a5b4fc;
+      --accent: #22c55e;
+      --accent-dark: #16a34a;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --border: #e2e8f0;
+      --sidebar-w: 260px;
+      --header-h: 72px;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    a { color: var(--primary); text-decoration: none; }
+    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+
+    /* ─── Loading Screen ────────────────────────────────── */
+    #loading-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #fff; transition: opacity 0.4s, visibility 0.4s;
+    }
+    #loading-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .loader-logo { font-size: 48px; margin-bottom: 24px; animation: pulse-logo 1.5s ease-in-out infinite; }
+    @keyframes pulse-logo { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } }
+    .loader-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+    .loader-bar-inner { width: 40%; height: 100%; background: #fff; border-radius: 2px; animation: loader-slide 1.2s ease-in-out infinite; }
+    @keyframes loader-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+
+    /* ─── Error Screen ──────────────────────────────────── */
+    #error-screen {
+      position: fixed; inset: 0; z-index: 9998;
+      background: var(--bg);
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 40px;
+    }
+    #error-screen.visible { display: flex; }
+    .error-icon { font-size: 64px; margin-bottom: 20px; }
+    .error-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+    .error-msg { color: var(--text-secondary); margin-bottom: 24px; max-width: 400px; }
+    .error-btn {
+      padding: 12px 24px; background: var(--primary); color: #fff;
+      border-radius: var(--radius-sm); font-weight: 600; font-size: 14px;
+      transition: background 0.2s;
+    }
+    .error-btn:hover { background: var(--primary-dark); }
+
+    /* ─── Trial Banner ──────────────────────────────────── */
+    #trial-banner {
+      display: none; background: linear-gradient(90deg, var(--warning), #f97316);
+      color: #fff; text-align: center; padding: 10px 20px;
+      font-size: 14px; font-weight: 600;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    }
+    #trial-banner .trial-text { display: inline-flex; align-items: center; gap: 8px; }
+    body.has-trial { padding-top: 40px; }
+    body.has-trial .sidebar { top: 40px; height: calc(100vh - 40px); }
+    body.has-trial .main-content { padding-top: calc(var(--header-h) + 40px); }
+
+    /* ─── Sidebar ───────────────────────────────────────── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-w); background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 50;
+      transition: transform 0.3s;
+    }
+    .sidebar-header {
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 20px; font-weight: 800; color: var(--primary);
+    }
+    .sidebar-brand-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 18px;
+    }
+    .sidebar-client {
+      margin-top: 12px; padding: 12px; border-radius: var(--radius-sm);
+      background: #f8fafc;
+    }
+    .sidebar-client-name { font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 2px; }
+    .sidebar-client-type { font-size: 12px; color: var(--text-secondary); }
+    .plan-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+      text-transform: uppercase; margin-top: 6px;
+    }
+    .plan-badge.starter { background: #dbeafe; color: #2563eb; }
+    .plan-badge.pro { background: #ede9fe; color: #7c3aed; }
+    .plan-badge.enterprise { background: #fef3c7; color: #d97706; }
+
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 14px; border-radius: var(--radius-sm);
+      font-size: 14px; font-weight: 500; color: var(--text-secondary);
+      transition: all 0.15s; margin-bottom: 2px; width: 100%;
+      text-align: left;
+    }
+    .nav-item:hover { background: #f1f5f9; color: var(--text); }
+    .nav-item.active { background: #eef2ff; color: var(--primary); font-weight: 600; }
+    .nav-item .nav-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+    .nav-item .nav-badge {
+      margin-left: auto; padding: 2px 8px; border-radius: 10px;
+      font-size: 11px; font-weight: 700; background: var(--primary); color: #fff;
+    }
+
+    .sidebar-phone {
+      padding: 16px 20px; border-top: 1px solid var(--border);
+      background: #f8fafc;
+    }
+    .phone-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 4px; }
+    .phone-number { font-size: 16px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; }
+
+    /* ─── Mobile Menu Toggle ────────────────────────────── */
+    .mobile-toggle {
+      display: none; position: fixed; top: 16px; left: 16px; z-index: 200;
+      width: 44px; height: 44px; border-radius: var(--radius-sm);
+      background: var(--surface); box-shadow: var(--shadow-md);
+      align-items: center; justify-content: center; font-size: 22px;
+    }
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0; z-index: 40;
+      background: rgba(0,0,0,0.3);
+    }
+
+    /* ─── Main Content ──────────────────────────────────── */
+    .main-content {
+      margin-left: var(--sidebar-w);
+      padding: 24px 32px 40px;
+      min-height: 100vh;
+    }
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+    }
+    .page-title { font-size: 24px; font-weight: 700; color: var(--text); }
+    .page-subtitle { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .refresh-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: var(--radius-sm);
+      background: var(--surface); border: 1px solid var(--border);
+      font-size: 13px; font-weight: 500; color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .refresh-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .refresh-btn.spinning .refresh-icon { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .last-updated { font-size: 12px; color: var(--text-muted); }
+
+    /* ─── Cards Grid ────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 20px; box-shadow: var(--shadow);
+      border: 1px solid var(--border); transition: box-shadow 0.2s;
+    }
+    .kpi-card:hover { box-shadow: var(--shadow-md); }
+    .kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .kpi-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1.1; }
+    .kpi-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+    .kpi-icon { float: right; font-size: 24px; opacity: 0.7; }
+
+    /* ─── Sections/Panels ───────────────────────────────── */
+    .panel {
+      background: var(--surface); border-radius: var(--radius);
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      margin-bottom: 24px; overflow: hidden;
+    }
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+    }
+    .panel-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    .panel-body { padding: 24px; }
+
+    /* ─── Quota Bar ──────────────────────────────────────── */
+    .quota-section { margin-bottom: 24px; }
+    .quota-bar-wrap {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 20px 24px; box-shadow: var(--shadow); border: 1px solid var(--border);
+    }
+    .quota-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .quota-label { font-size: 14px; font-weight: 600; color: var(--text); }
+    .quota-numbers { font-size: 13px; color: var(--text-secondary); }
+    .quota-track { width: 100%; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; }
+    .quota-fill { height: 100%; border-radius: 5px; transition: width 0.8s ease; background: var(--primary); }
+    .quota-fill.warn { background: var(--warning); }
+    .quota-fill.danger { background: var(--error); }
+    .quota-pct { font-size: 12px; color: var(--text-muted); margin-top: 6px; text-align: right; }
+
+    /* ─── Sentiment Chart (SVG Donut) ───────────────────── */
+    .sentiment-chart-wrap {
+      display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+    }
+    .donut-svg { width: 140px; height: 140px; transform: rotate(-90deg); }
+    .donut-track { fill: none; stroke: #e2e8f0; stroke-width: 14; }
+    .donut-segment { fill: none; stroke-width: 14; stroke-linecap: round; transition: stroke-dasharray 0.8s; }
+    .sentiment-legend { display: flex; flex-direction: column; gap: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .legend-count { font-weight: 700; margin-left: 4px; }
+
+    /* ─── Table ──────────────────────────────────────────── */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      text-align: left; padding: 12px 16px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-muted);
+      border-bottom: 2px solid var(--border); background: #f8fafc;
+    }
+    .data-table td {
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+      font-size: 14px; color: var(--text); vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: #f8fafc; }
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .badge-positive { background: #dcfce7; color: #16a34a; }
+    .badge-neutral { background: #fef3c7; color: #d97706; }
+    .badge-negative { background: #fee2e2; color: #dc2626; }
+    .badge-lead { background: #ede9fe; color: #7c3aed; }
+    .badge-confirmed { background: #dcfce7; color: #16a34a; }
+    .badge-pending { background: #fef3c7; color: #d97706; }
+    .badge-cancelled { background: #fee2e2; color: #dc2626; }
+
+    .call-summary {
+      max-height: 0; overflow: hidden; transition: max-height 0.3s;
+      font-size: 13px; color: var(--text-secondary); line-height: 1.6;
+    }
+    .call-summary.open { max-height: 200px; padding-top: 8px; }
+    .expand-btn {
+      font-size: 12px; color: var(--primary); font-weight: 600;
+      padding: 2px 0; display: inline-flex; align-items: center; gap: 4px;
+    }
+
+    /* ─── Pagination ────────────────────────────────────── */
+    .pagination {
+      display: flex; align-items: center; justify-content: center;
+      gap: 4px; padding: 16px 24px;
+    }
+    .page-btn {
+      padding: 8px 14px; border-radius: 6px; font-size: 13px;
+      font-weight: 500; color: var(--text-secondary);
+      border: 1px solid var(--border); background: var(--surface);
+      transition: all 0.15s;
+    }
+    .page-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .page-btn:disabled { opacity: 0.4; cursor: default; }
+    .page-info { font-size: 13px; color: var(--text-muted); padding: 0 8px; }
+
+    /* ─── Lead Cards ────────────────────────────────────── */
+    .leads-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+    .lead-card {
+      background: var(--surface); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 20px;
+      box-shadow: var(--shadow); transition: box-shadow 0.2s;
+    }
+    .lead-card:hover { box-shadow: var(--shadow-md); }
+    .lead-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+    .lead-name { font-weight: 700; font-size: 15px; color: var(--text); }
+    .lead-score {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 700;
+    }
+    .lead-score.high { background: #dcfce7; color: #16a34a; }
+    .lead-score.medium { background: #fef3c7; color: #d97706; }
+    .lead-score.low { background: #fee2e2; color: #dc2626; }
+    .lead-detail { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .lead-summary { font-size: 13px; color: var(--text-secondary); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); line-height: 1.5; }
+    .lead-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+    .lead-tag { padding: 2px 8px; border-radius: 4px; background: #f1f5f9; font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+
+    /* ─── Booking Cards ─────────────────────────────────── */
+    .bookings-list { display: flex; flex-direction: column; gap: 12px; }
+    .booking-card {
+      display: flex; align-items: center; gap: 16px;
+      padding: 16px 20px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: var(--surface);
+      transition: box-shadow 0.2s;
+    }
+    .booking-card:hover { box-shadow: var(--shadow-md); }
+    .booking-date-block {
+      width: 56px; height: 56px; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      color: #fff; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .booking-date-month { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .booking-date-day { font-size: 22px; font-weight: 800; line-height: 1; }
+    .booking-info { flex: 1; min-width: 0; }
+    .booking-customer { font-weight: 700; font-size: 14px; color: var(--text); }
+    .booking-time-service { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+    .booking-notes { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-style: italic; }
+
+    /* ─── Analytics ──────────────────────────────────────── */
+    .analytics-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .chart-container { position: relative; }
+    .bar-chart {
+      display: flex; align-items: flex-end; gap: 3px;
+      height: 180px; padding-top: 10px;
+    }
+    .bar-col {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end; height: 100%;
+    }
+    .bar-rect {
+      width: 100%; min-width: 6px; max-width: 28px;
+      border-radius: 4px 4px 0 0; background: var(--primary);
+      transition: height 0.5s; cursor: pointer; position: relative;
+    }
+    .bar-rect:hover { background: var(--primary-dark); }
+    .bar-label { font-size: 9px; color: var(--text-muted); margin-top: 6px; text-align: center; }
+    .bar-tooltip {
+      display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+      transform: translateX(-50%); padding: 4px 8px; border-radius: 4px;
+      background: var(--text); color: #fff; font-size: 11px; font-weight: 600;
+      white-space: nowrap; z-index: 10;
+    }
+    .bar-rect:hover .bar-tooltip { display: block; }
+
+    /* Heatmap */
+    .heatmap-grid {
+      display: grid; grid-template-columns: repeat(12, 1fr);
+      gap: 4px;
+    }
+    .heat-cell {
+      aspect-ratio: 1; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 600; color: var(--text-muted);
+      cursor: default; position: relative;
+    }
+    .heat-cell .heat-tip {
+      display: none; position: absolute; bottom: calc(100% + 4px); left: 50%;
+      transform: translateX(-50%); padding: 3px 8px; border-radius: 4px;
+      background: var(--text); color: #fff; font-size: 10px; white-space: nowrap; z-index: 10;
+    }
+    .heat-cell:hover .heat-tip { display: block; }
+    .heat-labels { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; margin-top: 4px; }
+    .heat-label { font-size: 9px; color: var(--text-muted); text-align: center; }
+
+    /* Peak Days */
+    .peak-days { display: flex; gap: 8px; flex-wrap: wrap; }
+    .day-card {
+      flex: 1; min-width: 60px; text-align: center; padding: 12px 8px;
+      border-radius: var(--radius-sm); background: #f8fafc;
+      border: 1px solid var(--border);
+    }
+    .day-name { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+    .day-count { font-size: 20px; font-weight: 800; color: var(--text); margin-top: 4px; }
+
+    /* ─── Skeleton Loaders ──────────────────────────────── */
+    .skeleton { border-radius: 6px; background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ─── Empty State ───────────────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 48px 24px; color: var(--text-muted);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.6; }
+    .empty-title { font-size: 16px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+    .empty-desc { font-size: 14px; }
+
+    /* ─── Status Indicator ──────────────────────────────── */
+    .status-dot {
+      display: inline-block; width: 8px; height: 8px;
+      border-radius: 50%; margin-right: 6px;
+    }
+    .status-dot.active { background: var(--accent); box-shadow: 0 0 0 3px rgba(34,197,94,0.2); }
+    .status-dot.inactive { background: var(--text-muted); }
+    .status-dot.trial { background: var(--warning); box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+
+    /* ─── Responsive ────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .analytics-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); z-index: 200; }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.visible { display: block; }
+      .mobile-toggle { display: flex; }
+      .main-content { margin-left: 0; padding: 24px 16px 40px; }
+      body.has-trial .mobile-toggle { top: 52px; }
+      .kpi-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+      .leads-grid { grid-template-columns: 1fr; }
+      .data-table { font-size: 13px; }
+      .data-table th, .data-table td { padding: 10px 10px; }
+      .page-header { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* ─── Tab sections visibility ────────────────────────── */
+    .tab-section { display: none; }
+    .tab-section.active { display: block; }
+
+    /* ─── Utility ────────────────────────────────────────── */
+    .flex-center { display: flex; align-items: center; justify-content: center; }
+    .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mt-8 { margin-top: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .mb-16 { margin-bottom: 16px; }
+    .gap-8 { gap: 8px; }
+    .fw-700 { font-weight: 700; }
+
+    /* Score bar */
+    .score-bar-wrap { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+    .score-bar-track { flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+    .score-bar-fill { height: 100%; border-radius: 3px; }
+    .score-label { font-size: 13px; font-weight: 700; min-width: 38px; text-align: right; }
+
+    /* Conversion/Satisfaction stat cards */
+    .stat-big { text-align: center; padding: 24px; }
+    .stat-big-value { font-size: 42px; font-weight: 800; line-height: 1; }
+    .stat-big-label { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loader-logo">&#x26A1;</div>
+    <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Qwillio</div>
+    <div style="font-size: 14px; opacity: 0.7; margin-bottom: 20px;">Loading your dashboard...</div>
+    <div class="loader-bar"><div class="loader-bar-inner"></div></div>
+  </div>
+
+  <!-- Error Screen -->
+  <div id="error-screen">
+    <div class="error-icon">&#x1F6AB;</div>
+    <div class="error-title" id="error-title">Unable to load dashboard</div>
+    <div class="error-msg" id="error-msg">Please check the URL and try again, or contact support.</div>
+    <button class="error-btn" onclick="location.reload()">Retry</button>
+  </div>
+
+  <!-- Trial Banner -->
+  <div id="trial-banner">
+    <span class="trial-text">
+      <span>&#x23F3;</span>
+      <span id="trial-text">Trial period active</span>
+    </span>
+  </div>
+
+  <!-- Mobile Menu Toggle -->
+  <button class="mobile-toggle" onclick="toggleSidebar()">&#9776;</button>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">&#x26A1;</div>
+        <span>Qwillio</span>
+      </div>
+      <div class="sidebar-client" id="sidebar-client">
+        <div class="sidebar-client-name" id="client-name">---</div>
+        <div class="sidebar-client-type" id="client-type">---</div>
+        <div id="plan-badge-wrap"></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-tab="overview" onclick="switchTab('overview', this)">
+        <span class="nav-icon">&#x1F4CA;</span> Overview
+      </button>
+      <button class="nav-item" data-tab="calls" onclick="switchTab('calls', this)">
+        <span class="nav-icon">&#x1F4DE;</span> Calls
+        <span class="nav-badge" id="nav-calls-count">0</span>
+      </button>
+      <button class="nav-item" data-tab="bookings" onclick="switchTab('bookings', this)">
+        <span class="nav-icon">&#x1F4C5;</span> Bookings
+        <span class="nav-badge" id="nav-bookings-count" style="background: var(--accent)">0</span>
+      </button>
+      <button class="nav-item" data-tab="leads" onclick="switchTab('leads', this)">
+        <span class="nav-icon">&#x1F465;</span> Leads
+        <span class="nav-badge" id="nav-leads-count" style="background: #7c3aed">0</span>
+      </button>
+      <button class="nav-item" data-tab="analytics" onclick="switchTab('analytics', this)">
+        <span class="nav-icon">&#x1F4C8;</span> Analytics
+      </button>
+    </nav>
+    <div class="sidebar-phone" id="sidebar-phone" style="display:none;">
+      <div class="phone-label">AI Phone Number</div>
+      <div class="phone-number" id="ai-phone">&#x1F4F1; ---</div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title" id="page-title">Dashboard</h1>
+        <p class="page-subtitle" id="page-subtitle">Your AI assistant performance at a glance</p>
+      </div>
+      <div class="header-actions">
+        <span class="last-updated" id="last-updated"></span>
+        <button class="refresh-btn" id="refresh-btn" onclick="refreshData()">
+          <span class="refresh-icon" style="display:inline-block;">&#x21BB;</span> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══ OVERVIEW TAB ═══ -->
+    <div class="tab-section active" id="tab-overview">
+      <div class="kpi-grid" id="kpi-grid">
+        <!-- filled by JS -->
+      </div>
+      <div class="quota-section" id="quota-section">
+        <!-- filled by JS -->
+      </div>
+      <div class="analytics-grid" style="margin-top: 4px;">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Call Sentiment</span></div>
+          <div class="panel-body" id="sentiment-overview">
+            <!-- donut chart -->
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Quick Stats</span></div>
+          <div class="panel-body" id="quick-stats">
+            <!-- avg duration, subscription status -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CALLS TAB ═══ -->
+    <div class="tab-section" id="tab-calls">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Call History</span>
+          <span style="font-size:13px; color: var(--text-muted);" id="calls-total-label"></span>
+        </div>
+        <div id="calls-table-wrap">
+          <!-- table -->
+        </div>
+        <div class="pagination" id="calls-pagination"></div>
+      </div>
+    </div>
+
+    <!-- ═══ BOOKINGS TAB ═══ -->
+    <div class="tab-section" id="tab-bookings">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Upcoming Appointments</span>
+          <span style="font-size:13px; color: var(--text-muted);" id="bookings-total-label"></span>
+        </div>
+        <div class="panel-body" id="bookings-list-wrap">
+          <!-- booking cards -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LEADS TAB ═══ -->
+    <div class="tab-section" id="tab-leads">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Leads Collected by AI</span>
+          <span style="font-size:13px; color: var(--text-muted);" id="leads-total-label"></span>
+        </div>
+        <div class="panel-body" id="leads-grid-wrap">
+          <!-- lead cards -->
+        </div>
+        <div class="pagination" id="leads-pagination"></div>
+      </div>
+    </div>
+
+    <!-- ═══ ANALYTICS TAB ═══ -->
+    <div class="tab-section" id="tab-analytics">
+      <div class="analytics-grid" id="analytics-content">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// QWILLIO CLIENT PORTAL - Standalone Dashboard
+// ═══════════════════════════════════════════════════════════
+
+const API_BASE = window.location.origin + '/api/client-portal';
+let clientId = '';
+let dashboardToken = '';
+let overviewData = null;
+let currentCallsPage = 1;
+let currentLeadsPage = 1;
+
+// ─── URL Parsing ──────────────────────────────────────────
+function parseUrl() {
+  const path = window.location.pathname;
+  const match = path.match(/\/client-portal\/([^/?]+)/);
+  if (match) clientId = match[1];
+  const params = new URLSearchParams(window.location.search);
+  dashboardToken = params.get('token') || '';
+}
+
+// ─── API Helper ───────────────────────────────────────────
+async function api(endpoint, params = {}) {
+  const url = new URL(`${API_BASE}/${clientId}${endpoint}`, window.location.origin);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  if (dashboardToken) url.searchParams.set('token', dashboardToken);
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+// ─── Init ─────────────────────────────────────────────────
+parseUrl();
+
+if (!clientId) {
+  showError('Invalid URL', 'No client ID found in the URL. Please use the link provided by your Qwillio account manager.');
+} else {
+  loadDashboard();
+}
+
+async function loadDashboard() {
+  try {
+    const [overview, analytics] = await Promise.all([
+      api('/overview'),
+      api('/analytics', { days: 30 })
+    ]);
+    overviewData = overview;
+    window._analytics = analytics;
+
+    renderSidebar(overview.client);
+    renderTrialBanner(overview.client);
+    renderOverview(overview);
+    renderAnalytics(analytics);
+    updateNavBadges(overview);
+    updateLastUpdated();
+
+    // Load calls, bookings, leads in background
+    loadCalls(1);
+    loadBookings();
+    loadLeads(1);
+
+    document.getElementById('loading-screen').classList.add('hidden');
+  } catch (err) {
+    console.error('Dashboard load error:', err);
+    showError('Unable to load dashboard', 'Could not fetch your data. Please check your link or try again later.');
+  }
+}
+
+// ─── Error Screen ─────────────────────────────────────────
+function showError(title, msg) {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('error-title').textContent = title;
+  document.getElementById('error-msg').textContent = msg;
+  document.getElementById('error-screen').classList.add('visible');
+}
+
+// ─── Sidebar ──────────────────────────────────────────────
+function renderSidebar(client) {
+  document.getElementById('client-name').textContent = client.businessName || 'Client';
+  document.getElementById('client-type').textContent = client.businessType || '';
+  document.title = 'Qwillio - ' + (client.businessName || 'Dashboard');
+
+  const planType = (client.planType || 'starter').toLowerCase();
+  const planLabel = planType.toUpperCase();
+  document.getElementById('plan-badge-wrap').innerHTML =
+    '<span class="plan-badge ' + planType + '">' + planLabel + '</span>';
+
+  if (client.vapiPhoneNumber) {
+    document.getElementById('sidebar-phone').style.display = '';
+    document.getElementById('ai-phone').innerHTML = '&#x1F4F1; ' + escHtml(client.vapiPhoneNumber);
+  }
+}
+
+// ─── Trial Banner ─────────────────────────────────────────
+function renderTrialBanner(client) {
+  if (!client.isTrial) return;
+  const banner = document.getElementById('trial-banner');
+  banner.style.display = 'block';
+  document.body.classList.add('has-trial');
+
+  if (client.trialEndDate) {
+    const end = new Date(client.trialEndDate);
+    const now = new Date();
+    const days = Math.max(0, Math.ceil((end - now) / 86400000));
+    document.getElementById('trial-text').textContent =
+      days > 0
+        ? 'Trial period: ' + days + ' day' + (days !== 1 ? 's' : '') + ' remaining'
+        : 'Trial period has ended - upgrade to continue';
+  }
+}
+
+// ─── Overview ─────────────────────────────────────────────
+function renderOverview(data) {
+  const { calls, bookings, leads, sentiment, client } = data;
+
+  // KPI Cards
+  const kpis = [
+    { label: 'Calls Today', value: calls.today, icon: '&#x1F4DE;', sub: '' },
+    { label: 'Calls This Week', value: calls.thisWeek, icon: '&#x1F4C5;', sub: '' },
+    { label: 'Calls This Month', value: calls.thisMonth, icon: '&#x1F4CA;', sub: 'Total: ' + calls.total },
+    { label: 'Bookings', value: bookings.thisMonth, icon: '&#x1F4C5;', sub: bookings.upcoming + ' upcoming' },
+    { label: 'Leads This Month', value: leads.thisMonth, icon: '&#x1F465;', sub: '' },
+    { label: 'Avg Call Duration', value: formatDuration(calls.avgDuration), icon: '&#x23F1;', sub: '' },
+  ];
+
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k =>
+    '<div class="kpi-card">' +
+      '<span class="kpi-icon">' + k.icon + '</span>' +
+      '<div class="kpi-label">' + k.label + '</div>' +
+      '<div class="kpi-value">' + k.value + '</div>' +
+      (k.sub ? '<div class="kpi-sub">' + k.sub + '</div>' : '') +
+    '</div>'
+  ).join('');
+
+  // Quota Bar
+  const qUsed = calls.quotaUsed || 0;
+  const qTotal = calls.quota || 0;
+  const qPct = calls.quotaPercent || (qTotal > 0 ? Math.round(qUsed / qTotal * 100) : 0);
+  const qClass = qPct >= 90 ? 'danger' : qPct >= 70 ? 'warn' : '';
+  document.getElementById('quota-section').innerHTML =
+    '<div class="quota-bar-wrap">' +
+      '<div class="quota-header">' +
+        '<span class="quota-label">Monthly Call Quota</span>' +
+        '<span class="quota-numbers">' + qUsed + ' / ' + qTotal + ' calls</span>' +
+      '</div>' +
+      '<div class="quota-track"><div class="quota-fill ' + qClass + '" style="width:' + Math.min(qPct, 100) + '%"></div></div>' +
+      '<div class="quota-pct">' + qPct + '% used</div>' +
+    '</div>';
+
+  // Sentiment Donut
+  const sPos = sentiment.positive || 0;
+  const sNeu = sentiment.neutral || 0;
+  const sNeg = sentiment.negative || 0;
+  const sTotal = sPos + sNeu + sNeg;
+  renderSentimentDonut('sentiment-overview', sPos, sNeu, sNeg, sTotal);
+
+  // Quick Stats
+  const statusClass = (client.subscriptionStatus || '').toLowerCase() === 'active' ? 'active' : 'inactive';
+  document.getElementById('quick-stats').innerHTML =
+    '<div style="display:flex; flex-direction:column; gap:16px;">' +
+      '<div>' +
+        '<div class="kpi-label">Subscription Status</div>' +
+        '<div style="font-size:16px; font-weight:700; margin-top:4px;">' +
+          '<span class="status-dot ' + statusClass + '"></span>' +
+          escHtml(client.subscriptionStatus || 'N/A') +
+        '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="kpi-label">Total Calls (All Time)</div>' +
+        '<div style="font-size:24px; font-weight:800; margin-top:4px;">' + (client.totalCallsMade || 0) + '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="kpi-label">Average Duration</div>' +
+        '<div style="font-size:24px; font-weight:800; margin-top:4px;">' + formatDuration(calls.avgDuration) + '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="kpi-label">Plan Type</div>' +
+        '<div style="margin-top:4px;">' +
+          '<span class="plan-badge ' + (client.planType || 'starter').toLowerCase() + '">' + (client.planType || 'STARTER').toUpperCase() + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+// ─── Sentiment Donut ──────────────────────────────────────
+function renderSentimentDonut(containerId, pos, neu, neg, total) {
+  const container = document.getElementById(containerId);
+  if (total === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F4AC;</div><div class="empty-title">No sentiment data yet</div><div class="empty-desc">Sentiment analysis will appear after calls are processed.</div></div>';
+    return;
+  }
+  const r = 50;
+  const circ = 2 * Math.PI * r;
+  const pPos = pos / total;
+  const pNeu = neu / total;
+  const pNeg = neg / total;
+
+  const d1 = circ * pPos;
+  const g1 = circ - d1;
+  const d2 = circ * pNeu;
+  const g2 = circ - d2;
+  const d3 = circ * pNeg;
+  const g3 = circ - d3;
+
+  const off2 = d1;
+  const off3 = d1 + d2;
+
+  container.innerHTML =
+    '<div class="sentiment-chart-wrap">' +
+      '<svg class="donut-svg" viewBox="0 0 120 120">' +
+        '<circle class="donut-track" cx="60" cy="60" r="' + r + '"/>' +
+        (pPos > 0 ? '<circle class="donut-segment" cx="60" cy="60" r="' + r + '" stroke="#22c55e" stroke-dasharray="' + d1 + ' ' + g1 + '" stroke-dashoffset="0"/>' : '') +
+        (pNeu > 0 ? '<circle class="donut-segment" cx="60" cy="60" r="' + r + '" stroke="#f59e0b" stroke-dasharray="' + d2 + ' ' + g2 + '" stroke-dashoffset="-' + off2 + '"/>' : '') +
+        (pNeg > 0 ? '<circle class="donut-segment" cx="60" cy="60" r="' + r + '" stroke="#ef4444" stroke-dasharray="' + d3 + ' ' + g3 + '" stroke-dashoffset="-' + off3 + '"/>' : '') +
+      '</svg>' +
+      '<div class="sentiment-legend">' +
+        '<div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span> Positive <span class="legend-count">' + pos + ' (' + Math.round(pPos * 100) + '%)</span></div>' +
+        '<div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span> Neutral <span class="legend-count">' + neu + ' (' + Math.round(pNeu * 100) + '%)</span></div>' +
+        '<div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Negative <span class="legend-count">' + neg + ' (' + Math.round(pNeg * 100) + '%)</span></div>' +
+      '</div>' +
+    '</div>';
+}
+
+// ─── Calls Tab ────────────────────────────────────────────
+async function loadCalls(page) {
+  currentCallsPage = page;
+  const wrap = document.getElementById('calls-table-wrap');
+  wrap.innerHTML = renderTableSkeleton(5);
+  try {
+    const res = await api('/calls', { page, limit: 20 });
+    const { data, pagination } = res;
+    document.getElementById('calls-total-label').textContent = pagination.total + ' total calls';
+    document.getElementById('nav-calls-count').textContent = pagination.total;
+
+    if (!data || data.length === 0) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F4DE;</div><div class="empty-title">No calls yet</div><div class="empty-desc">Your AI assistant has not received any calls. Share your AI phone number to get started!</div></div>';
+      document.getElementById('calls-pagination').innerHTML = '';
+      return;
+    }
+
+    let html = '<table class="data-table"><thead><tr>' +
+      '<th>Date</th><th>Caller</th><th>Duration</th><th>Sentiment</th><th>Lead</th><th>Details</th>' +
+      '</tr></thead><tbody>';
+
+    data.forEach((c, i) => {
+      const sentBadge = c.sentiment === 'positive' ? '<span class="badge badge-positive">Positive</span>'
+        : c.sentiment === 'negative' ? '<span class="badge badge-negative">Negative</span>'
+        : '<span class="badge badge-neutral">Neutral</span>';
+      const leadBadge = c.isLead ? '<span class="badge badge-lead">Lead</span>' : '<span style="color:var(--text-muted)">-</span>';
+      const tags = (c.tags || []).map(t => '<span class="lead-tag">' + escHtml(t) + '</span>').join(' ');
+      const summaryId = 'call-sum-' + page + '-' + i;
+
+      html += '<tr>' +
+        '<td style="white-space:nowrap;">' + formatDate(c.createdAt) + '</td>' +
+        '<td><div class="fw-700">' + escHtml(c.callerName || 'Unknown') + '</div><div style="font-size:12px; color:var(--text-muted);">' + escHtml(c.callerNumber || '') + '</div></td>' +
+        '<td>' + formatDuration(c.durationSeconds) + '</td>' +
+        '<td>' + sentBadge + '</td>' +
+        '<td>' + leadBadge + '</td>' +
+        '<td>' +
+          (c.summary ? '<button class="expand-btn" onclick="toggleSummary(\'' + summaryId + '\', this)">View <span style="font-size:10px;">&#x25BC;</span></button><div class="call-summary" id="' + summaryId + '">' + escHtml(c.summary) + (tags ? '<div class="lead-tags mt-8">' + tags + '</div>' : '') + '</div>' : '<span style="color:var(--text-muted)">-</span>') +
+        '</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+
+    renderPagination('calls-pagination', pagination, loadCalls);
+  } catch (err) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x26A0;</div><div class="empty-title">Error loading calls</div><div class="empty-desc">' + escHtml(err.message) + '</div></div>';
+  }
+}
+
+function toggleSummary(id, btn) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+  btn.innerHTML = el.classList.contains('open') ? 'Hide <span style="font-size:10px;">&#x25B2;</span>' : 'View <span style="font-size:10px;">&#x25BC;</span>';
+}
+
+// ─── Bookings Tab ─────────────────────────────────────────
+async function loadBookings() {
+  const wrap = document.getElementById('bookings-list-wrap');
+  wrap.innerHTML = '<div class="skeleton" style="height:60px;margin-bottom:12px;"></div>'.repeat(3);
+  try {
+    const res = await api('/bookings', { upcoming: 'true' });
+    const { data, pagination } = res;
+    document.getElementById('bookings-total-label').textContent = (pagination?.total || data.length) + ' upcoming';
+    document.getElementById('nav-bookings-count').textContent = pagination?.total || data.length;
+
+    if (!data || data.length === 0) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F4C5;</div><div class="empty-title">No upcoming bookings</div><div class="empty-desc">Bookings made through your AI assistant will appear here.</div></div>';
+      return;
+    }
+
+    let html = '<div class="bookings-list">';
+    data.forEach(b => {
+      const d = new Date(b.bookingDate);
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const statusClass = (b.status || '').toLowerCase() === 'confirmed' ? 'badge-confirmed'
+        : (b.status || '').toLowerCase() === 'cancelled' ? 'badge-cancelled' : 'badge-pending';
+
+      html += '<div class="booking-card">' +
+        '<div class="booking-date-block">' +
+          '<span class="booking-date-month">' + months[d.getMonth()] + '</span>' +
+          '<span class="booking-date-day">' + d.getDate() + '</span>' +
+        '</div>' +
+        '<div class="booking-info">' +
+          '<div class="booking-customer">' + escHtml(b.customerName || 'Customer') + '</div>' +
+          '<div class="booking-time-service">' +
+            (b.bookingTime ? escHtml(b.bookingTime) + ' &middot; ' : '') +
+            escHtml(b.serviceType || 'Appointment') +
+          '</div>' +
+          (b.customerPhone ? '<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">&#x1F4DE; ' + escHtml(b.customerPhone) + '</div>' : '') +
+          (b.notes ? '<div class="booking-notes">' + escHtml(b.notes) + '</div>' : '') +
+        '</div>' +
+        '<span class="badge ' + statusClass + '">' + escHtml(b.status || 'pending') + '</span>' +
+      '</div>';
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+  } catch (err) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x26A0;</div><div class="empty-title">Error loading bookings</div><div class="empty-desc">' + escHtml(err.message) + '</div></div>';
+  }
+}
+
+// ─── Leads Tab ────────────────────────────────────────────
+async function loadLeads(page) {
+  currentLeadsPage = page;
+  const wrap = document.getElementById('leads-grid-wrap');
+  wrap.innerHTML = '<div class="leads-grid">' + '<div class="skeleton" style="height:160px;border-radius:12px;"></div>'.repeat(4) + '</div>';
+  try {
+    const res = await api('/leads', { page, limit: 20 });
+    const { data, pagination } = res;
+    document.getElementById('leads-total-label').textContent = pagination.total + ' total leads';
+    document.getElementById('nav-leads-count').textContent = pagination.total;
+
+    if (!data || data.length === 0) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F465;</div><div class="empty-title">No leads captured yet</div><div class="empty-desc">Your AI assistant will collect and display lead information here as calls come in.</div></div>';
+      document.getElementById('leads-pagination').innerHTML = '';
+      return;
+    }
+
+    let html = '<div class="leads-grid">';
+    data.forEach(l => {
+      const scoreVal = l.leadScore || 0;
+      const scoreClass = scoreVal >= 7 ? 'high' : scoreVal >= 4 ? 'medium' : 'low';
+      const scoreLabel = scoreVal >= 7 ? 'Hot' : scoreVal >= 4 ? 'Warm' : 'Cold';
+      const sentBadge = l.sentiment === 'positive' ? '<span class="badge badge-positive" style="font-size:10px;">Positive</span>'
+        : l.sentiment === 'negative' ? '<span class="badge badge-negative" style="font-size:10px;">Negative</span>'
+        : '<span class="badge badge-neutral" style="font-size:10px;">Neutral</span>';
+      const tags = (l.tags || []).map(t => '<span class="lead-tag">' + escHtml(t) + '</span>').join('');
+
+      html += '<div class="lead-card">' +
+        '<div class="lead-card-header">' +
+          '<div>' +
+            '<div class="lead-name">' + escHtml(l.callerName || l.nameCollected || 'Unknown') + '</div>' +
+            '<div style="font-size:12px; color: var(--text-muted); margin-top:2px;">' + formatDate(l.createdAt) + '</div>' +
+          '</div>' +
+          '<span class="lead-score ' + scoreClass + '">' + scoreLabel + ' ' + scoreVal + '/10</span>' +
+        '</div>' +
+        (l.callerNumber || l.phoneCollected ? '<div class="lead-detail">&#x1F4DE; ' + escHtml(l.callerNumber || l.phoneCollected) + '</div>' : '') +
+        (l.emailCollected ? '<div class="lead-detail">&#x2709; ' + escHtml(l.emailCollected) + '</div>' : '') +
+        (l.bookingRequested ? '<div class="lead-detail">&#x1F4C5; Booking requested' + (l.bookingDetails ? ': ' + escHtml(l.bookingDetails) : '') + '</div>' : '') +
+        '<div style="margin-top:6px;">' + sentBadge + '</div>' +
+        (l.summary ? '<div class="lead-summary">' + escHtml(l.summary) + '</div>' : '') +
+        (tags ? '<div class="lead-tags">' + tags + '</div>' : '') +
+      '</div>';
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+
+    renderPagination('leads-pagination', pagination, loadLeads);
+  } catch (err) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x26A0;</div><div class="empty-title">Error loading leads</div><div class="empty-desc">' + escHtml(err.message) + '</div></div>';
+  }
+}
+
+// ─── Analytics Tab ────────────────────────────────────────
+function renderAnalytics(data) {
+  const container = document.getElementById('analytics-content');
+  if (!data) {
+    container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">&#x1F4C8;</div><div class="empty-title">No analytics data</div><div class="empty-desc">Analytics will appear after your AI assistant handles calls.</div></div>';
+    return;
+  }
+
+  const { summary, daily, peakHours, peakDays, sentiment, period } = data;
+
+  // Summary cards row
+  let html = '<div style="grid-column:1/-1;">' +
+    '<div class="kpi-grid" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">' +
+      '<div class="kpi-card"><div class="kpi-label">Total Calls (30d)</div><div class="kpi-value">' + (summary.totalCalls || 0) + '</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">Total Leads (30d)</div><div class="kpi-value">' + (summary.totalLeads || 0) + '</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">Conversion Rate</div><div class="kpi-value" style="color:var(--accent);">' + ((summary.conversionRate || 0)).toFixed(1) + '%</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">Satisfaction Score</div><div class="kpi-value" style="color:var(--primary);">' + ((summary.satisfactionScore || 0)).toFixed(1) + '%</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">Avg Duration</div><div class="kpi-value">' + formatDuration(summary.avgCallDuration) + '</div></div>' +
+    '</div>' +
+  '</div>';
+
+  // Daily calls bar chart
+  html += '<div class="panel">' +
+    '<div class="panel-header"><span class="panel-title">Calls Over Time (30 Days)</span></div>' +
+    '<div class="panel-body">' + renderBarChart(daily || []) + '</div>' +
+  '</div>';
+
+  // Sentiment donut (analytics)
+  html += '<div class="panel">' +
+    '<div class="panel-header"><span class="panel-title">Sentiment Breakdown</span></div>' +
+    '<div class="panel-body" id="sentiment-analytics"></div>' +
+  '</div>';
+
+  // Peak Hours heatmap
+  html += '<div class="panel" style="grid-column:1/-1;">' +
+    '<div class="panel-header"><span class="panel-title">Peak Hours</span></div>' +
+    '<div class="panel-body">' + renderHeatmap(peakHours || {}) + '</div>' +
+  '</div>';
+
+  // Peak Days
+  html += '<div class="panel" style="grid-column:1/-1;">' +
+    '<div class="panel-header"><span class="panel-title">Calls by Day of Week</span></div>' +
+    '<div class="panel-body">' + renderPeakDays(peakDays || {}) + '</div>' +
+  '</div>';
+
+  container.innerHTML = html;
+
+  // Render sentiment donut in analytics
+  const sPos = sentiment?.positive || 0;
+  const sNeu = sentiment?.neutral || 0;
+  const sNeg = sentiment?.negative || 0;
+  renderSentimentDonut('sentiment-analytics', sPos, sNeu, sNeg, sPos + sNeu + sNeg);
+}
+
+function renderBarChart(daily) {
+  if (!daily || daily.length === 0) return '<div class="empty-state"><div class="empty-title">No daily data</div></div>';
+  const maxCalls = Math.max(...daily.map(d => d.calls || 0), 1);
+  let html = '<div class="bar-chart">';
+  daily.forEach(d => {
+    const h = Math.max(((d.calls || 0) / maxCalls) * 100, 2);
+    const dateLabel = new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const shortLabel = new Date(d.date).getDate();
+    html += '<div class="bar-col">' +
+      '<div class="bar-rect" style="height:' + h + '%;">' +
+        '<div class="bar-tooltip">' + dateLabel + ': ' + (d.calls || 0) + ' calls</div>' +
+      '</div>' +
+      '<div class="bar-label">' + shortLabel + '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderHeatmap(peakHours) {
+  const hours = [];
+  for (let i = 0; i < 24; i++) hours.push(peakHours[i] || 0);
+  const max = Math.max(...hours, 1);
+
+  // Split into two rows: 0-11, 12-23
+  let html = '<div style="margin-bottom:16px;">' +
+    '<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px; font-weight:600;">AM Hours</div>' +
+    '<div class="heatmap-grid">';
+  for (let i = 0; i < 12; i++) {
+    const intensity = hours[i] / max;
+    const bg = intensity === 0 ? '#f1f5f9' : 'rgba(99,102,241,' + (0.15 + intensity * 0.85).toFixed(2) + ')';
+    const color = intensity > 0.5 ? '#fff' : 'var(--text-muted)';
+    html += '<div class="heat-cell" style="background:' + bg + '; color:' + color + ';">' +
+      hours[i] +
+      '<div class="heat-tip">' + formatHour(i) + ': ' + hours[i] + ' calls</div>' +
+    '</div>';
+  }
+  html += '</div><div class="heat-labels">';
+  for (let i = 0; i < 12; i++) html += '<div class="heat-label">' + formatHour(i) + '</div>';
+  html += '</div></div>';
+
+  html += '<div>' +
+    '<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px; font-weight:600;">PM Hours</div>' +
+    '<div class="heatmap-grid">';
+  for (let i = 12; i < 24; i++) {
+    const intensity = hours[i] / max;
+    const bg = intensity === 0 ? '#f1f5f9' : 'rgba(99,102,241,' + (0.15 + intensity * 0.85).toFixed(2) + ')';
+    const color = intensity > 0.5 ? '#fff' : 'var(--text-muted)';
+    html += '<div class="heat-cell" style="background:' + bg + '; color:' + color + ';">' +
+      hours[i] +
+      '<div class="heat-tip">' + formatHour(i) + ': ' + hours[i] + ' calls</div>' +
+    '</div>';
+  }
+  html += '</div><div class="heat-labels">';
+  for (let i = 12; i < 24; i++) html += '<div class="heat-label">' + formatHour(i) + '</div>';
+  html += '</div></div>';
+
+  return html;
+}
+
+function renderPeakDays(peakDays) {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  let html = '<div class="peak-days">';
+  for (let i = 0; i < 7; i++) {
+    const count = peakDays[i] || 0;
+    html += '<div class="day-card"><div class="day-name">' + dayNames[i] + '</div><div class="day-count">' + count + '</div></div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+// ─── Pagination ───────────────────────────────────────────
+function renderPagination(containerId, pagination, loadFn) {
+  const container = document.getElementById(containerId);
+  if (!pagination || pagination.totalPages <= 1) { container.innerHTML = ''; return; }
+
+  let html = '';
+  html += '<button class="page-btn" onclick="' + loadFn.name + '(' + (pagination.page - 1) + ')"' + (pagination.page <= 1 ? ' disabled' : '') + '>&laquo; Prev</button>';
+
+  const maxVisible = 5;
+  let start = Math.max(1, pagination.page - Math.floor(maxVisible / 2));
+  let end = Math.min(pagination.totalPages, start + maxVisible - 1);
+  if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+
+  if (start > 1) { html += '<button class="page-btn" onclick="' + loadFn.name + '(1)">1</button>'; if (start > 2) html += '<span class="page-info">...</span>'; }
+  for (let p = start; p <= end; p++) {
+    html += '<button class="page-btn' + (p === pagination.page ? ' active' : '') + '" onclick="' + loadFn.name + '(' + p + ')">' + p + '</button>';
+  }
+  if (end < pagination.totalPages) { if (end < pagination.totalPages - 1) html += '<span class="page-info">...</span>'; html += '<button class="page-btn" onclick="' + loadFn.name + '(' + pagination.totalPages + ')">' + pagination.totalPages + '</button>'; }
+
+  html += '<button class="page-btn" onclick="' + loadFn.name + '(' + (pagination.page + 1) + ')"' + (pagination.page >= pagination.totalPages ? ' disabled' : '') + '>Next &raquo;</button>';
+  container.innerHTML = html;
+}
+
+// ─── Tab Navigation ───────────────────────────────────────
+function switchTab(tabName, btnEl) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + tabName).classList.add('active');
+  if (btnEl) btnEl.classList.add('active');
+
+  const titles = { overview: 'Dashboard', calls: 'Call History', bookings: 'Bookings', leads: 'Leads', analytics: 'Analytics' };
+  const subtitles = {
+    overview: 'Your AI assistant performance at a glance',
+    calls: 'Review all incoming calls handled by your AI',
+    bookings: 'Appointments scheduled through your AI assistant',
+    leads: 'Potential customers identified during calls',
+    analytics: 'Detailed performance insights over 30 days'
+  };
+  document.getElementById('page-title').textContent = titles[tabName] || 'Dashboard';
+  document.getElementById('page-subtitle').textContent = subtitles[tabName] || '';
+
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('visible');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('visible');
+}
+
+// ─── Refresh ──────────────────────────────────────────────
+async function refreshData() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  try {
+    const [overview, analytics] = await Promise.all([
+      api('/overview'),
+      api('/analytics', { days: 30 })
+    ]);
+    overviewData = overview;
+    window._analytics = analytics;
+    renderSidebar(overview.client);
+    renderOverview(overview);
+    renderAnalytics(analytics);
+    updateNavBadges(overview);
+    loadCalls(currentCallsPage);
+    loadBookings();
+    loadLeads(currentLeadsPage);
+    updateLastUpdated();
+  } catch (err) {
+    console.error('Refresh error:', err);
+  }
+  btn.classList.remove('spinning');
+  btn.disabled = false;
+}
+
+// ─── Nav Badges ───────────────────────────────────────────
+function updateNavBadges(data) {
+  document.getElementById('nav-calls-count').textContent = data.calls?.total || 0;
+  document.getElementById('nav-bookings-count').textContent = data.bookings?.upcoming || 0;
+  document.getElementById('nav-leads-count').textContent = data.leads?.thisMonth || 0;
+}
+
+// ─── Utility Functions ────────────────────────────────────
+function formatDuration(seconds) {
+  if (!seconds || seconds === 0) return '0:00';
+  const s = Math.round(seconds);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+    ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function formatHour(h) {
+  if (h === 0) return '12a';
+  if (h < 12) return h + 'a';
+  if (h === 12) return '12p';
+  return (h - 12) + 'p';
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function updateLastUpdated() {
+  const now = new Date();
+  document.getElementById('last-updated').textContent =
+    'Updated ' + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function renderTableSkeleton(rows) {
+  let html = '<table class="data-table"><thead><tr><th>&nbsp;</th><th>&nbsp;</th><th>&nbsp;</th><th>&nbsp;</th><th>&nbsp;</th><th>&nbsp;</th></tr></thead><tbody>';
+  for (let i = 0; i < rows; i++) {
+    html += '<tr>' +
+      '<td><div class="skeleton" style="height:14px;width:80px;"></div></td>' +
+      '<td><div class="skeleton" style="height:14px;width:120px;margin-bottom:4px;"></div><div class="skeleton" style="height:10px;width:80px;"></div></td>' +
+      '<td><div class="skeleton" style="height:14px;width:40px;"></div></td>' +
+      '<td><div class="skeleton" style="height:22px;width:70px;border-radius:20px;"></div></td>' +
+      '<td><div class="skeleton" style="height:22px;width:40px;border-radius:20px;"></div></td>' +
+      '<td><div class="skeleton" style="height:14px;width:50px;"></div></td>' +
+    '</tr>';
+  }
+  html += '</tbody></table>';
+  return html;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Pixel - Icon only -->
+  <g transform="translate(10, 10)">
+    <!-- Row 1 -->
+    <rect x="48" y="0" width="18" height="18" rx="3" fill="#818cf8" opacity="0.5"/>
+    <rect x="70" y="0" width="18" height="18" rx="3" fill="#6366f1" opacity="0.7"/>
+    <rect x="92" y="0" width="18" height="18" rx="3" fill="#6366f1" opacity="0.8"/>
+    <rect x="114" y="0" width="18" height="18" rx="3" fill="#818cf8" opacity="0.6"/>
+    <!-- Row 2 -->
+    <rect x="24" y="22" width="18" height="18" rx="3" fill="#6366f1" opacity="0.7"/>
+    <rect x="46" y="22" width="18" height="18" rx="3" fill="#4f46e5"/>
+    <rect x="110" y="22" width="18" height="18" rx="3" fill="#4f46e5"/>
+    <rect x="132" y="22" width="18" height="18" rx="3" fill="#6366f1" opacity="0.7"/>
+    <!-- Row 3 -->
+    <rect x="4" y="44" width="18" height="18" rx="3" fill="#6366f1" opacity="0.8"/>
+    <rect x="26" y="44" width="18" height="18" rx="3" fill="#4f46e5"/>
+    <rect x="132" y="44" width="18" height="18" rx="3" fill="#4f46e5"/>
+    <rect x="154" y="44" width="18" height="18" rx="3" fill="#6366f1" opacity="0.8"/>
+    <!-- Row 4 -->
+    <rect x="0" y="66" width="18" height="18" rx="3" fill="#4f46e5"/>
+    <rect x="158" y="66" width="18" height="18" rx="3" fill="#4f46e5"/>
+    <!-- Row 5 -->
+    <rect x="0" y="88" width="18" height="18" rx="3" fill="#4f46e5"/>
+    <rect x="158" y="88" width="18" height="18" rx="3" fill="#7c3aed"/>
+    <!-- Row 6 -->
+    <rect x="0" y="110" width="18" height="18" rx="3" fill="#4f46e5"/>
+    <rect x="158" y="110" width="18" height="18" rx="3" fill="#7c3aed"/>
+    <!-- Row 7 -->
+    <rect x="4" y="132" width="18" height="18" rx="3" fill="#6366f1" opacity="0.8"/>
+    <rect x="26" y="132" width="18" height="18" rx="3" fill="#4f46e5"/>
+    <rect x="132" y="132" width="18" height="18" rx="3" fill="#7c3aed"/>
+    <rect x="154" y="132" width="18" height="18" rx="3" fill="#7c3aed" opacity="0.8"/>
+    <!-- Row 8 -->
+    <rect x="24" y="154" width="18" height="18" rx="3" fill="#6366f1" opacity="0.7"/>
+    <rect x="46" y="154" width="18" height="18" rx="3" fill="#4f46e5"/>
+    <rect x="110" y="154" width="18" height="18" rx="3" fill="#7c3aed"/>
+    <rect x="132" y="154" width="18" height="18" rx="3" fill="#7c3aed" opacity="0.7"/>
+    <!-- Row 9 + tail -->
+    <rect x="48" y="176" width="18" height="18" rx="3" fill="#818cf8" opacity="0.5"/>
+    <rect x="70" y="176" width="18" height="18" rx="3" fill="#6366f1" opacity="0.7"/>
+    <rect x="92" y="176" width="18" height="18" rx="3" fill="#7c3aed" opacity="0.8"/>
+    <rect x="114" y="176" width="18" height="18" rx="3" fill="#818cf8" opacity="0.6"/>
+    <rect x="140" y="176" width="18" height="18" rx="3" fill="#8b5cf6"/>
+  </g>
+</svg>

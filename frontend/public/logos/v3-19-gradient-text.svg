@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 250" width="500" height="250">
+  <!-- V3-19: GRADIENT TEXT - Pur wordmark typographique avec dégradé -->
+  <defs>
+    <linearGradient id="gt1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4338ca"/>
+      <stop offset="25%" style="stop-color:#4f46e5"/>
+      <stop offset="50%" style="stop-color:#6366f1"/>
+      <stop offset="75%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+    <linearGradient id="gt2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:0.3"/>
+    </linearGradient>
+  </defs>
+  <!-- Grand Q en arrière-plan -->
+  <text x="30" y="195" font-family="'Inter', system-ui, sans-serif" font-size="220" font-weight="900" fill="url(#gt2)">Q</text>
+  <!-- Wordmark principal par-dessus -->
+  <text x="250" y="148" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-size="88" font-weight="800" fill="url(#gt1)" letter-spacing="2">Qwillio</text>
+  <!-- Ligne sous le texte -->
+  <line x1="60" y1="168" x2="440" y2="168" stroke="url(#gt1)" stroke-width="3" opacity="0.4"/>
+  <!-- Tagline -->
+  <text x="250" y="198" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-size="14" font-weight="500" fill="#6366f1" letter-spacing="8">AI RECEPTIONIST</text>
+</svg>

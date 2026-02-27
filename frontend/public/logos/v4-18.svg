@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 18: MAZE — Q formed from maze/labyrinth paths -->
+  <defs>
+    <linearGradient id="v418a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7e22ce"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <!-- Maze Q — concentric rounded rectangles with gaps -->
+  <!-- Outer ring -->
+  <path d="M100 55 L290 55 Q310 55 310 75 L310 250 Q310 270 290 270 L180 270" fill="none" stroke="url(#v418a)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M140 270 L100 270 Q80 270 80 250 L80 75 Q80 55 100 55" fill="none" stroke="url(#v418a)" stroke-width="8" stroke-linecap="round"/>
+  <!-- Second ring -->
+  <path d="M130 85 L270 85 Q280 85 280 95 L280 225 Q280 235 270 235 L205 235" fill="none" stroke="url(#v418a)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M170 235 L120 235 Q110 235 110 225 L110 95 Q110 85 120 85" fill="none" stroke="url(#v418a)" stroke-width="7" stroke-linecap="round"/>
+  <!-- Third ring (innermost) -->
+  <path d="M155 115 L240 115 Q248 115 248 123 L248 195 Q248 203 240 203 L220 203" fill="none" stroke="url(#v418a)" stroke-width="6" stroke-linecap="round"/>
+  <path d="M180 203 L150 203 Q142 203 142 195 L142 123 Q142 115 150 115" fill="none" stroke="url(#v418a)" stroke-width="6" stroke-linecap="round"/>
+  <!-- Center point (goal) -->
+  <circle cx="195" cy="160" r="8" fill="#a855f7"/>
+  <circle cx="195" cy="160" r="4" fill="white"/>
+  <!-- Q tail — maze exit path -->
+  <path d="M235 250 L280 250 L280 295 L330 295 L330 320" fill="none" stroke="url(#v418a)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Exit arrow -->
+  <polygon points="330,325 322,312 338,312" fill="#a855f7"/>
+  <!-- Wordmark -->
+  <text x="200" y="378" text-anchor="middle" font-family="'Tahoma', 'Geneva', sans-serif" font-size="40" font-weight="700" fill="#581c87" letter-spacing="5">QWILLIO</text>
+</svg>

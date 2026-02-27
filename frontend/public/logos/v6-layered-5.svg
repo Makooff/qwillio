@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- LAYERED V5: Trait plus fin, plus élégant, avec ombre portée subtile -->
+  <defs>
+    <filter id="ly5sh">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#4f46e5" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  <g filter="url(#ly5sh)">
+    <circle cx="212" cy="138" r="78" fill="none" stroke="#c7d2fe" stroke-width="10"/>
+    <line x1="267" y1="193" x2="300" y2="226" stroke="#c7d2fe" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="200" cy="153" r="78" fill="none" stroke="#818cf8" stroke-width="11"/>
+    <line x1="255" y1="208" x2="288" y2="241" stroke="#818cf8" stroke-width="11" stroke-linecap="round"/>
+    <circle cx="188" cy="168" r="78" fill="none" stroke="#4338ca" stroke-width="12"/>
+    <line x1="243" y1="223" x2="276" y2="256" stroke="#4338ca" stroke-width="12" stroke-linecap="round"/>
+  </g>
+  <text x="200" y="348" text-anchor="middle" font-family="'Palatino Linotype', serif" font-size="46" font-weight="400" fill="#1e1b4b" letter-spacing="5" font-style="italic">Qwillio</text>
+</svg>

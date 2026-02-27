@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>Qwillio - Demo</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --white: #fff;
+      --bg: #f5f5f7;
+      --text: #1d1d1f;
+      --gray: #86868b;
+      --border: #d2d2d7;
+      --light-bg: #f5f5f7;
+      --indigo: #6366f1;
+      --violet: #8b5cf6;
+      --purple: #a855f7;
+      --green: #22c55e;
+      --red: #ef4444;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      background: var(--white);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Nav ── */
+    .site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid rgba(210,210,215,0.6);
+      height: 56px;
+    }
+    .site-nav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .site-nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+    .site-nav-links {
+      display: none;
+      align-items: center;
+      gap: 32px;
+      font-size: 14px;
+      color: rgba(29,29,31,0.7);
+    }
+    @media (min-width: 768px) { .site-nav-links { display: flex; } }
+    .site-nav-links a {
+      text-decoration: none;
+      color: inherit;
+      transition: color 0.2s;
+    }
+    .site-nav-links a:hover { color: var(--text); }
+    .site-nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .nav-back-link {
+      font-size: 14px;
+      color: rgba(29,29,31,0.7);
+      text-decoration: none;
+      transition: color 0.2s;
+      display: none;
+    }
+    @media (min-width: 640px) { .nav-back-link { display: block; } }
+    .nav-back-link:hover { color: var(--text); }
+    .lang-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .lang-toggle button {
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--gray);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.2s;
+      font-family: inherit;
+    }
+    .lang-toggle button:hover { color: var(--text); }
+    .lang-toggle button.active { color: var(--text); }
+    .lang-sep { color: var(--border); font-weight: 400; pointer-events: none; }
+
+    /* ── Main layout ── */
+    .main {
+      position: relative;
+      z-index: 1;
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Title ── */
+    .title {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      text-align: center;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    .title span {
+      background: linear-gradient(135deg, var(--indigo), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--gray);
+      text-align: center;
+      line-height: 1.6;
+      max-width: 420px;
+      margin-bottom: 40px;
+    }
+
+    /* ── Waveform visualization ── */
+    .waveform {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      height: 80px;
+      margin-bottom: 32px;
+    }
+    .waveform .bar {
+      width: 4px;
+      border-radius: 4px;
+      background: linear-gradient(180deg, var(--indigo), var(--violet));
+      opacity: 0.25;
+      transition: height 0.15s ease, opacity 0.3s ease;
+    }
+    .waveform.idle .bar {
+      animation: idle-wave 2s ease-in-out infinite;
+    }
+    .waveform.active .bar {
+      opacity: 0.9;
+      animation: active-wave 0.5s ease-in-out infinite alternate;
+    }
+    .waveform .bar:nth-child(1)  { height: 20px; animation-delay: 0s; }
+    .waveform .bar:nth-child(2)  { height: 28px; animation-delay: 0.1s; }
+    .waveform .bar:nth-child(3)  { height: 16px; animation-delay: 0.2s; }
+    .waveform .bar:nth-child(4)  { height: 36px; animation-delay: 0.15s; }
+    .waveform .bar:nth-child(5)  { height: 24px; animation-delay: 0.05s; }
+    .waveform .bar:nth-child(6)  { height: 44px; animation-delay: 0.25s; }
+    .waveform .bar:nth-child(7)  { height: 32px; animation-delay: 0.1s; }
+    .waveform .bar:nth-child(8)  { height: 52px; animation-delay: 0.3s; }
+    .waveform .bar:nth-child(9)  { height: 40px; animation-delay: 0.18s; }
+    .waveform .bar:nth-child(10) { height: 60px; animation-delay: 0.22s; }
+    .waveform .bar:nth-child(11) { height: 48px; animation-delay: 0.12s; }
+    .waveform .bar:nth-child(12) { height: 72px; animation-delay: 0.28s; }
+    .waveform .bar:nth-child(13) { height: 56px; animation-delay: 0.08s; }
+    .waveform .bar:nth-child(14) { height: 64px; animation-delay: 0.35s; }
+    .waveform .bar:nth-child(15) { height: 48px; animation-delay: 0.2s; }
+    .waveform .bar:nth-child(16) { height: 72px; animation-delay: 0.15s; }
+    .waveform .bar:nth-child(17) { height: 56px; animation-delay: 0.32s; }
+    .waveform .bar:nth-child(18) { height: 60px; animation-delay: 0.1s; }
+    .waveform .bar:nth-child(19) { height: 44px; animation-delay: 0.25s; }
+    .waveform .bar:nth-child(20) { height: 52px; animation-delay: 0.18s; }
+    .waveform .bar:nth-child(21) { height: 36px; animation-delay: 0.22s; }
+    .waveform .bar:nth-child(22) { height: 28px; animation-delay: 0.3s; }
+    .waveform .bar:nth-child(23) { height: 44px; animation-delay: 0.14s; }
+    .waveform .bar:nth-child(24) { height: 32px; animation-delay: 0.08s; }
+    .waveform .bar:nth-child(25) { height: 20px; animation-delay: 0.2s; }
+    .waveform .bar:nth-child(26) { height: 36px; animation-delay: 0.12s; }
+    .waveform .bar:nth-child(27) { height: 24px; animation-delay: 0.28s; }
+    .waveform .bar:nth-child(28) { height: 16px; animation-delay: 0.05s; }
+
+    @keyframes idle-wave {
+      0%, 100% { transform: scaleY(0.4); opacity: 0.2; }
+      50% { transform: scaleY(0.7); opacity: 0.35; }
+    }
+    @keyframes active-wave {
+      0% { transform: scaleY(0.3); }
+      100% { transform: scaleY(1); }
+    }
+
+    /* ── CTA Button ── */
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: var(--indigo);
+      color: white;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 14px 36px;
+      border-radius: 9999px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+      letter-spacing: -0.2px;
+      margin-bottom: 20px;
+    }
+    .cta-btn:hover {
+      background: #4f46e5;
+    }
+    .cta-btn:active { transform: translateY(0); }
+    .cta-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .cta-btn.active {
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      box-shadow: 0 4px 24px rgba(239,68,68,0.25);
+      animation: cta-pulse 2s ease-in-out infinite;
+    }
+    @keyframes cta-pulse {
+      0%, 100% { box-shadow: 0 4px 24px rgba(239,68,68,0.25); }
+      50% { box-shadow: 0 4px 32px rgba(239,68,68,0.4); }
+    }
+
+    /* ── Status text ── */
+    #status {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      text-align: center;
+      min-height: 22px;
+      margin-bottom: 4px;
+    }
+    #statusDetail {
+      font-size: 13px;
+      color: var(--gray);
+      text-align: center;
+      min-height: 18px;
+    }
+    .timer {
+      font-size: 32px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      margin-top: 12px;
+      display: none;
+      letter-spacing: 2px;
+    }
+    .timer.visible { display: block; }
+
+    /* ── Config toggle ── */
+    .config-toggle {
+      margin-top: 40px;
+      width: 100%;
+    }
+    .config-toggle summary {
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--indigo);
+      text-align: center;
+      list-style: none;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .config-toggle summary::-webkit-details-marker { display: none; }
+    .config-toggle summary:hover { color: var(--violet); }
+    .config-toggle summary .chevron {
+      transition: transform 0.3s;
+      width: 14px;
+      height: 14px;
+    }
+    .config-toggle[open] summary .chevron { transform: rotate(180deg); }
+
+    /* ── Config card ── */
+    .config-card {
+      margin-top: 16px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--gray);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--light-bg);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .field input:focus,
+    .field select:focus {
+      border-color: var(--indigo);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+    .field input::placeholder { color: var(--border); }
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%2386868b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    /* ── Result panel ── */
+    .result-panel {
+      width: 100%;
+      margin-top: 32px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .result-panel h3 {
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .result-item {
+      background: var(--light-bg);
+      padding: 12px 16px;
+      border-radius: 12px;
+    }
+    .result-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gray);
+      margin-bottom: 4px;
+    }
+    .result-value {
+      display: block;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .result-summary {
+      background: var(--light-bg);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+    .result-summary strong { color: var(--text); }
+    .trial-started {
+      background: rgba(34,197,94,0.06);
+      border: 1px solid rgba(34,197,94,0.2);
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.8;
+      margin-top: 12px;
+    }
+    .trial-warning {
+      background: rgba(234,179,8,0.06);
+      border: 1px solid rgba(234,179,8,0.2);
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+    .transcript-details { margin-top: 20px; font-size: 13px; }
+    .transcript-details summary {
+      cursor: pointer;
+      color: var(--gray);
+      padding: 8px 0;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .transcript-details summary:hover { color: var(--indigo); }
+    .transcript-details pre {
+      background: var(--light-bg);
+      padding: 16px;
+      border-radius: 10px;
+      font-size: 12px;
+      max-height: 240px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      margin-top: 8px;
+      color: var(--text);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 520px) {
+      .title { font-size: 28px; }
+      .subtitle { font-size: 14px; }
+      .main { padding: 40px 16px 60px; }
+      .cta-btn { padding: 14px 32px; font-size: 15px; }
+      .waveform { gap: 2px; }
+      .waveform .bar { width: 3px; }
+      .result-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Nav ── -->
+  <nav class="site-nav">
+    <div class="site-nav-inner">
+      <a href="/" class="site-nav-logo">
+        <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="qwA" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#4f46e5"/></linearGradient>
+            <linearGradient id="qwB" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#a855f7"/></linearGradient>
+            <clipPath id="qwI"><circle cx="12.48" cy="16" r="9.92"/></clipPath>
+          </defs>
+          <circle cx="12.48" cy="16" r="9.92" fill="url(#qwA)"/>
+          <circle cx="19.52" cy="16" r="9.92" fill="url(#qwB)"/>
+          <circle cx="19.52" cy="16" r="9.92" fill="#4338ca" opacity="0.5" clip-path="url(#qwI)"/>
+          <text x="12.48" y="19.15" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="8.96" font-weight="800" fill="white" opacity="0.95">Q</text>
+          <text x="19.52" y="19.15" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="7.88" font-weight="800" fill="white" opacity="0.95">W</text>
+        </svg>
+        Qwillio
+      </a>
+      <div class="site-nav-links">
+        <a href="/#features" data-i18n="navFeatures">Features</a>
+        <a href="/#how" data-i18n="navHow">How it works</a>
+        <a href="/#pricing" data-i18n="navPricing">Pricing</a>
+      </div>
+      <div class="site-nav-right">
+        <a href="/" class="nav-back-link" data-i18n="navBack">&larr; Back to site</a>
+        <div class="lang-toggle">
+          <button id="langEn" onclick="setLang('en')">EN</button>
+          <span class="lang-sep">|</span>
+          <button id="langFr" onclick="setLang('fr')">FR</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- Title -->
+    <h1 class="title" data-i18n="title">Listen to <span>Ashley</span>, our demo agent</h1>
+    <p class="subtitle" data-i18n="subtitle">Talk to Ashley live in your browser. She'll demo how Qwillio handles calls, books appointments and qualifies leads for your business.</p>
+
+    <!-- Waveform -->
+    <div class="waveform idle" id="waveform">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div>
+    </div>
+
+    <!-- CTA Button -->
+    <button class="cta-btn" id="callBtn" onclick="toggleCall()">
+      <span id="btnLabel" data-i18n="btnStart">Launch voice demo</span>
+    </button>
+
+    <!-- Status -->
+    <div id="status" data-i18n="statusReady">Click to talk to Ashley</div>
+    <div id="statusDetail" data-i18n="statusDetailReady">Uses your microphone — no phone call needed</div>
+    <div class="timer" id="timer">00:00</div>
+
+    <!-- Config (collapsible) -->
+    <details class="config-toggle">
+      <summary>
+        <span data-i18n="configToggle">Customize business scenario</span>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </summary>
+      <div class="config-card">
+        <div class="field">
+          <label data-i18n="labelBiz">Business Name</label>
+          <input type="text" id="businessName" value="" placeholder="e.g. Mario's Pizzeria" />
+        </div>
+        <div class="field">
+          <label data-i18n="labelIndustry">Industry</label>
+          <select id="businessType">
+            <option value="" disabled selected data-i18n-opt="optPlaceholder">Select an industry...</option>
+            <option value="restaurant" data-i18n-opt="optRestaurant">Restaurant / Pizzeria</option>
+            <option value="dental" data-i18n-opt="optDental">Dental Office</option>
+            <option value="medical" data-i18n-opt="optMedical">Medical Practice</option>
+            <option value="salon" data-i18n-opt="optSalon">Hair Salon / Spa</option>
+            <option value="law" data-i18n-opt="optLaw">Law Firm</option>
+            <option value="real_estate" data-i18n-opt="optRealestate">Real Estate Agency</option>
+            <option value="auto" data-i18n-opt="optAuto">Auto Repair Shop</option>
+            <option value="fitness" data-i18n-opt="optFitness">Gym / Fitness Center</option>
+            <option value="veterinary" data-i18n-opt="optVet">Veterinary Clinic</option>
+            <option value="accounting" data-i18n-opt="optAccounting">Accounting Firm</option>
+          </select>
+        </div>
+        <div class="field">
+          <label data-i18n="labelCity">City</label>
+          <input type="text" id="city" value="" placeholder="e.g. New York" />
+        </div>
+      </div>
+    </details>
+
+    <!-- Result panel -->
+    <div id="resultPanel" class="result-panel" style="display:none;"></div>
+
+  </main>
+
+  <script type="module">
+    import VapiModule from 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/+esm';
+    const VapiClass = VapiModule.default || VapiModule;
+
+    const VAPI_PUBLIC_KEY = 'eaded992-3a0b-48a4-bdb3-09438c4e54a4';
+    const BACKEND_URL = 'http://localhost:3000';
+
+    // ── i18n ──
+    const translations = {
+      en: {
+        navFeatures: 'Features',
+        navHow: 'How it works',
+        navPricing: 'Pricing',
+        navBack: '\u2190 Back to site',
+        title: 'Listen to <span>Ashley</span>, our demo agent',
+        subtitle: 'Talk to Ashley live in your browser. She\u2019ll demo how Qwillio handles calls, books appointments and qualifies leads for your business.',
+        btnStart: 'Launch voice demo',
+        btnStop: 'End call',
+        configToggle: 'Customize business scenario',
+        labelBiz: 'Business Name',
+        labelIndustry: 'Industry',
+        labelCity: 'City',
+        optPlaceholder: 'Select an industry...',
+        optRestaurant: 'Restaurant / Pizzeria',
+        optDental: 'Dental Office',
+        optMedical: 'Medical Practice',
+        optSalon: 'Hair Salon / Spa',
+        optLaw: 'Law Firm',
+        optRealestate: 'Real Estate Agency',
+        optAuto: 'Auto Repair Shop',
+        optFitness: 'Gym / Fitness Center',
+        optVet: 'Veterinary Clinic',
+        optAccounting: 'Accounting Firm',
+        statusReady: 'Click to talk to Ashley',
+        statusDetailReady: 'Uses your microphone \u2014 no phone call needed',
+        statusConnecting: 'Connecting...',
+        statusMic: 'Requesting microphone access',
+        statusSpeaking: 'Ashley is speaking...',
+        statusYourTurn: 'Your turn to speak...',
+        statusTalkNaturally: 'Talk naturally \u2014 you are the business owner',
+        statusAnalyzing: 'Analyzing call with GPT-4...',
+        statusAnalyzingDetail: 'Processing transcript \u2192 qualification \u2192 analysis',
+        statusEnded: 'Call ended \u2014 Click to try again',
+        statusEndedDetail: 'Change business details for a different scenario',
+        statusBackendDown: 'Call ended \u2014 Backend not reachable',
+        statusBackendDownDetail: 'Start the backend (port 3000) for full pipeline.',
+        statusTrialStarted: 'Trial started! Check emails & Discord',
+        statusFailed: 'Failed to connect',
+        statusFailedDetail: 'Please allow microphone access and try again',
+        statusError: 'Error: ',
+        statusErrorDetail: 'Check console for details',
+        resultTitle: 'Call Analysis Results',
+        resultInterest: 'Interest Level',
+        resultContact: 'Contact Name',
+        resultEmail: 'Email',
+        resultPackage: 'Recommended Package',
+        resultOutcome: 'Outcome',
+        resultDuration: 'Duration',
+        resultNotCollected: 'Not collected',
+        resultSummary: 'Summary:',
+        resultPainPoints: 'Pain Points:',
+        resultObjections: 'Objections:',
+        resultNextStep: 'Next step:',
+        resultFollowUp: 'Follow up later',
+        resultTrialStarted: 'FREE TRIAL AUTO-STARTED!',
+        resultTrialEmails: 'Emails sent to',
+        resultTrialWelcome: 'Trial welcome email',
+        resultTrialOnboarding: 'Onboarding form link',
+        resultTrialDashboard: 'Dashboard access link',
+        resultTrialDiscord: 'Discord notification sent',
+        resultTrialWarning: 'Prospect qualified but NO EMAIL collected \u2014 trial not started.',
+        resultTranscript: 'View full transcript',
+        resultMessages: 'messages',
+        resultProspectStatus: 'Prospect status:',
+      },
+      fr: {
+        navFeatures: 'Fonctionnalit\u00e9s',
+        navHow: 'Comment \u00e7a marche',
+        navPricing: 'Tarifs',
+        navBack: '\u2190 Retour au site',
+        title: '\u00c9coutez <span>Ashley</span>, notre agent de d\u00e9mo',
+        subtitle: 'Parlez \u00e0 Ashley en direct dans votre navigateur. Elle vous montre comment Qwillio g\u00e8re les appels, prend les rendez-vous et qualifie vos prospects.',
+        btnStart: 'Lancer la d\u00e9mo vocale',
+        btnStop: 'Raccrocher',
+        configToggle: 'Personnaliser le sc\u00e9nario',
+        labelBiz: "Nom de l'entreprise",
+        labelIndustry: "Secteur d'activit\u00e9",
+        labelCity: 'Ville',
+        optPlaceholder: 'Choisir un secteur...',
+        optRestaurant: 'Restaurant / Pizzeria',
+        optDental: 'Cabinet dentaire',
+        optMedical: 'Cabinet m\u00e9dical',
+        optSalon: 'Salon de coiffure / Spa',
+        optLaw: "Cabinet d'avocats",
+        optRealestate: 'Agence immobili\u00e8re',
+        optAuto: 'Garage automobile',
+        optFitness: 'Salle de sport / Fitness',
+        optVet: 'Clinique v\u00e9t\u00e9rinaire',
+        optAccounting: 'Cabinet comptable',
+        statusReady: 'Cliquez pour parler \u00e0 Ashley',
+        statusDetailReady: 'Utilise votre micro \u2014 aucun appel t\u00e9l\u00e9phonique',
+        statusConnecting: 'Connexion en cours...',
+        statusMic: 'Acc\u00e8s au microphone demand\u00e9',
+        statusSpeaking: 'Ashley parle...',
+        statusYourTurn: '\u00c0 vous de parler...',
+        statusTalkNaturally: "Parlez naturellement \u2014 vous \u00eates le propri\u00e9taire",
+        statusAnalyzing: "Analyse de l'appel avec GPT-4...",
+        statusAnalyzingDetail: 'Transcription \u2192 qualification \u2192 analyse',
+        statusEnded: 'Appel termin\u00e9 \u2014 Cliquez pour r\u00e9essayer',
+        statusEndedDetail: 'Modifiez le sc\u00e9nario pour un autre test',
+        statusBackendDown: 'Appel termin\u00e9 \u2014 Backend non accessible',
+        statusBackendDownDetail: 'D\u00e9marrez le backend (port 3000) pour le pipeline complet.',
+        statusTrialStarted: 'Essai gratuit lanc\u00e9 ! V\u00e9rifiez vos emails',
+        statusFailed: '\u00c9chec de la connexion',
+        statusFailedDetail: 'Autorisez le microphone et r\u00e9essayez',
+        statusError: 'Erreur : ',
+        statusErrorDetail: 'V\u00e9rifiez la console',
+        resultTitle: "R\u00e9sultats de l'analyse",
+        resultInterest: "Niveau d'int\u00e9r\u00eat",
+        resultContact: 'Nom du contact',
+        resultEmail: 'Email',
+        resultPackage: 'Forfait recommand\u00e9',
+        resultOutcome: 'R\u00e9sultat',
+        resultDuration: 'Dur\u00e9e',
+        resultNotCollected: 'Non collect\u00e9',
+        resultSummary: 'R\u00e9sum\u00e9 :',
+        resultPainPoints: 'Points de douleur :',
+        resultObjections: 'Objections :',
+        resultNextStep: '\u00c9tape suivante :',
+        resultFollowUp: 'Recontacter plus tard',
+        resultTrialStarted: 'ESSAI GRATUIT LANC\u00c9 !',
+        resultTrialEmails: 'Emails envoy\u00e9s \u00e0',
+        resultTrialWelcome: "Email de bienvenue",
+        resultTrialOnboarding: "Lien d'onboarding",
+        resultTrialDashboard: "Lien du dashboard",
+        resultTrialDiscord: 'Notification Discord',
+        resultTrialWarning: "Prospect qualifi\u00e9 mais AUCUN EMAIL \u2014 essai non d\u00e9marr\u00e9.",
+        resultTranscript: 'Voir la transcription',
+        resultMessages: 'messages',
+        resultProspectStatus: 'Statut :',
+      },
+    };
+
+    let currentLang = localStorage.getItem('qwillio-lang') || 'en';
+
+    function t(key) {
+      return (translations[currentLang] && translations[currentLang][key]) || (translations.en[key]) || key;
+    }
+
+    function applyTranslations() {
+      document.documentElement.lang = currentLang;
+      document.title = currentLang === 'fr' ? 'Qwillio - D\u00e9mo' : 'Qwillio - Demo';
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const val = t(key);
+        if (val.includes('<span>')) {
+          el.innerHTML = val;
+        } else {
+          el.textContent = val;
+        }
+      });
+      document.querySelectorAll('[data-i18n-opt]').forEach(el => {
+        const key = el.getAttribute('data-i18n-opt');
+        el.textContent = t(key);
+      });
+      document.getElementById('langEn').classList.toggle('active', currentLang === 'en');
+      document.getElementById('langFr').classList.toggle('active', currentLang === 'fr');
+    }
+
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('qwillio-lang', lang);
+      applyTranslations();
+    }
+
+    applyTranslations();
+    window.setLang = setLang;
+
+    // ── VAPI Call Logic ──
+    let vapi = null;
+    let isCallActive = false;
+    let timerInterval = null;
+    let callStart = null;
+    let conversationMessages = [];
+
+    function getSystemPrompt() {
+      const name = document.getElementById('businessName').value || 'Vivi Pizza';
+      const type = document.getElementById('businessType').value || 'restaurant';
+      const city = document.getElementById('city').value || 'Brussels';
+
+      return `You are a professional AI receptionist for ${name}, a ${type} located in ${city}.
+
+IDENTITY:
+- You are the virtual receptionist for ${name}
+- Your name is Ashley
+- You are warm, professional, and efficient
+- You speak naturally like a real receptionist would
+
+SPEAKING STYLE:
+- Sound like a REAL receptionist on a phone call, not a robotic AI
+- Use natural phrases: "Of course!", "Let me check that for you", "Absolutely", "Sure thing"
+- Use contractions: "I'd", "we're", "that's", "you'll"
+- Be warm and welcoming but professional
+- Keep responses concise — most answers under 2-3 sentences
+
+WHAT YOU CAN DO:
+1. Answer questions about the business (hours, services, location, pricing)
+2. Book appointments and reservations
+3. Take messages for the owner/team
+4. Qualify callers (understand what they need)
+5. Handle common objections and complaints gracefully
+
+BUSINESS CONTEXT:
+- Business: ${name} (${type}) in ${city}
+- You handle all incoming calls 24/7
+- You can book appointments for the next available slots
+- You know the standard services for a ${type}
+
+CALL FLOW:
+1. Greet the caller warmly: "Hello, thank you for calling ${name}, this is Ashley speaking. How can I help you today?"
+2. Listen to their request
+3. Respond helpfully — book appointments, answer questions, take messages
+4. If they ask something you don't know, offer to take a message for the team
+5. Always end positively
+
+DATA TO COLLECT WHEN RELEVANT:
+- Caller's name
+- Phone number or email
+- Reason for calling
+- Preferred appointment time (if booking)
+- Any special requests
+
+RULES:
+- SHORT sentences. Mostly under 15 words.
+- Sound natural and human. Use "um", "so", "actually" sparingly.
+- Be helpful and proactive
+- If a caller is upset, show empathy first
+- Always confirm appointment details back to the caller
+- Keep the whole call under 5 minutes`;
+    }
+
+    function getFirstMessage() {
+      const name = document.getElementById('businessName').value || 'Vivi Pizza';
+      return `Hello! Thank you for calling ${name}. This is Ashley speaking. How can I help you today?`;
+    }
+
+    async function toggleCall() {
+      if (isCallActive) { stopCall(); } else { startCall(); }
+    }
+
+    async function startCall() {
+      const btn = document.getElementById('callBtn');
+      const status = document.getElementById('status');
+      const detail = document.getElementById('statusDetail');
+      const waveform = document.getElementById('waveform');
+
+      btn.disabled = true;
+      status.textContent = t('statusConnecting');
+      detail.textContent = t('statusMic');
+
+      try {
+        vapi = new VapiClass(VAPI_PUBLIC_KEY);
+        conversationMessages = [];
+
+        vapi.on('call-start', () => {
+          isCallActive = true;
+          btn.disabled = false;
+          btn.classList.add('active');
+          document.getElementById('btnLabel').textContent = t('btnStop');
+          waveform.classList.remove('idle');
+          waveform.classList.add('active');
+          status.textContent = t('statusSpeaking');
+          detail.textContent = t('statusTalkNaturally');
+          startTimer();
+          document.getElementById('resultPanel').style.display = 'none';
+        });
+
+        vapi.on('call-end', () => { endCall(); });
+
+        vapi.on('message', (msg) => {
+          if (msg.type === 'transcript' && msg.transcriptType === 'final') {
+            conversationMessages.push({ role: msg.role, text: msg.transcript });
+          }
+        });
+
+        vapi.on('speech-start', () => { status.textContent = t('statusSpeaking'); });
+        vapi.on('speech-end', () => { status.textContent = t('statusYourTurn'); });
+
+        vapi.on('volume-level', (level) => {
+          const bars = document.querySelectorAll('.waveform .bar');
+          bars.forEach((bar, i) => {
+            const offset = Math.sin(Date.now() / 200 + i * 0.5) * 0.3;
+            const h = Math.max(8, (level * 80 + offset * 30 + Math.random() * 15));
+            bar.style.height = h + 'px';
+            bar.style.opacity = Math.min(0.3 + level * 0.7, 1);
+          });
+        });
+
+        vapi.on('error', (err) => {
+          console.error('VAPI error:', err);
+          status.textContent = t('statusError') + (err.message || 'Connection failed');
+          detail.textContent = t('statusErrorDetail');
+          endCall();
+        });
+
+        await vapi.start({
+          model: {
+            provider: 'openai',
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'system', content: getSystemPrompt() }],
+            temperature: 0.8,
+            maxTokens: 150,
+          },
+          voice: {
+            provider: '11labs',
+            voiceId: '21m00Tcm4TlvDq8ikWAM',
+            model: 'eleven_turbo_v2_5',
+            stability: 0.45,
+            similarityBoost: 0.82,
+            style: 0.35,
+            useSpeakerBoost: true,
+          },
+          firstMessage: getFirstMessage(),
+          name: 'Qwillio Receptionist Demo',
+          backgroundSound: 'office',
+          silenceTimeoutSeconds: 30,
+          responseDelaySeconds: 0.5,
+          endCallFunctionEnabled: true,
+        });
+
+      } catch (err) {
+        console.error('Failed to start call:', err);
+        status.textContent = t('statusFailed');
+        detail.textContent = err.message || t('statusFailedDetail');
+        btn.disabled = false;
+      }
+    }
+
+    function stopCall() {
+      if (vapi) { vapi.stop(); }
+      endCall();
+    }
+
+    async function endCall() {
+      const wasActive = isCallActive;
+      isCallActive = false;
+      const btn = document.getElementById('callBtn');
+      const waveform = document.getElementById('waveform');
+      btn.classList.remove('active');
+      document.getElementById('btnLabel').textContent = t('btnStart');
+      waveform.classList.remove('active');
+      waveform.classList.add('idle');
+      document.querySelectorAll('.waveform .bar').forEach(bar => {
+        bar.style.height = '';
+        bar.style.opacity = '';
+      });
+      btn.disabled = false;
+      const elapsed = callStart ? Math.floor((Date.now() - callStart) / 1000) : 0;
+      stopTimer();
+
+      if (!wasActive || conversationMessages.length === 0) {
+        document.getElementById('status').textContent = t('statusEnded');
+        document.getElementById('statusDetail').textContent = t('statusEndedDetail');
+        return;
+      }
+
+      const transcript = conversationMessages
+        .map(m => `${m.role === 'assistant' ? 'Receptionist' : 'Customer'}: ${m.text}`)
+        .join('\n');
+
+      document.getElementById('status').textContent = t('statusAnalyzing');
+      document.getElementById('statusDetail').textContent = t('statusAnalyzingDetail');
+
+      try {
+        const loginRes = await fetch(BACKEND_URL + '/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'admin@qwillio.com', password: 'admin123' }),
+        });
+        const loginData = await loginRes.json();
+
+        const res = await fetch(BACKEND_URL + '/api/bot/trigger/simulate-call', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + loginData.token,
+          },
+          body: JSON.stringify({
+            transcript,
+            businessName: document.getElementById('businessName').value || 'Vivi Pizza',
+            businessType: document.getElementById('businessType').value || 'restaurant',
+            city: document.getElementById('city').value || 'Brussels',
+            durationSeconds: elapsed,
+          }),
+        });
+
+        const result = await res.json();
+        console.log('Simulation result:', result);
+        showResults(result, transcript, elapsed);
+      } catch (err) {
+        console.error('Simulation error:', err);
+        document.getElementById('status').textContent = t('statusBackendDown');
+        document.getElementById('statusDetail').textContent = t('statusBackendDownDetail');
+      }
+    }
+
+    function showResults(result, transcript, durationSec) {
+      const panel = document.getElementById('resultPanel');
+      const a = result.analysis || {};
+      const interestLevel = a.interestLevel || '?';
+      let interestColor = '#ef4444';
+      if (interestLevel >= 7) interestColor = '#22c55e';
+      else if (interestLevel >= 4) interestColor = '#eab308';
+
+      const mins = Math.floor(durationSec / 60);
+      const secs = durationSec % 60;
+
+      panel.innerHTML = `
+        <h3>${t('resultTitle')}</h3>
+        <div class="result-grid">
+          <div class="result-item"><span class="result-label">${t('resultInterest')}</span><span class="result-value" style="color:${interestColor}">${interestLevel}/10</span></div>
+          <div class="result-item"><span class="result-label">${t('resultContact')}</span><span class="result-value">${a.contactName || t('resultNotCollected')}</span></div>
+          <div class="result-item"><span class="result-label">${t('resultEmail')}</span><span class="result-value">${a.email || t('resultNotCollected')}</span></div>
+          <div class="result-item"><span class="result-label">${t('resultPackage')}</span><span class="result-value">${(a.recommendedPackage || 'starter').toUpperCase()}</span></div>
+          <div class="result-item"><span class="result-label">${t('resultOutcome')}</span><span class="result-value">${a.outcome || 'N/A'}</span></div>
+          <div class="result-item"><span class="result-label">${t('resultDuration')}</span><span class="result-value">${mins}m ${secs}s</span></div>
+        </div>
+        ${a.summary ? `<div class="result-summary"><strong>${t('resultSummary')}</strong> ${a.summary}</div>` : ''}
+        ${a.painPoints?.length > 0 ? `<div class="result-summary"><strong>${t('resultPainPoints')}</strong> ${a.painPoints.join(', ')}</div>` : ''}
+        ${a.objections?.length > 0 ? `<div class="result-summary"><strong>${t('resultObjections')}</strong> ${a.objections.join(', ')}</div>` : ''}
+        ${result.trialStarted ? `
+          <div class="trial-started">
+            <strong>${t('resultTrialStarted')}</strong><br>
+            ${t('resultTrialEmails')} ${a.email}:<br>
+            &check; ${t('resultTrialWelcome')}<br>
+            &check; ${t('resultTrialOnboarding')}<br>
+            &check; ${t('resultTrialDashboard')}<br>
+            &check; ${t('resultTrialDiscord')}
+          </div>
+        ` : a.interestLevel >= 7 && !a.email ? `
+          <div class="trial-warning">${t('resultTrialWarning')}</div>
+        ` : `
+          <div class="result-summary"><strong>${t('resultNextStep')}</strong> ${a.nextAction || t('resultFollowUp')}</div>
+        `}
+        <details class="transcript-details">
+          <summary>${t('resultTranscript')} (${conversationMessages.length} ${t('resultMessages')})</summary>
+          <pre>${transcript}</pre>
+        </details>
+      `;
+      panel.style.display = 'block';
+
+      document.getElementById('status').textContent = result.trialStarted ? t('statusTrialStarted') : t('statusEnded');
+      document.getElementById('statusDetail').textContent = `${t('resultProspectStatus')} ${result.status || 'unknown'}`;
+    }
+
+    function startTimer() {
+      callStart = Date.now();
+      const timerEl = document.getElementById('timer');
+      timerEl.classList.add('visible');
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - callStart) / 1000);
+        const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const secs = String(elapsed % 60).padStart(2, '0');
+        timerEl.textContent = mins + ':' + secs;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      setTimeout(() => { document.getElementById('timer').classList.remove('visible'); }, 5000);
+    }
+
+    window.toggleCall = toggleCall;
+  </script>
+</body>
+</html>

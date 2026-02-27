@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
+
+# Temp extract scripts
+extract*.mjs
+find_*.mjs
+
+# Backups
+frontend_backup/
+
+# Docker (optional local)
+docker-compose.yml
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+nul

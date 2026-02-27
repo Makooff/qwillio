@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 120" width="500" height="120">
+  <!-- Double Bubble - Horizontal -->
+  <defs>
+    <linearGradient id="bha" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d9488"/><stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="bhb" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0891b2"/><stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <!-- Left bubble -->
+  <ellipse cx="42" cy="48" rx="32" ry="28" fill="url(#bha)"/>
+  <polygon points="28,70 20,90 48,66" fill="url(#bha)"/>
+  <!-- Audio bars -->
+  <line x1="28" y1="40" x2="28" y2="56" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <line x1="36" y1="36" x2="36" y2="60" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+  <line x1="44" y1="38" x2="44" y2="58" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <line x1="52" y1="42" x2="52" y2="54" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+  <!-- Right bubble -->
+  <ellipse cx="72" cy="42" rx="28" ry="24" fill="url(#bhb)" opacity="0.8"/>
+  <polygon points="85,60 95,78 75,58" fill="url(#bhb)" opacity="0.8"/>
+  <!-- Dots -->
+  <circle cx="62" cy="42" r="3" fill="white" opacity="0.8"/>
+  <circle cx="72" cy="42" r="3" fill="white" opacity="0.8"/>
+  <circle cx="82" cy="42" r="3" fill="white" opacity="0.8"/>
+  <!-- Text -->
+  <text x="145" y="72" font-family="'Trebuchet MS', sans-serif" font-size="48" font-weight="700" fill="#134e4a" letter-spacing="3">Qwillio</text>
+</svg>

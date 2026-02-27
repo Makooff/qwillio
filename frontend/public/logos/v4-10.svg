@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 10: ORIGAMI — Folded paper Q with facets and shadows -->
+  <defs>
+    <linearGradient id="v410a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+  <!-- Folded Q — each triangle is a paper facet -->
+  <!-- Top-left facet -->
+  <polygon points="190,50 120,110 190,165" fill="#fb923c"/>
+  <!-- Top-right facet -->
+  <polygon points="190,50 260,110 190,165" fill="#f97316"/>
+  <!-- Left facet -->
+  <polygon points="120,110 95,190 190,165" fill="#ea580c"/>
+  <!-- Right facet -->
+  <polygon points="260,110 290,190 190,165" fill="#c2410c"/>
+  <!-- Bottom-left facet -->
+  <polygon points="95,190 140,265 190,165" fill="#f97316"/>
+  <!-- Bottom-right facet -->
+  <polygon points="290,190 240,265 190,165" fill="#ea580c"/>
+  <!-- Bottom facet -->
+  <polygon points="140,265 240,265 190,165" fill="#fb923c"/>
+  <!-- Q inner cut (lighter paper showing through) -->
+  <polygon points="190,105 160,145 190,190 220,145" fill="#fff7ed" opacity="0.9"/>
+  <!-- Q tail — folded strip -->
+  <polygon points="250,238 340,310 330,325 240,253" fill="#c2410c"/>
+  <polygon points="250,238 240,253 265,275 275,260" fill="#ea580c"/>
+  <!-- Fold line shadows -->
+  <line x1="190" y1="50" x2="190" y2="265" stroke="#9a3412" stroke-width="0.5" opacity="0.2"/>
+  <line x1="95" y1="190" x2="290" y2="190" stroke="#9a3412" stroke-width="0.5" opacity="0.15"/>
+  <!-- Wordmark -->
+  <text x="200" y="375" text-anchor="middle" font-family="'Futura', 'Century Gothic', sans-serif" font-size="44" font-weight="700" fill="#9a3412" letter-spacing="4">Qwillio</text>
+</svg>

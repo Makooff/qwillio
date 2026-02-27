@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- LAYERED V2: Cercles pleins au lieu d'outlines, transparence -->
+  <circle cx="215" cy="130" r="78" fill="#4f46e5" opacity="0.12"/>
+  <circle cx="205" cy="145" r="78" fill="#4f46e5" opacity="0.2"/>
+  <circle cx="195" cy="160" r="78" fill="#4f46e5" opacity="0.35"/>
+  <circle cx="195" cy="160" r="35" fill="white"/>
+  <line x1="252" y1="215" x2="290" y2="253" stroke="#4f46e5" stroke-width="22" stroke-linecap="round" opacity="0.35"/>
+  <!-- Trou pour les couches arrière aussi -->
+  <circle cx="215" cy="130" r="35" fill="white" opacity="0.7"/>
+  <circle cx="205" cy="145" r="35" fill="white" opacity="0.8"/>
+  <text x="200" y="345" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="48" font-weight="700" fill="#1e1b4b" letter-spacing="3">Qwillio</text>
+</svg>

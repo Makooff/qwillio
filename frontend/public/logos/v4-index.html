@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Qwillio — Logo Concepts V4</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #141420;
+      --border: rgba(255,255,255,0.06);
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --accent: #818cf8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    /* Grain overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+    .header {
+      text-align: center;
+      padding: 80px 20px 60px;
+      position: relative;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(99,102,241,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 4rem;
+      font-weight: 900;
+      letter-spacing: -2px;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #e2e8f0 0%, #818cf8 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header p {
+      font-size: 1rem;
+      color: var(--muted);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      font-weight: 300;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 2px;
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 0 20px 80px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(129,140,248,0.3), transparent);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .card:hover {
+      background: #1a1a2e;
+      transform: translateY(-2px);
+      border-color: rgba(129,140,248,0.15);
+    }
+    .card:hover::before { opacity: 1; }
+    .card .num {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 3px;
+      margin-bottom: 20px;
+      opacity: 0.6;
+    }
+    .card .preview {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      padding: 16px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+    }
+    .card .preview.light {
+      background: #fafafa;
+    }
+    .card .preview img {
+      max-width: 100%;
+      max-height: 200px;
+      object-fit: contain;
+    }
+    .card h3 {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+    .card p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.6;
+      font-weight: 300;
+    }
+    .meta {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .meta span {
+      font-size: 0.6rem;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: 3px 8px;
+      border: 1px solid rgba(129,140,248,0.2);
+      border-radius: 3px;
+      opacity: 0.6;
+    }
+    .footer {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+      font-size: 0.7rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      opacity: 0.4;
+    }
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+      .header h1 { font-size: 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Qwillio</h1>
+    <p>20 Logo Concepts &mdash; V4</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="num">01 / 20</div>
+      <div class="preview light"><img src="v4-01.svg" alt="Speech Bubble Q"></div>
+      <h3>Speech Bubble Q</h3>
+      <p>Le Q forme une bulle de dialogue avec des barres audio a l'interieur. Evoque la conversation vocale IA.</p>
+      <div class="meta"><span>Teal</span><span>Icon+Text</span><span>Voice</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">02 / 20</div>
+      <div class="preview light"><img src="v4-02.svg" alt="Soundwave Wordmark"></div>
+      <h3>Soundwave Wordmark</h3>
+      <p>Typographie avec onde audio courant sous le texte. Format horizontal, ideal pour headers.</p>
+      <div class="meta"><span>Blue-Purple</span><span>Wordmark</span><span>Audio</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">03 / 20</div>
+      <div class="preview light"><img src="v4-03.svg" alt="Rotary Dial"></div>
+      <h3>Rotary Dial</h3>
+      <p>Q inspire d'un cadran rotatif vintage. Heritage telephonique, modernise. Butee rouge comme accent.</p>
+      <div class="meta"><span>Dark</span><span>Retro</span><span>Phone</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">04 / 20</div>
+      <div class="preview light"><img src="v4-04.svg" alt="Neural Network"></div>
+      <h3>Neural Network</h3>
+      <p>Q forme par des noeuds connectes. Represente l'intelligence artificielle et les reseaux neuronaux.</p>
+      <div class="meta"><span>Purple-Blue</span><span>AI</span><span>Tech</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">05 / 20</div>
+      <div class="preview light"><img src="v4-05.svg" alt="Monoline Script"></div>
+      <h3>Monoline Script</h3>
+      <p>Ecriture elegante a trait unique. Le Q cursif coule naturellement vers les lettres suivantes. Luxueux et raffine.</p>
+      <div class="meta"><span>Gold</span><span>Script</span><span>Luxury</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">06 / 20</div>
+      <div class="preview light"><img src="v4-06.svg" alt="Brutalist Block"></div>
+      <h3>Brutalist Block</h3>
+      <p>Q massif rectangulaire, brut et industriel. Barre rouge d'accent. Puissant et sans compromis.</p>
+      <div class="meta"><span>B&W</span><span>Brutalist</span><span>Heavy</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">07 / 20</div>
+      <div class="preview light"><img src="v4-07.svg" alt="Glass Sphere"></div>
+      <h3>Glass Sphere</h3>
+      <p>Q flottant dans une sphere de verre bleue avec reflets et ombre. Effet 3D premium.</p>
+      <div class="meta"><span>Sky Blue</span><span>3D</span><span>Premium</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">08 / 20</div>
+      <div class="preview light"><img src="v4-08.svg" alt="Negative Space"></div>
+      <h3>Negative Space</h3>
+      <p>Le Q est revele par l'espace vide dans un rectangle sombre. Points dores comme accents subtils.</p>
+      <div class="meta"><span>Navy</span><span>Negative</span><span>Minimal</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">09 / 20</div>
+      <div class="preview light"><img src="v4-09.svg" alt="Frequency Bars"></div>
+      <h3>Frequency Bars</h3>
+      <p>Barres d'equaliseur verticales formant la silhouette d'un Q. Son et frequence visibles.</p>
+      <div class="meta"><span>Emerald</span><span>Audio</span><span>Data</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">10 / 20</div>
+      <div class="preview light"><img src="v4-10.svg" alt="Origami"></div>
+      <h3>Origami</h3>
+      <p>Q en papier plie avec facettes triangulaires et ombres. Artisanal et tangible.</p>
+      <div class="meta"><span>Orange</span><span>Paper</span><span>Craft</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">11 / 20</div>
+      <div class="preview"><img src="v4-11.svg" alt="Circuit Board"></div>
+      <h3>Circuit Board</h3>
+      <p>Q trace sur un PCB vert avec pastilles de soudure et vias. Electronique et precision technique.</p>
+      <div class="meta"><span>PCB Green</span><span>Tech</span><span>Hardware</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">12 / 20</div>
+      <div class="preview light"><img src="v4-12.svg" alt="Liquid Metal"></div>
+      <h3>Liquid Metal</h3>
+      <p>Q en chrome liquide avec reflets speculaires. Effet mercure metallique premium.</p>
+      <div class="meta"><span>Chrome</span><span>Metallic</span><span>Luxury</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">13 / 20</div>
+      <div class="preview"><img src="v4-13.svg" alt="Constellation"></div>
+      <h3>Constellation</h3>
+      <p>Etoiles connectees formant un Q dans un ciel nocturne. Poetique et infini.</p>
+      <div class="meta"><span>Night Sky</span><span>Stars</span><span>Elegant</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">14 / 20</div>
+      <div class="preview light"><img src="v4-14.svg" alt="Typewriter"></div>
+      <h3>Typewriter</h3>
+      <p>Frappe mecanique sur papier jauni avec effet double-strike. Nostalgie et authenticite.</p>
+      <div class="meta"><span>Sepia</span><span>Vintage</span><span>Serif</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">15 / 20</div>
+      <div class="preview light"><img src="v4-15.svg" alt="Circular Waveform"></div>
+      <h3>Circular Waveform</h3>
+      <p>Barres audio disposees en cercle autour d'un Q central. Visualisation sonore dynamique.</p>
+      <div class="meta"><span>Red-Orange</span><span>Audio</span><span>Dynamic</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">16 / 20</div>
+      <div class="preview light"><img src="v4-16.svg" alt="Low-Poly"></div>
+      <h3>Low-Poly Gem</h3>
+      <p>Q en facettes triangulaires comme une pierre precieuse taillée. Geometrie cristalline.</p>
+      <div class="meta"><span>Teal</span><span>Geometric</span><span>3D</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">17 / 20</div>
+      <div class="preview light"><img src="v4-17.svg" alt="Calligraphic"></div>
+      <h3>Calligraphic Swirl</h3>
+      <p>Q en trait de pinceau epais avec eclaboussures d'encre. Expressif et artisanal.</p>
+      <div class="meta"><span>Indigo</span><span>Brush</span><span>Art</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">18 / 20</div>
+      <div class="preview light"><img src="v4-18.svg" alt="Maze"></div>
+      <h3>Maze</h3>
+      <p>Q forme par des chemins de labyrinthe concentriques avec sortie flechee. Parcours et solution.</p>
+      <div class="meta"><span>Purple</span><span>Puzzle</span><span>Path</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">19 / 20</div>
+      <div class="preview light"><img src="v4-19.svg" alt="Stencil"></div>
+      <h3>Gradient Stencil</h3>
+      <p>Q en pochoir avec pont de decoupe horizontal et degrade rose-rouge intense. Bold et direct.</p>
+      <div class="meta"><span>Rose-Red</span><span>Stencil</span><span>Bold</span></div>
+    </div>
+
+    <div class="card">
+      <div class="num">20 / 20</div>
+      <div class="preview light"><img src="v4-20.svg" alt="Ecosystem Rings"></div>
+      <h3>Ecosystem Rings</h3>
+      <p>Anneaux orbitaux entrelaces formant un Q avec noeuds aux intersections. Connectivite et ecosysteme.</p>
+      <div class="meta"><span>Multi</span><span>Orbital</span><span>System</span></div>
+    </div>
+  </div>
+
+  <div class="footer">Qwillio &copy; 2025 &mdash; Logo Exploration V4</div>
+</body>
+</html>

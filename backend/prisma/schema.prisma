@@ -1,0 +1,451 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  name         String   @db.VarChar(255)
+  role         String   @default("user") @db.VarChar(50)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  prospects Prospect[]
+  campaigns Campaign[]
+
+  @@map("users")
+}
+
+model Prospect {
+  id                 String    @id @default(uuid()) @db.Uuid
+  businessName       String    @map("business_name") @db.VarChar(500)
+  businessType       String    @map("business_type") @db.VarChar(100)
+  sector             String?   @db.VarChar(100)
+  address            String?   @db.VarChar(500)
+  city               String?   @db.VarChar(100)
+  postalCode         String?   @map("postal_code") @db.VarChar(20)
+  country            String    @default("US") @db.VarChar(10)
+  phone              String?   @db.VarChar(50)
+  email              String?   @db.VarChar(255)
+  website            String?   @db.VarChar(500)
+  contactName        String?   @map("contact_name") @db.VarChar(255)
+  googlePlaceId      String?   @unique @map("google_place_id") @db.VarChar(255)
+  googleRating       Float?    @map("google_rating")
+  googleReviewsCount Int?      @map("google_reviews_count")
+  googleTypes        String[]  @default([]) @map("google_types")
+  score              Int       @default(0)
+  status             String    @default("new") @db.VarChar(50)
+  lastCallDate       DateTime? @map("last_call_date")
+  callDuration       Int?      @map("call_duration")
+  callTranscript     String?   @map("call_transcript") @db.Text
+  callSentiment      String?   @map("call_sentiment") @db.VarChar(50)
+  interestLevel      Int?      @map("interest_level")
+  painPoints         String[]  @default([]) @map("pain_points")
+  needsIdentified    String?   @map("needs_identified") @db.Text
+  notes              String?   @db.Text
+  nextAction         String?   @map("next_action") @db.VarChar(255)
+  nextActionDate     DateTime? @map("next_action_date")
+  lastContactDate    DateTime? @map("last_contact_date")
+  assignedToUserId   String?   @map("assigned_to_user_id") @db.Uuid
+  timezone           String    @default("America/New_York") @db.VarChar(50)
+  phoneValidated     Boolean   @default(false) @map("phone_validated")
+  phoneValidationSource String? @map("phone_validation_source") @db.VarChar(50)
+  phoneNumberConfidence Float? @map("phone_number_confidence")
+  phoneValidatedAt   DateTime? @map("phone_validated_at")
+  callAttempts       Int       @default(0) @map("call_attempts")
+  maxAttempts        Int       @default(3) @map("max_attempts")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  assignedTo    User?          @relation(fields: [assignedToUserId], references: [id])
+  calls         Call[]
+  quotes        Quote[]
+  campaignSends CampaignSend[]
+
+  @@index([status])
+  @@index([businessType])
+  @@index([city])
+  @@index([score])
+  @@map("prospects")
+}
+
+model Call {
+  id                   String    @id @default(uuid()) @db.Uuid
+  prospectId           String?   @map("prospect_id") @db.Uuid
+  vapiCallId           String?   @unique @map("vapi_call_id") @db.VarChar(255)
+  phoneNumber          String    @map("phone_number") @db.VarChar(50)
+  direction            String    @default("outbound") @db.VarChar(20)
+  startedAt            DateTime? @map("started_at")
+  endedAt              DateTime? @map("ended_at")
+  durationSeconds      Int?      @map("duration_seconds")
+  status               String    @default("queued") @db.VarChar(50)
+  transcript           String?   @db.Text
+  summary              String?   @db.Text
+  sentiment            String?   @db.VarChar(50)
+  interestLevel        Int?      @map("interest_level")
+  emailCollected       String?   @map("email_collected") @db.VarChar(255)
+  needsMentioned       String[]  @default([]) @map("needs_mentioned")
+  objections           String[]  @default([])
+  budgetMentioned      String?   @map("budget_mentioned") @db.VarChar(100)
+  timelineMentioned    String?   @map("timeline_mentioned") @db.VarChar(100)
+  decisionMakerReached Boolean   @default(false) @map("decision_maker_reached")
+  outcome              String?   @db.VarChar(100)
+  recommendedPackage   String?   @map("recommended_package") @db.VarChar(50)
+  nextAction           String?   @map("next_action") @db.VarChar(255)
+  recordingUrl         String?   @map("recording_url") @db.VarChar(500)
+  setupFeeObjectionRaised Boolean @default(false) @map("setup_fee_objection_raised")
+  cost                 Decimal?  @db.Decimal(10, 4)
+  createdAt            DateTime  @default(now()) @map("created_at")
+  metadata             Json?
+
+  prospect Prospect? @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+
+  @@index([prospectId])
+  @@index([status])
+  @@map("calls")
+}
+
+model Quote {
+  id                String    @id @default(uuid()) @db.Uuid
+  prospectId        String?   @map("prospect_id") @db.Uuid
+  packageType       String    @map("package_type") @db.VarChar(50)
+  setupFee          Decimal   @map("setup_fee") @db.Decimal(10, 2)
+  monthlyFee        Decimal   @map("monthly_fee") @db.Decimal(10, 2)
+  currency          String    @default("USD") @db.VarChar(10)
+  featuresIncluded  Json      @map("features_included")
+  validUntil        DateTime  @map("valid_until") @db.Date
+  status            String    @default("sent") @db.VarChar(50)
+  sentAt            DateTime? @map("sent_at")
+  viewedAt          DateTime? @map("viewed_at")
+  acceptedAt        DateTime? @map("accepted_at")
+  stripePaymentLink String?   @map("stripe_payment_link") @db.VarChar(500)
+  setupFeeInstallment Boolean @default(false) @map("setup_fee_installment")
+  installmentMonths   Int     @default(1) @map("installment_months")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+  notes             String?   @db.Text
+
+  prospect Prospect? @relation(fields: [prospectId], references: [id], onDelete: SetNull)
+  clients  Client[]
+
+  @@index([prospectId])
+  @@index([status])
+  @@map("quotes")
+}
+
+model Client {
+  id                    String    @id @default(uuid()) @db.Uuid
+  prospectId            String?   @map("prospect_id") @db.Uuid
+  quoteId               String?   @map("quote_id") @db.Uuid
+  businessName          String    @map("business_name") @db.VarChar(500)
+  businessType          String    @map("business_type") @db.VarChar(100)
+  sector                String?   @db.VarChar(100)
+  contactName           String    @map("contact_name") @db.VarChar(255)
+  contactEmail          String    @map("contact_email") @db.VarChar(255)
+  contactPhone          String?   @map("contact_phone") @db.VarChar(50)
+  address               String?   @db.VarChar(500)
+  city                  String?   @db.VarChar(100)
+  postalCode            String?   @map("postal_code") @db.VarChar(20)
+  country               String    @default("BE") @db.VarChar(10)
+  planType              String    @map("plan_type") @db.VarChar(50)
+  setupFee              Decimal   @map("setup_fee") @db.Decimal(10, 2)
+  monthlyFee            Decimal   @map("monthly_fee") @db.Decimal(10, 2)
+  currency              String    @default("EUR") @db.VarChar(10)
+  stripeCustomerId      String?   @unique @map("stripe_customer_id") @db.VarChar(255)
+  stripeSubscriptionId  String?   @unique @map("stripe_subscription_id") @db.VarChar(255)
+  subscriptionStatus    String    @default("active") @map("subscription_status") @db.VarChar(50)
+  vapiAssistantId       String?   @map("vapi_assistant_id") @db.VarChar(255)
+  vapiPhoneNumber       String?   @map("vapi_phone_number") @db.VarChar(50)
+  vapiConfig            Json?     @map("vapi_config")
+  onboardingStatus      String    @default("pending") @map("onboarding_status") @db.VarChar(50)
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at")
+  activationDate        DateTime? @map("activation_date")
+  cancellationDate      DateTime? @map("cancellation_date")
+  isTrial               Boolean   @default(false) @map("is_trial")
+  trialStartDate        DateTime? @map("trial_start_date")
+  trialEndDate          DateTime? @map("trial_end_date")
+  trialConvertedAt      DateTime? @map("trial_converted_at")
+  onboardingData        Json?     @map("onboarding_data")
+  onboardingFormSentAt  DateTime? @map("onboarding_form_sent_at")
+  onboardingFormDoneAt  DateTime? @map("onboarding_form_done_at")
+  loomVideoUrl          String?   @map("loom_video_url") @db.VarChar(500)
+  dashboardToken        String?   @unique @map("dashboard_token") @db.VarChar(255)
+  addOns                Json?     @map("add_ons")
+  contractSignedAt      DateTime? @map("contract_signed_at")
+  contractUrl           String?   @map("contract_url") @db.VarChar(500)
+  totalCallsMade        Int       @default(0) @map("total_calls_made")
+  monthlyCallsQuota     Int?      @map("monthly_calls_quota")
+  lastCallDate          DateTime? @map("last_call_date")
+  notes                 String?   @db.Text
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  quote    Quote?    @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  payments Payment[]
+  clientCalls       ClientCall[]
+  clientBookings    ClientBooking[]
+  clientAnalytics   ClientAnalyticsDaily[]
+
+  @@index([subscriptionStatus])
+  @@index([planType])
+  @@index([onboardingStatus])
+  @@map("clients")
+}
+
+model Campaign {
+  id                  String    @id @default(uuid()) @db.Uuid
+  name                String    @db.VarChar(255)
+  type                String    @default("email") @db.VarChar(50)
+  targetBusinessTypes String[]  @default([]) @map("target_business_types")
+  targetCities        String[]  @default([]) @map("target_cities")
+  targetMinScore      Int?      @map("target_min_score")
+  targetMaxScore      Int?      @map("target_max_score")
+  targetStatuses      String[]  @default([]) @map("target_statuses")
+  subjectLine         String?   @map("subject_line") @db.VarChar(255)
+  messageTemplate     String    @map("message_template") @db.Text
+  scheduledDate       DateTime? @map("scheduled_date")
+  status              String    @default("draft") @db.VarChar(50)
+  sentCount           Int       @default(0) @map("sent_count")
+  deliveredCount      Int       @default(0) @map("delivered_count")
+  openedCount         Int       @default(0) @map("opened_count")
+  clickedCount        Int       @default(0) @map("clicked_count")
+  repliedCount        Int       @default(0) @map("replied_count")
+  bouncedCount        Int       @default(0) @map("bounced_count")
+  createdByUserId     String?   @map("created_by_user_id") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+  completedAt         DateTime? @map("completed_at")
+
+  createdBy User?          @relation(fields: [createdByUserId], references: [id])
+  sends     CampaignSend[]
+
+  @@index([status])
+  @@map("campaigns")
+}
+
+model CampaignSend {
+  id           String    @id @default(uuid()) @db.Uuid
+  campaignId   String    @map("campaign_id") @db.Uuid
+  prospectId   String    @map("prospect_id") @db.Uuid
+  sentAt       DateTime? @map("sent_at")
+  deliveredAt  DateTime? @map("delivered_at")
+  openedAt     DateTime? @map("opened_at")
+  clickedAt    DateTime? @map("clicked_at")
+  repliedAt    DateTime? @map("replied_at")
+  bouncedAt    DateTime? @map("bounced_at")
+  status       String    @default("pending") @db.VarChar(50)
+  errorMessage String?   @map("error_message") @db.Text
+  messageId    String?   @map("message_id") @db.VarChar(255)
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  prospect Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, prospectId])
+  @@index([campaignId])
+  @@index([prospectId])
+  @@map("campaign_sends")
+}
+
+model Reminder {
+  id           String    @id @default(uuid()) @db.Uuid
+  targetType   String    @map("target_type") @db.VarChar(50)
+  targetId     String    @map("target_id") @db.Uuid
+  reminderType String    @map("reminder_type") @db.VarChar(50)
+  scheduledAt  DateTime  @map("scheduled_at")
+  status       String    @default("pending") @db.VarChar(50)
+  sentAt       DateTime? @map("sent_at")
+  result       String?   @db.Text
+  errorMessage String?   @map("error_message") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([status])
+  @@map("reminders")
+}
+
+model Payment {
+  id                    String    @id @default(uuid()) @db.Uuid
+  clientId              String?   @map("client_id") @db.Uuid
+  stripePaymentIntentId String?   @unique @map("stripe_payment_intent_id") @db.VarChar(255)
+  stripeInvoiceId       String?   @map("stripe_invoice_id") @db.VarChar(255)
+  amount                Decimal   @db.Decimal(10, 2)
+  currency              String    @default("EUR") @db.VarChar(10)
+  paymentType           String    @map("payment_type") @db.VarChar(50)
+  status                String    @default("pending") @db.VarChar(50)
+  paidAt                DateTime? @map("paid_at")
+  failedAt              DateTime? @map("failed_at")
+  refundedAt            DateTime? @map("refunded_at")
+  description           String?   @db.Text
+  failureReason         String?   @map("failure_reason") @db.Text
+  createdAt             DateTime  @default(now()) @map("created_at")
+  metadata              Json?
+
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+  @@index([status])
+  @@map("payments")
+}
+
+model WebhookLog {
+  id           String    @id @default(uuid()) @db.Uuid
+  source       String    @db.VarChar(50)
+  eventType    String    @map("event_type") @db.VarChar(100)
+  payload      Json
+  headers      Json?
+  status       String    @default("received") @db.VarChar(50)
+  processedAt  DateTime? @map("processed_at")
+  errorMessage String?   @map("error_message") @db.Text
+  retryCount   Int       @default(0) @map("retry_count")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([source])
+  @@index([status])
+  @@map("webhook_logs")
+}
+
+model AnalyticsDaily {
+  id                   String   @id @default(uuid()) @db.Uuid
+  date                 DateTime @unique @db.Date
+  prospectsAdded       Int      @default(0) @map("prospects_added")
+  prospectsContacted   Int      @default(0) @map("prospects_contacted")
+  prospectsQualified   Int      @default(0) @map("prospects_qualified")
+  callsMade            Int      @default(0) @map("calls_made")
+  callsSuccessful      Int      @default(0) @map("calls_successful")
+  callsFailed          Int      @default(0) @map("calls_failed")
+  totalCallDuration    Int      @default(0) @map("total_call_duration")
+  quotesSent           Int      @default(0) @map("quotes_sent")
+  quotesAccepted       Int      @default(0) @map("quotes_accepted")
+  newClients           Int      @default(0) @map("new_clients")
+  revenueSetupFees     Decimal  @default(0) @map("revenue_setup_fees") @db.Decimal(10, 2)
+  revenueSubscriptions Decimal  @default(0) @map("revenue_subscriptions") @db.Decimal(10, 2)
+  costVapiCalls        Decimal  @default(0) @map("cost_vapi_calls") @db.Decimal(10, 4)
+  costApis             Decimal  @default(0) @map("cost_apis") @db.Decimal(10, 4)
+  costTwilioSms        Decimal  @default(0) @map("cost_twilio_sms") @db.Decimal(10, 4)
+  costTwilioLookup     Decimal  @default(0) @map("cost_twilio_lookup") @db.Decimal(10, 4)
+  smsSent              Int      @default(0) @map("sms_sent")
+  smsDelivered         Int      @default(0) @map("sms_delivered")
+  smsFailed            Int      @default(0) @map("sms_failed")
+  phonesValidated      Int      @default(0) @map("phones_validated")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("analytics_daily")
+}
+
+model BotStatus {
+  id              String    @id @default(uuid()) @db.Uuid
+  isActive        Boolean   @default(true) @map("is_active")
+  callsToday      Int       @default(0) @map("calls_today")
+  callsQuotaDaily Int       @default(50) @map("calls_quota_daily")
+  lastProspection DateTime? @map("last_prospection")
+  lastCall        DateTime? @map("last_call")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@map("bot_status")
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLIENT CALL LOG - Tracks incoming calls to client's AI receptionist
+// ═══════════════════════════════════════════════════════════
+model ClientCall {
+  id              String    @id @default(uuid()) @db.Uuid
+  clientId        String    @map("client_id") @db.Uuid
+  vapiCallId      String?   @unique @map("vapi_call_id") @db.VarChar(255)
+  callerNumber    String?   @map("caller_number") @db.VarChar(50)
+  callerName      String?   @map("caller_name") @db.VarChar(255)
+  direction       String    @default("inbound") @db.VarChar(20)
+  startedAt       DateTime? @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  durationSeconds Int?      @map("duration_seconds")
+  status          String    @default("in-progress") @db.VarChar(50)
+  transcript      String?   @db.Text
+  summary         String?   @db.Text
+  sentiment       String?   @db.VarChar(50)
+  outcome         String?   @db.VarChar(100)
+  recordingUrl    String?   @map("recording_url") @db.VarChar(500)
+  emailCollected  String?   @map("email_collected") @db.VarChar(255)
+  nameCollected   String?   @map("name_collected") @db.VarChar(255)
+  phoneCollected  String?   @map("phone_collected") @db.VarChar(50)
+  bookingRequested Boolean  @default(false) @map("booking_requested")
+  bookingDate     DateTime? @map("booking_date")
+  bookingDetails  String?   @map("booking_details") @db.Text
+  isLead          Boolean   @default(false) @map("is_lead")
+  leadScore       Int?      @map("lead_score")
+  tags            String[]  @default([])
+  metadata        Json?
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("client_calls")
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLIENT BOOKING - Appointments booked via AI receptionist
+// ═══════════════════════════════════════════════════════════
+model ClientBooking {
+  id              String    @id @default(uuid()) @db.Uuid
+  clientId        String    @map("client_id") @db.Uuid
+  clientCallId    String?   @map("client_call_id") @db.Uuid
+  customerName    String    @map("customer_name") @db.VarChar(255)
+  customerPhone   String?   @map("customer_phone") @db.VarChar(50)
+  customerEmail   String?   @map("customer_email") @db.VarChar(255)
+  bookingDate     DateTime  @map("booking_date")
+  bookingTime     String?   @map("booking_time") @db.VarChar(20)
+  serviceType     String?   @map("service_type") @db.VarChar(255)
+  partySize       Int?      @map("party_size")
+  specialRequests String?   @map("special_requests") @db.Text
+  status          String    @default("confirmed") @db.VarChar(50)
+  reminderSent    Boolean   @default(false) @map("reminder_sent")
+  reminderSentAt  DateTime? @map("reminder_sent_at")
+  googleEventId   String?   @map("google_event_id") @db.VarChar(255)
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([bookingDate])
+  @@index([status])
+  @@map("client_bookings")
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLIENT ANALYTICS DAILY - Aggregated stats per client per day
+// ═══════════════════════════════════════════════════════════
+model ClientAnalyticsDaily {
+  id                  String   @id @default(uuid()) @db.Uuid
+  clientId            String   @map("client_id") @db.Uuid
+  date                DateTime @db.Date
+  totalCalls          Int      @default(0) @map("total_calls")
+  answeredCalls       Int      @default(0) @map("answered_calls")
+  missedCalls         Int      @default(0) @map("missed_calls")
+  totalDuration       Int      @default(0) @map("total_duration")
+  avgDuration         Int      @default(0) @map("avg_duration")
+  leadsGenerated      Int      @default(0) @map("leads_generated")
+  bookingsMade        Int      @default(0) @map("bookings_made")
+  emailsCollected     Int      @default(0) @map("emails_collected")
+  sentimentPositive   Int      @default(0) @map("sentiment_positive")
+  sentimentNeutral    Int      @default(0) @map("sentiment_neutral")
+  sentimentNegative   Int      @default(0) @map("sentiment_negative")
+  topIssues           String[] @default([]) @map("top_issues")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, date])
+  @@index([clientId])
+  @@index([date])
+  @@map("client_analytics_daily")
+}

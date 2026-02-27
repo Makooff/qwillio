@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 11: CIRCUIT BOARD — PCB trace forming a Q with solder pads -->
+  <rect width="400" height="400" fill="#064e3b" rx="12"/>
+  <!-- PCB trace Q -->
+  <circle cx="190" cy="162" r="82" fill="none" stroke="#86efac" stroke-width="6"/>
+  <!-- Q inner circle (ground plane) -->
+  <circle cx="190" cy="162" r="38" fill="#064e3b" stroke="#86efac" stroke-width="2"/>
+  <!-- Q tail trace -->
+  <path d="M248 224 L260 236 L310 236 L310 275" fill="none" stroke="#86efac" stroke-width="6" stroke-linejoin="round"/>
+  <!-- Solder pads -->
+  <circle cx="190" cy="80" r="8" fill="#86efac"/>
+  <circle cx="190" cy="80" r="4" fill="#064e3b"/>
+  <circle cx="108" cy="162" r="8" fill="#86efac"/>
+  <circle cx="108" cy="162" r="4" fill="#064e3b"/>
+  <circle cx="272" cy="162" r="8" fill="#86efac"/>
+  <circle cx="272" cy="162" r="4" fill="#064e3b"/>
+  <circle cx="190" cy="244" r="8" fill="#86efac"/>
+  <circle cx="190" cy="244" r="4" fill="#064e3b"/>
+  <circle cx="310" cy="275" r="8" fill="#86efac"/>
+  <circle cx="310" cy="275" r="4" fill="#064e3b"/>
+  <!-- Via holes -->
+  <circle cx="150" cy="105" r="4" fill="#4ade80" opacity="0.5"/>
+  <circle cx="230" cy="105" r="4" fill="#4ade80" opacity="0.5"/>
+  <circle cx="150" cy="220" r="4" fill="#4ade80" opacity="0.5"/>
+  <circle cx="230" cy="220" r="4" fill="#4ade80" opacity="0.5"/>
+  <!-- Auxiliary traces -->
+  <line x1="190" y1="80" x2="190" y2="45" stroke="#86efac" stroke-width="2" opacity="0.4"/>
+  <line x1="108" y1="162" x2="60" y2="162" stroke="#86efac" stroke-width="2" opacity="0.4"/>
+  <!-- Wordmark -->
+  <text x="200" y="345" text-anchor="middle" font-family="'Courier New', monospace" font-size="34" font-weight="700" fill="#86efac" letter-spacing="6">QWILLIO</text>
+  <!-- Version text -->
+  <text x="200" y="370" text-anchor="middle" font-family="'Courier New', monospace" font-size="10" fill="#4ade80" letter-spacing="3" opacity="0.5">REV 1.0</text>
+</svg>

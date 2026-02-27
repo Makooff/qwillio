@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200" width="500" height="200">
+  <!-- 08: PURE WORDMARK GRADIENT — Typographie pure avec dégradé multicolore -->
+  <defs>
+    <linearGradient id="h1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="30%" stop-color="#8b5cf6"/>
+      <stop offset="60%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
+    </linearGradient>
+  </defs>
+  <!-- Wordmark principal -->
+  <text x="250" y="115" text-anchor="middle" font-family="'Georgia', 'Times New Roman', serif" font-size="86" font-weight="700" fill="url(#h1)" letter-spacing="-1">Qwillio</text>
+  <!-- Barre fine sous le texte -->
+  <rect x="80" y="135" width="340" height="2" rx="1" fill="url(#h1)" opacity="0.3"/>
+  <!-- Tagline -->
+  <text x="250" y="168" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="13" font-weight="400" fill="#64748b" letter-spacing="8">YOUR AI RECEPTIONIST</text>
+</svg>

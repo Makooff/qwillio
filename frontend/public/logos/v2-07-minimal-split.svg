@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V2-07: Q Minimal Split - Moitié gauche indigo, moitié droite violet -->
+  <defs>
+    <clipPath id="v7left"><rect x="0" y="0" width="190" height="400"/></clipPath>
+    <clipPath id="v7right"><rect x="190" y="0" width="210" height="400"/></clipPath>
+  </defs>
+  <!-- Moitié gauche du Q (indigo) -->
+  <g clip-path="url(#v7left)">
+    <circle cx="190" cy="160" r="100" fill="#4f46e5"/>
+    <circle cx="190" cy="160" r="46" fill="white"/>
+  </g>
+  <!-- Moitié droite du Q (violet) -->
+  <g clip-path="url(#v7right)">
+    <circle cx="190" cy="160" r="100" fill="#7c3aed"/>
+    <circle cx="190" cy="160" r="46" fill="white"/>
+  </g>
+  <!-- Petit espace au milieu (gap) -->
+  <line x1="190" y1="58" x2="190" y2="114" stroke="white" stroke-width="4"/>
+  <line x1="190" y1="206" x2="190" y2="262" stroke="white" stroke-width="4"/>
+  <!-- Queue du Q : (190+100*0.707, 160+100*0.707) = (261, 231) -->
+  <line x1="261" y1="231" x2="308" y2="278" stroke="#7c3aed" stroke-width="26" stroke-linecap="round"/>
+  <!-- Wordmark -->
+  <text x="200" y="355" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="50" font-weight="700" fill="#1e1b4b" letter-spacing="4">Qwillio</text>
+</svg>

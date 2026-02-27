@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V3-14: DNA/HELIX - Q avec structure en double hélice -->
+  <defs>
+    <linearGradient id="dn1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <!-- Q principal -->
+  <circle cx="185" cy="155" r="90" fill="url(#dn1)"/>
+  <circle cx="185" cy="155" r="40" fill="white"/>
+  <line x1="249" y1="219" x2="292" y2="262" stroke="url(#dn1)" stroke-width="24" stroke-linecap="round"/>
+  <!-- Double hélice intégrée dans le trou -->
+  <path d="M165 130 Q185 140 205 130 Q185 120 165 130" fill="none" stroke="white" stroke-width="3" opacity="0.7"/>
+  <path d="M165 145 Q185 155 205 145 Q185 135 165 145" fill="none" stroke="white" stroke-width="3" opacity="0.6"/>
+  <path d="M165 160 Q185 170 205 160 Q185 150 165 160" fill="none" stroke="white" stroke-width="3" opacity="0.5"/>
+  <path d="M165 175 Q185 185 205 175 Q185 165 165 175" fill="none" stroke="white" stroke-width="3" opacity="0.4"/>
+  <!-- Points de données sur l'hélice -->
+  <circle cx="165" cy="130" r="3" fill="white" opacity="0.8"/>
+  <circle cx="205" cy="130" r="3" fill="white" opacity="0.8"/>
+  <circle cx="185" cy="145" r="3" fill="white" opacity="0.6"/>
+  <circle cx="165" cy="160" r="3" fill="white" opacity="0.5"/>
+  <circle cx="205" cy="160" r="3" fill="white" opacity="0.5"/>
+  <circle cx="185" cy="175" r="3" fill="white" opacity="0.4"/>
+  <!-- Wordmark -->
+  <text x="200" y="355" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-size="46" font-weight="700" fill="#1e1b4b" letter-spacing="4">Qwillio</text>
+</svg>

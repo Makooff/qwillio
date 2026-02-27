@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V3-02: STAMP/BADGE - Style tampon/sceau vintage -->
+  <defs>
+    <linearGradient id="s2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
+    </linearGradient>
+  </defs>
+  <!-- Double cercle badge -->
+  <circle cx="200" cy="185" r="135" fill="none" stroke="url(#s2)" stroke-width="6"/>
+  <circle cx="200" cy="185" r="120" fill="none" stroke="url(#s2)" stroke-width="2"/>
+  <!-- Texte circulaire haut -->
+  <path id="topArc" d="M80 185 A120 120 0 0 1 320 185" fill="none"/>
+  <text font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="700" fill="#4f46e5" letter-spacing="5">
+    <textPath href="#topArc" startOffset="50%" text-anchor="middle">AI VOICE RECEPTIONIST</textPath>
+  </text>
+  <!-- Texte circulaire bas -->
+  <path id="botArc" d="M320 185 A120 120 0 0 1 80 185" fill="none"/>
+  <text font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="700" fill="#4f46e5" letter-spacing="4">
+    <textPath href="#botArc" startOffset="50%" text-anchor="middle">SMART AUTOMATION</textPath>
+  </text>
+  <!-- Étoiles séparatrices -->
+  <circle cx="78" cy="185" r="4" fill="#6366f1"/>
+  <circle cx="322" cy="185" r="4" fill="#6366f1"/>
+  <!-- Nom central -->
+  <text x="200" y="195" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-size="44" font-weight="800" fill="#312e81" letter-spacing="3">Qwillio</text>
+  <!-- Ligne déco -->
+  <line x1="115" y1="208" x2="285" y2="208" stroke="#6366f1" stroke-width="1.5" opacity="0.4"/>
+</svg>

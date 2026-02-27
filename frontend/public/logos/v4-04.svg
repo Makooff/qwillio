@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 04: NEURAL NETWORK — Q formed by connected neural nodes -->
+  <defs>
+    <linearGradient id="v404a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <!-- Connection lines (drawn first, behind nodes) -->
+  <g stroke="#c7d2fe" stroke-width="1.5" opacity="0.4">
+    <!-- Top arc connections -->
+    <line x1="150" y1="62" x2="195" y2="55"/>
+    <line x1="195" y1="55" x2="240" y2="62"/>
+    <line x1="240" y1="62" x2="278" y2="88"/>
+    <line x1="278" y1="88" x2="300" y2="125"/>
+    <line x1="300" y1="125" x2="308" y2="168"/>
+    <line x1="308" y1="168" x2="300" y2="210"/>
+    <line x1="300" y1="210" x2="278" y2="245"/>
+    <line x1="278" y1="245" x2="240" y2="270"/>
+    <line x1="240" y1="270" x2="195" y2="278"/>
+    <line x1="195" y1="278" x2="150" y2="270"/>
+    <line x1="150" y1="270" x2="115" y2="245"/>
+    <line x1="115" y1="245" x2="95" y2="210"/>
+    <line x1="95" y1="210" x2="88" y2="168"/>
+    <line x1="88" y1="168" x2="95" y2="125"/>
+    <line x1="95" y1="125" x2="115" y2="88"/>
+    <line x1="115" y1="88" x2="150" y2="62"/>
+    <!-- Cross connections -->
+    <line x1="150" y1="62" x2="240" y2="270"/>
+    <line x1="240" y1="62" x2="150" y2="270"/>
+    <line x1="88" y1="168" x2="308" y2="168"/>
+    <line x1="95" y1="125" x2="300" y2="210"/>
+    <line x1="95" y1="210" x2="300" y2="125"/>
+    <!-- Q tail connections -->
+    <line x1="278" y1="245" x2="320" y2="290"/>
+    <line x1="240" y1="270" x2="320" y2="290"/>
+    <line x1="320" y1="290" x2="345" y2="310"/>
+  </g>
+  <!-- Nodes on the Q circle path -->
+  <circle cx="195" cy="55" r="7" fill="url(#v404a)"/>
+  <circle cx="150" cy="62" r="6" fill="url(#v404a)"/>
+  <circle cx="240" cy="62" r="6" fill="url(#v404a)"/>
+  <circle cx="115" cy="88" r="5" fill="url(#v404a)"/>
+  <circle cx="278" cy="88" r="5" fill="url(#v404a)"/>
+  <circle cx="95" cy="125" r="6" fill="url(#v404a)"/>
+  <circle cx="300" cy="125" r="6" fill="url(#v404a)"/>
+  <circle cx="88" cy="168" r="7" fill="url(#v404a)"/>
+  <circle cx="308" cy="168" r="7" fill="url(#v404a)"/>
+  <circle cx="95" cy="210" r="6" fill="url(#v404a)"/>
+  <circle cx="300" cy="210" r="6" fill="url(#v404a)"/>
+  <circle cx="115" cy="245" r="5" fill="url(#v404a)"/>
+  <circle cx="278" cy="245" r="5" fill="url(#v404a)"/>
+  <circle cx="150" cy="270" r="6" fill="url(#v404a)"/>
+  <circle cx="240" cy="270" r="6" fill="url(#v404a)"/>
+  <circle cx="195" cy="278" r="7" fill="url(#v404a)"/>
+  <!-- Q tail nodes -->
+  <circle cx="320" cy="290" r="5" fill="#7c3aed"/>
+  <circle cx="345" cy="310" r="4" fill="#a78bfa"/>
+  <!-- Wordmark -->
+  <text x="200" y="375" text-anchor="middle" font-family="'Verdana', 'Geneva', sans-serif" font-size="38" font-weight="400" fill="#1e1b4b" letter-spacing="6">QWILLIO</text>
+</svg>

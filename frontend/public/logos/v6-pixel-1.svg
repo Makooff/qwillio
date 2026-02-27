@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- PIXEL V1: Teal/cyan palette, circles instead of squares -->
+  <g transform="translate(95, 40)">
+    <!-- Row 1 -->
+    <circle cx="70" cy="10" r="10" fill="#5eead4" opacity="0.5"/>
+    <circle cx="95" cy="10" r="10" fill="#2dd4bf" opacity="0.7"/>
+    <circle cx="120" cy="10" r="10" fill="#14b8a6" opacity="0.8"/>
+    <circle cx="145" cy="10" r="10" fill="#5eead4" opacity="0.6"/>
+    <!-- Row 2 -->
+    <circle cx="40" cy="35" r="10" fill="#2dd4bf" opacity="0.7"/>
+    <circle cx="65" cy="35" r="10" fill="#0d9488"/>
+    <circle cx="140" cy="35" r="10" fill="#0d9488"/>
+    <circle cx="165" cy="35" r="10" fill="#2dd4bf" opacity="0.7"/>
+    <!-- Row 3 -->
+    <circle cx="15" cy="60" r="10" fill="#14b8a6" opacity="0.8"/>
+    <circle cx="40" cy="60" r="10" fill="#0d9488"/>
+    <circle cx="165" cy="60" r="10" fill="#0d9488"/>
+    <circle cx="190" cy="60" r="10" fill="#14b8a6" opacity="0.8"/>
+    <!-- Row 4 -->
+    <circle cx="10" cy="85" r="10" fill="#0d9488"/>
+    <circle cx="195" cy="85" r="10" fill="#0d9488"/>
+    <!-- Row 5 -->
+    <circle cx="10" cy="110" r="10" fill="#0d9488"/>
+    <circle cx="195" cy="110" r="10" fill="#0891b2"/>
+    <!-- Row 6 -->
+    <circle cx="10" cy="135" r="10" fill="#0d9488"/>
+    <circle cx="195" cy="135" r="10" fill="#0891b2"/>
+    <!-- Row 7 -->
+    <circle cx="15" cy="160" r="10" fill="#14b8a6" opacity="0.8"/>
+    <circle cx="40" cy="160" r="10" fill="#0d9488"/>
+    <circle cx="165" cy="160" r="10" fill="#0891b2"/>
+    <circle cx="190" cy="160" r="10" fill="#06b6d4" opacity="0.8"/>
+    <!-- Row 8 -->
+    <circle cx="40" cy="185" r="10" fill="#2dd4bf" opacity="0.7"/>
+    <circle cx="65" cy="185" r="10" fill="#0d9488"/>
+    <circle cx="140" cy="185" r="10" fill="#0891b2"/>
+    <circle cx="165" cy="185" r="10" fill="#06b6d4" opacity="0.7"/>
+    <!-- Row 9 + tail -->
+    <circle cx="70" cy="210" r="10" fill="#5eead4" opacity="0.5"/>
+    <circle cx="95" cy="210" r="10" fill="#2dd4bf" opacity="0.7"/>
+    <circle cx="120" cy="210" r="10" fill="#06b6d4" opacity="0.8"/>
+    <circle cx="145" cy="210" r="10" fill="#22d3ee" opacity="0.6"/>
+    <circle cx="175" cy="210" r="10" fill="#06b6d4"/>
+    <!-- Tail -->
+    <circle cx="200" cy="235" r="10" fill="#22d3ee" opacity="0.9"/>
+    <circle cx="225" cy="260" r="10" fill="#22d3ee" opacity="0.7"/>
+  </g>
+  <text x="200" y="365" text-anchor="middle" font-family="'JetBrains Mono', 'Fira Code', monospace" font-size="40" font-weight="700" fill="#134e4a" letter-spacing="4">Qwillio</text>
+</svg>

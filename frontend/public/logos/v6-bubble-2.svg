@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- BUBBLE V2: Palette indigo/violet -->
+  <defs>
+    <linearGradient id="bb2a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="bb2b" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="155" cy="145" rx="82" ry="68" fill="url(#bb2a)"/>
+  <polygon points="120,198 102,238 158,192" fill="url(#bb2a)"/>
+  <ellipse cx="242" cy="135" rx="75" ry="62" fill="url(#bb2b)" opacity="0.8"/>
+  <polygon points="278,182 305,215 252,180" fill="url(#bb2b)" opacity="0.8"/>
+  <line x1="125" y1="128" x2="125" y2="162" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="140" y1="118" x2="140" y2="172" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="155" y1="125" x2="155" y2="165" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="170" y1="130" x2="170" y2="160" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.6"/>
+  <circle cx="220" cy="135" r="5" fill="white" opacity="0.8"/>
+  <circle cx="242" cy="135" r="5" fill="white" opacity="0.8"/>
+  <circle cx="264" cy="135" r="5" fill="white" opacity="0.8"/>
+  <text x="200" y="328" text-anchor="middle" font-family="'Georgia', serif" font-size="48" font-weight="700" fill="#1e1b4b" letter-spacing="2">Qwillio</text>
+</svg>

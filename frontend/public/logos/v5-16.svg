@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 16: PERSON + WAVE — Silhouette humaine avec onde vocale qui en sort -->
+  <defs>
+    <linearGradient id="p1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <!-- Tête -->
+  <circle cx="165" cy="95" r="38" fill="url(#p1)"/>
+  <!-- Corps/épaules (demi-cercle) -->
+  <path d="M95 265 C95 195 125 160 165 160 C205 160 235 195 235 265" fill="url(#p1)"/>
+  <!-- Onde vocale sortant de la bouche vers la droite -->
+  <path d="M205 100 C220 90 220 80 205 70" fill="none" stroke="#a855f7" stroke-width="5" stroke-linecap="round"/>
+  <path d="M220 108 C242 92 242 72 220 56" fill="none" stroke="#a855f7" stroke-width="4.5" stroke-linecap="round" opacity="0.7"/>
+  <path d="M235 115 C265 95 265 62 235 42" fill="none" stroke="#a855f7" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
+  <path d="M250 122 C288 98 288 55 250 30" fill="none" stroke="#c084fc" stroke-width="3.5" stroke-linecap="round" opacity="0.25"/>
+  <!-- Wordmark -->
+  <text x="200" y="340" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="50" font-weight="700" fill="#4c1d95" letter-spacing="2">Qwillio</text>
+</svg>

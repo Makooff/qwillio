@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 13: CALENDAR BOOK — Agenda/calendrier symbolisant la prise de RDV -->
+  <defs>
+    <linearGradient id="m1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <!-- Page du calendrier -->
+  <rect x="95" y="65" width="210" height="220" rx="12" fill="white" stroke="#d1d5db" stroke-width="2"/>
+  <!-- Barre du haut (mois) -->
+  <rect x="95" y="65" width="210" height="50" rx="12" fill="url(#m1)"/>
+  <rect x="95" y="90" width="210" height="25" fill="url(#m1)"/>
+  <!-- Anneaux du calendrier -->
+  <rect x="140" y="55" width="12" height="25" rx="4" fill="#1f2937"/>
+  <rect x="250" y="55" width="12" height="25" rx="4" fill="#1f2937"/>
+  <!-- Texte mois -->
+  <text x="200" y="98" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="18" font-weight="700" fill="white" letter-spacing="3">BOOKED</text>
+  <!-- Grille de jours -->
+  <g fill="#e5e7eb" opacity="0.6">
+    <rect x="112" y="130" width="28" height="22" rx="4"/>
+    <rect x="148" y="130" width="28" height="22" rx="4"/>
+    <rect x="184" y="130" width="28" height="22" rx="4"/>
+    <rect x="220" y="130" width="28" height="22" rx="4"/>
+    <rect x="256" y="130" width="28" height="22" rx="4"/>
+    <rect x="112" y="160" width="28" height="22" rx="4"/>
+    <rect x="148" y="160" width="28" height="22" rx="4"/>
+    <rect x="220" y="160" width="28" height="22" rx="4"/>
+    <rect x="256" y="160" width="28" height="22" rx="4"/>
+    <rect x="112" y="190" width="28" height="22" rx="4"/>
+    <rect x="148" y="190" width="28" height="22" rx="4"/>
+    <rect x="184" y="190" width="28" height="22" rx="4"/>
+    <rect x="220" y="190" width="28" height="22" rx="4"/>
+    <rect x="256" y="190" width="28" height="22" rx="4"/>
+    <rect x="112" y="220" width="28" height="22" rx="4"/>
+    <rect x="148" y="220" width="28" height="22" rx="4"/>
+    <rect x="184" y="220" width="28" height="22" rx="4"/>
+    <rect x="220" y="220" width="28" height="22" rx="4"/>
+    <rect x="256" y="220" width="28" height="22" rx="4"/>
+  </g>
+  <!-- Jours sélectionnés (RDV booké par l'IA) -->
+  <rect x="184" y="160" width="28" height="22" rx="4" fill="url(#m1)"/>
+  <rect x="184" y="220" width="28" height="22" rx="4" fill="url(#m1)" opacity="0.6"/>
+  <!-- Coche sur le jour booké -->
+  <path d="M192 170 L197 175 L207 165" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Wordmark -->
+  <text x="200" y="340" text-anchor="middle" font-family="'Georgia', serif" font-size="48" font-weight="700" fill="#134e4a" letter-spacing="2">Qwillio</text>
+</svg>

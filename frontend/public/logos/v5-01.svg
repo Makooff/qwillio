@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 01: DOUBLE BUBBLE — Deux bulles de conversation qui se chevauchent (humain + IA) -->
+  <defs>
+    <linearGradient id="a1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="a2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0891b2"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <!-- Bulle gauche (humain) -->
+  <ellipse cx="155" cy="145" rx="85" ry="70" fill="url(#a1)"/>
+  <polygon points="120,200 100,240 155,195" fill="url(#a1)"/>
+  <!-- Bulle droite (IA) — légèrement superposée -->
+  <ellipse cx="240" cy="135" rx="78" ry="65" fill="url(#a2)" opacity="0.85"/>
+  <polygon points="275,185 305,220 250,182" fill="url(#a2)" opacity="0.85"/>
+  <!-- Ondes sonores dans la bulle gauche -->
+  <line x1="125" y1="128" x2="125" y2="162" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="140" y1="118" x2="140" y2="172" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="155" y1="125" x2="155" y2="165" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+  <!-- Points IA dans la bulle droite (•••) -->
+  <circle cx="218" cy="135" r="6" fill="white" opacity="0.8"/>
+  <circle cx="240" cy="135" r="6" fill="white" opacity="0.8"/>
+  <circle cx="262" cy="135" r="6" fill="white" opacity="0.8"/>
+  <!-- Wordmark -->
+  <text x="200" y="325" text-anchor="middle" font-family="'Georgia', serif" font-size="50" font-weight="700" fill="#134e4a" letter-spacing="2">Qwillio</text>
+  <text x="200" y="358" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="11" fill="#0d9488" letter-spacing="6">AI RECEPTIONIST</text>
+</svg>

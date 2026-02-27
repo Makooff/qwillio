@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- Logo 5: Q minimaliste géométrique -->
+  <defs>
+    <linearGradient id="g5a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Grand Q épuré -->
+  <circle cx="180" cy="160" r="110" fill="url(#g5a)"/>
+  <circle cx="180" cy="160" r="55" fill="white"/>
+  <!-- Queue du Q - rectangle arrondi -->
+  <rect x="220" y="220" width="100" height="40" rx="20" fill="url(#g5a)" transform="rotate(-45, 270, 240)"/>
+  <!-- Texte wordmark -->
+  <text x="200" y="355" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="52" font-weight="300" fill="#1e1b4b" letter-spacing="10">qwillio</text>
+</svg>

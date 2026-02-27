@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 13: CONSTELLATION — Stars connected by lines forming Q shape -->
+  <rect width="400" height="400" rx="20" fill="#0c0a1d"/>
+  <!-- Background stars (tiny dots) -->
+  <circle cx="45" cy="32" r="1" fill="white" opacity="0.3"/>
+  <circle cx="120" cy="22" r="0.8" fill="white" opacity="0.2"/>
+  <circle cx="340" cy="50" r="1" fill="white" opacity="0.25"/>
+  <circle cx="370" cy="130" r="0.8" fill="white" opacity="0.2"/>
+  <circle cx="50" cy="200" r="1" fill="white" opacity="0.15"/>
+  <circle cx="380" cy="280" r="0.8" fill="white" opacity="0.2"/>
+  <circle cx="30" cy="310" r="1" fill="white" opacity="0.25"/>
+  <circle cx="360" cy="340" r="0.8" fill="white" opacity="0.2"/>
+  <circle cx="250" cy="30" r="0.8" fill="white" opacity="0.2"/>
+  <circle cx="65" cy="120" r="0.8" fill="white" opacity="0.15"/>
+  <!-- Constellation lines -->
+  <g stroke="#7dd3fc" stroke-width="0.8" opacity="0.4">
+    <line x1="190" y1="52" x2="248" y2="72"/>
+    <line x1="248" y1="72" x2="285" y2="115"/>
+    <line x1="285" y1="115" x2="298" y2="168"/>
+    <line x1="298" y1="168" x2="285" y2="220"/>
+    <line x1="285" y1="220" x2="248" y2="258"/>
+    <line x1="248" y1="258" x2="190" y2="275"/>
+    <line x1="190" y1="275" x2="132" y2="258"/>
+    <line x1="132" y1="258" x2="98" y2="220"/>
+    <line x1="98" y1="220" x2="85" y2="168"/>
+    <line x1="85" y1="168" x2="98" y2="115"/>
+    <line x1="98" y1="115" x2="132" y2="72"/>
+    <line x1="132" y1="72" x2="190" y2="52"/>
+    <!-- Q tail -->
+    <line x1="270" y1="240" x2="318" y2="288"/>
+    <line x1="318" y1="288" x2="340" y2="305"/>
+  </g>
+  <!-- Constellation stars (on Q path) -->
+  <circle cx="190" cy="52" r="3.5" fill="#e0f2fe"/>
+  <circle cx="248" cy="72" r="2.5" fill="#bae6fd"/>
+  <circle cx="285" cy="115" r="3" fill="#e0f2fe"/>
+  <circle cx="298" cy="168" r="4" fill="white"/>
+  <circle cx="285" cy="220" r="2.5" fill="#bae6fd"/>
+  <circle cx="248" cy="258" r="3" fill="#e0f2fe"/>
+  <circle cx="190" cy="275" r="3.5" fill="#e0f2fe"/>
+  <circle cx="132" cy="258" r="2.5" fill="#bae6fd"/>
+  <circle cx="98" cy="220" r="3" fill="#e0f2fe"/>
+  <circle cx="85" cy="168" r="4" fill="white"/>
+  <circle cx="98" cy="115" r="2.5" fill="#bae6fd"/>
+  <circle cx="132" cy="72" r="3" fill="#e0f2fe"/>
+  <!-- Tail stars -->
+  <circle cx="318" cy="288" r="2.5" fill="#7dd3fc"/>
+  <circle cx="340" cy="305" r="2" fill="#bae6fd" opacity="0.6"/>
+  <!-- Star glows -->
+  <circle cx="298" cy="168" r="8" fill="#7dd3fc" opacity="0.12"/>
+  <circle cx="85" cy="168" r="8" fill="#7dd3fc" opacity="0.12"/>
+  <circle cx="190" cy="52" r="7" fill="#7dd3fc" opacity="0.1"/>
+  <!-- Wordmark -->
+  <text x="200" y="370" text-anchor="middle" font-family="'Georgia', serif" font-size="36" font-weight="400" fill="#bae6fd" letter-spacing="8">Qwillio</text>
+</svg>

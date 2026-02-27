@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 18: ABSTRACT FLAME — Flamme/goutte abstraite (énergie, chaleur humaine de l'IA) -->
+  <defs>
+    <linearGradient id="r1" x1="50%" y1="100%" x2="50%" y2="0%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="40%" stop-color="#8b5cf6"/>
+      <stop offset="70%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#c4b5fd"/>
+    </linearGradient>
+    <linearGradient id="r2" x1="50%" y1="100%" x2="50%" y2="0%">
+      <stop offset="0%" stop-color="#6d28d9"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <!-- Flamme/goutte extérieure -->
+  <path d="M200 35 C230 80 295 140 295 200 C295 255 252 290 200 290 C148 290 105 255 105 200 C105 140 170 80 200 35Z" fill="url(#r1)"/>
+  <!-- Flamme intérieure -->
+  <path d="M200 120 C215 145 250 175 250 210 C250 240 228 258 200 258 C172 258 150 240 150 210 C150 175 185 145 200 120Z" fill="white" opacity="0.25"/>
+  <!-- Noyau brillant -->
+  <ellipse cx="200" cy="225" rx="25" ry="20" fill="white" opacity="0.5"/>
+  <!-- Wordmark -->
+  <text x="200" y="355" text-anchor="middle" font-family="'Georgia', serif" font-size="50" font-weight="700" fill="#4c1d95" letter-spacing="2">Qwillio</text>
+</svg>

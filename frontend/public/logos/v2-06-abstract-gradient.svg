@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V2-06: Q Abstrait Radial - Dégradé radial, effet profondeur -->
+  <defs>
+    <radialGradient id="v6r" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" style="stop-color:#818cf8" />
+      <stop offset="50%" style="stop-color:#6366f1" />
+      <stop offset="100%" style="stop-color:#4338ca" />
+    </radialGradient>
+    <radialGradient id="v6r2" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" style="stop-color:#c4b5fd;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:0.4" />
+    </radialGradient>
+    <linearGradient id="v6l" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5" />
+      <stop offset="100%" style="stop-color:#7c3aed" />
+    </linearGradient>
+  </defs>
+  <!-- Cercle principal avec radial gradient (effet 3D) -->
+  <circle cx="180" cy="155" r="95" fill="url(#v6r)"/>
+  <!-- Cercle secondaire -->
+  <circle cx="240" cy="205" r="55" fill="url(#v6r2)"/>
+  <!-- Reflet lumière haut-gauche -->
+  <ellipse cx="155" cy="125" rx="35" ry="25" fill="white" opacity="0.15" transform="rotate(-30, 155, 125)"/>
+  <!-- Trou du Q -->
+  <circle cx="188" cy="162" r="38" fill="white"/>
+  <!-- Queue du Q : (180+95*0.707, 155+95*0.707) = (247, 222) -->
+  <line x1="247" y1="222" x2="298" y2="273" stroke="url(#v6l)" stroke-width="24" stroke-linecap="round"/>
+  <!-- Wordmark -->
+  <text x="200" y="348" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="48" font-weight="700" fill="#1e1b4b" letter-spacing="3">Qwillio</text>
+  <text x="200" y="378" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="12" font-weight="500" fill="#6366f1" letter-spacing="7">VOICE AI PLATFORM</text>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 15: SOUND RIPPLE — Goutte d'eau/son créant des ondulations concentriques -->
+  <defs>
+    <linearGradient id="o1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <!-- Ondulations (du plus grand au plus petit) -->
+  <circle cx="200" cy="165" r="130" fill="none" stroke="#dbeafe" stroke-width="2"/>
+  <circle cx="200" cy="165" r="105" fill="none" stroke="#bfdbfe" stroke-width="2.5"/>
+  <circle cx="200" cy="165" r="80" fill="none" stroke="#93c5fd" stroke-width="3"/>
+  <circle cx="200" cy="165" r="55" fill="none" stroke="#60a5fa" stroke-width="3.5"/>
+  <circle cx="200" cy="165" r="30" fill="none" stroke="#3b82f6" stroke-width="4"/>
+  <!-- Point central (source du son) -->
+  <circle cx="200" cy="165" r="10" fill="url(#o1)"/>
+  <!-- Goutte qui tombe (au-dessus) -->
+  <ellipse cx="200" cy="52" rx="8" ry="12" fill="url(#o1)"/>
+  <!-- Ligne de chute -->
+  <line x1="200" y1="64" x2="200" y2="155" stroke="url(#o1)" stroke-width="2" stroke-dasharray="6 4" opacity="0.3"/>
+  <!-- Wordmark -->
+  <text x="200" y="355" text-anchor="middle" font-family="'Palatino Linotype', serif" font-size="50" font-weight="700" fill="#1e3a8a" letter-spacing="2">Qwillio</text>
+</svg>

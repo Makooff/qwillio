@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- BUBBLE V1: Bulles rondes au lieu d'ellipses, plus propre -->
+  <defs>
+    <linearGradient id="bb1a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d9488"/><stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="bb1b" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0891b2"/><stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <circle cx="158" cy="148" r="78" fill="url(#bb1a)"/>
+  <polygon points="125,210 108,248 162,202" fill="url(#bb1a)"/>
+  <circle cx="242" cy="138" r="68" fill="url(#bb1b)" opacity="0.85"/>
+  <polygon points="272,188 298,218 248,185" fill="url(#bb1b)" opacity="0.85"/>
+  <!-- Barres audio dans bulle gauche -->
+  <rect x="133" y="130" width="5" height="36" rx="2.5" fill="white" opacity="0.8"/>
+  <rect x="144" y="122" width="5" height="52" rx="2.5" fill="white" opacity="0.7"/>
+  <rect x="155" y="127" width="5" height="42" rx="2.5" fill="white" opacity="0.8"/>
+  <rect x="166" y="132" width="5" height="32" rx="2.5" fill="white" opacity="0.7"/>
+  <rect x="177" y="136" width="5" height="24" rx="2.5" fill="white" opacity="0.6"/>
+  <!-- 3 dots IA -->
+  <circle cx="222" cy="138" r="5" fill="white" opacity="0.8"/>
+  <circle cx="242" cy="138" r="5" fill="white" opacity="0.8"/>
+  <circle cx="262" cy="138" r="5" fill="white" opacity="0.8"/>
+  <text x="200" y="328" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="48" font-weight="700" fill="#134e4a" letter-spacing="2">Qwillio</text>
+  <text x="200" y="358" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="11" fill="#0d9488" letter-spacing="6">AI RECEPTIONIST</text>
+</svg>

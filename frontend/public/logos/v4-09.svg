@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 09: FREQUENCY BARS — Q formed from vertical equalizer/frequency bars -->
+  <defs>
+    <linearGradient id="v409a" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="50%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#6ee7b7"/>
+    </linearGradient>
+  </defs>
+  <!-- Bars forming Q circle shape — heights follow sine wave mapped to circle -->
+  <g transform="translate(82, 30)">
+    <!-- Each bar's height represents the Q circle outline -->
+    <rect x="0" y="140" width="10" height="55" rx="5" fill="url(#v409a)" opacity="0.4"/>
+    <rect x="16" y="105" width="10" height="125" rx="5" fill="url(#v409a)" opacity="0.5"/>
+    <rect x="32" y="75" width="10" height="185" rx="5" fill="url(#v409a)" opacity="0.6"/>
+    <rect x="48" y="52" width="10" height="230" rx="5" fill="url(#v409a)" opacity="0.7"/>
+    <rect x="64" y="35" width="10" height="265" rx="5" fill="url(#v409a)" opacity="0.75"/>
+    <rect x="80" y="22" width="10" height="158" rx="5" fill="url(#v409a)" opacity="0.8"/>
+    <rect x="96" y="15" width="10" height="50" rx="5" fill="url(#v409a)" opacity="0.85"/>
+    <rect x="112" y="12" width="10" height="42" rx="5" fill="url(#v409a)" opacity="0.9"/>
+    <rect x="128" y="15" width="10" height="50" rx="5" fill="url(#v409a)" opacity="0.85"/>
+    <rect x="144" y="22" width="10" height="158" rx="5" fill="url(#v409a)" opacity="0.8"/>
+    <rect x="160" y="35" width="10" height="265" rx="5" fill="url(#v409a)" opacity="0.75"/>
+    <rect x="176" y="52" width="10" height="230" rx="5" fill="url(#v409a)" opacity="0.7"/>
+    <rect x="192" y="75" width="10" height="185" rx="5" fill="url(#v409a)" opacity="0.6"/>
+    <rect x="208" y="105" width="10" height="125" rx="5" fill="url(#v409a)" opacity="0.5"/>
+    <rect x="224" y="140" width="10" height="55" rx="5" fill="url(#v409a)" opacity="0.4"/>
+    <!-- Q tail bars -->
+    <rect x="200" y="265" width="10" height="30" rx="5" fill="#10b981" opacity="0.6"/>
+    <rect x="215" y="282" width="10" height="25" rx="5" fill="#10b981" opacity="0.5"/>
+    <rect x="230" y="295" width="10" height="18" rx="5" fill="#10b981" opacity="0.4"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="200" y="375" text-anchor="middle" font-family="'Verdana', sans-serif" font-size="40" font-weight="700" fill="#064e3b" letter-spacing="4">Qwillio</text>
+</svg>

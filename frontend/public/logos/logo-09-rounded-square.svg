@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- Logo 9: Carré arrondi avec Q et signal -->
+  <defs>
+    <linearGradient id="g9a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4338ca;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6d28d9;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow9" x="-10%" y="-10%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#4338ca" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <!-- Carré arrondi avec ombre -->
+  <rect x="65" y="35" width="270" height="270" rx="60" fill="url(#g9a)" filter="url(#shadow9)"/>
+  <!-- Lettre Q stylisée avec trou -->
+  <circle cx="195" cy="160" r="70" fill="none" stroke="white" stroke-width="22" stroke-linecap="round"/>
+  <!-- Queue du Q -->
+  <line x1="240" y1="205" x2="285" y2="250" stroke="white" stroke-width="22" stroke-linecap="round"/>
+  <!-- Petits signaux WiFi/signal -->
+  <path d="M260 100 Q275 115 260 130" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M275 88 Q298 115 275 142" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="4" stroke-linecap="round"/>
+  <!-- Texte -->
+  <text x="200" y="370" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-size="42" font-weight="700" fill="#312e81" letter-spacing="5">QWILLIO</text>
+</svg>

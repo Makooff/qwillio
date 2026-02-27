@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Layered - Icon only -->
+  <defs>
+    <linearGradient id="li1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0e7ff"/><stop offset="100%" stop-color="#c7d2fe"/>
+    </linearGradient>
+    <linearGradient id="li2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a5b4fc"/><stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="li3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <circle cx="115" cy="70" r="48" fill="none" stroke="url(#li1)" stroke-width="8"/>
+  <line x1="149" y1="104" x2="170" y2="125" stroke="url(#li1)" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="100" cy="90" r="48" fill="none" stroke="url(#li2)" stroke-width="8"/>
+  <line x1="134" y1="124" x2="155" y2="145" stroke="url(#li2)" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="85" cy="110" r="48" fill="none" stroke="url(#li3)" stroke-width="8"/>
+  <line x1="119" y1="144" x2="140" y2="165" stroke="url(#li3)" stroke-width="8" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V3-16: HALF FILL - Q moitié outline, moitié rempli -->
+  <defs>
+    <linearGradient id="hf1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <clipPath id="rightSide">
+      <rect x="190" y="0" width="220" height="400"/>
+    </clipPath>
+    <clipPath id="leftSide">
+      <rect x="0" y="0" width="190" height="400"/>
+    </clipPath>
+  </defs>
+  <!-- Moitié gauche : outline -->
+  <g clip-path="url(#leftSide)">
+    <circle cx="190" cy="165" r="90" fill="none" stroke="url(#hf1)" stroke-width="16"/>
+  </g>
+  <!-- Moitié droite : rempli -->
+  <g clip-path="url(#rightSide)">
+    <circle cx="190" cy="165" r="90" fill="url(#hf1)"/>
+    <circle cx="190" cy="165" r="40" fill="white"/>
+  </g>
+  <!-- Queue -->
+  <line x1="254" y1="229" x2="298" y2="273" stroke="url(#hf1)" stroke-width="20" stroke-linecap="round"/>
+  <!-- Wordmark -->
+  <text x="200" y="358" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-size="48" font-weight="700" fill="#1e1b4b" letter-spacing="4">Qwillio</text>
+</svg>

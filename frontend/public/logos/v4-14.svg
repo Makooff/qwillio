@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200" width="500" height="200">
+  <!-- 14: TYPEWRITER — Vintage mechanical serif with key impression effect -->
+  <defs>
+    <filter id="v414ink">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5"/>
+    </filter>
+  </defs>
+  <!-- Paper texture background -->
+  <rect width="500" height="200" fill="#fef3c7" rx="4"/>
+  <!-- Typewriter alignment lines -->
+  <line x1="30" y1="130" x2="470" y2="130" stroke="#92400e" stroke-width="0.5" opacity="0.15"/>
+  <line x1="30" y1="60" x2="470" y2="60" stroke="#92400e" stroke-width="0.5" opacity="0.1"/>
+  <!-- Main wordmark — heavy serif like typewriter strike -->
+  <text x="250" y="120" text-anchor="middle" font-family="'Times New Roman', 'Georgia', serif" font-size="78" font-weight="700" fill="#1c1917" letter-spacing="8" filter="url(#v414ink)">Qwillio</text>
+  <!-- Double-strike effect (offset ghost) -->
+  <text x="251" y="121" text-anchor="middle" font-family="'Times New Roman', 'Georgia', serif" font-size="78" font-weight="700" fill="#1c1917" letter-spacing="8" opacity="0.08">Qwillio</text>
+  <!-- Red correction mark under the Q -->
+  <line x1="78" y1="128" x2="128" y2="128" stroke="#dc2626" stroke-width="2" opacity="0.6"/>
+  <!-- Small typewriter label -->
+  <text x="250" y="160" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#78716c" letter-spacing="6">VOICE AUTOMATION SINCE 2025</text>
+  <!-- Corner marks (like print registration) -->
+  <line x1="20" y1="15" x2="35" y2="15" stroke="#78716c" stroke-width="0.5" opacity="0.3"/>
+  <line x1="20" y1="15" x2="20" y2="30" stroke="#78716c" stroke-width="0.5" opacity="0.3"/>
+  <line x1="480" y1="15" x2="465" y2="15" stroke="#78716c" stroke-width="0.5" opacity="0.3"/>
+  <line x1="480" y1="15" x2="480" y2="30" stroke="#78716c" stroke-width="0.5" opacity="0.3"/>
+</svg>

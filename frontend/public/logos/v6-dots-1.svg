@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- DOTS V1: Plus de nœuds, lignes plus denses, hub central plus visible -->
+  <defs>
+    <linearGradient id="dt1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+    <filter id="dt1gl">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke="#99f6e4" stroke-width="1.2" opacity="0.3">
+    <line x1="200" y1="55" x2="280" y2="90"/><line x1="200" y1="55" x2="120" y2="90"/>
+    <line x1="280" y1="90" x2="320" y2="155"/><line x1="120" y1="90" x2="80" y2="155"/>
+    <line x1="320" y1="155" x2="310" y2="230"/><line x1="80" y1="155" x2="90" y2="230"/>
+    <line x1="310" y1="230" x2="265" y2="280"/><line x1="90" y1="230" x2="135" y2="280"/>
+    <line x1="265" y1="280" x2="200" y2="295"/><line x1="135" y1="280" x2="200" y2="295"/>
+    <line x1="200" y1="170" x2="200" y2="55"/><line x1="200" y1="170" x2="280" y2="90"/>
+    <line x1="200" y1="170" x2="120" y2="90"/><line x1="200" y1="170" x2="320" y2="155"/>
+    <line x1="200" y1="170" x2="80" y2="155"/><line x1="200" y1="170" x2="310" y2="230"/>
+    <line x1="200" y1="170" x2="90" y2="230"/><line x1="200" y1="170" x2="265" y2="280"/>
+    <line x1="200" y1="170" x2="135" y2="280"/><line x1="200" y1="170" x2="200" y2="295"/>
+    <line x1="120" y1="90" x2="80" y2="155"/><line x1="280" y1="90" x2="320" y2="155"/>
+    <line x1="80" y1="155" x2="120" y2="90"/><line x1="120" y1="90" x2="280" y2="90"/>
+  </g>
+  <circle cx="200" cy="55" r="8" fill="url(#dt1)"/>
+  <circle cx="280" cy="90" r="7" fill="#14b8a6"/>
+  <circle cx="120" cy="90" r="7" fill="#14b8a6"/>
+  <circle cx="320" cy="155" r="6" fill="#2dd4bf"/>
+  <circle cx="80" cy="155" r="6" fill="#2dd4bf"/>
+  <circle cx="310" cy="230" r="6" fill="#14b8a6"/>
+  <circle cx="90" cy="230" r="6" fill="#14b8a6"/>
+  <circle cx="265" cy="280" r="7" fill="#14b8a6"/>
+  <circle cx="135" cy="280" r="7" fill="#14b8a6"/>
+  <circle cx="200" cy="295" r="8" fill="url(#dt1)"/>
+  <!-- Hub central avec glow -->
+  <circle cx="200" cy="170" r="22" fill="url(#dt1)" filter="url(#dt1gl)"/>
+  <circle cx="200" cy="170" r="9" fill="white"/>
+  <text x="200" y="362" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="46" font-weight="700" fill="#134e4a" letter-spacing="3">Qwillio</text>
+</svg>

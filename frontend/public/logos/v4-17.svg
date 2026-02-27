@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 17: CALLIGRAPHIC SWIRL — Bold brush stroke Q -->
+  <defs>
+    <linearGradient id="v417a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#312e81"/>
+    </linearGradient>
+  </defs>
+  <!-- Brush stroke Q — thick calligraphic arc -->
+  <path d="M175 60 C90 60 45 120 45 180 C45 260 110 300 185 300 C260 300 320 260 320 185 C320 128 290 82 240 65" fill="none" stroke="url(#v417a)" stroke-width="32" stroke-linecap="round"/>
+  <!-- Thinning end of the stroke (taper) -->
+  <path d="M240 65 C250 62 258 60 265 60" fill="none" stroke="url(#v417a)" stroke-width="18" stroke-linecap="round"/>
+  <!-- Q tail — bold diagonal brush flick -->
+  <path d="M270 245 C285 260 310 285 340 300" fill="none" stroke="url(#v417a)" stroke-width="22" stroke-linecap="round"/>
+  <!-- Tail taper -->
+  <path d="M340 300 C348 304 355 306 360 307" fill="none" stroke="#312e81" stroke-width="8" stroke-linecap="round"/>
+  <!-- Ink splatter dots -->
+  <circle cx="365" cy="302" r="3" fill="#312e81" opacity="0.4"/>
+  <circle cx="372" cy="310" r="2" fill="#312e81" opacity="0.3"/>
+  <circle cx="358" cy="315" r="1.5" fill="#312e81" opacity="0.2"/>
+  <!-- Wordmark — refined serif -->
+  <text x="200" y="378" text-anchor="middle" font-family="'Palatino Linotype', 'Book Antiqua', serif" font-size="42" font-weight="400" fill="#1e1b4b" letter-spacing="6" font-style="italic">Qwillio</text>
+</svg>

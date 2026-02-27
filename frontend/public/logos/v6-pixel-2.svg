@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- PIXEL V2: Bigger blocks, fewer gaps, solid look -->
+  <g transform="translate(80, 30)">
+    <!-- Row 1 -->
+    <rect x="60" y="0" width="28" height="28" rx="4" fill="#6366f1"/>
+    <rect x="92" y="0" width="28" height="28" rx="4" fill="#4f46e5"/>
+    <rect x="124" y="0" width="28" height="28" rx="4" fill="#4f46e5"/>
+    <rect x="156" y="0" width="28" height="28" rx="4" fill="#6366f1"/>
+    <!-- Row 2 -->
+    <rect x="28" y="32" width="28" height="28" rx="4" fill="#6366f1"/>
+    <rect x="60" y="32" width="28" height="28" rx="4" fill="#4f46e5"/>
+    <rect x="156" y="32" width="28" height="28" rx="4" fill="#4f46e5"/>
+    <rect x="188" y="32" width="28" height="28" rx="4" fill="#6366f1"/>
+    <!-- Row 3 -->
+    <rect x="0" y="64" width="28" height="28" rx="4" fill="#4f46e5"/>
+    <rect x="28" y="64" width="28" height="28" rx="4" fill="#4338ca"/>
+    <rect x="188" y="64" width="28" height="28" rx="4" fill="#4338ca"/>
+    <rect x="216" y="64" width="28" height="28" rx="4" fill="#4f46e5"/>
+    <!-- Row 4 -->
+    <rect x="0" y="96" width="28" height="28" rx="4" fill="#4338ca"/>
+    <rect x="216" y="96" width="28" height="28" rx="4" fill="#7c3aed"/>
+    <!-- Row 5 -->
+    <rect x="0" y="128" width="28" height="28" rx="4" fill="#4338ca"/>
+    <rect x="216" y="128" width="28" height="28" rx="4" fill="#7c3aed"/>
+    <!-- Row 6 -->
+    <rect x="0" y="160" width="28" height="28" rx="4" fill="#4f46e5"/>
+    <rect x="28" y="160" width="28" height="28" rx="4" fill="#4338ca"/>
+    <rect x="188" y="160" width="28" height="28" rx="4" fill="#7c3aed"/>
+    <rect x="216" y="160" width="28" height="28" rx="4" fill="#8b5cf6"/>
+    <!-- Row 7 -->
+    <rect x="28" y="192" width="28" height="28" rx="4" fill="#6366f1"/>
+    <rect x="60" y="192" width="28" height="28" rx="4" fill="#4f46e5"/>
+    <rect x="156" y="192" width="28" height="28" rx="4" fill="#8b5cf6"/>
+    <rect x="188" y="192" width="28" height="28" rx="4" fill="#8b5cf6"/>
+    <!-- Row 8 + tail -->
+    <rect x="60" y="224" width="28" height="28" rx="4" fill="#6366f1"/>
+    <rect x="92" y="224" width="28" height="28" rx="4" fill="#7c3aed"/>
+    <rect x="124" y="224" width="28" height="28" rx="4" fill="#8b5cf6"/>
+    <rect x="156" y="224" width="28" height="28" rx="4" fill="#8b5cf6"/>
+    <rect x="192" y="224" width="28" height="28" rx="4" fill="#a855f7"/>
+    <!-- Tail -->
+    <rect x="224" y="256" width="28" height="28" rx="4" fill="#a855f7" opacity="0.85"/>
+  </g>
+  <text x="200" y="370" text-anchor="middle" font-family="'Space Mono', monospace" font-size="42" font-weight="700" fill="#1e1b4b" letter-spacing="3">Qwillio</text>
+</svg>

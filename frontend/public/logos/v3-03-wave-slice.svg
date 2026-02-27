@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- V3-03: WAVE SLICE - Q coupé par une onde audio -->
+  <defs>
+    <linearGradient id="ws1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <clipPath id="topClip">
+      <path d="M0 0 L400 0 L400 155 Q350 135 300 155 Q250 175 200 155 Q150 135 100 155 Q50 175 0 155 Z"/>
+    </clipPath>
+    <clipPath id="botClip">
+      <path d="M0 175 Q50 155 100 175 Q150 195 200 175 Q250 155 300 175 Q350 195 400 175 L400 400 L0 400 Z"/>
+    </clipPath>
+  </defs>
+  <!-- Moitié haute du Q -->
+  <g clip-path="url(#topClip)">
+    <circle cx="190" cy="165" r="95" fill="#4f46e5"/>
+    <circle cx="190" cy="165" r="42" fill="white"/>
+    <line x1="257" y1="232" x2="300" y2="275" stroke="#4f46e5" stroke-width="24" stroke-linecap="round"/>
+  </g>
+  <!-- Moitié basse du Q -->
+  <g clip-path="url(#botClip)">
+    <circle cx="190" cy="165" r="95" fill="#8b5cf6"/>
+    <circle cx="190" cy="165" r="42" fill="white"/>
+    <line x1="257" y1="232" x2="300" y2="275" stroke="#8b5cf6" stroke-width="24" stroke-linecap="round"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="200" y="358" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-size="48" font-weight="700" fill="#1e1b4b" letter-spacing="4">Qwillio</text>
+</svg>

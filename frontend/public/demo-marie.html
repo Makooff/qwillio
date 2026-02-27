@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qwillio - Demo Rachel (Sales AI)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .container {
+      text-align: center;
+      max-width: 500px;
+      padding: 40px;
+    }
+    .logo {
+      width: 80px; height: 80px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+    }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .subtitle { opacity: 0.85; font-size: 15px; margin-bottom: 30px; }
+
+    .business-card {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 30px;
+      text-align: left;
+    }
+    .business-card h3 { font-size: 14px; opacity: 0.7; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; opacity: 0.7; margin-bottom: 4px; }
+    .field input, .field select {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .field input::placeholder { color: rgba(255,255,255,0.5); }
+    .field select option { color: #333; background: #fff; }
+
+    #callBtn {
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      border: none;
+      background: #22c55e;
+      color: white;
+      font-size: 48px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 8px 30px rgba(34,197,94,0.4);
+      margin-bottom: 16px;
+    }
+    #callBtn:hover { transform: scale(1.05); box-shadow: 0 12px 40px rgba(34,197,94,0.5); }
+    #callBtn.active {
+      background: #ef4444;
+      box-shadow: 0 8px 30px rgba(239,68,68,0.4);
+      animation: pulse-ring 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+      70% { box-shadow: 0 0 0 20px rgba(239,68,68,0); }
+      100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    }
+    #callBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #status {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      min-height: 24px;
+    }
+    #statusDetail {
+      font-size: 13px;
+      opacity: 0.7;
+      min-height: 20px;
+    }
+
+    .timer {
+      font-size: 24px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      margin-top: 10px;
+      display: none;
+    }
+    .timer.visible { display: block; }
+
+    .volume-bar {
+      width: 200px;
+      height: 6px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px;
+      margin: 16px auto 0;
+      overflow: hidden;
+      display: none;
+    }
+    .volume-bar.visible { display: block; }
+    .volume-bar .fill {
+      height: 100%;
+      background: #22c55e;
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.1s;
+    }
+
+    .info-box {
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 30px;
+      font-size: 13px;
+      line-height: 1.6;
+      text-align: left;
+    }
+    .info-box strong { display: block; margin-bottom: 6px; font-size: 14px; }
+
+    .result-panel {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 24px;
+      text-align: left;
+    }
+    .result-panel h3 { font-size: 16px; margin-bottom: 16px; text-align: center; }
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .result-item {
+      background: rgba(255,255,255,0.1);
+      padding: 10px 14px;
+      border-radius: 10px;
+    }
+    .result-label { display: block; font-size: 11px; opacity: 0.7; margin-bottom: 4px; }
+    .result-value { display: block; font-size: 14px; font-weight: 600; }
+    .result-summary {
+      background: rgba(255,255,255,0.08);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    .trial-started {
+      background: rgba(34,197,94,0.25);
+      border: 1px solid rgba(34,197,94,0.5);
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.8;
+      margin-top: 12px;
+    }
+    .trial-warning {
+      background: rgba(234,179,8,0.25);
+      border: 1px solid rgba(234,179,8,0.5);
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    .transcript-details {
+      margin-top: 16px;
+      font-size: 12px;
+    }
+    .transcript-details summary {
+      cursor: pointer;
+      opacity: 0.7;
+      padding: 8px 0;
+    }
+    .transcript-details pre {
+      background: rgba(0,0,0,0.3);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">📞</div>
+    <h1>Demo: Rachel from Qwillio</h1>
+    <p class="subtitle">Talk to Rachel, our AI sales consultant, directly in your browser. No phone call needed.</p>
+
+    <div class="business-card">
+      <h3>Simulate your business</h3>
+      <div class="field">
+        <label>Business Name</label>
+        <input type="text" id="businessName" value="Vivi Pizza" placeholder="e.g. Mario's Pizzeria" />
+      </div>
+      <div class="field">
+        <label>Industry</label>
+        <select id="businessType">
+          <option value="restaurant" selected>Restaurant / Pizzeria</option>
+          <option value="dental">Dental Office</option>
+          <option value="medical">Medical Practice</option>
+          <option value="salon">Hair Salon / Spa</option>
+          <option value="law">Law Firm</option>
+          <option value="real_estate">Real Estate Agency</option>
+          <option value="auto">Auto Repair Shop</option>
+          <option value="fitness">Gym / Fitness Center</option>
+          <option value="veterinary">Veterinary Clinic</option>
+          <option value="accounting">Accounting Firm</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>City</label>
+        <input type="text" id="city" value="Brussels" placeholder="e.g. New York" />
+      </div>
+    </div>
+
+    <button id="callBtn" onclick="toggleCall()">📞</button>
+    <div id="status">Click to talk to Rachel</div>
+    <div id="statusDetail">She'll pitch you Qwillio as if you were a real prospect</div>
+    <div class="timer" id="timer">00:00</div>
+    <div class="volume-bar" id="volumeBar"><div class="fill" id="volumeFill"></div></div>
+
+    <div id="resultPanel" class="result-panel" style="display:none;"></div>
+
+    <div class="info-box">
+      <strong>How it works:</strong>
+      Rachel will greet you as if she's calling your business. Play the role of the business owner — ask questions, raise objections, and see how she handles the full sales pitch. Uses your browser microphone, no phone charges.
+      <br><br>
+      <strong>Full pipeline enabled:</strong> When you hang up, the transcript is analyzed by GPT-4. If you're qualified (interest 7+) AND give your email, the system auto-starts a free trial and sends real emails.
+    </div>
+  </div>
+
+  <script type="module">
+    import VapiModule from 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/+esm';
+    const VapiClass = VapiModule.default || VapiModule;
+
+    const VAPI_PUBLIC_KEY = 'eaded992-3a0b-48a4-bdb3-09438c4e54a4';
+    const ASSISTANT_ID = 'd98364c2-8ca4-4efb-af00-8534af00fa06';
+
+    const BACKEND_URL = 'http://localhost:3000';
+
+    let vapi = null;
+    let isCallActive = false;
+    let timerInterval = null;
+    let callStart = null;
+    let conversationMessages = [];
+
+    function getSystemPrompt() {
+      const name = document.getElementById('businessName').value || 'Vivi Pizza';
+      const type = document.getElementById('businessType').value || 'restaurant';
+      const city = document.getElementById('city').value || 'Brussels';
+
+      return `You are Rachel, Senior Sales Consultant at Qwillio.
+
+IDENTITY:
+- Name: Rachel
+- Company: Qwillio
+- Personality: Warm, energetic, a bit cheeky, genuinely enthusiastic about helping small businesses
+- Tone: Like calling a friend who happens to sell an amazing product. Casual, real, human.
+
+SPEAKING STYLE — THIS IS CRITICAL FOR REALISM:
+- You sound like a REAL person on a phone call, not a polished AI.
+- Use natural fillers occasionally: "so...", "honestly", "look", "I mean", "you know what", "actually"
+- Sometimes start sentences with "So" or "Look" or "Honestly"
+- Use contractions always: "it's", "we'll", "that's", "you're", "don't", "can't", "won't"
+- Occasionally self-correct or rephrase mid-sentence, like a real person: "It's — well actually it's more like a virtual receptionist"
+- React genuinely to what the prospect says: "Oh really?", "That's tough", "Yeah I totally get that", "Ha, fair enough"
+- Laugh lightly when appropriate (say "haha" or "ha")
+- Show genuine empathy: "Ugh, that's the worst", "I hear you"
+- NEVER sound scripted. Vary your sentence structure. Mix short punchy lines with slightly longer ones.
+- Sometimes pause naturally with "..." or "hmm" before giving a thoughtful answer
+
+CONTEXT:
+- Calling: ${name} (${type}) in ${city}
+
+RESPONSE STYLE:
+- Be concise. Keep most answers under 2-3 sentences.
+- Have a natural back-and-forth conversation. Don't monologue.
+- Only explain packages when asked or after clear interest.
+- Do NOT dump all info at once. Tease and build curiosity.
+
+WHAT QWILLIO DOES (explain simply):
+An AI receptionist that answers your phone 24/7. It picks up every call, books appointments, answers common questions, and sends you a summary. Your customers always reach someone, even at 2am or when you're busy.
+
+THE OFFER — FREE 30-DAY TRIAL:
+- 30 days completely free. No credit card. No commitment.
+- We set it up in 48 hours. You test it with real customers.
+- After 30 days: you choose a plan or we stop everything. Zero charge.
+
+PRICING — EXPLAIN CLEARLY WHEN ASKED:
+There are 3 packages. All come after the free trial.
+
+1. STARTER — $197/month (one-time setup: $697)
+   - AI receptionist available 24/7
+   - Automatic appointment booking
+   - Answers FAQs about your business
+   - Call summaries sent to you by email
+   - Up to 200 calls/month included
+
+2. PRO — $347/month (one-time setup: $997) — Most popular
+   - Everything in Starter, plus:
+   - Lead qualification (the AI scores each caller)
+   - Real-time analytics dashboard
+   - Smart call routing to the right person
+   - Email & SMS follow-ups after each call
+   - Up to 500 calls/month included
+
+3. ENTERPRISE — $497/month (one-time setup: $1,497)
+   - Everything in Pro, plus:
+   - Multilingual support (English, Spanish, French, etc.)
+   - CRM & Google Calendar integration
+   - Priority support with dedicated account manager
+   - Weekly AI optimization of your assistant
+   - Up to 1,000 calls/month included
+
+When explaining pricing, say it naturally like: "So after your free trial, Starter is one ninety-seven a month with a one-time setup of six ninety-seven. Most clients go with Pro at three forty-seven a month — setup is nine ninety-seven — because you get the analytics and lead scoring. Enterprise is four ninety-seven a month, fourteen ninety-seven setup, for the full package with a thousand calls and multilingual."
+
+CALL FLOW:
+1. Greet and confirm you're speaking with owner/manager
+2. Quick pitch: "We help ${type}s never miss a customer call with an AI receptionist"
+3. Ask about their pain points and call volume
+4. Propose the free trial
+5. If they ask about pricing, explain the 3 packages clearly
+6. Collect their email to send the activation link
+7. Close positively
+
+OBJECTION HANDLING:
+- "Too expensive" -> "That's why we start with 30 free days. You see the value before spending a dime. And Starter is just one ninety-seven a month."
+- "We have a receptionist" -> "Perfect, try it alongside them for nights, weekends, and overflow. Totally free for 30 days."
+- "Need to think" -> "Of course! The trial is free with zero commitment. You can test it and decide after."
+- "Is AI reliable?" -> "Honestly, the best way to know is to try it free for 30 days with your real customers."
+- "No time for setup" -> "We handle everything. It's ready in 48 hours, you don't lift a finger."
+- "What happens after the trial?" -> Explain the 3 packages with pricing clearly.
+
+RULES:
+- SHORT sentences. Mostly under 15 words, but vary the length naturally.
+- Sound like a real human on a real phone call. Imperfect is better than polished.
+- Answer questions immediately, don't dodge.
+- When they ask about price, give real numbers. Don't be vague.
+- Always mention the free trial as the main hook.
+- Recommend Pro for most businesses.
+- Keep the whole call under 5 minutes.
+- Use "um", "so", "like", "honestly" sparingly but regularly — like a real person would.
+- NEVER say anything that sounds like a marketing brochure or scripted pitch.
+
+EMAIL CONFIRMATION — VERY IMPORTANT:
+When the prospect gives you their email address, you MUST:
+1. Repeat the full email back to them clearly.
+2. Then spell it out letter by letter, pausing between each part.
+3. Ask them to confirm it's correct.
+
+Example: If they say "john@vivipizza.com", you say:
+"Got it — john at vivi pizza dot com. Let me spell that back to make sure: J-O-H-N, at, V-I-V-I-P-I-Z-Z-A, dot, C-O-M. Is that correct?"
+
+If the email has numbers or unusual characters, be extra careful to spell each part.
+If they correct you, repeat the corrected version letter by letter again.
+Do NOT move on until they explicitly confirm the email is correct.
+
+DATA TO COLLECT:
+- Contact name
+- Email (CRUCIAL — always confirm by spelling it out letter by letter)
+- Approximate daily/weekly call volume
+- Current pain points`;
+    }
+
+    function getFirstMessage() {
+      const name = document.getElementById('businessName').value || 'Vivi Pizza';
+      return `Hey! Hi, this is Rachel from Qwillio. Um, is this the owner of ${name}? I had a quick question for you.`;
+    }
+
+    async function toggleCall() {
+      if (isCallActive) {
+        stopCall();
+      } else {
+        startCall();
+      }
+    }
+
+    async function startCall() {
+      const btn = document.getElementById('callBtn');
+      const status = document.getElementById('status');
+      const detail = document.getElementById('statusDetail');
+
+      btn.disabled = true;
+      status.textContent = 'Connecting...';
+      detail.textContent = 'Requesting microphone access';
+
+      try {
+        vapi = new VapiClass(VAPI_PUBLIC_KEY);
+
+        conversationMessages = [];
+
+        vapi.on('call-start', () => {
+          isCallActive = true;
+          btn.disabled = false;
+          btn.classList.add('active');
+          btn.textContent = '⏹';
+          status.textContent = 'Rachel is speaking...';
+          detail.textContent = 'Talk naturally — you are the business owner';
+          startTimer();
+          document.getElementById('volumeBar').classList.add('visible');
+          document.getElementById('resultPanel').style.display = 'none';
+        });
+
+        vapi.on('call-end', () => {
+          endCall();
+        });
+
+        vapi.on('message', (msg) => {
+          if (msg.type === 'transcript' && msg.transcriptType === 'final') {
+            conversationMessages.push({
+              role: msg.role,
+              text: msg.transcript,
+            });
+          }
+        });
+
+        vapi.on('speech-start', () => {
+          status.textContent = 'Rachel is speaking...';
+        });
+
+        vapi.on('speech-end', () => {
+          status.textContent = 'Your turn to speak...';
+        });
+
+        vapi.on('volume-level', (level) => {
+          const fill = document.getElementById('volumeFill');
+          fill.style.width = Math.min(level * 100, 100) + '%';
+        });
+
+        vapi.on('error', (err) => {
+          console.error('VAPI error:', err);
+          status.textContent = 'Error: ' + (err.message || 'Connection failed');
+          detail.textContent = 'Check console for details';
+          endCall();
+        });
+
+        await vapi.start({
+          model: {
+            provider: 'openai',
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'system', content: getSystemPrompt() }],
+            temperature: 0.8,
+            maxTokens: 150,
+          },
+          voice: {
+            provider: '11labs',
+            voiceId: 'kdmDKE6EkgrWrrykO9Qt',
+            model: 'eleven_turbo_v2_5',
+            stability: 0.3,
+            similarityBoost: 0.6,
+            style: 0.65,
+            useSpeakerBoost: false,
+          },
+          firstMessage: getFirstMessage(),
+          name: 'Rachel - Qwillio Sales Demo',
+          backgroundSound: 'office',
+          silenceTimeoutSeconds: 30,
+          responseDelaySeconds: 0.5,
+          endCallFunctionEnabled: true,
+        });
+
+      } catch (err) {
+        console.error('Failed to start call:', err);
+        status.textContent = 'Failed to connect';
+        detail.textContent = err.message || 'Please allow microphone access and try again';
+        btn.disabled = false;
+      }
+    }
+
+    function stopCall() {
+      if (vapi) {
+        vapi.stop();
+      }
+      endCall();
+    }
+
+    async function endCall() {
+      const wasActive = isCallActive;
+      isCallActive = false;
+      const btn = document.getElementById('callBtn');
+      btn.classList.remove('active');
+      btn.textContent = '📞';
+      btn.disabled = false;
+      document.getElementById('volumeBar').classList.remove('visible');
+      const elapsed = callStart ? Math.floor((Date.now() - callStart) / 1000) : 0;
+      stopTimer();
+
+      // Only process if we had an active call with messages
+      if (!wasActive || conversationMessages.length === 0) {
+        document.getElementById('status').textContent = 'Call ended — Click to try again';
+        document.getElementById('statusDetail').textContent = 'Change business details above for a different scenario';
+        return;
+      }
+
+      // Build transcript string
+      const transcript = conversationMessages
+        .map(m => `${m.role === 'assistant' ? 'Rachel' : 'Prospect'}: ${m.text}`)
+        .join('\n');
+
+      document.getElementById('status').textContent = 'Analyzing call with GPT-4...';
+      document.getElementById('statusDetail').textContent = 'Processing transcript → qualification → emails';
+
+      try {
+        // Login to get token
+        const loginRes = await fetch(BACKEND_URL + '/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'admin@qwillio.com', password: 'admin123' }),
+        });
+        const loginData = await loginRes.json();
+
+        // Send transcript to backend for full pipeline
+        const res = await fetch(BACKEND_URL + '/api/bot/trigger/simulate-call', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + loginData.token,
+          },
+          body: JSON.stringify({
+            transcript,
+            businessName: document.getElementById('businessName').value || 'Vivi Pizza',
+            businessType: document.getElementById('businessType').value || 'restaurant',
+            city: document.getElementById('city').value || 'Brussels',
+            durationSeconds: elapsed,
+          }),
+        });
+
+        const result = await res.json();
+        console.log('Simulation result:', result);
+
+        // Show results
+        showResults(result, transcript, elapsed);
+      } catch (err) {
+        console.error('Simulation error:', err);
+        document.getElementById('status').textContent = 'Call ended — Backend not reachable';
+        document.getElementById('statusDetail').textContent = 'Start the backend (port 3000) to enable full pipeline. Click to try again.';
+      }
+    }
+
+    function showResults(result, transcript, durationSec) {
+      const panel = document.getElementById('resultPanel');
+      const a = result.analysis || {};
+      const interestEmoji = a.interestLevel >= 7 ? '🟢' : a.interestLevel >= 4 ? '🟡' : '🔴';
+
+      panel.innerHTML = `
+        <h3>Call Analysis Results</h3>
+        <div class="result-grid">
+          <div class="result-item">
+            <span class="result-label">Interest Level</span>
+            <span class="result-value">${interestEmoji} ${a.interestLevel || '?'}/10</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Contact Name</span>
+            <span class="result-value">${a.contactName || 'Not collected'}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Email</span>
+            <span class="result-value">${a.email || 'Not collected'}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Recommended Package</span>
+            <span class="result-value">${(a.recommendedPackage || 'basic').toUpperCase()}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Outcome</span>
+            <span class="result-value">${a.outcome || 'N/A'}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Duration</span>
+            <span class="result-value">${Math.floor(durationSec / 60)}m ${durationSec % 60}s</span>
+          </div>
+        </div>
+        ${a.summary ? `<div class="result-summary"><strong>Summary:</strong> ${a.summary}</div>` : ''}
+        ${a.painPoints && a.painPoints.length > 0 ? `<div class="result-summary"><strong>Pain Points:</strong> ${a.painPoints.join(', ')}</div>` : ''}
+        ${a.objections && a.objections.length > 0 ? `<div class="result-summary"><strong>Objections:</strong> ${a.objections.join(', ')}</div>` : ''}
+        ${result.trialStarted ? `
+          <div class="trial-started">
+            <strong>🎁 FREE TRIAL AUTO-STARTED!</strong><br>
+            Emails sent to ${a.email}:<br>
+            ✅ Trial welcome email<br>
+            ✅ Onboarding form link<br>
+            ✅ Dashboard access link<br>
+            ✅ Discord notification sent
+          </div>
+        ` : a.interestLevel >= 7 && !a.email ? `
+          <div class="trial-warning">
+            ⚠️ Prospect qualified but NO EMAIL collected — trial not started. Rachel needs the email!
+          </div>
+        ` : `
+          <div class="result-summary">
+            <strong>Next step:</strong> ${a.nextAction || 'Follow up later'}
+          </div>
+        `}
+        <details class="transcript-details">
+          <summary>View full transcript (${conversationMessages.length} messages)</summary>
+          <pre>${transcript}</pre>
+        </details>
+      `;
+      panel.style.display = 'block';
+
+      document.getElementById('status').textContent = result.trialStarted
+        ? '🎁 Trial started! Check emails & Discord'
+        : 'Call analyzed — Click to try again';
+      document.getElementById('statusDetail').textContent = `Prospect status: ${result.status || 'unknown'}`;
+    }
+
+    function startTimer() {
+      callStart = Date.now();
+      const timerEl = document.getElementById('timer');
+      timerEl.classList.add('visible');
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - callStart) / 1000);
+        const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const secs = String(elapsed % 60).padStart(2, '0');
+        timerEl.textContent = mins + ':' + secs;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      setTimeout(() => {
+        document.getElementById('timer').classList.remove('visible');
+      }, 5000);
+    }
+
+    // Expose to global scope for onclick handler
+    window.toggleCall = toggleCall;
+  </script>
+</body>
+</html>

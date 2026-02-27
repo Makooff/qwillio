@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 16: LOW-POLY FACETED — Geometric triangulated Q like a gem -->
+  <defs>
+    <linearGradient id="v416a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer ring of triangular facets forming Q -->
+  <!-- Top -->
+  <polygon points="190,50 155,68 165,105" fill="#2dd4bf"/>
+  <polygon points="190,50 165,105 215,105" fill="#14b8a6"/>
+  <polygon points="190,50 215,105 225,68" fill="#0d9488"/>
+  <!-- Top-right -->
+  <polygon points="225,68 215,105 268,98" fill="#0d9488"/>
+  <polygon points="268,98 215,105 275,142" fill="#0f766e"/>
+  <polygon points="268,98 275,142 298,120" fill="#115e59"/>
+  <!-- Right -->
+  <polygon points="298,120 275,142 290,185" fill="#0f766e"/>
+  <polygon points="298,120 290,185 305,165" fill="#115e59"/>
+  <polygon points="290,185 305,210 285,225" fill="#134e4a"/>
+  <!-- Bottom-right -->
+  <polygon points="285,225 268,255 250,238" fill="#0f766e"/>
+  <polygon points="268,255 230,268 250,238" fill="#0d9488"/>
+  <!-- Bottom -->
+  <polygon points="230,268 190,278 215,245" fill="#14b8a6"/>
+  <polygon points="190,278 165,245 150,268" fill="#2dd4bf"/>
+  <polygon points="190,278 230,268 215,245" fill="#0d9488"/>
+  <polygon points="190,278 165,245 215,245" fill="#14b8a6"/>
+  <!-- Bottom-left -->
+  <polygon points="150,268 130,255 118,238" fill="#2dd4bf"/>
+  <polygon points="150,268 118,238 165,245" fill="#5eead4"/>
+  <!-- Left -->
+  <polygon points="118,238 100,210 110,185" fill="#14b8a6"/>
+  <polygon points="118,238 110,185 165,245" fill="#2dd4bf"/>
+  <polygon points="100,210 95,185 110,185" fill="#0d9488"/>
+  <!-- Top-left -->
+  <polygon points="95,185 98,142 110,165" fill="#14b8a6"/>
+  <polygon points="98,142 120,108 110,165" fill="#2dd4bf"/>
+  <polygon points="120,108 155,68 165,105" fill="#5eead4"/>
+  <polygon points="120,108 98,142 165,105" fill="#2dd4bf"/>
+  <!-- Inner hole facets -->
+  <polygon points="165,105 215,105 190,145" fill="white" opacity="0.85"/>
+  <polygon points="215,105 275,142 230,155" fill="white" opacity="0.9"/>
+  <polygon points="230,155 190,145 215,105" fill="white" opacity="0.95"/>
+  <polygon points="165,105 110,165 170,170" fill="white" opacity="0.9"/>
+  <polygon points="170,170 190,145 165,105" fill="white" opacity="0.95"/>
+  <polygon points="170,170 190,200 110,185" fill="white" opacity="0.85"/>
+  <polygon points="190,200 215,245 230,195" fill="white" opacity="0.9"/>
+  <polygon points="230,195 290,185 230,155" fill="white" opacity="0.85"/>
+  <polygon points="190,200 170,170 230,155" fill="white" opacity="0.95"/>
+  <polygon points="190,200 230,195 230,155" fill="white" opacity="0.9"/>
+  <!-- Q tail -->
+  <polygon points="250,238 285,270 310,250" fill="#0d9488"/>
+  <polygon points="285,270 330,295 310,250" fill="#0f766e"/>
+  <polygon points="285,270 330,295 310,310" fill="#115e59"/>
+  <!-- Wordmark -->
+  <text x="200" y="370" text-anchor="middle" font-family="'Century Gothic', 'Futura', sans-serif" font-size="42" font-weight="700" fill="#134e4a" letter-spacing="4">Qwillio</text>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- 11: PULSE LINE — Ligne de pouls/rythme cardiaque formant le mot -->
+  <defs>
+    <linearGradient id="k1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
+    </linearGradient>
+  </defs>
+  <!-- Ligne de base horizontale -->
+  <line x1="30" y1="170" x2="370" y2="170" stroke="#fecdd3" stroke-width="2"/>
+  <!-- Battement cardiaque / pulse -->
+  <path d="M30 170 L90 170 L105 170 L115 140 L130 200 L145 100 L160 220 L175 130 L190 195 L205 145 L215 170 L370 170" fill="none" stroke="url(#k1)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Point lumineux central -->
+  <circle cx="160" cy="100" r="5" fill="#dc2626"/>
+  <circle cx="160" cy="100" r="10" fill="#dc2626" opacity="0.15"/>
+  <!-- Wordmark -->
+  <text x="200" y="290" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="56" font-weight="700" fill="#7f1d1d" letter-spacing="2">Qwillio</text>
+  <text x="200" y="322" text-anchor="middle" font-family="'Trebuchet MS', sans-serif" font-size="11" fill="#dc2626" letter-spacing="6">ALWAYS ALIVE</text>
+</svg>
