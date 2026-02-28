@@ -87,6 +87,20 @@ export const HOLIDAYS_BY_COUNTRY: Record<string, string[]> = {
 // Priority days: Tue=2, Wed=3, Thu=4 (0=Sun, 1=Mon, ...)
 export const PRIORITY_DAYS = [2, 3, 4];
 
+// Max call attempts per prospect before marking as exhausted
+export const MAX_CALL_ATTEMPTS = 2;
+
+// Day + hour priority weights for smart scheduling
+// Higher = better time to call. Used to boost candidate scores.
+export const DAY_HOUR_PRIORITY: Record<number, { hours: [number, number]; weight: number }[]> = {
+  // Wednesday 10-16 = highest priority
+  3: [{ hours: [10, 16], weight: 5 }],
+  // Tuesday 10-14 = high priority
+  2: [{ hours: [10, 14], weight: 4 }],
+  // Thursday 10-12 = good priority
+  4: [{ hours: [10, 12], weight: 3 }],
+};
+
 // Minimum seconds between calls (rate limit)
 export const CALL_RATE_LIMIT_MS = 60_000; // 1 minute
 
@@ -143,4 +157,49 @@ export function isWithinCallWindow(
 export function isPriorityDay(): boolean {
   const day = new Date().getDay();
   return PRIORITY_DAYS.includes(day);
+}
+
+/**
+ * Check if current time is in a blackout period:
+ * - Monday before 10am
+ * - Friday after 2pm (14:00)
+ * Returns true if calls should NOT be made.
+ */
+export function isBlackoutPeriod(timezone: string = 'America/New_York'): boolean {
+  const now = new Date();
+  const timeInTz = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+  const day = timeInTz.getDay();
+  const hour = timeInTz.getHours();
+
+  // Monday (1) before 10am
+  if (day === 1 && hour < 10) return true;
+  // Friday (5) after 2pm
+  if (day === 5 && hour >= 14) return true;
+
+  return false;
+}
+
+/**
+ * Get scheduling priority bonus for the current day + hour.
+ * Returns a weight bonus (0-5) based on optimal calling times:
+ * - Wednesday 10-16: +5
+ * - Tuesday 10-14: +4
+ * - Thursday 10-12: +3
+ * - All other times: 0
+ */
+export function getDayHourBonus(timezone: string = 'America/New_York'): number {
+  const now = new Date();
+  const timeInTz = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+  const day = timeInTz.getDay();
+  const hour = timeInTz.getHours();
+
+  const slots = DAY_HOUR_PRIORITY[day];
+  if (!slots) return 0;
+
+  for (const slot of slots) {
+    if (hour >= slot.hours[0] && hour < slot.hours[1]) {
+      return slot.weight;
+    }
+  }
+  return 0;
 }

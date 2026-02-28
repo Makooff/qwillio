@@ -67,4 +67,15 @@ router.get('/conversion-by-day', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/admin-analytics/transfers?days=30
+router.get('/transfers', async (req: Request, res: Response) => {
+  try {
+    const days = parseInt(req.query.days as string) || 30;
+    const data = await adminAnalyticsService.getTransfers(days);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch transfer data' });
+  }
+});
+
 export default router;

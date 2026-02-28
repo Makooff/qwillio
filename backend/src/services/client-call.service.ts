@@ -161,6 +161,7 @@ Return a JSON object with:
         bookingRequested: false,
         bookingDate: null,
         bookingTime: null,
+        bookingDetails: null,
         serviceType: null,
         partySize: null,
         specialRequests: null,
@@ -169,6 +170,75 @@ Return a JSON object with:
         tags: [],
       };
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // LOG TRANSFER - Records call transfer events
+  // ═══════════════════════════════════════════════════════════
+  async logTransfer(clientId: string, vapiCallId: string | undefined, status: string, event: any) {
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) {
+      logger.error(`Client not found for transfer log: ${clientId}`);
+      return;
+    }
+
+    const transferNumber = client.transferNumber || 'unknown';
+    const reason = event.message?.reason || event.reason || 'explicit_request';
+    const triggerPhrase = event.message?.triggerPhrase || event.triggerPhrase || null;
+
+    // Map VAPI status to our transfer status
+    let transferStatus = 'initiated';
+    if (status === 'completed' || status === 'transferred') {
+      transferStatus = 'completed';
+    } else if (status === 'failed' || status === 'error') {
+      transferStatus = 'failed';
+    }
+
+    const transfer = await prisma.callTransfer.create({
+      data: {
+        clientId,
+        vapiCallId: vapiCallId || null,
+        transferNumber,
+        reason,
+        triggerPhrase,
+        preTransferMessage: 'Of course — let me connect you with someone from the team right now. One moment please.',
+        transferStatus,
+        failedReason: transferStatus === 'failed' ? (event.message?.error || 'No answer') : null,
+        callbackRequested: transferStatus === 'failed',
+        callbackPriority: transferStatus === 'failed' ? 'high' : 'normal',
+      },
+    });
+
+    // Discord notification for transfers
+    const emoji = transferStatus === 'completed' ? '🔄' : transferStatus === 'failed' ? '❌' : '📞';
+    await discordService.notify(
+      `${emoji} CALL TRANSFER ${transferStatus.toUpperCase()}\n\nClient: ${client.businessName}\nTransfer to: ${transferNumber}\nReason: ${reason}\nVAPI Call: ${vapiCallId || 'N/A'}${transferStatus === 'failed' ? '\n⚠️ Callback requested (high priority)' : ''}`
+    );
+
+    logger.info(`Transfer logged for ${client.businessName}: ${transferStatus} → ${transferNumber}`);
+    return transfer;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // CREATE CALLBACK REQUEST - For failed transfers
+  // ═══════════════════════════════════════════════════════════
+  async createCallbackRequest(clientId: string, callerNumber: string, vapiCallId?: string) {
+    const transfer = await prisma.callTransfer.create({
+      data: {
+        clientId,
+        vapiCallId: vapiCallId || null,
+        transferNumber: 'callback_requested',
+        reason: 'explicit_request',
+        transferStatus: 'failed',
+        failedReason: 'No answer on designated number',
+        callbackRequested: true,
+        callbackNumber: callerNumber,
+        callbackPriority: 'high',
+      },
+    });
+
+    logger.info(`Callback request created for client ${clientId}, caller: ${callerNumber}`);
+    return transfer;
   }
 }
 
@@ -181,6 +251,7 @@ interface ClientCallAnalysis {
   bookingRequested: boolean;
   bookingDate: string | null;
   bookingTime: string | null;
+  bookingDetails: string | null;
   serviceType: string | null;
   partySize: number | null;
   specialRequests: string | null;

@@ -304,6 +304,70 @@ export class AdminAnalyticsService {
       rate: dayStats[i].total > 0 ? Math.round((dayStats[i].qualified / dayStats[i].total) * 1000) / 10 : 0,
     }));
   }
+  /**
+   * Transfer stats for admin dashboard
+   */
+  async getTransfers(days: number = 30) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
+
+    const totalTransfers = await prisma.callTransfer.count({
+      where: { createdAt: { gte: startDate } },
+    });
+
+    const completed = await prisma.callTransfer.count({
+      where: { createdAt: { gte: startDate }, transferStatus: 'completed' },
+    });
+
+    const failed = await prisma.callTransfer.count({
+      where: { createdAt: { gte: startDate }, transferStatus: 'failed' },
+    });
+
+    const callbacksPending = await prisma.callTransfer.count({
+      where: { callbackRequested: true, callbackCompletedAt: null },
+    });
+
+    const callbacksHighPriority = await prisma.callTransfer.count({
+      where: { callbackRequested: true, callbackPriority: 'high', callbackCompletedAt: null },
+    });
+
+    // By reason breakdown
+    const byReason = await prisma.callTransfer.groupBy({
+      by: ['reason'],
+      where: { createdAt: { gte: startDate } },
+      _count: true,
+    });
+
+    // Recent transfers
+    const recent = await prisma.callTransfer.findMany({
+      where: { createdAt: { gte: startDate } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      include: { client: { select: { businessName: true } } },
+    });
+
+    return {
+      period: { days, startDate },
+      totalTransfers,
+      completed,
+      failed,
+      successRate: totalTransfers > 0 ? Math.round((completed / totalTransfers) * 1000) / 10 : 100,
+      callbacksPending,
+      callbacksHighPriority,
+      byReason: byReason.reduce((acc, r) => ({ ...acc, [r.reason]: r._count }), {} as Record<string, number>),
+      recent: recent.map(t => ({
+        id: t.id,
+        client: t.client.businessName,
+        transferNumber: t.transferNumber,
+        reason: t.reason,
+        status: t.transferStatus,
+        callbackRequested: t.callbackRequested,
+        callbackPriority: t.callbackPriority,
+        createdAt: t.createdAt,
+      })),
+    };
+  }
 }
 
 export const adminAnalyticsService = new AdminAnalyticsService();

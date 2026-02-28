@@ -130,6 +130,17 @@ export class WebhooksController {
 
     const messageType = event.message?.type || event.type;
 
+    // Handle transfer events
+    if (messageType === 'transfer-destination-request' || messageType === 'transfer-update') {
+      const vapiCallId = event.message?.call?.id || event.call?.id;
+      const transferStatus = event.message?.status || event.status || 'initiated';
+      try {
+        await clientCallService.logTransfer(clientId, vapiCallId, transferStatus, event);
+      } catch (error) {
+        logger.error(`Error logging transfer for client ${clientId}:`, error);
+      }
+    }
+
     // Handle client-specific VAPI events (incoming calls to client's AI)
     if (messageType === 'end-of-call-report') {
       const vapiCallId = event.message?.call?.id || event.call?.id;

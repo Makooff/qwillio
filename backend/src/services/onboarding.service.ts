@@ -36,7 +36,21 @@ export class OnboardingService {
 
       // ── STEP 1: Create VAPI assistant with retry ──
       const systemPrompt = this.generateClientSystemPrompt(client);
-      const assistant = await this.createAssistantWithRetry({
+
+      // Build tools array — add transferCall if client has a transfer number
+      const tools: any[] = [];
+      if (client.transferNumber) {
+        tools.push({
+          type: 'transferCall',
+          destinations: [{
+            type: 'number',
+            number: client.transferNumber,
+            message: 'Of course — let me connect you with someone from the team right now. One moment please.',
+          }],
+        });
+      }
+
+      const assistantData: any = {
         name: `Receptionist - ${client.businessName}`,
         model: {
           provider: 'openai',
@@ -47,14 +61,37 @@ export class OnboardingService {
         voice: {
           provider: '11labs',
           voiceId: env.VAPI_VOICE_ID,
+          model: 'eleven_turbo_v2_5',
           stability: env.VAPI_STABILITY,
           similarityBoost: env.VAPI_SIMILARITY_BOOST,
+          style: env.VAPI_STYLE,
+          useSpeakerBoost: true,
+          optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
+          fallbackPlan: {
+            voices: [
+              { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1 },
+              { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2 },
+            ],
+          },
         },
         firstMessage: `Hello, thank you for calling ${client.businessName}. How can I help you today?`,
         serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
         endCallFunctionEnabled: true,
         recordingEnabled: true,
-      });
+        backgroundSound: 'office',
+        silenceTimeoutSeconds: env.VAPI_SILENCE_TIMEOUT,
+        maxDurationSeconds: env.VAPI_MAX_DURATION,
+        fillerInjectionEnabled: true,
+        interruptionsEnabled: true,
+        numWordsToInterruptAssistant: Math.round(env.VAPI_INTERRUPTION_THRESHOLD / 50),
+      };
+
+      // Only add tools if we have any
+      if (tools.length > 0) {
+        assistantData.tools = tools;
+      }
+
+      const assistant = await this.createAssistantWithRetry(assistantData);
 
       logger.info(`VAPI assistant created: ${assistant.id}`);
 
@@ -260,14 +297,38 @@ export class OnboardingService {
     // Get industry-specific knowledge
     const industryKnowledge = this.getIndustryKnowledge(client.businessType);
 
+    // Build transfer instructions based on whether client has a transfer number
+    const transferInstructions = client.transferNumber
+      ? `
+HUMAN TRANSFER — CRITICAL:
+You have the ability to transfer calls to the business team. Use the transferCall tool when:
+- The caller explicitly says "transfer me", "speak to someone", "real person", "manager", or any equivalent
+- The caller says "I'm frustrated" or expresses strong frustration
+- The caller has repeated the same question 3+ times and you cannot resolve it
+- The caller's tone indicates high frustration (raised voice, silence after failed answers)
+
+Before transferring, ALWAYS say: "Of course — let me connect you with someone from the team right now. One moment please."
+Then use the transferCall tool to transfer to the designated number.
+
+If the transfer fails or no one answers, say: "I'm sorry, the team is currently unavailable — but I'll make sure someone calls you back within the next hour. Can I confirm the best number to reach you?"
+Then collect their callback number and end the call politely.
+
+NEVER just drop the call silently during a transfer.`
+      : `
+TRANSFER REQUESTS:
+If a caller asks to speak to a real person, says "transfer me", "manager", or expresses strong frustration:
+- Apologize and offer to take a detailed message
+- Say: "I completely understand. Let me take your name and number, and I'll make sure someone from the team calls you back as soon as possible."
+- Collect their name, phone number, and brief description of what they need
+- Mark the message as urgent`;
+
     return `You are the virtual receptionist for ${client.businessName}, a ${client.businessType} located in ${client.city || 'the United States'}.
 
 YOUR ROLE:
 - Warmly greet all callers
 - Answer frequently asked questions about the business
 - Take bookings and appointments
-- Log messages for the team
-- Transfer urgent calls to the right person${proFeatures}${multiLangSupport}
+- Log messages for the team${proFeatures}${multiLangSupport}
 
 BUSINESS INFORMATION:
 - Name: ${client.businessName}
@@ -276,6 +337,7 @@ BUSINESS INFORMATION:
 - Email: ${client.contactEmail}
 
 ${industryKnowledge}
+${transferInstructions}
 
 YOUR STYLE:
 - Professional yet warm and friendly

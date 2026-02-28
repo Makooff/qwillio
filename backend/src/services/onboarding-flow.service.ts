@@ -70,6 +70,7 @@ export class OnboardingFlowService {
       { id: 'address', label: 'Business Address', type: 'text', required: true, placeholder: '123 Main St, New York, NY 10001', section: 'basics' },
       { id: 'parkingInfo', label: 'Parking instructions', type: 'text', required: false, placeholder: 'e.g. Free parking in rear lot', section: 'basics' },
       { id: 'greetingStyle', label: 'How should we greet callers?', type: 'select', required: true, options: ['Professional & formal', 'Friendly & casual', 'Warm & welcoming', 'Energetic & upbeat'], section: 'personality' },
+      { id: 'transferNumber', label: 'Transfer phone number — calls will be forwarded here when a caller requests a real person', type: 'text', required: true, placeholder: 'e.g. +1 (555) 123-4567 — your cell or front desk number', section: 'protocols' },
       { id: 'urgentProtocol', label: 'What counts as urgent? Who should we transfer to?', type: 'textarea', required: true, placeholder: 'e.g. Medical emergencies → call 911. Urgent customer complaints → transfer to manager at 555-1234', section: 'protocols' },
       { id: 'faq', label: 'Frequently asked questions & answers', type: 'textarea', required: true, placeholder: 'Q: Do you accept walk-ins?\nA: Yes, but appointments are recommended.\n\nQ: What payment methods do you accept?\nA: Cash, all major credit cards, and Apple Pay.', section: 'knowledge' },
     ];
@@ -241,6 +242,8 @@ export class OnboardingFlowService {
         onboardingFormDoneAt: new Date(),
         // Update address if provided
         ...(formData.address ? { address: formData.address } : {}),
+        // Save transfer number if provided
+        ...(formData.transferNumber ? { transferNumber: formData.transferNumber } : {}),
       },
     });
 

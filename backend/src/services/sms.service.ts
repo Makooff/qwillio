@@ -107,6 +107,24 @@ export class SmsService {
     const result = await this.sendSMS(prospect.phone, body);
     return result.success;
   }
+
+  /**
+   * Send final SMS to exhausted prospects (max call attempts reached, no answer)
+   * Gives them a way to engage on their own terms.
+   */
+  async sendExhaustedSMS(prospect: {
+    phone: string | null;
+    businessName: string;
+    contactName: string | null;
+  }): Promise<boolean> {
+    if (!prospect.phone) return false;
+
+    const name = prospect.contactName || 'there';
+    const body = `Hi ${name}! Ashley from Qwillio here — I tried reaching you a couple times about ${prospect.businessName}. No worries at all! If you're ever curious how AI can help you never miss a call again, here's a quick 2-min video: qwillio.com/demo. Have a great day!`;
+
+    const result = await this.sendSMS(prospect.phone, body);
+    return result.success;
+  }
 }
 
 export const smsService = new SmsService();
