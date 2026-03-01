@@ -54,6 +54,13 @@ model Prospect {
   lastContactDate    DateTime? @map("last_contact_date")
   assignedToUserId   String?   @map("assigned_to_user_id") @db.Uuid
   timezone           String    @default("America/New_York") @db.VarChar(50)
+  emailVerified      Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt    DateTime? @map("email_verified_at")
+  emailBounced       Boolean   @default(false) @map("email_bounced")
+  emailBouncedAt     DateTime? @map("email_bounced_at")
+  emailSmsFollowupSent Boolean @default(false) @map("email_sms_followup_sent")
+  emailSmsReplyRaw   String?   @map("email_sms_reply_raw") @db.Text
+  emailConfirmationId String?  @map("email_confirmation_id") @db.VarChar(255)
   phoneValidated     Boolean   @default(false) @map("phone_validated")
   phoneValidationSource String? @map("phone_validation_source") @db.VarChar(50)
   phoneNumberConfidence Float? @map("phone_number_confidence")

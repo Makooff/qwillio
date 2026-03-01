@@ -144,21 +144,19 @@ export default function Landing() {
 
         {/* Stats */}
         <FadeIn delay={400}>
-          <div className="mt-20 flex items-center justify-center gap-8 md:gap-16 text-center">
+          <div className="mt-20 grid grid-cols-3 text-center w-full max-w-xl mx-auto">
             <div>
               <p className="text-3xl md:text-4xl font-semibold tracking-tight">
                 <Counter value={98} suffix="%" />
               </p>
               <p className="text-xs md:text-sm text-[#86868b] mt-1">{t('hero.stat1')}</p>
             </div>
-            <div className="w-px h-10 bg-[#d2d2d7]" />
-            <div>
+            <div className="border-x border-[#d2d2d7]">
               <p className="text-3xl md:text-4xl font-semibold tracking-tight">
                 <Counter value={2500} suffix="+" />
               </p>
               <p className="text-xs md:text-sm text-[#86868b] mt-1">{t('hero.stat2')}</p>
             </div>
-            <div className="w-px h-10 bg-[#d2d2d7]" />
             <div>
               <p className="text-3xl md:text-4xl font-semibold tracking-tight">
                 <Counter value={35} suffix="%" />

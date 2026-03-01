@@ -912,6 +912,54 @@ export class EmailService {
   </div>
 </div></body></html>`;
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // EMAIL CONFIRMATION — Sent 30s after call to verify address
+  // ═══════════════════════════════════════════════════════════
+  async sendEmailConfirmation(data: {
+    to: string;
+    contactName: string;
+    businessName: string;
+    prospectId: string;
+  }): Promise<{ success: boolean; emailId?: string }> {
+    const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f7f8;">
+<div style="max-width:520px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+  <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:30px;text-align:center;color:#fff;">
+    <h1 style="margin:0;font-size:22px;">Thanks for chatting with Ashley!</h1>
+    <p style="margin:10px 0 0;opacity:0.9;">Qwillio</p>
+  </div>
+  <div style="padding:30px;color:#333;">
+    <p>Hi ${data.contactName || 'there'},</p>
+    <p>Great talking with you about <strong>${data.businessName}</strong>! As promised, here's a quick 2-minute demo of your AI receptionist in action:</p>
+    <div style="text-align:center;margin:30px 0;">
+      <a href="${env.FRONTEND_URL}/demo.html" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:16px 40px;text-decoration:none;border-radius:30px;font-weight:700;font-size:16px;">Watch the Demo</a>
+    </div>
+    <p>This email also confirms we have the right address for you. No action needed — we'll follow up with more details soon.</p>
+    <p>Talk soon!<br><strong>Ashley from Qwillio</strong></p>
+    <p style="color:#888;font-size:12px;margin-top:30px;border-top:1px solid #eee;padding-top:15px;">You're receiving this because you spoke with Ashley from Qwillio about ${data.businessName}.</p>
+  </div>
+</div></body></html>`;
+
+    try {
+      const result = await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL,
+        to: data.to,
+        subject: `Thanks for chatting, ${data.contactName || 'there'}! Here's your demo`,
+        html,
+        replyTo: env.RESEND_REPLY_TO,
+        tags: [
+          { name: 'campaign', value: 'email_confirmation' },
+          { name: 'prospect_id', value: data.prospectId },
+        ],
+      });
+
+      logger.info(`Confirmation email sent to ${data.to} (ID: ${result.data?.id})`);
+      return { success: true, emailId: result.data?.id || undefined };
+    } catch (error) {
+      logger.error('Failed to send confirmation email:', error);
+      return { success: false };
+    }
+  }
 }
 
 export const emailService = new EmailService();

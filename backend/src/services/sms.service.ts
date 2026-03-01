@@ -109,6 +109,26 @@ export class SmsService {
   }
 
   /**
+   * Send SMS fallback when email bounces or no open after 24h.
+   * Asks the prospect to reply with their correct email address.
+   */
+  async sendEmailFallbackSMS(prospect: {
+    phone: string | null;
+    businessName: string;
+    contactName: string | null;
+  }, reason: 'bounce' | 'no_open'): Promise<boolean> {
+    if (!prospect.phone) return false;
+
+    const name = prospect.contactName || 'there';
+    const body = reason === 'bounce'
+      ? `Hi ${name}! Ashley from Qwillio here. I tried sending you the demo video for ${prospect.businessName} but the email bounced. Could you reply with your correct email? Thanks!`
+      : `Hi ${name}! Ashley from Qwillio — I sent you a demo video for ${prospect.businessName} yesterday but it looks like it might have gone to spam. Could you reply with your email and I'll resend it? Thanks!`;
+
+    const result = await this.sendSMS(prospect.phone, body);
+    return result.success;
+  }
+
+  /**
    * Send final SMS to exhausted prospects (max call attempts reached, no answer)
    * Gives them a way to engage on their own terms.
    */

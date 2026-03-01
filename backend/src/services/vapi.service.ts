@@ -10,6 +10,8 @@ import { smsService } from './sms.service';
 import { NICHE_SCRIPTS, DEFAULT_SCRIPT, getInstallmentAmount } from '../config/niche-scripts';
 import { isHoliday, isWithinCallWindow, isPriorityDay, isBlackoutPeriod, getDayHourBonus, CALL_RATE_LIMIT_MS, MAX_CALL_ATTEMPTS } from '../config/scheduling';
 import { INTERESTED_FOLLOWUP_SEQUENCE, CALLBACK_RETRY_DELAYS } from '../config/followup-sequence';
+import { emailService } from './email.service';
+import { normalizeEmail, isValidEmail } from '../utils/validators';
 
 export class VapiService {
   async callNextProspect(): Promise<boolean> {
@@ -248,11 +250,22 @@ export class VapiService {
     const newStatus = analysis.interestLevel >= 7 ? 'qualified' :
                       analysis.interestLevel >= 4 ? 'interested' : 'contacted';
 
+    // ═══ EMAIL VALIDATION & NORMALIZATION ═══
+    let validatedEmail = call.prospect.email;
+    if (analysis.email) {
+      const normalized = normalizeEmail(analysis.email);
+      if (isValidEmail(normalized)) {
+        validatedEmail = normalized;
+      } else {
+        logger.warn(`Invalid email format extracted from call: "${analysis.email}" (normalized: "${normalized}") — keeping previous email`);
+      }
+    }
+
     await prisma.prospect.update({
       where: { id: call.prospect.id },
       data: {
         status: newStatus,
-        email: analysis.email || call.prospect.email,
+        email: validatedEmail,
         contactName: analysis.contactName || call.prospect.contactName,
         interestLevel: analysis.interestLevel,
         painPoints: analysis.painPoints,
@@ -299,9 +312,43 @@ export class VapiService {
     }
 
     // If qualified -> automatically start free trial
-    if (analysis.interestLevel >= 7 && analysis.email) {
+    if (analysis.interestLevel >= 7 && validatedEmail) {
       logger.info(`Prospect ${call.prospect.businessName} qualified (interest: ${analysis.interestLevel}/10) - starting free trial`);
-      await quoteService.startFreeTrial(call.prospect.id, analysis.recommendedPackage, analysis.email);
+      await quoteService.startFreeTrial(call.prospect.id, analysis.recommendedPackage, validatedEmail);
+    }
+
+    // ═══ 30s CONFIRMATION EMAIL + 24h VERIFICATION CHECK ═══
+    // Send confirmation email to validate the collected address (bounce detection via Resend webhook)
+    if (validatedEmail && analysis.interestLevel >= 4) {
+      setTimeout(async () => {
+        try {
+          const result = await emailService.sendEmailConfirmation({
+            to: validatedEmail!,
+            contactName: analysis.contactName || call.prospect!.contactName || call.prospect!.businessName,
+            businessName: call.prospect!.businessName,
+            prospectId: call.prospect!.id,
+          });
+          if (result.success) {
+            await prisma.prospect.update({
+              where: { id: call.prospect!.id },
+              data: { emailConfirmationId: result.emailId || null },
+            });
+            logger.info(`Confirmation email sent to ${validatedEmail} for ${call.prospect!.businessName}`);
+          }
+        } catch (e) {
+          logger.warn(`Failed to send confirmation email to ${validatedEmail}:`, e);
+        }
+      }, 30_000); // 30 second delay
+
+      // Schedule 24h email verification check — if not verified by then, send SMS fallback
+      await prisma.reminder.create({
+        data: {
+          targetType: 'prospect',
+          targetId: call.prospect.id,
+          reminderType: 'email_verification_check',
+          scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
     }
 
     // ═══ AUTOMATED FOLLOW-UP SEQUENCE ═══
@@ -363,7 +410,7 @@ export class VapiService {
     // Discord notification
     const emoji = analysis.interestLevel >= 7 ? '✅' : analysis.interestLevel >= 4 ? '🟡' : '❌';
     await discordService.notify(
-      `${emoji} CALL COMPLETED\n\nProspect: ${call.prospect.businessName}\nInterest: ${analysis.interestLevel}/10\nPackage: ${analysis.recommendedPackage.toUpperCase()}\nEmail: ${analysis.email || 'Not collected'}\nAction: ${analysis.nextAction}${setupFeeObjection ? '\n⚠️ Setup fee objection raised' : ''}`
+      `${emoji} CALL COMPLETED\n\nProspect: ${call.prospect.businessName}\nInterest: ${analysis.interestLevel}/10\nPackage: ${analysis.recommendedPackage.toUpperCase()}\nEmail: ${validatedEmail || 'Not collected'}${analysis.email && validatedEmail !== analysis.email ? ` (raw: ${analysis.email})` : ''}\nAction: ${analysis.nextAction}${setupFeeObjection ? '\n⚠️ Setup fee objection raised' : ''}`
     );
   }
 

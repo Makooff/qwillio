@@ -81,13 +81,8 @@
       gap: 12px;
     }
     .nav-back-link {
-      font-size: 14px;
-      color: rgba(29,29,31,0.7);
-      text-decoration: none;
-      transition: color 0.2s;
       display: none;
     }
-    @media (min-width: 640px) { .nav-back-link { display: block; } }
     .nav-back-link:hover { color: var(--text); }
     .lang-toggle {
       display: flex;
@@ -123,12 +118,23 @@
       align-items: center;
     }
 
+    /* ── Back link ── */
+    .back-top-link {
+      align-self: flex-start;
+      font-size: 14px;
+      color: var(--gray);
+      text-decoration: none;
+      margin-bottom: 20px;
+      transition: color 0.2s;
+    }
+    .back-top-link:hover { color: var(--text); }
+
     /* ── Title ── */
     .title {
       font-size: 36px;
       font-weight: 700;
       letter-spacing: -0.5px;
-      line-height: 1.15;
+      line-height: 1.3;
       text-align: center;
       margin-bottom: 12px;
       color: var(--text);
@@ -138,6 +144,8 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      padding-bottom: 4px;
+      display: inline-block;
     }
 
     .subtitle {
@@ -149,65 +157,17 @@
       margin-bottom: 40px;
     }
 
-    /* ── Waveform visualization ── */
-    .waveform {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      height: 80px;
-      margin-bottom: 32px;
+    /* ── Sine wave visualization ── */
+    .waveform-container {
+      width: 320px;
+      height: 90px;
+      margin: 0 auto 32px;
+      position: relative;
     }
-    .waveform .bar {
-      width: 4px;
-      border-radius: 4px;
-      background: linear-gradient(180deg, var(--indigo), var(--violet));
-      opacity: 0.25;
-      transition: height 0.15s ease, opacity 0.3s ease;
-    }
-    .waveform.idle .bar {
-      animation: idle-wave 2s ease-in-out infinite;
-    }
-    .waveform.active .bar {
-      opacity: 0.9;
-      animation: active-wave 0.5s ease-in-out infinite alternate;
-    }
-    .waveform .bar:nth-child(1)  { height: 20px; animation-delay: 0s; }
-    .waveform .bar:nth-child(2)  { height: 28px; animation-delay: 0.1s; }
-    .waveform .bar:nth-child(3)  { height: 16px; animation-delay: 0.2s; }
-    .waveform .bar:nth-child(4)  { height: 36px; animation-delay: 0.15s; }
-    .waveform .bar:nth-child(5)  { height: 24px; animation-delay: 0.05s; }
-    .waveform .bar:nth-child(6)  { height: 44px; animation-delay: 0.25s; }
-    .waveform .bar:nth-child(7)  { height: 32px; animation-delay: 0.1s; }
-    .waveform .bar:nth-child(8)  { height: 52px; animation-delay: 0.3s; }
-    .waveform .bar:nth-child(9)  { height: 40px; animation-delay: 0.18s; }
-    .waveform .bar:nth-child(10) { height: 60px; animation-delay: 0.22s; }
-    .waveform .bar:nth-child(11) { height: 48px; animation-delay: 0.12s; }
-    .waveform .bar:nth-child(12) { height: 72px; animation-delay: 0.28s; }
-    .waveform .bar:nth-child(13) { height: 56px; animation-delay: 0.08s; }
-    .waveform .bar:nth-child(14) { height: 64px; animation-delay: 0.35s; }
-    .waveform .bar:nth-child(15) { height: 48px; animation-delay: 0.2s; }
-    .waveform .bar:nth-child(16) { height: 72px; animation-delay: 0.15s; }
-    .waveform .bar:nth-child(17) { height: 56px; animation-delay: 0.32s; }
-    .waveform .bar:nth-child(18) { height: 60px; animation-delay: 0.1s; }
-    .waveform .bar:nth-child(19) { height: 44px; animation-delay: 0.25s; }
-    .waveform .bar:nth-child(20) { height: 52px; animation-delay: 0.18s; }
-    .waveform .bar:nth-child(21) { height: 36px; animation-delay: 0.22s; }
-    .waveform .bar:nth-child(22) { height: 28px; animation-delay: 0.3s; }
-    .waveform .bar:nth-child(23) { height: 44px; animation-delay: 0.14s; }
-    .waveform .bar:nth-child(24) { height: 32px; animation-delay: 0.08s; }
-    .waveform .bar:nth-child(25) { height: 20px; animation-delay: 0.2s; }
-    .waveform .bar:nth-child(26) { height: 36px; animation-delay: 0.12s; }
-    .waveform .bar:nth-child(27) { height: 24px; animation-delay: 0.28s; }
-    .waveform .bar:nth-child(28) { height: 16px; animation-delay: 0.05s; }
-
-    @keyframes idle-wave {
-      0%, 100% { transform: scaleY(0.4); opacity: 0.2; }
-      50% { transform: scaleY(0.7); opacity: 0.35; }
-    }
-    @keyframes active-wave {
-      0% { transform: scaleY(0.3); }
-      100% { transform: scaleY(1); }
+    .waveform-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
 
     /* ── CTA Button ── */
@@ -300,6 +260,9 @@
       height: 14px;
     }
     .config-toggle[open] summary .chevron { transform: rotate(180deg); }
+    .config-toggle {
+      scroll-margin-top: 70px;
+    }
 
     /* ── Config card ── */
     .config-card {
@@ -341,6 +304,29 @@
       box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
     }
     .field input::placeholder { color: var(--border); }
+    .config-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .config-save-btn {
+      flex: 1;
+      padding: 10px 0;
+      border-radius: 10px;
+      border: none;
+      background: var(--indigo);
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .config-save-btn:hover { background: #4f46e5; }
+    .config-save-btn.saved {
+      background: var(--green);
+      pointer-events: none;
+    }
     .field select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%2386868b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
@@ -445,8 +431,7 @@
       .subtitle { font-size: 14px; }
       .main { padding: 40px 16px 60px; }
       .cta-btn { padding: 14px 32px; font-size: 15px; }
-      .waveform { gap: 2px; }
-      .waveform .bar { width: 3px; }
+      .waveform-container { width: 260px; height: 72px; }
       .result-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -490,22 +475,16 @@
   <!-- ── Main ── -->
   <main class="main">
 
+    <!-- Back to site -->
+    <a href="/" class="back-top-link" data-i18n="backToSite">&larr; Back to site</a>
+
     <!-- Title -->
     <h1 class="title" data-i18n="title">Listen to <span>Ashley</span>, our demo agent</h1>
     <p class="subtitle" data-i18n="subtitle">Talk to Ashley live in your browser. She'll demo how Qwillio handles calls, books appointments and qualifies leads for your business.</p>
 
-    <!-- Waveform -->
-    <div class="waveform idle" id="waveform">
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div>
+    <!-- Sine wave visualization -->
+    <div class="waveform-container" id="waveform">
+      <canvas class="waveform-canvas" id="waveCanvas"></canvas>
     </div>
 
     <!-- CTA Button -->
@@ -527,7 +506,7 @@
       <div class="config-card">
         <div class="field">
           <label data-i18n="labelBiz">Business Name</label>
-          <input type="text" id="businessName" value="" placeholder="e.g. Mario's Pizzeria" />
+          <input type="text" id="businessName" value="" placeholder="e.g. Downtown Dental" />
         </div>
         <div class="field">
           <label data-i18n="labelIndustry">Industry</label>
@@ -548,6 +527,9 @@
         <div class="field">
           <label data-i18n="labelCity">City</label>
           <input type="text" id="city" value="" placeholder="e.g. New York" />
+        </div>
+        <div class="config-actions">
+          <button class="config-save-btn" id="saveConfigBtn" onclick="saveConfig()" data-i18n="btnSave">Save</button>
         </div>
       </div>
     </details>
@@ -631,6 +613,9 @@
         resultTranscript: 'View full transcript',
         resultMessages: 'messages',
         resultProspectStatus: 'Prospect status:',
+        btnSave: 'Save',
+        btnSaved: 'Saved!',
+        backToSite: '\u2190 Back to site',
       },
       fr: {
         navFeatures: 'Fonctionnalit\u00e9s',
@@ -697,6 +682,9 @@
         resultTranscript: 'Voir la transcription',
         resultMessages: 'messages',
         resultProspectStatus: 'Statut :',
+        btnSave: 'Sauvegarder',
+        btnSaved: 'Sauvegard\u00e9 !',
+        backToSite: '\u2190 Retour au site',
       },
     };
 
@@ -735,6 +723,81 @@
     applyTranslations();
     window.setLang = setLang;
 
+    // ── Sine Wave Canvas Animation ──
+    const waveCanvas = document.getElementById('waveCanvas');
+    const waveCtx = waveCanvas.getContext('2d');
+    let waveMode = 'idle';
+    let waveVolume = 0;
+    let waveTargetVolume = 0;
+
+    function initWaveCanvas() {
+      const container = waveCanvas.parentElement;
+      const dpr = window.devicePixelRatio || 1;
+      waveCanvas.width = container.offsetWidth * dpr;
+      waveCanvas.height = container.offsetHeight * dpr;
+      waveCtx.scale(dpr, dpr);
+      waveCanvas.style.width = container.offsetWidth + 'px';
+      waveCanvas.style.height = container.offsetHeight + 'px';
+    }
+    initWaveCanvas();
+    window.addEventListener('resize', initWaveCanvas);
+
+    function drawSineWave(timestamp) {
+      const w = waveCanvas.clientWidth;
+      const h = waveCanvas.clientHeight;
+      const midY = h / 2;
+      waveCtx.clearRect(0, 0, w, h);
+
+      waveVolume += (waveTargetVolume - waveVolume) * 0.08;
+
+      const isActive = waveMode === 'active';
+      const baseAmp = isActive ? 8 + waveVolume * 24 : 10;
+      const speed = isActive ? 0.003 : 0.0015;
+      const lineWidth = isActive ? 3 : 2.5;
+      const opacity = isActive ? 0.6 + waveVolume * 0.35 : 0.45;
+
+      const waves = [
+        { freq: 0.025, amp: baseAmp * 1.0, phase: timestamp * speed,          color: `rgba(99,102,241,${opacity})` },
+        { freq: 0.018, amp: baseAmp * 0.7, phase: timestamp * speed * 1.3 + 2, color: `rgba(139,92,246,${opacity * 0.7})` },
+        { freq: 0.032, amp: baseAmp * 0.5, phase: timestamp * speed * 0.8 + 4, color: `rgba(168,85,247,${opacity * 0.5})` },
+      ];
+
+      waves.forEach(wave => {
+        waveCtx.beginPath();
+        waveCtx.strokeStyle = wave.color;
+        waveCtx.lineWidth = lineWidth;
+        waveCtx.lineCap = 'round';
+        waveCtx.lineJoin = 'round';
+        for (let x = 0; x <= w; x++) {
+          const env = Math.sin((x / w) * Math.PI);
+          const y = midY + Math.sin(x * wave.freq + wave.phase) * wave.amp * env;
+          if (x === 0) waveCtx.moveTo(x, y);
+          else waveCtx.lineTo(x, y);
+        }
+        waveCtx.stroke();
+      });
+
+      if (isActive && waveVolume > 0.1) {
+        const grad = waveCtx.createRadialGradient(w / 2, midY, 0, w / 2, midY, w * 0.35);
+        grad.addColorStop(0, `rgba(99,102,241,${waveVolume * 0.12})`);
+        grad.addColorStop(1, 'rgba(99,102,241,0)');
+        waveCtx.fillStyle = grad;
+        waveCtx.fillRect(0, 0, w, h);
+      }
+
+      requestAnimationFrame(drawSineWave);
+    }
+    requestAnimationFrame(drawSineWave);
+
+    function setWaveActive(active) {
+      waveMode = active ? 'active' : 'idle';
+      if (!active) waveTargetVolume = 0;
+    }
+
+    function setWaveVolume(level) {
+      waveTargetVolume = Math.min(1, Math.max(0, level));
+    }
+
     // ── VAPI Call Logic ──
     let vapi = null;
     let isCallActive = false;
@@ -743,9 +806,9 @@
     let conversationMessages = [];
 
     function getSystemPrompt() {
-      const name = document.getElementById('businessName').value || 'Vivi Pizza';
-      const type = document.getElementById('businessType').value || 'restaurant';
-      const city = document.getElementById('city').value || 'Brussels';
+      const name = document.getElementById('businessName').value || 'Downtown Dental';
+      const type = document.getElementById('businessType').value || 'dental';
+      const city = document.getElementById('city').value || 'New York';
 
       return `You are a professional AI receptionist for ${name}, a ${type} located in ${city}.
 
@@ -799,7 +862,7 @@ RULES:
     }
 
     function getFirstMessage() {
-      const name = document.getElementById('businessName').value || 'Vivi Pizza';
+      const name = document.getElementById('businessName').value || 'Downtown Dental';
       return `Hello! Thank you for calling ${name}. This is Ashley speaking. How can I help you today?`;
     }
 
@@ -811,7 +874,6 @@ RULES:
       const btn = document.getElementById('callBtn');
       const status = document.getElementById('status');
       const detail = document.getElementById('statusDetail');
-      const waveform = document.getElementById('waveform');
 
       btn.disabled = true;
       status.textContent = t('statusConnecting');
@@ -826,8 +888,7 @@ RULES:
           btn.disabled = false;
           btn.classList.add('active');
           document.getElementById('btnLabel').textContent = t('btnStop');
-          waveform.classList.remove('idle');
-          waveform.classList.add('active');
+          setWaveActive(true);
           status.textContent = t('statusSpeaking');
           detail.textContent = t('statusTalkNaturally');
           startTimer();
@@ -846,13 +907,7 @@ RULES:
         vapi.on('speech-end', () => { status.textContent = t('statusYourTurn'); });
 
         vapi.on('volume-level', (level) => {
-          const bars = document.querySelectorAll('.waveform .bar');
-          bars.forEach((bar, i) => {
-            const offset = Math.sin(Date.now() / 200 + i * 0.5) * 0.3;
-            const h = Math.max(8, (level * 80 + offset * 30 + Math.random() * 15));
-            bar.style.height = h + 'px';
-            bar.style.opacity = Math.min(0.3 + level * 0.7, 1);
-          });
+          setWaveVolume(level);
         });
 
         vapi.on('error', (err) => {
@@ -867,8 +922,8 @@ RULES:
             provider: 'openai',
             model: 'gpt-4o-mini',
             messages: [{ role: 'system', content: getSystemPrompt() }],
-            temperature: 0.8,
-            maxTokens: 150,
+            temperature: 0.7,
+            maxTokens: 100,
           },
           voice: {
             provider: '11labs',
@@ -878,13 +933,15 @@ RULES:
             similarityBoost: 0.82,
             style: 0.35,
             useSpeakerBoost: true,
+            optimizeStreamingLatency: 4,
           },
           firstMessage: getFirstMessage(),
           name: 'Qwillio Receptionist Demo',
           backgroundSound: 'office',
           silenceTimeoutSeconds: 30,
-          responseDelaySeconds: 0.5,
+          responseDelaySeconds: 0,
           endCallFunctionEnabled: true,
+          hipaaEnabled: false,
         });
 
       } catch (err) {
@@ -904,15 +961,9 @@ RULES:
       const wasActive = isCallActive;
       isCallActive = false;
       const btn = document.getElementById('callBtn');
-      const waveform = document.getElementById('waveform');
       btn.classList.remove('active');
       document.getElementById('btnLabel').textContent = t('btnStart');
-      waveform.classList.remove('active');
-      waveform.classList.add('idle');
-      document.querySelectorAll('.waveform .bar').forEach(bar => {
-        bar.style.height = '';
-        bar.style.opacity = '';
-      });
+      setWaveActive(false);
       btn.disabled = false;
       const elapsed = callStart ? Math.floor((Date.now() - callStart) / 1000) : 0;
       stopTimer();
@@ -946,9 +997,9 @@ RULES:
           },
           body: JSON.stringify({
             transcript,
-            businessName: document.getElementById('businessName').value || 'Vivi Pizza',
-            businessType: document.getElementById('businessType').value || 'restaurant',
-            city: document.getElementById('city').value || 'Brussels',
+            businessName: document.getElementById('businessName').value || 'Downtown Dental',
+            businessType: document.getElementById('businessType').value || 'dental',
+            city: document.getElementById('city').value || 'New York',
             durationSeconds: elapsed,
           }),
         });
@@ -1029,7 +1080,29 @@ RULES:
       setTimeout(() => { document.getElementById('timer').classList.remove('visible'); }, 5000);
     }
 
+    function saveConfig() {
+      const btn = document.getElementById('saveConfigBtn');
+      btn.textContent = t('btnSaved');
+      btn.classList.add('saved');
+      // Close the details panel after a brief moment
+      setTimeout(() => {
+        document.querySelector('.config-toggle').removeAttribute('open');
+        btn.textContent = t('btnSave');
+        btn.classList.remove('saved');
+      }, 800);
+    }
+
+    // Auto-scroll to config panel when opened
+    document.querySelector('.config-toggle').addEventListener('toggle', (e) => {
+      if (e.target.open) {
+        setTimeout(() => {
+          document.querySelector('.config-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+      }
+    });
+
     window.toggleCall = toggleCall;
+    window.saveConfig = saveConfig;
   </script>
 </body>
 </html>

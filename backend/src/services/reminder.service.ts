@@ -91,6 +91,9 @@ export class ReminderService {
       case 'callback_retry':
         await this.processCallbackRetry(reminder);
         break;
+      case 'email_verification_check':
+        await this.processEmailVerificationCheck(reminder);
+        break;
 
       default:
         logger.warn(`Unknown reminder type: ${reminder.reminderType}`);
@@ -556,6 +559,57 @@ export class ReminderService {
     });
 
     logger.info(`Callback retry: ${prospect.businessName} re-added to queue (attempt ${prospect.callAttempts + 1})`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // EMAIL VERIFICATION CHECK (24h after confirmation email)
+  // ═══════════════════════════════════════════════════════════
+  private async processEmailVerificationCheck(reminder: any) {
+    const prospect = await prisma.prospect.findUnique({ where: { id: reminder.targetId } });
+    if (!prospect) {
+      await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'canceled', result: 'Prospect not found' } });
+      return;
+    }
+
+    // If email was already verified (Resend delivered webhook), skip
+    if (prospect.emailVerified) {
+      await prisma.reminder.update({
+        where: { id: reminder.id },
+        data: { status: 'canceled', result: 'Email already verified' },
+      });
+      return;
+    }
+
+    // If email already bounced (handled by Resend bounce webhook), skip — SMS was already sent
+    if (prospect.emailBounced) {
+      await prisma.reminder.update({
+        where: { id: reminder.id },
+        data: { status: 'canceled', result: 'Email already bounced — SMS fallback already sent' },
+      });
+      return;
+    }
+
+    // 24h passed, no delivery confirmation → send SMS fallback asking for correct email
+    if (prospect.phone && !prospect.emailSmsFollowupSent) {
+      try {
+        await smsService.sendEmailFallbackSMS(
+          { phone: prospect.phone, businessName: prospect.businessName, contactName: prospect.contactName },
+          'no_open'
+        );
+        await prisma.prospect.update({
+          where: { id: prospect.id },
+          data: { emailSmsFollowupSent: true },
+        });
+        logger.info(`24h email verification check: SMS fallback sent to ${prospect.businessName} (no delivery confirmation)`);
+      } catch (e) {
+        logger.warn(`Email verification SMS fallback failed for ${prospect.businessName}:`, e);
+      }
+    }
+
+    await prisma.reminder.update({
+      where: { id: reminder.id },
+      data: { status: 'sent', sentAt: new Date(), result: `Email not verified after 24h — SMS fallback ${prospect.phone ? 'sent' : 'skipped (no phone)'}` },
+    });
   }
 }
 

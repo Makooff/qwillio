@@ -67,6 +67,16 @@ router.get('/conversion-by-day', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/admin-analytics/email-verification
+router.get('/email-verification', async (req: Request, res: Response) => {
+  try {
+    const data = await adminAnalyticsService.getEmailVerification();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch email verification data' });
+  }
+});
+
 // GET /api/admin-analytics/transfers?days=30
 router.get('/transfers', async (req: Request, res: Response) => {
   try {

@@ -305,6 +305,33 @@ export class AdminAnalyticsService {
     }));
   }
   /**
+   * Email verification pipeline stats
+   */
+  async getEmailVerification() {
+    const totalWithEmail = await prisma.prospect.count({ where: { email: { not: null } } });
+    const verified = await prisma.prospect.count({ where: { emailVerified: true } });
+    const bounced = await prisma.prospect.count({ where: { emailBounced: true } });
+    const smsFallbackSent = await prisma.prospect.count({ where: { emailSmsFollowupSent: true } });
+    const correctedViaSms = await prisma.prospect.count({
+      where: { emailSmsReplyRaw: { not: null }, emailBounced: false },
+    });
+    const pendingVerification = await prisma.prospect.count({
+      where: { email: { not: null }, emailVerified: false, emailBounced: false },
+    });
+
+    return {
+      totalWithEmail,
+      verified,
+      bounced,
+      smsFallbackSent,
+      correctedViaSms,
+      pendingVerification,
+      verifiedPct: totalWithEmail > 0 ? Math.round((verified / totalWithEmail) * 1000) / 10 : 0,
+      bouncePct: totalWithEmail > 0 ? Math.round((bounced / totalWithEmail) * 1000) / 10 : 0,
+    };
+  }
+
+  /**
    * Transfer stats for admin dashboard
    */
   async getTransfers(days: number = 30) {
