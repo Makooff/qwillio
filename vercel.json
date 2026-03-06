@@ -3,7 +3,7 @@
   "outputDirectory": "frontend/dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "http://localhost:3000/api/$1" },
+    { "source": "/api/(.*)", "destination": "https://stenopetalous-unfrivolously-caridad.ngrok-free.dev/api/$1" },
     { "source": "/demo.html", "destination": "/demo.html" },
     { "source": "/demo-marie.html", "destination": "/demo-marie.html" },
     { "source": "/onboarding.html", "destination": "/onboarding.html" },

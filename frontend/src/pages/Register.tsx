@@ -1,18 +1,13 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { ArrowRight, ArrowLeft, Check, Mail, ChevronRight } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Mail } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
 import { useLang } from '../stores/langStore';
+import api from '../services/api';
 
-type Step = 'form' | 'activation' | 'plan';
-
-const plans = [
-  { key: 'starter', name: 'Starter', price: 199, setup: 699, calls: 200 },
-  { key: 'pro', name: 'Pro', price: 349, setup: 999, calls: 500, popular: true },
-  { key: 'enterprise', name: 'Enterprise', price: 499, setup: 1499, calls: 1000 },
-];
+type Step = 'form' | 'activation';
 
 export default function Register() {
   const [step, setStep] = useState<Step>('form');
@@ -21,11 +16,11 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('pro');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const { register } = useAuthStore();
-  const navigate = useNavigate();
   const { t } = useLang();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,8 +43,18 @@ export default function Register() {
     }
   };
 
-  const handlePlanContinue = () => {
-    navigate(`/admin`);
+  const handleResend = async () => {
+    setResending(true);
+    setResendSuccess(false);
+    try {
+      await api.post('/auth/resend-confirmation');
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 5000);
+    } catch {
+      // silently fail — user can try again
+    } finally {
+      setResending(false);
+    }
   };
 
   return (
@@ -162,7 +167,7 @@ export default function Register() {
           </>
         )}
 
-        {/* ═══ STEP 2: Activation Email ═══ */}
+        {/* ═══ STEP 2: Check Your Email ═══ */}
         {step === 'activation' && (
           <div className="text-center">
             <div className="w-20 h-20 rounded-full bg-[#6366f1]/10 flex items-center justify-center mx-auto mb-6">
@@ -178,76 +183,22 @@ export default function Register() {
               {t('register.activationText2')}
             </p>
 
-            <button
-              onClick={() => setStep('plan')}
-              className="inline-flex items-center justify-center gap-2 bg-[#6366f1] text-white text-base font-medium px-8 py-3.5 rounded-full hover:bg-[#4f46e5] transition-colors"
-            >
-              {t('register.continue')} <ArrowRight size={18} />
-            </button>
+            {resendSuccess && (
+              <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-xl text-sm mb-4">
+                {t('register.resendSuccess')}
+              </div>
+            )}
 
-            <p className="text-sm text-[#86868b] mt-4">
-              <button onClick={() => {}} className="text-[#6366f1] font-medium hover:underline">
-                {t('register.resend')}
+            <p className="text-sm text-[#86868b]">
+              <button
+                onClick={handleResend}
+                disabled={resending}
+                className="text-[#6366f1] font-medium hover:underline disabled:opacity-50"
+              >
+                {resending ? t('register.resending') : t('register.resend')}
               </button>
             </p>
           </div>
-        )}
-
-        {/* ═══ STEP 3: Plan Selection ═══ */}
-        {step === 'plan' && (
-          <>
-            <h1 className="text-3xl font-semibold tracking-tight mb-2">
-              {t('register.selectPlan')}
-            </h1>
-            <p className="text-[#86868b] mb-8">
-              {t('register.selectPlanSub')}
-            </p>
-
-            <div className="space-y-3 mb-8">
-              {plans.map(plan => (
-                <button
-                  key={plan.key}
-                  onClick={() => setSelectedPlan(plan.key)}
-                  className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all text-left ${
-                    selectedPlan === plan.key
-                      ? 'border-[#6366f1] bg-[#6366f1]/5'
-                      : 'border-[#d2d2d7] hover:border-[#86868b]'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                    selectedPlan === plan.key ? 'border-[#6366f1] bg-[#6366f1]' : 'border-[#d2d2d7]'
-                  }`}>
-                    {selectedPlan === plan.key && <Check size={12} className="text-white" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-semibold">{plan.name}</span>
-                      {plan.popular && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wider bg-[#6366f1] text-white px-2 py-0.5 rounded-full">
-                          {t('price.popular')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-[#86868b] mt-0.5">
-                      {plan.calls.toLocaleString()} {t('register.callsIncluded')}
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <span className="text-lg font-semibold">${plan.price}</span>
-                    <span className="text-sm text-[#86868b]">{t('register.mo')}</span>
-                    <p className="text-xs text-[#86868b]">+ ${plan.setup.toLocaleString()} {t('register.setupFee')}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={handlePlanContinue}
-              className="w-full inline-flex items-center justify-center gap-2 bg-[#6366f1] text-white text-base font-medium px-6 py-3.5 rounded-full hover:bg-[#4f46e5] transition-colors"
-            >
-              {t('register.continue')} <ChevronRight size={18} />
-            </button>
-          </>
         )}
       </div>
     </div>

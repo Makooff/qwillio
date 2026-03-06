@@ -13,6 +13,8 @@ import Settings from './pages/Settings';
 import ClientPortal from './pages/ClientPortal';
 import OnboardingPage from './pages/Onboarding';
 import Register from './pages/Register';
+import ConfirmEmail from './pages/ConfirmEmail';
+import SelfOnboard from './pages/SelfOnboard';
 import Costs from './pages/Costs';
 import Retention from './pages/Retention';
 import FollowUps from './pages/FollowUps';
@@ -30,6 +32,33 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) return <Navigate to="/login" />;
+
+  // If user hasn't completed onboarding, redirect to /onboard
+  if (!(user as any).onboardingCompleted) {
+    return <Navigate to="/onboard" />;
+  }
+
+  return <>{children}</>;
+}
+
+function OnboardRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" />;
+
+  // If already onboarded, go to admin
+  if ((user as any).onboardingCompleted) {
+    return <Navigate to="/admin" />;
+  }
+
   return <>{children}</>;
 }
 
@@ -44,7 +73,12 @@ function PublicOrDashboard() {
     );
   }
 
-  if (user) return <Navigate to="/admin" />;
+  if (user) {
+    if (!(user as any).onboardingCompleted) {
+      return <Navigate to="/onboard" />;
+    }
+    return <Navigate to="/admin" />;
+  }
   return <Landing />;
 }
 
@@ -62,12 +96,23 @@ export default function App() {
         <Route path="/" element={<PublicOrDashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/auth/confirm" element={<ConfirmEmail />} />
+
+        {/* Self-service onboarding (requires auth, not yet onboarded) */}
+        <Route
+          path="/onboard"
+          element={
+            <OnboardRoute>
+              <SelfOnboard />
+            </OnboardRoute>
+          }
+        />
 
         {/* Client-facing routes (token-protected, no JWT needed) */}
         <Route path="/portal" element={<ClientPortal />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
 
-        {/* Admin routes (JWT-protected) */}
+        {/* Admin routes (JWT-protected + onboarding completed) */}
         <Route
           path="/admin"
           element={

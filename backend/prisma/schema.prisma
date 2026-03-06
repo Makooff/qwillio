@@ -8,13 +8,19 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  email        String   @unique @db.VarChar(255)
-  passwordHash String   @map("password_hash") @db.VarChar(255)
-  name         String   @db.VarChar(255)
-  role         String   @default("user") @db.VarChar(50)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  id                  String   @id @default(uuid()) @db.Uuid
+  email               String   @unique @db.VarChar(255)
+  passwordHash        String   @map("password_hash") @db.VarChar(255)
+  name                String   @db.VarChar(255)
+  role                String   @default("user") @db.VarChar(50)
+  emailConfirmed      Boolean  @default(false) @map("email_confirmed")
+  confirmationToken   String?  @unique @map("confirmation_token") @db.VarChar(255)
+  onboardingCompleted Boolean  @default(false) @map("onboarding_completed")
+  businessName        String?  @map("business_name") @db.VarChar(500)
+  businessPhone       String?  @map("business_phone") @db.VarChar(50)
+  planType            String?  @map("plan_type") @db.VarChar(50)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
 
   prospects Prospect[]
   campaigns Campaign[]

@@ -208,6 +208,23 @@ const translations = {
   'onboard.done.text': { fr: "Merci d'avoir complété votre formulaire. Notre équipe configure maintenant votre agent Qwillio. Vous serez redirigé vers votre tableau de bord.", en: 'Thank you for completing the form. Our team is now configuring your Qwillio agent. You will be redirected to your dashboard.' },
   'onboard.done.agent': { fr: 'Votre agent vocal sera opérationnel sous 24h', en: 'Your voice agent will be live within 24h' },
 
+  // ── Register extras ──
+  'register.resendSuccess': { fr: 'Email renvoyé avec succès !', en: 'Email resent successfully!' },
+  'register.resending': { fr: 'Envoi en cours...', en: 'Sending...' },
+
+  // ── Self Onboarding ──
+  'selfOnboard.step1.title': { fr: 'Votre entreprise', en: 'Your business' },
+  'selfOnboard.step1.subtitle': { fr: 'Dites-nous en plus sur votre activité.', en: 'Tell us more about your business.' },
+  'selfOnboard.businessName': { fr: "Nom de l'entreprise", en: 'Business name' },
+  'selfOnboard.industry': { fr: 'Secteur', en: 'Industry' },
+  'selfOnboard.selectIndustry': { fr: 'Choisir un secteur...', en: 'Select industry...' },
+  'selfOnboard.website': { fr: 'Site web', en: 'Website' },
+  'selfOnboard.step2.title': { fr: 'Votre numéro', en: 'Your phone number' },
+  'selfOnboard.step2.subtitle': { fr: 'Le numéro sur lequel Qwillio prendra vos appels.', en: 'The number where Qwillio will answer your calls.' },
+  'selfOnboard.phone': { fr: 'Numéro de téléphone', en: 'Phone number' },
+  'selfOnboard.phoneHint': { fr: 'Vous pourrez configurer le transfert plus tard.', en: 'You can configure call forwarding later.' },
+  'selfOnboard.launch': { fr: 'Lancer mon agent', en: 'Launch my agent' },
+
   // ── Back link ──
   'back.site': { fr: 'Retour au site', en: 'Back to site' },
 } as const;

@@ -960,6 +960,53 @@ export class EmailService {
       return { success: false };
     }
   }
+  // ═══════════════════════════════════════════════════════════
+  // ACCOUNT CONFIRMATION — Sent on signup to verify email
+  // ═══════════════════════════════════════════════════════════
+  async sendConfirmationEmail(data: {
+    to: string;
+    name: string;
+    confirmUrl: string;
+  }): Promise<{ success: boolean; emailId?: string }> {
+    const firstName = data.name.split(' ')[0] || data.name;
+
+    const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f7f8;">
+<div style="max-width:520px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+  <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:30px;text-align:center;color:#fff;">
+    <h1 style="margin:0;font-size:24px;">Welcome to Qwillio!</h1>
+    <p style="margin:10px 0 0;opacity:0.9;font-size:14px;">Confirm your email to get started</p>
+  </div>
+  <div style="padding:30px;color:#333;">
+    <p style="font-size:16px;">Hi ${firstName},</p>
+    <p>Thanks for signing up for Qwillio! Please confirm your email address to activate your account and start your free trial.</p>
+    <div style="text-align:center;margin:30px 0;">
+      <a href="${data.confirmUrl}" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:16px 40px;text-decoration:none;border-radius:30px;font-weight:700;font-size:16px;">Confirm my email</a>
+    </div>
+    <p style="color:#666;font-size:14px;">Or copy and paste this link in your browser:</p>
+    <p style="word-break:break-all;color:#6366f1;font-size:13px;">${data.confirmUrl}</p>
+    <p style="color:#888;font-size:12px;margin-top:30px;border-top:1px solid #eee;padding-top:15px;">If you didn't create this account, you can safely ignore this email.</p>
+  </div>
+</div></body></html>`;
+
+    try {
+      const result = await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL,
+        to: data.to,
+        subject: 'Confirm your Qwillio account',
+        html,
+        replyTo: env.RESEND_REPLY_TO,
+        tags: [
+          { name: 'campaign', value: 'account_confirmation' },
+        ],
+      });
+
+      logger.info(`Account confirmation email sent to ${data.to} (ID: ${result.data?.id})`);
+      return { success: true, emailId: result.data?.id || undefined };
+    } catch (error) {
+      logger.error('Failed to send account confirmation email:', error);
+      return { success: false };
+    }
+  }
 }
 
 export const emailService = new EmailService();
