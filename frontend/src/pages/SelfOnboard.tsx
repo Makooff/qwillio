@@ -38,6 +38,8 @@ export default function SelfOnboard() {
       await api.post('/auth/onboard', {
         businessName,
         businessPhone: phone || null,
+        industry: industry || null,
+        website: website || null,
         planType: selectedPlan,
       });
       await checkAuth();

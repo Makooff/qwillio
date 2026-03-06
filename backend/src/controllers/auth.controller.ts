@@ -142,7 +142,6 @@ export class AuthController {
         where: { id: user.id },
         data: {
           emailConfirmed: true,
-          confirmationToken: null,
         },
       });
 
@@ -209,7 +208,7 @@ export class AuthController {
 
   async onboard(req: any, res: Response) {
     try {
-      const { businessName, businessPhone, planType } = req.body;
+      const { businessName, businessPhone, industry, website, planType } = req.body;
 
       if (!businessName || !planType) {
         return res.status(400).json({ error: 'Business name and plan are required' });
@@ -220,6 +219,8 @@ export class AuthController {
         data: {
           businessName,
           businessPhone: businessPhone || null,
+          industry: industry || null,
+          website: website || null,
           planType,
           onboardingCompleted: true,
         },

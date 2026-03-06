@@ -37,7 +37,7 @@ export default function Register() {
       await register(email, password, `${firstName} ${lastName}`);
       setStep('activation');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur lors de l\'inscription');
+      setError(err.response?.data?.error || t('register.errorFallback'));
     } finally {
       setLoading(false);
     }

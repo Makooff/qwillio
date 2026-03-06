@@ -18,6 +18,8 @@ model User {
   onboardingCompleted Boolean  @default(false) @map("onboarding_completed")
   businessName        String?  @map("business_name") @db.VarChar(500)
   businessPhone       String?  @map("business_phone") @db.VarChar(50)
+  industry            String?  @db.VarChar(100)
+  website             String?  @db.VarChar(500)
   planType            String?  @map("plan_type") @db.VarChar(50)
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")

@@ -269,10 +269,10 @@ export default function Landing() {
                 <h3 className="text-xl font-semibold mb-1">Starter</h3>
                 <p className="text-[#86868b] text-sm mb-6">{t('price.starter.sub')}</p>
                 <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$199</span>
+                  <span className="text-4xl font-semibold tracking-tight">$197</span>
                   <span className="text-[#86868b]">/mo</span>
                 </div>
-                <p className="text-sm text-[#86868b] mb-6">+ $699 {t('price.setup')}</p>
+                <p className="text-sm text-[#86868b] mb-6">+ $697 {t('price.setup')}</p>
                 <p className="text-sm font-medium text-[#6366f1] mb-6">200 {t('price.calls')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.starter.1'), t('pf.starter.2'), t('pf.starter.3'), t('pf.starter.4'), t('pf.starter.5')].map((f, i) => (
@@ -296,10 +296,10 @@ export default function Landing() {
                 <h3 className="text-xl font-semibold mb-1">Pro</h3>
                 <p className="text-white/50 text-sm mb-6">{t('price.pro.sub')}</p>
                 <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$349</span>
+                  <span className="text-4xl font-semibold tracking-tight">$347</span>
                   <span className="text-white/50">/mo</span>
                 </div>
-                <p className="text-sm text-white/50 mb-6">+ $999 {t('price.setup')}</p>
+                <p className="text-sm text-white/50 mb-6">+ $997 {t('price.setup')}</p>
                 <p className="text-sm font-medium text-[#6366f1] mb-6">500 {t('price.calls')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.pro.1'), t('pf.pro.2'), t('pf.pro.3'), t('pf.pro.4'), t('pf.pro.5'), t('pf.pro.6')].map((f, i) => (
@@ -320,10 +320,10 @@ export default function Landing() {
                 <h3 className="text-xl font-semibold mb-1">Enterprise</h3>
                 <p className="text-[#86868b] text-sm mb-6">{t('price.enterprise.sub')}</p>
                 <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$499</span>
+                  <span className="text-4xl font-semibold tracking-tight">$497</span>
                   <span className="text-[#86868b]">/mo</span>
                 </div>
-                <p className="text-sm text-[#86868b] mb-6">+ $1,499 {t('price.setup')}</p>
+                <p className="text-sm text-[#86868b] mb-6">+ $1,497 {t('price.setup')}</p>
                 <p className="text-sm font-medium text-[#6366f1] mb-6">1,000 {t('price.calls')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.enterprise.1'), t('pf.enterprise.2'), t('pf.enterprise.3'), t('pf.enterprise.4'), t('pf.enterprise.5'), t('pf.enterprise.6')].map((f, i) => (

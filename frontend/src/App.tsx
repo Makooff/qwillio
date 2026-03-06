@@ -34,7 +34,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!user) return <Navigate to="/login" />;
 
   // If user hasn't completed onboarding, redirect to /onboard
-  if (!(user as any).onboardingCompleted) {
+  if (!user.onboardingCompleted) {
     return <Navigate to="/onboard" />;
   }
 
@@ -55,7 +55,7 @@ function OnboardRoute({ children }: { children: React.ReactNode }) {
   if (!user) return <Navigate to="/login" />;
 
   // If already onboarded, go to admin
-  if ((user as any).onboardingCompleted) {
+  if (user.onboardingCompleted) {
     return <Navigate to="/admin" />;
   }
 
@@ -74,7 +74,7 @@ function PublicOrDashboard() {
   }
 
   if (user) {
-    if (!(user as any).onboardingCompleted) {
+    if (!user.onboardingCompleted) {
       return <Navigate to="/onboard" />;
     }
     return <Navigate to="/admin" />;

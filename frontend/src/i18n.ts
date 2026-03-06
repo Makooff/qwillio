@@ -225,6 +225,19 @@ const translations = {
   'selfOnboard.phoneHint': { fr: 'Vous pourrez configurer le transfert plus tard.', en: 'You can configure call forwarding later.' },
   'selfOnboard.launch': { fr: 'Lancer mon agent', en: 'Launch my agent' },
 
+  // ── Register error fallback ──
+  'register.errorFallback': { fr: 'Erreur lors de l\'inscription', en: 'Registration failed. Please try again.' },
+
+  // ── Confirm Email ──
+  'confirm.loading': { fr: 'Confirmation en cours...', en: 'Confirming your email...' },
+  'confirm.wait': { fr: 'Veuillez patienter.', en: 'Please wait a moment.' },
+  'confirm.success': { fr: 'Email confirmé !', en: 'Email confirmed!' },
+  'confirm.redirect': { fr: 'Redirection vers la configuration de votre compte...', en: 'Redirecting you to setup your account...' },
+  'confirm.failed': { fr: 'Confirmation échouée', en: 'Confirmation failed' },
+  'confirm.missingToken': { fr: 'Jeton de confirmation manquant.', en: 'Missing confirmation token.' },
+  'confirm.errorFallback': { fr: 'Impossible de confirmer l\'email.', en: 'Failed to confirm email.' },
+  'confirm.goLogin': { fr: 'Aller à la connexion', en: 'Go to login' },
+
   // ── Back link ──
   'back.site': { fr: 'Retour au site', en: 'Back to site' },
 } as const;
