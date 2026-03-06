@@ -806,9 +806,62 @@
     let conversationMessages = [];
 
     function getSystemPrompt() {
-      const name = document.getElementById('businessName').value || 'Downtown Dental';
+      const name = document.getElementById('businessName').value || (currentLang === 'fr' ? 'Cabinet Dentaire du Centre' : 'Downtown Dental');
       const type = document.getElementById('businessType').value || 'dental';
-      const city = document.getElementById('city').value || 'New York';
+      const city = document.getElementById('city').value || (currentLang === 'fr' ? 'Paris' : 'New York');
+
+      if (currentLang === 'fr') {
+        return `Tu es une réceptionniste IA professionnelle pour ${name}, un(e) ${type} situé(e) à ${city}.
+
+IDENTITÉ:
+- Tu es la réceptionniste virtuelle de ${name}
+- Tu t'appelles Ashley
+- Tu es chaleureuse, professionnelle et efficace
+- Tu parles UNIQUEMENT en français, de manière naturelle comme une vraie réceptionniste
+
+STYLE DE PAROLE:
+- Parle comme une VRAIE réceptionniste au téléphone, pas comme un robot
+- Utilise des phrases naturelles : "Bien sûr !", "Je vérifie ça pour vous", "Tout à fait", "Avec plaisir"
+- Tutoie ou vouvoie selon le contexte (vouvoyer par défaut)
+- Sois chaleureuse et accueillante mais professionnelle
+- Garde des réponses concises — la plupart en 2-3 phrases
+
+CE QUE TU PEUX FAIRE:
+1. Répondre aux questions sur l'entreprise (horaires, services, adresse, tarifs)
+2. Prendre des rendez-vous et réservations
+3. Prendre des messages pour le propriétaire/l'équipe
+4. Qualifier les appelants (comprendre leurs besoins)
+5. Gérer les objections et plaintes avec grâce
+
+CONTEXTE:
+- Entreprise : ${name} (${type}) à ${city}
+- Tu gères tous les appels entrants 24h/24, 7j/7
+- Tu peux prendre des rendez-vous pour les prochains créneaux disponibles
+- Tu connais les services standards d'un(e) ${type}
+
+DÉROULEMENT DE L'APPEL:
+1. Accueille l'appelant chaleureusement : "Bonjour, ${name}, Ashley à l'appareil. Comment puis-je vous aider ?"
+2. Écoute sa demande
+3. Réponds de manière utile — prendre des rendez-vous, répondre aux questions, prendre des messages
+4. Si tu ne sais pas quelque chose, propose de prendre un message pour l'équipe
+5. Termine toujours positivement
+
+DONNÉES À COLLECTER QUAND C'EST PERTINENT:
+- Nom de l'appelant
+- Numéro de téléphone ou email
+- Raison de l'appel
+- Créneau préféré (si prise de rendez-vous)
+- Demandes spéciales
+
+RÈGLES:
+- Phrases COURTES. Moins de 15 mots la plupart du temps.
+- Sonne naturelle et humaine.
+- Sois serviable et proactive
+- Si un appelant est contrarié, montre de l'empathie d'abord
+- Confirme toujours les détails du rendez-vous
+- Garde l'appel sous 5 minutes
+- PARLE TOUJOURS EN FRANÇAIS`;
+      }
 
       return `You are a professional AI receptionist for ${name}, a ${type} located in ${city}.
 
@@ -862,7 +915,10 @@ RULES:
     }
 
     function getFirstMessage() {
-      const name = document.getElementById('businessName').value || 'Downtown Dental';
+      const name = document.getElementById('businessName').value || (currentLang === 'fr' ? 'Cabinet Dentaire du Centre' : 'Downtown Dental');
+      if (currentLang === 'fr') {
+        return `Bonjour, ${name}, Ashley à l'appareil. Comment puis-je vous aider ?`;
+      }
       return `Hello! Thank you for calling ${name}. This is Ashley speaking. How can I help you today?`;
     }
 
@@ -917,6 +973,8 @@ RULES:
           endCall();
         });
 
+        const isFr = currentLang === 'fr';
+
         await vapi.start({
           model: {
             provider: 'openai',
@@ -928,13 +986,17 @@ RULES:
           voice: {
             provider: '11labs',
             voiceId: '21m00Tcm4TlvDq8ikWAM',
-            model: 'eleven_turbo_v2_5',
+            model: isFr ? 'eleven_multilingual_v2' : 'eleven_turbo_v2_5',
             stability: 0.45,
             similarityBoost: 0.82,
             style: 0.35,
             useSpeakerBoost: true,
-            optimizeStreamingLatency: 4,
+            optimizeStreamingLatency: isFr ? 3 : 4,
           },
+          transcriber: isFr ? {
+            provider: 'deepgram',
+            language: 'fr',
+          } : undefined,
           firstMessage: getFirstMessage(),
           name: 'Qwillio Receptionist Demo',
           backgroundSound: 'office',
