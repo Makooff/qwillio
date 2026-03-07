@@ -31,6 +31,11 @@ export class AuthController {
         expiresIn: env.JWT_REFRESH_EXPIRES_IN,
       });
 
+      // Look up linked Client for client-role users
+      const client = user.role === 'client'
+        ? await prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
+        : null;
+
       res.json({
         token,
         refreshToken,
@@ -41,6 +46,7 @@ export class AuthController {
           role: user.role,
           emailConfirmed: user.emailConfirmed,
           onboardingCompleted: user.onboardingCompleted,
+          clientId: client?.id || null,
         },
       });
     } catch (error: any) {
@@ -65,7 +71,7 @@ export class AuthController {
           email,
           passwordHash,
           name,
-          role: 'admin',
+          role: 'client',
           confirmationToken,
           emailConfirmed: false,
           onboardingCompleted: false,
@@ -214,6 +220,12 @@ export class AuthController {
         return res.status(400).json({ error: 'Business name and plan are required' });
       }
 
+      const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number }> = {
+        starter: { setupFee: 697, monthlyFee: 197, callsQuota: 200 },
+        pro: { setupFee: 997, monthlyFee: 347, callsQuota: 500 },
+        enterprise: { setupFee: 1497, monthlyFee: 497, callsQuota: 1000 },
+      };
+
       const user = await prisma.user.update({
         where: { id: req.userId },
         data: {
@@ -226,6 +238,40 @@ export class AuthController {
         },
       });
 
+      // Create a Client record for client-role users
+      let clientId: string | null = null;
+      if (user.role === 'client') {
+        const dashboardToken = crypto.randomBytes(32).toString('hex');
+        const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 30);
+
+        const client = await prisma.client.create({
+          data: {
+            userId: user.id,
+            businessName,
+            businessType: industry || 'other',
+            contactName: user.name,
+            contactEmail: user.email,
+            contactPhone: businessPhone || null,
+            country: 'US',
+            planType,
+            setupFee: pricing.setupFee,
+            monthlyFee: pricing.monthlyFee,
+            currency: 'USD',
+            dashboardToken,
+            onboardingStatus: 'completed',
+            subscriptionStatus: 'active',
+            isTrial: true,
+            trialStartDate: new Date(),
+            trialEndDate: trialEnd,
+            monthlyCallsQuota: pricing.callsQuota,
+          },
+        });
+        clientId = client.id;
+        logger.info(`Client record created for ${user.email} — clientId: ${client.id}`);
+      }
+
       logger.info(`Onboarding completed for user ${user.email} — plan: ${planType}`);
 
       res.json({
@@ -237,6 +283,7 @@ export class AuthController {
           role: user.role,
           emailConfirmed: user.emailConfirmed,
           onboardingCompleted: true,
+          clientId,
         },
       });
     } catch (error: any) {
@@ -256,11 +303,13 @@ export class AuthController {
           createdAt: true,
           emailConfirmed: true,
           onboardingCompleted: true,
+          client: { select: { id: true } },
         },
       });
 
       if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
-      res.json(user);
+      const { client, ...rest } = user;
+      res.json({ ...rest, clientId: client?.id || null });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

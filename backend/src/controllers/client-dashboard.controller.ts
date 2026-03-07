@@ -70,6 +70,68 @@ export class ClientDashboardController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  // ═══ JWT-protected endpoints (use req.clientId from clientMiddleware) ═══
+
+  async getMyOverview(req: any, res: Response) {
+    try {
+      const overview = await clientDashboardService.getClientOverview(req.clientId);
+      res.json(overview);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getMyCalls(req: any, res: Response) {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const filters = {
+        status: req.query.status as string | undefined,
+        sentiment: req.query.sentiment as string | undefined,
+        isLead: req.query.isLead === 'true' ? true : req.query.isLead === 'false' ? false : undefined,
+        startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+        endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
+      };
+      const result = await clientDashboardService.getClientCalls(req.clientId, page, limit, filters);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getMyBookings(req: any, res: Response) {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const upcoming = req.query.upcoming !== 'false';
+      const result = await clientDashboardService.getClientBookings(req.clientId, page, limit, upcoming);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getMyLeads(req: any, res: Response) {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await clientDashboardService.getClientLeads(req.clientId, page, limit);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getMyAnalytics(req: any, res: Response) {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const result = await clientDashboardService.getClientAnalytics(req.clientId, days);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }
 
 export const clientDashboardController = new ClientDashboardController();

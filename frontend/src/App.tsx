@@ -15,69 +15,56 @@ import OnboardingPage from './pages/Onboarding';
 import Register from './pages/Register';
 import ConfirmEmail from './pages/ConfirmEmail';
 import SelfOnboard from './pages/SelfOnboard';
+import ClientDashboardJWT from './pages/ClientDashboardJWT';
 import Costs from './pages/Costs';
 import Retention from './pages/Retention';
 import FollowUps from './pages/FollowUps';
 import PhoneValidation from './pages/PhoneValidation';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function Spinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+    </div>
+  );
+}
+
+function homeRoute(user: { role: string }) {
+  return user.role === 'admin' ? '/admin' : '/dashboard';
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
-      </div>
-    );
-  }
-
+  if (isLoading) return <Spinner />;
   if (!user) return <Navigate to="/login" />;
+  if (!user.onboardingCompleted) return <Navigate to="/onboard" />;
+  if (user.role !== 'admin') return <Navigate to="/dashboard" />;
+  return <>{children}</>;
+}
 
-  // If user hasn't completed onboarding, redirect to /onboard
-  if (!user.onboardingCompleted) {
-    return <Navigate to="/onboard" />;
-  }
-
+function ClientRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuthStore();
+  if (isLoading) return <Spinner />;
+  if (!user) return <Navigate to="/login" />;
+  if (!user.onboardingCompleted) return <Navigate to="/onboard" />;
+  if (user.role !== 'client') return <Navigate to="/admin" />;
   return <>{children}</>;
 }
 
 function OnboardRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
-      </div>
-    );
-  }
-
+  if (isLoading) return <Spinner />;
   if (!user) return <Navigate to="/login" />;
-
-  // If already onboarded, go to admin
-  if (user.onboardingCompleted) {
-    return <Navigate to="/admin" />;
-  }
-
+  if (user.onboardingCompleted) return <Navigate to={homeRoute(user)} />;
   return <>{children}</>;
 }
 
 function PublicOrDashboard() {
   const { user, isLoading } = useAuthStore();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
-      </div>
-    );
-  }
-
+  if (isLoading) return <Spinner />;
   if (user) {
-    if (!user.onboardingCompleted) {
-      return <Navigate to="/onboard" />;
-    }
-    return <Navigate to="/admin" />;
+    if (!user.onboardingCompleted) return <Navigate to="/onboard" />;
+    return <Navigate to={homeRoute(user)} />;
   }
   return <Landing />;
 }
@@ -108,17 +95,27 @@ export default function App() {
           }
         />
 
+        {/* Client dashboard (JWT-protected, client role) */}
+        <Route
+          path="/dashboard"
+          element={
+            <ClientRoute>
+              <ClientDashboardJWT />
+            </ClientRoute>
+          }
+        />
+
         {/* Client-facing routes (token-protected, no JWT needed) */}
         <Route path="/portal" element={<ClientPortal />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
 
-        {/* Admin routes (JWT-protected + onboarding completed) */}
+        {/* Admin routes (JWT-protected, admin role) */}
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <Layout />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         >
           <Route index element={<Dashboard />} />

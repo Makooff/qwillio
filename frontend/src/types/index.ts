@@ -5,6 +5,7 @@ export interface User {
   role: string;
   emailConfirmed?: boolean;
   onboardingCompleted?: boolean;
+  clientId?: string;
 }
 
 export interface Prospect {

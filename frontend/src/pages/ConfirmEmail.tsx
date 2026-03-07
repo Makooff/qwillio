@@ -32,12 +32,12 @@ export default function ConfirmEmail() {
         await checkAuth();
         setStatus('success');
 
-        // Redirect to onboarding after 2s
+        // Redirect based on role after 2s
         setTimeout(() => {
-          if (user?.onboardingCompleted) {
-            navigate('/admin');
-          } else {
+          if (!user?.onboardingCompleted) {
             navigate('/onboard');
+          } else {
+            navigate(user?.role === 'admin' ? '/admin' : '/dashboard');
           }
         }, 2000);
       })

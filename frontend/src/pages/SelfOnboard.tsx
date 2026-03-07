@@ -43,7 +43,8 @@ export default function SelfOnboard() {
         planType: selectedPlan,
       });
       await checkAuth();
-      navigate('/admin');
+      const { user: u } = useAuthStore.getState();
+      navigate(u?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Something went wrong.');
     } finally {

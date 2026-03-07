@@ -22,7 +22,8 @@ export default function Login() {
 
     try {
       await login(email, password);
-      navigate('/admin');
+      const { user } = useAuthStore.getState();
+      navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erreur de connexion');
     } finally {

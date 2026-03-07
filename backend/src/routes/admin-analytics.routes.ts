@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 import { adminAnalyticsService } from '../services/admin-analytics.service';
 
 const router = Router();
 
 router.use(authMiddleware);
+router.use(adminMiddleware);
 
 // GET /api/admin-analytics/costs?days=30
 router.get('/costs', async (req: Request, res: Response) => {

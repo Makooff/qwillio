@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { quotesController } from '../controllers/quotes.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 
 router.use(authMiddleware);
+router.use(adminMiddleware);
 
 router.get('/', (req, res) => quotesController.list(req, res));
 router.get('/:id', (req, res) => quotesController.getById(req, res));

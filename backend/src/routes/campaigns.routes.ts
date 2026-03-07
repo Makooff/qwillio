@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { campaignsController } from '../controllers/campaigns.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 
 router.use(authMiddleware);
+router.use(adminMiddleware);
 
 router.get('/', (req, res) => campaignsController.list(req, res));
 router.post('/', (req, res) => campaignsController.create(req, res));

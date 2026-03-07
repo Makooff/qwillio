@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { botController } from '../controllers/bot.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 
 router.use(authMiddleware);
+router.use(adminMiddleware);
 
 // Bot loop control
 router.post('/start', (req, res) => botController.start(req, res));
