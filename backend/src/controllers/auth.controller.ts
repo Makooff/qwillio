@@ -274,8 +274,14 @@ export class AuthController {
 
       logger.info(`Onboarding completed for user ${user.email} — plan: ${planType}`);
 
+      // Issue a fresh JWT with the correct role from DB
+      const freshToken = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
+        expiresIn: env.JWT_EXPIRES_IN,
+      });
+
       res.json({
         message: 'Onboarding completed',
+        token: freshToken,
         user: {
           id: user.id,
           email: user.email,
@@ -308,8 +314,12 @@ export class AuthController {
       });
 
       if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      // Return a fresh JWT so stale tokens (wrong role) get auto-corrected
+      const freshToken = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
+        expiresIn: env.JWT_EXPIRES_IN,
+      });
       const { client, ...rest } = user;
-      res.json({ ...rest, clientId: client?.id || null });
+      res.json({ ...rest, clientId: client?.id || null, token: freshToken });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

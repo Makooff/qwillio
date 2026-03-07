@@ -35,13 +35,17 @@ export default function SelfOnboard() {
     setLoading(true);
     setError('');
     try {
-      await api.post('/auth/onboard', {
+      const { data } = await api.post('/auth/onboard', {
         businessName,
         businessPhone: phone || null,
         industry: industry || null,
         website: website || null,
         planType: selectedPlan,
       });
+      // Save the fresh JWT (has correct role from DB)
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
       await checkAuth();
       const { user: u } = useAuthStore.getState();
       navigate(u?.role === 'admin' ? '/admin' : '/dashboard');

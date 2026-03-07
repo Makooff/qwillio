@@ -42,7 +42,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     try {
       const { data } = await api.get('/auth/me');
-      set({ user: data, token, isLoading: false });
+      // Save fresh JWT if returned (auto-corrects stale role in token)
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+      set({ user: data, token: data.token || token, isLoading: false });
     } catch {
       localStorage.removeItem('token');
       set({ user: null, token: null, isLoading: false });
