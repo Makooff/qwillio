@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import {
   ArrowRight, ArrowLeft, Check, ChevronRight,
-  Building2, Phone, CreditCard, Loader2, Sparkles
+  Building2, Phone, CreditCard, Loader2, Sparkles, LogOut
 } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
@@ -20,7 +20,7 @@ const plans = [
 
 export default function SelfOnboard() {
   const navigate = useNavigate();
-  const { user, checkAuth } = useAuthStore();
+  const { user, checkAuth, logout } = useAuthStore();
   const { t } = useLang();
   const [step, setStep] = useState<Step>(1);
   const [businessName, setBusinessName] = useState('');
@@ -67,6 +67,13 @@ export default function SelfOnboard() {
           <div className="flex items-center gap-3">
             <span className="text-sm text-[#86868b]">{t('onboard.step')} {step} / 3</span>
             <LangToggle />
+            <button
+              onClick={() => { logout(); navigate('/'); }}
+              className="inline-flex items-center gap-1.5 text-sm text-[#86868b] hover:text-red-500 transition-colors"
+              title="Logout"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
         <div className="h-1 bg-[#d2d2d7]/30">
