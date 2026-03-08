@@ -54,7 +54,20 @@ export default function ClientAnalytics() {
     );
   }
 
-  if (!data) return null;
+  if (!data) return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
+        <BarChart3 size={28} className="text-red-400" />
+      </div>
+      <h2 className="text-lg font-semibold mb-1">Unable to load analytics</h2>
+      <p className="text-sm text-[#86868b] mb-4">Please check your connection and try again.</p>
+      <button onClick={() => fetchData()}
+        className="px-5 py-2.5 text-sm font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] transition-colors"
+      >
+        Retry
+      </button>
+    </div>
+  );
 
   const summary = data.summary || {};
   const daily = data.daily || [];

@@ -81,7 +81,20 @@ export default function ClientOverview() {
     );
   }
 
-  if (!data) return null;
+  if (!data) return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
+        <AlertCircle size={28} className="text-red-400" />
+      </div>
+      <h2 className="text-lg font-semibold mb-1">Unable to load dashboard</h2>
+      <p className="text-sm text-[#86868b] mb-4">Please check your connection and try again.</p>
+      <button onClick={() => { setLoading(true); fetchAll(); }}
+        className="px-5 py-2.5 text-sm font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] transition-colors"
+      >
+        Retry
+      </button>
+    </div>
+  );
 
   const ov = data;
   const client = ov.client || {};
