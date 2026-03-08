@@ -15,7 +15,13 @@ import OnboardingPage from './pages/Onboarding';
 import Register from './pages/Register';
 import ConfirmEmail from './pages/ConfirmEmail';
 import SelfOnboard from './pages/SelfOnboard';
-import ClientDashboardJWT from './pages/ClientDashboardJWT';
+import ClientLayout from './components/layout/ClientLayout';
+import ClientOverview from './pages/client/ClientOverview';
+import ClientCalls from './pages/client/ClientCalls';
+import ClientLeads from './pages/client/ClientLeads';
+import ClientReceptionist from './pages/client/ClientReceptionist';
+import ClientAccount from './pages/client/ClientAccount';
+import ClientSupport from './pages/client/ClientSupport';
 import Costs from './pages/Costs';
 import Retention from './pages/Retention';
 import FollowUps from './pages/FollowUps';
@@ -95,15 +101,22 @@ export default function App() {
           }
         />
 
-        {/* Client dashboard (JWT-protected, client role) */}
+        {/* Client dashboard (JWT-protected, client role, nested layout) */}
         <Route
           path="/dashboard"
           element={
             <ClientRoute>
-              <ClientDashboardJWT />
+              <ClientLayout />
             </ClientRoute>
           }
-        />
+        >
+          <Route index element={<ClientOverview />} />
+          <Route path="calls" element={<ClientCalls />} />
+          <Route path="leads" element={<ClientLeads />} />
+          <Route path="receptionist" element={<ClientReceptionist />} />
+          <Route path="account" element={<ClientAccount />} />
+          <Route path="support" element={<ClientSupport />} />
+        </Route>
 
         {/* Client-facing routes (token-protected, no JWT needed) */}
         <Route path="/portal" element={<ClientPortal />} />
