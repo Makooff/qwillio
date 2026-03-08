@@ -245,38 +245,44 @@ export class AuthController {
         },
       });
 
-      // Create a Client record for client-role users
+      // Create or reuse Client record (idempotent — safe if user retries onboarding)
       let clientId: string | null = null;
       if (user.role === 'client') {
-        const dashboardToken = crypto.randomBytes(32).toString('hex');
-        const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
-        const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 30);
+        const existing = await prisma.client.findUnique({ where: { userId: user.id } });
+        if (existing) {
+          clientId = existing.id;
+          logger.info(`Client record already exists for ${user.email} — reusing clientId: ${existing.id}`);
+        } else {
+          const dashboardToken = crypto.randomBytes(32).toString('hex');
+          const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
+          const trialEnd = new Date();
+          trialEnd.setDate(trialEnd.getDate() + 30);
 
-        const client = await prisma.client.create({
-          data: {
-            userId: user.id,
-            businessName,
-            businessType: industry || 'other',
-            contactName: user.name,
-            contactEmail: user.email,
-            contactPhone: businessPhone || null,
-            country: 'US',
-            planType,
-            setupFee: pricing.setupFee,
-            monthlyFee: pricing.monthlyFee,
-            currency: 'USD',
-            dashboardToken,
-            onboardingStatus: 'completed',
-            subscriptionStatus: 'active',
-            isTrial: true,
-            trialStartDate: new Date(),
-            trialEndDate: trialEnd,
-            monthlyCallsQuota: pricing.callsQuota,
-          },
-        });
-        clientId = client.id;
-        logger.info(`Client record created for ${user.email} — clientId: ${client.id}`);
+          const client = await prisma.client.create({
+            data: {
+              userId: user.id,
+              businessName,
+              businessType: industry || 'other',
+              contactName: user.name,
+              contactEmail: user.email,
+              contactPhone: businessPhone || null,
+              country: 'US',
+              planType,
+              setupFee: pricing.setupFee,
+              monthlyFee: pricing.monthlyFee,
+              currency: 'USD',
+              dashboardToken,
+              onboardingStatus: 'completed',
+              subscriptionStatus: 'active',
+              isTrial: true,
+              trialStartDate: new Date(),
+              trialEndDate: trialEnd,
+              monthlyCallsQuota: pricing.callsQuota,
+            },
+          });
+          clientId = client.id;
+          logger.info(`Client record created for ${user.email} — clientId: ${client.id}`);
+        }
       }
 
       logger.info(`Onboarding completed for user ${user.email} — plan: ${planType}`);

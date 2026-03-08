@@ -42,13 +42,14 @@ export default function SelfOnboard() {
         website: website || null,
         planType: selectedPlan,
       });
-      // Save the fresh JWT (has correct role from DB)
+      // Save the fresh JWT and update store directly (no extra /auth/me round-trip)
       if (data.token) {
         localStorage.setItem('token', data.token);
       }
-      await checkAuth();
-      const { user: u } = useAuthStore.getState();
-      navigate(u?.role === 'admin' ? '/admin' : '/dashboard');
+      if (data.user) {
+        useAuthStore.setState({ user: data.user, token: data.token, isLoading: false });
+      }
+      navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err: any) {
       const errData = err.response?.data?.error;
       setError(typeof errData === 'string' ? errData : (errData?.message || err.message || 'Something went wrong.'));
