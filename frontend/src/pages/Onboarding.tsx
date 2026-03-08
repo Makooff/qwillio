@@ -56,7 +56,7 @@ export default function OnboardingPage() {
         setSections(d.sections || []);
         setFormData(d.existingData || {});
       })
-      .catch(err => setError(err.response?.data?.error || t('onboard.error.load')))
+      .catch(err => { const errData = err.response?.data?.error; setError(typeof errData === 'string' ? errData : (errData?.message || err.message || t('onboard.error.load'))); })
       .finally(() => setLoading(false));
   }, [clientId, token]);
 
@@ -96,7 +96,8 @@ export default function OnboardingPage() {
         navigate(`/portal?id=${clientId}&token=${token}`);
       }, 4000);
     } catch (err: any) {
-      setError(err.response?.data?.error || t('onboard.error.submit'));
+      const errData = err.response?.data?.error;
+      setError(typeof errData === 'string' ? errData : (errData?.message || err.message || t('onboard.error.submit')));
     } finally {
       setSubmitting(false);
     }

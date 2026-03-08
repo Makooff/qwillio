@@ -60,7 +60,8 @@ export default function ClientDashboardJWT() {
         analytics: analytics.data,
       });
     } catch (err: any) {
-      setError(err.response?.data?.error || t('portal.error.load'));
+      const errData = err.response?.data?.error;
+      setError(typeof errData === 'string' ? errData : (errData?.message || err.message || t('portal.error.load')));
     } finally {
       setLoading(false);
     }

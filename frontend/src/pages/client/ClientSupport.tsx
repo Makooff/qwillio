@@ -80,7 +80,8 @@ export default function ClientSupport() {
       setSubject('');
       setMessage('');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to send message');
+      const errData = err.response?.data?.error;
+      setError(typeof errData === 'string' ? errData : (errData?.message || err.message || 'Failed to send message'));
     } finally {
       setSending(false);
     }

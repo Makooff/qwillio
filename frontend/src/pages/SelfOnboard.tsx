@@ -50,7 +50,8 @@ export default function SelfOnboard() {
       const { user: u } = useAuthStore.getState();
       navigate(u?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Something went wrong.');
+      const errData = err.response?.data?.error;
+      setError(typeof errData === 'string' ? errData : (errData?.message || err.message || 'Something went wrong.'));
     } finally {
       setLoading(false);
     }

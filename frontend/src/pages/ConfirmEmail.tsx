@@ -43,7 +43,8 @@ export default function ConfirmEmail() {
       })
       .catch((err) => {
         setStatus('error');
-        setError(err.response?.data?.error || t('confirm.errorFallback'));
+        const errData = err.response?.data?.error;
+        setError(typeof errData === 'string' ? errData : (errData?.message || err.message || t('confirm.errorFallback')));
       });
   }, [token]);
 

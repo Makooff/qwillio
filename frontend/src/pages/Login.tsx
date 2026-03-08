@@ -25,7 +25,8 @@ export default function Login() {
       const { user } = useAuthStore.getState();
       navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur de connexion');
+      const errData = err.response?.data?.error;
+      setError(typeof errData === 'string' ? errData : (errData?.message || err.message || 'Erreur de connexion'));
     } finally {
       setLoading(false);
     }

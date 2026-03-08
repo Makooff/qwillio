@@ -37,7 +37,8 @@ export default function Register() {
       await register(email, password, `${firstName} ${lastName}`);
       setStep('activation');
     } catch (err: any) {
-      setError(err.response?.data?.error || t('register.errorFallback'));
+      const errData = err.response?.data?.error;
+      setError(typeof errData === 'string' ? errData : (errData?.message || err.message || t('register.errorFallback')));
     } finally {
       setLoading(false);
     }
