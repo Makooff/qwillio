@@ -22,6 +22,8 @@ import ClientLeads from './pages/client/ClientLeads';
 import ClientReceptionist from './pages/client/ClientReceptionist';
 import ClientAccount from './pages/client/ClientAccount';
 import ClientSupport from './pages/client/ClientSupport';
+import ClientAnalytics from './pages/client/ClientAnalytics';
+import ClientBilling from './pages/client/ClientBilling';
 import Costs from './pages/Costs';
 import Retention from './pages/Retention';
 import FollowUps from './pages/FollowUps';
@@ -114,6 +116,8 @@ export default function App() {
           <Route path="calls" element={<ClientCalls />} />
           <Route path="leads" element={<ClientLeads />} />
           <Route path="receptionist" element={<ClientReceptionist />} />
+          <Route path="analytics" element={<ClientAnalytics />} />
+          <Route path="billing" element={<ClientBilling />} />
           <Route path="account" element={<ClientAccount />} />
           <Route path="support" element={<ClientSupport />} />
         </Route>

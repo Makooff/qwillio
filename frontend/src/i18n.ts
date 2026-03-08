@@ -250,6 +250,8 @@ const translations = {
   'cdash.nav.calls': { fr: 'Appels', en: 'Calls' },
   'cdash.nav.leads': { fr: 'Prospects', en: 'Leads' },
   'cdash.nav.receptionist': { fr: 'Réceptionniste', en: 'Receptionist' },
+  'cdash.nav.analytics': { fr: 'Analytique', en: 'Analytics' },
+  'cdash.nav.billing': { fr: 'Facturation', en: 'Billing' },
   'cdash.nav.account': { fr: 'Mon compte', en: 'Account' },
   'cdash.nav.support': { fr: 'Support', en: 'Support' },
 

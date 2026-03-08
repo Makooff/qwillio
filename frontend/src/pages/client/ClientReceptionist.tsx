@@ -1,7 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Bot, Phone, PhoneForwarded, Clock, FileText, Pause, Play, Settings } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  Bot, Phone, PhoneForwarded, Clock, FileText, Pause, Play, Settings,
+  Volume2, Check, AlertCircle, Shield, Mic, Globe, Zap
+} from 'lucide-react';
 import { useLang } from '../../stores/langStore';
 import api from '../../services/api';
+
+const VOICES = [
+  { id: 'sarah', name: 'Sarah', lang: 'EN', desc: 'Professional, warm' },
+  { id: 'marie', name: 'Marie', lang: 'FR', desc: 'Douce, professionnelle' },
+  { id: 'james', name: 'James', lang: 'EN', desc: 'Confident, clear' },
+  { id: 'sophie', name: 'Sophie', lang: 'FR/EN', desc: 'Bilingual, friendly' },
+];
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function ClientReceptionist() {
   const { t } = useLang();
@@ -11,6 +24,11 @@ export default function ClientReceptionist() {
   const [saved, setSaved] = useState(false);
   const [transferNumber, setTransferNumber] = useState('');
   const [toggling, setToggling] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState('sarah');
+  const [businessHours, setBusinessHours] = useState<Record<string, { enabled: boolean; from: string; to: string }>>(
+    Object.fromEntries(DAYS.map(d => [d, { enabled: d !== 'Saturday' && d !== 'Sunday', from: '09:00', to: '17:00' }]))
+  );
+  const [alwaysOn, setAlwaysOn] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,10 +55,7 @@ export default function ClientReceptionist() {
       await api.post(`/my-dashboard/${action}`);
       setData((prev: any) => ({
         ...prev,
-        client: {
-          ...prev.client,
-          subscriptionStatus: action === 'pause' ? 'paused' : 'active',
-        },
+        client: { ...prev.client, subscriptionStatus: action === 'pause' ? 'paused' : 'active' },
       }));
     } catch (err) {
       console.error('Toggle error', err);
@@ -75,140 +90,232 @@ export default function ClientReceptionist() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight mb-6">{t('cdash.recep.title')}</h1>
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">AI Receptionist</h1>
+        <p className="text-sm text-[#86868b]">Configure how your AI handles incoming calls</p>
+      </motion.div>
+
+      {/* Status card */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        className={`rounded-2xl border p-6 mb-6 ${
+          isActive
+            ? 'border-emerald-200 bg-gradient-to-r from-emerald-50/50 to-white'
+            : 'border-amber-200 bg-gradient-to-r from-amber-50/50 to-white'
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isActive ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+              <Bot size={28} className={isActive ? 'text-emerald-600' : 'text-amber-600'} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                <h3 className="text-lg font-bold">{isActive ? 'Active & answering' : 'Paused'}</h3>
+              </div>
+              <p className="text-sm text-[#86868b]">
+                {client.vapiPhoneNumber ? `Answering on ${client.vapiPhoneNumber}` : 'No phone number assigned'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleToggle}
+            disabled={toggling}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+              isActive
+                ? 'text-amber-700 bg-amber-100 hover:bg-amber-200 border border-amber-200'
+                : 'text-emerald-700 bg-emerald-100 hover:bg-emerald-200 border border-emerald-200'
+            }`}
+          >
+            {toggling ? '...' : isActive ? <><Pause size={15} /> Pause</> : <><Play size={15} /> Resume</>}
+          </button>
+        </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Status card */}
-        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-[#f5f5f7] p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isActive ? 'bg-emerald-50' : 'bg-amber-50'}`}>
-                <Bot size={24} className={isActive ? 'text-emerald-600' : 'text-amber-600'} />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold">{t('cdash.recep.status')}</h3>
-                <span className={`text-sm font-medium ${isActive ? 'text-emerald-600' : 'text-amber-600'}`}>
-                  {isActive ? t('cdash.recep.active') : t('cdash.recep.paused')}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={handleToggle}
-              disabled={toggling}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-                isActive
-                  ? 'text-amber-600 bg-amber-50 hover:bg-amber-100'
-                  : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
-              }`}
-            >
-              {isActive ? <><Pause size={14} /> {t('cdash.recep.pause')}</> : <><Play size={14} /> {t('cdash.recep.resume')}</>}
-            </button>
-          </div>
-
+        {/* ── Transfer & Phone ── */}
+        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6">
+          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+            <PhoneForwarded size={16} className="text-[#6366f1]" />
+            Transfer settings
+          </h3>
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Phone size={16} className="text-[#86868b]" />
-              <div>
-                <span className="text-xs text-[#86868b] block">{t('cdash.recep.phone')}</span>
-                <span className="text-sm font-medium">{client.vapiPhoneNumber || '-'}</span>
+            <div>
+              <label className="text-xs text-[#86868b] mb-1 block">AI phone number</label>
+              <div className="px-4 py-2.5 text-sm rounded-xl bg-[#f5f5f7] border border-[#d2d2d7]/60 text-[#1d1d1f]">
+                {client.vapiPhoneNumber || 'Not assigned'}
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <PhoneForwarded size={16} className="text-[#86868b]" />
-              <div>
-                <span className="text-xs text-[#86868b] block">{t('cdash.recep.transfer')}</span>
-                <span className="text-sm font-medium">{transferNumber || t('cdash.recep.noTransfer')}</span>
-              </div>
+            <div>
+              <label className="text-xs text-[#86868b] mb-1 block">Transfer number (human backup)</label>
+              <input
+                type="tel"
+                value={transferNumber}
+                onChange={e => setTransferNumber(e.target.value)}
+                placeholder="+1 555 000 0000"
+                className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 transition-all"
+              />
+              <p className="text-[11px] text-[#86868b] mt-1">When AI can't help, it transfers the caller to this number</p>
             </div>
-            <div className="flex items-center gap-3">
-              <Clock size={16} className="text-[#86868b]" />
-              <div>
-                <span className="text-xs text-[#86868b] block">{t('cdash.recep.businessHours')}</span>
-                <span className="text-sm font-medium">{t('cdash.recep.always')}</span>
+            {!transferNumber && (
+              <div className="flex items-center gap-2 text-amber-600 text-xs bg-amber-50 rounded-xl px-3 py-2">
+                <AlertCircle size={14} />
+                <span>No transfer number — calls needing human help will end</span>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Quota usage */}
-        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-[#f5f5f7] p-6">
+        {/* ── Quota usage ── */}
+        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6">
           <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
             <Phone size={16} className="text-[#6366f1]" />
-            {t('cdash.recep.quotaUsage')}
+            Quota usage
           </h3>
           <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-3xl font-bold text-[#1d1d1f]">{data?.calls?.quotaUsed || 0}</span>
-            <span className="text-sm text-[#86868b]">
-              / {data?.calls?.quota || 0} {t('cdash.recep.callsUsed')}
-            </span>
+            <span className="text-3xl font-bold">{data?.calls?.quotaUsed || 0}</span>
+            <span className="text-sm text-[#86868b]">/ {data?.calls?.quota || 0} calls this month</span>
           </div>
-          <div className="h-4 bg-[#d2d2d7]/30 rounded-full overflow-hidden mb-2">
+          <div className="h-3 bg-[#f5f5f7] rounded-full overflow-hidden mb-2">
             <div
-              className={`h-full rounded-full transition-all ${
+              className={`h-full rounded-full transition-all duration-500 ${
                 (data?.calls?.quotaPercent || 0) > 90 ? 'bg-red-500' :
                 (data?.calls?.quotaPercent || 0) > 70 ? 'bg-amber-500' : 'bg-[#6366f1]'
               }`}
               style={{ width: `${Math.min(data?.calls?.quotaPercent || 0, 100)}%` }}
             />
           </div>
-          <p className="text-xs text-[#86868b]">{data?.calls?.quotaPercent || 0}%</p>
+          <p className="text-xs text-[#86868b]">{data?.calls?.quotaPercent || 0}% used</p>
 
-          <div className="mt-6 pt-4 border-t border-[#d2d2d7]/40">
-            <div className="flex items-center gap-3 text-sm">
-              <FileText size={16} className="text-[#86868b]" />
-              <div>
-                <span className="text-xs text-[#86868b] block">{t('cdash.recep.script')}</span>
-                <span className="text-sm text-[#1d1d1f]">{t('cdash.recep.noScript')}</span>
-              </div>
+          <div className="mt-5 pt-4 border-t border-[#d2d2d7]/40 grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-[#86868b]">Plan</p>
+              <p className="text-sm font-semibold capitalize">{client.planType || 'Starter'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-[#86868b]">Monthly limit</p>
+              <p className="text-sm font-semibold">{data?.calls?.quota || 0} calls</p>
             </div>
           </div>
         </div>
 
-        {/* Settings */}
-        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-[#f5f5f7] p-6 lg:col-span-2">
+        {/* ── Voice selector ── */}
+        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6">
+          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+            <Mic size={16} className="text-[#6366f1]" />
+            Voice
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            {VOICES.map(v => (
+              <button key={v.id} onClick={() => setSelectedVoice(v.id)}
+                className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                  selectedVoice === v.id
+                    ? 'border-[#6366f1] bg-[#6366f1]/5'
+                    : 'border-[#d2d2d7]/60 hover:bg-[#f5f5f7]'
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                  selectedVoice === v.id ? 'bg-[#6366f1] text-white' : 'bg-[#f5f5f7] text-[#86868b]'
+                }`}>
+                  <Volume2 size={16} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{v.name}</p>
+                  <p className="text-[10px] text-[#86868b]">{v.lang} · {v.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Business hours ── */}
+        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6">
+          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+            <Clock size={16} className="text-[#6366f1]" />
+            Availability
+          </h3>
+          <div className="flex items-center gap-3 mb-4">
+            <button onClick={() => setAlwaysOn(true)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${alwaysOn ? 'bg-[#6366f1] text-white' : 'bg-[#f5f5f7] text-[#86868b]'}`}
+            >
+              24/7
+            </button>
+            <button onClick={() => setAlwaysOn(false)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${!alwaysOn ? 'bg-[#6366f1] text-white' : 'bg-[#f5f5f7] text-[#86868b]'}`}
+            >
+              Custom hours
+            </button>
+          </div>
+          {!alwaysOn && (
+            <div className="space-y-2">
+              {DAYS.map(day => {
+                const h = businessHours[day];
+                return (
+                  <div key={day} className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 w-28">
+                      <input type="checkbox" checked={h.enabled}
+                        onChange={e => setBusinessHours(prev => ({ ...prev, [day]: { ...prev[day], enabled: e.target.checked } }))}
+                        className="rounded border-[#d2d2d7]"
+                      />
+                      <span className={`text-xs font-medium ${h.enabled ? 'text-[#1d1d1f]' : 'text-[#86868b]'}`}>{day.slice(0, 3)}</span>
+                    </label>
+                    {h.enabled && (
+                      <div className="flex items-center gap-2">
+                        <input type="time" value={h.from}
+                          onChange={e => setBusinessHours(prev => ({ ...prev, [day]: { ...prev[day], from: e.target.value } }))}
+                          className="px-2 py-1 text-xs rounded-lg border border-[#d2d2d7]/60 bg-white"
+                        />
+                        <span className="text-xs text-[#86868b]">to</span>
+                        <input type="time" value={h.to}
+                          onChange={e => setBusinessHours(prev => ({ ...prev, [day]: { ...prev[day], to: e.target.value } }))}
+                          className="px-2 py-1 text-xs rounded-lg border border-[#d2d2d7]/60 bg-white"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── Business info (read-only) ── */}
+        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6 lg:col-span-2">
           <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
             <Settings size={16} className="text-[#6366f1]" />
-            {t('cdash.recep.settings')}
+            Business info
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="text-xs text-[#86868b] mb-1 block">{t('cdash.recep.businessName')}</label>
-              <input
-                type="text"
-                defaultValue={client.businessName || ''}
-                disabled
-                className="w-full px-3 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white/60 text-[#86868b]"
-              />
+              <label className="text-xs text-[#86868b] mb-1 block">Business name</label>
+              <div className="px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-[#f5f5f7] text-[#86868b]">{client.businessName || '-'}</div>
             </div>
             <div>
-              <label className="text-xs text-[#86868b] mb-1 block">{t('cdash.recep.industry')}</label>
-              <input
-                type="text"
-                defaultValue={client.businessType || ''}
-                disabled
-                className="w-full px-3 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white/60 text-[#86868b]"
-              />
+              <label className="text-xs text-[#86868b] mb-1 block">Industry</label>
+              <div className="px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-[#f5f5f7] text-[#86868b]">{client.businessType || '-'}</div>
             </div>
             <div>
-              <label className="text-xs text-[#86868b] mb-1 block">{t('cdash.recep.transfer')}</label>
-              <input
-                type="tel"
-                value={transferNumber}
-                onChange={e => setTransferNumber(e.target.value)}
-                placeholder="+1 555 000 0000"
-                className="w-full px-3 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
-              />
+              <label className="text-xs text-[#86868b] mb-1 block">Language</label>
+              <div className="px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-[#f5f5f7] text-[#86868b] flex items-center gap-2">
+                <Globe size={14} /> {selectedVoice === 'marie' ? 'French' : selectedVoice === 'sophie' ? 'FR/EN' : 'English'}
+              </div>
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-3">
+
+          <div className="mt-5 flex items-center gap-3">
             <button
               onClick={handleSaveSettings}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] disabled:opacity-50 transition-colors"
+              className="px-5 py-2.5 text-sm font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] disabled:opacity-50 transition-colors"
             >
-              {saving ? '...' : t('cdash.recep.save')}
+              {saving ? 'Saving...' : 'Save changes'}
             </button>
-            {saved && <span className="text-sm text-emerald-600">{t('cdash.recep.saved')}</span>}
+            {saved && (
+              <span className="text-sm text-emerald-600 flex items-center gap-1">
+                <Check size={14} /> Saved
+              </span>
+            )}
           </div>
         </div>
       </div>
