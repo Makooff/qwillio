@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, ArrowLeft, Mail } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
@@ -21,6 +21,7 @@ export default function Register() {
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const { register } = useAuthStore();
+  const navigate = useNavigate();
   const { t } = useLang();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +36,13 @@ export default function Register() {
     setLoading(true);
     try {
       await register(email, password, `${firstName} ${lastName}`);
-      setStep('activation');
+      // If email was auto-confirmed (Resend test domain), go straight to onboarding
+      const { user } = useAuthStore.getState();
+      if (user?.emailConfirmed) {
+        navigate('/onboard');
+      } else {
+        setStep('activation');
+      }
     } catch (err: any) {
       const errData = err.response?.data?.error;
       setError(typeof errData === 'string' ? errData : (errData?.message || err.message || t('register.errorFallback')));

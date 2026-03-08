@@ -66,14 +66,18 @@ export class AuthController {
       const passwordHash = await bcrypt.hash(password, env.BCRYPT_ROUNDS);
       const confirmationToken = crypto.randomUUID();
 
+      // Auto-confirm email when using Resend test domain (can only deliver to verified address)
+      const isTestEmail = env.RESEND_FROM_EMAIL.includes('resend.dev');
+      const autoConfirm = isTestEmail;
+
       const user = await prisma.user.create({
         data: {
           email,
           passwordHash,
           name,
           role: 'client',
-          confirmationToken,
-          emailConfirmed: false,
+          confirmationToken: autoConfirm ? null : confirmationToken,
+          emailConfirmed: autoConfirm,
           onboardingCompleted: false,
         },
       });
@@ -82,19 +86,22 @@ export class AuthController {
         expiresIn: env.JWT_EXPIRES_IN,
       });
 
-      // Send confirmation email
-      const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
-      const confirmUrl = `${frontendUrl}/auth/confirm?token=${confirmationToken}`;
-      try {
-        await emailService.sendConfirmationEmail({
-          to: email,
-          name,
-          confirmUrl,
-        });
-        logger.info(`Confirmation email sent to ${email}`);
-      } catch (emailErr) {
-        logger.error('Failed to send confirmation email:', emailErr);
-        // Don't fail registration if email fails — user can resend
+      // Send confirmation email (skip if auto-confirmed)
+      if (!autoConfirm) {
+        const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
+        const confirmUrl = `${frontendUrl}/auth/confirm?token=${confirmationToken}`;
+        try {
+          await emailService.sendConfirmationEmail({
+            to: email,
+            name,
+            confirmUrl,
+          });
+          logger.info(`Confirmation email sent to ${email}`);
+        } catch (emailErr) {
+          logger.error('Failed to send confirmation email:', emailErr);
+        }
+      } else {
+        logger.info(`Auto-confirmed email for ${email} (Resend test domain)`);
       }
 
       res.status(201).json({
@@ -104,7 +111,7 @@ export class AuthController {
           email: user.email,
           name: user.name,
           role: user.role,
-          emailConfirmed: false,
+          emailConfirmed: user.emailConfirmed,
           onboardingCompleted: false,
         },
       });
