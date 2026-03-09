@@ -42,6 +42,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     try {
       const { data } = await api.get('/auth/me');
+
+      // Validate response is a real user object (not HTML from ngrok interstitial)
+      if (!data || typeof data !== 'object' || !data.id || !data.email) {
+        console.warn('checkAuth: invalid response from /auth/me', typeof data);
+        throw new Error('Invalid auth response');
+      }
+
       // Save fresh JWT if returned (auto-corrects stale role in token)
       if (data.token) {
         localStorage.setItem('token', data.token);

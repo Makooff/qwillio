@@ -2,7 +2,10 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',   // prevent ngrok interstitial HTML
+  },
 });
 
 // Interceptor to add auth token
@@ -14,16 +17,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor to handle 401 errors
+// Interceptor to handle 401 errors — clear token, let React route guards handle redirect
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Don't redirect if we're already on auth pages
       const path = window.location.pathname;
       if (path !== '/login' && path !== '/register' && path !== '/auth/confirm') {
         localStorage.removeItem('token');
-        window.location.href = '/login';
+        // Don't hard-redirect — let React Router handle it via checkAuth / route guards
       }
     }
     return Promise.reject(error);
