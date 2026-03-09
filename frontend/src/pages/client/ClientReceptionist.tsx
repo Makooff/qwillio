@@ -23,6 +23,9 @@ export default function ClientReceptionist() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [transferNumber, setTransferNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [industry, setIndustry] = useState('');
   const [toggling, setToggling] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState('sarah');
   const [businessHours, setBusinessHours] = useState<Record<string, { enabled: boolean; from: string; to: string }>>(
@@ -39,6 +42,9 @@ export default function ClientReceptionist() {
         ]);
         setData({ ...overview.data, settings: settings.data });
         setTransferNumber(overview.data?.client?.transferNumber || settings.data?.transferNumber || '');
+        setPhoneNumber(overview.data?.client?.vapiPhoneNumber || settings.data?.vapiPhoneNumber || '');
+        setBusinessName(overview.data?.client?.businessName || settings.data?.businessName || '');
+        setIndustry(overview.data?.client?.businessType || settings.data?.businessType || '');
       } catch (err) {
         console.error('Receptionist fetch error', err);
       } finally {
@@ -67,7 +73,12 @@ export default function ClientReceptionist() {
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      await api.put('/my-dashboard/settings', { transferNumber });
+      await api.put('/my-dashboard/settings', {
+        transferNumber,
+        vapiPhoneNumber: phoneNumber,
+        businessName,
+        businessType: industry,
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
@@ -115,7 +126,7 @@ export default function ClientReceptionist() {
                 <h3 className="text-lg font-bold">{isActive ? 'Active & answering' : 'Paused'}</h3>
               </div>
               <p className="text-sm text-[#86868b]">
-                {client.vapiPhoneNumber ? `Answering on ${client.vapiPhoneNumber}` : 'No phone number assigned'}
+                {(phoneNumber || client.vapiPhoneNumber) ? `Answering on ${phoneNumber || client.vapiPhoneNumber}` : 'No phone number assigned'}
               </p>
             </div>
           </div>
@@ -143,9 +154,13 @@ export default function ClientReceptionist() {
           <div className="space-y-4">
             <div>
               <label className="text-xs text-[#86868b] mb-1 block">AI phone number</label>
-              <div className="px-4 py-2.5 text-sm rounded-xl bg-[#f5f5f7] border border-[#d2d2d7]/60 text-[#1d1d1f]">
-                {client.vapiPhoneNumber || 'Not assigned'}
-              </div>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={e => setPhoneNumber(e.target.value)}
+                placeholder="+1 555 000 0000"
+                className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 transition-all"
+              />
             </div>
             <div>
               <label className="text-xs text-[#86868b] mb-1 block">Transfer number (human backup)</label>
@@ -280,7 +295,7 @@ export default function ClientReceptionist() {
           )}
         </div>
 
-        {/* ── Business info (read-only) ── */}
+        {/* ── Business info ── */}
         <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6 lg:col-span-2">
           <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
             <Settings size={16} className="text-[#6366f1]" />
@@ -289,17 +304,30 @@ export default function ClientReceptionist() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="text-xs text-[#86868b] mb-1 block">Business name</label>
-              <div className="px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-[#f5f5f7] text-[#86868b]">{client.businessName || '-'}</div>
+              <input
+                type="text"
+                value={businessName}
+                onChange={e => setBusinessName(e.target.value)}
+                placeholder="Your business name"
+                className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 transition-all"
+              />
             </div>
             <div>
               <label className="text-xs text-[#86868b] mb-1 block">Industry</label>
-              <div className="px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-[#f5f5f7] text-[#86868b]">{client.businessType || '-'}</div>
+              <input
+                type="text"
+                value={industry}
+                onChange={e => setIndustry(e.target.value)}
+                placeholder="e.g. Real Estate, Dental, Legal..."
+                className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 transition-all"
+              />
             </div>
             <div>
               <label className="text-xs text-[#86868b] mb-1 block">Language</label>
               <div className="px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-[#f5f5f7] text-[#86868b] flex items-center gap-2">
                 <Globe size={14} /> {selectedVoice === 'marie' ? 'French' : selectedVoice === 'sophie' ? 'FR/EN' : 'English'}
               </div>
+              <p className="text-[11px] text-[#86868b] mt-1">Determined by voice selection above</p>
             </div>
           </div>
 
