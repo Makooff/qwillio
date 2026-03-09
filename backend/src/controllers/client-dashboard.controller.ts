@@ -210,12 +210,13 @@ export class ClientDashboardController {
   // PUT /my-dashboard/settings
   async updateMySettings(req: any, res: Response) {
     try {
-      const { transferNumber, businessName, businessType, vapiPhoneNumber } = req.body;
+      const { transferNumber, businessName, businessType, vapiPhoneNumber, vapiConfig } = req.body;
       const updateData: any = {};
       if (transferNumber !== undefined) updateData.transferNumber = transferNumber || null;
       if (businessName !== undefined) updateData.businessName = businessName || null;
       if (businessType !== undefined) updateData.businessType = businessType || null;
       if (vapiPhoneNumber !== undefined) updateData.vapiPhoneNumber = vapiPhoneNumber || null;
+      if (vapiConfig !== undefined) updateData.vapiConfig = vapiConfig;
 
       await prisma.client.update({
         where: { id: req.clientId },
