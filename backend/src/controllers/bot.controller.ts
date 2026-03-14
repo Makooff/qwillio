@@ -105,6 +105,15 @@ export class BotController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  async triggerNicheLearning(_req: Request, res: Response) {
+    try {
+      const count = await botLoop.triggerNicheLearning();
+      res.json({ message: `Niche learning aggregation complete: ${count} niches processed`, count });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }
 
 export const botController = new BotController();

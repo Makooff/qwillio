@@ -274,7 +274,7 @@ export class OnboardingService {
     try {
       // Simply fetch the assistant to confirm it exists and is accessible
       const assistant = await vapiClient.getAssistant(assistantId);
-      return !!assistant && !!assistant.id;
+      return !!assistant && !!(assistant as any).id;
     } catch (error) {
       logger.warn(`Health check failed for assistant ${assistantId}:`, error);
       return false;

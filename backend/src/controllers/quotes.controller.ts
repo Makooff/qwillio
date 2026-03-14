@@ -35,7 +35,7 @@ export class QuotesController {
   async getById(req: Request, res: Response) {
     try {
       const quote = await prisma.quote.findUnique({
-        where: { id: req.params.id },
+        where: { id: req.params.id as string },
         include: { prospect: true },
       });
       if (!quote) return res.status(404).json({ error: 'Devis non trouvé' });

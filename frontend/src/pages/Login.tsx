@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
@@ -11,9 +12,23 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuthStore();
+  const { login, googleLogin } = useAuthStore();
   const navigate = useNavigate();
   const { t } = useLang();
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setError('');
+    setLoading(true);
+    try {
+      await googleLogin(credentialResponse.credential);
+      const { user } = useAuthStore.getState();
+      navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Google Sign-In failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +107,22 @@ export default function Login() {
             )}
           </button>
         </form>
+
+        <div className="flex items-center gap-3 my-6">
+          <div className="flex-1 h-px bg-[#d2d2d7]" />
+          <span className="text-sm text-[#86868b]">{t('login.or') || 'ou'}</span>
+          <div className="flex-1 h-px bg-[#d2d2d7]" />
+        </div>
+
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError('Google Sign-In failed')}
+            text="signin_with"
+            shape="pill"
+            width={400}
+          />
+        </div>
 
         <p className="text-center text-sm text-[#86868b] mt-6">
           {t('login.noAccount')}{' '}

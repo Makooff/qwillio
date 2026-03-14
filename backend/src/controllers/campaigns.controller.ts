@@ -59,7 +59,7 @@ export class CampaignsController {
   async getById(req: Request, res: Response) {
     try {
       const campaign = await prisma.campaign.findUnique({
-        where: { id: req.params.id },
+        where: { id: req.params.id as string },
         include: {
           sends: {
             include: { prospect: { select: { businessName: true, email: true } } },
@@ -77,7 +77,7 @@ export class CampaignsController {
 
   async launch(req: Request, res: Response) {
     try {
-      const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id } });
+      const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id as string } });
       if (!campaign) return res.status(404).json({ error: 'Campagne non trouvée' });
 
       // Build prospect query based on targeting
@@ -156,7 +156,7 @@ export class CampaignsController {
 
   async delete(req: Request, res: Response) {
     try {
-      await prisma.campaign.delete({ where: { id: req.params.id } });
+      await prisma.campaign.delete({ where: { id: req.params.id as string } });
       res.json({ success: true });
     } catch (error: any) {
       res.status(400).json({ error: error.message });

@@ -12,6 +12,7 @@ import { clientDashboardService } from '../services/client-dashboard.service';
 import { bookingReminderService } from '../services/booking-reminder.service';
 import { optimizationService } from '../services/optimization.service';
 import { phoneValidationService } from '../services/phone-validation.service';
+import { nicheLearningService } from '../services/niche-learning.service';
 
 class BotLoop {
   private prospectionJob: cron.ScheduledTask | null = null;
@@ -25,6 +26,7 @@ class BotLoop {
   private clientAnalyticsJob: cron.ScheduledTask | null = null;
   private optimizationJob: cron.ScheduledTask | null = null;
   private phoneValidationJob: cron.ScheduledTask | null = null;
+  private nicheLearningJob: cron.ScheduledTask | null = null;
 
   async initialize() {
     // Ensure bot_status record exists
@@ -268,8 +270,23 @@ class BotLoop {
       }
     }, { timezone: env.TZ });
 
-    await discordService.notify('🤖 Qwillio started! All 11 cron jobs active.');
-    logger.info('🤖 All 11 cron jobs started. Bot is running in automatic loop.');
+    // ═══════════════════════════════════════════════════════════
+    // CRON 12: NICHE LEARNING AGGREGATION - Every Sunday at 1 AM
+    // Analyzes weekly failed calls per niche, generates insights,
+    // prunes stale learnings
+    // ═══════════════════════════════════════════════════════════
+    this.nicheLearningJob = cron.schedule('0 1 * * 0', async () => {
+      logger.info('🧠 [CRON] Running weekly niche learning aggregation...');
+      try {
+        const count = await nicheLearningService.runWeeklyAggregation();
+        logger.info(`[CRON] Niche learning: ${count} niches aggregated`);
+      } catch (error) {
+        logger.error('[CRON] Niche learning aggregation failed:', error);
+      }
+    }, { timezone: env.TZ });
+
+    await discordService.notify('🤖 Qwillio started! All 12 cron jobs active.');
+    logger.info('🤖 All 12 cron jobs started. Bot is running in automatic loop.');
   }
 
   async stop() {
@@ -284,6 +301,7 @@ class BotLoop {
     this.clientAnalyticsJob?.stop();
     this.optimizationJob?.stop();
     this.phoneValidationJob?.stop();
+    this.nicheLearningJob?.stop();
 
     const botStatus = await prisma.botStatus.findFirst();
     if (botStatus) {
@@ -317,6 +335,7 @@ class BotLoop {
         clientAnalytics: this.clientAnalyticsJob ? 'active' : 'inactive',
         optimization: this.optimizationJob ? 'active' : 'inactive',
         phoneValidation: this.phoneValidationJob ? 'active' : 'inactive',
+        nicheLearning: this.nicheLearningJob ? 'active' : 'inactive',
       },
     };
   }
@@ -348,6 +367,10 @@ class BotLoop {
 
   async triggerPhoneValidation() {
     return phoneValidationService.validateBatch(10);
+  }
+
+  async triggerNicheLearning() {
+    return nicheLearningService.runWeeklyAggregation();
   }
 }
 

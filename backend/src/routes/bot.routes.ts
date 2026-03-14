@@ -18,5 +18,6 @@ router.post('/trigger/call', (req, res) => botController.triggerCall(req, res));
 router.post('/trigger/reminders', (req, res) => botController.triggerReminders(req, res));
 router.post('/trigger/test-call', (req, res) => botController.triggerTestCall(req, res));
 router.post('/trigger/simulate-call', (req, res) => botController.simulateCallResult(req, res));
+router.post('/trigger/niche-learning', (req, res) => botController.triggerNicheLearning(req, res));
 
 export default router;

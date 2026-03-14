@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, ArrowLeft, Mail } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
@@ -20,9 +21,23 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
-  const { register } = useAuthStore();
+  const { register, googleLogin } = useAuthStore();
   const navigate = useNavigate();
   const { t } = useLang();
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setError('');
+    setLoading(true);
+    try {
+      await googleLogin(credentialResponse.credential);
+      const { user } = useAuthStore.getState();
+      navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Google Sign-In failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,6 +180,22 @@ export default function Register() {
                 )}
               </button>
             </form>
+
+            <div className="flex items-center gap-3 my-6">
+              <div className="flex-1 h-px bg-[#d2d2d7]" />
+              <span className="text-sm text-[#86868b]">{t('login.or') || 'ou'}</span>
+              <div className="flex-1 h-px bg-[#d2d2d7]" />
+            </div>
+
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError('Google Sign-In failed')}
+                text="signup_with"
+                shape="pill"
+                width={400}
+              />
+            </div>
 
             <p className="text-center text-sm text-[#86868b] mt-6">
               {t('register.hasAccount')}{' '}

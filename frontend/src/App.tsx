@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAuthStore } from './stores/authStore';
+import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import Landing from './pages/Landing';
@@ -84,8 +86,12 @@ export default function App() {
     checkAuth();
   }, []);
 
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
   return (
-    <BrowserRouter>
+    <ErrorBoundary>
+      <GoogleOAuthProvider clientId={googleClientId}>
+      <BrowserRouter>
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<PublicOrDashboard />} />
@@ -150,6 +156,8 @@ export default function App() {
         {/* Catch-all redirect */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-    </BrowserRouter>
+      </BrowserRouter>
+      </GoogleOAuthProvider>
+    </ErrorBoundary>
   );
 }

@@ -102,6 +102,7 @@ const translations = {
   'login.loading': { fr: 'Chargement...', en: 'Loading...' },
   'login.noAccount': { fr: 'Pas encore de compte ?', en: "Don't have an account?" },
   'login.register': { fr: "S'inscrire gratuitement", en: 'Sign up for free' },
+  'login.or': { fr: 'ou', en: 'or' },
 
   // ── Register ──
   'register.title': { fr: 'Créer votre compte', en: 'Create your account' },

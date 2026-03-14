@@ -2,11 +2,14 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { loginSchema, registerSchema } from '../utils/validators';
 import { emailService } from '../services/email.service';
 import { logger } from '../config/logger';
+
+const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 export class AuthController {
   async login(req: Request, res: Response) {
@@ -16,6 +19,10 @@ export class AuthController {
       const user = await prisma.user.findUnique({ where: { email } });
       if (!user) {
         return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+      }
+
+      if (!user.passwordHash) {
+        return res.status(401).json({ error: 'Ce compte utilise Google Sign-In. Connectez-vous avec Google.' });
       }
 
       const isValid = await bcrypt.compare(password, user.passwordHash);
@@ -122,7 +129,7 @@ export class AuthController {
 
   async confirmEmail(req: Request, res: Response) {
     try {
-      const { token } = req.params;
+      const token = req.params.token as string;
 
       const user = await prisma.user.findUnique({
         where: { confirmationToken: token },
@@ -307,6 +314,74 @@ export class AuthController {
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  }
+
+  async googleAuth(req: Request, res: Response) {
+    try {
+      const { credential } = req.body;
+      if (!credential) {
+        return res.status(400).json({ error: 'Google credential required' });
+      }
+
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      if (!payload || !payload.email) {
+        return res.status(401).json({ error: 'Invalid Google token' });
+      }
+
+      // Find existing user by googleId or email
+      let user = await prisma.user.findFirst({
+        where: { OR: [{ googleId: payload.sub }, { email: payload.email }] },
+      });
+
+      if (user) {
+        // Link Google ID if not yet linked
+        if (!user.googleId) {
+          await prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub } });
+        }
+      } else {
+        // Create new user
+        user = await prisma.user.create({
+          data: {
+            email: payload.email,
+            name: payload.name || payload.email.split('@')[0],
+            googleId: payload.sub,
+            passwordHash: null,
+            role: 'client',
+            emailConfirmed: true,
+            onboardingCompleted: false,
+          },
+        });
+        logger.info(`New Google user registered: ${payload.email}`);
+      }
+
+      const token = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
+        expiresIn: env.JWT_EXPIRES_IN,
+      });
+
+      const client = user.role === 'client'
+        ? await prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
+        : null;
+
+      res.json({
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          emailConfirmed: user.emailConfirmed,
+          onboardingCompleted: user.onboardingCompleted,
+          clientId: client?.id || null,
+        },
+      });
+    } catch (error: any) {
+      logger.error('Google auth error:', error);
+      res.status(401).json({ error: 'Google authentication failed' });
     }
   }
 

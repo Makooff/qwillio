@@ -50,7 +50,7 @@ export class ProspectsController {
   async getById(req: Request, res: Response) {
     try {
       const prospect = await prisma.prospect.findUnique({
-        where: { id: req.params.id },
+        where: { id: req.params.id as string },
         include: {
           calls: { orderBy: { createdAt: 'desc' }, take: 10 },
           quotes: { orderBy: { createdAt: 'desc' } },
@@ -67,7 +67,7 @@ export class ProspectsController {
   async update(req: Request, res: Response) {
     try {
       const prospect = await prisma.prospect.update({
-        where: { id: req.params.id },
+        where: { id: req.params.id as string },
         data: req.body,
       });
       res.json(prospect);
@@ -78,7 +78,7 @@ export class ProspectsController {
 
   async delete(req: Request, res: Response) {
     try {
-      await prisma.prospect.delete({ where: { id: req.params.id } });
+      await prisma.prospect.delete({ where: { id: req.params.id as string } });
       res.json({ success: true });
     } catch (error: any) {
       res.status(400).json({ error: error.message });

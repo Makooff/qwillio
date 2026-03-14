@@ -10,7 +10,8 @@ datasource db {
 model User {
   id                  String   @id @default(uuid()) @db.Uuid
   email               String   @unique @db.VarChar(255)
-  passwordHash        String   @map("password_hash") @db.VarChar(255)
+  passwordHash        String?  @map("password_hash") @db.VarChar(255)
+  googleId            String?  @unique @map("google_id") @db.VarChar(255)
   name                String   @db.VarChar(255)
   role                String   @default("user") @db.VarChar(50)
   emailConfirmed      Boolean  @default(false) @map("email_confirmed")
@@ -497,4 +498,27 @@ model CallTransfer {
   @@index([transferStatus])
   @@index([createdAt])
   @@map("call_transfers")
+}
+
+// ═══════════════════════════════════════════════════════════
+// NICHE INSIGHT - Ashley's learnings from failed sales calls
+// ═══════════════════════════════════════════════════════════
+model NicheInsight {
+  id               String   @id @default(uuid()) @db.Uuid
+  niche            String   @db.VarChar(100)
+  insightType      String   @map("insight_type") @db.VarChar(50)   // objection | failure_reason | script_suggestion
+  content          String   @db.Text
+  frequency        Int      @default(1)
+  sampleSize       Int      @default(1) @map("sample_size")
+  confidence       Float    @default(0.5)
+  isActive         Boolean  @default(true) @map("is_active")
+  source           String   @default("post_call") @db.VarChar(50)  // post_call | weekly_aggregation
+  lastSeenAt       DateTime @default(now()) @map("last_seen_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([niche, insightType, content])
+  @@index([niche])
+  @@index([isActive])
+  @@map("niche_insights")
 }

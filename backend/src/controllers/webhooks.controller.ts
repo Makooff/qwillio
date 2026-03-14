@@ -120,7 +120,7 @@ export class WebhooksController {
   }
 
   async vapiClientWebhook(req: Request, res: Response) {
-    const clientId = req.params.clientId;
+    const clientId = req.params.clientId as string;
     const event = req.body;
 
     await prisma.webhookLog.create({

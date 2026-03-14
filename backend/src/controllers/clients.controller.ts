@@ -35,7 +35,7 @@ export class ClientsController {
   async getById(req: Request, res: Response) {
     try {
       const client = await prisma.client.findUnique({
-        where: { id: req.params.id },
+        where: { id: req.params.id as string },
         include: {
           payments: { orderBy: { createdAt: 'desc' }, take: 20 },
           quote: true,
@@ -52,7 +52,7 @@ export class ClientsController {
   async update(req: Request, res: Response) {
     try {
       const client = await prisma.client.update({
-        where: { id: req.params.id },
+        where: { id: req.params.id as string },
         data: req.body,
       });
       res.json(client);

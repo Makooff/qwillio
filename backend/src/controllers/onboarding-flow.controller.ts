@@ -7,7 +7,7 @@ export class OnboardingFlowController {
   // Returns the onboarding form template based on industry + package
   async getFormTemplate(req: Request, res: Response) {
     try {
-      const { clientId } = req.params;
+      const clientId = req.params.clientId as string;
       const { prisma } = await import('../config/database');
 
       const client = await prisma.client.findUnique({ where: { id: clientId } });
@@ -45,7 +45,7 @@ export class OnboardingFlowController {
   // Submit the completed onboarding form
   async submitForm(req: Request, res: Response) {
     try {
-      const { clientId } = req.params;
+      const clientId = req.params.clientId as string;
       const token = req.query.token as string || req.body.token;
 
       if (!token) return res.status(403).json({ error: 'Token required' });
@@ -69,7 +69,7 @@ export class OnboardingFlowController {
   // Get available add-ons for the client's plan
   async getAddOns(req: Request, res: Response) {
     try {
-      const { clientId } = req.params;
+      const clientId = req.params.clientId as string;
       const { prisma } = await import('../config/database');
 
       const client = await prisma.client.findUnique({ where: { id: clientId } });
@@ -91,7 +91,8 @@ export class OnboardingFlowController {
   // Activate an add-on for the client
   async activateAddOn(req: Request, res: Response) {
     try {
-      const { clientId, addOnId } = req.params;
+      const clientId = req.params.clientId as string;
+      const addOnId = req.params.addOnId as string;
       const result = await onboardingFlowService.activateAddOn(clientId, addOnId);
       res.json(result);
     } catch (error: any) {

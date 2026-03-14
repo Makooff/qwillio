@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import type { StringValue } from 'ms';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -12,8 +13,8 @@ export const env = {
   DATABASE_URL: process.env.DATABASE_URL!,
 
   JWT_SECRET: process.env.JWT_SECRET || 'change-me-in-production',
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
-  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  JWT_EXPIRES_IN: (process.env.JWT_EXPIRES_IN || '24h') as StringValue,
+  JWT_REFRESH_EXPIRES_IN: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as StringValue,
   BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
 
   VAPI_PUBLIC_KEY: process.env.VAPI_PUBLIC_KEY || '',
@@ -52,6 +53,7 @@ export const env = {
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'Qwillio <noreply@qwillio.com>',
   RESEND_REPLY_TO: process.env.RESEND_REPLY_TO || 'contact@qwillio.com',
 
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   GOOGLE_PLACES_API_KEY: process.env.GOOGLE_PLACES_API_KEY || '',
 
   DISCORD_WEBHOOK_URL: process.env.DISCORD_WEBHOOK_URL || '',

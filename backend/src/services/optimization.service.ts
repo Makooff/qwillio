@@ -93,7 +93,8 @@ export class OptimizationService {
       const assistant = await vapiClient.getAssistant(client.vapiAssistantId);
       if (!assistant) return false;
 
-      const currentPrompt = assistant.model?.messages?.[0]?.content || '';
+      const assistantAny = assistant as any;
+      const currentPrompt = assistantAny.model?.messages?.[0]?.content || '';
 
       // Remove old optimization section if exists
       const cleanPrompt = currentPrompt.replace(/\n\n--- AUTO-OPTIMIZATION ---[\s\S]*--- END OPTIMIZATION ---/, '');
@@ -103,7 +104,7 @@ export class OptimizationService {
 
       await vapiClient.updateAssistant(client.vapiAssistantId, {
         model: {
-          ...assistant.model,
+          ...assistantAny.model,
           messages: [{ role: 'system', content: updatedPrompt }],
         },
       });

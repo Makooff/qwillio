@@ -12,6 +12,7 @@ import { isHoliday, isWithinCallWindow, isPriorityDay, isBlackoutPeriod, getDayH
 import { INTERESTED_FOLLOWUP_SEQUENCE, CALLBACK_RETRY_DELAYS } from '../config/followup-sequence';
 import { emailService } from './email.service';
 import { normalizeEmail, isValidEmail } from '../utils/validators';
+import { nicheLearningService } from './niche-learning.service';
 
 export class VapiService {
   async callNextProspect(): Promise<boolean> {
@@ -119,7 +120,7 @@ export class VapiService {
 
       // Make VAPI call with niche-specific system prompt
       const nicheScript = NICHE_SCRIPTS[prospect.businessType] || DEFAULT_SCRIPT;
-      const systemPrompt = this.generateSalesPrompt(prospect);
+      const systemPrompt = await this.generateSalesPrompt(prospect);
 
       const vapiCall = await vapiClient.createCall({
         assistantId: env.VAPI_ASSISTANT_ID,
@@ -412,6 +413,13 @@ export class VapiService {
     await discordService.notify(
       `${emoji} CALL COMPLETED\n\nProspect: ${call.prospect.businessName}\nInterest: ${analysis.interestLevel}/10\nPackage: ${analysis.recommendedPackage.toUpperCase()}\nEmail: ${validatedEmail || 'Not collected'}${analysis.email && validatedEmail !== analysis.email ? ` (raw: ${analysis.email})` : ''}\nAction: ${analysis.nextAction}${setupFeeObjection ? '\n⚠️ Setup fee objection raised' : ''}`
     );
+
+    // ═══ POST-CALL LEARNING ═══
+    // If call didn't convert (interest < 7), extract niche-specific failure insights
+    if (analysis.interestLevel < 7) {
+      nicheLearningService.extractFailureInsights(call.id, analysis, call.prospect.businessType)
+        .catch(err => logger.warn('Post-call learning extraction failed:', err));
+    }
   }
 
   /**
@@ -515,7 +523,7 @@ Return a JSON with:
     };
 
     const nicheScript = NICHE_SCRIPTS[businessType] || DEFAULT_SCRIPT;
-    const systemPrompt = this.generateSalesPrompt(fakeProspect);
+    const systemPrompt = await this.generateSalesPrompt(fakeProspect);
 
     try {
       // Notify Discord
@@ -693,10 +701,18 @@ Return a JSON with:
     };
   }
 
-  private generateSalesPrompt(prospect: any): string {
+  private async generateSalesPrompt(prospect: any): Promise<string> {
     const nicheScript = NICHE_SCRIPTS[prospect.businessType] || DEFAULT_SCRIPT;
     const pkg = PACKAGES.pro;
     const installmentAmount = getInstallmentAmount(pkg.setupFee, 3);
+
+    // Fetch niche-specific learnings from past calls
+    let nicheLearnings = '';
+    try {
+      nicheLearnings = await nicheLearningService.getRecentInsights(prospect.businessType);
+    } catch (err) {
+      logger.warn('Failed to fetch niche insights for prompt:', err);
+    }
 
     return `You are ASHLEY, a confident and genuinely warm sales representative for Qwillio, a company that builds AI receptionists for US businesses.
 
@@ -781,7 +797,7 @@ DATA TO COLLECT:
 - Contact name
 - Email (CRUCIAL — always confirm by spelling it out letter by letter)
 - Approximate daily/weekly call volume
-- Current pain points`;
+- Current pain points${nicheLearnings}`;
   }
 }
 

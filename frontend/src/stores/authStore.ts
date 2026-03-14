@@ -8,6 +8,7 @@ interface AuthState {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
+  googleLogin: (credential: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
@@ -29,6 +30,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user: data.user, token: data.token, isLoading: false });
   },
 
+  googleLogin: async (credential: string) => {
+    const { data } = await api.post('/auth/google', { credential });
+    localStorage.setItem('token', data.token);
+    set({ user: data.user, token: data.token, isLoading: false });
+  },
+
   logout: () => {
     localStorage.removeItem('token');
     set({ user: null, token: null });
@@ -45,7 +52,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       // Validate response is a real user object (not HTML from ngrok interstitial)
       if (!data || typeof data !== 'object' || !data.id || !data.email) {
-        console.warn('checkAuth: invalid response from /auth/me', typeof data);
         throw new Error('Invalid auth response');
       }
 
