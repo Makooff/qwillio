@@ -145,6 +145,60 @@ export class SmsService {
     const result = await this.sendSMS(prospect.phone, body);
     return result.success;
   }
+  /**
+   * Send booking confirmation SMS to customer right after appointment is booked.
+   */
+  async sendBookingConfirmationSMS(booking: {
+    customerPhone: string;
+    customerName: string;
+    businessName: string;
+    bookingDate: string;
+    bookingTime: string | null;
+    serviceType: string | null;
+  }): Promise<boolean> {
+    if (!booking.customerPhone) return false;
+
+    const name = booking.customerName || 'there';
+    const date = new Date(booking.bookingDate).toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric',
+    });
+    const time = booking.bookingTime ? ` at ${booking.bookingTime}` : '';
+    const service = booking.serviceType ? ` (${booking.serviceType})` : '';
+
+    const body = `Hi ${name}! Your appointment at ${booking.businessName} is confirmed for ${date}${time}${service}. To reschedule or cancel, please contact ${booking.businessName} directly. — Powered by Qwillio`;
+
+    const result = await this.sendSMS(booking.customerPhone, body);
+    if (result.success) {
+      logger.info(`Booking confirmation SMS sent to ${booking.customerPhone} for ${booking.businessName}`);
+    }
+    return result.success;
+  }
+
+  /**
+   * Send booking reminder SMS 24h before appointment.
+   */
+  async sendBookingReminderSMS(booking: {
+    customerPhone: string;
+    customerName: string;
+    businessName: string;
+    bookingDate: string;
+    bookingTime: string | null;
+    serviceType: string | null;
+  }): Promise<boolean> {
+    if (!booking.customerPhone) return false;
+
+    const name = booking.customerName || 'there';
+    const time = booking.bookingTime ? ` at ${booking.bookingTime}` : ' tomorrow';
+    const service = booking.serviceType ? ` for your ${booking.serviceType}` : '';
+
+    const body = `Reminder: Hi ${name}! Your appointment at ${booking.businessName} is${time}${service}. See you soon! — Powered by Qwillio`;
+
+    const result = await this.sendSMS(booking.customerPhone, body);
+    if (result.success) {
+      logger.info(`Booking reminder SMS sent to ${booking.customerPhone} for ${booking.businessName}`);
+    }
+    return result.success;
+  }
 }
 
 export const smsService = new SmsService();

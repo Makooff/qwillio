@@ -429,6 +429,8 @@ model ClientBooking {
   status          String    @default("confirmed") @db.VarChar(50)
   reminderSent    Boolean   @default(false) @map("reminder_sent")
   reminderSentAt  DateTime? @map("reminder_sent_at")
+  smsConfirmationSent Boolean @default(false) @map("sms_confirmation_sent")
+  smsReminderSent     Boolean @default(false) @map("sms_reminder_sent")
   googleEventId   String?   @map("google_event_id") @db.VarChar(255)
   notes           String?   @db.Text
   createdAt       DateTime  @default(now()) @map("created_at")

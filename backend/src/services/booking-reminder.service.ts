@@ -2,6 +2,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { emailService } from './email.service';
 import { discordService } from './discord.service';
+import { smsService } from './sms.service';
 
 export class BookingReminderService {
 
@@ -21,8 +22,10 @@ export class BookingReminderService {
           lte: tomorrow,
         },
         status: 'confirmed',
-        reminderSent: false,
-        customerEmail: { not: null },
+        OR: [
+          { reminderSent: false, customerEmail: { not: null } },
+          { smsReminderSent: false, customerPhone: { not: null } },
+        ],
       },
       include: {
         client: {
@@ -47,24 +50,45 @@ export class BookingReminderService {
       if (!['pro', 'enterprise'].includes(booking.client.planType)) continue;
 
       try {
-        await emailService.sendBookingReminderEmail({
-          to: booking.customerEmail!,
-          customerName: booking.customerName,
-          businessName: booking.client.businessName,
-          bookingDate: booking.bookingDate,
-          bookingTime: booking.bookingTime || '',
-          serviceType: booking.serviceType || 'Appointment',
-          specialRequests: booking.specialRequests || null,
-          businessPhone: booking.client.contactPhone || booking.client.vapiPhoneNumber || '',
-        });
+        // Send email reminder if not already sent
+        if (booking.customerEmail && !booking.reminderSent) {
+          await emailService.sendBookingReminderEmail({
+            to: booking.customerEmail,
+            customerName: booking.customerName,
+            businessName: booking.client.businessName,
+            bookingDate: booking.bookingDate,
+            bookingTime: booking.bookingTime || '',
+            serviceType: booking.serviceType || 'Appointment',
+            specialRequests: booking.specialRequests || null,
+            businessPhone: booking.client.contactPhone || booking.client.vapiPhoneNumber || '',
+          });
 
-        await prisma.clientBooking.update({
-          where: { id: booking.id },
-          data: {
-            reminderSent: true,
-            reminderSentAt: new Date(),
-          },
-        });
+          await prisma.clientBooking.update({
+            where: { id: booking.id },
+            data: {
+              reminderSent: true,
+              reminderSentAt: new Date(),
+            },
+          });
+        }
+
+        // Send SMS reminder if phone available and not already sent
+        if (booking.customerPhone && !booking.smsReminderSent) {
+          const smsSent = await smsService.sendBookingReminderSMS({
+            customerPhone: booking.customerPhone,
+            customerName: booking.customerName,
+            businessName: booking.client.businessName,
+            bookingDate: booking.bookingDate.toISOString(),
+            bookingTime: booking.bookingTime || null,
+            serviceType: booking.serviceType || null,
+          });
+          if (smsSent) {
+            await prisma.clientBooking.update({
+              where: { id: booking.id },
+              data: { smsReminderSent: true },
+            });
+          }
+        }
 
         sent++;
         logger.info(`Booking reminder sent: ${booking.customerName} at ${booking.client.businessName} for ${booking.bookingDate}`);

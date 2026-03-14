@@ -1,6 +1,7 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { discordService } from './discord.service';
+import { smsService } from './sms.service';
 
 export class ClientCallService {
 
@@ -57,7 +58,7 @@ export class ClientCallService {
     // If booking was made, create booking record
     if (analysis.bookingRequested && analysis.bookingDate) {
       try {
-        await prisma.clientBooking.create({
+        const booking = await prisma.clientBooking.create({
           data: {
             clientId,
             clientCallId: clientCall.id,
@@ -73,6 +74,25 @@ export class ClientCallService {
           },
         });
         logger.info(`Booking created for ${client.businessName}: ${analysis.callerName} on ${analysis.bookingDate}`);
+
+        // Send booking confirmation SMS (fire-and-forget)
+        if (callerNumber) {
+          smsService.sendBookingConfirmationSMS({
+            customerPhone: callerNumber,
+            customerName: analysis.callerName || 'there',
+            businessName: client.businessName,
+            bookingDate: analysis.bookingDate,
+            bookingTime: analysis.bookingTime || null,
+            serviceType: analysis.serviceType || null,
+          }).then(sent => {
+            if (sent) {
+              prisma.clientBooking.update({
+                where: { id: booking.id },
+                data: { smsConfirmationSent: true },
+              }).catch(() => {});
+            }
+          }).catch(err => logger.error('Booking confirmation SMS failed:', err));
+        }
       } catch (err) {
         logger.error('Failed to create booking record:', err);
       }
