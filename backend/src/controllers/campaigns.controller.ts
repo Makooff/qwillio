@@ -114,7 +114,7 @@ export class CampaignsController {
 
         try {
           // Replace template variables
-          const html = campaign.messageTemplate
+          const html = (campaign.messageTemplate || '')
             .replace(/\{\{business_name\}\}/g, prospect.businessName)
             .replace(/\{\{contact_name\}\}/g, prospect.contactName || prospect.businessName)
             .replace(/\{\{city\}\}/g, prospect.city || '')

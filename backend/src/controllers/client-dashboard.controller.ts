@@ -174,7 +174,7 @@ export class ClientDashboardController {
         where: { id },
         data: {
           metadata: {
-            ...(call.metadata as any || {}),
+            ...(typeof call.metadata === 'object' && call.metadata !== null ? call.metadata as Record<string, unknown> : {}),
             clientNotes: notes,
           },
         },
@@ -201,6 +201,7 @@ export class ClientDashboardController {
           subscriptionStatus: true,
         },
       });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
       res.json(client);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -245,7 +246,8 @@ export class ClientDashboardController {
   async resumeAgent(req: any, res: Response) {
     try {
       const client = await prisma.client.findUnique({ where: { id: req.clientId } });
-      const status = client?.isTrial ? 'trialing' : 'active';
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+      const status = client.isTrial ? 'trialing' : 'active';
       await prisma.client.update({
         where: { id: req.clientId },
         data: { subscriptionStatus: status },

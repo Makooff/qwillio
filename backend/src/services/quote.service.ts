@@ -97,7 +97,12 @@ export class QuoteService {
     });
 
     // Start onboarding (VAPI assistant + phone number)
-    await onboardingService.onboardClient(client.id);
+    try {
+      await onboardingService.onboardClient(client.id);
+    } catch (err) {
+      logger.error(`VAPI onboarding failed for ${prospect.businessName} (client ${client.id}):`, err);
+      await discordService.notify(`⚠️ ONBOARDING FAILED\n\nClient: ${prospect.businessName}\nError: ${(err as Error).message}\nClient ID: ${client.id}\n\nPlease retry manually.`);
+    }
 
     // Send onboarding flow email (form + dashboard + Loom)
     try {

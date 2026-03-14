@@ -16,6 +16,9 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
   }
 
   const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Token manquant' });
+  }
 
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string; role: string };

@@ -321,24 +321,26 @@ export class VapiService {
     // ═══ 30s CONFIRMATION EMAIL + 24h VERIFICATION CHECK ═══
     // Send confirmation email to validate the collected address (bounce detection via Resend webhook)
     if (validatedEmail && analysis.interestLevel >= 4) {
-      setTimeout(async () => {
-        try {
-          const result = await emailService.sendEmailConfirmation({
-            to: validatedEmail!,
-            contactName: analysis.contactName || call.prospect!.contactName || call.prospect!.businessName,
-            businessName: call.prospect!.businessName,
-            prospectId: call.prospect!.id,
-          });
-          if (result.success) {
-            await prisma.prospect.update({
-              where: { id: call.prospect!.id },
-              data: { emailConfirmationId: result.emailId || null },
+      setTimeout(() => {
+        (async () => {
+          try {
+            const result = await emailService.sendEmailConfirmation({
+              to: validatedEmail!,
+              contactName: analysis.contactName || call.prospect!.contactName || call.prospect!.businessName,
+              businessName: call.prospect!.businessName,
+              prospectId: call.prospect!.id,
             });
-            logger.info(`Confirmation email sent to ${validatedEmail} for ${call.prospect!.businessName}`);
+            if (result.success) {
+              await prisma.prospect.update({
+                where: { id: call.prospect!.id },
+                data: { emailConfirmationId: result.emailId || null },
+              });
+              logger.info(`Confirmation email sent to ${validatedEmail} for ${call.prospect!.businessName}`);
+            }
+          } catch (e) {
+            logger.warn(`Failed to send confirmation email to ${validatedEmail}:`, e);
           }
-        } catch (e) {
-          logger.warn(`Failed to send confirmation email to ${validatedEmail}:`, e);
-        }
+        })().catch(e => logger.error('Unhandled error in confirmation email setTimeout:', e));
       }, 30_000); // 30 second delay
 
       // Schedule 24h email verification check — if not verified by then, send SMS fallback

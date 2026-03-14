@@ -182,8 +182,13 @@ export class WebhooksController {
 
     // Find prospect by phone number
     const phone = from?.replace(/\s/g, '');
+    if (!phone || phone.length < 10) {
+      logger.warn(`Inbound SMS with invalid phone: ${from}`);
+      res.type('text/xml').send('<Response></Response>');
+      return;
+    }
     const prospect = await prisma.prospect.findFirst({
-      where: { phone: { contains: phone?.slice(-10) } },
+      where: { phone: { contains: phone.slice(-10) } },
       orderBy: { updatedAt: 'desc' },
     });
 

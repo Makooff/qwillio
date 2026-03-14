@@ -430,14 +430,18 @@ export class ReminderService {
       orderBy: { createdAt: 'desc' },
     });
 
-    await smsService.sendPostCallSMS(
+    const smsResult = await smsService.sendPostCallSMS(
       { phone: prospect.phone, businessName: prospect.businessName, contactName: prospect.contactName },
       lastCall?.outcome || 'callback_later'
     );
 
     await prisma.reminder.update({
       where: { id: reminder.id },
-      data: { status: 'sent', sentAt: new Date(), result: 'Post-call SMS sent' },
+      data: {
+        status: smsResult ? 'sent' : 'failed',
+        sentAt: smsResult ? new Date() : undefined,
+        result: smsResult ? 'Post-call SMS sent' : 'SMS send failed',
+      },
     });
   }
 
