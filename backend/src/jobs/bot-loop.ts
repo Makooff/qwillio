@@ -27,6 +27,7 @@ class BotLoop {
   private optimizationJob: cron.ScheduledTask | null = null;
   private phoneValidationJob: cron.ScheduledTask | null = null;
   private nicheLearningJob: cron.ScheduledTask | null = null;
+  private keepAliveJob: cron.ScheduledTask | null = null;
 
   async initialize() {
     // Ensure bot_status record exists
@@ -285,8 +286,21 @@ class BotLoop {
       }
     }, { timezone: env.TZ });
 
-    await discordService.notify('🤖 Qwillio started! All 12 cron jobs active.');
-    logger.info('🤖 All 12 cron jobs started. Bot is running in automatic loop.');
+    // ═══════════════════════════════════════════════════════════
+    // CRON 13: KEEP-ALIVE PING - Every 10 minutes
+    // Prevents Render free tier from sleeping (cold start ~50s)
+    // ═══════════════════════════════════════════════════════════
+    this.keepAliveJob = cron.schedule('*/10 * * * *', async () => {
+      try {
+        const url = env.API_BASE_URL || `http://localhost:${env.PORT}`;
+        await fetch(`${url}/api/health`);
+      } catch (_) {
+        // Ignore — the point is just to keep the process alive
+      }
+    });
+
+    await discordService.notify('🤖 Qwillio started! All 13 cron jobs active.');
+    logger.info('🤖 All 13 cron jobs started. Bot is running in automatic loop.');
   }
 
   async stop() {
@@ -302,6 +316,7 @@ class BotLoop {
     this.optimizationJob?.stop();
     this.phoneValidationJob?.stop();
     this.nicheLearningJob?.stop();
+    this.keepAliveJob?.stop();
 
     const botStatus = await prisma.botStatus.findFirst();
     if (botStatus) {

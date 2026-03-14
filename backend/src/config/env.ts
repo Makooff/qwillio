@@ -54,6 +54,7 @@ export const env = {
   RESEND_REPLY_TO: process.env.RESEND_REPLY_TO || 'contact@qwillio.com',
 
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
   GOOGLE_PLACES_API_KEY: process.env.GOOGLE_PLACES_API_KEY || '',
 
   DISCORD_WEBHOOK_URL: process.env.DISCORD_WEBHOOK_URL || '',
@@ -74,6 +75,8 @@ export const env = {
   PROSPECTION_DAILY_QUOTA: parseInt(process.env.PROSPECTION_DAILY_QUOTA || '30', 10),
   PROSPECTION_RADIUS_METERS: parseInt(process.env.PROSPECTION_RADIUS_METERS || '5000', 10),
   PROSPECTION_CITIES: (process.env.PROSPECTION_CITIES || 'Bruxelles,Anvers,Gand').split(','),
+
+  SENTRY_DSN: process.env.SENTRY_DSN || '',
 
   TZ: process.env.TZ || 'Europe/Brussels',
 };

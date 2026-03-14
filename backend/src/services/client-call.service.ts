@@ -2,6 +2,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { discordService } from './discord.service';
 import { smsService } from './sms.service';
+import { googleCalendarService } from './google-calendar.service';
 
 export class ClientCallService {
 
@@ -92,6 +93,11 @@ export class ClientCallService {
               }).catch(() => {});
             }
           }).catch(err => logger.error('Booking confirmation SMS failed:', err));
+        }
+        // Sync to Google Calendar if client has connected their account (fire-and-forget)
+        if (client.googleCalendarRefreshToken) {
+          this.syncBookingToCalendar(booking.id, client.googleCalendarRefreshToken, client.googleCalendarId || 'primary')
+            .catch(err => logger.error('Google Calendar sync failed:', err));
         }
       } catch (err) {
         logger.error('Failed to create booking record:', err);
@@ -259,6 +265,39 @@ Return a JSON object with:
 
     logger.info(`Callback request created for client ${clientId}, caller: ${callerNumber}`);
     return transfer;
+  }
+
+  /**
+   * Exchange Google refresh token for access token and sync booking to calendar
+   */
+  private async syncBookingToCalendar(bookingId: string, refreshToken: string, calendarId: string) {
+    const { GOOGLE_CLIENT_ID } = process.env;
+    const { GOOGLE_CLIENT_SECRET } = process.env;
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      logger.warn('Google OAuth not configured, skipping calendar sync');
+      return;
+    }
+
+    // Exchange refresh token for access token
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      logger.error('Failed to refresh Google access token');
+      return;
+    }
+
+    const tokenData = await tokenResponse.json() as any;
+    await googleCalendarService.createEventFromBooking(bookingId, tokenData.access_token, calendarId);
+    logger.info(`Booking ${bookingId} synced to Google Calendar`);
   }
 }
 

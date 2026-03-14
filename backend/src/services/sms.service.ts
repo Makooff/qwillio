@@ -80,8 +80,9 @@ export class SmsService {
     phone: string | null;
     businessName: string;
     contactName: string | null;
+    smsOptedOut?: boolean;
   }, callOutcome: string, quoteLink?: string): Promise<boolean> {
-    if (!prospect.phone) return false;
+    if (!prospect.phone || prospect.smsOptedOut) return false;
 
     let body: string;
     const name = prospect.contactName || 'there';
@@ -116,8 +117,9 @@ export class SmsService {
     phone: string | null;
     businessName: string;
     contactName: string | null;
+    smsOptedOut?: boolean;
   }, reason: 'bounce' | 'no_open'): Promise<boolean> {
-    if (!prospect.phone) return false;
+    if (!prospect.phone || prospect.smsOptedOut) return false;
 
     const name = prospect.contactName || 'there';
     const body = reason === 'bounce'
@@ -136,8 +138,9 @@ export class SmsService {
     phone: string | null;
     businessName: string;
     contactName: string | null;
+    smsOptedOut?: boolean;
   }): Promise<boolean> {
-    if (!prospect.phone) return false;
+    if (!prospect.phone || prospect.smsOptedOut) return false;
 
     const name = prospect.contactName || 'there';
     const body = `Hi ${name}! Ashley from Qwillio here — I tried reaching you a couple times about ${prospect.businessName}. No worries at all! If you're ever curious how AI can help you never miss a call again, here's a quick 2-min video: qwillio.com/demo. Have a great day!`;

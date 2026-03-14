@@ -193,6 +193,33 @@ export class WebhooksController {
       return;
     }
 
+    // Handle SMS opt-out keywords (STOP, UNSUBSCRIBE, CANCEL, QUIT, END)
+    const optOutKeywords = ['stop', 'unsubscribe', 'cancel', 'quit', 'end', 'arret', 'arreter'];
+    const bodyTrimmed = (body || '').trim().toLowerCase();
+    if (optOutKeywords.includes(bodyTrimmed)) {
+      await prisma.prospect.update({
+        where: { id: prospect.id },
+        data: { smsOptedOut: true, smsOptedOutAt: new Date() },
+      });
+      logger.info(`SMS opt-out recorded for ${prospect.businessName} (${from})`);
+      await discordService.notify(`🚫 SMS OPT-OUT\n\nProspect: ${prospect.businessName}\nPhone: ${from}\nKeyword: "${bodyTrimmed}"`);
+      // Twilio handles the STOP response automatically at carrier level
+      res.type('text/xml').send('<Response></Response>');
+      return;
+    }
+
+    // Handle opt-in (START, YES, UNSTOP)
+    const optInKeywords = ['start', 'yes', 'unstop'];
+    if (optInKeywords.includes(bodyTrimmed)) {
+      await prisma.prospect.update({
+        where: { id: prospect.id },
+        data: { smsOptedOut: false, smsOptedOutAt: null },
+      });
+      logger.info(`SMS opt-in recorded for ${prospect.businessName} (${from})`);
+      res.type('text/xml').send('<Response></Response>');
+      return;
+    }
+
     // Try to extract email from the SMS body
     const extractedEmail = extractEmailFromText(body || '');
 

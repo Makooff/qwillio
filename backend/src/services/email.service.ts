@@ -5,6 +5,23 @@ import { PACKAGES } from '../types';
 import { formatDate } from '../utils/helpers';
 
 export class EmailService {
+  /**
+   * Generate unsubscribe link for a given email address
+   */
+  private getUnsubscribeUrl(email: string): string {
+    const token = Buffer.from(email).toString('base64url');
+    return `${env.API_BASE_URL}/api/unsubscribe/${token}`;
+  }
+
+  /**
+   * Inject unsubscribe link into rendered HTML (before closing </body>)
+   */
+  private injectUnsubscribeLink(html: string, email: string): string {
+    const url = this.getUnsubscribeUrl(email);
+    const footer = `<div style="text-align:center;padding:10px 0;"><a href="${url}" style="color:#999;font-size:11px;text-decoration:underline;">Unsubscribe</a></div>`;
+    return html.replace('</body>', `${footer}</body>`);
+  }
+
   async sendQuoteEmail(data: {
     to: string;
     contactName: string;
@@ -17,7 +34,8 @@ export class EmailService {
     paymentLink: string;
     quoteId: string;
   }) {
-    const html = this.renderQuoteTemplate(data);
+    const rawHtml = this.renderQuoteTemplate(data);
+    const html = this.injectUnsubscribeLink(rawHtml, data.to);
 
     try {
       const result = await resend.emails.send({
@@ -26,6 +44,7 @@ export class EmailService {
         subject: `Your Qwillio Quote - ${data.businessName}`,
         html,
         replyTo: env.RESEND_REPLY_TO,
+        headers: { 'List-Unsubscribe': `<${this.getUnsubscribeUrl(data.to)}>` },
         tags: [
           { name: 'campaign', value: 'quote' },
           { name: 'package', value: data.packageType },
@@ -50,7 +69,8 @@ export class EmailService {
     paymentLink: string;
     type: 'day1' | 'day3' | 'day7';
   }) {
-    const html = this.renderFollowUpTemplate(data);
+    const rawHtml = this.renderFollowUpTemplate(data);
+    const html = this.injectUnsubscribeLink(rawHtml, data.to);
     const subjects: Record<string, string> = {
       day1: `${data.contactName}, your proposal is still available`,
       day3: `Only 4 days left for your Qwillio offer - ${data.businessName}`,
@@ -64,6 +84,7 @@ export class EmailService {
         subject: subjects[data.type],
         html,
         replyTo: env.RESEND_REPLY_TO,
+        headers: { 'List-Unsubscribe': `<${this.getUnsubscribeUrl(data.to)}>` },
         tags: [
           { name: 'campaign', value: `followup_${data.type}` },
         ],
@@ -85,7 +106,8 @@ export class EmailService {
     vapiPhoneNumber: string;
     dashboardUrl: string;
   }) {
-    const html = this.renderWelcomeTemplate(data);
+    const rawHtml = this.renderWelcomeTemplate(data);
+    const html = this.injectUnsubscribeLink(rawHtml, data.to);
 
     try {
       const result = await resend.emails.send({
@@ -113,7 +135,8 @@ export class EmailService {
     trialEndDate: Date;
     trialCallsQuota: number;
   }) {
-    const html = this.renderTrialWelcomeTemplate(data);
+    const rawHtml = this.renderTrialWelcomeTemplate(data);
+    const html = this.injectUnsubscribeLink(rawHtml, data.to);
 
     try {
       const result = await resend.emails.send({
@@ -146,7 +169,8 @@ export class EmailService {
     paymentLink: string;
     monthlyPrice: number;
   }) {
-    const html = this.renderTrialEndingTemplate(data);
+    const rawHtml = this.renderTrialEndingTemplate(data);
+    const html = this.injectUnsubscribeLink(rawHtml, data.to);
     const subjects: Record<number, string> = {
       7: `${data.contactName}, only 7 days left in your free trial!`,
       1: `TOMORROW your free trial ends - ${data.businessName}`,
@@ -180,7 +204,8 @@ export class EmailService {
     paymentLink: string;
     monthlyPrice: number;
   }) {
-    const html = this.renderTrialExpiredTemplate(data);
+    const rawHtml = this.renderTrialExpiredTemplate(data);
+    const html = this.injectUnsubscribeLink(rawHtml, data.to);
 
     try {
       const result = await resend.emails.send({
@@ -207,7 +232,8 @@ export class EmailService {
     contactName: string;
     businessName: string;
   }) {
-    const html = this.renderCallback3MonthsTemplate(data);
+    const rawHtml = this.renderCallback3MonthsTemplate(data);
+    const html = this.injectUnsubscribeLink(rawHtml, data.to);
 
     try {
       const result = await resend.emails.send({

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -7,6 +8,20 @@ import { logger } from './config/logger';
 import { prisma } from './config/database';
 import { errorMiddleware } from './middleware/error.middleware';
 import { botLoop } from './jobs/bot-loop';
+
+// ─── Sentry Error Monitoring ────────────────────────────
+if (env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: env.SENTRY_DSN,
+    environment: env.NODE_ENV,
+    tracesSampleRate: env.NODE_ENV === 'production' ? 0.2 : 1.0,
+    integrations: [
+      Sentry.httpIntegration(),
+      Sentry.expressIntegration(),
+    ],
+  });
+  logger.info('Sentry error monitoring initialized');
+}
 
 // Routes
 import authRoutes from './routes/auth.routes';
@@ -69,6 +84,33 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/admin-analytics', adminAnalyticsRoutes);
 app.use('/api/my-dashboard', myDashboardRoutes);
 
+// ─── Unsubscribe ────────────────────────────────────────
+app.get('/api/unsubscribe/:token', async (req, res) => {
+  try {
+    const email = Buffer.from(req.params.token, 'base64url').toString('utf-8');
+    if (!email || !email.includes('@')) {
+      res.status(400).send('<html><body style="font-family:sans-serif;text-align:center;padding:60px;"><h2>Invalid link</h2></body></html>');
+      return;
+    }
+    // Mark prospect as unsubscribed
+    const updated = await prisma.prospect.updateMany({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      data: { emailUnsubscribed: true, emailUnsubscribedAt: new Date() },
+    });
+    if (updated.count > 0) {
+      logger.info(`Email unsubscribed: ${email}`);
+    }
+    res.send(`<html><body style="font-family:sans-serif;text-align:center;padding:60px;">
+      <h2>You've been unsubscribed</h2>
+      <p>You will no longer receive emails from Qwillio.</p>
+      <p style="color:#888;margin-top:30px;">If this was a mistake, contact us at contact@qwillio.com</p>
+    </body></html>`);
+  } catch (error) {
+    logger.error('Unsubscribe error:', error);
+    res.status(500).send('<html><body style="font-family:sans-serif;text-align:center;padding:60px;"><h2>Something went wrong</h2></body></html>');
+  }
+});
+
 // ─── Health Check ────────────────────────────────────────
 app.get('/api/health', async (_req, res) => {
   try {
@@ -86,6 +128,9 @@ app.get('/api/health', async (_req, res) => {
 });
 
 // ─── Error Handler ───────────────────────────────────────
+if (env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 app.use(errorMiddleware);
 
 // ─── Start Server ────────────────────────────────────────

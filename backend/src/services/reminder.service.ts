@@ -115,6 +115,15 @@ export class ReminderService {
       return;
     }
 
+    // Don't send if prospect unsubscribed
+    if (quote.prospect.emailUnsubscribed) {
+      await prisma.reminder.update({
+        where: { id: reminder.id },
+        data: { status: 'canceled', result: 'Prospect unsubscribed from emails' },
+      });
+      return;
+    }
+
     // Don't send follow-up if quote is already accepted
     if (quote.status === 'accepted') {
       await prisma.reminder.update({
@@ -411,6 +420,10 @@ export class ReminderService {
       await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'canceled', result: 'Prospect or phone not found' } });
       return;
     }
+    if (prospect.smsOptedOut) {
+      await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'canceled', result: 'Prospect SMS opted out' } });
+      return;
+    }
 
     const lastCall = await prisma.call.findFirst({
       where: { prospectId: prospect.id },
@@ -432,6 +445,10 @@ export class ReminderService {
     const prospect = await prisma.prospect.findUnique({ where: { id: reminder.targetId } });
     if (!prospect || !prospect.email) {
       await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'canceled', result: 'Prospect or email not found' } });
+      return;
+    }
+    if (prospect.emailUnsubscribed) {
+      await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'canceled', result: 'Prospect unsubscribed' } });
       return;
     }
 
@@ -458,6 +475,10 @@ export class ReminderService {
     const prospect = await prisma.prospect.findUnique({ where: { id: reminder.targetId } });
     if (!prospect || !prospect.email) {
       await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'canceled', result: 'Prospect or email not found' } });
+      return;
+    }
+    if (prospect.emailUnsubscribed) {
+      await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'canceled', result: 'Prospect unsubscribed' } });
       return;
     }
 
@@ -493,6 +514,10 @@ export class ReminderService {
     const prospect = await prisma.prospect.findUnique({ where: { id: reminder.targetId } });
     if (!prospect || !prospect.email) {
       await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'canceled', result: 'Prospect or email not found' } });
+      return;
+    }
+    if (prospect.emailUnsubscribed) {
+      await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'canceled', result: 'Prospect unsubscribed' } });
       return;
     }
 
