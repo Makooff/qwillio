@@ -50,4 +50,6 @@ export const CALLBACK_RETRY_DELAYS = [
   72 * 60 * 60 * 1000,   // +72 hours
 ];
 
-export const MAX_CALL_ATTEMPTS = 3;
+// MAX_CALL_ATTEMPTS is the single source of truth in scheduling.ts
+// Re-export for backwards compatibility
+export { MAX_CALL_ATTEMPTS } from './scheduling';

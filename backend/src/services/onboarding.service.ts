@@ -104,10 +104,18 @@ export class OnboardingService {
 
       logger.info(`Using shared phone number: ${sharedPhoneNumber}`);
 
-      // ── STEP 3: Verify assistant is reachable ──
-      const isHealthy = await this.verifyAssistantHealth(assistant.id);
+      // ── STEP 3: Verify assistant is reachable (retry once before proceeding) ──
+      let isHealthy = await this.verifyAssistantHealth(assistant.id);
       if (!isHealthy) {
-        logger.warn(`Assistant ${assistant.id} health check failed, proceeding anyway`);
+        logger.warn(`Assistant ${assistant.id} health check failed, retrying in 3s...`);
+        await this.sleep(3000);
+        isHealthy = await this.verifyAssistantHealth(assistant.id);
+        if (!isHealthy) {
+          logger.warn(`Assistant ${assistant.id} health check failed twice — proceeding but flagging`);
+          await discordService.notify(
+            `⚠️ HEALTH CHECK FAILED\n\nClient: ${client.businessName}\nAssistant: ${assistant.id}\nProceeding with onboarding but assistant may not respond to calls`
+          );
+        }
       }
 
       // ── STEP 4: Update client record ──

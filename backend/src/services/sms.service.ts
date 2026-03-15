@@ -20,7 +20,7 @@ export class SmsService {
   /**
    * Send an SMS via Twilio
    */
-  async sendSMS(to: string, body: string): Promise<{ success: boolean; messageId?: string }> {
+  async sendSMS(to: string, body: string, metadata?: { messageType?: string; prospectId?: string; clientId?: string }): Promise<{ success: boolean; messageId?: string }> {
     if (!env.SMS_ENABLED) {
       logger.debug('SMS disabled, skipping send');
       return { success: false };
@@ -41,6 +41,19 @@ export class SmsService {
 
       logger.info(`SMS sent to ${to}: ${message.sid}`);
 
+      // Log SMS attempt
+      await prisma.smsLog.create({
+        data: {
+          to,
+          body: body.substring(0, 1600),
+          messageType: metadata?.messageType || 'unknown',
+          twilioSid: message.sid,
+          status: 'sent',
+          prospectId: metadata?.prospectId || null,
+          clientId: metadata?.clientId || null,
+        },
+      }).catch((err: any) => logger.warn('Failed to log SMS:', err));
+
       // Track cost in daily analytics
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -60,6 +73,19 @@ export class SmsService {
       return { success: true, messageId: message.sid };
     } catch (error: any) {
       logger.error(`SMS send failed to ${to}:`, error.message);
+
+      // Log failed SMS attempt
+      await prisma.smsLog.create({
+        data: {
+          to,
+          body: body.substring(0, 1600),
+          messageType: metadata?.messageType || 'unknown',
+          status: 'failed',
+          errorMsg: error.message,
+          prospectId: metadata?.prospectId || null,
+          clientId: metadata?.clientId || null,
+        },
+      }).catch((err: any) => logger.warn('Failed to log SMS error:', err));
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);

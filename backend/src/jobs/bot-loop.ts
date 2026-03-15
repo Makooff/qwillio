@@ -27,6 +27,7 @@ class BotLoop {
   private optimizationJob: cron.ScheduledTask | null = null;
   private phoneValidationJob: cron.ScheduledTask | null = null;
   private nicheLearningJob: cron.ScheduledTask | null = null;
+  private staleCallCleanupJob: cron.ScheduledTask | null = null;
   private keepAliveJob: cron.ScheduledTask | null = null;
 
   async initialize() {
@@ -287,7 +288,34 @@ class BotLoop {
     }, { timezone: env.TZ });
 
     // ═══════════════════════════════════════════════════════════
-    // CRON 13: KEEP-ALIVE PING - Every 10 minutes
+    // CRON 13.5: STALE CALL CLEANUP - Every 15 minutes
+    // Marks calls stuck in 'in-progress' for >15min as 'failed'
+    // ═══════════════════════════════════════════════════════════
+    this.staleCallCleanupJob = cron.schedule('*/15 * * * *', async () => {
+      try {
+        const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000);
+        const staleCalls = await prisma.call.updateMany({
+          where: {
+            status: 'in-progress',
+            startedAt: { lt: fifteenMinAgo },
+          },
+          data: {
+            status: 'failed',
+            endedAt: new Date(),
+            summary: 'Auto-closed: call stuck in-progress for >15 minutes',
+          },
+        });
+        if (staleCalls.count > 0) {
+          logger.warn(`[CRON] Cleaned up ${staleCalls.count} stale in-progress call(s)`);
+          await discordService.notify(`🧹 Cleaned ${staleCalls.count} stale call(s) stuck in-progress`);
+        }
+      } catch (error) {
+        logger.error('[CRON] Stale call cleanup failed:', error);
+      }
+    }, { timezone: env.TZ });
+
+    // ═══════════════════════════════════════════════════════════
+    // CRON 14: KEEP-ALIVE PING - Every 10 minutes
     // Prevents Render free tier from sleeping (cold start ~50s)
     // ═══════════════════════════════════════════════════════════
     this.keepAliveJob = cron.schedule('*/10 * * * *', async () => {
@@ -316,6 +344,7 @@ class BotLoop {
     this.optimizationJob?.stop();
     this.phoneValidationJob?.stop();
     this.nicheLearningJob?.stop();
+    this.staleCallCleanupJob?.stop();
     this.keepAliveJob?.stop();
 
     const botStatus = await prisma.botStatus.findFirst();

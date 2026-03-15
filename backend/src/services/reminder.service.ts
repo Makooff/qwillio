@@ -94,6 +94,9 @@ export class ReminderService {
       case 'email_verification_check':
         await this.processEmailVerificationCheck(reminder);
         break;
+      case 'email_confirmation_30s':
+        await this.processEmailConfirmation30s(reminder);
+        break;
 
       default:
         logger.warn(`Unknown reminder type: ${reminder.reminderType}`);
@@ -588,6 +591,39 @@ export class ReminderService {
     });
 
     logger.info(`Callback retry: ${prospect.businessName} re-added to queue (attempt ${prospect.callAttempts + 1})`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // EMAIL CONFIRMATION (30s delay, survives restarts)
+  // ═══════════════════════════════════════════════════════════
+  private async processEmailConfirmation30s(reminder: any) {
+    const prospect = await prisma.prospect.findUnique({ where: { id: reminder.targetId } });
+    if (!prospect || !prospect.email) {
+      await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'canceled', result: 'Prospect or email not found' } });
+      return;
+    }
+
+    try {
+      const result = await emailService.sendEmailConfirmation({
+        to: prospect.email,
+        contactName: prospect.contactName || prospect.businessName,
+        businessName: prospect.businessName,
+        prospectId: prospect.id,
+      });
+      if (result.success) {
+        await prisma.prospect.update({
+          where: { id: prospect.id },
+          data: { emailConfirmationId: result.emailId || null },
+        });
+        await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'completed', result: `Confirmation email sent to ${prospect.email}` } });
+        logger.info(`Confirmation email sent to ${prospect.email} for ${prospect.businessName}`);
+      } else {
+        await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'completed', result: 'Email send returned false' } });
+      }
+    } catch (e) {
+      logger.warn(`Failed to send confirmation email to ${prospect.email}:`, e);
+      await prisma.reminder.update({ where: { id: reminder.id }, data: { status: 'completed', result: `Failed: ${(e as Error).message}` } });
+    }
   }
 
   // ═══════════════════════════════════════════════════════════

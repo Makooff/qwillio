@@ -88,7 +88,8 @@ export const HOLIDAYS_BY_COUNTRY: Record<string, string[]> = {
 export const PRIORITY_DAYS = [2, 3, 4];
 
 // Max call attempts per prospect before marking as exhausted
-export const MAX_CALL_ATTEMPTS = 2;
+// Single source of truth — also re-exported from followup-sequence.ts
+export const MAX_CALL_ATTEMPTS = 3;
 
 // Day + hour priority weights for smart scheduling
 // Higher = better time to call. Used to boost candidate scores.

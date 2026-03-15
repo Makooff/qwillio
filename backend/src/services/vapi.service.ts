@@ -14,6 +14,10 @@ import { emailService } from './email.service';
 import { normalizeEmail, isValidEmail } from '../utils/validators';
 import { nicheLearningService } from './niche-learning.service';
 
+// Interest level thresholds — single source of truth
+export const INTEREST_QUALIFIED = 7;  // >= 7 = qualified, auto-start free trial
+export const INTEREST_INTERESTED = 4; // >= 4 = interested, send follow-up sequence
+
 export class VapiService {
   async callNextProspect(): Promise<boolean> {
     // Check if within business hours
@@ -26,14 +30,10 @@ export class VapiService {
       return false;
     }
 
-    // Check daily quota
+    // Atomic quota check + increment to prevent race conditions
     const botStatus = await prisma.botStatus.findFirst();
     if (!botStatus || !botStatus.isActive) {
       logger.info('Bot is inactive, skipping call');
-      return false;
-    }
-    if (botStatus.callsToday >= botStatus.callsQuotaDaily) {
-      logger.info('Daily call quota reached');
       return false;
     }
 
@@ -43,14 +43,30 @@ export class VapiService {
       return false;
     }
 
+    // Atomic quota check: only increment if under limit (prevents concurrent over-calling)
+    const updated = await prisma.botStatus.updateMany({
+      where: {
+        id: botStatus.id,
+        callsToday: { lt: botStatus.callsQuotaDaily },
+      },
+      data: {
+        callsToday: { increment: 1 },
+        lastCall: new Date(),
+      },
+    });
+    if (updated.count === 0) {
+      logger.info('Daily call quota reached (atomic check)');
+      return false;
+    }
+
     // Holiday check
     if (isHoliday(now, 'US')) {
       logger.info('Today is a holiday, skipping calls');
       return false;
     }
 
-    // Blackout period: Never call Monday before 10am or Friday after 2pm
-    if (isBlackoutPeriod()) {
+    // Blackout period: Never call Monday before 10am or Friday after 2pm (in target timezone)
+    if (isBlackoutPeriod(env.TZ)) {
       logger.info('Blackout period (Mon before 10am or Fri after 2pm), skipping calls');
       return false;
     }
@@ -76,8 +92,9 @@ export class VapiService {
     }
 
     // Filter by niche call window and sort by priority
+    // Use prospect's timezone for scoring, not server timezone
     const priorityBonus = isPriorityDay() ? 2 : 0;
-    const dayHourBonus = getDayHourBonus();
+    const dayHourBonus = getDayHourBonus(env.TZ);
     const scoredCandidates = candidates
       .map(p => {
         const script = NICHE_SCRIPTS[p.businessType] || DEFAULT_SCRIPT;
@@ -183,14 +200,7 @@ export class VapiService {
         },
       });
 
-      // Update bot status
-      await prisma.botStatus.update({
-        where: { id: botStatus.id },
-        data: {
-          callsToday: { increment: 1 },
-          lastCall: new Date(),
-        },
-      });
+      // Bot status already updated atomically above (callsToday + lastCall)
 
       // Update daily analytics
       const today = new Date();
@@ -232,7 +242,7 @@ export class VapiService {
         durationSeconds: duration,
         transcript,
         summary: analysis.summary,
-        sentiment: analysis.interestLevel >= 7 ? 'positive' : analysis.interestLevel >= 4 ? 'neutral' : 'negative',
+        sentiment: analysis.interestLevel >= INTEREST_QUALIFIED ? 'positive' : analysis.interestLevel >= INTEREST_INTERESTED ? 'neutral' : 'negative',
         interestLevel: analysis.interestLevel,
         emailCollected: analysis.email,
         needsMentioned: analysis.painPoints,
@@ -248,8 +258,8 @@ export class VapiService {
     });
 
     // Update prospect based on analysis
-    const newStatus = analysis.interestLevel >= 7 ? 'qualified' :
-                      analysis.interestLevel >= 4 ? 'interested' : 'contacted';
+    const newStatus = analysis.interestLevel >= INTEREST_QUALIFIED ? 'qualified' :
+                      analysis.interestLevel >= INTEREST_INTERESTED ? 'interested' : 'contacted';
 
     // ═══ EMAIL VALIDATION & NORMALIZATION ═══
     let validatedEmail = call.prospect.email;
@@ -272,11 +282,11 @@ export class VapiService {
         painPoints: analysis.painPoints,
         callDuration: duration,
         callTranscript: transcript,
-        callSentiment: analysis.interestLevel >= 7 ? 'positive' : analysis.interestLevel >= 4 ? 'neutral' : 'negative',
-        nextAction: analysis.interestLevel >= 7 ? 'send_quote' :
-                    analysis.interestLevel >= 4 ? 'callback_7days' : 'callback_3months',
-        nextActionDate: analysis.interestLevel >= 7 ? new Date() :
-                        analysis.interestLevel >= 4 ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) :
+        callSentiment: analysis.interestLevel >= INTEREST_QUALIFIED ? 'positive' : analysis.interestLevel >= INTEREST_INTERESTED ? 'neutral' : 'negative',
+        nextAction: analysis.interestLevel >= INTEREST_QUALIFIED ? 'send_quote' :
+                    analysis.interestLevel >= INTEREST_INTERESTED ? 'callback_7days' : 'callback_3months',
+        nextActionDate: analysis.interestLevel >= INTEREST_QUALIFIED ? new Date() :
+                        analysis.interestLevel >= INTEREST_INTERESTED ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) :
                         new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
       },
     });
@@ -290,14 +300,14 @@ export class VapiService {
         callsSuccessful: { increment: 1 },
         totalCallDuration: { increment: duration },
         prospectsContacted: { increment: 1 },
-        prospectsQualified: { increment: analysis.interestLevel >= 7 ? 1 : 0 },
+        prospectsQualified: { increment: analysis.interestLevel >= INTEREST_QUALIFIED ? 1 : 0 },
       },
       create: {
         date: today,
         callsSuccessful: 1,
         totalCallDuration: duration,
         prospectsContacted: 1,
-        prospectsQualified: analysis.interestLevel >= 7 ? 1 : 0,
+        prospectsQualified: analysis.interestLevel >= INTEREST_QUALIFIED ? 1 : 0,
       },
     });
 
@@ -312,36 +322,26 @@ export class VapiService {
       });
     }
 
-    // If qualified -> automatically start free trial
-    if (analysis.interestLevel >= 7 && validatedEmail) {
+    // If qualified -> automatically start free trial (skip if email already bounced)
+    if (analysis.interestLevel >= INTEREST_QUALIFIED && validatedEmail && !call.prospect.emailBounced) {
       logger.info(`Prospect ${call.prospect.businessName} qualified (interest: ${analysis.interestLevel}/10) - starting free trial`);
       await quoteService.startFreeTrial(call.prospect.id, analysis.recommendedPackage, validatedEmail);
+    } else if (analysis.interestLevel >= INTEREST_QUALIFIED && call.prospect.emailBounced) {
+      logger.warn(`Prospect ${call.prospect.businessName} qualified but email bounced — skipping free trial, waiting for SMS correction`);
     }
 
-    // ═══ 30s CONFIRMATION EMAIL + 24h VERIFICATION CHECK ═══
+    // ═══ CONFIRMATION EMAIL + 24h VERIFICATION CHECK ═══
     // Send confirmation email to validate the collected address (bounce detection via Resend webhook)
-    if (validatedEmail && analysis.interestLevel >= 4) {
-      setTimeout(() => {
-        (async () => {
-          try {
-            const result = await emailService.sendEmailConfirmation({
-              to: validatedEmail!,
-              contactName: analysis.contactName || call.prospect!.contactName || call.prospect!.businessName,
-              businessName: call.prospect!.businessName,
-              prospectId: call.prospect!.id,
-            });
-            if (result.success) {
-              await prisma.prospect.update({
-                where: { id: call.prospect!.id },
-                data: { emailConfirmationId: result.emailId || null },
-              });
-              logger.info(`Confirmation email sent to ${validatedEmail} for ${call.prospect!.businessName}`);
-            }
-          } catch (e) {
-            logger.warn(`Failed to send confirmation email to ${validatedEmail}:`, e);
-          }
-        })().catch(e => logger.error('Unhandled error in confirmation email setTimeout:', e));
-      }, 30_000); // 30 second delay
+    if (validatedEmail && analysis.interestLevel >= INTEREST_INTERESTED) {
+      // Schedule confirmation email via reminder system (survives server restarts)
+      await prisma.reminder.create({
+        data: {
+          targetType: 'prospect',
+          targetId: call.prospect.id,
+          reminderType: 'email_confirmation_30s',
+          scheduledAt: new Date(Date.now() + 30_000), // 30 second delay
+        },
+      });
 
       // Schedule 24h email verification check — if not verified by then, send SMS fallback
       await prisma.reminder.create({
@@ -368,7 +368,7 @@ export class VapiService {
     }
 
     // Schedule follow-up email sequence for interested/qualified prospects
-    if (analysis.interestLevel >= 4) {
+    if (analysis.interestLevel >= INTEREST_INTERESTED) {
       await this.scheduleFollowUpSequence(call.prospect.id, call.id);
     }
 
@@ -411,7 +411,7 @@ export class VapiService {
     }
 
     // Discord notification
-    const emoji = analysis.interestLevel >= 7 ? '✅' : analysis.interestLevel >= 4 ? '🟡' : '❌';
+    const emoji = analysis.interestLevel >= INTEREST_QUALIFIED ? '✅' : analysis.interestLevel >= INTEREST_INTERESTED ? '🟡' : '❌';
     await discordService.notify(
       `${emoji} CALL COMPLETED\n\nProspect: ${call.prospect.businessName}\nInterest: ${analysis.interestLevel}/10\nPackage: ${analysis.recommendedPackage.toUpperCase()}\nEmail: ${validatedEmail || 'Not collected'}${analysis.email && validatedEmail !== analysis.email ? ` (raw: ${analysis.email})` : ''}\nAction: ${analysis.nextAction}${setupFeeObjection ? '\n⚠️ Setup fee objection raised' : ''}`
     );
@@ -639,7 +639,7 @@ Return a JSON with:
       where: { id: callRecord.id },
       data: {
         summary: analysis.summary,
-        sentiment: analysis.interestLevel >= 7 ? 'positive' : analysis.interestLevel >= 4 ? 'neutral' : 'negative',
+        sentiment: analysis.interestLevel >= INTEREST_QUALIFIED ? 'positive' : analysis.interestLevel >= INTEREST_INTERESTED ? 'neutral' : 'negative',
         interestLevel: analysis.interestLevel,
         emailCollected: analysis.email,
         needsMentioned: analysis.painPoints,
@@ -654,8 +654,8 @@ Return a JSON with:
     });
 
     // 5. Update prospect with analysis
-    const newStatus = analysis.interestLevel >= 7 ? 'qualified' :
-                      analysis.interestLevel >= 4 ? 'interested' : 'contacted';
+    const newStatus = analysis.interestLevel >= INTEREST_QUALIFIED ? 'qualified' :
+                      analysis.interestLevel >= INTEREST_INTERESTED ? 'interested' : 'contacted';
 
     await prisma.prospect.update({
       where: { id: prospect.id },
@@ -667,21 +667,21 @@ Return a JSON with:
         painPoints: analysis.painPoints,
         callDuration: durationSeconds,
         callTranscript: transcript,
-        callSentiment: analysis.interestLevel >= 7 ? 'positive' : analysis.interestLevel >= 4 ? 'neutral' : 'negative',
-        nextAction: analysis.interestLevel >= 7 ? 'send_quote' : 'callback_7days',
+        callSentiment: analysis.interestLevel >= INTEREST_QUALIFIED ? 'positive' : analysis.interestLevel >= INTEREST_INTERESTED ? 'neutral' : 'negative',
+        nextAction: analysis.interestLevel >= INTEREST_QUALIFIED ? 'send_quote' : 'callback_7days',
         nextActionDate: new Date(),
       },
     });
 
     // 6. Discord notification
-    const emoji = analysis.interestLevel >= 7 ? '✅' : analysis.interestLevel >= 4 ? '🟡' : '❌';
+    const emoji = analysis.interestLevel >= INTEREST_QUALIFIED ? '✅' : analysis.interestLevel >= INTEREST_INTERESTED ? '🟡' : '❌';
     await discordService.notify(
       `${emoji} WEB DEMO CALL COMPLETED\n\nBusiness: ${businessName}\nInterest: ${analysis.interestLevel}/10\nPackage: ${analysis.recommendedPackage.toUpperCase()}\nEmail: ${analysis.email || 'Not collected'}\nDuration: ${durationSeconds}s\nOutcome: ${analysis.outcome}\nSummary: ${analysis.summary}`
     );
 
     // 7. If qualified (interest >= 7) AND email collected → start full pipeline
     let trialStarted = false;
-    if (analysis.interestLevel >= 7 && analysis.email) {
+    if (analysis.interestLevel >= INTEREST_QUALIFIED && analysis.email) {
       logger.info(`🧪 Prospect qualified! Starting free trial for ${businessName}...`);
       try {
         await quoteService.startFreeTrial(prospect.id, analysis.recommendedPackage, analysis.email);

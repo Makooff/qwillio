@@ -248,6 +248,7 @@ export class OnboardingFlowService {
     });
 
     // Rebuild the VAPI assistant prompt with the new data
+    let vapiUpdateFailed = false;
     if (client.vapiAssistantId) {
       try {
         const { vapiClient } = await import('../config/vapi');
@@ -262,23 +263,34 @@ export class OnboardingFlowService {
         });
         logger.info(`VAPI assistant updated with onboarding data for ${client.businessName}`);
       } catch (err) {
+        vapiUpdateFailed = true;
         logger.error(`Failed to update VAPI assistant for ${client.businessName}:`, err);
+        // Revert the onboardingFormDoneAt since the assistant wasn't updated
+        await prisma.client.update({
+          where: { id: clientId },
+          data: { onboardingFormDoneAt: null },
+        });
+        await discordService.notify(
+          `⚠️ VAPI UPDATE FAILED after form submission\n\nClient: ${client.businessName}\nForm data saved but assistant NOT updated\nManual intervention needed`
+        );
       }
     }
 
-    // Send Loom video placeholder email
-    await emailService.sendLoomVideoEmail({
-      to: client.contactEmail,
-      contactName: client.contactName,
-      businessName: client.businessName,
-      dashboardUrl: `${env.FRONTEND_URL}/client-portal/${clientId}?token=${client.dashboardToken}`,
-    });
+    // Send Loom video placeholder email (only if VAPI update succeeded)
+    if (!vapiUpdateFailed) {
+      await emailService.sendLoomVideoEmail({
+        to: client.contactEmail,
+        contactName: client.contactName,
+        businessName: client.businessName,
+        dashboardUrl: `${env.FRONTEND_URL}/client-portal/${clientId}?token=${client.dashboardToken}`,
+      });
 
-    await discordService.notify(
-      `📝 ONBOARDING FORM COMPLETED!\n\nClient: ${client.businessName}\nPlan: ${client.planType.toUpperCase()}\nIndustry: ${client.businessType}\n\n✅ VAPI assistant enriched with business data\n📹 Loom video email sent`
-    );
+      await discordService.notify(
+        `📝 ONBOARDING FORM COMPLETED!\n\nClient: ${client.businessName}\nPlan: ${client.planType.toUpperCase()}\nIndustry: ${client.businessType}\n\n✅ VAPI assistant enriched with business data\n📹 Loom video email sent`
+      );
+    }
 
-    return { success: true };
+    return { success: true, vapiUpdateFailed };
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -385,7 +397,19 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client) throw new Error('Client not found');
 
+    // Validate that the add-on is available for this plan
+    const availableAddOns = this.getAvailableAddOns(client.planType);
+    const addOn = availableAddOns.find(a => a.id === addOnId);
+    if (!addOn) {
+      throw new Error(`Add-on "${addOnId}" is not available for the ${client.planType} plan`);
+    }
+
+    // Check if already activated
     const currentAddOns = (client.addOns as any) || {};
+    if (currentAddOns[addOnId]?.active) {
+      throw new Error(`Add-on "${addOnId}" is already active`);
+    }
+
     currentAddOns[addOnId] = {
       activatedAt: new Date().toISOString(),
       active: true,

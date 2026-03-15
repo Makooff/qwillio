@@ -1,5 +1,6 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { detectTimezone } from '../config/scheduling';
 
 // ═══════════════════════════════════════════════════════════
 // GOOGLE CALENDAR SERVICE
@@ -30,6 +31,9 @@ export class GoogleCalendarService {
     // Default 1 hour duration
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
+    // Use client's city to detect timezone, fallback to America/New_York
+    const clientTimezone = detectTimezone(booking.client?.city || null, booking.client?.country || 'US');
+
     const event = {
       summary: `${booking.serviceType || 'Appointment'} - ${booking.customerName}`,
       description: [
@@ -43,11 +47,11 @@ export class GoogleCalendarService {
       ].filter(Boolean).join('\n'),
       start: {
         dateTime: startDate.toISOString(),
-        timeZone: 'America/New_York',
+        timeZone: clientTimezone,
       },
       end: {
         dateTime: endDate.toISOString(),
-        timeZone: 'America/New_York',
+        timeZone: clientTimezone,
       },
       reminders: {
         useDefault: false,

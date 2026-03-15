@@ -785,7 +785,11 @@ export class EmailService {
   // ═══════════════════════════════════════════════════════════
   // PAYMENT FAILED EMAIL - Notify client to update payment
   // ═══════════════════════════════════════════════════════════
-  async sendPaymentFailedEmail(data: { to: string; contactName: string; businessName: string; amount: number; }) {
+  async sendPaymentFailedEmail(data: { to: string; contactName: string; businessName: string; amount: number; paymentLink?: string | null; }) {
+    const paymentButton = data.paymentLink
+      ? `<div style="text-align:center;margin:25px 0;"><a href="${data.paymentLink}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">Update Payment Method</a></div>`
+      : `<p>Stripe will automatically retry the payment in a few days. If you'd like to update your card now, please reply to this email and we'll send you a secure link.</p>`;
+
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:'Segoe UI',sans-serif;line-height:1.6;color:#333;background:#f4f4f4;margin:0;padding:0;">
 <div style="max-width:600px;margin:20px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
@@ -799,7 +803,7 @@ export class EmailService {
     <div style="background:#fef2f2;border:1px solid #fecaca;padding:20px;border-radius:8px;margin:25px 0;">
       <p style="margin:0;color:#dc2626;"><strong>Your AI receptionist is still active</strong>, but we need you to update your payment method to avoid any service interruption.</p>
     </div>
-    <p>Stripe will automatically retry the payment in a few days. If you'd like to update your card now, please reply to this email and we'll send you a secure link.</p>
+    ${paymentButton}
     <div style="background:#f8f9ff;padding:15px;border-radius:8px;margin:25px 0;font-size:14px;">
       <p style="margin:0;"><strong>Common reasons for failed payments:</strong></p>
       <ul style="margin:10px 0 0;padding-left:20px;">
@@ -879,7 +883,8 @@ export class EmailService {
       <p style="margin:5px 0;"><strong>📋 Service:</strong> ${data.serviceType}</p>
       ${data.specialRequests ? `<p style="margin:5px 0;"><strong>📝 Notes:</strong> ${data.specialRequests}</p>` : ''}
     </div>
-    <p>If you need to reschedule or cancel, please call us at <strong>${data.businessPhone}</strong>.</p>
+    ${data.businessPhone ? `<div style="text-align:center;margin:20px 0;"><a href="tel:${data.businessPhone}" style="display:inline-block;background:#667eea;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">📞 Call to Reschedule</a></div>
+    <p style="text-align:center;color:#666;font-size:13px;">Need to reschedule or cancel? Call <strong>${data.businessPhone}</strong></p>` : '<p>If you need to reschedule, please contact us directly.</p>'}
     <p>We look forward to seeing you!</p>
     <p style="color:#888;font-size:12px;margin-top:30px;border-top:1px solid #eee;padding-top:15px;">This reminder was sent by ${data.businessName}'s AI receptionist powered by Qwillio.</p>
   </div>

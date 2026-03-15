@@ -11,6 +11,15 @@ export class StripeService {
   async handleCheckoutCompleted(session: any) {
     logger.info(`Payment received! Session: ${session.id}`);
 
+    // Idempotency: check if this session was already processed
+    const existingPayment = await prisma.payment.findFirst({
+      where: { stripePaymentIntentId: session.payment_intent },
+    });
+    if (existingPayment) {
+      logger.info(`Session ${session.id} already processed (payment ${existingPayment.id}), skipping`);
+      return;
+    }
+
     const referenceId = session.client_reference_id || session.metadata?.quote_id;
     if (!referenceId) {
       logger.error('No reference ID in checkout session');
@@ -75,7 +84,15 @@ export class StripeService {
           });
         }
       } catch (error) {
-        logger.error('Failed to create subscription:', error);
+        logger.error('Failed to create subscription for trial conversion:', error);
+        // Revert to past_due so we can retry — don't leave client in limbo
+        await prisma.client.update({
+          where: { id: client.id },
+          data: { subscriptionStatus: 'past_due' },
+        });
+        await discordService.notify(
+          `⚠️ SUBSCRIPTION CREATION FAILED (trial conversion)\n\nClient: ${client.businessName}\nSetup fee paid but subscription failed\nStatus: past_due\nError: ${(error as Error).message}`
+        );
       }
     }
 
@@ -121,6 +138,12 @@ export class StripeService {
 
     if (!quote || !quote.prospect) {
       logger.error(`Quote not found: ${quoteId}`);
+      return;
+    }
+
+    // Idempotency: skip if quote already accepted
+    if (quote.status === 'accepted') {
+      logger.info(`Quote ${quoteId} already accepted, skipping`);
       return;
     }
 
@@ -183,7 +206,14 @@ export class StripeService {
           });
         }
       } catch (error) {
-        logger.error('Failed to create subscription:', error);
+        logger.error('Failed to create subscription for new client:', error);
+        await prisma.client.update({
+          where: { id: client.id },
+          data: { subscriptionStatus: 'past_due' },
+        });
+        await discordService.notify(
+          `⚠️ SUBSCRIPTION CREATION FAILED (new client)\n\nClient: ${client.businessName}\nSetup fee paid but subscription failed\nStatus: past_due\nError: ${(error as Error).message}`
+        );
       }
     }
 
@@ -295,12 +325,13 @@ export class StripeService {
       `⚠️ PAYMENT FAILED\n\nClient: ${client.businessName}\nAmount: $${invoice.amount_due / 100}\nAction: Automatic retry scheduled`
     );
 
-    // Notify client via email
+    // Notify client via email with payment update link
     await emailService.sendPaymentFailedEmail({
       to: client.contactEmail,
       contactName: client.contactName,
       businessName: client.businessName,
       amount: invoice.amount_due / 100,
+      paymentLink: invoice.hosted_invoice_url || null,
     });
 
     // Create payment failed reminder
