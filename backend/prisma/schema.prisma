@@ -151,6 +151,9 @@ model Quote {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
   notes             String?   @db.Text
+  docusignEnvelopeId String?  @map("docusign_envelope_id") @db.VarChar(100)
+  contractSignedAt   DateTime? @map("contract_signed_at")
+  contractPdfUrl     String?  @map("contract_pdf_url") @db.VarChar(500)
 
   prospect Prospect? @relation(fields: [prospectId], references: [id], onDelete: SetNull)
   clients  Client[]

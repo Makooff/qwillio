@@ -159,6 +159,12 @@ export class StripeService {
       data: { status: 'canceled' },
     });
 
+    // Check contract signature status
+    if (!quote.contractSignedAt) {
+      logger.warn(`Payment received but contract not signed for quote ${quoteId}`);
+      await discordService.notify(`⚠️ PAYMENT WITHOUT CONTRACT\n\nQuote: ${quoteId}\nBusiness: ${quote.prospect.businessName}\nPayment accepted — client will be created without signed contract`);
+    }
+
     // Create client
     const pkg = PACKAGES[quote.packageType] || PACKAGES.basic;
     const client = await prisma.client.create({
@@ -183,6 +189,8 @@ export class StripeService {
         onboardingStatus: 'pending',
         activationDate: new Date(),
         monthlyCallsQuota: pkg.callsQuota,
+        contractSignedAt: quote.contractSignedAt || null,
+        contractUrl: quote.contractPdfUrl || null,
       },
     });
 

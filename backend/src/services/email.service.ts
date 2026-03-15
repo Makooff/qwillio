@@ -783,6 +783,54 @@ export class EmailService {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // PAYMENT LINK AFTER CONTRACT SIGNATURE
+  // ═══════════════════════════════════════════════════════════
+  async sendPaymentLinkAfterSignature(data: {
+    to: string;
+    contactName: string;
+    businessName: string;
+    packageType: string;
+    setupFee: number;
+    monthlyFee: number;
+    paymentLink: string;
+  }) {
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="font-family:'Segoe UI',sans-serif;line-height:1.6;color:#333;background:#f4f4f4;margin:0;padding:0;">
+<div style="max-width:600px;margin:20px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+  <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:35px 30px;text-align:center;">
+    <h1 style="margin:0;font-size:24px;">Contract Signed!</h1>
+    <p style="margin:10px 0 0;opacity:0.9;">One last step to activate your AI receptionist</p>
+  </div>
+  <div style="padding:40px 30px;">
+    <p>Hi ${data.contactName},</p>
+    <p>Great news! Your service agreement for <strong>${data.businessName}</strong> has been signed successfully.</p>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:20px;border-radius:8px;margin:25px 0;">
+      <p style="margin:0;color:#16a34a;"><strong>Your contract is confirmed.</strong> Complete your payment below to activate your AI receptionist immediately.</p>
+    </div>
+    <div style="background:#f8f9ff;padding:20px;border-radius:8px;margin:25px 0;">
+      <p style="margin:5px 0;"><strong>Plan:</strong> ${data.packageType.toUpperCase()}</p>
+      <p style="margin:5px 0;"><strong>Setup fee:</strong> $${data.setupFee.toLocaleString()}</p>
+      <p style="margin:5px 0;"><strong>Monthly:</strong> $${data.monthlyFee}/mo</p>
+    </div>
+    <div style="text-align:center;margin:30px 0;">
+      <a href="${data.paymentLink}" style="display:inline-block;background:#4f46e5;color:#fff;padding:16px 40px;border-radius:8px;text-decoration:none;font-weight:600;font-size:18px;">Complete Payment</a>
+    </div>
+    <p style="font-size:13px;color:#888;">Once payment is complete, we'll set up your AI receptionist and you'll receive your onboarding details within minutes.</p>
+    <p>The Qwillio Team</p>
+  </div>
+</div></body></html>`;
+    try {
+      await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL, to: data.to,
+        subject: `Contract signed — complete your setup for ${data.businessName}`,
+        html, replyTo: env.RESEND_REPLY_TO,
+        tags: [{ name: 'campaign', value: 'contract_signed_payment' }],
+      });
+      logger.info(`Payment link after signature email sent to ${data.to}`);
+    } catch (error) { logger.error('Failed to send payment link after signature email:', error); }
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // PAYMENT FAILED EMAIL - Notify client to update payment
   // ═══════════════════════════════════════════════════════════
   async sendPaymentFailedEmail(data: { to: string; contactName: string; businessName: string; amount: number; paymentLink?: string | null; }) {

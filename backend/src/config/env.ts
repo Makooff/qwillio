@@ -78,5 +78,13 @@ export const env = {
 
   SENTRY_DSN: process.env.SENTRY_DSN || '',
 
+  // DocuSign (eSignature)
+  DOCUSIGN_INTEGRATION_KEY: process.env.DOCUSIGN_INTEGRATION_KEY || '',
+  DOCUSIGN_USER_ID: process.env.DOCUSIGN_USER_ID || '',
+  DOCUSIGN_ACCOUNT_ID: process.env.DOCUSIGN_ACCOUNT_ID || '',
+  DOCUSIGN_PRIVATE_KEY: process.env.DOCUSIGN_PRIVATE_KEY || '', // base64-encoded RSA private key
+  DOCUSIGN_AUTH_SERVER: process.env.DOCUSIGN_AUTH_SERVER || 'account-d.docusign.com', // sandbox default
+  DOCUSIGN_WEBHOOK_SECRET: process.env.DOCUSIGN_WEBHOOK_SECRET || '',
+
   TZ: process.env.TZ || 'Europe/Brussels',
 };

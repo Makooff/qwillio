@@ -6,6 +6,7 @@ import { emailService } from './email.service';
 import { discordService } from './discord.service';
 import { onboardingService } from './onboarding.service';
 import { onboardingFlowService } from './onboarding-flow.service';
+import { docuSignService } from './docusign.service';
 
 export class QuoteService {
   async startFreeTrial(prospectId: string, packageType: string, email: string) {
@@ -145,7 +146,7 @@ export class QuoteService {
       },
     });
 
-    // Send email
+    // Send quote email (without payment link — payment comes after contract signature)
     await emailService.sendQuoteEmail({
       to: email,
       contactName: prospect.contactName || prospect.businessName,
@@ -157,6 +158,11 @@ export class QuoteService {
       validUntil,
       paymentLink: `${paymentLink}?client_reference_id=${quote.id}`,
       quoteId: quote.id,
+    });
+
+    // Send contract for electronic signature via DocuSign (fire-and-forget)
+    docuSignService.sendContractForSignature(quote.id).catch((err) => {
+      logger.error(`DocuSign contract send failed for quote ${quote.id}:`, err);
     });
 
     // Create automated reminders (J+1, J+3, J+7)

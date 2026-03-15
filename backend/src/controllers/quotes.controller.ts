@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { quoteService } from '../services/quote.service';
+import { docuSignService } from '../services/docusign.service';
 
 export class QuotesController {
   async list(req: Request, res: Response) {
@@ -52,6 +53,28 @@ export class QuotesController {
       res.json({ message: 'Devis envoyé', quote });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  }
+
+  async getContractStatus(req: Request, res: Response) {
+    try {
+      const status = await docuSignService.getContractStatus(req.params.id as string);
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async resendContract(req: Request, res: Response) {
+    try {
+      const sent = await docuSignService.resendContract(req.params.id as string);
+      if (sent) {
+        res.json({ message: 'Contract resent via DocuSign' });
+      } else {
+        res.status(400).json({ error: 'Could not resend contract (already signed or DocuSign not configured)' });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   }
 }

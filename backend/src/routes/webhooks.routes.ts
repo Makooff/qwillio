@@ -16,4 +16,7 @@ router.post('/twilio/sms', (req, res) => webhooksController.twilioInboundSMS(req
 // Resend email bounce/delivery webhook — triggers SMS fallback on bounce
 router.post('/resend/events', (req, res) => webhooksController.resendEmailEvent(req, res));
 
+// DocuSign Connect webhook — contract signed/declined
+router.post('/docusign', (req, res) => webhooksController.docusignWebhook(req, res));
+
 export default router;
