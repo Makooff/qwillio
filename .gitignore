@@ -9,6 +9,11 @@ build/
 .env
 .env.local
 .env.*.local
+.env.production
+
+# Secrets
+*.key
+docusign-private.key
 
 # Logs
 *.log

@@ -36,6 +36,7 @@ import clientPortalRoutes from './routes/client-portal.routes';
 import onboardingRoutes from './routes/onboarding.routes';
 import adminAnalyticsRoutes from './routes/admin-analytics.routes';
 import myDashboardRoutes from './routes/my-dashboard.routes';
+import trialRoutes from './routes/trial.routes';
 
 const app = express();
 
@@ -83,6 +84,7 @@ app.use('/api/client-portal', clientPortalRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/admin-analytics', adminAnalyticsRoutes);
 app.use('/api/my-dashboard', myDashboardRoutes);
+app.use('/api/trial', trialRoutes);
 
 // ─── Unsubscribe ────────────────────────────────────────
 app.get('/api/unsubscribe/:token', async (req, res) => {

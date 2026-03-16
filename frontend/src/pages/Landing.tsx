@@ -267,12 +267,16 @@ export default function Landing() {
             <FadeIn delay={0}>
               <div className="rounded-2xl border border-[#d2d2d7] p-8 flex flex-col h-full">
                 <h3 className="text-xl font-semibold mb-1">Starter</h3>
-                <p className="text-[#86868b] text-sm mb-6">{t('price.starter.sub')}</p>
+                <p className="text-[#86868b] text-sm mb-4">{t('price.starter.sub')}</p>
+                <div className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white text-center py-2.5 px-4 rounded-xl mb-4">
+                  <span className="text-lg font-bold">First Month Free</span>
+                </div>
                 <div className="mb-1">
                   <span className="text-4xl font-semibold tracking-tight">$197</span>
                   <span className="text-[#86868b]">/mo</span>
                 </div>
-                <p className="text-sm text-[#86868b] mb-6">+ $697 {t('price.setup')}</p>
+                <p className="text-sm text-[#86868b] mb-1">+ $697 {t('price.setup')}</p>
+                <p className="text-xs text-[#86868b] mb-4">First month free, then $197/mo</p>
                 <p className="text-sm font-medium text-[#6366f1] mb-6">200 {t('price.calls')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.starter.1'), t('pf.starter.2'), t('pf.starter.3'), t('pf.starter.4'), t('pf.starter.5')].map((f, i) => (
@@ -294,12 +298,16 @@ export default function Landing() {
                   {t('price.popular')}
                 </span>
                 <h3 className="text-xl font-semibold mb-1">Pro</h3>
-                <p className="text-white/50 text-sm mb-6">{t('price.pro.sub')}</p>
+                <p className="text-white/50 text-sm mb-4">{t('price.pro.sub')}</p>
+                <div className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white text-center py-2.5 px-4 rounded-xl mb-4">
+                  <span className="text-lg font-bold">First Month Free</span>
+                </div>
                 <div className="mb-1">
                   <span className="text-4xl font-semibold tracking-tight">$347</span>
                   <span className="text-white/50">/mo</span>
                 </div>
-                <p className="text-sm text-white/50 mb-6">+ $997 {t('price.setup')}</p>
+                <p className="text-sm text-white/50 mb-1">+ $997 {t('price.setup')}</p>
+                <p className="text-xs text-white/40 mb-4">First month free, then $347/mo</p>
                 <p className="text-sm font-medium text-[#6366f1] mb-6">500 {t('price.calls')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.pro.1'), t('pf.pro.2'), t('pf.pro.3'), t('pf.pro.4'), t('pf.pro.5'), t('pf.pro.6')].map((f, i) => (
@@ -318,12 +326,16 @@ export default function Landing() {
             <FadeIn delay={200}>
               <div className="rounded-2xl border border-[#d2d2d7] p-8 flex flex-col h-full">
                 <h3 className="text-xl font-semibold mb-1">Enterprise</h3>
-                <p className="text-[#86868b] text-sm mb-6">{t('price.enterprise.sub')}</p>
+                <p className="text-[#86868b] text-sm mb-4">{t('price.enterprise.sub')}</p>
+                <div className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white text-center py-2.5 px-4 rounded-xl mb-4">
+                  <span className="text-lg font-bold">First Month Free</span>
+                </div>
                 <div className="mb-1">
                   <span className="text-4xl font-semibold tracking-tight">$497</span>
                   <span className="text-[#86868b]">/mo</span>
                 </div>
-                <p className="text-sm text-[#86868b] mb-6">+ $1,497 {t('price.setup')}</p>
+                <p className="text-sm text-[#86868b] mb-1">+ $1,497 {t('price.setup')}</p>
+                <p className="text-xs text-[#86868b] mb-4">First month free, then $497/mo</p>
                 <p className="text-sm font-medium text-[#6366f1] mb-6">1,000 {t('price.calls')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.enterprise.1'), t('pf.enterprise.2'), t('pf.enterprise.3'), t('pf.enterprise.4'), t('pf.enterprise.5'), t('pf.enterprise.6')].map((f, i) => (
