@@ -17,6 +17,9 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
     case 'report':
       await handleReport(interaction);
       break;
+    case 'contracts':
+      await handleContracts(interaction);
+      break;
     case 'export':
       await handleExport(interaction);
       break;
@@ -98,6 +101,81 @@ async function handleReport(interaction: ChatInputCommandInteraction): Promise<v
     .setFooter({ text: `Generated ${formatTimestamp(now)}` });
 
   await interaction.editReply({ embeds: [embed] });
+}
+
+async function handleContracts(interaction: ChatInputCommandInteraction): Promise<void> {
+  await interaction.deferReply();
+
+  try {
+    const quotes = await prisma.quote.findMany({
+      include: { prospect: true },
+      orderBy: { createdAt: 'desc' },
+      take: 15,
+    });
+
+    if (quotes.length === 0) {
+      const embed = new EmbedBuilder()
+        .setTitle('📄 Contracts')
+        .setColor(0x5865f2)
+        .setDescription('No contracts found yet. Contracts are created when quotes are sent to prospects.')
+        .setTimestamp();
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
+    const contractLines = quotes.map((q) => {
+      const prospect = q.prospect?.businessName || q.prospect?.contactName || 'Unknown';
+      const pkg = q.packageType.charAt(0).toUpperCase() + q.packageType.slice(1);
+      const monthly = Number(q.monthlyFee);
+      const setup = Number(q.setupFee);
+
+      let status = '⚪ Draft';
+      if (q.contractSignedAt) {
+        status = '✅ Signed';
+      } else if (q.docusignEnvelopeId) {
+        status = '⏳ Pending Signature';
+      } else if (q.status === 'sent') {
+        status = '📤 Sent';
+      } else if (q.status === 'accepted') {
+        status = '🟢 Accepted';
+      } else if (q.status === 'expired') {
+        status = '🔴 Expired';
+      }
+
+      const signedDate = q.contractSignedAt
+        ? ` — Signed ${q.contractSignedAt.toLocaleDateString()}`
+        : '';
+
+      return `**${prospect}** — ${pkg}\n` +
+        `  💰 $${monthly}/mo + $${setup} setup | ${status}${signedDate}`;
+    });
+
+    // Stats
+    const total = quotes.length;
+    const signed = quotes.filter(q => q.contractSignedAt).length;
+    const pending = quotes.filter(q => q.docusignEnvelopeId && !q.contractSignedAt).length;
+    const totalMRR = quotes
+      .filter(q => q.contractSignedAt)
+      .reduce((sum, q) => sum + Number(q.monthlyFee), 0);
+
+    const embed = new EmbedBuilder()
+      .setTitle('📄 Contracts & DocuSign Status')
+      .setColor(0x5865f2)
+      .setDescription(contractLines.join('\n\n'))
+      .addFields(
+        { name: 'Total', value: `${total}`, inline: true },
+        { name: 'Signed', value: `${signed} ✅`, inline: true },
+        { name: 'Pending', value: `${pending} ⏳`, inline: true },
+        { name: 'Signed MRR', value: `$${totalMRR.toLocaleString()}/mo`, inline: true },
+      )
+      .setTimestamp()
+      .setFooter({ text: 'Last 15 contracts shown' });
+
+    await interaction.editReply({ embeds: [embed] });
+  } catch (error: any) {
+    logger.error('Contracts command error:', error);
+    await interaction.editReply(`❌ Failed to fetch contracts: ${error.message}`);
+  }
 }
 
 async function handleExport(interaction: ChatInputCommandInteraction): Promise<void> {

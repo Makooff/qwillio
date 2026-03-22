@@ -255,7 +255,15 @@ app.get('/health', (req, res) => {
 });
 
 export function startWebhookServer(): void {
-  app.listen(config.webhookPort, () => {
+  const server = app.listen(config.webhookPort, () => {
     logger.info(`Webhook server listening on port ${config.webhookPort}`);
+  });
+
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      logger.warn(`Port ${config.webhookPort} already in use, webhook server disabled`);
+    } else {
+      logger.error('Webhook server error:', err);
+    }
   });
 }

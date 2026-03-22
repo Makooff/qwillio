@@ -777,11 +777,11 @@ CLOSING RULE:
 Your only goal on this call is to get their email address. Not the sale. The video does the selling. Get the email.
 
 PRICING — ONLY IF ASKED:
-- Starter: $197/month + $697 setup, 200 calls/month
-- Pro: $347/month + $997 setup, 500 calls/month (recommend this one)
-- Enterprise: $497/month + $1,497 setup, 1000 calls/month
-- All plans include a free 30-day trial, no credit card needed
-- Setup fee can be split over 3 months (Pro = $${installmentAmount}/month for 3 months)
+- Starter: $497/month, 800 calls/month
+- Pro: $1,297/month, 2,000 calls/month (recommend this one)
+- Enterprise: $2,497/month, 4,000 calls/month
+- No setup fee on any plan
+- First month completely free, cancel anytime
 
 EMAIL CONFIRMATION — VERY IMPORTANT:
 When the prospect gives you their email address, you MUST:

@@ -70,6 +70,24 @@ const translations = {
   'price.setup': { fr: "frais d'installation", en: 'setup fee' },
   'price.calls': { fr: 'appels/mois inclus', en: 'calls/month included' },
   'price.choose': { fr: 'Choisir ce plan', en: 'Choose this plan' },
+  'price.firstFree': { fr: 'Premier mois gratuit', en: 'First month free' },
+  'price.then': { fr: 'Puis', en: 'Then' },
+  'price.noSetup': { fr: "Aucun frais d'installation", en: 'No setup fee' },
+
+  // ── Agent add-ons ──
+  'agent.label': { fr: 'Modules optionnels', en: 'Optional add-ons' },
+  'agent.title': { fr: 'Qwillio Agent', en: 'Qwillio Agent' },
+  'agent.subtitle': { fr: "Automatisez encore plus avec des modules IA spécialisés.", en: 'Automate even more with specialized AI modules.' },
+  'agent.email': { fr: "Lit et répond aux emails, confirmations de RDV, suivis automatiques.", en: 'Reads and replies to emails, appointment confirmations, automatic follow-ups.' },
+  'agent.payments': { fr: "Liens de paiement SMS, dépôts, frais de no-show, encaissements.", en: 'SMS payment links, deposits, no-show fees, collection.' },
+  'agent.accounting': { fr: "Factures auto, P&L mensuel, rappels d'impayés, export fiscal.", en: 'Auto-invoices, monthly P&L, overdue reminders, tax export.' },
+  'agent.inventory': { fr: "Suivi des stocks, alertes seuil bas, commandes fournisseur auto.", en: 'Stock tracking, low threshold alerts, auto supplier orders.' },
+  'agent.bundle': { fr: 'Bundle complet — les 4 modules', en: 'Agent Bundle — all 4 modules' },
+  'agent.bundleSave': { fr: 'Économisez $191/mois vs achat séparé', en: 'Save $191/month vs buying separately' },
+
+  // ── Integrations ──
+  'integrations.label': { fr: 'Intégrations', en: 'Integrations' },
+  'integrations.title': { fr: 'Connectez vos outils existants', en: 'Connect your existing tools' },
 
   // ── Final CTA ──
   'final.title': { fr: 'Prêt à ne plus jamais manquer un appel ?', en: 'Ready to never miss a call again?' },
@@ -132,23 +150,23 @@ const translations = {
   'register.callsIncluded': { fr: 'appels/mois inclus', en: 'calls/month included' },
 
   // ── Pricing features list ──
-  'pf.starter.1': { fr: 'Agent vocal IA personnalisé', en: 'Custom AI voice agent' },
-  'pf.starter.2': { fr: 'Prise de rendez-vous', en: 'Appointment booking' },
-  'pf.starter.3': { fr: 'Dashboard analytics', en: 'Analytics dashboard' },
-  'pf.starter.4': { fr: 'Support email', en: 'Email support' },
-  'pf.starter.5': { fr: 'Intégration calendrier', en: 'Calendar integration' },
+  'pf.starter.1': { fr: 'Ashley (EN) ou Marie (FR) — IA vocale dédiée', en: 'Ashley (EN) or Marie (FR) — dedicated AI voice' },
+  'pf.starter.2': { fr: '800 appels/mois inclus', en: '800 calls/month included' },
+  'pf.starter.3': { fr: 'Prise de rendez-vous + calendrier', en: 'Appointment booking + calendar' },
+  'pf.starter.4': { fr: 'Dashboard analytics', en: 'Analytics dashboard' },
+  'pf.starter.5': { fr: 'Support email', en: 'Email support' },
   'pf.pro.1': { fr: 'Tout du plan Starter', en: 'Everything in Starter' },
-  'pf.pro.2': { fr: 'Analytics avancés + sentiments', en: 'Advanced analytics + sentiments' },
-  'pf.pro.3': { fr: 'Qualification de leads', en: 'Lead qualification' },
+  'pf.pro.2': { fr: '2 000 appels/mois inclus', en: '2,000 calls/month included' },
+  'pf.pro.3': { fr: 'Analytics avancés + sentiments', en: 'Advanced analytics + sentiments' },
   'pf.pro.4': { fr: "Transfert d'appels intelligent", en: 'Smart call transfer' },
   'pf.pro.5': { fr: 'Support prioritaire', en: 'Priority support' },
-  'pf.pro.6': { fr: 'Intégrations CRM', en: 'CRM integrations' },
+  'pf.pro.6': { fr: 'Intégrations CRM natives', en: 'Native CRM integrations' },
   'pf.enterprise.1': { fr: 'Tout du plan Pro', en: 'Everything in Pro' },
-  'pf.enterprise.2': { fr: 'Agent multi-langues', en: 'Multi-language agent' },
-  'pf.enterprise.3': { fr: 'API & webhooks', en: 'API & webhooks' },
+  'pf.enterprise.2': { fr: '4 000 appels/mois inclus', en: '4,000 calls/month included' },
+  'pf.enterprise.3': { fr: 'Agent bilingue EN/FR', en: 'Bilingual agent EN/FR' },
   'pf.enterprise.4': { fr: 'Account manager dédié', en: 'Dedicated account manager' },
-  'pf.enterprise.5': { fr: 'SLA garanti 99.9%', en: '99.9% SLA guaranteed' },
-  'pf.enterprise.6': { fr: 'Onboarding VIP', en: 'VIP onboarding' },
+  'pf.enterprise.5': { fr: 'SLA garanti 99.5%', en: '99.5% SLA guaranteed' },
+  'pf.enterprise.6': { fr: 'IA auto-apprenante', en: 'Self-learning AI' },
 
   // ── Client Portal ──
   'portal.error.title': { fr: 'Accès impossible', en: 'Access denied' },

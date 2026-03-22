@@ -262,22 +262,22 @@ export default function Landing() {
             </div>
           </FadeIn>
 
+          {/* ── Ashley Receptionist Plans ── */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Starter */}
             <FadeIn delay={0}>
               <div className="rounded-2xl border border-[#d2d2d7] p-8 flex flex-col h-full">
                 <h3 className="text-xl font-semibold mb-1">Starter</h3>
-                <p className="text-[#86868b] text-sm mb-4">{t('price.starter.sub')}</p>
-                <div className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white text-center py-2.5 px-4 rounded-xl mb-4">
-                  <span className="text-lg font-bold">First Month Free</span>
-                </div>
+                <p className="text-[#86868b] text-sm mb-6">{t('price.starter.sub')}</p>
                 <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$197</span>
+                  <span className="text-4xl font-semibold tracking-tight">$0</span>
                   <span className="text-[#86868b]">/mo</span>
+                  <span className="ml-2 text-sm text-[#86868b] line-through">$497</span>
                 </div>
-                <p className="text-sm text-[#86868b] mb-1">+ $697 {t('price.setup')}</p>
-                <p className="text-xs text-[#86868b] mb-4">First month free, then $197/mo</p>
-                <p className="text-sm font-medium text-[#6366f1] mb-6">200 {t('price.calls')}</p>
+                <p className="text-sm text-[#6366f1] font-medium mb-1">{t('price.firstFree')}</p>
+                <p className="text-xs text-[#86868b] mb-2">{t('price.then')} $497/mo</p>
+                <p className="text-xs text-emerald-600 font-medium mb-4">{t('price.noSetup')}</p>
+                <p className="text-sm font-medium text-[#6366f1] mb-6">800 {t('price.calls')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.starter.1'), t('pf.starter.2'), t('pf.starter.3'), t('pf.starter.4'), t('pf.starter.5')].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-[#1d1d1f]/80">
@@ -298,17 +298,16 @@ export default function Landing() {
                   {t('price.popular')}
                 </span>
                 <h3 className="text-xl font-semibold mb-1">Pro</h3>
-                <p className="text-white/50 text-sm mb-4">{t('price.pro.sub')}</p>
-                <div className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white text-center py-2.5 px-4 rounded-xl mb-4">
-                  <span className="text-lg font-bold">First Month Free</span>
-                </div>
+                <p className="text-white/50 text-sm mb-6">{t('price.pro.sub')}</p>
                 <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$347</span>
+                  <span className="text-4xl font-semibold tracking-tight">$0</span>
                   <span className="text-white/50">/mo</span>
+                  <span className="ml-2 text-sm text-white/40 line-through">$1,297</span>
                 </div>
-                <p className="text-sm text-white/50 mb-1">+ $997 {t('price.setup')}</p>
-                <p className="text-xs text-white/40 mb-4">First month free, then $347/mo</p>
-                <p className="text-sm font-medium text-[#6366f1] mb-6">500 {t('price.calls')}</p>
+                <p className="text-sm text-[#818cf8] font-medium mb-1">{t('price.firstFree')}</p>
+                <p className="text-xs text-white/40 mb-2">{t('price.then')} $1,297/mo</p>
+                <p className="text-xs text-emerald-400 font-medium mb-4">{t('price.noSetup')}</p>
+                <p className="text-sm font-medium text-[#6366f1] mb-6">2,000 {t('price.calls')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.pro.1'), t('pf.pro.2'), t('pf.pro.3'), t('pf.pro.4'), t('pf.pro.5'), t('pf.pro.6')].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-white/70">
@@ -326,17 +325,16 @@ export default function Landing() {
             <FadeIn delay={200}>
               <div className="rounded-2xl border border-[#d2d2d7] p-8 flex flex-col h-full">
                 <h3 className="text-xl font-semibold mb-1">Enterprise</h3>
-                <p className="text-[#86868b] text-sm mb-4">{t('price.enterprise.sub')}</p>
-                <div className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white text-center py-2.5 px-4 rounded-xl mb-4">
-                  <span className="text-lg font-bold">First Month Free</span>
-                </div>
+                <p className="text-[#86868b] text-sm mb-6">{t('price.enterprise.sub')}</p>
                 <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$497</span>
+                  <span className="text-4xl font-semibold tracking-tight">$0</span>
                   <span className="text-[#86868b]">/mo</span>
+                  <span className="ml-2 text-sm text-[#86868b] line-through">$2,497</span>
                 </div>
-                <p className="text-sm text-[#86868b] mb-1">+ $1,497 {t('price.setup')}</p>
-                <p className="text-xs text-[#86868b] mb-4">First month free, then $497/mo</p>
-                <p className="text-sm font-medium text-[#6366f1] mb-6">1,000 {t('price.calls')}</p>
+                <p className="text-sm text-[#6366f1] font-medium mb-1">{t('price.firstFree')}</p>
+                <p className="text-xs text-[#86868b] mb-2">{t('price.then')} $2,497/mo</p>
+                <p className="text-xs text-emerald-600 font-medium mb-4">{t('price.noSetup')}</p>
+                <p className="text-sm font-medium text-[#6366f1] mb-6">4,000 {t('price.calls')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.enterprise.1'), t('pf.enterprise.2'), t('pf.enterprise.3'), t('pf.enterprise.4'), t('pf.enterprise.5'), t('pf.enterprise.6')].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-[#1d1d1f]/80">
@@ -350,6 +348,51 @@ export default function Landing() {
               </div>
             </FadeIn>
           </div>
+
+          {/* ── Qwillio Agent Add-ons ── */}
+          <FadeIn delay={300}>
+            <div className="mt-20 text-center mb-12">
+              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{t('agent.label')}</p>
+              <h3 className="text-3xl md:text-4xl font-semibold tracking-tight">{t('agent.title')}</h3>
+              <p className="text-[#86868b] mt-3 max-w-lg mx-auto">{t('agent.subtitle')}</p>
+            </div>
+          </FadeIn>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { name: 'Email AI', price: 197, desc: t('agent.email') },
+              { name: 'Payments AI', price: 97, desc: t('agent.payments') },
+              { name: 'Accounting AI', price: 297, desc: t('agent.accounting') },
+              { name: 'Inventory AI', price: 197, desc: t('agent.inventory') },
+            ].map((mod, i) => (
+              <FadeIn key={i} delay={i * 80}>
+                <div className="rounded-xl border border-[#d2d2d7] p-6 hover:border-[#6366f1]/40 transition-colors h-full">
+                  <h4 className="text-base font-semibold mb-1">{mod.name}</h4>
+                  <p className="text-2xl font-semibold tracking-tight mb-2">+${mod.price}<span className="text-sm text-[#86868b] font-normal">/mo</span></p>
+                  <p className="text-sm text-[#86868b] leading-relaxed">{mod.desc}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+          <FadeIn delay={400}>
+            <div className="mt-6 rounded-xl bg-gradient-to-r from-[#6366f1]/5 to-[#a855f7]/5 border border-[#6366f1]/20 p-6 text-center">
+              <p className="text-lg font-semibold">{t('agent.bundle')}</p>
+              <p className="text-3xl font-semibold tracking-tight mt-1">+$597<span className="text-sm text-[#86868b] font-normal">/mo</span></p>
+              <p className="text-sm text-[#86868b] mt-1">{t('agent.bundleSave')}</p>
+            </div>
+          </FadeIn>
+
+          {/* ── Integrations ── */}
+          <FadeIn delay={500}>
+            <div className="mt-20 text-center">
+              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{t('integrations.label')}</p>
+              <h3 className="text-2xl font-semibold tracking-tight mb-8">{t('integrations.title')}</h3>
+              <div className="flex flex-wrap justify-center gap-6 text-[#86868b] text-sm font-medium">
+                {['HubSpot', 'Salesforce', 'Pipedrive', 'Zoho CRM', 'GoHighLevel', 'Google Sheets', 'Notion', 'QuickBooks', 'Stripe', 'Google Calendar', 'Zapier'].map((name) => (
+                  <span key={name} className="px-4 py-2 rounded-full bg-[#f5f5f7] border border-[#d2d2d7]/60">{name}</span>
+                ))}
+              </div>
+            </div>
+          </FadeIn>
         </div>
       </section>
 
@@ -403,17 +446,17 @@ export default function Landing() {
             <div>
               <p className="text-xs font-semibold text-[#86868b] uppercase tracking-wider mb-3">{t('footer.company')}</p>
               <div className="space-y-2">
-                <a href="#" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{t('footer.about')}</a>
+                <Link to="/about" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{t('footer.about')}</Link>
                 <a href="#" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{t('footer.blog')}</a>
-                <a href="#" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{t('footer.contact')}</a>
+                <Link to="/contact" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{t('footer.contact')}</Link>
               </div>
             </div>
             <div>
               <p className="text-xs font-semibold text-[#86868b] uppercase tracking-wider mb-3">{t('footer.legal')}</p>
               <div className="space-y-2">
-                <a href="#" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{t('footer.privacy')}</a>
-                <a href="#" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{t('footer.terms')}</a>
-                <a href="#" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{t('footer.gdpr')}</a>
+                <Link to="/privacy" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{t('footer.privacy')}</Link>
+                <Link to="/terms" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{t('footer.terms')}</Link>
+                <Link to="/gdpr" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{t('footer.gdpr')}</Link>
               </div>
             </div>
           </div>

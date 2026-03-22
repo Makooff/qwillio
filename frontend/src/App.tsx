@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAuthStore } from './stores/authStore';
@@ -30,6 +30,12 @@ import Costs from './pages/Costs';
 import Retention from './pages/Retention';
 import FollowUps from './pages/FollowUps';
 import PhoneValidation from './pages/PhoneValidation';
+// Legal pages (lazy loaded)
+const Privacy = lazy(() => import('./pages/legal/Privacy'));
+const Terms = lazy(() => import('./pages/legal/Terms'));
+const About = lazy(() => import('./pages/legal/About'));
+const Contact = lazy(() => import('./pages/legal/Contact'));
+const Gdpr = lazy(() => import('./pages/legal/Gdpr'));
 
 function Spinner() {
   return (
@@ -98,6 +104,11 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/auth/confirm" element={<ConfirmEmail />} />
+        <Route path="/privacy" element={<Suspense fallback={<Spinner />}><Privacy /></Suspense>} />
+        <Route path="/terms" element={<Suspense fallback={<Spinner />}><Terms /></Suspense>} />
+        <Route path="/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
+        <Route path="/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
+        <Route path="/gdpr" element={<Suspense fallback={<Spinner />}><Gdpr /></Suspense>} />
 
         {/* Self-service onboarding (requires auth, not yet onboarded) */}
         <Route

@@ -122,6 +122,8 @@ model Call {
   recordingUrl         String?   @map("recording_url") @db.VarChar(500)
   setupFeeObjectionRaised Boolean @default(false) @map("setup_fee_objection_raised")
   cost                 Decimal?  @db.Decimal(10, 4)
+  qualityScore         Int?      @map("quality_score")
+  scriptDropOffPoint   String?   @map("script_drop_off_point") @db.VarChar(50)
   createdAt            DateTime  @default(now()) @map("created_at")
   metadata             Json?
 
@@ -210,6 +212,11 @@ model Client {
   totalCallsMade        Int       @default(0) @map("total_calls_made")
   monthlyCallsQuota     Int?      @map("monthly_calls_quota")
   lastCallDate          DateTime? @map("last_call_date")
+  agentLanguage         String    @default("en") @map("agent_language") @db.VarChar(10)
+  agentName             String?   @map("agent_name") @db.VarChar(100)
+  forwardingStatus      String?   @map("forwarding_status") @db.VarChar(50)
+  forwardingType        String?   @map("forwarding_type") @db.VarChar(50)
+  forwardingVerifiedAt  DateTime? @map("forwarding_verified_at")
   notes                 String?   @db.Text
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
@@ -626,4 +633,299 @@ model ContractAcceptance {
   @@index([clientId])
   @@index([userId])
   @@map("contract_acceptances")
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONTACTS — Unified CRM contacts across all integrations
+// ═══════════════════════════════════════════════════════════
+model Contact {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @map("client_id") @db.Uuid
+  name        String   @db.VarChar(255)
+  email       String?  @db.VarChar(255)
+  phone       String?  @db.VarChar(50)
+  address     String?  @db.VarChar(500)
+  niche       String?  @db.VarChar(100)
+  leadScore   Int?     @map("lead_score")
+  status      String   @default("new") @db.VarChar(50)
+  tags        String[] @default([])
+  notes       String?  @db.Text
+  externalIds Json?    @map("external_ids")
+  enrichedData Json?   @map("enriched_data")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  deals      Deal[]
+  activities Activity[]
+
+  @@index([clientId])
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+  @@map("contacts")
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEALS — Sales pipeline tracking
+// ═══════════════════════════════════════════════════════════
+model Deal {
+  id          String    @id @default(uuid()) @db.Uuid
+  contactId   String    @map("contact_id") @db.Uuid
+  clientId    String    @map("client_id") @db.Uuid
+  title       String    @db.VarChar(255)
+  stage       String    @default("new") @db.VarChar(50)
+  value       Decimal?  @db.Decimal(10, 2)
+  probability Int?
+  closeDate   DateTime? @map("close_date") @db.Date
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([stage])
+  @@map("deals")
+}
+
+// ═══════════════════════════════════════════════════════════
+// ACTIVITIES — Timeline of actions on contacts
+// ═══════════════════════════════════════════════════════════
+model Activity {
+  id          String   @id @default(uuid()) @db.Uuid
+  contactId   String   @map("contact_id") @db.Uuid
+  clientId    String   @map("client_id") @db.Uuid
+  type        String   @db.VarChar(50)
+  description String?  @db.Text
+  callId      String?  @map("call_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([contactId])
+  @@map("activities")
+}
+
+// ═══════════════════════════════════════════════════════════
+// CRM INTEGRATIONS — OAuth tokens for external CRMs
+// ═══════════════════════════════════════════════════════════
+model CrmIntegration {
+  id           String    @id @default(uuid()) @db.Uuid
+  clientId     String    @map("client_id") @db.Uuid
+  provider     String    @db.VarChar(50)
+  accessToken  String?   @map("access_token") @db.Text
+  refreshToken String?   @map("refresh_token") @db.Text
+  config       Json?
+  lastSync     DateTime? @map("last_sync")
+  syncStatus   String?   @map("sync_status") @db.VarChar(50)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@unique([clientId, provider])
+  @@index([clientId])
+  @@map("crm_integrations")
+}
+
+// ═══════════════════════════════════════════════════════════
+// SYNC LOG — Track CRM sync operations
+// ═══════════════════════════════════════════════════════════
+model SyncLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  clientId   String   @map("client_id") @db.Uuid
+  provider   String   @db.VarChar(50)
+  direction  String   @db.VarChar(20)
+  entity     String   @db.VarChar(50)
+  externalId String?  @map("external_id") @db.VarChar(255)
+  status     String   @db.VarChar(50)
+  error      String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([clientId])
+  @@map("sync_logs")
+}
+
+// ═══════════════════════════════════════════════════════════
+// SYNC CONFLICTS — CRM merge conflicts
+// ═══════════════════════════════════════════════════════════
+model SyncConflict {
+  id              String   @id @default(uuid()) @db.Uuid
+  clientId        String   @map("client_id") @db.Uuid
+  contactId       String?  @map("contact_id") @db.Uuid
+  provider        String   @db.VarChar(50)
+  qwillioVersion  Json     @map("qwillio_version")
+  externalVersion Json     @map("external_version")
+  resolved        Boolean  @default(false)
+  resolution      Json?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([clientId])
+  @@map("sync_conflicts")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT SUBSCRIPTIONS — Optional Qwillio Agent modules
+// ═══════════════════════════════════════════════════════════
+model AgentSubscription {
+  id                    String   @id @default(uuid()) @db.Uuid
+  clientId              String   @unique @map("client_id") @db.Uuid
+  emailAi               Boolean  @default(false) @map("email_ai")
+  paymentsAi            Boolean  @default(false) @map("payments_ai")
+  accountingAi          Boolean  @default(false) @map("accounting_ai")
+  inventoryAi           Boolean  @default(false) @map("inventory_ai")
+  bundle                Boolean  @default(false)
+  stripeSubscriptionId  String?  @map("stripe_subscription_id") @db.VarChar(255)
+  status                String   @default("active") @db.VarChar(50)
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  @@map("agent_subscriptions")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT EMAIL CONFIG — Email AI module settings
+// ═══════════════════════════════════════════════════════════
+model AgentEmailConfig {
+  id             String   @id @default(uuid()) @db.Uuid
+  clientId       String   @unique @map("client_id") @db.Uuid
+  gmailToken     Json?    @map("gmail_token")
+  outlookToken   Json?    @map("outlook_token")
+  autoReply      Boolean  @default(false) @map("auto_reply")
+  replyTone      String   @default("professional") @map("reply_tone") @db.VarChar(50)
+  blockedSenders String[] @default([]) @map("blocked_senders")
+  templates      Json?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("agent_email_configs")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT INVENTORY — Inventory tracking module
+// ═══════════════════════════════════════════════════════════
+model AgentInventory {
+  id            String    @id @default(uuid()) @db.Uuid
+  clientId      String    @map("client_id") @db.Uuid
+  productName   String    @map("product_name") @db.VarChar(255)
+  quantity      Decimal   @db.Decimal(10, 2)
+  unit          String?   @db.VarChar(50)
+  minThreshold  Decimal?  @map("min_threshold") @db.Decimal(10, 2)
+  supplierEmail String?   @map("supplier_email") @db.VarChar(255)
+  autoOrder     Boolean   @default(false) @map("auto_order")
+  lastUpdated   DateTime  @default(now()) @map("last_updated") @updatedAt
+
+  @@index([clientId])
+  @@map("agent_inventory")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT ACCOUNTING — Accounting AI module settings
+// ═══════════════════════════════════════════════════════════
+model AgentAccounting {
+  id               String   @id @default(uuid()) @db.Uuid
+  clientId         String   @unique @map("client_id") @db.Uuid
+  quickbooksToken  Json?    @map("quickbooks_token")
+  waveToken        Json?    @map("wave_token")
+  stripeConnected  Boolean  @default(false) @map("stripe_connected")
+  autoInvoice      Boolean  @default(false) @map("auto_invoice")
+  invoiceTemplate  Json?    @map("invoice_template")
+  taxRate          Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("agent_accounting")
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCRIPT MUTATIONS — AI self-learning script changes
+// ═══════════════════════════════════════════════════════════
+model ScriptMutation {
+  id               String    @id @default(uuid()) @db.Uuid
+  niche            String    @db.VarChar(100)
+  language         String    @db.VarChar(10)
+  type             String    @db.VarChar(50)
+  changeApplied    String    @map("change_applied") @db.Text
+  reason           String    @db.Text
+  date             DateTime  @default(now())
+  callsBefore      Int       @map("calls_before")
+  conversionBefore Float     @map("conversion_before")
+  callsAfter       Int       @default(0) @map("calls_after")
+  conversionAfter  Float?    @map("conversion_after")
+  status           String    @default("testing") @db.VarChar(50)
+  confidenceScore  Int?      @map("confidence_score")
+  revertedAt       DateTime? @map("reverted_at")
+  revertReason     String?   @map("revert_reason") @db.Text
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([niche])
+  @@index([status])
+  @@map("script_mutations")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AI DECISIONS — Log of all AI system decisions
+// ═══════════════════════════════════════════════════════════
+model AiDecision {
+  id              String   @id @default(uuid()) @db.Uuid
+  timestamp       DateTime @default(now())
+  type            String   @db.VarChar(50)
+  niche           String?  @db.VarChar(100)
+  language        String?  @db.VarChar(10)
+  confidenceScore Int?     @map("confidence_score")
+  dataPointsUsed  Int?     @map("data_points_used")
+  outcome         String   @db.VarChar(50)
+  details         Json?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([type])
+  @@index([niche])
+  @@map("ai_decisions")
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCRIPT A/B TESTS — Variant testing for call scripts
+// ═══════════════════════════════════════════════════════════
+model ScriptAbTest {
+  id           String    @id @default(uuid()) @db.Uuid
+  niche        String    @db.VarChar(100)
+  language     String    @db.VarChar(10)
+  variantA     String    @map("variant_a") @db.Text
+  variantB     String    @map("variant_b") @db.Text
+  callsA       Int       @default(0) @map("calls_a")
+  conversionsA Int       @default(0) @map("conversions_a")
+  callsB       Int       @default(0) @map("calls_b")
+  conversionsB Int       @default(0) @map("conversions_b")
+  winner       String?   @db.VarChar(10)
+  decidedAt    DateTime? @map("decided_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([niche])
+  @@map("script_ab_tests")
+}
+
+// ═══════════════════════════════════════════════════════════
+// NICHE BEST TIMES — Optimal calling windows per niche
+// ═══════════════════════════════════════════════════════════
+model NicheBestTime {
+  id           String   @id @default(uuid()) @db.Uuid
+  niche        String   @db.VarChar(100)
+  dayOfWeek    Int      @map("day_of_week")
+  hourUtc      Int      @map("hour_utc")
+  conversionRate Float  @map("conversion_rate")
+  sampleSize   Int      @map("sample_size")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([niche, dayOfWeek, hourUtc])
+  @@map("niche_best_times")
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOCAL PRESENCE NUMBERS — Area-code matched Twilio numbers
+// ═══════════════════════════════════════════════════════════
+model LocalPresenceNumber {
+  id          String   @id @default(uuid()) @db.Uuid
+  areaCode    String   @map("area_code") @db.VarChar(10)
+  phoneNumber String   @unique @map("phone_number") @db.VarChar(20)
+  twilioSid   String?  @map("twilio_sid") @db.VarChar(100)
+  city        String?  @db.VarChar(100)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([areaCode])
+  @@map("local_presence_numbers")
 }

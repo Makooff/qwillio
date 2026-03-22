@@ -235,9 +235,9 @@ export class AuthController {
       }
 
       const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number }> = {
-        starter: { setupFee: 697, monthlyFee: 197, callsQuota: 200 },
-        pro: { setupFee: 997, monthlyFee: 347, callsQuota: 500 },
-        enterprise: { setupFee: 1497, monthlyFee: 497, callsQuota: 1000 },
+        starter: { setupFee: 0, monthlyFee: 497, callsQuota: 800 },
+        pro: { setupFee: 0, monthlyFee: 1297, callsQuota: 2000 },
+        enterprise: { setupFee: 0, monthlyFee: 2497, callsQuota: 4000 },
       };
 
       const user = await prisma.user.update({

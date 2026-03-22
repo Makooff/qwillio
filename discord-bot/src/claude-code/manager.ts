@@ -245,11 +245,22 @@ export class ClaudeCodeManager {
     let lastUpdate = Date.now();
 
     try {
-      // Spawn claude CLI
-      const proc = spawn('claude', ['--print', '--dangerously-skip-permissions', prompt], {
+      // Spawn claude CLI — ensure npm global bin is in PATH
+      const npmGlobalBin = process.platform === 'win32'
+        ? `${process.env.APPDATA || ''}\\npm`
+        : '/usr/local/bin';
+      const nodePath = process.platform === 'win32'
+        ? 'C:\\Program Files\\nodejs'
+        : '/usr/local/bin';
+      const extendedPath = `${npmGlobalBin};${nodePath};${process.env.PATH || ''}`;
+
+      logger.info(`Claude Code: spawning claude --print for prompt: "${prompt.substring(0, 50)}..."`);
+
+      const proc = spawn('claude', ['--print', prompt], {
         cwd: config.projectPath,
         shell: true,
-        env: { ...process.env, PATH: process.env.PATH },
+        env: { ...process.env, PATH: extendedPath },
+        timeout: 120000, // 2 min timeout
       });
 
       session.process = proc;
@@ -277,12 +288,22 @@ export class ClaudeCodeManager {
       });
 
       proc.stderr?.on('data', (data: Buffer) => {
-        output += data.toString();
+        const text = data.toString();
+        logger.debug(`Claude stderr: ${text.substring(0, 200)}`);
+        output += text;
         updateMessage();
+      });
+
+      proc.on('error', (err) => {
+        logger.error(`Claude Code spawn error: ${err.message}`);
+        session.isRunning = false;
+        session.process = null;
+        responseMsg.edit(`❌ Error: ${err.message}`).catch(() => {});
       });
 
       await new Promise<void>((resolve) => {
         proc.on('close', (code) => {
+          logger.info(`Claude Code process exited with code ${code}, output length: ${output.length}`);
           session.isRunning = false;
           session.process = null;
 

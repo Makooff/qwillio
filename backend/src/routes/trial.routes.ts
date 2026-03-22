@@ -84,9 +84,9 @@ router.get('/contract/:planType', async (req: Request, res: Response) => {
     trialEndDate.setDate(trialEndDate.getDate() + 30);
 
     const plans: Record<string, { monthly: number; setup: number }> = {
-      starter: { monthly: 197, setup: 697 },
-      pro: { monthly: 347, setup: 997 },
-      enterprise: { monthly: 497, setup: 1497 },
+      starter: { monthly: 497, setup: 0 },
+      pro: { monthly: 1297, setup: 0 },
+      enterprise: { monthly: 2497, setup: 0 },
     };
 
     const plan = plans[planType];
@@ -126,9 +126,9 @@ router.post('/accept-contract', async (req: Request, res: Response) => {
     }
 
     const plans: Record<string, { monthly: number; setup: number }> = {
-      starter: { monthly: 197, setup: 697 },
-      pro: { monthly: 347, setup: 997 },
-      enterprise: { monthly: 497, setup: 1497 },
+      starter: { monthly: 497, setup: 0 },
+      pro: { monthly: 1297, setup: 0 },
+      enterprise: { monthly: 2497, setup: 0 },
     };
 
     const plan = plans[planType];

@@ -90,6 +90,9 @@ export async function startBot(): Promise<void> {
     new SlashCommandBuilder()
       .setName('close')
       .setDescription('Archive current Claude Code thread'),
+    new SlashCommandBuilder()
+      .setName('contracts')
+      .setDescription('Show all contracts and their DocuSign status'),
   ];
 
   const rest = new REST({ version: '10' }).setToken(config.botToken);
