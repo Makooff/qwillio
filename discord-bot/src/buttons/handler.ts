@@ -31,7 +31,7 @@ export async function handleButtonInteraction(interaction: ButtonInteraction): P
     await new Promise((r) => setTimeout(r, 2000));
     await prisma.botStatus.updateMany({ data: { isActive: true, callsToday: 0 } });
     await dashboardManager?.triggerUpdate();
-    await interaction.editReply('🔄 Marie restarted');
+    await interaction.editReply('🔄 Ashley restarted');
     return;
   }
 

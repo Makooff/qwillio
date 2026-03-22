@@ -56,7 +56,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
     .setColor(0x5865f2)
     .addFields(
       { name: 'Uptime', value: `${hours}h ${minutes}m`, inline: true },
-      { name: 'Marie', value: botStatus?.isActive ? '🟢 Active' : '🔴 Paused', inline: true },
+      { name: 'Ashley', value: botStatus?.isActive ? '🟢 Active' : '🔴 Paused', inline: true },
       { name: 'Claude Code Sessions', value: `${claudeSessions}/${config.maxClaudeCodeSessions}`, inline: true },
       { name: 'Active Process', value: activeProcess ? '🟢 Running' : '⚪ Idle', inline: true },
     )

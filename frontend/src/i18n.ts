@@ -85,6 +85,36 @@ const translations = {
   'agent.bundle': { fr: 'Bundle complet — les 4 modules', en: 'Agent Bundle — all 4 modules' },
   'agent.bundleSave': { fr: 'Économisez $191/mois vs achat séparé', en: 'Save $191/month vs buying separately' },
 
+  // ── Overage ──
+  'price.overage': { fr: 'dépassement/appel', en: 'overage/call' },
+
+  // ── Full bundles ──
+  'bundles.label': { fr: 'Forfaits complets', en: 'Full bundles' },
+  'bundles.title': { fr: 'Tout inclus. Un seul prix.', en: 'Everything included. One price.' },
+  'bundles.subtitle': { fr: 'Combinez votre plan vocal avec tous les modules IA en un forfait simplifié.', en: 'Combine your voice plan with all AI modules in one simplified bundle.' },
+
+  // ── Niches ──
+  'niches.label': { fr: 'Secteurs', en: 'Industries' },
+  'niches.title': { fr: 'Conçu pour votre secteur.', en: 'Built for your industry.' },
+  'niches.subtitle': { fr: 'Qwillio est pré-entraîné pour des dizaines de secteurs.', en: 'Qwillio is pre-trained for dozens of industries.' },
+  'niches.dental': { fr: 'Cabinet dentaire', en: 'Dental office' },
+  'niches.medical': { fr: 'Cabinet médical', en: 'Medical clinic' },
+  'niches.law': { fr: 'Cabinet d\'avocats', en: 'Law firm' },
+  'niches.realestate': { fr: 'Immobilier', en: 'Real estate' },
+  'niches.spa': { fr: 'Spa & bien-être', en: 'Spa & wellness' },
+  'niches.plumber': { fr: 'Plomberie', en: 'Plumbing' },
+  'niches.hvac': { fr: 'CVC / HVAC', en: 'HVAC' },
+  'niches.restaurant': { fr: 'Restaurant', en: 'Restaurant' },
+  'niches.auto': { fr: 'Garage auto', en: 'Auto repair' },
+  'niches.insurance': { fr: 'Assurance', en: 'Insurance' },
+  'niches.coaching': { fr: 'Coaching', en: 'Coaching' },
+  'niches.accounting': { fr: 'Comptabilité', en: 'Accounting' },
+
+  // ── Demo toggle ──
+  'demo.listenEn': { fr: 'Écouter en anglais (Ashley)', en: 'Listen in English (Ashley)' },
+  'demo.listenFr': { fr: 'Écouter en français (Marie)', en: 'Listen in French (Marie)' },
+  'demo.waveform': { fr: 'Waveform audio simulée — démo en direct disponible ci-dessus', en: 'Simulated audio waveform — live demo available above' },
+
   // ── Integrations ──
   'integrations.label': { fr: 'Intégrations', en: 'Integrations' },
   'integrations.title': { fr: 'Connectez vos outils existants', en: 'Connect your existing tools' },

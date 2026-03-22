@@ -38,15 +38,6 @@ export default function Terms() {
         <h1 className="text-4xl font-bold mb-2">{isFr ? 'Conditions g\u00e9n\u00e9rales d\u2019utilisation' : 'Terms of Service'}</h1>
         <p className="text-sm text-[#86868b] mb-6">{isFr ? 'Derni\u00e8re mise \u00e0 jour : mars 2026' : 'Last updated: March 2026'}</p>
 
-        {/* Auto-renewal disclosure */}
-        <div className="bg-[#f5f5f7] border border-[#d2d2d7]/60 rounded-xl p-6 mb-10">
-          <p className="font-bold text-lg">
-            {isFr
-              ? '\u26a0\ufe0f RENOUVELLEMENT AUTOMATIQUE : Votre abonnement Qwillio se renouvelle automatiquement chaque mois jusqu\u2019\u00e0 annulation. Vous pouvez annuler \u00e0 tout moment depuis votre tableau de bord.'
-              : '\u26a0\ufe0f AUTO-RENEWAL NOTICE: Your Qwillio subscription automatically renews each month until cancelled. You may cancel at any time from your dashboard.'}
-          </p>
-        </div>
-
         {/* Acceptance */}
         <section className="mb-10">
           <h2 className="text-2xl font-semibold mb-4">{isFr ? '1. Acceptation' : '1. Acceptance'}</h2>

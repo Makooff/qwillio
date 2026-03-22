@@ -6,6 +6,7 @@ import QwillioLogo from '../QwillioLogo';
 import {
   LayoutDashboard, Phone, Users, Bot, UserCircle,
   HelpCircle, LogOut, Menu, X, BarChart3, CreditCard,
+  Zap, Contact2, Kanban, Link2,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -22,6 +23,10 @@ export default function ClientLayout() {
     { path: '/dashboard/receptionist', icon: Bot, label: t('cdash.nav.receptionist') },
     { path: '/dashboard/analytics', icon: BarChart3, label: t('cdash.nav.analytics') },
     { path: '/dashboard/billing', icon: CreditCard, label: t('cdash.nav.billing') },
+    { path: '/dashboard/agent', icon: Zap, label: 'Agent AI' },
+    { path: '/dashboard/crm', icon: Contact2, label: 'CRM' },
+    { path: '/dashboard/crm/deals', icon: Kanban, label: 'Pipeline' },
+    { path: '/dashboard/account/integrations', icon: Link2, label: 'Integrations' },
     { path: '/dashboard/account', icon: UserCircle, label: t('cdash.nav.account') },
     { path: '/dashboard/support', icon: HelpCircle, label: t('cdash.nav.support') },
   ];

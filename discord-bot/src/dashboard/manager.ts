@@ -227,7 +227,7 @@ export class DashboardManager {
       .setTitle('⚡ Live Operations')
       .setColor(data.botStatus?.isActive ? 0x00ff00 : 0xffaa00)
       .addFields(
-        { name: 'Marie Status', value: `${marieColor} **${marieStatus}**`, inline: true },
+        { name: 'Ashley Status', value: `${marieColor} **${marieStatus}**`, inline: true },
         { name: 'Calls Today', value: `**${data.callsToday}** total\n✅ ${data.answeredToday} answered\n❌ ${data.missedToday} missed\n🔀 ${data.transferredToday} transferred`, inline: true },
         { name: 'Calls This Month', value: `**${data.callsThisMonth}** ${percentChange(data.callsThisMonth, data.callsLastMonthSamePeriod)} vs last month`, inline: true },
         { name: 'Last Call', value: data.lastCall ? relativeTime(data.lastCall.createdAt) : 'No calls yet', inline: true },
@@ -312,7 +312,7 @@ export class DashboardManager {
     const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder().setCustomId('pause_ai').setLabel('⏸ Pause All AI').setStyle(ButtonStyle.Danger),
       new ButtonBuilder().setCustomId('resume_ai').setLabel('▶ Resume All AI').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('restart_marie').setLabel('🔄 Restart Marie').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('restart_marie').setLabel('🔄 Restart Ashley').setStyle(ButtonStyle.Secondary),
     );
 
     const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(

@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAuthStore } from './stores/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -30,12 +30,32 @@ import Costs from './pages/Costs';
 import Retention from './pages/Retention';
 import FollowUps from './pages/FollowUps';
 import PhoneValidation from './pages/PhoneValidation';
+// Agent IA pages (lazy loaded)
+const AgentDashboard = lazy(() => import('./pages/client/AgentDashboard'));
+const AgentEmail = lazy(() => import('./pages/client/AgentEmail'));
+const AgentPayments = lazy(() => import('./pages/client/AgentPayments'));
+const AgentAccounting = lazy(() => import('./pages/client/AgentAccounting'));
+const AgentInventory = lazy(() => import('./pages/client/AgentInventory'));
+// CRM pages (lazy loaded)
+const CrmContacts = lazy(() => import('./pages/client/CrmContacts'));
+const CrmDeals = lazy(() => import('./pages/client/CrmDeals'));
+const CrmActivities = lazy(() => import('./pages/client/CrmActivities'));
+const CrmContactDetail = lazy(() => import('./pages/client/CrmContactDetail'));
+const Integrations = lazy(() => import('./pages/client/Integrations'));
 // Legal pages (lazy loaded)
 const Privacy = lazy(() => import('./pages/legal/Privacy'));
 const Terms = lazy(() => import('./pages/legal/Terms'));
 const About = lazy(() => import('./pages/legal/About'));
 const Contact = lazy(() => import('./pages/legal/Contact'));
 const Gdpr = lazy(() => import('./pages/legal/Gdpr'));
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 function Spinner() {
   return (
@@ -98,6 +118,7 @@ export default function App() {
     <ErrorBoundary>
       <GoogleOAuthProvider clientId={googleClientId}>
       <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<PublicOrDashboard />} />
@@ -137,6 +158,19 @@ export default function App() {
           <Route path="billing" element={<ClientBilling />} />
           <Route path="account" element={<ClientAccount />} />
           <Route path="support" element={<ClientSupport />} />
+          {/* Agent IA */}
+          <Route path="agent" element={<Suspense fallback={<Spinner />}><AgentDashboard /></Suspense>} />
+          <Route path="agent/email" element={<Suspense fallback={<Spinner />}><AgentEmail /></Suspense>} />
+          <Route path="agent/payments" element={<Suspense fallback={<Spinner />}><AgentPayments /></Suspense>} />
+          <Route path="agent/accounting" element={<Suspense fallback={<Spinner />}><AgentAccounting /></Suspense>} />
+          <Route path="agent/inventory" element={<Suspense fallback={<Spinner />}><AgentInventory /></Suspense>} />
+          {/* CRM */}
+          <Route path="crm" element={<Suspense fallback={<Spinner />}><CrmContacts /></Suspense>} />
+          <Route path="crm/deals" element={<Suspense fallback={<Spinner />}><CrmDeals /></Suspense>} />
+          <Route path="crm/activities" element={<Suspense fallback={<Spinner />}><CrmActivities /></Suspense>} />
+          <Route path="crm/:id" element={<Suspense fallback={<Spinner />}><CrmContactDetail /></Suspense>} />
+          {/* Integrations */}
+          <Route path="account/integrations" element={<Suspense fallback={<Spinner />}><Integrations /></Suspense>} />
         </Route>
 
         {/* Client-facing routes (token-protected, no JWT needed) */}

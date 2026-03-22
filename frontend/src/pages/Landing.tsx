@@ -56,6 +56,90 @@ function FadeIn({ children, className = '', delay = 0 }: { children: React.React
   );
 }
 
+/* ── Ashley / Marie Voice Demo Toggle ── */
+function DemoVoiceToggle() {
+  const [active, setActive] = useState<'en' | 'fr'>('en');
+  const { t } = useLang();
+  const bars = Array.from({ length: 32 }, (_, i) => i);
+
+  return (
+    <div className="mt-12 max-w-lg mx-auto">
+      <div className="inline-flex rounded-full border border-[#d2d2d7] p-1 mb-6 bg-white">
+        <button
+          onClick={() => setActive('en')}
+          className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${active === 'en' ? 'bg-[#1d1d1f] text-white' : 'text-[#86868b] hover:text-[#1d1d1f]'}`}
+        >
+          {t('demo.listenEn')}
+        </button>
+        <button
+          onClick={() => setActive('fr')}
+          className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${active === 'fr' ? 'bg-[#6366f1] text-white' : 'text-[#86868b] hover:text-[#1d1d1f]'}`}
+        >
+          {t('demo.listenFr')}
+        </button>
+      </div>
+      {/* Placeholder waveform */}
+      <div className="flex items-center justify-center gap-[3px] h-14 px-4">
+        {bars.map((i) => {
+          const h = 20 + Math.abs(Math.sin(i * 0.7 + (active === 'en' ? 0 : 1.2))) * 60;
+          const color = active === 'en' ? '#1d1d1f' : '#6366f1';
+          return (
+            <div
+              key={i}
+              style={{ height: `${h}%`, backgroundColor: color, opacity: 0.5 + (h / 80) * 0.5 }}
+              className="w-1 rounded-full transition-all duration-300"
+            />
+          );
+        })}
+      </div>
+      <p className="text-xs text-[#86868b] mt-3">{t('demo.waveform')}</p>
+    </div>
+  );
+}
+
+/* ── Niches Section ── */
+function NichesSection() {
+  const { t } = useLang();
+  const niches = [
+    { key: 'dental', emoji: '🦷' },
+    { key: 'medical', emoji: '🏥' },
+    { key: 'law', emoji: '⚖️' },
+    { key: 'realestate', emoji: '🏠' },
+    { key: 'spa', emoji: '💆' },
+    { key: 'plumber', emoji: '🔧' },
+    { key: 'hvac', emoji: '❄️' },
+    { key: 'restaurant', emoji: '🍽️' },
+    { key: 'auto', emoji: '🚗' },
+    { key: 'insurance', emoji: '🛡️' },
+    { key: 'coaching', emoji: '🎯' },
+    { key: 'accounting', emoji: '📊' },
+  ] as const;
+
+  return (
+    <section className="py-24 md:py-32 px-6 bg-[#f5f5f7]">
+      <div className="max-w-[1120px] mx-auto">
+        <FadeIn>
+          <div className="text-center mb-14">
+            <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{t('niches.label')}</p>
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">{t('niches.title')}</h2>
+            <p className="text-lg text-[#86868b] mt-4 max-w-lg mx-auto">{t('niches.subtitle')}</p>
+          </div>
+        </FadeIn>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {niches.map((n, i) => (
+            <FadeIn key={n.key} delay={i * 50}>
+              <div className="rounded-2xl bg-white border border-[#d2d2d7]/60 p-5 text-center hover:border-[#6366f1]/40 hover:shadow-sm transition-all duration-200">
+                <p className="text-3xl mb-2">{n.emoji}</p>
+                <p className="text-sm font-medium text-[#1d1d1f] leading-tight">{t(`niches.${n.key}` as any)}</p>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ═══════════════════════════════════════════
    LANDING PAGE — Apple-inspired minimal
    ═══════════════════════════════════════════ */
@@ -240,9 +324,18 @@ export default function Landing() {
             >
               <Phone size={18} /> {t('demo.cta')}
             </a>
+
+            {/* ── Ashley / Marie audio demo toggle ── */}
+            <DemoVoiceToggle />
           </div>
         </FadeIn>
       </section>
+
+      {/* ── DIVIDER ── */}
+      <div className="max-w-[1120px] mx-auto px-6"><div className="border-t border-[#d2d2d7]/60" /></div>
+
+      {/* ── NICHES ── */}
+      <NichesSection />
 
       {/* ── DIVIDER ── */}
       <div className="max-w-[1120px] mx-auto px-6"><div className="border-t border-[#d2d2d7]/60" /></div>
@@ -277,7 +370,8 @@ export default function Landing() {
                 <p className="text-sm text-[#6366f1] font-medium mb-1">{t('price.firstFree')}</p>
                 <p className="text-xs text-[#86868b] mb-2">{t('price.then')} $497/mo</p>
                 <p className="text-xs text-emerald-600 font-medium mb-4">{t('price.noSetup')}</p>
-                <p className="text-sm font-medium text-[#6366f1] mb-6">800 {t('price.calls')}</p>
+                <p className="text-sm font-medium text-[#6366f1] mb-1">800 {t('price.calls')}</p>
+                <p className="text-xs text-[#86868b] mb-6">$0.22 {t('price.overage')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.starter.1'), t('pf.starter.2'), t('pf.starter.3'), t('pf.starter.4'), t('pf.starter.5')].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-[#1d1d1f]/80">
@@ -307,7 +401,8 @@ export default function Landing() {
                 <p className="text-sm text-[#818cf8] font-medium mb-1">{t('price.firstFree')}</p>
                 <p className="text-xs text-white/40 mb-2">{t('price.then')} $1,297/mo</p>
                 <p className="text-xs text-emerald-400 font-medium mb-4">{t('price.noSetup')}</p>
-                <p className="text-sm font-medium text-[#6366f1] mb-6">2,000 {t('price.calls')}</p>
+                <p className="text-sm font-medium text-[#6366f1] mb-1">2,000 {t('price.calls')}</p>
+                <p className="text-xs text-white/40 mb-6">$0.18 {t('price.overage')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.pro.1'), t('pf.pro.2'), t('pf.pro.3'), t('pf.pro.4'), t('pf.pro.5'), t('pf.pro.6')].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-white/70">
@@ -334,7 +429,8 @@ export default function Landing() {
                 <p className="text-sm text-[#6366f1] font-medium mb-1">{t('price.firstFree')}</p>
                 <p className="text-xs text-[#86868b] mb-2">{t('price.then')} $2,497/mo</p>
                 <p className="text-xs text-emerald-600 font-medium mb-4">{t('price.noSetup')}</p>
-                <p className="text-sm font-medium text-[#6366f1] mb-6">4,000 {t('price.calls')}</p>
+                <p className="text-sm font-medium text-[#6366f1] mb-1">4,000 {t('price.calls')}</p>
+                <p className="text-xs text-[#86868b] mb-6">$0.15 {t('price.overage')}</p>
                 <ul className="space-y-3 mb-8 flex-1">
                   {[t('pf.enterprise.1'), t('pf.enterprise.2'), t('pf.enterprise.3'), t('pf.enterprise.4'), t('pf.enterprise.5'), t('pf.enterprise.6')].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-[#1d1d1f]/80">
@@ -380,6 +476,34 @@ export default function Landing() {
               <p className="text-sm text-[#86868b] mt-1">{t('agent.bundleSave')}</p>
             </div>
           </FadeIn>
+
+          {/* ── Full Bundles ── */}
+          <FadeIn delay={500}>
+            <div className="mt-16 text-center mb-8">
+              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{t('bundles.label')}</p>
+              <h3 className="text-2xl md:text-3xl font-semibold tracking-tight">{t('bundles.title')}</h3>
+              <p className="text-[#86868b] mt-2 text-sm max-w-lg mx-auto">{t('bundles.subtitle')}</p>
+            </div>
+          </FadeIn>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { plan: 'Starter', base: 497, bundle: 597, total: 997 },
+              { plan: 'Pro', base: 1297, bundle: 597, total: 1797 },
+              { plan: 'Enterprise', base: 2497, bundle: 597, total: 2997 },
+            ].map((b, i) => (
+              <FadeIn key={i} delay={i * 80}>
+                <div className="rounded-xl border border-[#d2d2d7] p-5 flex items-center justify-between gap-4 hover:border-[#6366f1]/40 transition-colors">
+                  <div>
+                    <p className="text-sm font-semibold">{b.plan} + Agent Bundle</p>
+                    <p className="text-xs text-[#86868b] mt-0.5">${b.base} + ${b.bundle}/mo</p>
+                  </div>
+                  <p className="text-xl font-semibold tracking-tight text-[#6366f1] whitespace-nowrap">
+                    ${b.total.toLocaleString()}<span className="text-xs text-[#86868b] font-normal">/mo</span>
+                  </p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
 
           {/* ── Integrations ── */}
           <FadeIn delay={500}>

@@ -228,6 +228,14 @@ model Client {
   clientBookings    ClientBooking[]
   clientAnalytics   ClientAnalyticsDaily[]
   callTransfers     CallTransfer[]
+  agentSubscriptions AgentSubscription[]
+  agentEmailConfigs  AgentEmailConfig[]
+  agentInventory     AgentInventory[]
+  agentAccounting    AgentAccounting[]
+  contacts           Contact[]
+  deals              Deal[]
+  activities         Activity[]
+  crmIntegrations    CrmIntegration[]
 
   @@index([subscriptionStatus])
   @@index([planType])
@@ -655,8 +663,10 @@ model Contact {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 
+  client     Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
   deals      Deal[]
   activities Activity[]
+  syncConflicts SyncConflict[]
 
   @@index([clientId])
   @@index([email])
@@ -680,6 +690,7 @@ model Deal {
   createdAt   DateTime  @default(now()) @map("created_at")
 
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([stage])
@@ -699,6 +710,7 @@ model Activity {
   createdAt   DateTime @default(now()) @map("created_at")
 
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([contactId])
@@ -718,6 +730,8 @@ model CrmIntegration {
   lastSync     DateTime? @map("last_sync")
   syncStatus   String?   @map("sync_status") @db.VarChar(50)
   createdAt    DateTime  @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@unique([clientId, provider])
   @@index([clientId])
@@ -756,6 +770,8 @@ model SyncConflict {
   resolution      Json?
   createdAt       DateTime @default(now()) @map("created_at")
 
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
   @@index([clientId])
   @@map("sync_conflicts")
 }
@@ -775,6 +791,8 @@ model AgentSubscription {
   status                String   @default("active") @db.VarChar(50)
   createdAt             DateTime @default(now()) @map("created_at")
 
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
   @@map("agent_subscriptions")
 }
 
@@ -793,6 +811,8 @@ model AgentEmailConfig {
   active         Boolean  @default(true)
   createdAt      DateTime @default(now()) @map("created_at")
 
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
   @@map("agent_email_configs")
 }
 
@@ -809,6 +829,8 @@ model AgentInventory {
   supplierEmail String?   @map("supplier_email") @db.VarChar(255)
   autoOrder     Boolean   @default(false) @map("auto_order")
   lastUpdated   DateTime  @default(now()) @map("last_updated") @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@map("agent_inventory")
@@ -827,6 +849,8 @@ model AgentAccounting {
   invoiceTemplate  Json?    @map("invoice_template")
   taxRate          Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 2)
   createdAt        DateTime @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@map("agent_accounting")
 }
