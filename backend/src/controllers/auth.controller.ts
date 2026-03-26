@@ -319,16 +319,33 @@ export class AuthController {
 
   async googleAuth(req: Request, res: Response) {
     try {
-      const { credential } = req.body;
-      if (!credential) {
+      const { credential, access_token } = req.body;
+      if (!credential && !access_token) {
         return res.status(400).json({ error: 'Google credential required' });
       }
 
-      const ticket = await googleClient.verifyIdToken({
-        idToken: credential,
-        audience: env.GOOGLE_CLIENT_ID,
-      });
-      const payload = ticket.getPayload();
+      let payload: { sub: string; email: string; name?: string } | null = null;
+
+      if (credential) {
+        // ID token flow (legacy / desktop)
+        const ticket = await googleClient.verifyIdToken({
+          idToken: credential,
+          audience: env.GOOGLE_CLIENT_ID,
+        });
+        const p = ticket.getPayload();
+        if (!p || !p.email) return res.status(401).json({ error: 'Invalid Google token' });
+        payload = { sub: p.sub!, email: p.email, name: p.name };
+      } else {
+        // Access token flow (mobile / Safari via useGoogleLogin)
+        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${access_token}` },
+        });
+        if (!userInfoRes.ok) return res.status(401).json({ error: 'Invalid Google access token' });
+        const info = await userInfoRes.json() as { sub: string; email: string; name?: string };
+        if (!info.email) return res.status(401).json({ error: 'No email from Google' });
+        payload = info;
+      }
+
       if (!payload || !payload.email) {
         return res.status(401).json({ error: 'Invalid Google token' });
       }
