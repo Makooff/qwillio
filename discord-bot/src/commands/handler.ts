@@ -3,7 +3,7 @@ import { execSync } from 'child_process';
 import { prisma } from '../database';
 import { config } from '../config';
 import { logger } from '../utils/logger';
-import { claudeCodeManager, dashboardManager, getUptime } from '../bot';
+import { claudeCodeManager, claudeChannelBridge, dashboardManager, getUptime } from '../bot';
 import { stringify } from 'csv-stringify/sync';
 import { maskPhone, maskEmail, formatDuration, formatTimestamp } from '../utils/formatting';
 
@@ -23,7 +23,12 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
     case 'export':
       await handleExport(interaction);
       break;
+    case 'ask':
+      await handleAsk(interaction);
+      break;
     case 'stop':
+      await handleStop(interaction);
+      break;
     case 'files':
     case 'diff':
     case 'commit':
@@ -51,6 +56,11 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
   const claudeSessions = claudeCodeManager?.getSessionCount() || 0;
   const activeProcess = claudeCodeManager?.getActiveProcess();
 
+  const bridgeStatus = claudeChannelBridge?.getStatus();
+  const bridgeValue = bridgeStatus?.isRunning
+    ? `🟢 Running (${bridgeStatus.durationSeconds}s)\n\`${bridgeStatus.currentTask}\``
+    : '⚪ Idle';
+
   const embed = new EmbedBuilder()
     .setTitle('📊 Bot Status')
     .setColor(0x5865f2)
@@ -58,7 +68,8 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
       { name: 'Uptime', value: `${hours}h ${minutes}m`, inline: true },
       { name: 'Ashley', value: botStatus?.isActive ? '🟢 Active' : '🔴 Paused', inline: true },
       { name: 'Claude Code Sessions', value: `${claudeSessions}/${config.maxClaudeCodeSessions}`, inline: true },
-      { name: 'Active Process', value: activeProcess ? '🟢 Running' : '⚪ Idle', inline: true },
+      { name: 'Thread Process', value: activeProcess ? '🟢 Running' : '⚪ Idle', inline: true },
+      { name: 'Channel Bridge', value: bridgeValue, inline: false },
     )
     .setTimestamp();
 
@@ -176,6 +187,57 @@ async function handleContracts(interaction: ChatInputCommandInteraction): Promis
     logger.error('Contracts command error:', error);
     await interaction.editReply(`❌ Failed to fetch contracts: ${error.message}`);
   }
+}
+
+async function handleAsk(interaction: ChatInputCommandInteraction): Promise<void> {
+  const prompt = interaction.options.getString('prompt', true);
+
+  if (!config.claudeCodeChannelId) {
+    await interaction.reply({
+      content: '⚠️ `DISCORD_CLAUDE_CODE_CHANNEL_ID` is not configured. Set it in your env vars.',
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const bridge = claudeChannelBridge;
+  if (!bridge) {
+    await interaction.reply({ content: '⚠️ Channel bridge not initialized yet.', ephemeral: true });
+    return;
+  }
+
+  const status = bridge.getStatus();
+  if (status.isRunning) {
+    await interaction.reply({
+      content: `⏳ Claude Code is already running (${status.durationSeconds}s): \`${status.currentTask}\`\nUse \`/stop\` to cancel.`,
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await interaction.reply({ content: `📨 Sent to Claude Code channel: \`${prompt.slice(0, 100)}\``, ephemeral: true });
+
+  // Execute in background — output goes to the dedicated channel
+  bridge.execute(prompt).catch((err) => logger.error('handleAsk execute error:', err));
+}
+
+async function handleStop(interaction: ChatInputCommandInteraction): Promise<void> {
+  // Try channel bridge first, then thread sessions
+  const bridgeStopped = claudeChannelBridge?.stop();
+
+  if (bridgeStopped) {
+    await interaction.reply({ content: '⏹ Channel bridge process stopped.', ephemeral: true });
+    return;
+  }
+
+  const activeProcess = claudeCodeManager?.getActiveProcess();
+  if (activeProcess?.process) {
+    activeProcess.process.kill('SIGTERM');
+    await interaction.reply({ content: '⏹ Claude Code thread process stopped.', ephemeral: true });
+    return;
+  }
+
+  await interaction.reply({ content: 'No active Claude Code process to stop.', ephemeral: true });
 }
 
 async function handleExport(interaction: ChatInputCommandInteraction): Promise<void> {

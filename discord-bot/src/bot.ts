@@ -15,6 +15,7 @@ import { handleButtonInteraction } from './buttons/handler';
 import { DashboardManager } from './dashboard/manager';
 import { ChannelManager } from './channels/manager';
 import { ClaudeCodeManager } from './claude-code/manager';
+import { ClaudeChannelBridge } from './claude-code/channel-bridge';
 
 export const client = new Client({
   intents: [
@@ -29,6 +30,7 @@ export const client = new Client({
 export let dashboardManager: DashboardManager;
 export let channelManager: ChannelManager;
 export let claudeCodeManager: ClaudeCodeManager;
+export let claudeChannelBridge: ClaudeChannelBridge;
 
 const startTime = Date.now();
 export function getUptime(): number {
@@ -93,6 +95,12 @@ export async function startBot(): Promise<void> {
     new SlashCommandBuilder()
       .setName('contracts')
       .setDescription('Show all contracts and their DocuSign status'),
+    new SlashCommandBuilder()
+      .setName('ask')
+      .setDescription('Send a prompt to Claude Code via the dedicated channel')
+      .addStringOption((opt) =>
+        opt.setName('prompt').setDescription('The instruction for Claude Code').setRequired(true)
+      ),
   ];
 
   const rest = new REST({ version: '10' }).setToken(config.botToken);
@@ -126,9 +134,11 @@ export async function startBot(): Promise<void> {
     dashboardManager = new DashboardManager(readyClient);
     channelManager = new ChannelManager(readyClient);
     claudeCodeManager = new ClaudeCodeManager(readyClient);
+    claudeChannelBridge = new ClaudeChannelBridge(readyClient);
 
-    // Start dashboard
+    // Start dashboard and channel bridge
     await dashboardManager.initialize();
+    await claudeChannelBridge.initialize();
 
     // Post system notification
     await channelManager.postSystem('🟢 **Qwillio Bot** started successfully');
@@ -157,14 +167,19 @@ export async function startBot(): Promise<void> {
     }
   });
 
-  // Handle Claude Code thread messages
+  // Handle Claude Code thread messages and dedicated channel bridge
   client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot) return;
     if (message.author.id !== config.ownerId) return;
-    if (!message.channel.isThread()) return;
 
-    // Check if this is a Claude Code thread
-    if (claudeCodeManager && message.channel.name.startsWith('Claude Code')) {
+    // Dedicated #qwillio-claude-code channel bridge
+    if (claudeChannelBridge && claudeChannelBridge.isChannelMessage(message)) {
+      await claudeChannelBridge.handleMessage(message);
+      return;
+    }
+
+    // Claude Code thread sessions
+    if (message.channel.isThread() && claudeCodeManager && message.channel.name.startsWith('Claude Code')) {
       await claudeCodeManager.handleMessage(message);
     }
   });
