@@ -151,6 +151,7 @@ const translations = {
   'login.noAccount': { fr: 'Pas encore de compte ?', en: "Don't have an account?" },
   'login.register': { fr: "S'inscrire gratuitement", en: 'Sign up for free' },
   'login.or': { fr: 'ou', en: 'or' },
+  'login.google': { fr: 'Se connecter avec Google', en: 'Sign in with Google' },
 
   // ── Register ──
   'register.title': { fr: 'Créer votre compte', en: 'Create your account' },
@@ -174,6 +175,7 @@ const translations = {
   'register.resend': { fr: 'Renvoyer l\'email', en: 'Resend email' },
   'register.selectPlan': { fr: 'Choisissez votre plan', en: 'Choose your plan' },
   'register.selectPlanSub': { fr: 'Essai gratuit de 30 jours sur tous les plans. Sans engagement.', en: '30-day free trial on all plans. No commitment.' },
+  'register.google': { fr: "S'inscrire avec Google", en: 'Sign up with Google' },
   'register.continue': { fr: 'Continuer', en: 'Continue' },
   'register.mo': { fr: '/mois', en: '/mo' },
   'register.setupFee': { fr: "frais d'installation", en: 'setup fee' },
