@@ -54,12 +54,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f] flex items-center justify-center px-6 relative">
+      <Link to="/" className="absolute top-4 left-6 inline-flex items-center gap-1.5 text-sm text-[#6366f1] font-medium hover:text-[#4f46e5] transition-colors">
+        <ArrowLeft size={16} /> {t('back.site')}
+      </Link>
       <div className="absolute top-4 right-6"><LangToggle /></div>
       <div className="w-full max-w-md">
-
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-[#6366f1] font-medium hover:text-[#4f46e5] transition-colors mb-8">
-          <ArrowLeft size={16} /> {t('back.site')}
-        </Link>
 
         <Link to="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight text-[#1d1d1f] mb-10">
           <QwillioLogo size={30} /> Qwillio
