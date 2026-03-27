@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Phone, Calendar, BarChart3, Shield, Zap, Clock,
   ChevronRight, Play, ArrowRight, Check,
-  MessageSquare, BrainCircuit, Globe
+  MessageSquare, BrainCircuit, Globe, Menu, X
 } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
@@ -145,6 +145,8 @@ function NichesSection() {
    ═══════════════════════════════════════════ */
 export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const { t } = useLang();
 
   useEffect(() => {
@@ -152,6 +154,15 @@ export default function Landing() {
     window.addEventListener('scroll', fn);
     return () => window.removeEventListener('scroll', fn);
   }, []);
+
+  const openMenu = () => {
+    setMenuOpen(true);
+    requestAnimationFrame(() => requestAnimationFrame(() => setMenuVisible(true)));
+  };
+  const closeMenu = () => {
+    setMenuVisible(false);
+    setTimeout(() => setMenuOpen(false), 220);
+  };
 
   const features = [
     { icon: Phone, title: t('feat.1.title'), desc: t('feat.1.desc') },
@@ -167,6 +178,68 @@ export default function Landing() {
 
   return (
     <div className="bg-white text-[#1d1d1f] min-h-screen">
+      <style>{`
+        @keyframes bubbleIn {
+          0%   { transform: scale(0.1) translateY(-8px); opacity: 0; }
+          65%  { transform: scale(1.04) translateY(0);   opacity: 1; }
+          100% { transform: scale(1)   translateY(0);   opacity: 1; }
+        }
+        @keyframes bubbleOut {
+          0%   { transform: scale(1);    opacity: 1; }
+          100% { transform: scale(0.1) translateY(-8px); opacity: 0; }
+        }
+      `}</style>
+
+      {/* ── MOBILE FLOATING HAMBURGER ── */}
+      <button
+        className={`md:hidden fixed top-3 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 ${
+          scrolled || menuOpen ? 'bg-white/90 backdrop-blur-md shadow-md shadow-black/10' : ''
+        }`}
+        onClick={() => menuOpen ? closeMenu() : openMenu()}
+        aria-label="Menu"
+      >
+        <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>
+          <X size={18} className="text-[#1d1d1f]" />
+        </span>
+        <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}>
+          <Menu size={18} className="text-[#1d1d1f]" />
+        </span>
+      </button>
+
+      {/* ── MOBILE MENU BUBBLE ── */}
+      {menuOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40"
+          style={{ background: menuVisible ? 'rgba(0,0,0,0.12)' : 'transparent', transition: 'background 0.2s', backdropFilter: menuVisible ? 'blur(2px)' : 'none' }}
+          onClick={closeMenu}
+        >
+          <div
+            className="absolute top-14 right-4 bg-white rounded-3xl shadow-2xl p-5 w-60"
+            style={{
+              transformOrigin: 'top right',
+              animation: menuVisible ? 'bubbleIn 0.25s ease-out forwards' : 'bubbleOut 0.2s ease-in forwards',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="space-y-0.5 mb-4">
+              <a href="#features" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">{t('nav.features')}</a>
+              <a href="#how" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">{t('nav.how')}</a>
+              <a href="#pricing" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">{t('nav.pricing')}</a>
+              <Link to="/login" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">{t('nav.login')}</Link>
+            </div>
+            <a
+              href="/demo.html"
+              onClick={closeMenu}
+              className="flex items-center justify-center gap-2 w-full bg-[#6366f1] text-white text-sm font-medium px-4 py-2.5 rounded-full hover:bg-[#4f46e5] transition-colors mb-4"
+            >
+              <Play size={13} /> {t('nav.try')}
+            </a>
+            <div className="border-t border-[#d2d2d7]/60 pt-4 flex justify-center">
+              <LangToggle />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── NAVBAR ── */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : 'bg-transparent'}`}>
@@ -180,16 +253,18 @@ export default function Landing() {
             <a href="#pricing" className="hover:text-[#1d1d1f] transition-colors">{t('nav.pricing')}</a>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/login" className="text-sm text-[#1d1d1f]/70 hover:text-[#1d1d1f] transition-colors hidden sm:block">
+            <Link to="/login" className="hidden md:block text-sm text-[#1d1d1f]/70 hover:text-[#1d1d1f] transition-colors">
               {t('nav.login')}
             </Link>
             <a
               href="/demo.html"
-              className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-colors"
+              className="hidden md:inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-colors"
             >
               <Play size={14} /> {t('nav.try')}
             </a>
-            <LangToggle />
+            <LangToggle className="hidden md:flex" />
+            {/* spacer for fixed mobile hamburger */}
+            <div className="md:hidden w-10" />
           </div>
         </div>
       </nav>
@@ -228,24 +303,20 @@ export default function Landing() {
 
         {/* Stats */}
         <FadeIn delay={400}>
-          <div className="mt-20 grid grid-cols-3 text-center w-full max-w-xl mx-auto">
-            <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">
-                <Counter value={98} suffix="%" />
-              </p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">{t('hero.stat1')}</p>
-            </div>
-            <div className="border-x border-[#d2d2d7]">
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">
-                <Counter value={2500} suffix="+" />
-              </p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">{t('hero.stat2')}</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">
-                <Counter value={35} suffix="%" />
-              </p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">{t('hero.stat3')}</p>
+          <div className="mt-16 flex justify-center">
+            <div className="inline-flex divide-x divide-[#d2d2d7] rounded-2xl border border-[#d2d2d7]/70 bg-white/70 backdrop-blur-sm overflow-hidden">
+              {[
+                { value: 98,   suffix: '%', label: t('hero.stat1') },
+                { value: 2500, suffix: '+', label: t('hero.stat2') },
+                { value: 35,   suffix: '%', label: t('hero.stat3') },
+              ].map((s, i) => (
+                <div key={i} className="flex flex-col items-center justify-center px-6 py-4 min-w-[96px]">
+                  <p className="text-2xl sm:text-3xl font-semibold tracking-tight leading-none whitespace-nowrap">
+                    <Counter value={s.value} suffix={s.suffix} />
+                  </p>
+                  <p className="text-[11px] text-[#86868b] mt-1.5 leading-tight text-center">{s.label}</p>
+                </div>
+              ))}
             </div>
           </div>
         </FadeIn>
