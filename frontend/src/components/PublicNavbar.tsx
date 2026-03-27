@@ -78,86 +78,112 @@ export default function PublicNavbar() {
     { to: '/affiliate', icon: DollarSign, label: isFr ? 'Affiliation' : 'Affiliate', desc: isFr ? 'Gagnez en nous recommandant' : 'Earn by referring us' },
   ];
 
+  /* Menu panel top offset — below bubble when scrolled, below nav when not */
+  const menuTop = scrolled ? 'top-[60px]' : 'top-14';
+
   return (
     <>
       <style>{`
         @keyframes bubbleIn {
-          0%   { transform: scale(0.08) translateY(-6px); opacity: 0; }
-          65%  { transform: scale(1.04) translateY(0);   opacity: 1; }
-          100% { transform: scale(1)   translateY(0);   opacity: 1; }
+          0%   { transform: scale(0.08); opacity: 0; }
+          65%  { transform: scale(1.04); opacity: 1; }
+          100% { transform: scale(1);   opacity: 1; }
         }
         @keyframes bubbleOut {
           0%   { transform: scale(1);   opacity: 1; }
-          100% { transform: scale(0.08) translateY(-6px); opacity: 0; }
+          100% { transform: scale(0.08); opacity: 0; }
         }
       `}</style>
 
-      {/* ── NAV — never moves, always fixed at top ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50" style={{ willChange: 'transform', transform: 'translateZ(0)' }}>
-
-        {/* Desktop nav background (appears on scroll — hidden on mobile) */}
-        <div className={`absolute inset-0 -z-10 transition-all duration-300 hidden md:block ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : ''}`} />
-
-        <div className="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
-
-          {/* ── LOGO — bubble centered on icon only ── */}
-          <Link to="/" className="flex items-center gap-2">
-            {/* Icon wrapper — bubble grows around this only */}
-            <div className="relative flex items-center justify-center w-9 h-9">
-              <span className={`absolute inset-[-8px] rounded-full transition-all duration-300 md:hidden ${
-                scrolled ? 'bg-white/25 backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-75 opacity-0'
-              }`} />
-              <span className="relative z-10">
-                <QwillioLogo size={28} />
-              </span>
-            </div>
-            <span className={`text-xl font-semibold tracking-tight text-[#1d1d1f] transition-all duration-300 ${
-              scrolled ? 'opacity-0 w-0 overflow-hidden md:opacity-100 md:w-auto' : 'opacity-100'
-            }`}>Qwillio</span>
-          </Link>
-
-          {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-8 text-sm text-[#1d1d1f]/70">
-            <Link to="/" className="hover:text-[#1d1d1f] transition-colors">Home</Link>
-            <Dropdown label={isFr ? 'Produit' : 'Product'} items={productItems} />
-            <Dropdown label={isFr ? 'Entreprise' : 'Company'} items={companyItems} />
-            <Link to="/pricing" className="hover:text-[#1d1d1f] transition-colors">{isFr ? 'Tarifs' : 'Pricing'}</Link>
-          </div>
-
-          {/* Right side */}
-          <div className="flex items-center gap-2">
-            <Link to="/login" className="hidden md:block text-sm text-[#1d1d1f]/70 hover:text-[#1d1d1f] transition-colors">
-              {isFr ? 'Connexion' : 'Login'}
+      {/*
+        Single fixed container — NEVER moves on iOS Safari.
+        All children are absolute/relative inside it.
+        On mobile scrolled: height = 0, content fills full screen.
+        On mobile not scrolled: full h-14 nav bar.
+        On desktop: always full h-14 nav bar.
+      */}
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 overflow-visible"
+        style={{ willChange: 'transform', transform: 'translateZ(0)' }}
+      >
+        {/* ── DESKTOP: always-visible nav bar ── */}
+        <div className="hidden md:block">
+          {/* Desktop bg */}
+          <div className={`absolute inset-0 -z-10 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : ''}`} />
+          <div className="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-2">
+              <QwillioLogo size={28} />
+              <span className="text-xl font-semibold tracking-tight text-[#1d1d1f]">Qwillio</span>
             </Link>
-            {/* Try it — hides on scroll on mobile */}
-            <a href="/demo.html" className={`inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-all duration-300 ${
-              scrolled ? 'opacity-0 pointer-events-none w-0 px-0 overflow-hidden md:opacity-100 md:pointer-events-auto md:w-auto md:px-5' : 'opacity-100'
-            }`}>
-              <Play size={14} /> <span className="whitespace-nowrap">{isFr ? 'Essayer' : 'Try it'}</span>
-            </a>
-            <div className="hidden md:flex"><LangToggle /></div>
+            <div className="flex items-center gap-8 text-sm text-[#1d1d1f]/70">
+              <Link to="/" className="hover:text-[#1d1d1f] transition-colors">Home</Link>
+              <Dropdown label={isFr ? 'Produit' : 'Product'} items={productItems} />
+              <Dropdown label={isFr ? 'Entreprise' : 'Company'} items={companyItems} />
+              <Link to="/pricing" className="hover:text-[#1d1d1f] transition-colors">{isFr ? 'Tarifs' : 'Pricing'}</Link>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link to="/login" className="text-sm text-[#1d1d1f]/70 hover:text-[#1d1d1f] transition-colors">
+                {isFr ? 'Connexion' : 'Login'}
+              </Link>
+              <a href="/demo.html" className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
+                <Play size={14} /> <span className="whitespace-nowrap">{isFr ? 'Essayer' : 'Try it'}</span>
+              </a>
+              <LangToggle />
+            </div>
+          </div>
+        </div>
 
-            {/* ── HAMBURGER — bubble appears around it on scroll (mobile) ── */}
-            <div className="relative md:hidden">
-              {/* Bubble bg — grows around hamburger on scroll/open */}
-              <span className={`absolute inset-[-8px] rounded-full transition-all duration-300 ${
-                scrolled || menuOpen ? 'bg-white/25 backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-75 opacity-0'
-              }`} />
+        {/* ── MOBILE NOT SCROLLED: full nav bar ── */}
+        <div className={`md:hidden transition-all duration-300 ${scrolled ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100 h-14'}`}>
+          <div className="px-4 h-14 flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-2">
+              <QwillioLogo size={28} />
+              <span className="text-xl font-semibold tracking-tight text-[#1d1d1f]">Qwillio</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <a href="/demo.html" className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-4 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
+                <Play size={14} /> <span className="whitespace-nowrap">{isFr ? 'Essayer' : 'Try it'}</span>
+              </a>
               <button onClick={toggle} aria-label="Menu"
-                className="relative z-10 w-9 h-9 flex items-center justify-center text-[#1d1d1f]">
-                <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>
-                  <X size={18} />
-                </span>
-                <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}>
-                  <Menu size={18} />
-                </span>
+                className="w-9 h-9 flex items-center justify-center text-[#1d1d1f]">
+                {menuOpen ? <X size={18} /> : <Menu size={18} />}
               </button>
             </div>
           </div>
         </div>
+
+        {/* ── MOBILE SCROLLED: floating logo bubble ── */}
+        <Link
+          to="/"
+          className={`md:hidden absolute top-[9px] left-4 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
+            scrolled
+              ? 'bg-white/30 backdrop-blur-xl shadow-sm opacity-100 scale-100'
+              : 'opacity-0 scale-75 pointer-events-none'
+          }`}
+        >
+          <QwillioLogo size={28} />
+        </Link>
+
+        {/* ── MOBILE: floating hamburger bubble (scrolled or menu open) ── */}
+        <button
+          onClick={toggle}
+          aria-label="Menu"
+          className={`md:hidden absolute top-[9px] right-4 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 text-[#1d1d1f] ${
+            scrolled || menuOpen
+              ? 'bg-white/30 backdrop-blur-xl shadow-sm opacity-100 scale-100'
+              : 'opacity-0 scale-75 pointer-events-none'
+          }`}
+        >
+          <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>
+            <X size={18} />
+          </span>
+          <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}>
+            <Menu size={18} />
+          </span>
+        </button>
       </nav>
 
-      {/* ── BUBBLE MENU ── */}
+      {/* ── BUBBLE MENU PANEL ── */}
       {menuOpen && (
         <div
           className="md:hidden fixed inset-0 z-40"
@@ -165,7 +191,7 @@ export default function PublicNavbar() {
           onClick={closeMenu}
         >
           <div
-            className="absolute top-14 right-4 bg-white rounded-3xl shadow-2xl p-5 w-64"
+            className={`absolute ${menuTop} right-4 bg-white rounded-3xl shadow-2xl p-5 w-64`}
             style={{ transformOrigin: 'top right', animation: menuVisible ? 'bubbleIn 0.25s ease-out forwards' : 'bubbleOut 0.2s ease-in forwards' }}
             onClick={e => e.stopPropagation()}
           >
