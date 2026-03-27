@@ -43,6 +43,9 @@ const CrmDeals = lazy(() => import('./pages/client/CrmDeals'));
 const CrmActivities = lazy(() => import('./pages/client/CrmActivities'));
 const CrmContactDetail = lazy(() => import('./pages/client/CrmContactDetail'));
 const Integrations = lazy(() => import('./pages/client/Integrations'));
+// Admin AI pages (lazy loaded)
+const AiLearning = lazy(() => import('./pages/admin/AiLearning'));
+const AiDecisions = lazy(() => import('./pages/admin/AiDecisions'));
 // Legal pages (lazy loaded)
 const Privacy = lazy(() => import('./pages/legal/Privacy'));
 const Terms = lazy(() => import('./pages/legal/Terms'));
@@ -207,6 +210,8 @@ export default function App() {
           <Route path="followups" element={<FollowUps />} />
           <Route path="phone-validation" element={<PhoneValidation />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="ai-learning" element={<Suspense fallback={<Spinner />}><AiLearning /></Suspense>} />
+          <Route path="ai-decisions" element={<Suspense fallback={<Spinner />}><AiDecisions /></Suspense>} />
         </Route>
 
         {/* Catch-all redirect */}

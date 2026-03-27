@@ -41,12 +41,13 @@ export default function About() {
   ];
 
   const niches = [
-    { icon: Stethoscope, label: isFr ? 'Cliniques m\u00e9dicales' : 'Medical clinics' },
-    { icon: Scale, label: isFr ? 'Cabinets d\u2019avocats' : 'Law firms' },
-    { icon: Wrench, label: isFr ? 'Plombiers & \u00e9lectriciens' : 'Plumbers & electricians' },
-    { icon: Scissors, label: isFr ? 'Salons de coiffure' : 'Hair salons' },
+    { icon: Stethoscope, label: isFr ? 'Dentistes' : 'Dental' },
+    { icon: Stethoscope, label: isFr ? 'Médecins' : 'Medical' },
+    { icon: Scale, label: isFr ? 'Cabinets d\'avocats' : 'Law firms' },
+    { icon: Scissors, label: isFr ? 'Salons de coiffure' : 'Salons' },
     { icon: UtensilsCrossed, label: isFr ? 'Restaurants' : 'Restaurants' },
-    { icon: Building2, label: isFr ? 'Agences immobili\u00e8res' : 'Real estate agencies' },
+    { icon: Wrench, label: isFr ? 'Garages auto' : 'Auto garages' },
+    { icon: Building2, label: isFr ? 'Hôtels' : 'Hotels' },
   ];
 
   const advantages = [
@@ -140,6 +141,65 @@ export default function About() {
               <span className="text-sm font-medium">{niche.label}</span>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Qwillio Agent Section */}
+      <section className="max-w-[900px] mx-auto px-6 py-16">
+        <h2 className="text-3xl font-bold text-center mb-4">
+          {isFr ? 'Qwillio Agent' : 'Qwillio Agent'}
+        </h2>
+        <p className="text-center text-[#86868b] mb-12 max-w-[600px] mx-auto">
+          {isFr
+            ? 'Modules optionnels pour automatiser encore plus votre activité.'
+            : 'Optional modules to automate even more of your business.'}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[
+            {
+              name: 'Email AI',
+              price: '+$197/mo',
+              desc: isFr
+                ? 'Lit et répond aux emails automatiquement — confirmations de rendez-vous, relances, questions fréquentes.'
+                : 'Reads and replies to emails automatically — appointment confirmations, follow-ups, FAQ answers.',
+            },
+            {
+              name: 'Payments AI',
+              price: '+$97/mo',
+              desc: isFr
+                ? 'Liens de paiement Stripe par SMS, dépôts automatiques, frais de no-show configurables.'
+                : 'Stripe SMS payment links, automatic deposit collection, configurable no-show fees.',
+            },
+            {
+              name: 'Accounting AI',
+              price: '+$297/mo',
+              desc: isFr
+                ? 'Factures automatiques, rapport P&L mensuel, rappels de paiement, export fiscal annuel.'
+                : 'Auto-invoices, monthly P&L report, overdue reminders, annual tax export.',
+            },
+            {
+              name: 'Inventory AI',
+              price: '+$197/mo',
+              desc: isFr
+                ? 'Suivi du stock, alertes de seuil, commandes automatiques aux fournisseurs.'
+                : 'Stock tracking, threshold alerts, automatic orders to suppliers.',
+            },
+          ].map((mod, i) => (
+            <div key={i} className="bg-[#f5f5f7] rounded-2xl p-6 border border-[#d2d2d7]/60">
+              <div className="flex justify-between items-start mb-3">
+                <h3 className="text-lg font-semibold">{mod.name}</h3>
+                <span className="text-lg font-bold text-[#6366f1]">{mod.price}</span>
+              </div>
+              <p className="text-sm text-[#86868b] leading-relaxed">{mod.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 bg-gradient-to-r from-[#6366f1]/5 to-[#a855f7]/5 border border-[#6366f1]/20 rounded-2xl p-6 text-center">
+          <p className="font-semibold text-lg mb-1">
+            {isFr ? 'Bundle Agent — tous les modules' : 'Agent Bundle — all modules'}
+          </p>
+          <p className="text-3xl font-bold text-[#6366f1]">+$597<span className="text-sm text-[#86868b] font-normal">/mo</span></p>
+          <p className="text-sm text-[#86868b] mt-1">{isFr ? 'Économisez $191 vs modules séparés' : 'Save $191 vs separate modules'}</p>
         </div>
       </section>
 

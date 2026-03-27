@@ -44,3 +44,4 @@ docker-compose.yml
 nul
 
 .vercel
+frontend/tsconfig.tsbuildinfo

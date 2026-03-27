@@ -38,6 +38,15 @@ export default function Terms() {
         <h1 className="text-4xl font-bold mb-2">{isFr ? 'Conditions g\u00e9n\u00e9rales d\u2019utilisation' : 'Terms of Service'}</h1>
         <p className="text-sm text-[#86868b] mb-6">{isFr ? 'Derni\u00e8re mise \u00e0 jour : mars 2026' : 'Last updated: March 2026'}</p>
 
+        {/* FTC Required Auto-Renewal Disclosure */}
+        <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-6 mb-10">
+          <p className="font-bold text-amber-900 text-base leading-relaxed">
+            {isFr
+              ? 'RENOUVELLEMENT AUTOMATIQUE : Votre abonnement Qwillio se renouvelle automatiquement à la fin de chaque période de facturation au tarif en vigueur, sauf annulation avant la date de renouvellement. L\'essai gratuit de 30 jours se convertit automatiquement en abonnement payant à son terme. Vous pouvez annuler à tout moment depuis votre tableau de bord.'
+              : 'AUTOMATIC RENEWAL NOTICE: Your Qwillio subscription automatically renews at the end of each billing period at the then-current rate unless you cancel before the renewal date. The 30-day free trial automatically converts to a paid subscription at the end of the trial period. You may cancel at any time from your dashboard.'}
+          </p>
+        </div>
+
         {/* Acceptance */}
         <section className="mb-10">
           <h2 className="text-2xl font-semibold mb-4">{isFr ? '1. Acceptation' : '1. Acceptance'}</h2>
@@ -154,8 +163,8 @@ export default function Terms() {
           <h2 className="text-2xl font-semibold mb-4">{isFr ? '8. Limitation de responsabilit\u00e9' : '8. Limitation of Liability'}</h2>
           <p className="leading-relaxed">
             {isFr
-              ? 'Dans toute la mesure permise par la loi, la responsabilit\u00e9 totale de Qwillio est limit\u00e9e au montant des frais que vous avez pay\u00e9s au cours des 6 derniers mois pr\u00e9c\u00e9dant la r\u00e9clamation. Qwillio ne sera en aucun cas responsable de dommages indirects, accessoires, sp\u00e9ciaux ou cons\u00e9cutifs.'
-              : 'To the maximum extent permitted by law, Qwillio\u2019s total liability is limited to the amount of fees you paid during the 6 months preceding the claim. Qwillio shall not be liable for any indirect, incidental, special, or consequential damages.'}
+              ? 'Dans toute la mesure permise par la loi, la responsabilit\u00e9 totale de Qwillio est limit\u00e9e au montant des frais que vous avez pay\u00e9s au cours des 3 derniers mois pr\u00e9c\u00e9dant la r\u00e9clamation. Qwillio ne sera en aucun cas responsable de dommages indirects, accessoires, sp\u00e9ciaux ou cons\u00e9cutifs.'
+              : 'To the maximum extent permitted by law, Qwillio\u2019s total liability is limited to the amount of fees you paid during the 3 months preceding the claim. Qwillio shall not be liable for any indirect, incidental, special, or consequential damages.'}
           </p>
         </section>
 

@@ -92,6 +92,31 @@ app.use('/api/agent', agentRoutes);
 app.use('/api/crm', crmRoutes);
 app.use('/api/ai', aiLearningRoutes);
 
+// ─── Contact Form ─────────────────────────────────────
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
+    if (!name || !email || !message) {
+      res.status(400).json({ error: 'Missing required fields' });
+      return;
+    }
+    // Send via Resend
+    const { resend } = await import('./config/resend');
+    await resend.emails.send({
+      from: 'Qwillio Contact <noreply@qwillio.com>',
+      to: 'hello@qwillio.com',
+      replyTo: email,
+      subject: `Contact Form — ${subject || 'General'} — ${name}`,
+      html: `<p><strong>From:</strong> ${name} (${email})</p><p><strong>Subject:</strong> ${subject}</p><p><strong>Message:</strong></p><p>${message.replace(/\n/g, '<br>')}</p>`,
+    });
+    logger.info(`Contact form submitted by ${email}`);
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Contact form error:', error);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
 // ─── Unsubscribe ────────────────────────────────────────
 app.get('/api/unsubscribe/:token', async (req, res) => {
   try {
