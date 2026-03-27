@@ -183,17 +183,17 @@ export default function Landing() {
 
         {/* Stats */}
         <FadeIn delay={400}>
-          <div className="mt-20 flex flex-row items-stretch justify-center divide-x divide-[#d2d2d7] w-full max-w-xl mx-auto">
+          <div className="mt-20 flex flex-row items-stretch justify-center divide-x divide-[#d2d2d7] w-full mx-auto">
             {[
               { value: 98,   suffix: '%', label: t('hero.stat1') },
               { value: 2500, suffix: '+', label: t('hero.stat2') },
               { value: 35,   suffix: '%', label: t('hero.stat3') },
             ].map((s, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center justify-center px-2 py-2">
-                <p className="text-3xl md:text-4xl font-semibold tracking-tight whitespace-nowrap">
+              <div key={i} className="flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-2">
+                <p className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight whitespace-nowrap">
                   <Counter value={s.value} suffix={s.suffix} />
                 </p>
-                <p className="text-xs md:text-sm text-[#86868b] mt-1 text-center leading-tight">{s.label}</p>
+                <p className="text-[10px] sm:text-xs md:text-sm text-[#86868b] mt-1 text-center leading-tight">{s.label}</p>
               </div>
             ))}
           </div>

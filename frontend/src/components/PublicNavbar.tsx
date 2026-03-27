@@ -8,15 +8,11 @@ import { useLang } from '../stores/langStore';
 function Dropdown({ label, items }: { label: string; items: { to: string; icon: any; label: string; desc: string }[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
   }, []);
-
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(!open)} className="flex items-center gap-1 hover:text-[#1d1d1f] transition-colors">
@@ -51,8 +47,8 @@ export default function PublicNavbar() {
   useEffect(() => { closeMenu(); }, [location.pathname]);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', fn);
+    const fn = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
@@ -69,6 +65,7 @@ export default function PublicNavbar() {
     setMenuVisible(false);
     setTimeout(() => setMenuOpen(false), 220);
   };
+  const toggle = () => menuOpen ? closeMenu() : openMenu();
 
   const productItems = [
     { to: '/receptionist', icon: Phone, label: 'Receptionist AI', desc: isFr ? 'Votre standardiste IA 24/7' : 'Your 24/7 AI receptionist' },
@@ -95,56 +92,63 @@ export default function PublicNavbar() {
         }
       `}</style>
 
-      {/* ── NAV BAR ── */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || menuOpen ? 'bg-white/80 backdrop-blur-xl shadow-sm' : 'bg-transparent'}`}>
+      {/* ── FULL NAV — slides away on scroll ── */}
+      <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-400 ${
+        scrolled ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+      }`}>
         <div className="max-w-[1120px] mx-auto px-6 h-14 flex items-center justify-between">
-
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight text-[#1d1d1f]">
             <QwillioLogo size={30} /> Qwillio
           </Link>
-
-          {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-8 text-sm text-[#1d1d1f]/70">
             <Link to="/" className="hover:text-[#1d1d1f] transition-colors">Home</Link>
             <Dropdown label={isFr ? 'Produit' : 'Product'} items={productItems} />
             <Dropdown label={isFr ? 'Entreprise' : 'Company'} items={companyItems} />
             <Link to="/pricing" className="hover:text-[#1d1d1f] transition-colors">{isFr ? 'Tarifs' : 'Pricing'}</Link>
           </div>
-
-          {/* Right side */}
           <div className="flex items-center gap-2">
             <Link to="/login" className="hidden md:block text-sm text-[#1d1d1f]/70 hover:text-[#1d1d1f] transition-colors">
               {isFr ? 'Connexion' : 'Login'}
             </Link>
-            <a href="/demo.html"
-              className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
+            <a href="/demo.html" className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
               <Play size={14} /> {isFr ? 'Essayer' : 'Try it'}
             </a>
-            {/* LangToggle desktop only */}
-            <div className="hidden md:flex">
-              <LangToggle />
-            </div>
-            {/* Hamburger — floating bubble on scroll */}
-            <button
-              onClick={() => menuOpen ? closeMenu() : openMenu()}
-              aria-label="Menu"
-              className={`md:hidden w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 ${
-                scrolled || menuOpen ? 'bg-white/90 backdrop-blur-md shadow-md shadow-black/10' : ''
-              }`}
-            >
-              <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>
-                <X size={18} className="text-[#1d1d1f]" />
-              </span>
-              <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}>
-                <Menu size={18} className="text-[#1d1d1f]" />
-              </span>
+            <div className="hidden md:flex"><LangToggle /></div>
+            {/* At-top hamburger (no bubble) */}
+            <button onClick={toggle} aria-label="Menu"
+              className="md:hidden w-9 h-9 flex items-center justify-center text-[#1d1d1f]">
+              <Menu size={20} />
             </button>
           </div>
         </div>
       </nav>
 
-      {/* ── MOBILE BUBBLE MENU ── */}
+      {/* ── FLOATING QW LOGO BUBBLE — appears on scroll (mobile) ── */}
+      <Link to="/"
+        className={`fixed top-3 left-4 z-50 w-10 h-10 items-center justify-center rounded-full bg-white/90 backdrop-blur-md shadow-md shadow-black/10 transition-all duration-300 md:hidden ${
+          scrolled ? 'flex opacity-100' : 'hidden opacity-0 pointer-events-none'
+        }`}
+      >
+        <QwillioLogo size={24} />
+      </Link>
+
+      {/* ── FLOATING HAMBURGER BUBBLE — always fixed, bubble on scroll/open ── */}
+      <button
+        onClick={toggle}
+        aria-label="Menu"
+        className={`fixed top-3 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 md:hidden ${
+          scrolled || menuOpen ? 'bg-white/90 backdrop-blur-md shadow-md shadow-black/10' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>
+          <X size={18} className="text-[#1d1d1f]" />
+        </span>
+        <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}>
+          <Menu size={18} className="text-[#1d1d1f]" />
+        </span>
+      </button>
+
+      {/* ── BUBBLE MENU — grows from hamburger ── */}
       {menuOpen && (
         <div
           className="md:hidden fixed inset-0 z-40"
@@ -156,7 +160,6 @@ export default function PublicNavbar() {
             style={{ transformOrigin: 'top right', animation: menuVisible ? 'bubbleIn 0.25s ease-out forwards' : 'bubbleOut 0.2s ease-in forwards' }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Links */}
             <div className="space-y-0.5 mb-3">
               <Link to="/" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">Home</Link>
               <Link to="/receptionist" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">Receptionist AI</Link>
@@ -165,12 +168,10 @@ export default function PublicNavbar() {
               <Link to="/affiliate" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">{isFr ? 'Affiliation' : 'Affiliate'}</Link>
               <Link to="/login" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">{isFr ? 'Connexion' : 'Login'}</Link>
             </div>
-            {/* Try it button */}
             <a href="/demo.html" onClick={closeMenu}
               className="flex items-center justify-center gap-2 w-full bg-[#6366f1] text-white text-sm font-medium px-4 py-2.5 rounded-full hover:bg-[#4f46e5] transition-colors mb-3">
               <Play size={13} /> {isFr ? 'Essayer' : 'Try it'}
             </a>
-            {/* FR/EN toggle */}
             <div className="border-t border-[#d2d2d7]/60 pt-3 flex justify-center">
               <LangToggle />
             </div>
