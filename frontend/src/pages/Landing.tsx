@@ -183,25 +183,19 @@ export default function Landing() {
 
         {/* Stats */}
         <FadeIn delay={400}>
-          <div className="mt-20 grid grid-cols-3 text-center w-full max-w-xl mx-auto">
-            <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">
-                <Counter value={98} suffix="%" />
-              </p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">{t('hero.stat1')}</p>
-            </div>
-            <div className="border-x border-[#d2d2d7]">
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">
-                <Counter value={2500} suffix="+" />
-              </p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">{t('hero.stat2')}</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">
-                <Counter value={35} suffix="%" />
-              </p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">{t('hero.stat3')}</p>
-            </div>
+          <div className="mt-20 flex flex-row items-stretch justify-center divide-x divide-[#d2d2d7] w-full max-w-xl mx-auto">
+            {[
+              { value: 98,   suffix: '%', label: t('hero.stat1') },
+              { value: 2500, suffix: '+', label: t('hero.stat2') },
+              { value: 35,   suffix: '%', label: t('hero.stat3') },
+            ].map((s, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center justify-center px-2 py-2">
+                <p className="text-3xl md:text-4xl font-semibold tracking-tight whitespace-nowrap">
+                  <Counter value={s.value} suffix={s.suffix} />
+                </p>
+                <p className="text-xs md:text-sm text-[#86868b] mt-1 text-center leading-tight">{s.label}</p>
+              </div>
+            ))}
           </div>
         </FadeIn>
       </section>
