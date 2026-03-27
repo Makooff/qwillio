@@ -367,25 +367,19 @@ export default function Agent() {
         </FadeIn>
         {/* Stat counters */}
         <FadeIn delay={300}>
-          <div className="mt-20 grid grid-cols-3 text-center w-full max-w-2xl mx-auto">
-            <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">
-                <Counter value={40} suffix="hrs" />
-              </p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">{isFr ? 'Economisees/semaine' : 'Saved per week'}</p>
-            </div>
-            <div className="border-x border-[#d2d2d7]">
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">
-                <Counter value={12} prefix="$" suffix="k+" />
-              </p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">{isFr ? 'Economises/an' : 'Saved/year'}</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">
-                <Counter value={99} suffix=".5%" />
-              </p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">{isFr ? 'Disponibilite' : 'Uptime'}</p>
-            </div>
+          <div className="mt-20 flex flex-row items-stretch justify-center divide-x divide-[#d2d2d7] w-full mx-auto">
+            {[
+              { value: 40,  suffix: 'hrs', prefix: '',  label: isFr ? 'Economisees/semaine' : 'Saved per week' },
+              { value: 12,  suffix: 'k+',  prefix: '$', label: isFr ? 'Economises/an' : 'Saved/year' },
+              { value: 99,  suffix: '.5%', prefix: '',  label: isFr ? 'Disponibilite' : 'Uptime' },
+            ].map((s, i) => (
+              <div key={i} className="flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-2">
+                <p className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight whitespace-nowrap">
+                  <Counter value={s.value} prefix={s.prefix} suffix={s.suffix} />
+                </p>
+                <p className="text-[10px] sm:text-xs md:text-sm text-[#86868b] mt-1 text-center leading-tight">{s.label}</p>
+              </div>
+            ))}
           </div>
         </FadeIn>
       </section>
