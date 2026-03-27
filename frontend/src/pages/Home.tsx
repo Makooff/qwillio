@@ -192,15 +192,15 @@ export default function Home() {
 
           {/* Stats row */}
           <FadeIn delay={400}>
-            <div className="flex flex-wrap justify-center items-center gap-0">
+            <div className="flex flex-row items-stretch justify-center w-full">
               {[
-                { value: '98%', label: isFr ? 'Taux de reponse' : 'Answer rate' },
-                { value: '2,500+', label: isFr ? 'Appels / jour' : 'Calls / day' },
+                { value: '98%', label: isFr ? 'Taux de réponse' : 'Answer rate' },
+                { value: '2 500+', label: isFr ? 'Appels / jour' : 'Calls / day' },
                 { value: '35%', label: isFr ? 'Plus de rendez-vous' : 'More appointments' },
               ].map((stat, i) => (
-                <div key={i} className={`px-6 md:px-8 py-3 ${i > 0 ? 'border-l border-[#d2d2d7]/60' : ''}`}>
-                  <p className="text-3xl md:text-4xl font-semibold tracking-tight text-[#1d1d1f]">{stat.value}</p>
-                  <p className="text-sm text-[#86868b] mt-1">{stat.label}</p>
+                <div key={i} className={`flex-1 flex flex-col items-center justify-center px-2 md:px-8 py-3 ${i > 0 ? 'border-l border-[#d2d2d7]/60' : ''}`}>
+                  <p className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-[#1d1d1f] whitespace-nowrap">{stat.value}</p>
+                  <p className="text-[10px] sm:text-sm text-[#86868b] mt-1 text-center leading-tight">{stat.label}</p>
                 </div>
               ))}
             </div>

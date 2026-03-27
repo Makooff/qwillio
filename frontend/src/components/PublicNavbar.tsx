@@ -93,10 +93,10 @@ export default function PublicNavbar() {
       `}</style>
 
       {/* ── NAV — never moves, always fixed at top ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50">
+      <nav className="fixed top-0 left-0 right-0 z-50" style={{ willChange: 'transform', transform: 'translateZ(0)' }}>
 
-        {/* Desktop nav background (appears on scroll) */}
-        <div className={`absolute inset-0 -z-10 transition-all duration-300 md:${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : 'bg-transparent'}`} />
+        {/* Desktop nav background (appears on scroll — hidden on mobile) */}
+        <div className={`absolute inset-0 -z-10 transition-all duration-300 hidden md:block ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : ''}`} />
 
         <div className="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
 
