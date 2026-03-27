@@ -92,65 +92,70 @@ export default function PublicNavbar() {
         }
       `}</style>
 
-      {/* ── FULL NAV — slides away on scroll ── */}
-      <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-400 ${
-        scrolled ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
-      }`}>
-        <div className="max-w-[1120px] mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight text-[#1d1d1f]">
-            <QwillioLogo size={30} /> Qwillio
+      {/* ── NAV — never moves, always fixed at top ── */}
+      <nav className="fixed top-0 left-0 right-0 z-50">
+
+        {/* Desktop nav background (appears on scroll) */}
+        <div className={`absolute inset-0 -z-10 transition-all duration-300 md:${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : 'bg-transparent'}`} />
+
+        <div className="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
+
+          {/* ── LOGO — bubble appears around it on scroll (mobile) ── */}
+          <Link to="/" className="relative flex items-center">
+            {/* Bubble bg — grows around logo on scroll */}
+            <span className={`absolute -inset-[6px] rounded-full transition-all duration-300 md:hidden ${
+              scrolled ? 'bg-white/80 backdrop-blur-md shadow-md scale-100 opacity-100' : 'bg-white/0 scale-75 opacity-0'
+            }`} />
+            <span className="relative z-10 flex items-center gap-2">
+              <QwillioLogo size={28} />
+              <span className={`text-xl font-semibold tracking-tight text-[#1d1d1f] transition-all duration-300 ${
+                scrolled ? 'opacity-0 w-0 overflow-hidden md:opacity-100 md:w-auto' : 'opacity-100'
+              }`}>Qwillio</span>
+            </span>
           </Link>
+
+          {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-8 text-sm text-[#1d1d1f]/70">
             <Link to="/" className="hover:text-[#1d1d1f] transition-colors">Home</Link>
             <Dropdown label={isFr ? 'Produit' : 'Product'} items={productItems} />
             <Dropdown label={isFr ? 'Entreprise' : 'Company'} items={companyItems} />
             <Link to="/pricing" className="hover:text-[#1d1d1f] transition-colors">{isFr ? 'Tarifs' : 'Pricing'}</Link>
           </div>
+
+          {/* Right side */}
           <div className="flex items-center gap-2">
             <Link to="/login" className="hidden md:block text-sm text-[#1d1d1f]/70 hover:text-[#1d1d1f] transition-colors">
               {isFr ? 'Connexion' : 'Login'}
             </Link>
-            <a href="/demo.html" className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
-              <Play size={14} /> {isFr ? 'Essayer' : 'Try it'}
+            {/* Try it — hides on scroll on mobile */}
+            <a href="/demo.html" className={`inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-all duration-300 ${
+              scrolled ? 'opacity-0 pointer-events-none w-0 px-0 overflow-hidden md:opacity-100 md:pointer-events-auto md:w-auto md:px-5' : 'opacity-100'
+            }`}>
+              <Play size={14} /> <span className="whitespace-nowrap">{isFr ? 'Essayer' : 'Try it'}</span>
             </a>
             <div className="hidden md:flex"><LangToggle /></div>
-            {/* At-top hamburger (no bubble) */}
-            <button onClick={toggle} aria-label="Menu"
-              className="md:hidden w-9 h-9 flex items-center justify-center text-[#1d1d1f]">
-              <Menu size={20} />
-            </button>
+
+            {/* ── HAMBURGER — bubble appears around it on scroll (mobile) ── */}
+            <div className="relative md:hidden">
+              {/* Bubble bg — grows around hamburger on scroll/open */}
+              <span className={`absolute -inset-[6px] rounded-full transition-all duration-300 ${
+                scrolled || menuOpen ? 'bg-white/80 backdrop-blur-md shadow-md scale-100 opacity-100' : 'bg-white/0 scale-75 opacity-0'
+              }`} />
+              <button onClick={toggle} aria-label="Menu"
+                className="relative z-10 w-9 h-9 flex items-center justify-center text-[#1d1d1f]">
+                <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>
+                  <X size={18} />
+                </span>
+                <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}>
+                  <Menu size={18} />
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* ── FLOATING QW LOGO BUBBLE ── */}
-      <Link to="/"
-        className={`fixed top-[6px] left-4 z-50 w-11 h-11 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md shadow-md transition-all duration-300 md:hidden ${
-          scrolled ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
-        }`}
-      >
-        <QwillioLogo size={24} />
-      </Link>
-
-      {/* ── FLOATING HAMBURGER BUBBLE ── */}
-      <button
-        onClick={toggle}
-        aria-label="Menu"
-        className={`fixed top-[6px] right-4 z-50 w-11 h-11 flex items-center justify-center rounded-full transition-all duration-300 md:hidden ${
-          scrolled || menuOpen
-            ? 'bg-white/80 backdrop-blur-md shadow-md opacity-100 scale-100 pointer-events-auto'
-            : 'opacity-0 scale-75 pointer-events-none'
-        }`}
-      >
-        <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>
-          <X size={18} className="text-[#1d1d1f]" />
-        </span>
-        <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}>
-          <Menu size={18} className="text-[#1d1d1f]" />
-        </span>
-      </button>
-
-      {/* ── BUBBLE MENU — grows from hamburger ── */}
+      {/* ── BUBBLE MENU ── */}
       {menuOpen && (
         <div
           className="md:hidden fixed inset-0 z-40"
