@@ -123,22 +123,22 @@ export default function PublicNavbar() {
         </div>
       </nav>
 
-      {/* ── FLOATING QW LOGO BUBBLE — same position as nav logo ── */}
+      {/* ── FLOATING QW LOGO BUBBLE ── */}
       <Link to="/"
-        className={`fixed top-2 left-6 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-white/70 backdrop-blur-md shadow-sm transition-all duration-300 md:hidden ${
+        className={`fixed top-[6px] left-4 z-50 w-11 h-11 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md shadow-md transition-all duration-300 md:hidden ${
           scrolled ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
         }`}
       >
         <QwillioLogo size={24} />
       </Link>
 
-      {/* ── FLOATING HAMBURGER BUBBLE — same position as nav hamburger ── */}
+      {/* ── FLOATING HAMBURGER BUBBLE ── */}
       <button
         onClick={toggle}
         aria-label="Menu"
-        className={`fixed top-2 right-6 z-50 w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 md:hidden ${
+        className={`fixed top-[6px] right-4 z-50 w-11 h-11 flex items-center justify-center rounded-full transition-all duration-300 md:hidden ${
           scrolled || menuOpen
-            ? 'bg-white/70 backdrop-blur-md shadow-sm opacity-100 scale-100 pointer-events-auto'
+            ? 'bg-white/80 backdrop-blur-md shadow-md opacity-100 scale-100 pointer-events-auto'
             : 'opacity-0 scale-75 pointer-events-none'
         }`}
       >
