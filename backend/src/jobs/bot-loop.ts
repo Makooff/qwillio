@@ -13,6 +13,10 @@ import { bookingReminderService } from '../services/booking-reminder.service';
 import { optimizationService } from '../services/optimization.service';
 import { phoneValidationService } from '../services/phone-validation.service';
 import { nicheLearningService } from '../services/niche-learning.service';
+import { agentPaymentsService } from '../services/agent-payments.service';
+import { agentAccountingService } from '../services/agent-accounting.service';
+import { agentInventoryService } from '../services/agent-inventory.service';
+import { agentEmailService } from '../services/agent-email.service';
 
 class BotLoop {
   private prospectionJob: cron.ScheduledTask | null = null;
@@ -29,6 +33,13 @@ class BotLoop {
   private nicheLearningJob: cron.ScheduledTask | null = null;
   private staleCallCleanupJob: cron.ScheduledTask | null = null;
   private keepAliveJob: cron.ScheduledTask | null = null;
+  // Agent AI module jobs
+  private agentPaymentsJob: cron.ScheduledTask | null = null;
+  private agentAccountingJob: cron.ScheduledTask | null = null;
+  private agentInventoryAlertJob: cron.ScheduledTask | null = null;
+  private agentInventoryForecastJob: cron.ScheduledTask | null = null;
+  private agentEmailSyncJob: cron.ScheduledTask | null = null;
+  private agentEmailFollowUpJob: cron.ScheduledTask | null = null;
 
   async initialize() {
     // Ensure bot_status record exists
@@ -318,6 +329,72 @@ class BotLoop {
     // CRON 14: KEEP-ALIVE PING - Every 10 minutes
     // Prevents Render free tier from sleeping (cold start ~50s)
     // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
+    // AGENT AI: Payments — process overdue invoices every hour
+    // ═══════════════════════════════════════════════════════════
+    this.agentPaymentsJob = cron.schedule('15 * * * *', async () => {
+      try {
+        await agentPaymentsService.processOverdueInvoices();
+      } catch (error) {
+        logger.error('[CRON] Agent payments processing failed:', error);
+      }
+    }, { timezone: env.TZ });
+
+    // ═══════════════════════════════════════════════════════════
+    // AGENT AI: Accounting — monthly reports on the 1st at 2 AM
+    // ═══════════════════════════════════════════════════════════
+    this.agentAccountingJob = cron.schedule('0 2 1 * *', async () => {
+      try {
+        await agentAccountingService.processAllMonthlyReports();
+      } catch (error) {
+        logger.error('[CRON] Agent accounting reports failed:', error);
+      }
+    }, { timezone: env.TZ });
+
+    // ═══════════════════════════════════════════════════════════
+    // AGENT AI: Inventory — low stock alerts every 6 hours
+    // ═══════════════════════════════════════════════════════════
+    this.agentInventoryAlertJob = cron.schedule('0 */6 * * *', async () => {
+      try {
+        await agentInventoryService.processAutoReorders();
+      } catch (error) {
+        logger.error('[CRON] Agent inventory reorder failed:', error);
+      }
+    }, { timezone: env.TZ });
+
+    // ═══════════════════════════════════════════════════════════
+    // AGENT AI: Inventory — demand forecasting daily at 3 AM
+    // ═══════════════════════════════════════════════════════════
+    this.agentInventoryForecastJob = cron.schedule('0 3 * * *', async () => {
+      try {
+        await agentInventoryService.processAllForecasts();
+      } catch (error) {
+        logger.error('[CRON] Agent inventory forecast failed:', error);
+      }
+    }, { timezone: env.TZ });
+
+    // ═══════════════════════════════════════════════════════════
+    // AGENT AI: Email — sync Gmail every 10 minutes
+    // ═══════════════════════════════════════════════════════════
+    this.agentEmailSyncJob = cron.schedule('*/10 * * * *', async () => {
+      try {
+        await agentEmailService.syncAllClients();
+      } catch (error) {
+        logger.error('[CRON] Agent email sync failed:', error);
+      }
+    }, { timezone: env.TZ });
+
+    // ═══════════════════════════════════════════════════════════
+    // AGENT AI: Email — process follow-ups every hour
+    // ═══════════════════════════════════════════════════════════
+    this.agentEmailFollowUpJob = cron.schedule('30 * * * *', async () => {
+      try {
+        await agentEmailService.processFollowUps();
+      } catch (error) {
+        logger.error('[CRON] Agent email follow-ups failed:', error);
+      }
+    }, { timezone: env.TZ });
+
     this.keepAliveJob = cron.schedule('*/10 * * * *', async () => {
       try {
         const url = env.API_BASE_URL || `http://localhost:${env.PORT}`;
@@ -327,8 +404,8 @@ class BotLoop {
       }
     });
 
-    await discordService.notify('🤖 Qwillio started! All 13 cron jobs active.');
-    logger.info('🤖 All 13 cron jobs started. Bot is running in automatic loop.');
+    await discordService.notify('🤖 Qwillio started! All 19 cron jobs active (incl. 6 Agent AI).');
+    logger.info('🤖 All 19 cron jobs started. Bot is running in automatic loop.');
   }
 
   async stop() {
@@ -346,6 +423,12 @@ class BotLoop {
     this.nicheLearningJob?.stop();
     this.staleCallCleanupJob?.stop();
     this.keepAliveJob?.stop();
+    this.agentPaymentsJob?.stop();
+    this.agentAccountingJob?.stop();
+    this.agentInventoryAlertJob?.stop();
+    this.agentInventoryForecastJob?.stop();
+    this.agentEmailSyncJob?.stop();
+    this.agentEmailFollowUpJob?.stop();
 
     const botStatus = await prisma.botStatus.findFirst();
     if (botStatus) {
@@ -380,6 +463,12 @@ class BotLoop {
         optimization: this.optimizationJob ? 'active' : 'inactive',
         phoneValidation: this.phoneValidationJob ? 'active' : 'inactive',
         nicheLearning: this.nicheLearningJob ? 'active' : 'inactive',
+        agentPayments: this.agentPaymentsJob ? 'active' : 'inactive',
+        agentAccounting: this.agentAccountingJob ? 'active' : 'inactive',
+        agentInventoryAlerts: this.agentInventoryAlertJob ? 'active' : 'inactive',
+        agentInventoryForecast: this.agentInventoryForecastJob ? 'active' : 'inactive',
+        agentEmailSync: this.agentEmailSyncJob ? 'active' : 'inactive',
+        agentEmailFollowUp: this.agentEmailFollowUpJob ? 'active' : 'inactive',
       },
     };
   }

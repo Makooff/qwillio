@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import Landing from './pages/Landing';
+import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Prospects from './pages/Prospects';
 import Clients from './pages/Clients';
@@ -48,6 +49,11 @@ const Terms = lazy(() => import('./pages/legal/Terms'));
 const About = lazy(() => import('./pages/legal/About'));
 const Contact = lazy(() => import('./pages/legal/Contact'));
 const Gdpr = lazy(() => import('./pages/legal/Gdpr'));
+// Public pages (lazy loaded)
+const AgentPage = lazy(() => import('./pages/Agent'));
+const PricingPage = lazy(() => import('./pages/Pricing'));
+const BlogPage = lazy(() => import('./pages/Blog'));
+const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -102,7 +108,7 @@ function PublicOrDashboard() {
     if (!user.onboardingCompleted) return <Navigate to="/onboard" />;
     return <Navigate to={homeRoute(user)} />;
   }
-  return <Landing />;
+  return <Home />;
 }
 
 export default function App() {
@@ -130,6 +136,11 @@ export default function App() {
         <Route path="/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
         <Route path="/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
         <Route path="/gdpr" element={<Suspense fallback={<Spinner />}><Gdpr /></Suspense>} />
+        <Route path="/receptionist" element={<Landing />} />
+        <Route path="/agent" element={<Suspense fallback={<Spinner />}><AgentPage /></Suspense>} />
+        <Route path="/pricing" element={<Suspense fallback={<Spinner />}><PricingPage /></Suspense>} />
+        <Route path="/blog" element={<Suspense fallback={<Spinner />}><BlogPage /></Suspense>} />
+        <Route path="/affiliate" element={<Suspense fallback={<Spinner />}><AffiliatePage /></Suspense>} />
 
         {/* Self-service onboarding (requires auth, not yet onboarded) */}
         <Route

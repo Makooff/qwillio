@@ -1,6 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware, clientMiddleware } from '../middleware/auth.middleware';
 import { prisma } from '../config/database';
+import { agentPaymentsService } from '../services/agent-payments.service';
+import { agentAccountingService } from '../services/agent-accounting.service';
+import { agentInventoryService } from '../services/agent-inventory.service';
+import { agentEmailService } from '../services/agent-email.service';
 
 const router = Router();
 
@@ -305,7 +309,7 @@ router.post('/inventory', async (req: Request, res: Response) => {
 router.put('/inventory/:id', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const id = req.params.id as string;
+    const id = req.params.id as string as string;
     const { productName, quantity, unit, minThreshold, supplierEmail, autoOrder } = req.body;
 
     // Verify ownership
@@ -338,7 +342,7 @@ router.put('/inventory/:id', async (req: Request, res: Response) => {
 router.delete('/inventory/:id', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const id = req.params.id as string;
+    const id = req.params.id as string as string;
 
     // Verify ownership
     const existing = await prisma.agentInventory.findFirst({
@@ -352,6 +356,272 @@ router.delete('/inventory/:id', async (req: Request, res: Response) => {
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to delete inventory item' });
+  }
+});
+
+// ─── Payments AI ─────────────────────────────────────────
+
+router.post('/payments/invoices', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const invoice = await agentPaymentsService.createInvoice(clientId, req.body);
+    res.status(201).json(invoice);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to create invoice' });
+  }
+});
+
+router.get('/payments/invoices', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { status, page, limit } = req.query;
+    const result = await agentPaymentsService.listInvoices(clientId, status as string, Number(page) || 1, Number(limit) || 20);
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to list invoices' });
+  }
+});
+
+router.post('/payments/invoices/:id/send', async (req: Request, res: Response) => {
+  try {
+    const invoice = await agentPaymentsService.sendInvoice(req.params.id as string);
+    res.json(invoice);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to send invoice' });
+  }
+});
+
+router.post('/payments/invoices/:id/mark-paid', async (req: Request, res: Response) => {
+  try {
+    const invoice = await agentPaymentsService.markPaid(req.params.id as string);
+    res.json(invoice);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to mark paid' });
+  }
+});
+
+router.get('/payments/report', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { startDate, endDate } = req.query;
+    const report = await agentPaymentsService.getRevenueReport(
+      clientId,
+      startDate ? new Date(startDate as string) : new Date(new Date().setMonth(new Date().getMonth() - 1)),
+      endDate ? new Date(endDate as string) : new Date()
+    );
+    res.json(report);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to get revenue report' });
+  }
+});
+
+// ─── Accounting AI ───────────────────────────────────────
+
+router.post('/accounting/expenses', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const expense = await agentAccountingService.addExpense(clientId, req.body);
+    res.status(201).json(expense);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to add expense' });
+  }
+});
+
+router.get('/accounting/expenses', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { startDate, endDate, category, page, limit } = req.query;
+    const result = await agentAccountingService.listExpenses(clientId, {
+      startDate: startDate ? new Date(startDate as string) : undefined,
+      endDate: endDate ? new Date(endDate as string) : undefined,
+      category: category as string,
+      page: Number(page) || 1,
+      limit: Number(limit) || 20,
+    });
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to list expenses' });
+  }
+});
+
+router.post('/accounting/income', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const income = await agentAccountingService.addIncome(clientId, req.body);
+    res.status(201).json(income);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to add income' });
+  }
+});
+
+router.get('/accounting/income', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { startDate, endDate, page, limit } = req.query;
+    const result = await agentAccountingService.listIncome(clientId, {
+      startDate: startDate ? new Date(startDate as string) : undefined,
+      endDate: endDate ? new Date(endDate as string) : undefined,
+      page: Number(page) || 1,
+      limit: Number(limit) || 20,
+    });
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to list income' });
+  }
+});
+
+router.get('/accounting/summary', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { startDate, endDate } = req.query;
+    const summary = await agentAccountingService.getFinancialSummary(
+      clientId,
+      startDate ? new Date(startDate as string) : new Date(new Date().setMonth(new Date().getMonth() - 1)),
+      endDate ? new Date(endDate as string) : new Date()
+    );
+    res.json(summary);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to get summary' });
+  }
+});
+
+router.get('/accounting/reports', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const reports = await agentAccountingService.listReports(clientId);
+    res.json(reports);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to list reports' });
+  }
+});
+
+router.post('/accounting/reports/generate', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { year, month } = req.body;
+    const report = await agentAccountingService.generateMonthlyReport(clientId, year, month);
+    res.json(report);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to generate report' });
+  }
+});
+
+// ─── Inventory AI (extended) ─────────────────────────────
+
+router.post('/inventory/:id/usage', async (req: Request, res: Response) => {
+  try {
+    const { quantity, note } = req.body;
+    const item = await agentInventoryService.recordUsage(req.params.id as string, quantity, note);
+    res.json(item);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Failed to record usage' });
+  }
+});
+
+router.post('/inventory/:id/restock', async (req: Request, res: Response) => {
+  try {
+    const { quantity, note } = req.body;
+    const item = await agentInventoryService.recordRestock(req.params.id as string, quantity, note);
+    res.json(item);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to record restock' });
+  }
+});
+
+router.get('/inventory/alerts', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const alerts = await agentInventoryService.checkLowStock(clientId);
+    res.json(alerts);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to check stock alerts' });
+  }
+});
+
+router.get('/inventory/report', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const report = await agentInventoryService.getInventoryReport(clientId);
+    res.json(report);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to get inventory report' });
+  }
+});
+
+router.get('/inventory/reorders', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { page, limit } = req.query;
+    const result = await agentInventoryService.listReorders(clientId, Number(page) || 1, Number(limit) || 20);
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to list reorders' });
+  }
+});
+
+// ─── Email AI (extended) ─────────────────────────────────
+
+router.get('/email/oauth/url', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const url = agentEmailService.getOAuthUrl(clientId);
+    res.json({ url });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to generate OAuth URL' });
+  }
+});
+
+router.put('/email/business-context', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { businessContext, followUpEnabled, followUpDelayHours } = req.body;
+    const config = await prisma.agentEmailConfig.upsert({
+      where: { clientId },
+      create: { clientId, businessContext, followUpEnabled: followUpEnabled ?? false, followUpDelayHours: followUpDelayHours ?? 24 },
+      update: {
+        ...(businessContext !== undefined && { businessContext }),
+        ...(followUpEnabled !== undefined && { followUpEnabled }),
+        ...(followUpDelayHours !== undefined && { followUpDelayHours }),
+      },
+    });
+    res.json(config);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to update business context' });
+  }
+});
+
+router.post('/email/sync', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const count = await agentEmailService.syncEmails(clientId);
+    res.json({ synced: count });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to sync emails' });
+  }
+});
+
+router.get('/email/inbox', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { classification, page, limit } = req.query;
+    const result = await agentEmailService.listEmails(clientId, {
+      classification: classification as string,
+      page: Number(page) || 1,
+      limit: Number(limit) || 20,
+    });
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to list emails' });
+  }
+});
+
+router.get('/email/dashboard', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const dashboard = await agentEmailService.getEmailDashboard(clientId);
+    res.json(dashboard);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to get email dashboard' });
   }
 });
 

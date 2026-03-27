@@ -236,6 +236,11 @@ model Client {
   deals              Deal[]
   activities         Activity[]
   crmIntegrations    CrmIntegration[]
+  agentInvoices      AgentInvoice[]
+  agentExpenses      AgentExpense[]
+  agentIncomes       AgentIncome[]
+  agentFinancialReports AgentFinancialReport[]
+  agentEmails        AgentEmail[]
 
   @@index([subscriptionStatus])
   @@index([planType])
@@ -808,6 +813,10 @@ model AgentEmailConfig {
   replyTone      String   @default("professional") @map("reply_tone") @db.VarChar(50)
   blockedSenders String[] @default([]) @map("blocked_senders")
   templates      Json?
+  lastSyncAt        DateTime? @map("last_sync_at")
+  businessContext   String?   @map("business_context") @db.Text
+  followUpEnabled   Boolean   @default(false) @map("follow_up_enabled")
+  followUpDelayHours Int      @default(24) @map("follow_up_delay_hours")
   active         Boolean  @default(true)
   createdAt      DateTime @default(now()) @map("created_at")
 
@@ -828,6 +837,9 @@ model AgentInventory {
   minThreshold  Decimal?  @map("min_threshold") @db.Decimal(10, 2)
   supplierEmail String?   @map("supplier_email") @db.VarChar(255)
   autoOrder     Boolean   @default(false) @map("auto_order")
+  lastOrderedAt  DateTime? @map("last_ordered_at")
+  avgDailyUsage  Decimal?  @map("avg_daily_usage") @db.Decimal(10, 2)
+  daysUntilEmpty Int?      @map("days_until_empty")
   lastUpdated   DateTime  @default(now()) @map("last_updated") @updatedAt
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -853,6 +865,176 @@ model AgentAccounting {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@map("agent_accounting")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT EXPENSES — Accounting AI expense tracking
+// ═══════════════════════════════════════════════════════════
+model AgentExpense {
+  id                 String    @id @default(uuid()) @db.Uuid
+  clientId           String    @map("client_id") @db.Uuid
+  description        String    @db.VarChar(500)
+  amount             Decimal   @db.Decimal(12, 2)
+  currency           String    @default("USD") @db.VarChar(10)
+  category           String?   @db.VarChar(50)
+  categoryConfidence Float?    @map("category_confidence")
+  date               DateTime
+  vendor             String?   @db.VarChar(255)
+  receiptUrl         String?   @map("receipt_url") @db.VarChar(500)
+  isRecurring        Boolean   @default(false) @map("is_recurring")
+  notes              String?   @db.Text
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([clientId, date])
+  @@index([clientId, category])
+  @@map("agent_expenses")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT INCOME — Accounting AI income tracking
+// ═══════════════════════════════════════════════════════════
+model AgentIncome {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @map("client_id") @db.Uuid
+  description String   @db.VarChar(500)
+  amount      Decimal  @db.Decimal(12, 2)
+  currency    String   @default("USD") @db.VarChar(10)
+  source      String?  @db.VarChar(255)
+  invoiceId   String?  @map("invoice_id") @db.VarChar(255)
+  date        DateTime
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([clientId, date])
+  @@map("agent_income")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT FINANCIAL REPORTS — Accounting AI generated reports
+// ═══════════════════════════════════════════════════════════
+model AgentFinancialReport {
+  id              String   @id @default(uuid()) @db.Uuid
+  clientId        String   @map("client_id") @db.Uuid
+  reportType      String   @map("report_type") @db.VarChar(50)
+  periodStart     DateTime @map("period_start")
+  periodEnd       DateTime @map("period_end")
+  totalIncome     Decimal  @map("total_income") @db.Decimal(12, 2)
+  totalExpenses   Decimal  @map("total_expenses") @db.Decimal(12, 2)
+  netProfit       Decimal  @map("net_profit") @db.Decimal(12, 2)
+  categorySummary Json     @map("category_summary")
+  aiInsights      String?  @map("ai_insights") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([clientId, reportType])
+  @@map("agent_financial_reports")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT INVOICES — Payment AI invoice tracking
+// ═══════════════════════════════════════════════════════════
+model AgentInvoice {
+  id             String    @id @default(uuid()) @db.Uuid
+  clientId       String    @map("client_id") @db.Uuid
+  invoiceNumber  String    @unique @map("invoice_number") @db.VarChar(50)
+  customerName   String    @map("customer_name") @db.VarChar(255)
+  customerEmail  String    @map("customer_email") @db.VarChar(255)
+  amount         Decimal   @db.Decimal(10, 2)
+  taxAmount      Decimal   @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  totalAmount    Decimal   @map("total_amount") @db.Decimal(10, 2)
+  currency       String    @default("USD") @db.VarChar(10)
+  status         String    @default("draft") @db.VarChar(50)
+  dueDate        DateTime  @map("due_date")
+  sentAt         DateTime? @map("sent_at")
+  paidAt         DateTime? @map("paid_at")
+  remindersSent  Int       @default(0) @map("reminders_sent")
+  lastReminderAt DateTime? @map("last_reminder_at")
+  lineItems      Json      @map("line_items")
+  notes          String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("agent_invoices")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT INVENTORY LOGS — Stock movement history
+// ═══════════════════════════════════════════════════════════
+model AgentInventoryLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  inventoryId     String   @map("inventory_id") @db.Uuid
+  clientId        String   @map("client_id") @db.Uuid
+  changeType      String   @map("change_type") @db.VarChar(50)
+  quantityChange  Decimal  @map("quantity_change") @db.Decimal(10, 2)
+  quantityAfter   Decimal  @map("quantity_after") @db.Decimal(10, 2)
+  note            String?  @db.VarChar(500)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([inventoryId])
+  @@index([clientId])
+  @@index([createdAt])
+  @@map("agent_inventory_logs")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT REORDER REQUESTS — Auto-reorder history
+// ═══════════════════════════════════════════════════════════
+model AgentReorderRequest {
+  id            String    @id @default(uuid()) @db.Uuid
+  inventoryId   String    @map("inventory_id") @db.Uuid
+  clientId      String    @map("client_id") @db.Uuid
+  supplierEmail String    @map("supplier_email") @db.VarChar(255)
+  quantity      Decimal   @db.Decimal(10, 2)
+  emailBody     String    @map("email_body") @db.Text
+  status        String    @default("sent") @db.VarChar(50)
+  sentAt        DateTime  @map("sent_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([clientId])
+  @@map("agent_reorder_requests")
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT EMAILS — Email AI classified emails
+// ═══════════════════════════════════════════════════════════
+model AgentEmail {
+  id              String    @id @default(uuid()) @db.Uuid
+  clientId        String    @map("client_id") @db.Uuid
+  gmailMessageId  String    @unique @map("gmail_message_id") @db.VarChar(255)
+  threadId        String?   @map("thread_id") @db.VarChar(255)
+  fromAddress     String    @map("from_address") @db.VarChar(500)
+  toAddress       String    @map("to_address") @db.VarChar(500)
+  subject         String    @db.VarChar(1000)
+  bodyPreview     String    @map("body_preview") @db.Text
+  receivedAt      DateTime  @map("received_at")
+  classification  String?   @db.VarChar(50)
+  classificationConfidence Float? @map("classification_confidence")
+  autoReplied     Boolean   @default(false) @map("auto_replied")
+  autoReplyText   String?   @map("auto_reply_text") @db.Text
+  needsFollowUp   Boolean   @default(false) @map("needs_follow_up")
+  followUpAt      DateTime? @map("follow_up_at")
+  followUpSent    Boolean   @default(false) @map("follow_up_sent")
+  isRead          Boolean   @default(false) @map("is_read")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([classification])
+  @@index([receivedAt])
+  @@map("agent_emails")
 }
 
 // ═══════════════════════════════════════════════════════════
