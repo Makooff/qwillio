@@ -123,23 +123,23 @@ export default function PublicNavbar() {
         </div>
       </nav>
 
-      {/* ── FLOATING QW LOGO BUBBLE — appears on scroll (mobile) ── */}
+      {/* ── FLOATING QW LOGO BUBBLE — same position as nav logo ── */}
       <Link to="/"
-        className={`fixed top-3 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-md shadow-md shadow-black/10 transition-opacity duration-300 md:hidden ${
-          scrolled ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        className={`fixed top-2 left-6 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-white/70 backdrop-blur-md shadow-sm transition-all duration-300 md:hidden ${
+          scrolled ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
         }`}
       >
         <QwillioLogo size={24} />
       </Link>
 
-      {/* ── FLOATING HAMBURGER BUBBLE — always fixed, bubble on scroll/open ── */}
+      {/* ── FLOATING HAMBURGER BUBBLE — same position as nav hamburger ── */}
       <button
         onClick={toggle}
         aria-label="Menu"
-        className={`fixed top-3 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 md:hidden ${
+        className={`fixed top-2 right-6 z-50 w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 md:hidden ${
           scrolled || menuOpen
-            ? 'bg-white/90 backdrop-blur-md shadow-md shadow-black/10 opacity-100 pointer-events-auto'
-            : 'opacity-0 pointer-events-none'
+            ? 'bg-white/70 backdrop-blur-md shadow-sm opacity-100 scale-100 pointer-events-auto'
+            : 'opacity-0 scale-75 pointer-events-none'
         }`}
       >
         <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>

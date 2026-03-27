@@ -363,25 +363,25 @@ export default function Home() {
             </div>
           </FadeIn>
 
-          <div className="flex flex-row items-stretch justify-center divide-x divide-white/10 w-full">
-            {[
-              { value: 98, suffix: '%', label: isFr ? 'Taux de reponse' : 'Answer rate', icon: Phone },
-              { value: 2500, suffix: '+', label: isFr ? 'Appels par jour' : 'Calls per day', icon: BarChart3 },
-              { value: 35, suffix: '%', label: isFr ? 'Plus de rendez-vous' : 'More appointments', icon: Users },
-            ].map((stat, i) => (
-              <FadeIn key={i} delay={i * 100} className="flex-1 min-w-0">
-                <div className="flex flex-col items-center justify-center px-2 py-2 text-center group">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mx-auto mb-3 group-hover:bg-[#6366f1]/20 transition-colors">
-                    <stat.icon size={18} className="text-[#a78bfa]" />
+          <FadeIn>
+            <div className="flex flex-row w-full">
+              {[
+                { value: 98,   suffix: '%', label: isFr ? 'Taux de reponse' : 'Answer rate',      icon: Phone },
+                { value: 2500, suffix: '+', label: isFr ? 'Appels par jour' : 'Calls per day',     icon: BarChart3 },
+                { value: 35,   suffix: '%', label: isFr ? 'Plus de rendez-vous' : 'More appts',    icon: Users },
+              ].map((stat, i) => (
+                <div key={i} className={`flex-1 flex flex-col items-center justify-center px-1 py-2 text-center group ${i > 0 ? 'border-l border-white/10' : ''}`}>
+                  <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center mx-auto mb-2 group-hover:bg-[#6366f1]/20 transition-colors">
+                    <stat.icon size={16} className="text-[#a78bfa]" />
                   </div>
-                  <p className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight whitespace-nowrap mb-1">
+                  <p className="text-2xl sm:text-3xl font-semibold tracking-tight whitespace-nowrap mb-0.5">
                     <Counter value={stat.value} suffix={stat.suffix} />
                   </p>
                   <p className="text-[10px] sm:text-xs text-white/50 leading-tight">{stat.label}</p>
                 </div>
-              </FadeIn>
-            ))}
-          </div>
+              ))}
+            </div>
+          </FadeIn>
         </div>
       </section>
 
