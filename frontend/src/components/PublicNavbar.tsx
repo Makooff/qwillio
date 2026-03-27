@@ -47,7 +47,7 @@ export default function PublicNavbar() {
   useEffect(() => { closeMenu(); }, [location.pathname]);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 50);
+    const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
@@ -125,8 +125,8 @@ export default function PublicNavbar() {
 
       {/* ── FLOATING QW LOGO BUBBLE — appears on scroll (mobile) ── */}
       <Link to="/"
-        className={`fixed top-3 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-md shadow-md shadow-black/10 transition-all duration-400 md:hidden ${
-          scrolled ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-1 pointer-events-none'
+        className={`fixed top-3 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-md shadow-md shadow-black/10 transition-opacity duration-300 md:hidden ${
+          scrolled ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
         <QwillioLogo size={24} />
@@ -136,10 +136,10 @@ export default function PublicNavbar() {
       <button
         onClick={toggle}
         aria-label="Menu"
-        className={`fixed top-3 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full transition-all duration-400 md:hidden ${
+        className={`fixed top-3 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 md:hidden ${
           scrolled || menuOpen
-            ? 'bg-white/90 backdrop-blur-md shadow-md shadow-black/10 opacity-100 translate-y-0'
-            : 'opacity-0 -translate-y-1 pointer-events-none'
+            ? 'bg-white/90 backdrop-blur-md shadow-md shadow-black/10 opacity-100 pointer-events-auto'
+            : 'opacity-0 pointer-events-none'
         }`}
       >
         <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>
