@@ -9,13 +9,13 @@ const translations = {
   'nav.try': { fr: 'Essayer', en: 'Try it' },
 
   // ── Hero ──
-  'hero.title1': { fr: 'Votre réceptionniste', en: 'Your receptionist' },
-  'hero.title2': { fr: 'ne dort jamais.', en: 'never sleeps.' },
+  'hero.title1': { fr: 'Votre entreprise.', en: 'Your business.' },
+  'hero.title2': { fr: 'Amplifiée par l\'IA.', en: 'Amplified by AI.' },
   'hero.subtitle': {
-    fr: 'Qwillio répond à chaque appel, qualifie vos prospects et prend des rendez-vous — 24h/24, 7j/7.',
-    en: 'Qwillio answers every call, qualifies your leads and books appointments — 24/7.',
+    fr: 'Réceptionniste, agent, CRM, facturation — Qwillio centralise tout en une plateforme intelligente qui travaille pour vous 24h/24.',
+    en: 'Receptionist, agent, CRM, billing — Qwillio brings everything into one intelligent platform that works for you 24/7.',
   },
-  'hero.cta': { fr: "Commencer l'essai gratuit maintenant", en: 'Start your free trial now' },
+  'hero.cta': { fr: "Commencer l'essai gratuit", en: 'Start your free trial' },
   'hero.how': { fr: 'Comment ça marche', en: 'How it works' },
   'hero.stat1': { fr: 'Taux de réponse', en: 'Answer rate' },
   'hero.stat2': { fr: 'Appels traités/jour', en: 'Calls handled/day' },
