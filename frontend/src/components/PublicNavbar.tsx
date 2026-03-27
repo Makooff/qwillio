@@ -100,18 +100,20 @@ export default function PublicNavbar() {
 
         <div className="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
 
-          {/* ── LOGO — bubble appears around it on scroll (mobile) ── */}
-          <Link to="/" className="relative flex items-center">
-            {/* Bubble bg — grows around logo on scroll */}
-            <span className={`absolute -inset-[6px] rounded-full transition-all duration-300 md:hidden ${
-              scrolled ? 'bg-white/80 backdrop-blur-md shadow-md scale-100 opacity-100' : 'bg-white/0 scale-75 opacity-0'
-            }`} />
-            <span className="relative z-10 flex items-center gap-2">
-              <QwillioLogo size={28} />
-              <span className={`text-xl font-semibold tracking-tight text-[#1d1d1f] transition-all duration-300 ${
-                scrolled ? 'opacity-0 w-0 overflow-hidden md:opacity-100 md:w-auto' : 'opacity-100'
-              }`}>Qwillio</span>
-            </span>
+          {/* ── LOGO — bubble centered on icon only ── */}
+          <Link to="/" className="flex items-center gap-2">
+            {/* Icon wrapper — bubble grows around this only */}
+            <div className="relative flex items-center justify-center w-9 h-9">
+              <span className={`absolute inset-[-8px] rounded-full transition-all duration-300 md:hidden ${
+                scrolled ? 'bg-white/25 backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-75 opacity-0'
+              }`} />
+              <span className="relative z-10">
+                <QwillioLogo size={28} />
+              </span>
+            </div>
+            <span className={`text-xl font-semibold tracking-tight text-[#1d1d1f] transition-all duration-300 ${
+              scrolled ? 'opacity-0 w-0 overflow-hidden md:opacity-100 md:w-auto' : 'opacity-100'
+            }`}>Qwillio</span>
           </Link>
 
           {/* Desktop nav links */}
@@ -138,8 +140,8 @@ export default function PublicNavbar() {
             {/* ── HAMBURGER — bubble appears around it on scroll (mobile) ── */}
             <div className="relative md:hidden">
               {/* Bubble bg — grows around hamburger on scroll/open */}
-              <span className={`absolute -inset-[6px] rounded-full transition-all duration-300 ${
-                scrolled || menuOpen ? 'bg-white/80 backdrop-blur-md shadow-md scale-100 opacity-100' : 'bg-white/0 scale-75 opacity-0'
+              <span className={`absolute inset-[-8px] rounded-full transition-all duration-300 ${
+                scrolled || menuOpen ? 'bg-white/25 backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-75 opacity-0'
               }`} />
               <button onClick={toggle} aria-label="Menu"
                 className="relative z-10 w-9 h-9 flex items-center justify-center text-[#1d1d1f]">
