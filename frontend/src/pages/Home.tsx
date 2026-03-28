@@ -68,12 +68,23 @@ export default function Home() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
 
-  /* Parallax scroll offset for hero */
   const [scrollY, setScrollY] = useState(0);
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+
   useEffect(() => {
     const onScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  /* Mouse parallax — desktop only */
+  useEffect(() => {
+    const fn = (e: MouseEvent) => setMouse({
+      x: (e.clientX / window.innerWidth  - 0.5) * 2,
+      y: (e.clientY / window.innerHeight - 0.5) * 2,
+    });
+    window.addEventListener('mousemove', fn, { passive: true });
+    return () => window.removeEventListener('mousemove', fn);
   }, []);
 
   const industries = [
@@ -145,58 +156,87 @@ export default function Home() {
 
       {/* ══════════ HERO ══════════ */}
       <style>{`
-        @keyframes blob1 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33%       { transform: translate(40px, -60px) scale(1.12); }
-          66%       { transform: translate(-30px, 40px) scale(0.9); }
+        @keyframes drift1 {
+          0%,100% { transform: translate(0,0) scale(1); }
+          33%      { transform: translate(50px,-70px) scale(1.08); }
+          66%      { transform: translate(-35px,45px) scale(0.94); }
         }
-        @keyframes blob2 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33%       { transform: translate(-50px, 35px) scale(1.08); }
-          66%       { transform: translate(35px, -50px) scale(0.93); }
+        @keyframes drift2 {
+          0%,100% { transform: translate(0,0) scale(1); }
+          40%      { transform: translate(-60px,40px) scale(1.06); }
+          70%      { transform: translate(40px,-55px) scale(0.96); }
         }
-        @keyframes blob3 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          40%       { transform: translate(60px, 25px) scale(1.1); }
-          70%       { transform: translate(-25px, -60px) scale(0.88); }
+        @keyframes drift3 {
+          0%,100% { transform: translate(0,0) scale(1); }
+          50%      { transform: translate(45px,60px) scale(1.1); }
         }
-        @keyframes blob4 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%       { transform: translate(-45px, 50px) scale(1.15); }
+        @keyframes drift4 {
+          0%,100% { transform: translate(0,0) scale(1); }
+          33%      { transform: translate(-30px,-40px) scale(0.92); }
+          66%      { transform: translate(55px,30px) scale(1.07); }
+        }
+        /* Premium card shimmer */
+        @keyframes shimmer {
+          0%   { background-position: -200% center; }
+          100% { background-position:  200% center; }
+        }
+        .card-premium:hover::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background: linear-gradient(105deg, transparent 40%, rgba(99,102,241,0.06) 50%, transparent 60%);
+          background-size: 200% auto;
+          animation: shimmer 1.2s ease-in-out;
+          pointer-events: none;
         }
       `}</style>
 
-      <section className="relative pt-28 pb-32 md:pt-40 md:pb-40 overflow-hidden bg-[#0c0618]">
+      <section className="relative pt-28 pb-24 md:pt-40 md:pb-32 overflow-hidden bg-white">
 
-        {/* ── Animated abstract blobs ── */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[10%] left-[20%] w-[520px] h-[520px] rounded-full bg-[#6366f1]/50 blur-[110px]"
-               style={{ animation: 'blob1 9s ease-in-out infinite' }} />
-          <div className="absolute top-[25%] right-[15%] w-[420px] h-[420px] rounded-full bg-[#a855f7]/45 blur-[120px]"
-               style={{ animation: 'blob2 11s ease-in-out infinite' }} />
-          <div className="absolute bottom-[15%] left-[30%] w-[380px] h-[380px] rounded-full bg-[#7c3aed]/40 blur-[100px]"
-               style={{ animation: 'blob3 13s ease-in-out infinite' }} />
-          <div className="absolute top-[50%] right-[35%] w-[280px] h-[280px] rounded-full bg-[#c084fc]/30 blur-[80px]"
-               style={{ animation: 'blob4 8s ease-in-out infinite' }} />
+        {/* ── Soft abstract orbs — mouse parallax on desktop ── */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* Orb 1 — indigo, top-left */}
+          <div
+            className="absolute -top-[10%] -left-[5%] w-[700px] h-[700px] rounded-full bg-[#6366f1]/[0.09] blur-[160px]"
+            style={{ transform: `translate(${mouse.x*28}px,${mouse.y*18}px)`, transition: 'transform 1.6s cubic-bezier(0.16,1,0.3,1)', animation: 'drift1 14s ease-in-out infinite' }}
+          />
+          {/* Orb 2 — violet, top-right */}
+          <div
+            className="absolute top-[5%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[#a855f7]/[0.08] blur-[180px]"
+            style={{ transform: `translate(${mouse.x*-22}px,${mouse.y*26}px)`, transition: 'transform 1.8s cubic-bezier(0.16,1,0.3,1)', animation: 'drift2 16s ease-in-out infinite' }}
+          />
+          {/* Orb 3 — purple, center */}
+          <div
+            className="absolute top-[30%] left-[30%] w-[500px] h-[500px] rounded-full bg-[#7c3aed]/[0.06] blur-[140px]"
+            style={{ transform: `translate(${mouse.x*15}px,${mouse.y*-20}px)`, transition: 'transform 2s cubic-bezier(0.16,1,0.3,1)', animation: 'drift3 12s ease-in-out infinite' }}
+          />
+          {/* Orb 4 — lilac, bottom-right */}
+          <div
+            className="absolute bottom-[-5%] right-[10%] w-[550px] h-[550px] rounded-full bg-[#c084fc]/[0.07] blur-[160px]"
+            style={{ transform: `translate(${mouse.x*-30}px,${mouse.y*12}px)`, transition: 'transform 1.4s cubic-bezier(0.16,1,0.3,1)', animation: 'drift4 18s ease-in-out infinite' }}
+          />
+          {/* Orb 5 — deep violet, bottom-left */}
+          <div
+            className="absolute bottom-[10%] -left-[8%] w-[450px] h-[450px] rounded-full bg-[#6366f1]/[0.05] blur-[130px]"
+            style={{ transform: `translate(${mouse.x*20}px,${mouse.y*-15}px)`, transition: 'transform 2.2s cubic-bezier(0.16,1,0.3,1)' }}
+          />
         </div>
-
-        {/* Fade to white at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-white to-transparent pointer-events-none" />
 
         <div className="relative max-w-[1120px] mx-auto px-6 text-center">
           <FadeIn delay={100}>
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight text-white leading-[1.08] mb-6">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight text-[#1d1d1f] leading-[1.08] mb-6">
               {isFr ? 'Votre entreprise.' : 'Your business.'}<br />
-              <span className="bg-gradient-to-r from-[#a78bfa] to-[#e879f9] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">
                 {isFr ? "Amplifiée par l'IA." : 'Amplified by AI.'}
               </span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={200}>
-            <p className="text-lg md:text-xl text-white/65 max-w-2xl mx-auto mb-10 leading-relaxed">
+            <p className="text-lg md:text-xl text-[#86868b] max-w-2xl mx-auto mb-10 leading-relaxed">
               {isFr
-                ? 'Receptionniste, agent, CRM, facturation — Qwillio reunit tout en une plateforme intelligente qui travaille pour vous 24/7.'
+                ? "Réceptionniste, agent, CRM, facturation — Qwillio réunit tout en une plateforme intelligente qui travaille pour vous 24/7."
                 : 'Receptionist, agent, CRM, billing — Qwillio brings everything into one intelligent platform that works for you 24/7.'}
             </p>
           </FadeIn>
@@ -205,15 +245,17 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
               <a
                 href="/demo.html"
-                className="inline-flex items-center gap-2 bg-white text-[#6366f1] text-base font-semibold px-8 py-3.5 rounded-full hover:bg-white/90 transition-all hover:scale-105 shadow-xl shadow-black/20"
+                className="group inline-flex items-center gap-2 bg-[#6366f1] text-white text-base font-medium px-8 py-3.5 rounded-full hover:bg-[#4f46e5] transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-[#6366f1]/30 shadow-lg shadow-[#6366f1]/20"
               >
-                <Play size={16} /> {isFr ? 'Essayer la démo' : 'Try the demo'}
+                <Play size={16} className="transition-transform duration-300 group-hover:scale-110" />
+                {isFr ? 'Essayer la démo' : 'Try the demo'}
               </a>
               <Link
                 to="/pricing"
-                className="inline-flex items-center gap-2 text-base font-medium text-white px-8 py-3.5 rounded-full border border-white/25 hover:bg-white/10 transition-all"
+                className="group inline-flex items-center gap-2 text-base font-medium text-[#1d1d1f] px-8 py-3.5 rounded-full border border-[#d2d2d7]/60 hover:border-[#6366f1]/30 hover:bg-[#6366f1]/5 hover:text-[#6366f1] transition-all duration-300"
               >
-                {isFr ? 'Voir les tarifs' : 'View pricing'} <ArrowRight size={16} />
+                {isFr ? 'Voir les tarifs' : 'View pricing'}
+                <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
             </div>
           </FadeIn>
@@ -222,13 +264,13 @@ export default function Home() {
           <FadeIn delay={400}>
             <div className="flex flex-row items-stretch justify-center w-full">
               {[
-                { value: '98%',    label: isFr ? 'Taux de réponse' : 'Answer rate' },
-                { value: '2 500+', label: isFr ? 'Appels / jour'   : 'Calls / day' },
-                { value: '35%',    label: isFr ? 'Plus de rendez-vous' : 'More appointments' },
+                { value: '98%',    label: isFr ? 'Taux de réponse'      : 'Answer rate' },
+                { value: '2 500+', label: isFr ? 'Appels / jour'         : 'Calls / day' },
+                { value: '35%',    label: isFr ? 'Plus de rendez-vous'   : 'More appointments' },
               ].map((stat, i) => (
-                <div key={i} className={`flex-1 flex flex-col items-center justify-center px-2 md:px-8 py-3 ${i > 0 ? 'border-l border-white/20' : ''}`}>
-                  <p className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-white whitespace-nowrap">{stat.value}</p>
-                  <p className="text-[10px] sm:text-sm text-white/50 mt-1 text-center leading-tight">{stat.label}</p>
+                <div key={i} className={`flex-1 flex flex-col items-center justify-center px-2 md:px-8 py-3 transition-all duration-300 hover:scale-105 ${i > 0 ? 'border-l border-[#d2d2d7]/60' : ''}`}>
+                  <p className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-[#1d1d1f] whitespace-nowrap bg-gradient-to-br from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">{stat.value}</p>
+                  <p className="text-[10px] sm:text-sm text-[#86868b] mt-1 text-center leading-tight">{stat.label}</p>
                 </div>
               ))}
             </div>
