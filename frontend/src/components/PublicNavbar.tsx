@@ -136,13 +136,12 @@ export default function PublicNavbar() {
         {/* ══ MOBILE — always h-14, elements NEVER reposition ══ */}
         <div className="md:hidden relative h-14 overflow-hidden">
 
-          {/* ── LEFT: logo icon (fixed) + "Qwillio" text (scrolls up with content) ── */}
+          {/* ── LEFT: logo icon (fixed) + "Qwillio" simple fade ── */}
           <div className="absolute left-4 top-0 bottom-0 flex items-center">
 
-            {/* Logo icon container — w-11 h-11, bubble grows behind it */}
+            {/* Logo icon — bubble grows behind in-place */}
             <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
-              {/* Bubble background (in-place, scale from center) */}
-              <span className={`absolute inset-0 rounded-full transition-all duration-300 ${
+              <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
                 bubblesVisible ? 'bg-white/30 backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-50 opacity-0'
               }`} />
               <Link to="/" className="relative z-10 w-full h-full flex items-center justify-center">
@@ -150,53 +149,35 @@ export default function PublicNavbar() {
               </Link>
             </div>
 
-            {/* "Qwillio" — scrolls up with content via translateY, fades via opacity */}
-            <span
-              className="text-xl font-semibold tracking-tight text-[#1d1d1f] select-none pointer-events-none"
-              style={{
-                transform: `translateY(${textTranslateY}px)`,
-                opacity: textOpacity,
-                transition: 'none',
-              }}
-            >
+            {/* "Qwillio" — pure CSS fade, no movement */}
+            <span className={`text-xl font-semibold tracking-tight text-[#1d1d1f] select-none pointer-events-none transition-opacity duration-500 ease-in-out ${
+              bubblesVisible ? 'opacity-0' : 'opacity-100'
+            }`}>
               Qwillio
             </span>
           </div>
 
-          {/* ── RIGHT: Try it pill + hamburger — NEVER move ── */}
+          {/* ── RIGHT: Try it + hamburger — NEVER move ── */}
           <div className="absolute right-4 top-0 bottom-0 flex items-center gap-1.5">
 
-            {/* Try it: bubble grows behind existing pill */}
-            <div className="relative h-11 flex items-center">
-              {/* Bubble bg behind the pill (matches pill shape) */}
-              <span className={`absolute inset-0 rounded-full transition-all duration-300 bg-[#6366f1] ${
-                bubblesVisible ? 'shadow-md scale-100 opacity-100' : 'scale-75 opacity-0'
-              }`} />
-              {/* The pill itself — text collapses on scroll leaving just icon */}
-              <a
-                href="/demo.html"
-                className="relative z-10 inline-flex flex-row-reverse items-center gap-1.5 bg-[#6366f1] text-white text-sm font-medium rounded-full overflow-hidden transition-all duration-300"
-                style={{
-                  paddingLeft: bubblesVisible ? 0 : '1rem',
-                  paddingRight: '0.875rem',
-                  width: bubblesVisible ? '44px' : undefined,
-                  height: '36px',
-                  justifyContent: bubblesVisible ? 'center' : undefined,
-                }}
-              >
-                <Play size={13} className="flex-shrink-0" />
-                <span
-                  className="whitespace-nowrap overflow-hidden transition-all duration-300"
-                  style={{ maxWidth: bubblesVisible ? 0 : '120px', opacity: bubblesVisible ? 0 : 1 }}
-                >
-                  {isFr ? 'Essayer' : 'Try it'}
-                </span>
-              </a>
-            </div>
+            {/* Try it — smooth pill→circle, icon always centered */}
+            <a
+              href="/demo.html"
+              className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full transition-all duration-500 ease-in-out overflow-hidden ${
+                bubblesVisible ? 'w-11 h-11 gap-0' : 'px-4 h-9 gap-1.5'
+              }`}
+            >
+              <Play size={13} className="flex-shrink-0" />
+              <span className={`whitespace-nowrap transition-all duration-500 ease-in-out overflow-hidden ${
+                bubblesVisible ? 'max-w-0 opacity-0' : 'max-w-[100px] opacity-100'
+              }`}>
+                {isFr ? 'Essayer' : 'Try it'}
+              </span>
+            </a>
 
-            {/* Hamburger: bubble grows behind it */}
+            {/* Hamburger — bubble grows behind in-place */}
             <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
-              <span className={`absolute inset-0 rounded-full transition-all duration-300 ${
+              <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
                 bubblesVisible || menuOpen
                   ? 'bg-white/30 backdrop-blur-xl shadow-sm scale-100 opacity-100'
                   : 'scale-50 opacity-0'
