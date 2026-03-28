@@ -39,7 +39,7 @@ function Dropdown({ label, items }: { label: string; items: { to: string; icon: 
 export default function PublicNavbar() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
-  const [scrolled, setScrolled] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const location = useLocation();
@@ -47,10 +47,15 @@ export default function PublicNavbar() {
   useEffect(() => { closeMenu(); }, [location.pathname]);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 10);
+    const fn = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
+
+  /* "Qwillio" text fades like ink as user starts scrolling */
+  const textOpacity = Math.max(0, 1 - scrollY / 35);
+  /* Bubbles appear once text is fully gone */
+  const scrolled = scrollY > 50;
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
@@ -133,20 +138,24 @@ export default function PublicNavbar() {
           </div>
         </div>
 
-        {/* ── MOBILE NOT SCROLLED: full nav bar — logo/hamburger at exact bubble positions ── */}
-        <div className={`md:hidden transition-all duration-300 ${scrolled ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100 h-14'}`}>
+        {/* ── MOBILE NOT SCROLLED: full nav bar ── */}
+        <div className={`md:hidden transition-all duration-300 ${scrolled ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'h-14'}`}>
           <div className="relative h-14">
-            {/* Logo: left-4 with w-11 container → icon center matches bubble center */}
+            {/* Logo at left-4 with w-11 container — icon aligns with bubble */}
             <Link to="/" className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center">
               <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
                 <QwillioLogo size={28} />
               </div>
-              <span className="text-xl font-semibold tracking-tight text-[#1d1d1f]">Qwillio</span>
+              {/* "Qwillio" fades like ink as scroll starts */}
+              <span
+                className="text-xl font-semibold tracking-tight text-[#1d1d1f]"
+                style={{ opacity: textOpacity, transition: 'none' }}
+              >Qwillio</span>
             </Link>
-            {/* Right group: hamburger in w-11 container at right-4 → center matches bubble center */}
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <a href="/demo.html" className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-4 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
-                <Play size={14} /> <span className="whitespace-nowrap">{isFr ? 'Essayer' : 'Try it'}</span>
+            {/* Right group: Try it + hamburger in w-11 container at right-4 */}
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              <a href="/demo.html" className="inline-flex items-center gap-1.5 bg-[#6366f1] text-white text-sm font-medium px-4 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
+                <Play size={13} /> <span className="whitespace-nowrap">{isFr ? 'Essayer' : 'Try it'}</span>
               </a>
               <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
                 <button onClick={toggle} aria-label="Menu" className="w-9 h-9 flex items-center justify-center text-[#1d1d1f]">
@@ -157,34 +166,37 @@ export default function PublicNavbar() {
           </div>
         </div>
 
-        {/* ── MOBILE SCROLLED: floating logo bubble ── */}
+        {/* ── MOBILE SCROLLED: 3 floating bubbles ── */}
+        {/* Logo bubble */}
         <Link
           to="/"
           className={`md:hidden absolute top-[9px] left-4 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
-            scrolled
-              ? 'bg-white/30 backdrop-blur-xl shadow-sm opacity-100 scale-100'
-              : 'opacity-0 scale-75 pointer-events-none'
+            scrolled ? 'bg-white/30 backdrop-blur-xl shadow-sm opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'
           }`}
         >
           <QwillioLogo size={28} />
         </Link>
 
-        {/* ── MOBILE: floating hamburger bubble (scrolled or menu open) ── */}
+        {/* Try it bubble — centered */}
+        <a
+          href="/demo.html"
+          className={`md:hidden absolute top-[9px] left-1/2 -translate-x-1/2 h-11 px-4 rounded-full flex items-center gap-1.5 bg-[#6366f1] text-white text-sm font-medium transition-all duration-300 ${
+            scrolled ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'
+          }`}
+        >
+          <Play size={13} /> <span className="whitespace-nowrap">{isFr ? 'Essayer' : 'Try it'}</span>
+        </a>
+
+        {/* Hamburger bubble */}
         <button
           onClick={toggle}
           aria-label="Menu"
           className={`md:hidden absolute top-[9px] right-4 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 text-[#1d1d1f] ${
-            scrolled || menuOpen
-              ? 'bg-white/30 backdrop-blur-xl shadow-sm opacity-100 scale-100'
-              : 'opacity-0 scale-75 pointer-events-none'
+            scrolled || menuOpen ? 'bg-white/30 backdrop-blur-xl shadow-sm opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'
           }`}
         >
-          <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>
-            <X size={18} />
-          </span>
-          <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}>
-            <Menu size={18} />
-          </span>
+          <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}><X size={18} /></span>
+          <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}><Menu size={18} /></span>
         </button>
       </nav>
 
