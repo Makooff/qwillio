@@ -79,7 +79,7 @@ export default function Home() {
   /* Firefly particles — edge-to-edge, gentle perpendicular curve, slow uniform speed */
   const antParticles = useMemo(() => {
     const r = (n: number) => ((n * 9301 + 49297) % 233280) / 233280;
-    const cols = ['#6366f1','#a855f7','#7c3aed','#c084fc','#8b5cf6'];
+    const cols = ['#6366f1','#d946ef','#a855f7','#e879f9','#8b5cf6'];
 
     const onEdge = (edge: number, t: number) => {
       switch (edge) {
@@ -108,7 +108,7 @@ export default function Home() {
         x0: +p0.x.toFixed(1),                     y0: +p0.y.toFixed(1),
         xm: +(mxBase + (-dy/len)*offset).toFixed(1), ym: +(myBase + (dx/len)*offset).toFixed(1),
         x1: +p1.x.toFixed(1),                     y1: +p1.y.toFixed(1),
-        size: Math.round(18 + r(s+4) * 18),  // 18–36px
+        size: [10, 42, 18, 50, 14][i],  // explicitly varied: small, large, medium, XL, tiny
         blur: Math.round(8  + r(s+5) * 8),   // 8–16px
         opacity: +(0.28 + r(s+6) * 0.22).toFixed(2),
         color: cols[i % cols.length],
