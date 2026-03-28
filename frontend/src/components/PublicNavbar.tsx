@@ -107,8 +107,6 @@ export default function PublicNavbar() {
         className="fixed top-0 left-0 right-0 z-50"
         style={{ willChange: 'transform', transform: 'translateZ(0)', paddingTop: 'env(safe-area-inset-top)' }}
       >
-        {/* ── Mobile glass background — covers safe-area zone + h-14, stops content showing through notch ── */}
-        <div className={`md:hidden absolute inset-0 -z-10 pointer-events-none transition-all duration-300 ${bubblesVisible ? 'bg-white/90 backdrop-blur-xl shadow-sm' : ''}`} />
 
         {/* ══ DESKTOP ══ */}
         <div className="hidden md:block">
