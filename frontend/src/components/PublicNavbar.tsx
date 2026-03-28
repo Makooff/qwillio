@@ -161,8 +161,8 @@ export default function PublicNavbar() {
             */}
             <a
               href="/demo.html"
-              className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out ${
-                bubblesVisible ? 'max-w-[44px] w-11 h-11 px-0 gap-0' : 'max-w-[120px] h-11 px-4 gap-1.5'
+              className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out min-w-[44px] h-11 ${
+                bubblesVisible ? 'max-w-[44px] px-0 gap-0' : 'max-w-[120px] px-4 gap-1.5'
               }`}
             >
               <Play size={13} className="flex-shrink-0 ml-0.5" />

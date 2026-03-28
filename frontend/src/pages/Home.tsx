@@ -76,39 +76,44 @@ export default function Home() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /* Ant-colony particles — spawn from edges, travel to other edges, curved crossings */
+  /* Firefly particles — edge-to-edge, gentle perpendicular curve, slow uniform speed */
   const antParticles = useMemo(() => {
     const r = (n: number) => ((n * 9301 + 49297) % 233280) / 233280;
-    const cols = ['#6366f1','#a855f7','#7c3aed','#c084fc','#8b5cf6','#9333ea'];
+    const cols = ['#6366f1','#a855f7','#7c3aed','#c084fc','#8b5cf6'];
 
-    // Returns a point exactly on one of 4 edges (0=left 1=right 2=top 3=bottom)
     const onEdge = (edge: number, t: number) => {
       switch (edge) {
-        case 0: return { x: -8,  y: t * 104 - 2 };
-        case 1: return { x: 108, y: t * 104 - 2 };
-        case 2: return { x: t * 104 - 2, y: -8  };
-        default: return { x: t * 104 - 2, y: 108 };
+        case 0: return { x: -6,  y: t * 100 };
+        case 1: return { x: 106, y: t * 100 };
+        case 2: return { x: t * 100, y: -6  };
+        default: return { x: t * 100, y: 106 };
       }
     };
 
-    return Array.from({ length: 10 }, (_, i) => {
-      const s = i * 17 + 3;
-      const startEdge = Math.floor(r(s)    * 4);
-      const endEdge   = (startEdge + 1 + Math.floor(r(s+11) * 3)) % 4; // always different
-      const p0 = onEdge(startEdge, r(s+1));
-      const p1 = onEdge(endEdge,   r(s+2));
+    return Array.from({ length: 5 }, (_, i) => {
+      const s = i * 23 + 7;
+      const startEdge = i % 4;
+      const endEdge   = (startEdge + 1 + (i % 3)) % 4;
+      // Evenly spaced along each edge for good distribution
+      const p0 = onEdge(startEdge, i * 0.2 + 0.1);
+      const p1 = onEdge(endEdge,   (i * 0.2 + 0.4) % 1);
+      // Midpoint ON the straight line + small perpendicular offset → gentle curve
+      const mxBase = (p0.x + p1.x) / 2;
+      const myBase = (p0.y + p1.y) / 2;
+      const dx = p1.x - p0.x, dy = p1.y - p0.y;
+      const len = Math.sqrt(dx*dx + dy*dy) || 1;
+      const offset = (r(s+9) - 0.5) * 16; // ±8 units — barely perceptible curve
       return {
         id: i,
-        x0: +p0.x.toFixed(1), y0: +p0.y.toFixed(1),
-        xm: +(12 + r(s+9)  * 76).toFixed(1),  // midpoint inside hero
-        ym: +(12 + r(s+10) * 76).toFixed(1),
-        x1: +p1.x.toFixed(1), y1: +p1.y.toFixed(1),
-        size: Math.round(12 + r(s+4) * 28),   // 12–40px
-        blur: Math.round(4  + r(s+5) * 10),   // 4–14px
-        opacity: +(0.28 + r(s+6) * 0.38).toFixed(2),
+        x0: +p0.x.toFixed(1),                     y0: +p0.y.toFixed(1),
+        xm: +(mxBase + (-dy/len)*offset).toFixed(1), ym: +(myBase + (dx/len)*offset).toFixed(1),
+        x1: +p1.x.toFixed(1),                     y1: +p1.y.toFixed(1),
+        size: Math.round(18 + r(s+4) * 18),  // 18–36px
+        blur: Math.round(8  + r(s+5) * 8),   // 8–16px
+        opacity: +(0.28 + r(s+6) * 0.22).toFixed(2),
         color: cols[i % cols.length],
-        dur: +(2.2 + r(s+7) * 4.8).toFixed(1),
-        delay: +(-(r(s+8) * 16)).toFixed(1),
+        dur:  +(7.5 + r(s+7) * 2.0).toFixed(1),   // 7.5–9.5s, small spread
+        delay: +(-(r(s+8) * 10)).toFixed(1),
       };
     });
   }, []);
@@ -228,7 +233,7 @@ export default function Home() {
                 left: 0,
                 animationName: `ant${p.id}`,
                 animationDuration: `${p.dur}s`,
-                animationTimingFunction: 'linear',
+                animationTimingFunction: 'ease-in-out',
                 animationDelay: `${p.delay}s`,
                 animationIterationCount: 'infinite',
               }}
