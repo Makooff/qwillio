@@ -91,7 +91,7 @@ export default function Home() {
       }
     };
 
-    return Array.from({ length: 30 }, (_, i) => {
+    return Array.from({ length: 10 }, (_, i) => {
       const s = i * 17 + 3;
       const startEdge = Math.floor(r(s)    * 4);
       const endEdge   = (startEdge + 1 + Math.floor(r(s+11) * 3)) % 4; // always different
