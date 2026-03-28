@@ -107,6 +107,9 @@ export default function PublicNavbar() {
         className="fixed top-0 left-0 right-0 z-50"
         style={{ willChange: 'transform', transform: 'translateZ(0)', paddingTop: 'env(safe-area-inset-top)' }}
       >
+        {/* ── Mobile glass background — covers safe-area zone + h-14, stops content showing through notch ── */}
+        <div className={`md:hidden absolute inset-0 -z-10 pointer-events-none transition-all duration-300 ${bubblesVisible ? 'bg-white/90 backdrop-blur-xl shadow-sm' : ''}`} />
+
         {/* ══ DESKTOP ══ */}
         <div className="hidden md:block">
           <div className={`absolute inset-0 -z-10 transition-all duration-300 ${bubblesVisible ? 'bg-white/80 backdrop-blur-xl shadow-sm' : ''}`} />
@@ -140,7 +143,7 @@ export default function PublicNavbar() {
           <div className="absolute left-4 top-0 bottom-0 flex items-center">
             <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
               <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
-                bubblesVisible ? 'backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-50 opacity-0'
+                bubblesVisible ? 'backdrop-blur-xl scale-100 opacity-100' : 'scale-50 opacity-0'
               }`} />
               <Link to="/" className="relative z-10 w-full h-full flex items-center justify-center">
                 <QwillioLogo size={28} />
