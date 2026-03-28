@@ -144,29 +144,57 @@ export default function Home() {
       <PublicNavbar />
 
       {/* ══════════ HERO ══════════ */}
-      <section className="relative pt-28 pb-24 md:pt-40 md:pb-32 overflow-hidden bg-gradient-to-b from-[#f5f5f7] to-white">
-        {/* Parallax decorative blobs */}
-        <div
-          className="absolute top-20 left-1/4 w-[600px] h-[600px] rounded-full bg-[#6366f1]/5 blur-3xl pointer-events-none"
-          style={{ transform: `translateY(${scrollY * 0.15}px)` }}
-        />
-        <div
-          className="absolute top-40 right-1/4 w-[400px] h-[400px] rounded-full bg-[#a855f7]/5 blur-3xl pointer-events-none"
-          style={{ transform: `translateY(${scrollY * 0.25}px)` }}
-        />
+      <style>{`
+        @keyframes blob1 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33%       { transform: translate(40px, -60px) scale(1.12); }
+          66%       { transform: translate(-30px, 40px) scale(0.9); }
+        }
+        @keyframes blob2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33%       { transform: translate(-50px, 35px) scale(1.08); }
+          66%       { transform: translate(35px, -50px) scale(0.93); }
+        }
+        @keyframes blob3 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          40%       { transform: translate(60px, 25px) scale(1.1); }
+          70%       { transform: translate(-25px, -60px) scale(0.88); }
+        }
+        @keyframes blob4 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50%       { transform: translate(-45px, 50px) scale(1.15); }
+        }
+      `}</style>
+
+      <section className="relative pt-28 pb-32 md:pt-40 md:pb-40 overflow-hidden bg-[#0c0618]">
+
+        {/* ── Animated abstract blobs ── */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-[10%] left-[20%] w-[520px] h-[520px] rounded-full bg-[#6366f1]/50 blur-[110px]"
+               style={{ animation: 'blob1 9s ease-in-out infinite' }} />
+          <div className="absolute top-[25%] right-[15%] w-[420px] h-[420px] rounded-full bg-[#a855f7]/45 blur-[120px]"
+               style={{ animation: 'blob2 11s ease-in-out infinite' }} />
+          <div className="absolute bottom-[15%] left-[30%] w-[380px] h-[380px] rounded-full bg-[#7c3aed]/40 blur-[100px]"
+               style={{ animation: 'blob3 13s ease-in-out infinite' }} />
+          <div className="absolute top-[50%] right-[35%] w-[280px] h-[280px] rounded-full bg-[#c084fc]/30 blur-[80px]"
+               style={{ animation: 'blob4 8s ease-in-out infinite' }} />
+        </div>
+
+        {/* Fade to white at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-white to-transparent pointer-events-none" />
 
         <div className="relative max-w-[1120px] mx-auto px-6 text-center">
           <FadeIn delay={100}>
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight text-[#1d1d1f] leading-[1.08] mb-6">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight text-white leading-[1.08] mb-6">
               {isFr ? 'Votre entreprise.' : 'Your business.'}<br />
-              <span className="bg-gradient-to-r from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">
-                {isFr ? 'Amplifiee par l\'IA.' : 'Amplified by AI.'}
+              <span className="bg-gradient-to-r from-[#a78bfa] to-[#e879f9] bg-clip-text text-transparent">
+                {isFr ? "Amplifiée par l'IA." : 'Amplified by AI.'}
               </span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={200}>
-            <p className="text-lg md:text-xl text-[#86868b] max-w-2xl mx-auto mb-10 leading-relaxed">
+            <p className="text-lg md:text-xl text-white/65 max-w-2xl mx-auto mb-10 leading-relaxed">
               {isFr
                 ? 'Receptionniste, agent, CRM, facturation — Qwillio reunit tout en une plateforme intelligente qui travaille pour vous 24/7.'
                 : 'Receptionist, agent, CRM, billing — Qwillio brings everything into one intelligent platform that works for you 24/7.'}
@@ -177,13 +205,13 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
               <a
                 href="/demo.html"
-                className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-base font-medium px-8 py-3.5 rounded-full hover:bg-[#4f46e5] transition-all hover:scale-105 shadow-lg shadow-[#6366f1]/25"
+                className="inline-flex items-center gap-2 bg-white text-[#6366f1] text-base font-semibold px-8 py-3.5 rounded-full hover:bg-white/90 transition-all hover:scale-105 shadow-xl shadow-black/20"
               >
-                <Play size={16} /> {isFr ? 'Essayer la demo' : 'Try the demo'}
+                <Play size={16} /> {isFr ? 'Essayer la démo' : 'Try the demo'}
               </a>
               <Link
                 to="/pricing"
-                className="inline-flex items-center gap-2 text-base font-medium text-[#1d1d1f] px-8 py-3.5 rounded-full border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-all"
+                className="inline-flex items-center gap-2 text-base font-medium text-white px-8 py-3.5 rounded-full border border-white/25 hover:bg-white/10 transition-all"
               >
                 {isFr ? 'Voir les tarifs' : 'View pricing'} <ArrowRight size={16} />
               </Link>
@@ -194,13 +222,13 @@ export default function Home() {
           <FadeIn delay={400}>
             <div className="flex flex-row items-stretch justify-center w-full">
               {[
-                { value: '98%', label: isFr ? 'Taux de réponse' : 'Answer rate' },
-                { value: '2 500+', label: isFr ? 'Appels / jour' : 'Calls / day' },
-                { value: '35%', label: isFr ? 'Plus de rendez-vous' : 'More appointments' },
+                { value: '98%',    label: isFr ? 'Taux de réponse' : 'Answer rate' },
+                { value: '2 500+', label: isFr ? 'Appels / jour'   : 'Calls / day' },
+                { value: '35%',    label: isFr ? 'Plus de rendez-vous' : 'More appointments' },
               ].map((stat, i) => (
-                <div key={i} className={`flex-1 flex flex-col items-center justify-center px-2 md:px-8 py-3 ${i > 0 ? 'border-l border-[#d2d2d7]/60' : ''}`}>
-                  <p className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-[#1d1d1f] whitespace-nowrap">{stat.value}</p>
-                  <p className="text-[10px] sm:text-sm text-[#86868b] mt-1 text-center leading-tight">{stat.label}</p>
+                <div key={i} className={`flex-1 flex flex-col items-center justify-center px-2 md:px-8 py-3 ${i > 0 ? 'border-l border-white/20' : ''}`}>
+                  <p className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-white whitespace-nowrap">{stat.value}</p>
+                  <p className="text-[10px] sm:text-sm text-white/50 mt-1 text-center leading-tight">{stat.label}</p>
                 </div>
               ))}
             </div>
