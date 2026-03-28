@@ -101,18 +101,18 @@ export default function Affiliate() {
 
         {/* Stats */}
         <FadeIn delay={400}>
-          <div className="mt-12 grid grid-cols-3 text-center w-full max-w-sm mx-auto divide-x divide-[#d2d2d7]">
-            <div>
+          <div className="mt-12 flex flex-row items-stretch justify-center divide-x divide-[#d2d2d7] text-center mx-auto">
+            <div className="px-8 py-2">
               <p className="text-3xl md:text-4xl font-semibold tracking-tight">30%</p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">{isFr ? 'Commission' : 'Commission'}</p>
+              <p className="text-sm text-[#86868b] mt-1">{isFr ? 'Commission' : 'Commission'}</p>
             </div>
-            <div>
+            <div className="px-8 py-2">
               <p className="text-3xl md:text-4xl font-semibold tracking-tight">90 {isFr ? 'jours' : 'days'}</p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">Cookie</p>
+              <p className="text-sm text-[#86868b] mt-1">Cookie</p>
             </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">{isFr ? 'A vie' : 'Lifetime'}</p>
-              <p className="text-xs md:text-sm text-[#86868b] mt-1">{isFr ? 'Recurrence' : 'Recurring'}</p>
+            <div className="px-8 py-2">
+              <p className="text-3xl md:text-4xl font-semibold tracking-tight">{isFr ? 'À vie' : 'Lifetime'}</p>
+              <p className="text-sm text-[#86868b] mt-1">{isFr ? 'Récurrence' : 'Recurring'}</p>
             </div>
           </div>
         </FadeIn>

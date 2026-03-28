@@ -191,34 +191,52 @@ export default function PublicNavbar() {
         </div>
       </nav>
 
-      {/* ── BUBBLE MENU PANEL ── */}
+      {/* ── FULLSCREEN MENU PANEL ── */}
       {menuOpen && (
         <div
-          className="md:hidden fixed inset-0 z-40"
-          style={{ background: menuVisible ? 'rgba(0,0,0,0.12)' : 'transparent', transition: 'background 0.2s', backdropFilter: menuVisible ? 'blur(2px)' : 'none' }}
-          onClick={closeMenu}
+          className="md:hidden fixed inset-0 z-[60] bg-white flex flex-col"
+          style={{
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+            opacity: menuVisible ? 1 : 0,
+            transform: menuVisible ? 'translateY(0)' : 'translateY(-12px)',
+            transition: 'opacity 0.22s ease, transform 0.22s ease',
+          }}
         >
-          <div
-            className="absolute top-[60px] right-4 bg-white rounded-3xl shadow-2xl p-5 w-64"
-            style={{ transformOrigin: 'top right', animation: menuVisible ? 'bubbleIn 0.25s ease-out forwards' : 'bubbleOut 0.2s ease-in forwards' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="space-y-0.5 mb-3">
-              <Link to="/" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">Home</Link>
-              <Link to="/receptionist" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">Receptionist AI</Link>
-              <Link to="/agent" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">Qwillio Agent</Link>
-              <Link to="/pricing" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">{isFr ? 'Tarifs' : 'Pricing'}</Link>
-              <Link to="/affiliate" onClick={closeMenu} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">{isFr ? 'Affiliation' : 'Affiliate'}</Link>
+          {/* Top bar with X */}
+          <div className="flex items-center justify-between px-6 h-14 flex-shrink-0">
+            <Link to="/" onClick={closeMenu} className="flex items-center gap-2">
+              <QwillioLogo size={26} />
+              <span className="text-xl font-semibold tracking-tight text-[#1d1d1f]">Qwillio</span>
+            </Link>
+            <button onClick={closeMenu} aria-label="Close menu" className="w-10 h-10 flex items-center justify-center text-[#1d1d1f] rounded-full hover:bg-[#f5f5f7] transition-colors">
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Nav links */}
+          <nav className="flex-1 overflow-y-auto px-6 pt-6 pb-4">
+            <div className="space-y-1">
+              <Link to="/" onClick={closeMenu} className="block px-4 py-4 rounded-2xl text-2xl font-semibold text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">Home</Link>
+              <Link to="/receptionist" onClick={closeMenu} className="block px-4 py-4 rounded-2xl text-2xl font-semibold text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">Receptionist AI</Link>
+              <Link to="/agent" onClick={closeMenu} className="block px-4 py-4 rounded-2xl text-2xl font-semibold text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">Qwillio Agent</Link>
+              <Link to="/pricing" onClick={closeMenu} className="block px-4 py-4 rounded-2xl text-2xl font-semibold text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">{isFr ? 'Tarifs' : 'Pricing'}</Link>
+              <Link to="/affiliate" onClick={closeMenu} className="block px-4 py-4 rounded-2xl text-2xl font-semibold text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">{isFr ? 'Affiliation' : 'Affiliate'}</Link>
             </div>
+          </nav>
+
+          {/* Bottom CTAs */}
+          <div className="px-6 pb-6 flex-shrink-0 space-y-3">
+            <div className="border-t border-[#d2d2d7]/60 pb-4" />
             <Link to="/login" onClick={closeMenu}
-              className="flex items-center justify-center w-full bg-[#6366f1] text-white text-sm font-medium px-4 py-2.5 rounded-full hover:bg-[#4f46e5] transition-colors mb-2">
+              className="flex items-center justify-center w-full bg-[#6366f1] text-white text-base font-medium px-4 py-3.5 rounded-full hover:bg-[#4f46e5] transition-colors">
               {isFr ? 'Connexion' : 'Login'}
             </Link>
             <Link to="/register" onClick={closeMenu}
-              className="flex items-center justify-center w-full border border-[#d2d2d7] text-[#1d1d1f] text-sm font-medium px-4 py-2.5 rounded-full hover:bg-[#f5f5f7] transition-colors mb-3">
+              className="flex items-center justify-center w-full border border-[#d2d2d7] text-[#1d1d1f] text-base font-medium px-4 py-3.5 rounded-full hover:bg-[#f5f5f7] transition-colors">
               {isFr ? "S'inscrire" : 'Sign up'}
             </Link>
-            <div className="border-t border-[#d2d2d7]/60 pt-3 flex justify-center">
+            <div className="flex justify-center pt-1">
               <LangToggle />
             </div>
           </div>
