@@ -154,12 +154,21 @@ export default function PublicNavbar() {
           {/* ── RIGHT: Try it + hamburger ── */}
           <div className="absolute right-4 top-0 bottom-0 flex items-center gap-1.5">
 
-            {/* Try it — always a circle with only the Play triangle */}
+            {/*
+              Try it: pill with text → circle with only the triangle on scroll.
+              max-width transition animates smoothly (CSS can't animate width:auto → fixed).
+              overflow-hidden clips text as button shrinks.
+            */}
             <a
               href="/demo.html"
-              className="w-11 h-11 flex items-center justify-center bg-[#6366f1] text-white rounded-full flex-shrink-0"
+              className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out ${
+                bubblesVisible ? 'max-w-[44px] w-11 h-11 px-0 gap-0' : 'max-w-[120px] h-11 px-4 gap-1.5'
+              }`}
             >
-              <Play size={14} className="ml-0.5" />
+              <Play size={13} className="flex-shrink-0 ml-0.5" />
+              <span className={`transition-all duration-500 ease-in-out ${bubblesVisible ? 'w-0 opacity-0' : ''}`}>
+                {isFr ? 'Essayer' : 'Try it'}
+              </span>
             </a>
 
             {/* Hamburger — bubble grows behind in-place */}
