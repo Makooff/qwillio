@@ -76,27 +76,39 @@ export default function Home() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /* Ant-colony particles — deterministic pseudo-random, curved paths in all directions */
+  /* Ant-colony particles — spawn from edges, travel to other edges, curved crossings */
   const antParticles = useMemo(() => {
     const r = (n: number) => ((n * 9301 + 49297) % 233280) / 233280;
     const cols = ['#6366f1','#a855f7','#7c3aed','#c084fc','#8b5cf6','#9333ea'];
-    return Array.from({ length: 26 }, (_, i) => {
+
+    // Returns a point exactly on one of 4 edges (0=left 1=right 2=top 3=bottom)
+    const onEdge = (edge: number, t: number) => {
+      switch (edge) {
+        case 0: return { x: -8,  y: t * 104 - 2 };
+        case 1: return { x: 108, y: t * 104 - 2 };
+        case 2: return { x: t * 104 - 2, y: -8  };
+        default: return { x: t * 104 - 2, y: 108 };
+      }
+    };
+
+    return Array.from({ length: 30 }, (_, i) => {
       const s = i * 17 + 3;
+      const startEdge = Math.floor(r(s)    * 4);
+      const endEdge   = (startEdge + 1 + Math.floor(r(s+11) * 3)) % 4; // always different
+      const p0 = onEdge(startEdge, r(s+1));
+      const p1 = onEdge(endEdge,   r(s+2));
       return {
         id: i,
-        // Start, mid and end all fully random — creates curved organic paths in every direction
-        x0: +(r(s)    * 120 - 10).toFixed(1),
-        y0: +(r(s+1)  * 120 - 10).toFixed(1),
-        xm: +(r(s+9)  * 110 -  5).toFixed(1),
-        ym: +(r(s+10) * 110 -  5).toFixed(1),
-        x1: +(r(s+2)  * 120 - 10).toFixed(1),
-        y1: +(r(s+3)  * 120 - 10).toFixed(1),
-        size: Math.round(14 + r(s+4) * 34),
-        blur: Math.round(5  + r(s+5) * 12),   // 5–17px — less blurry
-        opacity: +(0.35 + r(s+6) * 0.38).toFixed(2),
+        x0: +p0.x.toFixed(1), y0: +p0.y.toFixed(1),
+        xm: +(12 + r(s+9)  * 76).toFixed(1),  // midpoint inside hero
+        ym: +(12 + r(s+10) * 76).toFixed(1),
+        x1: +p1.x.toFixed(1), y1: +p1.y.toFixed(1),
+        size: Math.round(12 + r(s+4) * 28),   // 12–40px
+        blur: Math.round(4  + r(s+5) * 10),   // 4–14px
+        opacity: +(0.28 + r(s+6) * 0.38).toFixed(2),
         color: cols[i % cols.length],
-        dur: +(2.4 + r(s+7) * 5.2).toFixed(1),
-        delay: +(-(r(s+8) * 14)).toFixed(1),
+        dur: +(2.2 + r(s+7) * 4.8).toFixed(1),
+        delay: +(-(r(s+8) * 16)).toFixed(1),
       };
     });
   }, []);

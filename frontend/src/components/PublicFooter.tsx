@@ -7,7 +7,7 @@ export default function PublicFooter() {
   const isFr = lang === 'fr';
 
   return (
-    <footer className="border-t border-[#d2d2d7]/60 bg-[#f5f5f7]">
+    <footer className="border-t border-[#d2d2d7]/60 bg-[#f5f5f7]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="max-w-[1120px] mx-auto px-6 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <div className="col-span-2 md:col-span-1">

@@ -735,7 +735,7 @@
       const dpr = window.devicePixelRatio || 1;
       waveCanvas.width = container.offsetWidth * dpr;
       waveCanvas.height = container.offsetHeight * dpr;
-      waveCtx.scale(dpr, dpr);
+      waveCtx.setTransform(dpr, 0, 0, dpr, 0, 0); // reset + scale in one call, no accumulation
       waveCanvas.style.width = container.offsetWidth + 'px';
       waveCanvas.style.height = container.offsetHeight + 'px';
     }
@@ -766,7 +766,7 @@
         waveCtx.beginPath();
         waveCtx.strokeStyle = wave.color;
         waveCtx.lineWidth = lineWidth;
-        waveCtx.lineCap = 'round';
+        waveCtx.lineCap = 'butt';
         waveCtx.lineJoin = 'round';
         for (let x = 0; x <= w; x++) {
           const env = Math.sin((x / w) * Math.PI);

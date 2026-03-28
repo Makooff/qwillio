@@ -105,7 +105,7 @@ export default function PublicNavbar() {
       {/* ── Single fixed nav — NEVER moves (iOS Safari safe) ── */}
       <nav
         className="fixed top-0 left-0 right-0 z-50"
-        style={{ willChange: 'transform', transform: 'translateZ(0)' }}
+        style={{ willChange: 'transform', transform: 'translateZ(0)', paddingTop: 'env(safe-area-inset-top)' }}
       >
         {/* ══ DESKTOP ══ */}
         <div className="hidden md:block">
@@ -166,7 +166,7 @@ export default function PublicNavbar() {
               }`}
             >
               <Play size={13} className="flex-shrink-0 ml-0.5" />
-              <span className={`transition-all duration-500 ease-in-out ${bubblesVisible ? 'w-0 opacity-0' : ''}`}>
+              <span className={`overflow-hidden transition-all duration-500 ease-in-out ${bubblesVisible ? 'max-w-0 opacity-0' : 'max-w-[80px] opacity-100'}`}>
                 {isFr ? 'Essayer' : 'Try it'}
               </span>
             </a>
