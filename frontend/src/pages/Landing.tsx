@@ -534,13 +534,11 @@ export default function Landing() {
                 <h3 className="text-xl font-semibold mb-1">Starter</h3>
                 <p className="text-[#86868b] text-sm mb-6">{t('price.starter.sub')}</p>
                 <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$0</span>
+                  <span className="text-4xl font-semibold tracking-tight">$497</span>
                   <span className="text-[#86868b]">/mo</span>
-                  <span className="ml-2 text-sm text-[#86868b] line-through">$497</span>
                 </div>
-                <p className="text-sm text-[#6366f1] font-medium mb-1">{t('price.firstFree')}</p>
-                <p className="text-xs text-[#86868b] mb-2">{t('price.then')} $497/mo</p>
-                <p className="text-xs text-emerald-600 font-medium mb-4">{t('price.noSetup')}</p>
+                <p className="text-sm text-emerald-600 font-medium mb-1">✓ {t('price.firstFree')}</p>
+                <p className="text-xs text-blue-500 font-medium mb-4">{t('price.noSetup')}</p>
                 <p className="text-sm font-medium text-[#6366f1] mb-1">800 {t('price.calls')}</p>
                 <p className="text-xs text-[#86868b] mb-6">$0.22 {t('price.overage')}</p>
                 <ul className="space-y-3 mb-6 flex-1">
@@ -551,16 +549,16 @@ export default function Landing() {
                   ))}
                 </ul>
                 <div className="space-y-2 mb-6">
-                  <Link to="/register?plan=starter&bundle=true" className="flex items-center justify-between rounded-xl border border-dashed border-[#6366f1]/30 px-4 py-3 hover:border-[#6366f1] hover:bg-[#6366f1]/5 transition-colors">
-                    <span className="flex items-center gap-2 text-sm font-medium text-[#6366f1]"><Plus size={16} /> Add Agent Bundle</span>
-                    <span className="text-sm font-semibold text-[#6366f1]">+$597/mo</span>
+                  <Link to="/register?plan=starter&bundle=true" className="flex items-center justify-between rounded-full border border-[#6366f1] px-4 py-3 text-[#6366f1] hover:bg-[#6366f1] hover:text-white transition-colors">
+                    <span className="flex items-center gap-2 text-sm font-medium"><Plus size={16} /> Add Agent Bundle</span>
+                    <span className="text-sm font-semibold">+$597/mo</span>
                   </Link>
-                  <a href="#addons" className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#6366f1]/30 px-4 py-3 hover:border-[#6366f1] hover:bg-[#6366f1]/5 transition-colors">
-                    <Plus size={16} className="text-[#6366f1]" />
-                    <span className="text-sm font-medium text-[#6366f1]">Add add-ons</span>
+                  <a href="#addons" className="flex items-center justify-center gap-2 rounded-full border border-[#6366f1] px-4 py-3 text-sm font-medium text-[#6366f1] hover:bg-[#6366f1] hover:text-white transition-colors">
+                    <Plus size={16} />
+                    <span>Add add-ons</span>
                   </a>
                 </div>
-                <Link to="/register?plan=starter" className="block text-center border border-[#6366f1] text-[#6366f1] text-sm font-medium px-6 py-3 rounded-full hover:bg-[#6366f1] hover:text-white transition-colors">
+                <Link to="/register?plan=starter" className="block text-center bg-[#6366f1] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors">
                   {t('price.choose')}
                 </Link>
               </div>
@@ -575,13 +573,11 @@ export default function Landing() {
                 <h3 className="text-xl font-semibold mb-1">Pro</h3>
                 <p className="text-white/50 text-sm mb-6">{t('price.pro.sub')}</p>
                 <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$0</span>
+                  <span className="text-4xl font-semibold tracking-tight">$1,297</span>
                   <span className="text-white/50">/mo</span>
-                  <span className="ml-2 text-sm text-white/40 line-through">$1,297</span>
                 </div>
-                <p className="text-sm text-[#818cf8] font-medium mb-1">{t('price.firstFree')}</p>
-                <p className="text-xs text-white/40 mb-2">{t('price.then')} $1,297/mo</p>
-                <p className="text-xs text-emerald-400 font-medium mb-4">{t('price.noSetup')}</p>
+                <p className="text-sm text-emerald-400 font-medium mb-1">✓ {t('price.firstFree')}</p>
+                <p className="text-xs text-blue-400 font-medium mb-4">{t('price.noSetup')}</p>
                 <p className="text-sm font-medium text-[#6366f1] mb-1">2,000 {t('price.calls')}</p>
                 <p className="text-xs text-white/40 mb-6">$0.18 {t('price.overage')}</p>
                 <ul className="space-y-3 mb-6 flex-1">
@@ -592,13 +588,13 @@ export default function Landing() {
                   ))}
                 </ul>
                 <div className="space-y-2 mb-6">
-                  <Link to="/register?plan=pro&bundle=true" className="flex items-center justify-between rounded-xl border border-dashed border-white/20 px-4 py-3 hover:border-[#818cf8] hover:bg-white/5 transition-colors">
-                    <span className="flex items-center gap-2 text-sm font-medium text-[#818cf8]"><Plus size={16} /> Add Agent Bundle</span>
-                    <span className="text-sm font-semibold text-[#818cf8]">+$597/mo</span>
+                  <Link to="/register?plan=pro&bundle=true" className="flex items-center justify-between rounded-full border border-white/40 px-4 py-3 text-white hover:bg-white/10 transition-colors">
+                    <span className="flex items-center gap-2 text-sm font-medium"><Plus size={16} /> Add Agent Bundle</span>
+                    <span className="text-sm font-semibold">+$597/mo</span>
                   </Link>
-                  <a href="#addons" className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 px-4 py-3 hover:border-[#818cf8] hover:bg-white/5 transition-colors">
-                    <Plus size={16} className="text-[#818cf8]" />
-                    <span className="text-sm font-medium text-[#818cf8]">Add add-ons</span>
+                  <a href="#addons" className="flex items-center justify-center gap-2 rounded-full border border-white/40 px-4 py-3 text-sm font-medium text-white hover:bg-white/10 transition-colors">
+                    <Plus size={16} />
+                    <span>Add add-ons</span>
                   </a>
                 </div>
                 <Link to="/register?plan=pro" className="block text-center bg-[#6366f1] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors">
@@ -613,13 +609,11 @@ export default function Landing() {
                 <h3 className="text-xl font-semibold mb-1">Enterprise</h3>
                 <p className="text-[#86868b] text-sm mb-6">{t('price.enterprise.sub')}</p>
                 <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$0</span>
+                  <span className="text-4xl font-semibold tracking-tight">$2,497</span>
                   <span className="text-[#86868b]">/mo</span>
-                  <span className="ml-2 text-sm text-[#86868b] line-through">$2,497</span>
                 </div>
-                <p className="text-sm text-[#6366f1] font-medium mb-1">{t('price.firstFree')}</p>
-                <p className="text-xs text-[#86868b] mb-2">{t('price.then')} $2,497/mo</p>
-                <p className="text-xs text-emerald-600 font-medium mb-4">{t('price.noSetup')}</p>
+                <p className="text-sm text-emerald-600 font-medium mb-1">✓ {t('price.firstFree')}</p>
+                <p className="text-xs text-blue-500 font-medium mb-4">{t('price.noSetup')}</p>
                 <p className="text-sm font-medium text-[#6366f1] mb-1">4,000 {t('price.calls')}</p>
                 <p className="text-xs text-[#86868b] mb-6">$0.15 {t('price.overage')}</p>
                 <ul className="space-y-3 mb-6 flex-1">
@@ -630,16 +624,16 @@ export default function Landing() {
                   ))}
                 </ul>
                 <div className="space-y-2 mb-6">
-                  <Link to="/register?plan=enterprise&bundle=true" className="flex items-center justify-between rounded-xl border border-dashed border-[#6366f1]/30 px-4 py-3 hover:border-[#6366f1] hover:bg-[#6366f1]/5 transition-colors">
-                    <span className="flex items-center gap-2 text-sm font-medium text-[#6366f1]"><Plus size={16} /> Add Agent Bundle</span>
-                    <span className="text-sm font-semibold text-[#6366f1]">+$597/mo</span>
+                  <Link to="/register?plan=enterprise&bundle=true" className="flex items-center justify-between rounded-full border border-[#6366f1] px-4 py-3 text-[#6366f1] hover:bg-[#6366f1] hover:text-white transition-colors">
+                    <span className="flex items-center gap-2 text-sm font-medium"><Plus size={16} /> Add Agent Bundle</span>
+                    <span className="text-sm font-semibold">+$597/mo</span>
                   </Link>
-                  <a href="#addons" className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#6366f1]/30 px-4 py-3 hover:border-[#6366f1] hover:bg-[#6366f1]/5 transition-colors">
-                    <Plus size={16} className="text-[#6366f1]" />
-                    <span className="text-sm font-medium text-[#6366f1]">Add add-ons</span>
+                  <a href="#addons" className="flex items-center justify-center gap-2 rounded-full border border-[#6366f1] px-4 py-3 text-sm font-medium text-[#6366f1] hover:bg-[#6366f1] hover:text-white transition-colors">
+                    <Plus size={16} />
+                    <span>Add add-ons</span>
                   </a>
                 </div>
-                <Link to="/register?plan=enterprise" className="block text-center border border-[#6366f1] text-[#6366f1] text-sm font-medium px-6 py-3 rounded-full hover:bg-[#6366f1] hover:text-white transition-colors">
+                <Link to="/register?plan=enterprise" className="block text-center bg-[#6366f1] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors">
                   {t('price.choose')}
                 </Link>
               </div>

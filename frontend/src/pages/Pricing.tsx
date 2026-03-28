@@ -133,7 +133,7 @@ export default function Pricing() {
                       <span>{isFr ? 'Ajouter des add-ons' : 'Add add-ons'}</span>
                     </a>
                   </div>
-                  <Link to={`/register?plan=${plan.name.toLowerCase()}`} className={`block text-center text-sm font-medium px-6 py-3 rounded-full transition-colors ${plan.popular ? 'bg-[#6366f1] text-white hover:bg-[#4f46e5]' : 'border border-[#6366f1] text-[#6366f1] hover:bg-[#6366f1] hover:text-white'}`}>
+                  <Link to={`/register?plan=${plan.name.toLowerCase()}`} className="block text-center text-sm font-medium px-6 py-3 rounded-full transition-colors bg-[#6366f1] text-white hover:bg-[#4f46e5]">
                     {isFr ? 'Choisir ce plan' : 'Choose this plan'}
                   </Link>
                 </div>
