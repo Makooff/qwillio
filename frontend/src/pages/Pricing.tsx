@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useSEO } from '../hooks/useSEO';
 import { Check, ArrowRight, Mail, CreditCard, Calculator, Package, Plus } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
@@ -15,6 +16,13 @@ function FadeIn({ children, delay = 0, className = '' }: { children: React.React
 export default function Pricing() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
+  useSEO({
+    title: 'Pricing',
+    description: isFr
+      ? 'Tarifs Qwillio – à partir de 497$/mois. Premier mois gratuit, sans frais d\'installation. Plans Starter, Pro et Enterprise disponibles.'
+      : 'Qwillio pricing – starting at $497/month. First month free, no setup fee. Starter, Pro and Enterprise plans with AI receptionist and automation.',
+    canonical: 'https://qwillio.com/pricing',
+  });
 
   const plans = [
     {

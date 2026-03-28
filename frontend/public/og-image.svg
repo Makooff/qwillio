@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8f7ff"/>
+      <stop offset="100%" stop-color="#ede9fe"/>
+    </linearGradient>
+    <linearGradient id="qa" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="wb" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="textgrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <clipPath id="qclip"><circle cx="78" cy="80" r="62"/></clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <line x1="0" y1="210" x2="1200" y2="210" stroke="#6366f1" stroke-width="0.5" stroke-opacity="0.08"/>
+  <line x1="0" y1="420" x2="1200" y2="420" stroke="#6366f1" stroke-width="0.5" stroke-opacity="0.08"/>
+  <line x1="400" y1="0" x2="400" y2="630" stroke="#6366f1" stroke-width="0.5" stroke-opacity="0.08"/>
+  <line x1="800" y1="0" x2="800" y2="630" stroke="#6366f1" stroke-width="0.5" stroke-opacity="0.08"/>
+
+  <!-- Decorative orbs -->
+  <circle cx="1080" cy="100" r="160" fill="#6366f1" fill-opacity="0.06"/>
+  <circle cx="140" cy="530" r="120" fill="#8b5cf6" fill-opacity="0.07"/>
+  <circle cx="1150" cy="500" r="90" fill="#a855f7" fill-opacity="0.06"/>
+
+  <!-- Logo mark -->
+  <circle cx="78" cy="80" r="62" fill="url(#qa)"/>
+  <circle cx="122" cy="80" r="62" fill="url(#wb)"/>
+  <circle cx="122" cy="80" r="62" fill="#4338ca" opacity="0.45" clip-path="url(#qclip)"/>
+  <text x="78" y="99" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="56" font-weight="800" fill="white" opacity="0.95">Q</text>
+  <text x="122" y="99" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="49" font-weight="800" fill="white" opacity="0.95">W</text>
+
+  <!-- Brand name -->
+  <text x="210" y="104" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="64" font-weight="700" letter-spacing="-1" fill="#1d1d1f">Qwillio</text>
+
+  <!-- Tagline -->
+  <text x="100" y="260" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="72" font-weight="700" letter-spacing="-2" fill="#1d1d1f">Your AI Receptionist.</text>
+  <text x="100" y="350" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="72" font-weight="700" letter-spacing="-2" fill="url(#textgrad)">Always On.</text>
+
+  <!-- Description -->
+  <text x="100" y="430" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="32" fill="#6b6b6b">Answers calls, books appointments, follows up — 24/7.</text>
+
+  <!-- Badge pills -->
+  <rect x="100" y="490" width="200" height="52" rx="26" fill="#6366f1" fill-opacity="0.12"/>
+  <text x="200" y="522" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="600" fill="#6366f1">AI Receptionist</text>
+
+  <rect x="318" y="490" width="172" height="52" rx="26" fill="#8b5cf6" fill-opacity="0.12"/>
+  <text x="404" y="522" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="600" fill="#8b5cf6">CRM &amp; Billing</text>
+
+  <rect x="508" y="490" width="152" height="52" rx="26" fill="#a855f7" fill-opacity="0.12"/>
+  <text x="584" y="522" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="600" fill="#a855f7">Auto SMS</text>
+
+  <!-- URL -->
+  <text x="1100" y="600" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="26" fill="#86868b">qwillio.com</text>
+</svg>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSEO } from '../hooks/useSEO';
 import { Link } from 'react-router-dom';
 import {
   Mail, CreditCard, Calculator, Package, Check, ArrowRight,
@@ -61,6 +62,13 @@ function FadeIn({ children, delay = 0, className = '' }: { children: React.React
 export default function Agent() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
+  useSEO({
+    title: 'Qwillio Agent – AI Modules',
+    description: isFr
+      ? 'Qwillio Agent automatise votre CRM, facturation, suivi clients, emails et inventaire. Des modules IA avancés pour développer votre entreprise.'
+      : 'Qwillio Agent automates your CRM, billing, client follow-up, emails and inventory. Advanced AI modules to grow your business.',
+    canonical: 'https://qwillio.com/agent',
+  });
 
   const benefits = [
     { icon: Zap, title: isFr ? 'Activation instantanee' : 'Instant activation', desc: isFr ? 'Un clic depuis votre dashboard. Operationnel en 60s.' : 'One click from your dashboard. Live in 60s.' },

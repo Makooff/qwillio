@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+# Block authenticated/private routes
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /onboard
+Disallow: /settings
+Disallow: /crm/
+Disallow: /campaigns
+Disallow: /prospects
+Disallow: /clients/
+Disallow: /register
+Disallow: /login
+Disallow: /client/
+Disallow: /api/
+
+# Sitemaps
+Sitemap: https://qwillio.com/sitemap.xml

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSEO } from '../hooks/useSEO';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check, DollarSign, Users, Share2, BarChart3, Gift, Zap, Shield, Clock, TrendingUp, Percent } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
@@ -25,6 +26,13 @@ function FadeIn({ children, delay = 0, className = '' }: { children: React.React
 export default function Affiliate() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
+  useSEO({
+    title: 'Affiliate Program',
+    description: isFr
+      ? 'Programme affilié Qwillio – gagnez 30% de commission récurrente à vie. Cookie 90 jours, paiements mensuels via Stripe. Sans plafond.'
+      : 'Qwillio affiliate program – earn 30% recurring commission for life. 90-day cookie, monthly Stripe payouts. No cap, no limits.',
+    canonical: 'https://qwillio.com/affiliate',
+  });
 
   const steps = [
     {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useSEO } from '../hooks/useSEO';
 import {
   Phone, Bot, Zap, Clock, ArrowRight, Check, Play,
   Building2, Stethoscope, Scale, Wrench, UtensilsCrossed,
@@ -67,6 +68,13 @@ function Counter({ value, suffix = '', prefix = '' }: { value: number; suffix?: 
 export default function Home() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
+  useSEO({
+    title: 'Qwillio',
+    description: isFr
+      ? 'Qwillio est votre réceptionniste IA qui répond à chaque appel, prend les rendez-vous et ne dort jamais. Automatisez votre entreprise 24/7.'
+      : 'Qwillio is your AI receptionist that answers every call, books appointments, and never sleeps. Automate your business 24/7.',
+    canonical: 'https://qwillio.com/',
+  });
 
   const [scrollY, setScrollY] = useState(0);
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSEO } from '../hooks/useSEO';
 import { useNavigate, Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
@@ -8,6 +9,7 @@ import LangToggle from '../components/LangToggle';
 import { useLang } from '../stores/langStore';
 
 export default function Login() {
+  useSEO({ title: 'Login', noindex: true });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

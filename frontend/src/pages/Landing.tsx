@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSEO } from '../hooks/useSEO';
 import { Link } from 'react-router-dom';
 import {
   Phone, Calendar, BarChart3, Shield, Zap, Clock,
@@ -114,6 +115,13 @@ export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const { t, lang } = useLang();
   const isFr = lang === 'fr';
+  useSEO({
+    title: 'Receptionist AI',
+    description: isFr
+      ? 'Ashley (EN) ou Marie (FR) – votre réceptionniste IA répond à chaque appel, prend les rendez-vous et relance vos clients. 24/7, sans jamais dormir.'
+      : 'Ashley (EN) or Marie (FR) – your AI receptionist answers every call, books appointments, and follows up with clients. Sub-1s response, 24/7.',
+    canonical: 'https://qwillio.com/receptionist',
+  });
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20);
