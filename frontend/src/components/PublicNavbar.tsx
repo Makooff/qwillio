@@ -133,21 +133,26 @@ export default function PublicNavbar() {
           </div>
         </div>
 
-        {/* ── MOBILE NOT SCROLLED: full nav bar ── */}
+        {/* ── MOBILE NOT SCROLLED: full nav bar — logo/hamburger at exact bubble positions ── */}
         <div className={`md:hidden transition-all duration-300 ${scrolled ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100 h-14'}`}>
-          <div className="px-4 h-14 flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
-              <QwillioLogo size={28} />
+          <div className="relative h-14">
+            {/* Logo: left-4 with w-11 container → icon center matches bubble center */}
+            <Link to="/" className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center">
+              <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
+                <QwillioLogo size={28} />
+              </div>
               <span className="text-xl font-semibold tracking-tight text-[#1d1d1f]">Qwillio</span>
             </Link>
-            <div className="flex items-center gap-2">
+            {/* Right group: hamburger in w-11 container at right-4 → center matches bubble center */}
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
               <a href="/demo.html" className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-4 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
                 <Play size={14} /> <span className="whitespace-nowrap">{isFr ? 'Essayer' : 'Try it'}</span>
               </a>
-              <button onClick={toggle} aria-label="Menu"
-                className="w-9 h-9 flex items-center justify-center text-[#1d1d1f]">
-                {menuOpen ? <X size={18} /> : <Menu size={18} />}
-              </button>
+              <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
+                <button onClick={toggle} aria-label="Menu" className="w-9 h-9 flex items-center justify-center text-[#1d1d1f]">
+                  {menuOpen ? <X size={18} /> : <Menu size={18} />}
+                </button>
+              </div>
             </div>
           </div>
         </div>

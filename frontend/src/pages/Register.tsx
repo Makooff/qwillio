@@ -12,8 +12,6 @@ type Step = 'form' | 'activation';
 
 export default function Register() {
   const [step, setStep] = useState<Step>('form');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -55,7 +53,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await register(email, password, `${firstName} ${lastName}`);
+      await register(email, password, '');
       // If email was auto-confirmed (Resend test domain), go straight to onboarding
       const { user } = useAuthStore.getState();
       if (user?.emailConfirmed) {
@@ -86,11 +84,11 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f] flex items-center justify-center px-6 relative">
-      <Link to="/" className="absolute top-4 left-6 inline-flex items-center gap-1.5 text-sm text-[#6366f1] font-medium hover:text-[#4f46e5] transition-colors">
+    <div className="min-h-screen bg-white text-[#1d1d1f] flex items-center justify-center px-6 relative" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <Link to="/" className="absolute left-6 inline-flex items-center gap-1.5 text-sm text-[#6366f1] font-medium hover:text-[#4f46e5] transition-colors" style={{ top: 'calc(env(safe-area-inset-top) + 16px)' }}>
         <ArrowLeft size={16} /> {t('back.site')}
       </Link>
-      <div className="absolute top-4 right-6"><LangToggle /></div>
+      <div className="absolute right-6" style={{ top: 'calc(env(safe-area-inset-top) + 16px)' }}><LangToggle /></div>
       <div className="w-full max-w-md">
 
         <Link to="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight text-[#1d1d1f] mb-10">
@@ -114,30 +112,6 @@ export default function Register() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-2">{t('register.firstName')}</label>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={e => setFirstName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
-                    placeholder="Jean"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">{t('register.lastName')}</label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={e => setLastName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
-                    placeholder="Dupont"
-                    required
-                  />
-                </div>
-              </div>
               <div>
                 <label className="block text-sm font-medium mb-2">{t('register.email')}</label>
                 <input
