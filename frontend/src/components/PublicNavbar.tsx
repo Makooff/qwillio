@@ -140,7 +140,7 @@ export default function PublicNavbar() {
           <div className="absolute left-4 top-0 bottom-0 flex items-center">
             <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
               <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
-                bubblesVisible ? 'bg-white/30 backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-50 opacity-0'
+                bubblesVisible ? 'backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-50 opacity-0'
               }`} />
               <Link to="/" className="relative z-10 w-full h-full flex items-center justify-center">
                 <QwillioLogo size={28} />
@@ -154,26 +154,19 @@ export default function PublicNavbar() {
           {/* ── RIGHT: Try it + hamburger ── */}
           <div className="absolute right-4 top-0 bottom-0 flex items-center gap-1.5">
 
-            {/*
-              Try it: max-width transition pill → circle.
-              CSS can animate max-width smoothly (unlike width:auto → fixed).
-              overflow-hidden clips text as button shrinks. Icon stays centered.
-            */}
+            {/* Try it — always a circle with only the Play triangle */}
             <a
               href="/demo.html"
-              className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out ${
-                bubblesVisible ? 'max-w-[44px] h-11 px-0 gap-0' : 'max-w-[120px] h-11 px-4 gap-1.5'
-              }`}
+              className="w-11 h-11 flex items-center justify-center bg-[#6366f1] text-white rounded-full flex-shrink-0"
             >
-              <Play size={13} className="flex-shrink-0" />
-              <span>{isFr ? 'Essayer' : 'Try it'}</span>
+              <Play size={14} className="ml-0.5" />
             </a>
 
             {/* Hamburger — bubble grows behind in-place */}
             <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
               <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
                 bubblesVisible || menuOpen
-                  ? 'bg-white/30 backdrop-blur-xl shadow-sm scale-100 opacity-100'
+                  ? 'backdrop-blur-xl shadow-sm scale-100 opacity-100'
                   : 'scale-50 opacity-0'
               }`} />
               <button onClick={toggle} aria-label="Menu"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Phone, Bot, Zap, Clock, ArrowRight, Check, Play,
@@ -69,7 +69,6 @@ export default function Home() {
   const isFr = lang === 'fr';
 
   const [scrollY, setScrollY] = useState(0);
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const onScroll = () => setScrollY(window.scrollY);
@@ -77,15 +76,37 @@ export default function Home() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /* Mouse parallax — desktop only */
-  useEffect(() => {
-    const fn = (e: MouseEvent) => setMouse({
-      x: (e.clientX / window.innerWidth  - 0.5) * 2,
-      y: (e.clientY / window.innerHeight - 0.5) * 2,
+  /* Ant-colony particles — deterministic pseudo-random from index */
+  const antParticles = useMemo(() => {
+    const r = (n: number) => ((n * 9301 + 49297) % 233280) / 233280;
+    const cols = ['#6366f1','#a855f7','#7c3aed','#c084fc','#8b5cf6','#9333ea'];
+    return Array.from({ length: 22 }, (_, i) => {
+      const s = i * 13 + 5;
+      return {
+        id: i,
+        x0: +(r(s)   * 110 - 5).toFixed(1),
+        y0: +(r(s+1) * 110 - 5).toFixed(1),
+        x1: +(r(s+2) * 110 - 5).toFixed(1),
+        y1: +(r(s+3) * 110 - 5).toFixed(1),
+        size: Math.round(14 + r(s+4) * 38),
+        blur: Math.round(10 + r(s+5) * 24),
+        opacity: +(0.28 + r(s+6) * 0.42).toFixed(2),
+        color: cols[i % cols.length],
+        dur: +(2.2 + r(s+7) * 5.5).toFixed(1),
+        delay: +(-(r(s+8) * 12)).toFixed(1),
+      };
     });
-    window.addEventListener('mousemove', fn, { passive: true });
-    return () => window.removeEventListener('mousemove', fn);
   }, []);
+
+  const particleCSS = useMemo(() =>
+    antParticles.map(p => `
+      @keyframes ant${p.id} {
+        0%   { transform: translate(${p.x0}vw,${p.y0}vh); opacity:0; }
+        12%  { opacity:${p.opacity}; }
+        88%  { opacity:${p.opacity}; }
+        100% { transform: translate(${p.x1}vw,${p.y1}vh); opacity:0; }
+      }`).join('\n')
+  , [antParticles]);
 
   const industries = [
     { icon: Stethoscope, name: isFr ? 'Sante' : 'Healthcare', desc: isFr ? 'Cliniques, dentistes, optometristes' : 'Clinics, dentists, optometrists' },
@@ -156,26 +177,7 @@ export default function Home() {
 
       {/* ══════════ HERO ══════════ */}
       <style>{`
-        @keyframes drift1 {
-          0%,100% { transform: translate(0,0) scale(1); }
-          33%      { transform: translate(50px,-70px) scale(1.08); }
-          66%      { transform: translate(-35px,45px) scale(0.94); }
-        }
-        @keyframes drift2 {
-          0%,100% { transform: translate(0,0) scale(1); }
-          40%      { transform: translate(-60px,40px) scale(1.06); }
-          70%      { transform: translate(40px,-55px) scale(0.96); }
-        }
-        @keyframes drift3 {
-          0%,100% { transform: translate(0,0) scale(1); }
-          50%      { transform: translate(45px,60px) scale(1.1); }
-        }
-        @keyframes drift4 {
-          0%,100% { transform: translate(0,0) scale(1); }
-          33%      { transform: translate(-30px,-40px) scale(0.92); }
-          66%      { transform: translate(55px,30px) scale(1.07); }
-        }
-        /* Premium card shimmer */
+        ${particleCSS}
         @keyframes shimmer {
           0%   { background-position: -200% center; }
           100% { background-position:  200% center; }
@@ -194,33 +196,28 @@ export default function Home() {
 
       <section className="relative pt-28 pb-24 md:pt-40 md:pb-32 overflow-hidden bg-white">
 
-        {/* ── Soft abstract orbs — mouse parallax on desktop ── */}
+        {/* ── Ant-colony: small blurry orbs travelling fast across the background ── */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* Orb 1 — indigo, top-left */}
-          <div
-            className="absolute -top-[10%] -left-[5%] w-[700px] h-[700px] rounded-full bg-[#6366f1]/[0.09] blur-[160px]"
-            style={{ transform: `translate(${mouse.x*28}px,${mouse.y*18}px)`, transition: 'transform 1.6s cubic-bezier(0.16,1,0.3,1)', animation: 'drift1 14s ease-in-out infinite' }}
-          />
-          {/* Orb 2 — violet, top-right */}
-          <div
-            className="absolute top-[5%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[#a855f7]/[0.08] blur-[180px]"
-            style={{ transform: `translate(${mouse.x*-22}px,${mouse.y*26}px)`, transition: 'transform 1.8s cubic-bezier(0.16,1,0.3,1)', animation: 'drift2 16s ease-in-out infinite' }}
-          />
-          {/* Orb 3 — purple, center */}
-          <div
-            className="absolute top-[30%] left-[30%] w-[500px] h-[500px] rounded-full bg-[#7c3aed]/[0.06] blur-[140px]"
-            style={{ transform: `translate(${mouse.x*15}px,${mouse.y*-20}px)`, transition: 'transform 2s cubic-bezier(0.16,1,0.3,1)', animation: 'drift3 12s ease-in-out infinite' }}
-          />
-          {/* Orb 4 — lilac, bottom-right */}
-          <div
-            className="absolute bottom-[-5%] right-[10%] w-[550px] h-[550px] rounded-full bg-[#c084fc]/[0.07] blur-[160px]"
-            style={{ transform: `translate(${mouse.x*-30}px,${mouse.y*12}px)`, transition: 'transform 1.4s cubic-bezier(0.16,1,0.3,1)', animation: 'drift4 18s ease-in-out infinite' }}
-          />
-          {/* Orb 5 — deep violet, bottom-left */}
-          <div
-            className="absolute bottom-[10%] -left-[8%] w-[450px] h-[450px] rounded-full bg-[#6366f1]/[0.05] blur-[130px]"
-            style={{ transform: `translate(${mouse.x*20}px,${mouse.y*-15}px)`, transition: 'transform 2.2s cubic-bezier(0.16,1,0.3,1)' }}
-          />
+          {antParticles.map(p => (
+            <div
+              key={p.id}
+              className="absolute rounded-full"
+              style={{
+                width: p.size,
+                height: p.size,
+                background: p.color,
+                filter: `blur(${p.blur}px)`,
+                opacity: 0,
+                top: 0,
+                left: 0,
+                animationName: `ant${p.id}`,
+                animationDuration: `${p.dur}s`,
+                animationTimingFunction: 'linear',
+                animationDelay: `${p.delay}s`,
+                animationIterationCount: 'infinite',
+              }}
+            />
+          ))}
         </div>
 
         <div className="relative max-w-[1120px] mx-auto px-6 text-center">
