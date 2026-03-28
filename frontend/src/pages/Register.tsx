@@ -39,7 +39,8 @@ export default function Register() {
 
   const googleSignIn = useGoogleLogin({
     onSuccess: handleGoogleSuccess,
-    onError: () => setError('Google Sign-In failed'),
+    onError: () => setError('Google Sign-In failed. Please try again or use email/password.'),
+    flow: 'implicit',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

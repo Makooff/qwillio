@@ -52,11 +52,6 @@ export default function PublicNavbar() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  /* "Qwillio" text fades like ink as user starts scrolling */
-  const textOpacity = Math.max(0, 1 - scrollY / 35);
-  /* Bubbles appear once text is fully gone */
-  const scrolled = scrollY > 50;
-
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -72,6 +67,16 @@ export default function PublicNavbar() {
   };
   const toggle = () => menuOpen ? closeMenu() : openMenu();
 
+  /*
+   * "Qwillio" text scrolls up with content and fades:
+   * - translateY follows scroll at 1:1 → looks like it's part of the page
+   * - opacity fades over the first 30px of scroll
+   * Bubbles appear (scale in) behind their logos once scrollY > 45
+   */
+  const textTranslateY = -Math.min(scrollY, 56);            // moves up with content, capped at nav height
+  const textOpacity    = Math.max(0, 1 - scrollY / 28);     // fades quickly as scroll begins
+  const bubblesVisible = scrollY > 45;
+
   const productItems = [
     { to: '/receptionist', icon: Phone, label: 'Receptionist AI', desc: isFr ? 'Votre standardiste IA 24/7' : 'Your 24/7 AI receptionist' },
     { to: '/agent', icon: Bot, label: 'Qwillio Agent', desc: isFr ? 'Modules IA avancés' : 'Advanced AI modules' },
@@ -82,9 +87,6 @@ export default function PublicNavbar() {
     { to: '/contact', icon: MailIcon, label: 'Contact', desc: isFr ? 'Nous contacter' : 'Get in touch' },
     { to: '/affiliate', icon: DollarSign, label: isFr ? 'Affiliation' : 'Affiliate', desc: isFr ? 'Gagnez en nous recommandant' : 'Earn by referring us' },
   ];
-
-  /* Menu panel top offset — below bubble when scrolled, below nav when not */
-  const menuTop = scrolled ? 'top-[60px]' : 'top-14';
 
   return (
     <>
@@ -100,21 +102,14 @@ export default function PublicNavbar() {
         }
       `}</style>
 
-      {/*
-        Single fixed container — NEVER moves on iOS Safari.
-        All children are absolute/relative inside it.
-        On mobile scrolled: height = 0, content fills full screen.
-        On mobile not scrolled: full h-14 nav bar.
-        On desktop: always full h-14 nav bar.
-      */}
+      {/* ── Single fixed nav — NEVER moves (iOS Safari safe) ── */}
       <nav
-        className="fixed top-0 left-0 right-0 z-50 overflow-visible"
+        className="fixed top-0 left-0 right-0 z-50"
         style={{ willChange: 'transform', transform: 'translateZ(0)' }}
       >
-        {/* ── DESKTOP: always-visible nav bar ── */}
+        {/* ══ DESKTOP ══ */}
         <div className="hidden md:block">
-          {/* Desktop bg */}
-          <div className={`absolute inset-0 -z-10 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : ''}`} />
+          <div className={`absolute inset-0 -z-10 transition-all duration-300 ${bubblesVisible ? 'bg-white/80 backdrop-blur-xl shadow-sm' : ''}`} />
           <div className="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
               <QwillioLogo size={28} />
@@ -131,73 +126,92 @@ export default function PublicNavbar() {
                 {isFr ? 'Connexion' : 'Login'}
               </Link>
               <a href="/demo.html" className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
-                <Play size={14} /> <span className="whitespace-nowrap">{isFr ? 'Essayer' : 'Try it'}</span>
+                <Play size={14} /> {isFr ? 'Essayer' : 'Try it'}
               </a>
               <LangToggle />
             </div>
           </div>
         </div>
 
-        {/* ── MOBILE NOT SCROLLED: full nav bar ── */}
-        <div className={`md:hidden transition-all duration-300 ${scrolled ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'h-14'}`}>
-          <div className="relative h-14">
-            {/* Logo at left-4 with w-11 container — icon aligns with bubble */}
-            <Link to="/" className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center">
-              <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
+        {/* ══ MOBILE — always h-14, elements NEVER reposition ══ */}
+        <div className="md:hidden relative h-14 overflow-hidden">
+
+          {/* ── LEFT: logo icon (fixed) + "Qwillio" text (scrolls up with content) ── */}
+          <div className="absolute left-4 top-0 bottom-0 flex items-center">
+
+            {/* Logo icon container — w-11 h-11, bubble grows behind it */}
+            <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
+              {/* Bubble background (in-place, scale from center) */}
+              <span className={`absolute inset-0 rounded-full transition-all duration-300 ${
+                bubblesVisible ? 'bg-white/30 backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-50 opacity-0'
+              }`} />
+              <Link to="/" className="relative z-10 w-full h-full flex items-center justify-center">
                 <QwillioLogo size={28} />
-              </div>
-              {/* "Qwillio" fades like ink as scroll starts */}
-              <span
-                className="text-xl font-semibold tracking-tight text-[#1d1d1f]"
-                style={{ opacity: textOpacity, transition: 'none' }}
-              >Qwillio</span>
-            </Link>
-            {/* Right group: Try it + hamburger in w-11 container at right-4 */}
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-              <a href="/demo.html" className="inline-flex items-center gap-1.5 bg-[#6366f1] text-white text-sm font-medium px-4 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
-                <Play size={13} /> <span className="whitespace-nowrap">{isFr ? 'Essayer' : 'Try it'}</span>
+              </Link>
+            </div>
+
+            {/* "Qwillio" — scrolls up with content via translateY, fades via opacity */}
+            <span
+              className="text-xl font-semibold tracking-tight text-[#1d1d1f] select-none pointer-events-none"
+              style={{
+                transform: `translateY(${textTranslateY}px)`,
+                opacity: textOpacity,
+                transition: 'none',
+              }}
+            >
+              Qwillio
+            </span>
+          </div>
+
+          {/* ── RIGHT: Try it pill + hamburger — NEVER move ── */}
+          <div className="absolute right-4 top-0 bottom-0 flex items-center gap-1.5">
+
+            {/* Try it: bubble grows behind existing pill */}
+            <div className="relative h-11 flex items-center">
+              {/* Bubble bg behind the pill (matches pill shape) */}
+              <span className={`absolute inset-0 rounded-full transition-all duration-300 bg-[#6366f1] ${
+                bubblesVisible ? 'shadow-md scale-100 opacity-100' : 'scale-75 opacity-0'
+              }`} />
+              {/* The pill itself — text collapses on scroll leaving just icon */}
+              <a
+                href="/demo.html"
+                className="relative z-10 inline-flex flex-row-reverse items-center gap-1.5 bg-[#6366f1] text-white text-sm font-medium rounded-full overflow-hidden transition-all duration-300"
+                style={{
+                  paddingLeft: bubblesVisible ? 0 : '1rem',
+                  paddingRight: '0.875rem',
+                  width: bubblesVisible ? '44px' : undefined,
+                  height: '36px',
+                  justifyContent: bubblesVisible ? 'center' : undefined,
+                }}
+              >
+                <Play size={13} className="flex-shrink-0" />
+                <span
+                  className="whitespace-nowrap overflow-hidden transition-all duration-300"
+                  style={{ maxWidth: bubblesVisible ? 0 : '120px', opacity: bubblesVisible ? 0 : 1 }}
+                >
+                  {isFr ? 'Essayer' : 'Try it'}
+                </span>
               </a>
-              <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
-                <button onClick={toggle} aria-label="Menu" className="w-9 h-9 flex items-center justify-center text-[#1d1d1f]">
-                  {menuOpen ? <X size={18} /> : <Menu size={18} />}
-                </button>
-              </div>
+            </div>
+
+            {/* Hamburger: bubble grows behind it */}
+            <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
+              <span className={`absolute inset-0 rounded-full transition-all duration-300 ${
+                bubblesVisible || menuOpen
+                  ? 'bg-white/30 backdrop-blur-xl shadow-sm scale-100 opacity-100'
+                  : 'scale-50 opacity-0'
+              }`} />
+              <button
+                onClick={toggle}
+                aria-label="Menu"
+                className="relative z-10 w-full h-full flex items-center justify-center text-[#1d1d1f]"
+              >
+                <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}><X size={18} /></span>
+                <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}><Menu size={18} /></span>
+              </button>
             </div>
           </div>
         </div>
-
-        {/* ── MOBILE SCROLLED: 3 floating bubbles ── */}
-        {/* Logo bubble */}
-        <Link
-          to="/"
-          className={`md:hidden absolute top-[9px] left-4 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
-            scrolled ? 'bg-white/30 backdrop-blur-xl shadow-sm opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'
-          }`}
-        >
-          <QwillioLogo size={28} />
-        </Link>
-
-        {/* Try it bubble — centered */}
-        <a
-          href="/demo.html"
-          className={`md:hidden absolute top-[9px] left-1/2 -translate-x-1/2 h-11 px-4 rounded-full flex items-center gap-1.5 bg-[#6366f1] text-white text-sm font-medium transition-all duration-300 ${
-            scrolled ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'
-          }`}
-        >
-          <Play size={13} /> <span className="whitespace-nowrap">{isFr ? 'Essayer' : 'Try it'}</span>
-        </a>
-
-        {/* Hamburger bubble */}
-        <button
-          onClick={toggle}
-          aria-label="Menu"
-          className={`md:hidden absolute top-[9px] right-4 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 text-[#1d1d1f] ${
-            scrolled || menuOpen ? 'bg-white/30 backdrop-blur-xl shadow-sm opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'
-          }`}
-        >
-          <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}><X size={18} /></span>
-          <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}><Menu size={18} /></span>
-        </button>
       </nav>
 
       {/* ── BUBBLE MENU PANEL ── */}
@@ -208,7 +222,7 @@ export default function PublicNavbar() {
           onClick={closeMenu}
         >
           <div
-            className={`absolute ${menuTop} right-4 bg-white rounded-3xl shadow-2xl p-5 w-64`}
+            className="absolute top-[60px] right-4 bg-white rounded-3xl shadow-2xl p-5 w-64"
             style={{ transformOrigin: 'top right', animation: menuVisible ? 'bubbleIn 0.25s ease-out forwards' : 'bubbleOut 0.2s ease-in forwards' }}
             onClick={e => e.stopPropagation()}
           >
