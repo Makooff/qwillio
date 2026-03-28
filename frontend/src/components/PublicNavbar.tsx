@@ -134,12 +134,10 @@ export default function PublicNavbar() {
         </div>
 
         {/* ══ MOBILE — always h-14, elements NEVER reposition ══ */}
-        <div className="md:hidden relative h-14 overflow-hidden">
+        <div className="md:hidden relative h-14">
 
-          {/* ── LEFT: logo icon (fixed) + "Qwillio" simple fade ── */}
+          {/* ── LEFT: logo icon + "Qwillio" fade ── */}
           <div className="absolute left-4 top-0 bottom-0 flex items-center">
-
-            {/* Logo icon — bubble grows behind in-place */}
             <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
               <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
                 bubblesVisible ? 'bg-white/30 backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-50 opacity-0'
@@ -148,31 +146,27 @@ export default function PublicNavbar() {
                 <QwillioLogo size={28} />
               </Link>
             </div>
-
-            {/* "Qwillio" — pure CSS fade, no movement */}
             <span className={`text-xl font-semibold tracking-tight text-[#1d1d1f] select-none pointer-events-none transition-opacity duration-500 ease-in-out ${
               bubblesVisible ? 'opacity-0' : 'opacity-100'
-            }`}>
-              Qwillio
-            </span>
+            }`}>Qwillio</span>
           </div>
 
-          {/* ── RIGHT: Try it + hamburger — NEVER move ── */}
+          {/* ── RIGHT: Try it + hamburger ── */}
           <div className="absolute right-4 top-0 bottom-0 flex items-center gap-1.5">
 
-            {/* Try it — smooth pill→circle, icon always centered */}
+            {/*
+              Try it: max-width transition pill → circle.
+              CSS can animate max-width smoothly (unlike width:auto → fixed).
+              overflow-hidden clips text as button shrinks. Icon stays centered.
+            */}
             <a
               href="/demo.html"
-              className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full transition-all duration-500 ease-in-out overflow-hidden ${
-                bubblesVisible ? 'w-11 h-11 gap-0' : 'px-4 h-9 gap-1.5'
+              className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full h-9 overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out ${
+                bubblesVisible ? 'max-w-[36px] px-0 gap-0' : 'max-w-[120px] px-4 gap-1.5'
               }`}
             >
               <Play size={13} className="flex-shrink-0" />
-              <span className={`whitespace-nowrap transition-all duration-500 ease-in-out overflow-hidden ${
-                bubblesVisible ? 'max-w-0 opacity-0' : 'max-w-[100px] opacity-100'
-              }`}>
-                {isFr ? 'Essayer' : 'Try it'}
-              </span>
+              <span>{isFr ? 'Essayer' : 'Try it'}</span>
             </a>
 
             {/* Hamburger — bubble grows behind in-place */}
@@ -182,11 +176,8 @@ export default function PublicNavbar() {
                   ? 'bg-white/30 backdrop-blur-xl shadow-sm scale-100 opacity-100'
                   : 'scale-50 opacity-0'
               }`} />
-              <button
-                onClick={toggle}
-                aria-label="Menu"
-                className="relative z-10 w-full h-full flex items-center justify-center text-[#1d1d1f]"
-              >
+              <button onClick={toggle} aria-label="Menu"
+                className="relative z-10 w-full h-full flex items-center justify-center text-[#1d1d1f]">
                 <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}><X size={18} /></span>
                 <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}><Menu size={18} /></span>
               </button>
