@@ -124,11 +124,11 @@ export default function Pricing() {
                     ))}
                   </ul>
                   <div className="space-y-2 mb-6">
-                    <Link to={`/register?plan=${plan.name.toLowerCase()}&bundle=true`} className={`flex items-center justify-between rounded-xl px-4 py-3 transition-colors text-sm font-medium ${plan.popular ? 'bg-white text-[#1d1d1f] hover:bg-white/90' : 'bg-[#1d1d1f] text-white hover:bg-black'}`}>
+                    <Link to={`/register?plan=${plan.name.toLowerCase()}&bundle=true`} className={`flex items-center justify-between rounded-full px-4 py-3 transition-colors text-sm font-medium ${plan.popular ? 'border border-white/60 text-white hover:bg-white/10' : 'border border-[#6366f1] text-[#6366f1] hover:bg-[#6366f1] hover:text-white'}`}>
                       <span className="flex items-center gap-2"><Plus size={16} /> {isFr ? 'Ajouter Agent Bundle' : 'Add Agent Bundle'}</span>
                       <span className="font-semibold">+$597/mo</span>
                     </Link>
-                    <a href="#addons" className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 transition-colors text-sm font-medium ${plan.popular ? 'bg-white/10 text-white hover:bg-white/20' : 'border border-[#d2d2d7] text-[#1d1d1f] hover:border-[#1d1d1f]'}`}>
+                    <a href="#addons" className={`flex items-center justify-center gap-2 rounded-full px-4 py-3 transition-colors text-sm font-medium ${plan.popular ? 'border border-white/60 text-white hover:bg-white/10' : 'border border-[#6366f1] text-[#6366f1] hover:bg-[#6366f1] hover:text-white'}`}>
                       <Plus size={16} />
                       <span>{isFr ? 'Ajouter des add-ons' : 'Add add-ons'}</span>
                     </a>
