@@ -104,14 +104,16 @@ export default function Pricing() {
                   )}
                   <h3 className="text-xl font-semibold mb-1">{plan.name}</h3>
                   <p className={`text-sm mb-6 ${plan.popular ? 'text-white/50' : 'text-[#86868b]'}`}>{plan.sub}</p>
-                  <div className="mb-1">
-                    <span className="text-4xl font-semibold tracking-tight">$0</span>
+                  <div className="mb-2">
+                    <span className="text-4xl font-semibold tracking-tight">${plan.price.toLocaleString()}</span>
                     <span className={plan.popular ? 'text-white/50' : 'text-[#86868b]'}>/mo</span>
-                    <span className={`ml-2 text-sm line-through ${plan.popular ? 'text-white/40' : 'text-[#86868b]'}`}>${plan.price.toLocaleString()}</span>
                   </div>
-                  <p className={`text-sm font-medium mb-1 ${plan.popular ? 'text-[#818cf8]' : 'text-[#6366f1]'}`}>{isFr ? 'Premier mois gratuit' : 'First month free'}</p>
-                  <p className={`text-xs mb-2 ${plan.popular ? 'text-white/40' : 'text-[#86868b]'}`}>{isFr ? 'Puis' : 'Then'} ${plan.price.toLocaleString()}/mo</p>
-                  <p className={`text-xs font-medium mb-4 ${plan.popular ? 'text-emerald-400' : 'text-emerald-600'}`}>{isFr ? 'Aucun frais de setup' : 'No setup fee'}</p>
+                  <p className={`text-sm font-semibold mb-1 ${plan.popular ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                    {isFr ? '✓ Premier mois gratuit' : '✓ First month free'}
+                  </p>
+                  <p className={`text-xs font-medium mb-4 ${plan.popular ? 'text-blue-400' : 'text-blue-500'}`}>
+                    {isFr ? 'Aucun frais de setup' : 'No setup fee'}
+                  </p>
                   <p className={`text-sm font-medium mb-1 ${plan.popular ? 'text-[#6366f1]' : 'text-[#6366f1]'}`}>{plan.calls.toLocaleString()} {isFr ? 'appels/mois inclus' : 'calls/month included'}</p>
                   <p className={`text-xs mb-6 ${plan.popular ? 'text-white/40' : 'text-[#86868b]'}`}>${plan.overage} {isFr ? 'par appel supplementaire' : 'overage/call'}</p>
                   <ul className="space-y-3 mb-6 flex-1">
@@ -122,13 +124,13 @@ export default function Pricing() {
                     ))}
                   </ul>
                   <div className="space-y-2 mb-6">
-                    <Link to={`/register?plan=${plan.name.toLowerCase()}&bundle=true`} className={`flex items-center justify-between rounded-xl border border-dashed px-4 py-3 transition-colors ${plan.popular ? 'border-white/20 hover:border-[#818cf8] hover:bg-white/5' : 'border-[#6366f1]/30 hover:border-[#6366f1] hover:bg-[#6366f1]/5'}`}>
-                      <span className={`flex items-center gap-2 text-sm font-medium ${plan.popular ? 'text-[#818cf8]' : 'text-[#6366f1]'}`}><Plus size={16} /> {isFr ? 'Ajouter Agent Bundle' : 'Add Agent Bundle'}</span>
-                      <span className={`text-sm font-semibold ${plan.popular ? 'text-[#818cf8]' : 'text-[#6366f1]'}`}>+$597/mo</span>
+                    <Link to={`/register?plan=${plan.name.toLowerCase()}&bundle=true`} className={`flex items-center justify-between rounded-xl px-4 py-3 transition-colors text-sm font-medium ${plan.popular ? 'bg-white text-[#1d1d1f] hover:bg-white/90' : 'bg-[#1d1d1f] text-white hover:bg-black'}`}>
+                      <span className="flex items-center gap-2"><Plus size={16} /> {isFr ? 'Ajouter Agent Bundle' : 'Add Agent Bundle'}</span>
+                      <span className="font-semibold">+$597/mo</span>
                     </Link>
-                    <a href="#addons" className={`flex items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-3 transition-colors ${plan.popular ? 'border-white/20 hover:border-[#818cf8] hover:bg-white/5' : 'border-[#6366f1]/30 hover:border-[#6366f1] hover:bg-[#6366f1]/5'}`}>
-                      <Plus size={16} className={plan.popular ? 'text-[#818cf8]' : 'text-[#6366f1]'} />
-                      <span className={`text-sm font-medium ${plan.popular ? 'text-[#818cf8]' : 'text-[#6366f1]'}`}>{isFr ? 'Ajouter des add-ons' : 'Add add-ons'}</span>
+                    <a href="#addons" className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 transition-colors text-sm font-medium ${plan.popular ? 'bg-white/10 text-white hover:bg-white/20' : 'border border-[#d2d2d7] text-[#1d1d1f] hover:border-[#1d1d1f]'}`}>
+                      <Plus size={16} />
+                      <span>{isFr ? 'Ajouter des add-ons' : 'Add add-ons'}</span>
                     </a>
                   </div>
                   <Link to={`/register?plan=${plan.name.toLowerCase()}`} className={`block text-center text-sm font-medium px-6 py-3 rounded-full transition-colors ${plan.popular ? 'bg-[#6366f1] text-white hover:bg-[#4f46e5]' : 'border border-[#6366f1] text-[#6366f1] hover:bg-[#6366f1] hover:text-white'}`}>

@@ -71,7 +71,7 @@ export default function Affiliate() {
       <PublicNavbar />
 
       {/* Hero */}
-      <section className="pt-32 pb-20 md:pt-44 md:pb-28 text-center px-6">
+      <section className="pt-28 pb-14 md:pt-44 md:pb-24 text-center px-6">
         <FadeIn>
           <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-4">{isFr ? 'Programme affilié' : 'Affiliate program'}</p>
           <h1 className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.05] max-w-3xl mx-auto">
@@ -101,12 +101,12 @@ export default function Affiliate() {
 
         {/* Stats */}
         <FadeIn delay={400}>
-          <div className="mt-20 grid grid-cols-3 text-center w-full max-w-xl mx-auto">
+          <div className="mt-12 grid grid-cols-3 text-center w-full max-w-sm mx-auto divide-x divide-[#d2d2d7]">
             <div>
               <p className="text-3xl md:text-4xl font-semibold tracking-tight">30%</p>
               <p className="text-xs md:text-sm text-[#86868b] mt-1">{isFr ? 'Commission' : 'Commission'}</p>
             </div>
-            <div className="border-x border-[#d2d2d7]">
+            <div>
               <p className="text-3xl md:text-4xl font-semibold tracking-tight">90 {isFr ? 'jours' : 'days'}</p>
               <p className="text-xs md:text-sm text-[#86868b] mt-1">Cookie</p>
             </div>
