@@ -5,7 +5,8 @@ import {
   ChevronRight, Play, ArrowRight, Check,
   MessageSquare, BrainCircuit, Globe,
   Mail, CreditCard, Calculator, Package, Plus,
-  PhoneForwarded, Mic, Filter, Target, UserCheck, Send, Search, Link2, Activity, FileText, Headphones, Languages, Cpu, Lock, Gauge, Wifi
+  PhoneForwarded, Mic, Filter, Target, UserCheck, Send, Search, Link2, Activity, FileText, Headphones, Languages, Cpu, Lock, Gauge, Wifi,
+  Stethoscope, Scale, Home as HomeIcon, Sparkles, Wrench, Wind, UtensilsCrossed, Car
 } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
@@ -63,20 +64,20 @@ function FadeIn({ children, className = '', delay = 0 }: { children: React.React
 /* ── Niches Section ── */
 function NichesSection() {
   const { t } = useLang();
-  const niches = [
-    { key: 'dental', emoji: '🦷' },
-    { key: 'medical', emoji: '🏥' },
-    { key: 'law', emoji: '⚖️' },
-    { key: 'realestate', emoji: '🏠' },
-    { key: 'spa', emoji: '💆' },
-    { key: 'plumber', emoji: '🔧' },
-    { key: 'hvac', emoji: '❄️' },
-    { key: 'restaurant', emoji: '🍽️' },
-    { key: 'auto', emoji: '🚗' },
-    { key: 'insurance', emoji: '🛡️' },
-    { key: 'coaching', emoji: '🎯' },
-    { key: 'accounting', emoji: '📊' },
-  ] as const;
+  const niches: { key: string; icon: React.ElementType; color: string }[] = [
+    { key: 'dental',     icon: Stethoscope,    color: '#6366f1' },
+    { key: 'medical',    icon: Activity,        color: '#a855f7' },
+    { key: 'law',        icon: Scale,           color: '#7c3aed' },
+    { key: 'realestate', icon: HomeIcon,        color: '#6366f1' },
+    { key: 'spa',        icon: Sparkles,        color: '#a855f7' },
+    { key: 'plumber',    icon: Wrench,          color: '#7c3aed' },
+    { key: 'hvac',       icon: Wind,            color: '#6366f1' },
+    { key: 'restaurant', icon: UtensilsCrossed, color: '#a855f7' },
+    { key: 'auto',       icon: Car,             color: '#7c3aed' },
+    { key: 'insurance',  icon: Shield,          color: '#6366f1' },
+    { key: 'coaching',   icon: Target,          color: '#a855f7' },
+    { key: 'accounting', icon: Calculator,      color: '#7c3aed' },
+  ];
 
   return (
     <section className="py-24 md:py-32 px-6 bg-[#f5f5f7]">
@@ -92,7 +93,9 @@ function NichesSection() {
           {niches.map((n, i) => (
             <FadeIn key={n.key} delay={i * 50}>
               <div className="rounded-2xl bg-white border border-[#d2d2d7]/60 p-6 hover:border-[#6366f1]/40 hover:shadow-md transition-all duration-200 h-full">
-                <p className="text-3xl mb-3">{n.emoji}</p>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style={{ background: `${n.color}15` }}>
+                  <n.icon size={20} style={{ color: n.color }} />
+                </div>
                 <p className="text-base font-semibold text-[#1d1d1f] mb-1.5">{t(`niches.${n.key}` as any)}</p>
                 <p className="text-sm text-[#86868b] leading-relaxed">{t(`niches.${n.key}.desc` as any)}</p>
               </div>
