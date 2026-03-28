@@ -76,24 +76,27 @@ export default function Home() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /* Ant-colony particles — deterministic pseudo-random from index */
+  /* Ant-colony particles — deterministic pseudo-random, curved paths in all directions */
   const antParticles = useMemo(() => {
     const r = (n: number) => ((n * 9301 + 49297) % 233280) / 233280;
     const cols = ['#6366f1','#a855f7','#7c3aed','#c084fc','#8b5cf6','#9333ea'];
-    return Array.from({ length: 22 }, (_, i) => {
-      const s = i * 13 + 5;
+    return Array.from({ length: 26 }, (_, i) => {
+      const s = i * 17 + 3;
       return {
         id: i,
-        x0: +(r(s)   * 110 - 5).toFixed(1),
-        y0: +(r(s+1) * 110 - 5).toFixed(1),
-        x1: +(r(s+2) * 110 - 5).toFixed(1),
-        y1: +(r(s+3) * 110 - 5).toFixed(1),
-        size: Math.round(14 + r(s+4) * 38),
-        blur: Math.round(10 + r(s+5) * 24),
-        opacity: +(0.28 + r(s+6) * 0.42).toFixed(2),
+        // Start, mid and end all fully random — creates curved organic paths in every direction
+        x0: +(r(s)    * 120 - 10).toFixed(1),
+        y0: +(r(s+1)  * 120 - 10).toFixed(1),
+        xm: +(r(s+9)  * 110 -  5).toFixed(1),
+        ym: +(r(s+10) * 110 -  5).toFixed(1),
+        x1: +(r(s+2)  * 120 - 10).toFixed(1),
+        y1: +(r(s+3)  * 120 - 10).toFixed(1),
+        size: Math.round(14 + r(s+4) * 34),
+        blur: Math.round(5  + r(s+5) * 12),   // 5–17px — less blurry
+        opacity: +(0.35 + r(s+6) * 0.38).toFixed(2),
         color: cols[i % cols.length],
-        dur: +(2.2 + r(s+7) * 5.5).toFixed(1),
-        delay: +(-(r(s+8) * 12)).toFixed(1),
+        dur: +(2.4 + r(s+7) * 5.2).toFixed(1),
+        delay: +(-(r(s+8) * 14)).toFixed(1),
       };
     });
   }, []);
@@ -103,6 +106,7 @@ export default function Home() {
       @keyframes ant${p.id} {
         0%   { transform: translate(${p.x0}vw,${p.y0}vh); opacity:0; }
         12%  { opacity:${p.opacity}; }
+        50%  { transform: translate(${p.xm}vw,${p.ym}vh); opacity:${p.opacity}; }
         88%  { opacity:${p.opacity}; }
         100% { transform: translate(${p.x1}vw,${p.y1}vh); opacity:0; }
       }`).join('\n')
