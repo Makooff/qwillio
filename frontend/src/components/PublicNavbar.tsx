@@ -202,18 +202,6 @@ export default function PublicNavbar() {
         </div>
       </nav>
 
-      {/* ── Blur/darken overlay — behind menu, blurs page content ── */}
-      {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-[59] pointer-events-none"
-          style={{
-            background: 'rgba(0,0,0,0.35)',
-            backdropFilter: menuVisible ? 'blur(10px)' : 'blur(0px)',
-            WebkitBackdropFilter: menuVisible ? 'blur(10px)' : 'blur(0px)',
-            opacity: menuVisible ? 1 : 0,
-            transition: 'opacity 0.32s ease, backdrop-filter 0.32s ease',
-          }}
-        />
-      )}
 
       {/* ── FULLSCREEN MENU — slides in from top ── */}
       {menuOpen && (
@@ -221,22 +209,18 @@ export default function PublicNavbar() {
           className="md:hidden fixed left-0 right-0 bottom-0 z-[60] flex flex-col overflow-hidden"
           style={{
             top: 0,
-            background: 'linear-gradient(145deg, #0c0c14 0%, #13101f 60%, #0e0e1a 100%)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            background: 'rgba(255,255,255,0.72)',
             paddingTop: 'calc(env(safe-area-inset-top) + 56px)',
             paddingBottom: 'env(safe-area-inset-bottom)',
             transform: menuVisible ? 'translateY(0)' : 'translateY(-100%)',
             transition: 'transform 0.42s cubic-bezier(0.4, 0, 0.15, 1)',
           }}
         >
-          {/* Decorative glow orbs */}
-          <div className="absolute top-0 left-0 w-72 h-72 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 65%)', transform: 'translate(-35%, -35%)' }} />
-          <div className="absolute bottom-0 right-0 w-64 h-64 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 65%)', transform: 'translate(30%, 30%)' }} />
-
           {/* Nav links */}
-          <nav className="flex-1 overflow-y-auto px-6 pt-8 pb-4">
-            <div className="space-y-1">
+          <nav className="flex-1 overflow-y-auto px-8 pt-10 pb-4">
+            <div className="space-y-0">
               {[
                 { to: '/', label: isFr ? 'Accueil' : 'Home' },
                 { to: '/receptionist', label: 'Receptionist AI' },
@@ -245,12 +229,12 @@ export default function PublicNavbar() {
                 { to: '/affiliate', label: isFr ? 'Affiliation' : 'Affiliate' },
               ].map((item) => (
                 <Link key={item.to} to={item.to} onClick={closeMenu}
-                  className="group flex items-center justify-between px-4 py-4 rounded-2xl transition-all duration-200 hover:bg-white/8"
+                  className="group flex items-center justify-between px-2 py-3.5 transition-all duration-200"
                 >
-                  <span className="text-[1.75rem] font-semibold tracking-tight text-white group-hover:text-[#a78bfa] transition-colors">
+                  <span className="text-2xl font-normal tracking-tight text-[#6366f1] group-hover:text-[#4f46e5] transition-colors">
                     {item.label}
                   </span>
-                  <ArrowRight size={18} className="text-white/20 group-hover:text-[#a78bfa] group-hover:translate-x-1 transition-all duration-200" />
+                  <ArrowRight size={16} className="text-[#6366f1]/30 group-hover:text-[#6366f1] group-hover:translate-x-1 transition-all duration-200" />
                 </Link>
               ))}
             </div>
@@ -258,14 +242,14 @@ export default function PublicNavbar() {
 
           {/* Bottom CTAs */}
           <div className="px-6 pb-6 flex-shrink-0">
-            <div className="border-t border-white/10 mb-5" />
+            <div className="border-t border-[#d2d2d7]/60 mb-5" />
             <Link to="/login" onClick={closeMenu}
-              className="flex items-center justify-center w-full text-white text-base font-semibold px-4 py-4 rounded-full transition-all hover:opacity-90 active:scale-[0.98] mb-3"
+              className="flex items-center justify-center w-full text-white text-base font-medium px-4 py-4 rounded-full transition-all hover:opacity-90 active:scale-[0.98] mb-3"
               style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}>
               {isFr ? 'Connexion' : 'Login'}
             </Link>
             <Link to="/register" onClick={closeMenu}
-              className="flex items-center justify-center w-full border border-white/20 text-white text-base font-medium px-4 py-4 rounded-full hover:bg-white/8 transition-colors mb-4">
+              className="flex items-center justify-center w-full border border-[#d2d2d7] text-[#1d1d1f] text-base font-normal px-4 py-4 rounded-full hover:bg-black/5 transition-colors mb-4">
               {isFr ? "S'inscrire" : 'Sign up'}
             </Link>
             <div className="flex justify-center">
