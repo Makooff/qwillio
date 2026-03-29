@@ -39,8 +39,9 @@ function Dropdown({ label, items }: { label: string; items: { to: string; icon: 
 export default function PublicNavbar() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
-  const [scrollY, setScrollY] = useState(0);
-  const [bubblesVisible, setBubblesVisible] = useState(false);
+  const initY = typeof window !== 'undefined' ? window.scrollY : 0;
+  const [scrollY, setScrollY] = useState(initY);
+  const [bubblesVisible, setBubblesVisible] = useState(initY > 55);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const location = useLocation();
@@ -118,15 +119,16 @@ export default function PublicNavbar() {
           zIndex: menuOpen ? 61 : 50,
           willChange: 'transform',
           transform: 'translateZ(0)',
-          paddingTop: 'env(safe-area-inset-top)',
+          // No paddingTop: content goes behind notch, bubbles float above
         }}
       >
-        {/* Glass background for safe-area zone when menu is open (removes white notch strip) */}
+        {/* Glass background for safe-area zone when menu is open (covers notch area) */}
         {menuOpen && (
           <div className="md:hidden absolute inset-0 -z-10" style={{
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
             background: 'rgba(255,255,255,0.72)',
+            paddingTop: 'env(safe-area-inset-top)',
           }} />
         )}
 
@@ -156,8 +158,10 @@ export default function PublicNavbar() {
           </div>
         </div>
 
-        {/* ══ MOBILE ══ */}
-        <div className="md:hidden relative h-14">
+        {/* ══ MOBILE ══ — invisible until scrolled or menu open */}
+        <div className={`md:hidden relative h-14 transition-opacity duration-300 ${
+          bubblesVisible || menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
 
           {/* ── LEFT: logo (always) ── */}
           <div className="absolute left-4 top-0 bottom-0 flex items-center gap-2">
