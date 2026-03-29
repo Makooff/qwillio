@@ -113,6 +113,12 @@ export default function Home() {
       // Firefly: tiny core (3-5px) + soft glow via box-shadow
       const coreSize = 10 + Math.round(r(s+2) * 6); // 10–16px
       const glowSpread = 32 + Math.round(r(s+3) * 24); // 32–56px glow
+      // Unique cubic-bezier per particle → no synchronized slowdown
+      const b1 = +(0.2 + r(s+10) * 0.5).toFixed(2);
+      const b2 = +(0.0 + r(s+11) * 0.6).toFixed(2);
+      const b3 = +(0.4 + r(s+12) * 0.5).toFixed(2);
+      const b4 = +(0.6 + r(s+13) * 0.4).toFixed(2);
+      const easing = `cubic-bezier(${b1},${b2},${b3},${b4})`;
       return {
         id: i,
         x0: +p0.x.toFixed(1), y0: +p0.y.toFixed(1),
@@ -120,10 +126,11 @@ export default function Home() {
         x1: +p1.x.toFixed(1), y1: +p1.y.toFixed(1),
         coreSize,
         glowSpread,
-        opacity: +(0.55 + r(s+6) * 0.3).toFixed(2), // brighter: 0.55–0.85
+        opacity: +(0.55 + r(s+6) * 0.3).toFixed(2),
         color,
-        dur:  +(7.5 + r(s+7) * 2.0).toFixed(1),
-        delay: +(-(r(s+8) * 10)).toFixed(1),
+        easing,
+        dur:  +(6.0 + r(s+7) * 6.0).toFixed(1), // 6–12s, wider spread
+        delay: +(-(r(s+8) * 12)).toFixed(1),
       };
     });
   }, []);
@@ -244,7 +251,7 @@ export default function Home() {
                 left: 0,
                 animationName: `ant${p.id}`,
                 animationDuration: `${p.dur}s`,
-                animationTimingFunction: 'ease-in-out',
+                animationTimingFunction: p.easing,
                 animationDelay: `${p.delay}s`,
                 animationIterationCount: 'infinite',
               }}
