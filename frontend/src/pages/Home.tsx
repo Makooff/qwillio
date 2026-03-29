@@ -111,8 +111,8 @@ export default function Home() {
       const offset = (r(s+9) - 0.5) * 16;
       const color = cols[i % cols.length];
       // Firefly: tiny core (3-5px) + soft glow via box-shadow
-      const coreSize = 5 + Math.round(r(s+2) * 3); // 5–8px
-      const glowSpread = 16 + Math.round(r(s+3) * 12); // 16–28px glow
+      const coreSize = 10 + Math.round(r(s+2) * 6); // 10–16px
+      const glowSpread = 32 + Math.round(r(s+3) * 24); // 32–56px glow
       return {
         id: i,
         x0: +p0.x.toFixed(1), y0: +p0.y.toFixed(1),
