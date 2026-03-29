@@ -236,7 +236,7 @@ export default function PublicNavbar() {
                 <Link key={item.to} to={item.to} onClick={closeMenu}
                   className="group block px-2 py-3.5 transition-all duration-200"
                 >
-                  <span className="text-2xl font-normal tracking-tight text-[#6366f1] group-hover:text-[#4f46e5] transition-colors">
+                  <span className="text-lg font-normal tracking-tight text-[#6366f1] group-hover:text-[#4f46e5] transition-colors">
                     {item.label}
                   </span>
                   <div className="mt-1.5 h-[1px] bg-[#6366f1]/25 group-hover:bg-[#6366f1]/50 transition-colors duration-200" style={{ width: item.wave }} />
