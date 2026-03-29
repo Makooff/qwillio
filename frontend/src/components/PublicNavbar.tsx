@@ -154,7 +154,7 @@ export default function PublicNavbar() {
             </div>
             <span className={`text-xl font-semibold tracking-tight text-[#1d1d1f] select-none pointer-events-none transition-all duration-500 ease-in-out ${
               bubblesVisible && !menuOpen ? 'opacity-0' : 'opacity-100'
-            }`}>Qwillio</span>
+            }`} style={{ transitionDelay: menuOpen ? '180ms' : '0ms' }}>Qwillio</span>
           </div>
 
           {/* ── RIGHT: Try it (hides on menu open) + hamburger → X ── */}
