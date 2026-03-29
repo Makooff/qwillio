@@ -91,10 +91,10 @@ export default function Home() {
 
     const onEdge = (edge: number, t: number) => {
       switch (edge) {
-        case 0: return { x: -6,  y: t * 100 };
-        case 1: return { x: 106, y: t * 100 };
-        case 2: return { x: t * 100, y: -6  };
-        default: return { x: t * 100, y: 106 };
+        case 0: return { x: -2,  y: t * 100 };
+        case 1: return { x: 102, y: t * 100 };
+        case 2: return { x: t * 100, y: -2  };
+        default: return { x: t * 100, y: 102 };
       }
     };
 
@@ -102,25 +102,27 @@ export default function Home() {
       const s = i * 23 + 7;
       const startEdge = i % 4;
       const endEdge   = (startEdge + 1 + (i % 3)) % 4;
-      // Evenly spaced along each edge for good distribution
       const p0 = onEdge(startEdge, i * 0.2 + 0.1);
       const p1 = onEdge(endEdge,   (i * 0.2 + 0.4) % 1);
-      // Midpoint ON the straight line + small perpendicular offset → gentle curve
       const mxBase = (p0.x + p1.x) / 2;
       const myBase = (p0.y + p1.y) / 2;
       const dx = p1.x - p0.x, dy = p1.y - p0.y;
       const len = Math.sqrt(dx*dx + dy*dy) || 1;
-      const offset = (r(s+9) - 0.5) * 16; // ±8 units — barely perceptible curve
+      const offset = (r(s+9) - 0.5) * 16;
+      const color = cols[i % cols.length];
+      // Firefly: tiny core (3-5px) + soft glow via box-shadow
+      const coreSize = 3 + Math.round(r(s+2) * 2); // 3–5px
+      const glowSpread = 6 + Math.round(r(s+3) * 8); // 6–14px glow
       return {
         id: i,
-        x0: +p0.x.toFixed(1),                     y0: +p0.y.toFixed(1),
+        x0: +p0.x.toFixed(1), y0: +p0.y.toFixed(1),
         xm: +(mxBase + (-dy/len)*offset).toFixed(1), ym: +(myBase + (dx/len)*offset).toFixed(1),
-        x1: +p1.x.toFixed(1),                     y1: +p1.y.toFixed(1),
-        size: [10, 42, 18, 50, 14][i],  // explicitly varied: small, large, medium, XL, tiny
-        blur: Math.round(8  + r(s+5) * 8),   // 8–16px
-        opacity: +(0.28 + r(s+6) * 0.22).toFixed(2),
-        color: cols[i % cols.length],
-        dur:  +(7.5 + r(s+7) * 2.0).toFixed(1),   // 7.5–9.5s, small spread
+        x1: +p1.x.toFixed(1), y1: +p1.y.toFixed(1),
+        coreSize,
+        glowSpread,
+        opacity: +(0.55 + r(s+6) * 0.3).toFixed(2), // brighter: 0.55–0.85
+        color,
+        dur:  +(7.5 + r(s+7) * 2.0).toFixed(1),
         delay: +(-(r(s+8) * 10)).toFixed(1),
       };
     });
@@ -130,9 +132,9 @@ export default function Home() {
     antParticles.map(p => `
       @keyframes ant${p.id} {
         0%   { transform: translate(${p.x0}vw,${p.y0}vh); opacity:0; }
-        12%  { opacity:${p.opacity}; }
+        10%  { opacity:${p.opacity}; }
         50%  { transform: translate(${p.xm}vw,${p.ym}vh); opacity:${p.opacity}; }
-        88%  { opacity:${p.opacity}; }
+        90%  { opacity:${p.opacity}; }
         100% { transform: translate(${p.x1}vw,${p.y1}vh); opacity:0; }
       }`).join('\n')
   , [antParticles]);
@@ -232,10 +234,11 @@ export default function Home() {
               key={p.id}
               className="absolute rounded-full"
               style={{
-                width: p.size,
-                height: p.size,
+                width: p.coreSize,
+                height: p.coreSize,
                 background: p.color,
-                filter: `blur(${p.blur}px)`,
+                boxShadow: `0 0 ${p.glowSpread}px ${p.glowSpread / 2}px ${p.color}`,
+                filter: 'blur(0.5px)',
                 opacity: 0,
                 top: 0,
                 left: 0,
