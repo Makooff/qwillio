@@ -111,8 +111,8 @@ export default function Home() {
       const offset = (r(s+9) - 0.5) * 16;
       const color = cols[i % cols.length];
       // Firefly: tiny core (3-5px) + soft glow via box-shadow
-      const coreSize = 4 + Math.round(r(s+2) * 3); // 4–7px
-      const glowSpread = 18 + Math.round(r(s+3) * 16); // 18–34px glow
+      const coreSize = 4 + Math.round(r(s+2) * 2); // 4–6px
+      const glowSpread = 8 + Math.round(r(s+3) * 8); // 8–16px glow
       return {
         id: i,
         x0: +p0.x.toFixed(1), y0: +p0.y.toFixed(1),
@@ -237,8 +237,8 @@ export default function Home() {
                 width: p.coreSize,
                 height: p.coreSize,
                 background: p.color,
-                boxShadow: `0 0 ${p.glowSpread}px ${p.glowSpread}px ${p.color}`,
-                filter: 'blur(3px)',
+                boxShadow: `0 0 ${p.glowSpread}px ${Math.round(p.glowSpread * 0.5)}px ${p.color}`,
+                filter: 'blur(1px)',
                 opacity: 0,
                 top: 0,
                 left: 0,
