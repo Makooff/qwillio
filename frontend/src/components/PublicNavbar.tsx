@@ -102,10 +102,15 @@ export default function PublicNavbar() {
         }
       `}</style>
 
-      {/* ── Single fixed nav — NEVER moves (iOS Safari safe) ── */}
+      {/* ── Single fixed nav — above menu when open ── */}
       <nav
-        className="fixed top-0 left-0 right-0 z-50"
-        style={{ willChange: 'transform', transform: 'translateZ(0)', paddingTop: 'env(safe-area-inset-top)' }}
+        className="fixed top-0 left-0 right-0"
+        style={{
+          zIndex: menuOpen ? 61 : 50,
+          willChange: 'transform',
+          transform: 'translateZ(0)',
+          paddingTop: 'env(safe-area-inset-top)',
+        }}
       >
 
         {/* ══ DESKTOP ══ */}
@@ -134,32 +139,44 @@ export default function PublicNavbar() {
           </div>
         </div>
 
-        {/* ══ MOBILE — always h-14, elements NEVER reposition ══ */}
+        {/* ══ MOBILE ══ */}
         <div className="md:hidden relative h-14">
 
-          {/* ── LEFT: logo icon + "Qwillio" fade ── */}
-          <div className="absolute left-4 top-0 bottom-0 flex items-center">
-            <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
-              <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
-                bubblesVisible ? 'backdrop-blur-xl scale-100 opacity-100' : 'scale-50 opacity-0'
+          {/* ── LEFT: QW bubble → X on menu open ── */}
+          <div className="absolute left-4 top-0 bottom-0 flex items-center gap-2">
+            <div className="relative w-11 h-11 flex-shrink-0">
+              {/* Bubble bg — white when not scrolled, glass when scrolled or menuOpen */}
+              <span className={`absolute inset-0 rounded-full transition-all duration-400 ease-in-out ${
+                bubblesVisible || menuOpen
+                  ? 'scale-100 opacity-100 backdrop-blur-xl'
+                  : 'scale-50 opacity-0'
               }`} />
-              <Link to="/" className="relative z-10 w-full h-full flex items-center justify-center">
+
+              {/* QW logo — scales out + rotates when menu opens */}
+              <Link to="/" className={`absolute inset-0 flex items-center justify-center transition-all duration-350 ease-in-out ${
+                menuOpen ? 'scale-0 opacity-0 rotate-[135deg] pointer-events-none' : 'scale-100 opacity-100 rotate-0'
+              }`}>
                 <QwillioLogo size={28} />
               </Link>
+
+              {/* X — scales in when menu opens */}
+              <button onClick={closeMenu} aria-label="Close menu" className={`absolute inset-0 flex items-center justify-center transition-all duration-350 ease-in-out ${
+                menuOpen ? 'scale-100 opacity-100 rotate-0' : 'scale-0 opacity-0 -rotate-[135deg] pointer-events-none'
+              }`}>
+                <X size={20} className={menuOpen ? 'text-white' : 'text-[#1d1d1f]'} />
+              </button>
             </div>
-            <span className={`text-xl font-semibold tracking-tight text-[#1d1d1f] select-none pointer-events-none transition-opacity duration-500 ease-in-out ${
-              bubblesVisible ? 'opacity-0' : 'opacity-100'
-            }`}>Qwillio</span>
+
+            {/* "Qwillio" text — fades on scroll AND on menu open */}
+            <span className={`text-xl font-semibold tracking-tight select-none pointer-events-none transition-all duration-400 ease-in-out ${
+              bubblesVisible || menuOpen ? 'opacity-0 translate-x-[-8px]' : 'opacity-100 translate-x-0'
+            } ${menuOpen ? 'text-white' : 'text-[#1d1d1f]'}`}>Qwillio</span>
           </div>
 
-          {/* ── RIGHT: Try it + hamburger ── */}
-          <div className="absolute right-4 top-0 bottom-0 flex items-center gap-1.5">
-
-            {/*
-              Try it: pill with text → circle with only the triangle on scroll.
-              max-width transition animates smoothly (CSS can't animate width:auto → fixed).
-              overflow-hidden clips text as button shrinks.
-            */}
+          {/* ── RIGHT: Try it + hamburger — fade out when menu opens ── */}
+          <div className={`absolute right-4 top-0 bottom-0 flex items-center gap-1.5 transition-all duration-350 ease-in-out ${
+            menuOpen ? 'opacity-0 translate-x-4 pointer-events-none' : 'opacity-100 translate-x-0'
+          }`}>
             <a
               href="/demo.html"
               className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out min-w-[44px] h-11 ${
@@ -172,34 +189,43 @@ export default function PublicNavbar() {
               </span>
             </a>
 
-            {/* Hamburger — bubble grows behind in-place */}
             <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
               <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
-                bubblesVisible || menuOpen
-                  ? 'backdrop-blur-xl shadow-sm scale-100 opacity-100'
-                  : 'scale-50 opacity-0'
+                bubblesVisible ? 'backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-50 opacity-0'
               }`} />
-              <button onClick={toggle} aria-label="Menu"
+              <button onClick={openMenu} aria-label="Menu"
                 className="relative z-10 w-full h-full flex items-center justify-center text-[#1d1d1f]">
-                <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}><X size={18} /></span>
-                <span className={`absolute transition-all duration-200 ${menuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}><Menu size={18} /></span>
+                <Menu size={18} />
               </button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* ── FULLSCREEN MENU PANEL ── */}
+      {/* ── Blur/darken overlay — behind menu, blurs page content ── */}
+      {menuOpen && (
+        <div className="md:hidden fixed inset-0 z-[59] pointer-events-none"
+          style={{
+            background: 'rgba(0,0,0,0.35)',
+            backdropFilter: menuVisible ? 'blur(10px)' : 'blur(0px)',
+            WebkitBackdropFilter: menuVisible ? 'blur(10px)' : 'blur(0px)',
+            opacity: menuVisible ? 1 : 0,
+            transition: 'opacity 0.32s ease, backdrop-filter 0.32s ease',
+          }}
+        />
+      )}
+
+      {/* ── FULLSCREEN MENU — slides in from top ── */}
       {menuOpen && (
         <div
-          className="md:hidden fixed inset-0 z-[60] flex flex-col overflow-hidden"
+          className="md:hidden fixed left-0 right-0 bottom-0 z-[60] flex flex-col overflow-hidden"
           style={{
+            top: 0,
             background: 'linear-gradient(145deg, #0c0c14 0%, #13101f 60%, #0e0e1a 100%)',
-            paddingTop: 'env(safe-area-inset-top)',
+            paddingTop: 'calc(env(safe-area-inset-top) + 56px)',
             paddingBottom: 'env(safe-area-inset-bottom)',
-            opacity: menuVisible ? 1 : 0,
-            transform: menuVisible ? 'translateY(0)' : 'translateY(-20px)',
-            transition: 'opacity 0.28s ease, transform 0.28s ease',
+            transform: menuVisible ? 'translateY(0)' : 'translateY(-100%)',
+            transition: 'transform 0.42s cubic-bezier(0.4, 0, 0.15, 1)',
           }}
         >
           {/* Decorative glow orbs */}
@@ -208,22 +234,8 @@ export default function PublicNavbar() {
           <div className="absolute bottom-0 right-0 w-64 h-64 rounded-full pointer-events-none"
             style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 65%)', transform: 'translate(30%, 30%)' }} />
 
-          {/* Top bar */}
-          <div className="relative flex items-center h-14 px-4 flex-shrink-0">
-            <Link to="/" onClick={closeMenu} className="flex items-center gap-2">
-              <QwillioLogo size={26} />
-              <span className="text-xl font-semibold tracking-tight text-white">Qwillio</span>
-            </Link>
-            <div className="absolute right-4 top-0 bottom-0 flex items-center">
-              <button onClick={closeMenu} aria-label="Close menu"
-                className="w-11 h-11 flex items-center justify-center text-white/70 rounded-full hover:bg-white/10 transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-          </div>
-
           {/* Nav links */}
-          <nav className="flex-1 overflow-y-auto px-6 pt-6 pb-4">
+          <nav className="flex-1 overflow-y-auto px-6 pt-8 pb-4">
             <div className="space-y-1">
               {[
                 { to: '/', label: isFr ? 'Accueil' : 'Home' },
