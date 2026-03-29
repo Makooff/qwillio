@@ -153,7 +153,7 @@ export default function PublicNavbar() {
               </Link>
             </div>
             <span className={`text-xl font-semibold tracking-tight text-[#1d1d1f] select-none pointer-events-none transition-all duration-500 ease-in-out ${
-              bubblesVisible ? 'opacity-0' : 'opacity-100'
+              bubblesVisible && !menuOpen ? 'opacity-0' : 'opacity-100'
             }`}>Qwillio</span>
           </div>
 
