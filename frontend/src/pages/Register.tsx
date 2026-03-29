@@ -6,11 +6,13 @@ import { ArrowRight, ArrowLeft, Mail } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
 import { useLang } from '../stores/langStore';
+import { useSEO } from '../hooks/useSEO';
 import api from '../services/api';
 
 type Step = 'form' | 'activation';
 
 export default function Register() {
+  useSEO({ title: 'Sign Up', noindex: true });
   const [step, setStep] = useState<Step>('form');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,7 +57,6 @@ export default function Register() {
     setLoading(true);
     try {
       await register(email, password, '');
-      // If email was auto-confirmed (Resend test domain), go straight to onboarding
       const { user } = useAuthStore.getState();
       if (user?.emailConfirmed) {
         navigate('/onboard');
@@ -92,58 +93,57 @@ export default function Register() {
       <div className="absolute right-6" style={{ top: 'calc(env(safe-area-inset-top) + 16px)' }}><LangToggle /></div>
       <div className="w-full max-w-md">
 
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <QwillioLogo size={26} />
-          <span className="text-lg font-semibold tracking-tight text-[#1d1d1f]">Qwillio</span>
-        </div>
+        <Link to="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight text-[#1d1d1f] mb-10">
+          <QwillioLogo size={30} /> Qwillio
+        </Link>
 
         {/* ═══ STEP 1: Registration Form ═══ */}
         {step === 'form' && (
           <>
-            <h1 className="text-2xl font-semibold tracking-tight mb-1 text-center">
+            <h1 className="text-3xl font-semibold tracking-tight mb-2">
               {t('register.title')}
             </h1>
-            <p className="text-[#86868b] mb-5 text-sm text-center">
+            <p className="text-[#86868b] mb-8">
               {t('register.trial')}
             </p>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2.5 rounded-xl text-sm mb-4">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm mb-6">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t('register.email')}</label>
+                <label className="block text-sm font-medium mb-2">{t('register.email')}</label>
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
                   placeholder="jean@entreprise.com"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t('register.password')}</label>
+                <label className="block text-sm font-medium mb-2">{t('register.password')}</label>
                 <input
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
                   placeholder="Minimum 6 caractères"
                   required
                   minLength={6}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">{t('register.confirmPassword')}</label>
+                <label className="block text-sm font-medium mb-2">{t('register.confirmPassword')}</label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
                   placeholder={t('register.confirmPlaceholder')}
                   required
                   minLength={6}
@@ -153,7 +153,7 @@ export default function Register() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full inline-flex items-center justify-center gap-2 bg-[#6366f1] text-white text-base font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center gap-2 bg-[#1d1d1f] text-white text-base font-medium px-6 py-3.5 rounded-full hover:bg-[#424245] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? t('register.loading') : (
                   <>{t('register.submit')} <ArrowRight size={18} /></>
@@ -161,7 +161,7 @@ export default function Register() {
               </button>
             </form>
 
-            <div className="flex items-center gap-3 my-4">
+            <div className="flex items-center gap-3 my-6">
               <div className="flex-1 h-px bg-[#d2d2d7]" />
               <span className="text-sm text-[#86868b]">{t('login.or') || 'ou'}</span>
               <div className="flex-1 h-px bg-[#d2d2d7]" />
@@ -171,7 +171,7 @@ export default function Register() {
               type="button"
               onClick={() => googleSignIn()}
               disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 bg-white text-[#1d1d1f] text-base font-medium px-6 py-3 rounded-full border border-[#d2d2d7] hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full inline-flex items-center justify-center gap-2 bg-white text-[#1d1d1f] text-base font-medium px-6 py-3.5 rounded-full border border-[#d2d2d7] hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
                 <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -182,7 +182,7 @@ export default function Register() {
               {t('register.google') || "S'inscrire avec Google"}
             </button>
 
-            <p className="text-center text-sm text-[#86868b] mt-4">
+            <p className="text-center text-sm text-[#86868b] mt-6">
               {t('register.hasAccount')}{' '}
               <Link to="/login" className="text-[#6366f1] font-medium hover:underline">
                 {t('register.login')}
