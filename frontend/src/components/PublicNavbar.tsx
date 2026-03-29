@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Play, ChevronDown, Phone, Bot, Building2, BookOpen, Mail as MailIcon, DollarSign, Menu, X } from 'lucide-react';
+import { Play, ChevronDown, Phone, Bot, Building2, BookOpen, Mail as MailIcon, DollarSign } from 'lucide-react';
 import QwillioLogo from './QwillioLogo';
 import LangToggle from './LangToggle';
 import { useLang } from '../stores/langStore';
@@ -39,33 +39,40 @@ function Dropdown({ label, items }: { label: string; items: { to: string; icon: 
 export default function PublicNavbar() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
-  const initY = typeof window !== 'undefined' ? window.scrollY : 0;
-  const [scrollY, setScrollY] = useState(initY);
-  const [bubblesVisible, setBubblesVisible] = useState(initY > 55);
+  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const savedScrollY = useRef(0);
   const location = useLocation();
 
   useEffect(() => { closeMenu(); }, [location.pathname]);
 
+  // Desktop nav background on scroll
   useEffect(() => {
-    const fn = () => {
-      const y = window.scrollY;
-      setScrollY(y);
-      // Hysteresis: appear at 55px, disappear only when back below 25px
-      setBubblesVisible(prev => {
-        if (!prev && y > 55) return true;
-        if (prev && y < 25) return false;
-        return prev;
-      });
-    };
+    const fn = () => setScrolled(window.scrollY > 10);
+    fn();
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
+  // iOS-safe scroll lock: position:fixed keeps body from scrolling behind menu
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    if (menuOpen) {
+      savedScrollY.current = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${savedScrollY.current}px`;
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, savedScrollY.current);
+    }
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+    };
   }, [menuOpen]);
 
   const openMenu = () => {
@@ -77,15 +84,6 @@ export default function PublicNavbar() {
     setTimeout(() => setMenuOpen(false), 220);
   };
   const toggle = () => menuOpen ? closeMenu() : openMenu();
-
-  /*
-   * "Qwillio" text scrolls up with content and fades:
-   * - translateY follows scroll at 1:1 → looks like it's part of the page
-   * - opacity fades over the first 30px of scroll
-   * Bubbles appear (scale in) behind their logos once scrollY > 45
-   */
-  const textTranslateY = -Math.min(scrollY, 56);            // moves up with content, capped at nav height
-  const textOpacity    = Math.max(0, 1 - scrollY / 28);     // fades quickly as scroll begins
 
   const productItems = [
     { to: '/receptionist', icon: Phone, label: 'Receptionist AI', desc: isFr ? 'Votre standardiste IA 24/7' : 'Your 24/7 AI receptionist' },
@@ -100,124 +98,52 @@ export default function PublicNavbar() {
 
   return (
     <>
-      <style>{`
-        @keyframes bubbleIn {
-          0%   { transform: scale(0.08); opacity: 0; }
-          65%  { transform: scale(1.04); opacity: 1; }
-          100% { transform: scale(1);   opacity: 1; }
-        }
-        @keyframes bubbleOut {
-          0%   { transform: scale(1);   opacity: 1; }
-          100% { transform: scale(0.08); opacity: 0; }
-        }
-      `}</style>
-
-      {/* ── Single fixed nav — above menu when open ── */}
-      <nav
-        className="fixed top-0 left-0 right-0"
-        style={{
-          zIndex: menuOpen ? 61 : 50,
-          willChange: 'transform',
-          transform: 'translateZ(0)',
-          // No paddingTop: content goes behind notch, bubbles float above
-        }}
-      >
-        {/* Glass background for safe-area zone when menu is open (covers notch area) */}
-        {menuOpen && (
-          <div className="md:hidden absolute inset-0 -z-10" style={{
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            background: 'rgba(255,255,255,0.72)',
-            paddingTop: 'env(safe-area-inset-top)',
-          }} />
-        )}
-
-        {/* ══ DESKTOP ══ */}
-        <div className="hidden md:block">
-          <div className={`absolute inset-0 -z-10 transition-all duration-300 ${bubblesVisible ? 'bg-white/80 backdrop-blur-xl shadow-sm' : ''}`} />
-          <div className="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
-              <QwillioLogo size={28} />
-              <span className="text-xl font-semibold tracking-tight text-[#1d1d1f]">Qwillio</span>
+      {/* ══ DESKTOP NAV ══ */}
+      <nav className="hidden md:block fixed top-0 left-0 right-0 z-50">
+        <div className={`absolute inset-0 -z-10 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : ''}`} />
+        <div className="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <QwillioLogo size={28} />
+            <span className="text-xl font-semibold tracking-tight text-[#1d1d1f]">Qwillio</span>
+          </Link>
+          <div className="flex items-center gap-8 text-sm text-[#1d1d1f]/70">
+            <Link to="/" className="hover:text-[#1d1d1f] transition-colors">Home</Link>
+            <Dropdown label={isFr ? 'Produit' : 'Product'} items={productItems} />
+            <Dropdown label={isFr ? 'Entreprise' : 'Company'} items={companyItems} />
+            <Link to="/pricing" className="hover:text-[#1d1d1f] transition-colors">{isFr ? 'Tarifs' : 'Pricing'}</Link>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link to="/login" className="text-sm text-[#1d1d1f]/70 hover:text-[#1d1d1f] transition-colors">
+              {isFr ? 'Connexion' : 'Login'}
             </Link>
-            <div className="flex items-center gap-8 text-sm text-[#1d1d1f]/70">
-              <Link to="/" className="hover:text-[#1d1d1f] transition-colors">Home</Link>
-              <Dropdown label={isFr ? 'Produit' : 'Product'} items={productItems} />
-              <Dropdown label={isFr ? 'Entreprise' : 'Company'} items={companyItems} />
-              <Link to="/pricing" className="hover:text-[#1d1d1f] transition-colors">{isFr ? 'Tarifs' : 'Pricing'}</Link>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link to="/login" className="text-sm text-[#1d1d1f]/70 hover:text-[#1d1d1f] transition-colors">
-                {isFr ? 'Connexion' : 'Login'}
-              </Link>
-              <a href="/demo.html" className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
-                <Play size={14} /> {isFr ? 'Essayer' : 'Try it'}
-              </a>
-              <LangToggle />
-            </div>
-          </div>
-        </div>
-
-        {/* ══ MOBILE ══ — invisible until scrolled or menu open */}
-        <div className={`md:hidden relative h-14 transition-opacity duration-300 ${
-          bubblesVisible || menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-
-          {/* ── LEFT: logo (always) ── */}
-          <div className="absolute left-4 top-0 bottom-0 flex items-center gap-2">
-            <div className="relative w-11 h-11 flex-shrink-0">
-              <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
-                bubblesVisible ? 'backdrop-blur-xl scale-100 opacity-100' : 'scale-50 opacity-0'
-              }`} />
-              <Link to="/" className="relative z-10 w-full h-full flex items-center justify-center">
-                <QwillioLogo size={28} />
-              </Link>
-            </div>
-            <span className={`text-xl font-semibold tracking-tight text-[#1d1d1f] select-none pointer-events-none transition-all duration-500 ease-in-out ${
-              bubblesVisible && !menuOpen ? 'opacity-0' : 'opacity-100'
-            }`} style={{ transitionDelay: menuOpen ? '180ms' : '0ms' }}>Qwillio</span>
-          </div>
-
-          {/* ── RIGHT: Try it (hides on menu open) + hamburger → X ── */}
-          <div className="absolute right-4 top-0 bottom-0 flex items-center gap-1.5">
-
-            {/* Try it — hides when menu open */}
-            <a
-              href="/demo.html"
-              className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out min-w-[44px] h-11 ${
-                menuOpen ? 'max-w-0 opacity-0 pointer-events-none px-0' :
-                bubblesVisible ? 'max-w-[44px] px-0 gap-0' : 'max-w-[120px] px-4 gap-1.5'
-              }`}
-            >
-              <Play size={13} className="flex-shrink-0 ml-0.5" />
-              <span className={`overflow-hidden transition-all duration-500 ease-in-out ${bubblesVisible || menuOpen ? 'max-w-0 opacity-0' : 'max-w-[80px] opacity-100'}`}>
-                {isFr ? 'Essayer' : 'Try it'}
-              </span>
+            <a href="/demo.html" className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
+              <Play size={14} /> {isFr ? 'Essayer' : 'Try it'}
             </a>
-
-            {/* Hamburger → X (animated bars) */}
-            <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
-              <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
-                bubblesVisible || menuOpen ? 'backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-50 opacity-0'
-              }`} />
-              <button onClick={toggle} aria-label="Menu"
-                className="relative z-10 w-full h-full flex items-center justify-center">
-                <div className="flex flex-col justify-center items-center w-5 h-4 gap-[5px]">
-                  <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full origin-center transition-all duration-300 ease-in-out ${
-                    menuOpen ? 'rotate-45 translate-y-[6.5px]' : ''
-                  }`} />
-                  <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full transition-all duration-300 ease-in-out ${
-                    menuOpen ? 'opacity-0 scale-x-0' : ''
-                  }`} />
-                  <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full origin-center transition-all duration-300 ease-in-out ${
-                    menuOpen ? '-rotate-45 -translate-y-[6.5px]' : ''
-                  }`} />
-                </div>
-              </button>
-            </div>
+            <LangToggle />
           </div>
         </div>
       </nav>
+
+      {/* ══ MOBILE HAMBURGER — floating, no header bar ══ */}
+      <button
+        onClick={toggle}
+        aria-label="Menu"
+        className="md:hidden fixed z-[61] flex items-center justify-center w-11 h-11 rounded-full"
+        style={{
+          top: 'calc(env(safe-area-inset-top) + 12px)',
+          right: '16px',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          background: menuOpen ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.55)',
+          boxShadow: '0 1px 8px rgba(0,0,0,0.10)',
+        }}
+      >
+        <div className="flex flex-col justify-center items-center w-5 h-4 gap-[5px]">
+          <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full origin-center transition-all duration-300 ease-in-out ${menuOpen ? 'rotate-45 translate-y-[6.5px]' : ''}`} />
+          <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full transition-all duration-300 ease-in-out ${menuOpen ? 'opacity-0 scale-x-0' : ''}`} />
+          <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full origin-center transition-all duration-300 ease-in-out ${menuOpen ? '-rotate-45 -translate-y-[6.5px]' : ''}`} />
+        </div>
+      </button>
 
 
       {/* ── FULLSCREEN MENU — slides in from top ── */}
@@ -236,7 +162,7 @@ export default function PublicNavbar() {
           style={{
             top: 0,
             background: 'rgba(255,255,255,0.72)',
-            paddingTop: 'calc(env(safe-area-inset-top) + 56px)',
+            paddingTop: 'calc(env(safe-area-inset-top) + 72px)',
             paddingBottom: 'env(safe-area-inset-bottom)',
             transform: menuVisible ? 'translateY(0)' : 'translateY(-100%)',
             transition: 'transform 0.42s cubic-bezier(0.4, 0, 0.15, 1)',

@@ -86,16 +86,24 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f] flex items-center justify-center px-6 relative" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <Link to="/" className="absolute left-6 inline-flex items-center gap-1.5 text-sm text-[#6366f1] font-medium hover:text-[#4f46e5] transition-colors" style={{ top: 'calc(env(safe-area-inset-top) + 16px)' }}>
-        <ArrowLeft size={16} /> {t('back.site')}
-      </Link>
-      <div className="absolute right-6" style={{ top: 'calc(env(safe-area-inset-top) + 16px)' }}><LangToggle /></div>
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-white text-[#1d1d1f] flex flex-col px-6" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      {/* Top bar */}
+      <div className="flex items-center justify-between py-4 flex-shrink-0">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-[#6366f1] font-medium hover:text-[#4f46e5] transition-colors">
+          <ArrowLeft size={16} /> {t('back.site')}
+        </Link>
+        <LangToggle />
+      </div>
 
-        <Link to="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight text-[#1d1d1f] mb-10">
+      {/* Logo — centered between top bar and form */}
+      <div className="flex justify-center py-8 flex-shrink-0">
+        <Link to="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight text-[#1d1d1f]">
           <QwillioLogo size={30} /> Qwillio
         </Link>
+      </div>
+
+      {/* Form area */}
+      <div className="w-full max-w-md mx-auto flex-1">
 
         {/* ═══ STEP 1: Registration Form ═══ */}
         {step === 'form' && (
