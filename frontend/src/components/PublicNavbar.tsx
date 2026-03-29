@@ -142,60 +142,56 @@ export default function PublicNavbar() {
         {/* ══ MOBILE ══ */}
         <div className="md:hidden relative h-14">
 
-          {/* ── LEFT: QW bubble → X on menu open ── */}
+          {/* ── LEFT: logo (always) ── */}
           <div className="absolute left-4 top-0 bottom-0 flex items-center gap-2">
             <div className="relative w-11 h-11 flex-shrink-0">
-              {/* Bubble bg — white when not scrolled, glass when scrolled or menuOpen */}
-              <span className={`absolute inset-0 rounded-full transition-all duration-400 ease-in-out ${
-                bubblesVisible || menuOpen
-                  ? 'scale-100 opacity-100 backdrop-blur-xl'
-                  : 'scale-50 opacity-0'
+              <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
+                bubblesVisible ? 'backdrop-blur-xl scale-100 opacity-100' : 'scale-50 opacity-0'
               }`} />
-
-              {/* QW logo — scales out + rotates when menu opens */}
-              <Link to="/" className={`absolute inset-0 flex items-center justify-center transition-all duration-350 ease-in-out ${
-                menuOpen ? 'scale-0 opacity-0 rotate-[135deg] pointer-events-none' : 'scale-100 opacity-100 rotate-0'
-              }`}>
+              <Link to="/" className="relative z-10 w-full h-full flex items-center justify-center">
                 <QwillioLogo size={28} />
               </Link>
-
-              {/* X — scales in when menu opens */}
-              <button onClick={closeMenu} aria-label="Close menu" className={`absolute inset-0 flex items-center justify-center transition-all duration-350 ease-in-out ${
-                menuOpen ? 'scale-100 opacity-100 rotate-0' : 'scale-0 opacity-0 -rotate-[135deg] pointer-events-none'
-              }`}>
-                <X size={20} className={menuOpen ? 'text-white' : 'text-[#1d1d1f]'} />
-              </button>
             </div>
-
-            {/* "Qwillio" text — fades on scroll AND on menu open */}
-            <span className={`text-xl font-semibold tracking-tight select-none pointer-events-none transition-all duration-400 ease-in-out ${
-              bubblesVisible || menuOpen ? 'opacity-0 translate-x-[-8px]' : 'opacity-100 translate-x-0'
-            } ${menuOpen ? 'text-white' : 'text-[#1d1d1f]'}`}>Qwillio</span>
+            <span className={`text-xl font-semibold tracking-tight text-[#1d1d1f] select-none pointer-events-none transition-all duration-500 ease-in-out ${
+              bubblesVisible ? 'opacity-0' : 'opacity-100'
+            }`}>Qwillio</span>
           </div>
 
-          {/* ── RIGHT: Try it + hamburger — fade out when menu opens ── */}
-          <div className={`absolute right-4 top-0 bottom-0 flex items-center gap-1.5 transition-all duration-350 ease-in-out ${
-            menuOpen ? 'opacity-0 translate-x-4 pointer-events-none' : 'opacity-100 translate-x-0'
-          }`}>
+          {/* ── RIGHT: Try it (hides on menu open) + hamburger → X ── */}
+          <div className="absolute right-4 top-0 bottom-0 flex items-center gap-1.5">
+
+            {/* Try it — hides when menu open */}
             <a
               href="/demo.html"
               className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out min-w-[44px] h-11 ${
+                menuOpen ? 'max-w-0 opacity-0 pointer-events-none px-0' :
                 bubblesVisible ? 'max-w-[44px] px-0 gap-0' : 'max-w-[120px] px-4 gap-1.5'
               }`}
             >
               <Play size={13} className="flex-shrink-0 ml-0.5" />
-              <span className={`overflow-hidden transition-all duration-500 ease-in-out ${bubblesVisible ? 'max-w-0 opacity-0' : 'max-w-[80px] opacity-100'}`}>
+              <span className={`overflow-hidden transition-all duration-500 ease-in-out ${bubblesVisible || menuOpen ? 'max-w-0 opacity-0' : 'max-w-[80px] opacity-100'}`}>
                 {isFr ? 'Essayer' : 'Try it'}
               </span>
             </a>
 
+            {/* Hamburger → X (animated bars) */}
             <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
               <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
-                bubblesVisible ? 'backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-50 opacity-0'
+                bubblesVisible || menuOpen ? 'backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-50 opacity-0'
               }`} />
-              <button onClick={openMenu} aria-label="Menu"
-                className="relative z-10 w-full h-full flex items-center justify-center text-[#1d1d1f]">
-                <Menu size={18} />
+              <button onClick={toggle} aria-label="Menu"
+                className="relative z-10 w-full h-full flex items-center justify-center">
+                <div className="flex flex-col justify-center items-center w-5 h-4 gap-[5px]">
+                  <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full origin-center transition-all duration-300 ease-in-out ${
+                    menuOpen ? 'rotate-45 translate-y-[6.5px]' : ''
+                  }`} />
+                  <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full transition-all duration-300 ease-in-out ${
+                    menuOpen ? 'opacity-0 scale-x-0' : ''
+                  }`} />
+                  <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full origin-center transition-all duration-300 ease-in-out ${
+                    menuOpen ? '-rotate-45 -translate-y-[6.5px]' : ''
+                  }`} />
+                </div>
               </button>
             </div>
           </div>
