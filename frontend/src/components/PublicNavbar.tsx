@@ -112,6 +112,14 @@ export default function PublicNavbar() {
           paddingTop: 'env(safe-area-inset-top)',
         }}
       >
+        {/* Glass background for safe-area zone when menu is open (removes white notch strip) */}
+        {menuOpen && (
+          <div className="md:hidden absolute inset-0 -z-10" style={{
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            background: 'rgba(255,255,255,0.72)',
+          }} />
+        )}
 
         {/* ══ DESKTOP ══ */}
         <div className="hidden md:block">
@@ -201,12 +209,19 @@ export default function PublicNavbar() {
 
       {/* ── FULLSCREEN MENU — slides in from top ── */}
       {menuOpen && (
+        <>
+          {/* Instant full-screen blur backdrop — covers page including bottom */}
+          <div className="md:hidden fixed inset-0 z-[59]" style={{
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            background: 'rgba(255,255,255,0.5)',
+            opacity: menuVisible ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+          }} />
         <div
           className="md:hidden fixed left-0 right-0 bottom-0 z-[60] flex flex-col overflow-hidden"
           style={{
             top: 0,
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
             background: 'rgba(255,255,255,0.72)',
             paddingTop: 'calc(env(safe-area-inset-top) + 56px)',
             paddingBottom: 'env(safe-area-inset-bottom)',
@@ -253,6 +268,7 @@ export default function PublicNavbar() {
             </div>
           </div>
         </div>
+        </>
       )}
     </>
   );
