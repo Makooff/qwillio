@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Play, ChevronDown, Phone, Bot, Building2, BookOpen, Mail as MailIcon, DollarSign, Menu, X, ArrowRight } from 'lucide-react';
+import { Play, ChevronDown, Phone, Bot, Building2, BookOpen, Mail as MailIcon, DollarSign, Menu, X } from 'lucide-react';
 import QwillioLogo from './QwillioLogo';
 import LangToggle from './LangToggle';
 import { useLang } from '../stores/langStore';
@@ -242,19 +242,19 @@ export default function PublicNavbar() {
           <nav className="flex-1 overflow-y-auto px-8 pt-10 pb-4">
             <div className="space-y-0">
               {[
-                { to: '/', label: isFr ? 'Accueil' : 'Home' },
-                { to: '/receptionist', label: 'Receptionist AI' },
-                { to: '/agent', label: 'Qwillio Agent' },
-                { to: '/pricing', label: isFr ? 'Tarifs' : 'Pricing' },
-                { to: '/affiliate', label: isFr ? 'Affiliation' : 'Affiliate' },
+                { to: '/', label: isFr ? 'Accueil' : 'Home',          wave: '35%' },
+                { to: '/receptionist', label: 'Receptionist AI',       wave: '62%' },
+                { to: '/agent', label: 'Qwillio Agent',                wave: '48%' },
+                { to: '/pricing', label: isFr ? 'Tarifs' : 'Pricing', wave: '28%' },
+                { to: '/affiliate', label: isFr ? 'Affiliation' : 'Affiliate', wave: '54%' },
               ].map((item) => (
                 <Link key={item.to} to={item.to} onClick={closeMenu}
-                  className="group flex items-center justify-between px-2 py-3.5 transition-all duration-200"
+                  className="group block px-2 py-3.5 transition-all duration-200"
                 >
                   <span className="text-2xl font-normal tracking-tight text-[#6366f1] group-hover:text-[#4f46e5] transition-colors">
                     {item.label}
                   </span>
-                  <ArrowRight size={16} className="text-[#6366f1]/30 group-hover:text-[#6366f1] group-hover:translate-x-1 transition-all duration-200" />
+                  <div className="mt-1.5 h-[1px] bg-[#6366f1]/25 group-hover:bg-[#6366f1]/50 transition-colors duration-200" style={{ width: item.wave }} />
                 </Link>
               ))}
             </div>
