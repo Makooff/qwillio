@@ -238,7 +238,7 @@ export default function Home() {
                 height: p.coreSize,
                 background: p.color,
                 boxShadow: `0 0 ${p.glowSpread}px ${Math.round(p.glowSpread * 0.5)}px ${p.color}`,
-                filter: 'blur(2.5px)',
+                filter: 'blur(10px)',
                 opacity: 0,
                 top: 0,
                 left: 0,
