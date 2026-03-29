@@ -112,7 +112,7 @@ export default function Home() {
       const color = cols[i % cols.length];
       // Firefly: tiny core (3-5px) + soft glow via box-shadow
       const coreSize = 4 + Math.round(r(s+2) * 2); // 4–6px
-      const glowSpread = 8 + Math.round(r(s+3) * 8); // 8–16px glow
+      const glowSpread = 12 + Math.round(r(s+3) * 10); // 12–22px glow
       return {
         id: i,
         x0: +p0.x.toFixed(1), y0: +p0.y.toFixed(1),
@@ -238,7 +238,7 @@ export default function Home() {
                 height: p.coreSize,
                 background: p.color,
                 boxShadow: `0 0 ${p.glowSpread}px ${Math.round(p.glowSpread * 0.5)}px ${p.color}`,
-                filter: 'blur(1px)',
+                filter: 'blur(2px)',
                 opacity: 0,
                 top: 0,
                 left: 0,
