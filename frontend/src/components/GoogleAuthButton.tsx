@@ -39,7 +39,14 @@ function GoogleButton({ mode, disabled, onError }: Props) {
         setLoading(false);
       }
     },
-    onError: () => onError('Google Sign-In failed. Please try again or use email/password.'),
+    onError: (err?: any) => {
+      const code = err?.error || '';
+      if (code === 'idpiframe_initialization_failed' || code === 'popup_blocked_by_browser') {
+        onError('Le popup Google a été bloqué. Autorise les popups pour ce site.');
+      } else {
+        onError('Google Sign-In non configuré pour ce domaine. Utilise email/mot de passe.');
+      }
+    },
     flow: 'implicit',
   });
 
