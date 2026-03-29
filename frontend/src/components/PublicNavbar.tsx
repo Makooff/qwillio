@@ -39,7 +39,8 @@ function Dropdown({ label, items }: { label: string; items: { to: string; icon: 
 export default function PublicNavbar() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
-  const [scrolled, setScrolled] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const [bubblesVisible, setBubblesVisible] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const savedScrollY = useRef(0);
@@ -47,13 +48,21 @@ export default function PublicNavbar() {
 
   useEffect(() => { closeMenu(); }, [location.pathname]);
 
-  // Desktop nav background on scroll
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 10);
-    fn();
+    const fn = () => {
+      const y = window.scrollY;
+      setScrollY(y);
+      setBubblesVisible(prev => {
+        if (!prev && y > 55) return true;
+        if (prev && y < 25) return false;
+        return prev;
+      });
+    };
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
+
+  const textOpacity = Math.max(0, 1 - scrollY / 28);
 
   // iOS-safe scroll lock: position:fixed keeps body from scrolling behind menu
   useEffect(() => {
@@ -100,7 +109,7 @@ export default function PublicNavbar() {
     <>
       {/* ══ DESKTOP NAV ══ */}
       <nav className="hidden md:block fixed top-0 left-0 right-0 z-50">
-        <div className={`absolute inset-0 -z-10 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : ''}`} />
+        <div className={`absolute inset-0 -z-10 transition-all duration-300 ${bubblesVisible ? 'bg-white/80 backdrop-blur-xl shadow-sm' : ''}`} />
         <div className="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <QwillioLogo size={28} />
@@ -124,26 +133,72 @@ export default function PublicNavbar() {
         </div>
       </nav>
 
-      {/* ══ MOBILE HAMBURGER — floating, no header bar ══ */}
-      <button
-        onClick={toggle}
-        aria-label="Menu"
-        className="md:hidden fixed z-[61] flex items-center justify-center w-11 h-11 rounded-full"
-        style={{
-          top: 'calc(env(safe-area-inset-top) + 12px)',
-          right: '16px',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          background: menuOpen ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.55)',
-          boxShadow: '0 1px 8px rgba(0,0,0,0.10)',
-        }}
+      {/* ══ MOBILE FLOATING ELEMENTS — no header bar, bubbles appear on scroll ══ */}
+      <div
+        className="md:hidden fixed left-0 right-0 z-[61] pointer-events-none"
+        style={{ top: 'env(safe-area-inset-top)' }}
       >
-        <div className="flex flex-col justify-center items-center w-5 h-4 gap-[5px]">
-          <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full origin-center transition-all duration-300 ease-in-out ${menuOpen ? 'rotate-45 translate-y-[6.5px]' : ''}`} />
-          <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full transition-all duration-300 ease-in-out ${menuOpen ? 'opacity-0 scale-x-0' : ''}`} />
-          <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full origin-center transition-all duration-300 ease-in-out ${menuOpen ? '-rotate-45 -translate-y-[6.5px]' : ''}`} />
+        <div className="relative h-14">
+
+          {/* LEFT: QW logo bubble + Qwillio text */}
+          <div className="absolute left-4 top-0 bottom-0 flex items-center gap-2 pointer-events-auto">
+            <div className="relative w-11 h-11 flex-shrink-0">
+              <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
+                bubblesVisible || menuOpen ? 'backdrop-blur-xl shadow-sm scale-100 opacity-100' : 'scale-50 opacity-0'
+              }`} style={{ background: bubblesVisible || menuOpen ? 'rgba(255,255,255,0.55)' : 'transparent' }} />
+              <Link to="/" className="relative z-10 w-full h-full flex items-center justify-center">
+                <QwillioLogo size={28} />
+              </Link>
+            </div>
+            <span
+              className="text-xl font-semibold tracking-tight text-[#1d1d1f] select-none pointer-events-none transition-all duration-500 ease-in-out"
+              style={{
+                opacity: menuOpen ? 1 : bubblesVisible ? 0 : textOpacity,
+                transitionDelay: menuOpen ? '180ms' : '0ms',
+              }}
+            >Qwillio</span>
+          </div>
+
+          {/* RIGHT: Try it pill + hamburger bubble */}
+          <div className="absolute right-4 top-0 bottom-0 flex items-center gap-1.5 pointer-events-auto">
+            {/* Try it — hides when menu open */}
+            <a
+              href="/demo.html"
+              className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out min-w-[44px] h-11 ${
+                menuOpen
+                  ? 'max-w-0 opacity-0 pointer-events-none px-0'
+                  : bubblesVisible
+                    ? 'max-w-[44px] px-0 gap-0'
+                    : 'max-w-[120px] px-4 gap-1.5'
+              }`}
+            >
+              <Play size={13} className="flex-shrink-0 ml-0.5" />
+              <span className={`overflow-hidden transition-all duration-500 ease-in-out ${bubblesVisible || menuOpen ? 'max-w-0 opacity-0' : 'max-w-[80px] opacity-100'}`}>
+                {isFr ? 'Essayer' : 'Try it'}
+              </span>
+            </a>
+
+            {/* Hamburger → X */}
+            <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
+              <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
+                bubblesVisible || menuOpen ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
+              }`} style={{
+                backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+                background: 'rgba(255,255,255,0.55)',
+                boxShadow: '0 1px 8px rgba(0,0,0,0.10)',
+              }} />
+              <button onClick={toggle} aria-label="Menu" className="relative z-10 w-full h-full flex items-center justify-center">
+                <div className="flex flex-col justify-center items-center w-5 h-4 gap-[5px]">
+                  <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full origin-center transition-all duration-300 ease-in-out ${menuOpen ? 'rotate-45 translate-y-[6.5px]' : ''}`} />
+                  <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full transition-all duration-300 ease-in-out ${menuOpen ? 'opacity-0 scale-x-0' : ''}`} />
+                  <span className={`block h-[1.5px] w-5 bg-[#1d1d1f] rounded-full origin-center transition-all duration-300 ease-in-out ${menuOpen ? '-rotate-45 -translate-y-[6.5px]' : ''}`} />
+                </div>
+              </button>
+            </div>
+          </div>
+
         </div>
-      </button>
+      </div>
 
 
       {/* ── FULLSCREEN MENU — slides in from top ── */}
