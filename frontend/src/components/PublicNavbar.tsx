@@ -40,6 +40,7 @@ export default function PublicNavbar() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
   const [scrollY, setScrollY] = useState(0);
+  const [bubblesVisible, setBubblesVisible] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const location = useLocation();
@@ -47,7 +48,16 @@ export default function PublicNavbar() {
   useEffect(() => { closeMenu(); }, [location.pathname]);
 
   useEffect(() => {
-    const fn = () => setScrollY(window.scrollY);
+    const fn = () => {
+      const y = window.scrollY;
+      setScrollY(y);
+      // Hysteresis: appear at 55px, disappear only when back below 25px
+      setBubblesVisible(prev => {
+        if (!prev && y > 55) return true;
+        if (prev && y < 25) return false;
+        return prev;
+      });
+    };
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
@@ -75,7 +85,6 @@ export default function PublicNavbar() {
    */
   const textTranslateY = -Math.min(scrollY, 56);            // moves up with content, capped at nav height
   const textOpacity    = Math.max(0, 1 - scrollY / 28);     // fades quickly as scroll begins
-  const bubblesVisible = scrollY > 45;
 
   const productItems = [
     { to: '/receptionist', icon: Phone, label: 'Receptionist AI', desc: isFr ? 'Votre standardiste IA 24/7' : 'Your 24/7 AI receptionist' },
