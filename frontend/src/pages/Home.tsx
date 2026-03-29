@@ -89,6 +89,16 @@ export default function Home() {
     const r = (n: number) => ((n * 9301 + 49297) % 233280) / 233280;
     const cols = ['#6366f1','#8b5cf6','#4f46e5','#a855f7','#6366f1'];
 
+    // Spawn on one edge, exit on opposite or adjacent — straight traversal with gentle curve
+    const onEdge = (edge: number, t: number) => {
+      switch (edge) {
+        case 0: return { x: -4,      y: t * 100 }; // left
+        case 1: return { x: 104,     y: t * 100 }; // right
+        case 2: return { x: t * 100, y: -4      }; // top
+        default: return { x: t * 100, y: 104    }; // bottom
+      }
+    };
+
     return Array.from({ length: 5 }, (_, i) => {
       const s = i * 31 + 13;
       const color = cols[i % cols.length];
@@ -96,32 +106,38 @@ export default function Home() {
       const glowSpread = 32 + Math.round(r(s+3) * 24);
       const opacity = +(0.55 + r(s+6) * 0.3).toFixed(2);
 
-      // 5 fully random waypoints anywhere on screen
-      const pts = Array.from({ length: 5 }, (_, j) => ({
-        x: +(4 + r(s + j*11 + 20) * 92).toFixed(1),
-        y: +(4 + r(s + j*11 + 21) * 92).toFixed(1),
-      }));
+      // Random entry edge → random exit edge (not same)
+      const startEdge = Math.floor(r(s+20) * 4);
+      const endEdge   = (startEdge + 1 + Math.floor(r(s+21) * 3)) % 4;
+      const p0 = onEdge(startEdge, r(s+22));
+      const p1 = onEdge(endEdge,   r(s+23));
 
-      // Non-uniform keyframe stops — creates erratic rhythm
-      const t1 = Math.round(12 + r(s+30) * 14); // 12–26%
-      const t2 = Math.round(32 + r(s+31) * 18); // 32–50%
-      const t3 = Math.round(55 + r(s+32) * 16); // 55–71%
-      const t4 = Math.round(76 + r(s+33) * 14); // 76–90%
+      // One gentle perpendicular curve in the middle
+      const mxBase = (p0.x + p1.x) / 2;
+      const myBase = (p0.y + p1.y) / 2;
+      const dx = p1.x - p0.x, dy = p1.y - p0.y;
+      const len = Math.sqrt(dx*dx + dy*dy) || 1;
+      const offset = (r(s+24) - 0.5) * 30; // ±15 units curve
+      const xm = +(mxBase + (-dy/len) * offset).toFixed(1);
+      const ym = +(myBase + (dx/len)  * offset).toFixed(1);
 
-      // Opacity flicker at each waypoint — random brief dim/bright
-      const o1 = +(opacity * (0.5 + r(s+40) * 0.5)).toFixed(2);
-      const o2 = +(opacity * (0.6 + r(s+41) * 0.4)).toFixed(2);
-      const o3 = +(opacity * (0.4 + r(s+42) * 0.6)).toFixed(2);
-
-      // Each particle its own easing
-      const easing = `cubic-bezier(${+(0.1+r(s+50)*0.6).toFixed(2)},${+(r(s+51)*0.8).toFixed(2)},${+(0.3+r(s+52)*0.6).toFixed(2)},${+(0.5+r(s+53)*0.5).toFixed(2)})`;
+      // Speed: nearly uniform 9–12s (slight variation only)
+      const dur = +(9 + r(s+7) * 3).toFixed(1);
+      // Each its own gentle easing — NOT synchronized
+      const b1 = +(0.3 + r(s+50) * 0.3).toFixed(2);
+      const b2 = +(r(s+51) * 0.2).toFixed(2);
+      const b3 = +(0.5 + r(s+52) * 0.3).toFixed(2);
+      const b4 = +(0.7 + r(s+53) * 0.3).toFixed(2);
+      const easing = `cubic-bezier(${b1},${b2},${b3},${b4})`;
 
       return {
-        id: i, pts, t1, t2, t3, t4,
-        coreSize, glowSpread, opacity, o1, o2, o3,
-        color, easing,
-        dur:  +(8 + r(s+7) * 10).toFixed(1),  // 8–18s — very wide spread
-        delay: +(-(r(s+8) * 18)).toFixed(1),
+        id: i,
+        x0: +p0.x.toFixed(1), y0: +p0.y.toFixed(1),
+        xm, ym,
+        x1: +p1.x.toFixed(1), y1: +p1.y.toFixed(1),
+        coreSize, glowSpread, opacity, color, easing,
+        dur,
+        delay: +(-(r(s+8) * 12)).toFixed(1),
       };
     });
   }, []);
@@ -129,16 +145,11 @@ export default function Home() {
   const particleCSS = useMemo(() =>
     antParticles.map(p => `
       @keyframes ant${p.id} {
-        0%            { transform: translate(${p.pts[0].x}vw,${p.pts[0].y}vh); opacity:0; }
-        7%            { opacity:${p.opacity}; }
-        ${p.t1}%      { transform: translate(${p.pts[1].x}vw,${p.pts[1].y}vh); opacity:${p.o1}; }
-        ${p.t1+3}%    { opacity:${p.opacity}; }
-        ${p.t2}%      { transform: translate(${p.pts[2].x}vw,${p.pts[2].y}vh); opacity:${p.o2}; }
-        ${p.t3}%      { transform: translate(${p.pts[3].x}vw,${p.pts[3].y}vh); opacity:${p.o3}; }
-        ${p.t3+3}%    { opacity:${p.opacity}; }
-        ${p.t4}%      { transform: translate(${p.pts[4].x}vw,${p.pts[4].y}vh); opacity:${p.opacity}; }
-        93%           { opacity:${p.opacity}; }
-        100%          { transform: translate(${p.pts[0].x}vw,${p.pts[0].y}vh); opacity:0; }
+        0%   { transform: translate(${p.x0}vw,${p.y0}vh); opacity:0; }
+        10%  { opacity:${p.opacity}; }
+        50%  { transform: translate(${p.xm}vw,${p.ym}vh); opacity:${p.opacity}; }
+        90%  { opacity:${p.opacity}; }
+        100% { transform: translate(${p.x1}vw,${p.y1}vh); opacity:0; }
       }`).join('\n')
   , [antParticles]);
 
