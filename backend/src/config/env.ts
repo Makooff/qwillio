@@ -87,4 +87,25 @@ export const env = {
   DOCUSIGN_WEBHOOK_SECRET: process.env.DOCUSIGN_WEBHOOK_SECRET || '',
 
   TZ: process.env.TZ || 'Europe/Brussels',
+
+  // ─── Apify (Google Maps scraping) ────────────────────────
+  APIFY_API_KEY: process.env.APIFY_API_KEY || '',
+  APIFY_ACTOR_ID: process.env.APIFY_ACTOR_ID || 'nwua9Gu5YkAT85Sp6', // google-maps-scraper
+
+  // ─── Claude API (script self-learning) ───────────────────
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+
+  // ─── Discord multi-channel webhooks ──────────────────────
+  DISCORD_WEBHOOK_CALLS: process.env.DISCORD_WEBHOOK_CALLS || '',
+  DISCORD_WEBHOOK_LEADS: process.env.DISCORD_WEBHOOK_LEADS || '',
+  DISCORD_WEBHOOK_SYSTEM: process.env.DISCORD_WEBHOOK_SYSTEM || '',
+  DISCORD_WEBHOOK_ALERTS: process.env.DISCORD_WEBHOOK_ALERTS || '',
+
+  // ─── Demo links (used in follow-up SMS/email) ────────────
+  DEMO_LINK_EN: process.env.DEMO_LINK_EN || 'https://qwillio.com/demo',
+  DEMO_LINK_FR: process.env.DEMO_LINK_FR || 'https://qwillio.com/demo-fr',
+
+  // ─── Prospecting engine config ───────────────────────────
+  MIN_PRIORITY_SCORE: parseInt(process.env.MIN_PRIORITY_SCORE || '10', 10),
 };

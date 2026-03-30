@@ -40,6 +40,7 @@ import trialRoutes from './routes/trial.routes';
 import agentRoutes from './routes/agent.routes';
 import crmRoutes from './routes/crm.routes';
 import aiLearningRoutes from './routes/ai-learning.routes';
+import prospectingRoutes from './routes/prospecting.routes';
 
 const app = express();
 
@@ -91,6 +92,7 @@ app.use('/api/trial', trialRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/crm', crmRoutes);
 app.use('/api/ai', aiLearningRoutes);
+app.use('/api/prospecting', prospectingRoutes);
 
 // ─── Contact Form ─────────────────────────────────────
 app.post('/api/contact', async (req, res) => {

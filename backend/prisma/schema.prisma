@@ -81,18 +81,32 @@ model Prospect {
   emailUnsubscribedAt DateTime? @map("email_unsubscribed_at")
   callAttempts       Int       @default(0) @map("call_attempts")
   maxAttempts        Int       @default(3) @map("max_attempts")
+  // ─── Prospecting engine fields ───────────────────────────
+  state              String?   @db.VarChar(50)
+  niche              String?   @db.VarChar(100)
+  priorityScore      Int       @default(0) @map("priority_score")
+  lineType           String?   @map("line_type") @db.VarChar(50)
+  carrier            String?   @db.VarChar(100)
+  isMobile           Boolean   @default(false) @map("is_mobile")
+  eligibleForCall    Boolean   @default(true) @map("eligible_for_call")
+  nextCallAt         DateTime? @map("next_call_at")
+  scriptVariantUsed  String?   @map("script_variant_used") @db.VarChar(10)
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  assignedTo    User?          @relation(fields: [assignedToUserId], references: [id])
-  calls         Call[]
-  quotes        Quote[]
-  campaignSends CampaignSend[]
+  assignedTo         User?             @relation(fields: [assignedToUserId], references: [id])
+  calls              Call[]
+  quotes             Quote[]
+  campaignSends      CampaignSend[]
+  followUpSequences  FollowUpSequence[]
 
   @@index([status])
   @@index([businessType])
   @@index([city])
   @@index([score])
+  @@index([priorityScore])
+  @@index([niche])
+  @@index([eligibleForCall])
   @@map("prospects")
 }
 
@@ -124,6 +138,16 @@ model Call {
   cost                 Decimal?  @db.Decimal(10, 4)
   qualityScore         Int?      @map("quality_score")
   scriptDropOffPoint   String?   @map("script_drop_off_point") @db.VarChar(50)
+  // ─── Prospecting engine fields ───────────────────────────
+  interestScore        Int?      @map("interest_score")
+  scriptVariant        String?   @map("script_variant") @db.VarChar(10)
+  leadCaptured         Boolean   @default(false) @map("lead_captured")
+  transferRequested    Boolean   @default(false) @map("transfer_requested")
+  twilioNumberUsed     String?   @map("twilio_number_used") @db.VarChar(50)
+  claudeSummary        String?   @map("claude_summary") @db.Text
+  niche                String?   @db.VarChar(100)
+  language             String?   @db.VarChar(10)
+  detectionResult      String?   @map("detection_result") @db.VarChar(50)
   createdAt            DateTime  @default(now()) @map("created_at")
   metadata             Json?
 
@@ -131,6 +155,8 @@ model Call {
 
   @@index([prospectId])
   @@index([status])
+  @@index([niche])
+  @@index([detectionResult])
   @@map("calls")
 }
 
@@ -1098,6 +1124,7 @@ model ScriptAbTest {
   conversionsB Int       @default(0) @map("conversions_b")
   winner       String?   @db.VarChar(10)
   decidedAt    DateTime? @map("decided_at")
+  active       Boolean   @default(true)
   createdAt    DateTime  @default(now()) @map("created_at")
 
   @@index([niche])
@@ -1134,4 +1161,27 @@ model LocalPresenceNumber {
 
   @@index([areaCode])
   @@map("local_presence_numbers")
+}
+
+// ═══════════════════════════════════════════════════════════
+// FOLLOW-UP SEQUENCES — Multi-channel follow-up tracking
+// ═══════════════════════════════════════════════════════════
+model FollowUpSequence {
+  id          String    @id @default(uuid()) @db.Uuid
+  prospectId  String    @map("prospect_id") @db.Uuid
+  type        String    @db.VarChar(50)
+  step        Int
+  scheduledAt DateTime  @map("scheduled_at")
+  sentAt      DateTime? @map("sent_at")
+  opened      Boolean   @default(false)
+  clicked     Boolean   @default(false)
+  replied     Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  prospect Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+
+  @@index([prospectId])
+  @@index([scheduledAt])
+  @@index([sentAt])
+  @@map("follow_up_sequences")
 }

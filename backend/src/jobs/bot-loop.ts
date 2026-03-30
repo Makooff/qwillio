@@ -17,6 +17,14 @@ import { agentPaymentsService } from '../services/agent-payments.service';
 import { agentAccountingService } from '../services/agent-accounting.service';
 import { agentInventoryService } from '../services/agent-inventory.service';
 import { agentEmailService } from '../services/agent-email.service';
+// ─── Prospecting Engine ───────────────────────────────────
+import { apifyScrapingService } from '../services/apify-scraping.service';
+import { outboundEngineService } from '../services/outbound-engine.service';
+import { abTestingService } from '../services/ab-testing.service';
+import { bestTimeLearningService } from '../services/best-time-learning.service';
+import { scriptLearningService } from '../services/script-learning.service';
+import { followUpSequencesService } from '../services/follow-up-sequences.service';
+import { prospectScoringService } from '../services/prospect-scoring.service';
 
 class BotLoop {
   private prospectionJob: cron.ScheduledTask | null = null;
@@ -40,6 +48,14 @@ class BotLoop {
   private agentInventoryForecastJob: cron.ScheduledTask | null = null;
   private agentEmailSyncJob: cron.ScheduledTask | null = null;
   private agentEmailFollowUpJob: cron.ScheduledTask | null = null;
+  // ─── Prospecting Engine cron jobs ─────────────────────
+  private apifyScrapingJob: cron.ScheduledTask | null = null;
+  private outboundEngineJob: cron.ScheduledTask | null = null;
+  private abTestingJob: cron.ScheduledTask | null = null;
+  private bestTimeJob: cron.ScheduledTask | null = null;
+  private scriptLearningJob: cron.ScheduledTask | null = null;
+  private followUpJob: cron.ScheduledTask | null = null;
+  private rescoreJob: cron.ScheduledTask | null = null;
 
   async initialize() {
     // Ensure bot_status record exists
@@ -395,6 +411,102 @@ class BotLoop {
       }
     }, { timezone: env.TZ });
 
+    // ═══════════════════════════════════════════════════════════
+    // PROSPECTING ENGINE — CRON P1: Apify scraping — daily 2am UTC
+    // Scrapes Google Maps via Apify for home services & dental niches
+    // ═══════════════════════════════════════════════════════════
+    this.apifyScrapingJob = cron.schedule('0 2 * * *', async () => {
+      const status = await prisma.botStatus.findFirst();
+      if (!status?.isActive) return;
+
+      logger.info('🕷️ [CRON] Starting Apify scraping run...');
+      try {
+        const count = await apifyScrapingService.runDailyScraping();
+        await discordService.notifySystem(`🕷️ APIFY SCRAPING: ${count} new prospects added`);
+      } catch (error) {
+        logger.error('[CRON] Apify scraping failed:', error);
+        await discordService.notifyAlerts(`❌ APIFY SCRAPING FAILED: ${(error as Error).message}`);
+      }
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // PROSPECTING ENGINE — CRON P2: Outbound engine — every 20min during call windows
+    // Tue-Thu: 9-11:30, 14-17 | Mon/Fri: 10-11:30 (prospect local time enforced in service)
+    // ═══════════════════════════════════════════════════════════
+    this.outboundEngineJob = cron.schedule('*/20 9-17 * * 1-5', async () => {
+      const status = await prisma.botStatus.findFirst();
+      if (!status?.isActive) return;
+
+      try {
+        await outboundEngineService.callNextProspect();
+      } catch (error) {
+        logger.error('[CRON] Outbound engine call failed:', error);
+      }
+    }, { timezone: 'America/Chicago' }); // Central time (covers most target cities)
+
+    // ═══════════════════════════════════════════════════════════
+    // PROSPECTING ENGINE — CRON P3: A/B testing analysis — daily 6am UTC
+    // ═══════════════════════════════════════════════════════════
+    this.abTestingJob = cron.schedule('0 6 * * *', async () => {
+      try {
+        await abTestingService.analyzeAll();
+      } catch (error) {
+        logger.error('[CRON] A/B analysis failed:', error);
+      }
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // PROSPECTING ENGINE — CRON P4: Best-time learning — every 500 calls (daily trigger)
+    // ═══════════════════════════════════════════════════════════
+    this.bestTimeJob = cron.schedule('0 4 * * *', async () => {
+      try {
+        await bestTimeLearningService.analyzeAll();
+      } catch (error) {
+        logger.error('[CRON] Best-time learning failed:', error);
+      }
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // PROSPECTING ENGINE — CRON P5: Script self-learning — Sunday 1am UTC
+    // ═══════════════════════════════════════════════════════════
+    this.scriptLearningJob = cron.schedule('0 1 * * 0', async () => {
+      logger.info('🧠 [CRON] Running script self-learning analysis...');
+      try {
+        await scriptLearningService.runWeeklyAnalysis();
+      } catch (error) {
+        logger.error('[CRON] Script learning failed:', error);
+        await discordService.notifyAlerts(`❌ SCRIPT LEARNING FAILED: ${(error as Error).message}`);
+      }
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // PROSPECTING ENGINE — CRON P6: Follow-up sequences — every 30 min
+    // ═══════════════════════════════════════════════════════════
+    this.followUpJob = cron.schedule('*/30 * * * *', async () => {
+      try {
+        const sent = await followUpSequencesService.processDue();
+        if (sent > 0) {
+          logger.info(`[CRON] Follow-up sequences: ${sent} sent`);
+        }
+      } catch (error) {
+        logger.error('[CRON] Follow-up sequences failed:', error);
+      }
+    }, { timezone: env.TZ });
+
+    // ═══════════════════════════════════════════════════════════
+    // PROSPECTING ENGINE — CRON P7: Re-score prospects — daily 3am UTC
+    // ═══════════════════════════════════════════════════════════
+    this.rescoreJob = cron.schedule('0 3 * * *', async () => {
+      try {
+        const updated = await prospectScoringService.rescoreUnscored(1000);
+        if (updated > 0) {
+          logger.info(`[CRON] Re-scored ${updated} prospects`);
+        }
+      } catch (error) {
+        logger.error('[CRON] Prospect re-scoring failed:', error);
+      }
+    }, { timezone: 'UTC' });
+
     this.keepAliveJob = cron.schedule('*/10 * * * *', async () => {
       try {
         const url = env.API_BASE_URL || `http://localhost:${env.PORT}`;
@@ -404,8 +516,8 @@ class BotLoop {
       }
     });
 
-    await discordService.notify('🤖 Qwillio started! All 19 cron jobs active (incl. 6 Agent AI).');
-    logger.info('🤖 All 19 cron jobs started. Bot is running in automatic loop.');
+    await discordService.notify('🤖 Qwillio started! All 26 cron jobs active (incl. 6 Agent AI + 7 Prospecting Engine).');
+    logger.info('🤖 All 26 cron jobs started. Bot is running in automatic loop.');
   }
 
   async stop() {
@@ -429,6 +541,14 @@ class BotLoop {
     this.agentInventoryForecastJob?.stop();
     this.agentEmailSyncJob?.stop();
     this.agentEmailFollowUpJob?.stop();
+    // Prospecting engine
+    this.apifyScrapingJob?.stop();
+    this.outboundEngineJob?.stop();
+    this.abTestingJob?.stop();
+    this.bestTimeJob?.stop();
+    this.scriptLearningJob?.stop();
+    this.followUpJob?.stop();
+    this.rescoreJob?.stop();
 
     const botStatus = await prisma.botStatus.findFirst();
     if (botStatus) {
@@ -469,6 +589,14 @@ class BotLoop {
         agentInventoryForecast: this.agentInventoryForecastJob ? 'active' : 'inactive',
         agentEmailSync: this.agentEmailSyncJob ? 'active' : 'inactive',
         agentEmailFollowUp: this.agentEmailFollowUpJob ? 'active' : 'inactive',
+        // Prospecting engine
+        apifyScraping: this.apifyScrapingJob ? 'active' : 'inactive',
+        outboundEngine: this.outboundEngineJob ? 'active' : 'inactive',
+        abTesting: this.abTestingJob ? 'active' : 'inactive',
+        bestTimeLearning: this.bestTimeJob ? 'active' : 'inactive',
+        scriptLearning: this.scriptLearningJob ? 'active' : 'inactive',
+        followUpSequences: this.followUpJob ? 'active' : 'inactive',
+        rescoreProspects: this.rescoreJob ? 'active' : 'inactive',
       },
     };
   }
