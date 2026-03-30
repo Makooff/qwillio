@@ -1,27 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 660" width="860" height="660">
   <defs>
-    <linearGradient id="qwLogoA" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1" />
-      <stop offset="100%" stop-color="#4f46e5" />
+    <linearGradient id="gradLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6b74f0"/>
+      <stop offset="100%" stop-color="#5b63e8"/>
     </linearGradient>
-    <linearGradient id="qwLogoB" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8b5cf6" />
-      <stop offset="100%" stop-color="#a855f7" />
+    <linearGradient id="gradRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9b6ef5"/>
+      <stop offset="100%" stop-color="#b060f0"/>
     </linearGradient>
-    <clipPath id="qwIntersect">
-      <circle cx="199.68" cy="256" r="158.72" />
+    <clipPath id="leftClip">
+      <circle cx="305" cy="330" r="272"/>
+    </clipPath>
+    <clipPath id="rightClip">
+      <circle cx="555" cy="330" r="272"/>
     </clipPath>
   </defs>
-  <!-- Background white rounded square -->
-  <rect width="512" height="512" rx="112" fill="white"/>
-  <!-- Left circle (indigo) -->
-  <circle cx="199.68" cy="256" r="158.72" fill="url(#qwLogoA)" />
-  <!-- Right circle (violet) -->
-  <circle cx="312.32" cy="256" r="158.72" fill="url(#qwLogoB)" />
-  <!-- Intersection overlay -->
-  <circle cx="312.32" cy="256" r="158.72" fill="#4338ca" opacity="0.5" clip-path="url(#qwIntersect)" />
+
+  <!-- White background -->
+  <rect width="860" height="660" fill="white"/>
+
+  <!-- Left circle (blue-indigo) -->
+  <circle cx="305" cy="330" r="272" fill="url(#gradLeft)"/>
+
+  <!-- Right circle (violet-purple) -->
+  <circle cx="555" cy="330" r="272" fill="url(#gradRight)"/>
+
+  <!-- Overlap blend: right circle clipped to left circle area -->
+  <circle cx="555" cy="330" r="272" fill="#7c5ce8" opacity="0.55" clip-path="url(#leftClip)"/>
+
   <!-- Q letter -->
-  <text x="199.68" y="292" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', Arial, sans-serif" font-size="143.36" font-weight="800" fill="white" opacity="0.95">Q</text>
+  <text
+    x="282"
+    y="382"
+    text-anchor="middle"
+    font-family="'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif"
+    font-size="195"
+    font-weight="800"
+    fill="white"
+    opacity="0.97"
+    letter-spacing="-4"
+  >Q</text>
+
   <!-- W letter -->
-  <text x="312.32" y="292" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', Arial, sans-serif" font-size="126.16" font-weight="800" fill="white" opacity="0.95">W</text>
+  <text
+    x="558"
+    y="382"
+    text-anchor="middle"
+    font-family="'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif"
+    font-size="172"
+    font-weight="800"
+    fill="white"
+    opacity="0.97"
+    letter-spacing="-4"
+  >W</text>
 </svg>
