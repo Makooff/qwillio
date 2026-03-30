@@ -108,4 +108,8 @@ export const env = {
 
   // ─── Prospecting engine config ───────────────────────────
   MIN_PRIORITY_SCORE: parseInt(process.env.MIN_PRIORITY_SCORE || '10', 10),
+
+  // ─── Admin access control ─────────────────────────────────
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'makho.off@gmail.com',
+  ADMIN_SECRET: process.env.ADMIN_SECRET || '',
 };

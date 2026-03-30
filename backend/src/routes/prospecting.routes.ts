@@ -3,7 +3,7 @@
  * Manual triggers, status, and config endpoints
  */
 import { Router, Request, Response } from 'express';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { requireAdmin } from '../middleware/auth.middleware';
 import { apifyScrapingService } from '../services/apify-scraping.service';
 import { prospectScoringService } from '../services/prospect-scoring.service';
 import { outboundEngineService } from '../services/outbound-engine.service';
@@ -16,8 +16,8 @@ import { logger } from '../config/logger';
 
 const router = Router();
 
-// All routes require authentication
-router.use(authMiddleware);
+// All routes require admin access — clients are rejected with 403
+router.use(requireAdmin);
 
 // ─── Manual triggers (admin) ──────────────────────────────
 
