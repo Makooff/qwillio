@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="qwLogoA" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+    <linearGradient id="qwLogoB" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+    <clipPath id="qwIntersect">
+      <circle cx="199.68" cy="256" r="158.72" />
+    </clipPath>
+  </defs>
+  <!-- Background white rounded square -->
+  <rect width="512" height="512" rx="112" fill="white"/>
+  <!-- Left circle (indigo) -->
+  <circle cx="199.68" cy="256" r="158.72" fill="url(#qwLogoA)" />
+  <!-- Right circle (violet) -->
+  <circle cx="312.32" cy="256" r="158.72" fill="url(#qwLogoB)" />
+  <!-- Intersection overlay -->
+  <circle cx="312.32" cy="256" r="158.72" fill="#4338ca" opacity="0.5" clip-path="url(#qwIntersect)" />
+  <!-- Q letter -->
+  <text x="199.68" y="292" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', Arial, sans-serif" font-size="143.36" font-weight="800" fill="white" opacity="0.95">Q</text>
+  <!-- W letter -->
+  <text x="312.32" y="292" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', Arial, sans-serif" font-size="126.16" font-weight="800" fill="white" opacity="0.95">W</text>
+</svg>
