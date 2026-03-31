@@ -3,7 +3,8 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import {
   LayoutDashboard, Users, Building2, Mail, FileText, Settings, LogOut,
-  Menu, X, Bot, Activity, DollarSign, UserCheck, MessageSquare, PhoneCall
+  Menu, X, Bot, Activity, DollarSign, UserCheck, MessageSquare, PhoneCall,
+  Crosshair,
 } from 'lucide-react';
 
 const navItems = [
@@ -12,6 +13,10 @@ const navItems = [
   { path: '/admin/clients', icon: Building2, label: 'Clients' },
   { path: '/admin/quotes', icon: FileText, label: 'Devis' },
   { path: '/admin/campaigns', icon: Mail, label: 'Campagnes' },
+];
+
+const growthItems = [
+  { path: '/admin/prospecting', icon: Crosshair, label: 'Prospecting' },
 ];
 
 const analyticsItems = [
@@ -61,6 +66,17 @@ export default function Layout() {
         {/* Nav */}
         <nav className="flex-1 px-3 space-y-1">
           {navItems.map((item) => (
+            <NavLink key={item.path} item={item} />
+          ))}
+
+          {/* Growth section */}
+          {sidebarOpen && (
+            <div className="pt-4 mt-4 border-t border-slate-700">
+              <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Growth</p>
+            </div>
+          )}
+          {!sidebarOpen && <div className="border-t border-slate-700 my-2" />}
+          {growthItems.map((item) => (
             <NavLink key={item.path} item={item} />
           ))}
 

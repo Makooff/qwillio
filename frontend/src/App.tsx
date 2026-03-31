@@ -46,6 +46,7 @@ const Integrations = lazy(() => import('./pages/client/Integrations'));
 // Admin AI pages (lazy loaded)
 const AiLearning = lazy(() => import('./pages/admin/AiLearning'));
 const AiDecisions = lazy(() => import('./pages/admin/AiDecisions'));
+const Prospecting = lazy(() => import('./pages/admin/Prospecting'));
 // Legal pages (lazy loaded)
 const Privacy = lazy(() => import('./pages/legal/Privacy'));
 const Terms = lazy(() => import('./pages/legal/Terms'));
@@ -212,6 +213,7 @@ export default function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="ai-learning" element={<Suspense fallback={<Spinner />}><AiLearning /></Suspense>} />
           <Route path="ai-decisions" element={<Suspense fallback={<Spinner />}><AiDecisions /></Suspense>} />
+          <Route path="prospecting" element={<Suspense fallback={<Spinner />}><Prospecting /></Suspense>} />
         </Route>
 
         {/* Catch-all redirect */}
