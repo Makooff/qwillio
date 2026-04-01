@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
-  // Create admin user
+  // Create admin user (default)
   const passwordHash = await bcrypt.hash('admin123', 12);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@qwillio.com' },
@@ -16,9 +16,32 @@ async function main() {
       passwordHash,
       name: 'Admin Qwillio',
       role: 'admin',
+      emailConfirmed: true,
+      onboardingCompleted: true,
     },
   });
   console.log(`Admin user created: ${admin.email}`);
+
+  // Create secondary admin user
+  const makhoPasswordHash = await bcrypt.hash('Admin1234!', 12);
+  const makhoAdmin = await prisma.user.upsert({
+    where: { email: 'makho.off@gmail.com' },
+    update: {
+      role: 'admin',
+      emailConfirmed: true,
+      onboardingCompleted: true,
+      passwordHash: makhoPasswordHash,
+    },
+    create: {
+      email: 'makho.off@gmail.com',
+      passwordHash: makhoPasswordHash,
+      name: 'Makho Admin',
+      role: 'admin',
+      emailConfirmed: true,
+      onboardingCompleted: true,
+    },
+  });
+  console.log(`Admin user created/updated: ${makhoAdmin.email}`);
 
   // Create bot status
   const botStatus = await prisma.botStatus.findFirst();
