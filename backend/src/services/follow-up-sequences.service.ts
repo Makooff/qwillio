@@ -14,6 +14,7 @@ import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { smsService } from './sms.service';
 import { emailService } from './email.service';
+import { resend } from '../config/resend';
 import { discordService } from './discord.service';
 
 // ─── Niche → preferred send hour (local time) ─────────────
@@ -62,7 +63,6 @@ export class FollowUpSequencesService {
         businessType: true,
         city: true,
         timezone: true,
-        language: true,
         smsOptedOut: true,
         emailUnsubscribed: true,
       },
@@ -71,7 +71,7 @@ export class FollowUpSequencesService {
     if (!prospect) return;
 
     const niche = prospect.niche ?? prospect.businessType ?? 'home_services';
-    const lang = (prospect.language ?? 'en') as 'en' | 'fr';
+    const lang: 'en' | 'fr' = 'en';
     const demoLink = lang === 'fr' ? env.DEMO_LINK_FR : env.DEMO_LINK_EN;
     const firstName = prospect.contactName?.split(' ')[0] ?? 'there';
     const agentName = lang === 'fr' ? 'Marie' : 'Ashley';
@@ -131,7 +131,6 @@ export class FollowUpSequencesService {
             niche: true,
             businessType: true,
             city: true,
-            language: true,
             smsOptedOut: true,
             emailUnsubscribed: true,
           },
@@ -145,7 +144,7 @@ export class FollowUpSequencesService {
     for (const item of due) {
       const p = item.prospect;
       const niche = p.niche ?? p.businessType ?? 'home_services';
-      const lang = (p.language ?? 'en') as 'en' | 'fr';
+      const lang: 'en' | 'fr' = 'en';
       const demoLink = lang === 'fr' ? env.DEMO_LINK_FR : env.DEMO_LINK_EN;
       const firstName = p.contactName?.split(' ')[0] ?? 'there';
       const agentName = lang === 'fr' ? 'Marie' : 'Ashley';
@@ -173,7 +172,12 @@ export class FollowUpSequencesService {
           const emailBody = this.buildEmailBody(item.step, p.businessName, niche, lang, demoLink, firstName, agentName);
 
           try {
-            await emailService.sendFollowUpEmail(p.id, p.email, emailSubject, emailBody);
+            await resend.emails.send({
+              from: env.RESEND_FROM_EMAIL || 'Qwillio <noreply@qwillio.com>',
+              to: p.email,
+              subject: emailSubject,
+              text: emailBody,
+            });
             success = true;
           } catch {
             success = false;

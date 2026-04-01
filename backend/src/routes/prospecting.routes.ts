@@ -166,7 +166,7 @@ router.get('/mutations', async (_req: Request, res: Response) => {
 /** GET /api/prospecting/best-times/:niche — Best calling times for a niche */
 router.get('/best-times/:niche', async (req: Request, res: Response) => {
   try {
-    const slots = await bestTimeLearningService.getBestSlots(req.params.niche, 10);
+    const slots = await bestTimeLearningService.getBestSlots(req.params.niche as string, 10);
     res.json(slots);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -189,7 +189,7 @@ router.get('/local-presence', async (_req: Request, res: Response) => {
 /** POST /api/prospecting/call/:vapiCallId/complete — Process completed call */
 router.post('/call/:vapiCallId/complete', async (req: Request, res: Response) => {
   try {
-    await outboundEngineService.processCompletedCall(req.params.vapiCallId, req.body);
+    await outboundEngineService.processCompletedCall(req.params.vapiCallId as string, req.body);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -199,10 +199,10 @@ router.post('/call/:vapiCallId/complete', async (req: Request, res: Response) =>
 /** POST /api/prospecting/call/:callId/classify-dropout — Classify drop-off stage */
 router.post('/call/:callId/classify-dropout', async (req: Request, res: Response) => {
   try {
-    const stage = await scriptLearningService.classifyDropOff(req.params.callId);
+    const stage = await scriptLearningService.classifyDropOff(req.params.callId as string);
     if (stage) {
       await prisma.call.update({
-        where: { id: req.params.callId },
+        where: { id: req.params.callId as string },
         data: { scriptDropOffPoint: stage },
       });
     }
