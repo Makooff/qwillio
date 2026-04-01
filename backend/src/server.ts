@@ -46,8 +46,15 @@ const app = express();
 
 // ─── Security ────────────────────────────────────────────
 app.use(helmet());
+const allowedOrigins = new Set(env.FRONTEND_URL.split(',').map(o => o.trim()));
 app.use(cors({
-  origin: env.FRONTEND_URL.split(','),
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin) || /\.vercel\.app$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    }
+  },
   credentials: true,
 }));
 
