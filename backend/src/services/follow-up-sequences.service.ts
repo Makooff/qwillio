@@ -71,7 +71,7 @@ export class FollowUpSequencesService {
     if (!prospect) return;
 
     const niche = prospect.niche ?? prospect.businessType ?? 'home_services';
-    const lang: 'en' | 'fr' = 'en';
+    const lang = 'en' as 'en' | 'fr';
     const demoLink = lang === 'fr' ? env.DEMO_LINK_FR : env.DEMO_LINK_EN;
     const firstName = prospect.contactName?.split(' ')[0] ?? 'there';
     const agentName = lang === 'fr' ? 'Marie' : 'Ashley';
@@ -144,7 +144,7 @@ export class FollowUpSequencesService {
     for (const item of due) {
       const p = item.prospect;
       const niche = p.niche ?? p.businessType ?? 'home_services';
-      const lang: 'en' | 'fr' = 'en';
+      const lang = 'en' as 'en' | 'fr';
       const demoLink = lang === 'fr' ? env.DEMO_LINK_FR : env.DEMO_LINK_EN;
       const firstName = p.contactName?.split(' ')[0] ?? 'there';
       const agentName = lang === 'fr' ? 'Marie' : 'Ashley';
