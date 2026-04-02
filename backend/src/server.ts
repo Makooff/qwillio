@@ -49,7 +49,13 @@ app.use(helmet());
 const allowedOrigins = new Set(env.FRONTEND_URL.split(',').map(o => o.trim()));
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.has(origin) || /\.vercel\.app$/.test(origin)) {
+    if (
+      !origin ||
+      allowedOrigins.has(origin) ||
+      /\.vercel\.app$/.test(origin) ||
+      /^https?:\/\/(www\.)?qwillio\.(com|app|io)$/.test(origin) ||
+      /^https?:\/\/localhost(:\d+)?$/.test(origin)
+    ) {
       callback(null, true);
     } else {
       callback(new Error(`CORS: origin ${origin} not allowed`));
