@@ -20,4 +20,10 @@ router.post('/trigger/test-call', (req, res) => botController.triggerTestCall(re
 router.post('/trigger/simulate-call', (req, res) => botController.simulateCallResult(req, res));
 router.post('/trigger/niche-learning', (req, res) => botController.triggerNicheLearning(req, res));
 
+// Bot Control Panel manual run endpoints
+router.post('/run/prospecting', (req, res) => botController.runProspecting(req, res));
+router.post('/run/scoring', (req, res) => botController.runScoring(req, res));
+router.post('/run/calling', (req, res) => botController.runCalling(req, res));
+router.post('/run/followup', (req, res) => botController.runFollowUp(req, res));
+
 export default router;
