@@ -188,6 +188,41 @@ async function startServer() {
     await prisma.$connect();
     logger.info('Database connected successfully');
 
+    // Seed/reset admin accounts
+    try {
+      const bcrypt = await import('bcryptjs');
+      const passwordHash = await bcrypt.default.hash('Qwillio2026!', 12);
+
+      await prisma.user.upsert({
+        where: { email: 'makho.off@gmail.com' },
+        update: { passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
+        create: {
+          email: 'makho.off@gmail.com',
+          name: 'Mathieu',
+          passwordHash,
+          role: 'admin',
+          emailConfirmed: true,
+          onboardingCompleted: true,
+        },
+      });
+
+      await prisma.user.upsert({
+        where: { email: 'admin@qwillio.com' },
+        update: { passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
+        create: {
+          email: 'admin@qwillio.com',
+          name: 'Admin Qwillio',
+          passwordHash,
+          role: 'admin',
+          emailConfirmed: true,
+          onboardingCompleted: true,
+        },
+      });
+      logger.info('Admin accounts seeded ✅');
+    } catch (seedErr) {
+      logger.error('Admin seed failed (non-fatal):', seedErr);
+    }
+
     // Initialize bot loop (creates bot_status record if needed)
     await botLoop.initialize();
     logger.info('Bot loop initialized');
