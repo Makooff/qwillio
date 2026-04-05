@@ -44,6 +44,7 @@ const CrmActivities = lazy(() => import('./pages/client/CrmActivities'));
 const CrmContactDetail = lazy(() => import('./pages/client/CrmContactDetail'));
 const Integrations = lazy(() => import('./pages/client/Integrations'));
 // Admin AI pages (lazy loaded)
+const MissionControl = lazy(() => import('./pages/admin/MissionControl'));
 const AiLearning = lazy(() => import('./pages/admin/AiLearning'));
 const AiDecisions = lazy(() => import('./pages/admin/AiDecisions'));
 const Prospecting = lazy(() => import('./pages/admin/Prospecting'));
@@ -214,6 +215,7 @@ export default function App() {
           <Route path="ai-learning" element={<Suspense fallback={<Spinner />}><AiLearning /></Suspense>} />
           <Route path="ai-decisions" element={<Suspense fallback={<Spinner />}><AiDecisions /></Suspense>} />
           <Route path="prospecting" element={<Suspense fallback={<Spinner />}><Prospecting /></Suspense>} />
+          <Route path="mission-control" element={<Suspense fallback={<Spinner />}><MissionControl /></Suspense>} />
         </Route>
 
         {/* Catch-all redirect */}
