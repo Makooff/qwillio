@@ -4,7 +4,7 @@ import { useAuthStore } from '../../stores/authStore';
 import {
   Menu, X, Home, Users, Building2, Mail, FileText,
   Settings, LogOut, DollarSign, UserCheck, MessageSquare,
-  PhoneCall, Crosshair, Bot, ChevronRight,
+  PhoneCall, Crosshair, Bot, ChevronRight, Radio,
 } from 'lucide-react';
 
 // ── Bottom tab items (5 most important) ────────────────────────────────────
@@ -26,14 +26,15 @@ const mainItems = [
 ];
 
 const growthItems = [
-  { path: '/admin/prospecting', icon: Crosshair, label: 'Prospecting' },
+  { path: '/admin/prospecting',    icon: Crosshair, label: 'Prospecting'    },
+  { path: '/admin/mission-control', icon: Radio,    label: 'Mission Control' },
 ];
 
 const analyticsItems = [
-  { path: '/admin/costs',            icon: DollarSign,   label: 'Coûts'       },
-  { path: '/admin/retention',        icon: UserCheck,    label: 'Rétention'   },
-  { path: '/admin/followups',        icon: MessageSquare,label: 'Follow-ups'  },
-  { path: '/admin/phone-validation', icon: PhoneCall,    label: 'Validation'  },
+  { path: '/admin/costs',            icon: DollarSign,    label: 'Coûts'      },
+  { path: '/admin/retention',        icon: UserCheck,     label: 'Rétention'  },
+  { path: '/admin/followups',        icon: MessageSquare, label: 'Follow-ups' },
+  { path: '/admin/phone-validation', icon: PhoneCall,     label: 'Validation' },
 ];
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -124,7 +125,6 @@ export default function Layout() {
 
       {/* ── Top Header ──────────────────────────────────────────────────── */}
       <header className="fixed top-0 inset-x-0 z-30 h-14 bg-white/90 backdrop-blur-md border-b border-gray-100 flex items-center px-4 shadow-[0_1px_0_0_rgba(0,0,0,0.06)]">
-        {/* Hamburger */}
         <button
           onClick={() => setDrawerOpen(true)}
           aria-label="Open menu"
@@ -133,7 +133,6 @@ export default function Layout() {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Logo — centered */}
         <div className="flex-1 flex justify-center items-center gap-2 pointer-events-none select-none">
           <Bot className="w-5 h-5 text-violet-600" />
           <span className="text-[17px] font-bold tracking-tight bg-gradient-to-r from-violet-600 to-purple-500 bg-clip-text text-transparent">
@@ -141,7 +140,6 @@ export default function Layout() {
           </span>
         </div>
 
-        {/* Avatar */}
         <button
           aria-label="User menu"
           className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm active:opacity-80 transition-opacity"
@@ -151,7 +149,6 @@ export default function Layout() {
       </header>
 
       {/* ── Slide-out Drawer ────────────────────────────────────────────── */}
-      {/* Backdrop */}
       <div
         className={`fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px] transition-opacity duration-300 ${
           drawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -159,14 +156,12 @@ export default function Layout() {
         aria-hidden="true"
       />
 
-      {/* Drawer panel */}
       <div
         ref={drawerRef}
         className={`fixed top-0 left-0 bottom-0 z-50 w-72 bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out ${
           drawerOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Drawer header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
             <Bot className="w-6 h-6 text-violet-600" />
@@ -183,7 +178,6 @@ export default function Layout() {
           </button>
         </div>
 
-        {/* Drawer nav */}
         <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
           {mainItems.map((item) => (
             <DrawerLink key={item.path} item={item} onClose={() => setDrawerOpen(false)} />
@@ -206,7 +200,6 @@ export default function Layout() {
           />
         </nav>
 
-        {/* Drawer footer — user info + logout */}
         <div className="border-t border-gray-100 px-5 py-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
