@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Download, RefreshCw, TrendingUp, TrendingDown, Clock, AlertCircle } from 'lucide-react';
-import axios from 'axios';
+import api from '../../services/api';
 
 interface ScriptMutation {
   id: string;
@@ -32,9 +32,7 @@ export default function AiLearning() {
   const fetchMutations = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/api/ai/mutations', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('qwillio_token')}` },
-      });
+      const res = await api.get('/ai/mutations');
       setMutations(res.data.mutations || []);
     } catch {
       setMutations([]);
