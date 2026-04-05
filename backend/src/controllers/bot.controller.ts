@@ -114,6 +114,44 @@ export class BotController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  // ─── Bot Control Panel manual run endpoints ───────────────
+
+  async runProspecting(_req: Request, res: Response) {
+    try {
+      const count = await botLoop.runProspecting();
+      res.json({ message: `Prospecting run complete: ${count} prospects scraped`, count });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async runScoring(_req: Request, res: Response) {
+    try {
+      const count = await botLoop.runScoring();
+      res.json({ message: `Scoring run complete: ${count} prospects scored`, count });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async runCalling(_req: Request, res: Response) {
+    try {
+      const result = await botLoop.runCalling();
+      res.json({ message: result ? 'Outbound call initiated' : 'No eligible prospect found', success: !!result });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async runFollowUp(_req: Request, res: Response) {
+    try {
+      const count = await botLoop.runFollowUp();
+      res.json({ message: `Follow-up run complete: ${count} sequences processed`, count });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }
 
 export const botController = new BotController();

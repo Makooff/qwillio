@@ -118,11 +118,19 @@ export interface DashboardStats {
 }
 
 export interface BotStatus {
+  isRunning: boolean;
   isActive: boolean;
   callsToday: number;
   callsQuotaDaily: number;
-  lastProspection?: string;
-  lastCall?: string;
+  prospectsFound: number;
+  followUpsSent: number;
+  lastProspection?: string | null;
+  lastCall?: string | null;
+  lastActivity?: string | null;
+  lastRunProspecting?: string | null;
+  lastRunScoring?: string | null;
+  lastRunCalling?: string | null;
+  lastRunFollowUp?: string | null;
   crons: Record<string, string>;
 }
 

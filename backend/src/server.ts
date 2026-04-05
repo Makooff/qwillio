@@ -41,6 +41,8 @@ import agentRoutes from './routes/agent.routes';
 import crmRoutes from './routes/crm.routes';
 import aiLearningRoutes from './routes/ai-learning.routes';
 import prospectingRoutes from './routes/prospecting.routes';
+import adminRoutes from './routes/admin.routes';
+import clientApiRoutes from './routes/client-api.routes';
 
 const app = express();
 
@@ -49,7 +51,13 @@ app.use(helmet());
 const allowedOrigins = new Set(env.FRONTEND_URL.split(',').map(o => o.trim()));
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.has(origin) || /\.vercel\.app$/.test(origin)) {
+    if (
+      !origin ||
+      allowedOrigins.has(origin) ||
+      /\.vercel\.app$/.test(origin) ||
+      /^https?:\/\/(www\.)?qwillio\.(com|app|io)$/.test(origin) ||
+      /^https?:\/\/localhost(:\d+)?$/.test(origin)
+    ) {
       callback(null, true);
     } else {
       callback(new Error(`CORS: origin ${origin} not allowed`));
@@ -100,6 +108,8 @@ app.use('/api/agent', agentRoutes);
 app.use('/api/crm', crmRoutes);
 app.use('/api/ai', aiLearningRoutes);
 app.use('/api/prospecting', prospectingRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/client', clientApiRoutes);
 
 // ─── Contact Form ─────────────────────────────────────
 app.post('/api/contact', async (req, res) => {
@@ -181,6 +191,41 @@ async function startServer() {
     // Test database connection
     await prisma.$connect();
     logger.info('Database connected successfully');
+
+    // Seed/reset admin accounts
+    try {
+      const bcrypt = await import('bcryptjs');
+      const passwordHash = await bcrypt.default.hash('Qwillio2026!', 12);
+
+      await prisma.user.upsert({
+        where: { email: 'makho.off@gmail.com' },
+        update: { passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
+        create: {
+          email: 'makho.off@gmail.com',
+          name: 'Mathieu',
+          passwordHash,
+          role: 'admin',
+          emailConfirmed: true,
+          onboardingCompleted: true,
+        },
+      });
+
+      await prisma.user.upsert({
+        where: { email: 'admin@qwillio.com' },
+        update: { passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
+        create: {
+          email: 'admin@qwillio.com',
+          name: 'Admin Qwillio',
+          passwordHash,
+          role: 'admin',
+          emailConfirmed: true,
+          onboardingCompleted: true,
+        },
+      });
+      logger.info('Admin accounts seeded ✅');
+    } catch (seedErr) {
+      logger.error('Admin seed failed (non-fatal):', seedErr);
+    }
 
     // Initialize bot loop (creates bot_status record if needed)
     await botLoop.initialize();

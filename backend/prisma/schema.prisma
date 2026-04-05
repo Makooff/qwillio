@@ -1185,3 +1185,32 @@ model FollowUpSequence {
   @@index([sentAt])
   @@map("follow_up_sequences")
 }
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN CONFIG - Centralised remote configuration for Mission Control
+// ═══════════════════════════════════════════════════════════
+model AdminConfig {
+  id                     String   @id @default(uuid()) @db.Uuid
+  // Bot Configuration
+  callsPerDay            Int      @default(50) @map("calls_per_day")
+  callWindowStart        Int      @default(9) @map("call_window_start")
+  callWindowEnd          Int      @default(19) @map("call_window_end")
+  activeDays             String[] @default(["monday","tuesday","wednesday","thursday","friday"]) @map("active_days")
+  callIntervalMinutes    Int      @default(20) @map("call_interval_minutes")
+  prospectionQuotaPerDay Int      @default(100) @map("prospection_quota_per_day")
+  minPriorityScore       Int      @default(0) @map("min_priority_score")
+  targetCities           String[] @default([]) @map("target_cities")
+  // VAPI Configuration
+  vapiAssistantId        String?  @map("vapi_assistant_id") @db.VarChar(255)
+  vapiVoiceId            String?  @map("vapi_voice_id") @db.VarChar(100)
+  maxCallDurationMin     Int      @default(10) @map("max_call_duration_min")
+  silenceTimeoutSeconds  Int      @default(30) @map("silence_timeout_seconds")
+  // Prospecting Configuration
+  apifyActorId           String?  @map("apify_actor_id") @db.VarChar(255)
+  targetNiches           String[] @default([]) @map("target_niches")
+  apifyTargetCities      String[] @default([]) @map("apify_target_cities")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("admin_config")
+}

@@ -27,6 +27,12 @@ import { followUpSequencesService } from '../services/follow-up-sequences.servic
 import { prospectScoringService } from '../services/prospect-scoring.service';
 
 class BotLoop {
+  // ─── Last-run timestamps (in-memory, reset on restart) ───
+  private lastRunProspecting: Date | null = null;
+  private lastRunScoring: Date | null = null;
+  private lastRunCalling: Date | null = null;
+  private lastRunFollowUp: Date | null = null;
+
   private prospectionJob: cron.ScheduledTask | null = null;
   private callingJob: cron.ScheduledTask | null = null;
   private remindersJob: cron.ScheduledTask | null = null;
@@ -564,12 +570,34 @@ class BotLoop {
 
   async getStatus() {
     const botStatus = await prisma.botStatus.findFirst();
+
+    // Prospect count scraped today
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const prospectsFound = await prisma.prospect.count({
+      where: { createdAt: { gte: startOfDay } },
+    }).catch(() => 0);
+
+    // Follow-ups sent today
+    const followUpsSent = await prisma.followUpSequence.count({
+      where: { sentAt: { gte: startOfDay } },
+    }).catch(() => 0);
+
     return {
+      isRunning: botStatus?.isActive || false,
       isActive: botStatus?.isActive || false,
       callsToday: botStatus?.callsToday || 0,
       callsQuotaDaily: botStatus?.callsQuotaDaily || env.CALLS_PER_DAY,
+      prospectsFound,
+      followUpsSent,
       lastProspection: botStatus?.lastProspection || null,
       lastCall: botStatus?.lastCall || null,
+      lastActivity: botStatus?.lastCall?.toISOString?.() || botStatus?.lastProspection?.toISOString?.() || null,
+      // Manual trigger timestamps (in-memory)
+      lastRunProspecting: this.lastRunProspecting?.toISOString() || null,
+      lastRunScoring: this.lastRunScoring?.toISOString() || null,
+      lastRunCalling: this.lastRunCalling?.toISOString() || null,
+      lastRunFollowUp: this.lastRunFollowUp?.toISOString() || null,
       crons: {
         prospection: this.prospectionJob ? 'active' : 'inactive',
         calling: this.callingJob ? 'active' : 'inactive',
@@ -599,6 +627,32 @@ class BotLoop {
         rescoreProspects: this.rescoreJob ? 'active' : 'inactive',
       },
     };
+  }
+
+  // ─── Manual triggers for Bot Control Panel ───────────────
+
+  async runProspecting() {
+    this.lastRunProspecting = new Date();
+    const count = await apifyScrapingService.runDailyScraping();
+    return count;
+  }
+
+  async runScoring() {
+    this.lastRunScoring = new Date();
+    const updated = await prospectScoringService.rescoreUnscored(500);
+    return updated;
+  }
+
+  async runCalling() {
+    this.lastRunCalling = new Date();
+    const result = await outboundEngineService.callNextProspect();
+    return result;
+  }
+
+  async runFollowUp() {
+    this.lastRunFollowUp = new Date();
+    const sent = await followUpSequencesService.processDue();
+    return sent;
   }
 
   // Manual triggers for testing

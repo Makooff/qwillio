@@ -37,16 +37,17 @@ export default function ClientOverview() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [ov, an7, an30, calls] = await Promise.all([
+      const [ov, an7, an30, calls] = await Promise.allSettled([
         api.get('/my-dashboard/overview'),
         api.get('/my-dashboard/analytics?days=7'),
         api.get('/my-dashboard/analytics?days=30'),
         api.get('/my-dashboard/calls?page=1&limit=8'),
       ]);
-      setData(ov.data);
-      setAnalytics(an7.data);
-      setAnalytics30(an30.data);
-      setRecentCalls(calls.data?.data || []);
+      if (ov.status === 'fulfilled') setData(ov.value.data);
+      else console.error('Overview fetch error', ov.reason);
+      if (an7.status === 'fulfilled') setAnalytics(an7.value.data);
+      if (an30.status === 'fulfilled') setAnalytics30(an30.value.data);
+      if (calls.status === 'fulfilled') setRecentCalls(calls.value.data?.data || []);
     } catch (err) {
       console.error('Overview fetch error', err);
     } finally {

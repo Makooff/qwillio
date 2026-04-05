@@ -1,193 +1,323 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { DashboardStats, BotStatus } from '../types';
 import {
-  Users, Building2, TrendingUp, Phone, Power, PowerOff, Zap,
-  ArrowUp, ArrowDown, Play, Square
+  Users, Building2, Phone, PhoneCall, Mail, Search, Star,
+  RefreshCw, Loader2, Activity,
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+type TriggerKey = 'prospecting' | 'scoring' | 'calling' | 'followup';
+
+interface FeedItem {
+  icon: string;
+  message: string;
+  date: string;
+  type: string;
+}
+
+function formatTime(iso: string | null | undefined) {
+  if (!iso) return 'Jamais';
+  const d = new Date(iso);
+  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [botStatus, setBotStatus] = useState<BotStatus | null>(null);
-  const [revenueHistory, setRevenueHistory] = useState<any[]>([]);
-  const [activity, setActivity] = useState<any[]>([]);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState(false);
+  const [triggering, setTriggering] = useState<TriggerKey | null>(null);
+  const [triggerFeedback, setTriggerFeedback] = useState<Record<TriggerKey, string | null>>({
+    prospecting: null, scoring: null, calling: null, followup: null,
+  });
 
-  const fetchData = async () => {
-    try {
-      const [statsRes, botRes, revenueRes, activityRes] = await Promise.all([
-        api.get('/dashboard/stats'),
-        api.get('/bot/status'),
-        api.get('/dashboard/revenue-history'),
-        api.get('/dashboard/activity'),
-      ]);
-      setStats(statsRes.data);
-      setBotStatus(botRes.data);
-      setRevenueHistory(revenueRes.data);
-      setActivity(activityRes.data);
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchData = useCallback(async () => {
+    const [statsRes, botRes, feedRes] = await Promise.allSettled([
+      api.get('/dashboard/stats'),
+      api.get('/bot/status'),
+      api.get('/admin/activity-feed'),
+    ]);
+    if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
+    if (botRes.status === 'fulfilled') setBotStatus(botRes.value.data);
+    if (feedRes.status === 'fulfilled') setFeed(feedRes.value.data);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData]);
 
   const toggleBot = async () => {
+    setToggling(true);
     try {
-      if (botStatus?.isActive) {
-        await api.post('/bot/stop');
-      } else {
-        await api.post('/bot/start');
-      }
+      await api.post(botStatus?.isActive ? '/bot/stop' : '/bot/start');
       const { data } = await api.get('/bot/status');
       setBotStatus(data);
     } catch (error) {
       console.error('Failed to toggle bot:', error);
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  const runTrigger = async (key: TriggerKey) => {
+    setTriggering(key);
+    setTriggerFeedback(prev => ({ ...prev, [key]: null }));
+    try {
+      const { data } = await api.post(`/bot/run/${key}`);
+      setTriggerFeedback(prev => ({ ...prev, [key]: data.message || 'Terminé' }));
+      const { data: newStatus } = await api.get('/bot/status');
+      setBotStatus(newStatus);
+    } catch (error: any) {
+      setTriggerFeedback(prev => ({ ...prev, [key]: `Erreur: ${error?.response?.data?.error || error.message}` }));
+    } finally {
+      setTriggering(null);
+      setTimeout(() => setTriggerFeedback(prev => ({ ...prev, [key]: null })), 5000);
     }
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-96"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div></div>;
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="w-10 h-10 rounded-full border-2 border-transparent border-t-violet-600 border-r-violet-600 animate-spin" />
+      </div>
+    );
   }
 
+  const isActive = botStatus?.isActive ?? false;
+  const callsToday = botStatus?.callsToday ?? stats?.calls.today ?? 0;
+  const callsQuota = botStatus?.callsQuotaDaily ?? 50;
+
+  const services = [
+    {
+      key: 'prospecting' as TriggerKey,
+      icon: <Search className="w-4 h-4" />,
+      color: '#7C3AED',
+      label: 'Prospection (Apify)',
+      cronKey: 'apifyScraping',
+      lastRun: (botStatus as any)?.lastRunProspecting ?? botStatus?.lastProspection,
+      stat: `${(botStatus as any)?.prospectsFound ?? 0} trouvés`,
+    },
+    {
+      key: 'scoring' as TriggerKey,
+      icon: <Star className="w-4 h-4" />,
+      color: '#F59E0B',
+      label: 'Scoring des leads',
+      cronKey: 'rescoreProspects',
+      lastRun: (botStatus as any)?.lastRunScoring,
+      stat: null,
+    },
+    {
+      key: 'calling' as TriggerKey,
+      icon: <PhoneCall className="w-4 h-4" />,
+      color: '#10B981',
+      label: 'Appels sortants (VAPI)',
+      cronKey: 'outboundEngine',
+      lastRun: (botStatus as any)?.lastRunCalling ?? botStatus?.lastCall,
+      stat: `${callsToday}/${callsQuota} appels`,
+    },
+    {
+      key: 'followup' as TriggerKey,
+      icon: <Mail className="w-4 h-4" />,
+      color: '#06B6D4',
+      label: 'Séquences de suivi',
+      cronKey: 'followUpSequences',
+      lastRun: (botStatus as any)?.lastRunFollowUp,
+      stat: `${(botStatus as any)?.followUpsSent ?? 0} envoyés`,
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tableau de Bord</h1>
-          <p className="text-gray-500">Qwillio overview</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className={`flex items-center gap-3 px-5 py-3 rounded-xl border-2 ${
-            botStatus?.isActive ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'
-          }`}>
-            <div className={`w-3 h-3 rounded-full ${botStatus?.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
-            <div>
-              <p className="text-sm font-semibold">{botStatus?.isActive ? 'Bot Actif' : 'Bot Inactif'}</p>
-              <p className="text-xs text-gray-500">{botStatus?.callsToday || 0}/{botStatus?.callsQuotaDaily || 50} appels</p>
-            </div>
-            <button onClick={toggleBot} className={`ml-3 p-2 rounded-lg transition-all ${
-              botStatus?.isActive ? 'bg-red-100 hover:bg-red-200 text-red-600' : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-600'
-            }`}>
-              {botStatus?.isActive ? <Square className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+    <div className="space-y-5">
+
+      {/* 1 — Bot Status Card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={toggleBot}
+              disabled={toggling}
+              className="relative flex items-center focus:outline-none disabled:opacity-60 flex-shrink-0"
+              style={{ width: 56, height: 28 }}
+              aria-label="Toggle bot"
+            >
+              <div
+                className="w-full h-full rounded-full transition-all duration-300"
+                style={{
+                  background: isActive ? '#7C3AED' : '#E5E7EB',
+                  boxShadow: isActive ? '0 0 16px rgba(124,58,237,0.4)' : 'none',
+                }}
+              />
+              {toggling ? (
+                <Loader2
+                  className="absolute w-4 h-4 animate-spin"
+                  style={{ color: '#fff', left: '50%', top: '50%', transform: 'translate(-50%,-50%)' }}
+                />
+              ) : (
+                <div
+                  className="absolute w-5 h-5 rounded-full bg-white shadow transition-all duration-300"
+                  style={{ left: isActive ? 'calc(100% - 22px)' : '3px', top: '50%', transform: 'translateY(-50%)' }}
+                />
+              )}
             </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-gray-900">
+                  Bot {isActive ? 'Actif' : 'Inactif'}
+                </h2>
+                {isActive && (
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-500 border border-red-100">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                    LIVE
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {isActive ? 'Pipeline actif · Tous les crons sont en cours' : 'Bot arrêté · Aucun cron actif'}
+              </p>
+            </div>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-3xl font-black text-gray-900">{callsToday}</p>
+            <p className="text-xs text-gray-400">appels aujourd'hui</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-blue-100 rounded-lg"><Users className="w-5 h-5 text-blue-600" /></div>
-            <span className="badge badge-new flex items-center gap-1"><ArrowUp className="w-3 h-3" />+{stats?.prospects.newThisMonth || 0}</span>
+      {/* 2 — 4 KPI Tiles */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          {
+            icon: <Users className="w-4 h-4" />,
+            color: '#7C3AED', bg: '#F5F3FF',
+            value: stats?.prospects.total ?? 0,
+            label: 'Prospects',
+            sub: stats?.prospects.newThisMonth ? `+${stats.prospects.newThisMonth} ce mois` : 'aucun ce mois',
+          },
+          {
+            icon: <Phone className="w-4 h-4" />,
+            color: '#10B981', bg: '#ECFDF5',
+            value: callsToday,
+            label: "Appels aujourd'hui",
+            sub: `quota: ${callsQuota}`,
+          },
+          {
+            icon: <Building2 className="w-4 h-4" />,
+            color: '#F59E0B', bg: '#FFFBEB',
+            value: stats?.clients.totalActive ?? 0,
+            label: 'Clients actifs',
+            sub: stats?.clients.newThisMonth ? `+${stats.clients.newThisMonth} ce mois` : 'aucun ce mois',
+          },
+          {
+            icon: <Activity className="w-4 h-4" />,
+            color: '#06B6D4', bg: '#ECFEFF',
+            value: `${(stats?.calls.successRate ?? 0).toFixed(0)}%`,
+            label: 'Taux réponse',
+            sub: `${stats?.calls.thisWeek ?? 0} cette semaine`,
+          },
+        ].map((card, i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="inline-flex p-2 rounded-xl mb-3" style={{ background: card.bg, color: card.color }}>
+              {card.icon}
+            </div>
+            <p className="text-2xl font-black text-gray-900">{card.value}</p>
+            <p className="text-sm font-medium text-gray-700 mt-0.5">{card.label}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{card.sub}</p>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{stats?.prospects.total || 0}</p>
-          <p className="text-sm text-gray-500 mt-1">Prospects</p>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-emerald-100 rounded-lg"><Building2 className="w-5 h-5 text-emerald-600" /></div>
-            <span className="badge badge-active flex items-center gap-1"><ArrowUp className="w-3 h-3" />+{stats?.clients.newThisMonth || 0}</span>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{stats?.clients.totalActive || 0}</p>
-          <p className="text-sm text-gray-500 mt-1">Clients Actifs</p>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-purple-100 rounded-lg"><TrendingUp className="w-5 h-5 text-purple-600" /></div>
-            <span className="badge bg-purple-100 text-purple-700">MRR</span>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{(stats?.revenue.mrr || 0).toLocaleString('fr-FR')}€</p>
-          <p className="text-sm text-gray-500 mt-1">MRR</p>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-orange-100 rounded-lg"><Phone className="w-5 h-5 text-orange-600" /></div>
-            <span className="text-sm text-gray-500">{stats?.calls.successRate?.toFixed(0) || 0}%</span>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{stats?.calls.today || 0}</p>
-          <p className="text-sm text-gray-500 mt-1">Appels Aujourd'hui</p>
-        </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="card col-span-2">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueHistory}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#667eea" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#667eea" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value: any) => `${value}€`} />
-                <Area type="monotone" dataKey="revenue" stroke="#667eea" fill="url(#colorRevenue)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Taux de Conversion</h3>
-          <div className="space-y-6 mt-6">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Prospect → Client</span>
-                <span className="font-semibold">{(stats?.conversion.prospectToClient || 0).toFixed(1)}%</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-3">
-                <div className="bg-gradient-to-r from-primary-500 to-purple-500 h-3 rounded-full" style={{ width: `${Math.min(stats?.conversion.prospectToClient || 0, 100)}%` }} />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Devis Acceptés</span>
-                <span className="font-semibold">{(stats?.conversion.quoteAcceptanceRate || 0).toFixed(1)}%</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-3">
-                <div className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-3 rounded-full" style={{ width: `${Math.min(stats?.conversion.quoteAcceptanceRate || 0, 100)}%` }} />
-              </div>
-            </div>
-            <div className="pt-4 border-t">
-              <p className="text-sm text-gray-500">Setup fees ce mois</p>
-              <p className="text-2xl font-bold text-gray-900">{(stats?.revenue.setupFeesThisMonth || 0).toLocaleString('fr-FR')}€</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Revenu total ce mois</p>
-              <p className="text-2xl font-bold text-emerald-600">{(stats?.revenue.totalThisMonth || 0).toLocaleString('fr-FR')}€</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* 3 — Bot Services */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Services du bot</h3>
+        <div className="space-y-2">
+          {services.map(svc => {
+            const cronStatus = (botStatus as any)?.crons?.[svc.cronKey];
+            const isRunning = triggering === svc.key;
+            const feedback = triggerFeedback[svc.key];
+            const isOn = cronStatus === 'active';
 
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Activité Récente</h3>
-        <div className="space-y-3">
-          {activity.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">Aucune activité récente. Démarrez le bot pour commencer !</p>
-          ) : (
-            activity.slice(0, 10).map((item: any, i: number) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <span className="text-xl">{item.icon}</span>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-900">{item.message}</p>
-                  <p className="text-xs text-gray-500">{new Date(item.date).toLocaleString('fr-FR')}</p>
+            return (
+              <div
+                key={svc.key}
+                className="flex items-center justify-between rounded-xl px-4 py-3 bg-gray-50"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${isOn ? 'animate-pulse' : ''}`}
+                    style={{ background: isOn ? '#10B981' : '#D1D5DB' }}
+                  />
+                  <div
+                    className="p-1.5 rounded-lg flex-shrink-0"
+                    style={{ background: `${svc.color}18`, color: svc.color }}
+                  >
+                    {svc.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{svc.label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">
+                      {feedback ? (
+                        <span style={{ color: feedback.startsWith('Erreur') ? '#EF4444' : '#10B981' }}>
+                          {feedback}
+                        </span>
+                      ) : (
+                        <>Dernier: {formatTime(svc.lastRun)}{svc.stat ? ` · ${svc.stat}` : ''}</>
+                      )}
+                    </p>
+                  </div>
                 </div>
+                <button
+                  onClick={() => runTrigger(svc.key)}
+                  disabled={isRunning || triggering !== null}
+                  className="ml-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40 shrink-0 bg-white"
+                  style={{ color: svc.color, border: `1px solid ${svc.color}40` }}
+                >
+                  {isRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  {isRunning ? 'Running…' : 'Run'}
+                </button>
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
+      </div>
+
+      {/* 4 — Activity Feed */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <h3 className="text-sm font-semibold text-gray-900">Activité en direct</h3>
+          <span className="ml-auto text-xs text-gray-400">Mise à jour toutes les 30s</span>
+        </div>
+        {feed.length === 0 ? (
+          <p className="text-center py-10 text-sm text-gray-400">
+            Aucune activité récente. Démarrez le bot pour commencer&nbsp;!
+          </p>
+        ) : (
+          <div className="space-y-1">
+            {feed.slice(0, 10).map((item, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors cursor-default"
+              >
+                <span className="text-lg w-7 text-center flex-shrink-0">{item.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-800 truncate">{item.message}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {new Date(item.date).toLocaleString('fr-FR')}
+                  </p>
+                </div>
+                {i === 0 && (
+                  <span className="flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold bg-violet-50 text-violet-600">
+                    nouveau
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

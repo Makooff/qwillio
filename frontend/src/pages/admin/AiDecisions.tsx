@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw, Shield, Zap, RotateCcw, AlertCircle } from 'lucide-react';
-import axios from 'axios';
+import api from '../../services/api';
 
 interface AiDecision {
   id: string;
@@ -27,9 +27,7 @@ export default function AiDecisions() {
   const fetchDecisions = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/api/ai/decisions', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('qwillio_token')}` },
-      });
+      const res = await api.get('/ai/decisions');
       setDecisions(res.data.decisions || []);
     } catch {
       setDecisions([]);
