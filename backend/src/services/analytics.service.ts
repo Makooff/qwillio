@@ -27,6 +27,7 @@ export class AnalyticsService {
       callsWeek,
       successfulCallsWeek,
       botStatus,
+      prospectsReadyToCall,
     ] = await Promise.all([
       prisma.prospect.count(),
       prisma.prospect.count({ where: { createdAt: { gte: startOfMonth } } }),
@@ -45,6 +46,16 @@ export class AnalyticsService {
       prisma.call.count({ where: { startedAt: { gte: startOfWeek } } }),
       prisma.call.count({ where: { status: 'completed', outcome: 'qualified', startedAt: { gte: startOfWeek } } }),
       prisma.botStatus.findFirst(),
+      prisma.prospect.count({
+        where: {
+          status: 'new',
+          eligibleForCall: true,
+          isMobile: false,
+          priorityScore: { gte: 10 },
+          callAttempts: { lt: 3 },
+          phone: { not: null },
+        },
+      }),
     ]);
 
     const statusMap: Record<string, number> = {};
@@ -86,6 +97,7 @@ export class AnalyticsService {
         callsToday: botStatus?.callsToday || 0,
         callsQuota: botStatus?.callsQuotaDaily || 50,
       },
+      prospectsReadyToCall,
     };
   }
 

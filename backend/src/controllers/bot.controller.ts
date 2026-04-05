@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { botLoop } from '../jobs/bot-loop';
 import { vapiService } from '../services/vapi.service';
+import { apifyScrapingService } from '../services/apify-scraping.service';
 import { logger } from '../config/logger';
 
 export class BotController {
@@ -9,6 +10,8 @@ export class BotController {
       await botLoop.start();
       const status = await botLoop.getStatus();
       logger.info('Bot started via API');
+      // Launch immediate scraping in background (non-blocking)
+      setImmediate(() => apifyScrapingService.runScraping().catch((err) => logger.error('Immediate scraping error:', err)));
       res.json({ message: 'Bot démarré avec succès', status });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

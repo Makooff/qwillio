@@ -119,4 +119,5 @@ export interface DashboardStats {
     callsToday: number;
     callsQuota: number;
   };
+  prospectsReadyToCall: number;
 }

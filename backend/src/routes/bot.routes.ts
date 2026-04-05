@@ -44,7 +44,15 @@ router.get('/config', async (_req: Request, res: Response) => {
       res.status(404).json({ error: 'Bot config not found' });
       return;
     }
-    res.json({ data: config });
+    res.json({
+      data: {
+        ...config,
+        vapiApiKey: !!process.env.VAPI_API_KEY,
+        twilioAccountSid: !!process.env.TWILIO_ACCOUNT_SID,
+        apifyApiKey: !!process.env.APIFY_API_KEY,
+        discordWebhook: !!process.env.DISCORD_WEBHOOK_URL,
+      },
+    });
   } catch (err: any) {
     logger.error('[API] Bot config GET error:', err);
     res.status(500).json({ error: err.message });

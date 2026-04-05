@@ -15,6 +15,7 @@ interface DashboardStats {
   conversion: { prospectToClient: number; quoteAcceptanceRate: number };
   revenue: { mrr: number; setupFeesThisMonth: number; totalThisMonth: number };
   bot?: { isActive: boolean; callsToday: number; callsQuota: number };
+  prospectsReadyToCall?: number;
 }
 
 interface ServiceStatus {
@@ -115,10 +116,11 @@ export default function Dashboard() {
   const conversions = stats ? Math.round(stats.conversion?.prospectToClient ?? 0) : 0;
 
   const kpiTiles = [
-    { label: 'Prospects total', value: stats?.prospects?.total ?? 0, icon: '👥' },
-    { label: "Appels aujourd'hui", value: callsToday, icon: '📞' },
-    { label: 'Conversions %', value: `${conversions}%`, icon: '✅' },
-    { label: 'Clients actifs', value: stats?.clients?.totalActive ?? 0, icon: '🏢' },
+    { label: 'Prospects total', value: stats?.prospects?.total ?? 0, icon: '👥', accent: false },
+    { label: "Appels aujourd'hui", value: callsToday, icon: '📞', accent: false },
+    { label: 'Prêts à appeler', value: stats?.prospectsReadyToCall ?? 0, icon: '📲', accent: true },
+    { label: 'Conversions %', value: `${conversions}%`, icon: '✅', accent: false },
+    { label: 'Clients actifs', value: stats?.clients?.totalActive ?? 0, icon: '🏢', accent: false },
   ];
 
   return (
@@ -167,17 +169,17 @@ export default function Dashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
           {kpiTiles.map((tile) => (
             <div key={tile.label} style={{
-              backgroundColor: '#fff',
+              backgroundColor: tile.accent ? '#7C3AED' : '#fff',
               borderRadius: '12px',
               padding: '20px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-              border: '1px solid #E5E7EB',
+              boxShadow: tile.accent ? '0 4px 12px rgba(124,58,237,0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
+              border: tile.accent ? '1px solid #6D28D9' : '1px solid #E5E7EB',
             }}>
               <div style={{ fontSize: '24px', marginBottom: '8px' }}>{tile.icon}</div>
-              <div style={{ fontSize: '32px', fontWeight: 700, color: '#7C3AED', lineHeight: 1 }}>
+              <div style={{ fontSize: '32px', fontWeight: 700, color: tile.accent ? '#fff' : '#7C3AED', lineHeight: 1 }}>
                 {loading ? '—' : tile.value}
               </div>
-              <div style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>{tile.label}</div>
+              <div style={{ fontSize: '13px', color: tile.accent ? '#DDD6FE' : '#6B7280', marginTop: '4px' }}>{tile.label}</div>
             </div>
           ))}
         </div>
