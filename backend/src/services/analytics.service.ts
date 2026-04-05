@@ -5,86 +5,58 @@ import { DashboardStats } from '../types';
 export class AnalyticsService {
   async getDashboardStats(): Promise<DashboardStats> {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay() + 1);
-    startOfWeek.setHours(0, 0, 0, 0);
-    const today = new Date();
+    const today = new Date(now);
     today.setHours(0, 0, 0, 0);
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(now.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    const [
-      totalProspects,
-      newProspectsMonth,
-      prospectsByStatus,
-      activeClients,
-      newClientsMonth,
-      clientsByPlan,
-      mrrData,
-      setupFeesMonth,
-      totalQuotes,
-      acceptedQuotes,
-      callsToday,
-      callsWeek,
-      successfulCallsWeek,
-      botStatus,
-    ] = await Promise.all([
-      prisma.prospect.count(),
-      prisma.prospect.count({ where: { createdAt: { gte: startOfMonth } } }),
-      prisma.prospect.groupBy({ by: ['status'], _count: { id: true } }),
-      prisma.client.count({ where: { subscriptionStatus: 'active' } }),
-      prisma.client.count({ where: { createdAt: { gte: startOfMonth } } }),
-      prisma.client.groupBy({ by: ['planType'], where: { subscriptionStatus: 'active' }, _count: { id: true } }),
-      prisma.client.aggregate({ where: { subscriptionStatus: 'active' }, _sum: { monthlyFee: true } }),
-      prisma.payment.aggregate({
-        where: { paymentType: 'setup_fee', status: 'succeeded', paidAt: { gte: startOfMonth } },
-        _sum: { amount: true },
+    const results = await Promise.allSettled([
+      prisma.prospect.count(),                                                                                   // 0
+      prisma.prospect.count({                                                                                    // 1
+        where: { status: 'new', eligibleForCall: true, isMobile: false, priorityScore: { gte: 10 }, callAttempts: { lt: 3 }, phone: { not: null } },
       }),
-      prisma.quote.count({ where: { createdAt: { gte: startOfMonth } } }),
-      prisma.quote.count({ where: { status: 'accepted', createdAt: { gte: startOfMonth } } }),
-      prisma.call.count({ where: { startedAt: { gte: today } } }),
-      prisma.call.count({ where: { startedAt: { gte: startOfWeek } } }),
-      prisma.call.count({ where: { status: 'completed', outcome: 'qualified', startedAt: { gte: startOfWeek } } }),
-      prisma.botStatus.findFirst(),
+      prisma.prospect.count({ where: { createdAt: { gte: sevenDaysAgo } } }),                                  // 2
+      prisma.call.count({ where: { startedAt: { gte: today } } }),                                             // 3
+      prisma.call.count({ where: { startedAt: { gte: sevenDaysAgo } } }),                                      // 4
+      prisma.call.count({ where: { status: 'completed', startedAt: { gte: sevenDaysAgo } } }),                 // 5
+      prisma.client.count({ where: { subscriptionStatus: 'active' } }),                                        // 6
+      prisma.botStatus.findFirst(),                                                                             // 7
     ]);
 
-    const statusMap: Record<string, number> = {};
-    prospectsByStatus.forEach((s) => { statusMap[s.status] = s._count.id; });
+    const get = <T>(idx: number, fallback: T): T =>
+      results[idx].status === 'fulfilled' ? (results[idx] as PromiseFulfilledResult<T>).value : fallback;
 
-    const planMap: Record<string, number> = {};
-    clientsByPlan.forEach((p) => { planMap[p.planType] = p._count.id; });
+    const totalProspects      = get<number>(0, 0);
+    const prospectsReadyToCall = get<number>(1, 0);
+    const prospectsThisWeek   = get<number>(2, 0);
+    const callsToday          = get<number>(3, 0);
+    const callsThisWeek       = get<number>(4, 0);
+    const answeredCalls       = get<number>(5, 0);
+    const activeClients       = get<number>(6, 0);
+    const botStatus           = get<{ isActive: boolean; lastProspection?: Date | null; lastCall?: Date | null } | null>(7, null);
 
-    const mrr = Number(mrrData._sum.monthlyFee || 0);
-    const setupFees = Number(setupFeesMonth._sum.amount || 0);
+    const botIsActive = botStatus?.isActive ?? false;
+    const serviceState = (active: boolean): 'idle' | 'inactive' => active ? 'idle' : 'inactive';
 
     return {
-      prospects: {
-        total: totalProspects,
-        newThisMonth: newProspectsMonth,
-        byStatus: statusMap,
-      },
-      clients: {
-        totalActive: activeClients,
-        newThisMonth: newClientsMonth,
-        byPlan: planMap,
-      },
-      revenue: {
-        mrr,
-        setupFeesThisMonth: setupFees,
-        totalThisMonth: setupFees + mrr,
-      },
-      conversion: {
-        prospectToClient: totalProspects > 0 ? (activeClients / totalProspects) * 100 : 0,
-        quoteAcceptanceRate: totalQuotes > 0 ? (acceptedQuotes / totalQuotes) * 100 : 0,
-      },
-      calls: {
-        today: callsToday,
-        thisWeek: callsWeek,
-        successRate: callsWeek > 0 ? (successfulCallsWeek / callsWeek) * 100 : 0,
-      },
-      bot: {
-        isActive: botStatus?.isActive || false,
-        callsToday: botStatus?.callsToday || 0,
-        callsQuota: botStatus?.callsQuotaDaily || 50,
+      totalProspects,
+      prospectsReadyToCall,
+      prospectsThisWeek,
+      callsToday,
+      callsThisWeek,
+      answeredCalls,
+      conversionRate: Math.round((answeredCalls / Math.max(callsThisWeek, 1)) * 100),
+      activeClients,
+      botIsActive,
+      lastProspection: botStatus?.lastProspection ? botStatus.lastProspection.toISOString() : null,
+      lastCall: botStatus?.lastCall ? botStatus.lastCall.toISOString() : null,
+      servicesStatus: {
+        prospection: serviceState(botIsActive),
+        calling:     serviceState(botIsActive),
+        reminders:   serviceState(botIsActive),
+        analytics:   serviceState(botIsActive),
+        dailyReset:  serviceState(botIsActive),
       },
     };
   }
