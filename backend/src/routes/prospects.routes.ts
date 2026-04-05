@@ -19,7 +19,7 @@ router.delete('/:id', (req, res) => prospectsController.delete(req, res));
 // POST /api/prospects/:id/call — trigger immediate VAPI call for a specific prospect
 router.post('/:id/call', async (req: Request, res: Response) => {
   try {
-    const prospect = await prisma.prospect.findUnique({ where: { id: req.params.id } });
+    const prospect = await prisma.prospect.findUnique({ where: { id: req.params.id as string } });
     if (!prospect) {
       res.status(404).json({ error: 'Prospect not found' });
       return;

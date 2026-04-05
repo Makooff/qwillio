@@ -94,7 +94,7 @@ router.get('/prospects', (req, res) => prospectsController.list(req, res));
 /** POST /api/admin/prospects/:id/call — trigger immediate VAPI call for a prospect */
 router.post('/prospects/:id/call', async (req: Request, res: Response) => {
   try {
-    const prospect = await prisma.prospect.findUnique({ where: { id: req.params.id } });
+    const prospect = await prisma.prospect.findUnique({ where: { id: req.params.id as string } });
     if (!prospect) {
       res.status(404).json({ error: 'Prospect not found' });
       return;
