@@ -17,7 +17,7 @@ function formatTime(iso: string | null | undefined) {
 
 function StatusDot({ active }: { active: boolean }) {
   return (
-    <span className={`inline-block w-2.5 h-2.5 rounded-full ${active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+    <span className={`inline-block w-2 h-2 rounded-full ${active ? 'bg-green-400 animate-pulse' : 'bg-gray-300'}`} />
   );
 }
 
@@ -152,9 +152,15 @@ export default function Dashboard() {
               isActive ? 'bg-emerald-500 animate-pulse shadow-lg shadow-emerald-200' : 'bg-gray-400'
             }`} />
             <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                Bot Control Panel
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-900">Bot Control Panel</h2>
+                {isActive && (
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold uppercase tracking-wide">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                    LIVE
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-500">
                 {isActive ? 'Pipeline actif · Tous les crons sont en cours' : 'Bot arrêté · Aucun cron actif'}
               </p>

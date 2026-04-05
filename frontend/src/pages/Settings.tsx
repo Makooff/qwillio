@@ -114,21 +114,9 @@ export default function Settings() {
       {/* Manual Triggers */}
       <div className="card">
         <h2 className="text-lg font-semibold mb-6 flex items-center gap-2"><Zap className="w-5 h-5" /> Actions Manuelles (Test)</h2>
-        <p className="text-sm text-gray-500 mb-4">Déclenchez manuellement les actions du bot pour tester le fonctionnement.</p>
+        <p className="text-sm text-gray-500 mb-4">Déclenchez manuellement les actions du bot pour tester. La prospection est gérée automatiquement par Apify (automatique).</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={() => triggerAction('prospection')}
-            disabled={triggerLoading === 'prospection'}
-            className="p-4 border-2 border-dashed border-gray-200 rounded-xl hover:border-primary-300 hover:bg-primary-50 transition-all text-left"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xl">🔍</span>
-              <span className="font-semibold">{triggerLoading === 'prospection' ? 'En cours...' : 'Prospection'}</span>
-            </div>
-            <p className="text-xs text-gray-500">Rechercher des nouveaux prospects sur Google Places</p>
-          </button>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
             onClick={() => triggerAction('call')}
             disabled={triggerLoading === 'call'}
