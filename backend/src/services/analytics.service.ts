@@ -89,6 +89,59 @@ export class AnalyticsService {
     };
   }
 
+  async getDashboardV2() {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      totalProspects,
+      prospectsReadyToCall,
+      prospectsThisWeek,
+      callsToday,
+      callsThisWeek,
+      answeredCalls,
+      totalCalls,
+      activeClients,
+      botStatus,
+    ] = await Promise.all([
+      prisma.prospect.count(),
+      prisma.prospect.count({
+        where: {
+          status: 'new',
+          eligibleForCall: true,
+          isMobile: false,
+          priorityScore: { gte: 10 },
+          callAttempts: { lt: 3 },
+          phone: { not: null },
+        },
+      }),
+      prisma.prospect.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      prisma.call.count({ where: { createdAt: { gte: today } } }),
+      prisma.call.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      prisma.call.count({ where: { status: 'completed' } }),
+      prisma.call.count(),
+      prisma.client.count({ where: { subscriptionStatus: 'active' } }),
+      prisma.botStatus.findFirst(),
+    ]);
+
+    const conversionRate = totalCalls > 0 ? Math.round((answeredCalls / totalCalls) * 100) : 0;
+
+    return {
+      totalProspects,
+      prospectsReadyToCall,
+      prospectsThisWeek,
+      callsToday,
+      callsThisWeek,
+      answeredCalls,
+      conversionRate,
+      activeClients,
+      botIsActive: botStatus?.isActive ?? false,
+      lastProspection: botStatus?.lastProspection?.toISOString() ?? null,
+      callsQuotaDaily: botStatus?.callsQuotaDaily ?? 50,
+    };
+  }
+
   async getRevenueHistory(months: number = 6) {
     const results = [];
     const now = new Date();

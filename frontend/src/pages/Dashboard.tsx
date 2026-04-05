@@ -1,271 +1,336 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 
-interface BotStatus {
-  isActive: boolean;
-  callsToday?: number;
-  callsQuotaDaily?: number;
-  [key: string]: any;
-}
+// ── Types ──────────────────────────────────────────────────────────────────
 
-interface DashboardStats {
-  prospects: { total: number; newThisMonth: number; byStatus: Record<string, number> };
-  clients: { totalActive: number; newThisMonth: number; byPlan: Record<string, number> };
-  calls: { today: number; thisWeek: number; successRate: number };
-  conversion: { prospectToClient: number; quoteAcceptanceRate: number };
-  revenue: { mrr: number; setupFeesThisMonth: number; totalThisMonth: number };
-  bot?: { isActive: boolean; callsToday: number; callsQuota: number };
-}
+type ServiceStatus = 'running' | 'idle' | 'inactive';
 
-interface ServiceStatus {
-  name: string;
-  active: boolean;
-  key: string;
+interface DashboardData {
+  totalProspects: number;
+  prospectsReadyToCall: number;
+  prospectsThisWeek: number;
+  callsToday: number;
+  callsThisWeek: number;
+  answeredCalls: number;
+  conversionRate: number;
+  activeClients: number;
+  botIsActive: boolean;
+  lastProspection: string | null;
+  callsQuotaDaily: number;
+  servicesStatus: {
+    prospection: ServiceStatus;
+    calling: ServiceStatus;
+    reminders: ServiceStatus;
+    analytics: ServiceStatus;
+    dailyReset: ServiceStatus;
+  };
 }
 
 interface ActivityItem {
-  id: string | number;
-  type: string;
-  description: string;
-  timestamp: string;
+  id?: string | number;
+  type?: string;
+  description?: string;
+  message?: string;
+  event?: string;
+  timestamp?: string;
+  date?: string;
   status?: string;
-  [key: string]: any;
 }
 
+// ── Sub-components ─────────────────────────────────────────────────────────
+
 const PulseDot: React.FC<{ active: boolean }> = ({ active }) => (
-  <span className="relative flex" style={{ width: '12px', height: '12px', flexShrink: 0 }}>
+  <span style={{ position: 'relative', display: 'inline-flex', width: 12, height: 12, flexShrink: 0 }}>
     {active && (
-      <span
-        className="animate-ping absolute inline-flex rounded-full opacity-75"
-        style={{ backgroundColor: '#7C3AED', width: '12px', height: '12px' }}
-      />
+      <span style={{
+        position: 'absolute', inset: 0, borderRadius: '50%',
+        backgroundColor: '#7C3AED', opacity: 0.75,
+        animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite',
+      }} />
     )}
-    <span
-      className="relative inline-flex rounded-full"
-      style={{
-        backgroundColor: active ? '#7C3AED' : '#D1D5DB',
-        width: '12px',
-        height: '12px',
-      }}
-    />
+    <span style={{
+      position: 'relative', borderRadius: '50%', width: 12, height: 12,
+      backgroundColor: active ? '#7C3AED' : '#D1D5DB',
+    }} />
   </span>
 );
 
+const ServiceBadge: React.FC<{ status: ServiceStatus }> = ({ status }) => {
+  const cfg = {
+    running: { color: '#16A34A', bg: '#DCFCE7', label: 'Actif' },
+    idle:    { color: '#6B7280', bg: '#F3F4F6', label: 'En attente' },
+    inactive: { color: '#DC2626', bg: '#FEE2E2', label: 'Inactif' },
+  }[status];
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
+      color: cfg.color, backgroundColor: cfg.bg,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: cfg.color, display: 'inline-block' }} />
+      {cfg.label}
+    </span>
+  );
+};
+
+const SERVICE_CONFIG = [
+  { key: 'prospection' as const, name: 'Prospection', icon: '🔍' },
+  { key: 'calling' as const, name: 'Calling', icon: '📞' },
+  { key: 'reminders' as const, name: 'Reminders', icon: '📧' },
+  { key: 'analytics' as const, name: 'Analytics', icon: '📊' },
+  { key: 'dailyReset' as const, name: 'Daily Reset', icon: '🔄' },
+];
+
+// ── Main component ─────────────────────────────────────────────────────────
+
 export default function Dashboard() {
-  const [botStatus, setBotStatus] = useState<BotStatus | null>(null);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [services, setServices] = useState<ServiceStatus[]>([]);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadAll() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [botRes, statsRes, actRes] = await Promise.allSettled([
-          api.get('/bot/status'),
-          api.get('/admin/stats'),
-          api.get('/admin/activity-feed'),
-        ]);
-
-        if (botRes.status === 'fulfilled') setBotStatus(botRes.value.data);
-        else setBotStatus({ isActive: false });
-
-        if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
-        else setStats(null);
-
-        if (actRes.status === 'fulfilled') {
-          const data = actRes.value.data;
-          setActivity(Array.isArray(data) ? data : (data as any).items ?? []);
-        } else setActivity([]);
-
-        // Services from bot config
-        try {
-          const cfgRes = await api.get('/bot/config');
-          const cfg = cfgRes.data;
-          setServices([
-            { key: 'vapi', name: 'VAPI', active: !!(cfg?.vapiApiKey || cfg?.vapi_api_key || cfg?.vapiAssistantId) },
-            { key: 'twilio', name: 'Twilio', active: !!(cfg?.twilioAccountSid || cfg?.twilio_account_sid) },
-            { key: 'apify', name: 'Apify', active: !!(cfg?.apifyApiKey || cfg?.apify_api_key || cfg?.apifyActorId) },
-            { key: 'discord', name: 'Discord', active: !!(cfg?.discordWebhook || cfg?.discord_webhook) },
-          ]);
-        } catch {
-          setServices([
-            { key: 'vapi', name: 'VAPI', active: false },
-            { key: 'twilio', name: 'Twilio', active: false },
-            { key: 'apify', name: 'Apify', active: false },
-            { key: 'discord', name: 'Discord', active: false },
-          ]);
-        }
-      } catch {
-        setError('Erreur de chargement des données');
-      } finally {
-        setLoading(false);
-      }
-    }
     loadAll();
     const interval = setInterval(loadAll, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  const isActive = botStatus?.isActive ?? false;
-  const callsToday = stats?.calls?.today ?? botStatus?.callsToday ?? 0;
-  const conversions = stats ? Math.round(stats.conversion?.prospectToClient ?? 0) : 0;
+  async function loadAll() {
+    setError(null);
+    try {
+      const [statsRes, actRes] = await Promise.allSettled([
+        api.get('/admin/stats'),
+        api.get('/admin/activity-feed'),
+      ]);
 
-  const kpiTiles = [
-    { label: 'Prospects total', value: stats?.prospects?.total ?? 0, icon: '👥' },
-    { label: "Appels aujourd'hui", value: callsToday, icon: '📞' },
-    { label: 'Conversions %', value: `${conversions}%`, icon: '✅' },
-    { label: 'Clients actifs', value: stats?.clients?.totalActive ?? 0, icon: '🏢' },
+      if (statsRes.status === 'fulfilled') {
+        setData(statsRes.value.data);
+      } else {
+        setError('Erreur de chargement des statistiques');
+      }
+
+      if (actRes.status === 'fulfilled') {
+        const raw = actRes.value.data;
+        setActivity(Array.isArray(raw) ? raw : (raw?.items ?? []));
+      }
+    } catch {
+      setError('Erreur de connexion au serveur');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const isActive = data?.botIsActive ?? false;
+  const activeServiceCount = data
+    ? Object.values(data.servicesStatus).filter((s) => s === 'running').length
+    : 0;
+
+  const kpis = [
+    {
+      icon: '📋',
+      label: 'Total Prospects',
+      value: data?.totalProspects ?? 0,
+      sub: data?.prospectsThisWeek
+        ? `+${data.prospectsThisWeek} cette semaine`
+        : 'cette semaine: aucun',
+      highlight: false,
+    },
+    {
+      icon: '🎯',
+      label: 'Prêts à appeler',
+      value: data?.prospectsReadyToCall ?? 0,
+      sub: data?.prospectsReadyToCall
+        ? `${data.prospectsReadyToCall} en file d'attente`
+        : 'aucun en attente',
+      highlight: true,
+    },
+    {
+      icon: '📈',
+      label: "Appels aujourd'hui",
+      value: data?.callsToday ?? 0,
+      sub: `quota ${data?.callsQuotaDaily ?? 50}/jour`,
+      highlight: false,
+    },
+    {
+      icon: '✅',
+      label: 'Taux réponse',
+      value: `${data?.conversionRate ?? 0}%`,
+      sub: `${data?.answeredCalls ?? 0} appels répondus`,
+      highlight: false,
+    },
   ];
 
   return (
     <div style={{ backgroundColor: '#F9FAFB', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <style>{`
+        @keyframes ping {
+          75%, 100% { transform: scale(2); opacity: 0; }
+        }
+      `}</style>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Header */}
-        <div style={{ marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#111827', margin: 0 }}>Dashboard</h1>
-          <p style={{ color: '#6B7280', marginTop: '4px', fontSize: '14px' }}>Vue d&apos;ensemble de Qwillio</p>
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', margin: 0 }}>Dashboard</h1>
+          <p style={{ color: '#6B7280', marginTop: 4, fontSize: 14 }}>Vue d&apos;ensemble de Qwillio</p>
         </div>
 
         {error && (
-          <div style={{ backgroundColor: '#FEE2E2', border: '1px solid #FECACA', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: '#DC2626', fontSize: '14px' }}>
+          <div style={{ background: '#FEE2E2', border: '1px solid #FECACA', borderRadius: 8, padding: '12px 16px', marginBottom: 16, color: '#DC2626', fontSize: 14 }}>
             {error}
           </div>
         )}
 
-        {/* Bot Status Banner */}
+        {/* ── Section 1: Status Banner ────────────────────────── */}
         <div style={{
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          padding: '16px 20px',
-          marginBottom: '20px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          background: isActive
+            ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+            : 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+          borderRadius: 14,
+          padding: '18px 24px',
+          marginBottom: 20,
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          border: `1px solid ${isActive ? '#DDD6FE' : '#E5E7EB'}`,
+          justifyContent: 'space-between',
+          boxShadow: isActive ? '0 4px 20px rgba(5,150,105,0.25)' : '0 4px 12px rgba(220,38,38,0.2)',
         }}>
-          <PulseDot active={isActive} />
-          <div>
-            <span style={{ fontWeight: 600, color: '#111827', fontSize: '15px' }}>Bot Qwillio — </span>
-            <span style={{ fontWeight: 700, color: isActive ? '#7C3AED' : '#EF4444', fontSize: '15px' }}>
-              {loading ? '...' : isActive ? 'Actif' : 'Inactif'}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 20,
+            }}>
+              {isActive ? '🤖' : '💤'}
+            </div>
+            <div>
+              <div style={{ color: '#fff', fontWeight: 700, fontSize: 17 }}>
+                {loading ? 'Chargement…' : isActive ? 'Bot Actif · LIVE' : 'Bot Arrêté'}
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 }}>
+                {isActive
+                  ? `${activeServiceCount} service${activeServiceCount > 1 ? 's' : ''} en cours d'exécution`
+                  : 'Démarrez le bot pour lancer l\'automatisation'}
+              </div>
+            </div>
           </div>
-          {botStatus?.callsToday != null && (
-            <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#9CA3AF', backgroundColor: '#F3F4F6', padding: '2px 8px', borderRadius: '999px' }}>
-              {botStatus.callsToday} appels aujourd&apos;hui
-            </span>
+          {data?.lastProspection && (
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Dernière prospection</div>
+              <div style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>
+                {new Date(data.lastProspection).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
           )}
         </div>
 
-        {/* KPI Tiles */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
-          {kpiTiles.map((tile) => (
-            <div key={tile.label} style={{
-              backgroundColor: '#fff',
-              borderRadius: '12px',
-              padding: '20px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-              border: '1px solid #E5E7EB',
+        {/* ── Section 2: KPI Grid ─────────────────────────────── */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+          gap: 16,
+          marginBottom: 20,
+        }}>
+          {kpis.map((kpi) => (
+            <div key={kpi.label} style={{
+              backgroundColor: kpi.highlight ? '#EDE9FE' : '#fff',
+              borderRadius: 12,
+              padding: '20px 22px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+              border: kpi.highlight ? '1px solid #DDD6FE' : '1px solid #E5E7EB',
             }}>
-              <div style={{ fontSize: '24px', marginBottom: '8px' }}>{tile.icon}</div>
-              <div style={{ fontSize: '32px', fontWeight: 700, color: '#7C3AED', lineHeight: 1 }}>
-                {loading ? '—' : tile.value}
+              <div style={{ fontSize: 22, marginBottom: 10 }}>{kpi.icon}</div>
+              <div style={{
+                fontSize: 34, fontWeight: 800, lineHeight: 1,
+                color: kpi.highlight ? '#7C3AED' : '#111827',
+              }}>
+                {loading ? '—' : kpi.value}
               </div>
-              <div style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>{tile.label}</div>
+              <div style={{ fontSize: 13, color: kpi.highlight ? '#6D28D9' : '#374151', marginTop: 5, fontWeight: 500 }}>
+                {kpi.label}
+              </div>
+              <div style={{ fontSize: 11, color: kpi.highlight ? '#8B5CF6' : '#9CA3AF', marginTop: 3 }}>
+                {kpi.sub}
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Services Status */}
+        {/* ── Section 3: Services Grid ────────────────────────── */}
         <div style={{
           backgroundColor: '#fff',
-          borderRadius: '12px',
-          padding: '20px',
-          marginBottom: '20px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          borderRadius: 12,
+          padding: 20,
+          marginBottom: 20,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
           border: '1px solid #E5E7EB',
         }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#111827', marginBottom: '16px', marginTop: 0 }}>Services</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
-            {(services.length > 0 ? services : [
-              { key: 'vapi', name: 'VAPI', active: false },
-              { key: 'twilio', name: 'Twilio', active: false },
-              { key: 'apify', name: 'Apify', active: false },
-              { key: 'discord', name: 'Discord', active: false },
-            ]).map((svc) => (
-              <div key={svc.key} style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '12px 14px',
-                backgroundColor: svc.active ? '#F5F3FF' : '#F9FAFB',
-                borderRadius: '8px',
-                border: `1px solid ${svc.active ? '#DDD6FE' : '#E5E7EB'}`,
-              }}>
-                <PulseDot active={svc.active} />
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '14px', color: '#111827' }}>{svc.name}</div>
-                  <div style={{ fontSize: '11px', color: svc.active ? '#7C3AED' : '#9CA3AF' }}>
-                    {svc.active ? 'Connecté' : 'Inactif'}
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: '#111827', marginTop: 0, marginBottom: 16 }}>
+            Services automatiques
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+            {SERVICE_CONFIG.map((svc) => {
+              const status: ServiceStatus = loading
+                ? 'inactive'
+                : (data?.servicesStatus?.[svc.key] ?? 'inactive');
+              return (
+                <div key={svc.key} style={{
+                  padding: '12px 14px',
+                  borderRadius: 10,
+                  backgroundColor: status === 'running' ? '#F0FDF4' : status === 'idle' ? '#FAFAFA' : '#FFF5F5',
+                  border: `1px solid ${status === 'running' ? '#BBF7D0' : status === 'idle' ? '#E5E7EB' : '#FEE2E2'}`,
+                  display: 'flex', flexDirection: 'column', gap: 8,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 18 }}>{svc.icon}</span>
+                    <ServiceBadge status={status} />
                   </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{svc.name}</div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* Activity Feed */}
+        {/* ── Section 4: Activity Feed ─────────────────────────── */}
         <div style={{
           backgroundColor: '#fff',
-          borderRadius: '12px',
-          padding: '20px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          borderRadius: 12,
+          padding: 20,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
           border: '1px solid #E5E7EB',
         }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#111827', marginBottom: '16px', marginTop: 0 }}>Activité récente</h2>
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: '#111827', marginTop: 0, marginBottom: 16 }}>
+            Activité récente
+          </h2>
           {loading ? (
-            <div style={{ color: '#9CA3AF', fontSize: '14px' }}>Chargement...</div>
+            <div style={{ color: '#9CA3AF', fontSize: 14 }}>Chargement…</div>
           ) : activity.length === 0 ? (
-            <div style={{ color: '#9CA3AF', fontSize: '14px', textAlign: 'center', padding: '24px 0' }}>
-              Aucune activité récente
+            <div style={{ color: '#9CA3AF', fontSize: 14, textAlign: 'center', padding: '28px 0' }}>
+              Aucune activité — démarrez le bot pour commencer
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {activity.slice(0, 20).map((item, idx) => (
                 <div key={item.id ?? idx} style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  backgroundColor: '#F9FAFB',
-                  fontSize: '13px',
+                  display: 'flex', alignItems: 'flex-start', gap: 12,
+                  padding: '10px 12px', borderRadius: 8, backgroundColor: '#F9FAFB', fontSize: 13,
                 }}>
                   <div style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
+                    width: 8, height: 8, borderRadius: '50%', marginTop: 4, flexShrink: 0,
                     backgroundColor: item.status === 'success' ? '#10B981' : item.status === 'error' ? '#EF4444' : '#7C3AED',
-                    marginTop: '4px',
-                    flexShrink: 0,
                   }} />
-                  <div style={{ flex: 1 }}>
-                    <span style={{ color: '#374151' }}>{item.description ?? item.message ?? item.event ?? String(item)}</span>
+                  <div style={{ flex: 1, color: '#374151' }}>
+                    {item.description ?? item.message ?? item.event ?? '—'}
                     {item.type && (
-                      <span style={{ marginLeft: '8px', fontSize: '11px', color: '#9CA3AF', backgroundColor: '#E5E7EB', padding: '1px 6px', borderRadius: '999px' }}>
+                      <span style={{ marginLeft: 8, fontSize: 11, color: '#9CA3AF', backgroundColor: '#E5E7EB', padding: '1px 6px', borderRadius: 999 }}>
                         {item.type}
                       </span>
                     )}
                   </div>
-                  <div style={{ color: '#9CA3AF', fontSize: '11px', whiteSpace: 'nowrap' }}>
-                    {item.timestamp || item.date
-                      ? new Date(item.timestamp ?? item.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                  <div style={{ color: '#9CA3AF', fontSize: 11, whiteSpace: 'nowrap' }}>
+                    {(item.timestamp || item.date)
+                      ? new Date((item.timestamp ?? item.date)!).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
                       : ''}
                   </div>
                 </div>

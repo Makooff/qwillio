@@ -389,20 +389,30 @@ export default function Settings() {
         {/* Cron Status */}
         {botStatus?.crons && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-5">
-            {Object.entries(botStatus.crons).slice(0, 5).map(([name, status]) => (
-              <div
-                key={name}
-                className={`p-3 rounded-lg text-center ${
-                  status === 'active'
-                    ? 'bg-emerald-50 border border-emerald-200'
-                    : 'bg-gray-50 border border-gray-200'
-                }`}
-              >
-                <div className={`w-2 h-2 rounded-full mx-auto mb-1.5 ${status === 'active' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                <p className="text-xs font-medium capitalize text-gray-700 truncate">{name}</p>
-                <p className="text-xs text-gray-400">{status}</p>
-              </div>
-            ))}
+            {Object.entries(botStatus.crons).slice(0, 5).map(([name, status]) => {
+              const isRunning = status === 'active';
+              const isIdle = status === 'idle';
+              return (
+                <div
+                  key={name}
+                  className={`p-3 rounded-lg text-center ${
+                    isRunning
+                      ? 'bg-emerald-50 border border-emerald-200'
+                      : isIdle
+                      ? 'bg-violet-50 border border-violet-200'
+                      : 'bg-gray-50 border border-gray-200'
+                  }`}
+                >
+                  <div className={`w-2 h-2 rounded-full mx-auto mb-1.5 ${
+                    isRunning ? 'bg-emerald-500' : isIdle ? 'bg-violet-400' : 'bg-gray-400'
+                  }`} />
+                  <p className="text-xs font-medium capitalize text-gray-700 truncate">{name}</p>
+                  <p className={`text-xs ${isRunning ? 'text-emerald-600' : isIdle ? 'text-violet-500' : 'text-gray-400'}`}>
+                    {isRunning ? 'Actif' : isIdle ? 'En attente' : 'Inactif'}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         )}
 

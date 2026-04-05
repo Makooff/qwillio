@@ -527,34 +527,34 @@ class BotLoop {
   }
 
   async stop() {
-    this.prospectionJob?.stop();
-    this.callingJob?.stop();
-    this.remindersJob?.stop();
-    this.analyticsJob?.stop();
-    this.dailyResetJob?.stop();
-    this.trialCheckJob?.stop();
-    this.onboardingRetryJob?.stop();
-    this.bookingRemindersJob?.stop();
-    this.clientAnalyticsJob?.stop();
-    this.optimizationJob?.stop();
-    this.phoneValidationJob?.stop();
-    this.nicheLearningJob?.stop();
-    this.staleCallCleanupJob?.stop();
-    this.keepAliveJob?.stop();
-    this.agentPaymentsJob?.stop();
-    this.agentAccountingJob?.stop();
-    this.agentInventoryAlertJob?.stop();
-    this.agentInventoryForecastJob?.stop();
-    this.agentEmailSyncJob?.stop();
-    this.agentEmailFollowUpJob?.stop();
+    this.prospectionJob?.stop(); this.prospectionJob = null;
+    this.callingJob?.stop(); this.callingJob = null;
+    this.remindersJob?.stop(); this.remindersJob = null;
+    this.analyticsJob?.stop(); this.analyticsJob = null;
+    this.dailyResetJob?.stop(); this.dailyResetJob = null;
+    this.trialCheckJob?.stop(); this.trialCheckJob = null;
+    this.onboardingRetryJob?.stop(); this.onboardingRetryJob = null;
+    this.bookingRemindersJob?.stop(); this.bookingRemindersJob = null;
+    this.clientAnalyticsJob?.stop(); this.clientAnalyticsJob = null;
+    this.optimizationJob?.stop(); this.optimizationJob = null;
+    this.phoneValidationJob?.stop(); this.phoneValidationJob = null;
+    this.nicheLearningJob?.stop(); this.nicheLearningJob = null;
+    this.staleCallCleanupJob?.stop(); this.staleCallCleanupJob = null;
+    this.keepAliveJob?.stop(); this.keepAliveJob = null;
+    this.agentPaymentsJob?.stop(); this.agentPaymentsJob = null;
+    this.agentAccountingJob?.stop(); this.agentAccountingJob = null;
+    this.agentInventoryAlertJob?.stop(); this.agentInventoryAlertJob = null;
+    this.agentInventoryForecastJob?.stop(); this.agentInventoryForecastJob = null;
+    this.agentEmailSyncJob?.stop(); this.agentEmailSyncJob = null;
+    this.agentEmailFollowUpJob?.stop(); this.agentEmailFollowUpJob = null;
     // Prospecting engine
-    this.apifyScrapingJob?.stop();
-    this.outboundEngineJob?.stop();
-    this.abTestingJob?.stop();
-    this.bestTimeJob?.stop();
-    this.scriptLearningJob?.stop();
-    this.followUpJob?.stop();
-    this.rescoreJob?.stop();
+    this.apifyScrapingJob?.stop(); this.apifyScrapingJob = null;
+    this.outboundEngineJob?.stop(); this.outboundEngineJob = null;
+    this.abTestingJob?.stop(); this.abTestingJob = null;
+    this.bestTimeJob?.stop(); this.bestTimeJob = null;
+    this.scriptLearningJob?.stop(); this.scriptLearningJob = null;
+    this.followUpJob?.stop(); this.followUpJob = null;
+    this.rescoreJob?.stop(); this.rescoreJob = null;
 
     const botStatus = await prisma.botStatus.findFirst();
     if (botStatus) {
@@ -583,9 +583,16 @@ class BotLoop {
       where: { sentAt: { gte: startOfDay } },
     }).catch(() => 0);
 
+    const isActive = botStatus?.isActive || false;
+    // When bot is active but a cron job object is null (e.g. server restart without re-calling start()),
+    // we show 'idle' — the cron is scheduled but hasn't fired yet.
+    // 'inactive' is only used when the bot is fully stopped.
+    const cronState = (job: cron.ScheduledTask | null) =>
+      job ? 'active' : (isActive ? 'idle' : 'inactive');
+
     return {
-      isRunning: botStatus?.isActive || false,
-      isActive: botStatus?.isActive || false,
+      isRunning: isActive,
+      isActive,
       callsToday: botStatus?.callsToday || 0,
       callsQuotaDaily: botStatus?.callsQuotaDaily || env.CALLS_PER_DAY,
       prospectsFound,
@@ -599,32 +606,32 @@ class BotLoop {
       lastRunCalling: this.lastRunCalling?.toISOString() || null,
       lastRunFollowUp: this.lastRunFollowUp?.toISOString() || null,
       crons: {
-        prospection: this.prospectionJob ? 'active' : 'inactive',
-        calling: this.callingJob ? 'active' : 'inactive',
-        reminders: this.remindersJob ? 'active' : 'inactive',
-        analytics: this.analyticsJob ? 'active' : 'inactive',
-        dailyReset: this.dailyResetJob ? 'active' : 'inactive',
-        trialCheck: this.trialCheckJob ? 'active' : 'inactive',
-        onboardingRetry: this.onboardingRetryJob ? 'active' : 'inactive',
-        bookingReminders: this.bookingRemindersJob ? 'active' : 'inactive',
-        clientAnalytics: this.clientAnalyticsJob ? 'active' : 'inactive',
-        optimization: this.optimizationJob ? 'active' : 'inactive',
-        phoneValidation: this.phoneValidationJob ? 'active' : 'inactive',
-        nicheLearning: this.nicheLearningJob ? 'active' : 'inactive',
-        agentPayments: this.agentPaymentsJob ? 'active' : 'inactive',
-        agentAccounting: this.agentAccountingJob ? 'active' : 'inactive',
-        agentInventoryAlerts: this.agentInventoryAlertJob ? 'active' : 'inactive',
-        agentInventoryForecast: this.agentInventoryForecastJob ? 'active' : 'inactive',
-        agentEmailSync: this.agentEmailSyncJob ? 'active' : 'inactive',
-        agentEmailFollowUp: this.agentEmailFollowUpJob ? 'active' : 'inactive',
+        prospection: cronState(this.prospectionJob),
+        calling: cronState(this.callingJob),
+        reminders: cronState(this.remindersJob),
+        analytics: cronState(this.analyticsJob),
+        dailyReset: cronState(this.dailyResetJob),
+        trialCheck: cronState(this.trialCheckJob),
+        onboardingRetry: cronState(this.onboardingRetryJob),
+        bookingReminders: cronState(this.bookingRemindersJob),
+        clientAnalytics: cronState(this.clientAnalyticsJob),
+        optimization: cronState(this.optimizationJob),
+        phoneValidation: cronState(this.phoneValidationJob),
+        nicheLearning: cronState(this.nicheLearningJob),
+        agentPayments: cronState(this.agentPaymentsJob),
+        agentAccounting: cronState(this.agentAccountingJob),
+        agentInventoryAlerts: cronState(this.agentInventoryAlertJob),
+        agentInventoryForecast: cronState(this.agentInventoryForecastJob),
+        agentEmailSync: cronState(this.agentEmailSyncJob),
+        agentEmailFollowUp: cronState(this.agentEmailFollowUpJob),
         // Prospecting engine
-        apifyScraping: this.apifyScrapingJob ? 'active' : 'inactive',
-        outboundEngine: this.outboundEngineJob ? 'active' : 'inactive',
-        abTesting: this.abTestingJob ? 'active' : 'inactive',
-        bestTimeLearning: this.bestTimeJob ? 'active' : 'inactive',
-        scriptLearning: this.scriptLearningJob ? 'active' : 'inactive',
-        followUpSequences: this.followUpJob ? 'active' : 'inactive',
-        rescoreProspects: this.rescoreJob ? 'active' : 'inactive',
+        apifyScraping: cronState(this.apifyScrapingJob),
+        outboundEngine: cronState(this.outboundEngineJob),
+        abTesting: cronState(this.abTestingJob),
+        bestTimeLearning: cronState(this.bestTimeJob),
+        scriptLearning: cronState(this.scriptLearningJob),
+        followUpSequences: cronState(this.followUpJob),
+        rescoreProspects: cronState(this.rescoreJob),
       },
     };
   }
