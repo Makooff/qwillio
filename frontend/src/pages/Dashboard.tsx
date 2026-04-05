@@ -17,7 +17,10 @@ function formatTime(iso: string | null | undefined) {
 
 function StatusDot({ active }: { active: boolean }) {
   return (
-    <span className={`inline-block w-2 h-2 rounded-full ${active ? 'bg-green-400 animate-pulse' : 'bg-gray-300'}`} />
+    <span
+      className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${active ? 'animate-pulse' : ''}`}
+      style={{ background: active ? '#10B981' : 'rgba(255,255,255,0.2)' }}
+    />
   );
 }
 
@@ -34,7 +37,6 @@ export default function Dashboard() {
   });
 
   const fetchData = useCallback(async () => {
-    // Each call is independent — one failure should not crash the page
     const [statsRes, botRes, revenueRes, activityRes] = await Promise.allSettled([
       api.get('/dashboard/stats'),
       api.get('/bot/status'),
@@ -80,22 +82,23 @@ export default function Dashboard() {
       const { data } = await api.post(`/bot/run/${key}`);
       const msg = data.message || 'Terminé';
       setTriggerFeedback(prev => ({ ...prev, [key]: msg }));
-      // Refresh bot status to update timestamps
       const { data: newStatus } = await api.get('/bot/status');
       setBotStatus(newStatus);
     } catch (error: any) {
       setTriggerFeedback(prev => ({ ...prev, [key]: `Erreur: ${error?.response?.data?.error || error.message}` }));
     } finally {
       setTriggering(null);
-      // Clear feedback after 5s
       setTimeout(() => setTriggerFeedback(prev => ({ ...prev, [key]: null })), 5000);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500" />
+      <div className="flex items-center justify-center h-96" style={{ background: '#0A0A0F' }}>
+        <div
+          className="w-12 h-12 rounded-full border-2 border-transparent animate-spin"
+          style={{ borderTopColor: '#7C3AED', borderRightColor: '#06B6D4' }}
+        />
       </div>
     );
   }
@@ -106,6 +109,8 @@ export default function Dashboard() {
     {
       key: 'prospecting' as TriggerKey,
       icon: <Search className="w-4 h-4" />,
+      iconColor: '#06B6D4',
+      iconBg: 'rgba(6,182,212,0.15)',
       label: 'Prospection (Apify)',
       cronKey: 'apifyScraping',
       lastRun: botStatus?.lastRunProspecting ?? botStatus?.lastProspection,
@@ -114,6 +119,8 @@ export default function Dashboard() {
     {
       key: 'scoring' as TriggerKey,
       icon: <Star className="w-4 h-4" />,
+      iconColor: '#F59E0B',
+      iconBg: 'rgba(245,158,11,0.15)',
       label: 'Scoring des leads',
       cronKey: 'rescoreProspects',
       lastRun: botStatus?.lastRunScoring,
@@ -122,6 +129,8 @@ export default function Dashboard() {
     {
       key: 'calling' as TriggerKey,
       icon: <PhoneCall className="w-4 h-4" />,
+      iconColor: '#7C3AED',
+      iconBg: 'rgba(124,58,237,0.15)',
       label: 'Appels sortants (VAPI)',
       cronKey: 'outboundEngine',
       lastRun: botStatus?.lastRunCalling ?? botStatus?.lastCall,
@@ -130,6 +139,8 @@ export default function Dashboard() {
     {
       key: 'followup' as TriggerKey,
       icon: <Mail className="w-4 h-4" />,
+      iconColor: '#10B981',
+      iconBg: 'rgba(16,185,129,0.15)',
       label: 'Séquences de suivi',
       cronKey: 'followUpSequences',
       lastRun: botStatus?.lastRunFollowUp,
@@ -138,233 +149,348 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* ── Bot Control Panel ──────────────────────────────── */}
-      <div className={`rounded-2xl border-2 p-6 transition-all ${
-        isActive
-          ? 'bg-gradient-to-br from-violet-50 to-purple-50 border-violet-200'
-          : 'bg-gray-50 border-gray-200'
-      }`}>
-        {/* Header row */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className={`w-4 h-4 rounded-full transition-all ${
-              isActive ? 'bg-emerald-500 animate-pulse shadow-lg shadow-emerald-200' : 'bg-gray-400'
-            }`} />
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-gray-900">Bot Control Panel</h2>
-                {isActive && (
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold uppercase tracking-wide">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                    LIVE
-                  </span>
+    <div className="space-y-5 p-4 md:p-6" style={{ background: '#0A0A0F', minHeight: '100vh' }}>
+
+      {/* ── Bot Control Hero ──────────────────────────────── */}
+      <div
+        className="rounded-2xl p-6 relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(6,182,212,0.08) 100%)',
+          border: '1px solid rgba(255,255,255,0.05)',
+        }}
+      >
+        {/* Ambient glow */}
+        <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full pointer-events-none"
+          style={{ background: 'rgba(124,58,237,0.12)', filter: 'blur(48px)' }} />
+        <div className="absolute -bottom-12 -right-12 w-48 h-48 rounded-full pointer-events-none"
+          style={{ background: 'rgba(6,182,212,0.08)', filter: 'blur(48px)' }} />
+
+        <div className="relative">
+          {/* Header row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4">
+              {/* Pill toggle */}
+              <button
+                onClick={toggleBot}
+                disabled={toggling}
+                className="relative flex items-center transition-all duration-300 focus:outline-none disabled:opacity-60"
+                style={{ width: 64, height: 32 }}
+                aria-label="Toggle bot"
+              >
+                <div
+                  className="w-full h-full rounded-full transition-all duration-300"
+                  style={{
+                    background: isActive
+                      ? 'linear-gradient(90deg, #7C3AED, #06B6D4)'
+                      : 'rgba(255,255,255,0.08)',
+                    boxShadow: isActive ? '0 0 20px rgba(124,58,237,0.45)' : 'none',
+                  }}
+                />
+                {toggling ? (
+                  <Loader2
+                    className="absolute w-4 h-4 animate-spin text-white"
+                    style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
+                  />
+                ) : (
+                  <div
+                    className="absolute w-6 h-6 rounded-full bg-white shadow-lg transition-all duration-300"
+                    style={{
+                      left: isActive ? 'calc(100% - 28px)' : '4px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                    }}
+                  />
                 )}
+              </button>
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-white">Bot Control Panel</h2>
+                  {isActive && (
+                    <span
+                      className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-widest"
+                      style={{
+                        background: 'rgba(239,68,68,0.15)',
+                        color: '#EF4444',
+                        border: '1px solid rgba(239,68,68,0.25)',
+                      }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                      LIVE
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  {isActive ? 'Pipeline actif · Tous les crons sont en cours' : 'Bot arrêté · Aucun cron actif'}
+                </p>
               </div>
-              <p className="text-sm text-gray-500">
-                {isActive ? 'Pipeline actif · Tous les crons sont en cours' : 'Bot arrêté · Aucun cron actif'}
-              </p>
+            </div>
+
+            {/* Quick stats */}
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <p className="text-2xl font-black text-white leading-none">{botStatus?.callsToday ?? 0}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Appels</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-black text-white leading-none">{botStatus?.prospectsFound ?? 0}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Prospects</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-black text-white leading-none">{botStatus?.followUpsSent ?? 0}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Suivis</p>
+              </div>
             </div>
           </div>
 
-          {/* Big ON/OFF toggle */}
-          <button
-            onClick={toggleBot}
-            disabled={toggling}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all shadow-md disabled:opacity-60 ${
-              isActive
-                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-200'
-                : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-violet-200'
-            }`}
-          >
-            {toggling ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : isActive ? (
-              <Square className="w-5 h-5" />
-            ) : (
-              <Play className="w-5 h-5" />
-            )}
-            {toggling ? 'En cours...' : isActive ? 'Arrêter le bot' : 'Démarrer le bot'}
-          </button>
-        </div>
+          {/* Service rows */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {services.map(svc => {
+              const cronStatus = botStatus?.crons?.[svc.cronKey];
+              const isRunning = triggering === svc.key;
+              const feedback = triggerFeedback[svc.key];
 
-        {/* Service rows */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {services.map(svc => {
-            const cronStatus = botStatus?.crons?.[svc.cronKey];
-            const isRunning = triggering === svc.key;
-            const feedback = triggerFeedback[svc.key];
-
-            return (
-              <div
-                key={svc.key}
-                className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-gray-100 shadow-sm"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <StatusDot active={cronStatus === 'active'} />
-                  <div className="text-gray-500">{svc.icon}</div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{svc.label}</p>
-                    <p className="text-xs text-gray-400">
-                      {feedback ? (
-                        <span className={feedback.startsWith('Erreur') ? 'text-red-500' : 'text-emerald-600'}>
-                          {feedback}
-                        </span>
-                      ) : (
-                        <>
-                          Dernier: {formatTime(svc.lastRun)}
-                          {svc.stat ? ` · ${svc.stat}` : ''}
-                        </>
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => runTrigger(svc.key)}
-                  disabled={isRunning || triggering !== null}
-                  className="ml-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors shrink-0"
+              return (
+                <div
+                  key={svc.key}
+                  className="flex items-center justify-between rounded-xl px-4 py-3"
+                  style={{
+                    background: '#12121A',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                  }}
                 >
-                  {isRunning ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  )}
-                  {isRunning ? 'Running…' : 'Run'}
-                </button>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <StatusDot active={cronStatus === 'active'} />
+                    <div
+                      className="p-1.5 rounded-lg flex-shrink-0"
+                      style={{ background: svc.iconBg, color: svc.iconColor }}
+                    >
+                      {svc.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-white truncate">{svc.label}</p>
+                      <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                        {feedback ? (
+                          <span style={{ color: feedback.startsWith('Erreur') ? '#EF4444' : '#10B981' }}>
+                            {feedback}
+                          </span>
+                        ) : (
+                          <>Dernier: {formatTime(svc.lastRun)}{svc.stat ? ` · ${svc.stat}` : ''}</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => runTrigger(svc.key)}
+                    disabled={isRunning || triggering !== null}
+                    className="ml-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 shrink-0"
+                    style={{
+                      border: '1px solid rgba(124,58,237,0.4)',
+                      color: '#7C3AED',
+                      background: isRunning ? 'rgba(124,58,237,0.15)' : 'transparent',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isRunning && triggering === null) {
+                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.2)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.background = isRunning ? 'rgba(124,58,237,0.15)' : 'transparent';
+                    }}
+                  >
+                    {isRunning ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    )}
+                    {isRunning ? 'Running…' : 'Run'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ── KPI Strip ──────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          {
+            icon: <Users className="w-3.5 h-3.5" />,
+            iconColor: '#7C3AED', iconBg: 'rgba(124,58,237,0.15)',
+            value: stats?.prospects.total || 0,
+            trend: `+${stats?.prospects.newThisMonth || 0}`,
+            label: 'Prospects', sublabel: 'ce mois',
+            large: false,
+          },
+          {
+            icon: <Phone className="w-3.5 h-3.5" />,
+            iconColor: '#06B6D4', iconBg: 'rgba(6,182,212,0.15)',
+            value: stats?.calls.today || 0,
+            trend: `${stats?.calls.successRate?.toFixed(0) || 0}%`,
+            label: 'Appels', sublabel: "aujourd'hui",
+            large: false,
+          },
+          {
+            icon: <Building2 className="w-3.5 h-3.5" />,
+            iconColor: '#10B981', iconBg: 'rgba(16,185,129,0.15)',
+            value: stats?.clients.totalActive || 0,
+            trend: `+${stats?.clients.newThisMonth || 0}`,
+            label: 'Clients', sublabel: 'actifs',
+            large: false,
+          },
+          {
+            icon: <TrendingUp className="w-3.5 h-3.5" />,
+            iconColor: '#7C3AED', iconBg: 'rgba(124,58,237,0.15)',
+            value: `${(stats?.revenue.mrr || 0).toLocaleString('fr-FR')}€`,
+            trend: null,
+            label: 'MRR', sublabel: 'mensuel',
+            large: true,
+          },
+        ].map((card, i) => (
+          <div
+            key={i}
+            className="rounded-2xl p-5 transition-all duration-300 cursor-default"
+            style={{ background: '#12121A', border: '1px solid rgba(255,255,255,0.05)' }}
+            onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 0 24px rgba(124,58,237,0.18)')}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
+          >
+            <div className="flex items-center gap-1.5 mb-3">
+              <div className="p-1.5 rounded-lg" style={{ background: card.iconBg, color: card.iconColor }}>
+                {card.icon}
               </div>
-            );
-          })}
-        </div>
-
-        {/* Quick stats footer */}
-        <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p className="text-2xl font-bold text-gray-900">{botStatus?.callsToday ?? 0}</p>
-            <p className="text-xs text-gray-500">Appels aujourd'hui</p>
+              <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>{card.label}</span>
+            </div>
+            <div className="flex items-end gap-2">
+              <p className="font-black text-white leading-none" style={{ fontSize: card.large ? 26 : 30 }}>
+                {card.value}
+              </p>
+              {card.trend && (
+                <span className="flex items-center gap-0.5 text-xs font-bold mb-0.5" style={{ color: '#10B981' }}>
+                  <ArrowUp className="w-3 h-3" />{card.trend}
+                </span>
+              )}
+            </div>
+            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>{card.sublabel}</p>
           </div>
-          <div>
-            <p className="text-2xl font-bold text-gray-900">{botStatus?.prospectsFound ?? 0}</p>
-            <p className="text-xs text-gray-500">Prospects trouvés</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-gray-900">{botStatus?.followUpsSent ?? 0}</p>
-            <p className="text-xs text-gray-500">Suivis envoyés</p>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Page header ────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tableau de Bord</h1>
-          <p className="text-gray-500">Qwillio overview</p>
-        </div>
-      </div>
-
-      {/* ── KPI cards ──────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-blue-100 rounded-lg"><Users className="w-5 h-5 text-blue-600" /></div>
-            <span className="badge badge-new flex items-center gap-1"><ArrowUp className="w-3 h-3" />+{stats?.prospects.newThisMonth || 0}</span>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{stats?.prospects.total || 0}</p>
-          <p className="text-sm text-gray-500 mt-1">Prospects</p>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-emerald-100 rounded-lg"><Building2 className="w-5 h-5 text-emerald-600" /></div>
-            <span className="badge badge-active flex items-center gap-1"><ArrowUp className="w-3 h-3" />+{stats?.clients.newThisMonth || 0}</span>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{stats?.clients.totalActive || 0}</p>
-          <p className="text-sm text-gray-500 mt-1">Clients Actifs</p>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-purple-100 rounded-lg"><TrendingUp className="w-5 h-5 text-purple-600" /></div>
-            <span className="badge bg-purple-100 text-purple-700">MRR</span>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{(stats?.revenue.mrr || 0).toLocaleString('fr-FR')}€</p>
-          <p className="text-sm text-gray-500 mt-1">MRR</p>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-orange-100 rounded-lg"><Phone className="w-5 h-5 text-orange-600" /></div>
-            <span className="text-sm text-gray-500">{stats?.calls.successRate?.toFixed(0) || 0}%</span>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{stats?.calls.today || 0}</p>
-          <p className="text-sm text-gray-500 mt-1">Appels Aujourd'hui</p>
-        </div>
+        ))}
       </div>
 
       {/* ── Charts ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="card col-span-2">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue</h3>
-          <div className="h-64">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div
+          className="rounded-2xl p-6 col-span-1 lg:col-span-2"
+          style={{ background: '#12121A', border: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-base font-bold text-white">Revenue</h3>
+            <span
+              className="text-xs font-medium px-3 py-1 rounded-full"
+              style={{ background: 'rgba(124,58,237,0.15)', color: '#7C3AED' }}
+            >
+              12 mois
+            </span>
+          </div>
+          <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={revenueHistory}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#667eea" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#667eea" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value: any) => `${value}€`} />
-                <Area type="monotone" dataKey="revenue" stroke="#667eea" fill="url(#colorRevenue)" strokeWidth={2} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  formatter={(value: any) => [`${value}€`, 'Revenue']}
+                  contentStyle={{
+                    background: '#1A1A27',
+                    border: '1px solid rgba(124,58,237,0.3)',
+                    borderRadius: 12,
+                    color: '#fff',
+                    fontSize: 13,
+                  }}
+                  cursor={{ stroke: 'rgba(124,58,237,0.3)', strokeWidth: 1 }}
+                />
+                <Area type="monotone" dataKey="revenue" stroke="#7C3AED" fill="url(#colorRevenue)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Taux de Conversion</h3>
-          <div className="space-y-6 mt-6">
+
+        <div className="rounded-2xl p-6" style={{ background: '#12121A', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <h3 className="text-base font-bold text-white mb-6">Conversion</h3>
+          <div className="space-y-5">
             <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Prospect → Client</span>
-                <span className="font-semibold">{(stats?.conversion.prospectToClient || 0).toFixed(1)}%</span>
+              <div className="flex justify-between text-xs mb-2">
+                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Prospect → Client</span>
+                <span className="font-bold text-white">{(stats?.conversion.prospectToClient || 0).toFixed(1)}%</span>
               </div>
-              <div className="w-full bg-gray-100 rounded-full h-3">
-                <div className="bg-gradient-to-r from-primary-500 to-purple-500 h-3 rounded-full" style={{ width: `${Math.min(stats?.conversion.prospectToClient || 0, 100)}%` }} />
+              <div className="w-full rounded-full h-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                <div
+                  className="h-2 rounded-full"
+                  style={{
+                    width: `${Math.min(stats?.conversion.prospectToClient || 0, 100)}%`,
+                    background: 'linear-gradient(90deg, #7C3AED, #06B6D4)',
+                  }}
+                />
               </div>
             </div>
             <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Devis Acceptés</span>
-                <span className="font-semibold">{(stats?.conversion.quoteAcceptanceRate || 0).toFixed(1)}%</span>
+              <div className="flex justify-between text-xs mb-2">
+                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Devis Acceptés</span>
+                <span className="font-bold text-white">{(stats?.conversion.quoteAcceptanceRate || 0).toFixed(1)}%</span>
               </div>
-              <div className="w-full bg-gray-100 rounded-full h-3">
-                <div className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-3 rounded-full" style={{ width: `${Math.min(stats?.conversion.quoteAcceptanceRate || 0, 100)}%` }} />
+              <div className="w-full rounded-full h-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                <div
+                  className="h-2 rounded-full"
+                  style={{
+                    width: `${Math.min(stats?.conversion.quoteAcceptanceRate || 0, 100)}%`,
+                    background: 'linear-gradient(90deg, #10B981, #06B6D4)',
+                  }}
+                />
               </div>
             </div>
-            <div className="pt-4 border-t">
-              <p className="text-sm text-gray-500">Setup fees ce mois</p>
-              <p className="text-2xl font-bold text-gray-900">{(stats?.revenue.setupFeesThisMonth || 0).toLocaleString('fr-FR')}€</p>
+            <div className="pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Setup fees ce mois</p>
+              <p className="text-2xl font-black text-white mt-1">
+                {(stats?.revenue.setupFeesThisMonth || 0).toLocaleString('fr-FR')}€
+              </p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Revenu total ce mois</p>
-              <p className="text-2xl font-bold text-emerald-600">{(stats?.revenue.totalThisMonth || 0).toLocaleString('fr-FR')}€</p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Revenu total ce mois</p>
+              <p className="text-2xl font-black mt-1" style={{ color: '#10B981' }}>
+                {(stats?.revenue.totalThisMonth || 0).toLocaleString('fr-FR')}€
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Activity feed ──────────────────────────────────── */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Activité Récente</h3>
-        <div className="space-y-3">
+      {/* ── Activity Feed ──────────────────────────────────── */}
+      <div className="rounded-2xl p-6" style={{ background: '#12121A', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <h3 className="text-base font-bold text-white mb-5">Activité Récente</h3>
+        <div className="space-y-1">
           {activity.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">Aucune activité récente. Démarrez le bot pour commencer !</p>
+            <p className="text-center py-10 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              Aucune activité récente. Démarrez le bot pour commencer&nbsp;!
+            </p>
           ) : (
             activity.slice(0, 10).map((item: any, i: number) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <span className="text-xl">{item.icon}</span>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-900">{item.message}</p>
-                  <p className="text-xs text-gray-500">{new Date(item.date).toLocaleString('fr-FR')}</p>
+              <div
+                key={i}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 cursor-default"
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <span className="text-lg w-7 text-center flex-shrink-0">{item.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white truncate">{item.message}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    {new Date(item.date).toLocaleString('fr-FR')}
+                  </p>
                 </div>
               </div>
             ))
