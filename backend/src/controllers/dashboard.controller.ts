@@ -6,22 +6,25 @@ export class DashboardController {
   async getStats(_req: Request, res: Response) {
     try {
       const [stats, botStatus] = await Promise.all([
-        analyticsService.getDashboardV2(),
+        analyticsService.getDashboardStats(),
         botLoop.getStatus(),
       ]);
 
       const { crons } = botStatus;
-      const toSvcStatus = (s: string): 'running' | 'idle' | 'inactive' =>
-        s === 'active' ? 'running' : s === 'idle' ? 'idle' : 'inactive';
+      const toSvcStatus = (cronKey: string): 'running' | 'idle' | 'inactive' => {
+        const s = (crons as Record<string, string>)[cronKey] ?? 'inactive';
+        return s === 'active' ? 'running' : s === 'idle' ? 'idle' : 'inactive';
+      };
 
+      // Override the statically-computed servicesStatus with real cron states
       res.json({
         ...stats,
         servicesStatus: {
-          prospection: toSvcStatus(crons.prospection),
-          calling: toSvcStatus(crons.calling),
-          reminders: toSvcStatus(crons.reminders),
-          analytics: toSvcStatus(crons.analytics),
-          dailyReset: toSvcStatus(crons.dailyReset),
+          prospection: toSvcStatus('prospection'),
+          calling: toSvcStatus('calling'),
+          reminders: toSvcStatus('reminders'),
+          analytics: toSvcStatus('analytics'),
+          dailyReset: toSvcStatus('dailyReset'),
         },
       });
     } catch (error: any) {

@@ -1,11 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import api from '../services/api';
+import { useState, useEffect, useCallback } from 'react';
+import { Users, Phone, TrendingUp, CheckCircle, Zap, Clock, BarChart2, RefreshCw } from 'lucide-react';
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
-type ServiceStatus = 'running' | 'idle' | 'inactive';
-
-interface DashboardData {
+interface DashboardStats {
   totalProspects: number;
   prospectsReadyToCall: number;
   prospectsThisWeek: number;
@@ -16,329 +12,264 @@ interface DashboardData {
   activeClients: number;
   botIsActive: boolean;
   lastProspection: string | null;
-  callsQuotaDaily: number;
+  lastCall: string | null;
   servicesStatus: {
-    prospection: ServiceStatus;
-    calling: ServiceStatus;
-    reminders: ServiceStatus;
-    analytics: ServiceStatus;
-    dailyReset: ServiceStatus;
+    prospection: 'running' | 'idle' | 'inactive';
+    calling: 'running' | 'idle' | 'inactive';
+    reminders: 'running' | 'idle' | 'inactive';
+    analytics: 'running' | 'idle' | 'inactive';
+    dailyReset: 'running' | 'idle' | 'inactive';
   };
 }
 
 interface ActivityItem {
-  id?: string | number;
-  type?: string;
-  description?: string;
+  id: string;
   message?: string;
-  event?: string;
+  description?: string;
   timestamp?: string;
   date?: string;
-  status?: string;
+  type?: string;
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────
+const API = import.meta.env.VITE_API_URL || '';
 
-const PulseDot: React.FC<{ active: boolean }> = ({ active }) => (
-  <span style={{ position: 'relative', display: 'inline-flex', width: 12, height: 12, flexShrink: 0 }}>
-    {active && (
-      <span style={{
-        position: 'absolute', inset: 0, borderRadius: '50%',
-        backgroundColor: '#7C3AED', opacity: 0.75,
-        animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite',
-      }} />
-    )}
-    <span style={{
-      position: 'relative', borderRadius: '50%', width: 12, height: 12,
-      backgroundColor: active ? '#7C3AED' : '#D1D5DB',
-    }} />
-  </span>
-);
+const serviceDefs = [
+  { key: 'prospection', label: 'Prospection', icon: Users },
+  { key: 'calling', label: 'Appels', icon: Phone },
+  { key: 'reminders', label: 'Relances', icon: Clock },
+  { key: 'analytics', label: 'Analytics', icon: BarChart2 },
+] as const;
 
-const ServiceBadge: React.FC<{ status: ServiceStatus }> = ({ status }) => {
-  const cfg = {
-    running: { color: '#16A34A', bg: '#DCFCE7', label: 'Actif' },
-    idle:    { color: '#6B7280', bg: '#F3F4F6', label: 'En attente' },
-    inactive: { color: '#DC2626', bg: '#FEE2E2', label: 'Inactif' },
-  }[status];
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
-      color: cfg.color, backgroundColor: cfg.bg,
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: cfg.color, display: 'inline-block' }} />
-      {cfg.label}
+function StatusBadge({ status }: { status: 'running' | 'idle' | 'inactive' }) {
+  if (status === 'running') return (
+    <span className="flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+      En cours
     </span>
   );
-};
+  if (status === 'idle') return (
+    <span className="flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
+      En attente
+    </span>
+  );
+  return (
+    <span className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+      <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+      Inactif
+    </span>
+  );
+}
 
-const SERVICE_CONFIG = [
-  { key: 'prospection' as const, name: 'Prospection', icon: '🔍' },
-  { key: 'calling' as const, name: 'Calling', icon: '📞' },
-  { key: 'reminders' as const, name: 'Reminders', icon: '📧' },
-  { key: 'analytics' as const, name: 'Analytics', icon: '📊' },
-  { key: 'dailyReset' as const, name: 'Daily Reset', icon: '🔄' },
-];
+function fmt(n: number | undefined | null): string {
+  if (n == null) return '0';
+  return n.toLocaleString('fr-FR');
+}
 
-// ── Main component ─────────────────────────────────────────────────────────
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return 'Jamais';
+  const d = new Date(dateStr);
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 2) return "À l'instant";
+  if (mins < 60) return `Il y a ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `Il y a ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `Il y a ${days}j`;
+}
 
 export default function Dashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  useEffect(() => {
-    loadAll();
-    const interval = setInterval(loadAll, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  async function loadAll() {
-    setError(null);
+  const load = useCallback(async () => {
     try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token') || '';
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
       const [statsRes, actRes] = await Promise.allSettled([
-        api.get('/admin/stats'),
-        api.get('/admin/activity-feed'),
+        fetch(`${API}/api/admin/stats`, { headers }),
+        fetch(`${API}/api/admin/activity-feed`, { headers }),
       ]);
 
-      if (statsRes.status === 'fulfilled') {
-        setData(statsRes.value.data);
-      } else {
-        setError('Erreur de chargement des statistiques');
+      if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
+        const data = await statsRes.value.json();
+        setStats(data);
       }
-
-      if (actRes.status === 'fulfilled') {
-        const raw = actRes.value.data;
-        setActivity(Array.isArray(raw) ? raw : (raw?.items ?? []));
+      if (actRes.status === 'fulfilled' && actRes.value.ok) {
+        const data = await actRes.value.json();
+        setActivity(Array.isArray(data) ? data.slice(0, 8) : []);
       }
-    } catch {
-      setError('Erreur de connexion au serveur');
+    } catch (e) {
+      console.error('Dashboard load error', e);
     } finally {
       setLoading(false);
+      setLastRefresh(new Date());
     }
-  }
+  }, []);
 
-  const isActive = data?.botIsActive ?? false;
-  const activeServiceCount = data
-    ? Object.values(data.servicesStatus).filter((s) => s === 'running').length
-    : 0;
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
+  }, [load]);
 
-  const kpis = [
-    {
-      icon: '📋',
-      label: 'Total Prospects',
-      value: data?.totalProspects ?? 0,
-      sub: data?.prospectsThisWeek
-        ? `+${data.prospectsThisWeek} cette semaine`
-        : 'cette semaine: aucun',
-      highlight: false,
-    },
-    {
-      icon: '🎯',
-      label: 'Prêts à appeler',
-      value: data?.prospectsReadyToCall ?? 0,
-      sub: data?.prospectsReadyToCall
-        ? `${data.prospectsReadyToCall} en file d'attente`
-        : 'aucun en attente',
-      highlight: true,
-    },
-    {
-      icon: '📈',
-      label: "Appels aujourd'hui",
-      value: data?.callsToday ?? 0,
-      sub: `quota ${data?.callsQuotaDaily ?? 50}/jour`,
-      highlight: false,
-    },
-    {
-      icon: '✅',
-      label: 'Taux réponse',
-      value: `${data?.conversionRate ?? 0}%`,
-      sub: `${data?.answeredCalls ?? 0} appels répondus`,
-      highlight: false,
-    },
-  ];
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  const botActive = stats?.botIsActive ?? false;
+  const services = stats?.servicesStatus;
 
   return (
-    <div style={{ backgroundColor: '#F9FAFB', minHeight: '100vh' }}>
-      <style>{`
-        @keyframes ping {
-          75%, 100% { transform: scale(2); opacity: 0; }
-        }
-      `}</style>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-
-        {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', margin: 0 }}>Dashboard</h1>
-          <p style={{ color: '#6B7280', marginTop: 4, fontSize: 14 }}>Vue d&apos;ensemble de Qwillio</p>
-        </div>
-
-        {error && (
-          <div style={{ background: '#FEE2E2', border: '1px solid #FECACA', borderRadius: 8, padding: '12px 16px', marginBottom: 16, color: '#DC2626', fontSize: 14 }}>
-            {error}
+    <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Status Banner */}
+      <div className={`px-4 py-3 ${botActive ? 'bg-green-600' : 'bg-red-500'}`}>
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${botActive ? 'bg-white animate-pulse' : 'bg-red-200'}`} />
+            <span className="text-white font-semibold text-sm">
+              {botActive ? 'Bot Actif · LIVE' : 'Bot Arrêté'}
+            </span>
           </div>
-        )}
+          <div className="flex items-center gap-3">
+            <span className="text-white/80 text-xs">
+              {botActive ? 'Tous les crons actifs' : 'Aucun cron ne tourne'}
+            </span>
+            <button onClick={load} className="text-white/80 hover:text-white">
+              <RefreshCw size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
 
-        {/* ── Section 1: Status Banner ────────────────────────── */}
-        <div style={{
-          background: isActive
-            ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
-            : 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
-          borderRadius: 14,
-          padding: '18px 24px',
-          marginBottom: 20,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: isActive ? '0 4px 20px rgba(5,150,105,0.25)' : '0 4px 12px rgba(220,38,38,0.2)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{
-              width: 42, height: 42, borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20,
-            }}>
-              {isActive ? '🤖' : '💤'}
-            </div>
-            <div>
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: 17 }}>
-                {loading ? 'Chargement…' : isActive ? 'Bot Actif · LIVE' : 'Bot Arrêté'}
+      <div className="px-4 pt-4 max-w-lg mx-auto space-y-4">
+
+        {/* KPI Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Prêts à appeler — highlight */}
+          <div className="bg-violet-600 rounded-xl p-4 text-white shadow-md col-span-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-violet-200 text-xs font-medium uppercase tracking-wide">Prêts à appeler</p>
+                <p className="text-4xl font-bold mt-1">{fmt(stats?.prospectsReadyToCall)}</p>
+                <p className="text-violet-200 text-xs mt-1">
+                  {(stats?.prospectsReadyToCall ?? 0) > 0 ? 'Prospects qualifiés disponibles' : 'Aucun prospect qualifié'}
+                </p>
               </div>
-              <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 }}>
-                {isActive
-                  ? `${activeServiceCount} service${activeServiceCount > 1 ? 's' : ''} en cours d'exécution`
-                  : 'Démarrez le bot pour lancer l\'automatisation'}
-              </div>
+              <Phone size={32} className="text-violet-300" />
             </div>
           </div>
-          {data?.lastProspection && (
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Dernière prospection</div>
-              <div style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>
-                {new Date(data.lastProspection).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-              </div>
+
+          {/* Total Prospects */}
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <Users size={18} className="text-gray-400" />
+              <span className="text-xs text-green-600 font-medium">
+                {(stats?.prospectsThisWeek ?? 0) > 0 ? `+${stats?.prospectsThisWeek} / 7j` : 'cette semaine'}
+              </span>
             </div>
-          )}
+            <p className="text-2xl font-bold text-gray-900">{fmt(stats?.totalProspects)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Total prospects</p>
+          </div>
+
+          {/* Appels aujourd'hui */}
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <Phone size={18} className="text-gray-400" />
+              <span className="text-xs text-gray-400">quota 50/j</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{fmt(stats?.callsToday)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Appels aujourd&apos;hui</p>
+          </div>
+
+          {/* Taux réponse */}
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <TrendingUp size={18} className="text-gray-400" />
+              <span className="text-xs text-gray-400">{fmt(stats?.answeredCalls)} réponses</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{stats?.conversionRate ?? 0}%</p>
+            <p className="text-xs text-gray-500 mt-0.5">Taux de réponse</p>
+          </div>
+
+          {/* Clients actifs */}
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <CheckCircle size={18} className="text-gray-400" />
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{fmt(stats?.activeClients)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Clients actifs</p>
+          </div>
         </div>
 
-        {/* ── Section 2: KPI Grid ─────────────────────────────── */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-          gap: 16,
-          marginBottom: 20,
-        }}>
-          {kpis.map((kpi) => (
-            <div key={kpi.label} style={{
-              backgroundColor: kpi.highlight ? '#EDE9FE' : '#fff',
-              borderRadius: 12,
-              padding: '20px 22px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
-              border: kpi.highlight ? '1px solid #DDD6FE' : '1px solid #E5E7EB',
-            }}>
-              <div style={{ fontSize: 22, marginBottom: 10 }}>{kpi.icon}</div>
-              <div style={{
-                fontSize: 34, fontWeight: 800, lineHeight: 1,
-                color: kpi.highlight ? '#7C3AED' : '#111827',
-              }}>
-                {loading ? '—' : kpi.value}
-              </div>
-              <div style={{ fontSize: 13, color: kpi.highlight ? '#6D28D9' : '#374151', marginTop: 5, fontWeight: 500 }}>
-                {kpi.label}
-              </div>
-              <div style={{ fontSize: 11, color: kpi.highlight ? '#8B5CF6' : '#9CA3AF', marginTop: 3 }}>
-                {kpi.sub}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Section 3: Services Grid ────────────────────────── */}
-        <div style={{
-          backgroundColor: '#fff',
-          borderRadius: 12,
-          padding: 20,
-          marginBottom: 20,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
-          border: '1px solid #E5E7EB',
-        }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: '#111827', marginTop: 0, marginBottom: 16 }}>
-            Services automatiques
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-            {SERVICE_CONFIG.map((svc) => {
-              const status: ServiceStatus = loading
-                ? 'inactive'
-                : (data?.servicesStatus?.[svc.key] ?? 'inactive');
+        {/* Services */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-900">Services</h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {serviceDefs.map(({ key, label, icon: Icon }) => {
+              const s = services?.[key as keyof typeof services] ?? (botActive ? 'idle' : 'inactive');
               return (
-                <div key={svc.key} style={{
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  backgroundColor: status === 'running' ? '#F0FDF4' : status === 'idle' ? '#FAFAFA' : '#FFF5F5',
-                  border: `1px solid ${status === 'running' ? '#BBF7D0' : status === 'idle' ? '#E5E7EB' : '#FEE2E2'}`,
-                  display: 'flex', flexDirection: 'column', gap: 8,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 18 }}>{svc.icon}</span>
-                    <ServiceBadge status={status} />
+                <div key={key} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                      <Icon size={16} className="text-gray-500" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-800">{label}</span>
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{svc.name}</div>
+                  <StatusBadge status={s} />
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* ── Section 4: Activity Feed ─────────────────────────── */}
-        <div style={{
-          backgroundColor: '#fff',
-          borderRadius: 12,
-          padding: 20,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
-          border: '1px solid #E5E7EB',
-        }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: '#111827', marginTop: 0, marginBottom: 16 }}>
-            Activité récente
-          </h2>
-          {loading ? (
-            <div style={{ color: '#9CA3AF', fontSize: 14 }}>Chargement…</div>
-          ) : activity.length === 0 ? (
-            <div style={{ color: '#9CA3AF', fontSize: 14, textAlign: 'center', padding: '28px 0' }}>
-              Aucune activité — démarrez le bot pour commencer
+        {/* Dernières infos */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-400 font-medium">Dernière prospection</p>
+            <p className="text-sm font-semibold text-gray-800 mt-1">{timeAgo(stats?.lastProspection ?? null)}</p>
+          </div>
+          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-400 font-medium">Dernier appel</p>
+            <p className="text-sm font-semibold text-gray-800 mt-1">{timeAgo(stats?.lastCall ?? null)}</p>
+          </div>
+        </div>
+
+        {/* Activity Feed */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-900">Activité récente</h2>
+          </div>
+          {activity.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <Zap size={24} className="mx-auto text-gray-300 mb-2" />
+              <p className="text-sm text-gray-400">Aucune activité pour l&apos;instant</p>
+              <p className="text-xs text-gray-300 mt-1">Démarrez le bot pour commencer</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {activity.slice(0, 20).map((item, idx) => (
-                <div key={item.id ?? idx} style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 12,
-                  padding: '10px 12px', borderRadius: 8, backgroundColor: '#F9FAFB', fontSize: 13,
-                }}>
-                  <div style={{
-                    width: 8, height: 8, borderRadius: '50%', marginTop: 4, flexShrink: 0,
-                    backgroundColor: item.status === 'success' ? '#10B981' : item.status === 'error' ? '#EF4444' : '#7C3AED',
-                  }} />
-                  <div style={{ flex: 1, color: '#374151' }}>
-                    {item.description ?? item.message ?? item.event ?? '—'}
-                    {item.type && (
-                      <span style={{ marginLeft: 8, fontSize: 11, color: '#9CA3AF', backgroundColor: '#E5E7EB', padding: '1px 6px', borderRadius: 999 }}>
-                        {item.type}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ color: '#9CA3AF', fontSize: 11, whiteSpace: 'nowrap' }}>
-                    {(item.timestamp || item.date)
-                      ? new Date((item.timestamp ?? item.date)!).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-                      : ''}
-                  </div>
+            <div className="divide-y divide-gray-50">
+              {activity.map((item, i) => (
+                <div key={item.id ?? i} className="px-4 py-3">
+                  <p className="text-sm text-gray-700">{item.description ?? item.message ?? '—'}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{timeAgo(item.timestamp ?? item.date ?? null)}</p>
                 </div>
               ))}
             </div>
           )}
         </div>
 
+        {/* Last refresh */}
+        <p className="text-center text-xs text-gray-300 pb-2">
+          Actualisé à {lastRefresh.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · Auto-refresh 30s
+        </p>
       </div>
     </div>
   );

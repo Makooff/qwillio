@@ -90,33 +90,22 @@ export interface CallAnalysis {
 }
 
 export interface DashboardStats {
-  prospects: {
-    total: number;
-    newThisMonth: number;
-    byStatus: Record<string, number>;
-  };
-  clients: {
-    totalActive: number;
-    newThisMonth: number;
-    byPlan: Record<string, number>;
-  };
-  revenue: {
-    mrr: number;
-    setupFeesThisMonth: number;
-    totalThisMonth: number;
-  };
-  conversion: {
-    prospectToClient: number;
-    quoteAcceptanceRate: number;
-  };
-  calls: {
-    today: number;
-    thisWeek: number;
-    successRate: number;
-  };
-  bot: {
-    isActive: boolean;
-    callsToday: number;
-    callsQuota: number;
+  totalProspects: number;
+  prospectsReadyToCall: number;
+  prospectsThisWeek: number;
+  callsToday: number;
+  callsThisWeek: number;
+  answeredCalls: number;
+  conversionRate: number;
+  activeClients: number;
+  botIsActive: boolean;
+  lastProspection: string | null;
+  lastCall: string | null;
+  servicesStatus: {
+    prospection: 'running' | 'idle' | 'inactive';
+    calling: 'running' | 'idle' | 'inactive';
+    reminders: 'running' | 'idle' | 'inactive';
+    analytics: 'running' | 'idle' | 'inactive';
+    dailyReset: 'running' | 'idle' | 'inactive';
   };
 }

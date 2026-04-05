@@ -5,7 +5,8 @@ import {
   Search, ChevronLeft, ChevronRight, Eye, Phone, X,
   SlidersHorizontal, Download, CheckSquare, Square as SquareIcon,
   ArrowUpDown, PhoneCall, StickyNote, CheckCircle,
-  SkipForward, Filter,
+  SkipForward, Filter, Settings, ChevronDown, ChevronUp,
+  Save, RotateCcw, CheckCircle2, AlertCircle, MapPin, Zap,
 } from 'lucide-react';
 
 const statusLabels: Record<string, string> = {
@@ -17,6 +18,20 @@ const statusClasses: Record<string, string> = {
   qualified: 'badge-qualified', converted: 'badge-converted', lost: 'badge-lost',
 };
 const NICHES = ['home_services', 'dental', 'salon', 'restaurant', 'law', 'garage'];
+
+const NICHE_LABELS: Record<string, string> = {
+  home_services: 'Home Services', dental: 'Dental', salon: 'Salon',
+  restaurant: 'Restaurant', law: 'Law', garage: 'Garage / Auto',
+};
+
+interface ProspectConfig {
+  apifyActorId: string;
+  targetNiches: string[];
+  apifyTargetCities: string[];
+  prospectionQuotaPerDay: number;
+}
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function Prospects() {
   const [prospects, setProspects] = useState<Prospect[]>([]);
@@ -36,6 +51,18 @@ export default function Prospects() {
   const [noteText, setNoteText] = useState('');
   const [callLoading, setCallLoading] = useState<string | null>(null);
   const noteRef = useRef<HTMLTextAreaElement>(null);
+
+  // ── Prospection config section ─────────────────────────
+  const [configOpen, setConfigOpen] = useState(false);
+  const [lastProspection, setLastProspection] = useState<string | null>(null);
+  const [prospectConfig, setProspectConfig] = useState<ProspectConfig>({
+    apifyActorId: '', targetNiches: [], apifyTargetCities: [], prospectionQuotaPerDay: 100,
+  });
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const [scrapeLoading, setScrapeLoading] = useState(false);
+  const [scrapeMessage, setScrapeMessage] = useState('');
+  const [prospectSave, setProspectSave] = useState<SaveStatus>('idle');
+  const [apifyCityInput, setApifyCityInput] = useState('');
 
   const fetchProspects = async (page = 1) => {
     setLoading(true);
@@ -145,6 +172,83 @@ export default function Prospects() {
       setNoteModal(null);
     } catch (error) {
       console.error('Note save failed:', error);
+    }
+  };
+
+  // ── Prospection config helpers ─────────────────────────
+  const loadConfig = async () => {
+    if (configLoaded) return;
+    try {
+      const [configRes, statusRes] = await Promise.all([
+        api.get('/admin/bot-config'),
+        api.get('/bot/status'),
+      ]);
+      const d = configRes.data;
+      setProspectConfig({
+        apifyActorId: d.apifyActorId ?? '',
+        targetNiches: d.targetNiches ?? [],
+        apifyTargetCities: d.apifyTargetCities ?? [],
+        prospectionQuotaPerDay: d.prospectionQuotaPerDay ?? 100,
+      });
+      setLastProspection(statusRes.data?.lastProspection ?? null);
+      setConfigLoaded(true);
+    } catch (err) {
+      console.error('Failed to load prospection config:', err);
+    }
+  };
+
+  const toggleConfigOpen = () => {
+    if (!configOpen) loadConfig();
+    setConfigOpen((v) => !v);
+  };
+
+  const setPC = (key: keyof ProspectConfig, value: unknown) =>
+    setProspectConfig((prev) => ({ ...prev, [key]: value }));
+
+  const toggleNiche = (niche: string) => {
+    setPC('targetNiches', prospectConfig.targetNiches.includes(niche)
+      ? prospectConfig.targetNiches.filter((n) => n !== niche)
+      : [...prospectConfig.targetNiches, niche]);
+  };
+
+  const addApifyCity = () => {
+    const trimmed = apifyCityInput.trim();
+    if (!trimmed || prospectConfig.apifyTargetCities.includes(trimmed)) return;
+    setPC('apifyTargetCities', [...prospectConfig.apifyTargetCities, trimmed]);
+    setApifyCityInput('');
+  };
+
+  const removeApifyCity = (city: string) => {
+    setPC('apifyTargetCities', prospectConfig.apifyTargetCities.filter((c) => c !== city));
+  };
+
+  const saveProspectConfig = async () => {
+    setProspectSave('saving');
+    try {
+      await api.post('/admin/bot-config', {
+        apifyActorId: prospectConfig.apifyActorId,
+        targetNiches: prospectConfig.targetNiches,
+        apifyTargetCities: prospectConfig.apifyTargetCities,
+        prospectionQuotaPerDay: prospectConfig.prospectionQuotaPerDay,
+      });
+      setProspectSave('saved');
+      setTimeout(() => setProspectSave('idle'), 2500);
+    } catch {
+      setProspectSave('error');
+      setTimeout(() => setProspectSave('idle'), 3000);
+    }
+  };
+
+  const triggerScraping = async () => {
+    setScrapeLoading(true);
+    setScrapeMessage('');
+    try {
+      const { data } = await api.post('/prospecting/trigger/scrape');
+      setScrapeMessage(data.message || 'Prospection lancée !');
+    } catch (err: any) {
+      setScrapeMessage(err.response?.data?.error || 'Erreur lors du lancement');
+    } finally {
+      setScrapeLoading(false);
     }
   };
 
@@ -378,6 +482,168 @@ export default function Prospects() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* ── Configuration Prospection ────────────────────── */}
+      <div className="card">
+        <button
+          onClick={toggleConfigOpen}
+          className="w-full flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+              <Settings className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <h2 className="text-base font-semibold text-gray-900">Configuration Prospection</h2>
+              <p className="text-sm text-gray-400 mt-0.5">Apify, niches, villes cibles, quota</p>
+            </div>
+            {configLoaded && (
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                prospectConfig.apifyActorId
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-red-100 text-red-600'
+              }`}>
+                {prospectConfig.apifyActorId ? 'Apify connecté' : 'Apify non configuré'}
+              </span>
+            )}
+          </div>
+          {configOpen
+            ? <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" />
+            : <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+          }
+        </button>
+
+        {configOpen && (
+          <div className="mt-6 space-y-5">
+            {/* Status bar */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-400 mb-0.5">Statut Apify</p>
+                <p className={`font-medium text-sm ${prospectConfig.apifyActorId ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {prospectConfig.apifyActorId ? 'Connecté' : 'Non configuré'}
+                </p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-400 mb-0.5">Dernière prospection</p>
+                <p className="font-medium text-sm text-gray-800">
+                  {lastProspection ? new Date(lastProspection).toLocaleString('fr-FR') : 'Jamais'}
+                </p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-400 mb-0.5">Quota quotidien</p>
+                <p className="font-medium text-sm text-gray-800">{prospectConfig.prospectionQuotaPerDay} prospects/jour</p>
+              </div>
+            </div>
+
+            {/* Launch button */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={triggerScraping}
+                disabled={scrapeLoading}
+                className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-violet-500/25 disabled:opacity-60 transition-all"
+              >
+                {scrapeLoading
+                  ? <><RotateCcw className="w-4 h-4 animate-spin" /> Lancement…</>
+                  : <><Zap className="w-4 h-4" /> Lancer une prospection maintenant</>
+                }
+              </button>
+              {scrapeMessage && (
+                <span className={`text-sm font-medium ${scrapeMessage.startsWith('Erreur') ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {scrapeMessage}
+                </span>
+              )}
+            </div>
+
+            {/* Config fields */}
+            <div className="border border-gray-100 rounded-xl p-5 bg-white space-y-5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-900">Paramètres Apify</h3>
+                <button
+                  onClick={saveProspectConfig}
+                  disabled={prospectSave === 'saving'}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-semibold text-white disabled:opacity-60 transition-all"
+                >
+                  {prospectSave === 'saving' && <><RotateCcw className="w-4 h-4 animate-spin" /> Sauvegarde…</>}
+                  {prospectSave === 'saved' && <><CheckCircle2 className="w-4 h-4" /> Sauvegardé !</>}
+                  {prospectSave === 'error' && <><AlertCircle className="w-4 h-4" /> Erreur</>}
+                  {prospectSave === 'idle' && <><Save className="w-4 h-4" /> Sauvegarder</>}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Apify Actor ID</label>
+                  <input
+                    type="text"
+                    value={prospectConfig.apifyActorId}
+                    onChange={(e) => setPC('apifyActorId', e.target.value)}
+                    placeholder="apify/google-maps-scraper"
+                    className="input font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Quota par jour</label>
+                  <input
+                    type="number" min={1} max={1000}
+                    value={prospectConfig.prospectionQuotaPerDay}
+                    onChange={(e) => setPC('prospectionQuotaPerDay', +e.target.value)}
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Niches cibles</label>
+                <div className="flex gap-2 flex-wrap">
+                  {NICHES.map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => toggleNiche(n)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border-2 ${
+                        prospectConfig.targetNiches.includes(n)
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'border-gray-200 text-gray-500 hover:border-emerald-300'
+                      }`}
+                    >
+                      {NICHE_LABELS[n]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Villes cibles (Apify)</label>
+                <div className="flex gap-2 mb-2">
+                  <div className="relative flex-1">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={apifyCityInput}
+                      onChange={(e) => setApifyCityInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addApifyCity(); } }}
+                      placeholder="Ex: Paris, Lyon..."
+                      className="input pl-9"
+                    />
+                  </div>
+                  <button onClick={addApifyCity} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors">
+                    Ajouter
+                  </button>
+                </div>
+                {prospectConfig.apifyTargetCities.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {prospectConfig.apifyTargetCities.map((city) => (
+                      <span key={city} className="inline-flex items-center gap-1.5 px-3 py-1 bg-violet-50 text-violet-700 rounded-full text-sm">
+                        {city}
+                        <button onClick={() => removeApifyCity(city)} className="hover:text-violet-900 font-bold leading-none">×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Add Note Modal ───────────────────────────────── */}
