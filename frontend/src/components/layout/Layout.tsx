@@ -4,7 +4,7 @@ import { useAuthStore } from '../../stores/authStore';
 import {
   Menu, X, Home, Users, Building2, Mail, FileText,
   Settings, LogOut, DollarSign, UserCheck, MessageSquare,
-  PhoneCall, Crosshair, Bot, ChevronRight, Radio,
+  PhoneCall, Bot, ChevronRight,
 } from 'lucide-react';
 
 // ── Bottom tab items (5 most important) ────────────────────────────────────
@@ -23,11 +23,6 @@ const mainItems = [
   { path: '/admin/clients',   icon: Building2, label: 'Clients'   },
   { path: '/admin/quotes',    icon: FileText,  label: 'Devis'     },
   { path: '/admin/campaigns', icon: Mail,      label: 'Campagnes' },
-];
-
-const growthItems = [
-  { path: '/admin/prospecting',    icon: Crosshair, label: 'Prospecting'    },
-  { path: '/admin/mission-control', icon: Radio,    label: 'Mission Control' },
 ];
 
 const analyticsItems = [
@@ -180,11 +175,6 @@ export default function Layout() {
 
         <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
           {mainItems.map((item) => (
-            <DrawerLink key={item.path} item={item} onClose={() => setDrawerOpen(false)} />
-          ))}
-
-          <SectionLabel label="Growth" />
-          {growthItems.map((item) => (
             <DrawerLink key={item.path} item={item} onClose={() => setDrawerOpen(false)} />
           ))}
 
