@@ -81,7 +81,7 @@ export default function Dashboard() {
       const headers: HeadersInit = token
         ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
         : {};
-      const endpoint = data.bot.isActive ? '/api/bot/stop' : '/api/bot/start';
+      const endpoint = data.bot?.isActive ? '/api/bot/stop' : '/api/bot/start';
       await fetch(`${API}${endpoint}`, { method: 'POST', headers });
       await load();
     } finally {
@@ -111,7 +111,7 @@ export default function Dashboard() {
     </div>
   );
   const d = data!;
-  const active = d.bot.isActive;
+  const active = d?.bot?.isActive;
 
   return (
     <div className="bg-gray-50 min-h-screen pb-24">
@@ -151,9 +151,9 @@ export default function Dashboard() {
         <div className="bg-violet-600 rounded-2xl p-5 text-white flex items-center justify-between">
           <div>
             <p className="text-violet-200 text-xs font-medium uppercase tracking-widest mb-1">Prêts à appeler</p>
-            <p className="text-5xl font-bold">{d.prospects.readyToCall}</p>
+            <p className="text-5xl font-bold">{d.prospects?.readyToCall}</p>
             <p className="text-violet-300 text-xs mt-2">
-              {d.prospects.total} prospects total · +{d.prospects.thisWeek} cette semaine
+              {d.prospects?.total} prospects total · +{d.prospects?.thisWeek} cette semaine
             </p>
           </div>
           <Phone size={40} className="text-violet-300" />
@@ -164,18 +164,18 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl p-4 border border-gray-100">
             <div className="flex items-center justify-between mb-1">
               <Phone size={16} className="text-gray-400" />
-              <span className="text-xs text-gray-400">quota {d.bot.callsQuota}/j</span>
+              <span className="text-xs text-gray-400">quota {d.bot?.callsQuota}/j</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{d.calls.today}</p>
+            <p className="text-2xl font-bold text-gray-900">{d.calls?.today}</p>
             <p className="text-xs text-gray-400 mt-0.5">Appels aujourd'hui</p>
           </div>
 
           <div className="bg-white rounded-xl p-4 border border-gray-100">
             <div className="flex items-center justify-between mb-1">
               <TrendingUp size={16} className="text-gray-400" />
-              <span className="text-xs text-gray-400">{d.calls.answered} réponses</span>
+              <span className="text-xs text-gray-400">{d.calls?.answered} réponses</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{d.calls.conversionRate}%</p>
+            <p className="text-2xl font-bold text-gray-900">{d.calls?.conversionRate}%</p>
             <p className="text-xs text-gray-400 mt-0.5">Taux de réponse</p>
           </div>
 
@@ -183,7 +183,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-1">
               <Users size={16} className="text-gray-400" />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{d.prospects.total}</p>
+            <p className="text-2xl font-bold text-gray-900">{d.prospects?.total}</p>
             <p className="text-xs text-gray-400 mt-0.5">Total prospects</p>
           </div>
 
@@ -191,7 +191,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-1">
               <CheckCircle size={16} className="text-gray-400" />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{d.clients.total}</p>
+            <p className="text-2xl font-bold text-gray-900">{d.clients?.total}</p>
             <p className="text-xs text-gray-400 mt-0.5">Clients actifs</p>
           </div>
         </div>
@@ -221,11 +221,11 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white rounded-xl p-3 border border-gray-100">
             <p className="text-xs text-gray-400">Dernière prospection</p>
-            <p className="text-sm font-semibold text-gray-800 mt-1">{ago(d.bot.lastProspection)}</p>
+            <p className="text-sm font-semibold text-gray-800 mt-1">{ago(d.bot?.lastProspection)}</p>
           </div>
           <div className="bg-white rounded-xl p-3 border border-gray-100">
             <p className="text-xs text-gray-400">Dernier appel</p>
-            <p className="text-sm font-semibold text-gray-800 mt-1">{ago(d.bot.lastCall)}</p>
+            <p className="text-sm font-semibold text-gray-800 mt-1">{ago(d.bot?.lastCall)}</p>
           </div>
         </div>
 
