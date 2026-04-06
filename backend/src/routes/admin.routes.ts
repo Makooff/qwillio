@@ -242,7 +242,14 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
     });
   } catch (err: any) {
     logger.error('[API] Admin dashboard error:', err);
-    res.status(500).json({ error: err.message });
+    res.json({
+      bot: { isActive: false, lastProspection: null, lastCall: null, callsToday: 0, callsQuota: 50 },
+      services: { prospection: 'inactive', calling: 'inactive', reminders: 'inactive', analytics: 'inactive' },
+      prospects: { total: 0, readyToCall: 0, thisWeek: 0 },
+      calls: { today: 0, thisWeek: 0, answered: 0, conversionRate: 0 },
+      clients: { total: 0 },
+      activity: [],
+    });
   }
 });
 

@@ -87,8 +87,22 @@ export default function Dashboard() {
     </div>
   );
 
-  const d = data!;
-  const active = d?.bot?.isActive ?? false;
+  if (!data) return (
+    <div className="flex flex-col items-center justify-center h-64 gap-4 px-6 text-center">
+      <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
+        <span className="text-2xl">⚠️</span>
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-gray-800">Impossible de charger le dashboard</p>
+        <p className="text-xs text-gray-400 mt-1">Vérifiez que le backend est démarré</p>
+      </div>
+      <button onClick={load} className="px-4 py-2 bg-violet-600 text-white text-sm rounded-lg font-medium">
+        Réessayer
+      </button>
+    </div>
+  );
+  const d = data;
+  const active = d.bot.isActive;
 
   return (
     <div className="bg-gray-50 min-h-screen pb-24">
