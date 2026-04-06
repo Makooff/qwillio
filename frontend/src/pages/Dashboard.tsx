@@ -45,35 +45,49 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [refreshed, setRefreshed] = useState(new Date());
-
-  const headers = useCallback((): HeadersInit => {
-    const t = localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
-    return t ? { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' } : {};
-  }, []);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch(`${API}/api/admin/dashboard`, { headers: headers() });
-      if (r.ok) setData(await r.json());
-    } catch (e) {
-      console.error(e);
+      const token = localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
+      const headers: HeadersInit = token
+        ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        : {};
+
+      const r = await fetch(`${API}/api/admin/dashboard`, { headers });
+
+      if (r.ok) {
+        const json = await r.json();
+        setData(json);
+        setError(null);
+      } else {
+        const text = await r.text().catch(() => '');
+        setError(`HTTP ${r.status}: ${text.slice(0, 100)}`);
+      }
+    } catch (e: any) {
+      setError(`Network: ${e?.message ?? 'unknown'}`);
+      console.error('[Dashboard]', e);
     } finally {
       setLoading(false);
       setRefreshed(new Date());
     }
-  }, [headers]);
+  }, []);
 
   const toggleBot = useCallback(async () => {
     if (!data || toggling) return;
     setToggling(true);
     try {
+      const token = localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
+      const headers: HeadersInit = token
+        ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        : {};
       const endpoint = data.bot.isActive ? '/api/bot/stop' : '/api/bot/start';
-      await fetch(`${API}${endpoint}`, { method: 'POST', headers: headers() });
+      await fetch(`${API}${endpoint}`, { method: 'POST', headers });
       await load();
     } finally {
       setToggling(false);
     }
-  }, [data, toggling, headers, load]);
+  }, [data, toggling, load]);
 
   useEffect(() => {
     load();
@@ -87,16 +101,11 @@ export default function Dashboard() {
     </div>
   );
 
-  if (!data) return (
-    <div className="flex flex-col items-center justify-center h-64 gap-4 px-6 text-center">
-      <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
-        <span className="text-2xl">⚠️</span>
-      </div>
-      <div>
-        <p className="text-sm font-semibold text-gray-800">Impossible de charger le dashboard</p>
-        <p className="text-xs text-gray-400 mt-1">Vérifiez que le backend est démarré</p>
-      </div>
-      <button onClick={load} className="px-4 py-2 bg-violet-600 text-white text-sm rounded-lg font-medium">
+  if (!loading && !data) return (
+    <div className="flex flex-col items-center justify-center h-64 gap-3 px-6 text-center">
+      <p className="text-sm font-semibold text-gray-800">Erreur de chargement</p>
+      {error && <p className="text-xs text-red-500 font-mono bg-red-50 px-3 py-2 rounded-lg max-w-xs">{error}</p>}
+      <button onClick={load} className="px-4 py-2 bg-violet-600 text-white text-sm rounded-lg font-medium mt-2">
         Réessayer
       </button>
     </div>
