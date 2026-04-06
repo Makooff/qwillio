@@ -110,7 +110,7 @@ export default function Dashboard() {
       </button>
     </div>
   );
-  const d = data;
+  const d = data!;
   const active = d.bot.isActive;
 
   return (
