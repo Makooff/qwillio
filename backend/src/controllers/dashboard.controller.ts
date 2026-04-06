@@ -16,7 +16,6 @@ export class DashboardController {
         return s === 'active' ? 'running' : s === 'idle' ? 'idle' : 'inactive';
       };
 
-      // Override the statically-computed servicesStatus with real cron states
       res.json({
         ...stats,
         servicesStatus: {
@@ -47,6 +46,35 @@ export class DashboardController {
       const limit = parseInt(req.query.limit as string) || 20;
       const activity = await analyticsService.getRecentActivity(limit);
       res.json(activity);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getCalls(req: Request, res: Response) {
+    try {
+      const { page = '1', limit = '25', outcome, minScore, search } = req.query as Record<string, string>;
+      const result = await analyticsService.getCalls({
+        page: parseInt(page),
+        limit: parseInt(limit),
+        outcome: outcome || undefined,
+        minScore: minScore ? parseInt(minScore) : undefined,
+        search: search || undefined,
+      });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getLeads(req: Request, res: Response) {
+    try {
+      const { minScore = '6', limit = '50' } = req.query as Record<string, string>;
+      const result = await analyticsService.getLeads({
+        minScore: parseInt(minScore),
+        limit: parseInt(limit),
+      });
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
