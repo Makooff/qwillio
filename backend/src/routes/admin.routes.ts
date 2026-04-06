@@ -121,4 +121,129 @@ router.post('/prospects/:id/call', async (req: Request, res: Response) => {
 /** GET /api/admin/clients — client list with plan, status, MRR */
 router.get('/clients', (req, res) => clientsController.list(req, res));
 
+// ─── Unified dashboard ─────────────────────────────────────
+
+/** GET /api/admin/dashboard — single call for the full dashboard */
+router.get('/dashboard', async (_req: Request, res: Response) => {
+  try {
+    const now = new Date();
+    const today = new Date(now); today.setHours(0, 0, 0, 0);
+    const sevenDaysAgo = new Date(now); sevenDaysAgo.setDate(now.getDate() - 7);
+
+    const [
+      botStatusRes,
+      prospectsTotalRes,
+      prospectsReadyRes,
+      prospectsWeekRes,
+      callsTodayRes,
+      callsWeekRes,
+      callsAnsweredRes,
+      clientsTotalRes,
+      recentCallsRes,
+      recentClientsRes,
+    ] = await Promise.allSettled([
+      botLoop.getStatus(),
+      prisma.prospect.count(),
+      prisma.prospect.count({
+        where: {
+          status: 'new',
+          eligibleForCall: true,
+          isMobile: false,
+          priorityScore: { gte: 10 },
+          callAttempts: { lt: 3 },
+          phone: { not: null },
+        },
+      }),
+      prisma.prospect.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      prisma.call.count({ where: { startedAt: { gte: today } } }),
+      prisma.call.count({ where: { startedAt: { gte: sevenDaysAgo } } }),
+      prisma.call.count({ where: { status: 'completed', startedAt: { gte: sevenDaysAgo } } }),
+      prisma.client.count({ where: { subscriptionStatus: 'active' } }),
+      prisma.call.findMany({
+        take: 6,
+        orderBy: { createdAt: 'desc' },
+        include: { prospect: { select: { businessName: true } } },
+      }),
+      prisma.client.findMany({ take: 3, orderBy: { createdAt: 'desc' } }),
+    ]);
+
+    const val = <T>(r: PromiseSettledResult<T>, def: T): T =>
+      r.status === 'fulfilled' ? r.value : def;
+
+    const botStatus = val(botStatusRes, null as any);
+    const isActive: boolean = botStatus?.isActive ?? false;
+    const crons: Record<string, string> = botStatus?.crons ?? {};
+
+    const cronStatus = (key: string): 'running' | 'idle' | 'inactive' => {
+      if (crons[key] === 'active') return 'running';
+      return isActive ? 'idle' : 'inactive';
+    };
+
+    const recentCalls = val(recentCallsRes, [] as any[]);
+    const recentClients = val(recentClientsRes, [] as any[]);
+
+    const activity: Array<{ id: string; message: string; timestamp: string; type: string }> = [];
+    recentCalls.forEach((c: any) => {
+      activity.push({
+        id: c.id,
+        message: `Appel ${c.status === 'completed' ? 'terminé' : c.status}: ${c.prospect?.businessName ?? c.phoneNumber}`,
+        timestamp: (c.startedAt ?? c.createdAt).toISOString(),
+        type: 'call',
+      });
+    });
+    recentClients.forEach((c: any) => {
+      activity.push({
+        id: c.id,
+        message: `Nouveau client: ${c.businessName} (${c.planType})`,
+        timestamp: c.createdAt.toISOString(),
+        type: 'client',
+      });
+    });
+    activity.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const callsWeekCount = val(callsWeekRes, 0);
+    const answeredCount = val(callsAnsweredRes, 0);
+
+    const toIso = (d: Date | string | null | undefined): string | null => {
+      if (!d) return null;
+      if (typeof d === 'string') return d;
+      return d.toISOString();
+    };
+
+    res.json({
+      bot: {
+        isActive,
+        lastProspection: toIso(botStatus?.lastProspection),
+        lastCall: toIso(botStatus?.lastCall),
+        callsToday: botStatus?.callsToday ?? 0,
+        callsQuota: botStatus?.callsQuotaDaily ?? 50,
+      },
+      services: {
+        prospection: cronStatus('prospection'),
+        calling: cronStatus('calling'),
+        reminders: cronStatus('reminders'),
+        analytics: cronStatus('analytics'),
+      },
+      prospects: {
+        total: val(prospectsTotalRes, 0),
+        readyToCall: val(prospectsReadyRes, 0),
+        thisWeek: val(prospectsWeekRes, 0),
+      },
+      calls: {
+        today: val(callsTodayRes, 0),
+        thisWeek: callsWeekCount,
+        answered: answeredCount,
+        conversionRate: callsWeekCount > 0 ? Math.round((answeredCount / callsWeekCount) * 100) : 0,
+      },
+      clients: {
+        total: val(clientsTotalRes, 0),
+      },
+      activity: activity.slice(0, 6),
+    });
+  } catch (err: any) {
+    logger.error('[API] Admin dashboard error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
