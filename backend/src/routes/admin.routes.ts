@@ -10,6 +10,7 @@ import { dashboardController } from '../controllers/dashboard.controller';
 import { prospectsController } from '../controllers/prospects.controller';
 import { clientsController } from '../controllers/clients.controller';
 import { outboundEngineService } from '../services/outbound-engine.service';
+import { analyticsService } from '../services/analytics.service';
 import { botLoop } from '../jobs/bot-loop';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
@@ -19,6 +20,53 @@ const router = Router();
 
 router.use(authMiddleware);
 router.use(adminMiddleware);
+
+// ─── Dashboard (unified single-call endpoint) ──────────────
+
+const EMPTY_DASHBOARD = {
+  prospects: { total: 0, newThisMonth: 0, byStatus: {} as Record<string, number> },
+  clients: { totalActive: 0, newThisMonth: 0, byPlan: {} as Record<string, number> },
+  revenue: { mrr: 0, setupFeesThisMonth: 0, totalThisMonth: 0 },
+  conversion: { prospectToClient: 0, quoteAcceptanceRate: 0 },
+  calls: { today: 0, thisWeek: 0, successRate: 0 },
+  bot: { isActive: false, callsToday: 0, callsQuota: 50 },
+  prospectsReadyToCall: 0,
+  activity: [] as any[],
+};
+
+/**
+ * GET /api/admin/dashboard
+ * Returns all dashboard data in one shot. Never returns 500 — falls back to zeros.
+ */
+router.get('/dashboard', async (_req: Request, res: Response) => {
+  try {
+    const [statsResult, activityResult, prospectsReadyResult] = await Promise.allSettled([
+      analyticsService.getDashboardStats(),
+      analyticsService.getRecentActivity(10),
+      prisma.prospect.count({
+        where: {
+          status: 'new',
+          eligibleForCall: true,
+          callAttempts: { lt: 3 },
+          phone: { not: null },
+        },
+      }),
+    ]);
+
+    const stats = statsResult.status === 'fulfilled' ? statsResult.value : null;
+    const activity = activityResult.status === 'fulfilled' ? activityResult.value : [];
+    const prospectsReadyToCall = prospectsReadyResult.status === 'fulfilled' ? prospectsReadyResult.value : 0;
+
+    res.json({
+      ...(stats ?? EMPTY_DASHBOARD),
+      prospectsReadyToCall,
+      activity,
+    });
+  } catch (err: any) {
+    logger.error('[API] Admin dashboard error:', err);
+    res.json({ ...EMPTY_DASHBOARD });
+  }
+});
 
 // ─── Stats ─────────────────────────────────────────────────
 
