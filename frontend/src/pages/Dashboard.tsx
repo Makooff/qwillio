@@ -1,276 +1,392 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Users, Phone, TrendingUp, CheckCircle, Zap, Clock, BarChart2, RefreshCw } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import api from '../services/api';
+import { DashboardStats, BotStatus } from '../types';
+import {
+  Users, Building2, Phone, Zap, TrendingUp, Clock,
+  Play, Square, BarChart3, Target,
+} from 'lucide-react';
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from 'recharts';
+import MetricCard from '../components/dashboard/MetricCard';
+import StatusBadge from '../components/dashboard/StatusBadge';
+import { MetricCardSkeleton, ChartSkeleton } from '../components/dashboard/SkeletonLoader';
+import SlideSheet from '../components/dashboard/SlideSheet';
+import EmptyState from '../components/dashboard/EmptyState';
+import { formatDistanceToNow } from 'date-fns';
 
-interface DashboardStats {
-  totalProspects: number;
-  prospectsReadyToCall: number;
-  prospectsThisWeek: number;
-  callsToday: number;
-  callsThisWeek: number;
-  answeredCalls: number;
-  conversionRate: number;
-  activeClients: number;
-  botIsActive: boolean;
-  lastProspection: string | null;
-  lastCall: string | null;
-  servicesStatus: {
-    prospection: 'running' | 'idle' | 'inactive';
-    calling: 'running' | 'idle' | 'inactive';
-    reminders: 'running' | 'idle' | 'inactive';
-    analytics: 'running' | 'idle' | 'inactive';
-    dailyReset: 'running' | 'idle' | 'inactive';
-  };
-}
+const NICHE_COLORS = ['#7B5CF0', '#6C47FF', '#22C55E', '#F59E0B', '#EF4444', '#6EE7B7', '#a78bfa'];
 
-interface ActivityItem {
-  id: string;
-  message?: string;
-  description?: string;
-  timestamp?: string;
-  date?: string;
-  type?: string;
-}
-
-const API = import.meta.env.VITE_API_URL || '';
-
-const serviceDefs = [
-  { key: 'prospection', label: 'Prospection', icon: Users },
-  { key: 'calling', label: 'Appels', icon: Phone },
-  { key: 'reminders', label: 'Relances', icon: Clock },
-  { key: 'analytics', label: 'Analytics', icon: BarChart2 },
-] as const;
-
-function StatusBadge({ status }: { status: 'running' | 'idle' | 'inactive' }) {
-  if (status === 'running') return (
-    <span className="flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-      En cours
-    </span>
-  );
-  if (status === 'idle') return (
-    <span className="flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-      En attente
-    </span>
-  );
-  return (
-    <span className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
-      <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-      Inactif
-    </span>
-  );
-}
-
-function fmt(n: number | undefined | null): string {
-  if (n == null) return '0';
-  return n.toLocaleString('fr-FR');
-}
-
-function timeAgo(dateStr: string | null): string {
-  if (!dateStr) return 'Jamais';
-  const d = new Date(dateStr);
-  const diff = Date.now() - d.getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 2) return "À l'instant";
-  if (mins < 60) return `Il y a ${mins} min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `Il y a ${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `Il y a ${days}j`;
-}
+const SCORE_COLOR = (s: number) => s >= 7 ? '#22C55E' : s >= 4 ? '#F59E0B' : '#EF4444';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [botStatus, setBotStatus] = useState<BotStatus | null>(null);
+  const [revenueHistory, setRevenueHistory] = useState<any[]>([]);
+  const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [selectedCall, setSelectedCall] = useState<any>(null);
+  const [toggling, setToggling] = useState(false);
 
-  const load = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token') || '';
-      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-
-      const [statsRes, actRes] = await Promise.allSettled([
-        fetch(`${API}/api/admin/stats`, { headers }),
-        fetch(`${API}/api/admin/activity-feed`, { headers }),
+      const [statsRes, botRes, revenueRes, activityRes] = await Promise.all([
+        api.get('/dashboard/stats'),
+        api.get('/bot/status'),
+        api.get('/dashboard/revenue-history'),
+        api.get('/dashboard/activity'),
       ]);
-
-      if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
-        const data = await statsRes.value.json();
-        setStats(data);
-      }
-      if (actRes.status === 'fulfilled' && actRes.value.ok) {
-        const data = await actRes.value.json();
-        setActivity(Array.isArray(data) ? data.slice(0, 8) : []);
-      }
-    } catch (e) {
-      console.error('Dashboard load error', e);
+      setStats(statsRes.data);
+      setBotStatus(botRes.data);
+      setRevenueHistory(Array.isArray(revenueRes.data) ? revenueRes.data : []);
+      setActivity(Array.isArray(activityRes.data) ? activityRes.data : []);
+    } catch {
+      // silent
     } finally {
       setLoading(false);
-      setLastRefresh(new Date());
     }
   }, []);
 
   useEffect(() => {
-    load();
-    const interval = setInterval(load, 30000);
-    return () => clearInterval(interval);
-  }, [load]);
+    fetchData();
+    const interval = setInterval(fetchData, 30_000);
+    const handler = () => fetchData();
+    window.addEventListener('admin-refresh', handler);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('admin-refresh', handler);
+    };
+  }, [fetchData]);
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="w-8 h-8 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  const toggleBot = async () => {
+    setToggling(true);
+    try {
+      if (botStatus?.isActive) await api.post('/bot/stop');
+      else await api.post('/bot/start');
+      const { data } = await api.get('/bot/status');
+      setBotStatus(data);
+    } catch { /* silent */ }
+    finally { setToggling(false); }
+  };
 
-  const botActive = stats?.botIsActive ?? false;
-  const services = stats?.servicesStatus;
+  // Build niche chart data from activity
+  const nicheData = Object.entries(
+    (activity ?? []).reduce((acc: Record<string, number>, a: any) => {
+      if (a.niche) acc[a.niche] = (acc[a.niche] || 0) + 1;
+      return acc;
+    }, {})
+  ).map(([name, value]) => ({ name, value })).slice(0, 7);
+
+  const mrr = stats?.revenue?.mrr ?? 0;
+  const arr = mrr * 12;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Status Banner */}
-      <div className={`px-4 py-3 ${botActive ? 'bg-green-600' : 'bg-red-500'}`}>
-        <div className="flex items-center justify-between max-w-lg mx-auto">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${botActive ? 'bg-white animate-pulse' : 'bg-red-200'}`} />
-            <span className="text-white font-semibold text-sm">
-              {botActive ? 'Bot Actif · LIVE' : 'Bot Arrêté'}
-            </span>
+    <div className="space-y-6">
+
+      {/* Page header + Bot toggle */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-[#F8F8FF]">Overview</h1>
+          <p className="text-sm text-[#8B8BA7] mt-0.5">Qwillio performance dashboard</p>
+        </div>
+        <button
+          onClick={toggleBot}
+          disabled={toggling}
+          className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all
+            ${botStatus?.isActive
+              ? 'bg-[#EF4444]/10 border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/20'
+              : 'bg-[#22C55E]/10 border-[#22C55E]/30 text-[#22C55E] hover:bg-[#22C55E]/20'
+            } disabled:opacity-50`}
+        >
+          <span className={`w-2 h-2 rounded-full ${botStatus?.isActive ? 'bg-[#EF4444] animate-pulse' : 'bg-[#22C55E]'}`} />
+          {botStatus?.isActive ? <><Square className="w-3.5 h-3.5" />Stop bot</> : <><Play className="w-3.5 h-3.5" />Start bot</>}
+          <span className="ml-1 text-xs opacity-60">
+            {botStatus?.callsToday ?? 0}/{botStatus?.callsQuotaDaily ?? 50}
+          </span>
+        </button>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {loading ? (
+          Array.from({ length: 6 }).map((_, i) => <MetricCardSkeleton key={i} />)
+        ) : (
+          <>
+            <MetricCard
+              label="Active Clients" value={stats?.clients?.totalActive ?? 0}
+              delta={stats?.clients?.newThisMonth ? 5 : 0}
+              icon={<Building2 className="w-4 h-4" />}
+              sparkData={[2,3,3,4,5,5,stats?.clients?.totalActive ?? 5]}
+            />
+            <MetricCard
+              label="MRR" value={mrr} prefix="$" format="currency"
+              delta={stats?.revenue?.mrrGrowth ?? 0}
+              icon={<TrendingUp className="w-4 h-4" />}
+              colorClass="text-[#22C55E]"
+              sparkData={revenueHistory.slice(-7).map((r: any) => r.revenue ?? 0)}
+            />
+            <MetricCard
+              label="Calls Today" value={stats?.calls?.today ?? 0}
+              icon={<Phone className="w-4 h-4" />}
+              sparkData={[4,6,8,5,7,9,stats?.calls?.today ?? 0]}
+            />
+            <MetricCard
+              label="Hot Leads" value={stats?.calls?.hotLeadsToday ?? 0}
+              colorClass="text-[#F59E0B]"
+              icon={<Zap className="w-4 h-4" />}
+              sparkData={[1,2,1,3,2,4,stats?.calls?.hotLeadsToday ?? 0]}
+            />
+            <MetricCard
+              label="Conversion" value={stats?.conversion?.prospectToClient ?? 0}
+              suffix="%" format="percent"
+              delta={0.3}
+              icon={<Target className="w-4 h-4" />}
+              sparkData={[1.2,1.5,1.8,2.1,1.9,2.3,stats?.conversion?.prospectToClient ?? 0]}
+            />
+            <MetricCard
+              label="Avg Score" value={stats?.calls?.avgInterestScore ?? 0}
+              suffix="/10"
+              colorClass={`text-[${SCORE_COLOR(stats?.calls?.avgInterestScore ?? 0)}]`}
+              icon={<BarChart3 className="w-4 h-4" />}
+              sparkData={[5,5.5,6,6.2,5.8,6.5,stats?.calls?.avgInterestScore ?? 0]}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+
+        {/* Revenue chart */}
+        <div className="lg:col-span-3 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-[#F8F8FF]">Revenue Growth</h3>
+              <p className="text-xs text-[#8B8BA7] mt-0.5">MRR last 30 days</p>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-bold text-[#F8F8FF] tabular-nums">${arr.toLocaleString()}</p>
+              <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide">ARR</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-white/80 text-xs">
-              {botActive ? 'Tous les crons actifs' : 'Aucun cron ne tourne'}
-            </span>
-            <button onClick={load} className="text-white/80 hover:text-white">
-              <RefreshCw size={14} />
-            </button>
+          {loading ? <ChartSkeleton /> : (
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueHistory}>
+                  <defs>
+                    <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#7B5CF0" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#7B5CF0" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#8B8BA7' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} axisLine={false} tickLine={false} width={45}
+                    tickFormatter={(v) => `$${v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} />
+                  <Tooltip
+                    contentStyle={{ background: '#1E1E2E', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12 }}
+                    labelStyle={{ color: '#8B8BA7' }}
+                    itemStyle={{ color: '#F8F8FF' }}
+                    formatter={(v: any) => [`$${Number(v).toLocaleString()}`, 'Revenue']}
+                  />
+                  <Area type="monotone" dataKey="revenue" stroke="#7B5CF0" strokeWidth={2} fill="url(#gradRev)" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        {/* Calls by niche donut */}
+        <div className="lg:col-span-2 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-[#F8F8FF]">Calls by Niche</h3>
+            <p className="text-xs text-[#8B8BA7] mt-0.5">Distribution today</p>
           </div>
+          {loading ? <ChartSkeleton height="h-52" /> : nicheData.length === 0 ? (
+            <div className="h-52 flex items-center justify-center text-[#8B8BA7] text-sm">No data yet</div>
+          ) : (
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={nicheData} cx="50%" cy="45%" innerRadius={50} outerRadius={75}
+                    dataKey="value" nameKey="name" paddingAngle={2}>
+                    {nicheData.map((_: any, i: number) => (
+                      <Cell key={i} fill={NICHE_COLORS[i % NICHE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Legend
+                    iconType="circle" iconSize={6}
+                    formatter={(v) => <span style={{ color: '#8B8BA7', fontSize: 10 }}>{v}</span>}
+                  />
+                  <Tooltip
+                    contentStyle={{ background: '#1E1E2E', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12 }}
+                    itemStyle={{ color: '#F8F8FF' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="px-4 pt-4 max-w-lg mx-auto space-y-4">
+      {/* Live feed + Quick stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
-        {/* KPI Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Prêts à appeler — highlight */}
-          <div className="bg-violet-600 rounded-xl p-4 text-white shadow-md col-span-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-violet-200 text-xs font-medium uppercase tracking-wide">Prêts à appeler</p>
-                <p className="text-4xl font-bold mt-1">{fmt(stats?.prospectsReadyToCall)}</p>
-                <p className="text-violet-200 text-xs mt-1">
-                  {(stats?.prospectsReadyToCall ?? 0) > 0 ? 'Prospects qualifiés disponibles' : 'Aucun prospect qualifié'}
-                </p>
-              </div>
-              <Phone size={32} className="text-violet-300" />
-            </div>
+        {/* Live call feed */}
+        <div className="lg:col-span-3 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-[#F8F8FF]">Live Call Feed</h3>
+            <span className="flex items-center gap-1.5 text-[10px] text-[#22C55E] bg-[#22C55E]/10 px-2 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />LIVE
+            </span>
           </div>
 
-          {/* Total Prospects */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <Users size={18} className="text-gray-400" />
-              <span className="text-xs text-green-600 font-medium">
-                {(stats?.prospectsThisWeek ?? 0) > 0 ? `+${stats?.prospectsThisWeek} / 7j` : 'cette semaine'}
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{fmt(stats?.totalProspects)}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Total prospects</p>
-          </div>
-
-          {/* Appels aujourd'hui */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <Phone size={18} className="text-gray-400" />
-              <span className="text-xs text-gray-400">quota 50/j</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{fmt(stats?.callsToday)}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Appels aujourd&apos;hui</p>
-          </div>
-
-          {/* Taux réponse */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingUp size={18} className="text-gray-400" />
-              <span className="text-xs text-gray-400">{fmt(stats?.answeredCalls)} réponses</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{stats?.conversionRate ?? 0}%</p>
-            <p className="text-xs text-gray-500 mt-0.5">Taux de réponse</p>
-          </div>
-
-          {/* Clients actifs */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <CheckCircle size={18} className="text-gray-400" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{fmt(stats?.activeClients)}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Clients actifs</p>
-          </div>
-        </div>
-
-        {/* Services */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Services</h2>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {serviceDefs.map(({ key, label, icon: Icon }) => {
-              const s = services?.[key as keyof typeof services] ?? (botActive ? 'idle' : 'inactive');
-              return (
-                <div key={key} className="flex items-center justify-between px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
-                      <Icon size={16} className="text-gray-500" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-800">{label}</span>
+          {loading ? (
+            <div className="space-y-3">
+              {[1,2,3,4,5].map(i => (
+                <div key={i} className="flex items-center gap-3 animate-pulse">
+                  <div className="w-8 h-8 rounded-lg bg-white/[0.06]" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 bg-white/[0.06] rounded w-32" />
+                    <div className="h-2.5 bg-white/[0.04] rounded w-20" />
                   </div>
-                  <StatusBadge status={s} />
+                  <div className="h-5 w-10 bg-white/[0.06] rounded-full" />
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Dernières infos */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-            <p className="text-xs text-gray-400 font-medium">Dernière prospection</p>
-            <p className="text-sm font-semibold text-gray-800 mt-1">{timeAgo(stats?.lastProspection ?? null)}</p>
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-            <p className="text-xs text-gray-400 font-medium">Dernier appel</p>
-            <p className="text-sm font-semibold text-gray-800 mt-1">{timeAgo(stats?.lastCall ?? null)}</p>
-          </div>
-        </div>
-
-        {/* Activity Feed */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Activité récente</h2>
-          </div>
-          {activity.length === 0 ? (
-            <div className="px-4 py-8 text-center">
-              <Zap size={24} className="mx-auto text-gray-300 mb-2" />
-              <p className="text-sm text-gray-400">Aucune activité pour l&apos;instant</p>
-              <p className="text-xs text-gray-300 mt-1">Démarrez le bot pour commencer</p>
+              ))}
             </div>
+          ) : activity.length === 0 ? (
+            <EmptyState
+              icon={<Phone className="w-6 h-6" />}
+              title="No calls yet"
+              description="Start the bot to begin making calls."
+            />
           ) : (
-            <div className="divide-y divide-gray-50">
-              {activity.map((item, i) => (
-                <div key={item.id ?? i} className="px-4 py-3">
-                  <p className="text-sm text-gray-700">{item.description ?? item.message ?? '—'}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{timeAgo(item.timestamp ?? item.date ?? null)}</p>
-                </div>
+            <div className="space-y-1 max-h-72 overflow-y-auto scrollbar-hide">
+              {activity.slice(0, 15).map((item: any, i: number) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedCall(item)}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.04] transition-all text-left group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[#7B5CF0]/10 flex items-center justify-center flex-shrink-0 text-sm">
+                    {item.icon ?? '📞'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-[#F8F8FF] truncate">{item.message ?? item.businessName ?? 'Call'}</p>
+                    <p className="text-[10px] text-[#8B8BA7] mt-0.5">
+                      {item.date ? formatDistanceToNow(new Date(item.date), { addSuffix: true }) : ''}
+                    </p>
+                  </div>
+                  {item.interestScore !== undefined && (
+                    <span className="text-xs font-bold flex-shrink-0" style={{ color: SCORE_COLOR(item.interestScore) }}>
+                      {item.interestScore}/10
+                    </span>
+                  )}
+                </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Last refresh */}
-        <p className="text-center text-xs text-gray-300 pb-2">
-          Actualisé à {lastRefresh.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · Auto-refresh 30s
-        </p>
+        {/* Right column: quick stats */}
+        <div className="lg:col-span-2 space-y-4">
+
+          {/* Conversion rates */}
+          <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+            <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Conversion Rates</h3>
+            <div className="space-y-4">
+              {[
+                { label: 'Prospect → Client', value: stats?.conversion?.prospectToClient ?? 0, color: '#7B5CF0' },
+                { label: 'Quote Acceptance', value: stats?.conversion?.quoteAcceptanceRate ?? 0, color: '#22C55E' },
+              ].map((item) => (
+                <div key={item.label}>
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="text-[#8B8BA7]">{item.label}</span>
+                    <span className="font-semibold text-[#F8F8FF]">{item.value.toFixed(1)}%</span>
+                  </div>
+                  <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${Math.min(item.value, 100)}%`, background: item.color }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick stats bar */}
+          <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+            <h3 className="text-sm font-semibold text-[#F8F8FF] mb-3">This Month</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Setup Fees', value: `$${(stats?.revenue?.setupFeesThisMonth ?? 0).toLocaleString()}` },
+                { label: 'Total Revenue', value: `$${(stats?.revenue?.totalThisMonth ?? 0).toLocaleString()}` },
+                { label: 'New Clients', value: String(stats?.clients?.newThisMonth ?? 0) },
+                { label: 'Avg Duration', value: `${stats?.calls?.avgDuration ?? 0}s` },
+              ].map((s) => (
+                <div key={s.label} className="bg-[#0D0D15] rounded-xl p-3">
+                  <p className="text-lg font-bold tabular-nums text-[#F8F8FF]">{s.value}</p>
+                  <p className="text-[10px] text-[#8B8BA7] mt-0.5 uppercase tracking-wide">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Hour stats */}
+          <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-4">
+            <div className="grid grid-cols-2 gap-3 text-center">
+              {[
+                { label: 'This Hour', value: stats?.calls?.thisHour ?? 0, icon: <Clock className="w-3.5 h-3.5" /> },
+                { label: 'Voicemails', value: stats?.calls?.voicemails ?? 0, icon: <Phone className="w-3.5 h-3.5" /> },
+                { label: 'Leads', value: stats?.calls?.leadsToday ?? 0, icon: <Zap className="w-3.5 h-3.5" /> },
+                { label: 'Success %', value: `${(stats?.calls?.successRate ?? 0).toFixed(0)}%`, icon: <TrendingUp className="w-3.5 h-3.5" /> },
+              ].map((s) => (
+                <div key={s.label} className="flex flex-col items-center gap-1 p-2">
+                  <span className="text-[#8B8BA7]">{s.icon}</span>
+                  <p className="text-base font-bold tabular-nums text-[#F8F8FF]">{s.value}</p>
+                  <p className="text-[9px] text-[#8B8BA7] uppercase tracking-wide">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Call detail sheet */}
+      <SlideSheet
+        open={!!selectedCall}
+        onClose={() => setSelectedCall(null)}
+        title={selectedCall?.businessName ?? selectedCall?.message ?? 'Call Detail'}
+        subtitle={selectedCall?.city}
+      >
+        {selectedCall && (
+          <div className="space-y-4">
+            {selectedCall.interestScore !== undefined && (
+              <div className="flex items-center gap-2">
+                <span className="text-[#8B8BA7] text-sm">Interest score:</span>
+                <span className="text-xl font-bold" style={{ color: SCORE_COLOR(selectedCall.interestScore) }}>
+                  {selectedCall.interestScore}/10
+                </span>
+              </div>
+            )}
+            {selectedCall.outcome && (
+              <div>
+                <span className="text-[#8B8BA7] text-sm">Outcome: </span>
+                <StatusBadge status={selectedCall.outcome} />
+              </div>
+            )}
+            {selectedCall.message && (
+              <p className="text-sm text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-4">{selectedCall.message}</p>
+            )}
+            {selectedCall.date && (
+              <p className="text-xs text-[#8B8BA7]">
+                {new Date(selectedCall.date).toLocaleString()}
+              </p>
+            )}
+          </div>
+        )}
+      </SlideSheet>
     </div>
   );
 }

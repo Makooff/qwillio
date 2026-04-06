@@ -48,7 +48,7 @@ const app = express();
 
 // ─── Security ────────────────────────────────────────────
 app.use(helmet());
-const allowedOrigins = new Set(env.FRONTEND_URL.split(',').map(o => o.trim()));
+const allowedOrigins = new Set(env.FRONTEND_URL.split(',').map(o => o.trim()).filter(Boolean));
 app.use(cors({
   origin: (origin, callback) => {
     if (
@@ -121,8 +121,10 @@ app.post('/api/contact', async (req, res) => {
     }
     // Send via Resend
     const { resend } = await import('./config/resend');
+    // Extract email address from "Name <email>" format if needed
+    const fromEmail = env.RESEND_FROM_EMAIL.match(/<(.+)>/)?.[1] ?? env.RESEND_FROM_EMAIL;
     await resend.emails.send({
-      from: 'Qwillio Contact <noreply@qwillio.com>',
+      from: `Qwillio Contact <${fromEmail}>`,
       to: 'hello@qwillio.com',
       replyTo: email,
       subject: `Contact Form — ${subject || 'General'} — ${name}`,

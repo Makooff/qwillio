@@ -111,9 +111,13 @@ export interface Campaign {
 export interface DashboardStats {
   prospects: { total: number; newThisMonth: number; byStatus: Record<string, number> };
   clients: { totalActive: number; newThisMonth: number; byPlan: Record<string, number> };
-  revenue: { mrr: number; setupFeesThisMonth: number; totalThisMonth: number };
+  revenue: { mrr: number; setupFeesThisMonth: number; totalThisMonth: number; mrrGrowth?: number };
   conversion: { prospectToClient: number; quoteAcceptanceRate: number };
-  calls: { today: number; thisWeek: number; successRate: number };
+  calls: {
+    today: number; thisWeek: number; successRate: number;
+    hotLeadsToday?: number; avgInterestScore?: number; avgDuration?: number;
+    thisHour?: number; voicemails?: number; leadsToday?: number;
+  };
   bot: { isActive: boolean; callsToday: number; callsQuota: number };
 }
 

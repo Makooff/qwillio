@@ -1,189 +1,269 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
-import { Client, PaginatedResponse } from '../types';
-import { Building2, Phone, CreditCard, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import StatusBadge from '../components/dashboard/StatusBadge';
+import SlideSheet from '../components/dashboard/SlideSheet';
+import SkeletonLoader from '../components/dashboard/SkeletonLoader';
+import EmptyState from '../components/dashboard/EmptyState';
+import { format } from 'date-fns';
 
-const planColors: Record<string, string> = {
-  basic: 'bg-blue-100 text-blue-700',
-  pro: 'bg-purple-100 text-purple-700',
-  enterprise: 'bg-amber-100 text-amber-700',
+const PAGE_SIZE = 25;
+const PLAN_COLORS: Record<string, string> = {
+  starter: 'text-[#8B8BA7]', pro: 'text-[#7B5CF0]', enterprise: 'text-[#6EE7B7]',
 };
 
-export default function Clients() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
-  const [statusFilter, setStatusFilter] = useState('active');
-  const [planFilter, setPlanFilter] = useState('');
-  const [selected, setSelected] = useState<Client | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchClients = async (page = 1) => {
-    setLoading(true);
-    try {
-      const params: any = { page, limit: 20 };
-      if (statusFilter) params.status = statusFilter;
-      if (planFilter) params.planType = planFilter;
-
-      const { data } = await api.get<PaginatedResponse<Client>>('/clients', { params });
-      setClients(data.data);
-      setPagination(data.pagination);
-    } catch (error) {
-      console.error('Failed to fetch clients:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchClients(); }, [statusFilter, planFilter]);
-
-  const openDetail = async (id: string) => {
-    const { data } = await api.get(`/clients/${id}`);
-    setSelected(data);
-  };
-
-  const totalMRR = clients.reduce((sum, c) => sum + Number(c.monthlyFee), 0);
-
+function Avatar({ name }: { name: string }) {
+  const initials = name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?';
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <p className="text-gray-500">{pagination.total} clients · MRR: {totalMRR.toLocaleString('fr-FR')}€</p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="card flex gap-4">
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-auto">
-          <option value="">Tous les status</option>
-          <option value="active">Actifs</option>
-          <option value="past_due">En retard</option>
-          <option value="canceled">Annulés</option>
-        </select>
-        <select value={planFilter} onChange={(e) => setPlanFilter(e.target.value)} className="input w-auto">
-          <option value="">Tous les plans</option>
-          <option value="basic">Basic</option>
-          <option value="pro">Pro</option>
-          <option value="enterprise">Enterprise</option>
-        </select>
-      </div>
-
-      {/* Client Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? (
-          <div className="col-span-3 text-center py-12 text-gray-500">Chargement...</div>
-        ) : clients.length === 0 ? (
-          <div className="col-span-3 text-center py-12 text-gray-500">Aucun client trouvé</div>
-        ) : clients.map((client) => (
-          <div key={client.id} className="card hover:shadow-md transition-shadow cursor-pointer" onClick={() => openDetail(client.id)}>
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-primary-100 to-purple-100 rounded-lg">
-                  <Building2 className="w-5 h-5 text-primary-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{client.businessName}</h3>
-                  <p className="text-xs text-gray-500 capitalize">{client.businessType} · {client.city || ''}</p>
-                </div>
-              </div>
-              <span className={`badge ${planColors[client.planType] || 'bg-gray-100 text-gray-700'}`}>
-                {client.planType.toUpperCase()}
-              </span>
-            </div>
-
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">MRR</span>
-                <span className="font-semibold text-emerald-600">{Number(client.monthlyFee).toLocaleString('fr-FR')}€/mois</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Status</span>
-                <span className={`badge ${client.subscriptionStatus === 'active' ? 'badge-active' : 'badge-lost'}`}>
-                  {client.subscriptionStatus === 'active' ? 'Actif' : client.subscriptionStatus}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Appels totaux</span>
-                <span className="font-medium">{client.totalCallsMade}</span>
-              </div>
-              {client.vapiPhoneNumber && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Tél IA</span>
-                  <span className="font-mono text-xs">{client.vapiPhoneNumber}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-4 pt-4 border-t flex items-center justify-between">
-              <span className="text-xs text-gray-400">
-                Onboarding: {client.onboardingStatus === 'completed' ? '✅' : client.onboardingStatus === 'failed' ? '❌' : '⏳'}
-              </span>
-              <span className="text-xs text-gray-400">
-                {new Date(client.createdAt).toLocaleDateString('fr-FR')}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-center gap-4">
-        <button onClick={() => fetchClients(pagination.page - 1)} disabled={pagination.page <= 1} className="btn-secondary text-sm disabled:opacity-50">
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <span className="text-sm text-gray-500">Page {pagination.page} / {pagination.totalPages || 1}</span>
-        <button onClick={() => fetchClients(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} className="btn-secondary text-sm disabled:opacity-50">
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Detail Modal */}
-      {selected && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelected(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-bold">{selected.businessName}</h2>
-                <p className="text-gray-500">{selected.planType.toUpperCase()} · {Number(selected.monthlyFee)}€/mois</p>
-              </div>
-              <button onClick={() => setSelected(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-gray-500">Contact:</span> <span className="font-medium">{selected.contactName}</span></div>
-                <div><span className="text-gray-500">Email:</span> <span className="font-medium">{selected.contactEmail}</span></div>
-                <div><span className="text-gray-500">Téléphone:</span> <span className="font-medium">{selected.contactPhone || '-'}</span></div>
-                <div><span className="text-gray-500">Tél IA:</span> <span className="font-mono font-medium">{selected.vapiPhoneNumber || '-'}</span></div>
-                <div><span className="text-gray-500">Setup fee:</span> <span className="font-medium">{Number(selected.setupFee)}€</span></div>
-                <div><span className="text-gray-500">Appels totaux:</span> <span className="font-medium">{selected.totalCallsMade}</span></div>
-              </div>
-
-              {selected.payments && selected.payments.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-3">Historique Paiements</h4>
-                  <div className="space-y-2">
-                    {selected.payments.map((p: any) => (
-                      <div key={p.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg text-sm">
-                        <div>
-                          <span className="font-medium">{Number(p.amount)}€</span>
-                          <span className="text-gray-500 ml-2">{p.paymentType === 'setup_fee' ? 'Setup' : 'Abonnement'}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`badge ${p.status === 'succeeded' ? 'badge-active' : 'badge-lost'}`}>
-                            {p.status === 'succeeded' ? '✅' : '❌'}
-                          </span>
-                          <span className="text-gray-400 text-xs">{p.paidAt ? new Date(p.paidAt).toLocaleDateString('fr-FR') : '-'}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="w-8 h-8 rounded-full bg-[#7B5CF0]/20 flex items-center justify-center flex-shrink-0">
+      <span className="text-xs font-bold text-[#7B5CF0]">{initials}</span>
     </div>
   );
 }
 
+export default function Clients() {
+  const [clients, setClients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<any>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [filters, setFilters] = useState({ search: '', plan: '', status: '', sort: 'newest' });
+  const [actioning, setActioning] = useState<string | null>(null);
+
+  const fetchClients = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: any = { page, limit: PAGE_SIZE };
+      if (filters.plan) params.plan = filters.plan;
+      if (filters.status) params.status = filters.status;
+      if (filters.search) params.search = filters.search;
+      params.sort = filters.sort;
+      const { data } = await api.get('/clients', { params });
+      setClients(Array.isArray(data?.clients) ? data.clients : Array.isArray(data) ? data : []);
+      setTotal(data?.total ?? 0);
+    } catch { setClients([]); }
+    finally { setLoading(false); }
+  }, [page, filters]);
+
+  useEffect(() => { fetchClients(); }, [fetchClients]);
+  useEffect(() => {
+    const h = () => fetchClients();
+    window.addEventListener('admin-refresh', h);
+    return () => window.removeEventListener('admin-refresh', h);
+  }, [fetchClients]);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+
+  const handleAction = async (clientId: string, action: 'pause' | 'resume' | 'cancel') => {
+    setActioning(clientId);
+    try {
+      if (action === 'pause') await api.post(`/clients/${clientId}/pause`);
+      else if (action === 'resume') await api.post(`/clients/${clientId}/resume`);
+      else if (action === 'cancel') await api.post(`/clients/${clientId}/cancel`);
+      fetchClients();
+      if (selected?.id === clientId) setSelected(null);
+    } catch { /* silent */ }
+    finally { setActioning(null); }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-[#F8F8FF]">Clients</h1>
+          <p className="text-sm text-[#8B8BA7] mt-0.5">{total.toLocaleString()} total</p>
+        </div>
+        <button className="flex items-center gap-2 px-3 py-2 text-sm text-[#8B8BA7] hover:text-[#F8F8FF] bg-[#12121A] border border-white/[0.06] rounded-xl hover:border-[#7B5CF0]/30 transition-all">
+          <Download className="w-3.5 h-3.5" /> Export CSV
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <input
+          type="text"
+          placeholder="Search name / email..."
+          value={filters.search}
+          onChange={e => { setFilters(f => ({ ...f, search: e.target.value })); setPage(1); }}
+          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] placeholder-[#8B8BA7] outline-none focus:border-[#7B5CF0]/50 transition-colors w-52"
+        />
+        <select value={filters.plan} onChange={e => { setFilters(f => ({ ...f, plan: e.target.value })); setPage(1); }}
+          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] outline-none focus:border-[#7B5CF0]/50">
+          <option value="">All plans</option>
+          <option value="starter">Starter</option>
+          <option value="pro">Pro</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+        <select value={filters.status} onChange={e => { setFilters(f => ({ ...f, status: e.target.value })); setPage(1); }}
+          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] outline-none focus:border-[#7B5CF0]/50">
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="trial">Trial</option>
+          <option value="paused">Paused</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select value={filters.sort} onChange={e => setFilters(f => ({ ...f, sort: e.target.value }))}
+          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] outline-none focus:border-[#7B5CF0]/50">
+          <option value="newest">Newest</option>
+          <option value="mrr">MRR ↓</option>
+          <option value="calls">Calls ↓</option>
+        </select>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/[0.06]">
+                {['Client', 'Plan', 'MRR', 'Calls / Mo', 'Status', 'Next Billing', ''].map(h => (
+                  <th key={h} className="text-left px-4 py-3 text-[10px] font-semibold tracking-[0.08em] uppercase text-[#8B8BA7]">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            {loading ? (
+              <SkeletonLoader rows={10} cols={7} />
+            ) : clients.length === 0 ? (
+              <tbody><tr><td colSpan={7}>
+                <EmptyState icon={<Users className="w-6 h-6" />} title="No clients yet" description="Clients will appear here after they sign up and onboard." />
+              </td></tr></tbody>
+            ) : (
+              <tbody>
+                {clients.map((client: any, i: number) => {
+                  const callsPct = client.monthlyCallsQuota
+                    ? Math.min(100, Math.round((client.callsThisMonth ?? 0) / client.monthlyCallsQuota * 100))
+                    : 0;
+                  const trialDays = client.trialEndDate
+                    ? Math.max(0, Math.ceil((new Date(client.trialEndDate).getTime() - Date.now()) / 86400000))
+                    : null;
+                  return (
+                    <tr key={client.id ?? i} onClick={() => setSelected(client)}
+                      className="border-b border-white/[0.04] hover:bg-white/[0.02] cursor-pointer transition-colors group">
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={client.businessName ?? client.contactName ?? '?'} />
+                          <div>
+                            <p className="text-sm font-medium text-[#F8F8FF]">{client.businessName ?? '—'}</p>
+                            <p className="text-xs text-[#8B8BA7]">{client.contactEmail ?? ''}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className={`text-xs font-semibold capitalize ${PLAN_COLORS[client.planType ?? 'starter']}`}>
+                          {client.planType ?? '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-sm font-medium text-[#22C55E] tabular-nums">
+                        ${(client.monthlyFee ?? 0).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <p className="text-xs text-[#F8F8FF] tabular-nums">{client.callsThisMonth ?? 0}/{client.monthlyCallsQuota ?? '?'}</p>
+                        <div className="w-16 h-1 bg-white/[0.06] rounded-full mt-1.5 overflow-hidden">
+                          <div className="h-full bg-[#7B5CF0] rounded-full" style={{ width: `${callsPct}%` }} />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <StatusBadge status={client.isTrial ? 'trial' : (client.subscriptionStatus ?? client.status ?? 'active')} size="sm" />
+                      </td>
+                      <td className="px-4 py-3.5 text-xs text-[#8B8BA7]">
+                        {client.isTrial && trialDays !== null
+                          ? <span className={trialDays < 7 ? 'text-[#EF4444]' : ''}>{trialDays}d trial left</span>
+                          : client.nextBillingDate ? format(new Date(client.nextBillingDate), 'MMM d') : '—'}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                          {client.subscriptionStatus !== 'paused' ? (
+                            <button onClick={() => handleAction(client.id, 'pause')} disabled={actioning === client.id}
+                              className="px-2 py-1 text-[10px] font-medium text-[#F59E0B] border border-[#F59E0B]/30 rounded-lg hover:bg-[#F59E0B]/10 transition-all">
+                              Pause
+                            </button>
+                          ) : (
+                            <button onClick={() => handleAction(client.id, 'resume')} disabled={actioning === client.id}
+                              className="px-2 py-1 text-[10px] font-medium text-[#22C55E] border border-[#22C55E]/30 rounded-lg hover:bg-[#22C55E]/10 transition-all">
+                              Resume
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            )}
+          </table>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.06]">
+            <p className="text-xs text-[#8B8BA7]">Page {page} of {totalPages}</p>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="p-1.5 rounded-lg text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] disabled:opacity-30 transition-all">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const p = page <= 3 ? i + 1 : page - 2 + i;
+                if (p < 1 || p > totalPages) return null;
+                return (
+                  <button key={p} onClick={() => setPage(p)}
+                    className={`w-7 h-7 rounded-lg text-xs font-medium transition-all ${p === page ? 'bg-[#7B5CF0] text-white' : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06]'}`}>
+                    {p}
+                  </button>
+                );
+              })}
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                className="p-1.5 rounded-lg text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] disabled:opacity-30 transition-all">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Client detail sheet */}
+      <SlideSheet open={!!selected} onClose={() => setSelected(null)}
+        title={selected?.businessName ?? 'Client'} subtitle={selected?.contactEmail}>
+        {selected && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <Avatar name={selected.businessName ?? ''} />
+              <StatusBadge status={selected.isTrial ? 'trial' : (selected.subscriptionStatus ?? 'active')} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Plan', value: selected.planType ?? '—' },
+                { label: 'MRR', value: `$${(selected.monthlyFee ?? 0).toLocaleString()}` },
+                { label: 'Contact', value: selected.contactName ?? '—' },
+                { label: 'Phone', value: selected.contactPhone ?? '—' },
+                { label: 'Industry', value: selected.businessType ?? '—' },
+                { label: 'Country', value: selected.country ?? '—' },
+              ].map(f => (
+                <div key={f.label} className="bg-[#0D0D15] rounded-xl p-3">
+                  <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-1">{f.label}</p>
+                  <p className="text-sm text-[#F8F8FF] font-medium">{f.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2 pt-2 border-t border-white/[0.06]">
+              {selected.subscriptionStatus !== 'paused' ? (
+                <button onClick={() => handleAction(selected.id, 'pause')} disabled={actioning === selected.id}
+                  className="w-full px-4 py-2.5 text-sm font-medium text-[#F59E0B] border border-[#F59E0B]/30 rounded-xl hover:bg-[#F59E0B]/10 transition-all">
+                  Pause subscription
+                </button>
+              ) : (
+                <button onClick={() => handleAction(selected.id, 'resume')} disabled={actioning === selected.id}
+                  className="w-full px-4 py-2.5 text-sm font-medium text-[#22C55E] border border-[#22C55E]/30 rounded-xl hover:bg-[#22C55E]/10 transition-all">
+                  Resume subscription
+                </button>
+              )}
+              <button onClick={() => handleAction(selected.id, 'cancel')} disabled={actioning === selected.id}
+                className="w-full px-4 py-2.5 text-sm font-medium text-[#EF4444] border border-[#EF4444]/20 rounded-xl hover:bg-[#EF4444]/10 transition-all">
+                Cancel subscription
+              </button>
+            </div>
+          </div>
+        )}
+      </SlideSheet>
+    </div>
+  );
+}

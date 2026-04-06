@@ -7,7 +7,7 @@ const api = axios.create({
   baseURL,
   headers: {
     'Content-Type': 'application/json',
-    'ngrok-skip-browser-warning': 'true',   // prevent ngrok interstitial HTML
+    ...(import.meta.env.DEV ? { 'ngrok-skip-browser-warning': 'true' } : {}),
   },
 });
 
