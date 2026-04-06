@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Phone, Users, TrendingUp, CheckCircle, Clock, Zap, RefreshCw, Play, Square } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL ?? '';
+const API = (import.meta.env.VITE_API_URL ?? 'https://qwillio.onrender.com').replace(/\/$/, '');
 
 type ServiceStatus = 'running' | 'idle' | 'inactive';
 
