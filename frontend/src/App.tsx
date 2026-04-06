@@ -46,6 +46,12 @@ const Integrations = lazy(() => import('./pages/client/Integrations'));
 // Admin AI pages (lazy loaded)
 const AiLearning = lazy(() => import('./pages/admin/AiLearning'));
 const AiDecisions = lazy(() => import('./pages/admin/AiDecisions'));
+// New admin pages (lazy loaded)
+const AdminCalls = lazy(() => import('./pages/admin/Calls'));
+const AdminLeads = lazy(() => import('./pages/admin/Leads'));
+const AdminBilling = lazy(() => import('./pages/admin/Billing'));
+const AdminSystem = lazy(() => import('./pages/admin/System'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 // Legal pages (lazy loaded)
 const Privacy = lazy(() => import('./pages/legal/Privacy'));
 const Terms = lazy(() => import('./pages/legal/Terms'));
@@ -68,8 +74,8 @@ function ScrollToTop() {
 
 function Spinner() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+    <div className="min-h-screen flex items-center justify-center bg-[#0A0A0F]">
+      <div className="w-8 h-8 rounded-full border-2 border-[#7B5CF0]/20 border-t-[#7B5CF0] animate-spin" />
     </div>
   );
 }
@@ -209,9 +215,13 @@ export default function App() {
           <Route path="retention" element={<Retention />} />
           <Route path="followups" element={<FollowUps />} />
           <Route path="phone-validation" element={<PhoneValidation />} />
-          <Route path="settings" element={<Settings />} />
+          <Route path="settings" element={<Suspense fallback={<Spinner />}><AdminSettings /></Suspense>} />
           <Route path="ai-learning" element={<Suspense fallback={<Spinner />}><AiLearning /></Suspense>} />
           <Route path="ai-decisions" element={<Suspense fallback={<Spinner />}><AiDecisions /></Suspense>} />
+          <Route path="calls" element={<Suspense fallback={<Spinner />}><AdminCalls /></Suspense>} />
+          <Route path="leads" element={<Suspense fallback={<Spinner />}><AdminLeads /></Suspense>} />
+          <Route path="billing" element={<Suspense fallback={<Spinner />}><AdminBilling /></Suspense>} />
+          <Route path="system" element={<Suspense fallback={<Spinner />}><AdminSystem /></Suspense>} />
         </Route>
 
         {/* Catch-all redirect */}
