@@ -1,58 +1,57 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
 const API = 'https://qwillio.onrender.com';
 const getHeaders = (): Record<string, string> => {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};` } : {}; };
+  const t = localStorage.getItem('token');
+  return t ? { Authorization: `Bearer ${t}` } : {};
+};
 
-export default function SystemPage() {
+const System: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = () => {
-    setLoading(true);
+  useEffect(() => {
     fetch(`${API}/api/admin/system`, { headers: getHeaders() })
-      .then(r => r.json()).then(setData).catch(() => setData({ db: 'error' })).finally(() => setLoading(false));
-  };
+      .then(r => r.json()).then(setData).catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
-  useEffect(load, []);
+  if (loading) return <div className='p-8 text-gray-400'>Chargement...</div>;
+  if (!data) return <div className='p-8 text-red-400'>Erreur de chargement</div>;
 
-  const d = data ?? {};
-  const uptime = d.uptime ? `${Math.floor(d.uptime / 3600)}h ${Math.floor((d.uptime % 3600) / 60)}m` : '-';
+  const uptime = data.uptime ? `${Math.floor(data.uptime / 3600)}h ${Math.floor((data.uptime % 3600) / 60)}m` : 'N/A';
 
   return (
-    <div style={{ padding: '12px 16px' }}>
-      <div style={{ background:'#1a1a1a', borderRadius:12, padding:'14px 16px', marginBottom:12, border:'1px solid #2a2a2a' }}>
-        <div style={{ fontSize:12, color:'#888', marginBottom:12 }}>STATUT SYSTÈME</div>
-        {[
-          { label: 'Base de données', value: d.db === 'connected' ? '✓ Connectée' : '✗ Erreur', ok: d.db === 'connected' },
-          { label: 'Backend', value: data ? '✓ En ligne' : '✗ Hors ligne', ok: !!data },
-          { label: 'Environnement', value: d.env ?? '-', ok: true },
-          { label: 'Node.js', value: d.nodeVersion ?? '-', ok: true },
-          { label: 'Uptime', value: uptime, ok: true },
-        ].map(item => (
-          <div key={item.label} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #222', fontSize:13 }}>
-            <span style={{ color:'#888' }}>{item.label}</span>
-            <span style={{ color: item.ok ? '#4ade80' : '#f87171', fontWeight:600 }}>{item.value}</span>
-          </div>
-        ))}
+    <div className='p-8'>
+      <h1 className='text-2xl font-bold text-white mb-6'>Système</h1>
+      <div className='grid grid-cols-2 gap-4'>
+        <div className='bg-gray-800 rounded-xl p-4'>
+          <div className='text-gray-400 text-sm'>Base de données</div>
+          <div className={`text-lg font-bold ${data.db === 'connected' ? 'text-green-400' : 'text-red-400'}`}>{data.db}</div>
+        </div>
+        <div className='bg-gray-800 rounded-xl p-4'>
+          <div className='text-gray-400 text-sm'>Uptime</div>
+          <div className='text-lg font-bold text-white'>{uptime}</div>
+        </div>
+        <div className='bg-gray-800 rounded-xl p-4'>
+          <div className='text-gray-400 text-sm'>Node.js</div>
+          <div className='text-lg font-bold text-white'>{data.nodeVersion}</div>
+        </div>
+        <div className='bg-gray-800 rounded-xl p-4'>
+          <div className='text-gray-400 text-sm'>Environnement</div>
+          <div className='text-lg font-bold text-white'>{data.env}</div>
+        </div>
+        <div className='bg-gray-800 rounded-xl p-4'>
+          <div className='text-gray-400 text-sm'>Prospects</div>
+          <div className='text-lg font-bold text-blue-400'>{data.prospects}</div>
+        </div>
+        <div className='bg-gray-800 rounded-xl p-4'>
+          <div className='text-gray-400 text-sm'>Clients</div>
+          <div className='text-lg font-bold text-green-400'>{data.clients}</div>
+        </div>
       </div>
-      <div style={{ background:'#1a1a1a', borderRadius:12, padding:'14px 16px', marginBottom:12, border:'1px solid #2a2a2a' }}>
-        <div style={{ fontSize:12, color:'#888', marginBottom:12 }}>BASE DE DONNÉES</div>
-        {[
-          { label: 'Prospects', value: d.prospects ?? 0 },
-          { label: 'Clients', value: d.clients ?? 0 },
-          { label: 'Appels enregistrés', value: d.calls ?? 0 },
-        ].map(item => (
-          <div key={item.label} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #222', fontSize:13 }}>
-            <span style={{ color:'#888' }}>{item.label}</span>
-            <span style={{ fontWeight:600 }}>{item.value}</span>
-          </div>
-        ))}
-      </div>
-      <button onClick={load} disabled={loading} style={{ background:'#7c3aed',color:'#fff',border:'none',borderRadius:8,padding:'10px 20px',cursor:'pointer',fontWeight:600,opacity: loading ? 0.6 : 1, width:'100%' }}>
-        {loading ? 'Chargement...' : 'Actualiser'}
-      </button>
     </div>
   );
-}
+};
+
+export default System;
