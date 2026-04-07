@@ -1,255 +1,137 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Phone, Users, TrendingUp, CheckCircle, Clock, Zap, RefreshCw, Play, Square } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 const API = 'https://qwillio.onrender.com';
-
-type ServiceStatus = 'running' | 'idle' | 'inactive';
+const getHeaders = () => {
+  const token = localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
+  return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : {};
+};
 
 interface DashboardData {
-  bot: { isActive: boolean; lastProspection: string | null; lastCall: string | null; callsToday: number; callsQuota: number };
-  services: { prospection: ServiceStatus; calling: ServiceStatus; reminders: ServiceStatus; analytics: ServiceStatus };
-  prospects: { total: number; readyToCall: number; thisWeek: number };
-  calls: { today: number; thisWeek: number; answered: number; conversionRate: number };
-  clients: { total: number };
-  activity: Array<{ id: string; message: string; timestamp: string; type: string }>;
-}
-
-function ago(d: string | null) {
-  if (!d) return 'Jamais';
-  const ms = Date.now() - new Date(d).getTime();
-  const m = Math.floor(ms / 60000);
-  if (m < 1) return "À l'instant";
-  if (m < 60) return `${m} min`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  return `${Math.floor(h / 24)}j`;
-}
-
-function ServiceBadge({ s }: { s: ServiceStatus }) {
-  const map = {
-    running: 'bg-green-100 text-green-700',
-    idle:    'bg-gray-100 text-gray-500',
-    inactive:'bg-red-50 text-red-500',
-  };
-  const label = { running: 'En cours', idle: 'En attente', inactive: 'Inactif' };
-  return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${map[s]}`}>
-      {s === 'running' && <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full mr-1 animate-pulse" />}
-      {label[s]}
-    </span>
-  );
+  bot?: { isActive?: boolean; callsToday?: number; callsQuota?: number };
+  calls?: { today?: number; thisWeek?: number; successRate?: number };
+  prospects?: { total?: number; newThisMonth?: number; byStatus?: Record<string, number> };
+  clients?: { totalActive?: number; newThisMonth?: number };
+  revenue?: { mrr?: number; totalThisMonth?: number };
+  conversion?: { prospectToClient?: number };
+  prospectsReadyToCall?: number;
+  activity?: Array<{ type: string; description: string; createdAt: string }>;
+  services?: Record<string, string>;
 }
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [toggling, setToggling] = useState(false);
-  const [refreshed, setRefreshed] = useState(new Date());
   const [error, setError] = useState<string | null>(null);
+  const [botLoading, setBotLoading] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const token = localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
-      const headers: HeadersInit = token
-        ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-        : {};
-
-      const r = await fetch(`${API}/api/admin/dashboard`, { headers });
-
-      if (r.ok) {
-        const json = await r.json();
-        setData(json);
-        setError(null);
-      } else {
-        const text = await r.text().catch(() => '');
-        setError(`HTTP ${r.status}: ${text.slice(0, 100)}`);
-      }
-    } catch (e: any) {
-      setError(`Network: ${e?.message ?? 'unknown'}`);
-      console.error('[Dashboard]', e);
-    } finally {
-      setLoading(false);
-      setRefreshed(new Date());
-    }
+      const r = await fetch(`${API}/api/admin/dashboard`, { headers: getHeaders() });
+      if (r.ok) { setData(await r.json()); setError(null); }
+      else { setError(`Erreur ${r.status}`); }
+    } catch (e: any) { setError(e?.message ?? 'Erreur réseau'); }
+    finally { setLoading(false); }
   }, []);
 
-  const toggleBot = useCallback(async () => {
-    if (!data || toggling) return;
-    setToggling(true);
+  useEffect(() => { load(); const id = setInterval(load, 30000); return () => clearInterval(id); }, [load]);
+
+  const toggleBot = async () => {
+    setBotLoading(true);
+    const isActive = data?.bot?.isActive;
     try {
-      const token = localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
-      const headers: HeadersInit = token
-        ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-        : {};
-      const endpoint = data.bot?.isActive ? '/api/bot/stop' : '/api/bot/start';
-      await fetch(`${API}${endpoint}`, { method: 'POST', headers });
+      await fetch(`${API}/api/admin/bot/${isActive ? 'stop' : 'start'}`, { method: 'POST', headers: getHeaders() });
       await load();
-    } finally {
-      setToggling(false);
-    }
-  }, [data, toggling, load]);
+    } finally { setBotLoading(false); }
+  };
 
-  useEffect(() => {
-    load();
-    const t = setInterval(load, 30000);
-    return () => clearInterval(t);
-  }, [load]);
-
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="w-7 h-7 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+  if (loading) return <div style={styles.center}><div style={styles.spinner} /></div>;
+  if (error && !data) return (
+    <div style={styles.center}>
+      <p style={{ color: '#ff6b6b' }}>Erreur: {error}</p>
+      <button style={styles.btn} onClick={load}>Réessayer</button>
     </div>
   );
 
-  if (!loading && !data) return (
-    <div className="flex flex-col items-center justify-center h-64 gap-3 px-6 text-center">
-      <p className="text-sm font-semibold text-gray-800">Erreur de chargement</p>
-      {error && <p className="text-xs text-red-500 font-mono bg-red-50 px-3 py-2 rounded-lg max-w-xs">{error}</p>}
-      <button onClick={load} className="px-4 py-2 bg-violet-600 text-white text-sm rounded-lg font-medium mt-2">
-        Réessayer
-      </button>
-    </div>
-  );
-  const d = data!;
-  const active = d?.bot?.isActive;
+  const d = data ?? {};
+  const botActive = d.bot?.isActive ?? false;
 
   return (
-    <div className="bg-gray-50 min-h-screen pb-24">
-
-      {/* ── Banner ── */}
-      <div className={`${active ? 'bg-green-600' : 'bg-gray-800'} px-4 py-3`}>
-        <div className="flex items-center justify-between max-w-lg mx-auto">
-          <div className="flex items-center gap-2">
-            {active && <span className="w-2 h-2 bg-white rounded-full animate-pulse" />}
-            <span className="text-white font-semibold text-sm">
-              {active ? 'Bot Actif · LIVE' : 'Bot Arrêté'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={load} className="text-white/60 hover:text-white p-1">
-              <RefreshCw size={13} />
-            </button>
-            <button
-              onClick={toggleBot}
-              disabled={toggling}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                active
-                  ? 'bg-red-500 hover:bg-red-600 text-white'
-                  : 'bg-white hover:bg-gray-100 text-gray-800'
-              } ${toggling ? 'opacity-50' : ''}`}
-            >
-              {toggling ? <RefreshCw size={12} className="animate-spin" /> : active ? <Square size={12} /> : <Play size={12} />}
-              {active ? 'Arrêter' : 'Démarrer'}
-            </button>
+    <div style={styles.page}>
+      <div style={{ ...styles.banner, background: botActive ? '#1a472a' : '#3d1a1a' }}>
+        <div>
+          <div style={{ fontSize: 11, color: '#aaa', marginBottom: 2 }}>STATUT BOT</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: botActive ? '#4ade80' : '#f87171' }}>
+            {botActive ? '● Bot Actif' : '● Bot Arrêté'}
           </div>
         </div>
+        <button style={{ ...styles.btn, background: botActive ? '#ef4444' : '#7c3aed', opacity: botLoading ? 0.6 : 1 }} onClick={toggleBot} disabled={botLoading}>
+          {botLoading ? '...' : botActive ? 'Arrêter' : 'Démarrer'}
+        </button>
       </div>
 
-      <div className="px-4 pt-4 space-y-3 max-w-lg mx-auto">
+      {(d.prospectsReadyToCall ?? 0) > 0 && (
+        <div style={styles.card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 11, color: '#a78bfa', marginBottom: 4 }}>PRÊTS À APPELER</div>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>{d.prospectsReadyToCall} prospects</div>
+            </div>
+            <span style={{ fontSize: 28 }}>📞</span>
+          </div>
+        </div>
+      )}
 
-        {/* ── Prêts à appeler (hero) ── */}
-        <div className="bg-violet-600 rounded-2xl p-5 text-white flex items-center justify-between">
+      <div style={styles.grid}>
+        <StatCard label="Appels aujourd'hui" value={d.calls?.today ?? 0} sub={`${d.calls?.thisWeek ?? 0} cette semaine`} />
+        <StatCard label="Quota/jour" value={d.bot?.callsQuota ?? 50} sub={`${d.bot?.callsToday ?? 0} utilisés`} />
+        <StatCard label="Taux de réponse" value={`${Math.round((d.calls?.successRate ?? 0) * 100)}%`} />
+        <StatCard label="Prospects" value={d.prospects?.total ?? 0} sub={`+${d.prospects?.newThisMonth ?? 0} ce mois`} />
+        <StatCard label="Clients actifs" value={d.clients?.totalActive ?? 0} sub={`+${d.clients?.newThisMonth ?? 0} ce mois`} />
+        <StatCard label="MRR" value={`${d.revenue?.mrr ?? 0}€`} sub={`${d.revenue?.totalThisMonth ?? 0}€ ce mois`} />
+      </div>
+
+      <div style={styles.card}>
+        <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>CONVERSION</div>
+        <div style={{ display: 'flex', gap: 16 }}>
           <div>
-            <p className="text-violet-200 text-xs font-medium uppercase tracking-widest mb-1">Prêts à appeler</p>
-            <p className="text-5xl font-bold">{d.prospects?.readyToCall}</p>
-            <p className="text-violet-300 text-xs mt-2">
-              {d.prospects?.total} prospects total · +{d.prospects?.thisWeek} cette semaine
-            </p>
-          </div>
-          <Phone size={40} className="text-violet-300" />
-        </div>
-
-        {/* ── KPIs ── */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
-            <div className="flex items-center justify-between mb-1">
-              <Phone size={16} className="text-gray-400" />
-              <span className="text-xs text-gray-400">quota {d.bot?.callsQuota}/j</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{d.calls?.today}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Appels aujourd'hui</p>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
-            <div className="flex items-center justify-between mb-1">
-              <TrendingUp size={16} className="text-gray-400" />
-              <span className="text-xs text-gray-400">{d.calls?.answered} réponses</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{d.calls?.conversionRate}%</p>
-            <p className="text-xs text-gray-400 mt-0.5">Taux de réponse</p>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
-            <div className="flex items-center justify-between mb-1">
-              <Users size={16} className="text-gray-400" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{d.prospects?.total}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Total prospects</p>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
-            <div className="flex items-center justify-between mb-1">
-              <CheckCircle size={16} className="text-gray-400" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{d.clients?.total}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Clients actifs</p>
+            <div style={{ fontSize: 20, fontWeight: 700 }}>{Math.round((d.conversion?.prospectToClient ?? 0) * 100)}%</div>
+            <div style={{ fontSize: 11, color: '#888' }}>Prospect → Client</div>
           </div>
         </div>
-
-        {/* ── Services ── */}
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-          <p className="px-4 py-3 text-sm font-semibold text-gray-800 border-b border-gray-50">Services</p>
-          {([
-            ['prospection', 'Prospection', Users],
-            ['calling',     'Appels sortants', Phone],
-            ['reminders',   'Relances', Clock],
-            ['analytics',   'Analytics', TrendingUp],
-          ] as const).map(([key, label, Icon]) => (
-            <div key={key} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center">
-                  <Icon size={15} className="text-gray-400" />
-                </div>
-                <span className="text-sm text-gray-700">{label}</span>
-              </div>
-              <ServiceBadge s={d.services?.[key] ?? 'inactive'} />
-            </div>
-          ))}
-        </div>
-
-        {/* ── Dernières activités ── */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-xl p-3 border border-gray-100">
-            <p className="text-xs text-gray-400">Dernière prospection</p>
-            <p className="text-sm font-semibold text-gray-800 mt-1">{ago(d.bot?.lastProspection)}</p>
-          </div>
-          <div className="bg-white rounded-xl p-3 border border-gray-100">
-            <p className="text-xs text-gray-400">Dernier appel</p>
-            <p className="text-sm font-semibold text-gray-800 mt-1">{ago(d.bot?.lastCall)}</p>
-          </div>
-        </div>
-
-        {/* ── Feed ── */}
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-          <p className="px-4 py-3 text-sm font-semibold text-gray-800 border-b border-gray-50">Activité récente</p>
-          {(d.activity?.length ?? 0) === 0 ? (
-            <div className="py-10 text-center">
-              <Zap size={22} className="mx-auto text-gray-200 mb-2" />
-              <p className="text-sm text-gray-400">Aucune activité</p>
-              <p className="text-xs text-gray-300">Le bot n'a pas encore tourné</p>
-            </div>
-          ) : d.activity?.map((a, i) => (
-            <div key={a.id ?? i} className="px-4 py-3 border-b border-gray-50 last:border-0">
-              <p className="text-sm text-gray-700">{a.message}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{ago(a.timestamp)}</p>
-            </div>
-          ))}
-        </div>
-
-        <p className="text-center text-xs text-gray-300 pb-2">
-          Actualisé {refreshed.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · auto 30s
-        </p>
       </div>
+
+      {(d.activity?.length ?? 0) > 0 && (
+        <div style={styles.card}>
+          <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>ACTIVITÉ RÉCENTE</div>
+          {d.activity?.slice(0, 5).map((a, i) => (
+            <div key={i} style={{ padding: '8px 0', borderBottom: '1px solid #222', fontSize: 13 }}>
+              <span style={{ color: '#a78bfa', marginRight: 8 }}>●</span>{a.description}
+              <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>{new Date(a.createdAt).toLocaleString('fr-FR')}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
+function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+  return (
+    <div style={styles.statCard}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>{value}</div>
+      <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{label}</div>
+      {sub && <div style={{ fontSize: 10, color: '#666', marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  page: { padding: '12px 16px', maxWidth: 600, margin: '0 auto' },
+  center: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 16 },
+  spinner: { width: 32, height: 32, border: '3px solid #333', borderTop: '3px solid #7c3aed', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
+  banner: { borderRadius: 12, padding: '14px 16px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  card: { background: '#1a1a1a', borderRadius: 12, padding: '14px 16px', marginBottom: 12, border: '1px solid #2a2a2a' },
+  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 },
+  statCard: { background: '#1a1a1a', borderRadius: 12, padding: '14px 16px', border: '1px solid #2a2a2a' },
+  btn: { background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13 },
+};
