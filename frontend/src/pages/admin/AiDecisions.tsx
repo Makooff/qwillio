@@ -1,149 +1,172 @@
-import { useState, useEffect } from 'react';
-import { RefreshCw, Shield, Zap, RotateCcw, AlertCircle } from 'lucide-react';
-import api from '../../services/api';
+import { useState, useEffect, useCallback } from 'react';
+
+const API = 'https://qwillio.onrender.com';
+const getToken = () => localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
 
 interface AiDecision {
   id: string;
-  timestamp: string;
   type: string;
-  niche: string;
-  language: string;
-  confidenceScore: number;
-  dataPointsUsed: number;
-  outcome: string;
-  details: Record<string, any>;
+  context?: string | null;
+  decision: string;
+  reasoning?: string | null;
+  outcome?: string | null;
+  createdAt: string;
 }
+
+const typeColors: Record<string, string> = {
+  script_mutation: '#8b5cf6',
+  skip_prospect: '#f59e0b',
+  call_timing: '#3b82f6',
+  objection_handling: '#22c55e',
+  retry_decision: '#ec4899',
+};
 
 export default function AiDecisions() {
   const [decisions, setDecisions] = useState<AiDecision[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState('');
-  const [filterOutcome, setFilterOutcome] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchDecisions();
+  const fetchDecisions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API}/api/admin/ai/decisions`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setDecisions(json.decisions ?? []);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const fetchDecisions = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/ai/decisions');
-      setDecisions(res.data.decisions || []);
-    } catch {
-      setDecisions([]);
-    }
-    setLoading(false);
-  };
+  useEffect(() => { fetchDecisions(); }, [fetchDecisions]);
 
-  const filtered = decisions.filter(d => {
-    if (filterType && d.type !== filterType) return false;
-    if (filterOutcome && d.outcome !== filterOutcome) return false;
-    return true;
-  });
-
-  const typeIcon = (type: string) => {
-    if (type === 'guard_blocked') return <Shield size={14} className="text-orange-500" />;
-    if (type === 'revert') return <RotateCcw size={14} className="text-red-500" />;
-    return <Zap size={14} className="text-[#6366f1]" />;
-  };
-
-  const outcomeBadge = (outcome: string) => {
-    if (outcome === 'applied') return <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700 font-medium">Applied</span>;
-    if (outcome === 'reverted') return <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-medium">Reverted</span>;
-    if (outcome === 'blocked') return <span className="px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-700 font-medium">Blocked</span>;
-    return <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700 font-medium">{outcome}</span>;
-  };
-
-  const thisMonth = decisions.filter(d => {
-    const date = new Date(d.timestamp);
-    const now = new Date();
-    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-  });
+  useEffect(() => {
+    const handler = () => fetchDecisions();
+    window.addEventListener('admin-refresh', handler);
+    return () => window.removeEventListener('admin-refresh', handler);
+  }, [fetchDecisions]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#1d1d1f]">AI Decision Log</h1>
-          <p className="text-sm text-[#86868b] mt-1">Full audit log of every AI system decision</p>
-        </div>
-        <button onClick={fetchDecisions} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#d2d2d7] text-sm hover:bg-[#f5f5f7] transition-colors">
-          <RefreshCw size={14} /> Refresh
-        </button>
+    <div style={{ padding: '24px', color: '#e2e8f0' }}>
+      <div style={{ marginBottom: '28px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+          AI Decisions
+        </h1>
+        <p style={{ color: '#64748b', fontSize: '14px' }}>
+          Journal des décisions autonomes prises par l&apos;IA
+        </p>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Mutations this month', value: thisMonth.filter(d => d.type === 'script_mutation').length, color: 'text-[#6366f1]' },
-          { label: 'Reverts', value: thisMonth.filter(d => d.outcome === 'reverted').length, color: 'text-red-600' },
-          { label: 'Guard blocks', value: thisMonth.filter(d => d.outcome === 'blocked').length, color: 'text-orange-600' },
-          { label: 'Avg confidence', value: decisions.length ? Math.round(decisions.reduce((s, d) => s + d.confidenceScore, 0) / decisions.length) + '%' : '—', color: 'text-green-600' },
-        ].map((card, i) => (
-          <div key={i} className="bg-white rounded-xl border border-[#d2d2d7] p-4">
-            <p className="text-xs text-[#86868b] mb-1">{card.label}</p>
-            <p className={`text-3xl font-bold ${card.color}`}>{card.value}</p>
+      <div style={{
+        background: 'linear-gradient(135deg, #0a1a2e, #0d0d15)',
+        border: '1px solid #3b82f644', borderRadius: '12px', padding: '20px', marginBottom: '28px',
+      }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <span style={{ fontSize: '28px' }}>⚡</span>
+          <div>
+            <div style={{ fontWeight: 700, color: '#93c5fd', marginBottom: '6px' }}>
+              Décisions autonomes
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.6' }}>
+              L&apos;IA prend des décisions en temps réel : sauter un prospect mal ciblé,
+              modifier son script après un refus récurrent, choisir le meilleur créneau d&apos;appel,
+              ou décider d&apos;un rappel. Chaque décision est enregistrée ici pour audit et transparence.
+            </div>
           </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-3 mb-4">
-        <select value={filterType} onChange={e => setFilterType(e.target.value)} className="border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30">
-          <option value="">All types</option>
-          <option value="script_mutation">Script mutation</option>
-          <option value="objection_update">Objection update</option>
-          <option value="revert">Revert</option>
-          <option value="guard_blocked">Guard blocked</option>
-        </select>
-        <select value={filterOutcome} onChange={e => setFilterOutcome(e.target.value)} className="border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30">
-          <option value="">All outcomes</option>
-          <option value="applied">Applied</option>
-          <option value="reverted">Reverted</option>
-          <option value="blocked">Blocked</option>
-        </select>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-12 text-[#86868b]">Loading...</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-[#86868b] flex flex-col items-center gap-3">
-          <AlertCircle size={32} className="opacity-40" />
-          <p>No decisions logged yet.</p>
         </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-[#d2d2d7] overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[#f5f5f7] border-b border-[#d2d2d7]">
-              <tr>
-                {['Timestamp', 'Type', 'Niche', 'Lang', 'Confidence', 'Data Points', 'Outcome'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 font-medium text-[#86868b] text-xs uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#d2d2d7]/60">
-              {filtered.map(d => (
-                <tr key={d.id} className="hover:bg-[#f5f5f7] transition-colors">
-                  <td className="px-4 py-3 text-[#86868b] whitespace-nowrap text-xs">{new Date(d.timestamp).toLocaleString()}</td>
-                  <td className="px-4 py-3">
-                    <span className="flex items-center gap-1.5 font-medium">{typeIcon(d.type)}{d.type.replace(/_/g, ' ')}</span>
-                  </td>
-                  <td className="px-4 py-3 capitalize">{d.niche || '—'}</td>
-                  <td className="px-4 py-3 uppercase text-xs font-medium text-[#6366f1]">{d.language || '—'}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-12 bg-[#f5f5f7] rounded-full h-1.5">
-                        <div className="bg-[#6366f1] h-1.5 rounded-full" style={{ width: `${d.confidenceScore}%` }} />
-                      </div>
-                      <span className="text-xs">{d.confidenceScore}%</span>
+      </div>
+
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>Chargement…</div>
+      )}
+
+      {error && (
+        <div style={{ background: '#1a0a0a', border: '1px solid #ef4444', borderRadius: '8px', padding: '16px', color: '#ef4444', marginBottom: '16px' }}>
+          Erreur : {error}
+        </div>
+      )}
+
+      {!loading && decisions.length === 0 && (
+        <div style={{
+          textAlign: 'center', padding: '60px', color: '#64748b',
+          background: '#0d0d15', borderRadius: '12px', border: '1px solid #1e1e2e',
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>🤖</div>
+          <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Aucune décision enregistrée</div>
+          <div style={{ fontSize: '14px' }}>Les décisions de l&apos;IA apparaîtront ici au fur et à mesure des appels.</div>
+        </div>
+      )}
+
+      {!loading && decisions.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {decisions.map(d => (
+            <div
+              key={d.id}
+              style={{
+                background: '#0d0d15', border: '1px solid #1e1e2e', borderRadius: '10px',
+                overflow: 'hidden', transition: 'border-color 0.15s',
+              }}
+            >
+              <div
+                onClick={() => setExpanded(expanded === d.id ? null : d.id)}
+                style={{
+                  padding: '14px 16px', cursor: 'pointer', display: 'flex',
+                  justifyContent: 'space-between', alignItems: 'center', gap: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                  <span style={{
+                    padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
+                    background: (typeColors[d.type] ?? '#6b7280') + '22',
+                    color: typeColors[d.type] ?? '#6b7280',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {d.type.replace(/_/g, ' ')}
+                  </span>
+                  <span style={{ color: '#f8fafc', fontSize: '14px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {d.decision}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  <span style={{ color: '#64748b', fontSize: '12px' }}>
+                    {new Date(d.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <span style={{ color: '#64748b', fontSize: '12px' }}>{expanded === d.id ? '▲' : '▼'}</span>
+                </div>
+              </div>
+
+              {expanded === d.id && (
+                <div style={{ padding: '0 16px 16px', borderTop: '1px solid #1e1e2e', paddingTop: '14px' }}>
+                  {d.reasoning && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>RAISONNEMENT</div>
+                      <div style={{ color: '#94a3b8', fontSize: '13px', lineHeight: '1.6' }}>{d.reasoning}</div>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-[#86868b]">{d.dataPointsUsed}</td>
-                  <td className="px-4 py-3">{outcomeBadge(d.outcome)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  )}
+                  {d.context && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>CONTEXTE</div>
+                      <div style={{ color: '#94a3b8', fontSize: '13px', fontFamily: 'monospace', background: '#1e1e2e', padding: '8px', borderRadius: '6px' }}>
+                        {d.context}
+                      </div>
+                    </div>
+                  )}
+                  {d.outcome && (
+                    <div>
+                      <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>RÉSULTAT</div>
+                      <div style={{ color: '#94a3b8', fontSize: '13px' }}>{d.outcome}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
