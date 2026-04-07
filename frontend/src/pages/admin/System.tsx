@@ -1,175 +1,226 @@
-import { useEffect, useState, useCallback } from 'react';
-import api from '../../services/api';
-import { Server, RefreshCw, Play, CheckCircle, XCircle, Clock } from 'lucide-react';
-import StatusBadge from '../../components/dashboard/StatusBadge';
+import { useState, useEffect, useCallback } from 'react';
 
-const CRON_DEFINITIONS = [
-  { name: 'Outbound calling', desc: 'Make calls to prospects', interval: 'Every 20min' },
-  { name: 'Forwarding verification', desc: 'Verify call forwarding', interval: 'Daily' },
-  { name: 'Niche learning', desc: 'Analyze niche performance', interval: 'Sunday 1am' },
-  { name: 'Weekly optimization', desc: 'Optimize scripts', interval: 'Sunday midnight' },
-  { name: 'Trial expiry check', desc: 'Check trial expirations', interval: 'Daily' },
-  { name: 'A/B test evaluation', desc: 'Evaluate script tests', interval: 'Weekly' },
-  { name: 'Best time learning', desc: 'Learn optimal call times', interval: 'Weekly' },
-  { name: 'Lead enrichment', desc: 'Enrich lead data', interval: 'After calls' },
-  { name: 'Follow-up SMS drip', desc: 'Send follow-up SMS', interval: 'Per niche' },
-  { name: 'Interest score calibration', desc: 'Calibrate scoring model', interval: 'Weekly' },
-  { name: 'CRM sync', desc: 'Sync CRM data', interval: 'Every 15min' },
-  { name: 'Overage calculation', desc: 'Calculate call overages', interval: 'Monthly' },
-  { name: 'Forwarding CRON', desc: 'Manage call routing', interval: 'Daily' },
-  { name: 'Hot lead scoring', desc: 'Score hot leads in realtime', interval: 'Real-time' },
-];
+const API = 'https://qwillio.onrender.com';
+const getToken = () => localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
 
-const API_SERVICES = ['Vapi', 'Twilio', 'OpenAI', 'Stripe', 'Resend', 'Database', 'Discord'];
+interface SystemData {
+  // v2 fields (from our new endpoint)
+  dbConnected?: boolean;
+  backendAlive?: boolean;
+  prospectCount?: number;
+  callCount?: number;
+  botQuotaRemaining?: number;
+  botActive?: boolean;
+  lastCallAt?: string | null;
+  lastProspectAt?: string | null;
+  uptime?: number;
+  nodeVersion?: string;
+  environment?: string;
+  error?: string;
+  // v1 fields (from existing endpoint)
+  db?: string;
+  prospects?: number;
+  clients?: number;
+  calls?: number;
+  env?: string;
+}
 
-const ENV_VARS = [
-  'DATABASE_URL', 'JWT_SECRET', 'VAPI_PRIVATE_KEY', 'VAPI_PUBLIC_KEY',
-  'TWILIO_ACCOUNT_SID', 'STRIPE_SECRET_KEY', 'RESEND_API_KEY',
-  'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'OPENAI_API_KEY',
-  'DISCORD_WEBHOOK_URL', 'FRONTEND_URL', 'API_BASE_URL',
-];
+function formatUptime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
 
-export default function AdminSystem() {
-  const [botStatus, setBotStatus] = useState<any>(null);
-  const [health, setHealth] = useState<any>(null);
+function HealthRow({ label, ok, detail }: { label: string; ok: boolean; detail?: string }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '14px 16px', borderRadius: '8px', background: '#0d0d15',
+      border: `1px solid ${ok ? '#22c55e44' : '#ef444444'}`,
+      marginBottom: '10px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{
+          width: '10px', height: '10px', borderRadius: '50%',
+          background: ok ? '#22c55e' : '#ef4444',
+          boxShadow: ok ? '0 0 8px #22c55e88' : '0 0 8px #ef444488',
+        }} />
+        <span style={{ color: '#f8fafc', fontWeight: 500, fontSize: '14px' }}>{label}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {detail && <span style={{ color: '#94a3b8', fontSize: '13px' }}>{detail}</span>}
+        <span style={{
+          padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
+          background: ok ? '#22c55e22' : '#ef444422',
+          color: ok ? '#22c55e' : '#ef4444',
+        }}>
+          {ok ? 'OK' : 'KO'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+  return (
+    <div style={{
+      background: '#0d0d15', border: '1px solid #1e1e2e', borderRadius: '10px',
+      padding: '16px 20px',
+    }}>
+      <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {label}
+      </div>
+      <div style={{ color: '#f8fafc', fontSize: '22px', fontWeight: 800 }}>{value}</div>
+      {sub && <div style={{ color: '#64748b', fontSize: '12px', marginTop: '4px' }}>{sub}</div>}
+    </div>
+  );
+}
+
+export default function System() {
+  const [data, setData] = useState<SystemData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [runningCron, setRunningCron] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchSystem = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const [botRes, healthRes] = await Promise.all([
-        api.get('/bot/status'),
-        api.get('/health').catch(() => ({ data: { status: 'ok' } })),
-      ]);
-      setBotStatus(botRes.data);
-      setHealth(healthRes.data);
-    } catch { /* silent */ }
-    finally { setLoading(false); }
+      const res = await fetch(`${API}/api/admin/system`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setData(json);
+      setLastRefresh(new Date());
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { fetchSystem(); }, [fetchSystem]);
+
   useEffect(() => {
-    const interval = setInterval(fetchData, 30_000);
-    const h = () => fetchData();
-    window.addEventListener('admin-refresh', h);
-    return () => { clearInterval(interval); window.removeEventListener('admin-refresh', h); };
-  }, [fetchData]);
+    const interval = setInterval(fetchSystem, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchSystem]);
 
-  const runCron = async (name: string) => {
-    setRunningCron(name);
-    try {
-      if (name === 'Outbound calling') await api.post('/bot/start');
-    } catch { /* silent */ }
-    setTimeout(() => setRunningCron(null), 2000);
-  };
+  useEffect(() => {
+    const handler = () => fetchSystem();
+    window.addEventListener('admin-refresh', handler);
+    return () => window.removeEventListener('admin-refresh', handler);
+  }, [fetchSystem]);
 
-  const dbStatus = health?.database === 'connected' ? 'online' : 'down';
+  // Normalize fields between v1 and v2 response shapes
+  const isDbOk = data ? (data.dbConnected ?? data.db === 'connected') : false;
+  const isBackendOk = data ? (data.backendAlive ?? true) : false;
+  const isBotActive = data?.botActive ?? false;
+  const prospectCount = data?.prospectCount ?? data?.prospects ?? 0;
+  const callCount = data?.callCount ?? data?.calls ?? 0;
+  const clientCount = data?.clients ?? 0;
+  const uptimeVal = data?.uptime ?? 0;
+  const nodeVer = data?.nodeVersion ?? '—';
+  const envName = data?.environment ?? data?.env ?? '—';
+  const quotaRemaining = data?.botQuotaRemaining ?? 0;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-[#F8F8FF]">System</h1>
-        <p className="text-sm text-[#8B8BA7] mt-0.5">Infrastructure and CRON job status</p>
+    <div style={{ padding: '24px', color: '#e2e8f0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+            Système
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '14px' }}>
+            {lastRefresh ? `Mis à jour à ${lastRefresh.toLocaleTimeString('fr-FR')}` : 'Vérification en cours…'}
+          </p>
+        </div>
+        <button
+          onClick={fetchSystem}
+          style={{
+            padding: '8px 16px', background: '#7c3aed', border: 'none',
+            borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
+          }}
+        >
+          {loading ? 'Vérification…' : 'Vérifier maintenant'}
+        </button>
       </div>
 
-      {/* API Health */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-[#F8F8FF]">API Health</h3>
-          <button onClick={fetchData} className="p-1.5 rounded-lg text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] transition-all">
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
+      {error && (
+        <div style={{
+          background: '#1a0a0a', border: '1px solid #ef4444', borderRadius: '8px',
+          padding: '16px', color: '#ef4444', marginBottom: '16px',
+        }}>
+          Erreur de connexion au backend : {error}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {API_SERVICES.map((svc) => {
-            const status = svc === 'Database' ? dbStatus : 'online';
-            return (
-              <div key={svc} className="flex items-center justify-between bg-[#0D0D15] rounded-xl px-3 py-2.5">
-                <span className="text-xs font-medium text-[#F8F8FF]">{svc}</span>
-                <StatusBadge status={status} size="sm" />
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      )}
 
-      {/* Bot status */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-        <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Bot Status</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: 'Status', value: botStatus?.isActive ? 'Running' : 'Stopped', color: botStatus?.isActive ? 'text-[#22C55E]' : 'text-[#8B8BA7]' },
-            { label: 'Calls Today', value: String(botStatus?.callsToday ?? 0), color: 'text-[#F8F8FF]' },
-            { label: 'Daily Quota', value: String(botStatus?.callsQuotaDaily ?? 50), color: 'text-[#F8F8FF]' },
-            { label: 'Queue Size', value: String(botStatus?.queueSize ?? 0), color: 'text-[#F8F8FF]' },
-          ].map((s) => (
-            <div key={s.label} className="bg-[#0D0D15] rounded-xl p-3">
-              <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-1">{s.label}</p>
-              <p className={`text-xl font-bold tabular-nums ${s.color}`}>{s.value}</p>
+      {!loading && data && (
+        <>
+          {/* Health checks */}
+          <div style={{ marginBottom: '28px' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#94a3b8', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Santé du système
+            </h2>
+            <HealthRow label="Backend API" ok={isBackendOk} detail={envName} />
+            <HealthRow label="Base de données" ok={isDbOk} />
+            <HealthRow
+              label="Bot VAPI"
+              ok={isBotActive}
+              detail={isBotActive ? `${quotaRemaining} appels restants` : 'Arrêté'}
+            />
+          </div>
+
+          {/* Stats */}
+          <div style={{ marginBottom: '28px' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#94a3b8', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Statistiques base de données
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+              <StatCard label="Prospects" value={prospectCount.toLocaleString('fr-FR')} />
+              <StatCard label="Appels" value={callCount.toLocaleString('fr-FR')} />
+              {clientCount > 0 && <StatCard label="Clients" value={clientCount.toLocaleString('fr-FR')} />}
+              {data.lastCallAt && (
+                <StatCard
+                  label="Dernier appel"
+                  value={new Date(data.lastCallAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  sub={new Date(data.lastCallAt).toLocaleDateString('fr-FR')}
+                />
+              )}
+              {data.lastProspectAt && (
+                <StatCard
+                  label="Dernier prospect"
+                  value={new Date(data.lastProspectAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  sub={new Date(data.lastProspectAt).toLocaleDateString('fr-FR')}
+                />
+              )}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      {/* CRON jobs */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/[0.06]">
-          <h3 className="text-sm font-semibold text-[#F8F8FF]">CRON Jobs</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
-          {CRON_DEFINITIONS.map((cron) => {
-            const isRunning = runningCron === cron.name;
-            return (
-              <div key={cron.name} className="bg-[#0D0D15] rounded-xl p-4 flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-medium text-[#F8F8FF] truncate">{cron.name}</p>
-                    {isRunning && (
-                      <span className="flex items-center gap-1 text-[10px] text-[#7B5CF0]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#7B5CF0] animate-pulse" />Running
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-[#8B8BA7]">{cron.desc}</p>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <Clock className="w-3 h-3 text-[#8B8BA7]" />
-                    <span className="text-[10px] text-[#8B8BA7]">{cron.interval}</span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => runCron(cron.name)}
-                  disabled={isRunning}
-                  className="flex-shrink-0 p-2 rounded-lg bg-[#7B5CF0]/10 text-[#7B5CF0] hover:bg-[#7B5CF0]/20 transition-all disabled:opacity-50"
-                  title="Run now"
-                >
-                  {isRunning
-                    ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    : <Play className="w-3.5 h-3.5" />
-                  }
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Environment variables */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-        <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Environment Variables</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {ENV_VARS.map((v) => (
-            <div key={v} className="flex items-center justify-between bg-[#0D0D15] rounded-xl px-3 py-2.5">
-              <code className="text-xs text-[#8B8BA7] font-mono">{v}</code>
-              <div className="flex items-center gap-1 text-[#22C55E]">
-                <CheckCircle className="w-3.5 h-3.5" />
-                <span className="text-[10px]">SET</span>
-              </div>
+          {/* Runtime */}
+          <div>
+            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#94a3b8', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Runtime
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+              {uptimeVal > 0 && <StatCard label="Uptime" value={formatUptime(uptimeVal)} />}
+              <StatCard label="Node.js" value={nodeVer} />
+              <StatCard label="Environnement" value={envName} />
+              {quotaRemaining > 0 && <StatCard label="Quota bot" value={`${quotaRemaining} restants`} />}
             </div>
-          ))}
+          </div>
+        </>
+      )}
+
+      {loading && !data && (
+        <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
+          Vérification du système…
         </div>
-        <p className="text-[10px] text-[#8B8BA7] mt-3">Values are never displayed for security.</p>
-      </div>
+      )}
     </div>
   );
 }
