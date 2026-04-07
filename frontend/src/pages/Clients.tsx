@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 const API = 'https://qwillio.onrender.com';
-const getHeaders = () => { const t = localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? ''; return t ? { Authorization: `Bearer ${t}` } : {}; };
+const getHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}` } : {}; };
 
 const PLAN_COLORS: Record<string, string> = { starter: '#60a5fa', pro: '#a78bfa', enterprise: '#f59e0b', free: '#6b7280' };
 
