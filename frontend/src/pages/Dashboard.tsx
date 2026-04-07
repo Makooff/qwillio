@@ -212,7 +212,7 @@ export default function Dashboard() {
                 </div>
                 <span className="text-sm text-gray-700">{label}</span>
               </div>
-              <ServiceBadge s={d.services?.[key]} />
+              <ServiceBadge s={d.services?.[key] ?? 'inactive'} />
             </div>
           ))}
         </div>
