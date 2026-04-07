@@ -3,7 +3,7 @@ const API = 'https://qwillio.onrender.com';
 const getHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
-}` } : {}; };
+};` } : {}; };
 
 const STATUS_COLORS: Record<string, string> = { answered: '#4ade80', voicemail: '#fbbf24', failed: '#f87171', busy: '#f59e0b', 'no-answer': '#6b7280' };
 const STATUS_FR: Record<string, string> = { answered: 'Répondu', voicemail: 'Messagerie', failed: 'Échec', busy: 'Occupé', 'no-answer': 'Pas de réponse' };
