@@ -3,7 +3,7 @@ const API = 'https://qwillio.onrender.com';
 const getHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
-}` } : {}; };
+};` } : {}; };
 
 const STATUS_COLORS: Record<string, string> = { new: '#a78bfa', contacted: '#60a5fa', qualified: '#34d399', converted: '#4ade80', rejected: '#f87171' };
 const STATUS_FR: Record<string, string> = { new: 'Nouveau', contacted: 'Contacté', qualified: 'Qualifié', converted: 'Converti', rejected: 'Refus' };
