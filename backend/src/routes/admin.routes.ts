@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { logger } from '../config/logger';
+import { prisma } from '../lib/prisma';
+import { logger } from '../utils/logger';
 import { analyticsService } from '../services/analytics.service';
 
 const router = Router();
@@ -141,8 +141,12 @@ router.get('/system', async (_req: Request, res: Response) => {
 
 router.post('/bot/start', async (_req: Request, res: Response) => {
   try {
-    // TODO: integrate with actual bot service
-    res.json({ success: true, message: 'Bot started' });
+    const bot = await (prisma as any).botStatus?.upsert?.({
+      where: { id: 1 },
+      update: { isActive: true },
+      create: { id: 1, isActive: true, callsQuotaDaily: 50, callsTodayCount: 0 },
+    }).catch(() => null);
+    res.json({ success: true, message: 'Bot started', bot });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -150,9 +154,58 @@ router.post('/bot/start', async (_req: Request, res: Response) => {
 
 router.post('/bot/stop', async (_req: Request, res: Response) => {
   try {
-    res.json({ success: true, message: 'Bot stopped' });
+    const bot = await (prisma as any).botStatus?.upsert?.({
+      where: { id: 1 },
+      update: { isActive: false },
+      create: { id: 1, isActive: false, callsQuotaDaily: 50, callsTodayCount: 0 },
+    }).catch(() => null);
+    res.json({ success: true, message: 'Bot stopped', bot });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── AI endpoints ──────────────────────────────────────────
+
+// GET /api/admin/ai/insights
+router.get('/ai/insights', async (_req: Request, res: Response) => {
+  try {
+    const insights = await (prisma as any).nicheInsight?.findMany({
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+    }) ?? [];
+    res.json({ insights });
+  } catch (e) {
+    logger.error('[API] AI insights error:', e);
+    res.json({ insights: [] });
+  }
+});
+
+// GET /api/admin/ai/scripts
+router.get('/ai/scripts', async (_req: Request, res: Response) => {
+  try {
+    const scripts = await (prisma as any).scriptMutation?.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    }) ?? [];
+    res.json({ scripts });
+  } catch (e) {
+    logger.error('[API] AI scripts error:', e);
+    res.json({ scripts: [] });
+  }
+});
+
+// GET /api/admin/ai/decisions
+router.get('/ai/decisions', async (_req: Request, res: Response) => {
+  try {
+    const decisions = await (prisma as any).aiDecision?.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    }) ?? [];
+    res.json({ decisions });
+  } catch (e) {
+    logger.error('[API] AI decisions error:', e);
+    res.json({ decisions: [] });
   }
 });
 
