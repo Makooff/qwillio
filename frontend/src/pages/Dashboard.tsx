@@ -212,7 +212,7 @@ export default function Dashboard() {
                 </div>
                 <span className="text-sm text-gray-700">{label}</span>
               </div>
-              <ServiceBadge s={d.services[key]} />
+              <ServiceBadge s={d.services?.[key]} />
             </div>
           ))}
         </div>
@@ -232,13 +232,13 @@ export default function Dashboard() {
         {/* ── Feed ── */}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
           <p className="px-4 py-3 text-sm font-semibold text-gray-800 border-b border-gray-50">Activité récente</p>
-          {d.activity.length === 0 ? (
+          {(d.activity?.length ?? 0) === 0 ? (
             <div className="py-10 text-center">
               <Zap size={22} className="mx-auto text-gray-200 mb-2" />
               <p className="text-sm text-gray-400">Aucune activité</p>
               <p className="text-xs text-gray-300">Le bot n'a pas encore tourné</p>
             </div>
-          ) : d.activity.map((a, i) => (
+          ) : d.activity?.map((a, i) => (
             <div key={a.id ?? i} className="px-4 py-3 border-b border-gray-50 last:border-0">
               <p className="text-sm text-gray-700">{a.message}</p>
               <p className="text-xs text-gray-400 mt-0.5">{ago(a.timestamp)}</p>
