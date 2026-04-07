@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, Phone, Zap, Target, Brain, ListOrdered,
   CreditCard, Server, Settings, LogOut, ChevronLeft, ChevronRight,
   Search, RefreshCw, X, FileText, Megaphone, DollarSign,
-  UserCheck, Mail, Smartphone, Crosshair, ExternalLink,
+  UserCheck, Mail, Smartphone, Crosshair, ExternalLink, Activity,
 } from 'lucide-react';
 import QwillioLogo from '../QwillioLogo';
 
@@ -49,7 +49,9 @@ const NAV_SECTIONS = [
   {
     label: 'SYSTÈME',
     items: [
+      { path: '/admin/monitor', icon: Activity, label: 'Moniteur live' },
       { path: '/admin/system', icon: Server, label: 'Système' },
+      { path: '/admin/settings', icon: Settings, label: 'Paramètres' },
     ],
   },
 ];
@@ -70,6 +72,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/costs': 'Coûts',
   '/admin/retention': 'Rétention',
   '/admin/phone-validation': 'Validation téléphonique',
+  '/admin/monitor': 'Moniteur live',
   '/admin/system': 'Système',
   '/admin/settings': 'Paramètres',
 };
@@ -163,25 +166,25 @@ export default function Layout() {
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Logo */}
-      <div className={`flex items-center gap-3 mb-8 ${collapsed ? 'justify-center px-0' : 'px-1'}`}>
+      <div className={`flex items-center gap-3 mb-6 flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'px-1'}`}>
         <QwillioLogo size={32} />
         {!collapsed && (
           <span className="text-base font-bold text-[#F8F8FF] tracking-tight">Qwillio</span>
         )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 space-y-6">
+      {/* Nav — scrollable */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden space-y-5 scrollbar-hide min-h-0 pb-2">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label}>
             {!collapsed && (
-              <p className="px-3 mb-2 text-[10px] font-semibold tracking-[0.1em] text-[#8B8BA7]/60 uppercase">
+              <p className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.1em] text-[#8B8BA7]/60 uppercase">
                 {section.label}
               </p>
             )}
-            {collapsed && <div className="h-px bg-white/[0.06] mb-3" />}
+            {collapsed && <div className="h-px bg-white/[0.06] mb-2" />}
             <div className="space-y-0.5">
               {section.items.map((item) => (
                 <SidebarLink key={item.path} item={item} exact={'exact' in item ? (item as any).exact : undefined} />
@@ -191,12 +194,10 @@ export default function Layout() {
         ))}
       </nav>
 
-      {/* Bottom */}
-      <div className="space-y-1 mt-4 pt-4 border-t border-white/[0.06]">
-        <SidebarLink item={{ path: '/admin/settings', icon: Settings, label: 'Settings' }} />
-
+      {/* Bottom — user + logout (fixed, non scrollable) */}
+      <div className="flex-shrink-0 space-y-1 mt-3 pt-3 border-t border-white/[0.06]">
         {/* User */}
-        <div className={`flex items-center gap-3 px-3 py-2.5 mt-1 rounded-xl ${collapsed ? 'justify-center' : ''}`}>
+        <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${collapsed ? 'justify-center' : ''}`}>
           <div className="w-7 h-7 rounded-full bg-[#7B5CF0]/30 flex items-center justify-center flex-shrink-0">
             <span className="text-[10px] font-bold text-[#7B5CF0]">{initials}</span>
           </div>
