@@ -1,268 +1,274 @@
-import { useEffect, useState, useCallback } from 'react';
-import api from '../../services/api';
-import { Phone, Play, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
-import StatusBadge from '../../components/dashboard/StatusBadge';
-import SlideSheet from '../../components/dashboard/SlideSheet';
-import SkeletonLoader from '../../components/dashboard/SkeletonLoader';
-import EmptyState from '../../components/dashboard/EmptyState';
-import { formatDistanceToNow, format } from 'date-fns';
+import { useState, useEffect, useCallback } from 'react';
 
-const SCORE_COLOR = (s: number) => s >= 7 ? '#22C55E' : s >= 4 ? '#F59E0B' : '#EF4444';
-const NICHE_ICONS: Record<string, string> = {
-  plumber: '🔧', dental: '🦷', salon: '💈', garage: '🔩',
-  restaurant: '🍽️', law: '⚖️', hotel: '🏨', hvac: '❄️', medical: '🏥',
+const API = 'https://qwillio.onrender.com';
+const getToken = () => localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
+
+interface CallRecord {
+  id: string;
+  createdAt: string;
+  duration: number | null;
+  outcome: string | null;
+  interestLevel: number | null;
+  sentiment: string | null;
+  prospect: {
+    businessName: string;
+    phone: string;
+    niche: string;
+  } | null;
+}
+
+interface CallsData {
+  calls: CallRecord[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+const outcomeColors: Record<string, string> = {
+  answered: '#22c55e',
+  voicemail: '#f59e0b',
+  failed: '#ef4444',
+  no_answer: '#6b7280',
+  transferred: '#8b5cf6',
 };
 
-const PAGE_SIZE = 25;
+const outcomeLabels: Record<string, string> = {
+  answered: 'Répondu',
+  voicemail: 'Messagerie',
+  failed: 'Échoué',
+  no_answer: 'Sans réponse',
+  transferred: 'Transféré',
+};
 
-export default function AdminCalls() {
-  const [calls, setCalls] = useState<any[]>([]);
+function formatDuration(seconds: number | null): string {
+  if (!seconds) return '—';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s}s`;
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+export default function Calls() {
+  const [data, setData] = useState<CallsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [outcome, setOutcome] = useState('');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [filters, setFilters] = useState({ outcome: '', score: '', search: '' });
 
   const fetchCalls = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const params: any = { page, limit: PAGE_SIZE };
-      if (filters.outcome) params.outcome = filters.outcome;
-      if (filters.score) params.minScore = filters.score;
-      if (filters.search) params.search = filters.search;
-      const { data } = await api.get('/dashboard/calls', { params });
-      setCalls(Array.isArray(data?.calls) ? data.calls : Array.isArray(data) ? data : []);
-      setTotal(data?.total ?? 0);
-    } catch { setCalls([]); }
-    finally { setLoading(false); }
-  }, [page, filters]);
+      const params = new URLSearchParams({ page: String(page), limit: '50' });
+      if (search) params.set('search', search);
+      if (outcome) params.set('outcome', outcome);
+      const res = await fetch(`${API}/api/admin/calls?${params}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      // Normalize response — API may return array or {calls:[]}
+      if (Array.isArray(json)) {
+        setData({ calls: json, total: json.length, page: 1, totalPages: 1 });
+      } else {
+        setData(json);
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, outcome]);
 
-  useEffect(() => { fetchCalls(); }, [fetchCalls]);
+  useEffect(() => {
+    fetchCalls();
+  }, [fetchCalls]);
+
   useEffect(() => {
     const handler = () => fetchCalls();
     window.addEventListener('admin-refresh', handler);
     return () => window.removeEventListener('admin-refresh', handler);
   }, [fetchCalls]);
 
-  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
-  const displayCalls = calls;
-
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-[#F8F8FF]">Calls</h1>
-        <p className="text-sm text-[#8B8BA7] mt-0.5">{total.toLocaleString()} total calls</p>
+    <div style={{ padding: '24px', color: '#e2e8f0' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+          Historique des appels
+        </h1>
+        <p style={{ color: '#64748b', fontSize: '14px' }}>
+          {data ? `${data.total} appel${data.total !== 1 ? 's' : ''} au total` : 'Chargement…'}
+        </p>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <input
           type="text"
-          placeholder="Search business..."
-          value={filters.search}
-          onChange={e => { setFilters(f => ({ ...f, search: e.target.value })); setPage(1); }}
-          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF]
-            placeholder-[#8B8BA7] outline-none focus:border-[#7B5CF0]/50 transition-colors w-52"
+          placeholder="Rechercher un prospect…"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setPage(1); }}
+          style={{
+            flex: 1, minWidth: '200px', padding: '8px 12px',
+            background: '#1e1e2e', border: '1px solid #2d2d3d', borderRadius: '8px',
+            color: '#e2e8f0', fontSize: '14px', outline: 'none',
+          }}
         />
         <select
-          value={filters.outcome}
-          onChange={e => { setFilters(f => ({ ...f, outcome: e.target.value })); setPage(1); }}
-          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] outline-none focus:border-[#7B5CF0]/50"
+          value={outcome}
+          onChange={e => { setOutcome(e.target.value); setPage(1); }}
+          style={{
+            padding: '8px 12px', background: '#1e1e2e', border: '1px solid #2d2d3d',
+            borderRadius: '8px', color: '#e2e8f0', fontSize: '14px', outline: 'none',
+          }}
         >
-          <option value="">All outcomes</option>
-          <option value="connected">Connected</option>
-          <option value="voicemail">Voicemail</option>
-          <option value="no_answer">No answer</option>
-          <option value="rejected">Rejected</option>
+          <option value="">Tous les résultats</option>
+          {Object.entries(outcomeLabels).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
         </select>
-        <select
-          value={filters.score}
-          onChange={e => { setFilters(f => ({ ...f, score: e.target.value })); setPage(1); }}
-          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] outline-none focus:border-[#7B5CF0]/50"
+        <button
+          onClick={fetchCalls}
+          style={{
+            padding: '8px 16px', background: '#7c3aed', border: 'none', borderRadius: '8px',
+            color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
+          }}
         >
-          <option value="">All scores</option>
-          <option value="7">Score ≥ 7</option>
-          <option value="5">Score ≥ 5</option>
-          <option value="1">All scored</option>
-        </select>
+          Actualiser
+        </button>
       </div>
 
-      {/* Table */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/[0.06]">
-                {['Business', 'Duration', 'Outcome', 'Score', 'Lead', 'Time', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-[10px] font-semibold tracking-[0.08em] uppercase text-[#8B8BA7]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            {loading ? (
-              <SkeletonLoader rows={10} cols={7} />
-            ) : displayCalls.length === 0 ? (
-              <tbody>
-                <tr>
-                  <td colSpan={7}>
-                    <EmptyState
-                      icon={<Phone className="w-6 h-6" />}
-                      title="No calls found"
-                      description="Calls will appear here once the bot starts dialing."
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            ) : (
-              <tbody>
-                {displayCalls.map((call: any, i: number) => (
-                  <tr
-                    key={call.id ?? i}
-                    onClick={() => setSelected(call)}
-                    className="border-b border-white/[0.04] hover:bg-white/[0.02] cursor-pointer transition-colors group"
-                  >
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">{NICHE_ICONS[call.niche?.toLowerCase()] ?? '📞'}</span>
-                        <div>
-                          <p className="text-sm font-medium text-[#F8F8FF]">{call.businessName ?? call.business ?? '—'}</p>
-                          <p className="text-xs text-[#8B8BA7]">{call.city ?? ''}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-sm text-[#8B8BA7] tabular-nums">
-                      {call.duration ? `${Math.floor(call.duration / 60)}:${String(call.duration % 60).padStart(2, '0')}` : '—'}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <StatusBadge status={call.outcome ?? call.callOutcome ?? 'unknown'} size="sm" />
-                    </td>
-                    <td className="px-4 py-3.5">
-                      {call.interestScore != null ? (
-                        <span className="text-sm font-bold tabular-nums" style={{ color: SCORE_COLOR(call.interestScore) }}>
-                          {call.interestScore}/10
-                        </span>
-                      ) : <span className="text-[#8B8BA7]">—</span>}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      {call.leadCaptured
-                        ? <span className="text-[#22C55E] text-sm">✓</span>
-                        : <span className="text-[#8B8BA7]">—</span>
-                      }
-                    </td>
-                    <td className="px-4 py-3.5 text-xs text-[#8B8BA7] whitespace-nowrap">
-                      {call.createdAt ? formatDistanceToNow(new Date(call.createdAt), { addSuffix: true }) : '—'}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {call.recordingUrl && (
-                          <button className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[#8B8BA7] hover:text-[#F8F8FF]" title="Play">
-                            <Play className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        <button className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[#8B8BA7] hover:text-[#F8F8FF]" title="Transcript">
-                          <FileText className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            )}
-          </table>
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
+          Chargement des appels…
         </div>
+      )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.06]">
-            <p className="text-xs text-[#8B8BA7]">Page {page} of {totalPages}</p>
-            <div className="flex items-center gap-1">
+      {error && (
+        <div style={{
+          background: '#1a0a0a', border: '1px solid #ef4444', borderRadius: '8px',
+          padding: '16px', color: '#ef4444', marginBottom: '16px',
+        }}>
+          Erreur : {error}
+        </div>
+      )}
+
+      {!loading && !error && data && (
+        <>
+          {data.calls.length === 0 ? (
+            <div style={{
+              textAlign: 'center', padding: '60px', color: '#64748b',
+              background: '#0d0d15', borderRadius: '12px', border: '1px solid #1e1e2e',
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>📞</div>
+              <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Aucun appel trouvé</div>
+              <div style={{ fontSize: '14px' }}>Les appels effectués par le bot apparaîtront ici.</div>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #1e1e2e' }}>
+                    {['Prospect', 'Téléphone', 'Date', 'Durée', 'Résultat', 'Intérêt', 'Sentiment'].map(h => (
+                      <th key={h} style={{
+                        padding: '10px 12px', textAlign: 'left', color: '#64748b',
+                        fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em',
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.calls.map(call => (
+                    <tr
+                      key={call.id}
+                      style={{ borderBottom: '1px solid #0d0d15', transition: 'background 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#1a1a2e')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <td style={{ padding: '12px', fontWeight: 500, color: '#f8fafc' }}>
+                        {(call.prospect as any)?.businessName ?? (call.prospect as any)?.company ?? (call.prospect as any)?.firstName ?? '—'}
+                      </td>
+                      <td style={{ padding: '12px', color: '#94a3b8', fontFamily: 'monospace' }}>
+                        {call.prospect?.phone ?? '—'}
+                      </td>
+                      <td style={{ padding: '12px', color: '#94a3b8' }}>
+                        {formatDate(call.createdAt)}
+                      </td>
+                      <td style={{ padding: '12px', color: '#94a3b8' }}>
+                        {formatDuration(call.duration)}
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        {call.outcome ? (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                            padding: '3px 8px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+                            background: (outcomeColors[call.outcome] ?? '#6b7280') + '22',
+                            color: outcomeColors[call.outcome] ?? '#6b7280',
+                          }}>
+                            {outcomeLabels[call.outcome] ?? call.outcome}
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        {call.interestLevel != null ? (
+                          <span style={{
+                            fontWeight: 700,
+                            color: call.interestLevel >= 7 ? '#22c55e' : call.interestLevel >= 4 ? '#f59e0b' : '#ef4444',
+                          }}>
+                            {call.interestLevel}/10
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td style={{ padding: '12px', color: '#94a3b8', textTransform: 'capitalize' }}>
+                        {call.sentiment ?? '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {data.totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
               <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-1.5 rounded-lg text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] disabled:opacity-30 transition-all"
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+                style={{
+                  padding: '6px 14px', background: page <= 1 ? '#1e1e2e' : '#2d2d3d',
+                  border: 'none', borderRadius: '6px', color: page <= 1 ? '#64748b' : '#e2e8f0',
+                  cursor: page <= 1 ? 'not-allowed' : 'pointer',
+                }}
               >
-                <ChevronLeft className="w-4 h-4" />
+                ← Précédent
               </button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const p = page <= 3 ? i + 1 : page - 2 + i;
-                if (p < 1 || p > totalPages) return null;
-                return (
-                  <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`w-7 h-7 rounded-lg text-xs font-medium transition-all
-                      ${p === page ? 'bg-[#7B5CF0] text-white' : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06]'}`}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
+              <span style={{ padding: '6px 14px', color: '#94a3b8', fontSize: '14px' }}>
+                Page {page} / {data.totalPages}
+              </span>
               <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-1.5 rounded-lg text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] disabled:opacity-30 transition-all"
+                disabled={page >= data.totalPages}
+                onClick={() => setPage(p => p + 1)}
+                style={{
+                  padding: '6px 14px', background: page >= data.totalPages ? '#1e1e2e' : '#2d2d3d',
+                  border: 'none', borderRadius: '6px',
+                  color: page >= data.totalPages ? '#64748b' : '#e2e8f0',
+                  cursor: page >= data.totalPages ? 'not-allowed' : 'pointer',
+                }}
               >
-                <ChevronRight className="w-4 h-4" />
+                Suivant →
               </button>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Call detail sheet */}
-      <SlideSheet
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        title={selected?.businessName ?? selected?.business ?? 'Call Detail'}
-        subtitle={selected?.city ? `${selected.city}${selected.niche ? ` · ${selected.niche}` : ''}` : selected?.niche}
-      >
-        {selected && (
-          <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#0D0D15] rounded-xl p-3">
-                <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-1">Score</p>
-                <p className="text-xl font-bold" style={{ color: SCORE_COLOR(selected.interestScore ?? 0) }}>
-                  {selected.interestScore ?? '—'}/10
-                </p>
-              </div>
-              <div className="bg-[#0D0D15] rounded-xl p-3">
-                <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-1">Duration</p>
-                <p className="text-xl font-bold text-[#F8F8FF] tabular-nums">
-                  {selected.duration ? `${Math.floor(selected.duration / 60)}:${String(selected.duration % 60).padStart(2, '0')}` : '—'}
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-2">Outcome</p>
-              <StatusBadge status={selected.outcome ?? selected.callOutcome ?? 'unknown'} />
-            </div>
-
-            {selected.transcript && (
-              <div>
-                <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-2">Transcript</p>
-                <div className="bg-[#0D0D15] rounded-xl p-4 max-h-80 overflow-y-auto">
-                  <pre className="text-xs text-[#F8F8FF] whitespace-pre-wrap font-sans leading-relaxed">
-                    {selected.transcript}
-                  </pre>
-                </div>
-              </div>
-            )}
-
-            {selected.summary && (
-              <div>
-                <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-2">AI Summary</p>
-                <p className="text-sm text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-4">{selected.summary}</p>
-              </div>
-            )}
-
-            {selected.createdAt && (
-              <p className="text-xs text-[#8B8BA7]">
-                {format(new Date(selected.createdAt), 'PPpp')}
-              </p>
-            )}
-          </div>
-        )}
-      </SlideSheet>
+          )}
+        </>
+      )}
     </div>
   );
 }
