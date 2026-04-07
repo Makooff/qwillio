@@ -1,56 +1,53 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
 const API = 'https://qwillio.onrender.com';
 const getHeaders = (): Record<string, string> => {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};` } : {}; };
+  const t = localStorage.getItem('token');
+  return t ? { Authorization: `Bearer ${t}` } : {};
+};
 
-const PLAN_COLORS: Record<string, string> = { starter: '#60a5fa', pro: '#a78bfa', enterprise: '#f59e0b', free: '#6b7280' };
-
-export default function Clients() {
-  const [data, setData] = useState<any[]>([]);
+const Clients: React.FC = () => {
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetch(`${API}/api/admin/clients`, { headers: getHeaders() })
-      .then(r => r.json()).then(setData).catch(() => setData([])).finally(() => setLoading(false));
+      .then(r => r.json()).then(setClients).catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
-  const filtered = data.filter(c => {
-    const q = search.toLowerCase();
-    return !q || (c.firstName + ' ' + c.lastName + ' ' + (c.company ?? '') + ' ' + c.email).toLowerCase().includes(q);
-  });
+  if (loading) return <div className='p-8 text-gray-400'>Chargement...</div>;
 
-  const totalMRR = data.filter(c => c.status === 'active').reduce((sum, c) => sum + (c.mrr ?? 0), 0);
-
-  if (loading) return <div style={{ display:'flex', justifyContent:'center', padding: 40 }}><div style={{ width:32,height:32,border:'3px solid #333',borderTop:'3px solid #7c3aed',borderRadius:'50%' }} /></div>;
+  const filtered = clients.filter(c =>
+    !search || (c.name||c.companyName||'').toLowerCase().includes(search.toLowerCase())
+  );
+  const mrr = clients.reduce((s, c) => s + Number(c.monthlyFee || 0), 0);
 
   return (
-    <div style={{ padding: '12px 16px' }}>
-      <div style={{ background:'#1a1a1a', borderRadius:10, padding:'14px 16px', marginBottom:12, border:'1px solid #2a2a2a', display:'flex', gap:24 }}>
-        <div><div style={{ fontSize:22, fontWeight:700 }}>{data.filter(c=>c.status==='active').length}</div><div style={{ fontSize:11, color:'#888' }}>Clients actifs</div></div>
-        <div><div style={{ fontSize:22, fontWeight:700 }}>{totalMRR}€</div><div style={{ fontSize:11, color:'#888' }}>MRR total</div></div>
+    <div className='p-8'>
+      <h1 className='text-2xl font-bold text-white mb-6'>Clients</h1>
+      <div className='bg-gray-800 rounded-xl p-4 mb-6'>
+        <div className='text-gray-400 text-sm'>MRR Total</div>
+        <div className='text-3xl font-bold text-green-400'>{mrr.toFixed(2)} €</div>
       </div>
-      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher..." style={{ width:'100%',boxSizing:'border-box',background:'#1a1a1a',border:'1px solid #333',borderRadius:8,padding:'8px 12px',color:'#fff',fontSize:13,marginBottom:12 }} />
-      {filtered.length === 0 ? (
-        <div style={{ textAlign:'center', color:'#666', padding: 40 }}>Aucun client trouvé</div>
-      ) : filtered.map(c => (
-        <div key={c.id} style={{ background:'#1a1a1a', borderRadius:10, padding:'12px 14px', marginBottom:8, border:'1px solid #2a2a2a' }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+      <input value={search} onChange={e => setSearch(e.target.value)} placeholder='Rechercher...' className='w-full bg-gray-700 text-white px-4 py-2 rounded-lg mb-4 outline-none' />
+      <div className='bg-gray-800 rounded-xl overflow-hidden'>
+        {filtered.map((c, i) => (
+          <div key={i} className='flex items-center justify-between p-4 border-b border-gray-700'>
             <div>
-              <div style={{ fontWeight:600, fontSize:14 }}>{c.firstName} {c.lastName}</div>
-              {c.company && <div style={{ fontSize:12, color:'#888' }}>{c.company}</div>}
-              <div style={{ fontSize:12, color:'#888' }}>{c.email}</div>
+              <div className='text-white font-medium'>{c.name || c.companyName || 'Client'}</div>
+              <div className='text-gray-400 text-sm'>{c.email}</div>
             </div>
-            <div style={{ textAlign:'right' }}>
-              <span style={{ background: (PLAN_COLORS[c.plan] ?? '#666') + '22', color: PLAN_COLORS[c.plan] ?? '#666', padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:600 }}>{c.plan ?? 'free'}</span>
-              {(c.mrr ?? 0) > 0 && <div style={{ fontSize:13, fontWeight:700, marginTop:4 }}>{c.mrr}€/mois</div>}
+            <div className='text-right'>
+              <span className='bg-blue-900 text-blue-300 px-2 py-1 rounded text-xs'>{c.plan || 'Standard'}</span>
+              <div className='text-green-400 text-sm mt-1'>{Number(c.monthlyFee||0).toFixed(2)} €/mois</div>
             </div>
           </div>
-          <div style={{ fontSize:11, color:'#666', marginTop:6 }}>Depuis {new Date(c.createdAt).toLocaleDateString('fr-FR')}</div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
-}
+};
+
+export default Clients;
