@@ -4,7 +4,7 @@ const API = 'https://qwillio.onrender.com';
 const getHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
-}`, 'Content-Type': 'application/json' } : {};
+};`, 'Content-Type': 'application/json' } : {};
 };
 
 interface DashboardData {
