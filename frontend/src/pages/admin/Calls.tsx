@@ -1,274 +1,173 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import api from '../../services/api';
+import { Search, RefreshCw, FileText, Play, Phone, Clock } from 'lucide-react';
+import Badge from '../../components/ui/Badge';
+import SlideSheet from '../../components/ui/SlideSheet';
+import Pagination from '../../components/ui/Pagination';
+import EmptyState from '../../components/ui/EmptyState';
+import { TableRowSkeleton } from '../../components/ui/Skeleton';
+import { useToast } from '../../hooks/useToast';
+import ToastContainer from '../../components/ui/Toast';
 
-const API = 'https://qwillio.onrender.com';
-const getToken = () => localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
+const OUTCOMES = ['', 'interested', 'voicemail', 'no_answer', 'rejected', 'converted', 'callback', 'not_interested'];
 
-interface CallRecord {
-  id: string;
-  createdAt: string;
-  duration: number | null;
-  outcome: string | null;
-  interestLevel: number | null;
-  sentiment: string | null;
-  prospect: {
-    businessName: string;
-    phone: string;
-    niche: string;
-  } | null;
+function fmtDuration(s?: number) {
+  if (!s) return '—';
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-interface CallsData {
-  calls: CallRecord[];
-  total: number;
-  page: number;
-  totalPages: number;
+function scoreColor(s: number) {
+  return s >= 7 ? '#22C55E' : s >= 4 ? '#F59E0B' : '#EF4444';
 }
 
-const outcomeColors: Record<string, string> = {
-  answered: '#22c55e',
-  voicemail: '#f59e0b',
-  failed: '#ef4444',
-  no_answer: '#6b7280',
-  transferred: '#8b5cf6',
-};
-
-const outcomeLabels: Record<string, string> = {
-  answered: 'Répondu',
-  voicemail: 'Messagerie',
-  failed: 'Échoué',
-  no_answer: 'Sans réponse',
-  transferred: 'Transféré',
-};
-
-function formatDuration(seconds: number | null): string {
-  if (!seconds) return '—';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}m ${s}s`;
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('fr-FR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
-
-export default function Calls() {
-  const [data, setData] = useState<CallsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function AdminCalls() {
+  const [data, setData] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [outcome, setOutcome] = useState('');
-  const [page, setPage] = useState(1);
+  const [minScore, setMinScore] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<any>(null);
+  const { toasts, add: toast, remove } = useToast();
+  const LIMIT = 25;
 
-  const fetchCalls = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      const params = new URLSearchParams({ page: String(page), limit: '50' });
-      if (search) params.set('search', search);
-      if (outcome) params.set('outcome', outcome);
-      const res = await fetch(`${API}/api/admin/calls?${params}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
+      const params = new URLSearchParams({
+        page: String(page), limit: String(LIMIT),
+        ...(search && { search }),
+        ...(outcome && { outcome }),
+        ...(minScore && { minScore }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      // Normalize response — API may return array or {calls:[]}
-      if (Array.isArray(json)) {
-        setData({ calls: json, total: json.length, page: 1, totalPages: 1 });
-      } else {
-        setData(json);
-      }
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search, outcome]);
+      const { data: res } = await api.get(`/dashboard/calls?${params}`);
+      setData(Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []));
+      setTotal(res.pagination?.total ?? (Array.isArray(res) ? res.length : 0));
+    } catch { toast('Erreur chargement', 'error'); }
+    finally { setLoading(false); }
+  }, [page, search, outcome, minScore]);
 
-  useEffect(() => {
-    fetchCalls();
-  }, [fetchCalls]);
-
-  useEffect(() => {
-    const handler = () => fetchCalls();
-    window.addEventListener('admin-refresh', handler);
-    return () => window.removeEventListener('admin-refresh', handler);
-  }, [fetchCalls]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(1); }, [search, outcome, minScore]);
 
   return (
-    <div style={{ padding: '24px', color: '#e2e8f0' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-          Historique des appels
-        </h1>
-        <p style={{ color: '#64748b', fontSize: '14px' }}>
-          {data ? `${data.total} appel${data.total !== 1 ? 's' : ''} au total` : 'Chargement…'}
-        </p>
-      </div>
-
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          placeholder="Rechercher un prospect…"
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-          style={{
-            flex: 1, minWidth: '200px', padding: '8px 12px',
-            background: '#1e1e2e', border: '1px solid #2d2d3d', borderRadius: '8px',
-            color: '#e2e8f0', fontSize: '14px', outline: 'none',
-          }}
-        />
-        <select
-          value={outcome}
-          onChange={e => { setOutcome(e.target.value); setPage(1); }}
-          style={{
-            padding: '8px 12px', background: '#1e1e2e', border: '1px solid #2d2d3d',
-            borderRadius: '8px', color: '#e2e8f0', fontSize: '14px', outline: 'none',
-          }}
-        >
-          <option value="">Tous les résultats</option>
-          {Object.entries(outcomeLabels).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
-        <button
-          onClick={fetchCalls}
-          style={{
-            padding: '8px 16px', background: '#7c3aed', border: 'none', borderRadius: '8px',
-            color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
-          }}
-        >
-          Actualiser
+    <div className="space-y-5">
+      <ToastContainer toasts={toasts} remove={remove} />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-[#F8F8FF]">Appels</h1>
+          <p className="text-sm text-[#8B8BA7] mt-0.5">{total} appel{total > 1 ? 's' : ''}</p>
+        </div>
+        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+          <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
-          Chargement des appels…
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8B8BA7]" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..."
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50" />
         </div>
-      )}
+        <select value={outcome} onChange={e => setOutcome(e.target.value)}
+          className="px-3 py-2.5 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] focus:outline-none">
+          <option value="">Tous résultats</option>
+          {OUTCOMES.filter(Boolean).map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <select value={minScore} onChange={e => setMinScore(e.target.value)}
+          className="px-3 py-2.5 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] focus:outline-none">
+          <option value="">Score min</option>
+          {[3,5,7,8,9].map(s => <option key={s} value={String(s)}>≥ {s}/10</option>)}
+        </select>
+      </div>
 
-      {error && (
-        <div style={{
-          background: '#1a0a0a', border: '1px solid #ef4444', borderRadius: '8px',
-          padding: '16px', color: '#ef4444', marginBottom: '16px',
-        }}>
-          Erreur : {error}
-        </div>
-      )}
-
-      {!loading && !error && data && (
-        <>
-          {data.calls.length === 0 ? (
-            <div style={{
-              textAlign: 'center', padding: '60px', color: '#64748b',
-              background: '#0d0d15', borderRadius: '12px', border: '1px solid #1e1e2e',
-            }}>
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>📞</div>
-              <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Aucun appel trouvé</div>
-              <div style={{ fontSize: '14px' }}>Les appels effectués par le bot apparaîtront ici.</div>
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #1e1e2e' }}>
-                    {['Prospect', 'Téléphone', 'Date', 'Durée', 'Résultat', 'Intérêt', 'Sentiment'].map(h => (
-                      <th key={h} style={{
-                        padding: '10px 12px', textAlign: 'left', color: '#64748b',
-                        fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em',
-                      }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.calls.map(call => (
-                    <tr
-                      key={call.id}
-                      style={{ borderBottom: '1px solid #0d0d15', transition: 'background 0.15s' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#1a1a2e')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <td style={{ padding: '12px', fontWeight: 500, color: '#f8fafc' }}>
-                        {(call.prospect as any)?.businessName ?? (call.prospect as any)?.company ?? (call.prospect as any)?.firstName ?? '—'}
+      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[800px]">
+            <thead>
+              <tr className="border-b border-white/[0.06]">
+                {['Entreprise','Téléphone','Résultat','Score','Durée','Date',''].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading
+                ? Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={7} />)
+                : data.length === 0
+                  ? <tr><td colSpan={7}><EmptyState icon={<Phone className="w-7 h-7" />} title="Aucun appel" /></td></tr>
+                  : data.map((c: any) => (
+                    <tr key={c.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
+                      <td className="px-4 py-3.5">
+                        <p className="text-xs font-medium text-[#F8F8FF]">{c.prospect?.businessName ?? c.businessName ?? '—'}</p>
+                        {c.prospect?.city && <p className="text-[10px] text-[#8B8BA7]">{c.prospect.city}</p>}
                       </td>
-                      <td style={{ padding: '12px', color: '#94a3b8', fontFamily: 'monospace' }}>
-                        {call.prospect?.phone ?? '—'}
+                      <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7]">{c.phoneNumber}</span></td>
+                      <td className="px-4 py-3.5"><Badge label={c.outcome ?? 'unknown'} dot size="xs" /></td>
+                      <td className="px-4 py-3.5">
+                        {c.interestLevel != null ? (
+                          <span className="text-xs font-bold" style={{ color: scoreColor(c.interestLevel) }}>{c.interestLevel}/10</span>
+                        ) : <span className="text-xs text-[#8B8BA7]">—</span>}
                       </td>
-                      <td style={{ padding: '12px', color: '#94a3b8' }}>
-                        {formatDate(call.createdAt)}
+                      <td className="px-4 py-3.5">
+                        <span className="flex items-center gap-1 text-xs text-[#8B8BA7]">
+                          <Clock className="w-3 h-3" />{fmtDuration(c.durationSeconds)}
+                        </span>
                       </td>
-                      <td style={{ padding: '12px', color: '#94a3b8' }}>
-                        {formatDuration(call.duration)}
+                      <td className="px-4 py-3.5">
+                        <span className="text-xs text-[#8B8BA7]">{new Date(c.createdAt ?? c.startedAt).toLocaleDateString('fr-FR')}</span>
                       </td>
-                      <td style={{ padding: '12px' }}>
-                        {call.outcome ? (
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '6px',
-                            padding: '3px 8px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                            background: (outcomeColors[call.outcome] ?? '#6b7280') + '22',
-                            color: outcomeColors[call.outcome] ?? '#6b7280',
-                          }}>
-                            {outcomeLabels[call.outcome] ?? call.outcome}
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        {call.interestLevel != null ? (
-                          <span style={{
-                            fontWeight: 700,
-                            color: call.interestLevel >= 7 ? '#22c55e' : call.interestLevel >= 4 ? '#f59e0b' : '#ef4444',
-                          }}>
-                            {call.interestLevel}/10
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td style={{ padding: '12px', color: '#94a3b8', textTransform: 'capitalize' }}>
-                        {call.sentiment ?? '—'}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {c.transcript && (
+                            <button onClick={() => setSelected(c)}
+                              className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-all"><FileText className="w-3.5 h-3.5" /></button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-4 pb-4"><Pagination page={page} total={total} limit={LIMIT} onChange={setPage} /></div>
+      </div>
 
-          {/* Pagination */}
-          {data.totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage(p => p - 1)}
-                style={{
-                  padding: '6px 14px', background: page <= 1 ? '#1e1e2e' : '#2d2d3d',
-                  border: 'none', borderRadius: '6px', color: page <= 1 ? '#64748b' : '#e2e8f0',
-                  cursor: page <= 1 ? 'not-allowed' : 'pointer',
-                }}
-              >
-                ← Précédent
-              </button>
-              <span style={{ padding: '6px 14px', color: '#94a3b8', fontSize: '14px' }}>
-                Page {page} / {data.totalPages}
-              </span>
-              <button
-                disabled={page >= data.totalPages}
-                onClick={() => setPage(p => p + 1)}
-                style={{
-                  padding: '6px 14px', background: page >= data.totalPages ? '#1e1e2e' : '#2d2d3d',
-                  border: 'none', borderRadius: '6px',
-                  color: page >= data.totalPages ? '#64748b' : '#e2e8f0',
-                  cursor: page >= data.totalPages ? 'not-allowed' : 'pointer',
-                }}
-              >
-                Suivant →
-              </button>
+      <SlideSheet open={!!selected} onClose={() => setSelected(null)}
+        title={selected?.prospect?.businessName ?? 'Détail appel'}
+        subtitle={[selected?.outcome, fmtDuration(selected?.durationSeconds)].filter(Boolean).join(' · ')}>
+        {selected && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
+                <p className="text-base font-bold" style={{ color: scoreColor(selected.interestLevel ?? 0) }}>{selected.interestLevel ?? '—'}{selected.interestLevel ? '/10' : ''}</p>
+                <p className="text-[10px] text-[#8B8BA7] mt-0.5">Score</p>
+              </div>
+              <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
+                <p className="text-base font-bold text-[#F8F8FF]">{fmtDuration(selected.durationSeconds)}</p>
+                <p className="text-[10px] text-[#8B8BA7] mt-0.5">Durée</p>
+              </div>
+              <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
+                <Badge label={selected.outcome ?? 'unknown'} dot size="xs" />
+                <p className="text-[10px] text-[#8B8BA7] mt-1">Résultat</p>
+              </div>
             </div>
-          )}
-        </>
-      )}
+            {selected.summary && (
+              <div>
+                <p className="text-xs text-[#8B8BA7] mb-2">Résumé IA</p>
+                <p className="text-xs text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3 leading-relaxed">{selected.summary}</p>
+              </div>
+            )}
+            {selected.transcript && (
+              <div>
+                <p className="text-xs text-[#8B8BA7] mb-2">Transcription</p>
+                <p className="text-xs text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3 leading-relaxed max-h-80 overflow-y-auto whitespace-pre-wrap">{selected.transcript}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </SlideSheet>
     </div>
   );
 }

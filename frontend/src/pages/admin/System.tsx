@@ -1,226 +1,228 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import api from '../../services/api';
+import {
+  RefreshCw, Play, Square, Server, Cpu, Database, Mail, Phone, CreditCard,
+  MessageSquare, Activity, CheckCircle2, XCircle, AlertCircle, Clock, Zap
+} from 'lucide-react';
+import { useToast } from '../../hooks/useToast';
+import ToastContainer from '../../components/ui/Toast';
+import Badge from '../../components/ui/Badge';
 
-const API = 'https://qwillio.onrender.com';
-const getToken = () => localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
+const CRON_JOBS = [
+  { id: 'prospecting', label: 'Prospection', desc: 'Scraping + enrichissement' },
+  { id: 'scoring', label: 'Scoring', desc: 'Re-score prospects' },
+  { id: 'calling', label: 'Appels', desc: 'Cycle appels sortants' },
+  { id: 'followup', label: 'Suivis', desc: 'Envoi séquences relance' },
+  { id: 'prospection', label: 'Prospection bot', desc: 'Démarrer prospection immédiate' },
+  { id: 'call', label: 'Appel manuel', desc: 'Tenter 1 appel' },
+  { id: 'niche-learning', label: 'Apprentissage niche', desc: 'Analyse patterns niche' },
+  { id: 'ab-analysis', label: 'A/B analyse', desc: 'Analyser tests A/B' },
+  { id: 'best-time', label: 'Meilleurs horaires', desc: 'Calcul horaires optimaux' },
+  { id: 'script-learning', label: 'Script learning', desc: 'Optimiser scripts' },
+  { id: 'follow-ups', label: 'Follow-ups engine', desc: 'Traiter follow-ups dus' },
+  { id: 'rescore', label: 'Re-scoring', desc: 'Rescorer prospects non scorés' },
+];
 
-interface SystemData {
-  // v2 fields (from our new endpoint)
-  dbConnected?: boolean;
-  backendAlive?: boolean;
-  prospectCount?: number;
-  callCount?: number;
-  botQuotaRemaining?: number;
-  botActive?: boolean;
-  lastCallAt?: string | null;
-  lastProspectAt?: string | null;
-  uptime?: number;
-  nodeVersion?: string;
-  environment?: string;
-  error?: string;
-  // v1 fields (from existing endpoint)
-  db?: string;
-  prospects?: number;
-  clients?: number;
-  calls?: number;
-  env?: string;
-}
+const API_SERVICES = [
+  { key: 'vapi', label: 'VAPI', icon: <Phone className="w-4 h-4" /> },
+  { key: 'openai', label: 'OpenAI', icon: <Cpu className="w-4 h-4" /> },
+  { key: 'stripe', label: 'Stripe', icon: <CreditCard className="w-4 h-4" /> },
+  { key: 'resend', label: 'Resend', icon: <Mail className="w-4 h-4" /> },
+  { key: 'database', label: 'Database', icon: <Database className="w-4 h-4" /> },
+  { key: 'discord', label: 'Discord', icon: <MessageSquare className="w-4 h-4" /> },
+];
 
-function formatUptime(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
-}
+const ENV_VARS = [
+  'DATABASE_URL', 'JWT_SECRET', 'VAPI_API_KEY', 'VAPI_PHONE_NUMBER_ID',
+  'OPENAI_API_KEY', 'STRIPE_SECRET_KEY', 'RESEND_API_KEY', 'RESEND_FROM_EMAIL',
+  'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'DISCORD_WEBHOOK_URL',
+  'ADMIN_EMAIL', 'FRONTEND_URL',
+];
 
-function HealthRow({ label, ok, detail }: { label: string; ok: boolean; detail?: string }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '14px 16px', borderRadius: '8px', background: '#0d0d15',
-      border: `1px solid ${ok ? '#22c55e44' : '#ef444444'}`,
-      marginBottom: '10px',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{
-          width: '10px', height: '10px', borderRadius: '50%',
-          background: ok ? '#22c55e' : '#ef4444',
-          boxShadow: ok ? '0 0 8px #22c55e88' : '0 0 8px #ef444488',
-        }} />
-        <span style={{ color: '#f8fafc', fontWeight: 500, fontSize: '14px' }}>{label}</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        {detail && <span style={{ color: '#94a3b8', fontSize: '13px' }}>{detail}</span>}
-        <span style={{
-          padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
-          background: ok ? '#22c55e22' : '#ef444422',
-          color: ok ? '#22c55e' : '#ef4444',
-        }}>
-          {ok ? 'OK' : 'KO'}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
-  return (
-    <div style={{
-      background: '#0d0d15', border: '1px solid #1e1e2e', borderRadius: '10px',
-      padding: '16px 20px',
-    }}>
-      <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        {label}
-      </div>
-      <div style={{ color: '#f8fafc', fontSize: '22px', fontWeight: 800 }}>{value}</div>
-      {sub && <div style={{ color: '#64748b', fontSize: '12px', marginTop: '4px' }}>{sub}</div>}
-    </div>
-  );
-}
-
-export default function System() {
-  const [data, setData] = useState<SystemData | null>(null);
+export default function AdminSystem() {
+  const [bot, setBot] = useState<any>(null);
+  const [envVars, setEnvVars] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [toggling, setToggling] = useState(false);
+  const [triggering, setTriggering] = useState<string | null>(null);
+  const { toasts, add: toast, remove } = useToast();
 
-  const fetchSystem = useCallback(async () => {
+  const load = async () => {
     setLoading(true);
-    setError(null);
     try {
-      const res = await fetch(`${API}/api/admin/system`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setData(json);
-      setLastRefresh(new Date());
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      const { data } = await api.get('/bot/status');
+      setBot(data);
+      // Infer env var status from bot/config availability
+      try {
+        const { data: cfg } = await api.get('/bot/config');
+        const vars: Record<string, boolean> = {};
+        ENV_VARS.forEach(k => { vars[k] = true; }); // all set if config loads
+        if (cfg?.vapiApiKey === undefined) vars['VAPI_API_KEY'] = false;
+        setEnvVars(vars);
+      } catch {
+        const vars: Record<string, boolean> = {};
+        ENV_VARS.forEach(k => { vars[k] = false; });
+        setEnvVars(vars);
+      }
+    } catch { toast('Erreur chargement statut', 'error'); }
+    finally { setLoading(false); }
+  };
 
-  useEffect(() => { fetchSystem(); }, [fetchSystem]);
+  useEffect(() => { load(); }, []);
 
-  useEffect(() => {
-    const interval = setInterval(fetchSystem, 60_000);
-    return () => clearInterval(interval);
-  }, [fetchSystem]);
+  const toggleBot = async () => {
+    setToggling(true);
+    try {
+      if (bot?.isActive) { await api.post('/bot/stop'); toast('Bot arrêté', 'success'); }
+      else { await api.post('/bot/start'); toast('Bot démarré', 'success'); }
+      const { data } = await api.get('/bot/status');
+      setBot(data);
+    } catch { toast('Erreur contrôle bot', 'error'); }
+    finally { setToggling(false); }
+  };
 
-  useEffect(() => {
-    const handler = () => fetchSystem();
-    window.addEventListener('admin-refresh', handler);
-    return () => window.removeEventListener('admin-refresh', handler);
-  }, [fetchSystem]);
+  const trigger = async (id: string) => {
+    setTriggering(id);
+    try {
+      // Map to appropriate endpoint
+      const runMap: Record<string, string> = {
+        prospecting: '/bot/run/prospecting', scoring: '/bot/run/scoring',
+        calling: '/bot/run/calling', followup: '/bot/run/followup',
+      };
+      const triggerMap: Record<string, string> = {
+        prospection: '/bot/trigger/prospection', call: '/bot/trigger/call',
+        'niche-learning': '/bot/trigger/niche-learning',
+        reminders: '/bot/trigger/reminders',
+      };
+      const prospectingMap: Record<string, string> = {
+        'ab-analysis': '/prospecting/trigger/ab-analysis',
+        'best-time': '/prospecting/trigger/best-time',
+        'script-learning': '/prospecting/trigger/script-learning',
+        'follow-ups': '/prospecting/trigger/follow-ups',
+        rescore: '/prospecting/trigger/rescore',
+      };
+      const endpoint = runMap[id] ?? triggerMap[id] ?? prospectingMap[id];
+      if (endpoint) await api.post(endpoint);
+      toast(`Tâche "${id}" déclenchée`, 'success');
+    } catch { toast(`Erreur déclenchement "${id}"`, 'error'); }
+    finally { setTriggering(null); }
+  };
 
-  // Normalize fields between v1 and v2 response shapes
-  const isDbOk = data ? (data.dbConnected ?? data.db === 'connected') : false;
-  const isBackendOk = data ? (data.backendAlive ?? true) : false;
-  const isBotActive = data?.botActive ?? false;
-  const prospectCount = data?.prospectCount ?? data?.prospects ?? 0;
-  const callCount = data?.callCount ?? data?.calls ?? 0;
-  const clientCount = data?.clients ?? 0;
-  const uptimeVal = data?.uptime ?? 0;
-  const nodeVer = data?.nodeVersion ?? '—';
-  const envName = data?.environment ?? data?.env ?? '—';
-  const quotaRemaining = data?.botQuotaRemaining ?? 0;
+  const lastRunFields = [
+    { label: 'Dernière prospection', value: bot?.lastRunProspecting ?? bot?.lastProspection },
+    { label: 'Dernière notation', value: bot?.lastRunScoring },
+    { label: 'Dernier appel', value: bot?.lastRunCalling ?? bot?.lastCall },
+    { label: 'Dernier suivi', value: bot?.lastRunFollowUp },
+    { label: 'Dernière activité', value: bot?.lastActivity },
+  ].filter(x => x.value);
 
   return (
-    <div style={{ padding: '24px', color: '#e2e8f0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+    <div className="space-y-6">
+      <ToastContainer toasts={toasts} remove={remove} />
+      <div className="flex items-center justify-between">
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-            Système
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '14px' }}>
-            {lastRefresh ? `Mis à jour à ${lastRefresh.toLocaleTimeString('fr-FR')}` : 'Vérification en cours…'}
-          </p>
+          <h1 className="text-xl font-bold text-[#F8F8FF]">Système</h1>
+          <p className="text-sm text-[#8B8BA7] mt-0.5">Contrôle bot, santé API, tâches cron</p>
         </div>
-        <button
-          onClick={fetchSystem}
-          style={{
-            padding: '8px 16px', background: '#7c3aed', border: 'none',
-            borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
-          }}
-        >
-          {loading ? 'Vérification…' : 'Vérifier maintenant'}
+        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+          <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
-      {error && (
-        <div style={{
-          background: '#1a0a0a', border: '1px solid #ef4444', borderRadius: '8px',
-          padding: '16px', color: '#ef4444', marginBottom: '16px',
-        }}>
-          Erreur de connexion au backend : {error}
-        </div>
-      )}
-
-      {!loading && data && (
-        <>
-          {/* Health checks */}
-          <div style={{ marginBottom: '28px' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#94a3b8', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Santé du système
-            </h2>
-            <HealthRow label="Backend API" ok={isBackendOk} detail={envName} />
-            <HealthRow label="Base de données" ok={isDbOk} />
-            <HealthRow
-              label="Bot VAPI"
-              ok={isBotActive}
-              detail={isBotActive ? `${quotaRemaining} appels restants` : 'Arrêté'}
-            />
-          </div>
-
-          {/* Stats */}
-          <div style={{ marginBottom: '28px' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#94a3b8', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Statistiques base de données
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
-              <StatCard label="Prospects" value={prospectCount.toLocaleString('fr-FR')} />
-              <StatCard label="Appels" value={callCount.toLocaleString('fr-FR')} />
-              {clientCount > 0 && <StatCard label="Clients" value={clientCount.toLocaleString('fr-FR')} />}
-              {data.lastCallAt && (
-                <StatCard
-                  label="Dernier appel"
-                  value={new Date(data.lastCallAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                  sub={new Date(data.lastCallAt).toLocaleDateString('fr-FR')}
-                />
-              )}
-              {data.lastProspectAt && (
-                <StatCard
-                  label="Dernier prospect"
-                  value={new Date(data.lastProspectAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                  sub={new Date(data.lastProspectAt).toLocaleDateString('fr-FR')}
-                />
-              )}
+      {/* Bot Control */}
+      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bot?.isActive ? 'bg-[#22C55E]/10' : 'bg-[#8B8BA7]/10'}`}>
+              <Activity className={`w-5 h-5 ${bot?.isActive ? 'text-[#22C55E]' : 'text-[#8B8BA7]'}`} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[#F8F8FF]">Bot d'appels</p>
+              <p className="text-xs text-[#8B8BA7]">
+                {bot?.isActive ? `Actif — ${bot.callsToday ?? 0}/${bot.callsQuotaDaily ?? 50} appels aujourd'hui` : 'Arrêté'}
+              </p>
             </div>
           </div>
-
-          {/* Runtime */}
-          <div>
-            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#94a3b8', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Runtime
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
-              {uptimeVal > 0 && <StatCard label="Uptime" value={formatUptime(uptimeVal)} />}
-              <StatCard label="Node.js" value={nodeVer} />
-              <StatCard label="Environnement" value={envName} />
-              {quotaRemaining > 0 && <StatCard label="Quota bot" value={`${quotaRemaining} restants`} />}
-            </div>
-          </div>
-        </>
-      )}
-
-      {loading && !data && (
-        <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
-          Vérification du système…
+          <button onClick={toggleBot} disabled={toggling || loading}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all disabled:opacity-50
+              ${bot?.isActive
+                ? 'bg-[#EF4444]/10 border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/20'
+                : 'bg-[#22C55E]/10 border-[#22C55E]/30 text-[#22C55E] hover:bg-[#22C55E]/20'}`}>
+            {bot?.isActive ? <><Square className="w-3.5 h-3.5" />Arrêter</> : <><Play className="w-3.5 h-3.5" />Démarrer</>}
+          </button>
         </div>
-      )}
+
+        {lastRunFields.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-4 border-t border-white/[0.06]">
+            {lastRunFields.map(f => (
+              <div key={f.label} className="bg-[#0D0D15] rounded-xl p-3">
+                <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-1">{f.label}</p>
+                <p className="text-xs text-[#F8F8FF]">{new Date(f.value!).toLocaleString('fr-FR')}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* API Health */}
+      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+        <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Santé des APIs</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {API_SERVICES.map(svc => {
+            // Infer health from env vars presence
+            const healthy = envVars[svc.key.toUpperCase() + '_API_KEY'] !== false;
+            return (
+              <div key={svc.key} className={`p-4 rounded-xl border text-center transition-all ${healthy ? 'bg-[#22C55E]/5 border-[#22C55E]/20' : 'bg-[#EF4444]/5 border-[#EF4444]/20'}`}>
+                <div className={`flex justify-center mb-2 ${healthy ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>{svc.icon}</div>
+                <p className="text-xs font-medium text-[#F8F8FF]">{svc.label}</p>
+                <p className={`text-[10px] mt-0.5 ${healthy ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>{healthy ? 'Connecté' : 'Non configuré'}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Cron Jobs */}
+      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+        <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Tâches CRON</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {CRON_JOBS.map(job => {
+            const lastRun = bot?.crons?.[job.id];
+            return (
+              <div key={job.id} className="flex items-center justify-between p-3 bg-[#0D0D15] rounded-xl">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-[#F8F8FF]">{job.label}</p>
+                  <p className="text-[10px] text-[#8B8BA7] mt-0.5">{job.desc}</p>
+                  {lastRun && <p className="text-[10px] text-[#8B8BA7] flex items-center gap-1 mt-1"><Clock className="w-2.5 h-2.5" />{new Date(lastRun).toLocaleTimeString('fr-FR')}</p>}
+                </div>
+                <button onClick={() => trigger(job.id)} disabled={triggering === job.id}
+                  className="ml-2 flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7B5CF0]/10 text-[#7B5CF0] border border-[#7B5CF0]/20 hover:bg-[#7B5CF0]/20 text-[10px] font-medium transition-all disabled:opacity-50">
+                  <Zap className="w-3 h-3" />{triggering === job.id ? '...' : 'Exécuter'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Env Vars Checklist */}
+      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+        <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Variables d'environnement</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {ENV_VARS.map(k => {
+            const set = envVars[k] !== false;
+            return (
+              <div key={k} className="flex items-center justify-between p-2.5 bg-[#0D0D15] rounded-xl">
+                <span className="text-xs font-mono text-[#8B8BA7]">{k}</span>
+                <span className={`flex items-center gap-1 text-xs font-medium ${set ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                  {set ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                  {set ? 'Définie' : 'Manquante'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

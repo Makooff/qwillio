@@ -1,201 +1,185 @@
-import { useState, useEffect, useCallback } from 'react';
-
-const API = 'https://qwillio.onrender.com';
-const getToken = () => localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
-
-interface NicheInsight {
-  id: string;
-  niche: string;
-  insight: string;
-  callsAnalyzed?: number;
-  successRate?: number | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ScriptMutation {
-  id: string;
-  version?: string;
-  status?: string;
-  winRate?: number | null;
-  callsCount?: number;
-  createdAt: string;
-}
+import { useEffect, useState } from 'react';
+import api from '../../services/api';
+import { RefreshCw, Brain, TrendingUp, Clock, BarChart3, Cpu } from 'lucide-react';
+import { useToast } from '../../hooks/useToast';
+import ToastContainer from '../../components/ui/Toast';
+import Badge from '../../components/ui/Badge';
+import { StatCardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
+import StatCard from '../../components/ui/StatCard';
+import EmptyState from '../../components/ui/EmptyState';
 
 export default function AiLearning() {
-  const [insights, setInsights] = useState<NicheInsight[]>([]);
-  const [scripts, setScripts] = useState<ScriptMutation[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [mutations, setMutations] = useState<any[]>([]);
+  const [abTests, setAbTests] = useState<any[]>([]);
+  const [bestTimes, setBestTimes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<'mutations' | 'abtests' | 'besttimes'>('mutations');
+  const { toasts, add: toast, remove } = useToast();
 
-  const fetchData = useCallback(async () => {
+  const load = async () => {
     setLoading(true);
-    setError(null);
     try {
-      const [insightsRes, scriptsRes] = await Promise.allSettled([
-        fetch(`${API}/api/admin/ai/insights`, { headers: { Authorization: `Bearer ${getToken()}` } }),
-        fetch(`${API}/api/admin/ai/scripts`, { headers: { Authorization: `Bearer ${getToken()}` } }),
+      const [s, m, a, b] = await Promise.all([
+        api.get('/ai/stats'),
+        api.get('/ai/mutations?limit=50'),
+        api.get('/ai/ab-tests'),
+        api.get('/ai/best-times'),
       ]);
+      setStats(s.data);
+      setMutations(Array.isArray(m.data.data) ? m.data.data : (Array.isArray(m.data) ? m.data : []));
+      setAbTests(Array.isArray(a.data.data) ? a.data.data : (Array.isArray(a.data) ? a.data : []));
+      setBestTimes(Array.isArray(b.data.data) ? b.data.data : (Array.isArray(b.data) ? b.data : []));
+    } catch { toast('Erreur chargement', 'error'); }
+    finally { setLoading(false); }
+  };
 
-      if (insightsRes.status === 'fulfilled' && insightsRes.value.ok) {
-        const json = await insightsRes.value.json();
-        setInsights(json.insights ?? []);
-      }
-      if (scriptsRes.status === 'fulfilled' && scriptsRes.value.ok) {
-        const json = await scriptsRes.value.json();
-        setScripts(json.scripts ?? []);
-      }
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useEffect(() => { load(); }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  useEffect(() => {
-    const handler = () => fetchData();
-    window.addEventListener('admin-refresh', handler);
-    return () => window.removeEventListener('admin-refresh', handler);
-  }, [fetchData]);
+  const TABS = [
+    { id: 'mutations', label: 'Mutations de script', count: mutations.length },
+    { id: 'abtests', label: 'Tests A/B', count: abTests.length },
+    { id: 'besttimes', label: 'Meilleurs horaires', count: bestTimes.length },
+  ] as const;
 
   return (
-    <div style={{ padding: '24px', color: '#e2e8f0' }}>
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-          AI Learning
-        </h1>
-        <p style={{ color: '#64748b', fontSize: '14px' }}>
-          Apprentissages automatiques de l&apos;IA à partir des appels
-        </p>
+    <div className="space-y-6">
+      <ToastContainer toasts={toasts} remove={remove} />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-[#F8F8FF]">IA — Apprentissage</h1>
+          <p className="text-sm text-[#8B8BA7] mt-0.5">Optimisation automatique des scripts et horaires</p>
+        </div>
+        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* Explainer */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1a0a2e, #0d0d15)',
-        border: '1px solid #7c3aed44', borderRadius: '12px', padding: '20px', marginBottom: '28px',
-      }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-          <span style={{ fontSize: '28px' }}>🧠</span>
-          <div>
-            <div style={{ fontWeight: 700, color: '#c4b5fd', marginBottom: '6px' }}>
-              Comment fonctionne l&apos;apprentissage ?
-            </div>
-            <div style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.6' }}>
-              Après chaque appel, l&apos;IA analyse le transcript, détecte les objections récurrentes par secteur,
-              et ajuste automatiquement le script d&apos;appel pour améliorer le taux de réussite.
-              Les insights sont générés par niche et permettent d&apos;optimiser les créneaux d&apos;appel, le ton,
-              et les arguments utilisés.
-            </div>
-          </div>
-        </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {loading ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />) : <>
+          <StatCard label="Mutations totales" value={stats?.totalMutations ?? 0} icon={<Brain className="w-4 h-4" />} color="#7B5CF0" />
+          <StatCard label="Tests A/B actifs" value={stats?.activeAbTests ?? 0} icon={<BarChart3 className="w-4 h-4" />} />
+          <StatCard label="Taux de succès moyen" value={stats?.avgSuccessRate ?? 0} suffix="%" format="percent" icon={<TrendingUp className="w-4 h-4" />} color="#22C55E" />
+          <StatCard label="Révocations" value={stats?.totalReverts ?? 0} icon={<Cpu className="w-4 h-4" />} color="#EF4444" />
+        </>}
       </div>
 
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>Chargement…</div>
-      )}
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-white/[0.06]">
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px ${
+              tab === t.id ? 'text-[#7B5CF0] border-[#7B5CF0]' : 'text-[#8B8BA7] border-transparent hover:text-white'
+            }`}>
+            {t.label}
+            {t.count > 0 && <span className="ml-2 text-[10px] bg-white/[0.08] px-1.5 py-0.5 rounded-full">{t.count}</span>}
+          </button>
+        ))}
+      </div>
 
-      {error && (
-        <div style={{ background: '#1a0a0a', border: '1px solid #ef4444', borderRadius: '8px', padding: '16px', color: '#ef4444', marginBottom: '16px' }}>
-          Erreur : {error}
+      {/* Mutations */}
+      {tab === 'mutations' && (
+        <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead>
+                <tr className="border-b border-white/[0.06]">
+                  {['Niche','Type','Taux succès','Statut','Bloqué','Créée'].map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading
+                  ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)
+                  : mutations.length === 0
+                    ? <tr><td colSpan={6}><EmptyState icon={<Brain className="w-7 h-7" />} title="Aucune mutation" /></td></tr>
+                    : mutations.map((m: any) => (
+                      <tr key={m.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                        <td className="px-4 py-3.5"><span className="text-xs text-[#F8F8FF] font-medium">{m.niche ?? '—'}</span></td>
+                        <td className="px-4 py-3.5"><Badge label={m.type ?? 'script'} variant="info" size="xs" /></td>
+                        <td className="px-4 py-3.5">
+                          <span className={`text-xs font-bold ${(m.successRate ?? 0) >= 50 ? 'text-[#22C55E]' : 'text-[#F59E0B]'}`}>
+                            {(m.successRate ?? 0).toFixed(1)}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5"><Badge label={m.status ?? 'active'} dot size="xs" /></td>
+                        <td className="px-4 py-3.5">
+                          <span className={`text-xs ${m.blocked ? 'text-[#EF4444]' : 'text-[#8B8BA7]'}`}>{m.blocked ? 'Oui' : 'Non'}</span>
+                        </td>
+                        <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7]">{new Date(m.createdAt).toLocaleDateString('fr-FR')}</span></td>
+                      </tr>
+                    ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Niche Insights */}
-      <div style={{ marginBottom: '28px' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#94a3b8', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Insights par secteur
-        </h2>
-        {!loading && insights.length === 0 ? (
-          <div style={{
-            textAlign: 'center', padding: '48px', color: '#64748b',
-            background: '#0d0d15', borderRadius: '12px', border: '1px solid #1e1e2e',
-          }}>
-            <div style={{ fontSize: '40px', marginBottom: '10px' }}>📊</div>
-            <div style={{ fontWeight: 600, marginBottom: '6px' }}>Aucun insight disponible</div>
-            <div style={{ fontSize: '13px' }}>Les insights apparaîtront après les premiers appels analysés.</div>
+      {/* A/B Tests */}
+      {tab === 'abtests' && (
+        <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead>
+                <tr className="border-b border-white/[0.06]">
+                  {['Niche','Variante A','Variante B','Gagnant','Appels','Statut'].map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading
+                  ? Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)
+                  : abTests.length === 0
+                    ? <tr><td colSpan={6}><EmptyState icon={<BarChart3 className="w-7 h-7" />} title="Aucun test A/B" /></td></tr>
+                    : abTests.map((t: any) => (
+                      <tr key={t.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                        <td className="px-4 py-3.5"><span className="text-xs text-[#F8F8FF]">{t.niche ?? '—'}</span></td>
+                        <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7] truncate max-w-[100px] block">{t.variantAId ?? '—'}</span></td>
+                        <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7] truncate max-w-[100px] block">{t.variantBId ?? '—'}</span></td>
+                        <td className="px-4 py-3.5">
+                          {t.winnerId ? <Badge label="Déterminé" variant="success" size="xs" /> : <span className="text-xs text-[#8B8BA7]">En cours</span>}
+                        </td>
+                        <td className="px-4 py-3.5"><span className="text-xs text-[#F8F8FF]">{(t.callsA ?? 0) + (t.callsB ?? 0)}</span></td>
+                        <td className="px-4 py-3.5"><Badge label={t.status ?? 'active'} dot size="xs" /></td>
+                      </tr>
+                    ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px' }}>
-            {insights.map(insight => (
-              <div key={insight.id} style={{
-                background: '#0d0d15', border: '1px solid #1e1e2e', borderRadius: '10px', padding: '16px',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span style={{ fontWeight: 700, color: '#c4b5fd', fontSize: '14px', textTransform: 'capitalize' }}>
-                    {insight.niche}
-                  </span>
-                  {insight.callsAnalyzed != null && (
-                    <span style={{ color: '#64748b', fontSize: '12px' }}>
-                      {insight.callsAnalyzed} appels analysés
-                    </span>
-                  )}
-                </div>
-                <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
-                  {insight.insight}
-                </p>
-                {insight.successRate != null && (
-                  <div style={{ marginTop: '10px', fontSize: '12px', color: insight.successRate >= 50 ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>
-                    Taux de succès : {Math.round(insight.successRate)}%
+        </div>
+      )}
+
+      {/* Best Times */}
+      {tab === 'besttimes' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => <StatCardSkeleton key={i} />)
+            : bestTimes.length === 0
+              ? <div className="col-span-full"><EmptyState icon={<Clock className="w-7 h-7" />} title="Aucune donnée horaire" /></div>
+              : bestTimes.map((bt: any) => (
+                <div key={bt.id} className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-semibold text-[#F8F8FF]">{bt.niche}</span>
+                    <Clock className="w-4 h-4 text-[#8B8BA7]" />
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Script Mutations */}
-      <div>
-        <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#94a3b8', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Évolutions du script d&apos;appel
-        </h2>
-        {!loading && scripts.length === 0 ? (
-          <div style={{
-            textAlign: 'center', padding: '48px', color: '#64748b',
-            background: '#0d0d15', borderRadius: '12px', border: '1px solid #1e1e2e',
-          }}>
-            <div style={{ fontSize: '40px', marginBottom: '10px' }}>✍️</div>
-            <div style={{ fontWeight: 600, marginBottom: '6px' }}>Aucune mutation de script</div>
-            <div style={{ fontSize: '13px' }}>L&apos;IA génèrera des variantes de script après l&apos;analyse des appels.</div>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {scripts.map(script => (
-              <div key={script.id} style={{
-                background: '#0d0d15', border: '1px solid #1e1e2e', borderRadius: '10px', padding: '14px 16px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px',
-              }}>
-                <div>
-                  <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: '14px' }}>
-                    {script.version ? `v${script.version}` : script.id.slice(0, 8)}
-                  </span>
-                  <span style={{ color: '#64748b', fontSize: '12px', marginLeft: '10px' }}>
-                    {script.callsCount != null ? `${script.callsCount} appels · ` : ''}{new Date(script.createdAt).toLocaleDateString('fr-FR')}
-                  </span>
+                  <div className="space-y-2">
+                    {bt.bestHours?.slice(0, 3).map((h: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-[#7B5CF0] w-12">{String(h.hour).padStart(2,'0')}h00</span>
+                        <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full">
+                          <div className="h-full bg-[#7B5CF0] rounded-full" style={{ width: `${Math.min(h.rate * 100, 100)}%` }} />
+                        </div>
+                        <span className="text-xs text-[#8B8BA7] w-12 text-right">{(h.rate * 100).toFixed(1)}%</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  {script.winRate != null && (
-                    <span style={{ color: '#22c55e', fontWeight: 700, fontSize: '14px' }}>
-                      {Math.round(script.winRate)}% win rate
-                    </span>
-                  )}
-                  {script.status && (
-                    <span style={{
-                      padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                      background: script.status === 'active' ? '#22c55e22' : '#1e1e2e',
-                      color: script.status === 'active' ? '#22c55e' : '#94a3b8',
-                    }}>
-                      {script.status === 'active' ? 'Actif' : script.status}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+        </div>
+      )}
     </div>
   );
 }

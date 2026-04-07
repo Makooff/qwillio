@@ -1,174 +1,144 @@
-import { useState, useEffect, useCallback } from 'react';
-
-const API = 'https://qwillio.onrender.com';
-const getToken = () => localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
-
-interface AiDecision {
-  id: string;
-  type: string;
-  context?: string | null;
-  decision: string;
-  reasoning?: string | null;
-  outcome?: string | null;
-  createdAt: string;
-}
-
-const typeColors: Record<string, string> = {
-  script_mutation: '#8b5cf6',
-  skip_prospect: '#f59e0b',
-  call_timing: '#3b82f6',
-  objection_handling: '#22c55e',
-  retry_decision: '#ec4899',
-};
+import { useEffect, useState, useCallback } from 'react';
+import api from '../../services/api';
+import { RefreshCw, Brain, Search, Info } from 'lucide-react';
+import { useToast } from '../../hooks/useToast';
+import ToastContainer from '../../components/ui/Toast';
+import Badge from '../../components/ui/Badge';
+import SlideSheet from '../../components/ui/SlideSheet';
+import Pagination from '../../components/ui/Pagination';
+import EmptyState from '../../components/ui/EmptyState';
+import { TableRowSkeleton } from '../../components/ui/Skeleton';
 
 export default function AiDecisions() {
-  const [decisions, setDecisions] = useState<AiDecision[]>([]);
+  const [data, setData] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [selected, setSelected] = useState<any>(null);
+  const { toasts, add: toast, remove } = useToast();
+  const LIMIT = 30;
 
-  const fetchDecisions = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      const res = await fetch(`${API}/api/admin/ai/decisions`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setDecisions(json.decisions ?? []);
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      const params = new URLSearchParams({ page: String(page), limit: String(LIMIT), ...(search && { search }) });
+      const { data: res } = await api.get(`/ai/decisions?${params}`);
+      setData(Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []));
+      setTotal(res.pagination?.total ?? (Array.isArray(res) ? res.length : 0));
+    } catch { toast('Erreur chargement', 'error'); }
+    finally { setLoading(false); }
+  }, [page, search]);
 
-  useEffect(() => { fetchDecisions(); }, [fetchDecisions]);
-
-  useEffect(() => {
-    const handler = () => fetchDecisions();
-    window.addEventListener('admin-refresh', handler);
-    return () => window.removeEventListener('admin-refresh', handler);
-  }, [fetchDecisions]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(1); }, [search]);
 
   return (
-    <div style={{ padding: '24px', color: '#e2e8f0' }}>
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-          AI Decisions
-        </h1>
-        <p style={{ color: '#64748b', fontSize: '14px' }}>
-          Journal des décisions autonomes prises par l&apos;IA
-        </p>
+    <div className="space-y-5">
+      <ToastContainer toasts={toasts} remove={remove} />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-[#F8F8FF]">IA — Décisions</h1>
+          <p className="text-sm text-[#8B8BA7] mt-0.5">Journal des décisions automatiques</p>
+        </div>
+        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
-      <div style={{
-        background: 'linear-gradient(135deg, #0a1a2e, #0d0d15)',
-        border: '1px solid #3b82f644', borderRadius: '12px', padding: '20px', marginBottom: '28px',
-      }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-          <span style={{ fontSize: '28px' }}>⚡</span>
-          <div>
-            <div style={{ fontWeight: 700, color: '#93c5fd', marginBottom: '6px' }}>
-              Décisions autonomes
-            </div>
-            <div style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.6' }}>
-              L&apos;IA prend des décisions en temps réel : sauter un prospect mal ciblé,
-              modifier son script après un refus récurrent, choisir le meilleur créneau d&apos;appel,
-              ou décider d&apos;un rappel. Chaque décision est enregistrée ici pour audit et transparence.
-            </div>
-          </div>
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8B8BA7]" />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher décisions..."
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50" />
       </div>
 
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>Chargement…</div>
-      )}
-
-      {error && (
-        <div style={{ background: '#1a0a0a', border: '1px solid #ef4444', borderRadius: '8px', padding: '16px', color: '#ef4444', marginBottom: '16px' }}>
-          Erreur : {error}
+      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
+            <thead>
+              <tr className="border-b border-white/[0.06]">
+                {['Type','Niche','Action','Résultat','Confiance','Date',''].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading
+                ? Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={7} />)
+                : data.length === 0
+                  ? <tr><td colSpan={7}><EmptyState icon={<Brain className="w-7 h-7" />} title="Aucune décision IA" /></td></tr>
+                  : data.map((d: any) => (
+                    <tr key={d.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] group">
+                      <td className="px-4 py-3.5"><Badge label={d.type ?? 'decision'} variant="purple" size="xs" /></td>
+                      <td className="px-4 py-3.5"><span className="text-xs text-[#F8F8FF]">{d.niche ?? '—'}</span></td>
+                      <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7] truncate max-w-[120px] block">{d.action ?? '—'}</span></td>
+                      <td className="px-4 py-3.5">
+                        <Badge label={d.outcome ?? d.result ?? 'processed'} dot size="xs" />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {d.confidence != null && (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-16 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                              <div className="h-full bg-[#7B5CF0] rounded-full" style={{ width: `${d.confidence * 100}%` }} />
+                            </div>
+                            <span className="text-xs text-[#8B8BA7]">{(d.confidence * 100).toFixed(0)}%</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7]">{new Date(d.createdAt).toLocaleString('fr-FR')}</span></td>
+                      <td className="px-4 py-3.5">
+                        <button onClick={() => setSelected(d)}
+                          className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                          <Info className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+            </tbody>
+          </table>
         </div>
-      )}
+        <div className="px-4 pb-4"><Pagination page={page} total={total} limit={LIMIT} onChange={setPage} /></div>
+      </div>
 
-      {!loading && decisions.length === 0 && (
-        <div style={{
-          textAlign: 'center', padding: '60px', color: '#64748b',
-          background: '#0d0d15', borderRadius: '12px', border: '1px solid #1e1e2e',
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>🤖</div>
-          <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Aucune décision enregistrée</div>
-          <div style={{ fontSize: '14px' }}>Les décisions de l&apos;IA apparaîtront ici au fur et à mesure des appels.</div>
-        </div>
-      )}
-
-      {!loading && decisions.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {decisions.map(d => (
-            <div
-              key={d.id}
-              style={{
-                background: '#0d0d15', border: '1px solid #1e1e2e', borderRadius: '10px',
-                overflow: 'hidden', transition: 'border-color 0.15s',
-              }}
-            >
-              <div
-                onClick={() => setExpanded(expanded === d.id ? null : d.id)}
-                style={{
-                  padding: '14px 16px', cursor: 'pointer', display: 'flex',
-                  justifyContent: 'space-between', alignItems: 'center', gap: '12px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                  <span style={{
-                    padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
-                    background: (typeColors[d.type] ?? '#6b7280') + '22',
-                    color: typeColors[d.type] ?? '#6b7280',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {d.type.replace(/_/g, ' ')}
-                  </span>
-                  <span style={{ color: '#f8fafc', fontSize: '14px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {d.decision}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                  <span style={{ color: '#64748b', fontSize: '12px' }}>
-                    {new Date(d.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <span style={{ color: '#64748b', fontSize: '12px' }}>{expanded === d.id ? '▲' : '▼'}</span>
-                </div>
+      <SlideSheet open={!!selected} onClose={() => setSelected(null)}
+        title="Détail décision IA"
+        subtitle={selected ? new Date(selected.createdAt).toLocaleString('fr-FR') : ''}>
+        {selected && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
+                <Badge label={selected.type ?? 'decision'} variant="purple" />
+                <p className="text-[10px] text-[#8B8BA7] mt-1.5">Type</p>
               </div>
-
-              {expanded === d.id && (
-                <div style={{ padding: '0 16px 16px', borderTop: '1px solid #1e1e2e', paddingTop: '14px' }}>
-                  {d.reasoning && (
-                    <div style={{ marginBottom: '10px' }}>
-                      <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>RAISONNEMENT</div>
-                      <div style={{ color: '#94a3b8', fontSize: '13px', lineHeight: '1.6' }}>{d.reasoning}</div>
-                    </div>
-                  )}
-                  {d.context && (
-                    <div style={{ marginBottom: '10px' }}>
-                      <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>CONTEXTE</div>
-                      <div style={{ color: '#94a3b8', fontSize: '13px', fontFamily: 'monospace', background: '#1e1e2e', padding: '8px', borderRadius: '6px' }}>
-                        {d.context}
-                      </div>
-                    </div>
-                  )}
-                  {d.outcome && (
-                    <div>
-                      <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>RÉSULTAT</div>
-                      <div style={{ color: '#94a3b8', fontSize: '13px' }}>{d.outcome}</div>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
+                {selected.confidence != null
+                  ? <p className="text-xl font-bold text-[#7B5CF0]">{(selected.confidence * 100).toFixed(0)}%</p>
+                  : <p className="text-xl font-bold text-[#8B8BA7]">—</p>}
+                <p className="text-[10px] text-[#8B8BA7] mt-1.5">Confiance</p>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+            {selected.niche && <div className="flex justify-between text-xs p-3 bg-[#0D0D15] rounded-xl"><span className="text-[#8B8BA7]">Niche</span><span className="text-[#F8F8FF]">{selected.niche}</span></div>}
+            {selected.action && (
+              <div>
+                <p className="text-xs text-[#8B8BA7] mb-2">Action</p>
+                <p className="text-xs text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3">{selected.action}</p>
+              </div>
+            )}
+            {selected.reasoning && (
+              <div>
+                <p className="text-xs text-[#8B8BA7] mb-2">Raisonnement</p>
+                <p className="text-xs text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3 leading-relaxed">{selected.reasoning}</p>
+              </div>
+            )}
+            {selected.data && (
+              <div>
+                <p className="text-xs text-[#8B8BA7] mb-2">Données</p>
+                <pre className="text-[10px] text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3 overflow-x-auto leading-relaxed">{JSON.stringify(selected.data, null, 2)}</pre>
+              </div>
+            )}
+          </div>
+        )}
+      </SlideSheet>
     </div>
   );
 }

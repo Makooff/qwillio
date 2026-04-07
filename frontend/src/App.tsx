@@ -9,9 +9,6 @@ import Landing from './pages/Landing';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Prospects from './pages/Prospects';
-import Clients from './pages/Clients';
-import Quotes from './pages/Quotes';
-import Campaigns from './pages/Campaigns';
 import Settings from './pages/Settings';
 import ClientPortal from './pages/ClientPortal';
 import OnboardingPage from './pages/Onboarding';
@@ -27,10 +24,14 @@ import ClientAccount from './pages/client/ClientAccount';
 import ClientSupport from './pages/client/ClientSupport';
 import ClientAnalytics from './pages/client/ClientAnalytics';
 import ClientBilling from './pages/client/ClientBilling';
-import Costs from './pages/Costs';
-import Retention from './pages/Retention';
-import FollowUps from './pages/FollowUps';
-import PhoneValidation from './pages/PhoneValidation';
+// Admin pages (lazy loaded)
+const AdminClients = lazy(() => import('./pages/Clients'));
+const AdminQuotes = lazy(() => import('./pages/Quotes'));
+const AdminCampaigns = lazy(() => import('./pages/Campaigns'));
+const AdminCosts = lazy(() => import('./pages/Costs'));
+const AdminRetention = lazy(() => import('./pages/Retention'));
+const AdminFollowUps = lazy(() => import('./pages/FollowUps'));
+const AdminPhoneValidation = lazy(() => import('./pages/PhoneValidation'));
 // Agent IA pages (lazy loaded)
 const AgentDashboard = lazy(() => import('./pages/client/AgentDashboard'));
 const AgentEmail = lazy(() => import('./pages/client/AgentEmail'));
@@ -209,13 +210,13 @@ export default function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="prospects" element={<Prospects />} />
-          <Route path="clients" element={<Clients />} />
-          <Route path="quotes" element={<Quotes />} />
-          <Route path="campaigns" element={<Campaigns />} />
-          <Route path="costs" element={<Costs />} />
-          <Route path="retention" element={<Retention />} />
-          <Route path="followups" element={<FollowUps />} />
-          <Route path="phone-validation" element={<PhoneValidation />} />
+          <Route path="clients" element={<Suspense fallback={<Spinner />}><AdminClients /></Suspense>} />
+          <Route path="quotes" element={<Suspense fallback={<Spinner />}><AdminQuotes /></Suspense>} />
+          <Route path="campaigns" element={<Suspense fallback={<Spinner />}><AdminCampaigns /></Suspense>} />
+          <Route path="costs" element={<Suspense fallback={<Spinner />}><AdminCosts /></Suspense>} />
+          <Route path="retention" element={<Suspense fallback={<Spinner />}><AdminRetention /></Suspense>} />
+          <Route path="followups" element={<Suspense fallback={<Spinner />}><AdminFollowUps /></Suspense>} />
+          <Route path="phone-validation" element={<Suspense fallback={<Spinner />}><AdminPhoneValidation /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<Spinner />}><AdminSettings /></Suspense>} />
           <Route path="ai-learning" element={<Suspense fallback={<Spinner />}><AiLearning /></Suspense>} />
           <Route path="ai-decisions" element={<Suspense fallback={<Spinner />}><AiDecisions /></Suspense>} />

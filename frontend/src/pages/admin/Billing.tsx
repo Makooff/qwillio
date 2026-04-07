@@ -1,222 +1,178 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import api from '../../services/api';
+import { RefreshCw, DollarSign, TrendingUp, Users, AlertCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { StatCardSkeleton, ChartSkeleton } from '../../components/ui/Skeleton';
+import StatCard from '../../components/ui/StatCard';
+import Badge from '../../components/ui/Badge';
+import { useToast } from '../../hooks/useToast';
+import ToastContainer from '../../components/ui/Toast';
 
-const API = 'https://qwillio.onrender.com';
-const getToken = () => localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
-
-interface Payment {
-  id: string;
-  amount: number;
-  status: string;
-  type?: string;
-  createdAt: string;
-  client?: { businessName?: string; company?: string; firstName?: string } | null;
-}
-
-interface BillingData {
-  mrr?: number;
-  totalMrr?: number;
-  revenueThisMonth?: number;
-  activeClients?: number;
-  clientCount?: number;
-  planBreakdown?: Record<string, number>;
-  byPlan?: Record<string, number>;
-  recentPayments?: Payment[];
-}
-
-const planColors: Record<string, string> = {
-  starter: '#3b82f6',
-  pro: '#8b5cf6',
-  enterprise: '#22c55e',
-  basic: '#3b82f6',
-  growth: '#f59e0b',
-};
-
-function formatEur(cents: number): string {
-  if (cents > 10000) {
-    return (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
-  }
-  return cents.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
-}
-
-function getClientName(p: Payment): string {
-  if (!p.client) return 'Client inconnu';
-  return p.client.businessName ?? p.client.company ?? p.client.firstName ?? 'Client inconnu';
-}
-
-export default function Billing() {
-  const [data, setData] = useState<BillingData | null>(null);
+export default function AdminBilling() {
+  const [clients, setClients] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [revenue, setRevenue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState<string | null>(null);
+  const { toasts, add: toast, remove } = useToast();
 
-  const fetchBilling = useCallback(async () => {
+  const load = async () => {
     setLoading(true);
-    setError(null);
     try {
-      const res = await fetch(`${API}/api/admin/billing`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setData(json);
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      const [s, c, r] = await Promise.all([
+        api.get('/dashboard/stats'),
+        api.get('/clients/'),
+        api.get('/dashboard/revenue-history'),
+      ]);
+      setStats(s.data);
+      setClients(Array.isArray(c.data.data) ? c.data.data : (Array.isArray(c.data) ? c.data : []));
+      setRevenue(Array.isArray(r.data) ? r.data : []);
+    } catch { toast('Erreur chargement', 'error'); }
+    finally { setLoading(false); }
+  };
 
-  useEffect(() => { fetchBilling(); }, [fetchBilling]);
+  useEffect(() => { load(); }, []);
 
-  useEffect(() => {
-    const handler = () => fetchBilling();
-    window.addEventListener('admin-refresh', handler);
-    return () => window.removeEventListener('admin-refresh', handler);
-  }, [fetchBilling]);
+  const retryPayment = async (clientId: string) => {
+    setRetrying(clientId);
+    try {
+      await api.post(`/clients/${clientId}/retry-payment`);
+      toast('Relance paiement envoyée', 'success');
+    } catch { toast('Erreur relance paiement', 'error'); }
+    finally { setRetrying(null); }
+  };
 
-  const mrr = data?.mrr ?? data?.totalMrr ?? 0;
-  const revenue = data?.revenueThisMonth ?? 0;
-  const activeClients = data?.activeClients ?? data?.clientCount ?? 0;
-  const planBreakdown = data?.planBreakdown ?? data?.byPlan ?? {};
-  const recentPayments = data?.recentPayments ?? [];
-  const totalPlans = Object.values(planBreakdown).reduce((a, b) => a + b, 0);
+  const mrr = stats?.revenue?.mrr ?? 0;
+  const arr = mrr * 12;
+  const byPlan = stats?.clients?.byPlan ?? {};
+  const planData = Object.entries(byPlan).map(([name, value]) => ({ name, value }));
+  const failedPayments = clients.filter(c => c.subscriptionStatus === 'past_due' || c.subscriptionStatus === 'unpaid');
+  const ttStyle = { background: '#1E1E2E', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12 };
 
   return (
-    <div style={{ padding: '24px', color: '#e2e8f0' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-          Facturation
-        </h1>
-        <p style={{ color: '#64748b', fontSize: '14px' }}>Vue d&apos;ensemble financière</p>
+    <div className="space-y-6">
+      <ToastContainer toasts={toasts} remove={remove} />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-[#F8F8FF]">Facturation</h1>
+          <p className="text-sm text-[#8B8BA7] mt-0.5">Revenus et abonnements</p>
+        </div>
+        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
-          Chargement…
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {loading ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />) : <>
+          <StatCard label="MRR" value={mrr} format="currency" color="#22C55E" icon={<DollarSign className="w-4 h-4" />}
+            sparkData={revenue.slice(-7).map((r: any) => r.revenue ?? 0)} />
+          <StatCard label="ARR" value={arr} format="currency" icon={<TrendingUp className="w-4 h-4" />} color="#7B5CF0" />
+          <StatCard label="Clients actifs" value={stats?.clients?.totalActive ?? 0} icon={<Users className="w-4 h-4" />} />
+          <StatCard label="Paiements échoués" value={failedPayments.length} icon={<AlertCircle className="w-4 h-4" />} color={failedPayments.length > 0 ? '#EF4444' : undefined} />
+        </>}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-3 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Évolution MRR</h3>
+          {loading ? <ChartSkeleton /> : (
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenue}>
+                  <defs>
+                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22C55E" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#22C55E" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#8B8BA7' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} axisLine={false} tickLine={false} width={45}
+                    tickFormatter={v => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} />
+                  <Tooltip contentStyle={ttStyle} formatter={(v: any) => [`$${Number(v).toLocaleString()}`, 'MRR']} />
+                  <Area type="monotone" dataKey="revenue" stroke="#22C55E" strokeWidth={2} fill="url(#revGrad)" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        <div className="lg:col-span-2 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Clients par plan</h3>
+          {loading ? <ChartSkeleton /> : (
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={planData}>
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#8B8BA7' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} axisLine={false} tickLine={false} width={25} />
+                  <Tooltip contentStyle={ttStyle} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}
+                    fill="#7B5CF0" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Subscriptions Table */}
+      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.06]">
+          <h3 className="text-sm font-semibold text-[#F8F8FF]">Abonnements actifs</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
+            <thead>
+              <tr className="border-b border-white/[0.06]">
+                {['Client','Plan','Mensualité','Statut','Depuis'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading
+                ? Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}><td colSpan={5}><div className="px-4 py-3 animate-pulse"><div className="h-4 bg-white/[0.06] rounded w-3/4" /></div></td></tr>
+                ))
+                : clients.filter(c => c.subscriptionStatus === 'active' || c.subscriptionStatus === 'trial').slice(0, 15).map(c => (
+                  <tr key={c.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-3.5">
+                      <p className="text-xs font-medium text-[#F8F8FF]">{c.businessName}</p>
+                      <p className="text-[10px] text-[#8B8BA7]">{c.contactEmail}</p>
+                    </td>
+                    <td className="px-4 py-3.5"><Badge label={c.planType} variant="purple" size="xs" /></td>
+                    <td className="px-4 py-3.5"><span className="text-xs font-medium text-[#22C55E]">${c.monthlyFee}/mo</span></td>
+                    <td className="px-4 py-3.5"><Badge label={c.subscriptionStatus} dot size="xs" /></td>
+                    <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7]">{new Date(c.createdAt).toLocaleDateString('fr-FR')}</span></td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Failed Payments Alert */}
+      {failedPayments.length > 0 && (
+        <div className="rounded-2xl bg-[#EF4444]/5 border border-[#EF4444]/20 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertCircle className="w-4 h-4 text-[#EF4444]" />
+            <h3 className="text-sm font-semibold text-[#EF4444]">{failedPayments.length} paiement{failedPayments.length > 1 ? 's' : ''} échoué{failedPayments.length > 1 ? 's' : ''}</h3>
+          </div>
+          <div className="space-y-2">
+            {failedPayments.map(c => (
+              <div key={c.id} className="flex items-center justify-between p-3 bg-[#0D0D15] rounded-xl">
+                <div>
+                  <p className="text-sm text-[#F8F8FF]">{c.businessName}</p>
+                  <p className="text-xs text-[#8B8BA7]">{c.contactEmail} · ${c.monthlyFee}/mo</p>
+                </div>
+                <button onClick={() => retryPayment(c.id)} disabled={retrying === c.id}
+                  className="px-3 py-1.5 rounded-lg bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20 text-xs font-medium hover:bg-[#EF4444]/20 transition-all disabled:opacity-50">
+                  {retrying === c.id ? '...' : 'Relancer'}
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
-
-      {error && (
-        <div style={{
-          background: '#1a0a0a', border: '1px solid #ef4444', borderRadius: '8px',
-          padding: '16px', color: '#ef4444', marginBottom: '16px',
-        }}>
-          Erreur : {error}
-        </div>
-      )}
-
-      {!loading && !error && data && (
-        <>
-          {/* KPI Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '28px' }}>
-            <KpiCard label="MRR" value={formatEur(mrr)} accent="#8b5cf6" icon="💜" />
-            <KpiCard label="Revenus ce mois" value={formatEur(revenue)} accent="#22c55e" icon="📈" />
-            <KpiCard label="Clients actifs" value={String(activeClients)} accent="#3b82f6" icon="👥" />
-            <KpiCard
-              label="ARPU"
-              value={activeClients > 0 ? formatEur(Math.round(mrr / activeClients)) : '—'}
-              accent="#f59e0b"
-              icon="⚡"
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
-            {/* Plan breakdown */}
-            <div style={{
-              background: '#0d0d15', border: '1px solid #1e1e2e', borderRadius: '12px', padding: '20px',
-            }}>
-              <h3 style={{ fontWeight: 700, color: '#f8fafc', marginBottom: '16px', fontSize: '15px' }}>
-                Répartition par plan
-              </h3>
-              {Object.entries(planBreakdown).length === 0 ? (
-                <div style={{ color: '#64748b', fontSize: '13px', textAlign: 'center', padding: '24px' }}>
-                  Aucun client actif
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {Object.entries(planBreakdown).map(([plan, count]) => {
-                    const pct = totalPlans > 0 ? Math.round((count / totalPlans) * 100) : 0;
-                    const color = planColors[plan.toLowerCase()] ?? '#6b7280';
-                    return (
-                      <div key={plan}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' }}>
-                          <span style={{ color, fontWeight: 600, textTransform: 'capitalize' }}>
-                            {plan}
-                          </span>
-                          <span style={{ color: '#94a3b8' }}>{count} · {pct}%</span>
-                        </div>
-                        <div style={{ background: '#1e1e2e', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
-                          <div style={{
-                            background: color,
-                            height: '100%', width: `${pct}%`, borderRadius: '4px',
-                            transition: 'width 0.5s ease',
-                          }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Recent payments */}
-            <div style={{
-              background: '#0d0d15', border: '1px solid #1e1e2e', borderRadius: '12px', padding: '20px',
-            }}>
-              <h3 style={{ fontWeight: 700, color: '#f8fafc', marginBottom: '16px', fontSize: '15px' }}>
-                Paiements récents
-              </h3>
-              {recentPayments.length === 0 ? (
-                <div style={{ color: '#64748b', fontSize: '13px', textAlign: 'center', padding: '24px' }}>
-                  Aucun paiement
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                  {recentPayments.map(p => (
-                    <div key={p.id} style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '10px 0', borderBottom: '1px solid #1e1e2e', fontSize: '13px',
-                    }}>
-                      <div>
-                        <div style={{ color: '#f8fafc', fontWeight: 500 }}>{getClientName(p)}</div>
-                        <div style={{ color: '#64748b', fontSize: '12px', marginTop: '2px' }}>
-                          {p.type ?? 'paiement'} · {new Date(p.createdAt).toLocaleDateString('fr-FR')}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ color: '#22c55e', fontWeight: 700 }}>{formatEur(p.amount)}</span>
-                        <span style={{
-                          padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
-                          background: p.status === 'paid' ? '#22c55e22' : '#ef444422',
-                          color: p.status === 'paid' ? '#22c55e' : '#ef4444',
-                        }}>
-                          {p.status === 'paid' ? 'Payé' : p.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function KpiCard({ label, value, accent, icon }: { label: string; value: string; accent: string; icon: string }) {
-  return (
-    <div style={{
-      background: '#0d0d15', border: '1px solid #1e1e2e', borderRadius: '12px',
-      padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ color: '#64748b', fontSize: '13px', fontWeight: 600 }}>{label}</span>
-        <span style={{ fontSize: '20px' }}>{icon}</span>
-      </div>
-      <div style={{ color: accent, fontSize: '26px', fontWeight: 800, letterSpacing: '-0.02em' }}>
-        {value}
-      </div>
     </div>
   );
 }

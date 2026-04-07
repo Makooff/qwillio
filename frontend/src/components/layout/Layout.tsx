@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, Phone, Zap, Target, Brain, ListOrdered,
   CreditCard, Server, Settings, LogOut, ChevronLeft, ChevronRight,
-  Bell, Search, RefreshCw, X, ExternalLink,
+  Search, RefreshCw, X, FileText, Megaphone, DollarSign,
+  UserCheck, Mail, Smartphone, Crosshair, ExternalLink,
 } from 'lucide-react';
 import QwillioLogo from '../QwillioLogo';
 
@@ -13,40 +14,64 @@ const NAV_SECTIONS = [
   {
     label: 'MAIN',
     items: [
-      { path: '/admin', icon: LayoutDashboard, label: 'Overview', exact: true },
+      { path: '/admin', icon: LayoutDashboard, label: 'Vue d\'ensemble', exact: true },
       { path: '/admin/clients', icon: Users, label: 'Clients' },
-      { path: '/admin/calls', icon: Phone, label: 'Calls' },
-      { path: '/admin/leads', icon: Zap, label: 'Leads' },
       { path: '/admin/prospects', icon: Target, label: 'Prospects' },
+      { path: '/admin/calls', icon: Phone, label: 'Appels' },
+      { path: '/admin/leads', icon: Zap, label: 'Leads' },
     ],
   },
   {
-    label: 'AI',
+    label: 'VENTES',
     items: [
-      { path: '/admin/ai-learning', icon: Brain, label: 'AI Learning' },
-      { path: '/admin/ai-decisions', icon: ListOrdered, label: 'AI Decisions' },
+      { path: '/admin/quotes', icon: FileText, label: 'Devis' },
+      { path: '/admin/campaigns', icon: Megaphone, label: 'Campagnes' },
+      { path: '/admin/followups', icon: Mail, label: 'Suivis' },
     ],
   },
   {
-    label: 'BUSINESS',
+    label: 'IA & MOTEUR',
     items: [
-      { path: '/admin/billing', icon: CreditCard, label: 'Billing' },
-      { path: '/admin/system', icon: Server, label: 'System' },
+      { path: '/admin/prospecting', icon: Crosshair, label: 'Prospection' },
+      { path: '/admin/ai-learning', icon: Brain, label: 'Apprentissage' },
+      { path: '/admin/ai-decisions', icon: ListOrdered, label: 'Décisions IA' },
+    ],
+  },
+  {
+    label: 'ANALYTIQUE',
+    items: [
+      { path: '/admin/billing', icon: CreditCard, label: 'Facturation' },
+      { path: '/admin/costs', icon: DollarSign, label: 'Coûts' },
+      { path: '/admin/retention', icon: UserCheck, label: 'Rétention' },
+      { path: '/admin/phone-validation', icon: Smartphone, label: 'Validation tél.' },
+    ],
+  },
+  {
+    label: 'SYSTÈME',
+    items: [
+      { path: '/admin/system', icon: Server, label: 'Système' },
     ],
   },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
-  '/admin': 'Overview',
+  '/admin': 'Vue d\'ensemble',
   '/admin/clients': 'Clients',
-  '/admin/calls': 'Calls',
-  '/admin/leads': 'Leads',
   '/admin/prospects': 'Prospects',
-  '/admin/ai-learning': 'AI Learning',
-  '/admin/ai-decisions': 'AI Decisions',
-  '/admin/billing': 'Billing',
-  '/admin/system': 'System',
-  '/admin/settings': 'Settings',
+  '/admin/calls': 'Appels',
+  '/admin/leads': 'Leads chauds',
+  '/admin/quotes': 'Devis',
+  '/admin/campaigns': 'Campagnes',
+  '/admin/followups': 'Suivis',
+  '/admin/prospecting': 'Moteur de prospection',
+  '/admin/ai-learning': 'IA — Apprentissage',
+  '/admin/ai-decisions': 'IA — Décisions',
+  '/admin/billing': 'Facturation',
+  '/admin/costs': 'Coûts',
+  '/admin/retention': 'Rétention',
+  '/admin/phone-validation': 'Validation téléphonique',
+  '/admin/system': 'Système',
+  '/admin/settings': 'Paramètres',
 };
 
 export default function Layout() {
