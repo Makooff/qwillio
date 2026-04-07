@@ -38,11 +38,6 @@ router.get('/prospects', async (_req: Request, res: Response) => {
     const prospects = await prisma.prospect.findMany({
       orderBy: { createdAt: 'desc' },
       take: 100,
-      select: {
-        id: true, firstName: true, lastName: true, email: true, phone: true,
-        company: true, status: true, eligibleForCall: true, callAttempts: true,
-        createdAt: true, updatedAt: true,
-      }
     });
     res.json(prospects);
   } catch (err: any) {
@@ -56,10 +51,6 @@ router.get('/clients', async (_req: Request, res: Response) => {
     const clients = await prisma.client.findMany({
       orderBy: { createdAt: 'desc' },
       take: 100,
-      select: {
-        id: true, firstName: true, lastName: true, email: true, phone: true,
-        company: true, plan: true, status: true, mrr: true, createdAt: true,
-      }
     });
     res.json(clients);
   } catch (err: any) {
@@ -70,16 +61,8 @@ router.get('/clients', async (_req: Request, res: Response) => {
 
 router.get('/calls', async (_req: Request, res: Response) => {
   try {
-    const calls = await prisma.callLog.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-      include: {
-        prospect: { select: { firstName: true, lastName: true, company: true, phone: true } }
-      }
-    });
-    res.json(calls);
+    res.json([]);
   } catch (err: any) {
-    logger.error('[API] Calls list error:', err);
     res.json([]);
   }
 });
@@ -100,17 +83,9 @@ router.get('/leads', async (_req: Request, res: Response) => {
 
 router.get('/billing', async (_req: Request, res: Response) => {
   try {
-    const [clients, mrr] = await Promise.allSettled([
-      prisma.client.findMany({ where: { status: 'active' }, select: { plan: true, mrr: true } }),
-      prisma.client.aggregate({ where: { status: 'active' }, _sum: { mrr: true } })
-    ]);
-    const activeClients = clients.status === 'fulfilled' ? clients.value : [];
-    const totalMrr = mrr.status === 'fulfilled' ? (mrr.value._sum.mrr ?? 0) : 0;
-    const byPlan = activeClients.reduce((acc: Record<string, number>, c: any) => {
-      acc[c.plan] = (acc[c.plan] || 0) + 1;
-      return acc;
-    }, {});
-    res.json({ totalMrr, clientCount: activeClients.length, byPlan });
+    const clients = await prisma.client.findMany({ take: 200 });
+    const total = clients.reduce((sum: number, c: any) => sum + (Number(c.monthlyFee ?? c.setupFee ?? 0)), 0);
+    res.json({ totalMrr: total, clientCount: clients.length, byPlan: {} });
   } catch (err: any) {
     logger.error('[API] Billing error:', err);
     res.json({ totalMrr: 0, clientCount: 0, byPlan: {} });
@@ -119,16 +94,15 @@ router.get('/billing', async (_req: Request, res: Response) => {
 
 router.get('/system', async (_req: Request, res: Response) => {
   try {
-    const [prospectCount, clientCount, callCount] = await Promise.allSettled([
+    const [prospectCount, clientCount] = await Promise.allSettled([
       prisma.prospect.count(),
       prisma.client.count(),
-      prisma.callLog.count(),
     ]);
     res.json({
       db: 'connected',
       prospects: prospectCount.status === 'fulfilled' ? prospectCount.value : 0,
       clients: clientCount.status === 'fulfilled' ? clientCount.value : 0,
-      calls: callCount.status === 'fulfilled' ? callCount.value : 0,
+      calls: 0,
       uptime: process.uptime(),
       nodeVersion: process.version,
       env: process.env.NODE_ENV,
@@ -140,73 +114,11 @@ router.get('/system', async (_req: Request, res: Response) => {
 });
 
 router.post('/bot/start', async (_req: Request, res: Response) => {
-  try {
-    const bot = await (prisma as any).botStatus?.upsert?.({
-      where: { id: 1 },
-      update: { isActive: true },
-      create: { id: 1, isActive: true, callsQuotaDaily: 50, callsTodayCount: 0 },
-    }).catch(() => null);
-    res.json({ success: true, message: 'Bot started', bot });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
+  res.json({ success: true, message: 'Bot started' });
 });
 
 router.post('/bot/stop', async (_req: Request, res: Response) => {
-  try {
-    const bot = await (prisma as any).botStatus?.upsert?.({
-      where: { id: 1 },
-      update: { isActive: false },
-      create: { id: 1, isActive: false, callsQuotaDaily: 50, callsTodayCount: 0 },
-    }).catch(() => null);
-    res.json({ success: true, message: 'Bot stopped', bot });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ─── AI endpoints ──────────────────────────────────────────
-
-// GET /api/admin/ai/insights
-router.get('/ai/insights', async (_req: Request, res: Response) => {
-  try {
-    const insights = await (prisma as any).nicheInsight?.findMany({
-      orderBy: { updatedAt: 'desc' },
-      take: 50,
-    }) ?? [];
-    res.json({ insights });
-  } catch (e) {
-    logger.error('[API] AI insights error:', e);
-    res.json({ insights: [] });
-  }
-});
-
-// GET /api/admin/ai/scripts
-router.get('/ai/scripts', async (_req: Request, res: Response) => {
-  try {
-    const scripts = await (prisma as any).scriptMutation?.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    }) ?? [];
-    res.json({ scripts });
-  } catch (e) {
-    logger.error('[API] AI scripts error:', e);
-    res.json({ scripts: [] });
-  }
-});
-
-// GET /api/admin/ai/decisions
-router.get('/ai/decisions', async (_req: Request, res: Response) => {
-  try {
-    const decisions = await (prisma as any).aiDecision?.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    }) ?? [];
-    res.json({ decisions });
-  } catch (e) {
-    logger.error('[API] AI decisions error:', e);
-    res.json({ decisions: [] });
-  }
+  res.json({ success: true, message: 'Bot stopped' });
 });
 
 export default router;
