@@ -1,181 +1,201 @@
-import { useState, useEffect } from 'react';
-import { Download, RefreshCw, TrendingUp, TrendingDown, Clock, AlertCircle } from 'lucide-react';
-import api from '../../services/api';
+import { useState, useEffect, useCallback } from 'react';
+
+const API = 'https://qwillio.onrender.com';
+const getToken = () => localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
+
+interface NicheInsight {
+  id: string;
+  niche: string;
+  insight: string;
+  callsAnalyzed?: number;
+  successRate?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface ScriptMutation {
   id: string;
-  niche: string;
-  language: string;
-  type: string;
-  changeApplied: string;
-  reason: string;
-  date: string;
-  callsBefore: number;
-  conversionBefore: number;
-  callsAfter: number;
-  conversionAfter: number;
-  status: 'testing' | 'validated' | 'reverted';
-  confidenceScore: number;
+  version?: string;
+  status?: string;
+  winRate?: number | null;
+  callsCount?: number;
+  createdAt: string;
 }
 
 export default function AiLearning() {
-  const [mutations, setMutations] = useState<ScriptMutation[]>([]);
+  const [insights, setInsights] = useState<NicheInsight[]>([]);
+  const [scripts, setScripts] = useState<ScriptMutation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterNiche, setFilterNiche] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterLang, setFilterLang] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchMutations();
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [insightsRes, scriptsRes] = await Promise.allSettled([
+        fetch(`${API}/api/admin/ai/insights`, { headers: { Authorization: `Bearer ${getToken()}` } }),
+        fetch(`${API}/api/admin/ai/scripts`, { headers: { Authorization: `Bearer ${getToken()}` } }),
+      ]);
+
+      if (insightsRes.status === 'fulfilled' && insightsRes.value.ok) {
+        const json = await insightsRes.value.json();
+        setInsights(json.insights ?? []);
+      }
+      if (scriptsRes.status === 'fulfilled' && scriptsRes.value.ok) {
+        const json = await scriptsRes.value.json();
+        setScripts(json.scripts ?? []);
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const fetchMutations = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/ai/mutations');
-      setMutations(res.data.mutations || []);
-    } catch {
-      setMutations([]);
-    }
-    setLoading(false);
-  };
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const filtered = mutations.filter(m => {
-    if (filterNiche && m.niche !== filterNiche) return false;
-    if (filterStatus && m.status !== filterStatus) return false;
-    if (filterLang && m.language !== filterLang) return false;
-    return true;
-  });
-
-  const exportCsv = () => {
-    const rows = [
-      ['Date', 'Niche', 'Language', 'Type', 'Change', 'Reason', 'Calls Before', 'Conv Before %', 'Calls After', 'Conv After %', 'Status', 'Confidence'],
-      ...filtered.map(m => [
-        new Date(m.date).toLocaleDateString(),
-        m.niche, m.language, m.type, m.changeApplied, m.reason,
-        m.callsBefore, (m.conversionBefore * 100).toFixed(1),
-        m.callsAfter, (m.conversionAfter * 100).toFixed(1),
-        m.status, m.confidenceScore,
-      ]),
-    ];
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'ai-mutations.csv'; a.click();
-  };
-
-  const statusBadge = (status: string) => {
-    if (status === 'validated') return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700"><TrendingUp size={12} />Validated</span>;
-    if (status === 'reverted') return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700"><TrendingDown size={12} />Reverted</span>;
-    return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700"><Clock size={12} />Testing</span>;
-  };
-
-  const niches = [...new Set(mutations.map(m => m.niche))];
+  useEffect(() => {
+    const handler = () => fetchData();
+    window.addEventListener('admin-refresh', handler);
+    return () => window.removeEventListener('admin-refresh', handler);
+  }, [fetchData]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#1d1d1f]">AI Learning Log</h1>
-          <p className="text-sm text-[#86868b] mt-1">Script mutations applied by the self-correcting AI system</p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={fetchMutations} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#d2d2d7] text-sm hover:bg-[#f5f5f7] transition-colors">
-            <RefreshCw size={14} /> Refresh
-          </button>
-          <button onClick={exportCsv} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#6366f1] text-white text-sm hover:bg-[#4f46e5] transition-colors">
-            <Download size={14} /> Export CSV
-          </button>
-        </div>
+    <div style={{ padding: '24px', color: '#e2e8f0' }}>
+      <div style={{ marginBottom: '28px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+          AI Learning
+        </h1>
+        <p style={{ color: '#64748b', fontSize: '14px' }}>
+          Apprentissages automatiques de l&apos;IA à partir des appels
+        </p>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Total mutations', value: mutations.length, color: 'text-[#1d1d1f]' },
-          { label: 'Validated', value: mutations.filter(m => m.status === 'validated').length, color: 'text-green-600' },
-          { label: 'Reverted', value: mutations.filter(m => m.status === 'reverted').length, color: 'text-red-600' },
-          { label: 'Testing', value: mutations.filter(m => m.status === 'testing').length, color: 'text-yellow-600' },
-        ].map((card, i) => (
-          <div key={i} className="bg-white rounded-xl border border-[#d2d2d7] p-4">
-            <p className="text-xs text-[#86868b] mb-1">{card.label}</p>
-            <p className={`text-3xl font-bold ${card.color}`}>{card.value}</p>
+      {/* Explainer */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1a0a2e, #0d0d15)',
+        border: '1px solid #7c3aed44', borderRadius: '12px', padding: '20px', marginBottom: '28px',
+      }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <span style={{ fontSize: '28px' }}>🧠</span>
+          <div>
+            <div style={{ fontWeight: 700, color: '#c4b5fd', marginBottom: '6px' }}>
+              Comment fonctionne l&apos;apprentissage ?
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.6' }}>
+              Après chaque appel, l&apos;IA analyse le transcript, détecte les objections récurrentes par secteur,
+              et ajuste automatiquement le script d&apos;appel pour améliorer le taux de réussite.
+              Les insights sont générés par niche et permettent d&apos;optimiser les créneaux d&apos;appel, le ton,
+              et les arguments utilisés.
+            </div>
           </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-3 mb-4 flex-wrap">
-        <select value={filterNiche} onChange={e => setFilterNiche(e.target.value)} className="border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30">
-          <option value="">All niches</option>
-          {niches.map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
-        <select value={filterLang} onChange={e => setFilterLang(e.target.value)} className="border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30">
-          <option value="">All languages</option>
-          <option value="en">English</option>
-          <option value="fr">French</option>
-        </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30">
-          <option value="">All statuses</option>
-          <option value="validated">Validated</option>
-          <option value="reverted">Reverted</option>
-          <option value="testing">Testing</option>
-        </select>
-      </div>
-
-      {/* Table */}
-      {loading ? (
-        <div className="text-center py-12 text-[#86868b]">Loading...</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-[#86868b] flex flex-col items-center gap-3">
-          <AlertCircle size={32} className="opacity-40" />
-          <p>No mutations yet. The AI will start learning after 50 failed calls per niche.</p>
         </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-[#d2d2d7] overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[#f5f5f7] border-b border-[#d2d2d7]">
-              <tr>
-                {['Date', 'Niche', 'Lang', 'Change Applied', 'Reason', 'Conv Before→After', 'Confidence', 'Status'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 font-medium text-[#86868b] text-xs uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#d2d2d7]/60">
-              {filtered.map(m => (
-                <tr key={m.id} className="hover:bg-[#f5f5f7] transition-colors">
-                  <td className="px-4 py-3 text-[#86868b] whitespace-nowrap">{new Date(m.date).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 font-medium capitalize">{m.niche}</td>
-                  <td className="px-4 py-3 uppercase text-xs font-medium text-[#6366f1]">{m.language}</td>
-                  <td className="px-4 py-3 max-w-[200px]">
-                    <p className="truncate text-[#1d1d1f]" title={m.changeApplied}>{m.changeApplied}</p>
-                  </td>
-                  <td className="px-4 py-3 max-w-[200px]">
-                    <p className="truncate text-[#86868b]" title={m.reason}>{m.reason}</p>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="text-[#86868b]">{(m.conversionBefore * 100).toFixed(1)}%</span>
-                    <span className="mx-1">→</span>
-                    <span className={m.conversionAfter > m.conversionBefore ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {(m.conversionAfter * 100).toFixed(1)}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 bg-[#f5f5f7] rounded-full h-1.5">
-                        <div className="bg-[#6366f1] h-1.5 rounded-full" style={{ width: `${m.confidenceScore}%` }} />
-                      </div>
-                      <span className="text-xs text-[#86868b]">{m.confidenceScore}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">{statusBadge(m.status)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      </div>
+
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>Chargement…</div>
+      )}
+
+      {error && (
+        <div style={{ background: '#1a0a0a', border: '1px solid #ef4444', borderRadius: '8px', padding: '16px', color: '#ef4444', marginBottom: '16px' }}>
+          Erreur : {error}
         </div>
       )}
+
+      {/* Niche Insights */}
+      <div style={{ marginBottom: '28px' }}>
+        <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#94a3b8', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Insights par secteur
+        </h2>
+        {!loading && insights.length === 0 ? (
+          <div style={{
+            textAlign: 'center', padding: '48px', color: '#64748b',
+            background: '#0d0d15', borderRadius: '12px', border: '1px solid #1e1e2e',
+          }}>
+            <div style={{ fontSize: '40px', marginBottom: '10px' }}>📊</div>
+            <div style={{ fontWeight: 600, marginBottom: '6px' }}>Aucun insight disponible</div>
+            <div style={{ fontSize: '13px' }}>Les insights apparaîtront après les premiers appels analysés.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px' }}>
+            {insights.map(insight => (
+              <div key={insight.id} style={{
+                background: '#0d0d15', border: '1px solid #1e1e2e', borderRadius: '10px', padding: '16px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span style={{ fontWeight: 700, color: '#c4b5fd', fontSize: '14px', textTransform: 'capitalize' }}>
+                    {insight.niche}
+                  </span>
+                  {insight.callsAnalyzed != null && (
+                    <span style={{ color: '#64748b', fontSize: '12px' }}>
+                      {insight.callsAnalyzed} appels analysés
+                    </span>
+                  )}
+                </div>
+                <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>
+                  {insight.insight}
+                </p>
+                {insight.successRate != null && (
+                  <div style={{ marginTop: '10px', fontSize: '12px', color: insight.successRate >= 50 ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>
+                    Taux de succès : {Math.round(insight.successRate)}%
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Script Mutations */}
+      <div>
+        <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#94a3b8', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Évolutions du script d&apos;appel
+        </h2>
+        {!loading && scripts.length === 0 ? (
+          <div style={{
+            textAlign: 'center', padding: '48px', color: '#64748b',
+            background: '#0d0d15', borderRadius: '12px', border: '1px solid #1e1e2e',
+          }}>
+            <div style={{ fontSize: '40px', marginBottom: '10px' }}>✍️</div>
+            <div style={{ fontWeight: 600, marginBottom: '6px' }}>Aucune mutation de script</div>
+            <div style={{ fontSize: '13px' }}>L&apos;IA génèrera des variantes de script après l&apos;analyse des appels.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {scripts.map(script => (
+              <div key={script.id} style={{
+                background: '#0d0d15', border: '1px solid #1e1e2e', borderRadius: '10px', padding: '14px 16px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px',
+              }}>
+                <div>
+                  <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: '14px' }}>
+                    {script.version ? `v${script.version}` : script.id.slice(0, 8)}
+                  </span>
+                  <span style={{ color: '#64748b', fontSize: '12px', marginLeft: '10px' }}>
+                    {script.callsCount != null ? `${script.callsCount} appels · ` : ''}{new Date(script.createdAt).toLocaleDateString('fr-FR')}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  {script.winRate != null && (
+                    <span style={{ color: '#22c55e', fontWeight: 700, fontSize: '14px' }}>
+                      {Math.round(script.winRate)}% win rate
+                    </span>
+                  )}
+                  {script.status && (
+                    <span style={{
+                      padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+                      background: script.status === 'active' ? '#22c55e22' : '#1e1e2e',
+                      color: script.status === 'active' ? '#22c55e' : '#94a3b8',
+                    }}>
+                      {script.status === 'active' ? 'Actif' : script.status}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
