@@ -3,7 +3,7 @@ const API = 'https://qwillio.onrender.com';
 const getHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
-}` } : {}; };
+};` } : {}; };
 
 export default function SystemPage() {
   const [data, setData] = useState<any>(null);
