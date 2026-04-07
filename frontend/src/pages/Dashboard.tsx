@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
 const API = 'https://qwillio.onrender.com';
-const getHeaders = () => {
-  const token = localStorage.getItem('accessToken') ?? localStorage.getItem('token') ?? '';
-  return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : {};
+const getHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}`, 'Content-Type': 'application/json' } : {};
 };
 
 interface DashboardData {
