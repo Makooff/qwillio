@@ -94,56 +94,60 @@ export default function Campaigns() {
       </div>
 
       <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
-            <thead>
-              <tr className="border-b border-white/[0.06]">
-                {['Nom','Type','Statut','Envoyés','Ouverts','Clics','Créée le',''].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase tracking-wide">{h}</th>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/[0.06]">
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Nom</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Type</th>
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Statut</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Envoyés</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Ouverts</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Clics</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Créée</th>
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading
+              ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={8} />)
+              : data.length === 0
+                ? <tr><td colSpan={8}><EmptyState icon={<Megaphone className="w-7 h-7" />} title="Aucune campagne" action={<button onClick={() => setShowCreate(true)} className="px-4 py-2 rounded-xl bg-[#7B5CF0] text-white text-xs font-medium">Créer une campagne</button>} /></td></tr>
+                : data.map(c => (
+                  <tr key={c.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
+                    <td className="px-3 py-3">
+                      <p className="text-xs font-medium text-[#F8F8FF] truncate max-w-[120px] md:max-w-none">{c.name}</p>
+                      <span className="md:hidden"><Badge label={c.type} variant="info" size="xs" /></span>
+                    </td>
+                    <td className="hidden md:table-cell px-3 py-3"><Badge label={c.type} variant="info" size="xs" /></td>
+                    <td className="px-3 py-3"><Badge label={c.status} dot size="xs" /></td>
+                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#F8F8FF]">{c.sentCount}</span></td>
+                    <td className="hidden md:table-cell px-3 py-3">
+                      <span className="text-xs text-[#F8F8FF]">
+                        {c.openedCount}
+                        {c.sentCount > 0 && <span className="text-[#8B8BA7] ml-1">({Math.round(c.openedCount / c.sentCount * 100)}%)</span>}
+                      </span>
+                    </td>
+                    <td className="hidden md:table-cell px-3 py-3">
+                      <span className="text-xs text-[#F8F8FF]">
+                        {c.clickedCount}
+                        {c.sentCount > 0 && <span className="text-[#8B8BA7] ml-1">({Math.round(c.clickedCount / c.sentCount * 100)}%)</span>}
+                      </span>
+                    </td>
+                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#8B8BA7]">{new Date(c.createdAt).toLocaleDateString('fr-FR')}</span></td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {(c.status === 'draft' || c.status === 'scheduled') && (
+                          <button onClick={() => launchCampaign(c.id)} disabled={launching === c.id}
+                            className="p-1.5 rounded-lg hover:bg-[#22C55E]/10 text-[#8B8BA7] hover:text-[#22C55E] transition-all disabled:opacity-40"><Play className="w-3.5 h-3.5" /></button>
+                        )}
+                        <button onClick={() => setToDelete(c)}
+                          className="p-1.5 rounded-lg hover:bg-[#EF4444]/10 text-[#8B8BA7] hover:text-[#EF4444] transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading
-                ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={8} />)
-                : data.length === 0
-                  ? <tr><td colSpan={8}><EmptyState icon={<Megaphone className="w-7 h-7" />} title="Aucune campagne" action={<button onClick={() => setShowCreate(true)} className="px-4 py-2 rounded-xl bg-[#7B5CF0] text-white text-xs font-medium">Créer une campagne</button>} /></td></tr>
-                  : data.map(c => (
-                    <tr key={c.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-4 py-3.5">
-                        <p className="text-xs font-medium text-[#F8F8FF]">{c.name}</p>
-                      </td>
-                      <td className="px-4 py-3.5"><Badge label={c.type} variant="info" size="xs" /></td>
-                      <td className="px-4 py-3.5"><Badge label={c.status} dot size="xs" /></td>
-                      <td className="px-4 py-3.5"><span className="text-xs text-[#F8F8FF]">{c.sentCount}</span></td>
-                      <td className="px-4 py-3.5">
-                        <span className="text-xs text-[#F8F8FF]">
-                          {c.openedCount}
-                          {c.sentCount > 0 && <span className="text-[#8B8BA7] ml-1">({Math.round(c.openedCount / c.sentCount * 100)}%)</span>}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className="text-xs text-[#F8F8FF]">
-                          {c.clickedCount}
-                          {c.sentCount > 0 && <span className="text-[#8B8BA7] ml-1">({Math.round(c.clickedCount / c.sentCount * 100)}%)</span>}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7]">{new Date(c.createdAt).toLocaleDateString('fr-FR')}</span></td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {(c.status === 'draft' || c.status === 'scheduled') && (
-                            <button onClick={() => launchCampaign(c.id)} disabled={launching === c.id}
-                              className="p-1.5 rounded-lg hover:bg-[#22C55E]/10 text-[#8B8BA7] hover:text-[#22C55E] transition-all disabled:opacity-40"><Play className="w-3.5 h-3.5" /></button>
-                          )}
-                          <button onClick={() => setToDelete(c)}
-                            className="p-1.5 rounded-lg hover:bg-[#EF4444]/10 text-[#8B8BA7] hover:text-[#EF4444] transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-            </tbody>
-          </table>
-        </div>
+          </tbody>
+        </table>
       </div>
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nouvelle campagne" size="md"

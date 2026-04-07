@@ -90,58 +90,61 @@ export default function Quotes() {
       </div>
 
       <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
-            <thead>
-              <tr className="border-b border-white/[0.06]">
-                {['Prospect','Package','Setup','Mensuel','Statut','Valide jusqu\'au',''].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase tracking-wide">{h}</th>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/[0.06]">
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Prospect</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Pack</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Setup</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Mensuel</th>
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Statut</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Valide</th>
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading
+              ? Array.from({ length: 6 }).map((_, i) => <TableRowSkeleton key={i} cols={7} />)
+              : data.length === 0
+                ? <tr><td colSpan={7}><EmptyState icon={<FileText className="w-7 h-7" />} title="Aucun devis" /></td></tr>
+                : data.map(q => (
+                  <tr key={q.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
+                    <td className="px-3 py-3">
+                      <p className="text-xs font-medium text-[#F8F8FF] truncate max-w-[110px] md:max-w-none">{q.prospect?.businessName ?? '—'}</p>
+                      <p className="text-[10px] text-[#22C55E] md:hidden">${q.monthlyFee}/mo</p>
+                      <p className="text-[10px] text-[#8B8BA7] hidden md:block">{q.prospect?.contactName ?? ''}</p>
+                    </td>
+                    <td className="hidden md:table-cell px-3 py-3"><Badge label={q.packageType} variant="purple" size="xs" /></td>
+                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#F8F8FF]">${q.setupFee}</span></td>
+                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs font-medium text-[#22C55E]">${q.monthlyFee}/mo</span></td>
+                    <td className="px-3 py-3"><Badge label={q.status} dot size="xs" /></td>
+                    <td className="hidden md:table-cell px-3 py-3">
+                      <span className={`text-xs ${new Date(q.validUntil) < new Date() ? 'text-[#EF4444]' : 'text-[#8B8BA7]'}`}>
+                        {new Date(q.validUntil).toLocaleDateString('fr-FR')}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setSelected(q)}
+                          className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-all"><Eye className="w-3.5 h-3.5" /></button>
+                        {q.status === 'draft' && (
+                          <button onClick={() => sendQuote(q.id)} disabled={sending === q.id}
+                            className="p-1.5 rounded-lg hover:bg-[#7B5CF0]/10 text-[#8B8BA7] hover:text-[#7B5CF0] transition-all disabled:opacity-40"><Send className="w-3.5 h-3.5" /></button>
+                        )}
+                        {(q.status === 'sent' || q.status === 'accepted') && (
+                          <button onClick={() => resendContract(q.id)} disabled={resending === q.id}
+                            className="p-1.5 rounded-lg hover:bg-[#22C55E]/10 text-[#8B8BA7] hover:text-[#22C55E] transition-all disabled:opacity-40"><FileText className="w-3.5 h-3.5" /></button>
+                        )}
+                        {q.stripePaymentLink && (
+                          <a href={q.stripePaymentLink} target="_blank" rel="noreferrer"
+                            className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-all"><ExternalLink className="w-3.5 h-3.5" /></a>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading
-                ? Array.from({ length: 6 }).map((_, i) => <TableRowSkeleton key={i} cols={7} />)
-                : data.length === 0
-                  ? <tr><td colSpan={7}><EmptyState icon={<FileText className="w-7 h-7" />} title="Aucun devis" /></td></tr>
-                  : data.map(q => (
-                    <tr key={q.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-4 py-3.5">
-                        <p className="text-xs font-medium text-[#F8F8FF]">{q.prospect?.businessName ?? '—'}</p>
-                        <p className="text-[10px] text-[#8B8BA7]">{q.prospect?.contactName ?? ''}</p>
-                      </td>
-                      <td className="px-4 py-3.5"><Badge label={q.packageType} variant="purple" size="xs" /></td>
-                      <td className="px-4 py-3.5"><span className="text-xs text-[#F8F8FF]">${q.setupFee}</span></td>
-                      <td className="px-4 py-3.5"><span className="text-xs font-medium text-[#22C55E]">${q.monthlyFee}/mo</span></td>
-                      <td className="px-4 py-3.5"><Badge label={q.status} dot size="xs" /></td>
-                      <td className="px-4 py-3.5">
-                        <span className={`text-xs ${new Date(q.validUntil) < new Date() ? 'text-[#EF4444]' : 'text-[#8B8BA7]'}`}>
-                          {new Date(q.validUntil).toLocaleDateString('fr-FR')}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => setSelected(q)}
-                            className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-all"><Eye className="w-3.5 h-3.5" /></button>
-                          {q.status === 'draft' && (
-                            <button onClick={() => sendQuote(q.id)} disabled={sending === q.id}
-                              className="p-1.5 rounded-lg hover:bg-[#7B5CF0]/10 text-[#8B8BA7] hover:text-[#7B5CF0] transition-all disabled:opacity-40"><Send className="w-3.5 h-3.5" /></button>
-                          )}
-                          {(q.status === 'sent' || q.status === 'accepted') && (
-                            <button onClick={() => resendContract(q.id)} disabled={resending === q.id}
-                              className="p-1.5 rounded-lg hover:bg-[#22C55E]/10 text-[#8B8BA7] hover:text-[#22C55E] transition-all disabled:opacity-40"><FileText className="w-3.5 h-3.5" /></button>
-                          )}
-                          {q.stripePaymentLink && (
-                            <a href={q.stripePaymentLink} target="_blank" rel="noreferrer"
-                              className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-all"><ExternalLink className="w-3.5 h-3.5" /></a>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-            </tbody>
-          </table>
-        </div>
+          </tbody>
+        </table>
         <div className="px-4 pb-4"><Pagination page={page} total={total} limit={LIMIT} onChange={setPage} /></div>
       </div>
 

@@ -53,50 +53,55 @@ export default function AiDecisions() {
       </div>
 
       <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
-            <thead>
-              <tr className="border-b border-white/[0.06]">
-                {['Type','Niche','Action','Résultat','Confiance','Date',''].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading
-                ? Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={7} />)
-                : data.length === 0
-                  ? <tr><td colSpan={7}><EmptyState icon={<Brain className="w-7 h-7" />} title="Aucune décision IA" /></td></tr>
-                  : data.map((d: any) => (
-                    <tr key={d.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] group">
-                      <td className="px-4 py-3.5"><Badge label={d.type ?? 'decision'} variant="purple" size="xs" /></td>
-                      <td className="px-4 py-3.5"><span className="text-xs text-[#F8F8FF]">{d.niche ?? '—'}</span></td>
-                      <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7] truncate max-w-[120px] block">{d.action ?? '—'}</span></td>
-                      <td className="px-4 py-3.5">
-                        <Badge label={d.outcome ?? d.result ?? 'processed'} dot size="xs" />
-                      </td>
-                      <td className="px-4 py-3.5">
-                        {d.confidence != null && (
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-16 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                              <div className="h-full bg-[#7B5CF0] rounded-full" style={{ width: `${d.confidence * 100}%` }} />
-                            </div>
-                            <span className="text-xs text-[#8B8BA7]">{(d.confidence * 100).toFixed(0)}%</span>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/[0.06]">
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Type</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Niche</th>
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Action</th>
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Résult.</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Confiance</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Date</th>
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading
+              ? Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={7} />)
+              : data.length === 0
+                ? <tr><td colSpan={7}><EmptyState icon={<Brain className="w-7 h-7" />} title="Aucune décision IA" /></td></tr>
+                : data.map((d: any) => (
+                  <tr key={d.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] group">
+                    <td className="px-3 py-3"><Badge label={d.type ?? 'decision'} variant="purple" size="xs" /></td>
+                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#F8F8FF]">{d.niche ?? '—'}</span></td>
+                    <td className="px-3 py-3">
+                      <span className="text-xs text-[#8B8BA7] truncate max-w-[100px] md:max-w-[160px] block">{d.action ?? '—'}</span>
+                      <p className="text-[10px] text-[#8B8BA7] md:hidden">{d.niche ?? ''}</p>
+                    </td>
+                    <td className="px-3 py-3">
+                      <Badge label={d.outcome ?? d.result ?? 'processed'} dot size="xs" />
+                    </td>
+                    <td className="hidden md:table-cell px-3 py-3">
+                      {d.confidence != null && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-16 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                            <div className="h-full bg-[#7B5CF0] rounded-full" style={{ width: `${d.confidence * 100}%` }} />
                           </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7]">{new Date(d.createdAt).toLocaleString('fr-FR')}</span></td>
-                      <td className="px-4 py-3.5">
-                        <button onClick={() => setSelected(d)}
-                          className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-all opacity-0 group-hover:opacity-100">
-                          <Info className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-            </tbody>
-          </table>
-        </div>
+                          <span className="text-xs text-[#8B8BA7]">{(d.confidence * 100).toFixed(0)}%</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#8B8BA7]">{new Date(d.createdAt).toLocaleString('fr-FR')}</span></td>
+                    <td className="px-3 py-3">
+                      <button onClick={() => setSelected(d)}
+                        className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                        <Info className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+          </tbody>
+        </table>
         <div className="px-4 pb-4"><Pagination page={page} total={total} limit={LIMIT} onChange={setPage} /></div>
       </div>
 

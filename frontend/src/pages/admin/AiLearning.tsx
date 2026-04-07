@@ -81,74 +81,82 @@ export default function AiLearning() {
       {/* Mutations */}
       {tab === 'mutations' && (
         <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
-              <thead>
-                <tr className="border-b border-white/[0.06]">
-                  {['Niche','Type','Taux succès','Statut','Bloqué','Créée'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase tracking-wide">{h}</th>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/[0.06]">
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Niche</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Type</th>
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Succès</th>
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Statut</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Bloqué</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Créée</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading
+                ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)
+                : mutations.length === 0
+                  ? <tr><td colSpan={6}><EmptyState icon={<Brain className="w-7 h-7" />} title="Aucune mutation" /></td></tr>
+                  : mutations.map((m: any) => (
+                    <tr key={m.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <td className="px-3 py-3">
+                        <span className="text-xs text-[#F8F8FF] font-medium">{m.niche ?? '—'}</span>
+                        <span className="md:hidden ml-2"><Badge label={m.type ?? 'script'} variant="info" size="xs" /></span>
+                      </td>
+                      <td className="hidden md:table-cell px-3 py-3"><Badge label={m.type ?? 'script'} variant="info" size="xs" /></td>
+                      <td className="px-3 py-3">
+                        <span className={`text-xs font-bold ${(m.successRate ?? 0) >= 50 ? 'text-[#22C55E]' : 'text-[#F59E0B]'}`}>
+                          {(m.successRate ?? 0).toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-3"><Badge label={m.status ?? 'active'} dot size="xs" /></td>
+                      <td className="hidden md:table-cell px-3 py-3">
+                        <span className={`text-xs ${m.blocked ? 'text-[#EF4444]' : 'text-[#8B8BA7]'}`}>{m.blocked ? 'Oui' : 'Non'}</span>
+                      </td>
+                      <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#8B8BA7]">{new Date(m.createdAt).toLocaleDateString('fr-FR')}</span></td>
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading
-                  ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)
-                  : mutations.length === 0
-                    ? <tr><td colSpan={6}><EmptyState icon={<Brain className="w-7 h-7" />} title="Aucune mutation" /></td></tr>
-                    : mutations.map((m: any) => (
-                      <tr key={m.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                        <td className="px-4 py-3.5"><span className="text-xs text-[#F8F8FF] font-medium">{m.niche ?? '—'}</span></td>
-                        <td className="px-4 py-3.5"><Badge label={m.type ?? 'script'} variant="info" size="xs" /></td>
-                        <td className="px-4 py-3.5">
-                          <span className={`text-xs font-bold ${(m.successRate ?? 0) >= 50 ? 'text-[#22C55E]' : 'text-[#F59E0B]'}`}>
-                            {(m.successRate ?? 0).toFixed(1)}%
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5"><Badge label={m.status ?? 'active'} dot size="xs" /></td>
-                        <td className="px-4 py-3.5">
-                          <span className={`text-xs ${m.blocked ? 'text-[#EF4444]' : 'text-[#8B8BA7]'}`}>{m.blocked ? 'Oui' : 'Non'}</span>
-                        </td>
-                        <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7]">{new Date(m.createdAt).toLocaleDateString('fr-FR')}</span></td>
-                      </tr>
-                    ))}
-              </tbody>
-            </table>
-          </div>
+            </tbody>
+          </table>
         </div>
       )}
 
       {/* A/B Tests */}
       {tab === 'abtests' && (
         <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
-              <thead>
-                <tr className="border-b border-white/[0.06]">
-                  {['Niche','Variante A','Variante B','Gagnant','Appels','Statut'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase tracking-wide">{h}</th>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/[0.06]">
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Niche</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Var. A</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Var. B</th>
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Gagnant</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Appels</th>
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)
+                : abTests.length === 0
+                  ? <tr><td colSpan={6}><EmptyState icon={<BarChart3 className="w-7 h-7" />} title="Aucun test A/B" /></td></tr>
+                  : abTests.map((t: any) => (
+                    <tr key={t.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <td className="px-3 py-3">
+                        <span className="text-xs text-[#F8F8FF]">{t.niche ?? '—'}</span>
+                        <p className="text-[10px] text-[#8B8BA7] md:hidden">{(t.callsA ?? 0) + (t.callsB ?? 0)} appels</p>
+                      </td>
+                      <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#8B8BA7] truncate max-w-[100px] block">{t.variantAId ?? '—'}</span></td>
+                      <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#8B8BA7] truncate max-w-[100px] block">{t.variantBId ?? '—'}</span></td>
+                      <td className="px-3 py-3">
+                        {t.winnerId ? <Badge label="Déterminé" variant="success" size="xs" /> : <span className="text-xs text-[#8B8BA7]">En cours</span>}
+                      </td>
+                      <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#F8F8FF]">{(t.callsA ?? 0) + (t.callsB ?? 0)}</span></td>
+                      <td className="px-3 py-3"><Badge label={t.status ?? 'active'} dot size="xs" /></td>
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading
-                  ? Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)
-                  : abTests.length === 0
-                    ? <tr><td colSpan={6}><EmptyState icon={<BarChart3 className="w-7 h-7" />} title="Aucun test A/B" /></td></tr>
-                    : abTests.map((t: any) => (
-                      <tr key={t.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                        <td className="px-4 py-3.5"><span className="text-xs text-[#F8F8FF]">{t.niche ?? '—'}</span></td>
-                        <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7] truncate max-w-[100px] block">{t.variantAId ?? '—'}</span></td>
-                        <td className="px-4 py-3.5"><span className="text-xs text-[#8B8BA7] truncate max-w-[100px] block">{t.variantBId ?? '—'}</span></td>
-                        <td className="px-4 py-3.5">
-                          {t.winnerId ? <Badge label="Déterminé" variant="success" size="xs" /> : <span className="text-xs text-[#8B8BA7]">En cours</span>}
-                        </td>
-                        <td className="px-4 py-3.5"><span className="text-xs text-[#F8F8FF]">{(t.callsA ?? 0) + (t.callsB ?? 0)}</span></td>
-                        <td className="px-4 py-3.5"><Badge label={t.status ?? 'active'} dot size="xs" /></td>
-                      </tr>
-                    ))}
-              </tbody>
-            </table>
-          </div>
+            </tbody>
+          </table>
         </div>
       )}
 

@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { DashboardStats, BotStatus } from '../types';
 import {
   Building2, Phone, TrendingUp, Zap, Target, BarChart3,
-  Play, Square, RefreshCw, Clock, Activity,
+  Play, Square, RefreshCw, Clock, Activity, ArrowUpRight,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -109,44 +110,56 @@ export default function Dashboard() {
       {/* KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {loading ? Array.from({ length: 6 }).map((_, i) => <StatCardSkeleton key={i} />) : <>
-          <StatCard
-            label="Clients actifs" value={stats?.clients?.totalActive ?? 0}
-            delta={stats?.clients?.newThisMonth ? 5 : 0}
-            icon={<Building2 className="w-4 h-4" />}
-            sparkData={[2, 3, 3, 4, 5, 5, stats?.clients?.totalActive ?? 5]}
-          />
-          <StatCard
-            label="MRR" value={mrr} format="currency"
-            delta={stats?.revenue?.mrrGrowth ?? 0}
-            color="#22C55E"
-            icon={<TrendingUp className="w-4 h-4" />}
-            sparkData={revenue.slice(-7).map((r: any) => r.revenue ?? 0)}
-          />
-          <StatCard
-            label="Appels aujourd'hui" value={stats?.calls?.today ?? 0}
-            icon={<Phone className="w-4 h-4" />}
-            sparkData={[4, 6, 8, 5, 7, 9, stats?.calls?.today ?? 0]}
-          />
-          <StatCard
-            label="Leads chauds" value={stats?.calls?.hotLeadsToday ?? 0}
-            color="#F59E0B"
-            icon={<Zap className="w-4 h-4" />}
-            sparkData={[1, 2, 1, 3, 2, 4, stats?.calls?.hotLeadsToday ?? 0]}
-          />
-          <StatCard
-            label="Conversion" value={stats?.conversion?.prospectToClient ?? 0}
-            suffix="%" format="percent"
-            delta={0.3}
-            icon={<Target className="w-4 h-4" />}
-            sparkData={[1.2, 1.5, 1.8, 2.1, 1.9, 2.3, stats?.conversion?.prospectToClient ?? 0]}
-          />
-          <StatCard
-            label="Score moyen" value={stats?.calls?.avgInterestScore ?? 0}
-            suffix="/10"
-            color={scoreColor(stats?.calls?.avgInterestScore ?? 0)}
-            icon={<BarChart3 className="w-4 h-4" />}
-            sparkData={[5, 5.5, 6, 6.2, 5.8, 6.5, stats?.calls?.avgInterestScore ?? 0]}
-          />
+          <Link to="/admin/clients" className="block group/kpi">
+            <StatCard
+              label="Clients actifs" value={stats?.clients?.totalActive ?? 0}
+              delta={stats?.clients?.newThisMonth ? 5 : 0}
+              icon={<Building2 className="w-4 h-4" />}
+              sparkData={[2, 3, 3, 4, 5, 5, stats?.clients?.totalActive ?? 5]}
+            />
+          </Link>
+          <Link to="/admin/billing" className="block group/kpi">
+            <StatCard
+              label="MRR" value={mrr} format="currency"
+              delta={stats?.revenue?.mrrGrowth ?? 0}
+              color="#22C55E"
+              icon={<TrendingUp className="w-4 h-4" />}
+              sparkData={revenue.slice(-7).map((r: any) => r.revenue ?? 0)}
+            />
+          </Link>
+          <Link to="/admin/calls" className="block group/kpi">
+            <StatCard
+              label="Appels aujourd'hui" value={stats?.calls?.today ?? 0}
+              icon={<Phone className="w-4 h-4" />}
+              sparkData={[4, 6, 8, 5, 7, 9, stats?.calls?.today ?? 0]}
+            />
+          </Link>
+          <Link to="/admin/leads" className="block group/kpi">
+            <StatCard
+              label="Leads chauds" value={stats?.calls?.hotLeadsToday ?? 0}
+              color="#F59E0B"
+              icon={<Zap className="w-4 h-4" />}
+              sparkData={[1, 2, 1, 3, 2, 4, stats?.calls?.hotLeadsToday ?? 0]}
+            />
+          </Link>
+          <Link to="/admin/prospects" className="block group/kpi">
+            <StatCard
+              label="Conversion" value={stats?.conversion?.prospectToClient ?? 0}
+              suffix="%" format="percent"
+              delta={0.3}
+              icon={<Target className="w-4 h-4" />}
+              sparkData={[1.2, 1.5, 1.8, 2.1, 1.9, 2.3, stats?.conversion?.prospectToClient ?? 0]}
+            />
+          </Link>
+          <Link to="/admin/calls" className="block group/kpi">
+            <StatCard
+              label="Score moyen" value={stats?.calls?.avgInterestScore ?? 0}
+              suffix="/10"
+              color={scoreColor(stats?.calls?.avgInterestScore ?? 0)}
+              icon={<BarChart3 className="w-4 h-4" />}
+              sparkData={[5, 5.5, 6, 6.2, 5.8, 6.5, stats?.calls?.avgInterestScore ?? 0]}
+            />
+          </Link>
         </>}
       </div>
 
@@ -154,15 +167,18 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
         {/* Revenue Area Chart */}
-        <div className="lg:col-span-3 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+        <Link to="/admin/billing" className="lg:col-span-3 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5 hover:border-white/[0.12] transition-colors block group/chart">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold text-[#F8F8FF]">Croissance MRR</h3>
               <p className="text-xs text-[#8B8BA7] mt-0.5">30 derniers jours</p>
             </div>
-            <div className="text-right">
-              <p className="text-lg font-bold text-[#F8F8FF] tabular-nums">${(mrr * 12).toLocaleString()}</p>
-              <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide">ARR</p>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-lg font-bold text-[#F8F8FF] tabular-nums">${(mrr * 12).toLocaleString()}</p>
+                <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide">ARR</p>
+              </div>
+              <ArrowUpRight className="w-4 h-4 text-[#8B8BA7] opacity-0 group-hover/chart:opacity-100 transition-opacity" />
             </div>
           </div>
           {loading ? <ChartSkeleton /> : (
@@ -186,13 +202,16 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+        </Link>
 
         {/* Niche Donut */}
-        <div className="lg:col-span-2 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-[#F8F8FF]">Appels par niche</h3>
-            <p className="text-xs text-[#8B8BA7] mt-0.5">Distribution</p>
+        <Link to="/admin/calls" className="lg:col-span-2 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5 hover:border-white/[0.12] transition-colors block group/chart">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-[#F8F8FF]">Appels par niche</h3>
+              <p className="text-xs text-[#8B8BA7] mt-0.5">Distribution</p>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-[#8B8BA7] opacity-0 group-hover/chart:opacity-100 transition-opacity" />
           </div>
           {loading ? <ChartSkeleton height="h-52" /> : nicheData.length === 0 ? (
             <div className="h-52 flex items-center justify-center">
@@ -212,7 +231,7 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+        </Link>
       </div>
 
       {/* Activity Feed + Stats */}
@@ -222,9 +241,14 @@ export default function Dashboard() {
         <div className="lg:col-span-3 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-[#F8F8FF]">Activité récente</h3>
-            <span className="flex items-center gap-1.5 text-[10px] text-[#22C55E] bg-[#22C55E]/10 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />LIVE
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 text-[10px] text-[#22C55E] bg-[#22C55E]/10 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />LIVE
+              </span>
+              <Link to="/admin/calls" className="text-[10px] text-[#8B8BA7] hover:text-[#F8F8FF] flex items-center gap-0.5 transition-colors">
+                Tout <ArrowUpRight className="w-3 h-3" />
+              </Link>
+            </div>
           </div>
 
           {loading ? (
@@ -275,25 +299,25 @@ export default function Dashboard() {
           <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
             <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Taux de conversion</h3>
             {[
-              { label: 'Prospect → Client', value: stats?.conversion?.prospectToClient ?? 0, color: '#7B5CF0' },
-              { label: 'Acceptation devis', value: stats?.conversion?.quoteAcceptanceRate ?? 0, color: '#22C55E' },
-              { label: 'Taux succès appels', value: stats?.calls?.successRate ?? 0, color: '#F59E0B' },
+              { label: 'Prospect → Client', value: stats?.conversion?.prospectToClient ?? 0, color: '#7B5CF0', to: '/admin/prospects' },
+              { label: 'Acceptation devis', value: stats?.conversion?.quoteAcceptanceRate ?? 0, color: '#22C55E', to: '/admin/quotes' },
+              { label: 'Taux succès appels', value: stats?.calls?.successRate ?? 0, color: '#F59E0B', to: '/admin/calls' },
             ].map((item) => (
-              <div key={item.label} className="mb-4 last:mb-0">
+              <Link key={item.label} to={item.to} className="block mb-4 last:mb-0 group/conv rounded-lg hover:bg-white/[0.03] -mx-1 px-1 py-0.5 transition-colors">
                 <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-[#8B8BA7]">{item.label}</span>
+                  <span className="text-[#8B8BA7] group-hover/conv:text-[#F8F8FF] transition-colors">{item.label}</span>
                   <span className="font-semibold text-[#F8F8FF]">{item.value.toFixed(1)}%</span>
                 </div>
                 <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-700"
                     style={{ width: `${Math.min(item.value, 100)}%`, background: item.color }} />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 
           {/* This Month */}
-          <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+          <Link to="/admin/billing" className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5 hover:border-white/[0.12] transition-colors block">
             <h3 className="text-sm font-semibold text-[#F8F8FF] mb-3">Ce mois</h3>
             <div className="grid grid-cols-2 gap-2.5">
               {[
@@ -308,10 +332,10 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-          </div>
+          </Link>
 
           {/* Quick Stats */}
-          <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-4">
+          <Link to="/admin/calls" className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-4 hover:border-white/[0.12] transition-colors block">
             <div className="grid grid-cols-2 gap-2 text-center">
               {[
                 { label: 'Cette heure', value: stats?.calls?.thisHour ?? 0, icon: <Clock className="w-3.5 h-3.5" /> },
@@ -326,7 +350,7 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-          </div>
+          </Link>
         </div>
       </div>
 
