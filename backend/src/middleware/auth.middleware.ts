@@ -9,6 +9,13 @@ export interface AuthRequest extends Request {
 }
 
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+  // Bypass JWT check if valid X-Admin-Secret is present
+  const adminSecret = env.ADMIN_SECRET;
+  if (adminSecret && req.headers['x-admin-secret'] === adminSecret) {
+    req.userRole = 'admin';
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -31,6 +38,11 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
 }
 
 export function adminMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+  // Allow X-Admin-Secret header as alternative to JWT admin role
+  const adminSecret = env.ADMIN_SECRET;
+  if (adminSecret && req.headers['x-admin-secret'] === adminSecret) {
+    return next();
+  }
   if (req.userRole !== 'admin') {
     return res.status(403).json({ error: 'Accès refusé' });
   }
