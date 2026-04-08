@@ -121,4 +121,57 @@ router.post('/prospects/:id/call', async (req: Request, res: Response) => {
 /** GET /api/admin/clients — client list with plan, status, MRR */
 router.get('/clients', (req, res) => clientsController.list(req, res));
 
+/** DELETE /api/admin/clients/:id — delete a client + linked user */
+router.delete('/clients/:id', async (req: Request, res: Response) => {
+  try {
+    const client = await prisma.client.findUnique({
+      where: { id: req.params.id as string },
+      select: { id: true, businessName: true, userId: true },
+    });
+    if (!client) {
+      res.status(404).json({ error: 'Client not found' });
+      return;
+    }
+    // Cascade delete handles related records automatically
+    await prisma.client.delete({ where: { id: client.id } });
+    // Delete linked user
+    if (client.userId) {
+      await prisma.user.delete({ where: { id: client.userId } }).catch(() => {});
+    }
+    logger.info(`[API] Admin deleted client: ${client.businessName} (${client.id})`);
+    res.json({ success: true, message: `Client "${client.businessName}" deleted` });
+  } catch (err: any) {
+    logger.error('[API] Admin delete client error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** DELETE /api/admin/prospects/cleanup-belgian — remove fake Belgian/EU prospects */
+router.delete('/prospects/cleanup-belgian', async (_req: Request, res: Response) => {
+  try {
+    const belgianCities = ['Liège', 'Bruxelles', 'Anvers', 'Gand', 'Brussels', 'Antwerp', 'Ghent', 'Liege'];
+    const found = await prisma.prospect.findMany({
+      where: {
+        OR: [
+          { country: 'BE' },
+          { country: 'Belgium' },
+          { city: { in: belgianCities } },
+        ],
+      },
+      select: { id: true, businessName: true, city: true },
+    });
+    if (found.length === 0) {
+      res.json({ success: true, deleted: 0, message: 'No Belgian prospects found' });
+      return;
+    }
+    const ids = found.map(p => p.id);
+    const result = await prisma.prospect.deleteMany({ where: { id: { in: ids } } });
+    logger.info(`[API] Admin deleted ${result.count} Belgian prospects`);
+    res.json({ success: true, deleted: result.count, prospects: found.map(p => `${p.businessName} / ${p.city}`) });
+  } catch (err: any) {
+    logger.error('[API] Admin cleanup-belgian error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
