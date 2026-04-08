@@ -121,22 +121,23 @@ export default function LiveMonitor() {
     setScrapeOp('running');
     setScrapeVerified(null);
     try {
-      await api.post('/prospecting/trigger/scrape');
-      toast('Scraping lancé...', 'info');
-      // Attendre 5s puis vérifier
+      const { data: triggerData } = await api.post('/prospecting/trigger/scrape');
+      toast('Scraping démarré en arrière-plan...', 'info');
+      // Poll status after 5s to confirm
       await new Promise(r => setTimeout(r, 5000));
       const { data } = await api.get('/prospecting/status');
       setProspecting(data);
-      if (data?.isRunning || (data?.prospectsFound ?? 0) > 0 || data?.lastScrape) {
+      if (triggerData?.status === 'running' || data?.lastScrape || (data?.prospectsFound ?? 0) > 0) {
         setScrapeVerified(true);
-        toast('✓ Scraping démarré et vérifié', 'success');
+        toast('✓ Scraping confirmé — s\'exécute en arrière-plan', 'success');
       } else {
-        setScrapeVerified(null); // statut ambigu
-        toast('Scraping lancé — en attente des résultats', 'info');
+        setScrapeVerified(null);
+        toast('Scraping lancé — vérifiez les logs pour les résultats', 'info');
       }
     } catch (e: any) {
       setScrapeVerified(false);
-      toast(e?.response?.data?.message ?? 'Erreur lancement scraping', 'error');
+      const msg = e?.response?.data?.message ?? e?.response?.data?.error ?? 'Erreur lancement scraping';
+      toast(msg, 'error');
     } finally {
       setScrapeOp(null);
     }
@@ -290,7 +291,15 @@ export default function LiveMonitor() {
               scrapeVerified ? 'bg-[#22C55E]/10 text-[#22C55E]' : 'bg-[#EF4444]/10 text-[#EF4444]'
             }`}>
               {scrapeVerified ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-              {scrapeVerified ? 'Scraping confirmé côté backend' : 'Scraping non confirmé — vérifiez clé Apify'}
+              {scrapeVerified
+                ? 'Scraping en cours — résultats dans quelques minutes'
+                : 'APIFY_API_KEY manquante — ajoutez-la dans Render > Environment'}
+            </div>
+          )}
+          {!scrapeVerified && prospecting && (prospecting as any).apifyConfigured === false && (
+            <div className="flex items-center gap-2 p-2.5 rounded-xl text-xs bg-[#F59E0B]/10 text-[#F59E0B]">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>Configurez <code className="font-mono bg-black/20 px-1 rounded">APIFY_API_KEY</code> sur Render pour activer le scraping réel</span>
             </div>
           )}
 

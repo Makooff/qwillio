@@ -193,7 +193,7 @@ export default function AdminSystem() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-[#F8F8FF]">{job.label}</p>
                   <p className="text-[10px] text-[#8B8BA7] mt-0.5">{job.desc}</p>
-                  {lastRun && <p className="text-[10px] text-[#8B8BA7] flex items-center gap-1 mt-1"><Clock className="w-2.5 h-2.5" />{new Date(lastRun).toLocaleTimeString('fr-FR')}</p>}
+                  {lastRun && !isNaN(new Date(lastRun).getTime()) && <p className="text-[10px] text-[#8B8BA7] flex items-center gap-1 mt-1"><Clock className="w-2.5 h-2.5" />{new Date(lastRun).toLocaleTimeString('fr-FR')}</p>}
                 </div>
                 <button onClick={() => trigger(job.id)} disabled={triggering === job.id}
                   className="ml-2 flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7B5CF0]/10 text-[#7B5CF0] border border-[#7B5CF0]/20 hover:bg-[#7B5CF0]/20 text-[10px] font-medium transition-all disabled:opacity-50">

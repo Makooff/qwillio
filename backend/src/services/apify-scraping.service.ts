@@ -190,23 +190,43 @@ export class ApifyScrapingService {
     logger.info(`[Apify] Scraping complete: ${totalAdded} new prospects added`);
 
     // Validate phones for newly added prospects
-    try {
-      await phoneValidationService.validateBatch(Math.min(totalAdded, 50));
-    } catch (err) {
-      logger.warn('[Apify] Phone validation batch failed:', err);
+    if (totalAdded > 0) {
+      try {
+        await phoneValidationService.validateBatch(Math.min(totalAdded, 50));
+      } catch (err) {
+        logger.warn('[Apify] Phone validation batch failed:', err);
+      }
     }
 
+    // Discord notification (never throws)
     await discordService.notifySystem(
-      `🕷️ DAILY SCRAPING COMPLETE\n\nNew prospects: ${totalAdded}\nNiches: home_services, dental\nCities: ${SCRAPE_QUERIES.flatMap(n => n.cities).length} targeted`
+      `🕷️ SCRAPING COMPLETE\n\nNew prospects: ${totalAdded}\nNiches: home_services, dental\nCities: ${SCRAPE_QUERIES.flatMap(n => n.cities).length} targeted`
     );
 
-    // Update analytics
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    await prisma.analyticsDaily.upsert({
-      where: { date: today },
-      update: { prospectsAdded: { increment: totalAdded } },
-      create: { date: today, prospectsAdded: totalAdded },
-    });
+    // Update analytics (non-critical, don't fail scraping if this errors)
+    try {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      await prisma.analyticsDaily.upsert({
+        where: { date: today },
+        update: { prospectsAdded: { increment: totalAdded } },
+        create: { date: today, prospectsAdded: totalAdded },
+      });
+    } catch (err) {
+      logger.warn('[Apify] Analytics update failed (non-critical):', err);
+    }
+
+    // Update bot lastProspection timestamp
+    try {
+      const bot = await prisma.botStatus.findFirst({ select: { id: true } });
+      if (bot) {
+        await prisma.botStatus.update({
+          where: { id: bot.id },
+          data: { lastProspection: new Date() },
+        });
+      }
+    } catch (err) {
+      logger.warn('[Apify] BotStatus timestamp update failed:', err);
+    }
 
     return totalAdded;
   }

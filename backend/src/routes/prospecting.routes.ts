@@ -13,6 +13,7 @@ import { scriptLearningService } from '../services/script-learning.service';
 import { followUpSequencesService } from '../services/follow-up-sequences.service';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { env } from '../config/env';
 
 const router = Router();
 
@@ -23,14 +24,26 @@ router.use(requireAdmin);
 
 /** POST /api/prospecting/trigger/scrape — Run Apify scraping immediately */
 router.post('/trigger/scrape', async (_req: Request, res: Response) => {
-  try {
-    logger.info('[API] Manual scraping triggered');
-    const count = await apifyScrapingService.runDailyScraping();
-    res.json({ success: true, prospectsAdded: count });
-  } catch (err) {
-    logger.error('[API] Scraping trigger error:', err);
-    res.status(500).json({ error: (err as Error).message });
+  if (!env.APIFY_API_KEY) {
+    res.status(400).json({
+      error: 'APIFY_API_KEY non configurée',
+      message: 'Ajoutez APIFY_API_KEY dans les variables d\'environnement Render pour activer le scraping',
+    });
+    return;
   }
+
+  // Fire-and-forget — respond immediately, run scraping in background
+  res.json({ success: true, message: 'Scraping démarré en arrière-plan', status: 'running' });
+
+  setImmediate(async () => {
+    try {
+      logger.info('[API] Background scraping started');
+      const count = await apifyScrapingService.runDailyScraping();
+      logger.info(`[API] Background scraping complete: ${count} prospects`);
+    } catch (err) {
+      logger.error('[API] Background scraping error:', err);
+    }
+  });
 });
 
 /** POST /api/prospecting/trigger/call — Attempt one outbound call */
@@ -107,34 +120,51 @@ router.post('/trigger/seed-local-presence', async (_req: Request, res: Response)
 
 /** GET /api/prospecting/status — Overview of prospecting engine */
 router.get('/status', async (_req: Request, res: Response) => {
-  try {
-    const [
-      totalProspects,
-      eligibleProspects,
-      pendingFollowUps,
-      activeAbTests,
-      recentMutations,
-      localPresenceNumbers,
-    ] = await Promise.all([
-      prisma.prospect.count(),
-      prisma.prospect.count({ where: { eligibleForCall: true, isMobile: false, priorityScore: { gte: 10 } } }),
-      prisma.followUpSequence.count({ where: { sentAt: null, scheduledAt: { lte: new Date() } } }),
-      prisma.scriptAbTest.count({ where: { active: true, winner: null } }),
-      prisma.scriptMutation.count({ where: { status: 'testing' } }),
-      prisma.localPresenceNumber.count({ where: { active: true } }),
-    ]);
+  // Each query wrapped individually so one missing table doesn't break all
+  const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+    try { return await fn(); } catch { return fallback; }
+  };
 
-    res.json({
-      totalProspects,
-      eligibleProspects,
-      pendingFollowUps,
-      activeAbTests,
-      recentMutations,
-      localPresenceNumbers,
-    });
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
+  const [
+    totalProspects,
+    eligibleProspects,
+    pendingFollowUps,
+    activeAbTests,
+    recentMutations,
+    localPresenceNumbers,
+    botStatus,
+    todayProspects,
+  ] = await Promise.all([
+    safe(() => prisma.prospect.count(), 0),
+    safe(() => prisma.prospect.count({ where: { eligibleForCall: true, priorityScore: { gte: 10 } } }), 0),
+    safe(() => prisma.followUpSequence.count({ where: { sentAt: null, scheduledAt: { lte: new Date() } } }), 0),
+    safe(() => prisma.scriptAbTest.count({ where: { active: true, winner: null } }), 0),
+    safe(() => prisma.scriptMutation.count({ where: { status: 'testing' } }), 0),
+    safe(() => prisma.localPresenceNumber.count({ where: { active: true } }), 0),
+    safe(() => prisma.botStatus.findFirst({ select: { lastProspection: true, callsToday: true } }), null),
+    safe(() => {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      return prisma.prospect.count({ where: { createdAt: { gte: today } } });
+    }, 0),
+  ]);
+
+  res.json({
+    totalProspects,
+    eligibleProspects,
+    pendingFollowUps,
+    activeAbTests,
+    recentMutations,
+    localPresenceNumbers,
+    // Fields expected by LiveMonitor
+    prospectsFound: totalProspects,
+    prospectsQueued: eligibleProspects,
+    lastScrape: botStatus?.lastProspection ?? null,
+    callsToday: botStatus?.callsToday ?? 0,
+    abTestsActive: activeAbTests,
+    isRunning: false,
+    apifyConfigured: !!env.APIFY_API_KEY,
+    todayAdded: todayProspects,
+  });
 });
 
 /** GET /api/prospecting/ab-tests — List active A/B tests */
