@@ -16,7 +16,7 @@ router.get('/:id', (req, res) => clientsController.getById(req, res));
 router.put('/:id', (req, res) => clientsController.update(req, res));
 
 // POST /api/clients/:id/retry-payment — retry the latest open Stripe invoice
-router.post('/:id/retry-payment', async (req: Request, res: Response) => {
+router.post('/:id/retry-payment', async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   try {
     const client = await prisma.client.findUnique({
