@@ -174,7 +174,6 @@ export class VapiService {
           responseDelaySeconds: 0.4,
           interruptionsEnabled: true,
           numWordsToInterruptAssistant: Math.round(env.VAPI_INTERRUPTION_THRESHOLD / 50),
-          fillerInjectionEnabled: true,
           firstMessage: nicheScript.firstMessage
             ? nicheScript.firstMessage.replace('{businessName}', prospect.businessName)
             : `Hey! Hi, this is Ashley from Qwillio. Um, is this the owner of ${prospect.businessName}? I had a quick question for you.`,
@@ -568,7 +567,6 @@ Return a JSON with:
           responseDelaySeconds: 0.4,
           interruptionsEnabled: true,
           numWordsToInterruptAssistant: Math.round(env.VAPI_INTERRUPTION_THRESHOLD / 50),
-          fillerInjectionEnabled: true,
           firstMessage: nicheScript.firstMessage
             ? nicheScript.firstMessage.replace('{businessName}', businessName)
             : `Hey! Hi, this is Ashley from Qwillio. Um, is this the owner of ${businessName}? I had a quick question for you.`,

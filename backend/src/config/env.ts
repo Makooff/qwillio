@@ -32,7 +32,7 @@ export const env = {
   VAPI_STYLE: parseFloat(process.env.VAPI_STYLE || '0.35'),
   VAPI_OPTIMIZE_LATENCY: parseInt(process.env.VAPI_OPTIMIZE_LATENCY || '4', 10),
   VAPI_INTERRUPTION_THRESHOLD: parseInt(process.env.VAPI_INTERRUPTION_THRESHOLD || '200', 10),
-  VAPI_SILENCE_TIMEOUT: parseInt(process.env.VAPI_SILENCE_TIMEOUT || '8', 10),
+  VAPI_SILENCE_TIMEOUT: Math.max(10, parseInt(process.env.VAPI_SILENCE_TIMEOUT || '10', 10)),
   VAPI_MAX_DURATION: parseInt(process.env.VAPI_MAX_DURATION || '480', 10), // 8 minutes
   VAPI_WEBHOOK_SECRET: process.env.VAPI_WEBHOOK_SECRET || '',
 
