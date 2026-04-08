@@ -19,19 +19,17 @@ export default function AiLearning() {
 
   const load = async () => {
     setLoading(true);
-    try {
-      const [s, m, a, b] = await Promise.all([
-        api.get('/ai/stats'),
-        api.get('/ai/mutations?limit=50'),
-        api.get('/ai/ab-tests'),
-        api.get('/ai/best-times'),
-      ]);
-      setStats(s.data);
-      setMutations(Array.isArray(m.data.data) ? m.data.data : (Array.isArray(m.data) ? m.data : []));
-      setAbTests(Array.isArray(a.data.data) ? a.data.data : (Array.isArray(a.data) ? a.data : []));
-      setBestTimes(Array.isArray(b.data.data) ? b.data.data : (Array.isArray(b.data) ? b.data : []));
-    } catch { toast('Erreur chargement', 'error'); }
-    finally { setLoading(false); }
+    const [s, m, a, b] = await Promise.all([
+      api.get('/ai/stats').catch(() => null),
+      api.get('/ai/mutations?limit=50').catch(() => null),
+      api.get('/ai/ab-tests').catch(() => null),
+      api.get('/ai/best-times').catch(() => null),
+    ]);
+    if (s?.data) setStats(s.data);
+    if (m?.data) setMutations(Array.isArray(m.data.data) ? m.data.data : (Array.isArray(m.data) ? m.data : []));
+    if (a?.data) setAbTests(Array.isArray(a.data.data) ? a.data.data : (Array.isArray(a.data) ? a.data : []));
+    if (b?.data) setBestTimes(Array.isArray(b.data.data) ? b.data.data : (Array.isArray(b.data) ? b.data : []));
+    setLoading(false);
   };
 
   useEffect(() => { load(); }, []);

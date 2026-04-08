@@ -37,17 +37,15 @@ export default function AdminProspecting() {
 
   const load = async () => {
     setLoading(true);
-    try {
-      const [s, a, m] = await Promise.all([
-        api.get('/prospecting/status'),
-        api.get('/prospecting/ab-tests'),
-        api.get('/prospecting/mutations'),
-      ]);
-      setStatus(s.data);
-      setAbTests(Array.isArray(a.data.data) ? a.data.data : (Array.isArray(a.data) ? a.data : []));
-      setMutations(Array.isArray(m.data.data) ? m.data.data : (Array.isArray(m.data) ? m.data : []));
-    } catch { toast('Erreur chargement', 'error'); }
-    finally { setLoading(false); }
+    const [s, a, m] = await Promise.all([
+      api.get('/prospecting/status').catch(() => null),
+      api.get('/prospecting/ab-tests').catch(() => null),
+      api.get('/prospecting/mutations').catch(() => null),
+    ]);
+    if (s?.data) setStatus(s.data);
+    if (a?.data) setAbTests(Array.isArray(a.data.data) ? a.data.data : (Array.isArray(a.data) ? a.data : []));
+    if (m?.data) setMutations(Array.isArray(m.data.data) ? m.data.data : (Array.isArray(m.data) ? m.data : []));
+    setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
