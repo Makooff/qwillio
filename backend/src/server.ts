@@ -229,6 +229,30 @@ async function startServer() {
       logger.error('Admin seed failed (non-fatal):', seedErr);
     }
 
+    // ─── One-time cleanup: remove fake Belgian prospects + vivi pizza client ──
+    try {
+      const belgianCities = ['Liège', 'Bruxelles', 'Anvers', 'Gand', 'Brussels', 'Antwerp', 'Ghent', 'Liege'];
+      const belgianProspects = await prisma.prospect.findMany({
+        where: { OR: [{ country: 'BE' }, { country: 'Belgium' }, { city: { in: belgianCities } }] },
+        select: { id: true },
+      });
+      if (belgianProspects.length > 0) {
+        await prisma.prospect.deleteMany({ where: { id: { in: belgianProspects.map(p => p.id) } } });
+        logger.info(`[Startup] Cleaned ${belgianProspects.length} fake Belgian prospect(s)`);
+      }
+      const viviClients = await prisma.client.findMany({
+        where: { OR: [{ businessName: { contains: 'vivi', mode: 'insensitive' } }, { businessName: { contains: 'pizza', mode: 'insensitive' } }] },
+        select: { id: true, businessName: true, userId: true },
+      });
+      for (const c of viviClients) {
+        await prisma.client.delete({ where: { id: c.id } });
+        if (c.userId) await prisma.user.delete({ where: { id: c.userId } }).catch(() => {});
+        logger.info(`[Startup] Deleted fake client: ${c.businessName}`);
+      }
+    } catch (cleanupErr) {
+      logger.warn('[Startup] Fake data cleanup (non-fatal):', cleanupErr);
+    }
+
     // Initialize bot loop (creates bot_status record if needed)
     await botLoop.initialize();
     logger.info('Bot loop initialized');
