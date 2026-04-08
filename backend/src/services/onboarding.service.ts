@@ -81,7 +81,6 @@ export class OnboardingService {
         backgroundSound: 'office',
         silenceTimeoutSeconds: env.VAPI_SILENCE_TIMEOUT,
         maxDurationSeconds: env.VAPI_MAX_DURATION,
-        fillerInjectionEnabled: true,
         interruptionsEnabled: true,
         numWordsToInterruptAssistant: Math.round(env.VAPI_INTERRUPTION_THRESHOLD / 50),
       };

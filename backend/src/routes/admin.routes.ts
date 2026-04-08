@@ -1,125 +1,273 @@
-/**
- * Admin API Routes — /api/admin/*
- * All endpoints require JWT auth + admin role.
- * These are canonical admin endpoints; existing routes at /api/dashboard/*,
- * /api/prospects/*, /api/clients/* etc. remain fully functional.
- */
 import { Router, Request, Response } from 'express';
-import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
-import { dashboardController } from '../controllers/dashboard.controller';
-import { prospectsController } from '../controllers/prospects.controller';
-import { clientsController } from '../controllers/clients.controller';
-import { outboundEngineService } from '../services/outbound-engine.service';
-import { botLoop } from '../jobs/bot-loop';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { analyticsService } from '../services/analytics.service';
+import { getLogs, clearLogs, getLastId } from '../config/log-store';
+import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 import { env } from '../config/env';
 
 const router = Router();
 
-router.use(authMiddleware);
-router.use(adminMiddleware);
+// ─── Log viewer endpoints (admin-only) ───────────────────
+router.get('/logs', authMiddleware, adminMiddleware, (req: Request, res: Response) => {
+  const since = req.query.since ? parseInt(req.query.since as string) : undefined;
+  const level = req.query.level as string | undefined;
+  const search = req.query.search as string | undefined;
+  res.json({
+    logs: getLogs({ since, level, search, limit: 200 }),
+    lastId: getLastId(),
+  });
+});
 
-// ─── Stats ─────────────────────────────────────────────────
+router.delete('/logs', authMiddleware, adminMiddleware, (_req: Request, res: Response) => {
+  clearLogs();
+  res.json({ success: true });
+});
 
-/** GET /api/admin/stats — total prospects, calls today/week, answer rate, MRR, active clients */
-router.get('/stats', (req, res) => dashboardController.getStats(req, res));
-
-// ─── Activity feed ─────────────────────────────────────────
-
-/** GET /api/admin/activity-feed — last 20 events */
-router.get('/activity-feed', (req, res) => dashboardController.getRecentActivity(req, res));
-
-// ─── Bot config ────────────────────────────────────────────
-
-/** GET /api/admin/bot-config — current bot configuration */
-router.get('/bot-config', async (_req: Request, res: Response) => {
+// ─── Bot config (used by AdminSettings page) ─────────────
+// GET  /api/admin/bot-config
+router.get('/bot-config', authMiddleware, adminMiddleware, async (_req: Request, res: Response) => {
   try {
-    const cfg = {
-      vapiBaseUrl: env.VAPI_BASE_URL || '',
-      apifyActorId: env.APIFY_ACTOR_ID || '',
-      minPriorityScore: env.MIN_PRIORITY_SCORE || 10,
-    };
-    const status = await prisma.botStatus.findFirst();
-
+    const bot = await prisma.botStatus.findFirst({ select: { callsQuotaDaily: true } });
     res.json({
-      data: {
-        isActive: status?.isActive ?? false,
-        callsQuotaDaily: status?.callsQuotaDaily ?? 50,
-        callsToday: status?.callsToday ?? 0,
-        lastProspection: status?.lastProspection ?? null,
-        lastCall: status?.lastCall ?? null,
-        ...cfg,
-      },
+      startHour:           env.AUTOMATION_START_HOUR,
+      endHour:             env.AUTOMATION_END_HOUR,
+      callsPerDay:         bot?.callsQuotaDaily ?? env.CALLS_PER_DAY,
+      callIntervalSeconds: env.CALL_INTERVAL_MINUTES * 60,
+      activeDays:          env.AUTOMATION_DAYS,
+      maxCallDuration:     600,
+      retryDelay:          3600,
+      maxRetries:          3,
     });
   } catch (err: any) {
-    logger.error('[API] Admin bot-config GET error:', err);
+    logger.error('[API] bot-config GET failed:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-/** POST /api/admin/bot-config — save bot config overrides */
-router.post('/bot-config', async (req: Request, res: Response) => {
+// POST /api/admin/bot-config  — only callsPerDay is persisted (rest are env-controlled)
+router.post('/bot-config', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
   try {
-    const { callsQuotaDaily } = req.body as { callsQuotaDaily?: number };
-    if (callsQuotaDaily !== undefined) {
-      if (typeof callsQuotaDaily !== 'number' || callsQuotaDaily < 1 || callsQuotaDaily > 500) {
-        res.status(400).json({ error: 'callsQuotaDaily must be between 1 and 500' });
-        return;
+    const { callsPerDay } = req.body as { callsPerDay?: number };
+    if (callsPerDay !== undefined) {
+      const bot = await prisma.botStatus.findFirst({ select: { id: true } });
+      if (bot) {
+        await prisma.botStatus.update({
+          where: { id: bot.id },
+          data: { callsQuotaDaily: Math.min(Math.max(Number(callsPerDay), 1), 500) },
+        });
       }
-      const existing = await prisma.botStatus.findFirst({ select: { id: true } });
-      if (!existing) {
-        res.status(404).json({ error: 'Bot status record not found' });
-        return;
-      }
-      await prisma.botStatus.update({
-        where: { id: existing.id },
-        data: { callsQuotaDaily },
-      });
-      logger.info(`[API] Admin bot-config updated: callsQuotaDaily=${callsQuotaDaily}`);
     }
-    const updated = await botLoop.getStatus();
-    res.json({ data: updated, message: 'Bot config saved' });
+    logger.info(`[API] bot-config saved: callsPerDay=${callsPerDay}`);
+    res.json({ success: true });
   } catch (err: any) {
-    logger.error('[API] Admin bot-config POST error:', err);
+    logger.error('[API] bot-config POST failed:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── Prospects ─────────────────────────────────────────────
+const EMPTY_DASHBOARD = {
+  prospects: { total: 0, newThisMonth: 0, byStatus: {} as Record<string, number> },
+  clients: { totalActive: 0, newThisMonth: 0, byPlan: {} as Record<string, number> },
+  revenue: { mrr: 0, setupFeesThisMonth: 0, totalThisMonth: 0 },
+  conversion: { prospectToClient: 0, quoteAcceptanceRate: 0 },
+  calls: { today: 0, thisWeek: 0, successRate: 0 },
+  bot: { isActive: false, callsToday: 0, callsQuota: 50 },
+  prospectsReadyToCall: 0,
+  activity: [] as any[],
+};
 
-/** GET /api/admin/prospects — paginated prospect list */
-router.get('/prospects', (req, res) => prospectsController.list(req, res));
-
-/** POST /api/admin/prospects/:id/call — trigger immediate VAPI call for a prospect */
-router.post('/prospects/:id/call', async (req: Request, res: Response) => {
+router.get('/dashboard', async (_req: Request, res: Response) => {
   try {
-    const prospect = await prisma.prospect.findUnique({ where: { id: req.params.id as string } });
-    if (!prospect) {
-      res.status(404).json({ error: 'Prospect not found' });
-      return;
-    }
-    if (!prospect.phone) {
-      res.status(400).json({ error: 'Prospect has no phone number' });
-      return;
-    }
-    logger.info(`[API] Admin manual call for prospect ${prospect.id} (${prospect.businessName})`);
-    const called = await outboundEngineService.callNextProspect();
+    const [statsResult, activityResult, prospectsReadyResult] = await Promise.allSettled([
+      analyticsService.getDashboardStats(),
+      analyticsService.getRecentActivity(10),
+      prisma.prospect.count({ where: { status: 'new', eligibleForCall: true, callAttempts: { lt: 3 }, phone: { not: null } } }),
+    ]);
+    const stats = statsResult.status === 'fulfilled' ? statsResult.value : null;
+    const activity = activityResult.status === 'fulfilled' ? activityResult.value : [];
+    const prospectsReadyToCall = prospectsReadyResult.status === 'fulfilled' ? prospectsReadyResult.value : 0;
+    res.json({ ...(stats ?? EMPTY_DASHBOARD), prospectsReadyToCall, activity });
+  } catch (err: any) {
+    logger.error('[API] Admin dashboard error:', err);
+    res.json({ ...EMPTY_DASHBOARD });
+  }
+});
+
+router.get('/prospects', async (_req: Request, res: Response) => {
+  try {
+    const prospects = await prisma.prospect.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: {
+        id: true, businessName: true, contactName: true, email: true, phone: true,
+        status: true, eligibleForCall: true, callAttempts: true,
+        createdAt: true, updatedAt: true,
+      }
+    });
+    res.json(prospects);
+  } catch (err: any) {
+    logger.error('[API] Prospects list error:', err);
+    res.json([]);
+  }
+});
+
+router.get('/clients', async (_req: Request, res: Response) => {
+  try {
+    const clients = await prisma.client.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: {
+        id: true, businessName: true, contactName: true, contactEmail: true, contactPhone: true,
+        planType: true, subscriptionStatus: true, setupFee: true, monthlyFee: true, createdAt: true,
+      }
+    });
+    res.json(clients);
+  } catch (err: any) {
+    logger.error('[API] Clients list error:', err);
+    res.json([]);
+  }
+});
+
+router.get('/calls', async (_req: Request, res: Response) => {
+  try {
+    const calls = await prisma.call.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: {
+        prospect: { select: { businessName: true, contactName: true, phone: true } }
+      }
+    });
+    res.json(calls);
+  } catch (err: any) {
+    logger.error('[API] Calls list error:', err);
+    res.json([]);
+  }
+});
+
+router.get('/leads', async (_req: Request, res: Response) => {
+  try {
+    const leads = await prisma.prospect.findMany({
+      where: { status: { in: ['contacted', 'qualified', 'proposal'] } },
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
+    });
+    res.json(leads);
+  } catch (err: any) {
+    logger.error('[API] Leads list error:', err);
+    res.json([]);
+  }
+});
+
+router.get('/billing', async (_req: Request, res: Response) => {
+  try {
+    const [clients, fees] = await Promise.allSettled([
+      prisma.client.findMany({ where: { subscriptionStatus: 'active' }, select: { planType: true, setupFee: true, monthlyFee: true } }),
+      prisma.client.aggregate({ where: { subscriptionStatus: 'active' }, _sum: { setupFee: true, monthlyFee: true } })
+    ]);
+    const activeClients = clients.status === 'fulfilled' ? clients.value : [];
+    const totalMonthlyFee = fees.status === 'fulfilled' ? Number(fees.value._sum.monthlyFee ?? 0) : 0;
+    const totalSetupFee = fees.status === 'fulfilled' ? Number(fees.value._sum.setupFee ?? 0) : 0;
+    const byPlan = activeClients.reduce((acc: Record<string, number>, c: any) => {
+      acc[c.planType] = (acc[c.planType] || 0) + 1;
+      return acc;
+    }, {});
+    res.json({ totalMonthlyFee, totalSetupFee, clientCount: activeClients.length, byPlan });
+  } catch (err: any) {
+    logger.error('[API] Billing error:', err);
+    res.json({ totalMonthlyFee: 0, totalSetupFee: 0, clientCount: 0, byPlan: {} });
+  }
+});
+
+router.get('/system', async (_req: Request, res: Response) => {
+  try {
+    const [prospectCount, clientCount, callCount] = await Promise.allSettled([
+      prisma.prospect.count(),
+      prisma.client.count(),
+      prisma.call.count(),
+    ]);
     res.json({
-      success: true,
-      called,
-      message: called ? 'Call initiated' : 'No eligible prospect or daily quota reached',
+      db: 'connected',
+      prospects: prospectCount.status === 'fulfilled' ? prospectCount.value : 0,
+      clients: clientCount.status === 'fulfilled' ? clientCount.value : 0,
+      calls: callCount.status === 'fulfilled' ? callCount.value : 0,
+      uptime: process.uptime(),
+      nodeVersion: process.version,
+      env: process.env.NODE_ENV,
     });
   } catch (err: any) {
-    logger.error('[API] Admin prospect call error:', err);
+    logger.error('[API] System error:', err);
+    res.json({ db: 'error', error: err.message });
+  }
+});
+
+router.post('/bot/start', async (_req: Request, res: Response) => {
+  try {
+    const existing = await prisma.botStatus.findFirst();
+    const bot = existing
+      ? await prisma.botStatus.update({ where: { id: existing.id }, data: { isActive: true } })
+      : await prisma.botStatus.create({ data: { isActive: true, callsQuotaDaily: 50, callsToday: 0 } });
+    res.json({ success: true, message: 'Bot started', bot });
+  } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── Clients ───────────────────────────────────────────────
+router.post('/bot/stop', async (_req: Request, res: Response) => {
+  try {
+    const existing = await prisma.botStatus.findFirst();
+    const bot = existing
+      ? await prisma.botStatus.update({ where: { id: existing.id }, data: { isActive: false } })
+      : await prisma.botStatus.create({ data: { isActive: false, callsQuotaDaily: 50, callsToday: 0 } });
+    res.json({ success: true, message: 'Bot stopped', bot });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-/** GET /api/admin/clients — client list with plan, status, MRR */
-router.get('/clients', (req, res) => clientsController.list(req, res));
+// ─── AI endpoints ──────────────────────────────────────────
+
+// GET /api/admin/ai/insights
+router.get('/ai/insights', async (_req: Request, res: Response) => {
+  try {
+    const insights = await prisma.nicheInsight.findMany({
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+    });
+    res.json({ insights });
+  } catch (e) {
+    logger.error('[API] AI insights error:', e);
+    res.json({ insights: [] });
+  }
+});
+
+// GET /api/admin/ai/scripts
+router.get('/ai/scripts', async (_req: Request, res: Response) => {
+  try {
+    const scripts = await prisma.scriptMutation.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    res.json({ scripts });
+  } catch (e) {
+    logger.error('[API] AI scripts error:', e);
+    res.json({ scripts: [] });
+  }
+});
+
+// GET /api/admin/ai/decisions
+router.get('/ai/decisions', async (_req: Request, res: Response) => {
+  try {
+    const decisions = await prisma.aiDecision.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    res.json({ decisions });
+  } catch (e) {
+    logger.error('[API] AI decisions error:', e);
+    res.json({ decisions: [] });
+  }
+});
 
 /** DELETE /api/admin/clients/:id — delete a client + linked user */
 router.delete('/clients/:id', async (req: Request, res: Response) => {

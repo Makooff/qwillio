@@ -1,179 +1,189 @@
-import { useState, useEffect } from 'react';
-import { Download, RefreshCw, TrendingUp, TrendingDown, Clock, AlertCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import api from '../../services/api';
-
-interface ScriptMutation {
-  id: string;
-  niche: string;
-  language: string;
-  type: string;
-  changeApplied: string;
-  reason: string;
-  date: string;
-  callsBefore: number;
-  conversionBefore: number;
-  callsAfter: number;
-  conversionAfter: number;
-  status: 'testing' | 'validated' | 'reverted';
-  confidenceScore: number;
-}
+import { RefreshCw, Brain, TrendingUp, Clock, BarChart3, Cpu } from 'lucide-react';
+import { useToast } from '../../hooks/useToast';
+import ToastContainer from '../../components/ui/Toast';
+import Badge from '../../components/ui/Badge';
+import { StatCardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
+import StatCard from '../../components/ui/StatCard';
+import EmptyState from '../../components/ui/EmptyState';
 
 export default function AiLearning() {
-  const [mutations, setMutations] = useState<ScriptMutation[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [mutations, setMutations] = useState<any[]>([]);
+  const [abTests, setAbTests] = useState<any[]>([]);
+  const [bestTimes, setBestTimes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterNiche, setFilterNiche] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterLang, setFilterLang] = useState('');
+  const [tab, setTab] = useState<'mutations' | 'abtests' | 'besttimes'>('mutations');
+  const { toasts, add: toast, remove } = useToast();
 
-  useEffect(() => {
-    fetchMutations();
-  }, []);
-
-  const fetchMutations = async () => {
+  const load = async () => {
     setLoading(true);
-    try {
-      const res = await api.get('/ai/mutations');
-      setMutations(res.data.mutations || []);
-    } catch {
-      setMutations([]);
-    }
+    const [s, m, a, b] = await Promise.all([
+      api.get('/ai/stats').catch(() => null),
+      api.get('/ai/mutations?limit=50').catch(() => null),
+      api.get('/ai/ab-tests').catch(() => null),
+      api.get('/ai/best-times').catch(() => null),
+    ]);
+    if (s?.data) setStats(s.data);
+    if (m?.data) setMutations(Array.isArray(m.data.data) ? m.data.data : (Array.isArray(m.data) ? m.data : []));
+    if (a?.data) setAbTests(Array.isArray(a.data.data) ? a.data.data : (Array.isArray(a.data) ? a.data : []));
+    if (b?.data) setBestTimes(Array.isArray(b.data.data) ? b.data.data : (Array.isArray(b.data) ? b.data : []));
     setLoading(false);
   };
 
-  const filtered = mutations.filter(m => {
-    if (filterNiche && m.niche !== filterNiche) return false;
-    if (filterStatus && m.status !== filterStatus) return false;
-    if (filterLang && m.language !== filterLang) return false;
-    return true;
-  });
+  useEffect(() => { load(); }, []);
 
-  const exportCsv = () => {
-    const rows = [
-      ['Date', 'Niche', 'Language', 'Type', 'Change', 'Reason', 'Calls Before', 'Conv Before %', 'Calls After', 'Conv After %', 'Status', 'Confidence'],
-      ...filtered.map(m => [
-        new Date(m.date).toLocaleDateString(),
-        m.niche, m.language, m.type, m.changeApplied, m.reason,
-        m.callsBefore, (m.conversionBefore * 100).toFixed(1),
-        m.callsAfter, (m.conversionAfter * 100).toFixed(1),
-        m.status, m.confidenceScore,
-      ]),
-    ];
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'ai-mutations.csv'; a.click();
-  };
-
-  const statusBadge = (status: string) => {
-    if (status === 'validated') return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700"><TrendingUp size={12} />Validated</span>;
-    if (status === 'reverted') return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700"><TrendingDown size={12} />Reverted</span>;
-    return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700"><Clock size={12} />Testing</span>;
-  };
-
-  const niches = [...new Set(mutations.map(m => m.niche))];
+  const TABS = [
+    { id: 'mutations', label: 'Mutations de script', count: mutations.length },
+    { id: 'abtests', label: 'Tests A/B', count: abTests.length },
+    { id: 'besttimes', label: 'Meilleurs horaires', count: bestTimes.length },
+  ] as const;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      <ToastContainer toasts={toasts} remove={remove} />
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1d1d1f]">AI Learning Log</h1>
-          <p className="text-sm text-[#86868b] mt-1">Script mutations applied by the self-correcting AI system</p>
+          <h1 className="text-xl font-bold text-[#F8F8FF]">IA — Apprentissage</h1>
+          <p className="text-sm text-[#8B8BA7] mt-0.5">Optimisation automatique des scripts et horaires</p>
         </div>
-        <div className="flex gap-3">
-          <button onClick={fetchMutations} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#d2d2d7] text-sm hover:bg-[#f5f5f7] transition-colors">
-            <RefreshCw size={14} /> Refresh
-          </button>
-          <button onClick={exportCsv} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#6366f1] text-white text-sm hover:bg-[#4f46e5] transition-colors">
-            <Download size={14} /> Export CSV
-          </button>
-        </div>
+        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Total mutations', value: mutations.length, color: 'text-[#1d1d1f]' },
-          { label: 'Validated', value: mutations.filter(m => m.status === 'validated').length, color: 'text-green-600' },
-          { label: 'Reverted', value: mutations.filter(m => m.status === 'reverted').length, color: 'text-red-600' },
-          { label: 'Testing', value: mutations.filter(m => m.status === 'testing').length, color: 'text-yellow-600' },
-        ].map((card, i) => (
-          <div key={i} className="bg-white rounded-xl border border-[#d2d2d7] p-4">
-            <p className="text-xs text-[#86868b] mb-1">{card.label}</p>
-            <p className={`text-3xl font-bold ${card.color}`}>{card.value}</p>
-          </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {loading ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />) : <>
+          <StatCard label="Mutations totales" value={stats?.totalMutations ?? 0} icon={<Brain className="w-4 h-4" />} color="#7B5CF0" />
+          <StatCard label="Tests A/B actifs" value={stats?.activeAbTests ?? 0} icon={<BarChart3 className="w-4 h-4" />} />
+          <StatCard label="Taux de succès moyen" value={stats?.avgSuccessRate ?? 0} suffix="%" format="percent" icon={<TrendingUp className="w-4 h-4" />} color="#22C55E" />
+          <StatCard label="Révocations" value={stats?.totalReverts ?? 0} icon={<Cpu className="w-4 h-4" />} color="#EF4444" />
+        </>}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-white/[0.06]">
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px ${
+              tab === t.id ? 'text-[#7B5CF0] border-[#7B5CF0]' : 'text-[#8B8BA7] border-transparent hover:text-white'
+            }`}>
+            {t.label}
+            {t.count > 0 && <span className="ml-2 text-[10px] bg-white/[0.08] px-1.5 py-0.5 rounded-full">{t.count}</span>}
+          </button>
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3 mb-4 flex-wrap">
-        <select value={filterNiche} onChange={e => setFilterNiche(e.target.value)} className="border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30">
-          <option value="">All niches</option>
-          {niches.map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
-        <select value={filterLang} onChange={e => setFilterLang(e.target.value)} className="border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30">
-          <option value="">All languages</option>
-          <option value="en">English</option>
-          <option value="fr">French</option>
-        </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30">
-          <option value="">All statuses</option>
-          <option value="validated">Validated</option>
-          <option value="reverted">Reverted</option>
-          <option value="testing">Testing</option>
-        </select>
-      </div>
-
-      {/* Table */}
-      {loading ? (
-        <div className="text-center py-12 text-[#86868b]">Loading...</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-[#86868b] flex flex-col items-center gap-3">
-          <AlertCircle size={32} className="opacity-40" />
-          <p>No mutations yet. The AI will start learning after 50 failed calls per niche.</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-[#d2d2d7] overflow-x-auto">
+      {/* Mutations */}
+      {tab === 'mutations' && (
+        <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-[#f5f5f7] border-b border-[#d2d2d7]">
-              <tr>
-                {['Date', 'Niche', 'Lang', 'Change Applied', 'Reason', 'Conv Before→After', 'Confidence', 'Status'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 font-medium text-[#86868b] text-xs uppercase tracking-wide">{h}</th>
-                ))}
+            <thead>
+              <tr className="border-b border-white/[0.06]">
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Niche</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Type</th>
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Succès</th>
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Statut</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Bloqué</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Créée</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#d2d2d7]/60">
-              {filtered.map(m => (
-                <tr key={m.id} className="hover:bg-[#f5f5f7] transition-colors">
-                  <td className="px-4 py-3 text-[#86868b] whitespace-nowrap">{new Date(m.date).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 font-medium capitalize">{m.niche}</td>
-                  <td className="px-4 py-3 uppercase text-xs font-medium text-[#6366f1]">{m.language}</td>
-                  <td className="px-4 py-3 max-w-[200px]">
-                    <p className="truncate text-[#1d1d1f]" title={m.changeApplied}>{m.changeApplied}</p>
-                  </td>
-                  <td className="px-4 py-3 max-w-[200px]">
-                    <p className="truncate text-[#86868b]" title={m.reason}>{m.reason}</p>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="text-[#86868b]">{(m.conversionBefore * 100).toFixed(1)}%</span>
-                    <span className="mx-1">→</span>
-                    <span className={m.conversionAfter > m.conversionBefore ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {(m.conversionAfter * 100).toFixed(1)}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 bg-[#f5f5f7] rounded-full h-1.5">
-                        <div className="bg-[#6366f1] h-1.5 rounded-full" style={{ width: `${m.confidenceScore}%` }} />
-                      </div>
-                      <span className="text-xs text-[#86868b]">{m.confidenceScore}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">{statusBadge(m.status)}</td>
-                </tr>
-              ))}
+            <tbody>
+              {loading
+                ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)
+                : mutations.length === 0
+                  ? <tr><td colSpan={6}><EmptyState icon={<Brain className="w-7 h-7" />} title="Aucune mutation" /></td></tr>
+                  : mutations.map((m: any) => (
+                    <tr key={m.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <td className="px-3 py-3">
+                        <span className="text-xs text-[#F8F8FF] font-medium">{m.niche ?? '—'}</span>
+                        <span className="md:hidden ml-2"><Badge label={m.type ?? 'script'} variant="info" size="xs" /></span>
+                      </td>
+                      <td className="hidden md:table-cell px-3 py-3"><Badge label={m.type ?? 'script'} variant="info" size="xs" /></td>
+                      <td className="px-3 py-3">
+                        <span className={`text-xs font-bold ${(m.successRate ?? 0) >= 50 ? 'text-[#22C55E]' : 'text-[#F59E0B]'}`}>
+                          {(m.successRate ?? 0).toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-3"><Badge label={m.status ?? 'active'} dot size="xs" /></td>
+                      <td className="hidden md:table-cell px-3 py-3">
+                        <span className={`text-xs ${m.blocked ? 'text-[#EF4444]' : 'text-[#8B8BA7]'}`}>{m.blocked ? 'Oui' : 'Non'}</span>
+                      </td>
+                      <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#8B8BA7]">{new Date(m.createdAt).toLocaleDateString('fr-FR')}</span></td>
+                    </tr>
+                  ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* A/B Tests */}
+      {tab === 'abtests' && (
+        <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/[0.06]">
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Niche</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Var. A</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Var. B</th>
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Gagnant</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Appels</th>
+                <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)
+                : abTests.length === 0
+                  ? <tr><td colSpan={6}><EmptyState icon={<BarChart3 className="w-7 h-7" />} title="Aucun test A/B" /></td></tr>
+                  : abTests.map((t: any) => (
+                    <tr key={t.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                      <td className="px-3 py-3">
+                        <span className="text-xs text-[#F8F8FF]">{t.niche ?? '—'}</span>
+                        <p className="text-[10px] text-[#8B8BA7] md:hidden">{(t.callsA ?? 0) + (t.callsB ?? 0)} appels</p>
+                      </td>
+                      <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#8B8BA7] truncate max-w-[100px] block">{t.variantAId ?? '—'}</span></td>
+                      <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#8B8BA7] truncate max-w-[100px] block">{t.variantBId ?? '—'}</span></td>
+                      <td className="px-3 py-3">
+                        {t.winnerId ? <Badge label="Déterminé" variant="success" size="xs" /> : <span className="text-xs text-[#8B8BA7]">En cours</span>}
+                      </td>
+                      <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#F8F8FF]">{(t.callsA ?? 0) + (t.callsB ?? 0)}</span></td>
+                      <td className="px-3 py-3"><Badge label={t.status ?? 'active'} dot size="xs" /></td>
+                    </tr>
+                  ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Best Times */}
+      {tab === 'besttimes' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => <StatCardSkeleton key={i} />)
+            : bestTimes.length === 0
+              ? <div className="col-span-full"><EmptyState icon={<Clock className="w-7 h-7" />} title="Aucune donnée horaire" /></div>
+              : bestTimes.map((bt: any) => (
+                <div key={bt.id} className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-semibold text-[#F8F8FF]">{bt.niche}</span>
+                    <Clock className="w-4 h-4 text-[#8B8BA7]" />
+                  </div>
+                  <div className="space-y-2">
+                    {bt.bestHours?.slice(0, 3).map((h: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-[#7B5CF0] w-12">{String(h.hour).padStart(2,'0')}h00</span>
+                        <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full">
+                          <div className="h-full bg-[#7B5CF0] rounded-full" style={{ width: `${Math.min(h.rate * 100, 100)}%` }} />
+                        </div>
+                        <span className="text-xs text-[#8B8BA7] w-12 text-right">{(h.rate * 100).toFixed(1)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
         </div>
       )}
     </div>

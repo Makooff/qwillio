@@ -1,269 +1,184 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
-import { Users, ChevronLeft, ChevronRight, Download } from 'lucide-react';
-import StatusBadge from '../components/dashboard/StatusBadge';
-import SlideSheet from '../components/dashboard/SlideSheet';
-import SkeletonLoader from '../components/dashboard/SkeletonLoader';
-import EmptyState from '../components/dashboard/EmptyState';
-import { format } from 'date-fns';
+import { Client } from '../types';
+import { Search, RefreshCw, Eye, Building2, Crown, Clock, CheckCircle, XCircle } from 'lucide-react';
+import Badge from '../components/ui/Badge';
+import SlideSheet from '../components/ui/SlideSheet';
+import Pagination from '../components/ui/Pagination';
+import EmptyState from '../components/ui/EmptyState';
+import { useToast } from '../hooks/useToast';
+import ToastContainer from '../components/ui/Toast';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
-const PAGE_SIZE = 25;
-const PLAN_COLORS: Record<string, string> = {
-  starter: 'text-[#8B8BA7]', pro: 'text-[#7B5CF0]', enterprise: 'text-[#6EE7B7]',
-};
-
-function Avatar({ name }: { name: string }) {
-  const initials = name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?';
-  return (
-    <div className="w-8 h-8 rounded-full bg-[#7B5CF0]/20 flex items-center justify-center flex-shrink-0">
-      <span className="text-xs font-bold text-[#7B5CF0]">{initials}</span>
-    </div>
-  );
-}
+const PLAN_OPTIONS = ['starter','pro','enterprise'];
+const STATUS_OPTIONS = ['active','trial','paused','cancelled'];
+function trialDaysLeft(end?: string) { if (!end) return null; return Math.ceil((new Date(end).getTime()-Date.now())/86400000); }
 
 export default function Clients() {
-  const [clients, setClients] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<any>(null);
-  const [page, setPage] = useState(1);
+  const [data, setData] = useState<Client[]>([]);
   const [total, setTotal] = useState(0);
-  const [filters, setFilters] = useState({ search: '', plan: '', status: '', sort: 'newest' });
-  const [actioning, setActioning] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [planFilter, setPlanFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Client|null>(null);
+  const [editing, setEditing] = useState<Partial<Client>|null>(null);
+  const [saving, setSaving] = useState(false);
+  const [confirmPause, setConfirmPause] = useState<Client|null>(null);
+  const { toasts, add: toast, remove } = useToast();
+  const LIMIT = 25;
 
-  const fetchClients = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = { page, limit: PAGE_SIZE };
-      if (filters.plan) params.plan = filters.plan;
-      if (filters.status) params.status = filters.status;
-      if (filters.search) params.search = filters.search;
-      params.sort = filters.sort;
-      const { data } = await api.get('/clients', { params });
-      setClients(Array.isArray(data?.clients) ? data.clients : Array.isArray(data) ? data : []);
-      setTotal(data?.total ?? 0);
-    } catch { setClients([]); }
+      const { data: res } = await api.get('/clients/');
+      const all: Client[] = Array.isArray(res.data)?res.data:(Array.isArray(res)?res:[]);
+      let f = all;
+      if (search) f=f.filter(c=>c.businessName.toLowerCase().includes(search.toLowerCase())||c.contactEmail.toLowerCase().includes(search.toLowerCase()));
+      if (planFilter) f=f.filter(c=>c.planType===planFilter);
+      if (statusFilter) f=f.filter(c=>c.subscriptionStatus===statusFilter);
+      setTotal(f.length);
+      setData(f.slice((page-1)*LIMIT, page*LIMIT));
+    } catch { toast('Erreur chargement','error'); }
     finally { setLoading(false); }
-  }, [page, filters]);
+  }, [page, search, planFilter, statusFilter]);
 
-  useEffect(() => { fetchClients(); }, [fetchClients]);
-  useEffect(() => {
-    const h = () => fetchClients();
-    window.addEventListener('admin-refresh', h);
-    return () => window.removeEventListener('admin-refresh', h);
-  }, [fetchClients]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(1); }, [search, planFilter, statusFilter]);
 
-  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
-
-  const handleAction = async (clientId: string, action: 'pause' | 'resume' | 'cancel') => {
-    setActioning(clientId);
-    try {
-      if (action === 'pause') await api.post(`/clients/${clientId}/pause`);
-      else if (action === 'resume') await api.post(`/clients/${clientId}/resume`);
-      else if (action === 'cancel') await api.post(`/clients/${clientId}/cancel`);
-      fetchClients();
-      if (selected?.id === clientId) setSelected(null);
-    } catch { /* silent */ }
-    finally { setActioning(null); }
+  const saveClient = async () => {
+    if (!selected||!editing) return;
+    setSaving(true);
+    try { await api.put(`/clients/${selected.id}`,editing); toast('Client mis à jour','success'); setSelected(null); setEditing(null); load(); }
+    catch { toast('Erreur mise à jour','error'); }
+    finally { setSaving(false); }
   };
 
+  const togglePause = async (c: Client) => {
+    try {
+      const s = c.subscriptionStatus==='paused'?'active':'paused';
+      await api.put(`/clients/${c.id}`,{subscriptionStatus:s});
+      toast(s==='paused'?'Client suspendu':'Client réactivé','success');
+      setConfirmPause(null); load();
+    } catch { toast('Erreur','error'); }
+  };
+
+  const planColor: Record<string,string> = {starter:'#8B8BA7',pro:'#7B5CF0',enterprise:'#F59E0B'};
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      <ToastContainer toasts={toasts} remove={remove}/>
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-[#F8F8FF]">Clients</h1>
-          <p className="text-sm text-[#8B8BA7] mt-0.5">{total.toLocaleString()} total</p>
+        <div><h1 className="text-xl font-bold text-[#F8F8FF]">Clients</h1><p className="text-sm text-[#8B8BA7] mt-0.5">{total} client{total>1?'s':''}</p></div>
+        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7]"><RefreshCw className="w-4 h-4"/></button>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <div className="relative flex-1 min-w-[140px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8B8BA7]"/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nom, email..."
+            className="w-full pl-8 pr-3 py-2 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50"/>
         </div>
-        <button className="flex items-center gap-2 px-3 py-2 text-sm text-[#8B8BA7] hover:text-[#F8F8FF] bg-[#12121A] border border-white/[0.06] rounded-xl hover:border-[#7B5CF0]/30 transition-all">
-          <Download className="w-3.5 h-3.5" /> Export CSV
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <input
-          type="text"
-          placeholder="Search name / email..."
-          value={filters.search}
-          onChange={e => { setFilters(f => ({ ...f, search: e.target.value })); setPage(1); }}
-          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] placeholder-[#8B8BA7] outline-none focus:border-[#7B5CF0]/50 transition-colors w-52"
-        />
-        <select value={filters.plan} onChange={e => { setFilters(f => ({ ...f, plan: e.target.value })); setPage(1); }}
-          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] outline-none focus:border-[#7B5CF0]/50">
-          <option value="">All plans</option>
-          <option value="starter">Starter</option>
-          <option value="pro">Pro</option>
-          <option value="enterprise">Enterprise</option>
+        <select value={planFilter} onChange={e=>setPlanFilter(e.target.value)}
+          className="px-3 py-2 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] focus:outline-none">
+          <option value="">Plan</option>{PLAN_OPTIONS.map(p=><option key={p} value={p}>{p}</option>)}
         </select>
-        <select value={filters.status} onChange={e => { setFilters(f => ({ ...f, status: e.target.value })); setPage(1); }}
-          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] outline-none focus:border-[#7B5CF0]/50">
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="trial">Trial</option>
-          <option value="paused">Paused</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-        <select value={filters.sort} onChange={e => setFilters(f => ({ ...f, sort: e.target.value }))}
-          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] outline-none focus:border-[#7B5CF0]/50">
-          <option value="newest">Newest</option>
-          <option value="mrr">MRR ↓</option>
-          <option value="calls">Calls ↓</option>
+        <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}
+          className="px-3 py-2 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] focus:outline-none">
+          <option value="">Statut</option>{STATUS_OPTIONS.map(s=><option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
-      {/* Table */}
       <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/[0.06]">
-                {['Client', 'Plan', 'MRR', 'Calls / Mo', 'Status', 'Next Billing', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-[10px] font-semibold tracking-[0.08em] uppercase text-[#8B8BA7]">{h}</th>
-                ))}
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/[0.06]">
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Client</th>
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Plan</th>
+              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Statut</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">MRR</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Appels</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Trial</th>
+              <th className="px-3 py-3 w-16"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? Array.from({length:6}).map((_,i)=>(
+              <tr key={i} className="border-b border-white/[0.04]">
+                {[1,2,3].map(j=><td key={j} className="px-3 py-3"><div className="h-3 bg-white/[0.06] rounded animate-pulse w-20"/></td>)}
+                {[1,2,3].map(j=><td key={`h${j}`} className="hidden md:table-cell px-3 py-3"><div className="h-3 bg-white/[0.06] rounded animate-pulse w-14"/></td>)}
+                <td/>
               </tr>
-            </thead>
-            {loading ? (
-              <SkeletonLoader rows={10} cols={7} />
-            ) : clients.length === 0 ? (
-              <tbody><tr><td colSpan={7}>
-                <EmptyState icon={<Users className="w-6 h-6" />} title="No clients yet" description="Clients will appear here after they sign up and onboard." />
-              </td></tr></tbody>
-            ) : (
-              <tbody>
-                {clients.map((client: any, i: number) => {
-                  const callsPct = client.monthlyCallsQuota
-                    ? Math.min(100, Math.round((client.callsThisMonth ?? 0) / client.monthlyCallsQuota * 100))
-                    : 0;
-                  const trialDays = client.trialEndDate
-                    ? Math.max(0, Math.ceil((new Date(client.trialEndDate).getTime() - Date.now()) / 86400000))
-                    : null;
-                  return (
-                    <tr key={client.id ?? i} onClick={() => setSelected(client)}
-                      className="border-b border-white/[0.04] hover:bg-white/[0.02] cursor-pointer transition-colors group">
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <Avatar name={client.businessName ?? client.contactName ?? '?'} />
-                          <div>
-                            <p className="text-sm font-medium text-[#F8F8FF]">{client.businessName ?? '—'}</p>
-                            <p className="text-xs text-[#8B8BA7]">{client.contactEmail ?? ''}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`text-xs font-semibold capitalize ${PLAN_COLORS[client.planType ?? 'starter']}`}>
-                          {client.planType ?? '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-sm font-medium text-[#22C55E] tabular-nums">
-                        ${(client.monthlyFee ?? 0).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <p className="text-xs text-[#F8F8FF] tabular-nums">{client.callsThisMonth ?? 0}/{client.monthlyCallsQuota ?? '?'}</p>
-                        <div className="w-16 h-1 bg-white/[0.06] rounded-full mt-1.5 overflow-hidden">
-                          <div className="h-full bg-[#7B5CF0] rounded-full" style={{ width: `${callsPct}%` }} />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <StatusBadge status={client.isTrial ? 'trial' : (client.subscriptionStatus ?? client.status ?? 'active')} size="sm" />
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-[#8B8BA7]">
-                        {client.isTrial && trialDays !== null
-                          ? <span className={trialDays < 7 ? 'text-[#EF4444]' : ''}>{trialDays}d trial left</span>
-                          : client.nextBillingDate ? format(new Date(client.nextBillingDate), 'MMM d') : '—'}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                          {client.subscriptionStatus !== 'paused' ? (
-                            <button onClick={() => handleAction(client.id, 'pause')} disabled={actioning === client.id}
-                              className="px-2 py-1 text-[10px] font-medium text-[#F59E0B] border border-[#F59E0B]/30 rounded-lg hover:bg-[#F59E0B]/10 transition-all">
-                              Pause
-                            </button>
-                          ) : (
-                            <button onClick={() => handleAction(client.id, 'resume')} disabled={actioning === client.id}
-                              className="px-2 py-1 text-[10px] font-medium text-[#22C55E] border border-[#22C55E]/30 rounded-lg hover:bg-[#22C55E]/10 transition-all">
-                              Resume
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            )}
-          </table>
-        </div>
-
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.06]">
-            <p className="text-xs text-[#8B8BA7]">Page {page} of {totalPages}</p>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="p-1.5 rounded-lg text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] disabled:opacity-30 transition-all">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const p = page <= 3 ? i + 1 : page - 2 + i;
-                if (p < 1 || p > totalPages) return null;
-                return (
-                  <button key={p} onClick={() => setPage(p)}
-                    className={`w-7 h-7 rounded-lg text-xs font-medium transition-all ${p === page ? 'bg-[#7B5CF0] text-white' : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06]'}`}>
-                    {p}
-                  </button>
-                );
-              })}
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="p-1.5 rounded-lg text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] disabled:opacity-30 transition-all">
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+            )) : data.length===0 ? (
+              <tr><td colSpan={7}><EmptyState icon={<Building2 className="w-7 h-7"/>} title="Aucun client"/></td></tr>
+            ) : data.map(c=>{
+              const daysLeft = trialDaysLeft(c.trialEndDate);
+              return (
+                <tr key={c.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-[#22C55E]/10 flex items-center justify-center text-[#22C55E] text-xs font-bold flex-shrink-0">{(c.businessName??'X')[0].toUpperCase()}</div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-[#F8F8FF] text-xs truncate max-w-[100px] md:max-w-[160px]">{c.businessName}</p>
+                        <p className="text-[10px] text-[#8B8BA7] truncate hidden md:block">{c.contactEmail}</p>
+                        <p className="text-[10px] text-[#22C55E] md:hidden">${c.monthlyFee}/mo</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3"><span className="flex items-center gap-1 text-xs font-medium" style={{color:planColor[c.planType]??'#8B8BA7'}}><Crown className="w-3 h-3"/>{c.planType}</span></td>
+                  <td className="px-3 py-3"><Badge label={c.subscriptionStatus} dot size="xs"/></td>
+                  <td className="hidden md:table-cell px-3 py-3"><span className="text-xs font-semibold text-[#22C55E]">${c.monthlyFee}/mo</span></td>
+                  <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#F8F8FF]">{c.totalCallsMade}</span></td>
+                  <td className="hidden md:table-cell px-3 py-3">
+                    {c.isTrial&&daysLeft!==null
+                      ? <span className={`flex items-center gap-1 text-xs ${daysLeft<=3?'text-[#EF4444]':daysLeft<=7?'text-[#F59E0B]':'text-[#8B8BA7]'}`}><Clock className="w-3 h-3"/>{daysLeft}j</span>
+                      : c.trialConvertedAt ? <span className="text-xs text-[#22C55E] flex items-center gap-1"><CheckCircle className="w-3 h-3"/>Converti</span>
+                      : <span className="text-xs text-[#8B8BA7]">—</span>}
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={()=>{setSelected(c);setEditing({subscriptionStatus:c.subscriptionStatus,planType:c.planType,monthlyFee:c.monthlyFee});}} className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white"><Eye className="w-3.5 h-3.5"/></button>
+                      <button onClick={()=>setConfirmPause(c)} className={`p-1.5 rounded-lg transition-all ${c.subscriptionStatus==='paused'?'hover:bg-[#22C55E]/10 text-[#8B8BA7] hover:text-[#22C55E]':'hover:bg-[#F59E0B]/10 text-[#8B8BA7] hover:text-[#F59E0B]'}`}>
+                        {c.subscriptionStatus==='paused'?<CheckCircle className="w-3.5 h-3.5"/>:<XCircle className="w-3.5 h-3.5"/>}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div className="px-3 pb-4"><Pagination page={page} total={total} limit={LIMIT} onChange={setPage}/></div>
       </div>
 
-      {/* Client detail sheet */}
-      <SlideSheet open={!!selected} onClose={() => setSelected(null)}
-        title={selected?.businessName ?? 'Client'} subtitle={selected?.contactEmail}>
-        {selected && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-3">
-              <Avatar name={selected.businessName ?? ''} />
-              <StatusBadge status={selected.isTrial ? 'trial' : (selected.subscriptionStatus ?? 'active')} />
-            </div>
+      <SlideSheet open={!!selected} onClose={()=>{setSelected(null);setEditing(null);}} title={selected?.businessName??'Client'} subtitle={selected?.contactEmail}
+        footer={<><button onClick={()=>{setSelected(null);setEditing(null);}} className="flex-1 py-2.5 rounded-xl bg-white/[0.06] text-[#F8F8FF] text-sm font-medium hover:bg-white/[0.1]">Annuler</button><button onClick={saveClient} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-[#7B5CF0] text-white text-sm font-medium hover:bg-[#6D4FE0] disabled:opacity-50">{saving?'...':'Enregistrer'}</button></>}>
+        {selected&&editing&&(
+          <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: 'Plan', value: selected.planType ?? '—' },
-                { label: 'MRR', value: `$${(selected.monthlyFee ?? 0).toLocaleString()}` },
-                { label: 'Contact', value: selected.contactName ?? '—' },
-                { label: 'Phone', value: selected.contactPhone ?? '—' },
-                { label: 'Industry', value: selected.businessType ?? '—' },
-                { label: 'Country', value: selected.country ?? '—' },
-              ].map(f => (
-                <div key={f.label} className="bg-[#0D0D15] rounded-xl p-3">
-                  <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-1">{f.label}</p>
-                  <p className="text-sm text-[#F8F8FF] font-medium">{f.value}</p>
-                </div>
-              ))}
+              <div className="bg-[#0D0D15] rounded-xl p-4 text-center"><p className="text-xl font-bold text-[#22C55E]">${selected.monthlyFee}/mo</p><p className="text-[10px] text-[#8B8BA7] mt-1 uppercase">MRR</p></div>
+              <div className="bg-[#0D0D15] rounded-xl p-4 text-center"><p className="text-xl font-bold text-[#F8F8FF]">{selected.totalCallsMade}</p><p className="text-[10px] text-[#8B8BA7] mt-1 uppercase">Appels</p></div>
             </div>
-            <div className="space-y-2 pt-2 border-t border-white/[0.06]">
-              {selected.subscriptionStatus !== 'paused' ? (
-                <button onClick={() => handleAction(selected.id, 'pause')} disabled={actioning === selected.id}
-                  className="w-full px-4 py-2.5 text-sm font-medium text-[#F59E0B] border border-[#F59E0B]/30 rounded-xl hover:bg-[#F59E0B]/10 transition-all">
-                  Pause subscription
-                </button>
-              ) : (
-                <button onClick={() => handleAction(selected.id, 'resume')} disabled={actioning === selected.id}
-                  className="w-full px-4 py-2.5 text-sm font-medium text-[#22C55E] border border-[#22C55E]/30 rounded-xl hover:bg-[#22C55E]/10 transition-all">
-                  Resume subscription
-                </button>
-              )}
-              <button onClick={() => handleAction(selected.id, 'cancel')} disabled={actioning === selected.id}
-                className="w-full px-4 py-2.5 text-sm font-medium text-[#EF4444] border border-[#EF4444]/20 rounded-xl hover:bg-[#EF4444]/10 transition-all">
-                Cancel subscription
-              </button>
+            <div className="space-y-3">
+              <div><label className="text-xs text-[#8B8BA7] mb-1.5 block">Plan</label>
+                <select value={editing.planType??''} onChange={e=>setEditing(p=>({...p,planType:e.target.value}))} className="w-full px-3 py-2.5 rounded-xl bg-[#0D0D15] border border-white/[0.06] text-sm text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50">
+                  {PLAN_OPTIONS.map(p=><option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div><label className="text-xs text-[#8B8BA7] mb-1.5 block">Statut</label>
+                <select value={editing.subscriptionStatus??''} onChange={e=>setEditing(p=>({...p,subscriptionStatus:e.target.value}))} className="w-full px-3 py-2.5 rounded-xl bg-[#0D0D15] border border-white/[0.06] text-sm text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50">
+                  {STATUS_OPTIONS.map(s=><option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div><label className="text-xs text-[#8B8BA7] mb-1.5 block">Mensualité (€)</label>
+                <input type="number" value={editing.monthlyFee??0} onChange={e=>setEditing(p=>({...p,monthlyFee:Number(e.target.value)}))} className="w-full px-3 py-2.5 rounded-xl bg-[#0D0D15] border border-white/[0.06] text-sm text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50"/>
+              </div>
             </div>
           </div>
         )}
       </SlideSheet>
+      <ConfirmDialog open={!!confirmPause} title={confirmPause?.subscriptionStatus==='paused'?'Réactiver':'Suspendre'} message={`${confirmPause?.subscriptionStatus==='paused'?'Réactiver':'Suspendre'} "${confirmPause?.businessName}" ?`} confirmLabel={confirmPause?.subscriptionStatus==='paused'?'Réactiver':'Suspendre'} danger={confirmPause?.subscriptionStatus!=='paused'} onConfirm={()=>confirmPause&&togglePause(confirmPause)} onCancel={()=>setConfirmPause(null)}/>
     </div>
   );
 }

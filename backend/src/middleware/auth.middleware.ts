@@ -92,10 +92,32 @@ export async function clientMiddleware(req: AuthRequest, res: Response, next: Ne
   }
 
   try {
-    const client = await prisma.client.findUnique({
+    // Primary lookup: by userId
+    let client = await prisma.client.findUnique({
       where: { userId: req.userId },
       select: { id: true },
     });
+
+    // Fallback: match by contactEmail (for admin-created clients without userId set)
+    if (!client) {
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { email: true },
+      });
+      if (user?.email) {
+        client = await prisma.client.findFirst({
+          where: { contactEmail: user.email, userId: null },
+          select: { id: true },
+        });
+        // Auto-link userId so future lookups are instant
+        if (client) {
+          await prisma.client.update({
+            where: { id: client.id },
+            data: { userId: req.userId },
+          }).catch(() => {}); // non-blocking, best-effort
+        }
+      }
+    }
 
     if (!client) {
       return res.status(404).json({ error: 'No client profile found' });

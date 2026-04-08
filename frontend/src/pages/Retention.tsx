@@ -1,162 +1,101 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
-import { UserCheck, UserMinus, RefreshCw, Clock, BarChart3 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-
-interface RetentionData {
-  totalActive: number;
-  activeTrial: number;
-  totalTrials: number;
-  convertedTrials: number;
-  trialConversionRate: number;
-  churned90d: number;
-  churnedThisMonth: number;
-  churnRate: number;
-  avgLifetimeDays: number;
-  byPlan: Record<string, number>;
-}
-
-const COLORS = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd'];
+import { RefreshCw } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { StatCardSkeleton, ChartSkeleton } from '../components/ui/Skeleton';
+import StatCard from '../components/ui/StatCard';
+import { TrendingUp, TrendingDown, Users, UserCheck } from 'lucide-react';
 
 export default function Retention() {
-  const [data, setData] = useState<RetentionData | null>(null);
-  const [conversionByDay, setConversionByDay] = useState<any[]>([]);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const [retRes, convRes] = await Promise.all([
-          api.get('/admin-analytics/retention'),
-          api.get('/admin-analytics/conversion-by-day'),
-        ]);
-        setData(retRes.data);
-        setConversionByDay(convRes.data);
-      } catch (e) {
-        console.error('Failed to fetch retention:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, []);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const { data: res } = await api.get('/admin-analytics/retention');
+      setData(res);
+    } catch { setData(null); }
+    finally { setLoading(false); }
+  };
 
-  if (loading || !data) {
-    return <div className="flex items-center justify-center h-96"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div></div>;
-  }
+  useEffect(() => { load(); }, []);
 
-  const planData = Object.entries(data.byPlan).map(([name, count]) => ({ name, count }));
-
-  // Trial conversion funnel
-  const funnel = [
-    { stage: 'Total Trials', value: data.totalTrials },
-    { stage: 'Converted', value: data.convertedTrials },
-    { stage: 'Active Now', value: data.totalActive },
-  ];
+  const ttStyle = { background: '#1E1E2E', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12 };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Retention & Churn</h1>
-        <p className="text-gray-500">Client lifecycle analytics</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-[#F8F8FF]">Rétention clients</h1>
+          <p className="text-sm text-[#8B8BA7] mt-0.5">Churn et fidélisation</p>
+        </div>
+        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <KPI icon={UserCheck} label="Active Clients" value={data.totalActive} color="green" />
-        <KPI icon={RefreshCw} label="Active Trials" value={data.activeTrial} color="blue" />
-        <KPI icon={BarChart3} label="Conversion Rate" value={`${data.trialConversionRate}%`} color="purple" />
-        <KPI icon={UserMinus} label="Churn Rate" value={`${data.churnRate}%`} color="red" />
-        <KPI icon={Clock} label="Avg Lifetime" value={`${data.avgLifetimeDays}d`} color="blue" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {loading ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />) : <>
+          <StatCard label="Taux rétention" value={data?.retentionRate ?? 0} suffix="%" format="percent" icon={<UserCheck className="w-4 h-4" />} color="#22C55E" />
+          <StatCard label="Churn rate" value={data?.churnRate ?? 0} suffix="%" format="percent" icon={<TrendingDown className="w-4 h-4" />} color="#EF4444" />
+          <StatCard label="LTV moyen" value={data?.avgLtv ?? 0} format="currency" icon={<TrendingUp className="w-4 h-4" />} color="#7B5CF0" />
+          <StatCard label="Clients actifs" value={data?.activeClients ?? 0} icon={<Users className="w-4 h-4" />} />
+        </>}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Trial Conversion Funnel */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Trial Conversion Funnel</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={funnel} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="stage" type="category" width={100} tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#6366f1" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Évolution rétention</h3>
+          {loading ? <ChartSkeleton /> : (
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data?.monthlyRetention ?? []}>
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#8B8BA7' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} axisLine={false} tickLine={false} width={35}
+                    tickFormatter={v => `${v}%`} />
+                  <Tooltip contentStyle={ttStyle} formatter={(v: any) => [`${v}%`, 'Rétention']} />
+                  <Line type="monotone" dataKey="rate" stroke="#22C55E" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
-        {/* Clients by Plan */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Clients by Plan</h3>
-          {planData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie data={planData} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, count }) => `${name}: ${count}`}>
-                  {planData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-gray-400 text-center py-12">No client data yet</p>
+        <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Churn par plan</h3>
+          {loading ? <ChartSkeleton /> : (
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data?.churnByPlan ?? []}>
+                  <XAxis dataKey="plan" tick={{ fontSize: 10, fill: '#8B8BA7' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} axisLine={false} tickLine={false} width={35}
+                    tickFormatter={v => `${v}%`} />
+                  <Tooltip contentStyle={ttStyle} formatter={(v: any) => [`${v}%`, 'Churn']} />
+                  <Bar dataKey="churnRate" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Conversion by Day of Week */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Conversion Rate by Day of Week</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={conversionByDay}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} unit="%" />
-            <Tooltip formatter={(v: number) => `${v}%`} />
-            <Bar dataKey="rate" fill="#6366f1" radius={[6, 6, 0, 0]} name="Conversion Rate" />
-          </BarChart>
-        </ResponsiveContainer>
-        <div className="flex justify-center gap-6 mt-4 text-xs text-gray-500">
-          {conversionByDay.map(d => (
-            <span key={d.day}>{d.day}: {d.total} calls, {d.qualified} qualified</span>
-          ))}
+      {data?.atRiskClients?.length > 0 && (
+        <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Clients à risque</h3>
+          <div className="space-y-2">
+            {data.atRiskClients.map((c: any) => (
+              <div key={c.id} className="flex items-center justify-between p-3 bg-[#0D0D15] rounded-xl">
+                <div>
+                  <p className="text-sm text-[#F8F8FF] font-medium">{c.businessName}</p>
+                  <p className="text-xs text-[#8B8BA7]">{c.reason}</p>
+                </div>
+                <span className="text-xs text-[#EF4444] font-medium">Risque {c.riskScore}%</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* Churn Details */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border p-5">
-          <p className="text-xs text-gray-500 uppercase font-medium">Churned (30d)</p>
-          <p className="text-3xl font-bold text-red-600 mt-1">{data.churnedThisMonth}</p>
-        </div>
-        <div className="bg-white rounded-xl border p-5">
-          <p className="text-xs text-gray-500 uppercase font-medium">Churned (90d)</p>
-          <p className="text-3xl font-bold text-red-500 mt-1">{data.churned90d}</p>
-        </div>
-        <div className="bg-white rounded-xl border p-5">
-          <p className="text-xs text-gray-500 uppercase font-medium">Trials Converted</p>
-          <p className="text-3xl font-bold text-emerald-600 mt-1">{data.convertedTrials}/{data.totalTrials}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function KPI({ icon: Icon, label, value, color }: { icon: any; label: string; value: string | number; color: string }) {
-  const colors: Record<string, string> = {
-    green: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    blue: 'bg-blue-50 text-blue-700 border-blue-100',
-    purple: 'bg-purple-50 text-purple-700 border-purple-100',
-    red: 'bg-red-50 text-red-700 border-red-100',
-  };
-  return (
-    <div className={`rounded-xl border p-4 ${colors[color]}`}>
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className="w-4 h-4 opacity-70" />
-        <span className="text-xs font-medium uppercase opacity-70">{label}</span>
-      </div>
-      <p className="text-2xl font-bold">{value}</p>
+      )}
     </div>
   );
 }
