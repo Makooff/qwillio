@@ -8,8 +8,12 @@ import { env } from '../config/env';
 
 const router = Router();
 
-// ─── Log viewer endpoints (admin-only) ───────────────────
-router.get('/logs', authMiddleware, adminMiddleware, (req: Request, res: Response) => {
+// All admin routes require JWT auth + admin role
+router.use(authMiddleware);
+router.use(adminMiddleware);
+
+// ─── Log viewer endpoints ─────────────────────────────────
+router.get('/logs', (req: Request, res: Response) => {
   const since = req.query.since ? parseInt(req.query.since as string) : undefined;
   const level = req.query.level as string | undefined;
   const search = req.query.search as string | undefined;
@@ -19,14 +23,14 @@ router.get('/logs', authMiddleware, adminMiddleware, (req: Request, res: Respons
   });
 });
 
-router.delete('/logs', authMiddleware, adminMiddleware, (_req: Request, res: Response) => {
+router.delete('/logs', (_req: Request, res: Response) => {
   clearLogs();
   res.json({ success: true });
 });
 
 // ─── Bot config (used by AdminSettings page) ─────────────
 // GET  /api/admin/bot-config
-router.get('/bot-config', authMiddleware, adminMiddleware, async (_req: Request, res: Response) => {
+router.get('/bot-config', async (_req: Request, res: Response) => {
   try {
     const bot = await prisma.botStatus.findFirst({ select: { callsQuotaDaily: true } });
     res.json({
@@ -46,7 +50,7 @@ router.get('/bot-config', authMiddleware, adminMiddleware, async (_req: Request,
 });
 
 // POST /api/admin/bot-config  — only callsPerDay is persisted (rest are env-controlled)
-router.post('/bot-config', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+router.post('/bot-config', async (req: Request, res: Response) => {
   try {
     const { callsPerDay } = req.body as { callsPerDay?: number };
     if (callsPerDay !== undefined) {
