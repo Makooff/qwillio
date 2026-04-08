@@ -24,7 +24,7 @@ export default function AdminLeads() {
     setLoading(true);
     try {
       const { data: res } = await api.get(`/dashboard/leads?minScore=${minScore}`);
-      setData(Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []));
+      setData(Array.isArray(res.leads) ? res.leads : (Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : [])));
     } catch { toast('Erreur chargement leads', 'error'); }
     finally { setLoading(false); }
   }, [minScore]);

@@ -29,8 +29,8 @@ export default function AdminCalls() {
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(LIMIT), ...(search&&{search}), ...(outcome&&{outcome}), ...(minScore&&{minScore}) });
       const { data: res } = await api.get(`/dashboard/calls?${params}`);
-      setData(Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []));
-      setTotal(res.pagination?.total ?? (Array.isArray(res) ? res.length : 0));
+      setData(Array.isArray(res.calls) ? res.calls : (Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : [])));
+      setTotal(res.total ?? res.pagination?.total ?? (Array.isArray(res) ? res.length : 0));
     } catch { toast('Erreur chargement','error'); }
     finally { setLoading(false); }
   }, [page, search, outcome, minScore]);
@@ -93,16 +93,16 @@ export default function AdminCalls() {
               <tr key={c.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
                 <td className="px-3 py-3">
                   <p className="text-xs font-medium text-[#F8F8FF] truncate max-w-[120px] md:max-w-none">{c.prospect?.businessName??c.businessName??'—'}</p>
-                  <p className="text-[10px] text-[#8B8BA7] md:hidden">{fmtDuration(c.durationSeconds)}</p>
+                  <p className="text-[10px] text-[#8B8BA7] md:hidden">{fmtDuration(c.duration??c.durationSeconds)}</p>
                 </td>
                 <td className="px-3 py-3"><Badge label={c.outcome??'unknown'} dot size="xs"/></td>
                 <td className="px-3 py-3">
-                  {c.interestLevel!=null
-                    ? <span className="text-xs font-bold" style={{color:scoreColor(c.interestLevel)}}>{c.interestLevel}/10</span>
+                  {(c.interestScore??c.interestLevel)!=null
+                    ? <span className="text-xs font-bold" style={{color:scoreColor(c.interestScore??c.interestLevel)}}>{c.interestScore??c.interestLevel}/10</span>
                     : <span className="text-xs text-[#8B8BA7]">—</span>}
                 </td>
                 <td className="hidden md:table-cell px-3 py-3">
-                  <span className="flex items-center gap-1 text-xs text-[#8B8BA7]"><Clock className="w-3 h-3"/>{fmtDuration(c.durationSeconds)}</span>
+                  <span className="flex items-center gap-1 text-xs text-[#8B8BA7]"><Clock className="w-3 h-3"/>{fmtDuration(c.duration??c.durationSeconds)}</span>
                 </td>
                 <td className="hidden md:table-cell px-3 py-3">
                   <span className="text-xs text-[#8B8BA7]">{new Date(c.createdAt??c.startedAt).toLocaleDateString('fr-FR')}</span>
@@ -118,17 +118,17 @@ export default function AdminCalls() {
       </div>
 
       <SlideSheet open={!!selected} onClose={()=>setSelected(null)}
-        title={selected?.prospect?.businessName??'Détail appel'}
-        subtitle={[selected?.outcome, fmtDuration(selected?.durationSeconds)].filter(Boolean).join(' · ')}>
+        title={selected?.businessName??selected?.prospect?.businessName??'Détail appel'}
+        subtitle={[selected?.outcome, fmtDuration(selected?.duration??selected?.durationSeconds)].filter(Boolean).join(' · ')}>
         {selected&&(
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
-                <p className="text-base font-bold" style={{color:scoreColor(selected.interestLevel??0)}}>{selected.interestLevel??'—'}{selected.interestLevel?'/10':''}</p>
+                <p className="text-base font-bold" style={{color:scoreColor((selected.interestScore??selected.interestLevel)??0)}}>{selected.interestScore??selected.interestLevel??'—'}{(selected.interestScore??selected.interestLevel)?'/10':''}</p>
                 <p className="text-[10px] text-[#8B8BA7] mt-0.5">Score</p>
               </div>
               <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
-                <p className="text-base font-bold text-[#F8F8FF]">{fmtDuration(selected.durationSeconds)}</p>
+                <p className="text-base font-bold text-[#F8F8FF]">{fmtDuration(selected.duration??selected.durationSeconds)}</p>
                 <p className="text-[10px] text-[#8B8BA7] mt-0.5">Durée</p>
               </div>
               <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
