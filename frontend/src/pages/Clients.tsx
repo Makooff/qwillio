@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { Client } from '../types';
-import { Search, RefreshCw, Eye, Building2, Crown, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Search, RefreshCw, Eye, Building2, Crown, Clock, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import Badge from '../components/ui/Badge';
 import SlideSheet from '../components/ui/SlideSheet';
 import Pagination from '../components/ui/Pagination';
@@ -26,6 +26,8 @@ export default function Clients() {
   const [editing, setEditing] = useState<Partial<Client>|null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmPause, setConfirmPause] = useState<Client|null>(null);
+  const [toDelete, setToDelete] = useState<Client|null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { toasts, add: toast, remove } = useToast();
   const LIMIT = 25;
 
@@ -53,6 +55,18 @@ export default function Clients() {
     try { await api.put(`/clients/${selected.id}`,editing); toast('Client mis à jour','success'); setSelected(null); setEditing(null); load(); }
     catch { toast('Erreur mise à jour','error'); }
     finally { setSaving(false); }
+  };
+
+  const doDelete = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/admin/clients/${toDelete.id}`);
+      toast('Client supprimé', 'success');
+      setToDelete(null);
+      load();
+    } catch { toast('Erreur suppression', 'error'); }
+    finally { setDeleting(false); }
   };
 
   const togglePause = async (c: Client) => {
@@ -142,6 +156,7 @@ export default function Clients() {
                       <button onClick={()=>setConfirmPause(c)} className={`p-1.5 rounded-lg transition-all ${c.subscriptionStatus==='paused'?'hover:bg-[#22C55E]/10 text-[#8B8BA7] hover:text-[#22C55E]':'hover:bg-[#F59E0B]/10 text-[#8B8BA7] hover:text-[#F59E0B]'}`}>
                         {c.subscriptionStatus==='paused'?<CheckCircle className="w-3.5 h-3.5"/>:<XCircle className="w-3.5 h-3.5"/>}
                       </button>
+                      <button onClick={()=>setToDelete(c)} className="p-1.5 rounded-lg hover:bg-[#EF4444]/10 text-[#8B8BA7] hover:text-[#EF4444]"><Trash2 className="w-3.5 h-3.5"/></button>
                     </div>
                   </td>
                 </tr>
@@ -179,6 +194,7 @@ export default function Clients() {
         )}
       </SlideSheet>
       <ConfirmDialog open={!!confirmPause} title={confirmPause?.subscriptionStatus==='paused'?'Réactiver':'Suspendre'} message={`${confirmPause?.subscriptionStatus==='paused'?'Réactiver':'Suspendre'} "${confirmPause?.businessName}" ?`} confirmLabel={confirmPause?.subscriptionStatus==='paused'?'Réactiver':'Suspendre'} danger={confirmPause?.subscriptionStatus!=='paused'} onConfirm={()=>confirmPause&&togglePause(confirmPause)} onCancel={()=>setConfirmPause(null)}/>
+      <ConfirmDialog open={!!toDelete} title="Supprimer le client" message={`Supprimer définitivement "${toDelete?.businessName}" et toutes ses données ?`} confirmLabel="Supprimer" danger loading={deleting} onConfirm={doDelete} onCancel={()=>setToDelete(null)}/>
     </div>
   );
 }
