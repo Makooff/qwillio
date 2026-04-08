@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, Phone, Zap, Target, Brain, ListOrdered,
   CreditCard, Server, Settings, LogOut, ChevronLeft, ChevronRight,
   Search, RefreshCw, X, FileText, Megaphone, DollarSign,
-  UserCheck, Mail, Smartphone, Crosshair, ExternalLink, Activity,
+  UserCheck, Mail, Smartphone, Crosshair, ExternalLink, Activity, ScrollText,
 } from 'lucide-react';
 import QwillioLogo from '../QwillioLogo';
 
@@ -50,6 +50,7 @@ const NAV_SECTIONS = [
     label: 'SYSTÈME',
     items: [
       { path: '/admin/monitor', icon: Activity, label: 'Moniteur live' },
+      { path: '/admin/logs', icon: ScrollText, label: 'Logs système' },
       { path: '/admin/system', icon: Server, label: 'Système' },
       { path: '/admin/settings', icon: Settings, label: 'Paramètres' },
     ],
@@ -73,6 +74,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/retention': 'Rétention',
   '/admin/phone-validation': 'Validation téléphonique',
   '/admin/monitor': 'Moniteur live',
+  '/admin/logs': 'Logs système',
   '/admin/system': 'Système',
   '/admin/settings': 'Paramètres',
 };

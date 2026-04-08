@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import {
-  RefreshCw, Play, Square, Server, Cpu, Database, Mail, Phone, CreditCard,
-  MessageSquare, Activity, CheckCircle2, XCircle, AlertCircle, Clock, Zap
+  RefreshCw, Play, Square, Cpu, Database, Mail, Phone, CreditCard,
+  MessageSquare, Activity, CheckCircle2, XCircle, Clock, Zap, Search, Shield
 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
-import Badge from '../../components/ui/Badge';
 
 const CRON_JOBS = [
   { id: 'prospecting', label: 'Prospection', desc: 'Scraping + enrichissement' },
@@ -24,19 +23,14 @@ const CRON_JOBS = [
 ];
 
 const API_SERVICES = [
-  { key: 'vapi', label: 'VAPI', icon: <Phone className="w-4 h-4" /> },
-  { key: 'openai', label: 'OpenAI', icon: <Cpu className="w-4 h-4" /> },
-  { key: 'stripe', label: 'Stripe', icon: <CreditCard className="w-4 h-4" /> },
-  { key: 'resend', label: 'Resend', icon: <Mail className="w-4 h-4" /> },
+  { key: 'vapi',     label: 'VAPI',     icon: <Phone className="w-4 h-4" /> },
+  { key: 'openai',   label: 'OpenAI',   icon: <Cpu className="w-4 h-4" /> },
+  { key: 'stripe',   label: 'Stripe',   icon: <CreditCard className="w-4 h-4" /> },
+  { key: 'resend',   label: 'Resend',   icon: <Mail className="w-4 h-4" /> },
   { key: 'database', label: 'Database', icon: <Database className="w-4 h-4" /> },
-  { key: 'discord', label: 'Discord', icon: <MessageSquare className="w-4 h-4" /> },
-];
-
-const ENV_VARS = [
-  'DATABASE_URL', 'JWT_SECRET', 'VAPI_API_KEY', 'VAPI_PHONE_NUMBER_ID',
-  'OPENAI_API_KEY', 'STRIPE_SECRET_KEY', 'RESEND_API_KEY', 'RESEND_FROM_EMAIL',
-  'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'DISCORD_WEBHOOK_URL',
-  'ADMIN_EMAIL', 'FRONTEND_URL',
+  { key: 'discord',  label: 'Discord',  icon: <MessageSquare className="w-4 h-4" /> },
+  { key: 'twilio',   label: 'Twilio',   icon: <Shield className="w-4 h-4" /> },
+  { key: 'apify',    label: 'Apify',    icon: <Search className="w-4 h-4" /> },
 ];
 
 export default function AdminSystem() {
@@ -50,20 +44,12 @@ export default function AdminSystem() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/bot/status');
-      setBot(data);
-      // Infer env var status from bot/config availability
-      try {
-        const { data: cfg } = await api.get('/bot/config');
-        const vars: Record<string, boolean> = {};
-        ENV_VARS.forEach(k => { vars[k] = true; }); // all set if config loads
-        if (cfg?.vapiApiKey === undefined) vars['VAPI_API_KEY'] = false;
-        setEnvVars(vars);
-      } catch {
-        const vars: Record<string, boolean> = {};
-        ENV_VARS.forEach(k => { vars[k] = false; });
-        setEnvVars(vars);
-      }
+      const [{ data: botData }, { data: health }] = await Promise.all([
+        api.get('/bot/status'),
+        api.get('/bot/health').catch(() => ({ data: {} })),
+      ]);
+      setBot(botData);
+      setEnvVars(health ?? {});
     } catch { toast('Erreur chargement statut', 'error'); }
     finally { setLoading(false); }
   };
@@ -169,8 +155,7 @@ export default function AdminSystem() {
         <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Santé des APIs</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {API_SERVICES.map(svc => {
-            // Infer health from env vars presence
-            const healthy = envVars[svc.key.toUpperCase() + '_API_KEY'] !== false;
+            const healthy = envVars[svc.key] !== false && envVars[svc.key] !== undefined;
             return (
               <div key={svc.key} className={`p-4 rounded-xl border text-center transition-all ${healthy ? 'bg-[#22C55E]/5 border-[#22C55E]/20' : 'bg-[#EF4444]/5 border-[#EF4444]/20'}`}>
                 <div className={`flex justify-center mb-2 ${healthy ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>{svc.icon}</div>
@@ -205,24 +190,6 @@ export default function AdminSystem() {
         </div>
       </div>
 
-      {/* Env Vars Checklist */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-        <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Variables d'environnement</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {ENV_VARS.map(k => {
-            const set = envVars[k] !== false;
-            return (
-              <div key={k} className="flex items-center justify-between p-2.5 bg-[#0D0D15] rounded-xl">
-                <span className="text-xs font-mono text-[#8B8BA7]">{k}</span>
-                <span className={`flex items-center gap-1 text-xs font-medium ${set ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
-                  {set ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                  {set ? 'Définie' : 'Manquante'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }

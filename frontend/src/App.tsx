@@ -55,6 +55,7 @@ const AdminBilling = lazy(() => import('./pages/admin/Billing'));
 const AdminSystem = lazy(() => import('./pages/admin/System'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 const LiveMonitor = lazy(() => import('./pages/admin/LiveMonitor'));
+const AdminLogs = lazy(() => import('./pages/admin/Logs'));
 // Legal pages (lazy loaded)
 const Privacy = lazy(() => import('./pages/legal/Privacy'));
 const Terms = lazy(() => import('./pages/legal/Terms'));
@@ -227,6 +228,7 @@ export default function App() {
           <Route path="billing" element={<Suspense fallback={<Spinner />}><AdminBilling /></Suspense>} />
           <Route path="system" element={<Suspense fallback={<Spinner />}><AdminSystem /></Suspense>} />
           <Route path="monitor" element={<Suspense fallback={<Spinner />}><LiveMonitor /></Suspense>} />
+          <Route path="logs" element={<Suspense fallback={<Spinner />}><AdminLogs /></Suspense>} />
         </Route>
 
         {/* Catch-all redirect */}

@@ -2,8 +2,26 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { analyticsService } from '../services/analytics.service';
+import { getLogs, clearLogs, getLastId } from '../config/log-store';
+import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
+
+// ─── Log viewer endpoints (admin-only) ───────────────────
+router.get('/logs', authMiddleware, adminMiddleware, (req: Request, res: Response) => {
+  const since = req.query.since ? parseInt(req.query.since as string) : undefined;
+  const level = req.query.level as string | undefined;
+  const search = req.query.search as string | undefined;
+  res.json({
+    logs: getLogs({ since, level, search, limit: 200 }),
+    lastId: getLastId(),
+  });
+});
+
+router.delete('/logs', authMiddleware, adminMiddleware, (_req: Request, res: Response) => {
+  clearLogs();
+  res.json({ success: true });
+});
 
 const EMPTY_DASHBOARD = {
   prospects: { total: 0, newThisMonth: 0, byStatus: {} as Record<string, number> },
