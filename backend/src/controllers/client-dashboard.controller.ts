@@ -150,9 +150,10 @@ export class ClientDashboardController {
       });
       if (!call) return res.status(404).json({ error: 'Lead not found' });
 
+      const statusValues = ['new', 'contacted', 'converted', 'lost'];
       await prisma.clientCall.update({
         where: { id },
-        data: { tags: { set: [...(call.tags || []).filter((t: string) => !['contacted', 'converted', 'lost'].includes(t)), status] } },
+        data: { tags: { set: [...(call.tags || []).filter((t: string) => !statusValues.includes(t)), status] } },
       });
       res.json({ success: true, status });
     } catch (error: any) {
