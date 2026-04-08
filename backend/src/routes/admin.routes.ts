@@ -4,6 +4,7 @@ import { logger } from '../config/logger';
 import { analyticsService } from '../services/analytics.service';
 import { getLogs, clearLogs, getLastId } from '../config/log-store';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
+import { env } from '../config/env';
 
 const router = Router();
 
@@ -21,6 +22,48 @@ router.get('/logs', authMiddleware, adminMiddleware, (req: Request, res: Respons
 router.delete('/logs', authMiddleware, adminMiddleware, (_req: Request, res: Response) => {
   clearLogs();
   res.json({ success: true });
+});
+
+// ─── Bot config (used by AdminSettings page) ─────────────
+// GET  /api/admin/bot-config
+router.get('/bot-config', authMiddleware, adminMiddleware, async (_req: Request, res: Response) => {
+  try {
+    const bot = await prisma.botStatus.findFirst({ select: { callsQuotaDaily: true } });
+    res.json({
+      startHour:           env.AUTOMATION_START_HOUR,
+      endHour:             env.AUTOMATION_END_HOUR,
+      callsPerDay:         bot?.callsQuotaDaily ?? env.CALLS_PER_DAY,
+      callIntervalSeconds: env.CALL_INTERVAL_MINUTES * 60,
+      activeDays:          env.AUTOMATION_DAYS,
+      maxCallDuration:     600,
+      retryDelay:          3600,
+      maxRetries:          3,
+    });
+  } catch (err: any) {
+    logger.error('[API] bot-config GET failed:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/bot-config  — only callsPerDay is persisted (rest are env-controlled)
+router.post('/bot-config', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { callsPerDay } = req.body as { callsPerDay?: number };
+    if (callsPerDay !== undefined) {
+      const bot = await prisma.botStatus.findFirst({ select: { id: true } });
+      if (bot) {
+        await prisma.botStatus.update({
+          where: { id: bot.id },
+          data: { callsQuotaDaily: Math.min(Math.max(Number(callsPerDay), 1), 500) },
+        });
+      }
+    }
+    logger.info(`[API] bot-config saved: callsPerDay=${callsPerDay}`);
+    res.json({ success: true });
+  } catch (err: any) {
+    logger.error('[API] bot-config POST failed:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const EMPTY_DASHBOARD = {
