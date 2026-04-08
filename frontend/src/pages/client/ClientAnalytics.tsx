@@ -1,28 +1,33 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import {
-  BarChart3, TrendingUp, Phone, Users, Clock, Star, Zap,
-  ArrowUp, ArrowDown, DollarSign, Calculator
-} from 'lucide-react';
+import { BarChart3, Phone, Users, Clock, Zap, ArrowUp, ArrowDown, DollarSign, Calculator } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, Legend
+  XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
-import { useLang } from '../../stores/langStore';
 import api from '../../services/api';
 import { formatDuration, formatShortDate } from '../../utils/format';
 
-const SENTIMENT_COLORS: Record<string, string> = { positive: '#10b981', neutral: '#f59e0b', negative: '#ef4444' };
+const SENTIMENT_COLORS: Record<string, string> = {
+  positive: '#34d399',
+  neutral: '#fbbf24',
+  negative: '#f87171',
+};
+
+const TOOLTIP_STYLE = {
+  background: '#12121A',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 12,
+  fontSize: 12,
+  color: '#F8F8FF',
+};
 
 export default function ClientAnalytics() {
-  const { t } = useLang();
   const [period, setPeriod] = useState(30);
   const [data, setData] = useState<any>(null);
   const [compareData, setCompareData] = useState<any>(null);
   const [overview, setOverview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
-  // ROI calculator
   const [costPerLead, setCostPerLead] = useState(50);
   const [avgDealValue, setAvgDealValue] = useState(500);
 
@@ -49,22 +54,22 @@ export default function ClientAnalytics() {
   if (loading) {
     return (
       <div className="flex justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#6366f1] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#7B5CF0] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!data) return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
+      <div className="w-14 h-14 rounded-2xl bg-red-400/10 flex items-center justify-center mb-4">
         <BarChart3 size={28} className="text-red-400" />
       </div>
-      <h2 className="text-lg font-semibold mb-1">Unable to load analytics</h2>
-      <p className="text-sm text-[#86868b] mb-4">Please check your connection and try again.</p>
+      <h2 className="text-lg font-semibold text-[#F8F8FF] mb-1">Impossible de charger les analytiques</h2>
+      <p className="text-sm text-[#8B8BA7] mb-4">Vérifiez votre connexion et réessayez.</p>
       <button onClick={() => fetchData()}
-        className="px-5 py-2.5 text-sm font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] transition-colors"
+        className="px-5 py-2.5 text-sm font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6a4ee0] transition-colors"
       >
-        Retry
+        Réessayer
       </button>
     </div>
   );
@@ -72,57 +77,50 @@ export default function ClientAnalytics() {
   const summary = data.summary || {};
   const daily = data.daily || [];
 
-  // Calculate period-over-period changes
   const prevCalls = (compareData?.summary?.totalCalls || 0) - summary.totalCalls;
   const callsDelta = prevCalls > 0 ? Math.round(((summary.totalCalls - prevCalls) / prevCalls) * 100) : 0;
   const prevLeads = (compareData?.summary?.totalLeads || 0) - summary.totalLeads;
   const leadsDelta = prevLeads > 0 ? Math.round(((summary.totalLeads - prevLeads) / prevLeads) * 100) : 0;
 
-  // Sentiment pie
   const sentimentPie = data.sentiment
     ? Object.entries(data.sentiment).filter(([, v]) => (v as number) > 0).map(([k, v]) => ({ name: k, value: v as number }))
     : [];
 
-  // Peak hours
   const hourData = data.peakHours
     ? Object.entries(data.peakHours).map(([h, v]) => ({ hour: `${h}h`, calls: v as number })).sort((a, b) => parseInt(a.hour) - parseInt(b.hour))
     : [];
 
-  // Day distribution
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
   const dayData = data.peakDays
     ? Object.entries(data.peakDays).map(([d, v]) => ({ day: dayNames[parseInt(d)] || d, calls: v as number }))
     : [];
 
-  // ROI
   const leadsValue = summary.totalLeads * costPerLead;
   const potentialRevenue = summary.totalLeads * avgDealValue * (summary.conversionRate / 100);
   const monthlyFee = overview?.client?.monthlyFee || 197;
   const roi = monthlyFee > 0 ? Math.round(((potentialRevenue - monthlyFee) / monthlyFee) * 100) : 0;
 
-  // Conversion funnel
   const funnelData = [
-    { stage: 'Total calls', value: summary.totalCalls, color: '#6366f1' },
-    { stage: 'Leads captured', value: summary.totalLeads, color: '#8b5cf6' },
-    { stage: 'Est. conversions', value: Math.round(summary.totalLeads * (summary.conversionRate / 100)), color: '#10b981' },
+    { stage: 'Total appels', value: summary.totalCalls, color: '#7B5CF0' },
+    { stage: 'Leads captés', value: summary.totalLeads, color: '#a78bfa' },
+    { stage: 'Conversions est.', value: Math.round(summary.totalLeads * (summary.conversionRate / 100)), color: '#34d399' },
   ];
 
   return (
     <div>
-      {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-sm text-[#86868b]">Performance insights for your AI receptionist</p>
+          <h1 className="text-2xl font-bold text-[#F8F8FF] tracking-tight">Analytique</h1>
+          <p className="text-sm text-[#8B8BA7]">Performances de votre réceptionniste IA</p>
         </div>
-        <div className="flex items-center gap-1 bg-[#f5f5f7] rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1">
           {[7, 30, 90].map(d => (
             <button key={d} onClick={() => setPeriod(d)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                period === d ? 'bg-white shadow-sm text-[#1d1d1f]' : 'text-[#86868b] hover:text-[#1d1d1f]'
+                period === d ? 'bg-[#7B5CF0] text-white' : 'text-[#8B8BA7] hover:text-[#F8F8FF]'
               }`}
             >
-              {d}d
+              {d}j
             </button>
           ))}
         </div>
@@ -131,79 +129,78 @@ export default function ClientAnalytics() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Total calls', value: summary.totalCalls, delta: callsDelta, icon: Phone, color: 'blue' },
-          { label: 'Leads captured', value: summary.totalLeads, delta: leadsDelta, icon: Users, color: 'amber' },
-          { label: 'Conversion rate', value: `${summary.conversionRate}%`, icon: Zap, color: 'purple' },
-          { label: 'Avg duration', value: formatDuration(summary.avgCallDuration), icon: Clock, color: 'cyan' },
+          { label: 'Total appels', value: summary.totalCalls, delta: callsDelta, icon: Phone },
+          { label: 'Leads captés', value: summary.totalLeads, delta: leadsDelta, icon: Users },
+          { label: 'Taux conversion', value: `${summary.conversionRate}%`, icon: Zap },
+          { label: 'Durée moy.', value: formatDuration(summary.avgCallDuration), icon: Clock },
         ].map((kpi, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-            className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-4"
+            className="rounded-xl border border-white/[0.06] bg-[#12121A] p-4"
           >
             <div className="flex items-center justify-between mb-2">
-              <kpi.icon size={16} className="text-[#86868b]" />
+              <kpi.icon size={16} className="text-[#8B8BA7]" />
               {kpi.delta !== undefined && kpi.delta !== 0 && (
-                <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${kpi.delta > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${kpi.delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {kpi.delta > 0 ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
                   {Math.abs(kpi.delta)}%
                 </span>
               )}
             </div>
-            <p className="text-2xl font-bold">{kpi.value}</p>
-            <p className="text-xs text-[#86868b] mt-0.5">{kpi.label}</p>
+            <p className="text-2xl font-bold text-[#F8F8FF]">{kpi.value}</p>
+            <p className="text-xs text-[#8B8BA7] mt-0.5">{kpi.label}</p>
           </motion.div>
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Call volume trend */}
-        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6">
-          <h3 className="text-sm font-semibold mb-1">Call volume</h3>
-          <p className="text-xs text-[#86868b] mb-4">Daily call & lead trends</p>
-          <div className="h-64">
+      {/* Charts grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        {/* Call volume */}
+        <div className="rounded-xl border border-white/[0.06] bg-[#12121A] p-6">
+          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-1">Volume d'appels</h3>
+          <p className="text-xs text-[#8B8BA7] mb-4">Tendances quotidiennes</p>
+          <div className="h-56">
             {daily.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={daily}>
                   <defs>
-                    <linearGradient id="gradCalls" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#6366f1" stopOpacity={0.15} />
-                      <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                    <linearGradient id="gCalls" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#7B5CF0" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#7B5CF0" stopOpacity={0} />
                     </linearGradient>
-                    <linearGradient id="gradLeads" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.15} />
-                      <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                    <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#86868b' }} tickFormatter={d => formatShortDate(d)} />
-                  <YAxis tick={{ fontSize: 10, fill: '#86868b' }} width={30} />
-                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 12, fontSize: 12 }} />
-                  <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                  <Area type="monotone" dataKey="calls" stroke="#6366f1" fill="url(#gradCalls)" strokeWidth={2} name="Calls" />
-                  <Area type="monotone" dataKey="leads" stroke="#f59e0b" fill="url(#gradLeads)" strokeWidth={2} name="Leads" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#8B8BA7' }} tickFormatter={d => formatShortDate(d)} />
+                  <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} width={28} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Area type="monotone" dataKey="calls" stroke="#7B5CF0" fill="url(#gCalls)" strokeWidth={2} name="Appels" />
+                  <Area type="monotone" dataKey="leads" stroke="#fbbf24" fill="url(#gLeads)" strokeWidth={2} name="Leads" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-sm text-[#86868b]">No data yet</div>
+              <div className="h-full flex items-center justify-center text-sm text-[#8B8BA7]">Pas encore de données</div>
             )}
           </div>
         </div>
 
-        {/* Sentiment breakdown */}
-        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6">
-          <h3 className="text-sm font-semibold mb-1">Sentiment analysis</h3>
-          <p className="text-xs text-[#86868b] mb-4">Caller satisfaction breakdown</p>
-          <div className="h-64 flex items-center justify-center">
+        {/* Sentiment */}
+        <div className="rounded-xl border border-white/[0.06] bg-[#12121A] p-6">
+          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-1">Analyse du sentiment</h3>
+          <p className="text-xs text-[#8B8BA7] mb-4">Satisfaction des appelants</p>
+          <div className="h-56 flex items-center justify-center">
             {sentimentPie.length > 0 ? (
-              <div className="flex items-center gap-8">
-                <ResponsiveContainer width={180} height={180}>
+              <div className="flex items-center gap-6">
+                <ResponsiveContainer width={160} height={160}>
                   <PieChart>
-                    <Pie data={sentimentPie} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+                    <Pie data={sentimentPie} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
                       {sentimentPie.map((entry, i) => (
-                        <Cell key={i} fill={SENTIMENT_COLORS[entry.name] || '#d2d2d7'} />
+                        <Cell key={i} fill={SENTIMENT_COLORS[entry.name] || '#8B8BA7'} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="space-y-3">
@@ -211,83 +208,83 @@ export default function ClientAnalytics() {
                     const total = sentimentPie.reduce((sum, p) => sum + p.value, 0);
                     return (
                       <div key={i} className="flex items-center gap-3">
-                        <span className="w-3 h-3 rounded-full" style={{ background: SENTIMENT_COLORS[s.name] }} />
+                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: SENTIMENT_COLORS[s.name] }} />
                         <div>
-                          <span className="text-sm font-medium capitalize">{s.name}</span>
-                          <span className="text-xs text-[#86868b] ml-2">{Math.round((s.value / total) * 100)}%</span>
+                          <span className="text-sm font-medium text-[#F8F8FF] capitalize">{s.name}</span>
+                          <span className="text-xs text-[#8B8BA7] ml-2">{Math.round((s.value / total) * 100)}%</span>
                         </div>
-                        <span className="text-sm font-bold ml-auto">{s.value}</span>
+                        <span className="text-sm font-bold text-[#F8F8FF] ml-auto">{s.value}</span>
                       </div>
                     );
                   })}
-                  <div className="pt-2 border-t border-[#d2d2d7]/40">
-                    <p className="text-xs text-[#86868b]">Satisfaction score</p>
-                    <p className="text-lg font-bold text-[#6366f1]">{summary.satisfactionScore}%</p>
+                  <div className="pt-2 border-t border-white/[0.06]">
+                    <p className="text-xs text-[#8B8BA7]">Score satisfaction</p>
+                    <p className="text-lg font-bold text-[#7B5CF0]">{summary.satisfactionScore}%</p>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-[#86868b]">No sentiment data</p>
+              <p className="text-sm text-[#8B8BA7]">Pas de données sentiment</p>
             )}
           </div>
         </div>
 
         {/* Peak hours */}
-        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6">
-          <h3 className="text-sm font-semibold mb-1">Peak hours</h3>
-          <p className="text-xs text-[#86868b] mb-4">When your calls come in</p>
-          <div className="h-56">
+        <div className="rounded-xl border border-white/[0.06] bg-[#12121A] p-6">
+          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-1">Heures de pointe</h3>
+          <p className="text-xs text-[#8B8BA7] mb-4">Quand vos appels arrivent</p>
+          <div className="h-48">
             {hourData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={hourData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-                  <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#86868b' }} />
-                  <YAxis tick={{ fontSize: 10, fill: '#86868b' }} width={25} />
-                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 12, fontSize: 12 }} />
-                  <Bar dataKey="calls" fill="#6366f1" radius={[4, 4, 0, 0]} name="Calls" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#8B8BA7' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} width={24} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Bar dataKey="calls" fill="#7B5CF0" radius={[4, 4, 0, 0]} name="Appels" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-sm text-[#86868b]">No data yet</div>
+              <div className="h-full flex items-center justify-center text-sm text-[#8B8BA7]">Pas encore de données</div>
             )}
           </div>
         </div>
 
         {/* Day distribution */}
-        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6">
-          <h3 className="text-sm font-semibold mb-1">Calls by day</h3>
-          <p className="text-xs text-[#86868b] mb-4">Busiest days of the week</p>
-          <div className="h-56">
+        <div className="rounded-xl border border-white/[0.06] bg-[#12121A] p-6">
+          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-1">Appels par jour</h3>
+          <p className="text-xs text-[#8B8BA7] mb-4">Jours les plus chargés</p>
+          <div className="h-48">
             {dayData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dayData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#86868b' }} />
-                  <YAxis tick={{ fontSize: 10, fill: '#86868b' }} width={25} />
-                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 12, fontSize: 12 }} />
-                  <Bar dataKey="calls" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Calls" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#8B8BA7' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} width={24} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Bar dataKey="calls" fill="#a78bfa" radius={[4, 4, 0, 0]} name="Appels" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-sm text-[#86868b]">No data yet</div>
+              <div className="h-full flex items-center justify-center text-sm text-[#8B8BA7]">Pas encore de données</div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Conversion funnel */}
-      <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6 mb-6">
-        <h3 className="text-sm font-semibold mb-4">Conversion funnel</h3>
-        <div className="flex items-center gap-3">
+      {/* Funnel */}
+      <div className="rounded-xl border border-white/[0.06] bg-[#12121A] p-6 mb-4">
+        <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Entonnoir de conversion</h3>
+        <div className="flex items-stretch gap-3">
           {funnelData.map((f, i) => (
             <div key={i} className="flex-1">
-              <div className="rounded-xl p-4 text-center" style={{ background: `${f.color}10` }}>
+              <div className="rounded-xl p-4 text-center border border-white/[0.06]" style={{ background: `${f.color}15` }}>
                 <p className="text-2xl font-bold" style={{ color: f.color }}>{f.value}</p>
-                <p className="text-xs text-[#86868b] mt-1">{f.stage}</p>
+                <p className="text-xs text-[#8B8BA7] mt-1">{f.stage}</p>
               </div>
               {i < funnelData.length - 1 && (
                 <div className="flex justify-center my-1">
-                  <span className="text-xs text-[#86868b]">
+                  <span className="text-xs text-[#8B8BA7]">
                     {f.value > 0 ? `${Math.round((funnelData[i + 1].value / f.value) * 100)}%` : '0%'}
                   </span>
                 </div>
@@ -299,51 +296,51 @@ export default function ClientAnalytics() {
 
       {/* ROI Calculator */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-        className="rounded-2xl border border-[#d2d2d7]/60 bg-gradient-to-br from-white to-[#f5f5f7] p-6"
+        className="rounded-xl border border-[#7B5CF0]/20 bg-[#7B5CF0]/[0.04] p-6"
       >
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-          <Calculator size={16} className="text-[#6366f1]" />
-          ROI calculator
+        <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4 flex items-center gap-2">
+          <Calculator size={16} className="text-[#7B5CF0]" />
+          Calculateur ROI
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-4">
             <div>
-              <label className="text-xs text-[#86868b] mb-1 block">Cost per lead (manual)</label>
-              <div className="flex items-center gap-2">
-                <DollarSign size={14} className="text-[#86868b]" />
+              <label className="text-xs text-[#8B8BA7] mb-1.5 block">Coût par lead (manuel)</label>
+              <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0D0D15] px-3">
+                <DollarSign size={14} className="text-[#8B8BA7]" />
                 <input type="number" value={costPerLead} onChange={e => setCostPerLead(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+                  className="flex-1 py-2.5 text-sm bg-transparent text-[#F8F8FF] focus:outline-none"
                 />
               </div>
             </div>
             <div>
-              <label className="text-xs text-[#86868b] mb-1 block">Avg deal value</label>
-              <div className="flex items-center gap-2">
-                <DollarSign size={14} className="text-[#86868b]" />
+              <label className="text-xs text-[#8B8BA7] mb-1.5 block">Valeur moy. d'un deal</label>
+              <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0D0D15] px-3">
+                <DollarSign size={14} className="text-[#8B8BA7]" />
                 <input type="number" value={avgDealValue} onChange={e => setAvgDealValue(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+                  className="flex-1 py-2.5 text-sm bg-transparent text-[#F8F8FF] focus:outline-none"
                 />
               </div>
             </div>
           </div>
           <div className="space-y-3">
-            <div className="rounded-xl bg-white border border-[#d2d2d7]/40 p-4">
-              <p className="text-xs text-[#86868b]">Leads captured (Qwillio)</p>
-              <p className="text-xl font-bold text-[#6366f1]">{summary.totalLeads}</p>
+            <div className="rounded-xl bg-[#12121A] border border-white/[0.06] p-4">
+              <p className="text-xs text-[#8B8BA7]">Leads captés (Qwillio)</p>
+              <p className="text-xl font-bold text-[#7B5CF0]">{summary.totalLeads}</p>
             </div>
-            <div className="rounded-xl bg-white border border-[#d2d2d7]/40 p-4">
-              <p className="text-xs text-[#86868b]">Manual lead cost equivalent</p>
-              <p className="text-xl font-bold text-amber-600">${leadsValue.toLocaleString()}</p>
+            <div className="rounded-xl bg-[#12121A] border border-white/[0.06] p-4">
+              <p className="text-xs text-[#8B8BA7]">Équivalent coût manuel</p>
+              <p className="text-xl font-bold text-amber-400">${leadsValue.toLocaleString()}</p>
             </div>
           </div>
           <div className="space-y-3">
-            <div className="rounded-xl bg-white border border-[#d2d2d7]/40 p-4">
-              <p className="text-xs text-[#86868b]">Potential revenue</p>
-              <p className="text-xl font-bold text-emerald-600">${potentialRevenue.toLocaleString()}</p>
+            <div className="rounded-xl bg-[#12121A] border border-white/[0.06] p-4">
+              <p className="text-xs text-[#8B8BA7]">Revenus potentiels</p>
+              <p className="text-xl font-bold text-emerald-400">${potentialRevenue.toLocaleString()}</p>
             </div>
-            <div className={`rounded-xl p-4 ${roi > 0 ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
-              <p className="text-xs text-[#86868b]">ROI</p>
-              <p className={`text-2xl font-bold ${roi > 0 ? 'text-emerald-600' : 'text-red-500'}`}>{roi > 0 ? '+' : ''}{roi}%</p>
+            <div className={`rounded-xl p-4 border ${roi > 0 ? 'bg-emerald-400/10 border-emerald-400/20' : 'bg-red-400/10 border-red-400/20'}`}>
+              <p className="text-xs text-[#8B8BA7]">ROI</p>
+              <p className={`text-2xl font-bold ${roi > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{roi > 0 ? '+' : ''}{roi}%</p>
             </div>
           </div>
         </div>
