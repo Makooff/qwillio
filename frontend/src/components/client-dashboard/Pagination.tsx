@@ -12,15 +12,15 @@ export default function Pagination({ page, totalPages, total, onPageChange, labe
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-between pt-4 border-t border-[#d2d2d7]/40">
-      <p className="text-xs text-[#86868b]">
+    <div className="flex items-center justify-between pt-4 border-t border-white/[0.06]">
+      <p className="text-xs text-[#8B8BA7]">
         {total} {label}
       </p>
       <div className="flex items-center gap-1">
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-[#86868b] hover:bg-[#f5f5f7] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-[#8B8BA7] hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft size={16} />
         </button>
@@ -41,8 +41,8 @@ export default function Pagination({ page, totalPages, total, onPageChange, labe
               onClick={() => onPageChange(pageNum)}
               className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
                 pageNum === page
-                  ? 'bg-[#6366f1] text-white'
-                  : 'text-[#86868b] hover:bg-[#f5f5f7]'
+                  ? 'bg-[#7B5CF0] text-white'
+                  : 'text-[#8B8BA7] hover:bg-white/[0.06]'
               }`}
             >
               {pageNum}
@@ -52,7 +52,7 @@ export default function Pagination({ page, totalPages, total, onPageChange, labe
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-[#86868b] hover:bg-[#f5f5f7] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-[#8B8BA7] hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronRight size={16} />
         </button>
