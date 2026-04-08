@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../../services/api';
 import {
   RefreshCw, Trash2, Search, AlertCircle, Info, AlertTriangle, Bug,
-  Wifi, WifiOff, ChevronDown, Filter, Download,
+  Wifi, WifiOff, ChevronDown, Filter, Download, Copy, Check,
 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
@@ -33,10 +33,28 @@ export default function Logs() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toasts, add: toast, remove } = useToast();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const copyText = useCallback((text: string, id: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    }).catch(() => {
+      // fallback for older browsers
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    });
+  }, []);
 
   const fetchLogs = useCallback(async (since?: number) => {
     try {
@@ -136,6 +154,18 @@ export default function Logs() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const all = logs.map(l =>
+                `[${l.timestamp}] ${l.level.toUpperCase()} ${l.message}${l.stack ? '\nStack: ' + l.stack : ''}`
+              ).join('\n');
+              copyText(all, 'all');
+            }}
+            title="Copier tous les logs"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] hover:text-[#F8F8FF] text-xs transition-all">
+            {copiedId === 'all' ? <Check className="w-3.5 h-3.5 text-[#22C55E]" /> : <Copy className="w-3.5 h-3.5" />}
+            <span className="hidden md:inline">{copiedId === 'all' ? 'Copié !' : 'Tout copier'}</span>
+          </button>
           <button onClick={downloadLogs} title="Télécharger"
             className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
             <Download className="w-4 h-4" />
@@ -210,18 +240,18 @@ export default function Logs() {
               {logs.map((log) => {
                 const cfg = LEVEL_CONFIG[log.level] ?? LEVEL_CONFIG.info;
                 const isExpanded = expanded === log.id;
+                const rowCopyId = `row-${log.id}`;
+                const stackCopyId = `stack-${log.id}`;
+                const logText = `[${log.timestamp}] ${log.level.toUpperCase()} ${log.message}${log.stack ? '\n' + log.stack : ''}`;
                 return (
                   <div key={log.id}
-                    className={`border-b last:border-b-0 ${cfg.border} ${cfg.bg} transition-colors`}>
-                    <button
-                      onClick={() => setExpanded(isExpanded ? null : log.id)}
-                      className="w-full flex items-start gap-2 px-3 py-2 text-left hover:bg-white/[0.03] transition-colors"
-                    >
+                    className={`group/row border-b last:border-b-0 ${cfg.border} ${cfg.bg} transition-colors`}>
+                    <div className="flex items-start gap-2 px-3 py-2 hover:bg-white/[0.03] transition-colors">
                       {/* Level icon */}
                       <span className={`mt-0.5 flex-shrink-0 ${cfg.text}`}>{cfg.icon}</span>
 
                       {/* Timestamp */}
-                      <span className="text-[10px] text-[#8B8BA7] flex-shrink-0 mt-0.5 w-[120px] tabular-nums">
+                      <span className="text-[10px] text-[#8B8BA7] flex-shrink-0 mt-0.5 w-[120px] tabular-nums select-all">
                         {new Date(log.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         <span className="text-[#8B8BA7]/50 ml-1">.{new Date(log.timestamp).getMilliseconds().toString().padStart(3, '0')}</span>
                       </span>
@@ -231,27 +261,47 @@ export default function Logs() {
                         {cfg.badge}
                       </span>
 
-                      {/* Message */}
-                      <span className={`flex-1 min-w-0 leading-relaxed break-all ${
-                        log.level === 'error' ? 'text-[#EF4444]'
-                        : log.level === 'warn' ? 'text-[#F59E0B]'
-                        : 'text-[#F8F8FF]'
-                      } ${isExpanded ? '' : 'line-clamp-2'}`}>
+                      {/* Message — clickable to expand */}
+                      <button
+                        onClick={() => setExpanded(isExpanded ? null : log.id)}
+                        className={`flex-1 min-w-0 text-left leading-relaxed break-all ${
+                          log.level === 'error' ? 'text-[#EF4444]'
+                          : log.level === 'warn' ? 'text-[#F59E0B]'
+                          : 'text-[#F8F8FF]'
+                        } ${isExpanded ? '' : 'line-clamp-2'}`}>
                         {log.message}
-                      </span>
+                      </button>
 
-                      {/* Stack indicator */}
-                      {log.stack && (
-                        <ChevronDown className={`w-3 h-3 flex-shrink-0 mt-0.5 text-[#8B8BA7] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                      )}
-                    </button>
+                      {/* Actions (copy + expand) */}
+                      <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => copyText(logText, rowCopyId)}
+                          title="Copier ce log"
+                          className="p-1 rounded hover:bg-white/[0.08] text-[#8B8BA7] hover:text-[#F8F8FF] transition-colors">
+                          {copiedId === rowCopyId ? <Check className="w-3 h-3 text-[#22C55E]" /> : <Copy className="w-3 h-3" />}
+                        </button>
+                        {log.stack && (
+                          <button onClick={() => setExpanded(isExpanded ? null : log.id)} className="p-1 rounded hover:bg-white/[0.08] text-[#8B8BA7] transition-colors">
+                            <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
 
                     {/* Stack trace */}
                     {isExpanded && log.stack && (
                       <div className="px-14 pb-3">
-                        <pre className="text-[10px] text-[#8B8BA7] bg-black/30 rounded-lg p-3 overflow-x-auto leading-relaxed whitespace-pre-wrap break-all">
-                          {log.stack}
-                        </pre>
+                        <div className="relative group/stack">
+                          <pre className="text-[10px] text-[#8B8BA7] bg-black/30 rounded-lg p-3 overflow-x-auto leading-relaxed whitespace-pre-wrap break-all select-all">
+                            {log.stack}
+                          </pre>
+                          <button
+                            onClick={() => copyText(log.stack!, stackCopyId)}
+                            title="Copier le stack trace"
+                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-[#8B8BA7] hover:text-[#F8F8FF] transition-all opacity-0 group-hover/stack:opacity-100">
+                            {copiedId === stackCopyId ? <Check className="w-3 h-3 text-[#22C55E]" /> : <Copy className="w-3 h-3" />}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
