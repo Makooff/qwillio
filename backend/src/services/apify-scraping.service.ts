@@ -65,21 +65,39 @@ export class ApifyScrapingService {
     const keyPreview = env.APIFY_API_KEY.slice(0, 12) + '…';
 
     try {
-      // Start actor run (use Authorization header — more reliable than ?token= param)
-      const startRes = await fetch(
-        `${this.BASE_URL}/acts/${actorId}/runs`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${env.APIFY_API_KEY}`,
-          },
-          body: JSON.stringify({ ...input, maxCrawledPlacesPerSearch: 20 }),  }
-      );
+      // Start actor run — retry up to 3× on 5xx with exponential backoff
+      let startRes: Response | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) {
+          await new Promise(r => setTimeout(r, 2000 * attempt));
+          logger.info(`[Apify] Retry attempt ${attempt} for actor ${actorId}`);
+        }
+        try {
+          startRes = await fetch(
+            `${this.BASE_URL}/actors/${actorId}/runs`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${env.APIFY_API_KEY}`,
+              },
+              body: JSON.stringify({ ...input, maxCrawledPlacesPerSearch: 20 }),
+              signal: AbortSignal.timeout(30000),
+            }
+          );
+          if (startRes.status < 500) break; // don't retry 4xx or success
+          const body = await startRes.text();
+          logger.warn(`[Apify] HTTP ${startRes.status} on attempt ${attempt + 1}: ${body.slice(0, 200)}`);
+          startRes = null; // mark as failed so we retry
+        } catch (fetchErr) {
+          logger.warn(`[Apify] Fetch error on attempt ${attempt + 1}: ${(fetchErr as Error).message}`);
+          startRes = null;
+        }
+      }
 
-      if (!startRes.ok) {
-        const body = await startRes.text();
-        logger.error(`[Apify] Failed to start actor ${actorId} (key: ${keyPreview}): HTTP ${startRes.status} ${startRes.statusText} — ${body}`);
+      if (!startRes || !startRes.ok) {
+        const body = startRes ? await startRes.text().catch(() => '') : '(no response)';
+        logger.error(`[Apify] Failed to start actor ${actorId} (key: ${keyPreview}): HTTP ${startRes?.status ?? 0} — ${body.slice(0, 300)}`);
         return [];
       }
 
