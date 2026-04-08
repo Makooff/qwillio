@@ -7,12 +7,29 @@ import { addLog } from './log-store';
 class MemoryTransport extends Transport {
   log(info: any, callback: () => void) {
     setImmediate(() => this.emit('logged', info));
+
+    // Capture splat (extra arguments passed to logger.error/warn/info)
+    const splat: unknown[] = info[Symbol.for('splat')] ?? [];
+    let message = typeof info.message === 'string' ? info.message : JSON.stringify(info.message);
+    if (splat.length > 0) {
+      const extra = splat.map((s) => {
+        if (typeof s === 'string') return s;
+        if (s instanceof Error) return s.message;
+        try { return JSON.stringify(s); } catch { return String(s); }
+      }).join(' ');
+      message = `${message} ${extra}`;
+    }
+
+    // Capture stack from Error objects in splat or info
+    const errInSplat = splat.find((s) => s instanceof Error) as Error | undefined;
+    const stack = info.stack || errInSplat?.stack;
+
     addLog({
       timestamp: info.timestamp || new Date().toISOString(),
       level: info.level as 'error' | 'warn' | 'info' | 'debug',
-      message: typeof info.message === 'string' ? info.message : JSON.stringify(info.message),
+      message,
       service: info.service,
-      stack: info.stack,
+      stack,
     });
     callback();
   }

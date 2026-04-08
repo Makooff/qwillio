@@ -61,33 +61,43 @@ export class ApifyScrapingService {
       return [];
     }
 
+    const actorId = env.APIFY_ACTOR_ID;
+    const keyPreview = env.APIFY_API_KEY.slice(0, 12) + '…';
+
     try {
-      // Start actor run
+      // Start actor run (use Authorization header — more reliable than ?token= param)
       const startRes = await fetch(
-        `${this.BASE_URL}/acts/${env.APIFY_ACTOR_ID}/runs?token=${env.APIFY_API_KEY}`,
+        `${this.BASE_URL}/acts/${actorId}/runs`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${env.APIFY_API_KEY}`,
+          },
           body: JSON.stringify({ ...input, maxCrawledPlacesPerSearch: 20 }),
         }
       );
 
       if (!startRes.ok) {
-        const err = await startRes.text();
-        logger.error('[Apify] Failed to start actor:', err);
+        const body = await startRes.text();
+        logger.error(`[Apify] Failed to start actor ${actorId} (key: ${keyPreview}): HTTP ${startRes.status} ${startRes.statusText} — ${body}`);
         return [];
       }
 
       const startData = await startRes.json() as any;
       const runId: string = startData.data?.id;
-      if (!runId) return [];
+      if (!runId) {
+        logger.error(`[Apify] No run ID returned from actor ${actorId}. Response: ${JSON.stringify(startData)}`);
+        return [];
+      }
 
       // Poll until SUCCEEDED (max 5 min)
       for (let i = 0; i < 60; i++) {
         await new Promise(r => setTimeout(r, 5000));
 
         const statusRes = await fetch(
-          `${this.BASE_URL}/actor-runs/${runId}?token=${env.APIFY_API_KEY}`
+          `${this.BASE_URL}/actor-runs/${runId}`,
+          { headers: { 'Authorization': `Bearer ${env.APIFY_API_KEY}` } }
         );
         const statusData = await statusRes.json() as any;
         const status: string = statusData.data?.status;
@@ -95,7 +105,8 @@ export class ApifyScrapingService {
         if (status === 'SUCCEEDED') {
           const datasetId: string = statusData.data?.defaultDatasetId;
           const itemsRes = await fetch(
-            `${this.BASE_URL}/datasets/${datasetId}/items?token=${env.APIFY_API_KEY}&format=json`
+            `${this.BASE_URL}/datasets/${datasetId}/items?format=json`,
+            { headers: { 'Authorization': `Bearer ${env.APIFY_API_KEY}` } }
           );
           return (await itemsRes.json() as any) || [];
         }
@@ -109,7 +120,7 @@ export class ApifyScrapingService {
       logger.error(`[Apify] Actor run ${runId} timed out after 5 minutes`);
       return [];
     } catch (err) {
-      logger.error('[Apify] Actor run error:', err);
+      logger.error(`[Apify] Actor run exception (actor: ${actorId}, key: ${keyPreview}): ${(err as Error).message}`);
       return [];
     }
   }
