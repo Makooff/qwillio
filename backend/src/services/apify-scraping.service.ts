@@ -74,8 +74,7 @@ export class ApifyScrapingService {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${env.APIFY_API_KEY}`,
           },
-          body: JSON.stringify({ ...input, maxCrawledPlacesPerSearch: 20 }),
-        }
+          body: JSON.stringify({ ...input, maxCrawledPlacesPerSearch: 20 }),  }
       );
 
       if (!startRes.ok) {
@@ -140,7 +139,7 @@ export class ApifyScrapingService {
             const results = await this.runActor({
               searchStringsArray: [searchStr],
               language: 'en',
-              countryCode: 'US',
+              countryCode: 'us',
             });
 
             for (const item of results) {
