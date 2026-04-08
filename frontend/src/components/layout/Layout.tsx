@@ -173,7 +173,7 @@ export default function Layout() {
       <div className={`flex items-center gap-3 mb-6 flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'px-1'}`}>
         <QwillioLogo size={32} />
         {!collapsed && (
-          <span className="text-base font-bold text-[#F8F8FF] tracking-tight">Qwillio</span>
+          <span className="text-base font-bold text-[#F8F8FF] tracking-tight">Qwillio <span className="text-[#7B5CF0]">admin</span></span>
         )}
       </div>
 
