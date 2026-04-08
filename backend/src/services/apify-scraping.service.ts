@@ -74,7 +74,7 @@ export class ApifyScrapingService {
         }
         try {
           startRes = await fetch(
-            `${this.BASE_URL}/actors/${actorId}/runs`,
+            `${this.BASE_URL}/acts/${actorId}/runs?token=${env.APIFY_API_KEY}`,
             {
               method: 'POST',
               headers: {
@@ -113,7 +113,7 @@ export class ApifyScrapingService {
         await new Promise(r => setTimeout(r, 5000));
 
         const statusRes = await fetch(
-          `${this.BASE_URL}/actor-runs/${runId}`,
+          `${this.BASE_URL}/actor-runs/${runId}?token=${env.APIFY_API_KEY}`,
           { headers: { 'Authorization': `Bearer ${env.APIFY_API_KEY}` } }
         );
         const statusData = await statusRes.json() as any;
