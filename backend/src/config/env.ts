@@ -90,7 +90,7 @@ export const env = {
 
   // ─── Apify (Google Maps scraping) ────────────────────────
   APIFY_API_KEY: process.env.APIFY_API_KEY || '',
-  APIFY_ACTOR_ID: process.env.APIFY_ACTOR_ID || 'compass~google-maps-scraper', // username~actorName format
+  APIFY_ACTOR_ID: process.env.APIFY_ACTOR_ID || 'compass~crawler-google-places', // correct actor name
 
   // ─── Claude API (script self-learning) ───────────────────
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
