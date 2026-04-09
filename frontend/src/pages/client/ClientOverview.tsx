@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Phone, Users, Clock, TrendingUp, Pause, Play, AlertCircle,
-  ArrowRight, ChevronRight, Shield, Activity, RefreshCw,
+  ArrowRight, ChevronRight, Shield, Activity, RefreshCw, HelpCircle,
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -28,6 +28,7 @@ const SENTIMENT_DOT: Record<string, string> = {
 
 export default function ClientOverview() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
   const [calls, setCalls] = useState<any[]>([]);
@@ -51,8 +52,14 @@ export default function ClientOverview() {
       const status = err?.response?.status;
       if (status === 401) setError('Session expirée — reconnectez-vous.');
       else if (status === 403) setError('Accès refusé (rôle client requis).');
-      else if (status === 404) setError('Profil client introuvable. Contactez le support.');
-      else setError(msg);
+      else if (status === 404) {
+        // Not onboarded yet → redirect to complete setup
+        if (!user?.onboardingCompleted) {
+          navigate('/onboard');
+          return;
+        }
+        setError('no-profile');
+      } else setError(msg);
     } finally {
       setLoading(false);
     }
@@ -78,7 +85,30 @@ export default function ClientOverview() {
     </div>
   );
 
-  /* ─── Error ─── */
+  /* ─── Error: no profile (admin-created client not yet linked) ─── */
+  if (error === 'no-profile') return (
+    <div className="flex flex-col items-center justify-center py-32 text-center px-6">
+      <div className="w-14 h-14 rounded-2xl bg-[#7B5CF0]/10 flex items-center justify-center mb-4">
+        <HelpCircle className="w-7 h-7 text-[#7B5CF0]" />
+      </div>
+      <h2 className="text-lg font-semibold text-[#F8F8FF] mb-2">Compte en cours de configuration</h2>
+      <p className="text-sm text-[#8B8BA7] mb-6 max-w-xs leading-relaxed">
+        Votre espace client est en cours d'activation. Contactez notre équipe si cela persiste plus de 24h.
+      </p>
+      <div className="flex flex-col gap-3 w-full max-w-xs">
+        <Link to="/dashboard/support"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6D4FE0] transition-colors">
+          <HelpCircle className="w-4 h-4" /> Contacter le support
+        </Link>
+        <button onClick={() => { setLoading(true); setError(null); load(); }}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-[#8B8BA7] bg-white/[0.04] rounded-xl hover:bg-white/[0.08] transition-colors">
+          <RefreshCw className="w-4 h-4" /> Réessayer
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ─── Error: other ─── */
   if (error || !data) return (
     <div className="flex flex-col items-center justify-center py-32 text-center">
       <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
@@ -87,7 +117,7 @@ export default function ClientOverview() {
       <h2 className="text-lg font-semibold text-[#F8F8FF] mb-1">Impossible de charger le dashboard</h2>
       <p className="text-sm text-[#8B8BA7] mb-6 max-w-xs">{error || 'Vérifiez votre connexion et réessayez.'}</p>
       <button
-        onClick={() => { setLoading(true); load(); }}
+        onClick={() => { setLoading(true); setError(null); load(); }}
         className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6D4FE0] transition-colors"
       >
         <RefreshCw className="w-4 h-4" /> Réessayer

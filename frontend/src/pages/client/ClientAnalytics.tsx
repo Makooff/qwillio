@@ -28,22 +28,26 @@ export default function ClientAnalytics() {
   const [compareData, setCompareData] = useState<any>(null);
   const [overview, setOverview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [costPerLead, setCostPerLead] = useState(50);
   const [avgDealValue, setAvgDealValue] = useState(500);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const [an, compare, ov] = await Promise.all([
         api.get(`/my-dashboard/analytics?days=${period}`),
-        api.get(`/my-dashboard/analytics?days=${period * 2}`),
-        api.get('/my-dashboard/overview'),
+        api.get(`/my-dashboard/analytics?days=${period * 2}`).catch(() => ({ data: null })),
+        api.get('/my-dashboard/overview').catch(() => ({ data: null })),
       ]);
       setData(an.data);
       setCompareData(compare.data);
       setOverview(ov.data);
-    } catch (err) {
-      console.error('Analytics fetch error', err);
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 404) setError('no-profile');
+      else setError(err?.response?.data?.error || 'Erreur de connexion');
     } finally {
       setLoading(false);
     }
@@ -59,18 +63,30 @@ export default function ClientAnalytics() {
     );
   }
 
-  if (!data) return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-red-400/10 flex items-center justify-center mb-4">
-        <BarChart3 size={28} className="text-red-400" />
+  if (error === 'no-profile' || (!data && !loading)) return (
+    <div className="flex flex-col items-center justify-center py-24 text-center px-6">
+      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${error === 'no-profile' ? 'bg-[#7B5CF0]/10' : 'bg-red-400/10'}`}>
+        <BarChart3 size={28} className={error === 'no-profile' ? 'text-[#7B5CF0]' : 'text-red-400'} />
       </div>
-      <h2 className="text-lg font-semibold text-[#F8F8FF] mb-1">Impossible de charger les analytiques</h2>
-      <p className="text-sm text-[#8B8BA7] mb-4">Vérifiez votre connexion et réessayez.</p>
-      <button onClick={() => fetchData()}
-        className="px-5 py-2.5 text-sm font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6a4ee0] transition-colors"
-      >
-        Réessayer
-      </button>
+      <h2 className="text-lg font-semibold text-[#F8F8FF] mb-1">
+        {error === 'no-profile' ? 'Compte en cours de configuration' : 'Impossible de charger les analytiques'}
+      </h2>
+      <p className="text-sm text-[#8B8BA7] mb-4 max-w-xs leading-relaxed">
+        {error === 'no-profile'
+          ? 'Votre espace client est en cours d\'activation.'
+          : (error || 'Vérifiez votre connexion et réessayez.')}
+      </p>
+      <div className="flex gap-3">
+        {error === 'no-profile' && (
+          <a href="/dashboard/support" className="px-5 py-2.5 text-sm font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6a4ee0] transition-colors">
+            Contacter le support
+          </a>
+        )}
+        <button onClick={() => fetchData()}
+          className="px-5 py-2.5 text-sm font-medium text-[#8B8BA7] bg-white/[0.06] rounded-xl hover:bg-white/[0.10] transition-colors">
+          Réessayer
+        </button>
+      </div>
     </div>
   );
 
