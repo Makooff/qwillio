@@ -17,11 +17,15 @@ export default function PhoneValidation() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Backend returns: { totalWithPhone, validated, notValidated, validatedPct, bySource, confidence }
+  const total = data?.totalWithPhone ?? data?.total ?? 0;
+  const valid = data?.validated ?? data?.valid ?? 0;
+  const invalid = data?.notValidated ?? data?.invalid ?? 0;
+  const validRate = data?.validatedPct ?? data?.validRate ?? 0;
   const pieData = data ? [
-    { name: 'Valides', value: data.valid ?? 0 },
-    { name: 'Invalides', value: data.invalid ?? 0 },
-    { name: 'Non vérifiés', value: data.unverified ?? 0 },
-  ] : [];
+    { name: 'Valides', value: valid },
+    { name: 'Non validés', value: invalid },
+  ].filter(d => d.value > 0) : [];
   const PIE_COLORS = ['#22C55E', '#EF4444', '#8B8BA7'];
   const ttStyle = { background: '#1E1E2E', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12 };
 
@@ -36,10 +40,10 @@ export default function PhoneValidation() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {loading ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />) : <>
-          <StatCard label="Total numéros" value={data?.total ?? 0} icon={<Phone className="w-4 h-4" />} />
-          <StatCard label="Valides" value={data?.valid ?? 0} icon={<CheckCircle className="w-4 h-4" />} color="#22C55E" />
-          <StatCard label="Invalides" value={data?.invalid ?? 0} icon={<XCircle className="w-4 h-4" />} color="#EF4444" />
-          <StatCard label="Taux validité" value={data?.validRate ?? 0} suffix="%" format="percent" icon={<AlertCircle className="w-4 h-4" />} color="#7B5CF0" />
+          <StatCard label="Total numéros" value={total} icon={<Phone className="w-4 h-4" />} />
+          <StatCard label="Validés" value={valid} icon={<CheckCircle className="w-4 h-4" />} color="#22C55E" />
+          <StatCard label="Non validés" value={invalid} icon={<XCircle className="w-4 h-4" />} color="#EF4444" />
+          <StatCard label="Taux validité" value={validRate} suffix="%" format="percent" icon={<AlertCircle className="w-4 h-4" />} color="#7B5CF0" />
         </>}
       </div>
 
@@ -66,11 +70,11 @@ export default function PhoneValidation() {
           {loading ? <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-10 bg-white/[0.04] rounded-xl animate-pulse" />)}</div> : (
             <div className="space-y-3">
               {[
-                { label: 'Numéros mobiles', value: data?.mobile ?? 0, color: '#22C55E' },
-                { label: 'Numéros fixes', value: data?.landline ?? 0, color: '#7B5CF0' },
-                { label: 'VoIP', value: data?.voip ?? 0, color: '#F59E0B' },
-                { label: 'Doublons', value: data?.duplicates ?? 0, color: '#EF4444' },
-              ].map(s => (
+                { label: 'Confiance haute (≥80%)', value: data?.confidence?.high ?? 0, color: '#22C55E' },
+                { label: 'Confiance moyenne (50-80%)', value: data?.confidence?.medium ?? 0, color: '#F59E0B' },
+                { label: 'Confiance basse (<50%)', value: data?.confidence?.low ?? 0, color: '#EF4444' },
+                { label: 'Non encore validés', value: invalid - (data?.confidence?.high ?? 0) - (data?.confidence?.medium ?? 0) - (data?.confidence?.low ?? 0) > 0 ? invalid : 0, color: '#8B8BA7' },
+              ].filter(s => s.value > 0).map(s => (
                 <div key={s.label} className="flex items-center justify-between p-3 bg-[#0D0D15] rounded-xl">
                   <span className="text-sm text-[#8B8BA7]">{s.label}</span>
                   <span className="text-sm font-bold" style={{ color: s.color }}>{s.value.toLocaleString()}</span>
