@@ -20,6 +20,9 @@ export const config = {
     system: process.env.DISCORD_SYSTEM_CHANNEL_ID || '',
   },
 
+  // Claude Code channel bridge
+  claudeCodeChannelId: process.env.DISCORD_CLAUDE_CODE_CHANNEL_ID || '1458454372647440578',
+
   // Database
   databaseUrl: process.env.DATABASE_URL || '',
 
