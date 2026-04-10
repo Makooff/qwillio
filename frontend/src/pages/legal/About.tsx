@@ -4,11 +4,18 @@ import { Phone, BrainCircuit, Calendar, Stethoscope, Wrench, Scale, Scissors, Ut
 import QwillioLogo from '../../components/QwillioLogo';
 import LangToggle from '../../components/LangToggle';
 import { useLang } from '../../stores/langStore';
+import { useSEO } from '../../hooks/useSEO';
 
 export default function About() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
   const [scrolled, setScrolled] = useState(false);
+
+  useSEO({
+    title: 'About Qwillio',
+    description: 'About Qwillio — the AI receptionist and business automation platform that answers calls, books appointments, and grows your business 24/7.',
+    canonical: 'https://qwillio.com/about',
+  });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);

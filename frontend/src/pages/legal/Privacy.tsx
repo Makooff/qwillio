@@ -3,11 +3,19 @@ import { Link } from 'react-router-dom';
 import QwillioLogo from '../../components/QwillioLogo';
 import LangToggle from '../../components/LangToggle';
 import { useLang } from '../../stores/langStore';
+import { useSEO } from '../../hooks/useSEO';
 
 export default function Privacy() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
   const [scrolled, setScrolled] = useState(false);
+
+  useSEO({
+    title: 'Privacy Policy',
+    description: 'Qwillio privacy policy — how we collect, use, and protect your data in compliance with GDPR and CCPA.',
+    canonical: 'https://qwillio.com/privacy',
+    noindex: true,
+  });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
