@@ -12,6 +12,7 @@ import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { discordService } from './discord.service';
 import { abTestingService } from './ab-testing.service';
+import { followUpSequencesService } from './follow-up-sequences.service';
 import { isHoliday } from '../config/scheduling';
 
 // ─── US Federal holidays (YYYY-MM-DD) ────────────────────
@@ -418,6 +419,18 @@ export class OutboundEngineService {
     // Track A/B result
     if (call.niche && call.language && call.scriptVariant && interestScore >= 5) {
       await abTestingService.recordConversion(call.niche, call.language, call.scriptVariant as 'A' | 'B');
+    }
+
+    // Trigger post-call follow-up sequences (SMS + email)
+    try {
+      await followUpSequencesService.triggerPostCallSequence(
+        call.prospectId,
+        interestScore,
+        prospect.callAttempts ?? 1,
+        outcomeData.detectionResult ?? 'no_answer',
+      );
+    } catch (followUpErr) {
+      logger.error('[OutboundEngine] Follow-up trigger failed (non-fatal):', followUpErr);
     }
 
     // Mark exhausted after 3 failed attempts with no answer

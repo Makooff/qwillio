@@ -7,7 +7,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '3000', 10),
-  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173,https://frontend-orcin-psi-81.vercel.app',
+  FRONTEND_URL: (process.env.FRONTEND_URL || 'http://localhost:5173,https://frontend-orcin-psi-81.vercel.app').replace(/\\n/g, '').trim(),
   API_BASE_URL: process.env.API_BASE_URL || 'https://qwillio.onrender.com',
 
   DATABASE_URL: process.env.DATABASE_URL!,
@@ -50,7 +50,8 @@ export const env = {
   STRIPE_PRICE_ENTERPRISE_MONTHLY: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || '',
 
   RESEND_API_KEY: process.env.RESEND_API_KEY || '',
-  RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'Qwillio <noreply@qwillio.com>',
+  RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'Qwillio <hello@qwillio.com>',
+  RESEND_FROM_NAME: process.env.RESEND_FROM_NAME || 'Qwillio',
   RESEND_REPLY_TO: process.env.RESEND_REPLY_TO || 'contact@qwillio.com',
 
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',

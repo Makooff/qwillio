@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Link2, Unlink, RefreshCw, CheckCircle2, XCircle,
   ArrowLeftRight, ArrowRight, Clock, Database,
-  TestTube, Settings2
+  TestTube, Loader2
 } from 'lucide-react';
+import api from '../../services/api';
 
 interface Integration {
   id: string;
@@ -16,19 +17,20 @@ interface Integration {
   syncDirection: 'one_way' | 'bidirectional';
 }
 
-const INTEGRATIONS: Integration[] = [
-  { id: 'hubspot', name: 'HubSpot', category: 'crm', connected: false, syncDirection: 'bidirectional' },
-  { id: 'salesforce', name: 'Salesforce', category: 'crm', connected: false, syncDirection: 'bidirectional' },
-  { id: 'pipedrive', name: 'Pipedrive', category: 'crm', connected: false, syncDirection: 'bidirectional' },
-  { id: 'zoho', name: 'Zoho CRM', category: 'crm', connected: false, syncDirection: 'bidirectional' },
-  { id: 'gohighlevel', name: 'GoHighLevel', category: 'crm', connected: false, syncDirection: 'bidirectional' },
-  { id: 'google-sheets', name: 'Google Sheets', category: 'crm', connected: false, syncDirection: 'one_way' },
-  { id: 'notion', name: 'Notion', category: 'crm', connected: false, syncDirection: 'one_way' },
-  { id: 'quickbooks', name: 'QuickBooks', category: 'accounting', connected: false, syncDirection: 'bidirectional' },
-  { id: 'wave', name: 'Wave', category: 'accounting', connected: false, syncDirection: 'bidirectional' },
-  { id: 'stripe', name: 'Stripe', category: 'payment', connected: true, lastSync: '2 min ago', contactsSynced: 47, syncDirection: 'bidirectional' },
-  { id: 'google-calendar', name: 'Google Calendar', category: 'calendar', connected: true, lastSync: '5 min ago', contactsSynced: 23, syncDirection: 'bidirectional' },
-  { id: 'zapier', name: 'Zapier', category: 'automation', connected: false, syncDirection: 'one_way' },
+// Available integrations catalog (static — enriched with real status from API)
+const INTEGRATION_CATALOG: Omit<Integration, 'connected' | 'lastSync' | 'contactsSynced'>[] = [
+  { id: 'hubspot', name: 'HubSpot', category: 'crm', syncDirection: 'bidirectional' },
+  { id: 'salesforce', name: 'Salesforce', category: 'crm', syncDirection: 'bidirectional' },
+  { id: 'pipedrive', name: 'Pipedrive', category: 'crm', syncDirection: 'bidirectional' },
+  { id: 'zoho', name: 'Zoho CRM', category: 'crm', syncDirection: 'bidirectional' },
+  { id: 'gohighlevel', name: 'GoHighLevel', category: 'crm', syncDirection: 'bidirectional' },
+  { id: 'google-sheets', name: 'Google Sheets', category: 'crm', syncDirection: 'one_way' },
+  { id: 'notion', name: 'Notion', category: 'crm', syncDirection: 'one_way' },
+  { id: 'quickbooks', name: 'QuickBooks', category: 'accounting', syncDirection: 'bidirectional' },
+  { id: 'wave', name: 'Wave', category: 'accounting', syncDirection: 'bidirectional' },
+  { id: 'stripe', name: 'Stripe', category: 'payment', syncDirection: 'bidirectional' },
+  { id: 'google-calendar', name: 'Google Calendar', category: 'calendar', syncDirection: 'bidirectional' },
+  { id: 'zapier', name: 'Zapier', category: 'automation', syncDirection: 'one_way' },
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -39,9 +41,50 @@ const CATEGORY_LABELS: Record<string, string> = {
   automation: 'Automation',
 };
 
+function timeAgo(date: string | null | undefined): string | undefined {
+  if (!date) return undefined;
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 export default function Integrations() {
-  const [integrations, setIntegrations] = useState(INTEGRATIONS);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const { data } = await api.get('/crm/integrations');
+        const connectedMap = new Map<string, any>();
+        (data.integrations || data || []).forEach((i: any) => {
+          connectedMap.set(i.provider || i.id, i);
+        });
+
+        const merged: Integration[] = INTEGRATION_CATALOG.map(cat => {
+          const real = connectedMap.get(cat.id);
+          return {
+            ...cat,
+            connected: !!real,
+            lastSync: timeAgo(real?.lastSync),
+            contactsSynced: real?.contactsSynced,
+            syncDirection: real?.syncDirection || cat.syncDirection,
+          };
+        });
+        setIntegrations(merged);
+      } catch {
+        // Fallback to catalog with nothing connected
+        setIntegrations(INTEGRATION_CATALOG.map(c => ({ ...c, connected: false })));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const filtered = filter === 'all'
     ? integrations
@@ -51,7 +94,22 @@ export default function Integrations() {
 
   const connectedCount = integrations.filter(i => i.connected).length;
 
-  const toggleConnect = (id: string) => {
+  const toggleConnect = async (id: string) => {
+    const integration = integrations.find(i => i.id === id);
+    if (!integration) return;
+
+    if (integration.connected) {
+      // Disconnect
+      try {
+        await api.delete(`/crm/integrations/${id}`);
+      } catch {}
+    } else {
+      // Connect
+      try {
+        await api.post('/crm/integrations', { provider: id, config: {} });
+      } catch {}
+    }
+
     setIntegrations(prev => prev.map(i =>
       i.id === id ? {
         ...i,
@@ -70,6 +128,23 @@ export default function Integrations() {
       } : i
     ));
   };
+
+  const syncNow = async (id: string) => {
+    try {
+      await api.post(`/crm/integrations/${id}/sync`);
+      setIntegrations(prev => prev.map(i =>
+        i.id === id ? { ...i, lastSync: 'Just now' } : i
+      ));
+    } catch {}
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="animate-spin text-[#6366f1]" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -178,7 +253,7 @@ export default function Integrations() {
               </button>
               {integration.connected && (
                 <>
-                  <button className="p-2 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed] transition-colors" title="Sync now">
+                  <button onClick={() => syncNow(integration.id)} className="p-2 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed] transition-colors" title="Sync now">
                     <RefreshCw size={16} />
                   </button>
                   <button className="p-2 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed] transition-colors" title="Test connection">

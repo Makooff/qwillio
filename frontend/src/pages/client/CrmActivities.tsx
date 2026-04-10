@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Phone, Mail, FileText, TrendingUp, MessageSquare, Filter, Calendar } from 'lucide-react';
+import { Phone, Mail, FileText, TrendingUp, MessageSquare, Filter, Calendar, Loader2 } from 'lucide-react';
+import api from '../../services/api';
 
 type ActivityType = 'call' | 'email' | 'note' | 'deal_update' | 'sms';
 
@@ -22,51 +23,48 @@ const TYPE_CONFIG: Record<ActivityType, { label: string; icon: React.ElementType
   sms:         { label: 'SMS',         icon: MessageSquare, bg: 'bg-purple-50',  text: 'text-purple-700',  iconColor: 'text-purple-500' },
 };
 
-const DEMO_ACTIVITIES: Activity[] = [
-  { id: '1',  type: 'call',        contactName: 'Sarah Mitchell',  description: 'Inbound call — discussed AI receptionist setup. Very interested, ready to sign.', timestamp: '10:32 AM', date: 'Mar 22', month: 'March' },
-  { id: '2',  type: 'deal_update', contactName: 'Derek Fontaine',  description: 'Deal moved from Appointment → Client. Contract signed for $3,500/yr.', timestamp: '9:15 AM',  date: 'Mar 22', month: 'March' },
-  { id: '3',  type: 'email',       contactName: 'James Kowalski',  description: 'Sent follow-up proposal email with pricing breakdown and onboarding timeline.', timestamp: '8:50 AM',  date: 'Mar 22', month: 'March' },
-  { id: '4',  type: 'sms',         contactName: 'Priya Nair',      description: 'SMS sent: "Hi Priya, just confirming our demo call tomorrow at 2 PM. Let me know if you need to reschedule."', timestamp: '6:04 PM',  date: 'Mar 21', month: 'March' },
-  { id: '5',  type: 'call',        contactName: 'Ryan Castillo',   description: 'Outbound call — 12 min. Ryan asked about integrations. Sent Zapier docs after.', timestamp: '3:22 PM',  date: 'Mar 21', month: 'March' },
-  { id: '6',  type: 'note',        contactName: 'Linda Park',      description: 'Note added: Linda prefers morning appointments. Budget is ~$2,400/yr. Decision maker is confirmed.', timestamp: '2:10 PM',  date: 'Mar 21', month: 'March' },
-  { id: '7',  type: 'email',       contactName: 'Marcus Williams', description: 'Cold outreach email sent. Subject: "Cut missed calls by 80% — AI dispatcher for plumbers."', timestamp: '11:30 AM', date: 'Mar 21', month: 'March' },
-  { id: '8',  type: 'deal_update', contactName: 'Linda Park',      description: 'Deal created: Accounting Scheduler — $2,400, 55% probability, close date Apr 15.', timestamp: '9:00 AM',  date: 'Mar 21', month: 'March' },
-  { id: '9',  type: 'call',        contactName: 'Amara Osei',      description: 'Inbound call — 8 min. New lead from Facebook ad. Interested in gym membership chatbot.', timestamp: '4:45 PM',  date: 'Mar 20', month: 'March' },
-  { id: '10', type: 'sms',         contactName: 'Ryan Castillo',   description: 'SMS received from Ryan: "Yes, I\'m ready to move forward. Can we sign this week?"', timestamp: '3:10 PM',  date: 'Mar 20', month: 'March' },
-  { id: '11', type: 'note',        contactName: 'James Kowalski',  description: 'Note: Decision pending final approval from AutoMax GM. Follow up Friday.', timestamp: '1:55 PM',  date: 'Mar 20', month: 'March' },
-  { id: '12', type: 'email',       contactName: 'Eva Brennan',     description: 'Welcome email sent post-signup. Introduced onboarding coordinator and next steps.', timestamp: '10:20 AM', date: 'Mar 20', month: 'March' },
-  { id: '13', type: 'deal_update', contactName: 'Tom Harrington',  description: 'Deal marked Lost. Tom chose a competitor. Budget constraints cited.', timestamp: '9:40 AM',  date: 'Mar 20', month: 'March' },
-  { id: '14', type: 'call',        contactName: 'Kim Nguyen',      description: 'Discovery call — 22 min. Excellent fit. Scheduling live demo next week.', timestamp: '2:30 PM',  date: 'Mar 19', month: 'March' },
-  { id: '15', type: 'note',        contactName: 'Greg Torres',     description: 'Note: Greg runs 3 landscaping crews. Would benefit from automated scheduling. Send case study.', timestamp: '11:05 AM', date: 'Mar 19', month: 'March' },
-  { id: '16', type: 'email',       contactName: 'Sandra Lee',      description: 'Proposal email sent: HVAC Appointment Setter at $2,600/yr. Includes 30-day free trial.', timestamp: '10:00 AM', date: 'Mar 19', month: 'March' },
-  { id: '17', type: 'sms',         contactName: 'Derek Fontaine',  description: 'SMS: "Your AI receptionist is live! Expect a training call from our team today."', timestamp: '8:30 AM',  date: 'Mar 19', month: 'March' },
-  { id: '18', type: 'call',        contactName: 'Sandra Lee',      description: 'Inbound inquiry call — Sandra runs a busy HVAC company. Very high lead volume, open to automation.', timestamp: '3:50 PM',  date: 'Mar 18', month: 'March' },
-];
-
-const MONTHS = ['All Time', 'March', 'February', 'January'];
-const DATES = ['All Dates', 'Mar 22', 'Mar 21', 'Mar 20', 'Mar 19', 'Mar 18'];
-
 export default function CrmActivities() {
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<ActivityType | ''>('');
-  const [monthFilter, setMonthFilter] = useState('All Time');
-  const [dateFilter, setDateFilter] = useState('All Dates');
 
-  const filtered = DEMO_ACTIVITIES.filter(a => {
-    if (typeFilter && a.type !== typeFilter) return false;
-    if (monthFilter !== 'All Time' && a.month !== monthFilter) return false;
-    if (dateFilter !== 'All Dates' && a.date !== dateFilter) return false;
-    return true;
-  });
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const params: Record<string, string> = { limit: '50' };
+        if (typeFilter) params.type = typeFilter;
+        const { data } = await api.get('/crm/activities', { params });
+        const mapped = (data.activities || []).map((a: any) => {
+          const d = new Date(a.createdAt);
+          return {
+            id: a.id,
+            type: (a.type || 'note') as ActivityType,
+            contactName: a.contactName || a.contact?.name || 'Unknown',
+            description: a.description || '',
+            timestamp: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+            date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            month: d.toLocaleDateString('en-US', { month: 'long' }),
+          };
+        });
+        setActivities(mapped);
+      } catch {
+        // keep current
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [typeFilter]);
 
   // Group by date
   const grouped: Record<string, Activity[]> = {};
-  filtered.forEach(a => {
+  activities.forEach(a => {
     if (!grouped[a.date]) grouped[a.date] = [];
     grouped[a.date].push(a);
   });
 
   const typeCounts: Record<string, number> = {};
-  DEMO_ACTIVITIES.forEach(a => { typeCounts[a.type] = (typeCounts[a.type] || 0) + 1; });
+  activities.forEach(a => { typeCounts[a.type] = (typeCounts[a.type] || 0) + 1; });
 
   return (
     <div>
@@ -74,7 +72,7 @@ export default function CrmActivities() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Activity Feed</h1>
-          <p className="text-sm text-[#86868b]">{DEMO_ACTIVITIES.length} activities logged</p>
+          <p className="text-sm text-[#86868b]">{activities.length} activities logged</p>
         </div>
       </motion.div>
 
@@ -84,7 +82,7 @@ export default function CrmActivities() {
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
             typeFilter === '' ? 'bg-[#6366f1] text-white border-[#6366f1]' : 'bg-white border-[#d2d2d7]/60 text-[#86868b] hover:bg-[#f5f5f7]'
           }`}>
-          All ({DEMO_ACTIVITIES.length})
+          All ({activities.length})
         </button>
         {(Object.keys(TYPE_CONFIG) as ActivityType[]).map(t => {
           const cfg = TYPE_CONFIG[t];
@@ -100,34 +98,20 @@ export default function CrmActivities() {
         })}
       </div>
 
-      {/* Date range filters */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#d2d2d7]/60 bg-white">
-          <Calendar size={14} className="text-[#86868b]" />
-          <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
-            className="text-sm bg-transparent focus:outline-none text-[#1d1d1f]">
-            {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+      {/* Loading */}
+      {loading ? (
+        <div className="py-16 text-center">
+          <Loader2 size={24} className="mx-auto text-[#6366f1] animate-spin mb-3" />
+          <p className="text-sm text-[#86868b]">Loading activities...</p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#d2d2d7]/60 bg-white">
-          <Filter size={14} className="text-[#86868b]" />
-          <select value={dateFilter} onChange={e => setDateFilter(e.target.value)}
-            className="text-sm bg-transparent focus:outline-none text-[#1d1d1f]">
-            {DATES.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
-        </div>
-        <span className="flex items-center px-3 py-2 text-xs text-[#86868b]">{filtered.length} activities</span>
-      </div>
-
-      {/* Timeline */}
-      {Object.keys(grouped).length === 0 ? (
+      ) : Object.keys(grouped).length === 0 ? (
         <div className="py-16 text-center">
           <Calendar size={36} className="mx-auto text-[#d2d2d7] mb-3" />
-          <p className="text-sm text-[#86868b]">No activities match your filters</p>
+          <p className="text-sm text-[#86868b]">No activities yet</p>
         </div>
       ) : (
         <div className="space-y-8">
-          {Object.entries(grouped).map(([date, activities]) => (
+          {Object.entries(grouped).map(([date, items]) => (
             <div key={date}>
               {/* Date separator */}
               <div className="flex items-center gap-3 mb-4">
@@ -142,8 +126,8 @@ export default function CrmActivities() {
                 <div className="absolute left-3 top-0 bottom-0 w-px bg-[#d2d2d7]/40" />
 
                 <div className="space-y-3">
-                  {activities.map((activity, idx) => {
-                    const cfg = TYPE_CONFIG[activity.type];
+                  {items.map((activity, idx) => {
+                    const cfg = TYPE_CONFIG[activity.type] || TYPE_CONFIG.note;
                     const Icon = cfg.icon;
                     return (
                       <motion.div key={activity.id}

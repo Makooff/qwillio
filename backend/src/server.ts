@@ -257,6 +257,16 @@ async function startServer() {
     await botLoop.initialize();
     logger.info('Bot loop initialized');
 
+    // Auto-start bot loop in production
+    if (env.NODE_ENV === 'production') {
+      try {
+        await botLoop.start();
+        logger.info('Bot loop auto-started in production ✅');
+      } catch (botErr) {
+        logger.error('Bot loop auto-start failed (non-fatal):', botErr);
+      }
+    }
+
     app.listen(env.PORT, () => {
       logger.info('═══════════════════════════════════════');
       logger.info(`  🚀 Qwillio API running on port ${env.PORT}`);
@@ -264,6 +274,17 @@ async function startServer() {
       logger.info(`  🔗 API: ${env.API_BASE_URL}`);
       logger.info(`  📦 Environment: ${env.NODE_ENV}`);
       logger.info('═══════════════════════════════════════');
+
+      // Production warnings
+      if (env.NODE_ENV === 'production') {
+        if (env.RESEND_FROM_EMAIL.includes('resend.dev')) {
+          logger.warn('⚠️  RESEND_FROM_EMAIL uses resend.dev test domain — emails will only reach verified addresses!');
+        }
+        if (!env.ANTHROPIC_API_KEY) {
+          logger.warn('⚠️  ANTHROPIC_API_KEY missing — A/B challenger generation and script learning disabled');
+        }
+      }
+
       logger.info('');
       logger.info('  Endpoints:');
       logger.info('  POST /api/bot/start      → Start bot loop');
