@@ -29,19 +29,47 @@ router.delete('/logs', (_req: Request, res: Response) => {
 });
 
 // ─── Bot config (used by AdminSettings page) ─────────────
-// GET  /api/admin/bot-config
+// GET  /api/admin/bot-config  — returns AdminConfig + BotStatus + env defaults
 router.get('/bot-config', async (_req: Request, res: Response) => {
   try {
-    const bot = await prisma.botStatus.findFirst({ select: { callsQuotaDaily: true } });
+    const [adminCfg, bot] = await Promise.all([
+      prisma.adminConfig.findFirst().catch(() => null),
+      prisma.botStatus.findFirst({ select: { callsQuotaDaily: true } }),
+    ]);
     res.json({
-      startHour:           env.AUTOMATION_START_HOUR,
-      endHour:             env.AUTOMATION_END_HOUR,
-      callsPerDay:         bot?.callsQuotaDaily ?? env.CALLS_PER_DAY,
-      callIntervalSeconds: env.CALL_INTERVAL_MINUTES * 60,
+      // Call scheduling
+      startHour:           adminCfg?.callWindowStart ?? env.AUTOMATION_START_HOUR,
+      endHour:             adminCfg?.callWindowEnd ?? env.AUTOMATION_END_HOUR,
+      callsPerDay:         bot?.callsQuotaDaily ?? adminCfg?.callsPerDay ?? env.CALLS_PER_DAY,
+      callIntervalSeconds: (adminCfg?.callIntervalMinutes ?? env.CALL_INTERVAL_MINUTES) * 60,
       activeDays:          env.AUTOMATION_DAYS,
-      maxCallDuration:     600,
+      maxCallDuration:     (adminCfg?.maxCallDurationMin ?? 10) * 60,
       retryDelay:          3600,
       maxRetries:          3,
+      // Prospecting
+      prospectionQuotaPerDay: adminCfg?.prospectionQuotaPerDay ?? env.PROSPECTION_DAILY_QUOTA,
+      minPriorityScore:       adminCfg?.minPriorityScore ?? env.MIN_PRIORITY_SCORE,
+      targetCities:           adminCfg?.targetCities ?? env.PROSPECTION_CITIES,
+      targetNiches:           adminCfg?.targetNiches ?? [],
+      apifyTargetCities:      adminCfg?.apifyTargetCities ?? [],
+      // VAPI voice settings
+      vapiModel:              env.VAPI_MODEL,
+      vapiVoiceId:            adminCfg?.vapiVoiceId ?? env.VAPI_VOICE_ID,
+      vapiStability:          env.VAPI_STABILITY,
+      vapiSimilarityBoost:    env.VAPI_SIMILARITY_BOOST,
+      vapiStyle:              env.VAPI_STYLE,
+      vapiLatency:            env.VAPI_OPTIMIZE_LATENCY,
+      vapiInterruptionMs:     env.VAPI_INTERRUPTION_THRESHOLD,
+      vapiSilenceTimeout:     adminCfg?.silenceTimeoutSeconds ?? env.VAPI_SILENCE_TIMEOUT,
+      vapiMaxDuration:        env.VAPI_MAX_DURATION,
+      // Env-level settings (read-only info)
+      smsEnabled:             env.SMS_ENABLED,
+      prospectionRadius:      env.PROSPECTION_RADIUS_METERS,
+      timezone:               env.TZ,
+      resendFrom:             env.RESEND_FROM_EMAIL,
+      resendReplyTo:          env.RESEND_REPLY_TO,
+      jwtExpiresIn:           env.JWT_EXPIRES_IN,
+      bcryptRounds:           env.BCRYPT_ROUNDS,
     });
   } catch (err: any) {
     logger.error('[API] bot-config GET failed:', err);
@@ -49,20 +77,46 @@ router.get('/bot-config', async (_req: Request, res: Response) => {
   }
 });
 
-// POST /api/admin/bot-config  — only callsPerDay is persisted (rest are env-controlled)
+// POST /api/admin/bot-config  — persists to AdminConfig + BotStatus
 router.post('/bot-config', async (req: Request, res: Response) => {
   try {
-    const { callsPerDay } = req.body as { callsPerDay?: number };
-    if (callsPerDay !== undefined) {
+    const body = req.body as Record<string, any>;
+
+    // Update BotStatus.callsQuotaDaily
+    if (body.callsPerDay !== undefined) {
       const bot = await prisma.botStatus.findFirst({ select: { id: true } });
       if (bot) {
         await prisma.botStatus.update({
           where: { id: bot.id },
-          data: { callsQuotaDaily: Math.min(Math.max(Number(callsPerDay), 1), 500) },
+          data: { callsQuotaDaily: Math.min(Math.max(Number(body.callsPerDay), 1), 500) },
         });
       }
     }
-    logger.info(`[API] bot-config saved: callsPerDay=${callsPerDay}`);
+
+    // Upsert AdminConfig with all supported fields
+    const cfgData: Record<string, any> = {};
+    if (body.callsPerDay !== undefined)           cfgData.callsPerDay = Math.min(Math.max(Number(body.callsPerDay), 1), 500);
+    if (body.startHour !== undefined)              cfgData.callWindowStart = Math.min(Math.max(Number(body.startHour), 0), 23);
+    if (body.endHour !== undefined)                cfgData.callWindowEnd = Math.min(Math.max(Number(body.endHour), 0), 23);
+    if (body.callIntervalSeconds !== undefined)    cfgData.callIntervalMinutes = Math.max(1, Math.round(Number(body.callIntervalSeconds) / 60));
+    if (body.maxCallDuration !== undefined)        cfgData.maxCallDurationMin = Math.max(1, Math.round(Number(body.maxCallDuration) / 60));
+    if (body.prospectionQuotaPerDay !== undefined) cfgData.prospectionQuotaPerDay = Math.max(1, Number(body.prospectionQuotaPerDay));
+    if (body.minPriorityScore !== undefined)       cfgData.minPriorityScore = Math.max(0, Number(body.minPriorityScore));
+    if (body.vapiSilenceTimeout !== undefined)     cfgData.silenceTimeoutSeconds = Math.max(5, Number(body.vapiSilenceTimeout));
+    if (body.targetCities && Array.isArray(body.targetCities))       cfgData.targetCities = body.targetCities;
+    if (body.targetNiches && Array.isArray(body.targetNiches))       cfgData.targetNiches = body.targetNiches;
+    if (body.apifyTargetCities && Array.isArray(body.apifyTargetCities)) cfgData.apifyTargetCities = body.apifyTargetCities;
+
+    if (Object.keys(cfgData).length > 0) {
+      const existing = await prisma.adminConfig.findFirst({ select: { id: true } });
+      if (existing) {
+        await prisma.adminConfig.update({ where: { id: existing.id }, data: cfgData });
+      } else {
+        await prisma.adminConfig.create({ data: cfgData });
+      }
+    }
+
+    logger.info(`[API] bot-config saved: ${JSON.stringify(Object.keys(cfgData))}`);
     res.json({ success: true });
   } catch (err: any) {
     logger.error('[API] bot-config POST failed:', err);
