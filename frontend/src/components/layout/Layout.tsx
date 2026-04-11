@@ -3,80 +3,49 @@ import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, Users, Phone, Zap, Target, Brain, ListOrdered,
-  CreditCard, Server, Settings, LogOut, ChevronLeft, ChevronRight,
-  Search, RefreshCw, X, FileText, Megaphone, DollarSign,
-  UserCheck, Mail, Smartphone, Crosshair, ExternalLink, Activity, ScrollText,
+  LayoutDashboard, Users, Phone, Zap, Target, Brain,
+  CreditCard, Settings, LogOut, ChevronLeft, ChevronRight,
+  Search, RefreshCw, X, Crosshair, ExternalLink,
 } from 'lucide-react';
 import QwillioLogo from '../QwillioLogo';
 
 const NAV_SECTIONS = [
   {
-    label: 'MAIN',
+    label: '',
     items: [
-      { path: '/admin', icon: LayoutDashboard, label: 'Vue d\'ensemble', exact: true },
-      { path: '/admin/clients', icon: Users, label: 'Clients' },
+      { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
       { path: '/admin/prospects', icon: Target, label: 'Prospects' },
       { path: '/admin/calls', icon: Phone, label: 'Appels' },
       { path: '/admin/leads', icon: Zap, label: 'Leads' },
-    ],
-  },
-  {
-    label: 'VENTES',
-    items: [
-      { path: '/admin/quotes', icon: FileText, label: 'Devis' },
-      { path: '/admin/campaigns', icon: Megaphone, label: 'Campagnes' },
-      { path: '/admin/followups', icon: Mail, label: 'Suivis' },
-    ],
-  },
-  {
-    label: 'IA & MOTEUR',
-    items: [
+      { path: '/admin/clients', icon: Users, label: 'Clients' },
       { path: '/admin/prospecting', icon: Crosshair, label: 'Prospection' },
-      { path: '/admin/ai-learning', icon: Brain, label: 'Apprentissage' },
-      { path: '/admin/ai-decisions', icon: ListOrdered, label: 'Décisions IA' },
-    ],
-  },
-  {
-    label: 'ANALYTIQUE',
-    items: [
+      { path: '/admin/ai-learning', icon: Brain, label: 'IA' },
       { path: '/admin/billing', icon: CreditCard, label: 'Facturation' },
-      { path: '/admin/costs', icon: DollarSign, label: 'Coûts' },
-      { path: '/admin/retention', icon: UserCheck, label: 'Rétention' },
-      { path: '/admin/phone-validation', icon: Smartphone, label: 'Validation tél.' },
-    ],
-  },
-  {
-    label: 'SYSTÈME',
-    items: [
-      { path: '/admin/monitor', icon: Activity, label: 'Moniteur live' },
-      { path: '/admin/logs', icon: ScrollText, label: 'Logs système' },
-      { path: '/admin/system', icon: Server, label: 'Système' },
       { path: '/admin/settings', icon: Settings, label: 'Paramètres' },
     ],
   },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
-  '/admin': 'Vue d\'ensemble',
-  '/admin/clients': 'Clients',
+  '/admin': 'Dashboard',
   '/admin/prospects': 'Prospects',
   '/admin/calls': 'Appels',
-  '/admin/leads': 'Leads chauds',
+  '/admin/leads': 'Leads',
+  '/admin/clients': 'Clients',
+  '/admin/prospecting': 'Prospection',
+  '/admin/ai-learning': 'IA',
+  '/admin/ai-decisions': 'IA — Décisions',
+  '/admin/billing': 'Facturation',
+  '/admin/settings': 'Paramètres',
   '/admin/quotes': 'Devis',
   '/admin/campaigns': 'Campagnes',
   '/admin/followups': 'Suivis',
-  '/admin/prospecting': 'Moteur de prospection',
-  '/admin/ai-learning': 'IA — Apprentissage',
-  '/admin/ai-decisions': 'IA — Décisions',
-  '/admin/billing': 'Facturation',
   '/admin/costs': 'Coûts',
   '/admin/retention': 'Rétention',
-  '/admin/phone-validation': 'Validation téléphonique',
+  '/admin/phone-validation': 'Validation tél.',
   '/admin/monitor': 'Moniteur live',
-  '/admin/logs': 'Logs système',
+  '/admin/logs': 'Logs',
   '/admin/system': 'Système',
-  '/admin/settings': 'Paramètres',
 };
 
 export default function Layout() {
@@ -177,23 +146,13 @@ export default function Layout() {
         )}
       </div>
 
-      {/* Nav — scrollable */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden space-y-5 scrollbar-hide min-h-0 pb-2">
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.label}>
-            {!collapsed && (
-              <p className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.1em] text-[#8B8BA7]/60 uppercase">
-                {section.label}
-              </p>
-            )}
-            {collapsed && <div className="h-px bg-white/[0.06] mb-2" />}
-            <div className="space-y-0.5">
-              {section.items.map((item) => (
-                <SidebarLink key={item.path} item={item} exact={'exact' in item ? (item as any).exact : undefined} />
-              ))}
-            </div>
-          </div>
-        ))}
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide min-h-0 pb-2">
+        <div className="space-y-0.5">
+          {NAV_SECTIONS[0].items.map((item) => (
+            <SidebarLink key={item.path} item={item} exact={'exact' in item ? (item as any).exact : undefined} />
+          ))}
+        </div>
       </nav>
 
       {/* Bottom — user + logout (fixed, non scrollable) */}
@@ -365,7 +324,7 @@ export default function Layout() {
                 <kbd className="text-[10px] text-[#8B8BA7] bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08]">ESC</kbd>
               </div>
               <div className="p-2">
-                {NAV_SECTIONS.flatMap(s => s.items).map((item) => (
+                {NAV_SECTIONS[0].items.map((item) => (
                   <Link
                     key={item.path}
                     to={item.path}
@@ -376,14 +335,6 @@ export default function Layout() {
                     <span className="text-sm">{item.label}</span>
                   </Link>
                 ))}
-                <Link
-                  to="/admin/settings"
-                  onClick={() => setSearchOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.05] transition-all"
-                >
-                  <Settings className="w-4 h-4" />
-                  <span className="text-sm">Settings</span>
-                </Link>
               </div>
             </motion.div>
           </>
