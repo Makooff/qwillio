@@ -175,7 +175,7 @@ export default function Dashboard() {
         {/* Pipeline Status */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
           <PipelineStep
-            label="Prospection" value={bot?.prospectsFound ?? 0}
+            label="Prospection" value={stats?.prospects?.total ?? bot?.prospectsFound ?? 0}
             sub={`Dernière: ${ago(bot?.lastRunProspecting ?? bot?.lastProspection)}`}
             color="#7B5CF0" active={!!bot?.isActive}
           />
