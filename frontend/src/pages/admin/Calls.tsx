@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../../services/api';
-import { Search, RefreshCw, FileText, Phone, Clock } from 'lucide-react';
+import { Search, RefreshCw, FileText, Phone, Clock, Play, Pause, Volume2 } from 'lucide-react';
 import Badge from '../../components/ui/Badge';
 import SlideSheet from '../../components/ui/SlideSheet';
 import Pagination from '../../components/ui/Pagination';
@@ -21,6 +21,7 @@ export default function AdminCalls() {
   const [minScore, setMinScore] = useState('');
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
   const { toasts, add: toast, remove } = useToast();
   const LIMIT = 25;
 
@@ -108,7 +109,10 @@ export default function AdminCalls() {
                   <span className="text-xs text-[#8B8BA7]">{new Date(c.createdAt??c.startedAt).toLocaleDateString('fr-FR')}</span>
                 </td>
                 <td className="px-3 py-3">
-                  {c.transcript&&<button onClick={()=>setSelected(c)} className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white opacity-0 group-hover:opacity-100 transition-all"><FileText className="w-3.5 h-3.5"/></button>}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    {c.recordingUrl&&<button onClick={()=>setSelected(c)} title="Écouter" className="p-1.5 rounded-lg hover:bg-[#7B5CF0]/10 text-[#7B5CF0]"><Volume2 className="w-3.5 h-3.5"/></button>}
+                    {c.transcript&&<button onClick={()=>setSelected(c)} title="Transcription" className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white"><FileText className="w-3.5 h-3.5"/></button>}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -117,7 +121,7 @@ export default function AdminCalls() {
         <div className="px-3 pb-4"><Pagination page={page} total={total} limit={LIMIT} onChange={setPage}/></div>
       </div>
 
-      <SlideSheet open={!!selected} onClose={()=>setSelected(null)}
+      <SlideSheet open={!!selected} onClose={()=>{setSelected(null);setPlayingId(null);}}
         title={selected?.businessName??selected?.prospect?.businessName??'Détail appel'}
         subtitle={[selected?.outcome, fmtDuration(selected?.duration??selected?.durationSeconds)].filter(Boolean).join(' · ')}>
         {selected&&(
@@ -136,6 +140,25 @@ export default function AdminCalls() {
                 <p className="text-[10px] text-[#8B8BA7] mt-1">Résultat</p>
               </div>
             </div>
+            {selected.recordingUrl&&(
+              <div>
+                <p className="text-xs text-[#8B8BA7] mb-2">Enregistrement</p>
+                <div className="bg-[#0D0D15] rounded-xl p-3">
+                  <button onClick={()=>setPlayingId(playingId===selected.id?null:selected.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+                      playingId===selected.id
+                        ? 'bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20'
+                        : 'bg-[#7B5CF0]/10 text-[#7B5CF0] border border-[#7B5CF0]/20 hover:bg-[#7B5CF0]/20'
+                    }`}>
+                    {playingId===selected.id ? <><Pause className="w-3.5 h-3.5"/> Pause</> : <><Play className="w-3.5 h-3.5"/> Écouter l'appel</>}
+                  </button>
+                  {playingId===selected.id&&(
+                    <audio controls autoPlay className="w-full mt-3 h-8" src={selected.recordingUrl}
+                      onEnded={()=>setPlayingId(null)} />
+                  )}
+                </div>
+              </div>
+            )}
             {selected.summary&&<div><p className="text-xs text-[#8B8BA7] mb-2">Résumé IA</p><p className="text-xs text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3 leading-relaxed">{selected.summary}</p></div>}
             {selected.transcript&&<div><p className="text-xs text-[#8B8BA7] mb-2">Transcription</p><p className="text-xs text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3 leading-relaxed max-h-80 overflow-y-auto whitespace-pre-wrap">{selected.transcript}</p></div>}
           </div>
