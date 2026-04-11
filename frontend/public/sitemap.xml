@@ -4,7 +4,7 @@
 
   <url>
     <loc>https://qwillio.com/</loc>
-    <lastmod>2026-03-28</lastmod>
+    <lastmod>2026-04-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/"/>
@@ -13,65 +13,51 @@
 
   <url>
     <loc>https://qwillio.com/receptionist</loc>
-    <lastmod>2026-03-28</lastmod>
+    <lastmod>2026-04-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://qwillio.com/agent</loc>
-    <lastmod>2026-03-28</lastmod>
+    <lastmod>2026-04-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://qwillio.com/pricing</loc>
-    <lastmod>2026-03-28</lastmod>
+    <lastmod>2026-04-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://qwillio.com/affiliate</loc>
-    <lastmod>2026-03-28</lastmod>
+    <loc>https://qwillio.com/about</loc>
+    <lastmod>2026-04-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://qwillio.com/about</loc>
-    <lastmod>2026-03-28</lastmod>
+    <loc>https://qwillio.com/affiliate</loc>
+    <lastmod>2026-04-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://qwillio.com/blog</loc>
-    <lastmod>2026-03-28</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <url>
     <loc>https://qwillio.com/contact</loc>
-    <lastmod>2026-03-28</lastmod>
+    <lastmod>2026-04-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
 
   <url>
-    <loc>https://qwillio.com/privacy</loc>
-    <lastmod>2026-03-28</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-
-  <url>
-    <loc>https://qwillio.com/terms</loc>
-    <lastmod>2026-03-28</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
+    <loc>https://qwillio.com/blog</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
 
 </urlset>
