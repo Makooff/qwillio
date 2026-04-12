@@ -380,4 +380,60 @@ router.delete('/prospects/cleanup-belgian', async (_req: Request, res: Response)
   }
 });
 
+// POST /api/admin/create-client — Create a Client record for a user by email
+router.post('/create-client', async (req: Request, res: Response) => {
+  try {
+    const { email, planType, businessName } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ error: `User ${email} not found` });
+
+    const existing = await prisma.client.findUnique({ where: { userId: user.id } });
+    if (existing) return res.json({ message: 'Client already exists', clientId: existing.id });
+
+    const plan = planType || 'starter';
+    const pricing: Record<string, { setup: number; monthly: number; quota: number }> = {
+      starter: { setup: 697, monthly: 197, quota: 200 },
+      pro: { setup: 997, monthly: 347, quota: 500 },
+      enterprise: { setup: 1497, monthly: 497, quota: 1000 },
+    };
+    const p = pricing[plan] || pricing.starter;
+    const trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 30);
+
+    const client = await prisma.client.create({
+      data: {
+        userId: user.id,
+        businessName: businessName || user.businessName || user.name || 'Mon entreprise',
+        businessType: user.industry || 'other',
+        contactName: user.name,
+        contactEmail: user.email,
+        contactPhone: user.businessPhone || null,
+        country: 'US',
+        planType: plan,
+        setupFee: p.setup,
+        monthlyFee: p.monthly,
+        currency: 'USD',
+        dashboardToken: require('crypto').randomBytes(32).toString('hex'),
+        onboardingStatus: 'completed',
+        subscriptionStatus: 'active',
+        isTrial: true,
+        trialStartDate: new Date(),
+        trialEndDate: trialEnd,
+        monthlyCallsQuota: p.quota,
+        activationDate: new Date(),
+      },
+    });
+
+    // Make sure onboardingCompleted is set
+    await prisma.user.update({ where: { id: user.id }, data: { onboardingCompleted: true } });
+
+    logger.info(`[Admin] Client created for ${email} — clientId: ${client.id}, plan: ${plan}`);
+    res.json({ success: true, clientId: client.id, plan });
+  } catch (err: any) {
+    logger.error('[Admin] create-client failed:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
