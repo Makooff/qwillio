@@ -196,10 +196,33 @@ export class ClientDashboardController {
         select: {
           businessName: true,
           businessType: true,
+          sector: true,
+          contactName: true,
+          contactEmail: true,
+          contactPhone: true,
+          address: true,
+          city: true,
+          postalCode: true,
+          country: true,
           transferNumber: true,
           vapiPhoneNumber: true,
           vapiConfig: true,
+          vapiAssistantId: true,
           subscriptionStatus: true,
+          planType: true,
+          isTrial: true,
+          trialEndDate: true,
+          agentLanguage: true,
+          agentName: true,
+          forwardingStatus: true,
+          forwardingType: true,
+          forwardingVerifiedAt: true,
+          monthlyCallsQuota: true,
+          totalCallsMade: true,
+          lastCallDate: true,
+          activationDate: true,
+          loomVideoUrl: true,
+          googleCalendarId: true,
         },
       });
       if (!client) return res.status(404).json({ error: 'Client not found' });
@@ -212,13 +235,22 @@ export class ClientDashboardController {
   // PUT /my-dashboard/settings
   async updateMySettings(req: any, res: Response) {
     try {
-      const { transferNumber, businessName, businessType, vapiPhoneNumber, vapiConfig } = req.body;
+      const body = req.body;
       const updateData: any = {};
-      if (transferNumber !== undefined) updateData.transferNumber = transferNumber || null;
-      if (businessName !== undefined) updateData.businessName = businessName || null;
-      if (businessType !== undefined) updateData.businessType = businessType || null;
-      if (vapiPhoneNumber !== undefined) updateData.vapiPhoneNumber = vapiPhoneNumber || null;
-      if (vapiConfig !== undefined) updateData.vapiConfig = vapiConfig;
+      if (body.transferNumber !== undefined) updateData.transferNumber = body.transferNumber || null;
+      if (body.businessName !== undefined) updateData.businessName = body.businessName || null;
+      if (body.businessType !== undefined) updateData.businessType = body.businessType || null;
+      if (body.vapiPhoneNumber !== undefined) updateData.vapiPhoneNumber = body.vapiPhoneNumber || null;
+      if (body.vapiConfig !== undefined) updateData.vapiConfig = body.vapiConfig;
+      if (body.agentLanguage !== undefined) updateData.agentLanguage = body.agentLanguage;
+      if (body.agentName !== undefined) updateData.agentName = body.agentName || null;
+      if (body.contactPhone !== undefined) updateData.contactPhone = body.contactPhone || null;
+      if (body.address !== undefined) updateData.address = body.address || null;
+      if (body.city !== undefined) updateData.city = body.city || null;
+      if (body.postalCode !== undefined) updateData.postalCode = body.postalCode || null;
+      if (body.forwardingType !== undefined) updateData.forwardingType = body.forwardingType || null;
+      if (body.loomVideoUrl !== undefined) updateData.loomVideoUrl = body.loomVideoUrl || null;
+      if (body.googleCalendarId !== undefined) updateData.googleCalendarId = body.googleCalendarId || null;
 
       await prisma.client.update({
         where: { id: req.clientId },
