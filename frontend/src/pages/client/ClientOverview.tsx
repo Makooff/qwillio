@@ -3,9 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Phone, Users, Clock, TrendingUp, Pause, Play, AlertCircle,
   ArrowRight, ChevronRight, Shield, Activity, RefreshCw, HelpCircle,
+  Bot, Zap, Calendar, PhoneIncoming, PhoneOutgoing, CheckCircle2,
+  BarChart3, Headphones, Star, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  PieChart, Pie, Cell,
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
@@ -20,10 +23,16 @@ function greeting(name: string) {
   return `Bonsoir, ${first}`;
 }
 
-const SENTIMENT_DOT: Record<string, string> = {
-  positive: 'bg-emerald-500',
-  neutral: 'bg-amber-500',
-  negative: 'bg-red-500',
+const SENTIMENT_COLORS: Record<string, string> = {
+  positive: '#22C55E',
+  neutral: '#F59E0B',
+  negative: '#EF4444',
+};
+
+const SENTIMENT_LABELS: Record<string, string> = {
+  positive: 'Positif',
+  neutral: 'Neutre',
+  negative: 'Négatif',
 };
 
 export default function ClientOverview() {
@@ -42,7 +51,7 @@ export default function ClientOverview() {
       const [ov, an, cl] = await Promise.all([
         api.get('/my-dashboard/overview'),
         api.get('/my-dashboard/analytics?days=30').catch(() => ({ data: null })),
-        api.get('/my-dashboard/calls?page=1&limit=6').catch(() => ({ data: { data: [] } })),
+        api.get('/my-dashboard/calls?page=1&limit=8').catch(() => ({ data: { data: [] } })),
       ]);
       setData(ov.data);
       setAnalytics(an.data);
@@ -53,16 +62,10 @@ export default function ClientOverview() {
       if (status === 401) setError('Session expirée — reconnectez-vous.');
       else if (status === 403) setError('Accès refusé (rôle client requis).');
       else if (status === 404) {
-        // Not onboarded yet → redirect to complete setup
-        if (!user?.onboardingCompleted) {
-          navigate('/onboard');
-          return;
-        }
+        if (!user?.onboardingCompleted) { navigate('/onboard'); return; }
         setError('no-profile');
       } else setError(msg);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -78,14 +81,12 @@ export default function ClientOverview() {
     finally { setToggling(false); }
   };
 
-  /* ─── Loading ─── */
   if (loading) return (
     <div className="flex items-center justify-center py-32">
       <div className="w-8 h-8 border-2 border-[#7B5CF0] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
-  /* ─── Error: no profile (admin-created client not yet linked) ─── */
   if (error === 'no-profile') return (
     <div className="flex flex-col items-center justify-center py-32 text-center px-6">
       <div className="w-14 h-14 rounded-2xl bg-[#7B5CF0]/10 flex items-center justify-center mb-4">
@@ -108,7 +109,6 @@ export default function ClientOverview() {
     </div>
   );
 
-  /* ─── Error: other ─── */
   if (error || !data) return (
     <div className="flex flex-col items-center justify-center py-32 text-center">
       <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
@@ -116,10 +116,8 @@ export default function ClientOverview() {
       </div>
       <h2 className="text-lg font-semibold text-[#F8F8FF] mb-1">Impossible de charger le dashboard</h2>
       <p className="text-sm text-[#8B8BA7] mb-6 max-w-xs">{error || 'Vérifiez votre connexion et réessayez.'}</p>
-      <button
-        onClick={() => { setLoading(true); setError(null); load(); }}
-        className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6D4FE0] transition-colors"
-      >
+      <button onClick={() => { setLoading(true); setError(null); load(); }}
+        className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6D4FE0] transition-colors">
         <RefreshCw className="w-4 h-4" /> Réessayer
       </button>
     </div>
@@ -127,9 +125,10 @@ export default function ClientOverview() {
 
   const c = data.client || {};
   const isActive = c.subscriptionStatus === 'active' || c.subscriptionStatus === 'trialing';
-  const sentimentTotal = (data.sentiment?.positive || 0) + (data.sentiment?.neutral || 0) + (data.sentiment?.negative || 0);
-  const positiveRate = sentimentTotal > 0 ? Math.round((data.sentiment.positive / sentimentTotal) * 100) : 0;
-  const conversionRate = (data.calls?.thisMonth || 0) > 0
+  const isPaused = c.subscriptionStatus === 'paused';
+  const sentTotal = (data.sentiment?.positive || 0) + (data.sentiment?.neutral || 0) + (data.sentiment?.negative || 0);
+  const positiveRate = sentTotal > 0 ? Math.round((data.sentiment.positive / sentTotal) * 100) : 0;
+  const convRate = (data.calls?.thisMonth || 0) > 0
     ? Math.round(((data.leads?.thisMonth || 0) / data.calls.thisMonth) * 100) : 0;
 
   const chartData = analytics?.daily?.map((d: any) => ({
@@ -138,43 +137,18 @@ export default function ClientOverview() {
     Leads: d.leads,
   })) || [];
 
-  const KPIS = [
-    {
-      label: "Appels aujourd'hui",
-      value: data.calls?.today || 0,
-      sub: `${data.calls?.thisWeek || 0} cette semaine`,
-      icon: Phone,
-      color: 'text-blue-400',
-      bg: 'bg-blue-500/10',
-    },
-    {
-      label: 'Appels ce mois',
-      value: data.calls?.thisMonth || 0,
-      sub: `${data.calls?.total || 0} au total`,
-      icon: Activity,
-      color: 'text-[#7B5CF0]',
-      bg: 'bg-[#7B5CF0]/10',
-    },
-    {
-      label: 'Leads capturés',
-      value: data.leads?.thisMonth || 0,
-      sub: `${conversionRate}% de conversion`,
-      icon: Users,
-      color: 'text-amber-400',
-      bg: 'bg-amber-500/10',
-    },
-    {
-      label: 'Durée moyenne',
-      value: formatDuration(data.calls?.avgDuration),
-      sub: `${positiveRate}% sentiment positif`,
-      icon: Clock,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10',
-    },
-  ];
+  const quotaUsed = data.calls?.quotaUsed || 0;
+  const quotaTotal = c.monthlyCallsQuota || data.calls?.quota || 0;
+  const quotaPct = quotaTotal > 0 ? Math.round((quotaUsed / quotaTotal) * 100) : 0;
+
+  const sentimentData = sentTotal > 0 ? [
+    { name: 'Positif', value: data.sentiment.positive || 0 },
+    { name: 'Neutre', value: data.sentiment.neutral || 0 },
+    { name: 'Négatif', value: data.sentiment.negative || 0 },
+  ].filter(s => s.value > 0) : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* ── Header ── */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
@@ -184,24 +158,18 @@ export default function ClientOverview() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleToggle}
-            disabled={toggling}
+          <button onClick={handleToggle} disabled={toggling}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
               isActive
                 ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20'
                 : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
-            }`}
-          >
+            }`}>
             {toggling
               ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              : isActive ? <><Pause className="w-4 h-4" /> Pause AI</> : <><Play className="w-4 h-4" /> Activer AI</>
-            }
+              : isActive ? <><Pause className="w-4 h-4" /> Pause</> : <><Play className="w-4 h-4" /> Activer</>}
           </button>
-          <button
-            onClick={() => { setLoading(true); load(); }}
-            className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] hover:text-[#F8F8FF] transition-all"
-          >
+          <button onClick={() => { setLoading(true); load(); }}
+            className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
@@ -210,12 +178,11 @@ export default function ClientOverview() {
       {/* ── Banners ── */}
       {c.isTrial && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="flex items-center gap-3 bg-[#7B5CF0]/10 border border-[#7B5CF0]/20 rounded-2xl px-5 py-4"
-        >
+          className="flex items-center gap-3 bg-[#7B5CF0]/10 border border-[#7B5CF0]/20 rounded-2xl px-5 py-3.5">
           <Shield className="w-5 h-5 text-[#7B5CF0] flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium text-[#F8F8FF]">Période d'essai — <strong>{daysUntil(c.trialEndDate)} jours restants</strong></p>
-            <p className="text-xs text-[#8B8BA7]">Passez à un plan payant pour continuer après l'essai</p>
+            <p className="text-xs text-[#8B8BA7]">Passez à un plan payant pour continuer</p>
           </div>
           <Link to="/dashboard/billing" className="flex items-center gap-1 text-sm font-semibold text-[#7B5CF0] hover:underline whitespace-nowrap">
             Mettre à jour <ArrowRight className="w-4 h-4" />
@@ -225,72 +192,118 @@ export default function ClientOverview() {
 
       {!c.transferNumber && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-2xl px-5 py-4"
-        >
+          className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-2xl px-5 py-3">
           <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-          <p className="text-sm text-red-300 flex-1">Numéro de transfert non configuré — les appels urgents ne peuvent pas être redirigés.</p>
+          <p className="text-sm text-red-300 flex-1">Numéro de transfert non configuré</p>
           <Link to="/dashboard/receptionist" className="text-sm font-medium text-red-400 hover:underline whitespace-nowrap">Configurer →</Link>
         </motion.div>
       )}
 
-      {/* ── Status card ── */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5 flex items-center gap-4">
-        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isActive ? 'bg-emerald-500' : 'bg-amber-500'}`}
-          style={isActive ? { boxShadow: '0 0 8px #10b981' } : {}} />
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-[#F8F8FF]">
-            IA Réceptionniste — {isActive ? 'Active' : 'En pause'}
-          </p>
-          <p className="text-xs text-[#8B8BA7]">
-            {c.vapiPhoneNumber ? `Numéro : ${c.vapiPhoneNumber}` : 'Aucun numéro assigné'}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-[#8B8BA7]">Plan</p>
-          <p className="text-sm font-semibold text-[#F8F8FF] capitalize">{c.planType || 'Starter'}</p>
-        </div>
-        {(c.monthlyCallsQuota || 0) > 0 && (
-          <div className="text-right min-w-[80px]">
-            <p className="text-xs text-[#8B8BA7]">Quota</p>
-            <p className="text-sm font-semibold text-[#F8F8FF]">{data.calls?.quotaUsed || 0}/{c.monthlyCallsQuota}</p>
-            <div className="h-1.5 bg-white/[0.08] rounded-full mt-1 w-20">
-              <div
-                className={`h-full rounded-full ${(data.calls?.quotaPercent || 0) > 90 ? 'bg-red-500' : 'bg-[#7B5CF0]'}`}
-                style={{ width: `${Math.min(data.calls?.quotaPercent || 0, 100)}%` }}
-              />
+      {/* ── AI Status + Quota ── */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        className={`rounded-2xl border p-5 ${isActive ? 'border-emerald-400/15 bg-emerald-400/[0.03]' : isPaused ? 'border-amber-400/15 bg-amber-400/[0.03]' : 'border-red-400/15 bg-red-400/[0.03]'}`}>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isActive ? 'bg-emerald-400/10' : 'bg-amber-400/10'}`}>
+              <Bot size={24} className={isActive ? 'text-emerald-400' : 'text-amber-400'} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <div className={`w-2.5 h-2.5 rounded-full ${isActive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                <span className={`text-sm font-bold ${isActive ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {isActive ? 'IA Active' : 'IA en pause'}
+                </span>
+              </div>
+              <p className="text-xs text-[#8B8BA7]">
+                {c.businessName || 'Votre entreprise'} · {c.vapiPhoneNumber || 'Numéro en attente'}
+              </p>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Quota progress */}
+          {quotaTotal > 0 && (
+            <div className="flex-1 max-w-[280px] min-w-[200px]">
+              <div className="flex justify-between text-[10px] text-[#8B8BA7] mb-1">
+                <span>Quota mensuel</span>
+                <span className="tabular-nums font-medium">{quotaUsed} / {quotaTotal} appels ({quotaPct}%)</span>
+              </div>
+              <div className="h-2.5 bg-white/[0.06] rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500" style={{
+                  width: `${Math.min(quotaPct, 100)}%`,
+                  background: quotaPct > 90 ? '#EF4444' : quotaPct > 70 ? '#F59E0B' : '#7B5CF0',
+                }} />
+              </div>
+            </div>
+          )}
+
+          <div className="text-right">
+            <p className="text-[10px] text-[#8B8BA7] uppercase">Plan</p>
+            <p className="text-sm font-bold text-[#F8F8FF] capitalize">{c.planType || 'starter'}</p>
+          </div>
+        </div>
+      </motion.div>
 
       {/* ── KPI cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {KPIS.map((kpi, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-            className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5"
-          >
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${kpi.bg}`}>
-              <kpi.icon className={`w-[18px] h-[18px] ${kpi.color}`} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          {
+            label: "Appels aujourd'hui",
+            value: data.calls?.today || 0,
+            sub: `${data.calls?.thisWeek || 0} cette semaine`,
+            icon: PhoneIncoming, color: '#3B82F6', bg: 'bg-blue-500/10',
+            trend: null,
+          },
+          {
+            label: 'Appels ce mois',
+            value: data.calls?.thisMonth || 0,
+            sub: `${data.calls?.total || 0} au total`,
+            icon: Phone, color: '#7B5CF0', bg: 'bg-[#7B5CF0]/10',
+            trend: null,
+          },
+          {
+            label: 'Leads capturés',
+            value: data.leads?.thisMonth || 0,
+            sub: `${convRate}% conversion`,
+            icon: Star, color: '#F59E0B', bg: 'bg-amber-500/10',
+            trend: convRate > 20 ? 'up' : convRate > 0 ? 'flat' : null,
+          },
+          {
+            label: 'Durée moyenne',
+            value: formatDuration(data.calls?.avgDuration),
+            sub: `${positiveRate}% positif`,
+            icon: Clock, color: '#22C55E', bg: 'bg-emerald-500/10',
+            trend: null,
+          },
+        ].map((kpi, i) => (
+          <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+            className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${kpi.bg}`}>
+                <kpi.icon className="w-4 h-4" style={{ color: kpi.color }} />
+              </div>
+              {kpi.trend === 'up' && <ArrowUpRight className="w-4 h-4 text-emerald-400" />}
             </div>
-            <p className="text-2xl font-bold text-[#F8F8FF]">{kpi.value}</p>
-            <p className="text-xs text-[#8B8BA7] mt-1">{kpi.label}</p>
+            <p className="text-2xl font-bold text-[#F8F8FF] tabular-nums">{kpi.value}</p>
+            <p className="text-[11px] text-[#8B8BA7] mt-0.5">{kpi.label}</p>
             <p className="text-[10px] text-[#8B8BA7]/60 mt-0.5">{kpi.sub}</p>
           </motion.div>
         ))}
       </div>
 
-      {/* ── Chart + recent calls ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      {/* ── Chart + Sentiment ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* 30-day trend */}
-        <div className="lg:col-span-3 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+        <div className="lg:col-span-2 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold text-[#F8F8FF]">Tendance 30 jours</h3>
-              <p className="text-xs text-[#8B8BA7]">Appels & leads</p>
+              <p className="text-[10px] text-[#8B8BA7]">Appels & leads par jour</p>
             </div>
-            <TrendingUp className="w-4 h-4 text-[#8B8BA7]" />
+            <Link to="/dashboard/analytics" className="flex items-center gap-1 text-xs text-[#7B5CF0] hover:underline">
+              Détails <ChevronRight className="w-3 h-3" />
+            </Link>
           </div>
-          <div className="h-48">
+          <div className="h-52">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData}>
@@ -300,18 +313,16 @@ export default function ClientOverview() {
                       <stop offset="100%" stopColor="#7B5CF0" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#F59E0B" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#8B8BA7' }} />
                   <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} width={28} />
-                  <Tooltip
-                    contentStyle={{ background: '#12121A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12, color: '#F8F8FF' }}
-                  />
+                  <Tooltip contentStyle={{ background: '#12121A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12, color: '#F8F8FF' }} />
                   <Area type="monotone" dataKey="Appels" stroke="#7B5CF0" fill="url(#gCalls)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="Leads" stroke="#f59e0b" fill="url(#gLeads)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="Leads" stroke="#F59E0B" fill="url(#gLeads)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -320,47 +331,145 @@ export default function ClientOverview() {
           </div>
         </div>
 
-        {/* Recent calls */}
-        <div className="lg:col-span-2 rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-[#F8F8FF]">Appels récents</h3>
-            <Link to="/dashboard/calls" className="text-xs text-[#7B5CF0] hover:underline flex items-center gap-1">
-              Tous <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {calls.length > 0 ? calls.map((call: any) => (
-              <div key={call.id} className="flex items-center gap-3 py-2 px-3 rounded-xl hover:bg-white/[0.04] transition-colors">
-                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${SENTIMENT_DOT[call.sentiment] || 'bg-[#8B8BA7]'}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-[#F8F8FF] truncate">
-                    {call.callerName || call.callerNumber || 'Inconnu'}
-                    {call.isLead && <span className="ml-1 text-[#7B5CF0] text-[10px]">LEAD</span>}
-                  </p>
-                  <p className="text-[10px] text-[#8B8BA7]">{formatDuration(call.durationSeconds)}</p>
+        {/* Sentiment donut */}
+        <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-1">Sentiment des appels</h3>
+          <p className="text-[10px] text-[#8B8BA7] mb-3">{sentTotal} appels analysés</p>
+
+          {sentimentData.length > 0 ? (
+            <>
+              <div className="flex justify-center mb-3">
+                <div className="relative w-32 h-32">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={sentimentData} cx="50%" cy="50%" innerRadius={38} outerRadius={58}
+                        paddingAngle={3} dataKey="value" stroke="none">
+                        {sentimentData.map((entry, i) => (
+                          <Cell key={i} fill={SENTIMENT_COLORS[entry.name === 'Positif' ? 'positive' : entry.name === 'Neutre' ? 'neutral' : 'negative']} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-xl font-bold text-[#F8F8FF]">{positiveRate}%</p>
+                      <p className="text-[8px] text-[#8B8BA7]">positif</p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[10px] text-[#8B8BA7] flex-shrink-0">{formatDateTime(call.createdAt)}</p>
               </div>
-            )) : (
-              <p className="text-sm text-[#8B8BA7] text-center py-8">Aucun appel récent</p>
-            )}
-          </div>
+              <div className="space-y-1.5">
+                {(['positive', 'neutral', 'negative'] as const).map(key => {
+                  const val = data.sentiment?.[key] || 0;
+                  const pct = sentTotal > 0 ? Math.round((val / sentTotal) * 100) : 0;
+                  return (
+                    <div key={key} className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: SENTIMENT_COLORS[key] }} />
+                      <span className="text-[11px] text-[#8B8BA7] flex-1">{SENTIMENT_LABELS[key]}</span>
+                      <span className="text-[11px] font-semibold text-[#F8F8FF] tabular-nums">{val}</span>
+                      <span className="text-[10px] text-[#8B8BA7] tabular-nums w-8 text-right">{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-40 text-sm text-[#8B8BA7]">Aucune donnée</div>
+          )}
         </div>
+      </div>
+
+      {/* ── Recent calls ── */}
+      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-[#F8F8FF]">Appels récents</h3>
+            <p className="text-[10px] text-[#8B8BA7]">Derniers appels reçus par l'IA</p>
+          </div>
+          <Link to="/dashboard/calls" className="flex items-center gap-1 text-xs text-[#7B5CF0] hover:underline">
+            Voir tout <ChevronRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        {calls.length > 0 ? (
+          <div className="overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/[0.06]">
+                  <th className="pb-2 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Appelant</th>
+                  <th className="pb-2 text-left text-[10px] text-[#8B8BA7] font-medium uppercase hidden sm:table-cell">Durée</th>
+                  <th className="pb-2 text-left text-[10px] text-[#8B8BA7] font-medium uppercase hidden md:table-cell">Sentiment</th>
+                  <th className="pb-2 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Statut</th>
+                  <th className="pb-2 text-right text-[10px] text-[#8B8BA7] font-medium uppercase">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {calls.map((call: any, i: number) => (
+                  <motion.tr key={call.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
+                    className="border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-colors cursor-pointer"
+                    onClick={() => navigate('/dashboard/calls')}>
+                    <td className="py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          call.isLead ? 'bg-[#7B5CF0]/10' : 'bg-white/[0.04]'
+                        }`}>
+                          <PhoneIncoming className={`w-3.5 h-3.5 ${call.isLead ? 'text-[#7B5CF0]' : 'text-[#8B8BA7]'}`} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-[#F8F8FF] truncate max-w-[140px]">
+                            {call.callerName || call.callerNumber || 'Inconnu'}
+                          </p>
+                          {call.isLead && (
+                            <span className="text-[9px] font-semibold text-[#7B5CF0] bg-[#7B5CF0]/10 px-1.5 py-0.5 rounded">LEAD</span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-2.5 hidden sm:table-cell">
+                      <span className="text-xs text-[#8B8BA7] tabular-nums">{formatDuration(call.durationSeconds)}</span>
+                    </td>
+                    <td className="py-2.5 hidden md:table-cell">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full" style={{ background: SENTIMENT_COLORS[call.sentiment] || '#8B8BA7' }} />
+                        <span className="text-xs text-[#8B8BA7]">{SENTIMENT_LABELS[call.sentiment] || '—'}</span>
+                      </div>
+                    </td>
+                    <td className="py-2.5">
+                      {call.status === 'completed' ? (
+                        <span className="flex items-center gap-1 text-[10px] text-emerald-400"><CheckCircle2 className="w-3 h-3" /> Terminé</span>
+                      ) : (
+                        <span className="text-[10px] text-[#8B8BA7]">{call.status || '—'}</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 text-right">
+                      <span className="text-[11px] text-[#8B8BA7]">{formatDateTime(call.createdAt)}</span>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <Headphones className="w-8 h-8 text-[#8B8BA7]/40 mb-2" />
+            <p className="text-sm text-[#8B8BA7]">Aucun appel récent</p>
+            <p className="text-xs text-[#8B8BA7]/60 mt-0.5">Les appels apparaîtront ici automatiquement</p>
+          </div>
+        )}
       </div>
 
       {/* ── Quick links ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { to: '/dashboard/leads', icon: Users, label: 'Voir les leads', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-          { to: '/dashboard/analytics', icon: TrendingUp, label: 'Analytique', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-          { to: '/dashboard/receptionist', icon: Phone, label: 'Configurer AI', color: 'text-[#7B5CF0]', bg: 'bg-[#7B5CF0]/10' },
-          { to: '/dashboard/billing', icon: Activity, label: 'Facturation', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+          { to: '/dashboard/leads', icon: Users, label: 'Voir les leads', color: '#F59E0B', bg: 'bg-amber-500/10' },
+          { to: '/dashboard/analytics', icon: BarChart3, label: 'Analytique', color: '#3B82F6', bg: 'bg-blue-500/10' },
+          { to: '/dashboard/receptionist', icon: Bot, label: 'Configurer AI', color: '#7B5CF0', bg: 'bg-[#7B5CF0]/10' },
+          { to: '/dashboard/billing', icon: Zap, label: 'Facturation', color: '#22C55E', bg: 'bg-emerald-500/10' },
         ].map((item, i) => (
           <Link key={i} to={item.to}
-            className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#12121A] border border-white/[0.06] hover:border-[#7B5CF0]/20 hover:bg-white/[0.04] transition-all group"
-          >
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${item.bg}`}>
-              <item.icon className={`w-4 h-4 ${item.color}`} />
+            className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#12121A] border border-white/[0.06] hover:border-[#7B5CF0]/20 hover:bg-white/[0.03] transition-all group">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${item.bg}`}>
+              <item.icon className="w-4 h-4" style={{ color: item.color }} />
             </div>
             <span className="text-sm font-medium text-[#8B8BA7] group-hover:text-[#F8F8FF] transition-colors">{item.label}</span>
           </Link>
