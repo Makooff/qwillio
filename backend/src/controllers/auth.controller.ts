@@ -8,6 +8,7 @@ import { env } from '../config/env';
 import { loginSchema, registerSchema } from '../utils/validators';
 import { emailService } from '../services/email.service';
 import { logger } from '../config/logger';
+import { stripe } from '../config/stripe';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
@@ -234,10 +235,10 @@ export class AuthController {
         return res.status(400).json({ error: 'Business name and plan are required' });
       }
 
-      const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number }> = {
-        starter: { setupFee: 0, monthlyFee: 497, callsQuota: 800 },
-        pro: { setupFee: 0, monthlyFee: 1297, callsQuota: 2000 },
-        enterprise: { setupFee: 0, monthlyFee: 2497, callsQuota: 4000 },
+      const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number; stripePriceMonthly: string; stripePriceSetup: string }> = {
+        starter: { setupFee: 697, monthlyFee: 197, callsQuota: 200, stripePriceMonthly: env.STRIPE_PRICE_BASIC_MONTHLY, stripePriceSetup: env.STRIPE_PRICE_BASIC_SETUP },
+        pro:     { setupFee: 997, monthlyFee: 347, callsQuota: 500, stripePriceMonthly: env.STRIPE_PRICE_PRO_MONTHLY, stripePriceSetup: env.STRIPE_PRICE_PRO_SETUP },
+        enterprise: { setupFee: 1497, monthlyFee: 497, callsQuota: 1000, stripePriceMonthly: env.STRIPE_PRICE_ENTERPRISE_MONTHLY, stripePriceSetup: env.STRIPE_PRICE_ENTERPRISE_SETUP },
       };
 
       const user = await prisma.user.update({
@@ -299,9 +300,60 @@ export class AuthController {
         expiresIn: env.JWT_EXPIRES_IN,
       });
 
+      // Create Stripe Checkout Session — 1st month free (30-day trial), then monthly price
+      let checkoutUrl: string | null = null;
+      const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
+
+      if (pricing.stripePriceMonthly && env.STRIPE_SECRET_KEY) {
+        try {
+          const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
+          const lineItems: any[] = [];
+
+          // Monthly subscription with 30-day free trial
+          if (pricing.stripePriceMonthly) {
+            lineItems.push({ price: pricing.stripePriceMonthly, quantity: 1 });
+          }
+          // One-time setup fee
+          if (pricing.stripePriceSetup) {
+            lineItems.push({ price: pricing.stripePriceSetup, quantity: 1 });
+          }
+
+          const sessionParams: any = {
+            mode: 'subscription',
+            customer_email: user.email,
+            client_reference_id: clientId || user.id,
+            line_items: lineItems.length > 0 ? lineItems : [{ price: pricing.stripePriceMonthly, quantity: 1 }],
+            success_url: `${frontendUrl}/dashboard?payment=success`,
+            cancel_url: `${frontendUrl}/dashboard?payment=cancelled`,
+            subscription_data: {
+              trial_period_days: 30,
+              metadata: {
+                userId: user.id,
+                clientId: clientId || '',
+                planType,
+              },
+            },
+            metadata: {
+              userId: user.id,
+              clientId: clientId || '',
+              planType,
+              source: 'self-onboarding',
+            },
+          };
+
+          const session = await stripe.checkout.sessions.create(sessionParams);
+          checkoutUrl = session.url;
+          logger.info(`Stripe checkout created for ${user.email} — session: ${session.id}`);
+        } catch (stripeErr: any) {
+          // Non-blocking: if Stripe fails, user still gets trial access
+          logger.warn(`Stripe checkout creation failed for ${user.email}: ${stripeErr.message}`);
+        }
+      }
+
       res.json({
         message: 'Onboarding completed',
         token: freshToken,
+        checkoutUrl,
         user: {
           id: user.id,
           email: user.email,
