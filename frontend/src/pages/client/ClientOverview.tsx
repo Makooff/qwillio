@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Phone, Users, Clock, TrendingUp, Pause, Play, AlertCircle,
   ArrowRight, ChevronRight, Shield, Activity, RefreshCw, HelpCircle,
@@ -36,14 +36,17 @@ const SENTIMENT_LABELS: Record<string, string> = {
 };
 
 export default function ClientOverview() {
-  const { user } = useAuthStore();
+  const { user, checkAuth } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
   const [calls, setCalls] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toggling, setToggling] = useState(false);
+  const [paymentPending, setPaymentPending] = useState(false);
+  const retryCount = useRef(0);
 
   const load = useCallback(async () => {
     setError(null);
@@ -56,17 +59,34 @@ export default function ClientOverview() {
       setData(ov.data);
       setAnalytics(an.data);
       setCalls(cl.data?.data || []);
+      setPaymentPending(false);
+      retryCount.current = 0;
+      // Refresh auth store so onboardingCompleted / clientId are up-to-date
+      checkAuth();
+      // Clean up URL params
+      if (searchParams.has('payment')) {
+        searchParams.delete('payment');
+        setSearchParams(searchParams, { replace: true });
+      }
     } catch (err: any) {
       const msg = err?.response?.data?.error || err?.message || 'Erreur de connexion';
       const status = err?.response?.status;
       if (status === 401) setError('Session expirée — reconnectez-vous.');
       else if (status === 403) setError('Accès refusé (rôle client requis).');
       else if (status === 404) {
+        // If just came from Stripe payment, the webhook may not have fired yet — retry
+        if (searchParams.get('payment') === 'success' && retryCount.current < 8) {
+          retryCount.current++;
+          setPaymentPending(true);
+          setLoading(true);
+          setTimeout(() => load(), 3000); // retry every 3s for up to ~24s
+          return;
+        }
         if (!user?.onboardingCompleted) { navigate('/onboard'); return; }
         setError('no-profile');
       } else setError(msg);
     } finally { setLoading(false); }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -82,8 +102,14 @@ export default function ClientOverview() {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center py-32">
+    <div className="flex flex-col items-center justify-center py-32 gap-4">
       <div className="w-8 h-8 border-2 border-[#7B5CF0] border-t-transparent rounded-full animate-spin" />
+      {paymentPending && (
+        <div className="text-center">
+          <p className="text-sm font-medium text-[#F8F8FF]">Paiement reçu !</p>
+          <p className="text-xs text-[#8B8BA7] mt-1">Activation de votre compte en cours...</p>
+        </div>
+      )}
     </div>
   );
 

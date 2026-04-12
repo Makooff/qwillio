@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { prisma } from '../config/database';
 import { stripe } from '../config/stripe';
 import { logger } from '../config/logger';
@@ -10,6 +11,12 @@ import { emailService } from './email.service';
 export class StripeService {
   async handleCheckoutCompleted(session: any) {
     logger.info(`Payment received! Session: ${session.id}`);
+
+    // ── Self-onboarding flow: card registered → create Client + start trial ──
+    if (session.metadata?.source === 'self-onboarding') {
+      await this.handleSelfOnboardingCheckout(session);
+      return;
+    }
 
     // Idempotency: check if this session was already processed
     const existingPayment = await prisma.payment.findFirst({
@@ -38,6 +45,94 @@ export class StripeService {
 
     // Otherwise, handle as a normal quote payment
     await this.handleQuotePayment(referenceId, session);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // SELF-ONBOARDING: Stripe card registered → Create Client record
+  // Flow: Register → Confirm email → Onboard (info+plan) → Stripe → HERE
+  // ═══════════════════════════════════════════════════════════════
+  private async handleSelfOnboardingCheckout(session: any) {
+    const userId = session.metadata?.userId || session.client_reference_id;
+    if (!userId) {
+      logger.error('Self-onboarding checkout: no userId in metadata');
+      return;
+    }
+
+    // Idempotency: check if Client already exists for this user
+    const existingClient = await prisma.client.findUnique({ where: { userId } });
+    if (existingClient) {
+      logger.info(`Self-onboarding: Client already exists for userId ${userId} — skipping creation`);
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      logger.error(`Self-onboarding: User ${userId} not found`);
+      return;
+    }
+
+    const planType = session.metadata?.planType || user.planType || 'pro';
+    const businessName = session.metadata?.businessName || user.businessName || 'My Business';
+    const businessPhone = session.metadata?.businessPhone || user.businessPhone || null;
+    const industry = session.metadata?.industry || user.industry || 'other';
+
+    const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number }> = {
+      starter:    { setupFee: 697, monthlyFee: 197, callsQuota: 200 },
+      pro:        { setupFee: 997, monthlyFee: 347, callsQuota: 500 },
+      enterprise: { setupFee: 1497, monthlyFee: 497, callsQuota: 1000 },
+    };
+
+    const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
+    const dashboardToken = crypto.randomBytes(32).toString('hex');
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 30);
+
+    // Create Client record — trial starts NOW
+    const client = await prisma.client.create({
+      data: {
+        userId: user.id,
+        businessName,
+        businessType: industry,
+        contactName: user.name,
+        contactEmail: user.email,
+        contactPhone: businessPhone,
+        country: 'US',
+        planType,
+        setupFee: pricing.setupFee,
+        monthlyFee: pricing.monthlyFee,
+        currency: 'USD',
+        dashboardToken,
+        onboardingStatus: 'completed',
+        subscriptionStatus: 'active',
+        isTrial: true,
+        trialStartDate: new Date(),
+        trialEndDate: trialEnd,
+        monthlyCallsQuota: pricing.callsQuota,
+        stripeCustomerId: session.customer || null,
+        stripeSubscriptionId: session.subscription || null,
+      },
+    });
+
+    // Mark user onboarding as completed
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { onboardingCompleted: true },
+    });
+
+    // Update analytics
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    await prisma.analyticsDaily.upsert({
+      where: { date: today },
+      update: { newClients: { increment: 1 } },
+      create: { date: today, newClients: 1 },
+    });
+
+    await discordService.notify(
+      `🎉 NEW SELF-ONBOARD CLIENT!\n\nBusiness: ${businessName}\nEmail: ${user.email}\nPlan: ${planType.toUpperCase()}\nTrial: 30 days free\nClient ID: ${client.id}`
+    );
+
+    logger.info(`Self-onboarding complete: Client created for ${user.email} — clientId: ${client.id}, plan: ${planType}`);
   }
 
   private async handleTrialConversion(client: any, session: any) {

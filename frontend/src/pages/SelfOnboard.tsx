@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import {
   ArrowRight, ArrowLeft, Check, ChevronRight,
@@ -30,6 +30,14 @@ export default function SelfOnboard() {
   const [selectedPlan, setSelectedPlan] = useState('pro');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('payment') === 'cancelled') {
+      setError('Paiement annulé. Vous pouvez réessayer quand vous êtes prêt.');
+      setStep(3); // Go back to plan selection step
+    }
+  }, [searchParams]);
 
   const handleFinish = async () => {
     setLoading(true);

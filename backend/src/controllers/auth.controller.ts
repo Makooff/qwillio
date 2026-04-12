@@ -241,6 +241,10 @@ export class AuthController {
         enterprise: { setupFee: 1497, monthlyFee: 497, callsQuota: 1000, stripePriceMonthly: env.STRIPE_PRICE_ENTERPRISE_MONTHLY, stripePriceSetup: env.STRIPE_PRICE_ENTERPRISE_SETUP },
       };
 
+      // Check if Client already exists (user retrying onboarding after Stripe payment)
+      const existingClient = await prisma.client.findUnique({ where: { userId: req.userId } });
+      let clientId: string | null = existingClient?.id || null;
+
       const user = await prisma.user.update({
         where: { id: req.userId },
         data: {
@@ -249,109 +253,76 @@ export class AuthController {
           industry: industry || null,
           website: website || null,
           planType,
-          onboardingCompleted: true,
+          // Only mark onboarding complete if Client already exists (Stripe already paid)
+          // Otherwise, onboarding completes after Stripe checkout webhook creates the Client
+          onboardingCompleted: !!existingClient,
         },
       });
 
-      // Create or reuse Client record (idempotent — safe if user retries onboarding)
-      let clientId: string | null = null;
-      if (user.role === 'client') {
-        const existing = await prisma.client.findUnique({ where: { userId: user.id } });
-        if (existing) {
-          clientId = existing.id;
-          logger.info(`Client record already exists for ${user.email} — reusing clientId: ${existing.id}`);
-        } else {
-          const dashboardToken = crypto.randomBytes(32).toString('hex');
-          const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
-          const trialEnd = new Date();
-          trialEnd.setDate(trialEnd.getDate() + 30);
-
-          const client = await prisma.client.create({
-            data: {
-              userId: user.id,
-              businessName,
-              businessType: industry || 'other',
-              contactName: user.name,
-              contactEmail: user.email,
-              contactPhone: businessPhone || null,
-              country: 'US',
-              planType,
-              setupFee: pricing.setupFee,
-              monthlyFee: pricing.monthlyFee,
-              currency: 'USD',
-              dashboardToken,
-              onboardingStatus: 'completed',
-              subscriptionStatus: 'active',
-              isTrial: true,
-              trialStartDate: new Date(),
-              trialEndDate: trialEnd,
-              monthlyCallsQuota: pricing.callsQuota,
-            },
-          });
-          clientId = client.id;
-          logger.info(`Client record created for ${user.email} — clientId: ${client.id}`);
-        }
-      }
-
-      logger.info(`Onboarding completed for user ${user.email} — plan: ${planType}`);
+      logger.info(`Onboarding info saved for user ${user.email} — plan: ${planType}, hasClient: ${!!existingClient}`);
 
       // Issue a fresh JWT with the correct role from DB
       const freshToken = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
         expiresIn: env.JWT_EXPIRES_IN,
       });
 
-      // Create Stripe Checkout Session — 1st month free (30-day trial), then monthly price
+      // If Client already exists, skip Stripe — go straight to dashboard
       let checkoutUrl: string | null = null;
-      const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
 
-      if (pricing.stripePriceMonthly && env.STRIPE_SECRET_KEY) {
-        try {
-          const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
-          const lineItems: any[] = [];
+      if (!existingClient) {
+        // Create Stripe Checkout Session — 30-day free trial, then monthly price
+        const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
 
-          // Monthly subscription with 30-day free trial
-          if (pricing.stripePriceMonthly) {
-            lineItems.push({ price: pricing.stripePriceMonthly, quantity: 1 });
-          }
-          // One-time setup fee
-          if (pricing.stripePriceSetup) {
-            lineItems.push({ price: pricing.stripePriceSetup, quantity: 1 });
-          }
+        if (pricing.stripePriceMonthly && env.STRIPE_SECRET_KEY) {
+          try {
+            const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
+            const lineItems: any[] = [];
 
-          const sessionParams: any = {
-            mode: 'subscription',
-            customer_email: user.email,
-            client_reference_id: clientId || user.id,
-            line_items: lineItems.length > 0 ? lineItems : [{ price: pricing.stripePriceMonthly, quantity: 1 }],
-            success_url: `${frontendUrl}/dashboard?payment=success`,
-            cancel_url: `${frontendUrl}/dashboard?payment=cancelled`,
-            subscription_data: {
-              trial_period_days: 30,
+            // Monthly subscription with 30-day free trial
+            if (pricing.stripePriceMonthly) {
+              lineItems.push({ price: pricing.stripePriceMonthly, quantity: 1 });
+            }
+            // One-time setup fee
+            if (pricing.stripePriceSetup) {
+              lineItems.push({ price: pricing.stripePriceSetup, quantity: 1 });
+            }
+
+            const sessionParams: any = {
+              mode: 'subscription',
+              customer_email: user.email,
+              client_reference_id: user.id,
+              line_items: lineItems.length > 0 ? lineItems : [{ price: pricing.stripePriceMonthly, quantity: 1 }],
+              success_url: `${frontendUrl}/dashboard?payment=success`,
+              cancel_url: `${frontendUrl}/onboard?payment=cancelled`,
+              subscription_data: {
+                trial_period_days: 30,
+                metadata: {
+                  userId: user.id,
+                  planType,
+                },
+              },
               metadata: {
                 userId: user.id,
-                clientId: clientId || '',
                 planType,
+                businessName,
+                businessPhone: businessPhone || '',
+                industry: industry || '',
+                website: website || '',
+                source: 'self-onboarding',
               },
-            },
-            metadata: {
-              userId: user.id,
-              clientId: clientId || '',
-              planType,
-              source: 'self-onboarding',
-            },
-          };
+            };
 
-          const session = await stripe.checkout.sessions.create(sessionParams);
-          checkoutUrl = session.url;
-          logger.info(`Stripe checkout created for ${user.email} — session: ${session.id}`);
-        } catch (stripeErr: any) {
-          // Non-blocking: if Stripe fails, user still gets trial access
-          logger.warn(`Stripe checkout creation failed for ${user.email}: ${stripeErr.message}`);
+            const session = await stripe.checkout.sessions.create(sessionParams);
+            checkoutUrl = session.url;
+            logger.info(`Stripe checkout created for ${user.email} — session: ${session.id}`);
+          } catch (stripeErr: any) {
+            logger.warn(`Stripe checkout creation failed for ${user.email}: ${stripeErr.message}`);
+          }
         }
       }
 
       res.json({
-        message: 'Onboarding completed',
+        message: checkoutUrl ? 'Redirecting to payment' : 'Onboarding completed',
         token: freshToken,
         checkoutUrl,
         user: {
@@ -360,7 +331,7 @@ export class AuthController {
           name: user.name,
           role: user.role,
           emailConfirmed: user.emailConfirmed,
-          onboardingCompleted: true,
+          onboardingCompleted: user.onboardingCompleted,
           clientId,
         },
       });

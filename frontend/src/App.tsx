@@ -99,9 +99,12 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
 function ClientRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
+  const location = useLocation();
   if (isLoading) return <Spinner />;
   if (!user) return <Navigate to="/login" />;
-  if (!user.onboardingCompleted) return <Navigate to="/onboard" />;
+  // Allow through if returning from Stripe payment (webhook will create Client)
+  const isPaymentReturn = new URLSearchParams(location.search).get('payment') === 'success';
+  if (!user.onboardingCompleted && !isPaymentReturn) return <Navigate to="/onboard" />;
   if (user.role !== 'client') return <Navigate to="/admin" />;
   return <>{children}</>;
 }
