@@ -7,9 +7,10 @@ export const VOICE_CONFIG = {
   ashley: {
     name: 'Ashley',
     language: 'en',
+    assistantId: 'e583a22d-0b73-4bb1-95c8-8de334f06089',
     voiceId: '21m00Tcm4TlvDq8ikWAM', // ElevenLabs Rachel
     model: 'eleven_turbo_v2_5',
-    stability: 0.45,
+    stability: 0.42,
     similarityBoost: 0.82,
     style: 0.35,
     speakerBoost: true,
@@ -17,11 +18,12 @@ export const VOICE_CONFIG = {
     endpointing: 200,
     backgroundSound: 'office',
     fillerInjection: true,
-    targetLatencyMs: 800,
+    responseDelay: 0.1,
   },
   marie: {
     name: 'Marie',
     language: 'fr',
+    assistantId: '327fa4b1-e3b7-4de7-bd06-906d2d42d7dd',
     voiceId: 'pFZP5JQG7iQjIQuC4Bku', // ElevenLabs Amélie
     model: 'eleven_turbo_v2_5',
     stability: 0.38,
@@ -30,11 +32,9 @@ export const VOICE_CONFIG = {
     speakerBoost: true,
     latency: 4,
     endpointing: 150,
-    vadSensitivity: 'maximum',
-    streamingTts: true,
-    fillerInjection: true, // "Euh" / "Mmh" / "Ouais" / "Ah"
-    targetLatencyMs: 600,
     backgroundSound: 'office',
+    fillerInjection: true,
+    responseDelay: 0.1,
   },
 } as const;
 
@@ -193,7 +193,7 @@ export function buildVapiAssistantConfig(params: {
   return {
     name: `${agentName} — ${params.businessName}`,
     voice: {
-      provider: 'elevenlabs' as const,
+      provider: '11labs' as const,
       voiceId: voice.voiceId,
       model: voice.model,
       stability: voice.stability,
@@ -203,15 +203,17 @@ export function buildVapiAssistantConfig(params: {
     },
     model: {
       provider: 'openai' as const,
-      model: 'gpt-4-turbo' as const,
+      model: 'gpt-4o' as const,
       messages: [{ role: 'system' as const, content: systemPrompt }],
-      temperature: 0.7,
-      maxTokens: 150,
+      temperature: 0.75,
+      maxTokens: 200,
     },
-    silenceTimeoutSeconds: 30,
-    maxDurationSeconds: params.maxDuration || 300,
-    endCallAfterSilenceMs: 5000,
+    silenceTimeoutSeconds: 15,
+    maxDurationSeconds: params.maxDuration || 480,
+    responseDelaySeconds: 0.1,
+    numWordsToInterruptAssistant: 1,
     backgroundSound: voice.backgroundSound,
+    backgroundDenoisingEnabled: true,
     firstMessage: params.language === 'fr'
       ? (getMarieFormality(params.niche) === 'tu'
         ? `${params.businessName}, salut ! C'est Marie, comment je peux t'aider ?`
