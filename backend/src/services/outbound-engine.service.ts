@@ -173,41 +173,35 @@ export class OutboundEngineService {
 
   /** Main calling loop: pick next eligible prospect and initiate call */
   async callNextProspect(): Promise<boolean> {
-    // Check Federal US holidays
+    // ── 1. Time checks (fast exit) ─────────────────────────
     if (isHoliday(new Date(), 'US')) {
       logger.info('[OutboundEngine] Holiday, skipping call');
       return false;
     }
 
-    // Check bot quota
+    // ── 2. Bot status check ────────────────────────────────
     const botStatus = await prisma.botStatus.findFirst();
     if (!botStatus?.isActive) return false;
 
-    const updated = await prisma.botStatus.updateMany({
-      where: { id: botStatus.id, callsToday: { lt: botStatus.callsQuotaDaily } },
-      data: { callsToday: { increment: 1 }, lastCall: new Date() },
-    });
-    if (updated.count === 0) {
+    if (botStatus.callsToday >= botStatus.callsQuotaDaily) {
       logger.info('[OutboundEngine] Daily quota reached');
       return false;
     }
 
     const now = new Date();
 
-    // Find highest-priority eligible prospect
+    // ── 3. Find eligible prospect ──────────────────────────
     const prospect = await prisma.prospect.findFirst({
       where: {
         status: 'new',
         phone: { not: null },
         eligibleForCall: true,
         isMobile: false,
-        priorityScore: { gte: env.MIN_PRIORITY_SCORE },
         callAttempts: { lt: 3 },
         OR: [
           { nextCallAt: null },
           { nextCallAt: { lte: now } },
         ],
-        // Not called today
         lastCallDate: {
           not: { gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()) },
         },
@@ -221,9 +215,19 @@ export class OutboundEngineService {
     }
 
     // Check call window for prospect timezone
-    const tz = prospect.timezone ?? 'America/Chicago';
+    const tz = prospect.timezone ?? 'America/New_York';
     if (!this.isWithinCallWindow(tz)) {
       logger.debug(`[OutboundEngine] Outside call window for ${prospect.businessName} (${tz})`);
+      return false;
+    }
+
+    // ── 4. NOW increment quota (we have a valid prospect) ──
+    const updated = await prisma.botStatus.updateMany({
+      where: { id: botStatus.id, callsToday: { lt: botStatus.callsQuotaDaily } },
+      data: { callsToday: { increment: 1 }, lastCall: new Date() },
+    });
+    if (updated.count === 0) {
+      logger.info('[OutboundEngine] Daily quota reached (atomic)');
       return false;
     }
 

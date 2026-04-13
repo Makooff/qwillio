@@ -20,7 +20,7 @@ export const INTEREST_INTERESTED = 4; // >= 4 = interested, send follow-up seque
 
 export class VapiService {
   async callNextProspect(): Promise<boolean> {
-    // Check if within US Eastern business hours (prospects are in the US)
+    // ── 1. Time checks (no DB queries, fast exit) ──────────
     const now = new Date();
     const usEastern = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
     const hour = usEastern.getHours();
@@ -28,35 +28,6 @@ export class VapiService {
 
     if (!env.AUTOMATION_DAYS.includes(day) || hour < env.AUTOMATION_START_HOUR || hour >= env.AUTOMATION_END_HOUR) {
       logger.debug(`Outside US business hours (ET: ${hour}h, day ${day}), skipping call`);
-      return false;
-    }
-
-    // Atomic quota check + increment to prevent race conditions
-    const botStatus = await prisma.botStatus.findFirst();
-    if (!botStatus || !botStatus.isActive) {
-      logger.info('Bot is inactive, skipping call');
-      return false;
-    }
-
-    // Rate limit: 1 call per minute minimum
-    if (botStatus.lastCall && (Date.now() - botStatus.lastCall.getTime()) < CALL_RATE_LIMIT_MS) {
-      logger.debug('Rate limit: waiting 1 minute between calls');
-      return false;
-    }
-
-    // Atomic quota check: only increment if under limit (prevents concurrent over-calling)
-    const updated = await prisma.botStatus.updateMany({
-      where: {
-        id: botStatus.id,
-        callsToday: { lt: botStatus.callsQuotaDaily },
-      },
-      data: {
-        callsToday: { increment: 1 },
-        lastCall: new Date(),
-      },
-    });
-    if (updated.count === 0) {
-      logger.info('Daily call quota reached (atomic check)');
       return false;
     }
 
@@ -72,19 +43,38 @@ export class VapiService {
       return false;
     }
 
-    // Select best prospect to call with smart scheduling
+    // ── 2. Bot status check ────────────────────────────────
+    const botStatus = await prisma.botStatus.findFirst();
+    if (!botStatus || !botStatus.isActive) {
+      logger.info('Bot is inactive, skipping call');
+      return false;
+    }
+
+    // Check quota without incrementing yet
+    if (botStatus.callsToday >= botStatus.callsQuotaDaily) {
+      logger.info('Daily call quota reached');
+      return false;
+    }
+
+    // Rate limit: 1 call per minute minimum
+    if (botStatus.lastCall && (Date.now() - botStatus.lastCall.getTime()) < CALL_RATE_LIMIT_MS) {
+      logger.debug('Rate limit: waiting 1 minute between calls');
+      return false;
+    }
+
+    // ── 3. Find a prospect to call ─────────────────────────
     const candidates = await prisma.prospect.findMany({
       where: {
         status: 'new',
         phone: { not: null },
-        callAttempts: { lt: MAX_CALL_ATTEMPTS }, // Max 2 attempts
+        callAttempts: { lt: MAX_CALL_ATTEMPTS },
         OR: [
           { lastCallDate: null },
           { lastCallDate: { lt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } },
         ],
       },
       orderBy: { score: 'desc' },
-      take: 50, // Get top 50 candidates, then filter by niche window
+      take: 50,
     });
 
     if (candidates.length === 0) {
@@ -93,14 +83,12 @@ export class VapiService {
     }
 
     // Filter by niche call window and sort by priority
-    // Use prospect's timezone for scoring, not server timezone
     const priorityBonus = isPriorityDay() ? 2 : 0;
     const scoredCandidates = candidates
       .map(p => {
         const prospectTz = p.timezone || 'America/New_York';
         const script = NICHE_SCRIPTS[p.businessType] || DEFAULT_SCRIPT;
         const inWindow = isWithinCallWindow(prospectTz, script.callWindow.start, script.callWindow.end);
-        // Check prospect is in their local business hours (9-18 in their timezone)
         const prospectTime = new Date(now.toLocaleString('en-US', { timeZone: prospectTz }));
         const prospectHour = prospectTime.getHours();
         const inBusinessHours = prospectHour >= 9 && prospectHour < 18;
@@ -113,14 +101,29 @@ export class VapiService {
           inBusinessHours,
         };
       })
-      .filter(c => c.inBusinessHours) // Only call prospects during THEIR business hours
+      .filter(c => c.inBusinessHours)
       .sort((a, b) => b.effectiveScore - a.effectiveScore);
 
-    // Prefer prospects in their niche window, but fall back to any if none available
     const prospect = scoredCandidates.find(c => c.inWindow)?.prospect || scoredCandidates[0]?.prospect;
 
     if (!prospect) {
-      logger.info('No prospects available to call');
+      logger.info('No prospects in business hours right now');
+      return false;
+    }
+
+    // ── 4. NOW increment quota (we have a valid prospect) ──
+    const updated = await prisma.botStatus.updateMany({
+      where: {
+        id: botStatus.id,
+        callsToday: { lt: botStatus.callsQuotaDaily },
+      },
+      data: {
+        callsToday: { increment: 1 },
+        lastCall: new Date(),
+      },
+    });
+    if (updated.count === 0) {
+      logger.info('Daily call quota reached (atomic check)');
       return false;
     }
 
