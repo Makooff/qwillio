@@ -150,8 +150,12 @@ export class VapiService {
       const nicheScript = NICHE_SCRIPTS[prospect.businessType] || DEFAULT_SCRIPT;
       const systemPrompt = await this.generateSalesPrompt(prospect);
 
+      // Pick Ashley (EN) or Marie (FR) assistant based on prospect language
+      const isFrench = prospect.country === 'FR' || prospect.country === 'BE' || prospect.country === 'CA';
+      const assistantId = isFrench && env.VAPI_ASSISTANT_ID_FR ? env.VAPI_ASSISTANT_ID_FR : env.VAPI_ASSISTANT_ID;
+
       const vapiCall = await vapiClient.createCall({
-        assistantId: env.VAPI_ASSISTANT_ID,
+        assistantId,
         phoneNumberId: env.VAPI_PHONE_NUMBER_ID,
         customer: {
           number: prospect.phone!,
@@ -582,7 +586,7 @@ Return a JSON with:
       );
 
       const vapiCall = await vapiClient.createCall({
-        assistantId: env.VAPI_ASSISTANT_ID,
+        assistantId: env.VAPI_ASSISTANT_ID, // Test calls always use Ashley EN
         phoneNumberId: env.VAPI_PHONE_NUMBER_ID,
         customer: {
           number: phoneNumber,

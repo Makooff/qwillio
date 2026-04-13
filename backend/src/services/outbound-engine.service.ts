@@ -256,7 +256,7 @@ export class OutboundEngineService {
         body: JSON.stringify({
           phoneNumberId: await this.resolveVapiPhoneId(localNumber),
           customer: { number: prospect.phone },
-          assistantId: env.VAPI_ASSISTANT_ID,
+          assistantId: language === 'fr' && env.VAPI_ASSISTANT_ID_FR ? env.VAPI_ASSISTANT_ID_FR : env.VAPI_ASSISTANT_ID,
           assistantOverrides: {
             firstMessage: script.split('\n')[0],
             instructions: script,
