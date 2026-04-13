@@ -229,6 +229,18 @@ export class VapiService {
     } catch (error) {
       logger.error(`Error calling prospect ${prospect.businessName}:`, error);
       await discordService.notify(`❌ CALL ERROR: ${prospect.businessName} - ${(error as Error).message}`);
+
+      // ── Rollback quota increment — VAPI call failed, shouldn't count ──
+      try {
+        await prisma.botStatus.updateMany({
+          where: { id: botStatus.id },
+          data: { callsToday: { decrement: 1 } },
+        });
+        logger.info(`Quota decremented after failed VAPI call for ${prospect.businessName}`);
+      } catch (rollbackErr) {
+        logger.error('Failed to rollback quota:', rollbackErr);
+      }
+
       return false;
     }
   }

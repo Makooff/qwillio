@@ -271,6 +271,22 @@ router.post('/bot/start', async (_req: Request, res: Response) => {
   }
 });
 
+router.post('/bot/reset-quota', async (_req: Request, res: Response) => {
+  try {
+    const existing = await prisma.botStatus.findFirst();
+    if (existing) {
+      await prisma.botStatus.update({ where: { id: existing.id }, data: { callsToday: 0 } });
+    }
+    // Also clean up orphan queued calls with no vapiCallId (failed VAPI attempts)
+    const cleaned = await prisma.call.deleteMany({
+      where: { status: 'queued', vapiCallId: null },
+    });
+    res.json({ success: true, message: `Quota reset to 0. Cleaned ${cleaned.count} orphan queued calls.` });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/bot/stop', async (_req: Request, res: Response) => {
   try {
     const existing = await prisma.botStatus.findFirst();
