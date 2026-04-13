@@ -252,10 +252,22 @@ export class ClientDashboardController {
       if (body.loomVideoUrl !== undefined) updateData.loomVideoUrl = body.loomVideoUrl || null;
       if (body.googleCalendarId !== undefined) updateData.googleCalendarId = body.googleCalendarId || null;
 
-      await prisma.client.update({
+      const client = await prisma.client.update({
         where: { id: req.clientId },
         data: updateData,
       });
+
+      // Auto-sync VAPI assistant within 60s of settings change
+      if (client.vapiAssistantId) {
+        try {
+          const { onboardingService } = await import('../services/onboarding.service');
+          await onboardingService.syncVapiAssistant(client.id);
+          logger.info(`VAPI assistant synced for client ${client.id}`);
+        } catch (err) {
+          logger.warn(`Failed to sync VAPI assistant for client ${client.id}:`, err);
+        }
+      }
+
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

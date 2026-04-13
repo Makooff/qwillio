@@ -16,23 +16,19 @@ import { smsService } from './sms.service';
 import { emailService } from './email.service';
 import { resend } from '../config/resend';
 import { discordService } from './discord.service';
+import { NICHE_SEND_TIMES } from '../config/followup-sequence';
 
 // ─── Niche → preferred send hour (local time) ─────────────
+// Merges the canonical NICHE_SEND_TIMES with additional alias mappings
 const NICHE_SEND_HOUR: Record<string, number> = {
+  ...NICHE_SEND_TIMES,
   home_services: 8,
-  plumber: 8,
-  hvac: 8,
   electrician: 8,
-  dental: 9,
   dentist: 9,
   hair_salon: 10,
-  salon: 10,
-  restaurant: 14,
   law_firm: 11,
   lawyer: 11,
   auto_garage: 8,
-  garage: 8,
-  hotel: 14,
   boutique_hotel: 14,
 };
 

@@ -75,6 +75,17 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Stricter rate limit for auth routes (5 req/min)
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  message: { error: 'Too many attempts, please try again in a minute' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
 // ─── Body Parsing ────────────────────────────────────────
 // Stripe webhook needs raw body
 app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));

@@ -263,6 +263,8 @@ export class OnboardingService {
       return await vapiClient.createAssistant(data);
     } catch (error) {
       if (attempt >= 3) {
+        // Alert Discord after final retry failure
+        await discordService.notify(`🚨 VAPI CREATION FAILED 3x\n\nAction required: manual VAPI setup\nError: ${(error as Error).message}`);
         throw new Error(`VAPI createAssistant failed after ${attempt} attempts: ${(error as Error).message}`);
       }
 
@@ -559,6 +561,47 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 3. Confirm the appointment details before ending the call
 4. Mention any preparation or documents they should bring
 5. Ask if they have any special requirements or questions`;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SYNC VAPI ASSISTANT — Called when client updates settings
+  // Reads current client record and pushes updated config to VAPI
+  // ═══════════════════════════════════════════════════════════
+  async syncVapiAssistant(clientId: string): Promise<void> {
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    if (!client || !client.vapiAssistantId) {
+      logger.warn(`syncVapiAssistant: no assistant found for client ${clientId}`);
+      return;
+    }
+
+    const systemPrompt = this.generateClientSystemPrompt(client);
+
+    const updatedConfig: any = {
+      name: `${client.agentName || 'Receptionist'} — ${client.businessName}`,
+      model: {
+        provider: 'openai',
+        model: env.VAPI_MODEL,
+        temperature: 0.7,
+        messages: [{ role: 'system', content: systemPrompt }],
+      },
+      firstMessage: (client.agentLanguage === 'fr')
+        ? `${client.businessName}, bonjour ! C'est ${client.agentName || 'Marie'}, comment je peux vous aider ?`
+        : `Thank you for calling ${client.businessName}, this is ${client.agentName || 'Ashley'}. How can I help you today?`,
+      serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
+    };
+
+    // Update transfer destinations if transferNumber changed
+    if (client.transferNumber) {
+      updatedConfig.forwardingPhoneNumber = client.transferNumber;
+    }
+
+    try {
+      await vapiClient.updateAssistant(client.vapiAssistantId, updatedConfig);
+      logger.info(`VAPI assistant ${client.vapiAssistantId} synced for ${client.businessName}`);
+    } catch (error) {
+      logger.error(`Failed to update VAPI assistant ${client.vapiAssistantId}:`, error);
+      throw error;
+    }
   }
 
   private sleep(ms: number): Promise<void> {

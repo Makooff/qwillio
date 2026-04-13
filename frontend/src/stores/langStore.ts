@@ -9,7 +9,7 @@ interface LangState {
 }
 
 export const useLang = create<LangState>((set, get) => ({
-  lang: (localStorage.getItem('qwillio-lang') as Lang) || 'en',
+  lang: (localStorage.getItem('qwillio-lang') as Lang) || (navigator.language?.startsWith('fr') ? 'fr' : 'en'),
   setLang: (lang: Lang) => {
     localStorage.setItem('qwillio-lang', lang);
     set({ lang });

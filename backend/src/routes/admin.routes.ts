@@ -436,4 +436,16 @@ router.post('/create-client', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/admin/cron/run/:name — Trigger a named cron job manually
+router.post('/cron/run/:name', async (req: Request, res: Response) => {
+  const name = req.params.name as string;
+  const { botLoop } = await import('../jobs/bot-loop');
+  try {
+    await botLoop.triggerJob(name);
+    res.json({ message: `Job ${name} triggered successfully` });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || `Unknown job: ${name}` });
+  }
+});
+
 export default router;

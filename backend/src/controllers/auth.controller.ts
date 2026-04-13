@@ -425,6 +425,11 @@ export class AuthController {
     }
   }
 
+  async logout(_req: Request, res: Response) {
+    // Stateless JWT — client clears token on its side
+    res.json({ message: 'Logged out' });
+  }
+
   async me(req: any, res: Response) {
     try {
       const user = await prisma.user.findUnique({

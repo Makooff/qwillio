@@ -3,6 +3,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { resend } from '../config/resend';
 import { env } from '../config/env';
+import { stripe } from '../config/stripe';
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -369,6 +370,68 @@ export class AgentPaymentsService {
       logger.error(`Failed to list invoices for client ${clientId}:`, error);
       throw error;
     }
+  }
+
+  // ═══════════════════════════════════════════
+  // SEND PAYMENT LINK AFTER BOOKING
+  // ═══════════════════════════════════════════
+
+  async sendPaymentLinkAfterBooking(clientId: string, booking: { customerName: string; customerPhone?: string; customerEmail?: string; serviceType?: string; amount?: number }) {
+    if (!booking.customerPhone) return;
+
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) return;
+
+    const message = `Hi ${booking.customerName}! Thank you for booking with ${client.businessName}. ${booking.amount ? `A deposit of $${booking.amount} is required to confirm.` : 'Please confirm your appointment.'} Reply CONFIRM or call us at ${client.contactPhone || 'our office'}.`;
+
+    try {
+      const { smsService } = await import('./sms.service');
+      await smsService.sendSMS(booking.customerPhone, message);
+      logger.info(`Payment link SMS sent to ${booking.customerPhone} for ${client.businessName}`);
+    } catch (err) {
+      logger.warn(`Failed to send payment SMS for booking at ${client.businessName}:`, err);
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // PROCESS NO-SHOWS
+  // ═══════════════════════════════════════════
+
+  async processNoShows() {
+    // Find bookings that are past due and not completed
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000); // 30 min past booking time
+    const noShows = await prisma.clientBooking.findMany({
+      where: {
+        bookingDate: { lt: cutoff },
+        status: 'confirmed',
+      },
+      include: { client: true },
+    });
+
+    for (const booking of noShows) {
+      await prisma.clientBooking.update({
+        where: { id: booking.id },
+        data: { status: 'no_show' },
+      });
+
+      // If client has Stripe, create a no-show fee
+      if (booking.client.stripeCustomerId) {
+        try {
+          const noShowFee = 50; // $50 default no-show fee
+          await stripe.invoiceItems.create({
+            customer: booking.client.stripeCustomerId,
+            amount: noShowFee * 100,
+            currency: 'usd',
+            description: `No-show fee — ${booking.customerName} on ${booking.bookingDate.toISOString().split('T')[0]}`,
+          });
+          logger.info(`No-show fee charged for ${booking.customerName} at ${booking.client.businessName}`);
+        } catch (err) {
+          logger.warn(`Failed to charge no-show fee for booking ${booking.id}:`, err);
+        }
+      }
+    }
+
+    return noShows.length;
   }
 
   // ═══════════════════════════════════════════

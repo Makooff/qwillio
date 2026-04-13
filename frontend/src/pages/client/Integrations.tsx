@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Link2, Unlink, RefreshCw, CheckCircle2, XCircle,
   ArrowLeftRight, ArrowRight, Clock, Database,
-  TestTube, Loader2
+  TestTube, Loader2, AlertTriangle, ChevronDown, ChevronUp, MapPin
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -51,10 +51,56 @@ function timeAgo(date: string | null | undefined): string | undefined {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+interface SyncConflict {
+  id: string;
+  integrationId: string;
+  integrationName: string;
+  field: string;
+  qwillioValue: string;
+  externalValue: string;
+  contactName: string;
+  createdAt: string;
+}
+
+const DEFAULT_FIELD_MAPPINGS: Record<string, { qwillio: string; external: string }[]> = {
+  hubspot: [
+    { qwillio: 'name', external: 'firstname + lastname' },
+    { qwillio: 'email', external: 'email' },
+    { qwillio: 'phone', external: 'phone' },
+    { qwillio: 'company', external: 'company' },
+    { qwillio: 'notes', external: 'description' },
+  ],
+  salesforce: [
+    { qwillio: 'name', external: 'Name' },
+    { qwillio: 'email', external: 'Email' },
+    { qwillio: 'phone', external: 'Phone' },
+    { qwillio: 'company', external: 'Account.Name' },
+    { qwillio: 'notes', external: 'Description' },
+  ],
+  pipedrive: [
+    { qwillio: 'name', external: 'name' },
+    { qwillio: 'email', external: 'email[0].value' },
+    { qwillio: 'phone', external: 'phone[0].value' },
+    { qwillio: 'company', external: 'org_name' },
+    { qwillio: 'notes', external: 'notes' },
+  ],
+};
+
+// Generic fallback for integrations without specific mapping
+const GENERIC_FIELD_MAPPING = [
+  { qwillio: 'name', external: 'name' },
+  { qwillio: 'email', external: 'email' },
+  { qwillio: 'phone', external: 'phone' },
+  { qwillio: 'company', external: 'company' },
+  { qwillio: 'notes', external: 'notes' },
+];
+
 export default function Integrations() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
+  const [expandedMappings, setExpandedMappings] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     (async () => {
@@ -77,6 +123,24 @@ export default function Integrations() {
           };
         });
         setIntegrations(merged);
+
+        // Fetch sync conflicts
+        try {
+          const conflictsRes = await api.get('/crm/sync-conflicts');
+          setConflicts((conflictsRes.data.conflicts || conflictsRes.data || []).map((c: any) => ({
+            id: c.id,
+            integrationId: c.integrationId || c.provider,
+            integrationName: c.integrationName || c.provider || 'Unknown',
+            field: c.field,
+            qwillioValue: c.localValue || c.qwillioValue || '',
+            externalValue: c.remoteValue || c.externalValue || '',
+            contactName: c.contactName || c.contact?.name || 'Unknown contact',
+            createdAt: c.createdAt,
+          })));
+        } catch {
+          // No conflicts endpoint yet — show empty
+          setConflicts([]);
+        }
       } catch {
         // Fallback to catalog with nothing connected
         setIntegrations(INTEGRATION_CATALOG.map(c => ({ ...c, connected: false })));
@@ -127,6 +191,24 @@ export default function Integrations() {
         syncDirection: i.syncDirection === 'one_way' ? 'bidirectional' : 'one_way',
       } : i
     ));
+  };
+
+  const resolveConflict = async (conflictId: string, resolution: 'local' | 'remote') => {
+    try {
+      await api.post(`/crm/sync-conflicts/${conflictId}/resolve`, { resolution });
+    } catch {
+      // Optimistic removal even if API fails
+    }
+    setConflicts(prev => prev.filter(c => c.id !== conflictId));
+  };
+
+  const toggleFieldMapping = (integrationId: string) => {
+    setExpandedMappings(prev => {
+      const next = new Set(prev);
+      if (next.has(integrationId)) next.delete(integrationId);
+      else next.add(integrationId);
+      return next;
+    });
   };
 
   const syncNow = async (id: string) => {
@@ -262,8 +344,92 @@ export default function Integrations() {
                 </>
               )}
             </div>
+
+            {/* Field Mapping (read-only) */}
+            {integration.connected && (
+              <div className="mt-3 border-t border-[#d2d2d7]/40 pt-3">
+                <button
+                  onClick={() => toggleFieldMapping(integration.id)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-[#86868b] hover:text-[#1d1d1f] transition-colors"
+                >
+                  <MapPin size={12} />
+                  Field Mapping
+                  {expandedMappings.has(integration.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+                {expandedMappings.has(integration.id) && (
+                  <div className="mt-2 space-y-1">
+                    {(DEFAULT_FIELD_MAPPINGS[integration.id] || GENERIC_FIELD_MAPPING).map((m, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs text-[#86868b] bg-[#f5f5f7] rounded-lg px-2.5 py-1.5">
+                        <span className="font-medium text-[#1d1d1f]">{m.qwillio}</span>
+                        <ArrowRight size={10} className="flex-shrink-0" />
+                        <span className="font-mono">{m.external}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </motion.div>
         ))}
+      </div>
+
+      {/* Sync Conflicts Section */}
+      <div className="mt-8">
+        <div className="flex items-center gap-2 mb-4">
+          <AlertTriangle size={18} className={conflicts.length > 0 ? 'text-amber-500' : 'text-[#86868b]'} />
+          <h2 className="text-lg font-semibold text-[#1d1d1f]">Sync Conflicts</h2>
+          {conflicts.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">{conflicts.length}</span>
+          )}
+        </div>
+
+        {conflicts.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-[#d2d2d7]/60 p-8 text-center">
+            <CheckCircle2 size={32} className="text-green-500 mx-auto mb-3" />
+            <p className="text-sm font-medium text-[#1d1d1f]">No sync conflicts</p>
+            <p className="text-xs text-[#86868b] mt-1">All your data is in sync across integrations.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {conflicts.map(conflict => (
+              <div key={conflict.id} className="bg-white rounded-2xl border border-amber-200 p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[#1d1d1f]">{conflict.contactName}</p>
+                    <p className="text-xs text-[#86868b]">{conflict.integrationName} &middot; Field: <span className="font-medium">{conflict.field}</span></p>
+                  </div>
+                  {conflict.createdAt && (
+                    <span className="text-xs text-[#86868b]">{new Date(conflict.createdAt).toLocaleDateString()}</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="bg-[#f5f5f7] rounded-lg p-3">
+                    <p className="text-[10px] uppercase font-medium text-[#86868b] mb-1">Qwillio</p>
+                    <p className="text-sm text-[#1d1d1f] font-medium truncate">{conflict.qwillioValue || '(empty)'}</p>
+                  </div>
+                  <div className="bg-[#f5f5f7] rounded-lg p-3">
+                    <p className="text-[10px] uppercase font-medium text-[#86868b] mb-1">External</p>
+                    <p className="text-sm text-[#1d1d1f] font-medium truncate">{conflict.externalValue || '(empty)'}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => resolveConflict(conflict.id, 'local')}
+                    className="flex-1 py-2 rounded-xl text-sm font-medium bg-[#6366f1] text-white hover:bg-[#5558e6] transition-colors"
+                  >
+                    Keep Qwillio
+                  </button>
+                  <button
+                    onClick={() => resolveConflict(conflict.id, 'remote')}
+                    className="flex-1 py-2 rounded-xl text-sm font-medium border border-[#d2d2d7] text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors"
+                  >
+                    Keep External
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

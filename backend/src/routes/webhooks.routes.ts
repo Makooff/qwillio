@@ -13,6 +13,10 @@ router.post('/vapi/client/:clientId', (req, res) => webhooksController.vapiClien
 // Twilio inbound SMS — handles prospect email corrections via SMS reply
 router.post('/twilio/sms', (req, res) => webhooksController.twilioInboundSMS(req, res));
 
+// Twilio voice/call status webhooks
+router.post('/twilio/voice', (req, res) => webhooksController.twilioVoiceStatus(req, res));
+router.post('/twilio/status', (req, res) => webhooksController.twilioVoiceStatus(req, res));
+
 // Resend email bounce/delivery webhook — triggers SMS fallback on bounce
 router.post('/resend/events', (req, res) => webhooksController.resendEmailEvent(req, res));
 

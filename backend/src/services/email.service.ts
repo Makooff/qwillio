@@ -1086,6 +1086,33 @@ export class EmailService {
       return { success: false };
     }
   }
+  async sendDigestEmail(data: { to: string; contactName: string; businessName: string; totalEmails: number; urgent: number; appointment: number; payment: number; autoReplied: number; needsReview: number }) {
+    try {
+      await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL,
+        to: data.to,
+        subject: `\u{1F4EC} ${data.businessName} \u2014 Daily Email Digest`,
+        html: `
+          <h2>Bonjour ${data.contactName},</h2>
+          <p>Voici le r\u00E9sum\u00E9 de vos emails des derni\u00E8res 24h :</p>
+          <ul>
+            <li><strong>${data.totalEmails}</strong> emails re\u00E7us</li>
+            <li><strong>${data.urgent}</strong> urgents</li>
+            <li><strong>${data.appointment}</strong> rendez-vous</li>
+            <li><strong>${data.payment}</strong> paiements</li>
+            <li><strong>${data.autoReplied}</strong> trait\u00E9s automatiquement</li>
+            <li><strong>${data.needsReview}</strong> en attente de votre revue</li>
+          </ul>
+          <p><a href="${env.FRONTEND_URL?.split(',')[0]}/dashboard/agent/email">Voir dans votre dashboard \u2192</a></p>
+          <p>\u2014 Qwillio AI</p>
+        `,
+      });
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to send digest email:', error);
+      return { success: false };
+    }
+  }
 }
 
 export const emailService = new EmailService();

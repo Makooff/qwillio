@@ -46,6 +46,15 @@ export class WebhooksController {
         case 'invoice.payment_failed':
           await stripeService.handlePaymentFailed(event.data.object);
           break;
+        case 'customer.subscription.created':
+          await stripeService.handleSubscriptionCreated(event.data.object);
+          break;
+        case 'customer.subscription.updated':
+          await stripeService.handleSubscriptionUpdated(event.data.object);
+          break;
+        case 'customer.subscription.deleted':
+          await stripeService.handleSubscriptionDeleted(event.data.object);
+          break;
         default:
           logger.debug(`Unhandled Stripe event: ${event.type}`);
       }
@@ -103,12 +112,60 @@ export class WebhooksController {
           }
           break;
 
+        case 'call-started':
         case 'status-update':
-          logger.debug(`VAPI call status update: ${event.message?.status || event.status}`);
+          if (event.message?.status === 'in-progress' || messageType === 'call-started') {
+            const startCallId = event.message?.call?.id || event.call?.id;
+            const phoneNumber = event.message?.call?.customer?.number || event.call?.customer?.number || '';
+            if (startCallId) {
+              await prisma.call.upsert({
+                where: { vapiCallId: startCallId },
+                update: { status: 'in-progress', startedAt: new Date() },
+                create: {
+                  vapiCallId: startCallId,
+                  phoneNumber: phoneNumber,
+                  status: 'in-progress',
+                  startedAt: new Date(),
+                  direction: 'outbound',
+                },
+              });
+            }
+          } else {
+            logger.debug(`VAPI call status update: ${event.message?.status || event.status}`);
+          }
+          break;
+
+        case 'transcript':
+          const tCallId = event.message?.call?.id || event.call?.id;
+          const partialTranscript = event.message?.transcript || event.transcript || '';
+          if (tCallId && partialTranscript) {
+            await prisma.call.updateMany({
+              where: { vapiCallId: tCallId },
+              data: { transcript: partialTranscript },
+            });
+          }
           break;
 
         case 'function-call':
-          logger.debug('VAPI function call received');
+          const functionName = event.message?.functionCall?.name || event.functionCall?.name;
+          const functionParams = event.message?.functionCall?.parameters || event.functionCall?.parameters;
+          logger.info(`VAPI function call: ${functionName}`, functionParams);
+
+          if (functionName === 'captureLeadInfo' || functionName === 'capture_lead') {
+            const fCallId = event.message?.call?.id || event.call?.id;
+            if (fCallId && functionParams) {
+              await prisma.call.updateMany({
+                where: { vapiCallId: fCallId },
+                data: {
+                  emailCollected: functionParams.email || null,
+                  leadCaptured: true,
+                },
+              });
+            }
+          } else if (functionName === 'bookAppointment' || functionName === 'book_appointment') {
+            const bCallId = event.message?.call?.id || event.call?.id;
+            logger.info(`Booking request from call ${bCallId}`, functionParams);
+          }
           break;
 
         default:
@@ -173,6 +230,39 @@ export class WebhooksController {
     }
 
     res.json({ received: true });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // TWILIO VOICE/CALL STATUS — CallStatus callback
+  // ═══════════════════════════════════════════════════════════
+  async twilioVoiceStatus(req: Request, res: Response) {
+    const { CallSid, CallStatus, CallDuration, To } = req.body;
+    logger.info(`Twilio CallStatus: ${CallSid} → ${CallStatus}`);
+
+    if (CallSid && CallStatus) {
+      const outcomeMap: Record<string, string> = {
+        completed: 'completed',
+        'no-answer': 'no_answer',
+        busy: 'busy',
+        failed: 'failed',
+        canceled: 'canceled',
+      };
+
+      // Update call record if exists
+      const call = await prisma.call.findFirst({ where: { phoneNumber: To } });
+      if (call) {
+        await prisma.call.update({
+          where: { id: call.id },
+          data: {
+            outcome: outcomeMap[CallStatus] || CallStatus,
+            durationSeconds: CallDuration ? parseInt(CallDuration) : undefined,
+            status: CallStatus === 'completed' ? 'completed' : CallStatus,
+          },
+        });
+      }
+    }
+
+    res.type('text/xml').send('<Response></Response>');
   }
 
   // ═══════════════════════════════════════════════════════════

@@ -152,6 +152,12 @@ export default function App() {
         <Route path="/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
         <Route path="/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
         <Route path="/gdpr" element={<Suspense fallback={<Spinner />}><Gdpr /></Suspense>} />
+        {/* French route aliases for legal pages */}
+        <Route path="/fr/privacy" element={<Suspense fallback={<Spinner />}><Privacy /></Suspense>} />
+        <Route path="/fr/terms" element={<Suspense fallback={<Spinner />}><Terms /></Suspense>} />
+        <Route path="/fr/gdpr" element={<Suspense fallback={<Spinner />}><Gdpr /></Suspense>} />
+        <Route path="/fr/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
+        <Route path="/fr/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
         <Route path="/receptionist" element={<Landing />} />
         <Route path="/agent" element={<Suspense fallback={<Spinner />}><AgentPage /></Suspense>} />
         <Route path="/pricing" element={<Suspense fallback={<Spinner />}><PricingPage /></Suspense>} />

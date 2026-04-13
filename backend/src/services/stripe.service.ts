@@ -448,6 +448,75 @@ export class StripeService {
     });
   }
 
+  async handleSubscriptionCreated(subscription: any) {
+    logger.info(`Subscription created: ${subscription.id}`);
+    const client = await prisma.client.findFirst({ where: { stripeSubscriptionId: subscription.id } });
+    if (client) {
+      await prisma.client.update({ where: { id: client.id }, data: { subscriptionStatus: subscription.status } });
+    }
+  }
+
+  async handleSubscriptionUpdated(subscription: any) {
+    logger.info(`Subscription updated: ${subscription.id} → ${subscription.status}`);
+    const client = await prisma.client.findFirst({ where: { stripeSubscriptionId: subscription.id } });
+    if (!client) return;
+    await prisma.client.update({
+      where: { id: client.id },
+      data: { subscriptionStatus: subscription.status === 'active' ? 'active' : subscription.status === 'past_due' ? 'past_due' : subscription.status },
+    });
+  }
+
+  async handleSubscriptionDeleted(subscription: any) {
+    logger.info(`Subscription deleted: ${subscription.id}`);
+    const client = await prisma.client.findFirst({ where: { stripeSubscriptionId: subscription.id } });
+    if (!client) return;
+    await prisma.client.update({
+      where: { id: client.id },
+      data: { subscriptionStatus: 'canceled', cancellationDate: new Date() },
+    });
+    await discordService.notify(`❌ SUBSCRIPTION CANCELED\n\nClient: ${client.businessName}\nPlan: ${client.planType}\nSubscription: ${subscription.id}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // OVERAGE BILLING — Reports excess call usage to Stripe
+  // Creates a one-time invoice item for calls beyond quota
+  // ═══════════════════════════════════════════════════════════
+  async reportOverageUsage(clientId: string) {
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    if (!client || !client.stripeSubscriptionId || !client.monthlyCallsQuota) return;
+
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const callCount = await prisma.clientCall.count({
+      where: { clientId, createdAt: { gte: monthStart } },
+    });
+
+    const overage = callCount - client.monthlyCallsQuota;
+    if (overage <= 0) return;
+
+    const overageRates: Record<string, number> = { starter: 0.22, pro: 0.18, enterprise: 0.15 };
+    const rate = overageRates[client.planType] || 0.22;
+
+    logger.info(`Overage for ${client.businessName}: ${overage} calls x $${rate} = $${(overage * rate).toFixed(2)}`);
+
+    // Create a one-time invoice item for overage
+    if (client.stripeCustomerId) {
+      try {
+        await stripe.invoiceItems.create({
+          customer: client.stripeCustomerId,
+          amount: Math.round(overage * rate * 100), // cents
+          currency: 'usd',
+          description: `Overage: ${overage} additional calls x $${rate}/call`,
+        });
+        logger.info(`Overage invoice item created for ${client.businessName}`);
+      } catch (err) {
+        logger.error(`Failed to create overage invoice for ${client.businessName}:`, err);
+      }
+    }
+  }
+
   private getMonthlyPriceId(packageType: string): string {
     switch (packageType) {
       case 'basic': return env.STRIPE_PRICE_BASIC_MONTHLY;

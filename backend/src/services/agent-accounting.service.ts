@@ -1,5 +1,6 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { env } from '../config/env';
 
 interface AddExpenseData {
   description: string;
@@ -380,18 +381,44 @@ Return JSON: {"category": "...", "confidence": 0.0-1.0}`,
     netProfit: number;
     categorySummary: string;
   }): Promise<string> {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a financial analyst for a small business. Based on this monthly financial data, provide 2-3 concise actionable insights.
+    // Use Claude for P&L insights
+    try {
+      const { default: Anthropic } = await import('@anthropic-ai/sdk');
+      const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
+        messages: [{
+          role: 'user',
+          content: `Analyze this monthly P&L for a ${params.businessType || 'small business'} (${params.businessName}):
+        Revenue: $${params.totalIncome.toFixed(2)}
+        Expenses: $${params.totalExpenses.toFixed(2)}
+        Net Profit: $${(params.totalIncome - params.totalExpenses).toFixed(2)}
+        Top expense categories: ${params.categorySummary}
+
+        Give 3 brief actionable insights in French. Be concise.`
+        }],
+      });
+
+      const aiInsights = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      return aiInsights;
+    } catch (err) {
+      logger.warn('Claude P&L insights generation failed, falling back to OpenAI:', err);
+
+      // Fallback to OpenAI
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a financial analyst for a small business. Based on this monthly financial data, provide 2-3 concise actionable insights in French.
 
 Business: ${params.businessName} (${params.businessType})
 Period: ${params.month}/${params.year}
@@ -401,17 +428,18 @@ Net Profit: $${params.netProfit.toFixed(2)}
 Expense breakdown: ${params.categorySummary}
 
 Return JSON: {"insights": "..."}`,
-          },
-          { role: 'user', content: 'Generate financial insights for this period.' },
-        ],
-        temperature: 0.5,
-        response_format: { type: 'json_object' },
-      }),
-    });
+            },
+            { role: 'user', content: 'Generate financial insights for this period.' },
+          ],
+          temperature: 0.5,
+          response_format: { type: 'json_object' },
+        }),
+      });
 
-    const data = await response.json() as { choices: Array<{ message: { content: string } }> };
-    const result: InsightsResult = JSON.parse(data.choices[0].message.content);
-    return result.insights;
+      const data = await response.json() as { choices: Array<{ message: { content: string } }> };
+      const result: InsightsResult = JSON.parse(data.choices[0].message.content);
+      return result.insights;
+    }
   }
 
   // ═══════════════════════════════════════════

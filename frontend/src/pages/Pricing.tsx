@@ -24,6 +24,9 @@ export default function Pricing() {
     canonical: 'https://qwillio.com/pricing',
   });
 
+  const USD_TO_EUR = 0.92;
+  const eur = (usd: number) => Math.round(usd * USD_TO_EUR);
+
   const plans = [
     {
       name: 'Starter',
@@ -115,6 +118,7 @@ export default function Pricing() {
                   <div className="mb-2">
                     <span className="text-4xl font-semibold tracking-tight">${plan.price.toLocaleString()}</span>
                     <span className={plan.popular ? 'text-white/50' : 'text-[#86868b]'}>/mo</span>
+                    <span className={`block text-sm mt-1 ${plan.popular ? 'text-white/40' : 'text-[#86868b]'}`}>(~{'\u20AC'}{eur(plan.price).toLocaleString()}/mo)</span>
                   </div>
                   <p className={`text-sm font-semibold mb-1 ${plan.popular ? 'text-emerald-400' : 'text-emerald-600'}`}>
                     {isFr ? '✓ Premier mois gratuit' : '✓ First month free'}
@@ -174,6 +178,7 @@ export default function Pricing() {
                   <div className="mb-6">
                     <span className="text-3xl font-semibold tracking-tight">+${mod.price}</span>
                     <span className="text-[#86868b]">/mo</span>
+                    <span className="block text-sm text-[#86868b] mt-1">(~{'\u20AC'}{eur(mod.price)}/mo)</span>
                   </div>
                   <ul className="space-y-2.5 mb-8 flex-1">
                     {mod.features.map((f, j) => (

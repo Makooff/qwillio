@@ -3,7 +3,7 @@ import { useSEO } from '../hooks/useSEO';
 import { Link } from 'react-router-dom';
 import {
   Phone, Calendar, BarChart3, Shield, Zap, Clock,
-  ChevronRight, Play, ArrowRight, Check,
+  ChevronRight, Play, Pause, ArrowRight, Check,
   MessageSquare, BrainCircuit, Globe,
   Mail, CreditCard, Calculator, Package, Plus,
   PhoneForwarded, Mic, Filter, Target, UserCheck, Send, Search, Link2, Activity, FileText, Headphones, Languages, Cpu, Lock, Gauge, Wifi,
@@ -14,6 +14,37 @@ import LangToggle from '../components/LangToggle';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
+
+/* ── Waveform audio player ── */
+function WaveformPlayer({ src, label }: { src: string; label: string }) {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const bars = useRef(Array.from({ length: 32 }, () => Math.random() * 100));
+
+  const toggle = () => {
+    if (!audioRef.current) return;
+    if (playing) { audioRef.current.pause(); }
+    else { audioRef.current.play(); }
+    setPlaying(!playing);
+  };
+
+  return (
+    <div className="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3 border border-white/10">
+      <button onClick={toggle} className="w-10 h-10 rounded-full bg-[#6366f1] flex items-center justify-center text-white hover:bg-[#5558e6] transition-colors flex-shrink-0">
+        {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-white">{label}</div>
+        <div className="flex items-center gap-[2px] h-4 mt-1">
+          {bars.current.map((h, i) => (
+            <div key={i} className={`w-[3px] rounded-full transition-all duration-150 ${playing ? 'bg-[#6366f1] animate-pulse' : 'bg-white/20'}`} style={{ height: `${h}%`, animationDelay: `${i * 50}ms` }} />
+          ))}
+        </div>
+      </div>
+      <audio ref={audioRef} src={src} onEnded={() => setPlaying(false)} />
+    </div>
+  );
+}
 
 /* ── Animated counter ── */
 function Counter({ value, suffix = '' }: { value: number; suffix?: string }) {
@@ -500,6 +531,10 @@ export default function Landing() {
             <p className="text-lg text-[#86868b] max-w-lg mx-auto mb-10 leading-relaxed">
               {t('demo.subtitle')}
             </p>
+            <div className="max-w-md mx-auto mb-10 space-y-3">
+              <WaveformPlayer src="/demo-ashley.mp3" label="Ashley (EN)" />
+              <WaveformPlayer src="/demo-marie.mp3" label="Marie (FR)" />
+            </div>
             <a
               href="/demo.html"
               className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium px-8 py-3.5 rounded-full hover:bg-[#424245] transition-colors"

@@ -559,6 +559,45 @@ router.get('/inventory/reorders', async (req: Request, res: Response) => {
   }
 });
 
+// ─── Inventory AI: QR code scan ─────────────────────────
+
+// QR code scan — accepts product barcode/QR data and matches to inventory
+router.post('/inventory/scan', async (req: any, res) => {
+  try {
+    const clientId = req.clientId;
+    const { barcode, action } = req.body; // action: 'usage' or 'restock'
+
+    if (!barcode) return res.status(400).json({ error: 'Barcode data required' });
+
+    // Try to find inventory item by product name or barcode match
+    const item = await prisma.agentInventory.findFirst({
+      where: { clientId, productName: { contains: barcode, mode: 'insensitive' } },
+    });
+
+    if (!item) {
+      return res.status(404).json({ error: 'Product not found', barcode });
+    }
+
+    if (action === 'usage') {
+      await prisma.agentInventory.update({
+        where: { id: item.id },
+        data: { quantity: { decrement: 1 } },
+      });
+    } else if (action === 'restock') {
+      const qty = req.body.quantity || 1;
+      await prisma.agentInventory.update({
+        where: { id: item.id },
+        data: { quantity: { increment: qty } },
+      });
+    }
+
+    const updated = await prisma.agentInventory.findUnique({ where: { id: item.id } });
+    res.json({ product: updated, action: action || 'lookup' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ─── Email AI (extended) ─────────────────────────────────
 
 router.get('/email/oauth/url', async (req: Request, res: Response) => {

@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, Phone, Zap, Target, Brain,
   CreditCard, Settings, LogOut, ChevronLeft, ChevronRight,
-  Search, RefreshCw, X, Crosshair, ExternalLink,
+  Search, RefreshCw, X, Crosshair, ExternalLink, TrendingUp,
 } from 'lucide-react';
 import QwillioLogo from '../QwillioLogo';
+import CommandPalette from '../ui/CommandPalette';
 
 const NAV_SECTIONS = [
   {
@@ -52,6 +53,7 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -65,14 +67,13 @@ export default function Layout() {
 
   const pageTitle = PAGE_TITLES[location.pathname] ?? 'Admin';
 
-  // cmd+K search
+  // cmd+K command palette
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setSearchOpen(true);
+        setCmdOpen(true);
       }
-      if (e.key === 'Escape') setSearchOpen(false);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -82,7 +83,7 @@ export default function Layout() {
   useEffect(() => {
     let lastKey = '';
     const handler = (e: KeyboardEvent) => {
-      if (searchOpen) return;
+      if (searchOpen || cmdOpen) return;
       if (e.key === 'g') { lastKey = 'g'; return; }
       if (lastKey === 'g') {
         const shortcuts: Record<string, string> = {
@@ -97,7 +98,7 @@ export default function Layout() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [navigate, searchOpen]);
+  }, [navigate, searchOpen, cmdOpen]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -251,7 +252,7 @@ export default function Layout() {
 
           {/* Search */}
           <button
-            onClick={() => setSearchOpen(true)}
+            onClick={() => setCmdOpen(true)}
             className="flex items-center gap-2 flex-1 max-w-xs mx-auto md:mx-0 md:ml-4
               px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.06]
               text-[#8B8BA7] text-sm hover:bg-white/[0.08] hover:border-[#7B5CF0]/30 transition-all"
@@ -291,55 +292,33 @@ export default function Layout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 overflow-auto">
           <Outlet />
         </main>
       </div>
 
-      {/* Search palette */}
-      <AnimatePresence>
-        {searchOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
-              onClick={() => setSearchOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: -10 }}
-              transition={{ duration: 0.15 }}
-              className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg
-                bg-[#12121A] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden"
-            >
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
-                <Search className="w-4 h-4 text-[#8B8BA7] flex-shrink-0" />
-                <input
-                  ref={searchRef}
-                  autoFocus
-                  placeholder="Search pages, clients, calls..."
-                  className="flex-1 bg-transparent text-[#F8F8FF] text-sm outline-none placeholder-[#8B8BA7]"
-                />
-                <kbd className="text-[10px] text-[#8B8BA7] bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08]">ESC</kbd>
-              </div>
-              <div className="p-2">
-                {NAV_SECTIONS[0].items.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setSearchOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.05] transition-all"
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span className="text-sm">{item.label}</span>
-                  </Link>
-                ))}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Command Palette */}
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+
+      {/* Mobile bottom nav */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden items-center justify-around bg-[#12121F] border-t border-white/10 py-2 px-1 safe-area-bottom">
+        {[
+          { icon: LayoutDashboard, label: 'Home', path: '/admin' },
+          { icon: Users, label: 'Clients', path: '/admin/clients' },
+          { icon: Phone, label: 'Calls', path: '/admin/calls' },
+          { icon: TrendingUp, label: 'Prospects', path: '/admin/prospects' },
+          { icon: Settings, label: 'Settings', path: '/admin/settings' },
+        ].map(item => {
+          const Icon = item.icon;
+          const active = location.pathname === item.path;
+          return (
+            <Link key={item.path} to={item.path} className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors ${active ? 'text-[#7B5CF0]' : 'text-[#8B8BA7]'}`}>
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px]">{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
