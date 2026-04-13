@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Users, Phone, Zap, Target, Brain,
   CreditCard, Settings, LogOut, ChevronLeft, ChevronRight,
   Search, RefreshCw, X, Crosshair, ExternalLink, TrendingUp,
+  ScrollText,
 } from 'lucide-react';
 import QwillioLogo from '../QwillioLogo';
 import CommandPalette from '../ui/CommandPalette';
@@ -22,6 +23,7 @@ const NAV_SECTIONS = [
       { path: '/admin/clients', icon: Users, label: 'Clients' },
       { path: '/admin/prospecting', icon: Crosshair, label: 'Prospection' },
       { path: '/admin/ai-learning', icon: Brain, label: 'IA' },
+      { path: '/admin/logs', icon: ScrollText, label: 'Logs' },
       { path: '/admin/billing', icon: CreditCard, label: 'Facturation' },
       { path: '/admin/settings', icon: Settings, label: 'Paramètres' },
     ],
