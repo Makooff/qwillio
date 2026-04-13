@@ -4,7 +4,6 @@ import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { CallAnalysis, PACKAGES } from '../types';
 import { recommendPackage, NICHE_PRIORITY_ORDER } from '../utils/helpers';
-import { quoteService } from './quote.service';
 import { discordService } from './discord.service';
 import { smsService } from './sms.service';
 import { NICHE_SCRIPTS, DEFAULT_SCRIPT, getInstallmentAmount } from '../config/niche-scripts';
@@ -321,10 +320,19 @@ export class VapiService {
       });
     }
 
-    // If qualified -> automatically start free trial (skip if email already bounced)
+    // If qualified -> send registration invite email (skip if email already bounced)
     if (analysis.interestLevel >= INTEREST_QUALIFIED && validatedEmail && !call.prospect.emailBounced) {
-      logger.info(`Prospect ${call.prospect.businessName} qualified (interest: ${analysis.interestLevel}/10) - starting free trial`);
-      await quoteService.startFreeTrial(call.prospect.id, analysis.recommendedPackage, validatedEmail);
+      logger.info(`Prospect ${call.prospect.businessName} qualified (interest: ${analysis.interestLevel}/10) - sending registration invite`);
+      // Instead of quoteService.startFreeTrial, send registration link email
+      const registrationUrl = `${env.FRONTEND_URL?.split(',')[0]}/register`;
+      await emailService.sendRegistrationInvite({
+        to: validatedEmail,
+        contactName: call.prospect.contactName || call.prospect.businessName,
+        businessName: call.prospect.businessName,
+        registrationUrl,
+        recommendedPlan: analysis.recommendedPackage || 'pro',
+      });
+      logger.info(`Registration invite sent to ${validatedEmail} for ${call.prospect.businessName}`);
     } else if (analysis.interestLevel >= INTEREST_QUALIFIED && call.prospect.emailBounced) {
       logger.warn(`Prospect ${call.prospect.businessName} qualified but email bounced — skipping free trial, waiting for SMS correction`);
     }
@@ -677,18 +685,27 @@ Return a JSON with:
       `${emoji} WEB DEMO CALL COMPLETED\n\nBusiness: ${businessName}\nInterest: ${analysis.interestLevel}/10\nPackage: ${analysis.recommendedPackage.toUpperCase()}\nEmail: ${analysis.email || 'Not collected'}\nDuration: ${durationSeconds}s\nOutcome: ${analysis.outcome}\nSummary: ${analysis.summary}`
     );
 
-    // 7. If qualified (interest >= 7) AND email collected → start full pipeline
+    // 7. If qualified (interest >= 7) AND email collected → send registration invite
     let trialStarted = false;
     if (analysis.interestLevel >= INTEREST_QUALIFIED && analysis.email) {
-      logger.info(`🧪 Prospect qualified! Starting free trial for ${businessName}...`);
+      logger.info(`Prospect qualified! Sending registration invite to ${businessName}...`);
       try {
-        await quoteService.startFreeTrial(prospect.id, analysis.recommendedPackage, analysis.email);
+        // Instead of quoteService.startFreeTrial, send registration link email
+        const registrationUrl = `${env.FRONTEND_URL?.split(',')[0]}/register`;
+        await emailService.sendRegistrationInvite({
+          to: analysis.email,
+          contactName: prospect.contactName || prospect.businessName,
+          businessName: prospect.businessName,
+          registrationUrl,
+          recommendedPlan: analysis.recommendedPackage || 'pro',
+        });
+        logger.info(`Registration invite sent to ${analysis.email} for ${prospect.businessName}`);
         trialStarted = true;
         await discordService.notify(
-          `🎁 WEB DEMO → FREE TRIAL AUTO-STARTED!\n\nBusiness: ${businessName}\nEmail: ${analysis.email}\nPackage: ${analysis.recommendedPackage.toUpperCase()}\n\nEmails sent:\n✅ Trial welcome email\n✅ Onboarding form email\n✅ Dashboard access link`
+          `📧 WEB DEMO → REGISTRATION INVITE SENT!\n\nBusiness: ${businessName}\nEmail: ${analysis.email}\nPackage: ${analysis.recommendedPackage.toUpperCase()}\n\nRegistration link sent — prospect will self-register on qwillio.com`
         );
       } catch (err) {
-        logger.error(`🧪 Failed to start trial from web demo:`, err);
+        logger.error(`Failed to send registration invite from web demo:`, err);
       }
     }
 

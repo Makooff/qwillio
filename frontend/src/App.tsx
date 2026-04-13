@@ -26,7 +26,6 @@ import ClientAnalytics from './pages/client/ClientAnalytics';
 import ClientBilling from './pages/client/ClientBilling';
 // Admin pages (lazy loaded)
 const AdminClients = lazy(() => import('./pages/Clients'));
-const AdminQuotes = lazy(() => import('./pages/Quotes'));
 const AdminCampaigns = lazy(() => import('./pages/Campaigns'));
 const AdminCosts = lazy(() => import('./pages/Costs'));
 const AdminRetention = lazy(() => import('./pages/Retention'));
@@ -222,7 +221,6 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="prospects" element={<Prospects />} />
           <Route path="clients" element={<Suspense fallback={<Spinner />}><AdminClients /></Suspense>} />
-          <Route path="quotes" element={<Suspense fallback={<Spinner />}><AdminQuotes /></Suspense>} />
           <Route path="campaigns" element={<Suspense fallback={<Spinner />}><AdminCampaigns /></Suspense>} />
           <Route path="costs" element={<Suspense fallback={<Spinner />}><AdminCosts /></Suspense>} />
           <Route path="retention" element={<Suspense fallback={<Spinner />}><AdminRetention /></Suspense>} />

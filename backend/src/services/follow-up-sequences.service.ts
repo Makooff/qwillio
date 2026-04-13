@@ -34,7 +34,7 @@ const NICHE_SEND_HOUR: Record<string, number> = {
 
 // ─── Email sequence subjects ───────────────────────────────
 const EMAIL_SEQUENCE: Array<{ dayOffset: number; subject: string; bodyKey: string }> = [
-  { dayOffset: 0, subject: 'Your AI receptionist demo — Qwillio', bodyKey: 'demo' },
+  { dayOffset: 0, subject: 'Start your free 30-day trial — Qwillio', bodyKey: 'demo' },
   { dayOffset: 3, subject: 'How {{niche}} businesses like yours use Qwillio', bodyKey: 'case_study' },
   { dayOffset: 7, subject: 'Last chance: free month for {{business_name}}', bodyKey: 'last_chance' },
 ];
@@ -68,15 +68,15 @@ export class FollowUpSequencesService {
 
     const niche = prospect.niche ?? prospect.businessType ?? 'home_services';
     const lang = 'en' as 'en' | 'fr';
-    const demoLink = lang === 'fr' ? env.DEMO_LINK_FR : env.DEMO_LINK_EN;
+    const registrationUrl = `${env.FRONTEND_URL?.split(',')[0]}/register`;
     const firstName = prospect.contactName?.split(' ')[0] ?? 'there';
     const agentName = lang === 'fr' ? 'Marie' : 'Ashley';
 
     // ─── Post-call SMS (score >= 5) ───────────────────────
     if (interestScore >= 5 && prospect.phone && !prospect.smsOptedOut) {
       const smsBody = lang === 'fr'
-        ? `Bonjour ${firstName}, c'est ${agentName} de Qwillio. Sympa d'avoir échangé ! Voici une démo rapide de comment on gère les appels pour les ${niche} : ${demoLink}. Premier mois offert. Répondez STOP pour vous désinscrire.`
-        : `Hi ${firstName}, it's ${agentName} from Qwillio. Great speaking with you! Here's a quick 2-min demo of how we handle calls for ${niche} businesses like yours: ${demoLink}. First month free — happy to set it up this week. Reply STOP to opt out.`;
+        ? `Bonjour ${firstName}, c'est ${agentName} de Qwillio. Sympa d'avoir échangé ! Démarrez votre essai gratuit de 30 jours : ${registrationUrl}. Aucun engagement. Répondez STOP pour vous désinscrire.`
+        : `Hi ${firstName}, it's ${agentName} from Qwillio. Great speaking with you! Start your free 30-day trial: ${registrationUrl}. No commitment, cancel anytime. Reply STOP to opt out.`;
 
       await this.scheduleOrSend('sms', prospect.id, 1, new Date(), smsBody, prospect.phone);
     }
@@ -89,8 +89,8 @@ export class FollowUpSequencesService {
       !prospect.smsOptedOut
     ) {
       const smsBody = lang === 'fr'
-        ? `Bonjour, j'ai laissé un message vocal concernant Qwillio — réceptionniste IA pour les ${niche}. Premier mois offert. Voir la démo : ${demoLink}. Répondez STOP pour vous désinscrire.`
-        : `Hi, I left you a voicemail about Qwillio — AI receptionist for ${niche} businesses. Never miss a customer call again. First month free. See how it works: ${demoLink}. Reply STOP to opt out.`;
+        ? `Bonjour, j'ai laissé un message vocal concernant Qwillio — réceptionniste IA pour les ${niche}. Essai gratuit 30 jours : ${registrationUrl}. Répondez STOP pour vous désinscrire.`
+        : `Hi, I left you a voicemail about Qwillio — AI receptionist for ${niche} businesses. Never miss a customer call again. Start your free 30-day trial: ${registrationUrl}. Reply STOP to opt out.`;
 
       const sendAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
       await this.scheduleOrSend('sms_voicemail', prospect.id, 3, sendAt, smsBody, prospect.phone);
@@ -141,7 +141,7 @@ export class FollowUpSequencesService {
       const p = item.prospect;
       const niche = p.niche ?? p.businessType ?? 'home_services';
       const lang = 'en' as 'en' | 'fr';
-      const demoLink = lang === 'fr' ? env.DEMO_LINK_FR : env.DEMO_LINK_EN;
+      const registrationLink = `${env.FRONTEND_URL?.split(',')[0]}/register`;
       const firstName = p.contactName?.split(' ')[0] ?? 'there';
       const agentName = lang === 'fr' ? 'Marie' : 'Ashley';
 
@@ -151,11 +151,11 @@ export class FollowUpSequencesService {
         if ((item.type === 'sms' || item.type === 'sms_voicemail') && p.phone && !p.smsOptedOut) {
           const body = item.type === 'sms_voicemail'
             ? (lang === 'fr'
-              ? `Bonjour, j'ai laissé un message vocal concernant Qwillio — réceptionniste IA pour les ${niche}. Premier mois offert. Voir la démo : ${demoLink}. Répondez STOP.`
-              : `Hi, I left you a voicemail about Qwillio — AI receptionist for ${niche} businesses. First month free. See how: ${demoLink}. Reply STOP to opt out.`)
+              ? `Bonjour, j'ai laissé un message vocal concernant Qwillio — réceptionniste IA pour les ${niche}. Essai gratuit 30 jours : ${registrationLink}. Répondez STOP.`
+              : `Hi, I left you a voicemail about Qwillio — AI receptionist for ${niche} businesses. Start your free 30-day trial: ${registrationLink}. Reply STOP to opt out.`)
             : (lang === 'fr'
-              ? `Bonjour ${firstName}, c'est ${agentName} de Qwillio. Démo rapide : ${demoLink}. Premier mois offert. Répondez STOP pour vous désinscrire.`
-              : `Hi ${firstName}, it's ${agentName} from Qwillio. Quick demo: ${demoLink}. First month free. Reply STOP to opt out.`);
+              ? `Bonjour ${firstName}, c'est ${agentName} de Qwillio. Essai gratuit 30 jours : ${registrationLink}. Aucun engagement. Répondez STOP pour vous désinscrire.`
+              : `Hi ${firstName}, it's ${agentName} from Qwillio. Start your free 30-day trial: ${registrationLink}. No commitment. Reply STOP to opt out.`);
 
           const result = await smsService.sendSMS(p.phone, body, {
             messageType: item.type,
@@ -165,7 +165,7 @@ export class FollowUpSequencesService {
         } else if (item.type === 'email' && p.email && !p.emailUnsubscribed) {
           // Determine which email step this is
           const emailSubject = item.type === 'email' ? this.buildEmailSubject(item.step, p.businessName, niche, lang) : '';
-          const emailBody = this.buildEmailBody(item.step, p.businessName, niche, lang, demoLink, firstName, agentName);
+          const emailBody = this.buildEmailBody(item.step, p.businessName, niche, lang, registrationLink, firstName, agentName);
 
           try {
             await resend.emails.send({
@@ -264,19 +264,19 @@ export class FollowUpSequencesService {
     businessName: string,
     niche: string,
     lang: 'en' | 'fr',
-    demoLink: string,
+    registrationLink: string,
     firstName: string,
     agentName: string,
   ): string {
     if (lang === 'fr') {
-      if (step === 1) return `Bonjour ${firstName},\n\nComme promis, voici la démo de Qwillio pour les ${niche} :\n${demoLink}\n\nPremier mois offert — aucun frais de setup.\n\n${agentName}, Qwillio`;
-      if (step === 2) return `Bonjour ${firstName},\n\nVoici comment des ${niche} comme vous utilisent Qwillio pour ne plus jamais manquer un appel client.\n\nDémo : ${demoLink}\n\n${agentName}, Qwillio`;
-      return `Bonjour ${firstName},\n\nDernière chance d'activer votre mois gratuit pour ${businessName}.\n\nDémo : ${demoLink}\n\n${agentName}, Qwillio`;
+      if (step === 1) return `Bonjour ${firstName},\n\nComme promis, Qwillio peut gérer vos appels 24/7 pour les ${niche}.\n\nDémarrez votre essai gratuit de 30 jours : ${registrationLink}\n\nAucun engagement, annulez quand vous voulez.\n\n${agentName}, Qwillio`;
+      if (step === 2) return `Bonjour ${firstName},\n\nVoici comment des ${niche} comme vous utilisent Qwillio pour ne plus jamais manquer un appel client.\n\nEssai gratuit : ${registrationLink}\n\n${agentName}, Qwillio`;
+      return `Bonjour ${firstName},\n\nDernière chance d'activer votre mois gratuit pour ${businessName}.\n\nInscription : ${registrationLink}\n\n${agentName}, Qwillio`;
     }
 
-    if (step === 1) return `Hi ${firstName},\n\nAs promised, here's the Qwillio demo for ${niche} businesses:\n${demoLink}\n\nFirst month completely free — no setup fee.\n\n${agentName}, Qwillio`;
-    if (step === 2) return `Hi ${firstName},\n\nHere's how ${niche} businesses like yours are using Qwillio to never miss a customer call.\n\nDemo: ${demoLink}\n\n${agentName}, Qwillio`;
-    return `Hi ${firstName},\n\nLast chance to activate your free month for ${businessName}.\n\nDemo: ${demoLink}\n\n${agentName}, Qwillio`;
+    if (step === 1) return `Hi ${firstName},\n\nAs promised, Qwillio can handle your calls 24/7 for ${niche} businesses like yours.\n\nStart your free 30-day trial: ${registrationLink}\n\nNo commitment, cancel anytime.\n\n${agentName}, Qwillio`;
+    if (step === 2) return `Hi ${firstName},\n\nHere's how ${niche} businesses like yours are using Qwillio to never miss a customer call.\n\nStart your free trial: ${registrationLink}\n\n${agentName}, Qwillio`;
+    return `Hi ${firstName},\n\nLast chance to activate your free month for ${businessName}.\n\nSign up now: ${registrationLink}\n\n${agentName}, Qwillio`;
   }
 }
 

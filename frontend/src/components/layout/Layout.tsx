@@ -38,7 +38,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/ai-decisions': 'IA — Décisions',
   '/admin/billing': 'Facturation',
   '/admin/settings': 'Paramètres',
-  '/admin/quotes': 'Devis',
   '/admin/campaigns': 'Campagnes',
   '/admin/followups': 'Suivis',
   '/admin/costs': 'Coûts',

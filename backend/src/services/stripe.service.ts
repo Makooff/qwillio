@@ -4,7 +4,6 @@ import { stripe } from '../config/stripe';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { PACKAGES } from '../types';
-import { onboardingService } from './onboarding.service';
 import { discordService } from './discord.service';
 import { emailService } from './email.service';
 
@@ -43,8 +42,8 @@ export class StripeService {
       return;
     }
 
-    // Otherwise, handle as a normal quote payment
-    await this.handleQuotePayment(referenceId, session);
+    // No matching flow — log warning and return
+    logger.warn(`Unhandled checkout session ${session.id} — not self-onboarding, not trial conversion, no quote`);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -223,144 +222,6 @@ export class StripeService {
     );
 
     logger.info(`Trial converted to paid: ${client.businessName} (${client.planType})`);
-  }
-
-  private async handleQuotePayment(quoteId: string, session: any) {
-    const quote = await prisma.quote.findUnique({
-      where: { id: quoteId },
-      include: { prospect: true },
-    });
-
-    if (!quote || !quote.prospect) {
-      logger.error(`Quote not found: ${quoteId}`);
-      return;
-    }
-
-    // Idempotency: skip if quote already accepted
-    if (quote.status === 'accepted') {
-      logger.info(`Quote ${quoteId} already accepted, skipping`);
-      return;
-    }
-
-    // Update quote
-    await prisma.quote.update({
-      where: { id: quoteId },
-      data: { status: 'accepted', acceptedAt: new Date() },
-    });
-
-    // Cancel all pending reminders for this quote
-    await prisma.reminder.updateMany({
-      where: { targetId: quoteId, targetType: 'quote', status: 'pending' },
-      data: { status: 'canceled' },
-    });
-
-    // Check contract signature status
-    if (!quote.contractSignedAt) {
-      logger.warn(`Payment received but contract not signed for quote ${quoteId}`);
-      await discordService.notify(`⚠️ PAYMENT WITHOUT CONTRACT\n\nQuote: ${quoteId}\nBusiness: ${quote.prospect.businessName}\nPayment accepted — client will be created without signed contract`);
-    }
-
-    // Create client
-    const pkg = PACKAGES[quote.packageType] || PACKAGES.basic;
-    const client = await prisma.client.create({
-      data: {
-        prospectId: quote.prospect.id,
-        quoteId: quote.id,
-        businessName: quote.prospect.businessName,
-        businessType: quote.prospect.businessType,
-        sector: quote.prospect.sector,
-        contactName: quote.prospect.contactName || quote.prospect.businessName,
-        contactEmail: quote.prospect.email || session.customer_email || '',
-        contactPhone: quote.prospect.phone,
-        address: quote.prospect.address,
-        city: quote.prospect.city,
-        postalCode: quote.prospect.postalCode,
-        country: quote.prospect.country,
-        planType: quote.packageType,
-        setupFee: quote.setupFee,
-        monthlyFee: quote.monthlyFee,
-        stripeCustomerId: session.customer || null,
-        subscriptionStatus: 'active',
-        onboardingStatus: 'pending',
-        activationDate: new Date(),
-        monthlyCallsQuota: pkg.callsQuota,
-        contractSignedAt: quote.contractSignedAt || null,
-        contractUrl: quote.contractPdfUrl || null,
-      },
-    });
-
-    // Create Stripe subscription for monthly payments
-    if (session.customer) {
-      try {
-        const priceId = this.getMonthlyPriceId(quote.packageType);
-        if (priceId) {
-          const subscription = await stripe.subscriptions.create({
-            customer: session.customer,
-            items: [{ price: priceId }],
-            metadata: {
-              client_id: client.id,
-              business_name: client.businessName,
-            },
-          });
-
-          await prisma.client.update({
-            where: { id: client.id },
-            data: { stripeSubscriptionId: subscription.id },
-          });
-        }
-      } catch (error) {
-        logger.error('Failed to create subscription for new client:', error);
-        await prisma.client.update({
-          where: { id: client.id },
-          data: { subscriptionStatus: 'past_due' },
-        });
-        await discordService.notify(
-          `⚠️ SUBSCRIPTION CREATION FAILED (new client)\n\nClient: ${client.businessName}\nSetup fee paid but subscription failed\nStatus: past_due\nError: ${(error as Error).message}`
-        );
-      }
-    }
-
-    // Record payment
-    await prisma.payment.create({
-      data: {
-        clientId: client.id,
-        stripePaymentIntentId: session.payment_intent,
-        amount: Number(quote.setupFee),
-        paymentType: 'setup_fee',
-        status: 'succeeded',
-        paidAt: new Date(),
-        description: `Setup fee - Package ${quote.packageType.toUpperCase()}`,
-      },
-    });
-
-    // Update prospect status
-    await prisma.prospect.update({
-      where: { id: quote.prospect.id },
-      data: { status: 'converted' },
-    });
-
-    // Update analytics
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    await prisma.analyticsDaily.upsert({
-      where: { date: today },
-      update: {
-        quotesAccepted: { increment: 1 },
-        newClients: { increment: 1 },
-        revenueSetupFees: { increment: Number(quote.setupFee) },
-      },
-      create: {
-        date: today,
-        quotesAccepted: 1,
-        newClients: 1,
-        revenueSetupFees: Number(quote.setupFee),
-      },
-    });
-
-    // AUTOMATIC ONBOARDING - Create VAPI assistant, buy phone number, send welcome email
-    await onboardingService.onboardClient(client.id);
-
-    logger.info(`New client created: ${client.businessName} (${client.planType})`);
   }
 
   async handleInvoicePaid(invoice: any) {

@@ -107,18 +107,17 @@ export class SmsService {
     businessName: string;
     contactName: string | null;
     smsOptedOut?: boolean;
-  }, callOutcome: string, quoteLink?: string): Promise<boolean> {
+  }, callOutcome: string, registrationUrl?: string): Promise<boolean> {
     if (!prospect.phone || prospect.smsOptedOut) return false;
 
     let body: string;
     const name = prospect.contactName || 'there';
+    const regLink = registrationUrl || 'https://qwillio.com/register';
 
     switch (callOutcome) {
       case 'qualified':
       case 'interested':
-        body = quoteLink
-          ? `Hi ${name}! Thanks for chatting with Ashley from Qwillio. Here's your personalized quote for ${prospect.businessName}: ${quoteLink} — Feel free to reply with any questions!`
-          : `Hi ${name}! Thanks for chatting with Ashley from Qwillio about ${prospect.businessName}. We'll send your personalized quote shortly. Reply with any questions!`;
+        body = `Hi ${name}! Thanks for chatting with Ashley from Qwillio. Start your free 30-day trial here: ${regLink} — No commitment, cancel anytime.`;
         break;
       case 'callback_later':
         body = `Hi ${name}! Ashley from Qwillio here. Sorry we couldn't connect fully today. We'll follow up soon. In the meantime, learn more at qwillio.com`;

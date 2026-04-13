@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import crypto from 'crypto';
 import { prisma } from '../config/database';
 import { stripe } from '../config/stripe';
 import { env } from '../config/env';
@@ -10,7 +9,6 @@ import { clientCallService } from '../services/client-call.service';
 import { smsService } from '../services/sms.service';
 import { emailService } from '../services/email.service';
 import { discordService } from '../services/discord.service';
-import { docuSignService } from '../services/docusign.service';
 import { extractEmailFromText, isValidEmail, normalizeEmail } from '../utils/validators';
 
 export class WebhooksController {
@@ -470,86 +468,6 @@ export class WebhooksController {
     res.json({ received: true });
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // DOCUSIGN CONNECT — Contract signed/declined
-  // ═══════════════════════════════════════════════════════════
-  async docusignWebhook(req: Request, res: Response) {
-    // Validate HMAC signature if secret is configured
-    if (env.DOCUSIGN_WEBHOOK_SECRET) {
-      const signature = req.headers['x-docusign-signature-1'] as string;
-      if (signature) {
-        const hmac = crypto.createHmac('sha256', env.DOCUSIGN_WEBHOOK_SECRET);
-        const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-        hmac.update(rawBody);
-        const expectedSig = hmac.digest('base64');
-        if (signature !== expectedSig) {
-          logger.warn('DocuSign webhook: HMAC signature mismatch');
-          return res.status(401).json({ error: 'Invalid webhook signature' });
-        }
-      }
-    }
-
-    const event = req.body;
-    const eventType = event.event || event.status;
-    const envelopeId = event.data?.envelopeId || event.envelopeId || event.data?.envelope?.envelopeId;
-
-    logger.info(`DocuSign webhook: ${eventType} for envelope ${envelopeId}`);
-
-    // Log webhook
-    await prisma.webhookLog.create({
-      data: {
-        source: 'docusign',
-        eventType: eventType || 'unknown',
-        payload: event,
-        status: 'received',
-      },
-    });
-
-    try {
-      switch (eventType) {
-        case 'envelope-completed':
-        case 'completed':
-          if (envelopeId) {
-            await docuSignService.handleEnvelopeCompleted(envelopeId);
-          }
-          break;
-
-        case 'recipient-declined':
-        case 'envelope-declined':
-        case 'declined':
-          if (envelopeId) {
-            await docuSignService.handleEnvelopeDeclined(envelopeId);
-          }
-          break;
-
-        case 'envelope-sent':
-        case 'sent':
-          logger.debug(`DocuSign envelope sent: ${envelopeId}`);
-          break;
-
-        case 'envelope-delivered':
-        case 'delivered':
-          logger.debug(`DocuSign envelope delivered: ${envelopeId}`);
-          break;
-
-        default:
-          logger.debug(`Unhandled DocuSign event: ${eventType}`);
-      }
-
-      await prisma.webhookLog.updateMany({
-        where: { source: 'docusign', eventType: eventType || 'unknown', status: 'received' },
-        data: { status: 'processed', processedAt: new Date() },
-      });
-    } catch (error: any) {
-      logger.error(`Error processing DocuSign webhook: ${error.message}`);
-      await prisma.webhookLog.updateMany({
-        where: { source: 'docusign', eventType: eventType || 'unknown', status: 'received' },
-        data: { status: 'failed', errorMessage: error.message },
-      });
-    }
-
-    res.json({ received: true });
-  }
 }
 
 export const webhooksController = new WebhooksController();

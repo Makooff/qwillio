@@ -51,6 +51,7 @@ export interface Call {
   createdAt: string;
 }
 
+// Legacy — quotes system removed, kept for type compatibility
 export interface Quote {
   id: string;
   prospectId?: string;
