@@ -40,7 +40,7 @@ const C = {
   bar:      '#4A4A58', // progress bar
   green:    '#5A8A5A', // start button muted green
   red:      '#8A5A5A', // stop button muted red
-  live:     '#6B6B78', // live badge
+  live:     '#22C55E', // live badge — keep green
 };
 
 const CRON_INFO: Record<string, { label: string; schedule: string; icon: any; category: string }> = {
@@ -178,10 +178,10 @@ export default function Dashboard() {
           {bot?.isActive && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${C.border}` }}>
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: C.on }} />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: C.on }} />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: C.live }} />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: C.live }} />
               </span>
-              <span className="text-[10px] font-bold tracking-wider" style={{ color: C.textDim }}>LIVE</span>
+              <span className="text-[10px] font-bold tracking-wider" style={{ color: C.live }}>LIVE</span>
             </div>
           )}
 
@@ -255,7 +255,7 @@ export default function Dashboard() {
             <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3 flex items-center gap-1.5" style={{ color: C.textDim }}>
               <Bot className="w-3.5 h-3.5" /> En ce moment
               {bot?.isActive && <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full animate-pulse"
-                style={{ color: C.on, background: 'rgba(255,255,255,0.04)' }}>LIVE</span>}
+                style={{ color: C.live, background: 'rgba(34,197,94,0.10)' }}>LIVE</span>}
             </h3>
 
             {[
@@ -313,7 +313,7 @@ export default function Dashboard() {
               <Activity className="w-3.5 h-3.5" /> Fil d'activité
               {bot?.isActive && (
                 <span className="text-[9px] px-1.5 py-0.5 rounded-full ml-1 animate-pulse"
-                  style={{ color: C.on, background: 'rgba(255,255,255,0.04)' }}>LIVE</span>
+                  style={{ color: C.live, background: 'rgba(34,197,94,0.10)' }}>LIVE</span>
               )}
             </h3>
             <Link to="/admin/calls" className="text-[10px] flex items-center gap-0.5 transition-colors hover:opacity-80" style={{ color: C.textDim }}>
