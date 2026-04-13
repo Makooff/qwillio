@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { t, glass } from '../../styles/admin-theme';
 
 interface Props {
   label: string;
@@ -43,22 +44,25 @@ export default function StatCard({ label, value, prefix, suffix, format, delta, 
   const sparkPoints = (sparkData ?? []).map((v, i) => ({ v, i }));
 
   return (
-    <div className="group rounded-2xl bg-[#12121A] border border-white/[0.06] p-5 hover:border-white/[0.12] transition-all">
+    <div
+      className="group p-5 hover:border-white/[0.12] transition-all"
+      style={{ ...glass }}
+    >
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] text-[#8B8BA7] font-medium uppercase tracking-wide">{label}</span>
+        <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: t.textSec }}>{label}</span>
         <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-          style={{ background: `${color ?? '#7B5CF0'}18`, color: color ?? '#7B5CF0' }}>
+          style={{ background: t.elevated, color: t.textSec }}>
           {icon}
         </div>
       </div>
 
-      <p className="text-2xl font-bold text-[#F8F8FF] tabular-nums mb-2" style={{ color: color }}>
+      <p className="text-2xl font-bold tabular-nums mb-2" style={{ color: t.text }}>
         {fmt(displayed, format, prefix, suffix)}
       </p>
 
       <div className="flex items-center justify-between">
         {delta !== undefined ? (
-          <span className={`flex items-center gap-1 text-xs font-medium ${positive ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+          <span className={`flex items-center gap-1 text-xs font-medium`} style={{ color: positive ? t.success : t.danger }}>
             {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {positive ? '+' : ''}{delta.toFixed(1)}%
           </span>
@@ -68,7 +72,7 @@ export default function StatCard({ label, value, prefix, suffix, format, delta, 
           <div className="h-8 w-20">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sparkPoints}>
-                <Line type="monotone" dataKey="v" stroke={color ?? '#7B5CF0'} strokeWidth={1.5} dot={false} />
+                <Line type="monotone" dataKey="v" stroke={t.textTer} strokeWidth={1.5} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

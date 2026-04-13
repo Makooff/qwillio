@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
+import { t, glass } from '../../styles/admin-theme';
 
 const CRON_JOBS = [
   { id: 'prospecting', label: 'Prospection', desc: 'Scraping + enrichissement' },
@@ -107,43 +108,44 @@ export default function AdminSystem() {
       <ToastContainer toasts={toasts} remove={remove} />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#F8F8FF]">Système</h1>
-          <p className="text-sm text-[#8B8BA7] mt-0.5">Contrôle bot, santé API, tâches cron</p>
+          <h1 className="text-xl font-bold" style={{ color: t.text }}>Système</h1>
+          <p className="text-sm mt-0.5" style={{ color: t.textSec }}>Contrôle bot, santé API, tâches cron</p>
         </div>
-        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+        <button onClick={load} className="p-2 rounded-xl hover:bg-white/[0.08] transition-all" style={{ background: t.elevated, color: t.textSec }}>
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
       {/* Bot Control */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+      <div className="p-5" style={{ ...glass, border: bot?.isActive ? `1px solid ${t.borderHi}` : glass.border }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bot?.isActive ? 'bg-[#22C55E]/10' : 'bg-[#8B8BA7]/10'}`}>
-              <Activity className={`w-5 h-5 ${bot?.isActive ? 'text-[#22C55E]' : 'text-[#8B8BA7]'}`} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: bot?.isActive ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.04)' }}>
+              <Activity className="w-5 h-5" style={{ color: bot?.isActive ? t.live : t.textSec }} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#F8F8FF]">Bot d'appels</p>
-              <p className="text-xs text-[#8B8BA7]">
+              <p className="text-sm font-semibold" style={{ color: t.text }}>Bot d'appels</p>
+              <p className="text-xs" style={{ color: t.textSec }}>
                 {bot?.isActive ? `Actif — ${bot.callsToday ?? 0}/${bot.callsQuotaDaily ?? 50} appels aujourd'hui` : 'Arrêté'}
               </p>
             </div>
           </div>
           <button onClick={toggleBot} disabled={toggling || loading}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all disabled:opacity-50
-              ${bot?.isActive
-                ? 'bg-[#EF4444]/10 border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/20'
-                : 'bg-[#22C55E]/10 border-[#22C55E]/30 text-[#22C55E] hover:bg-[#22C55E]/20'}`}>
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all disabled:opacity-50"
+            style={bot?.isActive
+              ? { background: 'rgba(248,113,113,0.1)', borderColor: 'rgba(248,113,113,0.3)', color: t.danger }
+              : { background: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.3)', color: t.live }}>
             {bot?.isActive ? <><Square className="w-3.5 h-3.5" />Arrêter</> : <><Play className="w-3.5 h-3.5" />Démarrer</>}
           </button>
         </div>
 
         {lastRunFields.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-4 border-t border-white/[0.06]">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-4" style={{ borderTop: `1px solid ${t.border}` }}>
             {lastRunFields.map(f => (
-              <div key={f.label} className="bg-[#0D0D15] rounded-xl p-3">
-                <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-1">{f.label}</p>
-                <p className="text-xs text-[#F8F8FF]">{new Date(f.value!).toLocaleString('fr-FR')}</p>
+              <div key={f.label} className="rounded-xl p-3" style={{ background: t.inset }}>
+                <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: t.textSec }}>{f.label}</p>
+                <p className="text-xs" style={{ color: t.text }}>{new Date(f.value!).toLocaleString('fr-FR')}</p>
               </div>
             ))}
           </div>
@@ -151,16 +153,20 @@ export default function AdminSystem() {
       </div>
 
       {/* API Health */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-        <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Santé des APIs</h3>
+      <div className="p-5" style={glass}>
+        <h3 className="text-sm font-semibold mb-4" style={{ color: t.text }}>Santé des APIs</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {API_SERVICES.map(svc => {
             const healthy = envVars[svc.key] !== false && envVars[svc.key] !== undefined;
             return (
-              <div key={svc.key} className={`p-4 rounded-xl border text-center transition-all ${healthy ? 'bg-[#22C55E]/5 border-[#22C55E]/20' : 'bg-[#EF4444]/5 border-[#EF4444]/20'}`}>
-                <div className={`flex justify-center mb-2 ${healthy ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>{svc.icon}</div>
-                <p className="text-xs font-medium text-[#F8F8FF]">{svc.label}</p>
-                <p className={`text-[10px] mt-0.5 ${healthy ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>{healthy ? 'Connecté' : 'Non configuré'}</p>
+              <div key={svc.key} className="p-4 rounded-xl text-center transition-all"
+                style={{
+                  ...glass,
+                  background: healthy ? 'rgba(34,197,94,0.05)' : 'rgba(248,113,113,0.05)',
+                }}>
+                <div className="flex justify-center mb-2" style={{ color: healthy ? t.success : t.danger }}>{svc.icon}</div>
+                <p className="text-xs font-medium" style={{ color: t.text }}>{svc.label}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: healthy ? t.success : t.danger }}>{healthy ? 'Connecté' : 'Non configuré'}</p>
               </div>
             );
           })}
@@ -168,20 +174,21 @@ export default function AdminSystem() {
       </div>
 
       {/* Cron Jobs */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-        <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Tâches CRON</h3>
+      <div className="p-5" style={glass}>
+        <h3 className="text-sm font-semibold mb-4" style={{ color: t.text }}>Tâches CRON</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {CRON_JOBS.map(job => {
             const lastRun = bot?.crons?.[job.id];
             return (
-              <div key={job.id} className="flex items-center justify-between p-3 bg-[#0D0D15] rounded-xl">
+              <div key={job.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: t.inset }}>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-[#F8F8FF]">{job.label}</p>
-                  <p className="text-[10px] text-[#8B8BA7] mt-0.5">{job.desc}</p>
-                  {lastRun && !isNaN(new Date(lastRun).getTime()) && <p className="text-[10px] text-[#8B8BA7] flex items-center gap-1 mt-1"><Clock className="w-2.5 h-2.5" />{new Date(lastRun).toLocaleTimeString('fr-FR')}</p>}
+                  <p className="text-xs font-medium" style={{ color: t.text }}>{job.label}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: t.textSec }}>{job.desc}</p>
+                  {lastRun && !isNaN(new Date(lastRun).getTime()) && <p className="text-[10px] flex items-center gap-1 mt-1" style={{ color: t.textSec }}><Clock className="w-2.5 h-2.5" />{new Date(lastRun).toLocaleTimeString('fr-FR')}</p>}
                 </div>
                 <button onClick={() => trigger(job.id)} disabled={triggering === job.id}
-                  className="ml-2 flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#7B5CF0]/10 text-[#7B5CF0] border border-[#7B5CF0]/20 hover:bg-[#7B5CF0]/20 text-[10px] font-medium transition-all disabled:opacity-50">
+                  className="ml-2 flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all disabled:opacity-50"
+                  style={{ background: 'rgba(255,255,255,0.06)', color: t.textSec, border: `1px solid ${t.border}` }}>
                   <Zap className="w-3 h-3" />{triggering === job.id ? '...' : 'Exécuter'}
                 </button>
               </div>

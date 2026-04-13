@@ -4,6 +4,7 @@ import { RefreshCw, Phone, CheckCircle, XCircle, AlertCircle } from 'lucide-reac
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { StatCardSkeleton, ChartSkeleton } from '../components/ui/Skeleton';
 import StatCard from '../components/ui/StatCard';
+import { t, glass, tooltipStyle } from '../styles/admin-theme';
 
 export default function PhoneValidation() {
   const [data, setData] = useState<any>(null);
@@ -17,7 +18,6 @@ export default function PhoneValidation() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Backend returns: { totalWithPhone, validated, notValidated, validatedPct, bySource, confidence }
   const total = data?.totalWithPhone ?? data?.total ?? 0;
   const valid = data?.validated ?? data?.valid ?? 0;
   const invalid = data?.notValidated ?? data?.invalid ?? 0;
@@ -26,15 +26,14 @@ export default function PhoneValidation() {
     { name: 'Valides', value: valid },
     { name: 'Non validés', value: invalid },
   ].filter(d => d.value > 0) : [];
-  const PIE_COLORS = ['#22C55E', '#EF4444', '#8B8BA7'];
-  const ttStyle = { background: '#1E1E2E', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12 };
+  const PIE_COLORS = [t.success, t.danger, t.textSec];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#F8F8FF]">Validation téléphonique</h1>
-          <p className="text-sm text-[#8B8BA7] mt-0.5">Qualité de la base de données</p>
+          <h1 className="text-xl font-bold" style={{ color: t.text }}>Validation téléphonique</h1>
+          <p className="text-sm mt-0.5" style={{ color: t.textSec }}>Qualité de la base de données</p>
         </div>
       </div>
 
@@ -43,13 +42,13 @@ export default function PhoneValidation() {
           <StatCard label="Total numéros" value={total} icon={<Phone className="w-4 h-4" />} />
           <StatCard label="Validés" value={valid} icon={<CheckCircle className="w-4 h-4" />} color="#22C55E" />
           <StatCard label="Non validés" value={invalid} icon={<XCircle className="w-4 h-4" />} color="#EF4444" />
-          <StatCard label="Taux validité" value={validRate} suffix="%" format="percent" icon={<AlertCircle className="w-4 h-4" />} color="#7B5CF0" />
+          <StatCard label="Taux validité" value={validRate} suffix="%" format="percent" icon={<AlertCircle className="w-4 h-4" />} />
         </>}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Répartition</h3>
+        <div className="p-5" style={glass}>
+          <h3 className="text-sm font-semibold mb-4" style={{ color: t.text }}>Répartition</h3>
           {loading ? <ChartSkeleton /> : (
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
@@ -57,26 +56,26 @@ export default function PhoneValidation() {
                   <Pie data={pieData} cx="50%" cy="45%" innerRadius={50} outerRadius={75} dataKey="value" paddingAngle={2}>
                     {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
                   </Pie>
-                  <Legend iconType="circle" iconSize={6} formatter={(v) => <span style={{ color: '#8B8BA7', fontSize: 10 }}>{v}</span>} />
-                  <Tooltip contentStyle={ttStyle} />
+                  <Legend iconType="circle" iconSize={6} formatter={(v) => <span style={{ color: t.textSec, fontSize: 10 }}>{v}</span>} />
+                  <Tooltip contentStyle={tooltipStyle} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           )}
         </div>
 
-        <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-4">Stats détaillées</h3>
-          {loading ? <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-10 bg-white/[0.04] rounded-xl animate-pulse" />)}</div> : (
+        <div className="p-5" style={glass}>
+          <h3 className="text-sm font-semibold mb-4" style={{ color: t.text }}>Stats détaillées</h3>
+          {loading ? <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-10 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />)}</div> : (
             <div className="space-y-3">
               {[
-                { label: 'Confiance haute (≥80%)', value: data?.confidence?.high ?? 0, color: '#22C55E' },
-                { label: 'Confiance moyenne (50-80%)', value: data?.confidence?.medium ?? 0, color: '#F59E0B' },
-                { label: 'Confiance basse (<50%)', value: data?.confidence?.low ?? 0, color: '#EF4444' },
-                { label: 'Non encore validés', value: invalid - (data?.confidence?.high ?? 0) - (data?.confidence?.medium ?? 0) - (data?.confidence?.low ?? 0) > 0 ? invalid : 0, color: '#8B8BA7' },
+                { label: 'Confiance haute (≥80%)', value: data?.confidence?.high ?? 0, color: t.success },
+                { label: 'Confiance moyenne (50-80%)', value: data?.confidence?.medium ?? 0, color: t.warning },
+                { label: 'Confiance basse (<50%)', value: data?.confidence?.low ?? 0, color: t.danger },
+                { label: 'Non encore validés', value: invalid - (data?.confidence?.high ?? 0) - (data?.confidence?.medium ?? 0) - (data?.confidence?.low ?? 0) > 0 ? invalid : 0, color: t.textSec },
               ].filter(s => s.value > 0).map(s => (
-                <div key={s.label} className="flex items-center justify-between p-3 bg-[#0D0D15] rounded-xl">
-                  <span className="text-sm text-[#8B8BA7]">{s.label}</span>
+                <div key={s.label} className="flex items-center justify-between p-3 rounded-xl" style={{ background: t.inset }}>
+                  <span className="text-sm" style={{ color: t.textSec }}>{s.label}</span>
                   <span className="text-sm font-bold" style={{ color: s.color }}>{s.value.toLocaleString()}</span>
                 </div>
               ))}

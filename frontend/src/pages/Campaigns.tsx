@@ -9,6 +9,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { TableRowSkeleton } from '../components/ui/Skeleton';
 import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ui/Toast';
+import { t, glass, inputStyle, cx } from '../styles/admin-theme';
 
 interface NewCampaign { name: string; type: string; subject: string; body: string; }
 
@@ -39,11 +40,11 @@ export default function Campaigns() {
     setCreating(true);
     try {
       await api.post('/campaigns/', form);
-      toast('Campagne créée', 'success');
+      toast('Campagne cr\u00e9\u00e9e', 'success');
       setShowCreate(false);
       setForm({ name: '', type: 'email', subject: '', body: '' });
       load();
-    } catch { toast('Erreur création', 'error'); }
+    } catch { toast('Erreur cr\u00e9ation', 'error'); }
     finally { setCreating(false); }
   };
 
@@ -51,7 +52,7 @@ export default function Campaigns() {
     setLaunching(id);
     try {
       await api.post(`/campaigns/${id}/launch`);
-      toast('Campagne lancée !', 'success');
+      toast('Campagne lanc\u00e9e !', 'success');
       load();
     } catch { toast('Erreur lancement', 'error'); }
     finally { setLaunching(null); }
@@ -62,7 +63,7 @@ export default function Campaigns() {
     setDeleting(true);
     try {
       await api.delete(`/campaigns/${toDelete.id}`);
-      toast('Campagne supprimée', 'success');
+      toast('Campagne supprim\u00e9e', 'success');
       setToDelete(null);
       load();
     } catch { toast('Erreur suppression', 'error'); }
@@ -71,77 +72,80 @@ export default function Campaigns() {
 
   const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div>
-      <label className="text-xs text-[#8B8BA7] mb-1.5 block">{label}</label>
+      <label className="text-xs mb-1.5 block" style={{ color: t.textSec }}>{label}</label>
       {children}
     </div>
   );
 
   return (
-    <div className="space-y-5">
+    <div className={cx.pageWrap}>
       <ToastContainer toasts={toasts} remove={remove} />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#F8F8FF]">Campagnes</h1>
-          <p className="text-sm text-[#8B8BA7] mt-0.5">{data.length} campagne{data.length > 1 ? 's' : ''}</p>
+          <h1 className={cx.h1} style={{ color: t.text }}>Campagnes</h1>
+          <p className="text-sm mt-0.5" style={{ color: t.textSec }}>{data.length} campagne{data.length > 1 ? 's' : ''}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all"><RefreshCw className="w-4 h-4" /></button>
+          <button onClick={load} className={cx.btnIcon} style={{ color: t.textSec }}><RefreshCw className="w-4 h-4" /></button>
           <button onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#7B5CF0] hover:bg-[#6D4FE0] text-white text-sm font-medium transition-all">
-            <Plus className="w-4 h-4" />Nouvelle campagne
+            className={cx.btnPrimary}
+            style={{ background: 'rgba(255,255,255,0.08)', color: t.text }}>
+            <Plus className="w-4 h-4 inline mr-1.5" />Nouvelle campagne
           </button>
         </div>
       </div>
 
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
+      <div className="rounded-[14px] overflow-hidden" style={glass}>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-white/[0.06]">
-              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Nom</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Type</th>
-              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Statut</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Envoyés</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Ouverts</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Clics</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Créée</th>
-              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase"></th>
+            <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+              <th className={cx.th} style={{ color: t.textTer }}>Nom</th>
+              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Type</th>
+              <th className={cx.th} style={{ color: t.textTer }}>Statut</th>
+              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Envoy\u00e9s</th>
+              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Ouverts</th>
+              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Clics</th>
+              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Cr\u00e9\u00e9e</th>
+              <th className={cx.th}></th>
             </tr>
           </thead>
           <tbody>
             {loading
               ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={8} />)
               : data.length === 0
-                ? <tr><td colSpan={8}><EmptyState icon={<Megaphone className="w-7 h-7" />} title="Aucune campagne" action={<button onClick={() => setShowCreate(true)} className="px-4 py-2 rounded-xl bg-[#7B5CF0] text-white text-xs font-medium">Créer une campagne</button>} /></td></tr>
+                ? <tr><td colSpan={8}><EmptyState icon={<Megaphone className="w-7 h-7" />} title="Aucune campagne" action={
+                    <button onClick={() => setShowCreate(true)} className={cx.btnPrimary} style={{ background: 'rgba(255,255,255,0.08)', color: t.text }}>Cr\u00e9er une campagne</button>
+                  } /></td></tr>
                 : data.map(c => (
-                  <tr key={c.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
-                    <td className="px-3 py-3">
-                      <p className="text-xs font-medium text-[#F8F8FF] truncate max-w-[120px] md:max-w-none">{c.name}</p>
+                  <tr key={c.id} className={cx.tr} style={{ cursor: 'default' }}>
+                    <td className={cx.td}>
+                      <p className="text-xs font-medium truncate max-w-[120px] md:max-w-none" style={{ color: t.text }}>{c.name}</p>
                       <span className="md:hidden"><Badge label={c.type} variant="info" size="xs" /></span>
                     </td>
-                    <td className="hidden md:table-cell px-3 py-3"><Badge label={c.type} variant="info" size="xs" /></td>
-                    <td className="px-3 py-3"><Badge label={c.status} dot size="xs" /></td>
-                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#F8F8FF]">{c.sentCount}</span></td>
-                    <td className="hidden md:table-cell px-3 py-3">
-                      <span className="text-xs text-[#F8F8FF]">
+                    <td className={`hidden md:table-cell ${cx.td}`}><Badge label={c.type} variant="info" size="xs" /></td>
+                    <td className={cx.td}><Badge label={c.status} dot size="xs" /></td>
+                    <td className={`hidden md:table-cell ${cx.td}`}><span className="text-xs" style={{ color: t.text }}>{c.sentCount}</span></td>
+                    <td className={`hidden md:table-cell ${cx.td}`}>
+                      <span className="text-xs" style={{ color: t.text }}>
                         {c.openedCount}
-                        {c.sentCount > 0 && <span className="text-[#8B8BA7] ml-1">({Math.round(c.openedCount / c.sentCount * 100)}%)</span>}
+                        {c.sentCount > 0 && <span className="ml-1" style={{ color: t.textSec }}>({Math.round(c.openedCount / c.sentCount * 100)}%)</span>}
                       </span>
                     </td>
-                    <td className="hidden md:table-cell px-3 py-3">
-                      <span className="text-xs text-[#F8F8FF]">
+                    <td className={`hidden md:table-cell ${cx.td}`}>
+                      <span className="text-xs" style={{ color: t.text }}>
                         {c.clickedCount}
-                        {c.sentCount > 0 && <span className="text-[#8B8BA7] ml-1">({Math.round(c.clickedCount / c.sentCount * 100)}%)</span>}
+                        {c.sentCount > 0 && <span className="ml-1" style={{ color: t.textSec }}>({Math.round(c.clickedCount / c.sentCount * 100)}%)</span>}
                       </span>
                     </td>
-                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#8B8BA7]">{new Date(c.createdAt).toLocaleDateString('fr-FR')}</span></td>
-                    <td className="px-3 py-3">
+                    <td className={`hidden md:table-cell ${cx.td}`}><span className="text-xs" style={{ color: t.textSec }}>{new Date(c.createdAt).toLocaleDateString('fr-FR')}</span></td>
+                    <td className={cx.td}>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {(c.status === 'draft' || c.status === 'scheduled') && (
                           <button onClick={() => launchCampaign(c.id)} disabled={launching === c.id}
-                            className="p-1.5 rounded-lg hover:bg-[#22C55E]/10 text-[#8B8BA7] hover:text-[#22C55E] transition-all disabled:opacity-40"><Play className="w-3.5 h-3.5" /></button>
+                            className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-all disabled:opacity-40" style={{ color: t.success }}><Play className="w-3.5 h-3.5" /></button>
                         )}
                         <button onClick={() => setToDelete(c)}
-                          className="p-1.5 rounded-lg hover:bg-[#EF4444]/10 text-[#8B8BA7] hover:text-[#EF4444] transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                          className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }}><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </td>
                   </tr>
@@ -152,36 +156,42 @@ export default function Campaigns() {
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nouvelle campagne" size="md"
         footer={
-          <><button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 rounded-xl bg-white/[0.06] text-[#F8F8FF] text-sm font-medium hover:bg-white/[0.1] transition-all">Annuler</button>
-          <button onClick={createCampaign} disabled={creating} className="flex-1 py-2.5 rounded-xl bg-[#7B5CF0] text-white text-sm font-medium hover:bg-[#6D4FE0] transition-all disabled:opacity-50">
-            {creating ? 'Création...' : 'Créer'}
-          </button></>
+          <>
+            <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 rounded-[14px] text-sm font-medium hover:bg-white/[0.06] transition-all" style={{ background: t.elevated, color: t.text }}>Annuler</button>
+            <button onClick={createCampaign} disabled={creating} className="flex-1 py-2.5 rounded-[14px] text-sm font-medium transition-all disabled:opacity-50" style={{ background: 'rgba(255,255,255,0.10)', color: t.text }}>
+              {creating ? 'Cr\u00e9ation...' : 'Cr\u00e9er'}
+            </button>
+          </>
         }>
         <div className="space-y-4">
           <Field label="Nom *">
             <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Relance prospects Mars"
-              className="w-full px-3 py-2.5 rounded-xl bg-[#0D0D15] border border-white/[0.06] text-sm text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50" />
+              className="w-full px-3 py-2.5 rounded-[10px] text-sm placeholder-[#48484A] focus:outline-none"
+              style={inputStyle} />
           </Field>
           <Field label="Type">
             <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-              className="w-full px-3 py-2.5 rounded-xl bg-[#0D0D15] border border-white/[0.06] text-sm text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50">
+              className="w-full px-3 py-2.5 rounded-[10px] text-sm focus:outline-none"
+              style={inputStyle}>
               <option value="email">Email</option>
               <option value="sms">SMS</option>
             </select>
           </Field>
           <Field label="Objet">
             <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="Objet de l'email..."
-              className="w-full px-3 py-2.5 rounded-xl bg-[#0D0D15] border border-white/[0.06] text-sm text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50" />
+              className="w-full px-3 py-2.5 rounded-[10px] text-sm placeholder-[#48484A] focus:outline-none"
+              style={inputStyle} />
           </Field>
           <Field label="Message">
             <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} rows={5} placeholder="Contenu du message..."
-              className="w-full px-3 py-2.5 rounded-xl bg-[#0D0D15] border border-white/[0.06] text-sm text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 resize-none" />
+              className="w-full px-3 py-2.5 rounded-[10px] text-sm placeholder-[#48484A] focus:outline-none resize-none"
+              style={inputStyle} />
           </Field>
         </div>
       </Modal>
 
       <ConfirmDialog open={!!toDelete} title="Supprimer la campagne"
-        message={`Supprimer "${toDelete?.name}" définitivement ?`}
+        message={`Supprimer "${toDelete?.name}" d\u00e9finitivement ?`}
         confirmLabel="Supprimer" loading={deleting}
         onConfirm={doDelete} onCancel={() => setToDelete(null)} />
     </div>

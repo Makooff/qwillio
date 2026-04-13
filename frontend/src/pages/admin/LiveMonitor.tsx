@@ -9,6 +9,7 @@ import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { t, glass } from '../../styles/admin-theme';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface BotStatus {
@@ -31,7 +32,7 @@ function timeAgo(d?: string | null) {
   if (!d) return 'Jamais';
   try { return formatDistanceToNow(new Date(d), { addSuffix: true, locale: fr }); } catch { return '—'; }
 }
-function scoreColor(s: number) { return s >= 7 ? '#22C55E' : s >= 4 ? '#F59E0B' : '#EF4444'; }
+function scoreColor(s: number) { return s >= 7 ? t.success : s >= 4 ? t.warning : t.danger; }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function LiveMonitor() {
@@ -48,7 +49,6 @@ export default function LiveMonitor() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickRef = useRef(0);
 
-  // ── Fetch all live data ──
   const poll = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
@@ -73,27 +73,25 @@ export default function LiveMonitor() {
     intervalRef.current = setInterval(() => {
       tickRef.current += 1;
       poll(true);
-    }, 8000); // poll toutes les 8s
+    }, 8000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [poll]);
 
-  // ── Start bot avec vérification ──
   const startBot = async () => {
     setBotOp('starting');
     setBotVerified(null);
     try {
       await api.post('/bot/start');
       toast('Démarrage en cours...', 'info');
-      // Vérifier après 3s que le bot est bien actif
       await new Promise(r => setTimeout(r, 3000));
       const { data } = await api.get('/bot/status');
       setBot(data);
       if (data.isActive || data.isRunning) {
         setBotVerified(true);
-        toast('✓ Bot démarré et vérifié', 'success');
+        toast('Bot démarré et vérifié', 'success');
       } else {
         setBotVerified(false);
-        toast('⚠ Bot démarré mais statut incertain — vérifiez les logs', 'warning');
+        toast('Bot démarré mais statut incertain', 'warning');
       }
     } catch (e: any) {
       setBotVerified(false);
@@ -103,7 +101,6 @@ export default function LiveMonitor() {
     }
   };
 
-  // ── Stop bot ──
   const stopBot = async () => {
     setBotOp('stopping');
     try {
@@ -116,23 +113,21 @@ export default function LiveMonitor() {
     finally { setBotOp(null); }
   };
 
-  // ── Lancer scraping avec vérification ──
   const startScraping = async () => {
     setScrapeOp('running');
     setScrapeVerified(null);
     try {
       const { data: triggerData } = await api.post('/prospecting/trigger/scrape');
       toast('Scraping démarré en arrière-plan...', 'info');
-      // Poll status after 5s to confirm
       await new Promise(r => setTimeout(r, 5000));
       const { data } = await api.get('/prospecting/status');
       setProspecting(data);
       if (triggerData?.status === 'running' || data?.lastScrape || (data?.prospectsFound ?? 0) > 0) {
         setScrapeVerified(true);
-        toast('✓ Scraping confirmé — s\'exécute en arrière-plan', 'success');
+        toast('Scraping confirmé', 'success');
       } else {
         setScrapeVerified(null);
-        toast('Scraping lancé — vérifiez les logs pour les résultats', 'info');
+        toast('Scraping lancé — vérifiez les logs', 'info');
       }
     } catch (e: any) {
       setScrapeVerified(false);
@@ -143,7 +138,6 @@ export default function LiveMonitor() {
     }
   };
 
-  // ── Lancer scoring ──
   const runScoring = async () => {
     try {
       await api.post('/bot/run/scoring');
@@ -152,7 +146,6 @@ export default function LiveMonitor() {
     } catch { toast('Erreur scoring', 'error'); }
   };
 
-  // ── Lancer follow-ups ──
   const runFollowUps = async () => {
     try {
       await api.post('/prospecting/trigger/follow-ups');
@@ -171,38 +164,35 @@ export default function LiveMonitor() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#F8F8FF]">Moniteur live</h1>
+          <h1 className="text-xl font-bold" style={{ color: t.text }}>Moniteur live</h1>
           <div className="flex items-center gap-2 mt-0.5">
             {connected
-              ? <span className="flex items-center gap-1 text-xs text-[#22C55E]"><Wifi className="w-3 h-3" />Connecté · mise à jour auto 8s</span>
-              : <span className="flex items-center gap-1 text-xs text-[#EF4444]"><WifiOff className="w-3 h-3" />Déconnecté</span>}
+              ? <span className="flex items-center gap-1 text-xs" style={{ color: t.live }}><Wifi className="w-3 h-3" />Connecté · mise à jour auto 8s</span>
+              : <span className="flex items-center gap-1 text-xs" style={{ color: t.danger }}><WifiOff className="w-3 h-3" />Déconnecté</span>}
           </div>
         </div>
-        <button onClick={() => poll()} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+        <button onClick={() => poll()} className="p-2 rounded-xl hover:bg-white/[0.08] transition-all" style={{ background: t.elevated, color: t.textSec }}>
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
-      {/* ── BOT CONTROL CARD ── */}
-      <div className={`rounded-2xl border p-5 transition-all ${
-        isActive ? 'bg-[#22C55E]/5 border-[#22C55E]/25' : 'bg-[#12121A] border-white/[0.06]'
-      }`}>
+      {/* BOT CONTROL CARD */}
+      <div className="p-5 transition-all" style={{ ...glass, border: isActive ? `1px solid ${t.borderHi}` : glass.border }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
-              isActive ? 'bg-[#22C55E]/15' : 'bg-white/[0.06]'
-            }`}>
-              <Activity className={`w-6 h-6 ${isActive ? 'text-[#22C55E]' : 'text-[#8B8BA7]'}`} />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-colors"
+              style={{ background: isActive ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.06)' }}>
+              <Activity className="w-6 h-6" style={{ color: isActive ? t.live : t.textSec }} />
             </div>
             <div>
-              <p className="text-base font-bold text-[#F8F8FF]">Bot d'appels Qwillio</p>
+              <p className="text-base font-bold" style={{ color: t.text }}>Bot d'appels Qwillio</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-[#22C55E] animate-pulse' : 'bg-[#8B8BA7]'}`} />
-                <span className={`text-xs font-medium ${isActive ? 'text-[#22C55E]' : 'text-[#8B8BA7]'}`}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: isActive ? t.live : t.textSec, animation: isActive ? 'pulse 2s infinite' : 'none' }} />
+                <span className="text-xs font-medium" style={{ color: isActive ? t.live : t.textSec }}>
                   {botOp === 'starting' ? 'Démarrage...' : botOp === 'stopping' ? 'Arrêt...' : isActive ? 'ACTIF' : 'ARRÊTÉ'}
                 </span>
-                {botVerified === true && <span className="text-xs text-[#22C55E] flex items-center gap-0.5"><CheckCircle2 className="w-3 h-3" />vérifié</span>}
-                {botVerified === false && <span className="text-xs text-[#EF4444] flex items-center gap-0.5"><AlertCircle className="w-3 h-3" />problème</span>}
+                {botVerified === true && <span className="text-xs flex items-center gap-0.5" style={{ color: t.success }}><CheckCircle2 className="w-3 h-3" />vérifié</span>}
+                {botVerified === false && <span className="text-xs flex items-center gap-0.5" style={{ color: t.danger }}><AlertCircle className="w-3 h-3" />problème</span>}
               </div>
             </div>
           </div>
@@ -210,11 +200,10 @@ export default function LiveMonitor() {
           <button
             onClick={isActive ? stopBot : startBot}
             disabled={!!botOp}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all disabled:opacity-50
-              ${isActive
-                ? 'bg-[#EF4444]/10 border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/20'
-                : 'bg-[#22C55E]/10 border-[#22C55E]/30 text-[#22C55E] hover:bg-[#22C55E]/20'}`}
-          >
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all disabled:opacity-50"
+            style={isActive
+              ? { background: 'rgba(248,113,113,0.1)', borderColor: 'rgba(248,113,113,0.3)', color: t.danger }
+              : { background: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.3)', color: t.live }}>
             {botOp
               ? <div className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
               : isActive ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -225,12 +214,12 @@ export default function LiveMonitor() {
         {/* Quota bar */}
         <div className="mb-4">
           <div className="flex justify-between text-xs mb-1.5">
-            <span className="text-[#8B8BA7]">Appels aujourd'hui</span>
-            <span className="font-semibold text-[#F8F8FF]">{bot?.callsToday ?? 0} / {quota}</span>
+            <span style={{ color: t.textSec }}>Appels aujourd'hui</span>
+            <span className="font-semibold" style={{ color: t.text }}>{bot?.callsToday ?? 0} / {quota}</span>
           </div>
-          <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
+          <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
             <div className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${callsPct}%`, background: callsPct >= 90 ? '#EF4444' : callsPct >= 70 ? '#F59E0B' : '#22C55E' }} />
+              style={{ width: `${callsPct}%`, background: callsPct >= 90 ? t.danger : callsPct >= 70 ? t.warning : 'rgba(255,255,255,0.25)' }} />
           </div>
         </div>
 
@@ -242,31 +231,32 @@ export default function LiveMonitor() {
             { label: 'Dernière prospection', value: bot?.lastProspection ?? bot?.lastRunProspecting },
             { label: 'Dernier suivi', value: bot?.lastRunFollowUp },
           ].map(f => (
-            <div key={f.label} className="bg-black/20 rounded-xl p-2.5">
-              <p className="text-[9px] text-[#8B8BA7] uppercase tracking-wide mb-0.5">{f.label}</p>
-              <p className="text-[11px] text-[#F8F8FF]">{timeAgo(f.value)}</p>
+            <div key={f.label} className="rounded-xl p-2.5" style={{ background: 'rgba(0,0,0,0.2)' }}>
+              <p className="text-[9px] uppercase tracking-wide mb-0.5" style={{ color: t.textSec }}>{f.label}</p>
+              <p className="text-[11px]" style={{ color: t.text }}>{timeAgo(f.value)}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── SCRAPING + ACTIONS RAPIDES ── */}
+      {/* SCRAPING + ACTIONS RAPIDES */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {/* Scraping card */}
-        <div className={`rounded-2xl border p-5 transition-all ${
-          scrapeVerified === true ? 'bg-[#7B5CF0]/5 border-[#7B5CF0]/25' :
-          scrapeVerified === false ? 'bg-[#EF4444]/5 border-[#EF4444]/20' :
-          'bg-[#12121A] border-white/[0.06]'
-        }`}>
+        <div className="p-5 transition-all" style={{
+          ...glass,
+          background: scrapeVerified === false ? 'rgba(248,113,113,0.05)' : glass.background,
+          border: scrapeVerified === false ? `1px solid rgba(248,113,113,0.2)` : glass.border,
+        }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#7B5CF0]/10 flex items-center justify-center">
-                <Search className="w-5 h-5 text-[#7B5CF0]" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <Search className="w-5 h-5" style={{ color: t.textSec }} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[#F8F8FF]">Scraping prospects</p>
-                <p className="text-xs text-[#8B8BA7]">
+                <p className="text-sm font-semibold" style={{ color: t.text }}>Scraping prospects</p>
+                <p className="text-xs" style={{ color: t.textSec }}>
                   {prospecting?.prospectsFound ? `${prospecting.prospectsFound} trouvés` : 'Apify Google Maps'}
                   {prospecting?.lastScrape ? ` · ${timeAgo(prospecting.lastScrape)}` : ''}
                 </p>
@@ -275,10 +265,10 @@ export default function LiveMonitor() {
             <button
               onClick={startScraping}
               disabled={!!scrapeOp}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#7B5CF0]/10 border border-[#7B5CF0]/30 text-[#7B5CF0] text-sm font-medium hover:bg-[#7B5CF0]/20 transition-all disabled:opacity-50"
-            >
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+              style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${t.border}`, color: t.textSec }}>
               {scrapeOp ? (
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-[#7B5CF0] border-t-transparent animate-spin" />
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
               ) : (
                 <Zap className="w-3.5 h-3.5" />
               )}
@@ -287,9 +277,11 @@ export default function LiveMonitor() {
           </div>
 
           {scrapeVerified !== null && (
-            <div className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-medium ${
-              scrapeVerified ? 'bg-[#22C55E]/10 text-[#22C55E]' : 'bg-[#EF4444]/10 text-[#EF4444]'
-            }`}>
+            <div className="flex items-center gap-2 p-2.5 rounded-xl text-xs font-medium"
+              style={{
+                background: scrapeVerified ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)',
+                color: scrapeVerified ? t.success : t.danger,
+              }}>
               {scrapeVerified ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
               {scrapeVerified
                 ? 'Scraping en cours — résultats dans quelques minutes'
@@ -297,9 +289,10 @@ export default function LiveMonitor() {
             </div>
           )}
           {!scrapeVerified && prospecting && (prospecting as any).apifyConfigured === false && (
-            <div className="flex items-center gap-2 p-2.5 rounded-xl text-xs bg-[#F59E0B]/10 text-[#F59E0B]">
+            <div className="flex items-center gap-2 p-2.5 rounded-xl text-xs"
+              style={{ background: 'rgba(251,191,36,0.1)', color: t.warning }}>
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>Configurez <code className="font-mono bg-black/20 px-1 rounded">APIFY_API_KEY</code> sur Render pour activer le scraping réel</span>
+              <span>Configurez <code className="font-mono px-1 rounded" style={{ background: 'rgba(0,0,0,0.2)' }}>APIFY_API_KEY</code> sur Render pour activer le scraping réel</span>
             </div>
           )}
 
@@ -309,30 +302,30 @@ export default function LiveMonitor() {
               { label: 'Tests A/B', value: prospecting?.abTestsActive ?? '—' },
               { label: 'Appels', value: prospecting?.callsToday ?? '—' },
             ].map(s => (
-              <div key={s.label} className="bg-black/20 rounded-xl p-2.5 text-center">
-                <p className="text-base font-bold text-[#F8F8FF]">{s.value}</p>
-                <p className="text-[9px] text-[#8B8BA7] uppercase tracking-wide mt-0.5">{s.label}</p>
+              <div key={s.label} className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(0,0,0,0.2)' }}>
+                <p className="text-base font-bold" style={{ color: t.text }}>{s.value}</p>
+                <p className="text-[9px] uppercase tracking-wide mt-0.5" style={{ color: t.textSec }}>{s.label}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Actions rapides */}
-        <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-          <p className="text-sm font-semibold text-[#F8F8FF] mb-4">Actions rapides</p>
+        <div className="p-5" style={glass}>
+          <p className="text-sm font-semibold mb-4" style={{ color: t.text }}>Actions rapides</p>
           <div className="space-y-2">
             {[
-              { label: 'Scorer les prospects', desc: 'Recalculer scores IA', icon: <TrendingUp className="w-4 h-4" />, color: '#22C55E', action: runScoring },
-              { label: 'Envoyer follow-ups', desc: 'Traiter relances dues', icon: <Clock className="w-4 h-4" />, color: '#F59E0B', action: runFollowUps },
+              { label: 'Scorer les prospects', desc: 'Recalculer scores IA', icon: <TrendingUp className="w-4 h-4" />, action: runScoring },
+              { label: 'Envoyer follow-ups', desc: 'Traiter relances dues', icon: <Clock className="w-4 h-4" />, action: runFollowUps },
               {
-                label: 'Tentative d\'appel', desc: 'Forcer 1 appel sortant', icon: <Phone className="w-4 h-4" />, color: '#7B5CF0',
+                label: 'Tentative d\'appel', desc: 'Forcer 1 appel sortant', icon: <Phone className="w-4 h-4" />,
                 action: async () => {
                   try { await api.post('/bot/trigger/call'); toast('Appel déclenché', 'success'); }
                   catch { toast('Erreur déclenchement appel', 'error'); }
                 }
               },
               {
-                label: 'Re-scorer prospects', desc: 'Scorer les non-scorés', icon: <RotateCcw className="w-4 h-4" />, color: '#a78bfa',
+                label: 'Re-scorer prospects', desc: 'Scorer les non-scorés', icon: <RotateCcw className="w-4 h-4" />,
                 action: async () => {
                   try { await api.post('/prospecting/trigger/rescore'); toast('Re-scoring lancé', 'success'); }
                   catch { toast('Erreur re-scoring', 'error'); }
@@ -340,25 +333,26 @@ export default function LiveMonitor() {
               },
             ].map(a => (
               <button key={a.label} onClick={a.action}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-[#0D0D15] hover:bg-white/[0.04] border border-white/[0.04] hover:border-white/[0.12] text-left transition-all group">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                  style={{ background: `${a.color}18`, color: a.color }}>
+                className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all group hover:bg-white/[0.04]"
+                style={{ background: t.inset, border: `1px solid ${t.border}` }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.04)', color: t.textSec }}>
                   {a.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-[#F8F8FF]">{a.label}</p>
-                  <p className="text-[10px] text-[#8B8BA7]">{a.desc}</p>
+                  <p className="text-xs font-medium" style={{ color: t.text }}>{a.label}</p>
+                  <p className="text-[10px]" style={{ color: t.textSec }}>{a.desc}</p>
                 </div>
-                <Play className="w-3.5 h-3.5 text-[#8B8BA7] opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Play className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: t.textSec }} />
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── HEALTH API ── */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
-        <p className="text-sm font-semibold text-[#F8F8FF] mb-3">Santé système</p>
+      {/* HEALTH API */}
+      <div className="p-5" style={glass}>
+        <p className="text-sm font-semibold mb-3" style={{ color: t.text }}>Santé système</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: 'Backend API', ok: connected, icon: <Cpu className="w-4 h-4" /> },
@@ -366,13 +360,12 @@ export default function LiveMonitor() {
             { label: 'Prospects DB', ok: (bot?.prospectsFound ?? 0) >= 0, icon: <Database className="w-4 h-4" /> },
             { label: 'File d\'appels', ok: isActive, icon: <Phone className="w-4 h-4" /> },
           ].map(s => (
-            <div key={s.label} className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all ${
-              s.ok ? 'bg-[#22C55E]/5 border-[#22C55E]/20' : 'bg-[#EF4444]/5 border-[#EF4444]/20'
-            }`}>
-              <span className={s.ok ? 'text-[#22C55E]' : 'text-[#EF4444]'}>{s.icon}</span>
+            <div key={s.label} className="flex items-center gap-2.5 p-3 rounded-xl transition-all"
+              style={{ ...glass, background: s.ok ? 'rgba(52,211,153,0.05)' : 'rgba(248,113,113,0.05)' }}>
+              <span style={{ color: s.ok ? t.success : t.danger }}>{s.icon}</span>
               <div>
-                <p className="text-[11px] font-medium text-[#F8F8FF]">{s.label}</p>
-                <p className={`text-[9px] ${s.ok ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                <p className="text-[11px] font-medium" style={{ color: t.text }}>{s.label}</p>
+                <p className="text-[9px]" style={{ color: s.ok ? t.success : t.danger }}>
                   {s.ok ? 'OK' : 'Problème'}
                 </p>
               </div>
@@ -381,12 +374,13 @@ export default function LiveMonitor() {
         </div>
       </div>
 
-      {/* ── LIVE ACTIVITY FEED ── */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] p-5">
+      {/* LIVE ACTIVITY FEED */}
+      <div className="p-5" style={glass}>
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-semibold text-[#F8F8FF]">Activité en direct</p>
-          <span className="flex items-center gap-1.5 text-[10px] text-[#22C55E] bg-[#22C55E]/10 px-2 py-0.5 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />LIVE
+          <p className="text-sm font-semibold" style={{ color: t.text }}>Activité en direct</p>
+          <span className="flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full"
+            style={{ color: t.live, background: 'rgba(34,197,94,0.1)' }}>
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: t.live }} />LIVE
           </span>
         </div>
 
@@ -394,29 +388,30 @@ export default function LiveMonitor() {
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3 animate-pulse">
-                <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex-shrink-0" />
+                <div className="w-9 h-9 rounded-xl flex-shrink-0" style={{ background: 'rgba(255,255,255,0.06)' }} />
                 <div className="flex-1 space-y-1.5">
-                  <div className="h-3 bg-white/[0.06] rounded w-2/3" />
-                  <div className="h-2 bg-white/[0.04] rounded w-1/3" />
+                  <div className="h-3 rounded w-2/3" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                  <div className="h-2 rounded w-1/3" style={{ background: 'rgba(255,255,255,0.04)' }} />
                 </div>
               </div>
             ))}
           </div>
         ) : activity.length === 0 ? (
           <div className="py-12 text-center">
-            <Activity className="w-8 h-8 text-[#8B8BA7] mx-auto mb-3" />
-            <p className="text-sm text-[#8B8BA7]">Aucune activité — démarrez le bot</p>
+            <Activity className="w-8 h-8 mx-auto mb-3" style={{ color: t.textSec }} />
+            <p className="text-sm" style={{ color: t.textSec }}>Aucune activité — démarrez le bot</p>
           </div>
         ) : (
           <div className="space-y-1 max-h-80 overflow-y-auto scrollbar-hide">
             {activity.slice(0, 20).map((item, i) => (
               <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.03] transition-all">
-                <div className="w-9 h-9 rounded-xl bg-[#7B5CF0]/10 flex items-center justify-center flex-shrink-0 text-base">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
+                  style={{ background: 'rgba(255,255,255,0.04)' }}>
                   {item.icon ?? '📞'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-[#F8F8FF] truncate">{item.message ?? item.businessName ?? 'Événement'}</p>
-                  <p className="text-[10px] text-[#8B8BA7] mt-0.5">{timeAgo(item.date)}</p>
+                  <p className="text-xs font-medium truncate" style={{ color: t.text }}>{item.message ?? item.businessName ?? 'Événement'}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: t.textSec }}>{timeAgo(item.date)}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {item.interestScore !== undefined && (
@@ -425,7 +420,7 @@ export default function LiveMonitor() {
                     </span>
                   )}
                   {item.outcome && (
-                    <span className="text-[10px] text-[#8B8BA7]">{item.outcome}</span>
+                    <span className="text-[10px]" style={{ color: t.textSec }}>{item.outcome}</span>
                   )}
                 </div>
               </div>
@@ -433,7 +428,7 @@ export default function LiveMonitor() {
           </div>
         )}
 
-        <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs text-[#8B8BA7]">
+        <div className="mt-3 pt-3 flex items-center justify-between text-xs" style={{ borderTop: `1px solid ${t.border}`, color: t.textSec }}>
           <span>Mise à jour toutes les 8s</span>
           <span>{activity.length} événements</span>
         </div>

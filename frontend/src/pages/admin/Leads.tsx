@@ -7,9 +7,10 @@ import EmptyState from '../../components/ui/EmptyState';
 import Badge from '../../components/ui/Badge';
 import { StatCardSkeleton } from '../../components/ui/Skeleton';
 import StatCard from '../../components/ui/StatCard';
+import { t, glass } from '../../styles/admin-theme';
 
 function scoreColor(s: number) {
-  return s >= 8 ? '#22C55E' : s >= 6 ? '#F59E0B' : '#8B8BA7';
+  return s >= 8 ? t.success : s >= 6 ? t.warning : t.textSec;
 }
 
 export default function AdminLeads() {
@@ -58,19 +59,20 @@ export default function AdminLeads() {
       <ToastContainer toasts={toasts} remove={remove} />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#F8F8FF]">Leads chauds</h1>
-          <p className="text-sm text-[#8B8BA7] mt-0.5">Prospects à fort potentiel</p>
+          <h1 className="text-xl font-bold" style={{ color: t.text }}>Leads chauds</h1>
+          <p className="text-sm mt-0.5" style={{ color: t.textSec }}>Prospects à fort potentiel</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
             {[5, 6, 7, 8].map(s => (
               <button key={s} onClick={() => setMinScore(s)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${minScore === s ? 'bg-[#7B5CF0]/10 text-[#7B5CF0] border border-[#7B5CF0]/20' : 'bg-[#12121A] border border-white/[0.06] text-[#8B8BA7] hover:text-white'}`}>
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${minScore === s ? 'bg-white/[0.08] border border-white/[0.12]' : 'border border-white/[0.06] hover:bg-white/[0.04]'}`}
+                style={{ color: minScore === s ? t.text : t.textSec, background: minScore !== s ? t.elevated : undefined }}>
                 ≥{s}
               </button>
             ))}
           </div>
-          <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+          <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }}>
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
@@ -78,9 +80,9 @@ export default function AdminLeads() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Total leads" value={data.length} icon={<Zap className="w-4 h-4" />} />
-        <StatCard label="Leads chauds (≥8)" value={hotLeads.length} icon={<Star className="w-4 h-4" />} color="#F59E0B" />
-        <StatCard label="Score moyen" value={Math.round(avgScore * 10) / 10} suffix="/10" icon={<Star className="w-4 h-4" />} color="#22C55E" />
-        <StatCard label="Score min" value={minScore} suffix="/10" icon={<Zap className="w-4 h-4" />} color="#7B5CF0" />
+        <StatCard label="Leads chauds (≥8)" value={hotLeads.length} icon={<Star className="w-4 h-4" />} />
+        <StatCard label="Score moyen" value={Math.round(avgScore * 10) / 10} suffix="/10" icon={<Star className="w-4 h-4" />} />
+        <StatCard label="Score min" value={minScore} suffix="/10" icon={<Zap className="w-4 h-4" />} />
       </div>
 
       {loading ? (
@@ -95,12 +97,12 @@ export default function AdminLeads() {
             const isHot = lead.interestLevel >= 8;
             return (
               <div key={lead.id}
-                className={`rounded-2xl bg-[#12121A] border p-5 transition-all hover:border-white/[0.15]
-                  ${isHot ? 'border-[#22C55E]/30 shadow-[0_0_20px_rgba(34,197,94,0.05)]' : 'border-white/[0.06]'}`}>
+                className="p-5 transition-all hover:border-white/[0.15]"
+                style={{ ...glass, border: isHot ? `1px solid rgba(255,255,255,0.12)` : `1px solid ${t.border}` }}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[#F8F8FF] truncate">{lead.businessName ?? lead.prospect?.businessName}</p>
-                    <p className="text-xs text-[#8B8BA7] mt-0.5">{lead.city ?? lead.prospect?.city ?? lead.businessType}</p>
+                    <p className="text-sm font-semibold truncate" style={{ color: t.text }}>{lead.businessName ?? lead.prospect?.businessName}</p>
+                    <p className="text-xs mt-0.5" style={{ color: t.textSec }}>{lead.city ?? lead.prospect?.city ?? lead.businessType}</p>
                   </div>
                   <div className="flex-shrink-0 ml-3">
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold"
@@ -112,20 +114,22 @@ export default function AdminLeads() {
 
                 <div className="flex items-center gap-2 mb-4">
                   <Badge label={lead.status ?? lead.outcome ?? 'interested'} dot size="xs" />
-                  {isHot && <span className="text-[10px] text-[#22C55E] font-medium bg-[#22C55E]/10 px-1.5 py-0.5 rounded-full">🔥 HOT</span>}
+                  {isHot && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ color: t.success, background: `${t.success}18` }}>🔥 HOT</span>}
                 </div>
 
                 {lead.summary && (
-                  <p className="text-xs text-[#8B8BA7] mb-4 line-clamp-2">{lead.summary}</p>
+                  <p className="text-xs mb-4 line-clamp-2" style={{ color: t.textSec }}>{lead.summary}</p>
                 )}
 
                 <div className="flex gap-2">
                   <button onClick={() => callBack(lead)} disabled={calling === lead.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20 hover:bg-[#22C55E]/20 text-xs font-medium transition-all disabled:opacity-50">
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.10] text-xs font-medium transition-all disabled:opacity-50"
+                    style={{ color: t.textSec }}>
                     <Phone className="w-3.5 h-3.5" />{calling === lead.id ? '...' : 'Rappeler'}
                   </button>
                   <button onClick={() => markDone(lead)} disabled={marking === lead.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#7B5CF0]/10 text-[#7B5CF0] border border-[#7B5CF0]/20 hover:bg-[#7B5CF0]/20 text-xs font-medium transition-all disabled:opacity-50">
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.10] text-xs font-medium transition-all disabled:opacity-50"
+                    style={{ color: t.textSec }}>
                     <CheckCircle className="w-3.5 h-3.5" />{marking === lead.id ? '...' : 'Converti'}
                   </button>
                 </div>

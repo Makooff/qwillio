@@ -8,6 +8,7 @@ import SlideSheet from '../../components/ui/SlideSheet';
 import Pagination from '../../components/ui/Pagination';
 import EmptyState from '../../components/ui/EmptyState';
 import { TableRowSkeleton } from '../../components/ui/Skeleton';
+import { t, glass, inputStyle } from '../../styles/admin-theme';
 
 export default function AiDecisions() {
   const [data, setData] = useState<any[]>([]);
@@ -38,31 +39,32 @@ export default function AiDecisions() {
       <ToastContainer toasts={toasts} remove={remove} />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#F8F8FF]">IA — Décisions</h1>
-          <p className="text-sm text-[#8B8BA7] mt-0.5">Journal des décisions automatiques</p>
+          <h1 className="text-xl font-bold" style={{ color: t.text }}>IA — Décisions</h1>
+          <p className="text-sm mt-0.5" style={{ color: t.textSec }}>Journal des décisions automatiques</p>
         </div>
-        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }}>
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8B8BA7]" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: t.textSec }} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher décisions..."
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50" />
+          style={inputStyle}
+          className="w-full pl-9 pr-4 py-2.5 placeholder-[#48484A] focus:outline-none focus:border-white/[0.18]" />
       </div>
 
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
+      <div className="overflow-hidden" style={glass}>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-white/[0.06]">
-              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Type</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Niche</th>
-              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Action</th>
-              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Résult.</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Confiance</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Date</th>
-              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase"></th>
+            <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Type</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Niche</th>
+              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Action</th>
+              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Résult.</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Confiance</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Date</th>
+              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}></th>
             </tr>
           </thead>
           <tbody>
@@ -72,11 +74,11 @@ export default function AiDecisions() {
                 ? <tr><td colSpan={7}><EmptyState icon={<Brain className="w-7 h-7" />} title="Aucune décision IA" /></td></tr>
                 : data.map((d: any) => (
                   <tr key={d.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] group">
-                    <td className="px-3 py-3"><Badge label={d.type ?? 'decision'} variant="purple" size="xs" /></td>
-                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#F8F8FF]">{d.niche ?? '—'}</span></td>
+                    <td className="px-3 py-3"><Badge label={d.type ?? 'decision'} size="xs" /></td>
+                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs" style={{ color: t.text }}>{d.niche ?? '—'}</span></td>
                     <td className="px-3 py-3">
-                      <span className="text-xs text-[#8B8BA7] truncate max-w-[100px] md:max-w-[160px] block">{d.action ?? '—'}</span>
-                      <p className="text-[10px] text-[#8B8BA7] md:hidden">{d.niche ?? ''}</p>
+                      <span className="text-xs truncate max-w-[100px] md:max-w-[160px] block" style={{ color: t.textSec }}>{d.action ?? '—'}</span>
+                      <p className="text-[10px] md:hidden" style={{ color: t.textSec }}>{d.niche ?? ''}</p>
                     </td>
                     <td className="px-3 py-3">
                       <Badge label={d.outcome ?? d.result ?? 'processed'} dot size="xs" />
@@ -85,16 +87,17 @@ export default function AiDecisions() {
                       {d.confidence != null && (
                         <div className="flex items-center gap-1.5">
                           <div className="w-16 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                            <div className="h-full bg-[#7B5CF0] rounded-full" style={{ width: `${d.confidence * 100}%` }} />
+                            <div className="h-full bg-white/[0.25] rounded-full" style={{ width: `${d.confidence * 100}%` }} />
                           </div>
-                          <span className="text-xs text-[#8B8BA7]">{(d.confidence * 100).toFixed(0)}%</span>
+                          <span className="text-xs" style={{ color: t.textSec }}>{(d.confidence * 100).toFixed(0)}%</span>
                         </div>
                       )}
                     </td>
-                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs text-[#8B8BA7]">{new Date(d.createdAt).toLocaleString('fr-FR')}</span></td>
+                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs" style={{ color: t.textSec }}>{new Date(d.createdAt).toLocaleString('fr-FR')}</span></td>
                     <td className="px-3 py-3">
                       <button onClick={() => setSelected(d)}
-                        className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                        className="p-1.5 rounded-lg hover:bg-white/[0.08] transition-all opacity-0 group-hover:opacity-100"
+                        style={{ color: t.textSec }}>
                         <Info className="w-3.5 h-3.5" />
                       </button>
                     </td>
@@ -111,34 +114,34 @@ export default function AiDecisions() {
         {selected && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
-                <Badge label={selected.type ?? 'decision'} variant="purple" />
-                <p className="text-[10px] text-[#8B8BA7] mt-1.5">Type</p>
+              <div className="rounded-xl p-3 text-center" style={{ background: t.elevated, borderRadius: t.rSm }}>
+                <Badge label={selected.type ?? 'decision'} />
+                <p className="text-[10px] mt-1.5" style={{ color: t.textSec }}>Type</p>
               </div>
-              <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
+              <div className="rounded-xl p-3 text-center" style={{ background: t.elevated, borderRadius: t.rSm }}>
                 {selected.confidence != null
-                  ? <p className="text-xl font-bold text-[#7B5CF0]">{(selected.confidence * 100).toFixed(0)}%</p>
-                  : <p className="text-xl font-bold text-[#8B8BA7]">—</p>}
-                <p className="text-[10px] text-[#8B8BA7] mt-1.5">Confiance</p>
+                  ? <p className="text-xl font-bold" style={{ color: t.text }}>{(selected.confidence * 100).toFixed(0)}%</p>
+                  : <p className="text-xl font-bold" style={{ color: t.textSec }}>—</p>}
+                <p className="text-[10px] mt-1.5" style={{ color: t.textSec }}>Confiance</p>
               </div>
             </div>
-            {selected.niche && <div className="flex justify-between text-xs p-3 bg-[#0D0D15] rounded-xl"><span className="text-[#8B8BA7]">Niche</span><span className="text-[#F8F8FF]">{selected.niche}</span></div>}
+            {selected.niche && <div className="flex justify-between text-xs p-3 rounded-xl" style={{ background: t.elevated, borderRadius: t.rSm }}><span style={{ color: t.textSec }}>Niche</span><span style={{ color: t.text }}>{selected.niche}</span></div>}
             {selected.action && (
               <div>
-                <p className="text-xs text-[#8B8BA7] mb-2">Action</p>
-                <p className="text-xs text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3">{selected.action}</p>
+                <p className="text-xs mb-2" style={{ color: t.textSec }}>Action</p>
+                <p className="text-xs p-3 rounded-xl" style={{ color: t.text, background: t.elevated, borderRadius: t.rSm }}>{selected.action}</p>
               </div>
             )}
             {selected.reasoning && (
               <div>
-                <p className="text-xs text-[#8B8BA7] mb-2">Raisonnement</p>
-                <p className="text-xs text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3 leading-relaxed">{selected.reasoning}</p>
+                <p className="text-xs mb-2" style={{ color: t.textSec }}>Raisonnement</p>
+                <p className="text-xs leading-relaxed p-3 rounded-xl" style={{ color: t.text, background: t.elevated, borderRadius: t.rSm }}>{selected.reasoning}</p>
               </div>
             )}
             {selected.data && (
               <div>
-                <p className="text-xs text-[#8B8BA7] mb-2">Données</p>
-                <pre className="text-[10px] text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3 overflow-x-auto leading-relaxed">{JSON.stringify(selected.data, null, 2)}</pre>
+                <p className="text-xs mb-2" style={{ color: t.textSec }}>Données</p>
+                <pre className="text-[10px] overflow-x-auto leading-relaxed p-3 rounded-xl" style={{ color: t.text, background: t.elevated, borderRadius: t.rSm }}>{JSON.stringify(selected.data, null, 2)}</pre>
               </div>
             )}
           </div>

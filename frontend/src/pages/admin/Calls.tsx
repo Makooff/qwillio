@@ -7,10 +7,11 @@ import Pagination from '../../components/ui/Pagination';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
+import { t, glass, inputStyle } from '../../styles/admin-theme';
 
 const OUTCOMES = ['','interested','voicemail','no_answer','rejected','converted','callback','not_interested'];
 function fmtDuration(s?: number) { if (!s) return '—'; return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
-function scoreColor(s: number) { return s >= 7 ? '#22C55E' : s >= 4 ? '#F59E0B' : '#EF4444'; }
+function scoreColor(s: number) { return s >= 7 ? t.success : s >= 4 ? t.warning : t.danger; }
 
 export default function AdminCalls() {
   const [data, setData] = useState<any[]>([]);
@@ -44,39 +45,42 @@ export default function AdminCalls() {
       <ToastContainer toasts={toasts} remove={remove} />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#F8F8FF]">Appels</h1>
-          <p className="text-sm text-[#8B8BA7] mt-0.5">{total} appel{total>1?'s':''}</p>
+          <h1 className="text-xl font-bold" style={{ color: t.text }}>Appels</h1>
+          <p className="text-sm mt-0.5" style={{ color: t.textSec }}>{total} appel{total>1?'s':''}</p>
         </div>
-        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7]"><RefreshCw className="w-4 h-4"/></button>
+        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }}><RefreshCw className="w-4 h-4"/></button>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-[140px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8B8BA7]"/>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: t.textSec }}/>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher..."
-            className="w-full pl-8 pr-3 py-2 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50"/>
+            style={inputStyle}
+            className="w-full pl-8 pr-3 py-2 placeholder-[#48484A] focus:outline-none focus:border-white/[0.18]"/>
         </div>
         <select value={outcome} onChange={e=>setOutcome(e.target.value)}
-          className="px-3 py-2 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] focus:outline-none">
+          style={inputStyle}
+          className="px-3 py-2 focus:outline-none">
           <option value="">Résultat</option>
           {OUTCOMES.filter(Boolean).map(o=><option key={o} value={o}>{o}</option>)}
         </select>
         <select value={minScore} onChange={e=>setMinScore(e.target.value)}
-          className="px-3 py-2 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] focus:outline-none">
+          style={inputStyle}
+          className="px-3 py-2 focus:outline-none">
           <option value="">Score</option>
           {[3,5,7,8,9].map(s=><option key={s} value={String(s)}>≥{s}</option>)}
         </select>
       </div>
 
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
+      <div className="overflow-hidden" style={glass}>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-white/[0.06]">
-              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Entreprise</th>
-              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Résult.</th>
-              <th className="px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Score</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Durée</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] text-[#8B8BA7] font-medium uppercase">Date</th>
+            <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Entreprise</th>
+              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Résult.</th>
+              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Score</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Durée</th>
+              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Date</th>
               <th className="px-3 py-3 w-8"></th>
             </tr>
           </thead>
@@ -93,25 +97,25 @@ export default function AdminCalls() {
             ) : data.map((c:any)=>(
               <tr key={c.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
                 <td className="px-3 py-3">
-                  <p className="text-xs font-medium text-[#F8F8FF] truncate max-w-[120px] md:max-w-none">{c.prospect?.businessName??c.businessName??'—'}</p>
-                  <p className="text-[10px] text-[#8B8BA7] md:hidden">{fmtDuration(c.duration??c.durationSeconds)}</p>
+                  <p className="text-xs font-medium truncate max-w-[120px] md:max-w-none" style={{ color: t.text }}>{c.prospect?.businessName??c.businessName??'—'}</p>
+                  <p className="text-[10px] md:hidden" style={{ color: t.textSec }}>{fmtDuration(c.duration??c.durationSeconds)}</p>
                 </td>
                 <td className="px-3 py-3"><Badge label={c.outcome??'unknown'} dot size="xs"/></td>
                 <td className="px-3 py-3">
                   {(c.interestScore??c.interestLevel)!=null
                     ? <span className="text-xs font-bold" style={{color:scoreColor(c.interestScore??c.interestLevel)}}>{c.interestScore??c.interestLevel}/10</span>
-                    : <span className="text-xs text-[#8B8BA7]">—</span>}
+                    : <span className="text-xs" style={{ color: t.textSec }}>—</span>}
                 </td>
                 <td className="hidden md:table-cell px-3 py-3">
-                  <span className="flex items-center gap-1 text-xs text-[#8B8BA7]"><Clock className="w-3 h-3"/>{fmtDuration(c.duration??c.durationSeconds)}</span>
+                  <span className="flex items-center gap-1 text-xs" style={{ color: t.textSec }}><Clock className="w-3 h-3"/>{fmtDuration(c.duration??c.durationSeconds)}</span>
                 </td>
                 <td className="hidden md:table-cell px-3 py-3">
-                  <span className="text-xs text-[#8B8BA7]">{new Date(c.createdAt??c.startedAt).toLocaleDateString('fr-FR')}</span>
+                  <span className="text-xs" style={{ color: t.textSec }}>{new Date(c.createdAt??c.startedAt).toLocaleDateString('fr-FR')}</span>
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    {c.recordingUrl&&<button onClick={()=>setSelected(c)} title="Écouter" className="p-1.5 rounded-lg hover:bg-[#7B5CF0]/10 text-[#7B5CF0]"><Volume2 className="w-3.5 h-3.5"/></button>}
-                    {c.transcript&&<button onClick={()=>setSelected(c)} title="Transcription" className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white"><FileText className="w-3.5 h-3.5"/></button>}
+                    {c.recordingUrl&&<button onClick={()=>setSelected(c)} title="Écouter" className="p-1.5 rounded-lg hover:bg-white/[0.08]" style={{ color: t.textSec }}><Volume2 className="w-3.5 h-3.5"/></button>}
+                    {c.transcript&&<button onClick={()=>setSelected(c)} title="Transcription" className="p-1.5 rounded-lg hover:bg-white/[0.08]" style={{ color: t.textSec }}><FileText className="w-3.5 h-3.5"/></button>}
                   </div>
                 </td>
               </tr>
@@ -127,29 +131,30 @@ export default function AdminCalls() {
         {selected&&(
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
+              <div className="rounded-xl p-3 text-center" style={{ background: t.elevated, borderRadius: t.rSm }}>
                 <p className="text-base font-bold" style={{color:scoreColor((selected.interestScore??selected.interestLevel)??0)}}>{selected.interestScore??selected.interestLevel??'—'}{(selected.interestScore??selected.interestLevel)?'/10':''}</p>
-                <p className="text-[10px] text-[#8B8BA7] mt-0.5">Score</p>
+                <p className="text-[10px] mt-0.5" style={{ color: t.textSec }}>Score</p>
               </div>
-              <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
-                <p className="text-base font-bold text-[#F8F8FF]">{fmtDuration(selected.duration??selected.durationSeconds)}</p>
-                <p className="text-[10px] text-[#8B8BA7] mt-0.5">Durée</p>
+              <div className="rounded-xl p-3 text-center" style={{ background: t.elevated, borderRadius: t.rSm }}>
+                <p className="text-base font-bold" style={{ color: t.text }}>{fmtDuration(selected.duration??selected.durationSeconds)}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: t.textSec }}>Durée</p>
               </div>
-              <div className="bg-[#0D0D15] rounded-xl p-3 text-center">
+              <div className="rounded-xl p-3 text-center" style={{ background: t.elevated, borderRadius: t.rSm }}>
                 <Badge label={selected.outcome??'unknown'} dot size="xs"/>
-                <p className="text-[10px] text-[#8B8BA7] mt-1">Résultat</p>
+                <p className="text-[10px] mt-1" style={{ color: t.textSec }}>Résultat</p>
               </div>
             </div>
             {selected.recordingUrl&&(
               <div>
-                <p className="text-xs text-[#8B8BA7] mb-2">Enregistrement</p>
-                <div className="bg-[#0D0D15] rounded-xl p-3">
+                <p className="text-xs mb-2" style={{ color: t.textSec }}>Enregistrement</p>
+                <div className="rounded-xl p-3" style={{ background: t.elevated, borderRadius: t.rSm }}>
                   <button onClick={()=>setPlayingId(playingId===selected.id?null:selected.id)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${
                       playingId===selected.id
-                        ? 'bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20'
-                        : 'bg-[#7B5CF0]/10 text-[#7B5CF0] border border-[#7B5CF0]/20 hover:bg-[#7B5CF0]/20'
-                    }`}>
+                        ? 'bg-white/[0.06] border border-white/[0.08]'
+                        : 'bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.10]'
+                    }`}
+                    style={{ color: playingId===selected.id ? t.danger : t.textSec }}>
                     {playingId===selected.id ? <><Pause className="w-3.5 h-3.5"/> Pause</> : <><Play className="w-3.5 h-3.5"/> Écouter l'appel</>}
                   </button>
                   {playingId===selected.id&&(
@@ -159,8 +164,8 @@ export default function AdminCalls() {
                 </div>
               </div>
             )}
-            {selected.summary&&<div><p className="text-xs text-[#8B8BA7] mb-2">Résumé IA</p><p className="text-xs text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3 leading-relaxed">{selected.summary}</p></div>}
-            {selected.transcript&&<div><p className="text-xs text-[#8B8BA7] mb-2">Transcription</p><p className="text-xs text-[#F8F8FF] bg-[#0D0D15] rounded-xl p-3 leading-relaxed max-h-80 overflow-y-auto whitespace-pre-wrap">{selected.transcript}</p></div>}
+            {selected.summary&&<div><p className="text-xs mb-2" style={{ color: t.textSec }}>Résumé IA</p><p className="text-xs leading-relaxed rounded-xl p-3" style={{ color: t.text, background: t.elevated, borderRadius: t.rSm }}>{selected.summary}</p></div>}
+            {selected.transcript&&<div><p className="text-xs mb-2" style={{ color: t.textSec }}>Transcription</p><p className="text-xs leading-relaxed max-h-80 overflow-y-auto whitespace-pre-wrap rounded-xl p-3" style={{ color: t.text, background: t.elevated, borderRadius: t.rSm }}>{selected.transcript}</p></div>}
           </div>
         )}
       </SlideSheet>

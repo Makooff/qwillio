@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import QwillioLogo from '../QwillioLogo';
 import CommandPalette from '../ui/CommandPalette';
+import { t, glass } from '../../styles/admin-theme';
 
 const NAV_SECTIONS = [
   {
@@ -117,18 +118,22 @@ export default function Layout() {
         className={`relative flex items-center gap-3 rounded-xl transition-all duration-150 group
           ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
           ${active
-            ? 'bg-[#7B5CF0]/15 text-[#7B5CF0]'
-            : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.04]'
+            ? 'text-[#7B5CF0]'
+            : 'hover:bg-white/[0.04]'
           }`}
+        style={{ color: active ? t.brand : t.textSec }}
       >
         {active && (
-          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#7B5CF0] rounded-r-full" />
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ background: t.brand }} />
         )}
         <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
         {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
         {collapsed && (
-          <span className="absolute left-full ml-3 px-2 py-1 bg-[#1E1E2E] text-[#F8F8FF] text-xs rounded-lg
-            opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 border border-white/[0.08] shadow-xl">
+          <span
+            className="absolute left-full ml-3 px-2 py-1 text-xs rounded-lg
+              opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl backdrop-blur-xl"
+            style={{ background: t.panelSolid, color: t.text, border: `1px solid ${t.borderHi}` }}
+          >
             {item.label}
           </span>
         )}
@@ -142,7 +147,7 @@ export default function Layout() {
       <div className={`flex items-center gap-3 mb-6 flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'px-1'}`}>
         <QwillioLogo size={32} />
         {!collapsed && (
-          <span className="text-base font-bold text-[#F8F8FF] tracking-tight">Qwillio <span className="text-[#7B5CF0]">admin</span></span>
+          <span className="text-base font-bold tracking-tight" style={{ color: t.text }}>Qwillio <span style={{ color: t.brand }}>admin</span></span>
         )}
       </div>
 
@@ -156,16 +161,16 @@ export default function Layout() {
       </nav>
 
       {/* Bottom — user + logout (fixed, non scrollable) */}
-      <div className="flex-shrink-0 space-y-1 mt-3 pt-3 border-t border-white/[0.06]">
+      <div className="flex-shrink-0 space-y-1 mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
         {/* User */}
         <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${collapsed ? 'justify-center' : ''}`}>
-          <div className="w-7 h-7 rounded-full bg-[#7B5CF0]/30 flex items-center justify-center flex-shrink-0">
-            <span className="text-[10px] font-bold text-[#7B5CF0]">{initials}</span>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${t.brand}30` }}>
+            <span className="text-[10px] font-bold" style={{ color: t.brand }}>{initials}</span>
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-[#F8F8FF] truncate">{user?.name ?? 'Admin'}</p>
-              <p className="text-[10px] text-[#8B8BA7] truncate">{user?.email}</p>
+              <p className="text-xs font-medium truncate" style={{ color: t.text }}>{user?.name ?? 'Admin'}</p>
+              <p className="text-[10px] truncate" style={{ color: t.textSec }}>{user?.email}</p>
             </div>
           )}
         </div>
@@ -173,8 +178,9 @@ export default function Layout() {
         <button
           onClick={logout}
           title={collapsed ? 'Logout' : undefined}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[#8B8BA7] hover:text-red-400 hover:bg-red-500/[0.08] transition-all text-sm
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:text-red-400 hover:bg-red-500/[0.08] transition-all text-sm
             ${collapsed ? 'justify-center' : ''}`}
+          style={{ color: t.textSec }}
         >
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
           {!collapsed && 'Sign out'}
@@ -184,21 +190,23 @@ export default function Layout() {
   );
 
   return (
-    <div className="min-h-screen flex bg-[#0A0A0F] text-[#F8F8FF]">
+    <div className="min-h-screen flex" style={{ background: t.bg, color: t.text }}>
 
       {/* Desktop Sidebar */}
       <aside
         className={`hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
-          bg-[#0D0D15] border-r border-white/[0.06] transition-all duration-300 ease-in-out
+          backdrop-blur-xl transition-all duration-300 ease-in-out
           ${collapsed ? 'w-[64px] px-2 py-5' : 'w-[220px] px-4 py-5'}`}
+        style={{ background: t.panel, borderRight: `1px solid ${t.border}` }}
       >
         <SidebarContent />
 
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-8 w-6 h-6 rounded-full bg-[#1E1E2E] border border-white/[0.08]
-            flex items-center justify-center text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-[#7B5CF0]/20 transition-all shadow-lg"
+          className="absolute -right-3 top-8 w-6 h-6 rounded-full
+            flex items-center justify-center hover:bg-white/[0.08] transition-all shadow-lg"
+          style={{ background: t.panelSolid, border: `1px solid ${t.borderHi}`, color: t.textSec }}
         >
           {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
         </button>
@@ -216,11 +224,13 @@ export default function Layout() {
             <motion.aside
               initial={{ x: -240 }} animate={{ x: 0 }} exit={{ x: -240 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] bg-[#0D0D15] border-r border-white/[0.06] px-4 py-5"
+              className="md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] px-4 py-5"
+              style={{ background: t.panelSolid, borderRight: `1px solid ${t.border}` }}
             >
               <button
                 onClick={() => setMobileOpen(false)}
-                className="absolute right-3 top-4 text-[#8B8BA7] hover:text-[#F8F8FF]"
+                className="absolute right-3 top-4"
+                style={{ color: t.textSec }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -233,20 +243,23 @@ export default function Layout() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* TopBar */}
-        <header className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6
-          bg-[#0A0A0F]/80 backdrop-blur-xl border-b border-white/[0.06]">
+        <header
+          className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6 backdrop-blur-xl"
+          style={{ background: `${t.bg}CC`, borderBottom: `1px solid ${t.border}` }}
+        >
 
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden text-[#8B8BA7] hover:text-[#F8F8FF]"
+            className="md:hidden"
+            style={{ color: t.textSec }}
           >
             <LayoutDashboard className="w-5 h-5" />
           </button>
 
           {/* Page title */}
           <div className="hidden md:block">
-            <h1 className="text-sm font-semibold text-[#F8F8FF]">{pageTitle}</h1>
+            <h1 className="text-sm font-semibold" style={{ color: t.text }}>{pageTitle}</h1>
           </div>
 
           {/* Search */}
@@ -254,7 +267,8 @@ export default function Layout() {
             onClick={() => setCmdOpen(true)}
             className="flex items-center gap-2 flex-1 max-w-xs mx-auto md:mx-0 md:ml-4
               px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.06]
-              text-[#8B8BA7] text-sm hover:bg-white/[0.08] hover:border-[#7B5CF0]/30 transition-all"
+              text-sm hover:bg-white/[0.08] transition-all"
+            style={{ color: t.textSec }}
           >
             <Search className="w-3.5 h-3.5 flex-shrink-0" />
             <span className="hidden sm:block flex-1 text-left">Search...</span>
@@ -267,7 +281,8 @@ export default function Layout() {
             {/* Refresh */}
             <button
               onClick={handleRefresh}
-              className="p-2 rounded-xl text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] transition-all"
+              className="p-2 rounded-xl hover:bg-white/[0.06] transition-all"
+              style={{ color: t.textSec }}
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
@@ -277,15 +292,16 @@ export default function Layout() {
               href="/"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-xl text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] transition-all"
+              className="p-2 rounded-xl hover:bg-white/[0.06] transition-all"
+              style={{ color: t.textSec }}
               title="View site"
             >
               <ExternalLink className="w-4 h-4" />
             </a>
 
             {/* Avatar */}
-            <div className="w-8 h-8 rounded-full bg-[#7B5CF0]/30 flex items-center justify-center">
-              <span className="text-xs font-bold text-[#7B5CF0]">{initials}</span>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${t.brand}30` }}>
+              <span className="text-xs font-bold" style={{ color: t.brand }}>{initials}</span>
             </div>
           </div>
         </header>
@@ -300,7 +316,10 @@ export default function Layout() {
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
 
       {/* Mobile bottom nav */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden items-center justify-around bg-[#12121F] border-t border-white/10 py-2 px-1 safe-area-bottom">
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden items-center justify-around py-2 px-1 safe-area-bottom backdrop-blur-xl"
+        style={{ background: `${t.panelSolid}E6`, borderTop: `1px solid ${t.border}` }}
+      >
         {[
           { icon: LayoutDashboard, label: 'Home', path: '/admin' },
           { icon: Users, label: 'Clients', path: '/admin/clients' },
@@ -311,7 +330,8 @@ export default function Layout() {
           const Icon = item.icon;
           const active = location.pathname === item.path;
           return (
-            <Link key={item.path} to={item.path} className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors ${active ? 'text-[#7B5CF0]' : 'text-[#8B8BA7]'}`}>
+            <Link key={item.path} to={item.path} className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors"
+              style={{ color: active ? t.brand : t.textSec }}>
               <Icon className="w-5 h-5" />
               <span className="text-[10px]">{item.label}</span>
             </Link>

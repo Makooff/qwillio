@@ -1,13 +1,15 @@
+import { t } from '../../styles/admin-theme';
+
 type Variant = 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'neutral' | 'orange';
 
 const VARIANTS: Record<Variant, string> = {
-  success: 'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/20',
-  warning: 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20',
-  danger: 'bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20',
-  info: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  purple: 'bg-[#7B5CF0]/10 text-[#7B5CF0] border-[#7B5CF0]/20',
-  neutral: 'bg-white/[0.06] text-[#8B8BA7] border-white/[0.08]',
-  orange: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+  success: `bg-[#34D399]/[0.08] text-[#34D399] border-[#34D399]/[0.15]`,
+  warning: `bg-[#FBBF24]/[0.08] text-[#FBBF24] border-[#FBBF24]/[0.15]`,
+  danger:  `bg-[#F87171]/[0.08] text-[#F87171] border-[#F87171]/[0.15]`,
+  info:    `bg-[#60A5FA]/[0.08] text-[#60A5FA] border-[#60A5FA]/[0.15]`,
+  purple:  `bg-white/[0.06] text-[#86868B] border-white/[0.08]`,
+  neutral: `bg-white/[0.04] text-[#6E6E73] border-white/[0.06]`,
+  orange:  `bg-orange-400/[0.08] text-orange-400 border-orange-400/[0.15]`,
 };
 
 const STATUS_MAP: Record<string, Variant> = {
@@ -70,8 +72,8 @@ export default function Badge({ label, variant, dot = false, pulse = false, size
   const cls = VARIANTS[v];
   const px = size === 'xs' ? 'px-1.5 py-0 text-[10px]' : 'px-2 py-0.5 text-xs';
   const dotColor = {
-    success: 'bg-[#22C55E]', warning: 'bg-[#F59E0B]', danger: 'bg-[#EF4444]',
-    info: 'bg-blue-400', purple: 'bg-[#7B5CF0]', neutral: 'bg-[#8B8BA7]', orange: 'bg-orange-400',
+    success: `bg-[${t.success}]`, warning: `bg-[${t.warning}]`, danger: `bg-[${t.danger}]`,
+    info: `bg-[${t.info}]`, purple: `bg-[${t.textSec}]`, neutral: `bg-[${t.textTer}]`, orange: 'bg-orange-400',
   }[v];
 
   return (
