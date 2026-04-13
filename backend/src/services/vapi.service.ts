@@ -19,13 +19,14 @@ export const INTEREST_INTERESTED = 4; // >= 4 = interested, send follow-up seque
 
 export class VapiService {
   async callNextProspect(): Promise<boolean> {
-    // Check if within business hours
+    // Check if within US Eastern business hours (prospects are in the US)
     const now = new Date();
-    const hour = now.getHours();
-    const day = now.getDay();
+    const usEastern = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const hour = usEastern.getHours();
+    const day = usEastern.getDay();
 
     if (!env.AUTOMATION_DAYS.includes(day) || hour < env.AUTOMATION_START_HOUR || hour >= env.AUTOMATION_END_HOUR) {
-      logger.debug('Outside business hours, skipping call');
+      logger.debug(`Outside US business hours (ET: ${hour}h, day ${day}), skipping call`);
       return false;
     }
 
@@ -64,9 +65,9 @@ export class VapiService {
       return false;
     }
 
-    // Blackout period: Never call Monday before 10am or Friday after 2pm (in target timezone)
-    if (isBlackoutPeriod(env.TZ)) {
-      logger.info('Blackout period (Mon before 10am or Fri after 2pm), skipping calls');
+    // Blackout period: Never call Monday before 10am or Friday after 2pm (US Eastern)
+    if (isBlackoutPeriod('America/New_York')) {
+      logger.info('Blackout period (Mon before 10am or Fri after 2pm ET), skipping calls');
       return false;
     }
 
@@ -93,18 +94,25 @@ export class VapiService {
     // Filter by niche call window and sort by priority
     // Use prospect's timezone for scoring, not server timezone
     const priorityBonus = isPriorityDay() ? 2 : 0;
-    const dayHourBonus = getDayHourBonus(env.TZ);
     const scoredCandidates = candidates
       .map(p => {
+        const prospectTz = p.timezone || 'America/New_York';
         const script = NICHE_SCRIPTS[p.businessType] || DEFAULT_SCRIPT;
-        const inWindow = isWithinCallWindow(p.timezone, script.callWindow.start, script.callWindow.end);
+        const inWindow = isWithinCallWindow(prospectTz, script.callWindow.start, script.callWindow.end);
+        // Check prospect is in their local business hours (9-18 in their timezone)
+        const prospectTime = new Date(now.toLocaleString('en-US', { timeZone: prospectTz }));
+        const prospectHour = prospectTime.getHours();
+        const inBusinessHours = prospectHour >= 9 && prospectHour < 18;
         const nichePriority = NICHE_PRIORITY_ORDER[p.businessType] ?? 0;
+        const dayHourBonus = getDayHourBonus(prospectTz);
         return {
           prospect: p,
-          effectiveScore: p.score + nichePriority + priorityBonus + dayHourBonus + (inWindow ? 5 : 0) + (p.phoneValidated ? 1 : 0),
+          effectiveScore: p.score + nichePriority + priorityBonus + dayHourBonus + (inWindow ? 5 : 0) + (inBusinessHours ? 3 : -10) + (p.phoneValidated ? 1 : 0),
           inWindow,
+          inBusinessHours,
         };
       })
+      .filter(c => c.inBusinessHours) // Only call prospects during THEIR business hours
       .sort((a, b) => b.effectiveScore - a.effectiveScore);
 
     // Prefer prospects in their niche window, but fall back to any if none available
