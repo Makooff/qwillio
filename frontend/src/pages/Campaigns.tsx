@@ -40,11 +40,11 @@ export default function Campaigns() {
     setCreating(true);
     try {
       await api.post('/campaigns/', form);
-      toast('Campagne cr\u00e9\u00e9e', 'success');
+      toast('Campagne cr\é\ée', 'success');
       setShowCreate(false);
       setForm({ name: '', type: 'email', subject: '', body: '' });
       load();
-    } catch { toast('Erreur cr\u00e9ation', 'error'); }
+    } catch { toast('Erreur cr\éation', 'error'); }
     finally { setCreating(false); }
   };
 
@@ -52,7 +52,7 @@ export default function Campaigns() {
     setLaunching(id);
     try {
       await api.post(`/campaigns/${id}/launch`);
-      toast('Campagne lanc\u00e9e !', 'success');
+      toast('Campagne lanc\ée !', 'success');
       load();
     } catch { toast('Erreur lancement', 'error'); }
     finally { setLaunching(null); }
@@ -63,7 +63,7 @@ export default function Campaigns() {
     setDeleting(true);
     try {
       await api.delete(`/campaigns/${toDelete.id}`);
-      toast('Campagne supprim\u00e9e', 'success');
+      toast('Campagne supprim\ée', 'success');
       setToDelete(null);
       load();
     } catch { toast('Erreur suppression', 'error'); }
@@ -102,10 +102,10 @@ export default function Campaigns() {
               <th className={cx.th} style={{ color: t.textTer }}>Nom</th>
               <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Type</th>
               <th className={cx.th} style={{ color: t.textTer }}>Statut</th>
-              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Envoy\u00e9s</th>
+              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Envoy\és</th>
               <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Ouverts</th>
               <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Clics</th>
-              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Cr\u00e9\u00e9e</th>
+              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Cr\é\ée</th>
               <th className={cx.th}></th>
             </tr>
           </thead>
@@ -114,7 +114,7 @@ export default function Campaigns() {
               ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={8} />)
               : data.length === 0
                 ? <tr><td colSpan={8}><EmptyState icon={<Megaphone className="w-7 h-7" />} title="Aucune campagne" action={
-                    <button onClick={() => setShowCreate(true)} className={cx.btnPrimary} style={{ background: 'rgba(255,255,255,0.08)', color: t.text }}>Cr\u00e9er une campagne</button>
+                    <button onClick={() => setShowCreate(true)} className={cx.btnPrimary} style={{ background: 'rgba(255,255,255,0.08)', color: t.text }}>Cr\éer une campagne</button>
                   } /></td></tr>
                 : data.map(c => (
                   <tr key={c.id} className={cx.tr} style={{ cursor: 'default' }}>
@@ -159,7 +159,7 @@ export default function Campaigns() {
           <>
             <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 rounded-[14px] text-sm font-medium hover:bg-white/[0.06] transition-all" style={{ background: t.elevated, color: t.text }}>Annuler</button>
             <button onClick={createCampaign} disabled={creating} className="flex-1 py-2.5 rounded-[14px] text-sm font-medium transition-all disabled:opacity-50" style={{ background: 'rgba(255,255,255,0.10)', color: t.text }}>
-              {creating ? 'Cr\u00e9ation...' : 'Cr\u00e9er'}
+              {creating ? 'Cr\éation...' : 'Cr\éer'}
             </button>
           </>
         }>
@@ -191,7 +191,7 @@ export default function Campaigns() {
       </Modal>
 
       <ConfirmDialog open={!!toDelete} title="Supprimer la campagne"
-        message={`Supprimer "${toDelete?.name}" d\u00e9finitivement ?`}
+        message={`Supprimer "${toDelete?.name}" d\éfinitivement ?`}
         confirmLabel="Supprimer" loading={deleting}
         onConfirm={doDelete} onCancel={() => setToDelete(null)} />
     </div>

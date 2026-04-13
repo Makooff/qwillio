@@ -53,8 +53,8 @@ export default function Clients() {
   const saveClient = async () => {
     if (!selected||!editing) return;
     setSaving(true);
-    try { await api.put(`/clients/${selected.id}`,editing); toast('Client mis \u00e0 jour','success'); setSelected(null); setEditing(null); load(); }
-    catch { toast('Erreur mise \u00e0 jour','error'); }
+    try { await api.put(`/clients/${selected.id}`,editing); toast('Client mis \à jour','success'); setSelected(null); setEditing(null); load(); }
+    catch { toast('Erreur mise \à jour','error'); }
     finally { setSaving(false); }
   };
 
@@ -63,7 +63,7 @@ export default function Clients() {
     setDeleting(true);
     try {
       await api.delete(`/admin/clients/${toDelete.id}`);
-      toast('Client supprim\u00e9', 'success');
+      toast('Client supprim\é', 'success');
       setToDelete(null);
       load();
     } catch { toast('Erreur suppression', 'error'); }
@@ -74,7 +74,7 @@ export default function Clients() {
     try {
       const s = c.subscriptionStatus==='paused'?'active':'paused';
       await api.put(`/clients/${c.id}`,{subscriptionStatus:s});
-      toast(s==='paused'?'Client suspendu':'Client r\u00e9activ\u00e9','success');
+      toast(s==='paused'?'Client suspendu':'Client r\éactiv\é','success');
       setConfirmPause(null); load();
     } catch { toast('Erreur','error'); }
   };
@@ -160,7 +160,7 @@ export default function Clients() {
                     {c.isTrial&&daysLeft!==null
                       ? <span className="flex items-center gap-1 text-xs" style={{ color: daysLeft<=3 ? t.danger : daysLeft<=7 ? t.warning : t.textSec }}><Clock className="w-3 h-3"/>{daysLeft}j</span>
                       : c.trialConvertedAt ? <span className="text-xs flex items-center gap-1" style={{ color: t.success }}><CheckCircle className="w-3 h-3"/>Converti</span>
-                      : <span className="text-xs" style={{ color: t.textTer }}>\u2014</span>}
+                      : <span className="text-xs" style={{ color: t.textTer }}>\—</span>}
                   </td>
                   <td className={cx.td}>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -216,7 +216,7 @@ export default function Clients() {
                 </select>
               </div>
               <div>
-                <label className="text-xs mb-1.5 block" style={{ color: t.textSec }}>Mensualit\u00e9 (\u20ac)</label>
+                <label className="text-xs mb-1.5 block" style={{ color: t.textSec }}>Mensualit\é (\€)</label>
                 <input type="number" value={editing.monthlyFee??0} onChange={e=>setEditing(p=>({...p,monthlyFee:Number(e.target.value)}))}
                   className="w-full px-3 py-2.5 rounded-[10px] text-sm focus:outline-none"
                   style={inputStyle} />
@@ -225,8 +225,8 @@ export default function Clients() {
           </div>
         )}
       </SlideSheet>
-      <ConfirmDialog open={!!confirmPause} title={confirmPause?.subscriptionStatus==='paused'?'R\u00e9activer':'Suspendre'} message={`${confirmPause?.subscriptionStatus==='paused'?'R\u00e9activer':'Suspendre'} "${confirmPause?.businessName}" ?`} confirmLabel={confirmPause?.subscriptionStatus==='paused'?'R\u00e9activer':'Suspendre'} danger={confirmPause?.subscriptionStatus!=='paused'} onConfirm={()=>confirmPause&&togglePause(confirmPause)} onCancel={()=>setConfirmPause(null)}/>
-      <ConfirmDialog open={!!toDelete} title="Supprimer le client" message={`Supprimer d\u00e9finitivement "${toDelete?.businessName}" et toutes ses donn\u00e9es ?`} confirmLabel="Supprimer" danger loading={deleting} onConfirm={doDelete} onCancel={()=>setToDelete(null)}/>
+      <ConfirmDialog open={!!confirmPause} title={confirmPause?.subscriptionStatus==='paused'?'R\éactiver':'Suspendre'} message={`${confirmPause?.subscriptionStatus==='paused'?'R\éactiver':'Suspendre'} "${confirmPause?.businessName}" ?`} confirmLabel={confirmPause?.subscriptionStatus==='paused'?'R\éactiver':'Suspendre'} danger={confirmPause?.subscriptionStatus!=='paused'} onConfirm={()=>confirmPause&&togglePause(confirmPause)} onCancel={()=>setConfirmPause(null)}/>
+      <ConfirmDialog open={!!toDelete} title="Supprimer le client" message={`Supprimer d\éfinitivement "${toDelete?.businessName}" et toutes ses donn\ées ?`} confirmLabel="Supprimer" danger loading={deleting} onConfirm={doDelete} onCancel={()=>setToDelete(null)}/>
     </div>
   );
 }

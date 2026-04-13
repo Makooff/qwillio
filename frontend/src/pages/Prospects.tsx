@@ -47,7 +47,7 @@ export default function Prospects() {
 
   const triggerCall = async (p: Prospect) => {
     setCalling(p.id);
-    try { await api.post(`/prospects/${p.id}/call`); toast(`Appel \u2014 ${p.businessName}`,'success'); }
+    try { await api.post(`/prospects/${p.id}/call`); toast(`Appel \— ${p.businessName}`,'success'); }
     catch { toast('Erreur appel','error'); }
     finally { setCalling(null); }
   };
@@ -55,7 +55,7 @@ export default function Prospects() {
   const doDelete = async () => {
     if (!toDelete) return;
     setDeleting(true);
-    try { await api.delete(`/prospects/${toDelete.id}`); toast('Supprim\u00e9','success'); setToDelete(null); load(); }
+    try { await api.delete(`/prospects/${toDelete.id}`); toast('Supprim\é','success'); setToDelete(null); load(); }
     catch { toast('Erreur suppression','error'); }
     finally { setDeleting(false); }
   };
@@ -96,7 +96,7 @@ export default function Prospects() {
               style={sortKey===k
                 ? { background: 'rgba(255,255,255,0.08)', color: t.text, border: `1px solid ${t.borderHi}` }
                 : { background: t.inset, color: t.textSec, border: `1px solid ${t.border}` }}>
-              {k==='score'?'Score':k==='businessName'?'Nom':k==='createdAt'?'Date':'Int\u00e9r\u00eat'}
+              {k==='score'?'Score':k==='businessName'?'Nom':k==='createdAt'?'Date':'Int\ér\êt'}
               {sortKey===k&&(sortDir==='asc'?<ChevronUp className="w-3 h-3"/>:<ChevronDown className="w-3 h-3"/>)}
             </button>
           ))}
@@ -111,7 +111,7 @@ export default function Prospects() {
               <th className={cx.th} style={{ color: t.textTer }}>Statut</th>
               <th className={cx.th} style={{ color: t.textTer }}>Score</th>
               <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Secteur</th>
-              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Cr\u00e9\u00e9</th>
+              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Cr\é\é</th>
               <th className="px-3 py-3 w-20"></th>
             </tr>
           </thead>
@@ -124,7 +124,7 @@ export default function Prospects() {
                 <td/>
               </tr>
             )) : data.length===0 ? (
-              <tr><td colSpan={6}><EmptyState icon={<Building2 className="w-7 h-7"/>} title="Aucun prospect" description="Les prospects appara\u00eetront ici une fois le bot d\u00e9marr\u00e9."/></td></tr>
+              <tr><td colSpan={6}><EmptyState icon={<Building2 className="w-7 h-7"/>} title="Aucun prospect" description="Les prospects appara\îtront ici une fois le bot d\émarr\é."/></td></tr>
             ) : data.map(p=>(
               <tr key={p.id} className={cx.tr} style={{ cursor: 'default' }}>
                 <td className={cx.td}>
@@ -146,7 +146,7 @@ export default function Prospects() {
                     <span className="text-xs font-semibold" style={{ color: t.text }}>{p.score}</span>
                   </div>
                 </td>
-                <td className={`hidden md:table-cell ${cx.td}`}><span className="text-xs" style={{ color: t.textSec }}>{p.businessType??p.sector??'\u2014'}</span></td>
+                <td className={`hidden md:table-cell ${cx.td}`}><span className="text-xs" style={{ color: t.textSec }}>{p.businessType??p.sector??'\—'}</span></td>
                 <td className={`hidden md:table-cell ${cx.td}`}><span className="text-xs" style={{ color: t.textSec }}>{new Date(p.createdAt).toLocaleDateString('fr-FR')}</span></td>
                 <td className={cx.td}>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -162,7 +162,7 @@ export default function Prospects() {
         <div className="px-3 pb-4"><Pagination page={page} total={total} limit={LIMIT} onChange={setPage}/></div>
       </div>
 
-      <SlideSheet open={!!selected} onClose={()=>setSelected(null)} title={selected?.businessName??'Prospect'} subtitle={[selected?.city,selected?.businessType].filter(Boolean).join(' \u00b7 ')}>
+      <SlideSheet open={!!selected} onClose={()=>setSelected(null)} title={selected?.businessName??'Prospect'} subtitle={[selected?.city,selected?.businessType].filter(Boolean).join(' \· ')}>
         {selected&&(
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -171,13 +171,13 @@ export default function Prospects() {
                 <p className="text-[10px] mt-1 uppercase" style={{ color: t.textTer }}>Score</p>
               </div>
               <div className="rounded-[14px] p-4 text-center" style={{ background: t.bg }}>
-                <p className="text-2xl font-bold" style={{ color: t.text }}>{selected.interestLevel??'\u2014'}{selected.interestLevel?'/10':''}</p>
-                <p className="text-[10px] mt-1 uppercase" style={{ color: t.textTer }}>Int\u00e9r\u00eat</p>
+                <p className="text-2xl font-bold" style={{ color: t.text }}>{selected.interestLevel??'\—'}{selected.interestLevel?'/10':''}</p>
+                <p className="text-[10px] mt-1 uppercase" style={{ color: t.textTer }}>Int\ér\êt</p>
               </div>
             </div>
             <div className="flex items-center justify-between p-3 rounded-[14px]" style={{ background: t.bg }}><span className="text-sm" style={{ color: t.textSec }}>Statut</span><Badge label={selected.status} dot/></div>
             <div className="space-y-2">
-              {[{l:'Contact',v:selected.contactName},{l:'T\u00e9l\u00e9phone',v:selected.phone},{l:'Email',v:selected.email},{l:'Ville',v:selected.city},{l:'Secteur',v:selected.businessType??selected.sector}].filter(x=>x.v).map(({l,v})=>(
+              {[{l:'Contact',v:selected.contactName},{l:'T\él\éphone',v:selected.phone},{l:'Email',v:selected.email},{l:'Ville',v:selected.city},{l:'Secteur',v:selected.businessType??selected.sector}].filter(x=>x.v).map(({l,v})=>(
                 <div key={l} className="flex justify-between text-xs"><span style={{ color: t.textSec }}>{l}</span><span className="text-right ml-4" style={{ color: t.text }}>{v}</span></div>
               ))}
             </div>

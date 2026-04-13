@@ -16,13 +16,13 @@ import { t, glass, cx } from '../styles/admin-theme';
 function ago(d: string | null | undefined) {
   if (!d) return 'jamais';
   try { return formatDistanceToNow(new Date(d), { addSuffix: true, locale: fr }); }
-  catch { return '\u2014'; }
+  catch { return '\—'; }
 }
 
 function timeStr(d: string | null | undefined) {
-  if (!d) return '\u2014';
+  if (!d) return '\—';
   try { return format(new Date(d), 'HH:mm:ss', { locale: fr }); }
-  catch { return '\u2014'; }
+  catch { return '\—'; }
 }
 
 const CRON_INFO: Record<string, { label: string; schedule: string; icon: any; category: string }> = {
@@ -31,12 +31,12 @@ const CRON_INFO: Record<string, { label: string; schedule: string; icon: any; ca
   reminders:            { label: 'Rappels',             schedule: 'Chaque heure',    icon: Clock,      category: 'core' },
   analytics:            { label: 'Analytics',           schedule: '23h55',           icon: BarChart3,  category: 'system' },
   dailyReset:           { label: 'Reset quotidien',     schedule: '00h01',           icon: RefreshCw,  category: 'system' },
-  trialCheck:           { label: 'V\u00e9rif. essais',       schedule: '8h',              icon: Timer,      category: 'system' },
+  trialCheck:           { label: 'V\érif. essais',       schedule: '8h',              icon: Timer,      category: 'system' },
   onboardingRetry:      { label: 'Retry onboarding',    schedule: '*/5min',          icon: Users,      category: 'client' },
   bookingReminders:     { label: 'Rappels RDV',         schedule: '*/30min',         icon: Calendar,   category: 'client' },
   clientAnalytics:      { label: 'Stats clients',       schedule: '23h50',           icon: BarChart3,  category: 'client' },
   optimization:         { label: 'Optimisation IA',     schedule: 'Dim 0h',          icon: Brain,      category: 'ai' },
-  phoneValidation:      { label: 'Valid. t\u00e9l\u00e9phone',    schedule: '*/10min',         icon: Phone,      category: 'system' },
+  phoneValidation:      { label: 'Valid. t\él\éphone',    schedule: '*/10min',         icon: Phone,      category: 'system' },
   nicheLearning:        { label: 'Apprentissage niche', schedule: 'Dim 1h',          icon: Brain,      category: 'ai' },
   apifyScraping:        { label: 'Scraping Maps',       schedule: '2h UTC',          icon: Globe,      category: 'prospect' },
   outboundEngine:       { label: 'Moteur appels',       schedule: '*/20min 9-17h',   icon: Phone,      category: 'prospect' },
@@ -46,12 +46,12 @@ const CRON_INFO: Record<string, { label: string; schedule: string; icon: any; ca
   followUpSequences:    { label: 'Follow-ups',          schedule: '*/30min',         icon: Mail,       category: 'prospect' },
   rescoreProspects:     { label: 'Re-scoring',          schedule: '3h UTC',          icon: Target,     category: 'prospect' },
   crmSync:              { label: 'Sync CRM',            schedule: '*/15min',         icon: Database,   category: 'client' },
-  forwardingVerification: { label: 'V\u00e9rif. transferts', schedule: '9h',              icon: Phone,      category: 'system' },
+  forwardingVerification: { label: 'V\érif. transferts', schedule: '9h',              icon: Phone,      category: 'system' },
   overageBilling:       { label: 'Facturation surplus',  schedule: '1er du mois 6h', icon: DollarSign,  category: 'system' },
   agentPayments:        { label: 'Agent Paiements',     schedule: 'Chaque heure',    icon: DollarSign,  category: 'agent' },
   agentAccounting:      { label: 'Agent Compta',        schedule: '1er du mois 2h',  icon: BarChart3,   category: 'agent' },
   agentInventoryAlerts: { label: 'Agent Stock Alertes', schedule: '*/6h',            icon: Zap,         category: 'agent' },
-  agentInventoryForecast:{ label: 'Agent Stock Pr\u00e9vi.', schedule: '3h',              icon: TrendingUp,  category: 'agent' },
+  agentInventoryForecast:{ label: 'Agent Stock Pr\évi.', schedule: '3h',              icon: TrendingUp,  category: 'agent' },
   agentEmailSync:       { label: 'Agent Email Sync',    schedule: '*/10min',         icon: Mail,        category: 'agent' },
   agentEmailFollowUp:   { label: 'Agent Email Follow',  schedule: 'Chaque heure',    icon: Mail,        category: 'agent' },
   agentEmailDigest:     { label: 'Agent Email Digest',  schedule: '8h',              icon: Mail,        category: 'agent' },
@@ -60,7 +60,7 @@ const CRON_INFO: Record<string, { label: string; schedule: string; icon: any; ca
 
 const CATEGORY_LABELS: Record<string, string> = {
   core: 'Principal', prospect: 'Prospection', ai: 'IA',
-  client: 'Clients', agent: 'Agents', system: 'Syst\u00e8me',
+  client: 'Clients', agent: 'Agents', system: 'Syst\ème',
 };
 
 export default function Dashboard() {
@@ -153,8 +153,8 @@ export default function Dashboard() {
               ? { background: `${t.danger}15`, borderColor: `${t.danger}30`, color: t.danger }
               : { background: `${t.success}15`, borderColor: `${t.success}30`, color: t.success }}>
             {toggling ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              : bot?.isActive ? <><span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: t.danger }} /><Square className="w-3.5 h-3.5" /> Arr\u00eater</>
-              : <><span className="w-1.5 h-1.5 rounded-full" style={{ background: t.success }} /><Play className="w-3.5 h-3.5" /> D\u00e9marrer</>}
+              : bot?.isActive ? <><span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: t.danger }} /><Square className="w-3.5 h-3.5" /> Arr\êter</>
+              : <><span className="w-1.5 h-1.5 rounded-full" style={{ background: t.success }} /><Play className="w-3.5 h-3.5" /> D\émarrer</>}
           </button>
 
           {bot?.isActive && (
@@ -240,10 +240,10 @@ export default function Dashboard() {
             </h3>
 
             {[
-              { l: 'Statut', v: bot?.isActive ? 'Actif' : 'Arr\u00eat\u00e9', bright: true },
+              { l: 'Statut', v: bot?.isActive ? 'Actif' : 'Arr\êt\é', bright: true },
               { l: 'Appels aujourd\'hui', v: `${calls} / ${quota}` },
-              { l: 'Prospects trouv\u00e9s', v: (bot as any)?.prospectsFound ?? 0 },
-              { l: 'Follow-ups envoy\u00e9s', v: (bot as any)?.followUpsSent ?? 0 },
+              { l: 'Prospects trouv\és', v: (bot as any)?.prospectsFound ?? 0 },
+              { l: 'Follow-ups envoy\és', v: (bot as any)?.followUpsSent ?? 0 },
             ].map(r => (
               <div key={r.l} className="flex items-center gap-2 py-2 last:border-0" style={{ borderBottom: `1px solid rgba(255,255,255,0.03)` }}>
                 <span className="w-1 h-1 rounded-full" style={{ background: t.textMuted }} />
@@ -253,7 +253,7 @@ export default function Dashboard() {
             ))}
 
             <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
-              <p className={`${cx.h3} mb-2`} style={{ color: t.textTer }}>Derni\u00e8res actions</p>
+              <p className={`${cx.h3} mb-2`} style={{ color: t.textTer }}>Derni\ères actions</p>
               {[
                 { l: 'Prospection', t: bot?.lastRunProspecting ?? (bot as any)?.lastProspection },
                 { l: 'Appel', t: bot?.lastRunCalling ?? (bot as any)?.lastCall },
@@ -291,7 +291,7 @@ export default function Dashboard() {
         <div className="lg:col-span-3 rounded-[14px] p-4" style={glass}>
           <div className="flex items-center justify-between mb-3">
             <h3 className={`${cx.h3} flex items-center gap-1.5`} style={{ color: t.textTer }}>
-              <Activity className="w-3.5 h-3.5" /> Fil d'activit\u00e9
+              <Activity className="w-3.5 h-3.5" /> Fil d'activit\é
               {bot?.isActive && (
                 <span className="text-[9px] px-1.5 py-0.5 rounded-full ml-1 animate-pulse"
                   style={{ color: t.live, background: 'rgba(34,197,94,0.10)' }}>LIVE</span>
@@ -305,7 +305,7 @@ export default function Dashboard() {
           {activity.length === 0 ? (
             <div className="text-center py-14">
               <Activity className="w-7 h-7 mx-auto mb-2 opacity-10" style={{ color: t.textTer }} />
-              <p className="text-[11px]" style={{ color: t.textTer }}>Aucune activit\u00e9</p>
+              <p className="text-[11px]" style={{ color: t.textTer }}>Aucune activit\é</p>
               <p className="text-[10px] mt-1 opacity-50" style={{ color: t.textMuted }}>Le fil se remplira quand le bot sera actif</p>
             </div>
           ) : (
@@ -317,7 +317,7 @@ export default function Dashboard() {
                     <span className="text-sm opacity-60">{item.icon ?? '>'}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-medium" style={{ color: t.textSec }}>{item.message ?? item.businessName ?? 'Activit\u00e9'}</p>
+                    <p className="text-[11px] font-medium" style={{ color: t.textSec }}>{item.message ?? item.businessName ?? 'Activit\é'}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px]" style={{ color: t.textTer }}>{item.date ? ago(item.date) : ''}</span>
                       {item.date && <span className="text-[9px] font-mono" style={{ color: t.textMuted }}>{timeStr(item.date)}</span>}
@@ -364,7 +364,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1.5">
           {filteredCrons.map(([key, state]) => {
-            const info = CRON_INFO[key] ?? { label: key, schedule: '\u2014', icon: CircleDot, category: 'system' };
+            const info = CRON_INFO[key] ?? { label: key, schedule: '\—', icon: CircleDot, category: 'system' };
             const Icon = info.icon;
             const isRunningNow = running === key;
 
