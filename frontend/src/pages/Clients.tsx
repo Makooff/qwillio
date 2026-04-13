@@ -63,8 +63,8 @@ export default function Clients() {
   const saveClient = async () => {
     if (!selected||!editing) return;
     setSaving(true);
-    try { await api.put(`/clients/${selected.id}`,editing); toast('Client mis \à jour','success'); setSelected(null); setEditing(null); load(); }
-    catch { toast('Erreur mise \à jour','error'); }
+    try { await api.put(`/clients/${selected.id}`,editing); toast('Client mis à jour','success'); setSelected(null); setEditing(null); load(); }
+    catch { toast('Erreur mise à jour','error'); }
     finally { setSaving(false); }
   };
 
@@ -73,7 +73,7 @@ export default function Clients() {
     setDeleting(true);
     try {
       await api.delete(`/admin/clients/${toDelete.id}`);
-      toast('Client supprim\é', 'success');
+      toast('Client supprimé', 'success');
       setToDelete(null);
       load();
     } catch { toast('Erreur suppression', 'error'); }
@@ -84,7 +84,7 @@ export default function Clients() {
     try {
       const s = c.subscriptionStatus==='paused'?'active':'paused';
       await api.put(`/clients/${c.id}`,{subscriptionStatus:s});
-      toast(s==='paused'?'Client suspendu':'Client r\éactiv\é','success');
+      toast(s==='paused'?'Client suspendu':'Client réactivé','success');
       setConfirmPause(null); load();
     } catch { toast('Erreur','error'); }
   };
@@ -237,7 +237,7 @@ export default function Clients() {
                 </select>
               </div>
               <div>
-                <label className="text-xs mb-1.5 block" style={{ color: t.textSec }}>Mensualit\é (\€)</label>
+                <label className="text-xs mb-1.5 block" style={{ color: t.textSec }}>Mensualité (€)</label>
                 <input type="number" value={editing.monthlyFee??0} onChange={e=>setEditing(p=>({...p,monthlyFee:Number(e.target.value)}))}
                   className="w-full px-3 py-2.5 rounded-[10px] text-sm focus:outline-none"
                   style={inputStyle} />
@@ -246,8 +246,8 @@ export default function Clients() {
           </div>
         )}
       </SlideSheet>
-      <ConfirmDialog open={!!confirmPause} title={confirmPause?.subscriptionStatus==='paused'?'R\éactiver':'Suspendre'} message={`${confirmPause?.subscriptionStatus==='paused'?'R\éactiver':'Suspendre'} "${confirmPause?.businessName}" ?`} confirmLabel={confirmPause?.subscriptionStatus==='paused'?'R\éactiver':'Suspendre'} danger={confirmPause?.subscriptionStatus!=='paused'} onConfirm={()=>confirmPause&&togglePause(confirmPause)} onCancel={()=>setConfirmPause(null)}/>
-      <ConfirmDialog open={!!toDelete} title="Supprimer le client" message={`Supprimer d\éfinitivement "${toDelete?.businessName}" et toutes ses donn\ées ?`} confirmLabel="Supprimer" danger loading={deleting} onConfirm={doDelete} onCancel={()=>setToDelete(null)}/>
+      <ConfirmDialog open={!!confirmPause} title={confirmPause?.subscriptionStatus==='paused'?'Réactiver':'Suspendre'} message={`${confirmPause?.subscriptionStatus==='paused'?'Réactiver':'Suspendre'} "${confirmPause?.businessName}" ?`} confirmLabel={confirmPause?.subscriptionStatus==='paused'?'Réactiver':'Suspendre'} danger={confirmPause?.subscriptionStatus!=='paused'} onConfirm={()=>confirmPause&&togglePause(confirmPause)} onCancel={()=>setConfirmPause(null)}/>
+      <ConfirmDialog open={!!toDelete} title="Supprimer le client" message={`Supprimer définitivement "${toDelete?.businessName}" et toutes ses données ?`} confirmLabel="Supprimer" danger loading={deleting} onConfirm={doDelete} onCancel={()=>setToDelete(null)}/>
     </div>
   );
 }

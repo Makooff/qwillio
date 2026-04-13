@@ -212,8 +212,8 @@ export default function Dashboard() {
               ? { background: `${t.danger}15`, borderColor: `${t.danger}30`, color: t.danger }
               : { background: `${t.success}15`, borderColor: `${t.success}30`, color: t.success }}>
             {toggling ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              : bot?.isActive ? <><span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: t.danger }} /><Square className="w-3.5 h-3.5" /> Arr\êter</>
-              : <><span className="w-1.5 h-1.5 rounded-full" style={{ background: t.success }} /><Play className="w-3.5 h-3.5" /> D\émarrer</>}
+              : bot?.isActive ? <><span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: t.danger }} /><Square className="w-3.5 h-3.5" /> Arrêter</>
+              : <><span className="w-1.5 h-1.5 rounded-full" style={{ background: t.success }} /><Play className="w-3.5 h-3.5" /> Démarrer</>}
           </button>
 
           {bot?.isActive && (
@@ -303,10 +303,10 @@ export default function Dashboard() {
             </h3>
 
             {[
-              { l: 'Statut', v: bot?.isActive ? 'Actif' : 'Arr\êt\é', bright: true },
+              { l: 'Statut', v: bot?.isActive ? 'Actif' : 'Arrêté', bright: true },
               { l: 'Appels aujourd\'hui', v: `${calls} / ${quota}` },
-              { l: 'Prospects trouv\és', v: (bot as any)?.prospectsFound ?? 0 },
-              { l: 'Follow-ups envoy\és', v: (bot as any)?.followUpsSent ?? 0 },
+              { l: 'Prospects trouvés', v: (bot as any)?.prospectsFound ?? 0 },
+              { l: 'Follow-ups envoyés', v: (bot as any)?.followUpsSent ?? 0 },
             ].map(r => (
               <div key={r.l} className="flex items-center gap-2 py-2 last:border-0" style={{ borderBottom: `1px solid rgba(255,255,255,0.03)` }}>
                 <span className="w-1 h-1 rounded-full" style={{ background: t.textMuted }} />
@@ -318,12 +318,12 @@ export default function Dashboard() {
             {bot?.isActive && beforeUSHours && calls === 0 && (
               <p className="text-[10px] mt-2 px-2 py-1.5 rounded-[8px]" style={{ color: t.textMuted, background: 'rgba(255,255,255,0.02)' }}>
                 <Clock className="w-3 h-3 inline-block mr-1 -mt-px" />
-                Les appels US d\émarrent \à 15h (9h Eastern)
+                Les appels US démarrent à 15h (9h Eastern)
               </p>
             )}
 
             <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
-              <p className={`${cx.h3} mb-2`} style={{ color: t.textTer }}>Derni\ères actions</p>
+              <p className={`${cx.h3} mb-2`} style={{ color: t.textTer }}>Dernières actions</p>
               {[
                 { l: 'Prospection', t: bot?.lastRunProspecting ?? (bot as any)?.lastProspection },
                 { l: 'Appel', t: bot?.lastRunCalling ?? (bot as any)?.lastCall },
@@ -361,7 +361,7 @@ export default function Dashboard() {
         <div className="lg:col-span-3 rounded-[14px] p-4" style={glass}>
           <div className="flex items-center justify-between mb-3">
             <h3 className={`${cx.h3} flex items-center gap-1.5`} style={{ color: t.textTer }}>
-              <Activity className="w-3.5 h-3.5" /> Fil d'activit\é
+              <Activity className="w-3.5 h-3.5" /> Fil d'activité
               {bot?.isActive && (
                 <span className="text-[9px] px-1.5 py-0.5 rounded-full ml-1 animate-pulse"
                   style={{ color: t.live, background: 'rgba(34,197,94,0.10)' }}>LIVE</span>
@@ -375,10 +375,10 @@ export default function Dashboard() {
           {activity.length === 0 ? (
             <div className="text-center py-14">
               <Activity className="w-7 h-7 mx-auto mb-2 opacity-10" style={{ color: t.textTer }} />
-              <p className="text-[11px]" style={{ color: t.textTer }}>Aucune activit\é</p>
+              <p className="text-[11px]" style={{ color: t.textTer }}>Aucune activité</p>
               {bot?.isActive && beforeUSHours ? (
                 <p className="text-[10px] mt-2 opacity-60" style={{ color: t.textMuted }}>
-                  Les appels d\émarrent \à 15h heure belge (9h US Eastern). Le bot se lancera automatiquement.
+                  Les appels démarrent à 15h heure belge (9h US Eastern). Le bot se lancera automatiquement.
                 </p>
               ) : (
                 <p className="text-[10px] mt-1 opacity-50" style={{ color: t.textMuted }}>Le fil se remplira quand le bot sera actif</p>
@@ -393,7 +393,7 @@ export default function Dashboard() {
                     <span className="text-sm opacity-60">{item.icon ?? '>'}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-medium" style={{ color: t.textSec }}>{item.message ?? item.businessName ?? 'Activit\é'}</p>
+                    <p className="text-[11px] font-medium" style={{ color: t.textSec }}>{item.message ?? item.businessName ?? 'Activité'}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px]" style={{ color: t.textTer }}>{item.date ? ago(item.date) : ''}</span>
                       {item.date && <span className="text-[9px] font-mono" style={{ color: t.textMuted }}>{timeStr(item.date)}</span>}

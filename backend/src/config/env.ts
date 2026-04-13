@@ -4,6 +4,16 @@ import type { StringValue } from 'ms';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+// ─── Fix deleted VAPI assistant IDs (Render env var has stale value) ───
+const DELETED_ASSISTANT_ID = 'd98364c2-8ca4-4efb-af00-8534af00fa06';
+const CORRECT_ASSISTANT_ID_EN = 'e583a22d-0b73-4bb1-95c8-8de334f06089';
+const CORRECT_ASSISTANT_ID_FR = '327fa4b1-e3b7-4de7-bd06-906d2d42d7dd';
+
+function resolveAssistantId(envVal: string | undefined, correctVal: string): string {
+  if (!envVal || envVal === DELETED_ASSISTANT_ID || !/^[0-9a-f]{8}-/.test(envVal)) return correctVal;
+  return envVal;
+}
+
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '3000', 10),
@@ -19,8 +29,8 @@ export const env = {
 
   VAPI_PUBLIC_KEY: process.env.VAPI_PUBLIC_KEY || '',
   VAPI_PRIVATE_KEY: process.env.VAPI_PRIVATE_KEY || '',
-  VAPI_ASSISTANT_ID: process.env.VAPI_ASSISTANT_ID || '',
-  VAPI_ASSISTANT_ID_FR: process.env.VAPI_ASSISTANT_ID_FR || '',
+  VAPI_ASSISTANT_ID: resolveAssistantId(process.env.VAPI_ASSISTANT_ID, CORRECT_ASSISTANT_ID_EN),
+  VAPI_ASSISTANT_ID_FR: resolveAssistantId(process.env.VAPI_ASSISTANT_ID_FR, CORRECT_ASSISTANT_ID_FR),
   VAPI_PHONE_NUMBER: process.env.VAPI_PHONE_NUMBER || '',
   VAPI_PHONE_NUMBER_ID: process.env.VAPI_PHONE_NUMBER_ID || '',
   VAPI_BASE_URL: process.env.VAPI_BASE_URL || 'https://api.vapi.ai',
