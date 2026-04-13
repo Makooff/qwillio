@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import api from '../../services/api';
-import { Search, RefreshCw, FileText, Phone, Clock, Play, Pause, Volume2 } from 'lucide-react';
+import { Search, RefreshCw, FileText, Phone, Clock, Play, Pause, Volume2, Download } from 'lucide-react';
 import Badge from '../../components/ui/Badge';
 import SlideSheet from '../../components/ui/SlideSheet';
 import Pagination from '../../components/ui/Pagination';
@@ -13,6 +13,32 @@ const OUTCOMES = ['','interested','voicemail','no_answer','rejected','converted'
 function fmtDuration(s?: number) { if (!s) return '—'; return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
 function scoreColor(s: number) { return s >= 7 ? t.success : s >= 4 ? t.warning : t.danger; }
 
+function downloadCSV(rows: any[], filename: string) {
+  if (!rows.length) return;
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${String(r[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+const TZ_ABBR: Record<string, string> = {
+  'America/New_York': 'ET', 'America/Chicago': 'CT', 'America/Denver': 'MT',
+  'America/Los_Angeles': 'PT', 'America/Phoenix': 'MST', 'America/Anchorage': 'AKT',
+  'Pacific/Honolulu': 'HT', 'US/Eastern': 'ET', 'US/Central': 'CT',
+  'US/Mountain': 'MT', 'US/Pacific': 'PT',
+};
+
+function prospectLocalTime(tz?: string) {
+  if (!tz) return null;
+  try {
+    const time = new Date().toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+    const abbr = TZ_ABBR[tz] || tz.split('/').pop()?.replace(/_/g, ' ') || tz;
+    return `${time} ${abbr}`;
+  } catch { return null; }
+}
+
 export default function AdminCalls() {
   const [data, setData] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -23,6 +49,7 @@ export default function AdminCalls() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [expandedAudio, setExpandedAudio] = useState<string | null>(null);
   const { toasts, add: toast, remove } = useToast();
   const LIMIT = 25;
 
@@ -48,7 +75,16 @@ export default function AdminCalls() {
           <h1 className="text-xl font-bold" style={{ color: t.text }}>Appels</h1>
           <p className="text-sm mt-0.5" style={{ color: t.textSec }}>{total} appel{total>1?'s':''}</p>
         </div>
-        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }}><RefreshCw className="w-4 h-4"/></button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => downloadCSV(data.map(c => ({
+            'Business Name': c.prospect?.businessName ?? c.businessName ?? '',
+            'Outcome': c.outcome ?? '',
+            'Score': c.interestScore ?? c.interestLevel ?? '',
+            'Duration': fmtDuration(c.duration ?? c.durationSeconds),
+            'Date': new Date(c.createdAt ?? c.startedAt).toLocaleDateString('fr-FR'),
+          })), 'calls-export.csv')} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }} title="Export CSV"><Download className="w-4 h-4"/></button>
+          <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }}><RefreshCw className="w-4 h-4"/></button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -95,7 +131,8 @@ export default function AdminCalls() {
             )) : data.length===0 ? (
               <tr><td colSpan={6}><EmptyState icon={<Phone className="w-7 h-7"/>} title="Aucun appel"/></td></tr>
             ) : data.map((c:any)=>(
-              <tr key={c.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
+              <React.Fragment key={c.id}>
+              <tr className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
                 <td className="px-3 py-3">
                   <p className="text-xs font-medium truncate max-w-[120px] md:max-w-none" style={{ color: t.text }}>{c.prospect?.businessName??c.businessName??'—'}</p>
                   <p className="text-[10px] md:hidden" style={{ color: t.textSec }}>{fmtDuration(c.duration??c.durationSeconds)}</p>
@@ -110,15 +147,27 @@ export default function AdminCalls() {
                   <span className="flex items-center gap-1 text-xs" style={{ color: t.textSec }}><Clock className="w-3 h-3"/>{fmtDuration(c.duration??c.durationSeconds)}</span>
                 </td>
                 <td className="hidden md:table-cell px-3 py-3">
-                  <span className="text-xs" style={{ color: t.textSec }}>{new Date(c.createdAt??c.startedAt).toLocaleDateString('fr-FR')}</span>
+                  <div>
+                    <span className="text-xs" style={{ color: t.textSec }}>{new Date(c.createdAt??c.startedAt).toLocaleDateString('fr-FR')}</span>
+                    {(() => { const tz = prospectLocalTime(c.prospect?.timezone ?? c.timezone); return tz ? <span className="text-[10px] ml-1.5" style={{ color: '#666' }}>{tz}</span> : null; })()}
+                  </div>
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    {c.recordingUrl&&<button onClick={()=>setSelected(c)} title="Écouter" className="p-1.5 rounded-lg hover:bg-white/[0.08]" style={{ color: t.textSec }}><Volume2 className="w-3.5 h-3.5"/></button>}
+                    {c.recordingUrl&&<button onClick={(e)=>{e.stopPropagation();setExpandedAudio(expandedAudio===c.id?null:c.id);}} title="Écouter" className="p-1.5 rounded-lg hover:bg-white/[0.08]" style={{ color: expandedAudio===c.id ? '#fff' : t.textSec }}><Play className="w-3.5 h-3.5"/></button>}
+                    {c.recordingUrl&&<button onClick={()=>setSelected(c)} title="Détails" className="p-1.5 rounded-lg hover:bg-white/[0.08]" style={{ color: t.textSec }}><Volume2 className="w-3.5 h-3.5"/></button>}
                     {c.transcript&&<button onClick={()=>setSelected(c)} title="Transcription" className="p-1.5 rounded-lg hover:bg-white/[0.08]" style={{ color: t.textSec }}><FileText className="w-3.5 h-3.5"/></button>}
                   </div>
                 </td>
               </tr>
+              {expandedAudio===c.id&&c.recordingUrl&&(
+                <tr className="border-b border-white/[0.04]">
+                  <td colSpan={6} className="px-3 py-2">
+                    <audio controls autoPlay className="w-full h-8" src={c.recordingUrl} onEnded={()=>setExpandedAudio(null)} />
+                  </td>
+                </tr>
+              )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>

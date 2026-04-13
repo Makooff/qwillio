@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { Prospect } from '../types';
-import { Search, Phone, Trash2, Eye, RefreshCw, Star, MapPin, Building2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Search, Phone, Trash2, Eye, RefreshCw, Star, MapPin, Building2, ChevronUp, ChevronDown, Download } from 'lucide-react';
 import Badge from '../components/ui/Badge';
 import SlideSheet from '../components/ui/SlideSheet';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -10,6 +10,16 @@ import EmptyState from '../components/ui/EmptyState';
 import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ui/Toast';
 import { t, glass, inputStyle, cx } from '../styles/admin-theme';
+
+function downloadCSV(rows: any[], filename: string) {
+  if (!rows.length) return;
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${String(r[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
 
 type SortKey = 'score'|'businessName'|'createdAt'|'interestLevel';
 type SortDir = 'asc'|'desc';
@@ -73,7 +83,18 @@ export default function Prospects() {
           <h1 className={cx.h1} style={{ color: t.text }}>Prospects</h1>
           <p className="text-sm mt-0.5" style={{ color: t.textSec }}>{total} au total</p>
         </div>
-        <button onClick={load} className={cx.btnIcon} style={{ color: t.textSec }}><RefreshCw className="w-4 h-4"/></button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => downloadCSV(data.map(p => ({
+            'Business Name': p.businessName ?? '',
+            'Status': p.status ?? '',
+            'Score': p.score ?? '',
+            'Sector': p.businessType ?? p.sector ?? '',
+            'City': p.city ?? '',
+            'Phone': p.phone ?? '',
+            'Created': new Date(p.createdAt).toLocaleDateString('fr-FR'),
+          })), 'prospects-export.csv')} className={cx.btnIcon} style={{ color: t.textSec }} title="Export CSV"><Download className="w-4 h-4"/></button>
+          <button onClick={load} className={cx.btnIcon} style={{ color: t.textSec }}><RefreshCw className="w-4 h-4"/></button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

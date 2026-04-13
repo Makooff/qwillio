@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { Client } from '../types';
-import { Search, RefreshCw, Eye, Building2, Crown, Clock, CheckCircle, XCircle, Trash2 } from 'lucide-react';
+import { Search, RefreshCw, Eye, Building2, Crown, Clock, CheckCircle, XCircle, Trash2, Download } from 'lucide-react';
 import Badge from '../components/ui/Badge';
 import SlideSheet from '../components/ui/SlideSheet';
 import Pagination from '../components/ui/Pagination';
@@ -10,6 +10,16 @@ import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ui/Toast';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { t, glass, inputStyle, cx } from '../styles/admin-theme';
+
+function downloadCSV(rows: any[], filename: string) {
+  if (!rows.length) return;
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${String(r[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
 
 const PLAN_OPTIONS = ['starter','pro','enterprise'];
 const STATUS_OPTIONS = ['active','trial','paused','cancelled'];
@@ -87,7 +97,18 @@ export default function Clients() {
           <h1 className={cx.h1} style={{ color: t.text }}>Clients</h1>
           <p className="text-sm mt-0.5" style={{ color: t.textSec }}>{total} client{total>1?'s':''}</p>
         </div>
-        <button onClick={load} className={cx.btnIcon} style={{ color: t.textSec }}><RefreshCw className="w-4 h-4"/></button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => downloadCSV(data.map(c => ({
+            'Business Name': c.businessName ?? '',
+            'Email': c.contactEmail ?? '',
+            'Plan': c.planType ?? '',
+            'Status': c.subscriptionStatus ?? '',
+            'MRR': c.monthlyFee ?? '',
+            'Calls': c.totalCallsMade ?? '',
+            'Trial Days Left': trialDaysLeft(c.trialEndDate) ?? '',
+          })), 'clients-export.csv')} className={cx.btnIcon} style={{ color: t.textSec }} title="Export CSV"><Download className="w-4 h-4"/></button>
+          <button onClick={load} className={cx.btnIcon} style={{ color: t.textSec }}><RefreshCw className="w-4 h-4"/></button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

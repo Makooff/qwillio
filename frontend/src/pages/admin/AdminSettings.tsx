@@ -103,7 +103,7 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [confirmPause, setConfirmPause] = useState(false);
   const [confirmResume, setConfirmResume] = useState(false);
-  const [health, setHealth] = useState<Record<string, boolean> | null>(null);
+  const [health, setHealth] = useState<Record<string, boolean | string> | null>(null);
   const [sysInfo, setSysInfo] = useState<any>(null);
   const [prospecting, setProspecting] = useState<any>(null);
   const [aiStats, setAiStats] = useState<any>(null);
@@ -520,18 +520,22 @@ export default function AdminSettings() {
             { k: 'discord', label: 'Discord', desc: 'Alertes' },
             { k: 'apify', label: 'Apify', desc: 'Scraping Maps' },
           ].map(s => {
-            const ok = health[s.k] ?? false;
+            const val = health[s.k] ?? false;
+            const isOptional = val === 'optional';
+            const ok = isOptional || !!val;
+            const color = isOptional ? t.warning : ok ? t.success : t.danger;
+            const bg = isOptional ? 'rgba(251,191,36,0.05)' : ok ? 'rgba(52,211,153,0.05)' : 'rgba(248,113,113,0.05)';
             return (
               <div key={s.k} className="flex items-center gap-3 p-3 rounded-xl"
                 style={{
                   ...glass,
-                  background: ok ? 'rgba(52,211,153,0.05)' : 'rgba(248,113,113,0.05)',
+                  background: bg,
                 }}>
-                {ok ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: t.success }} />
-                     : <XCircle className="w-4 h-4 flex-shrink-0" style={{ color: t.danger }} />}
+                {ok ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color }} />
+                     : <XCircle className="w-4 h-4 flex-shrink-0" style={{ color }} />}
                 <div className="min-w-0">
                   <p className="text-xs font-medium" style={{ color: t.text }}>{s.label}</p>
-                  <p className="text-[9px]" style={{ color: t.textSec }}>{s.desc}</p>
+                  <p className="text-[9px]" style={{ color: t.textSec }}>{s.desc}{isOptional ? ' (optionnel)' : ''}</p>
                 </div>
               </div>
             );

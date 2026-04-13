@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
 import { formatDuration, formatDateTime, formatShortDate, daysUntil } from '../../utils/format';
+import OnboardingChecklist from '../../components/client/OnboardingChecklist';
 
 function greeting(name: string) {
   const h = new Date().getHours();
@@ -200,6 +201,22 @@ export default function ClientOverview() {
           </button>
         </div>
       </motion.div>
+
+      {/* ── Onboarding checklist (show only if not fully set up) ── */}
+      {(() => {
+        const onboardingClient = {
+          hasPhone: !!(c.transferNumber || c.vapiPhoneNumber),
+          hasTestCall: !!c.hasTestCall,
+          hasCustomConfig: !!c.hasCustomConfig,
+          isActive: isActive,
+          transferNumber: c.transferNumber,
+          vapiPhoneNumber: c.vapiPhoneNumber,
+          subscriptionStatus: c.subscriptionStatus,
+          businessName: c.businessName,
+        };
+        const allDone = onboardingClient.hasPhone && onboardingClient.hasTestCall && onboardingClient.hasCustomConfig && onboardingClient.isActive;
+        return !allDone ? <OnboardingChecklist client={onboardingClient} /> : null;
+      })()}
 
       {/* ── Banners ── */}
       {c.isTrial && (

@@ -122,42 +122,130 @@ export default function AiLearning() {
         </div>
       )}
 
-      {/* A/B Tests */}
+      {/* A/B Tests — Card layout with mini bar charts */}
       {tab === 'abtests' && (
-        <div className="overflow-hidden" style={glass}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${t.border}` }}>
-                <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Niche</th>
-                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Var. A</th>
-                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Var. B</th>
-                <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Gagnant</th>
-                <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Appels</th>
-                <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading
-                ? Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)
-                : abTests.length === 0
-                  ? <tr><td colSpan={6}><EmptyState icon={<BarChart3 className="w-7 h-7" />} title="Aucun test A/B" /></td></tr>
-                  : abTests.map((ab: any) => (
-                    <tr key={ab.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                      <td className="px-3 py-3">
-                        <span className="text-xs" style={{ color: t.text }}>{ab.niche ?? '—'}</span>
-                        <p className="text-[10px] md:hidden" style={{ color: t.textSec }}>{(ab.callsA ?? 0) + (ab.callsB ?? 0)} appels</p>
-                      </td>
-                      <td className="hidden md:table-cell px-3 py-3"><span className="text-xs truncate max-w-[100px] block" style={{ color: t.textSec }}>{ab.variantAId ?? '—'}</span></td>
-                      <td className="hidden md:table-cell px-3 py-3"><span className="text-xs truncate max-w-[100px] block" style={{ color: t.textSec }}>{ab.variantBId ?? '—'}</span></td>
-                      <td className="px-3 py-3">
-                        {ab.winnerId ? <Badge label="Déterminé" variant="success" size="xs" /> : <span className="text-xs" style={{ color: t.textSec }}>En cours</span>}
-                      </td>
-                      <td className="hidden md:table-cell px-3 py-3"><span className="text-xs" style={{ color: t.text }}>{(ab.callsA ?? 0) + (ab.callsB ?? 0)}</span></td>
-                      <td className="px-3 py-3"><Badge label={ab.status ?? 'active'} dot size="xs" /></td>
-                    </tr>
-                  ))}
-            </tbody>
-          </table>
+        <div>
+          {loading
+            ? <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}</div>
+            : abTests.length === 0
+              ? <EmptyState icon={<BarChart3 className="w-7 h-7" />} title="Aucun test A/B" />
+              : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {abTests.map((ab: any) => {
+                    const callsA = ab.callsA ?? 0;
+                    const callsB = ab.callsB ?? 0;
+                    const totalCalls = callsA + callsB;
+                    const rateA = ab.conversionRateA ?? (callsA > 0 ? ((ab.leadsA ?? 0) / callsA) * 100 : 0);
+                    const rateB = ab.conversionRateB ?? (callsB > 0 ? ((ab.leadsB ?? 0) / callsB) * 100 : 0);
+                    const maxRate = Math.max(rateA, rateB, 1);
+                    const diff = maxRate > 0 ? Math.abs(rateA - rateB) / maxRate * 100 : 0;
+                    const isSignificant = totalCalls > 100 && diff > 15;
+                    const hasWinner = !!ab.winnerId;
+
+                    return (
+                      <div key={ab.id} className="p-5" style={glass}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <span className="text-sm font-semibold" style={{ color: t.text }}>{ab.niche ?? 'Test A/B'}</span>
+                            <p className="text-[10px] mt-0.5" style={{ color: t.textSec }}>{ab.language ?? 'EN'} &middot; {totalCalls} appels</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {hasWinner && (
+                              <span className="text-[10px] font-bold px-2 py-1 rounded-full"
+                                style={{ background: 'rgba(34,197,94,0.15)', color: t.success }}>
+                                Gagnant
+                              </span>
+                            )}
+                            {totalCalls > 100 ? (
+                              <span className="text-[10px] font-medium px-2 py-1 rounded-full"
+                                style={{
+                                  background: isSignificant ? 'rgba(34,197,94,0.10)' : 'rgba(251,191,36,0.10)',
+                                  color: isSignificant ? t.success : t.warning,
+                                }}>
+                                {isSignificant ? 'Significatif' : 'En cours'}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium px-2 py-1 rounded-full"
+                                style={{ background: 'rgba(255,255,255,0.06)', color: t.textSec }}>
+                                Collecte
+                              </span>
+                            )}
+                            <Badge label={ab.status ?? 'active'} dot size="xs" />
+                          </div>
+                        </div>
+
+                        {/* Mini bar chart */}
+                        <div className="space-y-3 mb-4">
+                          {/* Variant A */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-medium" style={{ color: t.textSec }}>
+                                Variante A {hasWinner && ab.winnerId === ab.variantAId && <span style={{ color: t.success }}>(gagnant)</span>}
+                              </span>
+                              <span className="text-[10px] font-bold tabular-nums" style={{ color: t.text }}>{rateA.toFixed(1)}%</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                                <div className="h-full rounded-lg transition-all duration-500 flex items-center px-2"
+                                  style={{
+                                    width: `${maxRate > 0 ? (rateA / maxRate) * 100 : 0}%`,
+                                    minWidth: rateA > 0 ? '24px' : '0',
+                                    background: hasWinner && ab.winnerId === ab.variantAId
+                                      ? 'rgba(34,197,94,0.25)'
+                                      : 'rgba(123,92,240,0.3)',
+                                  }}>
+                                  <span className="text-[9px] font-medium tabular-nums" style={{ color: t.textSec }}>{callsA}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Variant B */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-medium" style={{ color: t.textSec }}>
+                                Variante B {hasWinner && ab.winnerId === ab.variantBId && <span style={{ color: t.success }}>(gagnant)</span>}
+                              </span>
+                              <span className="text-[10px] font-bold tabular-nums" style={{ color: t.text }}>{rateB.toFixed(1)}%</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                                <div className="h-full rounded-lg transition-all duration-500 flex items-center px-2"
+                                  style={{
+                                    width: `${maxRate > 0 ? (rateB / maxRate) * 100 : 0}%`,
+                                    minWidth: rateB > 0 ? '24px' : '0',
+                                    background: hasWinner && ab.winnerId === ab.variantBId
+                                      ? 'rgba(34,197,94,0.25)'
+                                      : 'rgba(96,165,250,0.3)',
+                                  }}>
+                                  <span className="text-[9px] font-medium tabular-nums" style={{ color: t.textSec }}>{callsB}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Footer stats */}
+                        <div className="flex items-center gap-4 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
+                          <div>
+                            <p className="text-[9px] uppercase font-medium" style={{ color: t.textMuted }}>Difference</p>
+                            <p className="text-xs font-bold tabular-nums" style={{ color: diff > 15 ? t.success : t.textSec }}>{diff.toFixed(1)}%</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] uppercase font-medium" style={{ color: t.textMuted }}>Total appels</p>
+                            <p className="text-xs font-bold tabular-nums" style={{ color: t.text }}>{totalCalls}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] uppercase font-medium" style={{ color: t.textMuted }}>Seuil</p>
+                            <p className="text-xs font-bold tabular-nums" style={{ color: totalCalls >= 200 ? t.success : t.textSec }}>{totalCalls} / 200</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
         </div>
       )}
 

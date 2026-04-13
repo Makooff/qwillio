@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { io, Socket } from 'socket.io-client';
 import api from '../services/api';
 import { DashboardStats, BotStatus } from '../types';
 import {
@@ -8,6 +9,7 @@ import {
   TrendingUp, DollarSign, BarChart3, Clock,
   Calendar, Activity, RefreshCw, Settings,
   CircleDot, Timer, Search, Database, Globe, Bot,
+  Flame,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -31,12 +33,12 @@ const CRON_INFO: Record<string, { label: string; schedule: string; icon: any; ca
   reminders:            { label: 'Rappels',             schedule: 'Chaque heure',    icon: Clock,      category: 'core' },
   analytics:            { label: 'Analytics',           schedule: '23h55',           icon: BarChart3,  category: 'system' },
   dailyReset:           { label: 'Reset quotidien',     schedule: '00h01',           icon: RefreshCw,  category: 'system' },
-  trialCheck:           { label: 'V\érif. essais',       schedule: '8h',              icon: Timer,      category: 'system' },
+  trialCheck:           { label: 'Vérif. essais',        schedule: '8h',              icon: Timer,      category: 'system' },
   onboardingRetry:      { label: 'Retry onboarding',    schedule: '*/5min',          icon: Users,      category: 'client' },
   bookingReminders:     { label: 'Rappels RDV',         schedule: '*/30min',         icon: Calendar,   category: 'client' },
   clientAnalytics:      { label: 'Stats clients',       schedule: '23h50',           icon: BarChart3,  category: 'client' },
   optimization:         { label: 'Optimisation IA',     schedule: 'Dim 0h',          icon: Brain,      category: 'ai' },
-  phoneValidation:      { label: 'Valid. t\él\éphone',    schedule: '*/10min',         icon: Phone,      category: 'system' },
+  phoneValidation:      { label: 'Valid. téléphone',     schedule: '*/10min',         icon: Phone,      category: 'system' },
   nicheLearning:        { label: 'Apprentissage niche', schedule: 'Dim 1h',          icon: Brain,      category: 'ai' },
   apifyScraping:        { label: 'Scraping Maps',       schedule: '2h UTC',          icon: Globe,      category: 'prospect' },
   outboundEngine:       { label: 'Moteur appels',       schedule: '*/20min 9-17h',   icon: Phone,      category: 'prospect' },
@@ -46,12 +48,12 @@ const CRON_INFO: Record<string, { label: string; schedule: string; icon: any; ca
   followUpSequences:    { label: 'Follow-ups',          schedule: '*/30min',         icon: Mail,       category: 'prospect' },
   rescoreProspects:     { label: 'Re-scoring',          schedule: '3h UTC',          icon: Target,     category: 'prospect' },
   crmSync:              { label: 'Sync CRM',            schedule: '*/15min',         icon: Database,   category: 'client' },
-  forwardingVerification: { label: 'V\érif. transferts', schedule: '9h',              icon: Phone,      category: 'system' },
+  forwardingVerification: { label: 'Vérif. transferts',  schedule: '9h',              icon: Phone,      category: 'system' },
   overageBilling:       { label: 'Facturation surplus',  schedule: '1er du mois 6h', icon: DollarSign,  category: 'system' },
   agentPayments:        { label: 'Agent Paiements',     schedule: 'Chaque heure',    icon: DollarSign,  category: 'agent' },
   agentAccounting:      { label: 'Agent Compta',        schedule: '1er du mois 2h',  icon: BarChart3,   category: 'agent' },
   agentInventoryAlerts: { label: 'Agent Stock Alertes', schedule: '*/6h',            icon: Zap,         category: 'agent' },
-  agentInventoryForecast:{ label: 'Agent Stock Pr\évi.', schedule: '3h',              icon: TrendingUp,  category: 'agent' },
+  agentInventoryForecast:{ label: 'Agent Stock Prévi.',  schedule: '3h',              icon: TrendingUp,  category: 'agent' },
   agentEmailSync:       { label: 'Agent Email Sync',    schedule: '*/10min',         icon: Mail,        category: 'agent' },
   agentEmailFollowUp:   { label: 'Agent Email Follow',  schedule: 'Chaque heure',    icon: Mail,        category: 'agent' },
   agentEmailDigest:     { label: 'Agent Email Digest',  schedule: '8h',              icon: Mail,        category: 'agent' },
@@ -60,19 +62,21 @@ const CRON_INFO: Record<string, { label: string; schedule: string; icon: any; ca
 
 const CATEGORY_LABELS: Record<string, string> = {
   core: 'Principal', prospect: 'Prospection', ai: 'IA',
-  client: 'Clients', agent: 'Agents', system: 'Syst\ème',
+  client: 'Clients', agent: 'Agents', system: 'Système',
 };
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [bot, setBot] = useState<BotStatus | null>(null);
-  const [health, setHealth] = useState<Record<string, boolean> | null>(null);
+  const [health, setHealth] = useState<Record<string, boolean | string> | null>(null);
   const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [running, setRunning] = useState<string | null>(null);
   const [cronFilter, setCronFilter] = useState<string>('all');
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [hotLead, setHotLead] = useState<{ businessName: string; score: number; timestamp: Date } | null>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -93,6 +97,29 @@ export default function Dashboard() {
     load();
     const iv = setInterval(load, 10_000);
     return () => clearInterval(iv);
+  }, [load]);
+
+  // Socket.io: real-time hot lead alerts
+  useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com';
+    const socket = io(API_URL, { transports: ['websocket', 'polling'] });
+    socketRef.current = socket;
+
+    socket.on('hot-lead', (data: { businessName: string; score: number; timestamp: string }) => {
+      setHotLead({ ...data, timestamp: new Date(data.timestamp) });
+      setTimeout(() => setHotLead(null), 15_000);
+      load();
+    });
+
+    socket.on('activity', (data: any) => {
+      setActivity(prev => [data, ...prev].slice(0, 30));
+    });
+
+    socket.on('call-completed', () => {
+      load();
+    });
+
+    return () => { socket.disconnect(); socketRef.current = null; };
   }, [load]);
 
   const toggleBot = async () => {
@@ -118,6 +145,10 @@ export default function Dashboard() {
     finally { setTimeout(() => setRunning(null), 3000); }
   };
 
+  // Off-hours detection: before 9h US Eastern = before 15h Brussels
+  const nowET = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const beforeUSHours = nowET.getHours() < 9;
+
   const mrr = stats?.revenue?.mrr ?? 0;
   const calls = bot?.callsToday ?? stats?.calls?.today ?? 0;
   const quota = bot?.callsQuotaDaily ?? 50;
@@ -139,6 +170,34 @@ export default function Dashboard() {
 
   return (
     <div className={cx.pageWrap}>
+
+      {/* -- Off-hours info banner -- */}
+      {bot?.isActive && calls === 0 && beforeUSHours && (
+        <section className="rounded-[14px] p-3 flex items-center gap-3" style={glass}>
+          <Clock className="w-4 h-4 flex-shrink-0" style={{ color: t.textSec }} />
+          <p className="text-[11px]" style={{ color: t.textSec }}>
+            Les appels démarrent à 15h (9h Eastern US). Le bot est prêt et démarrera automatiquement.
+          </p>
+        </section>
+      )}
+
+      {/* -- Hot lead real-time alert -- */}
+      {hotLead && (
+        <section className="rounded-[14px] p-3 flex items-center gap-3 animate-pulse"
+          style={{ ...glass, borderColor: t.success, border: `1px solid ${t.success}40` }}>
+          <Flame className="w-4 h-4 flex-shrink-0" style={{ color: t.success }} />
+          <div className="flex-1">
+            <p className="text-[11px] font-semibold" style={{ color: t.text }}>
+              Hot Lead détecté — {hotLead.businessName} (score {hotLead.score}/10)
+            </p>
+            <p className="text-[10px]" style={{ color: t.textTer }}>Rappeler dans les 5 minutes</p>
+          </div>
+          <button onClick={() => setHotLead(null)} className="text-[10px] px-2 py-0.5 rounded"
+            style={{ color: t.textTer, background: t.elevated }}>
+            Fermer
+          </button>
+        </section>
+      )}
 
       {/* -- HEADER -- */}
       <section className="rounded-[14px] p-4 relative overflow-hidden" style={glass}>
@@ -181,13 +240,17 @@ export default function Dashboard() {
 
           {health && (
             <div className="flex flex-wrap gap-1 ml-auto items-center">
-              {Object.entries(health).map(([k, ok]) => (
-                <span key={k} className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium"
-                  style={{ background: t.elevated, color: ok ? t.textSec : t.danger }}>
-                  {ok ? <CheckCircle2 className="w-2.5 h-2.5" /> : <XCircle className="w-2.5 h-2.5" />}
-                  {k === 'resend' ? 'Email' : k === 'database' ? 'DB' : k.charAt(0).toUpperCase() + k.slice(1)}
-                </span>
-              ))}
+              {Object.entries(health).map(([k, ok]) => {
+                const isOptional = ok === 'optional';
+                const color = isOptional ? t.warning : ok ? t.textSec : t.danger;
+                return (
+                  <span key={k} className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium"
+                    style={{ background: t.elevated, color }}>
+                    {isOptional ? <CheckCircle2 className="w-2.5 h-2.5" /> : ok ? <CheckCircle2 className="w-2.5 h-2.5" /> : <XCircle className="w-2.5 h-2.5" />}
+                    {k === 'resend' ? 'Email' : k === 'database' ? 'DB' : k.charAt(0).toUpperCase() + k.slice(1)}
+                  </span>
+                );
+              })}
               <span className="text-[9px] font-mono ml-1" style={{ color: t.textMuted }}>{format(lastRefresh, 'HH:mm:ss')}</span>
             </div>
           )}
@@ -252,6 +315,13 @@ export default function Dashboard() {
               </div>
             ))}
 
+            {bot?.isActive && beforeUSHours && calls === 0 && (
+              <p className="text-[10px] mt-2 px-2 py-1.5 rounded-[8px]" style={{ color: t.textMuted, background: 'rgba(255,255,255,0.02)' }}>
+                <Clock className="w-3 h-3 inline-block mr-1 -mt-px" />
+                Les appels US d\émarrent \à 15h (9h Eastern)
+              </p>
+            )}
+
             <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
               <p className={`${cx.h3} mb-2`} style={{ color: t.textTer }}>Derni\ères actions</p>
               {[
@@ -306,7 +376,13 @@ export default function Dashboard() {
             <div className="text-center py-14">
               <Activity className="w-7 h-7 mx-auto mb-2 opacity-10" style={{ color: t.textTer }} />
               <p className="text-[11px]" style={{ color: t.textTer }}>Aucune activit\é</p>
-              <p className="text-[10px] mt-1 opacity-50" style={{ color: t.textMuted }}>Le fil se remplira quand le bot sera actif</p>
+              {bot?.isActive && beforeUSHours ? (
+                <p className="text-[10px] mt-2 opacity-60" style={{ color: t.textMuted }}>
+                  Les appels d\émarrent \à 15h heure belge (9h US Eastern). Le bot se lancera automatiquement.
+                </p>
+              ) : (
+                <p className="text-[10px] mt-1 opacity-50" style={{ color: t.textMuted }}>Le fil se remplira quand le bot sera actif</p>
+              )}
             </div>
           ) : (
             <div className="space-y-0 max-h-[420px] overflow-y-auto pr-1">

@@ -12,6 +12,7 @@ import { INTERESTED_FOLLOWUP_SEQUENCE, CALLBACK_RETRY_DELAYS } from '../config/f
 import { emailService } from './email.service';
 import { normalizeEmail, isValidEmail } from '../utils/validators';
 import { nicheLearningService } from './niche-learning.service';
+import { emitEvent } from '../config/socket';
 
 // Interest level thresholds — single source of truth
 export const INTEREST_QUALIFIED = 7;  // >= 7 = qualified, auto-start free trial
@@ -430,6 +431,35 @@ export class VapiService {
     await discordService.notify(
       `${emoji} CALL COMPLETED\n\nProspect: ${call.prospect.businessName}\nInterest: ${analysis.interestLevel}/10\nPackage: ${analysis.recommendedPackage.toUpperCase()}\nEmail: ${validatedEmail || 'Not collected'}${analysis.email && validatedEmail !== analysis.email ? ` (raw: ${analysis.email})` : ''}\nAction: ${analysis.nextAction}${setupFeeObjection ? '\n⚠️ Setup fee objection raised' : ''}`
     );
+
+    // ═══ REAL-TIME SOCKET EVENTS ═══
+    // Emit call-completed for every finished call
+    emitEvent('call-completed', {
+      businessName: call.prospect.businessName,
+      outcome: analysis.outcome,
+      interestScore: analysis.interestLevel,
+      duration,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Emit activity event for the live feed
+    emitEvent('activity', {
+      icon: emoji,
+      message: `${call.prospect.businessName} — ${analysis.outcome} (${analysis.interestLevel}/10)`,
+      businessName: call.prospect.businessName,
+      interestScore: analysis.interestLevel,
+      date: new Date().toISOString(),
+    });
+
+    // Hot lead alert when interest >= 7
+    if (analysis.interestLevel >= INTEREST_QUALIFIED) {
+      emitEvent('hot-lead', {
+        businessName: call.prospect.businessName,
+        score: analysis.interestLevel,
+        city: call.prospect.city || 'Unknown',
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // ═══ POST-CALL LEARNING ═══
     // If call didn't convert (interest < 7), extract niche-specific failure insights

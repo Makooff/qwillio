@@ -25,9 +25,11 @@ model User {
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
 
-  prospects Prospect[]
-  campaigns Campaign[]
-  client    Client?
+  prospects           Prospect[]
+  campaigns           Campaign[]
+  client              Client?
+  contractAcceptances ContractAcceptance[]
+  trialFingerprints   TrialFingerprint[]
 
   @@map("users")
 }
@@ -99,6 +101,8 @@ model Prospect {
   quotes             Quote[]
   campaignSends      CampaignSend[]
   followUpSequences  FollowUpSequence[]
+  smsLogs            SmsLog[]
+  clients            Client[]
 
   @@index([status])
   @@index([businessType])
@@ -267,6 +271,13 @@ model Client {
   agentIncomes       AgentIncome[]
   agentFinancialReports AgentFinancialReport[]
   agentEmails        AgentEmail[]
+  smsLogs            SmsLog[]
+  syncLogs           SyncLog[]
+  syncConflicts      SyncConflict[]
+  agentInventoryLogs AgentInventoryLog[]
+  agentReorderRequests AgentReorderRequest[]
+  contractAcceptances ContractAcceptance[]
+  prospect           Prospect?  @relation(fields: [prospectId], references: [id], onDelete: SetNull)
 
   @@index([subscriptionStatus])
   @@index([planType])
@@ -400,6 +411,9 @@ model SmsLog {
   clientId    String?   @map("client_id") @db.Uuid
   createdAt   DateTime  @default(now()) @map("created_at")
 
+  prospect Prospect? @relation(fields: [prospectId], references: [id], onDelete: SetNull)
+  client   Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
   @@index([to])
   @@index([messageType])
   @@index([createdAt])
@@ -479,7 +493,10 @@ model ClientCall {
   metadata        Json?
   createdAt       DateTime  @default(now()) @map("created_at")
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientBookings ClientBooking[]
+  callTransfers  CallTransfer[]
+  activities     Activity[]
 
   @@index([clientId])
   @@index([status])
@@ -513,7 +530,8 @@ model ClientBooking {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientCall ClientCall? @relation(fields: [clientCallId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
   @@index([bookingDate])
@@ -572,7 +590,8 @@ model CallTransfer {
   timestamp          DateTime  @default(now())
   createdAt          DateTime  @default(now()) @map("created_at")
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientCall ClientCall? @relation(fields: [clientCallId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
   @@index([transferStatus])
@@ -624,6 +643,8 @@ model TrialFingerprint {
   deletedAt             DateTime? @map("deleted_at")
   createdAt             DateTime  @default(now()) @map("created_at")
 
+  account User? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
   @@index([emailHash])
   @@index([phoneHash])
   @@index([deviceFingerprintHash])
@@ -668,6 +689,9 @@ model ContractAcceptance {
   userAgent       String   @map("user_agent") @db.Text
   contractPdfUrl  String?  @map("contract_pdf_url") @db.VarChar(500)
   createdAt       DateTime @default(now()) @map("created_at")
+
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
   @@index([userId])
@@ -740,8 +764,9 @@ model Activity {
   callId      String?  @map("call_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at")
 
-  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contact    Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientCall ClientCall? @relation(fields: [callId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
   @@index([contactId])
@@ -783,6 +808,8 @@ model SyncLog {
   error      String?  @db.Text
   createdAt  DateTime @default(now()) @map("created_at")
 
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
   @@index([clientId])
   @@map("sync_logs")
 }
@@ -802,6 +829,7 @@ model SyncConflict {
   createdAt       DateTime @default(now()) @map("created_at")
 
   contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@map("sync_conflicts")
@@ -868,7 +896,9 @@ model AgentInventory {
   daysUntilEmpty Int?      @map("days_until_empty")
   lastUpdated   DateTime  @default(now()) @map("last_updated") @updatedAt
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client          Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  inventoryLogs   AgentInventoryLog[]
+  reorderRequests AgentReorderRequest[]
 
   @@index([clientId])
   @@map("agent_inventory")
@@ -1008,6 +1038,9 @@ model AgentInventoryLog {
   note            String?  @db.VarChar(500)
   createdAt       DateTime @default(now()) @map("created_at")
 
+  inventory AgentInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
   @@index([inventoryId])
   @@index([clientId])
   @@index([createdAt])
@@ -1027,6 +1060,9 @@ model AgentReorderRequest {
   status        String    @default("sent") @db.VarChar(50)
   sentAt        DateTime  @map("sent_at")
   createdAt     DateTime  @default(now()) @map("created_at")
+
+  inventory AgentInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@map("agent_reorder_requests")

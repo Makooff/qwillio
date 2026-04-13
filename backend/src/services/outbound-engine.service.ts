@@ -10,6 +10,7 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
+import { emitEvent } from '../config/socket';
 import { discordService } from './discord.service';
 import { abTestingService } from './ab-testing.service';
 import { followUpSequencesService } from './follow-up-sequences.service';
@@ -400,6 +401,13 @@ export class OutboundEngineService {
         `City: ${prospect.city}\nPhone: ${prospect.phone}\n` +
         `Action: Call back within 5 minutes`
       );
+
+      // Real-time WebSocket alert to admin dashboard
+      emitEvent('hot-lead', {
+        businessName: prospect.businessName,
+        score: interestScore,
+        timestamp: new Date(),
+      });
     } else if (interestScore >= 5) {
       await prisma.prospect.update({
         where: { id: call.prospectId },

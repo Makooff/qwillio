@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -8,6 +9,7 @@ import { logger } from './config/logger';
 import { prisma } from './config/database';
 import { errorMiddleware } from './middleware/error.middleware';
 import { botLoop } from './jobs/bot-loop';
+import { initSocket } from './config/socket';
 
 // ─── Sentry Error Monitoring ────────────────────────────
 if (env.SENTRY_DSN) {
@@ -276,7 +278,10 @@ async function startServer() {
       }
     }
 
-    app.listen(env.PORT, () => {
+    const server = createServer(app);
+    initSocket(server);
+
+    server.listen(env.PORT, () => {
       logger.info('═══════════════════════════════════════');
       logger.info(`  🚀 Qwillio API running on port ${env.PORT}`);
       logger.info(`  📊 Dashboard: ${env.FRONTEND_URL}`);

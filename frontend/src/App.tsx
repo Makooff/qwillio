@@ -4,33 +4,45 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAuthStore } from './stores/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/layout/Layout';
+import ClientLayout from './components/layout/ClientLayout';
+// Eager-loaded entry points (Landing, Login, Register, ConfirmEmail)
 import Login from './pages/Login';
 import Landing from './pages/Landing';
-import Home from './pages/Home';
-import Dashboard from './pages/Dashboard';
-import Prospects from './pages/Prospects';
-import Settings from './pages/Settings';
-import ClientPortal from './pages/ClientPortal';
-import OnboardingPage from './pages/Onboarding';
 import Register from './pages/Register';
 import ConfirmEmail from './pages/ConfirmEmail';
-import SelfOnboard from './pages/SelfOnboard';
-import ClientLayout from './components/layout/ClientLayout';
-import ClientOverview from './pages/client/ClientOverview';
-import ClientCalls from './pages/client/ClientCalls';
-import ClientLeads from './pages/client/ClientLeads';
-import ClientReceptionist from './pages/client/ClientReceptionist';
-import ClientAccount from './pages/client/ClientAccount';
-import ClientSupport from './pages/client/ClientSupport';
-import ClientAnalytics from './pages/client/ClientAnalytics';
-import ClientBilling from './pages/client/ClientBilling';
 // Admin pages (lazy loaded)
+const Home = lazy(() => import('./pages/Home'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Prospects = lazy(() => import('./pages/Prospects'));
 const AdminClients = lazy(() => import('./pages/Clients'));
 const AdminCampaigns = lazy(() => import('./pages/Campaigns'));
 const AdminCosts = lazy(() => import('./pages/Costs'));
 const AdminRetention = lazy(() => import('./pages/Retention'));
 const AdminFollowUps = lazy(() => import('./pages/FollowUps'));
 const AdminPhoneValidation = lazy(() => import('./pages/PhoneValidation'));
+const AiLearning = lazy(() => import('./pages/admin/AiLearning'));
+const AiDecisions = lazy(() => import('./pages/admin/AiDecisions'));
+const Prospecting = lazy(() => import('./pages/admin/Prospecting'));
+const AdminCalls = lazy(() => import('./pages/admin/Calls'));
+const AdminLeads = lazy(() => import('./pages/admin/Leads'));
+const AdminBilling = lazy(() => import('./pages/admin/Billing'));
+const AdminSystem = lazy(() => import('./pages/admin/System'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const LiveMonitor = lazy(() => import('./pages/admin/LiveMonitor'));
+const AdminLogs = lazy(() => import('./pages/admin/Logs'));
+const AdminNotFound = lazy(() => import('./pages/admin/NotFound'));
+// Client portal pages (lazy loaded)
+const ClientPortal = lazy(() => import('./pages/ClientPortal'));
+const OnboardingPage = lazy(() => import('./pages/Onboarding'));
+const SelfOnboard = lazy(() => import('./pages/SelfOnboard'));
+const ClientOverview = lazy(() => import('./pages/client/ClientOverview'));
+const ClientCalls = lazy(() => import('./pages/client/ClientCalls'));
+const ClientLeads = lazy(() => import('./pages/client/ClientLeads'));
+const ClientReceptionist = lazy(() => import('./pages/client/ClientReceptionist'));
+const ClientAccount = lazy(() => import('./pages/client/ClientAccount'));
+const ClientSupport = lazy(() => import('./pages/client/ClientSupport'));
+const ClientAnalytics = lazy(() => import('./pages/client/ClientAnalytics'));
+const ClientBilling = lazy(() => import('./pages/client/ClientBilling'));
 // Agent IA pages (lazy loaded)
 const AgentDashboard = lazy(() => import('./pages/client/AgentDashboard'));
 const AgentEmail = lazy(() => import('./pages/client/AgentEmail'));
@@ -43,18 +55,6 @@ const CrmDeals = lazy(() => import('./pages/client/CrmDeals'));
 const CrmActivities = lazy(() => import('./pages/client/CrmActivities'));
 const CrmContactDetail = lazy(() => import('./pages/client/CrmContactDetail'));
 const Integrations = lazy(() => import('./pages/client/Integrations'));
-// Admin AI pages (lazy loaded)
-const AiLearning = lazy(() => import('./pages/admin/AiLearning'));
-const AiDecisions = lazy(() => import('./pages/admin/AiDecisions'));
-const Prospecting = lazy(() => import('./pages/admin/Prospecting'));
-// New admin pages (lazy loaded)
-const AdminCalls = lazy(() => import('./pages/admin/Calls'));
-const AdminLeads = lazy(() => import('./pages/admin/Leads'));
-const AdminBilling = lazy(() => import('./pages/admin/Billing'));
-const AdminSystem = lazy(() => import('./pages/admin/System'));
-const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
-const LiveMonitor = lazy(() => import('./pages/admin/LiveMonitor'));
-const AdminLogs = lazy(() => import('./pages/admin/Logs'));
 // Legal pages (lazy loaded)
 const Privacy = lazy(() => import('./pages/legal/Privacy'));
 const Terms = lazy(() => import('./pages/legal/Terms'));
@@ -123,7 +123,7 @@ function PublicOrDashboard() {
     if (!user.onboardingCompleted) return <Navigate to="/onboard" />;
     return <Navigate to={homeRoute(user)} />;
   }
-  return <Home />;
+  return <Suspense fallback={<Spinner />}><Home /></Suspense>;
 }
 
 export default function App() {
@@ -168,7 +168,7 @@ export default function App() {
           path="/onboard"
           element={
             <OnboardRoute>
-              <SelfOnboard />
+              <Suspense fallback={<Spinner />}><SelfOnboard /></Suspense>
             </OnboardRoute>
           }
         />
@@ -182,14 +182,14 @@ export default function App() {
             </ClientRoute>
           }
         >
-          <Route index element={<ClientOverview />} />
-          <Route path="calls" element={<ClientCalls />} />
-          <Route path="leads" element={<ClientLeads />} />
-          <Route path="receptionist" element={<ClientReceptionist />} />
-          <Route path="analytics" element={<ClientAnalytics />} />
-          <Route path="billing" element={<ClientBilling />} />
-          <Route path="account" element={<ClientAccount />} />
-          <Route path="support" element={<ClientSupport />} />
+          <Route index element={<Suspense fallback={<Spinner />}><ClientOverview /></Suspense>} />
+          <Route path="calls" element={<Suspense fallback={<Spinner />}><ClientCalls /></Suspense>} />
+          <Route path="leads" element={<Suspense fallback={<Spinner />}><ClientLeads /></Suspense>} />
+          <Route path="receptionist" element={<Suspense fallback={<Spinner />}><ClientReceptionist /></Suspense>} />
+          <Route path="analytics" element={<Suspense fallback={<Spinner />}><ClientAnalytics /></Suspense>} />
+          <Route path="billing" element={<Suspense fallback={<Spinner />}><ClientBilling /></Suspense>} />
+          <Route path="account" element={<Suspense fallback={<Spinner />}><ClientAccount /></Suspense>} />
+          <Route path="support" element={<Suspense fallback={<Spinner />}><ClientSupport /></Suspense>} />
           {/* Agent IA */}
           <Route path="agent" element={<Suspense fallback={<Spinner />}><AgentDashboard /></Suspense>} />
           <Route path="agent/email" element={<Suspense fallback={<Spinner />}><AgentEmail /></Suspense>} />
@@ -206,8 +206,8 @@ export default function App() {
         </Route>
 
         {/* Client-facing routes (token-protected, no JWT needed) */}
-        <Route path="/portal" element={<ClientPortal />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/portal" element={<Suspense fallback={<Spinner />}><ClientPortal /></Suspense>} />
+        <Route path="/onboarding" element={<Suspense fallback={<Spinner />}><OnboardingPage /></Suspense>} />
 
         {/* Admin routes (JWT-protected, admin role) */}
         <Route
@@ -218,8 +218,8 @@ export default function App() {
             </AdminRoute>
           }
         >
-          <Route index element={<Dashboard />} />
-          <Route path="prospects" element={<Prospects />} />
+          <Route index element={<Suspense fallback={<Spinner />}><Dashboard /></Suspense>} />
+          <Route path="prospects" element={<Suspense fallback={<Spinner />}><Prospects /></Suspense>} />
           <Route path="clients" element={<Suspense fallback={<Spinner />}><AdminClients /></Suspense>} />
           <Route path="campaigns" element={<Suspense fallback={<Spinner />}><AdminCampaigns /></Suspense>} />
           <Route path="costs" element={<Suspense fallback={<Spinner />}><AdminCosts /></Suspense>} />
@@ -236,6 +236,7 @@ export default function App() {
           <Route path="system" element={<Suspense fallback={<Spinner />}><AdminSystem /></Suspense>} />
           <Route path="monitor" element={<Suspense fallback={<Spinner />}><LiveMonitor /></Suspense>} />
           <Route path="logs" element={<Suspense fallback={<Spinner />}><AdminLogs /></Suspense>} />
+          <Route path="*" element={<Suspense fallback={<Spinner />}><AdminNotFound /></Suspense>} />
         </Route>
 
         {/* Catch-all redirect */}

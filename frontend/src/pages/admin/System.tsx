@@ -36,7 +36,7 @@ const API_SERVICES = [
 
 export default function AdminSystem() {
   const [bot, setBot] = useState<any>(null);
-  const [envVars, setEnvVars] = useState<Record<string, boolean>>({});
+  const [envVars, setEnvVars] = useState<Record<string, boolean | string>>({});
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [triggering, setTriggering] = useState<string | null>(null);
@@ -157,16 +157,21 @@ export default function AdminSystem() {
         <h3 className="text-sm font-semibold mb-4" style={{ color: t.text }}>Santé des APIs</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {API_SERVICES.map(svc => {
-            const healthy = envVars[svc.key] !== false && envVars[svc.key] !== undefined;
+            const val = envVars[svc.key];
+            const isOptional = val === 'optional';
+            const healthy = isOptional || (val !== false && val !== undefined);
+            const color = isOptional ? t.warning : healthy ? t.success : t.danger;
+            const label = isOptional ? 'Optionnel' : healthy ? 'Connecté' : 'Non configuré';
+            const bg = isOptional ? 'rgba(251,191,36,0.05)' : healthy ? 'rgba(34,197,94,0.05)' : 'rgba(248,113,113,0.05)';
             return (
               <div key={svc.key} className="p-4 rounded-xl text-center transition-all"
                 style={{
                   ...glass,
-                  background: healthy ? 'rgba(34,197,94,0.05)' : 'rgba(248,113,113,0.05)',
+                  background: bg,
                 }}>
-                <div className="flex justify-center mb-2" style={{ color: healthy ? t.success : t.danger }}>{svc.icon}</div>
+                <div className="flex justify-center mb-2" style={{ color }}>{svc.icon}</div>
                 <p className="text-xs font-medium" style={{ color: t.text }}>{svc.label}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: healthy ? t.success : t.danger }}>{healthy ? 'Connecté' : 'Non configuré'}</p>
+                <p className="text-[10px] mt-0.5" style={{ color }}>{label}</p>
               </div>
             );
           })}

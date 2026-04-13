@@ -31,6 +31,7 @@ router.post('/run/followup', (req, res) => botController.runFollowUp(req, res));
 
 // GET /api/bot/health — service health based on actual env vars
 router.get('/health', (_req: Request, res: Response) => {
+  const twilioConfigured = !!(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN);
   res.json({
     vapi:     !!(env.VAPI_PRIVATE_KEY || env.VAPI_PUBLIC_KEY || env.VAPI_PHONE_NUMBER_ID),
     openai:   !!env.OPENAI_API_KEY,
@@ -38,7 +39,7 @@ router.get('/health', (_req: Request, res: Response) => {
     resend:   !!env.RESEND_API_KEY,
     database: true, // if we reach this, DB is reachable
     discord:  !!env.DISCORD_WEBHOOK_URL,
-    twilio:   !!env.TWILIO_ACCOUNT_SID,
+    twilio:   twilioConfigured ? true : 'optional',
     apify:    !!env.APIFY_API_KEY,
   });
 });
