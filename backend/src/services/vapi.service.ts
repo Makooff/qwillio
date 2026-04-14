@@ -508,8 +508,22 @@ export class VapiService {
   }
 
   private async analyzeTranscript(transcript: string, prospect: any): Promise<CallAnalysis> {
-    if (!transcript || (Array.isArray(transcript) ? transcript.length === 0 : transcript.length === 0)) {
-      return { summary: '', keyPoints: [], sentiment: 'neutral', nextAction: '' };
+    if (!transcript || transcript.trim().length === 0) {
+      return {
+        contactName: null,
+        email: null,
+        interestLevel: 1,
+        painPoints: [],
+        dailyCallsVolume: null,
+        budgetAvailable: null,
+        timeline: null,
+        objections: [],
+        recommendedPackage: 'basic',
+        decisionMaker: false,
+        outcome: 'technical_issue',
+        nextAction: 'callback_later',
+        summary: 'Call ended with no transcript.',
+      };
     }
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -553,6 +567,9 @@ Return a JSON with:
       });
 
       const data = await response.json() as any;
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('OpenAI returned no choices: ' + JSON.stringify(data).slice(0, 200));
+      }
       const result = JSON.parse(data.choices[0].message.content);
       return result;
     } catch (error) {
