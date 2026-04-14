@@ -508,6 +508,9 @@ export class VapiService {
   }
 
   private async analyzeTranscript(transcript: string, prospect: any): Promise<CallAnalysis> {
+    if (!transcript || (Array.isArray(transcript) ? transcript.length === 0 : transcript.length === 0)) {
+      return { summary: '', keyPoints: [], sentiment: 'neutral', nextAction: '' };
+    }
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
