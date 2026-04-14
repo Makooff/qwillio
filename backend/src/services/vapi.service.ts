@@ -159,7 +159,7 @@ export class VapiService {
         phoneNumberId: env.VAPI_PHONE_NUMBER_ID,
         customer: {
           number: prospect.phone!,
-          name: prospect.businessName,
+          name: (prospect.businessName || '').slice(0, 40),
         },
         assistantOverrides: {
           model: {
@@ -602,7 +602,7 @@ Return a JSON with:
         phoneNumberId: env.VAPI_PHONE_NUMBER_ID,
         customer: {
           number: phoneNumber,
-          name: businessName,
+          name: (businessName || '').slice(0, 40),
         },
         assistantOverrides: {
           model: {
