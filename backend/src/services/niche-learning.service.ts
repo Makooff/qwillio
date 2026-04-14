@@ -7,6 +7,9 @@ export class NicheLearningService {
    * and store them in the NicheInsight table for future prompt enrichment.
    */
   async extractFailureInsights(callId: string, analysis: any, niche: string): Promise<void> {
+    if (!callId || (Array.isArray(callId) ? callId.length === 0 : callId.length === 0)) {
+      return { failureReasons: [], improvements: [], patterns: [] };
+    }
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
