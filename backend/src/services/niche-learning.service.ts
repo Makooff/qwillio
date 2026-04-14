@@ -7,10 +7,11 @@ export class NicheLearningService {
    * and store them in the NicheInsight table for future prompt enrichment.
    */
   async extractFailureInsights(callId: string, analysis: any, niche: string): Promise<void> {
-    if (!callId || (Array.isArray(callId) ? callId.length === 0 : callId.length === 0)) {
-      return { failureReasons: [], improvements: [], patterns: [] };
-    }
     try {
+      if (!analysis) {
+        logger.warn(`extractFailureInsights: no analysis for call ${callId}, skipping`);
+        return;
+      }
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -50,6 +51,10 @@ Only include genuinely useful insights — skip generic ones. Max 3 insights per
       });
 
       const data = await response.json() as any;
+      if (!data.choices || data.choices.length === 0) {
+        logger.warn(`extractFailureInsights: OpenAI returned no choices for call ${callId}`);
+        return;
+      }
       const result = JSON.parse(data.choices[0].message.content);
 
       if (!result.insights || !Array.isArray(result.insights)) return;
