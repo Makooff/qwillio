@@ -10,6 +10,7 @@ import { smsService } from '../services/sms.service';
 import { emailService } from '../services/email.service';
 import { discordService } from '../services/discord.service';
 import { extractEmailFromText, isValidEmail, normalizeEmail } from '../utils/validators';
+import { storeError } from '../utils/error-store';
 
 export class WebhooksController {
   async stripeWebhook(req: Request, res: Response) {
@@ -63,6 +64,7 @@ export class WebhooksController {
       });
     } catch (error: any) {
       logger.error(`Error processing Stripe webhook: ${error.message}`);
+      storeError(error.message, error.stack || '', '/api/webhooks/stripe');
       await prisma.webhookLog.updateMany({
         where: { eventType: event.type, status: 'received' },
         data: { status: 'failed', errorMessage: error.message },
@@ -171,6 +173,7 @@ export class WebhooksController {
       }
     } catch (error: any) {
       logger.error(`Error processing VAPI webhook: ${error.message}`);
+      storeError(error.message, error.stack || '', '/api/webhooks/vapi');
     }
 
     res.json({ received: true });
