@@ -1,92 +1,65 @@
-import { useEffect, useState, useCallback } from 'react';
-import api from '../services/api';
-import { RefreshCw, Users } from 'lucide-react';
-import EmptyState from '../components/ui/EmptyState';
-import { useToast } from '../hooks/useToast';
-import ToastContainer from '../components/ui/Toast';
-import { t, glass, cx } from '../styles/admin-theme';
+import React, { useEffect, useState } from 'react';
 
-function formatDate(iso: string | null | undefined) {
-  if (!iso) return '\u2014';
-  const d = new Date(iso);
-  const diff = Date.now() - d.getTime();
-  if (diff < 3600000) return `il y a ${Math.floor(diff / 60000)}min`;
-  if (diff < 86400000) return `il y a ${Math.floor(diff / 3600000)}h`;
+const API = 'https://qwillio.onrender.com';
+const getHeaders = (): Record<string, string> => {
+  const t = localStorage.getItem('token');
+  return t ? { Authorization: `Bearer ${t}` } : {};
+};
+const fmt = (iso: string) => {
+  if (!iso) return '';
+  const d = new Date(iso), diff = Date.now() - d.getTime();
+  if (diff < 3600000) return `il y a ${Math.floor(diff/60000)}min`;
+  if (diff < 86400000) return `il y a ${Math.floor(diff/3600000)}h`;
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+};
+
+interface Lead {
+  id: string; businessName: string; contactName: string; email: string;
+  phone: string; industry: string; city: string; status: string; createdAt: string; notes: string;
 }
 
-const STAGES = ['contacted', 'qualified', 'proposal'];
-const LABELS: Record<string, string> = { contacted: 'Contact\u00e9', qualified: 'Qualifi\u00e9', proposal: 'Proposition' };
-const STAGE_COLORS: Record<string, string> = { contacted: '#3B82F6', qualified: '#8B5CF6', proposal: '#10B981' };
-
-export default function Leads() {
-  const [leads, setLeads] = useState<any[]>([]);
+const Leads: React.FC = () => {
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toasts, add: toast, remove } = useToast();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data: res } = await api.get('/leads/');
-      setLeads(Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []));
-    } catch { toast('Erreur chargement', 'error'); }
-    finally { setLoading(false); }
+  useEffect(() => {
+    fetch(`${API}/api/admin/leads`, { headers: getHeaders() })
+      .then(r => r.json()).then(d => setLeads(Array.isArray(d) ? d : d.leads || []))
+      .catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  if (loading) return <div className='p-4 text-gray-400'>Chargement...</div>;
 
   return (
-    <div className={cx.pageWrap}>
-      <ToastContainer toasts={toasts} remove={remove}/>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={cx.h1} style={{ color: t.text }}>Pipeline Leads</h1>
-          <p className="text-sm mt-0.5" style={{ color: t.textSec }}>{leads.length} au total</p>
-        </div>
-        <button onClick={load} className={cx.btnIcon} style={{ color: t.textSec }}><RefreshCw className="w-4 h-4"/></button>
+    <div className='p-4 max-w-2xl mx-auto'>
+      <div className='flex items-center justify-between mb-4'>
+        <h1 className='text-xl font-bold text-white'>Leads</h1>
+        <span className='text-gray-400 text-sm'>{leads.length}</span>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {STAGES.map(stage => {
-          const stageLeads = leads.filter(l => l.status === stage);
-          const color = STAGE_COLORS[stage];
-          return (
-            <div key={stage} className="rounded-[14px] p-4" style={glass}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}/>
-                  <p className="text-xs font-bold uppercase tracking-widest" style={{ color: t.textTer }}>{LABELS[stage]}</p>
-                </div>
-                <span className="text-xs font-bold px-1.5 py-0.5 rounded-full"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: t.textSec }}>{stageLeads.length}</span>
+      <div className='space-y-3'>
+        {leads.map(l => (
+          <div key={l.id} className='bg-gray-800 rounded-xl p-4 border border-gray-700'>
+            <div className='flex items-start justify-between gap-2 mb-1'>
+              <div className='flex-1 min-w-0'>
+                <div className='font-semibold text-white text-sm leading-tight truncate'>{l.businessName}</div>
+                {l.contactName && <div className='text-gray-400 text-xs'>{l.contactName}</div>}
               </div>
-              {loading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="rounded-[10px] p-3 mb-2 space-y-1.5 animate-pulse" style={{ background: t.elevated }}>
-                    <div className="h-3 bg-white/[0.08] rounded w-3/4"/>
-                    <div className="h-2.5 bg-white/[0.06] rounded w-1/2"/>
-                  </div>
-                ))
-              ) : stageLeads.length === 0 ? (
-                <p className="text-xs text-center py-6" style={{ color: t.textMuted }}>Aucun lead</p>
-              ) : stageLeads.map((l, i) => (
-                <div key={i} className="rounded-[10px] p-3 mb-2 transition-colors hover:bg-white/[0.04]"
-                  style={{ background: t.elevated, border: `1px solid ${t.border}` }}>
-                  <p className="text-sm font-medium" style={{ color: t.text }}>{l.companyName || l.name || 'Prospect'}</p>
-                  {(l.phone || l.email) && (
-                    <p className="text-xs mt-0.5" style={{ color: t.textSec }}>{l.phone || l.email}</p>
-                  )}
-                  {(l.createdAt || l.updatedAt) && (
-                    <p className="text-[10px] mt-1" style={{ color: t.textTer }}>
-                      {formatDate(l.createdAt || l.updatedAt)}
-                    </p>
-                  )}
-                </div>
-              ))}
+              <span className='text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 shrink-0'>{l.status || 'lead'}</span>
             </div>
-          );
-        })}
+            <div className='text-xs text-gray-500 mt-1 space-y-0.5'>
+              {l.email && <div>{l.email}</div>}
+              {l.phone && <div>{l.phone}</div>}
+              <div className='flex justify-between pt-1'>
+                <span>{l.city} · {l.industry}</span>
+                <span className='text-gray-600'>{fmt(l.createdAt)}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+        {leads.length === 0 && <div className='text-center text-gray-500 py-8'>Aucun lead</div>}
       </div>
     </div>
   );
-}
+};
+
+export default Leads;
