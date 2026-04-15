@@ -475,7 +475,7 @@ router.get('/errors', (req: Request, res: Response) => {
 
 // POST /api/admin/errors/:id/resolve — mark error as resolved
 router.post('/errors/:id/resolve', (req: Request, res: Response) => {
-  markResolved(req.params.id);
+  markResolved(req.params.id as string);
   res.json({ ok: true });
 });
 

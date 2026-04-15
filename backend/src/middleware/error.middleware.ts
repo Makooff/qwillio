@@ -8,10 +8,11 @@ export function errorMiddleware(err: Error, req: Request, res: Response, _next: 
   storeError(err.message, err.stack || '', req.path);
 
   if (err instanceof ZodError) {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'Validation error',
       details: err.errors,
     });
+    return;
   }
 
   res.status(500).json({
