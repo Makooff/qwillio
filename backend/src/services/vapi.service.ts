@@ -69,6 +69,11 @@ export class VapiService {
         status: 'new',
         phone: { not: null },
         callAttempts: { lt: MAX_CALL_ATTEMPTS },
+        // Skip prospects whose phone was validated as invalid
+        NOT: {
+          phoneValidated: false,
+          phoneValidatedAt: { not: null },
+        },
         OR: [
           { lastCallDate: null },
           { lastCallDate: { lt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } },
@@ -128,6 +133,23 @@ export class VapiService {
       return false;
     }
 
+    // Validate E.164 format before calling (VAPI requires +country_code)
+    let phoneE164 = prospect.phone!.trim();
+    if (!phoneE164.startsWith('+')) {
+      // Assume US number if no country code
+      phoneE164 = phoneE164.replace(/\D/g, ''); // strip non-digits
+      if (phoneE164.length === 10) phoneE164 = `+1${phoneE164}`;
+      else if (phoneE164.length === 11 && phoneE164.startsWith('1')) phoneE164 = `+${phoneE164}`;
+      else {
+        logger.warn(`Skipping prospect ${prospect.businessName}: phone "${prospect.phone}" is not valid E.164 format`);
+        // Mark as invalid to avoid retrying
+        await prisma.prospect.update({ where: { id: prospect.id }, data: { phoneValidated: false, phoneValidatedAt: new Date() } });
+        // Rollback quota
+        await prisma.botStatus.updateMany({ where: { id: botStatus.id }, data: { callsToday: { decrement: 1 } } });
+        return false;
+      }
+    }
+
     logger.info(`Calling prospect: ${prospect.businessName} (score: ${prospect.score}/22, type: ${prospect.businessType}, tz: ${prospect.timezone})`);
 
     try {
@@ -159,7 +181,7 @@ export class VapiService {
         assistantId,
         phoneNumberId: env.VAPI_PHONE_NUMBER_ID,
         customer: {
-          number: prospect.phone!,
+          number: phoneE164,
           name: (prospect.businessName || 'Business').substring(0, 40),
         },
         assistantOverrides: {
