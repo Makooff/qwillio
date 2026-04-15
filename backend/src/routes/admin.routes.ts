@@ -464,4 +464,20 @@ router.post('/cron/run/:name', async (req: Request, res: Response) => {
   }
 });
 
+// ─── Self-healing error log endpoints ────────────────────────────────────
+import { getErrors, markResolved } from '../utils/error-store';
+
+// GET /api/admin/errors — returns recent errors for self-healing monitor
+router.get('/errors', (req: Request, res: Response) => {
+  const since = req.query.since as string | undefined;
+  const errors = getErrors(since);
+  res.json({ errors, count: errors.length, timestamp: new Date().toISOString() });
+});
+
+// POST /api/admin/errors/:id/resolve — mark error as resolved
+router.post('/errors/:id/resolve', (req: Request, res: Response) => {
+  markResolved(req.params.id);
+  res.json({ ok: true });
+});
+
 export default router;
