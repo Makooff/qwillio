@@ -21,6 +21,15 @@ function downloadCSV(rows: any[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return '\u2014';
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  if (diff < 3600000) return `il y a ${Math.floor(diff / 60000)}min`;
+  if (diff < 86400000) return `il y a ${Math.floor(diff / 3600000)}h`;
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
 type SortKey = 'score'|'businessName'|'createdAt'|'interestLevel';
 type SortDir = 'asc'|'desc';
 const STATUS_OPTIONS = ['new','qualified','interested','converted','not_interested','do_not_call','voicemail','no_answer','callback'];
@@ -57,7 +66,7 @@ export default function Prospects() {
 
   const triggerCall = async (p: Prospect) => {
     setCalling(p.id);
-    try { await api.post(`/prospects/${p.id}/call`); toast(`Appel — ${p.businessName}`,'success'); }
+    try { await api.post(`/prospects/${p.id}/call`); toast(`Appel \u2014 ${p.businessName}`,'success'); }
     catch { toast('Erreur appel','error'); }
     finally { setCalling(null); }
   };
@@ -65,7 +74,7 @@ export default function Prospects() {
   const doDelete = async () => {
     if (!toDelete) return;
     setDeleting(true);
-    try { await api.delete(`/prospects/${toDelete.id}`); toast('Supprimé','success'); setToDelete(null); load(); }
+    try { await api.delete(`/prospects/${toDelete.id}`); toast('Supprim\u00e9','success'); setToDelete(null); load(); }
     catch { toast('Erreur suppression','error'); }
     finally { setDeleting(false); }
   };
@@ -110,14 +119,14 @@ export default function Prospects() {
           <option value="">Statut</option>
           {STATUS_OPTIONS.map(s=><option key={s} value={s}>{s}</option>)}
         </select>
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {(['score','businessName','createdAt','interestLevel'] as SortKey[]).map(k=>(
             <button key={k} onClick={()=>handleSort(k)}
-              className="flex items-center gap-0.5 px-2.5 py-2 rounded-[10px] text-xs font-medium transition-all"
+              className="flex items-center gap-0.5 px-2.5 py-2 rounded-[10px] text-xs font-medium transition-all min-h-[44px]"
               style={sortKey===k
                 ? { background: 'rgba(255,255,255,0.08)', color: t.text, border: `1px solid ${t.borderHi}` }
                 : { background: t.inset, color: t.textSec, border: `1px solid ${t.border}` }}>
-              {k==='score'?'Score':k==='businessName'?'Nom':k==='createdAt'?'Date':'Intérêt'}
+              {k==='score'?'Score':k==='businessName'?'Nom':k==='createdAt'?'Date':'Int\u00e9r\u00eat'}
               {sortKey===k&&(sortDir==='asc'?<ChevronUp className="w-3 h-3"/>:<ChevronDown className="w-3 h-3"/>)}
             </button>
           ))}
@@ -132,7 +141,7 @@ export default function Prospects() {
               <th className={cx.th} style={{ color: t.textTer }}>Statut</th>
               <th className={cx.th} style={{ color: t.textTer }}>Score</th>
               <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Secteur</th>
-              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Créé</th>
+              <th className={`hidden md:table-cell ${cx.th}`} style={{ color: t.textTer }}>Cr\u00e9\u00e9</th>
               <th className="px-3 py-3 w-20"></th>
             </tr>
           </thead>
@@ -145,7 +154,7 @@ export default function Prospects() {
                 <td/>
               </tr>
             )) : data.length===0 ? (
-              <tr><td colSpan={6}><EmptyState icon={<Building2 className="w-7 h-7"/>} title="Aucun prospect" description="Les prospects apparaîtront ici une fois le bot démarré."/></td></tr>
+              <tr><td colSpan={6}><EmptyState icon={<Building2 className="w-7 h-7"/>} title="Aucun prospect" description="Les prospects appara\u00eetront ici une fois le bot d\u00e9marr\u00e9."/></td></tr>
             ) : data.map(p=>(
               <tr key={p.id} className={cx.tr} style={{ cursor: 'default' }}>
                 <td className={cx.td}>
@@ -167,13 +176,17 @@ export default function Prospects() {
                     <span className="text-xs font-semibold" style={{ color: t.text }}>{p.score}</span>
                   </div>
                 </td>
-                <td className={`hidden md:table-cell ${cx.td}`}><span className="text-xs" style={{ color: t.textSec }}>{p.businessType??p.sector??'\—'}</span></td>
-                <td className={`hidden md:table-cell ${cx.td}`}><span className="text-xs" style={{ color: t.textSec }}>{new Date(p.createdAt).toLocaleDateString('fr-FR')}</span></td>
+                <td className={`hidden md:table-cell ${cx.td}`}><span className="text-xs" style={{ color: t.textSec }}>{p.businessType??p.sector??'\u2014'}</span></td>
+                <td className={`hidden md:table-cell ${cx.td}`}>
+                  <span className="text-xs" style={{ color: t.textSec }} title={p.createdAt ? new Date(p.createdAt).toLocaleString('fr-FR') : ''}>
+                    {formatDate(p.createdAt)}
+                  </span>
+                </td>
                 <td className={cx.td}>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={()=>setSelected(p)} className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }}><Eye className="w-3.5 h-3.5"/></button>
-                    <button onClick={()=>triggerCall(p)} disabled={calling===p.id} className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-all disabled:opacity-40" style={{ color: t.textSec }}><Phone className="w-3.5 h-3.5"/></button>
-                    <button onClick={()=>setToDelete(p)} className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }}><Trash2 className="w-3.5 h-3.5"/></button>
+                    <button onClick={()=>setSelected(p)} className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-all min-h-[44px] min-w-[44px] flex items-center justify-center" style={{ color: t.textSec }}><Eye className="w-3.5 h-3.5"/></button>
+                    <button onClick={()=>triggerCall(p)} disabled={calling===p.id} className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-all disabled:opacity-40 min-h-[44px] min-w-[44px] flex items-center justify-center" style={{ color: t.textSec }}><Phone className="w-3.5 h-3.5"/></button>
+                    <button onClick={()=>setToDelete(p)} className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-all min-h-[44px] min-w-[44px] flex items-center justify-center" style={{ color: t.textSec }}><Trash2 className="w-3.5 h-3.5"/></button>
                   </div>
                 </td>
               </tr>
@@ -183,7 +196,7 @@ export default function Prospects() {
         <div className="px-3 pb-4"><Pagination page={page} total={total} limit={LIMIT} onChange={setPage}/></div>
       </div>
 
-      <SlideSheet open={!!selected} onClose={()=>setSelected(null)} title={selected?.businessName??'Prospect'} subtitle={[selected?.city,selected?.businessType].filter(Boolean).join(' \· ')}>
+      <SlideSheet open={!!selected} onClose={()=>setSelected(null)} title={selected?.businessName??'Prospect'} subtitle={[selected?.city,selected?.businessType].filter(Boolean).join(' \u00b7 ')}>
         {selected&&(
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -192,25 +205,25 @@ export default function Prospects() {
                 <p className="text-[10px] mt-1 uppercase" style={{ color: t.textTer }}>Score</p>
               </div>
               <div className="rounded-[14px] p-4 text-center" style={{ background: t.bg }}>
-                <p className="text-2xl font-bold" style={{ color: t.text }}>{selected.interestLevel??'\—'}{selected.interestLevel?'/10':''}</p>
-                <p className="text-[10px] mt-1 uppercase" style={{ color: t.textTer }}>Intérêt</p>
+                <p className="text-2xl font-bold" style={{ color: t.text }}>{selected.interestLevel??'\u2014'}{selected.interestLevel?'/10':''}</p>
+                <p className="text-[10px] mt-1 uppercase" style={{ color: t.textTer }}>Int\u00e9r\u00eat</p>
               </div>
             </div>
             <div className="flex items-center justify-between p-3 rounded-[14px]" style={{ background: t.bg }}><span className="text-sm" style={{ color: t.textSec }}>Statut</span><Badge label={selected.status} dot/></div>
             <div className="space-y-2">
-              {[{l:'Contact',v:selected.contactName},{l:'Téléphone',v:selected.phone},{l:'Email',v:selected.email},{l:'Ville',v:selected.city},{l:'Secteur',v:selected.businessType??selected.sector}].filter(x=>x.v).map(({l,v})=>(
+              {[{l:'Contact',v:selected.contactName},{l:'T\u00e9l\u00e9phone',v:selected.phone},{l:'Email',v:selected.email},{l:'Ville',v:selected.city},{l:'Secteur',v:selected.businessType??selected.sector},{l:'Cr\u00e9\u00e9',v:selected.createdAt?formatDate(selected.createdAt):undefined}].filter(x=>x.v).map(({l,v})=>(
                 <div key={l} className="flex justify-between text-xs"><span style={{ color: t.textSec }}>{l}</span><span className="text-right ml-4" style={{ color: t.text }}>{v}</span></div>
               ))}
             </div>
             {selected.callTranscript&&<div><p className="text-xs mb-2" style={{ color: t.textSec }}>Transcription</p><p className="text-xs rounded-[14px] p-3 max-h-48 overflow-y-auto" style={{ color: t.text, background: t.bg }}>{selected.callTranscript}</p></div>}
             <div className="flex gap-2 pt-2">
               <button onClick={()=>triggerCall(selected)} disabled={calling===selected.id}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-sm font-medium disabled:opacity-50 transition-all"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-sm font-medium disabled:opacity-50 transition-all min-h-[44px]"
                 style={{ background: `${t.success}15`, color: t.success, border: `1px solid ${t.success}30` }}>
                 <Phone className="w-4 h-4"/>{calling===selected.id?'...':'Appeler'}
               </button>
               <button onClick={()=>{setToDelete(selected);setSelected(null);}}
-                className="px-3 py-2.5 rounded-[14px] transition-all"
+                className="px-3 py-2.5 rounded-[14px] transition-all min-h-[44px]"
                 style={{ background: `${t.danger}15`, color: t.danger, border: `1px solid ${t.danger}30` }}>
                 <Trash2 className="w-4 h-4"/>
               </button>
