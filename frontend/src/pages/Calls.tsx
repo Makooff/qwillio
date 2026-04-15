@@ -56,7 +56,7 @@ const Calls: React.FC = () => {
               </span>
             </div>
             <div className='flex items-center justify-between text-xs text-gray-500'>
-              <span>{c.duration ? `${Math.floor(c.duration / 60)}m${c.duration % 60}s` : '—'}</span>
+              <span>{c.duration ? `${Math.floor(c.duration / 60)}m${c.duration % 60}s` : '\u2014'}</span>
               <span className='text-gray-600'>{fmt(c.createdAt)}</span>
             </div>
           </div>
