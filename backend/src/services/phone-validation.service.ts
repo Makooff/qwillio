@@ -72,7 +72,7 @@ export class PhoneValidationService {
     const prospects = await prisma.prospect.findMany({
       where: {
         phone: { not: null },
-        phoneValidated: false,
+        phoneValidatedAt: null,  // Only pick never-validated prospects (not re-check already-invalid ones)
         status: { in: ['new', 'contacted'] },
       },
       orderBy: { score: 'desc' },
