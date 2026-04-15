@@ -23,6 +23,7 @@ import { outboundEngineService } from '../services/outbound-engine.service';
 import { abTestingService } from '../services/ab-testing.service';
 import { bestTimeLearningService } from '../services/best-time-learning.service';
 import { scriptLearningService } from '../services/script-learning.service';
+import { callIntelligenceService } from '../services/call-intelligence.service';
 import { followUpSequencesService } from '../services/follow-up-sequences.service';
 import { prospectScoringService } from '../services/prospect-scoring.service';
 import { stripeService } from '../services/stripe.service';
@@ -63,6 +64,7 @@ class BotLoop {
   private abTestingJob: cron.ScheduledTask | null = null;
   private bestTimeJob: cron.ScheduledTask | null = null;
   private scriptLearningJob: cron.ScheduledTask | null = null;
+  private callIntelligenceJob: cron.ScheduledTask | null = null;
   private followUpJob: cron.ScheduledTask | null = null;
   private rescoreJob: cron.ScheduledTask | null = null;
   // ─── Additional operational cron jobs ─────────────────
@@ -559,6 +561,21 @@ class BotLoop {
     }, { timezone: 'UTC' });
 
     // ═══════════════════════════════════════════════════════════
+    // PROSPECTING ENGINE — CRON P5b: Call Intelligence — Sunday 2am UTC
+    // Deep pattern analysis, objection optimization, mutation eval, weekly report
+    // ═══════════════════════════════════════════════════════════
+    this.callIntelligenceJob = cron.schedule('0 2 * * 0', async () => {
+      logger.info('🧠 [CRON] Running call intelligence weekly pattern analysis...');
+      try {
+        await callIntelligenceService.runWeeklyPatternAnalysis();
+        logger.info('[CRON] Call intelligence weekly analysis complete');
+      } catch (error) {
+        logger.error('[CRON] Call intelligence weekly analysis failed:', error);
+        await discordService.notifyAlerts(`❌ CALL INTELLIGENCE FAILED: ${(error as Error).message}`);
+      }
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
     // PROSPECTING ENGINE — CRON P6: Follow-up sequences — every 30 min
     // ═══════════════════════════════════════════════════════════
     this.followUpJob = cron.schedule('*/30 * * * *', async () => {
@@ -701,6 +718,7 @@ class BotLoop {
     this.abTestingJob?.stop(); this.abTestingJob = null;
     this.bestTimeJob?.stop(); this.bestTimeJob = null;
     this.scriptLearningJob?.stop(); this.scriptLearningJob = null;
+    this.callIntelligenceJob?.stop(); this.callIntelligenceJob = null;
     this.followUpJob?.stop(); this.followUpJob = null;
     this.rescoreJob?.stop(); this.rescoreJob = null;
 
@@ -780,6 +798,7 @@ class BotLoop {
         abTesting: cronState(this.abTestingJob),
         bestTimeLearning: cronState(this.bestTimeJob),
         scriptLearning: cronState(this.scriptLearningJob),
+        callIntelligence: cronState(this.callIntelligenceJob),
         followUpSequences: cronState(this.followUpJob),
         rescoreProspects: cronState(this.rescoreJob),
         // Additional operational

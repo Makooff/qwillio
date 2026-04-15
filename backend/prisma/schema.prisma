@@ -152,6 +152,20 @@ model Call {
   niche                String?   @db.VarChar(100)
   language             String?   @db.VarChar(10)
   detectionResult      String?   @map("detection_result") @db.VarChar(50)
+  // ─── Deep transcript analysis fields ────────────────────
+  dropOffReason        String?   @map("drop_off_reason") @db.Text
+  prospectSentiment    String?   @map("prospect_sentiment") @db.VarChar(50)
+  sentimentShift       String?   @map("sentiment_shift") @db.VarChar(20)
+  keyObjection         String?   @map("key_objection") @db.Text
+  whatWorked           String?   @map("what_worked") @db.Text
+  whatFailed           String?   @map("what_failed") @db.Text
+  missedOpportunity    String?   @map("missed_opportunity") @db.Text
+  prospectPainLevel    Int?      @map("prospect_pain_level")
+  agentConfidenceScore Int?      @map("agent_confidence_score")
+  recommendedMicroFix  String?   @map("recommended_micro_fix") @db.Text
+  sentimentTimeline    Json?     @map("sentiment_timeline")
+  fillerWordsUsed      String[]  @default([]) @map("filler_words_used")
+  callQualityScore     Int?      @map("call_quality_score")
   createdAt            DateTime  @default(now()) @map("created_at")
   metadata             Json?
 
@@ -1118,6 +1132,12 @@ model ScriptMutation {
   confidenceScore  Int?      @map("confidence_score")
   revertedAt       DateTime? @map("reverted_at")
   revertReason     String?   @map("revert_reason") @db.Text
+  revertForensics      String?   @map("revert_forensics") @db.Text
+  statisticalSignificance Float? @map("statistical_significance")
+  callsVariantA        Int       @default(0) @map("calls_variant_a")
+  callsVariantB        Int       @default(0) @map("calls_variant_b")
+  conversionVariantA   Float?    @map("conversion_variant_a")
+  conversionVariantB   Float?    @map("conversion_variant_b")
   createdAt        DateTime  @default(now()) @map("created_at")
 
   @@index([niche])
@@ -1165,6 +1185,69 @@ model ScriptAbTest {
 
   @@index([niche])
   @@map("script_ab_tests")
+}
+
+// ═══════════════════════════════════════════════════════════
+// OBJECTION HANDLERS — Live objection response database
+// ═══════════════════════════════════════════════════════════
+model ObjectionHandler {
+  id            String    @id @default(uuid()) @db.Uuid
+  niche         String    @db.VarChar(100)
+  language      String    @db.VarChar(10)
+  objectionText String    @map("objection_text") @db.Text
+  frequency     Int       @default(0)
+  handlerV1     String?   @map("handler_v1") @db.Text
+  handlerV2     String?   @map("handler_v2") @db.Text
+  winRateV1     Float     @default(0) @map("win_rate_v1")
+  winRateV2     Float     @default(0) @map("win_rate_v2")
+  activeHandler String    @default("v1") @map("active_handler") @db.VarChar(10)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  lastUpdated   DateTime  @default(now()) @updatedAt @map("last_updated")
+
+  @@index([niche])
+  @@index([language])
+  @@map("objection_handlers")
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCRIPT VERSIONS — Full version history for every script
+// ═══════════════════════════════════════════════════════════
+model ScriptVersion {
+  id               String    @id @default(uuid()) @db.Uuid
+  niche            String    @db.VarChar(100)
+  language         String    @db.VarChar(10)
+  version          Int
+  scriptText       String    @map("script_text") @db.Text
+  openingText      String?   @map("opening_text") @db.Text
+  conversionRate   Float?    @map("conversion_rate")
+  callsOnVersion   Int       @default(0) @map("calls_on_version")
+  avgInterestScore Float?    @map("avg_interest_score")
+  active           Boolean   @default(false)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  retiredAt        DateTime? @map("retired_at")
+
+  @@index([niche, language])
+  @@map("script_versions")
+}
+
+// ═══════════════════════════════════════════════════════════
+// OPENING VARIANTS — A/B/C testing for call openings
+// ═══════════════════════════════════════════════════════════
+model OpeningVariant {
+  id             String    @id @default(uuid()) @db.Uuid
+  niche          String    @db.VarChar(100)
+  language       String    @db.VarChar(10)
+  role           String    @db.VarChar(20)
+  openingText    String    @map("opening_text") @db.Text
+  callsCount     Int       @default(0) @map("calls_count")
+  connectionRate Float     @default(0) @map("connection_rate")
+  engagementRate Float     @default(0) @map("engagement_rate")
+  dropOffRate    Float     @default(0) @map("drop_off_rate")
+  promotedAt     DateTime? @map("promoted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([niche, language])
+  @@map("opening_variants")
 }
 
 // ═══════════════════════════════════════════════════════════

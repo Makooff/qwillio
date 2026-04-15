@@ -44,6 +44,10 @@ Return JSON: { "dropOffPoint": "...", "confidence": N, "reason": "..." }`,
       });
 
       const data = await response.json() as any;
+      if (!data.choices?.[0]?.message?.content) {
+        logger.error('[AI-Learning] OpenAI returned no choices for drop-off classification');
+        return null;
+      }
       const result = JSON.parse(data.choices[0].message.content);
 
       if (result.confidence >= MIN_CONFIDENCE_SCORE) {
@@ -173,6 +177,10 @@ Return JSON: { "change": "the new text to use", "reason": "why this should impro
     });
 
     const data = await response.json() as any;
+    if (!data.choices?.[0]?.message?.content) {
+      logger.error(`[AI-Learning] OpenAI returned no choices for micro-fix ${niche}/${language}`);
+      return;
+    }
     const fix = JSON.parse(data.choices[0].message.content);
 
     if (fix.confidence < MIN_CONFIDENCE_SCORE) {
@@ -336,6 +344,10 @@ Return JSON: { "improvements": [{ "objection": "...", "newResponse": "...", "con
         });
 
         const data = await response.json() as any;
+        if (!data.choices?.[0]?.message?.content) {
+          logger.error(`[AI-Learning] OpenAI returned no choices for objection optimization ${niche}`);
+          continue;
+        }
         const result = JSON.parse(data.choices[0].message.content);
 
         for (const improvement of result.improvements) {

@@ -51,8 +51,8 @@ Only include genuinely useful insights — skip generic ones. Max 3 insights per
       });
 
       const data = await response.json() as any;
-      if (!data.choices || data.choices.length === 0) {
-        logger.warn(`extractFailureInsights: OpenAI returned no choices for call ${callId}`);
+      if (!data.choices?.[0]?.message?.content) {
+        logger.error('[NicheLearning] OpenAI returned no choices:', JSON.stringify(data.error || data).substring(0, 300));
         return;
       }
       const result = JSON.parse(data.choices[0].message.content);
@@ -205,6 +205,10 @@ Focus on patterns, not individual calls. Max 2 insights.`,
         });
 
         const data = await response.json() as any;
+        if (!data.choices?.[0]?.message?.content) {
+          logger.error(`[NicheLearning] Weekly aggregation: OpenAI returned no choices for ${niche}`);
+          continue;
+        }
         const result = JSON.parse(data.choices[0].message.content);
 
         for (const insight of result.insights || []) {

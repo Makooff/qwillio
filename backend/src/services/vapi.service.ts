@@ -12,6 +12,7 @@ import { INTERESTED_FOLLOWUP_SEQUENCE, CALLBACK_RETRY_DELAYS } from '../config/f
 import { emailService } from './email.service';
 import { normalizeEmail, isValidEmail } from '../utils/validators';
 import { nicheLearningService } from './niche-learning.service';
+import { callIntelligenceService } from './call-intelligence.service';
 import { emitEvent } from '../config/socket';
 
 // Interest level thresholds — single source of truth
@@ -159,7 +160,7 @@ export class VapiService {
         phoneNumberId: env.VAPI_PHONE_NUMBER_ID,
         customer: {
           number: prospect.phone!,
-          name: (prospect.businessName || '').slice(0, 40),
+          name: (prospect.businessName || 'Business').substring(0, 40),
         },
         assistantOverrides: {
           model: {
@@ -486,6 +487,11 @@ export class VapiService {
       nicheLearningService.extractFailureInsights(call.id, analysis, call.prospect.businessType)
         .catch(err => logger.warn('Post-call learning extraction failed:', err));
     }
+
+    // ═══ DEEP CALL INTELLIGENCE ANALYSIS ═══
+    // Ultra-intelligent analysis: sentiment timeline, objection tracking, micro-fix recommendations
+    callIntelligenceService.analyzeCallDeep(call.id)
+      .catch(err => logger.warn('Deep call intelligence analysis failed:', err));
   }
 
   /**
@@ -567,8 +573,9 @@ Return a JSON with:
       });
 
       const data = await response.json() as any;
-      if (!data.choices || data.choices.length === 0) {
-        throw new Error('OpenAI returned no choices: ' + JSON.stringify(data).slice(0, 200));
+      if (!data.choices?.[0]?.message?.content) {
+        logger.error('OpenAI API returned no choices:', JSON.stringify(data.error || data).substring(0, 300));
+        throw new Error(`OpenAI API error: ${data.error?.message || 'no choices returned'}`);
       }
       const result = JSON.parse(data.choices[0].message.content);
       return result;
