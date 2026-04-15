@@ -1,479 +1,204 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { io, Socket } from 'socket.io-client';
-import api from '../services/api';
-import { DashboardStats, BotStatus } from '../types';
-import {
-  Play, Square, Loader2, CheckCircle2, XCircle, ArrowUpRight,
-  Phone, Crosshair, Target, Mail, Brain, Users, Zap,
-  TrendingUp, DollarSign, BarChart3, Clock,
-  Calendar, Activity, RefreshCw, Settings,
-  CircleDot, Timer, Search, Database, Globe, Bot,
-  Flame,
-} from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { t, glass, cx } from '../styles/admin-theme';
+import React, { useEffect, useState, useRef } from 'react';
 
-function ago(d: string | null | undefined) {
-  if (!d) return 'jamais';
-  try { return formatDistanceToNow(new Date(d), { addSuffix: true, locale: fr }); }
-  catch { return '\—'; }
-}
-
-function timeStr(d: string | null | undefined) {
-  if (!d) return '\—';
-  try { return format(new Date(d), 'HH:mm:ss', { locale: fr }); }
-  catch { return '\—'; }
-}
-
-const CRON_INFO: Record<string, { label: string; schedule: string; icon: any; category: string }> = {
-  prospection:          { label: 'Prospection',         schedule: '9h lun-ven',      icon: Search,     category: 'core' },
-  calling:              { label: 'Appels sortants',     schedule: '*/20min 9-19h',   icon: Phone,      category: 'core' },
-  reminders:            { label: 'Rappels',             schedule: 'Chaque heure',    icon: Clock,      category: 'core' },
-  analytics:            { label: 'Analytics',           schedule: '23h55',           icon: BarChart3,  category: 'system' },
-  dailyReset:           { label: 'Reset quotidien',     schedule: '00h01',           icon: RefreshCw,  category: 'system' },
-  trialCheck:           { label: 'Vérif. essais',        schedule: '8h',              icon: Timer,      category: 'system' },
-  onboardingRetry:      { label: 'Retry onboarding',    schedule: '*/5min',          icon: Users,      category: 'client' },
-  bookingReminders:     { label: 'Rappels RDV',         schedule: '*/30min',         icon: Calendar,   category: 'client' },
-  clientAnalytics:      { label: 'Stats clients',       schedule: '23h50',           icon: BarChart3,  category: 'client' },
-  optimization:         { label: 'Optimisation IA',     schedule: 'Dim 0h',          icon: Brain,      category: 'ai' },
-  phoneValidation:      { label: 'Valid. téléphone',     schedule: '*/10min',         icon: Phone,      category: 'system' },
-  nicheLearning:        { label: 'Apprentissage niche', schedule: 'Dim 1h',          icon: Brain,      category: 'ai' },
-  apifyScraping:        { label: 'Scraping Maps',       schedule: '2h UTC',          icon: Globe,      category: 'prospect' },
-  outboundEngine:       { label: 'Moteur appels',       schedule: '*/20min 9-17h',   icon: Phone,      category: 'prospect' },
-  abTesting:            { label: 'A/B Testing',         schedule: '6h UTC',          icon: Target,     category: 'ai' },
-  bestTimeLearning:     { label: 'Best-time learning',  schedule: '4h UTC',          icon: Clock,      category: 'ai' },
-  scriptLearning:       { label: 'Script learning',     schedule: 'Dim 1h',          icon: Brain,      category: 'ai' },
-  followUpSequences:    { label: 'Follow-ups',          schedule: '*/30min',         icon: Mail,       category: 'prospect' },
-  rescoreProspects:     { label: 'Re-scoring',          schedule: '3h UTC',          icon: Target,     category: 'prospect' },
-  crmSync:              { label: 'Sync CRM',            schedule: '*/15min',         icon: Database,   category: 'client' },
-  forwardingVerification: { label: 'Vérif. transferts',  schedule: '9h',              icon: Phone,      category: 'system' },
-  overageBilling:       { label: 'Facturation surplus',  schedule: '1er du mois 6h', icon: DollarSign,  category: 'system' },
-  agentPayments:        { label: 'Agent Paiements',     schedule: 'Chaque heure',    icon: DollarSign,  category: 'agent' },
-  agentAccounting:      { label: 'Agent Compta',        schedule: '1er du mois 2h',  icon: BarChart3,   category: 'agent' },
-  agentInventoryAlerts: { label: 'Agent Stock Alertes', schedule: '*/6h',            icon: Zap,         category: 'agent' },
-  agentInventoryForecast:{ label: 'Agent Stock Prévi.',  schedule: '3h',              icon: TrendingUp,  category: 'agent' },
-  agentEmailSync:       { label: 'Agent Email Sync',    schedule: '*/10min',         icon: Mail,        category: 'agent' },
-  agentEmailFollowUp:   { label: 'Agent Email Follow',  schedule: 'Chaque heure',    icon: Mail,        category: 'agent' },
-  agentEmailDigest:     { label: 'Agent Email Digest',  schedule: '8h',              icon: Mail,        category: 'agent' },
-  agentNoShow:          { label: 'Agent No-Show',       schedule: 'Chaque heure',    icon: XCircle,     category: 'agent' },
+const API = 'https://qwillio.onrender.com';
+const getHeaders = (): Record<string, string> => {
+  const t = localStorage.getItem('token');
+  return t ? { Authorization: `Bearer ${t}` } : {};
+};
+const fmt = (iso: string) => {
+  if (!iso) return '';
+  const d = new Date(iso), diff = Date.now() - d.getTime();
+  if (diff < 3600000) return `il y a ${Math.floor(diff / 60000)}min`;
+  if (diff < 86400000) return `il y a ${Math.floor(diff / 3600000)}h`;
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  core: 'Principal', prospect: 'Prospection', ai: 'IA',
-  client: 'Clients', agent: 'Agents', system: 'Système',
-};
+interface DashboardData {
+  prospects: { total: number; newThisMonth: number; byStatus: Record<string, number> };
+  clients: { totalActive: number; newThisMonth: number; byPlan: Record<string, number> };
+  revenue: { mrr: number; setupFeesThisMonth: number; totalThisMonth: number };
+  calls: { today: number; thisWeek: number; successRate: number };
+  bot: { isActive: boolean; callsToday: number; callsQuota: number };
+  prospectsReadyToCall: number;
+  activity: any[];
+}
 
-export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [bot, setBot] = useState<BotStatus | null>(null);
-  const [health, setHealth] = useState<Record<string, boolean | string> | null>(null);
-  const [activity, setActivity] = useState<any[]>([]);
+const BOT_MESSAGES_ACTIVE = [
+  'Analyse des prospects...', 'Passage d\'appels en cours...', 'Qualification des leads...',
+  'Synchronisation CRM...', 'Évaluation des scores...', 'Planification des appels...',
+];
+
+const Dashboard: React.FC = () => {
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [toggling, setToggling] = useState(false);
-  const [running, setRunning] = useState<string | null>(null);
-  const [cronFilter, setCronFilter] = useState<string>('all');
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [hotLead, setHotLead] = useState<{ businessName: string; score: number; timestamp: Date } | null>(null);
-  const socketRef = useRef<Socket | null>(null);
+  const [botLoading, setBotLoading] = useState(false);
+  const [botMsg, setBotMsg] = useState(0);
+  const [angle, setAngle] = useState(0);
+  const rafRef = useRef<number>(0);
+  const lastRef = useRef<number>(0);
+  const msgRef = useRef<number>(0);
 
-  const load = useCallback(async () => {
-    try {
-      const [s, b, h, a] = await Promise.all([
-        api.get('/dashboard/stats'),
-        api.get('/bot/status'),
-        api.get('/bot/health').catch(() => ({ data: {} })),
-        api.get('/dashboard/activity').catch(() => ({ data: [] })),
-      ]);
-      setStats(s.data); setBot(b.data); setHealth(h.data);
-      setActivity(Array.isArray(a.data) ? a.data : []);
-      setLastRefresh(new Date());
-    } catch { /* silent */ }
-    finally { setLoading(false); }
-  }, []);
+  const fetchData = () => {
+    fetch(`${API}/api/admin/dashboard`, { headers: getHeaders() })
+      .then(r => r.json()).then(setData).catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchData(); const id = setInterval(fetchData, 30000); return () => clearInterval(id); }, []);
 
   useEffect(() => {
-    load();
-    const iv = setInterval(load, 10_000);
-    return () => clearInterval(iv);
-  }, [load]);
-
-  // Socket.io: real-time hot lead alerts
-  useEffect(() => {
-    const API_URL = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com';
-    const socket = io(API_URL, { transports: ['websocket', 'polling'] });
-    socketRef.current = socket;
-
-    socket.on('hot-lead', (data: { businessName: string; score: number; timestamp: string }) => {
-      setHotLead({ ...data, timestamp: new Date(data.timestamp) });
-      setTimeout(() => setHotLead(null), 15_000);
-      load();
-    });
-
-    socket.on('activity', (data: any) => {
-      setActivity(prev => [data, ...prev].slice(0, 30));
-    });
-
-    socket.on('call-completed', () => {
-      load();
-    });
-
-    return () => { socket.disconnect(); socketRef.current = null; };
-  }, [load]);
+    if (!data?.bot?.isActive) return;
+    const animate = (ts: number) => {
+      if (ts - lastRef.current > 16) { setAngle(a => (a + 1.5) % 360); lastRef.current = ts; }
+      if (ts - msgRef.current > 4000) { setBotMsg(m => (m + 1) % BOT_MESSAGES_ACTIVE.length); msgRef.current = ts; }
+      rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [data?.bot?.isActive]);
 
   const toggleBot = async () => {
-    setToggling(true);
-    try {
-      await api.post(bot?.isActive ? '/bot/stop' : '/bot/start');
-      setBot((await api.get('/bot/status')).data);
-    } catch { /* silent */ }
-    finally { setToggling(false); }
+    if (!data) return;
+    setBotLoading(true);
+    const action = data.bot?.isActive ? 'stop' : 'start';
+    await fetch(`${API}/api/admin/bot/${action}`, { method: 'POST', headers: getHeaders() }).catch(console.error);
+    fetchData();
+    setBotLoading(false);
   };
-
-  const run = async (task: string) => {
-    setRunning(task);
-    try { await api.post(`/bot/run/${task}`); setTimeout(load, 2000); }
-    catch { /* silent */ }
-    finally { setTimeout(() => setRunning(null), 1500); }
-  };
-
-  const triggerCron = async (name: string) => {
-    setRunning(name);
-    try { await api.post(`/admin/cron/run/${name}`); setTimeout(load, 2000); }
-    catch { /* silent */ }
-    finally { setTimeout(() => setRunning(null), 3000); }
-  };
-
-  // Off-hours detection: before 9h US Eastern = before 15h Brussels
-  const nowET = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  const beforeUSHours = nowET.getHours() < 9;
-
-  const mrr = stats?.revenue?.mrr ?? 0;
-  const calls = bot?.callsToday ?? stats?.calls?.today ?? 0;
-  const quota = bot?.callsQuotaDaily ?? 50;
-  const pct = quota > 0 ? Math.min((calls / quota) * 100, 100) : 0;
-  const crons = (bot as any)?.crons ?? {};
-  const activeCrons = Object.values(crons).filter((v: any) => v === 'active').length;
-  const totalCrons = Object.keys(crons).length;
-
-  const filteredCrons = Object.entries(crons).filter(([key]) => {
-    if (cronFilter === 'all') return true;
-    return CRON_INFO[key]?.category === cronFilter;
-  });
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-5 h-5 animate-spin" style={{ color: t.textTer }} />
+    <div className='min-h-screen bg-gray-950 flex items-center justify-center'>
+      <div className='w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin' />
     </div>
   );
+
+  const d = data;
+  const active = d?.bot?.isActive ?? false;
+  const nextMsg = BOT_MESSAGES_ACTIVE[botMsg];
 
   return (
-    <div className={cx.pageWrap}>
+    <div className='min-h-screen bg-gray-950 text-white pb-8'>
+      <style>{`
+        @keyframes orb-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes orb-pulse { 0%,100% { opacity:.7; transform:scale(1); } 50% { opacity:1; transform:scale(1.08); } }
+        @keyframes dot-blink { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+        .orb-spin { animation: orb-rotate 3s linear infinite; }
+        .orb-breathe { animation: orb-pulse 2.5s ease-in-out infinite; }
+        .dot-live { animation: dot-blink 1.4s ease-in-out infinite; }
+      `}</style>
 
-      {/* -- Off-hours info banner -- */}
-      {bot?.isActive && calls === 0 && beforeUSHours && (
-        <section className="rounded-[14px] p-3 flex items-center gap-3" style={glass}>
-          <Clock className="w-4 h-4 flex-shrink-0" style={{ color: t.textSec }} />
-          <p className="text-[11px]" style={{ color: t.textSec }}>
-            Les appels démarrent à 15h (9h Eastern US). Le bot est prêt et démarrera automatiquement.
-          </p>
-        </section>
-      )}
-
-      {/* -- Hot lead real-time alert -- */}
-      {hotLead && (
-        <section className="rounded-[14px] p-3 flex items-center gap-3 animate-pulse"
-          style={{ ...glass, borderColor: t.success, border: `1px solid ${t.success}40` }}>
-          <Flame className="w-4 h-4 flex-shrink-0" style={{ color: t.success }} />
-          <div className="flex-1">
-            <p className="text-[11px] font-semibold" style={{ color: t.text }}>
-              Hot Lead détecté — {hotLead.businessName} (score {hotLead.score}/10)
-            </p>
-            <p className="text-[10px]" style={{ color: t.textTer }}>Rappeler dans les 5 minutes</p>
-          </div>
-          <button onClick={() => setHotLead(null)} className="text-[10px] px-2 py-0.5 rounded"
-            style={{ color: t.textTer, background: t.elevated }}>
-            Fermer
-          </button>
-        </section>
-      )}
-
-      {/* -- HEADER -- */}
-      <section className="rounded-[14px] p-4 relative overflow-hidden" style={glass}>
-        {bot?.isActive && (
-          <div className="absolute top-0 left-0 w-full h-px" style={{ background: `linear-gradient(90deg, transparent, ${t.textMuted}, transparent)` }} />
-        )}
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button onClick={toggleBot} disabled={toggling}
-            className="flex items-center gap-2 px-4 py-2 rounded-[10px] font-semibold text-xs border transition-all disabled:opacity-50"
-            style={bot?.isActive
-              ? { background: `${t.danger}15`, borderColor: `${t.danger}30`, color: t.danger }
-              : { background: `${t.success}15`, borderColor: `${t.success}30`, color: t.success }}>
-            {toggling ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              : bot?.isActive ? <><span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: t.danger }} /><Square className="w-3.5 h-3.5" /> Arrêter</>
-              : <><span className="w-1.5 h-1.5 rounded-full" style={{ background: t.success }} /><Play className="w-3.5 h-3.5" /> Démarrer</>}
-          </button>
-
-          {bot?.isActive && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[10px]" style={{ background: t.elevated, border: `1px solid ${t.border}` }}>
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: t.live }} />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: t.live }} />
-              </span>
-              <span className="text-[10px] font-bold tracking-wider" style={{ color: t.live }}>LIVE</span>
-            </div>
-          )}
-
-          <span className="text-[10px]" style={{ color: t.textTer }}>{activeCrons}/{totalCrons} crons</span>
-
-          <div className="w-32">
-            <div className="flex justify-between text-[10px] mb-1">
-              <span style={{ color: t.textTer }}>Appels</span>
-              <span className="font-bold tabular-nums" style={{ color: t.text }}>{calls}/{quota}</span>
-            </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
-              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: 'rgba(255,255,255,0.08)' }} />
-            </div>
-          </div>
-
-          {health && (
-            <div className="flex flex-wrap gap-1 ml-auto items-center">
-              {Object.entries(health).map(([k, ok]) => {
-                const isOptional = ok === 'optional';
-                const color = isOptional ? t.warning : ok ? t.textSec : t.danger;
-                return (
-                  <span key={k} className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium"
-                    style={{ background: t.elevated, color }}>
-                    {isOptional ? <CheckCircle2 className="w-2.5 h-2.5" /> : ok ? <CheckCircle2 className="w-2.5 h-2.5" /> : <XCircle className="w-2.5 h-2.5" />}
-                    {k === 'resend' ? 'Email' : k === 'database' ? 'DB' : k.charAt(0).toUpperCase() + k.slice(1)}
-                  </span>
-                );
-              })}
-              <span className="text-[9px] font-mono ml-1" style={{ color: t.textMuted }}>{format(lastRefresh, 'HH:mm:ss')}</span>
-            </div>
-          )}
+      {/* Header */}
+      <div className='px-4 pt-6 pb-4 flex items-center justify-between'>
+        <div>
+          <div className='text-xs text-gray-500 uppercase tracking-widest'>Admin</div>
+          <h1 className='text-2xl font-bold text-white'>Qwillio</h1>
         </div>
-
-        <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
-          {[
-            { key: 'prospecting', label: 'Prospection', icon: Crosshair },
-            { key: 'scoring', label: 'Scoring', icon: Target },
-            { key: 'calling', label: 'Appel', icon: Phone },
-            { key: 'followup', label: 'Follow-up', icon: Mail },
-          ].map(({ key, label, icon: I }) => (
-            <button key={key} onClick={() => run(key)} disabled={running === key}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-[10px] text-[10px] font-medium transition-all disabled:opacity-50"
-              style={{ background: t.elevated, color: t.textTer, border: `1px solid ${t.border}` }}>
-              {running === key ? <Loader2 className="w-3 h-3 animate-spin" /> : <I className="w-3 h-3" />}
-              {label}
-            </button>
-          ))}
+        <div className='text-right'>
+          <div className='text-xs text-gray-500'>{new Date().toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+          <div className={`text-xs font-medium mt-0.5 ${active ? 'text-green-400' : 'text-gray-500'}`}>{active ? '● En ligne' : '○ Hors ligne'}</div>
         </div>
-      </section>
+      </div>
 
-      {/* -- KPIs -- */}
-      <section className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2">
-        {([
-          { l: 'Prospects', v: stats?.prospects?.total ?? 0, to: '/admin/prospects' },
-          { l: 'Clients', v: stats?.clients?.totalActive ?? 0, to: '/admin/clients' },
-          { l: 'MRR', v: `$${mrr.toLocaleString()}`, to: '/admin/billing' },
-          { l: 'Appels', v: calls, to: '/admin/calls' },
-          { l: 'Leads', v: stats?.calls?.hotLeadsToday ?? 0, to: '/admin/leads' },
-          { l: 'Conversion', v: `${(stats?.conversion?.prospectToClient ?? 0).toFixed(1)}%`, to: '/admin/prospects' },
-        ] as const).map(({ l, v, to }) => (
-          <Link key={l} to={to} className="rounded-[14px] p-3 transition-all group" style={glass}>
-            <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: t.textTer }}>{l}</p>
-            <p className="text-lg font-bold tabular-nums" style={{ color: t.text }}>{v}</p>
-          </Link>
-        ))}
-      </section>
-
-      {/* -- LIVE PANEL -- */}
-      <section className="grid grid-cols-1 lg:grid-cols-5 gap-3">
-
-        {/* Left: Status */}
-        <div className="lg:col-span-2 space-y-3">
-          <div className="rounded-[14px] p-4" style={glass}>
-            <h3 className={`${cx.h3} mb-3 flex items-center gap-1.5`} style={{ color: t.textTer }}>
-              <Bot className="w-3.5 h-3.5" /> En ce moment
-              {bot?.isActive && <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full animate-pulse"
-                style={{ color: t.live, background: 'rgba(34,197,94,0.10)' }}>LIVE</span>}
-            </h3>
-
-            {[
-              { l: 'Statut', v: bot?.isActive ? 'Actif' : 'Arrêté', bright: true },
-              { l: 'Appels aujourd\'hui', v: `${calls} / ${quota}` },
-              { l: 'Prospects trouvés', v: (bot as any)?.prospectsFound ?? 0 },
-              { l: 'Follow-ups envoyés', v: (bot as any)?.followUpsSent ?? 0 },
-            ].map(r => (
-              <div key={r.l} className="flex items-center gap-2 py-2 last:border-0" style={{ borderBottom: `1px solid rgba(255,255,255,0.03)` }}>
-                <span className="w-1 h-1 rounded-full" style={{ background: t.textMuted }} />
-                <span className="text-[11px] flex-1" style={{ color: t.textTer }}>{r.l}</span>
-                <span className="text-[11px] font-semibold tabular-nums" style={{ color: r.bright ? t.text : t.textSec }}>{r.v}</span>
-              </div>
-            ))}
-
-            {bot?.isActive && beforeUSHours && calls === 0 && (
-              <p className="text-[10px] mt-2 px-2 py-1.5 rounded-[8px]" style={{ color: t.textMuted, background: 'rgba(255,255,255,0.02)' }}>
-                <Clock className="w-3 h-3 inline-block mr-1 -mt-px" />
-                Les appels US démarrent à 15h (9h Eastern)
-              </p>
-            )}
-
-            <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
-              <p className={`${cx.h3} mb-2`} style={{ color: t.textTer }}>Dernières actions</p>
-              {[
-                { l: 'Prospection', t: bot?.lastRunProspecting ?? (bot as any)?.lastProspection },
-                { l: 'Appel', t: bot?.lastRunCalling ?? (bot as any)?.lastCall },
-                { l: 'Scoring', t: (bot as any)?.lastRunScoring },
-                { l: 'Follow-up', t: (bot as any)?.lastRunFollowUp },
-              ].map(r => (
-                <div key={r.l} className="flex justify-between py-1">
-                  <span className="text-[10px]" style={{ color: t.textTer }}>{r.l}</span>
-                  <span className="text-[10px] font-mono" style={{ color: t.textMuted }}>{r.t ? ago(r.t) : 'jamais'}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Revenue */}
-          <div className="rounded-[14px] p-4" style={glass}>
-            <h3 className={`${cx.h3} mb-2 flex items-center gap-1.5`} style={{ color: t.textTer }}>
-              <DollarSign className="w-3.5 h-3.5" /> Revenus
-            </h3>
-            <p className="text-xl font-bold tabular-nums mb-3" style={{ color: t.text }}>${mrr.toLocaleString()}<span className="text-xs font-normal" style={{ color: t.textTer }}>/mo</span></p>
-            {[
-              { l: 'Clients actifs', v: stats?.clients?.totalActive ?? 0 },
-              { l: 'Nouveaux ce mois', v: stats?.clients?.newThisMonth ?? 0 },
-              { l: 'Taux conversion', v: `${(stats?.conversion?.prospectToClient ?? 0).toFixed(1)}%` },
-            ].map(r => (
-              <div key={r.l} className="flex justify-between py-1.5" style={{ borderBottom: `1px solid rgba(255,255,255,0.03)` }}>
-                <span className="text-[11px]" style={{ color: t.textTer }}>{r.l}</span>
-                <span className="text-[11px] font-semibold tabular-nums" style={{ color: t.textSec }}>{r.v}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right: Activity Feed */}
-        <div className="lg:col-span-3 rounded-[14px] p-4" style={glass}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className={`${cx.h3} flex items-center gap-1.5`} style={{ color: t.textTer }}>
-              <Activity className="w-3.5 h-3.5" /> Fil d'activité
-              {bot?.isActive && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full ml-1 animate-pulse"
-                  style={{ color: t.live, background: 'rgba(34,197,94,0.10)' }}>LIVE</span>
-              )}
-            </h3>
-            <Link to="/admin/calls" className="text-[10px] flex items-center gap-0.5 transition-colors hover:opacity-80" style={{ color: t.textTer }}>
-              Tout voir <ArrowUpRight className="w-3 h-3" />
-            </Link>
-          </div>
-
-          {activity.length === 0 ? (
-            <div className="text-center py-14">
-              <Activity className="w-7 h-7 mx-auto mb-2 opacity-10" style={{ color: t.textTer }} />
-              <p className="text-[11px]" style={{ color: t.textTer }}>Aucune activité</p>
-              {bot?.isActive && beforeUSHours ? (
-                <p className="text-[10px] mt-2 opacity-60" style={{ color: t.textMuted }}>
-                  Les appels démarrent à 15h heure belge (9h US Eastern). Le bot se lancera automatiquement.
-                </p>
+      {/* Bot Activity Card */}
+      <div className='mx-4 mb-4'>
+        <div className={`rounded-2xl p-5 border ${active ? 'bg-gray-900 border-blue-500/30' : 'bg-gray-900 border-gray-800'}`}>
+          <div className='flex items-center gap-4 mb-4'>
+            {/* Animated orb */}
+            <div className='relative flex-shrink-0 w-14 h-14'>
+              {active ? (
+                <>
+                  <div className='orb-spin absolute inset-0 rounded-full' style={{background:'conic-gradient(from 0deg, #3b82f6, #8b5cf6, #06b6d4, #3b82f6)'}} />
+                  <div className='absolute inset-0.5 rounded-full bg-gray-900' />
+                  <div className='orb-breathe absolute inset-2 rounded-full bg-gradient-to-br from-blue-400 to-purple-500' />
+                </>
               ) : (
-                <p className="text-[10px] mt-1 opacity-50" style={{ color: t.textMuted }}>Le fil se remplira quand le bot sera actif</p>
+                <>
+                  <div className='absolute inset-0 rounded-full bg-gray-800' />
+                  <div className='absolute inset-2 rounded-full bg-gray-700' />
+                </>
               )}
             </div>
-          ) : (
-            <div className="space-y-0 max-h-[420px] overflow-y-auto pr-1">
-              {activity.slice(0, 20).map((item: any, i: number) => (
-                <div key={i} className="flex items-start gap-3 py-2.5 -mx-2 px-2 rounded-[10px] transition-colors hover:bg-white/[0.02]"
-                  style={{ borderBottom: `1px solid rgba(255,255,255,0.03)` }}>
-                  <div className="mt-0.5">
-                    <span className="text-sm opacity-60">{item.icon ?? '>'}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-medium" style={{ color: t.textSec }}>{item.message ?? item.businessName ?? 'Activité'}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px]" style={{ color: t.textTer }}>{item.date ? ago(item.date) : ''}</span>
-                      {item.date && <span className="text-[9px] font-mono" style={{ color: t.textMuted }}>{timeStr(item.date)}</span>}
-                    </div>
-                  </div>
-                  {item.interestScore != null && (
-                    <div className="text-center">
-                      <span className="text-[12px] font-bold tabular-nums" style={{
-                        color: item.interestScore >= 7 ? t.success : item.interestScore >= 4 ? t.warning : t.danger
-                      }}>{item.interestScore}</span>
-                      <span className="text-[8px] block" style={{ color: t.textTer }}>/10</span>
-                    </div>
-                  )}
-                </div>
-              ))}
+            <div className='flex-1 min-w-0'>
+              <div className='flex items-center gap-2'>
+                <span className='font-semibold text-white'>Bot Qwillio</span>
+                {active && <span className='dot-live w-2 h-2 rounded-full bg-green-400 inline-block' />}
+              </div>
+              <div className='text-sm mt-0.5 truncate'>
+                {active
+                  ? <span className='text-blue-400'>{nextMsg}</span>
+                  : <span className='text-gray-500'>En attente</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          {active && (
+            <div className='mb-4 rounded-xl bg-gray-800/60 p-3'>
+              <div className='flex justify-between text-xs text-gray-400 mb-1.5'>
+                <span>Appels aujourd'hui</span>
+                <span className='text-white font-medium'>{d?.bot?.callsToday ?? 0} / {d?.bot?.callsQuota ?? 50}</span>
+              </div>
+              <div className='h-1.5 bg-gray-700 rounded-full overflow-hidden'>
+                <div className='h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all'
+                  style={{ width: `${Math.min(100, ((d?.bot?.callsToday ?? 0) / (d?.bot?.callsQuota ?? 50)) * 100)}%` }} />
+              </div>
             </div>
           )}
+
+          {!active && d?.activity && d.activity.length > 0 && (
+            <div className='mb-4 rounded-xl bg-gray-800/40 p-3'>
+              <div className='text-xs text-gray-500 mb-1'>Dernière activité</div>
+              <div className='text-xs text-gray-300 truncate'>{d.activity[0]?.description || d.activity[0]?.message || '—'}</div>
+              <div className='text-xs text-gray-600 mt-0.5'>{fmt(d.activity[0]?.createdAt || d.activity[0]?.timestamp)}</div>
+            </div>
+          )}
+
+          <button onClick={toggleBot} disabled={botLoading}
+            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 ${
+              active
+                ? 'bg-red-500/10 border border-red-500/40 text-red-400 hover:bg-red-500/20'
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            } disabled:opacity-50`}>
+            {botLoading ? '...' : active ? 'Arrêter le bot' : 'Démarrer le bot'}
+          </button>
         </div>
-      </section>
+      </div>
 
-      {/* -- CRON JOBS -- */}
-      <section className="rounded-[14px] p-4" style={glass}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className={`${cx.h3} flex items-center gap-1.5`} style={{ color: t.textTer }}>
-            <Settings className="w-3.5 h-3.5" /> Cron Jobs
-            <span className="text-[9px] font-mono ml-1 px-1.5 py-0.5 rounded" style={{ background: t.elevated, color: t.textTer }}>
-              {activeCrons} actifs
-            </span>
-          </h3>
+      {/* Stats Grid */}
+      <div className='px-4 grid grid-cols-2 gap-3 mb-4'>
+        {[
+          { label: 'Appels', value: d?.calls?.today ?? 0, sub: `cette semaine: ${d?.calls?.thisWeek ?? 0}`, color: 'text-white' },
+          { label: 'Prospects', value: d?.prospects?.total ?? 0, sub: `+${d?.prospects?.newThisMonth ?? 0} ce mois`, color: 'text-blue-400' },
+          { label: 'Clients', value: d?.clients?.totalActive ?? 0, sub: `+${d?.clients?.newThisMonth ?? 0} ce mois`, color: 'text-green-400' },
+          { label: 'MRR', value: `${(d?.revenue?.mrr ?? 0).toFixed(0)}€`, sub: `setup: ${(d?.revenue?.setupFeesThisMonth ?? 0).toFixed(0)}€`, color: 'text-amber-400' },
+        ].map((s, i) => (
+          <div key={i} className='bg-gray-900 border border-gray-800 rounded-2xl p-4'>
+            <div className='text-xs text-gray-500 mb-1'>{s.label}</div>
+            <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+            <div className='text-xs text-gray-600 mt-1 truncate'>{s.sub}</div>
+          </div>
+        ))}
+      </div>
 
-          <div className="flex gap-1 flex-wrap">
-            {['all', ...Object.keys(CATEGORY_LABELS)].map(key => (
-              <button key={key} onClick={() => setCronFilter(key)}
-                className="px-2 py-0.5 rounded text-[9px] font-bold transition-all"
-                style={{
-                  background: cronFilter === key ? 'rgba(255,255,255,0.08)' : 'transparent',
-                  color: cronFilter === key ? t.text : t.textTer,
-                }}>
-                {key === 'all' ? 'Tous' : CATEGORY_LABELS[key]}
-              </button>
+      {/* Activity Feed */}
+      {(d?.activity?.length ?? 0) > 0 && (
+        <div className='mx-4'>
+          <div className='text-xs text-gray-500 uppercase tracking-widest mb-3'>Activité récente</div>
+          <div className='space-y-2'>
+            {d!.activity.slice(0, 5).map((a: any, i: number) => (
+              <div key={i} className='bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex items-center gap-3'>
+                <div className='w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0' />
+                <div className='flex-1 min-w-0'>
+                  <div className='text-sm text-white truncate'>{a.description || a.message || a.type || '—'}</div>
+                </div>
+                <div className='text-xs text-gray-600 flex-shrink-0'>{fmt(a.createdAt || a.timestamp)}</div>
+              </div>
             ))}
           </div>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1.5">
-          {filteredCrons.map(([key, state]) => {
-            const info = CRON_INFO[key] ?? { label: key, schedule: '\—', icon: CircleDot, category: 'system' };
-            const Icon = info.icon;
-            const isRunningNow = running === key;
-
-            return (
-              <button key={key} onClick={() => triggerCron(key)} disabled={isRunningNow}
-                className="flex items-center gap-2.5 p-2.5 rounded-[10px] transition-all text-left group disabled:opacity-50"
-                style={{
-                  background: state === 'active' ? t.elevated : 'rgba(255,255,255,0.01)',
-                  border: `1px solid ${state === 'active' ? t.borderHi : t.border}`,
-                }}>
-                <div className="flex-shrink-0 w-7 h-7 rounded-[8px] flex items-center justify-center"
-                  style={{ background: t.elevated }}>
-                  {isRunningNow
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: t.textTer }} />
-                    : <Icon className="w-3.5 h-3.5" style={{ color: t.textTer }} />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-semibold truncate" style={{ color: t.textSec }}>{info.label}</p>
-                  <p className="text-[9px] font-mono" style={{ color: t.textMuted }}>{info.schedule}</p>
-                </div>
-                <div className="flex-shrink-0 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{
-                    background: state === 'active' ? t.textSec : state === 'idle' ? t.textMuted : 'rgba(255,255,255,0.08)',
-                  }} />
-                  <span className="text-[8px] uppercase font-bold tracking-wider" style={{ color: t.textMuted }}>
-                    {state === 'active' ? 'on' : state === 'idle' ? 'idle' : 'off'}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      )}
     </div>
   );
-}
+};
+
+export default Dashboard;
