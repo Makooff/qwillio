@@ -5,6 +5,7 @@ import { analyticsService } from '../services/analytics.service';
 import { getLogs, clearLogs, getLastId } from '../config/log-store';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 import { env } from '../config/env';
+import { getErrors, markResolved } from '../utils/error-store';
 
 const router = Router();
 
@@ -464,8 +465,6 @@ router.post('/cron/run/:name', async (req: Request, res: Response) => {
   }
 });
 
-// ─── Self-healing error log endpoints ────────────────────────────────────
-import { getErrors, markResolved } from '../utils/error-store';
 
 // GET /api/admin/errors — returns recent errors for self-healing monitor
 router.get('/errors', (req: Request, res: Response) => {
