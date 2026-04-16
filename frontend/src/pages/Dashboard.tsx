@@ -6,7 +6,8 @@ const getH = (): Record<string, string> => { const t = localStorage.getItem('tok
 const fmt = (iso: string) => { if (!iso) return ''; const d = new Date(iso), diff = Date.now() - d.getTime(); if (diff < 3600000) return `${Math.floor(diff/60000)}min`; if (diff < 86400000) return `${Math.floor(diff/3600000)}h`; return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); };
 const C: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (<div style={{ background: '#161616', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', ...style }}>{children}</div>);
 interface BotAction { message: string; timestamp: string; }
-interface D { prospects: { total: number; newThisMonth: number }; clients: { totalActive: number; newThisMonth: number }; revenue: { mrr: number }; calls: { today: number; thisWeek: number }; bot: { isActive: boolean; callsToday: number; callsQuota: number; lastAction?: BotAction | null; recentActions?: BotAction[] }; activity: any[]; }
+interface NextAction { name: string; inMinutes: number; }
+interface D { prospects: { total: number; newThisMonth: number }; clients: { totalActive: number; newThisMonth: number }; revenue: { mrr: number }; calls: { today: number; thisWeek: number }; bot: { isActive: boolean; callsToday: number; callsQuota: number; lastAction?: BotAction | null; previousAction?: BotAction | null; nextAction?: NextAction | null }; activity: any[]; }
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<D | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +60,25 @@ const Dashboard: React.FC = () => {
                   <span style={{ fontSize: 15, fontWeight: 600 }}>Bot Qwillio</span>
                   {active && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', animation: 'blink 1.4s ease infinite', display: 'inline-block' }} />}
                 </div>
-                <div key={prevAction} style={{ fontSize: 12, color: active ? '#a78bfa' : 'rgba(255,255,255,0.3)', marginTop: 2, animation: actionAnim ? 'fade-up .35s ease' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{active ? (d.bot?.lastAction?.message || 'En attente...') : 'Inactif'}</div>
+                {active ? (
+                  <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {d.bot?.previousAction && (
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        ✓ {d.bot.previousAction.message}
+                      </div>
+                    )}
+                    <div key={prevAction} style={{ fontSize: 12, color: '#a78bfa', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', animation: actionAnim ? 'fade-up .35s ease' : 'none' }}>
+                      ▸ {d.bot?.lastAction?.message || 'En attente...'}
+                    </div>
+                    {d.bot?.nextAction && (
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        ○ {d.bot.nextAction.name} — {d.bot.nextAction.inMinutes < 60 ? `${d.bot.nextAction.inMinutes}min` : `${Math.floor(d.bot.nextAction.inMinutes / 60)}h${d.bot.nextAction.inMinutes % 60 > 0 ? (d.bot.nextAction.inMinutes % 60 + 'min') : ''}`}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Inactif</div>
+                )}
               </div>
               <button onClick={toggle} disabled={busy} style={{ padding: '7px 16px', borderRadius: 20, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: active ? 'rgba(255,59,48,0.1)' : 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: active ? 'rgba(255,80,70,0.9)' : 'white', whiteSpace: 'nowrap', opacity: busy ? 0.5 : 1, boxShadow: active ? 'none' : '0 2px 12px rgba(139,92,246,0.3)' }}>{busy ? '...' : active ? 'Arrêter' : 'Démarrer'}</button>
             </div>
