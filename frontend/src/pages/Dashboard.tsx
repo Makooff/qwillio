@@ -22,7 +22,24 @@ const Dashboard: React.FC = () => {
     rRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rRef.current);
   }, [data?.bot?.isActive]);
-  const toggle = async () => { if (!data) return; setBusy(true); await fetch(`${API}/api/admin/bot/${data.bot?.isActive ? 'stop' : 'start'}`, { method: 'POST', headers: getH() }).catch(console.error); await load(); setBusy(false); };
+  const toggle = async () => {
+    if (!data) return;
+    setBusy(true);
+    const action = data.bot?.isActive ? 'stop' : 'start';
+    try {
+      const r = await fetch(`${API}/api/admin/bot/${action}`, { method: 'POST', headers: { ...getH(), 'Content-Type': 'application/json' } });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        console.error(`Bot ${action} failed:`, r.status, err);
+        alert(`Erreur ${r.status}: ${err.error || 'Échec'}`);
+      }
+    } catch (e) {
+      console.error(`Bot ${action} network error:`, e);
+      alert('Erreur réseau — le serveur est peut-être en train de démarrer. Réessaie dans 30s.');
+    }
+    await load();
+    setBusy(false);
+  };
   if (loading) return (<div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #8B5CF6', borderTopColor: 'transparent', animation: 'spin .8s linear infinite' }} /><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
   const d = data!; const active = d?.bot?.isActive ?? false;
   return (

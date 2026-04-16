@@ -111,6 +111,11 @@ export class AnalyticsService {
       botIsActive: botStatus?.isActive ?? false,
       lastProspection: botStatus?.lastProspection?.toISOString() ?? null,
       lastCall: botStatus?.lastCall?.toISOString() ?? null,
+      bot: {
+        isActive: botStatus?.isActive ?? false,
+        callsToday: botStatus?.callsToday ?? 0,
+        callsQuota: botStatus?.callsQuotaDaily ?? 50,
+      },
 
       // Frontend-expected nested shape
       prospects: {
