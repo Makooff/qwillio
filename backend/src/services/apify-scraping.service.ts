@@ -146,9 +146,25 @@ export class ApifyScrapingService {
     }
   }
 
-  /** Main daily scraping job */
+  /** Main daily scraping job — only runs if callable prospects are running low */
   async runDailyScraping(): Promise<number> {
-    logger.info('[Apify] Starting daily scraping run...');
+    // Check how many callable prospects remain before spending Apify credits
+    const callableCount = await prisma.prospect.count({
+      where: {
+        status: 'new',
+        phone: { not: null },
+        callAttempts: { lt: 3 },
+        NOT: { phoneValidated: false, phoneValidatedAt: { not: null } }, // exclude invalid phones
+      },
+    });
+
+    const MIN_CALLABLE = 50; // Only scrape when below this threshold
+    if (callableCount >= MIN_CALLABLE) {
+      logger.info(`[Apify] Skipping scrape — ${callableCount} callable prospects remaining (threshold: ${MIN_CALLABLE})`);
+      return 0;
+    }
+
+    logger.info(`[Apify] Only ${callableCount} callable prospects left (< ${MIN_CALLABLE}) — starting scrape...`);
     let totalAdded = 0;
 
     for (const { niche, queries, cities } of SCRAPE_QUERIES) {
