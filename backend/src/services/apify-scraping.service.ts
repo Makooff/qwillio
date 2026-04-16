@@ -98,6 +98,10 @@ export class ApifyScrapingService {
       if (!startRes || !startRes.ok) {
         const body = startRes ? await startRes.text().catch(() => '') : '(no response)';
         logger.error(`[Apify] Failed to start actor ${actorId} (key: ${keyPreview}): HTTP ${startRes?.status ?? 0} — ${body.slice(0, 300)}`);
+        // On 402 (billing), throw special error to abort entire batch — no point retrying
+        if (startRes?.status === 402) {
+          throw new Error('APIFY_BILLING_EXHAUSTED');
+        }
         return [];
       }
 
@@ -208,7 +212,11 @@ export class ApifyScrapingService {
               });
               totalAdded++;
             }
-          } catch (err) {
+          } catch (err: any) {
+            if (err?.message === 'APIFY_BILLING_EXHAUSTED') {
+              logger.error('[Apify] Billing exhausted — aborting all scraping. Recharge at https://console.apify.com/billing');
+              return totalAdded;
+            }
             logger.error(`[Apify] Error scraping "${query} ${city}":`, err);
           }
         }
