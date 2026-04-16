@@ -19,8 +19,44 @@ import { emitEvent } from '../config/socket';
 export const INTEREST_QUALIFIED = 7;  // >= 7 = qualified, auto-start free trial
 export const INTEREST_INTERESTED = 4; // >= 4 = interested, send follow-up sequence
 
+// ── VAPI daily limit circuit breaker ──
+// When VAPI returns "Daily Outbound Call Limit" (their own cap on free-tier numbers),
+// pause all outbound calls until next day's reset (00:00 UTC) to avoid spam and wasted API calls.
+let vapiDailyLimitResumeAt: Date | null = null;
+let vapiDailyLimitNotified = false;
+
+function isVapiDailyLimitError(err: unknown): boolean {
+  const msg = (err as Error)?.message || '';
+  return msg.includes('Daily Outbound Call Limit') || msg.includes('Numbers Bought On Vapi Have A Daily');
+}
+
+function setVapiDailyLimitPause(): void {
+  // Resume at next 00:00 UTC (VAPI resets daily at midnight UTC)
+  const tomorrow = new Date();
+  tomorrow.setUTCHours(24, 5, 0, 0); // 00:05 UTC tomorrow (5 min buffer)
+  vapiDailyLimitResumeAt = tomorrow;
+}
+
+function isVapiDailyLimitActive(): boolean {
+  if (!vapiDailyLimitResumeAt) return false;
+  if (Date.now() >= vapiDailyLimitResumeAt.getTime()) {
+    // Reset — we're past the pause window
+    vapiDailyLimitResumeAt = null;
+    vapiDailyLimitNotified = false;
+    return false;
+  }
+  return true;
+}
+
 export class VapiService {
   async callNextProspect(): Promise<boolean> {
+    // ── 0. VAPI daily limit circuit breaker ─────────────────
+    if (isVapiDailyLimitActive()) {
+      const resumeIn = Math.round((vapiDailyLimitResumeAt!.getTime() - Date.now()) / 60000);
+      logger.debug(`VAPI daily call limit hit — paused, resumes in ${resumeIn} min`);
+      return false;
+    }
+
     // ── 1. Time checks (no DB queries, fast exit) ──────────
     const now = new Date();
     const usEastern = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
@@ -250,8 +286,22 @@ export class VapiService {
 
       return true;
     } catch (error) {
-      logger.error(`Error calling prospect ${prospect.businessName}:`, error);
-      await discordService.notify(`❌ CALL ERROR: ${prospect.businessName} - ${(error as Error).message}`);
+      // ── Detect VAPI daily call limit — trigger circuit breaker ──
+      if (isVapiDailyLimitError(error)) {
+        setVapiDailyLimitPause();
+        const resumeAt = vapiDailyLimitResumeAt!.toISOString();
+        logger.warn(`⚠️ VAPI daily outbound limit hit — pausing calls until ${resumeAt}`);
+        if (!vapiDailyLimitNotified) {
+          vapiDailyLimitNotified = true;
+          await discordService.notify(
+            `⏸️ **VAPI daily limit reached** — calls paused until ${resumeAt} UTC.\n` +
+            `Import a Twilio number in VAPI dashboard to remove this limit.`
+          );
+        }
+      } else {
+        logger.error(`Error calling prospect ${prospect.businessName}:`, error);
+        await discordService.notify(`❌ CALL ERROR: ${prospect.businessName} - ${(error as Error).message}`);
+      }
 
       // ── Rollback quota increment — VAPI call failed, shouldn't count ──
       try {
