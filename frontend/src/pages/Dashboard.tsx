@@ -4,7 +4,23 @@ import { useNavigate } from 'react-router-dom';
 const API = 'https://qwillio.onrender.com';
 const getH = (): Record<string, string> => { const t = localStorage.getItem('token'); return t ? { Authorization: `Bearer ${t}` } : {}; };
 const fmt = (iso: string) => { if (!iso) return ''; const d = new Date(iso), diff = Date.now() - d.getTime(); if (diff < 3600000) return `${Math.floor(diff/60000)}min`; if (diff < 86400000) return `${Math.floor(diff/3600000)}h`; return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); };
-const MSGS = ['Analyse des prospects...', 'Passage d\'appels...', 'Qualification leads...', 'Sync CRM...', 'Évaluation scores...'];
+const MSGS = [
+  'Scraping Google Maps prospects...',
+  'Validation numéros Twilio...',
+  'Appel sortant en cours...',
+  'Analyse transcript IA...',
+  'Scoring prospects 0-22...',
+  'Envoi SMS post-appel...',
+  'Séquence follow-up email...',
+  'Détection hot leads...',
+  'A/B test scripts Ashley...',
+  'Optimisation horaires d\'appel...',
+  'Analyse sentiments appels...',
+  'Tracking objections clients...',
+  'Apprentissage niche IA...',
+  'Mutation scripts self-learning...',
+  'Relance prospects intéressés...',
+];
 const C: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (<div style={{ background: '#161616', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', ...style }}>{children}</div>);
 interface D { prospects: { total: number; newThisMonth: number }; clients: { totalActive: number; newThisMonth: number }; revenue: { mrr: number }; calls: { today: number; thisWeek: number }; bot: { isActive: boolean; callsToday: number; callsQuota: number }; activity: any[]; }
 const Dashboard: React.FC = () => {
