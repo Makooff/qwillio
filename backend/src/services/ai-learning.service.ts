@@ -27,7 +27,7 @@ export class AiLearningService {
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4-turbo',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
@@ -149,7 +149,7 @@ Return JSON: { "dropOffPoint": "...", "confidence": N, "reason": "..." }`,
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -328,7 +328,7 @@ Return JSON: { "change": "the new text to use", "reason": "why this should impro
             'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
           },
           body: JSON.stringify({
-            model: 'gpt-4-turbo',
+            model: 'gpt-4o',
             messages: [
               {
                 role: 'system',

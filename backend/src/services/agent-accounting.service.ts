@@ -101,7 +101,7 @@ export class AgentAccountingService {
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4-turbo',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
@@ -414,7 +414,7 @@ Return JSON: {"category": "...", "confidence": 0.0-1.0}`,
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4-turbo',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',

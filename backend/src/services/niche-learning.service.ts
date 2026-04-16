@@ -19,7 +19,7 @@ export class NicheLearningService {
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4-turbo',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
@@ -183,7 +183,7 @@ Only include genuinely useful insights — skip generic ones. Max 3 insights per
             'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
           },
           body: JSON.stringify({
-            model: 'gpt-4-turbo',
+            model: 'gpt-4o',
             messages: [
               {
                 role: 'system',

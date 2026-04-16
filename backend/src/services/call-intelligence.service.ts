@@ -65,7 +65,7 @@ async function callAI(prompt: string, maxTokens = 1000): Promise<any | null> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${env.OPENAI_API_KEY}` },
         body: JSON.stringify({
-          model: 'gpt-4-turbo', messages: [{ role: 'user', content: prompt }],
+          model: 'gpt-4o', messages: [{ role: 'user', content: prompt }],
           temperature: 0.2, response_format: { type: 'json_object' }, max_tokens: maxTokens,
         }),
       });

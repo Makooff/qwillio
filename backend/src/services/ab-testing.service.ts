@@ -199,7 +199,7 @@ Return ONLY the opening script text, no explanation.`,
             'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
           },
           body: JSON.stringify({
-            model: 'gpt-4-turbo',
+            model: 'gpt-4o',
             messages: [{
               role: 'user',
               content: `You are an expert cold call script writer for Qwillio (AI receptionist SaaS).

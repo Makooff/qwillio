@@ -34,7 +34,7 @@ export const env = {
   VAPI_PHONE_NUMBER: process.env.VAPI_PHONE_NUMBER || '',
   VAPI_PHONE_NUMBER_ID: process.env.VAPI_PHONE_NUMBER_ID || '',
   VAPI_BASE_URL: process.env.VAPI_BASE_URL || 'https://api.vapi.ai',
-  VAPI_MODEL: process.env.VAPI_MODEL || 'gpt-4-turbo',
+  VAPI_MODEL: process.env.VAPI_MODEL || 'gpt-4o',
   VAPI_VOICE_ID: process.env.VAPI_VOICE_ID || '21m00Tcm4TlvDq8ikWAM', // Rachel (ElevenLabs)
   VAPI_VOICE_FALLBACK_1: process.env.VAPI_VOICE_FALLBACK_1 || 'MF3mGyEYCl7XYWbV9V6O', // Elli
   VAPI_VOICE_FALLBACK_2: process.env.VAPI_VOICE_FALLBACK_2 || 'EXAVITQu4vr4xnSDxMaL', // Bella
