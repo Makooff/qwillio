@@ -72,7 +72,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     {d.bot?.nextAction && (
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        ○ {d.bot.nextAction.name} — {d.bot.nextAction.inMinutes < 60 ? `${d.bot.nextAction.inMinutes}min` : `${Math.floor(d.bot.nextAction.inMinutes / 60)}h${d.bot.nextAction.inMinutes % 60 > 0 ? (d.bot.nextAction.inMinutes % 60 + 'min') : ''}`}
+                        ○ {d.bot.nextAction.name} — dans {d.bot.nextAction.inMinutes < 60 ? `${d.bot.nextAction.inMinutes} min` : `${Math.floor(d.bot.nextAction.inMinutes / 60)}h${d.bot.nextAction.inMinutes % 60 > 0 ? String(d.bot.nextAction.inMinutes % 60).padStart(2, '0') : ''}`}
                       </div>
                     )}
                   </div>
