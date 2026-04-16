@@ -2,7 +2,7 @@
  * In-memory bot activity tracker — stores recent real actions for dashboard display
  */
 
-interface BotAction {
+export interface BotAction {
   message: string;
   timestamp: string;
 }
