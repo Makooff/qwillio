@@ -106,6 +106,23 @@ export class WebhooksController {
           const transcript = event.message?.transcript || event.transcript || '';
           const duration = event.message?.call?.duration || event.call?.duration || 0;
           const recordingUrl = event.message?.recordingUrl || event.recordingUrl;
+          const endedReason = event.message?.endedReason || event.endedReason || '';
+
+          // Voicemail detected by VAPI AMD — short-circuit, no need to analyze empty transcript
+          if (callId && (endedReason === 'voicemail' || endedReason === 'customer-did-not-answer' || endedReason === 'twilio-failed-to-connect-call')) {
+            logger.info(`📼 Call ${callId} ended: ${endedReason} — marking as voicemail/no-answer, will retry later`);
+            await prisma.call.updateMany({
+              where: { vapiCallId: callId },
+              data: {
+                status: 'completed',
+                endedAt: new Date(),
+                duration,
+                outcome: endedReason === 'voicemail' ? 'voicemail' : 'no-answer',
+                recordingUrl: recordingUrl || undefined,
+              },
+            });
+            break;
+          }
 
           if (callId) {
             await vapiService.handleCallCompleted(callId, transcript, duration, recordingUrl);

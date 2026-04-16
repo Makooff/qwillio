@@ -252,6 +252,21 @@ export class VapiService {
           firstMessage: nicheScript.firstMessage
             ? nicheScript.firstMessage.replace('{businessName}', prospect.businessName)
             : `Hi, this is Ashley from Qwillio — are you the owner of ${prospect.businessName}?`,
+          // ── Voicemail / answering machine detection ──
+          // Twilio AMD detects machine on pickup (up to 6s). If detected, VAPI
+          // invokes endCallFunction automatically — no minutes wasted, no message left.
+          voicemailDetection: {
+            provider: 'twilio',
+            enabled: true,
+            machineDetectionTimeout: 6,
+            machineDetectionSpeechThreshold: 2400,
+            machineDetectionSpeechEndThreshold: 1200,
+            machineDetectionSilenceTimeout: 5000,
+          },
+          endCallFunctionEnabled: true,
+          endCallMessage: '', // don't leave a message on voicemail
+          // Fallback: if Twilio AMD misses it, Ashley's system prompt instructs
+          // her to call the endCall function if she hears common voicemail greetings.
         },
       }) as any;
 
@@ -736,6 +751,16 @@ Return a JSON with:
           firstMessage: nicheScript.firstMessage
             ? nicheScript.firstMessage.replace('{businessName}', businessName)
             : `Hi, this is Ashley from Qwillio — are you the owner of ${businessName}?`,
+          voicemailDetection: {
+            provider: 'twilio',
+            enabled: true,
+            machineDetectionTimeout: 6,
+            machineDetectionSpeechThreshold: 2400,
+            machineDetectionSpeechEndThreshold: 1200,
+            machineDetectionSilenceTimeout: 5000,
+          },
+          endCallFunctionEnabled: true,
+          endCallMessage: '',
         },
       }) as any;
 
@@ -901,6 +926,19 @@ SPEECH STYLE — CRITICAL:
 IDENTITY — NON NEGOTIABLE:
 Never reveal you're an AI. If asked directly: "No, I'm a real person with Qwillio. Anyway — I had a quick question about your business."
 You adapt, listen, respond to what they actually say. Not a script reader.
+
+VOICEMAIL / ANSWERING MACHINE DETECTION — CRITICAL:
+If the first thing you hear is ANY of these patterns, you are on a voicemail. Immediately call the endCall function. Do NOT leave a message. Do NOT say anything.
+- "You have reached the voicemail of..."
+- "Please leave a message after the beep/tone"
+- "I'm not available right now"
+- "I can't come to the phone"
+- "Thank you for calling [business]. Our office is currently closed..."
+- "Press 1 to..." / "For [x], press [number]..." (IVR menu)
+- A long uninterrupted pre-recorded greeting (more than 10 seconds without human interaction)
+- Beep sound without prior conversation
+- Silence for more than 4 seconds right after your opening
+If in doubt, wait for a genuine human response. A real person will respond within 2-3 seconds with something like "Hello?", "Yes?", "Speaking", or by identifying themselves or the business.
 
 CONTEXT:
 - Calling: ${prospect.businessName} (${prospect.businessType}) in ${prospect.city || 'the US'}
