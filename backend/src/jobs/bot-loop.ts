@@ -27,6 +27,7 @@ import { callIntelligenceService } from '../services/call-intelligence.service';
 import { followUpSequencesService } from '../services/follow-up-sequences.service';
 import { prospectScoringService } from '../services/prospect-scoring.service';
 import { stripeService } from '../services/stripe.service';
+import { trackAction } from '../utils/bot-activity';
 
 class BotLoop {
   // ─── Last-run timestamps (in-memory, reset on restart) ───
@@ -114,8 +115,10 @@ class BotLoop {
       if (!status?.isActive) return;
 
       logger.info('🔍 [CRON] Starting daily prospection...');
+      trackAction('Prospection quotidienne — scraping nouveaux prospects');
       try {
         const count = await prospectionService.runDailyProspection();
+        trackAction(`${count} nouveaux prospects ajoutés`);
         await discordService.notify(`🔍 DAILY PROSPECTION\n\n${count} new prospects added`);
       } catch (error) {
         logger.error('[CRON] Prospection failed:', error);
@@ -132,6 +135,7 @@ class BotLoop {
       if (!status?.isActive) return;
 
       logger.info('📞 [CRON] Attempting next call...');
+      trackAction('Appel sortant — sélection prospect');
       try {
         await vapiService.callNextProspect();
       } catch (error) {
@@ -147,9 +151,11 @@ class BotLoop {
       if (!status?.isActive) return;
 
       logger.info('📧 [CRON] Processing reminders...');
+      trackAction('Traitement rappels & follow-ups');
       try {
         const count = await reminderService.processReminders();
         if (count > 0) {
+          trackAction(`${count} rappel(s) traité(s)`);
           logger.info(`[CRON] ${count} reminders processed`);
         }
       } catch (error) {
@@ -162,6 +168,7 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.analyticsJob = cron.schedule('55 23 * * *', async () => {
       logger.info('📊 [CRON] Aggregating daily analytics...');
+      trackAction('Agrégation analytics quotidienne');
       try {
         await analyticsService.aggregateDaily();
       } catch (error) {
@@ -174,6 +181,7 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.dailyResetJob = cron.schedule('1 0 * * *', async () => {
       logger.info('🔄 [CRON] Daily reset...');
+      trackAction('Reset quota appels journalier');
       try {
         const botStatusRecord = await prisma.botStatus.findFirst();
         if (botStatusRecord) {
@@ -193,6 +201,7 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.trialCheckJob = cron.schedule('0 8 * * *', async () => {
       logger.info('⏰ [CRON] Checking trial expirations...');
+      trackAction('Vérification expiration essais gratuits');
       try {
         // Find trials that expired but weren't caught by reminders
         const expiredTrials = await prisma.client.findMany({
@@ -295,8 +304,10 @@ class BotLoop {
     // TODO: Filter to enterprise-only inside the service or pass a filter param.
     this.optimizationJob = cron.schedule('0 0 * * 0', async () => {
       logger.info('🔧 [CRON] Running weekly AI optimization (enterprise-only)...');
+      trackAction('Optimisation IA assistants vocaux');
       try {
         const count = await optimizationService.runWeeklyOptimization();
+        trackAction(`${count} assistant(s) optimisé(s)`);
         logger.info(`[CRON] ${count} assistant(s) optimized`);
       } catch (error) {
         logger.error('[CRON] AI optimization failed:', error);
@@ -311,6 +322,7 @@ class BotLoop {
       try {
         const validated = await phoneValidationService.validateBatch(10);
         if (validated > 0) {
+          trackAction(`Validation Twilio — ${validated} numéro(s) vérifié(s)`);
           logger.info(`[CRON] ${validated} phone number(s) validated`);
         }
       } catch (error) {
@@ -325,8 +337,10 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.nicheLearningJob = cron.schedule('0 1 * * 0', async () => {
       logger.info('🧠 [CRON] Running weekly niche learning aggregation...');
+      trackAction('Apprentissage IA — analyse niches hebdomadaire');
       try {
         const count = await nicheLearningService.runWeeklyAggregation();
+        trackAction(`IA niches: ${count} niche(s) analysée(s)`);
         logger.info(`[CRON] Niche learning: ${count} niches aggregated`);
       } catch (error) {
         logger.error('[CRON] Niche learning aggregation failed:', error);
@@ -352,6 +366,7 @@ class BotLoop {
           },
         });
         if (staleCalls.count > 0) {
+          trackAction(`Nettoyage ${staleCalls.count} appel(s) bloqué(s)`);
           logger.warn(`[CRON] Cleaned up ${staleCalls.count} stale in-progress call(s)`);
           await discordService.notify(`🧹 Cleaned ${staleCalls.count} stale call(s) stuck in-progress`);
         }
@@ -501,8 +516,10 @@ class BotLoop {
       if (!status?.isActive) return;
 
       logger.info('🕷️ [CRON] Starting Apify scraping run...');
+      trackAction('Scraping Google Maps via Apify');
       try {
         const count = await apifyScrapingService.runDailyScraping();
+        trackAction(`Apify: ${count} prospects scrapés`);
         await discordService.notifySystem(`🕷️ APIFY SCRAPING: ${count} new prospects added`);
       } catch (error) {
         logger.error('[CRON] Apify scraping failed:', error);
@@ -518,6 +535,7 @@ class BotLoop {
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
 
+      trackAction('Moteur outbound — appel prospect');
       try {
         await outboundEngineService.callNextProspect();
       } catch (error) {
@@ -529,6 +547,7 @@ class BotLoop {
     // PROSPECTING ENGINE — CRON P3: A/B testing analysis — daily 6am UTC
     // ═══════════════════════════════════════════════════════════
     this.abTestingJob = cron.schedule('0 6 * * *', async () => {
+      trackAction('Analyse A/B test scripts');
       try {
         await abTestingService.analyzeAll();
       } catch (error) {
@@ -540,6 +559,7 @@ class BotLoop {
     // PROSPECTING ENGINE — CRON P4: Best-time learning — every 500 calls (daily trigger)
     // ═══════════════════════════════════════════════════════════
     this.bestTimeJob = cron.schedule('0 4 * * *', async () => {
+      trackAction('Optimisation horaires d\'appel');
       try {
         await bestTimeLearningService.analyzeAll();
       } catch (error) {
@@ -552,6 +572,7 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.scriptLearningJob = cron.schedule('0 1 * * 0', async () => {
       logger.info('🧠 [CRON] Running script self-learning analysis...');
+      trackAction('Self-learning — mutation scripts IA');
       try {
         await scriptLearningService.runWeeklyAnalysis();
       } catch (error) {
@@ -566,8 +587,10 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.callIntelligenceJob = cron.schedule('0 2 * * 0', async () => {
       logger.info('🧠 [CRON] Running call intelligence weekly pattern analysis...');
+      trackAction('Intelligence appels — analyse patterns hebdo');
       try {
         await callIntelligenceService.runWeeklyPatternAnalysis();
+        trackAction('Analyse intelligence appels terminée');
         logger.info('[CRON] Call intelligence weekly analysis complete');
       } catch (error) {
         logger.error('[CRON] Call intelligence weekly analysis failed:', error);
@@ -582,6 +605,7 @@ class BotLoop {
       try {
         const sent = await followUpSequencesService.processDue();
         if (sent > 0) {
+          trackAction(`${sent} follow-up(s) envoyé(s)`);
           logger.info(`[CRON] Follow-up sequences: ${sent} sent`);
         }
       } catch (error) {
@@ -596,6 +620,7 @@ class BotLoop {
       try {
         const updated = await prospectScoringService.rescoreUnscored(1000);
         if (updated > 0) {
+          trackAction(`Re-scoring ${updated} prospects`);
           logger.info(`[CRON] Re-scored ${updated} prospects`);
         }
       } catch (error) {
@@ -609,6 +634,7 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.crmSyncJob = cron.schedule('*/15 * * * *', async () => {
       logger.info('[CRON] CRM sync running...');
+      trackAction('Synchronisation CRM intégrations');
       try {
         const integrations = await prisma.crmIntegration.findMany({ where: { syncStatus: { not: 'disabled' } } });
         for (const integration of integrations) {

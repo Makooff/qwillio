@@ -1,4 +1,5 @@
 import { prisma } from '../config/database';
+import { getLastAction, getRecentActions } from '../utils/bot-activity';
 import { logger } from '../config/logger';
 
 export class AnalyticsService {
@@ -115,6 +116,8 @@ export class AnalyticsService {
         isActive: botStatus?.isActive ?? false,
         callsToday: botStatus?.callsToday ?? 0,
         callsQuota: botStatus?.callsQuotaDaily ?? 50,
+        lastAction: getLastAction(),
+        recentActions: getRecentActions(5),
       },
 
       // Frontend-expected nested shape

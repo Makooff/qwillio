@@ -4,40 +4,22 @@ import { useNavigate } from 'react-router-dom';
 const API = 'https://qwillio.onrender.com';
 const getH = (): Record<string, string> => { const t = localStorage.getItem('token'); return t ? { Authorization: `Bearer ${t}` } : {}; };
 const fmt = (iso: string) => { if (!iso) return ''; const d = new Date(iso), diff = Date.now() - d.getTime(); if (diff < 3600000) return `${Math.floor(diff/60000)}min`; if (diff < 86400000) return `${Math.floor(diff/3600000)}h`; return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); };
-const MSGS = [
-  'Scraping Google Maps prospects...',
-  'Validation numéros Twilio...',
-  'Appel sortant en cours...',
-  'Analyse transcript IA...',
-  'Scoring prospects 0-22...',
-  'Envoi SMS post-appel...',
-  'Séquence follow-up email...',
-  'Détection hot leads...',
-  'A/B test scripts Ashley...',
-  'Optimisation horaires d\'appel...',
-  'Analyse sentiments appels...',
-  'Tracking objections clients...',
-  'Apprentissage niche IA...',
-  'Mutation scripts self-learning...',
-  'Relance prospects intéressés...',
-];
 const C: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (<div style={{ background: '#161616', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', ...style }}>{children}</div>);
-interface D { prospects: { total: number; newThisMonth: number }; clients: { totalActive: number; newThisMonth: number }; revenue: { mrr: number }; calls: { today: number; thisWeek: number }; bot: { isActive: boolean; callsToday: number; callsQuota: number }; activity: any[]; }
+interface BotAction { message: string; timestamp: string; }
+interface D { prospects: { total: number; newThisMonth: number }; clients: { totalActive: number; newThisMonth: number }; revenue: { mrr: number }; calls: { today: number; thisWeek: number }; bot: { isActive: boolean; callsToday: number; callsQuota: number; lastAction?: BotAction | null; recentActions?: BotAction[] }; activity: any[]; }
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<D | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [msgIdx, setMsgIdx] = useState(0);
-  const mRef = useRef(0); const rRef = useRef<number>(0);
+  const [prevAction, setPrevAction] = useState<string>('');
+  const [actionAnim, setActionAnim] = useState(false);
   const nav = useNavigate();
-  const load = () => fetch(`${API}/api/admin/dashboard`, { headers: getH() }).then(r => r.json()).then(setData).catch(console.error).finally(() => setLoading(false));
-  useEffect(() => { load(); const id = setInterval(load, 30000); return () => clearInterval(id); }, []);
-  useEffect(() => {
-    if (!data?.bot?.isActive) return;
-    const tick = (ts: number) => { if (ts - mRef.current > 3500) { setMsgIdx(i => (i + 1) % MSGS.length); mRef.current = ts; } rRef.current = requestAnimationFrame(tick); };
-    rRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rRef.current);
-  }, [data?.bot?.isActive]);
+  const load = () => fetch(`${API}/api/admin/dashboard`, { headers: getH() }).then(r => r.json()).then((d: D) => {
+    setData(d);
+    const newAction = d?.bot?.lastAction?.message || '';
+    if (newAction && newAction !== prevAction) { setPrevAction(newAction); setActionAnim(true); setTimeout(() => setActionAnim(false), 400); }
+  }).catch(console.error).finally(() => setLoading(false));
+  useEffect(() => { load(); const id = setInterval(load, 15000); return () => clearInterval(id); }, []);
   const toggle = async () => {
     if (!data) return;
     setBusy(true);
@@ -77,7 +59,7 @@ const Dashboard: React.FC = () => {
                   <span style={{ fontSize: 15, fontWeight: 600 }}>Bot Qwillio</span>
                   {active && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', animation: 'blink 1.4s ease infinite', display: 'inline-block' }} />}
                 </div>
-                <div key={msgIdx} style={{ fontSize: 12, color: active ? '#a78bfa' : 'rgba(255,255,255,0.3)', marginTop: 2, animation: active ? 'fade-up .35s ease' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{active ? MSGS[msgIdx] : 'Inactif'}</div>
+                <div key={prevAction} style={{ fontSize: 12, color: active ? '#a78bfa' : 'rgba(255,255,255,0.3)', marginTop: 2, animation: actionAnim ? 'fade-up .35s ease' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{active ? (d.bot?.lastAction?.message || 'En attente...') : 'Inactif'}</div>
               </div>
               <button onClick={toggle} disabled={busy} style={{ padding: '7px 16px', borderRadius: 20, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: active ? 'rgba(255,59,48,0.1)' : 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: active ? 'rgba(255,80,70,0.9)' : 'white', whiteSpace: 'nowrap', opacity: busy ? 0.5 : 1, boxShadow: active ? 'none' : '0 2px 12px rgba(139,92,246,0.3)' }}>{busy ? '...' : active ? 'Arrêter' : 'Démarrer'}</button>
             </div>
