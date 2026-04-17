@@ -2,6 +2,7 @@ import winston from 'winston';
 import Transport from 'winston-transport';
 import { env } from './env';
 import { addLog } from './log-store';
+import { DiscordErrorTransport } from './discord-error-transport';
 
 /** Custom transport — captures logs in the in-memory ring buffer */
 class MemoryTransport extends Transport {
@@ -51,5 +52,9 @@ export const logger = winston.createLogger({
       ),
     }),
     new MemoryTransport(),
+    // Pipes ERROR-level logs to Discord (dedup + rate-limited, only in prod by default)
+    ...(env.NODE_ENV === 'production' || process.env.DISCORD_ERRORS_ENABLED === 'true'
+      ? [new DiscordErrorTransport()]
+      : []),
   ],
 });
