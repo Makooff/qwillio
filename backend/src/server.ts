@@ -44,6 +44,7 @@ import aiLearningRoutes from './routes/ai-learning.routes';
 import prospectingRoutes from './routes/prospecting.routes';
 import adminRoutes from './routes/admin.routes';
 import clientApiRoutes from './routes/client-api.routes';
+import autofixRoutes from './routes/autofix.routes';
 
 const app = express();
 
@@ -121,6 +122,7 @@ app.use('/api/ai', aiLearningRoutes);
 app.use('/api/prospecting', prospectingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/client', clientApiRoutes);
+app.use('/api/autofix', autofixRoutes);
 
 // ─── Contact Form ─────────────────────────────────────
 app.post('/api/contact', async (req, res) => {
