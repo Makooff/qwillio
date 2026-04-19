@@ -319,7 +319,7 @@ export default function Layout() {
 
       {/* Mobile bottom nav — floating pill */}
       <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
-        {/* Sign out — above the pill */}
+        {/* Sign out */}
         <button
           onClick={logout}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
@@ -329,25 +329,26 @@ export default function Layout() {
           Sign out
         </button>
 
-        {/* Pill nav — background div is separate so items can overflow without clip */}
-        <div className="relative w-full flex items-center justify-around px-1 py-3">
-          {/* Background layer (rounded-full here, NOT on the flex row) */}
+        {/* Pill — background is a separate absolute div, flex row has no border-radius so no clipping */}
+        <div className="relative w-full flex items-center justify-around py-3 px-2">
+          {/* Frosted glass background */}
           <div
             className="absolute inset-0 rounded-full pointer-events-none"
             style={{
-              background: 'rgba(18,18,28,0.78)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 8px 40px rgba(0,0,0,0.55)',
+              background: 'rgba(30,30,46,0.55)',
+              backdropFilter: 'blur(28px)',
+              WebkitBackdropFilter: 'blur(28px)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              boxShadow: '0 4px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
             }}
           />
+
           {[
-            { icon: LayoutDashboard, label: 'Home',     path: '/admin',           exact: true },
-            { icon: Users,           label: 'Clients',  path: '/admin/clients' },
-            { icon: Phone,           label: 'Calls',    path: '/admin/calls' },
-            { icon: TrendingUp,      label: 'Prospects',path: '/admin/prospects' },
-            { icon: Settings,        label: 'Params',   path: '/admin/settings' },
+            { icon: LayoutDashboard, label: 'Home',      path: '/admin',            exact: true },
+            { icon: Users,           label: 'Clients',   path: '/admin/clients' },
+            { icon: Phone,           label: 'Calls',     path: '/admin/calls' },
+            { icon: TrendingUp,      label: 'Prospects', path: '/admin/prospects' },
+            { icon: Settings,        label: 'Params',    path: '/admin/settings' },
           ].map(item => {
             const Icon = item.icon;
             const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
@@ -355,24 +356,26 @@ export default function Layout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className="relative z-10 flex flex-col items-center gap-0.5 px-4 py-1 transition-all"
-                style={{ color: active ? t.brand : t.textSec }}
+                className="relative z-10 flex flex-col items-center gap-0.5 w-[18%] py-0.5 transition-all"
+                style={{ color: active ? '#fff' : 'rgba(255,255,255,0.42)' }}
               >
-                {/* Active bubble — extends beyond the nav bar via negative margins */}
+                {/* Round bubble — fixed size circle centered on item, overflows pill */}
                 {active && (
                   <span
-                    className="absolute rounded-2xl transition-all"
+                    className="absolute rounded-full"
                     style={{
-                      inset: '-10px -8px',
-                      background: 'rgba(123,92,240,0.22)',
-                      backdropFilter: 'blur(16px)',
-                      WebkitBackdropFilter: 'blur(16px)',
-                      border: '1px solid rgba(123,92,240,0.3)',
-                      boxShadow: '0 0 20px rgba(123,92,240,0.15)',
+                      width: 58, height: 58,
+                      top: '50%', left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      background: 'rgba(123,92,240,0.28)',
+                      backdropFilter: 'blur(20px)',
+                      WebkitBackdropFilter: 'blur(20px)',
+                      border: '1.5px solid rgba(123,92,240,0.45)',
+                      boxShadow: '0 0 24px rgba(123,92,240,0.25), inset 0 1px 0 rgba(255,255,255,0.12)',
                     }}
                   />
                 )}
-                <Icon className="relative z-10 w-[20px] h-[20px]" />
+                <Icon className="relative z-10 w-[22px] h-[22px]" />
                 <span className="relative z-10 text-[9px] font-medium mt-0.5">{item.label}</span>
               </Link>
             );
