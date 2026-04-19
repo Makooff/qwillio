@@ -16,17 +16,9 @@ function scoreColor(s: number) {
 function fmtDateTime(iso?: string) {
   if (!iso) return null;
   const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
   const timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  if (diffDays === 0) return `Aujourd'hui · ${timeStr}`;
-  if (diffDays === 1) return `Hier · ${timeStr}`;
-  if (diffDays < 7) {
-    const day = d.toLocaleDateString('fr-FR', { weekday: 'short' });
-    return `${day.charAt(0).toUpperCase() + day.slice(1)} · ${timeStr}`;
-  }
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ` · ${timeStr}`;
+  const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  return `${dateStr} · ${timeStr}`;
 }
 
 function downloadCSV(rows: any[], filename: string) {
