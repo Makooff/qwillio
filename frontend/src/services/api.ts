@@ -21,17 +21,25 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor to handle 401 errors — clear token, let React route guards handle redirect
+// Interceptor to handle auth errors globally
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      const path = window.location.pathname;
+    const status = error.response?.status;
+    const errMsg = error.response?.data?.error;
+    const path = window.location.pathname;
+
+    if (status === 401) {
       if (path !== '/login' && path !== '/register' && path !== '/auth/confirm') {
         localStorage.removeItem('token');
-        // Don't hard-redirect — let React Router handle it via checkAuth / route guards
       }
     }
+
+    // No client profile — backend reset onboardingCompleted, redirect to onboarding
+    if (status === 404 && errMsg === 'onboarding_required' && path.startsWith('/dashboard')) {
+      window.location.href = '/onboard';
+    }
+
     return Promise.reject(error);
   }
 );

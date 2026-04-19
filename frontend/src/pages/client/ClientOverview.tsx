@@ -83,8 +83,9 @@ export default function ClientOverview() {
           setTimeout(() => load(), 3000); // retry every 3s for up to ~24s
           return;
         }
-        if (!user?.onboardingCompleted) { navigate('/onboard'); return; }
-        setError('no-profile');
+        // No client profile — interceptor already redirects, but navigate as fallback
+        navigate('/onboard');
+        return;
       } else setError(msg);
     } finally { setLoading(false); }
   }, [searchParams]);

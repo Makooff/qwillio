@@ -132,7 +132,12 @@ export async function clientMiddleware(req: AuthRequest, res: Response, next: Ne
     }
 
     if (!client) {
-      return res.status(404).json({ error: 'No client profile found' });
+      // Reset onboardingCompleted so the frontend redirects to /onboard cleanly
+      await prisma.user.update({
+        where: { id: req.userId },
+        data: { onboardingCompleted: false },
+      }).catch(() => {});
+      return res.status(404).json({ error: 'onboarding_required' });
     }
 
     (req as any).clientId = client.id;
