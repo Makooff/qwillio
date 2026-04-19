@@ -151,9 +151,53 @@ export default function ClientLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main className="flex-1 p-4 md:p-6 pb-32 md:pb-6 overflow-auto">
           <Outlet />
         </main>
+      </div>
+
+      {/* Mobile bottom nav — floating pill */}
+      <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2">
+        {/* Sign out — above the pill */}
+        <button
+          onClick={logout}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+          style={{ background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}
+        >
+          <LogOut className="w-3 h-3" />
+          Déconnexion
+        </button>
+
+        {/* Pill nav */}
+        <div
+          className="flex items-center gap-1 px-2 py-2 rounded-full shadow-2xl backdrop-blur-2xl"
+          style={{ background: 'rgba(13,13,21,0.85)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          {[
+            { icon: LayoutDashboard, label: 'Home',      path: '/dashboard',           exact: true },
+            { icon: Phone,           label: 'Appels',    path: '/dashboard/calls' },
+            { icon: Users,           label: 'Leads',     path: '/dashboard/leads' },
+            { icon: BarChart3,       label: 'Stats',     path: '/dashboard/analytics' },
+            { icon: UserCircle,      label: 'Compte',    path: '/dashboard/account' },
+          ].map(item => {
+            const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setMobileOpen(false)}
+                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-all"
+                style={{
+                  background: active ? 'rgba(123,92,240,0.2)' : 'transparent',
+                  color: active ? '#7B5CF0' : '#8B8BA7',
+                }}
+              >
+                <item.icon className="w-[18px] h-[18px]" />
+                <span className="text-[9px] font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

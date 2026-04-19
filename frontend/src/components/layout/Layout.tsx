@@ -309,7 +309,7 @@ export default function Layout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 overflow-auto">
+        <main className="flex-1 p-4 md:p-6 pb-32 md:pb-6 overflow-auto">
           <Outlet />
         </main>
       </div>
@@ -317,28 +317,48 @@ export default function Layout() {
       {/* Command Palette */}
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
 
-      {/* Mobile bottom nav */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden items-center justify-around py-2 px-1 safe-area-bottom backdrop-blur-xl"
-        style={{ background: `${t.panelSolid}E6`, borderTop: `1px solid ${t.border}` }}
-      >
-        {[
-          { icon: LayoutDashboard, label: 'Home', path: '/admin' },
-          { icon: Users, label: 'Clients', path: '/admin/clients' },
-          { icon: Phone, label: 'Calls', path: '/admin/calls' },
-          { icon: TrendingUp, label: 'Prospects', path: '/admin/prospects' },
-          { icon: Settings, label: 'Settings', path: '/admin/settings' },
-        ].map(item => {
-          const Icon = item.icon;
-          const active = location.pathname === item.path;
-          return (
-            <Link key={item.path} to={item.path} className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors"
-              style={{ color: active ? t.brand : t.textSec }}>
-              <Icon className="w-5 h-5" />
-              <span className="text-[10px]">{item.label}</span>
-            </Link>
-          );
-        })}
+      {/* Mobile bottom nav — floating pill */}
+      <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2">
+        {/* Sign out — above the pill */}
+        <button
+          onClick={logout}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+          style={{ background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}
+        >
+          <LogOut className="w-3 h-3" />
+          Sign out
+        </button>
+
+        {/* Pill nav */}
+        <div
+          className="flex items-center gap-1 px-2 py-2 rounded-full shadow-2xl backdrop-blur-2xl"
+          style={{ background: 'rgba(13,13,21,0.85)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          {[
+            { icon: LayoutDashboard, label: 'Home', path: '/admin', exact: true },
+            { icon: Users, label: 'Clients', path: '/admin/clients' },
+            { icon: Phone, label: 'Calls', path: '/admin/calls' },
+            { icon: TrendingUp, label: 'Prospects', path: '/admin/prospects' },
+            { icon: Settings, label: 'Params', path: '/admin/settings' },
+          ].map(item => {
+            const Icon = item.icon;
+            const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-all"
+                style={{
+                  background: active ? `${t.brand}20` : 'transparent',
+                  color: active ? t.brand : t.textSec,
+                }}
+              >
+                <Icon className="w-[18px] h-[18px]" />
+                <span className="text-[9px] font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
