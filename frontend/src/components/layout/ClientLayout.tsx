@@ -157,7 +157,7 @@ export default function ClientLayout() {
       </div>
 
       {/* Mobile bottom nav — floating pill */}
-      <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2">
+      <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-5">
         {/* Sign out — above the pill */}
         <button
           onClick={logout}
@@ -170,15 +170,15 @@ export default function ClientLayout() {
 
         {/* Pill nav */}
         <div
-          className="flex items-center gap-1 px-2 py-2 rounded-full shadow-2xl backdrop-blur-2xl"
-          style={{ background: 'rgba(13,13,21,0.85)', border: '1px solid rgba(255,255,255,0.08)' }}
+          className="w-full flex items-center justify-around px-3 py-2 rounded-full shadow-2xl backdrop-blur-2xl overflow-visible"
+          style={{ background: 'rgba(13,13,21,0.82)', border: '1px solid rgba(255,255,255,0.09)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
         >
           {[
-            { icon: LayoutDashboard, label: 'Home',      path: '/dashboard',           exact: true },
-            { icon: Phone,           label: 'Appels',    path: '/dashboard/calls' },
-            { icon: Users,           label: 'Leads',     path: '/dashboard/leads' },
-            { icon: BarChart3,       label: 'Stats',     path: '/dashboard/analytics' },
-            { icon: UserCircle,      label: 'Compte',    path: '/dashboard/account' },
+            { icon: LayoutDashboard, label: 'Home',   path: '/dashboard',           exact: true },
+            { icon: Phone,           label: 'Appels', path: '/dashboard/calls' },
+            { icon: Users,           label: 'Leads',  path: '/dashboard/leads' },
+            { icon: BarChart3,       label: 'Stats',  path: '/dashboard/analytics' },
+            { icon: UserCircle,      label: 'Compte', path: '/dashboard/account' },
           ].map(item => {
             const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
             return (
@@ -186,14 +186,22 @@ export default function ClientLayout() {
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
-                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-all"
-                style={{
-                  background: active ? 'rgba(123,92,240,0.2)' : 'transparent',
-                  color: active ? '#7B5CF0' : '#8B8BA7',
-                }}
+                className="relative flex flex-col items-center gap-0.5 px-3 py-2 transition-all"
+                style={{ color: active ? '#7B5CF0' : '#8B8BA7' }}
               >
-                <item.icon className="w-[18px] h-[18px]" />
-                <span className="text-[9px] font-medium">{item.label}</span>
+                {active && (
+                  <span
+                    className="absolute inset-x-0 -inset-y-2 rounded-full"
+                    style={{
+                      background: 'rgba(123,92,240,0.2)',
+                      backdropFilter: 'blur(12px)',
+                      WebkitBackdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(123,92,240,0.25)',
+                    }}
+                  />
+                )}
+                <item.icon className="relative w-5 h-5" />
+                <span className="relative text-[9px] font-medium">{item.label}</span>
               </Link>
             );
           })}
