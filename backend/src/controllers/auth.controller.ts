@@ -235,10 +235,10 @@ export class AuthController {
         return res.status(400).json({ error: 'Business name and plan are required' });
       }
 
-      const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number; stripePriceMonthly: string; stripePriceSetup: string }> = {
-        starter: { setupFee: 697, monthlyFee: 197, callsQuota: 200, stripePriceMonthly: env.STRIPE_PRICE_BASIC_MONTHLY, stripePriceSetup: env.STRIPE_PRICE_BASIC_SETUP },
-        pro:     { setupFee: 997, monthlyFee: 347, callsQuota: 500, stripePriceMonthly: env.STRIPE_PRICE_PRO_MONTHLY, stripePriceSetup: env.STRIPE_PRICE_PRO_SETUP },
-        enterprise: { setupFee: 1497, monthlyFee: 497, callsQuota: 1000, stripePriceMonthly: env.STRIPE_PRICE_ENTERPRISE_MONTHLY, stripePriceSetup: env.STRIPE_PRICE_ENTERPRISE_SETUP },
+      const PLAN_PRICING: Record<string, { monthlyFee: number; callsQuota: number; stripePriceMonthly: string }> = {
+        starter:    { monthlyFee: 197, callsQuota: 200,  stripePriceMonthly: env.STRIPE_PRICE_BASIC_MONTHLY },
+        pro:        { monthlyFee: 347, callsQuota: 500,  stripePriceMonthly: env.STRIPE_PRICE_PRO_MONTHLY },
+        enterprise: { monthlyFee: 497, callsQuota: 1000, stripePriceMonthly: env.STRIPE_PRICE_ENTERPRISE_MONTHLY },
       };
 
       // Check if Client already exists (user retrying onboarding after Stripe payment)
@@ -276,22 +276,12 @@ export class AuthController {
         if (pricing.stripePriceMonthly && env.STRIPE_SECRET_KEY) {
           try {
             const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
-            const lineItems: any[] = [];
-
-            // Monthly subscription with 30-day free trial
-            if (pricing.stripePriceMonthly) {
-              lineItems.push({ price: pricing.stripePriceMonthly, quantity: 1 });
-            }
-            // One-time setup fee
-            if (pricing.stripePriceSetup) {
-              lineItems.push({ price: pricing.stripePriceSetup, quantity: 1 });
-            }
 
             const sessionParams: any = {
               mode: 'subscription',
               customer_email: user.email,
               client_reference_id: user.id,
-              line_items: lineItems.length > 0 ? lineItems : [{ price: pricing.stripePriceMonthly, quantity: 1 }],
+              line_items: [{ price: pricing.stripePriceMonthly, quantity: 1 }],
               success_url: `${frontendUrl}/dashboard?payment=success`,
               cancel_url: `${frontendUrl}/onboard?payment=cancelled`,
               subscription_data: {
