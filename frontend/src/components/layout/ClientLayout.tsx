@@ -162,22 +162,21 @@ export default function ClientLayout() {
         <button
           onClick={logout}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-          style={{ background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}
+          style={{ background: 'rgba(239,68,68,0.10)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.18)' }}
         >
           <LogOut className="w-3 h-3" />
           Déconnexion
         </button>
 
         <div className="relative w-full flex items-center justify-around py-3 px-2">
-          {/* Frosted glass background */}
+          {/* Ultra-transparent frosted background */}
           <div
             className="absolute inset-0 rounded-full pointer-events-none"
             style={{
-              background: 'rgba(255,255,255,0.07)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              border: '1px solid rgba(255,255,255,0.10)',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.04)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.08)',
             }}
           />
 
@@ -194,21 +193,28 @@ export default function ClientLayout() {
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
-                className="relative z-10 flex flex-col items-center gap-0.5 w-[18%] py-0.5 transition-all"
-                style={{ color: active ? '#fff' : 'rgba(255,255,255,0.42)' }}
+                className="relative z-10 flex flex-col items-center gap-0.5 w-[18%] py-0.5"
+                style={{ color: active ? '#fff' : 'rgba(255,255,255,0.38)' }}
               >
                 {active && (
-                  <span
+                  <motion.span
+                    layoutId="client-nav-bubble"
                     className="absolute rounded-full"
                     style={{
-                      width: 64, height: 64,
+                      width: 68, height: 68,
                       top: '50%', left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      background: 'rgba(123,92,240,0.28)',
+                      x: '-50%', y: '-50%',
+                      background: 'rgba(123,92,240,0.30)',
                       backdropFilter: 'blur(20px)',
                       WebkitBackdropFilter: 'blur(20px)',
-                      border: '1.5px solid rgba(123,92,240,0.45)',
-                      boxShadow: '0 0 24px rgba(123,92,240,0.25), inset 0 1px 0 rgba(255,255,255,0.12)',
+                      border: '1.5px solid rgba(123,92,240,0.50)',
+                      boxShadow: '0 0 28px rgba(123,92,240,0.30), inset 0 1px 0 rgba(255,255,255,0.14)',
+                    }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 380,
+                      damping: 26,
+                      mass: 0.8,
                     }}
                   />
                 )}
