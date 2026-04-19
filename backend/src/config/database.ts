@@ -45,8 +45,9 @@ const prisma = basePrisma.$extends({
           const isRetryable = RETRYABLE_ERRORS.some(e => msg.includes(e));
           if (isRetryable && attempt < MAX_RETRIES) {
             logger.debug(`Neon connection lost, retrying query (attempt ${attempt + 1}/${MAX_RETRIES})...`);
-            // Short delay before retry to let Prisma open a fresh connection
-            await new Promise(r => setTimeout(r, 100 * (attempt + 1)));
+            await new Promise(r => setTimeout(r, 300 * Math.pow(2, attempt)));
+            // Force a fresh connection before retrying
+            try { await basePrisma.$connect(); } catch { /* ignore */ }
             continue;
           }
           throw error;
