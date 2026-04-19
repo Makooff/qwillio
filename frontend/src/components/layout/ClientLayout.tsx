@@ -158,16 +158,6 @@ export default function ClientLayout() {
 
       {/* Mobile bottom nav — floating pill */}
       <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
-        {/* Sign out */}
-        <button
-          onClick={logout}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-          style={{ background: 'rgba(239,68,68,0.10)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.18)' }}
-        >
-          <LogOut className="w-3 h-3" />
-          Déconnexion
-        </button>
-
         <div className="relative w-full flex items-center justify-around py-3 px-2">
           {/* Ultra-transparent frosted background */}
           <div
