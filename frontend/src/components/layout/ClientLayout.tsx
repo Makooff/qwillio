@@ -173,11 +173,11 @@ export default function ClientLayout() {
           <div
             className="absolute inset-0 rounded-full pointer-events-none"
             style={{
-              background: 'rgba(30,30,46,0.55)',
-              backdropFilter: 'blur(28px)',
-              WebkitBackdropFilter: 'blur(28px)',
+              background: 'rgba(255,255,255,0.07)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
               border: '1px solid rgba(255,255,255,0.10)',
-              boxShadow: '0 4px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)',
             }}
           />
 
@@ -201,7 +201,7 @@ export default function ClientLayout() {
                   <span
                     className="absolute rounded-full"
                     style={{
-                      width: 58, height: 58,
+                      width: 64, height: 64,
                       top: '50%', left: '50%',
                       transform: 'translate(-50%, -50%)',
                       background: 'rgba(123,92,240,0.28)',
