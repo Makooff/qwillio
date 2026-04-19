@@ -116,7 +116,7 @@ export class WebhooksController {
               data: {
                 status: 'completed',
                 endedAt: new Date(),
-                duration,
+                durationSeconds: duration,
                 outcome: endedReason === 'voicemail' ? 'voicemail' : 'no-answer',
                 recordingUrl: recordingUrl || undefined,
               },
