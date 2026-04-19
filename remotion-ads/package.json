@@ -1,5 +1,9 @@
 {
   "dependencies": {
-    "@remotion/google-fonts": "^4.0.448"
+    "@remotion/bundler": "^4.0.290",
+    "@remotion/cli": "^4.0.290",
+    "@remotion/google-fonts": "^4.0.448",
+    "@remotion/renderer": "^4.0.290",
+    "remotion": "^4.0.290"
   }
 }
