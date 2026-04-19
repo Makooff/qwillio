@@ -318,28 +318,36 @@ export default function Layout() {
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
 
       {/* Mobile bottom nav — floating pill */}
-      <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-5">
+      <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
         {/* Sign out — above the pill */}
         <button
           onClick={logout}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
           style={{ background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}
         >
           <LogOut className="w-3 h-3" />
           Sign out
         </button>
 
-        {/* Pill nav */}
-        <div
-          className="w-full flex items-center justify-around px-3 py-2 rounded-full shadow-2xl backdrop-blur-2xl overflow-visible"
-          style={{ background: 'rgba(13,13,21,0.82)', border: '1px solid rgba(255,255,255,0.09)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
-        >
+        {/* Pill nav — background div is separate so items can overflow without clip */}
+        <div className="relative w-full flex items-center justify-around px-1 py-3">
+          {/* Background layer (rounded-full here, NOT on the flex row) */}
+          <div
+            className="absolute inset-0 rounded-full pointer-events-none"
+            style={{
+              background: 'rgba(18,18,28,0.78)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 8px 40px rgba(0,0,0,0.55)',
+            }}
+          />
           {[
-            { icon: LayoutDashboard, label: 'Home', path: '/admin', exact: true },
-            { icon: Users, label: 'Clients', path: '/admin/clients' },
-            { icon: Phone, label: 'Calls', path: '/admin/calls' },
-            { icon: TrendingUp, label: 'Prospects', path: '/admin/prospects' },
-            { icon: Settings, label: 'Params', path: '/admin/settings' },
+            { icon: LayoutDashboard, label: 'Home',     path: '/admin',           exact: true },
+            { icon: Users,           label: 'Clients',  path: '/admin/clients' },
+            { icon: Phone,           label: 'Calls',    path: '/admin/calls' },
+            { icon: TrendingUp,      label: 'Prospects',path: '/admin/prospects' },
+            { icon: Settings,        label: 'Params',   path: '/admin/settings' },
           ].map(item => {
             const Icon = item.icon;
             const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
@@ -347,22 +355,25 @@ export default function Layout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className="relative flex flex-col items-center gap-0.5 px-3 py-2 transition-all"
+                className="relative z-10 flex flex-col items-center gap-0.5 px-4 py-1 transition-all"
                 style={{ color: active ? t.brand : t.textSec }}
               >
+                {/* Active bubble — extends beyond the nav bar via negative margins */}
                 {active && (
                   <span
-                    className="absolute inset-x-0 -inset-y-2 rounded-full"
+                    className="absolute rounded-2xl transition-all"
                     style={{
-                      background: `${t.brand}22`,
-                      backdropFilter: 'blur(12px)',
-                      WebkitBackdropFilter: 'blur(12px)',
-                      border: `1px solid ${t.brand}30`,
+                      inset: '-10px -8px',
+                      background: 'rgba(123,92,240,0.22)',
+                      backdropFilter: 'blur(16px)',
+                      WebkitBackdropFilter: 'blur(16px)',
+                      border: '1px solid rgba(123,92,240,0.3)',
+                      boxShadow: '0 0 20px rgba(123,92,240,0.15)',
                     }}
                   />
                 )}
-                <Icon className="relative w-5 h-5" />
-                <span className="relative text-[9px] font-medium">{item.label}</span>
+                <Icon className="relative z-10 w-[20px] h-[20px]" />
+                <span className="relative z-10 text-[9px] font-medium mt-0.5">{item.label}</span>
               </Link>
             );
           })}
