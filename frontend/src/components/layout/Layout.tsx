@@ -226,7 +226,7 @@ export default function Layout() {
             <motion.aside
               initial={{ x: -240 }} animate={{ x: 0 }} exit={{ x: -240 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] px-4 py-5"
+              className="md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] px-4 pt-5 pb-28"
               style={{ background: t.panelSolid, borderRight: `1px solid ${t.border}` }}
             >
               <button
