@@ -347,7 +347,7 @@ export default function Layout() {
             { icon: Users,           label: 'Clients',   path: '/admin/clients' },
             { icon: Phone,           label: 'Calls',     path: '/admin/calls' },
             { icon: TrendingUp,      label: 'Prospects', path: '/admin/prospects' },
-            { icon: Settings,        label: 'Params',    path: '/admin/settings' },
+            { icon: ScrollText,      label: 'Logs',      path: '/admin/logs' },
           ].map(item => {
             const Icon = item.icon;
             const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
