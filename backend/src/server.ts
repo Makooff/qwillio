@@ -95,6 +95,10 @@ app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// ─── Static assets (video ads, etc.) ─────────────────────
+import path from 'path';
+app.use('/public', express.static(path.join(__dirname, '../public')));
+
 // ─── Request Logging ─────────────────────────────────────
 app.use((req, _res, next) => {
   if (!req.path.includes('/webhooks/')) {
