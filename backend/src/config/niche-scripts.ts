@@ -34,7 +34,7 @@ export const NICHE_SCRIPTS: Record<string, NicheScript> = {
     setupFeeObjection: `At 11 missed calls a week you'd make it back in two weeks. We can also split setup into 3 payments. Work for you?`,
     callWindow: { start: '08:30', end: '10:00' },
     priority: 6,
-    firstMessage: `Hi, Ashley from Qwillio — is this the front desk?`,
+    firstMessage: `Hello?`,
     opener: `Hi, Ashley from Qwillio. Quick question — how many calls go to voicemail on a busy day?`,
     painPoints: [
       'Missed calls during procedures mean lost new patients',
@@ -60,7 +60,7 @@ export const NICHE_SCRIPTS: Record<string, NicheScript> = {
     setupFeeObjection: `One retained client covers it. We can also split setup into 3 payments — most firms start there.`,
     callWindow: { start: '10:00', end: '12:00' },
     priority: 5,
-    firstMessage: `Hi, Ashley from Qwillio — got 30 seconds?`,
+    firstMessage: `Hello?`,
     opener: `Hi, Ashley from Qwillio. When someone calls after an accident and your firm is closed — where does that call go?`,
     painPoints: [
       'After-hours calls from potential clients who never call back',
@@ -86,7 +86,7 @@ export const NICHE_SCRIPTS: Record<string, NicheScript> = {
     setupFeeObjection: `5 missed bookings a week pays for it in under a month. We can split it over 3 payments too. Better?`,
     callWindow: { start: '10:00', end: '12:00' },
     priority: 4,
-    firstMessage: `Hi, Ashley from Qwillio — one quick question?`,
+    firstMessage: `Hello?`,
     opener: `Hi, Ashley from Qwillio. How many times a day does your phone ring while you're in a client's hair?`,
     painPoints: [
       'Missed booking calls when stylists are with clients',
@@ -112,7 +112,7 @@ export const NICHE_SCRIPTS: Record<string, NicheScript> = {
     setupFeeObjection: `50 covers on a Friday pays for it in one night. We can split into 3 payments too.`,
     callWindow: { start: '14:00', end: '16:00' },
     priority: 3,
-    firstMessage: `Hi, Ashley from Qwillio — one quick one?`,
+    firstMessage: `Hello?`,
     opener: `Hi, Ashley from Qwillio. Friday dinner rush — kitchen slammed, every table full, phone rings. What happens?`,
     painPoints: [
       'Missed reservation calls during rush hours',
@@ -138,7 +138,7 @@ export const NICHE_SCRIPTS: Record<string, NicheScript> = {
     setupFeeObjection: `Two direct bookings and it's paid for. We can split into 3 payments too — most hotels start that way.`,
     callWindow: { start: '14:00', end: '17:00' },
     priority: 2,
-    firstMessage: `Hi, Ashley from Qwillio — quick question about your bookings?`,
+    firstMessage: `Hello?`,
     opener: `Hi, Ashley from Qwillio. Guest calls at 11pm asking about availability — front desk closed. Where does that call go?`,
     painPoints: [
       'Missing after-hours booking calls from travelers',
@@ -164,7 +164,7 @@ export const NICHE_SCRIPTS: Record<string, NicheScript> = {
     setupFeeObjection: `One repair job covers it. We can split setup into 3 payments — most shops prefer that.`,
     callWindow: { start: '08:00', end: '10:00' },
     priority: 1,
-    firstMessage: `Hi, Ashley from Qwillio — is this the shop owner?`,
+    firstMessage: `Hello?`,
     opener: `Hi, Ashley from Qwillio. Your team's under the hood, phone rings — what's your process to not lose that customer?`,
     painPoints: [
       'Missed calls when mechanics are busy in the shop',
@@ -192,7 +192,7 @@ export const DEFAULT_SCRIPT: NicheScript = {
   setupFeeObjection: `We can split setup into 3 payments. Works better?`,
   callWindow: { start: '09:00', end: '17:00' },
   priority: 0,
-  firstMessage: `Hi, Ashley from Qwillio — got 30 seconds?`,
+  firstMessage: `Hello?`,
   opener: `Hi, Ashley from Qwillio. When you're busy with a customer and the phone rings — what happens to that call?`,
   painPoints: [
     'Missed calls leading to lost customers',
