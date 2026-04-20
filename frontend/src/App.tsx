@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/layout/Layout';
 import ClientLayout from './components/layout/ClientLayout';
 import QwillioLoader from './components/QwillioLoader';
+import AppBootOverlay from './components/AppBootOverlay';
 // Eager-loaded entry points (Landing, Login, Register, ConfirmEmail)
 import Login from './pages/Login';
 import Landing from './pages/Landing';
@@ -134,6 +135,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <AppBootOverlay />
       <GoogleOAuthProvider clientId={googleClientId}>
       <BrowserRouter>
       <ScrollToTop />
