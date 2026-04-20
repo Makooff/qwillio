@@ -1,11 +1,9 @@
 /**
- * Qwillio animated loader — two luminous bubbles enter from the left and
- * right edges of the screen. They start slightly smaller than the final
- * logo and grow progressively as they travel toward the centre, reaching
- * full size exactly at the crossing point where they form the logo.
- * The Q and W letters then fade in on top.
- *
- * Plays once and holds the final logo until unmount.
+ * Qwillio animated loader — the two brand bubbles (each with its own letter
+ * baked in: Q on the left, W on the right) slide in from the left and right
+ * edges, meet in the middle, the overlap intersection fades in, and the
+ * final settled state is the exact static Qwillio logo. Plays once and
+ * holds until the component is unmounted.
  */
 
 const Q_PATH =
@@ -34,65 +32,46 @@ export default function QwillioLoader({
         role="img"
       >
         <defs>
-          <linearGradient id="qwCircleA" x1="30%" y1="0%" x2="70%" y2="100%">
+          <linearGradient id="qwlA" x1="30%" y1="0%" x2="70%" y2="100%">
             <stop offset="0%" stopColor="#7D7CFB" />
             <stop offset="55%" stopColor="#6366F1" />
             <stop offset="100%" stopColor="#4F46E5" />
           </linearGradient>
-          <linearGradient id="qwCircleB" x1="30%" y1="0%" x2="70%" y2="100%">
+          <linearGradient id="qwlB" x1="30%" y1="0%" x2="70%" y2="100%">
             <stop offset="0%" stopColor="#C286FA" />
             <stop offset="55%" stopColor="#A855F7" />
             <stop offset="100%" stopColor="#9333EA" />
           </linearGradient>
-          <radialGradient id="qwHaloA" cx="50%" cy="50%" r="55%">
-            <stop offset="0%" stopColor="#A5A4FF" />
-            <stop offset="55%" stopColor="#6366F1" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#4F46E5" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="qwHaloB" cx="50%" cy="50%" r="55%">
-            <stop offset="0%" stopColor="#DDB0FF" />
-            <stop offset="55%" stopColor="#A855F7" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#9333EA" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="qwHi" cx="35%" cy="25%" r="60%">
+          <radialGradient id="qwlHi" cx="35%" cy="25%" r="60%">
             <stop offset="0%" stopColor="#ffffff" stopOpacity="0.2" />
             <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
           </radialGradient>
-          <clipPath id="qwClip">
+          <clipPath id="qwlClip">
             <circle cx="198" cy="256" r="176" />
           </clipPath>
-          <filter id="qwGlow" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur stdDeviation="18" />
-          </filter>
         </defs>
 
-        {/* ══════ LEFT BUBBLE ══════ */}
-        <g className="qw-orb qw-orb--left">
-          <circle className="qw-orb__halo" cx="198" cy="256" r="176" fill="url(#qwHaloA)" filter="url(#qwGlow)" />
-          <circle cx="198" cy="256" r="176" fill="url(#qwCircleA)" opacity="0.82" />
-          <circle cx="198" cy="256" r="176" fill="url(#qwHi)" />
-        </g>
-
-        {/* ══════ RIGHT BUBBLE ══════ */}
-        <g className="qw-orb qw-orb--right">
-          <circle className="qw-orb__halo" cx="314" cy="256" r="176" fill="url(#qwHaloB)" filter="url(#qwGlow)" />
-          <circle cx="314" cy="256" r="176" fill="url(#qwCircleB)" opacity="0.92" />
-          <circle cx="314" cy="256" r="176" fill="url(#qwHi)" />
-        </g>
-
-        {/* Venn intersection — appears once the bubbles have reached full size */}
-        <g className="qw-loader__overlap">
-          <circle cx="314" cy="256" r="176" fill="#2B1166" opacity="0.65" clipPath="url(#qwClip)" />
-        </g>
-
-        {/* Q and W — pure fade-in after the logo has settled */}
-        <g className="qw-loader__letters">
+        {/* Left half — bubble + Q letter, slide in from the left together */}
+        <g className="qw-loader__left">
+          <circle cx="198" cy="256" r="176" fill="url(#qwlA)" opacity="0.82" />
+          <circle cx="198" cy="256" r="176" fill="url(#qwlHi)" />
           <g transform="translate(198 256) scale(0.680)">
             <path fill="#ffffff" d={Q_PATH} />
           </g>
+        </g>
+
+        {/* Right half — bubble + W letter, slide in from the right together */}
+        <g className="qw-loader__right">
+          <circle cx="314" cy="256" r="176" fill="url(#qwlB)" opacity="0.92" />
+          <circle cx="314" cy="256" r="176" fill="url(#qwlHi)" />
           <g transform="translate(314 256) scale(0.680)">
             <path fill="#ffffff" d={W_PATH} />
           </g>
+        </g>
+
+        {/* Intersection overlay — fades in once the halves meet */}
+        <g className="qw-loader__overlap">
+          <circle cx="314" cy="256" r="176" fill="#2B1166" opacity="0.65" clipPath="url(#qwlClip)" />
         </g>
       </svg>
       {label ? <div className="qw-loader__label">{label}</div> : null}
@@ -111,41 +90,24 @@ export default function QwillioLoader({
           overflow: visible;
         }
 
-        .qw-orb,
-        .qw-orb__halo,
-        .qw-loader__overlap,
-        .qw-loader__letters {
+        .qw-loader__left,
+        .qw-loader__right,
+        .qw-loader__overlap {
           transform-box: fill-box;
           transform-origin: center;
         }
 
-        /* Bubbles start slightly smaller than final (scale 0.72) at the far
-           edges of the screen, and grow progressively as they travel in,
-           reaching full size (scale 1) at the crossing point where they
-           form the logo. */
-        .qw-orb--left {
+        .qw-loader__left {
           opacity: 0;
-          animation: qw-orb-left 2000ms cubic-bezier(0.22, 0.9, 0.32, 1) 0ms 1 forwards;
+          animation: qw-slide-left 950ms cubic-bezier(0.22, 1, 0.36, 1) 0ms 1 forwards;
         }
-        .qw-orb--right {
+        .qw-loader__right {
           opacity: 0;
-          animation: qw-orb-right 2000ms cubic-bezier(0.22, 0.9, 0.32, 1) 0ms 1 forwards;
+          animation: qw-slide-right 950ms cubic-bezier(0.22, 1, 0.36, 1) 0ms 1 forwards;
         }
-
-        /* Halo is strong during travel (luminous-bubble look), fades as the
-           bubbles settle into their final logo positions. */
-        .qw-orb__halo {
-          opacity: 0;
-          animation: qw-halo 2000ms ease-out 0ms 1 forwards;
-        }
-
         .qw-loader__overlap {
           opacity: 0;
-          animation: qw-overlap 500ms ease-out 1700ms 1 forwards;
-        }
-        .qw-loader__letters {
-          opacity: 0;
-          animation: qw-letters 700ms ease-out 2000ms 1 forwards;
+          animation: qw-overlap 550ms ease-out 750ms 1 forwards;
         }
 
         .qw-loader__label {
@@ -155,67 +117,37 @@ export default function QwillioLoader({
           letter-spacing: 0.02em;
           color: #a1a1aa;
           opacity: 0;
-          animation: qw-label 400ms ease-out 2400ms 1 forwards;
+          animation: qw-label-in 400ms ease-out 1200ms 1 forwards;
         }
 
-        /*
-         * Left bubble trajectory:
-         *   0%  -> off-screen left, slightly smaller (0.72)
-         *   70% -> at crossing point (overshot to +40), at full size
-         *   85% -> pulled back slightly past final position
-         *   100%-> settled at final Venn position (translateX=0), scale 1
-         */
-        @keyframes qw-orb-left {
-          0%   { transform: translateX(-420px) scale(0.72); opacity: 0; }
-          8%   { transform: translateX(-380px) scale(0.74); opacity: 1; }
-          45%  { transform: translateX(-80px)  scale(0.88); opacity: 1; }
-          70%  { transform: translateX(40px)   scale(1);    opacity: 1; }
-          85%  { transform: translateX(-8px)   scale(1);    opacity: 1; }
-          100% { transform: translateX(0)      scale(1);    opacity: 1; }
+        @keyframes qw-slide-left {
+          0%   { transform: translateX(-360px); opacity: 0; }
+          60%  { transform: translateX(18px);   opacity: 1; }
+          100% { transform: translateX(0);      opacity: 1; }
         }
-        @keyframes qw-orb-right {
-          0%   { transform: translateX(420px)  scale(0.72); opacity: 0; }
-          8%   { transform: translateX(380px)  scale(0.74); opacity: 1; }
-          45%  { transform: translateX(80px)   scale(0.88); opacity: 1; }
-          70%  { transform: translateX(-40px)  scale(1);    opacity: 1; }
-          85%  { transform: translateX(8px)    scale(1);    opacity: 1; }
-          100% { transform: translateX(0)      scale(1);    opacity: 1; }
+        @keyframes qw-slide-right {
+          0%   { transform: translateX(360px);  opacity: 0; }
+          60%  { transform: translateX(-18px);  opacity: 1; }
+          100% { transform: translateX(0);      opacity: 1; }
         }
-
-        /* Aura glow during flight → subtle at rest. */
-        @keyframes qw-halo {
-          0%   { opacity: 0; }
-          10%  { opacity: 0.8; }
-          55%  { opacity: 0.75; }
-          85%  { opacity: 0.15; }
-          100% { opacity: 0; }
-        }
-
         @keyframes qw-overlap {
           0%   { opacity: 0; }
           100% { opacity: 1; }
         }
-        @keyframes qw-letters {
-          0%   { opacity: 0; }
-          100% { opacity: 1; }
-        }
-        @keyframes qw-label {
+        @keyframes qw-label-in {
           0%   { opacity: 0; }
           100% { opacity: 1; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .qw-orb--left,
-          .qw-orb--right,
-          .qw-orb__halo,
+          .qw-loader__left,
+          .qw-loader__right,
           .qw-loader__overlap,
-          .qw-loader__letters,
           .qw-loader__label {
             animation: none;
             opacity: 1;
             transform: none;
           }
-          .qw-orb__halo { opacity: 0; }
         }
       `}</style>
     </div>
