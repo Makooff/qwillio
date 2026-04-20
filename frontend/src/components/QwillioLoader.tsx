@@ -84,10 +84,10 @@ export default function QwillioLoader({
 
         {/* Letters — pure fade-in after the logo has settled */}
         <g className="qw-loader__letters">
-          <g transform="translate(198 256) scale(0.66)">
+          <g transform="translate(198 256) scale(0.665)">
             <path fill="#ffffff" d={Q_PATH} />
           </g>
-          <g transform="translate(314 256) scale(0.64)">
+          <g transform="translate(314 256) scale(0.645)">
             <path fill="#ffffff" d={W_PATH} />
           </g>
         </g>
