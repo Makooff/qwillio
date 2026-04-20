@@ -1,9 +1,8 @@
 /**
- * Qwillio animated loader — the two brand circles (each with its own letter
- * baked in: Q on the left, W on the right) slide in from the left and right
- * edges, meet in the middle, the overlap intersection fades in, and the
- * final settled state is the exact static Qwillio logo. Plays once and
- * holds until the component is unmounted.
+ * Qwillio animated loader — two luminous orbs enter from opposite sides,
+ * cross paths through the middle, settle into the final logo position as
+ * their glow fades, then the Q and W letters fade in. Plays once and
+ * holds the final logo until the component is unmounted.
  */
 
 const Q_PATH =
@@ -13,7 +12,7 @@ const W_PATH =
   'M-20.51 72.75L-65.14 72.75L-103.71-72.75L-59.57-72.75L-47.95-16.31Q-46.00-6.74-44.19 2.88Q-42.38 12.50-40.63 22.07L-40.63 22.07Q-38.77 12.50-36.77 2.88Q-34.77-6.74-32.62-16.31L-32.62-16.31L-19.73-72.75L19.73-72.75L32.62-16.31Q34.77-6.74 36.77 2.78Q38.77 12.30 40.63 21.78L40.63 21.78Q42.29 12.30 44.09 2.78Q45.90-6.74 47.85-16.31L47.85-16.31L59.57-72.75L103.71-72.75L65.14 72.75L20.51 72.75L4.00 5.57Q3.03 1.76 2.10-2.93Q1.17-7.62 0-13.28L0-13.28Q-1.17-7.62-2.10-2.93Q-3.03 1.76-4.00 5.57L-4.00 5.57L-20.51 72.75Z';
 
 export default function QwillioLoader({
-  size = 128,
+  size = 140,
   label,
   fullscreen = true,
   background = '#0A0A0F',
@@ -32,46 +31,65 @@ export default function QwillioLoader({
         role="img"
       >
         <defs>
-          <linearGradient id="qwlA" x1="30%" y1="0%" x2="70%" y2="100%">
+          <radialGradient id="qwOrbA" cx="40%" cy="35%" r="75%">
+            <stop offset="0%" stopColor="#A5A4FF" />
+            <stop offset="45%" stopColor="#6366F1" />
+            <stop offset="100%" stopColor="#3730A3" />
+          </radialGradient>
+          <radialGradient id="qwOrbB" cx="40%" cy="35%" r="75%">
+            <stop offset="0%" stopColor="#DDB0FF" />
+            <stop offset="45%" stopColor="#A855F7" />
+            <stop offset="100%" stopColor="#6B21A8" />
+          </radialGradient>
+          <linearGradient id="qwCircleA" x1="30%" y1="0%" x2="70%" y2="100%">
             <stop offset="0%" stopColor="#7D7CFB" />
             <stop offset="55%" stopColor="#6366F1" />
             <stop offset="100%" stopColor="#4F46E5" />
           </linearGradient>
-          <linearGradient id="qwlB" x1="30%" y1="0%" x2="70%" y2="100%">
+          <linearGradient id="qwCircleB" x1="30%" y1="0%" x2="70%" y2="100%">
             <stop offset="0%" stopColor="#C286FA" />
             <stop offset="55%" stopColor="#A855F7" />
             <stop offset="100%" stopColor="#9333EA" />
           </linearGradient>
-          <radialGradient id="qwlHi" cx="35%" cy="25%" r="60%">
+          <radialGradient id="qwHi" cx="35%" cy="25%" r="60%">
             <stop offset="0%" stopColor="#ffffff" stopOpacity="0.18" />
             <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
           </radialGradient>
-          <clipPath id="qwlClip">
+          <clipPath id="qwClip">
             <circle cx="200" cy="256" r="176" />
           </clipPath>
+          <filter id="qwOrbGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="14" />
+          </filter>
         </defs>
 
-        {/* Left half — circle + Q letter, slide in from the left together */}
-        <g className="qw-loader__left">
-          <circle cx="200" cy="256" r="176" fill="url(#qwlA)" />
-          <circle cx="200" cy="256" r="176" fill="url(#qwlHi)" />
+        {/* Left orb — glow halo underneath, then solid circle on top */}
+        <g className="qw-orb qw-orb--left">
+          <circle className="qw-orb__halo" cx="200" cy="256" r="176" fill="url(#qwOrbA)" filter="url(#qwOrbGlow)" />
+          <circle className="qw-orb__core" cx="200" cy="256" r="176" fill="url(#qwCircleA)" />
+          <circle className="qw-orb__core" cx="200" cy="256" r="176" fill="url(#qwHi)" />
+        </g>
+
+        {/* Right orb */}
+        <g className="qw-orb qw-orb--right">
+          <circle className="qw-orb__halo" cx="312" cy="256" r="176" fill="url(#qwOrbB)" filter="url(#qwOrbGlow)" />
+          <circle className="qw-orb__core" cx="312" cy="256" r="176" fill="url(#qwCircleB)" />
+          <circle className="qw-orb__core" cx="312" cy="256" r="176" fill="url(#qwHi)" />
+        </g>
+
+        {/* Intersection — appears once the orbs have settled */}
+        <g className="qw-loader__overlap">
+          <circle cx="312" cy="256" r="176" fill="#3B1976" opacity="0.62" clipPath="url(#qwClip)" />
+        </g>
+
+        {/* Letters — pure fade-in after the logo has settled */}
+        <g className="qw-loader__letters">
           <g transform="translate(200 256)">
             <path fill="#ffffff" d={Q_PATH} />
           </g>
-        </g>
-
-        {/* Right half — circle + W letter, slide in from the right together */}
-        <g className="qw-loader__right">
-          <circle cx="312" cy="256" r="176" fill="url(#qwlB)" />
-          <circle cx="312" cy="256" r="176" fill="url(#qwlHi)" />
-          <g transform="translate(312 256)">
+          <g transform="translate(312 256) scale(0.986)">
             <path fill="#ffffff" d={W_PATH} />
           </g>
-        </g>
-
-        {/* Intersection overlay — fades in once the halves meet */}
-        <g className="qw-loader__overlap">
-          <circle cx="312" cy="256" r="176" fill="#3B1976" opacity="0.62" clipPath="url(#qwlClip)" />
         </g>
       </svg>
       {label ? <div className="qw-loader__label">{label}</div> : null}
@@ -90,24 +108,41 @@ export default function QwillioLoader({
           overflow: visible;
         }
 
-        .qw-loader__left,
-        .qw-loader__right,
-        .qw-loader__overlap {
+        .qw-orb,
+        .qw-loader__overlap,
+        .qw-loader__letters {
           transform-box: fill-box;
           transform-origin: center;
         }
 
-        .qw-loader__left {
+        /* Orbs enter from outside, cross each other in the centre, then
+           settle into their final positions. Total: 1300ms. */
+        .qw-orb--left {
           opacity: 0;
-          animation: qw-slide-left 950ms cubic-bezier(0.22, 1, 0.36, 1) 0ms 1 forwards;
+          animation: qw-orb-left 1300ms cubic-bezier(0.25, 1, 0.3, 1) 0ms 1 forwards;
         }
-        .qw-loader__right {
+        .qw-orb--right {
           opacity: 0;
-          animation: qw-slide-right 950ms cubic-bezier(0.22, 1, 0.36, 1) 0ms 1 forwards;
+          animation: qw-orb-right 1300ms cubic-bezier(0.25, 1, 0.3, 1) 0ms 1 forwards;
         }
+
+        /* Halo is strongest as the orbs approach and cross, then dissipates
+           as they settle. Independently animated on the halo circle. */
+        .qw-orb__halo {
+          opacity: 0;
+          animation: qw-halo 1300ms ease-out 0ms 1 forwards;
+        }
+
+        /* Intersection fades in near the end of the orb travel. */
         .qw-loader__overlap {
           opacity: 0;
-          animation: qw-overlap 550ms ease-out 750ms 1 forwards;
+          animation: qw-overlap 500ms ease-out 1100ms 1 forwards;
+        }
+
+        /* Letters: pure opacity fade-in after the logo is fully settled. */
+        .qw-loader__letters {
+          opacity: 0;
+          animation: qw-letters 700ms ease-out 1400ms 1 forwards;
         }
 
         .qw-loader__label {
@@ -117,37 +152,54 @@ export default function QwillioLoader({
           letter-spacing: 0.02em;
           color: #a1a1aa;
           opacity: 0;
-          animation: qw-label-in 400ms ease-out 1200ms 1 forwards;
+          animation: qw-label 400ms ease-out 1700ms 1 forwards;
         }
 
-        @keyframes qw-slide-left {
-          0%   { transform: translateX(-360px); opacity: 0; }
-          60%  { transform: translateX(18px);   opacity: 1; }
-          100% { transform: translateX(0);      opacity: 1; }
+        @keyframes qw-orb-left {
+          0%   { transform: translateX(-380px) scale(0.85); opacity: 0; }
+          22%  { transform: translateX(-180px) scale(1.05); opacity: 1; }
+          55%  { transform: translateX(80px)   scale(1.05); opacity: 1; }
+          75%  { transform: translateX(-14px)  scale(1);    opacity: 1; }
+          100% { transform: translateX(0)      scale(1);    opacity: 1; }
         }
-        @keyframes qw-slide-right {
-          0%   { transform: translateX(360px);  opacity: 0; }
-          60%  { transform: translateX(-18px);  opacity: 1; }
-          100% { transform: translateX(0);      opacity: 1; }
+        @keyframes qw-orb-right {
+          0%   { transform: translateX(380px)  scale(0.85); opacity: 0; }
+          22%  { transform: translateX(180px)  scale(1.05); opacity: 1; }
+          55%  { transform: translateX(-80px)  scale(1.05); opacity: 1; }
+          75%  { transform: translateX(14px)   scale(1);    opacity: 1; }
+          100% { transform: translateX(0)      scale(1);    opacity: 1; }
+        }
+        @keyframes qw-halo {
+          0%   { opacity: 0; }
+          20%  { opacity: 0.85; }
+          55%  { opacity: 0.7; }
+          100% { opacity: 0; }
         }
         @keyframes qw-overlap {
           0%   { opacity: 0; }
           100% { opacity: 1; }
         }
-        @keyframes qw-label-in {
+        @keyframes qw-letters {
+          0%   { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        @keyframes qw-label {
           0%   { opacity: 0; }
           100% { opacity: 1; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .qw-loader__left,
-          .qw-loader__right,
+          .qw-orb--left,
+          .qw-orb--right,
+          .qw-orb__halo,
           .qw-loader__overlap,
+          .qw-loader__letters,
           .qw-loader__label {
             animation: none;
             opacity: 1;
             transform: none;
           }
+          .qw-orb__halo { opacity: 0; }
         }
       `}</style>
     </div>

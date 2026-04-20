@@ -47,7 +47,7 @@ export default function QwillioLogo({ size = 32, className = '' }: { size?: numb
       <g transform="translate(200 256)">
         <path fill="#ffffff" d={Q_PATH} />
       </g>
-      <g transform="translate(312 256)">
+      <g transform="translate(312 256) scale(0.986)">
         <path fill="#ffffff" d={W_PATH} />
       </g>
     </svg>

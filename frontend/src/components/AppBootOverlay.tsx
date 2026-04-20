@@ -12,7 +12,7 @@ import QwillioLoader from './QwillioLoader';
  *   - the minimum animation duration has elapsed (so the intro never cuts)
  */
 export default function AppBootOverlay({
-  minDurationMs = 1800,
+  minDurationMs = 2200,
   fadeMs = 450,
   background = '#0A0A0F',
 }: {
