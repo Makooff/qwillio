@@ -1,8 +1,11 @@
 /**
- * Qwillio animated loader — two luminous orbs enter from opposite sides,
- * cross paths through the middle, settle into the final logo position as
- * their glow fades, then the Q and W letters fade in. Plays once and
- * holds the final logo until the component is unmounted.
+ * Qwillio animated loader — two firefly-like luminous orbs fly in from
+ * the left and right edges of the screen, cross paths through the
+ * centre, and at the moment they cross they bloom open into the final
+ * Qwillio logo. The Q and W letters fade in after the logo has fully
+ * settled.
+ *
+ * Plays once and holds the final logo until unmount.
  */
 
 const Q_PATH =
@@ -31,16 +34,20 @@ export default function QwillioLoader({
         role="img"
       >
         <defs>
-          <radialGradient id="qwOrbA" cx="40%" cy="35%" r="75%">
-            <stop offset="0%" stopColor="#A5A4FF" />
-            <stop offset="45%" stopColor="#6366F1" />
-            <stop offset="100%" stopColor="#3730A3" />
+          {/* Firefly core — bright, nearly white at centre, indigo-tinted edge */}
+          <radialGradient id="qwFireflyA" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="35%" stopColor="#A5A4FF" />
+            <stop offset="100%" stopColor="#4F46E5" stopOpacity="0.9" />
           </radialGradient>
-          <radialGradient id="qwOrbB" cx="40%" cy="35%" r="75%">
-            <stop offset="0%" stopColor="#DDB0FF" />
-            <stop offset="45%" stopColor="#A855F7" />
-            <stop offset="100%" stopColor="#6B21A8" />
+          {/* Firefly core — bright, nearly white at centre, violet-tinted edge */}
+          <radialGradient id="qwFireflyB" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="35%" stopColor="#DDB0FF" />
+            <stop offset="100%" stopColor="#9333EA" stopOpacity="0.9" />
           </radialGradient>
+
+          {/* Final bubble gradients (shown after the firefly blooms) */}
           <linearGradient id="qwCircleA" x1="30%" y1="0%" x2="70%" y2="100%">
             <stop offset="0%" stopColor="#7D7CFB" />
             <stop offset="55%" stopColor="#6366F1" />
@@ -55,34 +62,42 @@ export default function QwillioLoader({
             <stop offset="0%" stopColor="#ffffff" stopOpacity="0.18" />
             <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
           </radialGradient>
+
           <clipPath id="qwClip">
             <circle cx="198" cy="256" r="176" />
           </clipPath>
-          <filter id="qwOrbGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="14" />
+
+          {/* Strong glow — the firefly's aura */}
+          <filter id="qwGlowHeavy" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="22" />
           </filter>
         </defs>
 
-        {/* Left orb — glow halo underneath, then translucent circle on top */}
+        {/* ══════ LEFT FIREFLY / ORB ══════ */}
         <g className="qw-orb qw-orb--left">
-          <circle className="qw-orb__halo" cx="198" cy="256" r="176" fill="url(#qwOrbA)" filter="url(#qwOrbGlow)" />
-          <circle className="qw-orb__core" cx="198" cy="256" r="176" fill="url(#qwCircleA)" opacity="0.82" />
-          <circle className="qw-orb__core" cx="198" cy="256" r="176" fill="url(#qwHi)" />
+          {/* Large blurred glow halo — the firefly's aura */}
+          <circle className="qw-orb__glow" cx="198" cy="256" r="176" fill="url(#qwFireflyA)" filter="url(#qwGlowHeavy)" />
+          {/* Bright firefly core — dominant while the orb is small and traveling */}
+          <circle className="qw-orb__spark" cx="198" cy="256" r="176" fill="url(#qwFireflyA)" />
+          {/* Final bubble — fades in as the orb "blooms" into the logo */}
+          <circle className="qw-orb__bubble" cx="198" cy="256" r="176" fill="url(#qwCircleA)" opacity="0.82" />
+          <circle className="qw-orb__bubble" cx="198" cy="256" r="176" fill="url(#qwHi)" />
         </g>
 
-        {/* Right orb */}
+        {/* ══════ RIGHT FIREFLY / ORB ══════ */}
         <g className="qw-orb qw-orb--right">
-          <circle className="qw-orb__halo" cx="314" cy="256" r="176" fill="url(#qwOrbB)" filter="url(#qwOrbGlow)" />
-          <circle className="qw-orb__core" cx="314" cy="256" r="176" fill="url(#qwCircleB)" opacity="0.92" />
-          <circle className="qw-orb__core" cx="314" cy="256" r="176" fill="url(#qwHi)" />
+          <circle className="qw-orb__glow" cx="314" cy="256" r="176" fill="url(#qwFireflyB)" filter="url(#qwGlowHeavy)" />
+          <circle className="qw-orb__spark" cx="314" cy="256" r="176" fill="url(#qwFireflyB)" />
+          <circle className="qw-orb__bubble" cx="314" cy="256" r="176" fill="url(#qwCircleB)" opacity="0.92" />
+          <circle className="qw-orb__bubble" cx="314" cy="256" r="176" fill="url(#qwHi)" />
         </g>
 
-        {/* Intersection — appears once the orbs have settled */}
+        {/* Venn intersection — appears once the orbs bloom */}
         <g className="qw-loader__overlap">
           <circle cx="314" cy="256" r="176" fill="#2B1166" opacity="0.65" clipPath="url(#qwClip)" />
         </g>
 
-        {/* Letters — pure fade-in after the logo has settled */}
+        {/* Q and W — pure fade-in after the logo has fully settled */}
         <g className="qw-loader__letters">
           <g transform="translate(198 256) scale(0.680)">
             <path fill="#ffffff" d={Q_PATH} />
@@ -109,40 +124,51 @@ export default function QwillioLoader({
         }
 
         .qw-orb,
+        .qw-orb__glow,
+        .qw-orb__spark,
+        .qw-orb__bubble,
         .qw-loader__overlap,
         .qw-loader__letters {
           transform-box: fill-box;
           transform-origin: center;
         }
 
-        /* Orbs enter from outside, cross each other in the centre, then
-           settle into their final positions. Total: 1300ms. */
+        /* Fireflies fly in from the far edges, cross through the centre,
+           overshoot slightly, then pull back to their final Venn positions. */
         .qw-orb--left {
           opacity: 0;
-          animation: qw-orb-left 1300ms cubic-bezier(0.25, 1, 0.3, 1) 0ms 1 forwards;
+          animation: qw-firefly-left 2000ms cubic-bezier(0.25, 1, 0.3, 1) 0ms 1 forwards;
         }
         .qw-orb--right {
           opacity: 0;
-          animation: qw-orb-right 1300ms cubic-bezier(0.25, 1, 0.3, 1) 0ms 1 forwards;
+          animation: qw-firefly-right 2000ms cubic-bezier(0.25, 1, 0.3, 1) 0ms 1 forwards;
         }
 
-        /* Halo is strongest as the orbs approach and cross, then dissipates
-           as they settle. Independently animated on the halo circle. */
-        .qw-orb__halo {
+        /* The aura — bright while the firefly is small, fades as it blooms. */
+        .qw-orb__glow {
           opacity: 0;
-          animation: qw-halo 1300ms ease-out 0ms 1 forwards;
+          animation: qw-glow 2000ms ease-out 0ms 1 forwards;
+        }
+        /* The bright core — dominant during firefly phase, fades when the
+           bubble takes over. */
+        .qw-orb__spark {
+          opacity: 0;
+          animation: qw-spark 2000ms ease-out 0ms 1 forwards;
+        }
+        /* The final bubble gradient — grows in as the firefly "opens" into
+           the logo at the crossing point. */
+        .qw-orb__bubble {
+          opacity: 0;
+          animation: qw-bubble 2000ms ease-out 0ms 1 forwards;
         }
 
-        /* Intersection fades in near the end of the orb travel. */
         .qw-loader__overlap {
           opacity: 0;
-          animation: qw-overlap 500ms ease-out 1100ms 1 forwards;
+          animation: qw-overlap 500ms ease-out 1700ms 1 forwards;
         }
-
-        /* Letters: pure opacity fade-in after the logo is fully settled. */
         .qw-loader__letters {
           opacity: 0;
-          animation: qw-letters 700ms ease-out 1400ms 1 forwards;
+          animation: qw-letters 700ms ease-out 2000ms 1 forwards;
         }
 
         .qw-loader__label {
@@ -152,29 +178,65 @@ export default function QwillioLoader({
           letter-spacing: 0.02em;
           color: #a1a1aa;
           opacity: 0;
-          animation: qw-label 400ms ease-out 1700ms 1 forwards;
+          animation: qw-label 400ms ease-out 2300ms 1 forwards;
         }
 
-        @keyframes qw-orb-left {
-          0%   { transform: translateX(-380px) scale(0.85); opacity: 0; }
-          22%  { transform: translateX(-180px) scale(1.05); opacity: 1; }
-          55%  { transform: translateX(80px)   scale(1.05); opacity: 1; }
-          75%  { transform: translateX(-14px)  scale(1);    opacity: 1; }
+        /*
+         * Left firefly trajectory:
+         *   0-5%   : invisible, off screen far left, tiny
+         *   5-60%  : travels fast to the right, tiny + glowing
+         *   60-70% : crosses past centre (to x=+30)
+         *   70-85% : pulls back toward final position, starts to expand
+         *   85-100%: fully bloomed at final position
+         */
+        @keyframes qw-firefly-left {
+          0%   { transform: translateX(-520px) scale(0.12); opacity: 0; }
+          5%   { transform: translateX(-480px) scale(0.14); opacity: 1; }
+          60%  { transform: translateX(60px)   scale(0.18); opacity: 1; }
+          72%  { transform: translateX(-12px)  scale(0.45); opacity: 1; }
+          85%  { transform: translateX(0)      scale(1);    opacity: 1; }
           100% { transform: translateX(0)      scale(1);    opacity: 1; }
         }
-        @keyframes qw-orb-right {
-          0%   { transform: translateX(380px)  scale(0.85); opacity: 0; }
-          22%  { transform: translateX(180px)  scale(1.05); opacity: 1; }
-          55%  { transform: translateX(-80px)  scale(1.05); opacity: 1; }
-          75%  { transform: translateX(14px)   scale(1);    opacity: 1; }
+        @keyframes qw-firefly-right {
+          0%   { transform: translateX(520px)  scale(0.12); opacity: 0; }
+          5%   { transform: translateX(480px)  scale(0.14); opacity: 1; }
+          60%  { transform: translateX(-60px)  scale(0.18); opacity: 1; }
+          72%  { transform: translateX(12px)   scale(0.45); opacity: 1; }
+          85%  { transform: translateX(0)      scale(1);    opacity: 1; }
           100% { transform: translateX(0)      scale(1);    opacity: 1; }
         }
-        @keyframes qw-halo {
+
+        /* Aura: softly breathing during firefly phase, then fades when the
+           logo takes over. */
+        @keyframes qw-glow {
           0%   { opacity: 0; }
-          20%  { opacity: 0.85; }
-          55%  { opacity: 0.7; }
+          10%  { opacity: 0.95; }
+          55%  { opacity: 0.9; }
+          75%  { opacity: 0.55; }
+          90%  { opacity: 0; }
           100% { opacity: 0; }
         }
+
+        /* Bright firefly core — dominant while traveling, fades as the
+           bubble gradient appears. */
+        @keyframes qw-spark {
+          0%   { opacity: 0; }
+          8%   { opacity: 1; }
+          60%  { opacity: 1; }
+          78%  { opacity: 0.5; }
+          90%  { opacity: 0; }
+          100% { opacity: 0; }
+        }
+
+        /* Final bubble gradient — hidden during firefly phase, fades up
+           once the orb has "bloomed" at centre. */
+        @keyframes qw-bubble {
+          0%, 60% { opacity: 0; }
+          78%     { opacity: 0.5; }
+          90%     { opacity: 1; }
+          100%    { opacity: 1; }
+        }
+
         @keyframes qw-overlap {
           0%   { opacity: 0; }
           100% { opacity: 1; }
@@ -191,7 +253,9 @@ export default function QwillioLoader({
         @media (prefers-reduced-motion: reduce) {
           .qw-orb--left,
           .qw-orb--right,
-          .qw-orb__halo,
+          .qw-orb__glow,
+          .qw-orb__spark,
+          .qw-orb__bubble,
           .qw-loader__overlap,
           .qw-loader__letters,
           .qw-loader__label {
@@ -199,7 +263,8 @@ export default function QwillioLoader({
             opacity: 1;
             transform: none;
           }
-          .qw-orb__halo { opacity: 0; }
+          .qw-orb__glow,
+          .qw-orb__spark { opacity: 0; }
         }
       `}</style>
     </div>
