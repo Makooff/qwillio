@@ -1,12 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
   <defs>
     <linearGradient id="a" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#4f46e5"/></linearGradient>
-    <linearGradient id="b" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#a855f7"/></linearGradient>
-    <clipPath id="c"><circle cx="12.48" cy="16" r="9.92"/></clipPath>
+    <linearGradient id="b" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#9333ea"/></linearGradient>
+    <clipPath id="c"><circle cx="12.5" cy="16" r="11"/></clipPath>
   </defs>
-  <circle cx="12.48" cy="16" r="9.92" fill="url(#a)"/>
-  <circle cx="19.52" cy="16" r="9.92" fill="url(#b)"/>
-  <circle cx="19.52" cy="16" r="9.92" fill="#4338ca" opacity="0.5" clip-path="url(#c)"/>
-  <text x="12.48" y="19.15" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="8.96" font-weight="800" fill="white" opacity="0.95">Q</text>
-  <text x="19.52" y="19.15" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="7.88" font-weight="800" fill="white" opacity="0.95">W</text>
+  <circle cx="12.5" cy="16" r="11" fill="url(#a)"/>
+  <circle cx="19.5" cy="16" r="11" fill="url(#b)"/>
+  <circle cx="19.5" cy="16" r="11" fill="#4c1d95" opacity="0.55" clip-path="url(#c)"/>
+  <text x="16" y="20.4" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
+    font-size="11.8" font-weight="900" fill="#ffffff" letter-spacing="-0.4">QW</text>
 </svg>

@@ -9,6 +9,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 import QwillioLogo from '../components/QwillioLogo';
+import QwillioLoader from '../components/QwillioLoader';
 import LangToggle from '../components/LangToggle';
 import { useLang } from '../stores/langStore';
 import { useAuthStore } from '../stores/authStore';
@@ -82,14 +83,7 @@ export default function ClientDashboardJWT() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-[#6366f1] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[#86868b]">{t('portal.loading')}</p>
-        </div>
-      </div>
-    );
+    return <QwillioLoader size={128} label={t('portal.loading')} />;
   }
 
   const ov = data.overview || {};

@@ -5,6 +5,7 @@ import { useAuthStore } from './stores/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/layout/Layout';
 import ClientLayout from './components/layout/ClientLayout';
+import QwillioLoader from './components/QwillioLoader';
 // Eager-loaded entry points (Landing, Login, Register, ConfirmEmail)
 import Login from './pages/Login';
 import Landing from './pages/Landing';
@@ -76,11 +77,7 @@ function ScrollToTop() {
 }
 
 function Spinner() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0A0A0F]">
-      <div className="w-8 h-8 rounded-full border-2 border-[#7B5CF0]/20 border-t-[#7B5CF0] animate-spin" />
-    </div>
-  );
+  return <QwillioLoader size={128} />;
 }
 
 function homeRoute(user: { role: string }) {

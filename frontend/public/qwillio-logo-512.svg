@@ -1,34 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="gradA" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="qwLeft" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#6366f1"/>
       <stop offset="100%" stop-color="#4f46e5"/>
     </linearGradient>
-    <linearGradient id="gradB" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8b5cf6"/>
-      <stop offset="100%" stop-color="#a855f7"/>
+    <linearGradient id="qwRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#9333ea"/>
     </linearGradient>
-    <clipPath id="clipLeft">
-      <circle cx="200" cy="256" r="159"/>
+    <clipPath id="qwClipLeft">
+      <circle cx="200" cy="256" r="176"/>
     </clipPath>
   </defs>
 
-  <rect width="512" height="512" fill="white"/>
+  <circle cx="200" cy="256" r="176" fill="url(#qwLeft)"/>
+  <circle cx="312" cy="256" r="176" fill="url(#qwRight)"/>
+  <circle cx="312" cy="256" r="176" fill="#4c1d95" opacity="0.55" clip-path="url(#qwClipLeft)"/>
 
-  <!-- Left circle (indigo) — cx=512×0.39=200, cy=512×0.5=256, r=512×0.31=159 -->
-  <circle cx="200" cy="256" r="159" fill="url(#gradA)"/>
-  <!-- Right circle (violet) — cx=512×0.61=312 -->
-  <circle cx="312" cy="256" r="159" fill="url(#gradB)"/>
-  <!-- Intersection overlay -->
-  <circle cx="312" cy="256" r="159" fill="#4338ca" opacity="0.5" clip-path="url(#clipLeft)"/>
-
-  <!-- Q — fontSize=512×0.28=143, y=256+143×0.35=306 -->
-  <text x="200" y="306" text-anchor="middle"
+  <text x="256" y="322" text-anchor="middle"
     font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-    font-size="143" font-weight="800" fill="white" opacity="0.95">Q</text>
-
-  <!-- W — fontSize=143×0.88=126 -->
-  <text x="312" y="306" text-anchor="middle"
-    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-    font-size="126" font-weight="800" fill="white" opacity="0.95">W</text>
+    font-size="190" font-weight="900" fill="#ffffff" letter-spacing="-6">QW</text>
 </svg>
