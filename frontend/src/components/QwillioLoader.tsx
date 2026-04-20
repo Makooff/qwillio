@@ -31,14 +31,20 @@ export default function QwillioLoader({
         role="img"
       >
         <defs>
-          <linearGradient id="qwlA" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#6366f1" />
-            <stop offset="100%" stopColor="#4f46e5" />
+          <linearGradient id="qwlA" x1="30%" y1="0%" x2="70%" y2="100%">
+            <stop offset="0%" stopColor="#7D7CFB" />
+            <stop offset="55%" stopColor="#6366F1" />
+            <stop offset="100%" stopColor="#4F46E5" />
           </linearGradient>
-          <linearGradient id="qwlB" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#a855f7" />
-            <stop offset="100%" stopColor="#9333ea" />
+          <linearGradient id="qwlB" x1="30%" y1="0%" x2="70%" y2="100%">
+            <stop offset="0%" stopColor="#C286FA" />
+            <stop offset="55%" stopColor="#A855F7" />
+            <stop offset="100%" stopColor="#9333EA" />
           </linearGradient>
+          <radialGradient id="qwlHi" cx="35%" cy="25%" r="60%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.18" />
+            <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
+          </radialGradient>
           <clipPath id="qwlClip">
             <circle cx="200" cy="256" r="176" />
           </clipPath>
@@ -46,15 +52,17 @@ export default function QwillioLoader({
 
         <g className="qw-loader__left">
           <circle cx="200" cy="256" r="176" fill="url(#qwlA)" />
+          <circle cx="200" cy="256" r="176" fill="url(#qwlHi)" />
         </g>
         <g className="qw-loader__right">
           <circle cx="312" cy="256" r="176" fill="url(#qwlB)" />
+          <circle cx="312" cy="256" r="176" fill="url(#qwlHi)" />
         </g>
         <g className="qw-loader__overlap">
-          <circle cx="312" cy="256" r="176" fill="#4c1d95" opacity="0.55" clipPath="url(#qwlClip)" />
+          <circle cx="312" cy="256" r="176" fill="#3B1976" opacity="0.62" clipPath="url(#qwlClip)" />
         </g>
 
-        <g transform="translate(256 272)">
+        <g transform="translate(256 256)">
           <g className="qw-loader__text">
             <path fill="#ffffff" d={QW_PATH} />
           </g>

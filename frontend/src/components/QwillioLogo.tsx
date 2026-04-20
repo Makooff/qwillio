@@ -1,7 +1,7 @@
 /**
  * Qwillio inline SVG logo — two overlapping gradient circles with the "QW"
- * wordmark rendered as Inter Display Black outlines so typography stays
- * identical whether the web font has loaded or not.
+ * wordmark in Inter Display Black, embedded as an outline path so the
+ * typography is pixel-identical everywhere.
  */
 
 const QW_PATH =
@@ -18,22 +18,30 @@ export default function QwillioLogo({ size = 32, className = '' }: { size?: numb
       aria-label="Qwillio logo"
     >
       <defs>
-        <linearGradient id="qwLogoA" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#6366f1" />
-          <stop offset="100%" stopColor="#4f46e5" />
+        <linearGradient id="qwLogoA" x1="30%" y1="0%" x2="70%" y2="100%">
+          <stop offset="0%" stopColor="#7D7CFB" />
+          <stop offset="55%" stopColor="#6366F1" />
+          <stop offset="100%" stopColor="#4F46E5" />
         </linearGradient>
-        <linearGradient id="qwLogoB" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#a855f7" />
-          <stop offset="100%" stopColor="#9333ea" />
+        <linearGradient id="qwLogoB" x1="30%" y1="0%" x2="70%" y2="100%">
+          <stop offset="0%" stopColor="#C286FA" />
+          <stop offset="55%" stopColor="#A855F7" />
+          <stop offset="100%" stopColor="#9333EA" />
         </linearGradient>
+        <radialGradient id="qwLogoHi" cx="35%" cy="25%" r="60%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.18" />
+          <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
+        </radialGradient>
         <clipPath id="qwIntersect">
           <circle cx="200" cy="256" r="176" />
         </clipPath>
       </defs>
       <circle cx="200" cy="256" r="176" fill="url(#qwLogoA)" />
       <circle cx="312" cy="256" r="176" fill="url(#qwLogoB)" />
-      <circle cx="312" cy="256" r="176" fill="#4c1d95" opacity={0.55} clipPath="url(#qwIntersect)" />
-      <g transform="translate(256 272)">
+      <circle cx="312" cy="256" r="176" fill="#3B1976" opacity={0.62} clipPath="url(#qwIntersect)" />
+      <circle cx="200" cy="256" r="176" fill="url(#qwLogoHi)" />
+      <circle cx="312" cy="256" r="176" fill="url(#qwLogoHi)" />
+      <g transform="translate(256 256)">
         <path fill="#ffffff" d={QW_PATH} />
       </g>
     </svg>
