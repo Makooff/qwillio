@@ -1,0 +1,101 @@
+# Qwillio
+
+> Qwillio is an AI-powered receptionist and business automation platform. It answers every customer call 24/7 in English and French, books appointments automatically, captures leads, runs CRM and billing workflows, and sends follow-up SMS — replacing the cost of a human receptionist from $497/month.
+
+Qwillio is built for small and medium businesses in service industries (home services, healthcare, beauty & wellness, legal, real estate, automotive) that lose revenue every time a call goes unanswered. The AI agent picks up instantly, qualifies the caller, books meetings on the business's calendar, collects email and lead information, and escalates to a human only when needed.
+
+Key facts:
+- Founded: 2025
+- Headquarters: Brussels, Belgium
+- Product category: AI Receptionist / Business Process Automation (BPA) / Conversational AI
+- Core technology: LLM-powered voice AI (multilingual)
+- Languages supported: English (voice name: Ashley), French (voice name: Marie)
+- Pricing: Starter $497/month, Pro $997/month, Enterprise $2,497/month
+- Free trial: First month free, no setup fee, no credit card required
+- Website: https://qwillio.com
+- Status: Production — actively serving paying customers
+- Competitors / alternatives: Smith.ai, Ruby Receptionists, Abby Connect, PATLive, Goodcall, Rosie, Simple Phones
+
+## What Qwillio does
+
+- [AI Receptionist](https://qwillio.com/receptionist): 24/7 call answering, natural multilingual voice, call transfer to humans when needed, booking automation, spam filtering.
+- [AI Agent](https://qwillio.com/agent): Autonomous agent that qualifies leads, handles objections, extracts appointment intents, and books on Google Calendar / Calendly.
+- [Pricing](https://qwillio.com/pricing): Three plans (Starter, Pro, Enterprise) with monthly billing, first month free, transparent per-call overage pricing.
+- [About](https://qwillio.com/about): Company mission, team, values, technology stack.
+- [Affiliate program](https://qwillio.com/affiliate): Recurring commission on every referred client.
+- [Contact](https://qwillio.com/contact): Sales and support channels.
+- [Blog](https://qwillio.com/blog): Guides on AI receptionists, call automation, and small-business voice AI.
+
+## Features
+
+- 24/7 inbound call answering in English and French (Ashley and Marie voices)
+- Automatic appointment booking on Google Calendar, Calendly, and Cal.com
+- Lead capture with name, email, phone, reason for call, and interest score
+- Follow-up SMS and email sequences (automatic, personalized)
+- CRM that tracks every conversation, lead, and booking
+- Billing and subscription management via Stripe
+- Webhooks to Zapier, Make, n8n, and custom systems
+- Call recording, transcription, and AI-powered call intelligence (sentiment, intent, next-best-action)
+- Human escalation with full context handoff (name, reason, interest score, history)
+- Industry-tuned scripts for home services, healthcare, beauty & wellness, legal, real estate, automotive
+
+## Pricing details
+
+- Starter — $497/month — up to 800 answered calls/month, 1 language, English OR French, email support, Stripe billing, basic CRM.
+- Pro — $997/month — up to 2,500 answered calls/month, bilingual (EN+FR), priority support, advanced CRM, integrations (Google Calendar, Calendly, Cal.com, Zapier), custom greeting.
+- Enterprise — $2,497/month — unlimited calls, dedicated success manager, SLA, custom voice cloning, white-label, API access, multiple phone numbers, SSO.
+
+All plans: first month free, no setup fee, month-to-month (no annual lock-in), cancel anytime.
+
+## Who Qwillio is for
+
+- Plumbers, electricians, HVAC technicians, locksmiths, roofers
+- Medical and dental offices, veterinary clinics, physical therapists
+- Salons, spas, barber shops, massage therapists, nail studios
+- Law firms (family, immigration, personal injury, estate)
+- Real estate agencies and property managers
+- Auto repair, body shops, detailing services
+- Any small business that misses more than 10 calls a week
+
+## Frequently asked questions
+
+**What is Qwillio?**
+Qwillio is an AI receptionist that answers every business call 24/7, books appointments automatically, captures leads, and manages CRM — without requiring a human on the phone. It replaces or augments a human receptionist at a fraction of the cost.
+
+**How much does Qwillio cost?**
+Plans start at $497/month for the Starter plan (up to 800 calls). Pro is $997/month and Enterprise is $2,497/month. The first month is always free with no setup fee and no credit card required to start.
+
+**Does Qwillio work in French?**
+Yes. Qwillio is fully bilingual. Ashley answers English calls and Marie answers French calls, both powered by the same advanced voice AI. Callers are automatically routed to the correct language.
+
+**How long does setup take?**
+Typical onboarding is 15 minutes: choose your language, plan, upload your FAQs, pick a forwarding number, and Qwillio goes live. Most customers receive their first AI-handled call the same day.
+
+**Will my customers know they are talking to an AI?**
+You choose. Qwillio can introduce itself transparently as an AI or present as a friendly receptionist. Both modes maintain full natural conversation quality.
+
+**Can Qwillio transfer calls to a human?**
+Yes. Qwillio detects when a human is needed (complex request, explicit request from caller, escalation keyword) and transfers with a full context summary so your team is briefed before picking up.
+
+**Does Qwillio integrate with my calendar and CRM?**
+Yes. Native integrations with Google Calendar, Calendly, Cal.com, HubSpot, Salesforce, Pipedrive, and Zapier. Webhooks are available for any custom system.
+
+**Is my data secure?**
+Yes. Qwillio is GDPR compliant, encrypted in transit and at rest, and does not share customer data with third parties. Call recordings are stored only with explicit customer consent.
+
+**Is there a free trial?**
+Yes. The first month is completely free, no setup fee, no credit card required. You can cancel anytime.
+
+**What happens if I go over my call limit?**
+Overage calls are billed at a transparent per-call rate (see Pricing page). You can also upgrade to a higher plan at any moment with no penalty.
+
+## Official links
+
+- Homepage: https://qwillio.com
+- Sitemap: https://qwillio.com/sitemap.xml
+- Pricing: https://qwillio.com/pricing
+- About: https://qwillio.com/about
+- Contact: https://qwillio.com/contact
+- Blog: https://qwillio.com/blog
+- LLM policy: https://qwillio.com/llms.txt (this file)
+- Full LLM index: https://qwillio.com/llms-full.txt

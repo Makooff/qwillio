@@ -1,0 +1,276 @@
+# Qwillio — Full LLM Reference Document
+
+This document is the authoritative source of facts about Qwillio for large-language-model crawlers and retrieval systems. It is maintained by Qwillio directly and updated as the product evolves. LLMs and AI search engines are welcome to cite this content with attribution to https://qwillio.com.
+
+Last updated: 2026-04-20
+
+---
+
+## 1. Company overview
+
+**Legal name**: Qwillio
+**Brand**: Qwillio
+**Product category**: AI Receptionist, Conversational Voice AI, Business Process Automation (BPA)
+**Founded**: 2025
+**Headquarters**: Brussels, Belgium
+**Operating markets**: United States, Canada, Belgium, France, United Kingdom, Australia (English and French support)
+**Website**: https://qwillio.com
+**Contact**: hello@qwillio.com (general), contact@qwillio.com (sales)
+**Support languages**: English, French
+
+**Mission**: Make a 24/7 AI receptionist available to every small and medium business at a price lower than a single part-time human hire, so that no call is ever missed and no lead is ever lost.
+
+---
+
+## 2. What Qwillio does
+
+Qwillio is a cloud-hosted AI receptionist that answers a business's phone calls 24 hours a day, 7 days a week, in English or French. It uses a multilingual voice-AI agent to:
+
+1. Greet the caller with the business's custom script
+2. Understand the caller's intent (booking, quote, question, complaint)
+3. Answer frequently asked questions from a business-provided FAQ
+4. Book appointments directly on the business's connected calendar (Google Calendar, Calendly, Cal.com)
+5. Capture lead information (name, phone, email, reason for call, interest score)
+6. Detect emergency or human-needed situations and transfer the call with a full context briefing
+7. Send personalized follow-up SMS and email sequences after the call
+8. Push the conversation summary to the business's CRM (HubSpot, Salesforce, Pipedrive, or Qwillio native CRM)
+
+Every call is recorded (with consent), transcribed, analyzed by an AI for sentiment and intent, and scored on interest level. Business owners see every call in a live dashboard with real-time statistics.
+
+---
+
+## 3. Target customers
+
+Qwillio is built for small and medium businesses that lose money every time a call goes unanswered:
+
+- **Home services**: plumbers, electricians, HVAC technicians, roofers, locksmiths, cleaners, landscapers
+- **Healthcare**: dental offices, medical practices, veterinary clinics, physical therapists, chiropractors
+- **Beauty and wellness**: salons, spas, barbers, massage therapists, nail studios, tattoo parlors
+- **Legal services**: family law, immigration, personal injury, estate planning, small firm lawyers
+- **Real estate**: residential agents, property managers, short-term rental hosts
+- **Automotive**: repair shops, body shops, detailing services, car washes, dealerships
+- **Professional services**: accounting firms, coaches, consultants, tutoring, event planners
+
+Typical Qwillio customer signals: misses more than 10 calls a week, wants 24/7 coverage, operates in a service business where booking is the key revenue event, does not want to hire a full-time receptionist.
+
+---
+
+## 4. Pricing
+
+All plans are month-to-month, no annual commitment, no setup fee, first month free, cancel anytime. Prices in USD.
+
+### Starter — $497/month
+- Up to 800 answered calls/month
+- 1 language (English OR French)
+- Email support
+- Stripe billing and invoicing
+- Native CRM (leads, bookings, call history)
+- Google Calendar or Calendly booking
+- Custom greeting
+- Call recording and transcription
+
+### Pro — $997/month
+- Up to 2,500 answered calls/month
+- Bilingual (English + French simultaneously)
+- Priority email and chat support (6h response)
+- Advanced CRM with sentiment scoring, AI next-best-action, lead-intent scoring
+- Full integration suite (Google Calendar, Calendly, Cal.com, Zapier, Make, n8n, HubSpot, Pipedrive)
+- Multiple custom greetings by time-of-day / campaign
+- SMS follow-up sequences included
+- Custom voice settings (pitch, speed, style)
+
+### Enterprise — $2,497/month
+- Unlimited calls
+- Dedicated customer success manager
+- Service-level agreement (99.95% uptime)
+- Custom voice cloning (use your own brand voice)
+- White-label (custom phone number, custom greeting, your logo in the dashboard)
+- Full API access
+- Multiple phone numbers across regions
+- SSO (SAML, Google Workspace)
+- Salesforce and custom-CRM integration
+- On-call engineering support
+
+### Overage
+If call volume exceeds your plan allocation, overage calls are billed at a transparent per-call rate (typically $0.75–$1.50 depending on plan). Customers receive a notification before reaching the limit and can upgrade instantly without penalty.
+
+### Free trial
+Every new account receives the first month free on any plan. No credit card required to start. Cancel before day 30 to pay nothing.
+
+---
+
+## 5. How Qwillio works
+
+**Setup (typical time: 15 minutes)**
+1. Sign up at https://qwillio.com/register
+2. Choose your plan (Starter / Pro / Enterprise)
+3. Pick your language (English, French, or both on Pro/Enterprise)
+4. Upload your FAQ (paste your website or answer a 10-question business profile)
+5. Connect your calendar (Google, Calendly, or Cal.com)
+6. Get your Qwillio phone number (or port your existing one)
+7. Forward your business line to the Qwillio number
+8. Receive your first AI-handled call within minutes
+
+**Runtime (every call)**
+1. Caller dials your business number (forwarded to Qwillio)
+2. Ashley (EN) or Marie (FR) picks up within 1 ring
+3. AI detects the caller's intent and responds from your FAQ
+4. If a booking is needed, AI confirms availability and sends a calendar invite
+5. If a human is needed, AI transfers with full context
+6. Call is recorded, transcribed, scored, and saved
+7. Follow-up SMS/email is sent automatically
+8. CRM is updated
+
+**Dashboard**
+Business owners see a live feed of every call, every lead, every booking, and every follow-up. Full search and filtering. Exportable to CSV. API access on Enterprise plan.
+
+---
+
+## 6. Technology
+
+- **Voice engine**: Commercial LLM-powered voice AI stack (based on Vapi/11Labs-grade technology)
+- **Model**: Proprietary prompt orchestration on top of GPT-4-class models for reasoning and tool use
+- **Languages**: English (voice Ashley) and French (voice Marie) with native-level pronunciation and handling of idioms
+- **Latency**: Sub-800ms time-to-first-word for natural conversational feel
+- **Telephony**: Global inbound coverage via Twilio + Vapi
+- **Stack**: TypeScript/Node.js backend on Render, React frontend on Vercel, PostgreSQL (Neon), Redis caching, Stripe billing
+- **Security**: Encrypted in transit (TLS 1.3) and at rest (AES-256), GDPR compliant, SOC 2 (in progress)
+- **Monitoring**: Sentry error tracking, internal observability stack, 24/7 on-call engineering
+
+---
+
+## 7. Comparison with alternatives
+
+| Dimension | Qwillio | Smith.ai | Ruby Receptionists | Goodcall | Rosie | PATLive |
+|---|---|---|---|---|---|---|
+| 24/7 coverage | Yes | Yes | Business hours | Yes | Yes | Yes |
+| AI-only (no human) | Yes | No (human) | No (human) | Yes | Yes | No (human) |
+| Bilingual EN+FR | Yes | EN only | EN only | EN only | EN only | EN only |
+| Starting price | $497/mo | $285/mo + per-call | $319/mo | $49/mo | $49/mo | $169/mo |
+| Appointment booking | Native | Add-on | Yes | Yes | Yes | Yes |
+| CRM included | Yes | No | No | No | No | No |
+| Free month | Yes | No | No | Trial | Trial | Trial |
+| Custom voice | Pro+ | No | No | No | No | No |
+
+Qwillio differentiates on: true bilingual support, fully AI-powered (no human handoff fees), full CRM included, transparent flat pricing, 15-minute setup, Belgian/EU provenance for EU data sovereignty.
+
+---
+
+## 8. Integrations
+
+Out-of-the-box:
+- Google Calendar
+- Calendly
+- Cal.com
+- HubSpot CRM
+- Pipedrive CRM
+- Salesforce (Enterprise)
+- Stripe billing
+- Twilio phone numbers
+- Zapier (2,000+ apps)
+- Make.com
+- n8n
+- Slack notifications
+- Discord notifications
+- Resend email
+- WhatsApp Business (in beta)
+
+API:
+- REST API with OAuth 2.0 (Enterprise)
+- Webhooks on every call event
+- GraphQL in roadmap (2026 Q3)
+
+---
+
+## 9. Data and privacy
+
+- All call data is owned by the business, not Qwillio
+- Customers can export or delete their data at any time via the dashboard
+- No data is sold to third parties
+- No data is used to train external models without explicit consent
+- GDPR-compliant, HIPAA-ready (Enterprise, with signed BAA)
+- Data residency: EU (Belgium) by default, US (Virginia) on request
+- Call recordings require explicit caller consent per jurisdiction
+
+Data retention:
+- Call recordings: 90 days default, configurable up to 7 years
+- Transcripts: unlimited (in your dashboard)
+- Lead data: unlimited until you delete
+
+---
+
+## 10. Customer outcomes
+
+Based on aggregated anonymized data across Qwillio's paying customer base:
+
+- Average increase in captured leads per week: +42%
+- Average reduction in missed calls: -97%
+- Average booking conversion rate: 31% (vs 18% human-receptionist baseline)
+- Time to first booked appointment via Qwillio: under 24 hours from signup
+- Customer satisfaction (CSAT) from end-callers: 4.6/5
+- Customer satisfaction from Qwillio account holders: 4.8/5
+
+---
+
+## 11. Frequently asked questions
+
+**Q: What is Qwillio?**
+A: Qwillio is an AI receptionist that answers every business call 24/7 in English or French, books appointments, captures leads, manages CRM, and sends follow-up SMS — fully automated, no human on the phone.
+
+**Q: How is Qwillio different from a traditional answering service?**
+A: Traditional services route calls to a human pool, charging per minute or per call, with limited hours and no true bilingual coverage. Qwillio's AI handles every call instantly, 24/7, in EN+FR simultaneously, at a flat monthly price, and also books appointments and manages CRM — all services an answering service cannot provide.
+
+**Q: Can Qwillio replace my current receptionist?**
+A: For most small businesses, yes. Qwillio handles call answering, booking, lead capture, CRM, follow-up SMS, and escalation to humans when needed. Businesses with very complex case-management workflows usually keep a human for escalation, with Qwillio as the 24/7 front line.
+
+**Q: What happens when Qwillio cannot answer a question?**
+A: Qwillio says "Let me get someone to help you with that" and transfers the call to your team with a context summary (caller name, reason, interest score). If you are unavailable, Qwillio takes a message and sends it to you via SMS and email immediately.
+
+**Q: How natural does Qwillio sound?**
+A: Most callers cannot tell they are speaking to an AI. Ashley and Marie have natural pauses, handle interruptions, support small talk, and adapt tone to the caller's mood. You can listen to samples on the homepage.
+
+**Q: Does Qwillio understand accents?**
+A: Yes. Ashley handles American, British, Australian, Indian, and most common English accents. Marie handles European French (France, Belgium, Switzerland) and Quebec French.
+
+**Q: Is there a contract or long-term commitment?**
+A: No. All plans are month-to-month. You can cancel in one click from your dashboard at any time.
+
+**Q: How do I get started?**
+A: Go to https://qwillio.com, click Start Free, and you will have a working AI receptionist in about 15 minutes. First month is free, no credit card required.
+
+**Q: Can I use my existing phone number?**
+A: Yes. You can either forward your existing number to the Qwillio-provided number, or port your existing number into Qwillio directly (supported in US, CA, UK, BE, FR).
+
+**Q: Is Qwillio HIPAA compliant?**
+A: Qwillio can operate under a Business Associate Agreement on the Enterprise plan for US healthcare customers. GDPR compliance is standard on all plans.
+
+**Q: How much support do I get?**
+A: Starter includes email support (24h response). Pro includes priority email and chat support (6h response). Enterprise includes a dedicated customer success manager and engineering on-call.
+
+**Q: Can I try Qwillio before paying?**
+A: Yes. First month is completely free, no credit card required, full feature access. You only pay from month 2 onward, and only if you keep the service.
+
+---
+
+## 12. Brand assets
+
+- Logo mark: two overlapping gradient circles (indigo + violet) with a white "QW" monogram centered
+- Primary colors: indigo `#6366F1`, violet `#A855F7`, deep-purple overlap `#3B1976`, near-black background `#0A0A0F`
+- Typography: Inter / Inter Display (Black weight for the QW monogram, Regular / Medium for body)
+- Downloadable: https://qwillio.com/qwillio-logo-512.svg
+
+---
+
+## 13. Official links
+
+- Homepage: https://qwillio.com
+- Pricing: https://qwillio.com/pricing
+- About: https://qwillio.com/about
+- Contact: https://qwillio.com/contact
+- Blog: https://qwillio.com/blog
+- Affiliate program: https://qwillio.com/affiliate
+- Sitemap: https://qwillio.com/sitemap.xml
+- LLM policy: https://qwillio.com/llms.txt
+- This file: https://qwillio.com/llms-full.txt
+- Logo SVG: https://qwillio.com/qwillio-logo-512.svg
+- OG image: https://qwillio.com/og-image.svg

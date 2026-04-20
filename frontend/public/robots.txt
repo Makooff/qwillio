@@ -1,3 +1,7 @@
+# Qwillio — robots.txt
+# Canonical host: https://qwillio.com
+
+# Default policy — all crawlers welcome to index public pages
 User-agent: *
 Allow: /
 
@@ -6,7 +10,7 @@ Disallow: /privacy
 Disallow: /gdpr
 Disallow: /terms
 
-# Block authenticated/private routes
+# Block authenticated / private routes
 Disallow: /dashboard
 Disallow: /dashboard/
 Disallow: /admin
@@ -22,5 +26,88 @@ Disallow: /login
 Disallow: /client/
 Disallow: /api/
 
-# Sitemaps
+# ────────────────────────────────────────────────────────────────
+# AI / LLM crawlers — explicitly allowed so Qwillio surfaces in
+# generative search, chat assistants, and AI answer engines.
+# ────────────────────────────────────────────────────────────────
+
+User-agent: GPTBot
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /api/
+Disallow: /client/
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /api/
+Disallow: /client/
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: DuckAssistBot
+Allow: /
+
+User-agent: YouBot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: Meta-ExternalFetcher
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+# LLM content index
+# https://llmstxt.org/
 Sitemap: https://qwillio.com/sitemap.xml

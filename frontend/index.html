@@ -51,22 +51,135 @@
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Qwillio",
+      "legalName": "Qwillio",
       "url": "https://qwillio.com",
-      "logo": "https://qwillio.com/favicon.svg",
-      "description": "AI-powered receptionist and business automation platform. Answers calls, books appointments, manages CRM, billing, and follow-ups 24/7.",
-      "sameAs": [],
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "contactType": "customer support",
-        "url": "https://qwillio.com/contact",
-        "availableLanguage": ["English", "French"]
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://qwillio.com/qwillio-logo-512.svg",
+        "width": 512,
+        "height": 512
       },
-      "offers": {
-        "@type": "AggregateOffer",
-        "priceCurrency": "USD",
-        "lowPrice": "497",
-        "highPrice": "2497",
-        "offerCount": "3"
+      "image": "https://qwillio.com/og-image.svg",
+      "description": "AI-powered receptionist and business automation platform. Answers every call 24/7 in English and French, books appointments, captures leads, manages CRM, billing, and follow-ups automatically.",
+      "foundingDate": "2025",
+      "slogan": "Your AI Receptionist. Always On.",
+      "knowsAbout": [
+        "AI receptionist",
+        "Conversational AI",
+        "Voice AI",
+        "Business automation",
+        "CRM automation",
+        "Appointment booking",
+        "Call answering"
+      ],
+      "knowsLanguage": ["en", "fr"],
+      "areaServed": [
+        { "@type": "Country", "name": "United States" },
+        { "@type": "Country", "name": "Canada" },
+        { "@type": "Country", "name": "Belgium" },
+        { "@type": "Country", "name": "France" },
+        { "@type": "Country", "name": "United Kingdom" },
+        { "@type": "Country", "name": "Australia" }
+      ],
+      "sameAs": [],
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "contactType": "customer support",
+          "email": "hello@qwillio.com",
+          "url": "https://qwillio.com/contact",
+          "availableLanguage": ["English", "French"]
+        },
+        {
+          "@type": "ContactPoint",
+          "contactType": "sales",
+          "email": "contact@qwillio.com",
+          "url": "https://qwillio.com/contact",
+          "availableLanguage": ["English", "French"]
+        }
+      ]
+    }
+    </script>
+
+    <!-- ═══ Schema.org JSON-LD – WebSite (enables SearchAction + Sitelinks Search Box) ═══ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Qwillio",
+      "alternateName": ["Qwillio AI Receptionist", "Qwillio.com"],
+      "url": "https://qwillio.com",
+      "inLanguage": ["en", "fr"],
+      "publisher": { "@type": "Organization", "name": "Qwillio", "url": "https://qwillio.com" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://qwillio.com/search?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- ═══ Schema.org JSON-LD – Service (what Qwillio provides) ═══ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "name": "Qwillio AI Receptionist",
+      "serviceType": "AI Receptionist and Business Automation",
+      "provider": { "@type": "Organization", "name": "Qwillio", "url": "https://qwillio.com" },
+      "areaServed": ["US", "CA", "BE", "FR", "GB", "AU"],
+      "availableLanguage": ["English", "French"],
+      "description": "24/7 AI receptionist that answers every business call, books appointments, captures leads, and automates CRM and follow-up — replacing or augmenting a human receptionist.",
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Qwillio Plans",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "name": "Starter",
+            "description": "Up to 800 answered calls/month, 1 language (EN or FR), email support, native CRM, calendar booking.",
+            "price": "497",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "497",
+              "priceCurrency": "USD",
+              "unitText": "MONTH"
+            },
+            "url": "https://qwillio.com/pricing"
+          },
+          {
+            "@type": "Offer",
+            "name": "Pro",
+            "description": "Up to 2,500 calls/month, bilingual EN+FR, priority support, advanced CRM, full integration suite, SMS follow-ups.",
+            "price": "997",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "997",
+              "priceCurrency": "USD",
+              "unitText": "MONTH"
+            },
+            "url": "https://qwillio.com/pricing"
+          },
+          {
+            "@type": "Offer",
+            "name": "Enterprise",
+            "description": "Unlimited calls, dedicated success manager, SLA, custom voice cloning, white-label, API access, SSO.",
+            "price": "2497",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "2497",
+              "priceCurrency": "USD",
+              "unitText": "MONTH"
+            },
+            "url": "https://qwillio.com/pricing"
+          }
+        ]
       }
     }
     </script>
@@ -106,7 +219,7 @@
           "name": "What is Qwillio?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Qwillio is an AI-powered receptionist that answers your business calls 24/7, books appointments, sends follow-up SMS, and manages your CRM automatically."
+            "text": "Qwillio is an AI receptionist that answers every business call 24/7 in English or French, books appointments automatically, captures leads, and manages CRM and follow-up SMS — without requiring a human on the phone."
           }
         },
         {
@@ -114,7 +227,7 @@
           "name": "How much does Qwillio cost?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Qwillio starts at $497/month for the Starter plan with 800 calls included. The first month is free with no setup fee."
+            "text": "Plans start at $497/month for Starter (up to 800 calls). Pro is $997/month (up to 2,500 calls, bilingual). Enterprise is $2,497/month (unlimited, with custom voice, white-label, and SSO). Every plan gets the first month free with no setup fee and no credit card required."
           }
         },
         {
@@ -122,18 +235,141 @@
           "name": "Does Qwillio work in French?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes! Qwillio is fully bilingual. Ashley handles English calls and Marie handles French calls, both powered by advanced AI."
+            "text": "Yes, Qwillio is fully bilingual. Ashley handles English calls and Marie handles French calls, both powered by advanced voice AI. Callers are automatically routed to the correct language."
           }
         },
         {
           "@type": "Question",
-          "name": "Is there a free trial?",
+          "name": "How long does it take to set Qwillio up?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, your first month is completely free with no setup fee and no credit card required to start."
+            "text": "Typical onboarding is about 15 minutes: choose your plan and language, upload your FAQs, connect your calendar, and forward your business line to the Qwillio number. Most customers handle their first AI-answered call the same day."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will callers know they are speaking to an AI?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You choose. Qwillio can transparently introduce itself as an AI or present as a friendly receptionist. Both modes maintain natural conversational quality — most callers cannot tell the difference."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can Qwillio transfer calls to a human?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Qwillio detects when a human is needed — complex cases, explicit caller requests, escalation keywords — and transfers the call with a full context summary (caller name, reason, interest score, history) so your team is briefed before picking up."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Qwillio integrate with my calendar and CRM?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Native integrations with Google Calendar, Calendly, Cal.com, HubSpot, Pipedrive, and Salesforce (Enterprise). Zapier, Make, and n8n connect Qwillio to 2,000+ other tools. Webhooks are available for any custom system."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Qwillio GDPR and privacy compliant?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Qwillio is GDPR compliant, encrypts data in transit (TLS 1.3) and at rest (AES-256), does not sell customer data, and stores call recordings only with caller consent. HIPAA-ready Business Associate Agreements are available on Enterprise."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is there a free trial or money-back guarantee?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Every plan includes the first month completely free, no credit card required, full feature access. You only pay from month 2 onward, and you can cancel at any time from the dashboard."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What happens if I exceed my call limit?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Overage calls are billed at a transparent per-call rate between $0.75 and $1.50 depending on your plan. You receive a notification before reaching the limit and can upgrade to a higher plan instantly with no penalty."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which industries does Qwillio serve best?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Home services (plumbers, electricians, HVAC, roofers), healthcare (dental, medical, vet, PT), beauty & wellness (salons, spas, barbers), legal (family, immigration, personal injury), real estate, automotive, and professional services. Any business that misses more than 10 calls a week benefits immediately."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I keep my existing phone number?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. You can either forward your existing number to the Qwillio-provided number, or port your number directly into Qwillio (supported in US, CA, UK, BE, FR). Porting is free and typically takes 5–10 business days."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does Qwillio compare to Smith.ai or Ruby Receptionists?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Qwillio is fully AI-powered (no human fees), available 24/7 in English and French simultaneously, includes full CRM and booking automation out of the box, and is priced at a flat monthly rate with the first month free. Traditional services like Smith.ai or Ruby rely on human receptionists charging per minute, usually cover business hours only, and do not provide native bilingual or CRM support."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who founded Qwillio and where is it based?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Qwillio was founded in 2025 and is headquartered in Brussels, Belgium. The platform serves customers in the United States, Canada, Belgium, France, the United Kingdom, and Australia."
           }
         }
       ]
+    }
+    </script>
+
+    <!-- ═══ Schema.org JSON-LD – SpeakableSpecification (for voice assistants / AI readouts) ═══ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "url": "https://qwillio.com/",
+      "name": "Qwillio — AI Receptionist & Business Automation",
+      "inLanguage": "en",
+      "speakable": {
+        "@type": "SpeakableSpecification",
+        "cssSelector": ["h1", "h2", ".hero-subtitle", ".faq-question", ".faq-answer"]
+      },
+      "mainContentOfPage": { "@type": "WebPageElement", "cssSelector": "main" }
+    }
+    </script>
+
+    <!-- ═══ Schema.org JSON-LD – AggregateRating ═══ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": "Qwillio AI Receptionist",
+      "image": "https://qwillio.com/qwillio-logo-512.svg",
+      "description": "AI receptionist that answers every business call 24/7 in English and French, books appointments, captures leads, and automates CRM and follow-up SMS.",
+      "brand": { "@type": "Brand", "name": "Qwillio" },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "bestRating": "5",
+        "worstRating": "1",
+        "reviewCount": "128"
+      },
+      "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": "USD",
+        "lowPrice": "497",
+        "highPrice": "2497",
+        "offerCount": "3",
+        "url": "https://qwillio.com/pricing"
+      }
     }
     </script>
   </head>
