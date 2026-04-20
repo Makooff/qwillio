@@ -15,6 +15,7 @@ import { handleButtonInteraction } from './buttons/handler';
 import { DashboardManager } from './dashboard/manager';
 import { ChannelManager } from './channels/manager';
 import { ClaudeCodeManager } from './claude-code/manager';
+import { ErrorFixAgent, loadErrorFixAgentOptions } from './error-fix-agent/agent';
 
 export const client = new Client({
   intents: [
@@ -29,6 +30,7 @@ export const client = new Client({
 export let dashboardManager: DashboardManager;
 export let channelManager: ChannelManager;
 export let claudeCodeManager: ClaudeCodeManager;
+export let errorFixAgent: ErrorFixAgent | null = null;
 
 const startTime = Date.now();
 export function getUptime(): number {
@@ -130,6 +132,19 @@ export async function startBot(): Promise<void> {
     // Start dashboard
     await dashboardManager.initialize();
 
+    // Initialize error-fix agent
+    const agentOpts = loadErrorFixAgentOptions();
+    if (agentOpts.enabled && agentOpts.anthropicApiKey && agentOpts.alertsChannelId) {
+      errorFixAgent = new ErrorFixAgent(readyClient, agentOpts);
+      logger.info(
+        `Error-fix agent enabled (model=${agentOpts.model}, autoCommit=${agentOpts.autoCommit}, autoPush=${agentOpts.autoPush}, branch=${agentOpts.branch})`
+      );
+    } else {
+      logger.warn(
+        `Error-fix agent disabled (enabled=${agentOpts.enabled}, hasKey=${!!agentOpts.anthropicApiKey}, hasAlertsChannel=${!!agentOpts.alertsChannelId})`
+      );
+    }
+
     // Post system notification
     await channelManager.postSystem('🟢 **Qwillio Bot** started successfully');
   });
@@ -157,13 +172,23 @@ export async function startBot(): Promise<void> {
     }
   });
 
-  // Handle Claude Code thread messages
   client.on(Events.MessageCreate, async (message) => {
+    // Never react to our own messages (would loop on status posts).
+    if (message.author.id === client.user?.id) return;
+
+    // Upstream error alerts are typically posted by webhooks/bots, so we
+    // dispatch to the error-fix agent before the generic bot filter.
+    if (errorFixAgent && errorFixAgent.isAlertMessage(message)) {
+      errorFixAgent.handleAlert(message).catch((err) => {
+        logger.error(`Error-fix agent failed: ${err?.stack ?? err?.message ?? err}`);
+      });
+      return;
+    }
+
     if (message.author.bot) return;
     if (message.author.id !== config.ownerId) return;
     if (!message.channel.isThread()) return;
 
-    // Check if this is a Claude Code thread
     if (claudeCodeManager && message.channel.name.startsWith('Claude Code')) {
       await claudeCodeManager.handleMessage(message);
     }
