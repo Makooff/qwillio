@@ -66,7 +66,7 @@ export default function QwillioLoader({
         {/* Left orb — glow halo underneath, then translucent circle on top */}
         <g className="qw-orb qw-orb--left">
           <circle className="qw-orb__halo" cx="198" cy="256" r="176" fill="url(#qwOrbA)" filter="url(#qwOrbGlow)" />
-          <circle className="qw-orb__core" cx="198" cy="256" r="176" fill="url(#qwCircleA)" opacity="0.92" />
+          <circle className="qw-orb__core" cx="198" cy="256" r="176" fill="url(#qwCircleA)" opacity="0.82" />
           <circle className="qw-orb__core" cx="198" cy="256" r="176" fill="url(#qwHi)" />
         </g>
 
@@ -87,7 +87,7 @@ export default function QwillioLoader({
           <g transform="translate(198 256) scale(0.675)">
             <path fill="#ffffff" d={Q_PATH} />
           </g>
-          <g transform="translate(314 256) scale(0.655)">
+          <g transform="translate(314 256) scale(0.675)">
             <path fill="#ffffff" d={W_PATH} />
           </g>
         </g>
