@@ -56,38 +56,38 @@ export default function QwillioLoader({
             <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
           </radialGradient>
           <clipPath id="qwClip">
-            <circle cx="200" cy="256" r="176" />
+            <circle cx="198" cy="256" r="176" />
           </clipPath>
           <filter id="qwOrbGlow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="14" />
           </filter>
         </defs>
 
-        {/* Left orb — glow halo underneath, then solid circle on top */}
+        {/* Left orb — glow halo underneath, then translucent circle on top */}
         <g className="qw-orb qw-orb--left">
-          <circle className="qw-orb__halo" cx="200" cy="256" r="176" fill="url(#qwOrbA)" filter="url(#qwOrbGlow)" />
-          <circle className="qw-orb__core" cx="200" cy="256" r="176" fill="url(#qwCircleA)" />
-          <circle className="qw-orb__core" cx="200" cy="256" r="176" fill="url(#qwHi)" />
+          <circle className="qw-orb__halo" cx="198" cy="256" r="176" fill="url(#qwOrbA)" filter="url(#qwOrbGlow)" />
+          <circle className="qw-orb__core" cx="198" cy="256" r="176" fill="url(#qwCircleA)" opacity="0.92" />
+          <circle className="qw-orb__core" cx="198" cy="256" r="176" fill="url(#qwHi)" />
         </g>
 
         {/* Right orb */}
         <g className="qw-orb qw-orb--right">
-          <circle className="qw-orb__halo" cx="312" cy="256" r="176" fill="url(#qwOrbB)" filter="url(#qwOrbGlow)" />
-          <circle className="qw-orb__core" cx="312" cy="256" r="176" fill="url(#qwCircleB)" />
-          <circle className="qw-orb__core" cx="312" cy="256" r="176" fill="url(#qwHi)" />
+          <circle className="qw-orb__halo" cx="314" cy="256" r="176" fill="url(#qwOrbB)" filter="url(#qwOrbGlow)" />
+          <circle className="qw-orb__core" cx="314" cy="256" r="176" fill="url(#qwCircleB)" opacity="0.92" />
+          <circle className="qw-orb__core" cx="314" cy="256" r="176" fill="url(#qwHi)" />
         </g>
 
         {/* Intersection — appears once the orbs have settled */}
         <g className="qw-loader__overlap">
-          <circle cx="312" cy="256" r="176" fill="#3B1976" opacity="0.62" clipPath="url(#qwClip)" />
+          <circle cx="314" cy="256" r="176" fill="#2B1166" opacity="0.65" clipPath="url(#qwClip)" />
         </g>
 
         {/* Letters — pure fade-in after the logo has settled */}
         <g className="qw-loader__letters">
-          <g transform="translate(200 256)">
+          <g transform="translate(198 256) scale(0.99)">
             <path fill="#ffffff" d={Q_PATH} />
           </g>
-          <g transform="translate(312 256) scale(0.986)">
+          <g transform="translate(314 256) scale(0.976)">
             <path fill="#ffffff" d={W_PATH} />
           </g>
         </g>

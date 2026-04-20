@@ -1,7 +1,7 @@
 /**
- * Qwillio inline SVG logo — two overlapping gradient circles with the "Q"
- * centered in the left circle and the "W" centered in the right circle,
- * both rendered as Inter Display Black outline paths.
+ * Qwillio inline SVG logo — two overlapping translucent circles with Q
+ * centred in the left bubble and W in the right bubble, both rendered as
+ * Inter Display Black outline paths.
  */
 
 const Q_PATH =
@@ -36,18 +36,18 @@ export default function QwillioLogo({ size = 32, className = '' }: { size?: numb
           <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
         </radialGradient>
         <clipPath id="qwIntersect">
-          <circle cx="200" cy="256" r="176" />
+          <circle cx="198" cy="256" r="176" />
         </clipPath>
       </defs>
-      <circle cx="200" cy="256" r="176" fill="url(#qwLogoA)" />
-      <circle cx="312" cy="256" r="176" fill="url(#qwLogoB)" />
-      <circle cx="312" cy="256" r="176" fill="#3B1976" opacity={0.62} clipPath="url(#qwIntersect)" />
-      <circle cx="200" cy="256" r="176" fill="url(#qwLogoHi)" />
-      <circle cx="312" cy="256" r="176" fill="url(#qwLogoHi)" />
-      <g transform="translate(200 256)">
+      <circle cx="198" cy="256" r="176" fill="url(#qwLogoA)" opacity={0.92} />
+      <circle cx="314" cy="256" r="176" fill="url(#qwLogoB)" opacity={0.92} />
+      <circle cx="314" cy="256" r="176" fill="#2B1166" opacity={0.65} clipPath="url(#qwIntersect)" />
+      <circle cx="198" cy="256" r="176" fill="url(#qwLogoHi)" />
+      <circle cx="314" cy="256" r="176" fill="url(#qwLogoHi)" />
+      <g transform="translate(198 256) scale(0.99)">
         <path fill="#ffffff" d={Q_PATH} />
       </g>
-      <g transform="translate(312 256) scale(0.986)">
+      <g transform="translate(314 256) scale(0.976)">
         <path fill="#ffffff" d={W_PATH} />
       </g>
     </svg>
