@@ -36,18 +36,18 @@ export default function QwillioLogo({ size = 32, className = '' }: { size?: numb
           <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
         </radialGradient>
         <clipPath id="qwIntersect">
-          <circle cx="198" cy="256" r="176" />
+          <circle cx="196" cy="256" r="176" />
         </clipPath>
       </defs>
-      <circle cx="198" cy="256" r="176" fill="url(#qwLogoA)" opacity={0.92} />
-      <circle cx="314" cy="256" r="176" fill="url(#qwLogoB)" opacity={0.92} />
-      <circle cx="314" cy="256" r="176" fill="#2B1166" opacity={0.65} clipPath="url(#qwIntersect)" />
-      <circle cx="198" cy="256" r="176" fill="url(#qwLogoHi)" />
-      <circle cx="314" cy="256" r="176" fill="url(#qwLogoHi)" />
-      <g transform="translate(198 256) scale(0.680)">
+      <circle cx="196" cy="256" r="176" fill="url(#qwLogoA)" opacity={0.92} />
+      <circle cx="316" cy="256" r="176" fill="url(#qwLogoB)" opacity={0.92} />
+      <circle cx="316" cy="256" r="176" fill="#3D2F9E" opacity={0.58} clipPath="url(#qwIntersect)" />
+      <circle cx="196" cy="256" r="176" fill="url(#qwLogoHi)" />
+      <circle cx="316" cy="256" r="176" fill="url(#qwLogoHi)" />
+      <g transform="translate(196 256) scale(0.685)">
         <path fill="#ffffff" d={Q_PATH} />
       </g>
-      <g transform="translate(314 256) scale(0.680)">
+      <g transform="translate(316 256) scale(0.685)">
         <path fill="#ffffff" d={W_PATH} />
       </g>
     </svg>

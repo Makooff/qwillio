@@ -47,34 +47,34 @@ export default function QwillioLoader({
             <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
           </radialGradient>
           <clipPath id="qwlClip">
-            <circle cx="198" cy="256" r="176" />
+            <circle cx="196" cy="256" r="176" />
           </clipPath>
         </defs>
 
         {/* Left bubble — slides in from the left, no letter baked in */}
         <g className="qw-loader__left">
-          <circle cx="198" cy="256" r="176" fill="url(#qwlA)" opacity="0.92" />
-          <circle cx="198" cy="256" r="176" fill="url(#qwlHi)" />
+          <circle cx="196" cy="256" r="176" fill="url(#qwlA)" opacity="0.92" />
+          <circle cx="196" cy="256" r="176" fill="url(#qwlHi)" />
         </g>
 
         {/* Right bubble — slides in from the right, violet sits on top of
             blue in the overlap region for the proper brand layering. */}
         <g className="qw-loader__right">
-          <circle cx="314" cy="256" r="176" fill="url(#qwlB)" opacity="0.92" />
-          <circle cx="314" cy="256" r="176" fill="url(#qwlHi)" />
+          <circle cx="316" cy="256" r="176" fill="url(#qwlB)" opacity="0.92" />
+          <circle cx="316" cy="256" r="176" fill="url(#qwlHi)" />
         </g>
 
         {/* Intersection deepening — fades in once the bubbles have crossed */}
         <g className="qw-loader__overlap">
-          <circle cx="314" cy="256" r="176" fill="#2B1166" opacity="0.65" clipPath="url(#qwlClip)" />
+          <circle cx="316" cy="256" r="176" fill="#3D2F9E" opacity="0.58" clipPath="url(#qwlClip)" />
         </g>
 
         {/* Letters — fade in centred on each bubble after the crossing */}
         <g className="qw-loader__letters">
-          <g transform="translate(198 256) scale(0.680)">
+          <g transform="translate(196 256) scale(0.685)">
             <path fill="#ffffff" d={Q_PATH} />
           </g>
-          <g transform="translate(314 256) scale(0.680)">
+          <g transform="translate(316 256) scale(0.685)">
             <path fill="#ffffff" d={W_PATH} />
           </g>
         </g>
