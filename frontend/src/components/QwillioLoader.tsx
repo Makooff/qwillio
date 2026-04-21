@@ -51,21 +51,22 @@ export default function QwillioLoader({
           </clipPath>
         </defs>
 
-        {/* Left bubble — slides in from the left, no letter baked in */}
-        <g className="qw-loader__left">
-          <circle cx="198" cy="256" r="176" fill="url(#qwlA)" opacity="0.82" />
-          <circle cx="198" cy="256" r="176" fill="url(#qwlHi)" />
-        </g>
-
-        {/* Right bubble — slides in from the right, no letter baked in */}
+        {/* Right bubble renders first so the left (blue) bubble sits on
+            top of it in the overlap region. */}
         <g className="qw-loader__right">
           <circle cx="314" cy="256" r="176" fill="url(#qwlB)" opacity="0.92" />
           <circle cx="314" cy="256" r="176" fill="url(#qwlHi)" />
         </g>
 
-        {/* Intersection overlay — fades in once the bubbles have crossed */}
+        {/* Left bubble — slides in from the left, layered on top */}
+        <g className="qw-loader__left">
+          <circle cx="198" cy="256" r="176" fill="url(#qwlA)" opacity="0.95" />
+          <circle cx="198" cy="256" r="176" fill="url(#qwlHi)" />
+        </g>
+
+        {/* Intersection deepening — fades in once the bubbles have crossed */}
         <g className="qw-loader__overlap">
-          <circle cx="314" cy="256" r="176" fill="#2B1166" opacity="0.65" clipPath="url(#qwlClip)" />
+          <circle cx="314" cy="256" r="176" fill="#2B1166" opacity="0.55" clipPath="url(#qwlClip)" />
         </g>
 
         {/* Letters — fade in centred on each bubble after the crossing */}
