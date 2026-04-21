@@ -4,14 +4,15 @@ const API = 'https://qwillio.onrender.com';
 const getH = (): Record<string,string> => { const t=localStorage.getItem('token'); return t?{Authorization:`Bearer ${t}`}:{}; };
 const fmtDateTime = (iso?:string) => { if(!iso) return '—'; const d=new Date(iso); const timeStr=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); const dateStr=d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); return `${dateStr} · ${timeStr}`; };
 const PC: Record<string,string> = { starter:'rgba(255,255,255,0.3)', pro:'#8B5CF6', business:'#a78bfa', enterprise:'#c4b5fd' };
-interface Cl { id:string; businessName:string; contactName:string; email:string; plan:string; monthlyFee:number; city:string; createdAt:string; }
+interface Cl { id:string; businessName:string; contactName:string; email:string; plan:string; monthlyFee:number|string; city:string; createdAt:string; }
+const toNum = (v: unknown): number => { const n = typeof v === 'number' ? v : parseFloat(String(v ?? 0)); return Number.isFinite(n) ? n : 0; };
 const Clients: React.FC = () => {
   const [items,setItems]=useState<Cl[]>([]);
   const [loading,setLoading]=useState(true);
   const [q,setQ]=useState('');
   useEffect(()=>{ fetch(`${API}/api/admin/clients`,{headers:getH()}).then(r=>r.json()).then(d=>setItems(Array.isArray(d)?d:d.clients||[])).catch(console.error).finally(()=>setLoading(false)); },[]);
   const filtered=items.filter(c=>!q||c.businessName?.toLowerCase().includes(q.toLowerCase())||c.contactName?.toLowerCase().includes(q.toLowerCase()));
-  const mrr=filtered.reduce((s,c)=>s+(c.monthlyFee||0),0);
+  const mrr=filtered.reduce((s,c)=>s+toNum(c.monthlyFee),0);
   if(loading) return <div style={{minHeight:'100vh',background:'#0a0a0a',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{width:28,height:28,borderRadius:'50%',border:'2px solid #8B5CF6',borderTopColor:'transparent',animation:'spin .8s linear infinite'}}/><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>;
   return (
     <div style={{background:'#0a0a0a',minHeight:'100vh',color:'white'}}>
@@ -40,7 +41,7 @@ const Clients: React.FC = () => {
                 </div>
               </div>
               <div style={{textAlign:'right',flexShrink:0}}>
-                <div style={{fontSize:14,fontWeight:600,color:'#c4b5fd'}}>{(c.monthlyFee||0).toFixed(0)}€</div>
+                <div style={{fontSize:14,fontWeight:600,color:'#c4b5fd'}}>{toNum(c.monthlyFee).toFixed(0)}€</div>
                 <div style={{fontSize:11,color:'rgba(255,255,255,0.3)',marginTop:2}}>{c.plan||'—'}</div>
               </div>
             </div>

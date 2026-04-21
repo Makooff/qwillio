@@ -5,43 +5,48 @@ import { useAuthStore } from '../../stores/authStore';
 import QwillioLogo from '../QwillioLogo';
 import {
   LayoutDashboard, Phone, Users, BarChart3, CreditCard,
-  Bot, UserCircle, HelpCircle, LogOut, Menu, X,
+  Bot, UserCircle, HelpCircle, LogOut, Menu, X, Settings,
+  ChevronDown, ChevronRight,
 } from 'lucide-react';
 
-const NAV = [
-  { path: '/dashboard',             icon: LayoutDashboard, label: 'Vue d\'ensemble', exact: true },
-  { path: '/dashboard/calls',       icon: Phone,            label: 'Appels' },
-  { path: '/dashboard/leads',       icon: Users,            label: 'Leads' },
-  { path: '/dashboard/analytics',   icon: BarChart3,        label: 'Analytique' },
-  { path: '/dashboard/receptionist',icon: Bot,              label: 'Réceptionniste' },
-  { path: '/dashboard/billing',     icon: CreditCard,       label: 'Facturation' },
-  { path: '/dashboard/account',     icon: UserCircle,       label: 'Compte' },
-  { path: '/dashboard/support',     icon: HelpCircle,       label: 'Support' },
+const PRIMARY_NAV = [
+  { path: '/dashboard',           icon: LayoutDashboard, label: "Vue d'ensemble", exact: true },
+  { path: '/dashboard/calls',     icon: Phone,           label: 'Appels' },
+  { path: '/dashboard/leads',     icon: Users,           label: 'Leads' },
+  { path: '/dashboard/analytics', icon: BarChart3,       label: 'Analytique' },
+];
+
+const SETTINGS_NAV = [
+  { path: '/dashboard/account',      icon: UserCircle,  label: 'Compte' },
+  { path: '/dashboard/receptionist', icon: Bot,         label: 'Réceptionniste IA' },
+  { path: '/dashboard/billing',      icon: CreditCard,  label: 'Facturation' },
+  { path: '/dashboard/support',      icon: HelpCircle,  label: 'Support' },
 ];
 
 export default function ClientLayout() {
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(
+    SETTINGS_NAV.some(i => location.pathname.startsWith(i.path))
+  );
 
   const isActive = (path: string, exact?: boolean) => {
     if (exact) return location.pathname === path;
     return location.pathname.startsWith(path);
   };
 
-  const initials = user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) ?? 'CL';
+  const initials =
+    user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) ?? 'CL';
 
-  const NavLink = ({ item }: { item: typeof NAV[0] }) => {
-    const active = isActive(item.path, item.exact);
+  const NavLink = ({ item, exact }: { item: { path: string; label: string; icon: any }; exact?: boolean }) => {
+    const active = isActive(item.path, exact);
     return (
       <Link
         to={item.path}
         onClick={() => setMobileOpen(false)}
         className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
-          ${active
-            ? 'bg-[#7B5CF0]/15 text-[#7B5CF0]'
-            : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.04]'
-          }`}
+          ${active ? 'bg-[#7B5CF0]/15 text-[#7B5CF0]' : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.04]'}`}
       >
         {active && (
           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#7B5CF0] rounded-r-full" />
@@ -52,40 +57,88 @@ export default function ClientLayout() {
     );
   };
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full min-h-0">
-      {/* Logo */}
-      <div className="flex items-center gap-3 mb-8 px-1 flex-shrink-0">
-        <QwillioLogo size={32} />
-        <span className="text-base font-bold text-[#F8F8FF] tracking-tight">Qwillio</span>
-      </div>
+  const SubNavLink = ({ item }: { item: { path: string; label: string; icon: any } }) => {
+    const active = isActive(item.path);
+    return (
+      <Link
+        to={item.path}
+        onClick={() => setMobileOpen(false)}
+        className={`flex items-center gap-3 pl-9 pr-3 py-2 rounded-xl text-[13px] transition-all
+          ${active ? 'text-[#7B5CF0] bg-[#7B5CF0]/10' : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.04]'}`}
+      >
+        <item.icon className="w-4 h-4 flex-shrink-0" />
+        <span>{item.label}</span>
+      </Link>
+    );
+  };
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto space-y-0.5 pb-4">
-        {NAV.map(item => <NavLink key={item.path} item={item} />)}
-      </nav>
-
-      {/* User + logout */}
-      <div className="flex-shrink-0 pt-3 border-t border-white/[0.06] space-y-1">
-        <div className="flex items-center gap-3 px-3 py-2.5">
-          <div className="w-7 h-7 rounded-full bg-[#7B5CF0]/30 flex items-center justify-center flex-shrink-0">
-            <span className="text-[10px] font-bold text-[#7B5CF0]">{initials}</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-[#F8F8FF] truncate">{user?.name ?? 'Client'}</p>
-            <p className="text-[10px] text-[#8B8BA7] truncate">{user?.email}</p>
-          </div>
+  const SidebarContent = () => {
+    const settingsIsActive = SETTINGS_NAV.some(i => isActive(i.path));
+    return (
+      <div className="flex flex-col h-full min-h-0">
+        {/* Logo */}
+        <div className="flex items-center gap-3 mb-6 px-1 flex-shrink-0">
+          <QwillioLogo size={32} />
+          <span className="text-base font-bold text-[#F8F8FF] tracking-tight">Qwillio</span>
         </div>
-        <button
-          onClick={logout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[#8B8BA7] hover:text-red-400 hover:bg-red-500/[0.08] transition-all text-sm"
-        >
-          <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-          Déconnexion
-        </button>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto space-y-0.5 pb-4">
+          {PRIMARY_NAV.map(item => <NavLink key={item.path} item={item} exact={item.exact} />)}
+
+          {/* Settings expandable */}
+          <button
+            onClick={() => setSettingsOpen(v => !v)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
+              ${settingsIsActive ? 'text-[#7B5CF0]' : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.04]'}`}
+          >
+            <Settings className="w-[18px] h-[18px] flex-shrink-0" />
+            <span className="flex-1 text-left">Paramètres</span>
+            {settingsOpen
+              ? <ChevronDown className="w-4 h-4 flex-shrink-0 opacity-60" />
+              : <ChevronRight className="w-4 h-4 flex-shrink-0 opacity-60" />
+            }
+          </button>
+
+          <AnimatePresence initial={false}>
+            {settingsOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="space-y-0.5 py-1">
+                  {SETTINGS_NAV.map(item => <SubNavLink key={item.path} item={item} />)}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </nav>
+
+        {/* Bottom — user identity + sign out (mirrors admin layout) */}
+        <div className="flex-shrink-0 space-y-1 mt-3 pt-3 border-t border-white/[0.06]">
+          <div className="flex items-center gap-3 px-3 py-2.5">
+            <div className="w-7 h-7 rounded-full bg-[#7B5CF0]/30 flex items-center justify-center flex-shrink-0">
+              <span className="text-[10px] font-bold text-[#7B5CF0]">{initials}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-[#F8F8FF] truncate">{user?.name ?? 'Client'}</p>
+              <p className="text-[10px] text-[#8B8BA7] truncate">{user?.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[#8B8BA7] hover:text-red-400 hover:bg-red-500/[0.08] transition-all text-sm"
+          >
+            <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
+            Sign out
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen flex bg-[#0A0A0F] text-[#F8F8FF]">
@@ -138,15 +191,19 @@ export default function ClientLayout() {
             <span className="text-sm font-bold text-[#F8F8FF]">Qwillio</span>
           </div>
 
-          {/* Right: avatar */}
+          {/* Right: identity + link to account (no logout shortcut) */}
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden sm:block text-right">
               <p className="text-xs font-medium text-[#F8F8FF]">{user?.name}</p>
               <p className="text-[10px] text-[#8B8BA7]">{user?.email}</p>
             </div>
-            <div className="w-8 h-8 rounded-full bg-[#7B5CF0]/30 flex items-center justify-center cursor-pointer" onClick={logout} title="Déconnexion">
+            <Link
+              to="/dashboard/account"
+              title="Compte"
+              className="w-8 h-8 rounded-full bg-[#7B5CF0]/30 flex items-center justify-center transition-all hover:bg-[#7B5CF0]/45"
+            >
               <span className="text-xs font-bold text-[#7B5CF0]">{initials}</span>
-            </div>
+            </Link>
           </div>
         </header>
 
@@ -159,7 +216,6 @@ export default function ClientLayout() {
       {/* Mobile bottom nav — floating pill */}
       <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
         <div className="relative w-full flex items-center justify-around py-3 px-2">
-          {/* Ultra-transparent frosted background */}
           <div
             className="absolute inset-0 rounded-full pointer-events-none"
             style={{
@@ -169,13 +225,12 @@ export default function ClientLayout() {
               border: '1px solid rgba(255,255,255,0.08)',
             }}
           />
-
           {[
             { icon: LayoutDashboard, label: 'Home',   path: '/dashboard',           exact: true },
             { icon: Phone,           label: 'Appels', path: '/dashboard/calls' },
             { icon: Users,           label: 'Leads',  path: '/dashboard/leads' },
             { icon: BarChart3,       label: 'Stats',  path: '/dashboard/analytics' },
-            { icon: UserCircle,      label: 'Compte', path: '/dashboard/account' },
+            { icon: Settings,        label: 'Params', path: '/dashboard/account' },
           ].map(item => {
             const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
             return (
@@ -200,12 +255,7 @@ export default function ClientLayout() {
                       border: '1.5px solid rgba(123,92,240,0.50)',
                       boxShadow: '0 0 28px rgba(123,92,240,0.30), inset 0 1px 0 rgba(255,255,255,0.14)',
                     }}
-                    transition={{
-                      type: 'spring',
-                      stiffness: 380,
-                      damping: 26,
-                      mass: 0.8,
-                    }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.8 }}
                   />
                 )}
                 <item.icon className="relative z-10 w-[22px] h-[22px]" />
