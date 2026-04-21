@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { Clock } from 'lucide-react';
 const API = 'https://qwillio.onrender.com';
 const getH = (): Record<string,string> => { const t=localStorage.getItem('token'); return t?{Authorization:`Bearer ${t}`}:{}; };
-const fmt = (iso:string) => { if(!iso) return ''; const d=new Date(iso),diff=Date.now()-d.getTime(); if(diff<86400000) return `${Math.floor(diff/3600000)}h`; return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); };
+const fmtDateTime = (iso?:string) => { if(!iso) return '—'; const d=new Date(iso); const timeStr=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); const dateStr=d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); return `${dateStr} · ${timeStr}`; };
 const SC: Record<string,string> = { new:'#8B5CF6', called:'#6366F1', interested:'#a78bfa', not_interested:'rgba(255,80,80,0.7)', converted:'#c4b5fd' };
 interface P { id:string; businessName:string; industry:string; phone:string; score:number; status:string; city:string; createdAt:string; callCount:number; }
 const Prospects: React.FC = () => {
@@ -29,10 +30,14 @@ const Prospects: React.FC = () => {
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:14,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.businessName}</div>
                 <div style={{fontSize:12,color:'rgba(255,255,255,0.3)',marginTop:2}}>{p.city} · {p.industry}</div>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4,color:'rgba(255,255,255,0.35)'}}>
+                  <Clock size={11} style={{flexShrink:0}}/>
+                  <span style={{fontSize:11,fontWeight:500}}>{fmtDateTime(p.createdAt)}</span>
+                </div>
               </div>
               <div style={{textAlign:'right',flexShrink:0}}>
                 <div style={{fontSize:13,fontWeight:600,color:SC[p.status]||'rgba(255,255,255,0.4)'}}>{p.status}</div>
-                <div style={{fontSize:11,color:'rgba(255,255,255,0.2)',marginTop:2}}>{p.score}/22 · {fmt(p.createdAt)}</div>
+                <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',marginTop:2}}>{p.score}/22</div>
               </div>
             </div>
           ))}
