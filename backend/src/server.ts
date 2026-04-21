@@ -322,6 +322,10 @@ async function startServer() {
               agentLanguage:         'en',
               agentName:             'Ashley',
               isTrial:               false,
+              vapiAssistantId:       env.VAPI_ASSISTANT_ID || null,
+              vapiPhoneNumber:       env.VAPI_PHONE_NUMBER || null,
+              forwardingStatus:      env.VAPI_PHONE_NUMBER ? 'verified' : null,
+              forwardingVerifiedAt:  env.VAPI_PHONE_NUMBER ? now : null,
             },
             update: {
               planType:              bootstrapPlan,
@@ -333,6 +337,10 @@ async function startServer() {
               activationDate:        now,
               dashboardToken,
               isTrial:               false,
+              vapiAssistantId:       env.VAPI_ASSISTANT_ID || undefined,
+              vapiPhoneNumber:       env.VAPI_PHONE_NUMBER || undefined,
+              forwardingStatus:      env.VAPI_PHONE_NUMBER ? 'verified' : undefined,
+              forwardingVerifiedAt:  env.VAPI_PHONE_NUMBER ? now : undefined,
             },
           });
           logger.info(`[bootstrap] ✅ Test-activated client ${bootstrapEmail} (plan=${bootstrapPlan})`);
