@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { analyticsService } from '../services/analytics.service';
@@ -477,6 +478,94 @@ router.get('/errors', (req: Request, res: Response) => {
 router.post('/errors/:id/resolve', (req: Request, res: Response) => {
   markResolved(req.params.id as string);
   res.json({ ok: true });
+});
+
+// ─── Test activation (admin-only) ────────────────────────────
+// POST /api/admin/test-activate-client  body: { email, plan? }
+// Flips the target account to a fully-paid, fully-onboarded Client so the
+// client dashboard can be exercised end-to-end without going through
+// Stripe. Admin only.
+const PLAN_PRICES: Record<string, { monthly: number; calls: number }> = {
+  starter:    { monthly: 497,  calls: 800 },
+  pro:        { monthly: 1297, calls: 2000 },
+  enterprise: { monthly: 2497, calls: 4000 },
+};
+
+router.post('/test-activate-client', async (req: Request, res: Response) => {
+  const email = String(req.body?.email ?? '').trim().toLowerCase();
+  const plan  = String(req.body?.plan  ?? 'pro').toLowerCase();
+
+  if (!email) return res.status(400).json({ error: 'email is required' });
+  const priceSpec = PLAN_PRICES[plan];
+  if (!priceSpec) return res.status(400).json({ error: `Unknown plan: ${plan}. Options: ${Object.keys(PLAN_PRICES).join(', ')}` });
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ error: `No user with email ${email}` });
+
+    // Mark user onboarded so the dashboard route guards let them through
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        onboardingCompleted: true,
+        planType: plan,
+        businessName: user.businessName ?? `${user.name || email.split('@')[0]} — Test`,
+      },
+    });
+
+    const dashboardToken = crypto.randomBytes(24).toString('hex');
+    const now = new Date();
+
+    const client = await prisma.client.upsert({
+      where: { userId: user.id },
+      create: {
+        userId:               user.id,
+        businessName:         user.businessName ?? `${user.name || email.split('@')[0]} — Test`,
+        businessType:         user.industry ?? 'home_services',
+        contactName:          user.name ?? email,
+        contactEmail:         email,
+        contactPhone:         user.businessPhone ?? null,
+        planType:             plan,
+        setupFee:             0,
+        monthlyFee:           priceSpec.monthly,
+        monthlyCallsQuota:    priceSpec.calls,
+        currency:             'USD',
+        subscriptionStatus:   'active',
+        onboardingStatus:     'completed',
+        onboardingCompletedAt: now,
+        activationDate:       now,
+        dashboardToken,
+        agentLanguage:        'en',
+        agentName:            'Ashley',
+        isTrial:              false,
+      },
+      update: {
+        planType:             plan,
+        monthlyFee:           priceSpec.monthly,
+        monthlyCallsQuota:    priceSpec.calls,
+        subscriptionStatus:   'active',
+        onboardingStatus:     'completed',
+        onboardingCompletedAt: now,
+        activationDate:       now,
+        dashboardToken,       // always rotate for a clean test link
+        isTrial:              false,
+      },
+    });
+
+    logger.warn(`[admin] Test-activated client ${email} (plan=${plan})`);
+
+    return res.json({
+      ok:           true,
+      email,
+      plan,
+      clientId:     client.id,
+      dashboardUrl: `/portal/${dashboardToken}`,
+      dashboardToken,
+    });
+  } catch (err) {
+    logger.error('[admin] test-activate-client failed:', err);
+    return res.status(500).json({ error: (err as Error).message });
+  }
 });
 
 export default router;
