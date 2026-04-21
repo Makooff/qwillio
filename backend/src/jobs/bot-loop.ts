@@ -163,21 +163,24 @@ class BotLoop {
     }, { timezone: 'America/New_York' });
 
     // ═══════════════════════════════════════════════════════════
-    // CRON 2: CALLS - Every 20 min, 13-24 UTC (covers US ET 9am - PT 5pm)
-    // Hour filtering happens inside callNextProspect() per-prospect timezone
+    // CRON 2: CALLS — DISABLED. Superseded by the Prospecting Engine
+    // outboundEngineJob below (same cadence, richer logic: scoring,
+    // A/B variants, niche-specific scripts, local presence, retry).
+    // Running both caused two prospects to be called per tick and
+    // burned the daily quota twice as fast.
     // ═══════════════════════════════════════════════════════════
-    this.callingJob = cron.schedule(`*/${env.CALL_INTERVAL_MINUTES} 13-23 * * 1-5`, async () => {
-      const status = await prisma.botStatus.findFirst();
-      if (!status?.isActive) return;
-
-      logger.info('📞 [CRON] Attempting next call...');
-      trackAction('Appel sortant — sélection prospect');
-      try {
-        await vapiService.callNextProspect();
-      } catch (error) {
-        logger.error('[CRON] Call failed:', error);
-      }
-    });
+    // this.callingJob = cron.schedule(`*/${env.CALL_INTERVAL_MINUTES} 13-23 * * 1-5`, async () => {
+    //   const status = await prisma.botStatus.findFirst();
+    //   if (!status?.isActive) return;
+    //
+    //   logger.info('📞 [CRON] Attempting next call...');
+    //   trackAction('Appel sortant — sélection prospect');
+    //   try {
+    //     await vapiService.callNextProspect();
+    //   } catch (error) {
+    //     logger.error('[CRON] Call failed:', error);
+    //   }
+    // });
 
     // ═══════════════════════════════════════════════════════════
     // CRON 3: FOLLOW-UPS - Every hour
