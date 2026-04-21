@@ -23,8 +23,14 @@ const basePrisma = new PrismaClient({
 
 basePrisma.$on('error', (e: any) => {
   const msg: string = typeof e?.message === 'string' ? e.message : JSON.stringify(e);
-  // Neon idle disconnects — Prisma auto-reconnects on next query, suppress noise
-  if (msg.includes('kind: Closed') || msg.includes('connection closed') || msg.includes('Error { kind: Closed') || msg.includes('Server has closed the connection')) return;
+  // Neon idle disconnects and engine-transition noise — Prisma auto-reconnects, suppress.
+  if (
+    msg.includes('kind: Closed') ||
+    msg.includes('connection closed') ||
+    msg.includes('Error { kind: Closed') ||
+    msg.includes('Server has closed the connection') ||
+    msg.includes('Engine is not yet connected')
+  ) return;
   logger.error('Prisma error:', e);
 });
 
@@ -34,31 +40,20 @@ basePrisma.$on('warn', (e) => {
 
 // ═══ Retry middleware for transient Neon disconnections ═══
 // When Neon kills an idle connection, the first query fails with "Server has
-// closed the connection". Prisma will NOT retry automatically. The extension
-// below catches the error, on the second attempt forces the client to drop
-// its pool and reconnect, then re-runs the query on a fresh connection.
-const RETRYABLE_ERRORS = ['Server has closed the connection', 'kind: Closed', 'connection closed', 'Connection refused', 'ECONNRESET'];
-const MAX_RETRIES = 2;
-
-// Avoid thrashing $disconnect() when many concurrent queries all hit the same
-// dead pool at once — coalesce reconnect attempts.
-let reconnectInFlight: Promise<void> | null = null;
-async function forceReconnect(): Promise<void> {
-  if (!reconnectInFlight) {
-    reconnectInFlight = (async () => {
-      try {
-        await basePrisma.$disconnect();
-      } catch { /* swallow */ }
-      try {
-        await basePrisma.$connect();
-      } catch { /* swallow — next query will re-establish */ }
-    })();
-    // Release the lock after the cycle completes so future cold errors can
-    // trigger a new reconnect.
-    reconnectInFlight.finally(() => { reconnectInFlight = null; });
-  }
-  return reconnectInFlight;
-}
+// closed the connection". Prisma then marks the connection dead internally
+// and the NEXT query on the pool uses a fresh one — so a simple retry with
+// a small delay is enough. We do NOT call $disconnect() here because it
+// affects every in-flight query globally and surfaces as
+// "Engine is not yet connected" on concurrent requests.
+const RETRYABLE_ERRORS = [
+  'Server has closed the connection',
+  'kind: Closed',
+  'connection closed',
+  'Connection refused',
+  'ECONNRESET',
+  'Engine is not yet connected',
+];
+const MAX_RETRIES = 3;
 
 const prisma = basePrisma.$extends({
   query: {
@@ -70,9 +65,9 @@ const prisma = basePrisma.$extends({
           const msg = error?.message || '';
           const isRetryable = RETRYABLE_ERRORS.some(e => msg.includes(e));
           if (isRetryable && attempt < MAX_RETRIES) {
-            logger.warn(`[prisma] Neon connection lost (attempt ${attempt + 1}/${MAX_RETRIES}) — reconnecting…`);
-            await forceReconnect();
-            await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+            const backoff = 250 * Math.pow(2, attempt); // 250, 500, 1000 ms
+            logger.warn(`[prisma] transient DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms…`);
+            await new Promise(r => setTimeout(r, backoff));
             continue;
           }
           throw error;
