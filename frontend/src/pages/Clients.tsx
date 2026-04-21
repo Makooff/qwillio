@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { Clock } from 'lucide-react';
 const API = 'https://qwillio.onrender.com';
 const getH = (): Record<string,string> => { const t=localStorage.getItem('token'); return t?{Authorization:`Bearer ${t}`}:{}; };
-const fmt = (iso:string) => { if(!iso) return ''; return new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); };
+const fmtDateTime = (iso?:string) => { if(!iso) return '—'; const d=new Date(iso); const timeStr=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); const dateStr=d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); return `${dateStr} · ${timeStr}`; };
 const PC: Record<string,string> = { starter:'rgba(255,255,255,0.3)', pro:'#8B5CF6', business:'#a78bfa', enterprise:'#c4b5fd' };
 interface Cl { id:string; businessName:string; contactName:string; email:string; plan:string; monthlyFee:number; city:string; createdAt:string; }
 const Clients: React.FC = () => {
@@ -33,6 +34,10 @@ const Clients: React.FC = () => {
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:14,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.businessName}</div>
                 <div style={{fontSize:12,color:'rgba(255,255,255,0.3)',marginTop:2}}>{c.contactName||c.email||c.city||'—'}</div>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4,color:'rgba(255,255,255,0.35)'}}>
+                  <Clock size={11} style={{flexShrink:0}}/>
+                  <span style={{fontSize:11,fontWeight:500}}>{fmtDateTime(c.createdAt)}</span>
+                </div>
               </div>
               <div style={{textAlign:'right',flexShrink:0}}>
                 <div style={{fontSize:14,fontWeight:600,color:'#c4b5fd'}}>{(c.monthlyFee||0).toFixed(0)}€</div>
