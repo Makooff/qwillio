@@ -19,7 +19,7 @@
     </radialGradient>
   </defs>
 
-  <circle cx="198" cy="256" r="176" fill="url(#qwLeft)" opacity="0.82"/>
+  <circle cx="198" cy="256" r="176" fill="url(#qwLeft)" opacity="0.92"/>
   <circle cx="314" cy="256" r="176" fill="url(#qwRight)" opacity="0.92"/>
   <circle cx="314" cy="256" r="176" fill="#2B1166" opacity="0.65" clip-path="url(#qwClipLeft)"/>
   <circle cx="198" cy="256" r="176" fill="url(#qwHighlight)"/>

@@ -53,7 +53,7 @@ export default function QwillioLoader({
 
         {/* Left bubble — slides in from the left, no letter baked in */}
         <g className="qw-loader__left">
-          <circle cx="198" cy="256" r="176" fill="url(#qwlA)" opacity="0.82" />
+          <circle cx="198" cy="256" r="176" fill="url(#qwlA)" opacity="0.92" />
           <circle cx="198" cy="256" r="176" fill="url(#qwlHi)" />
         </g>
 
@@ -135,16 +135,24 @@ export default function QwillioLoader({
           animation: qw-label 400ms ease-out 1700ms 1 forwards;
         }
 
+        /* Bubbles approach their final Venn positions without crashing
+           deep into each other — light overshoot (~12 px) then a subtle
+           bounce back before settling, so the motion reads as "they meet,
+           bounce, then click into place to form the logo". */
         @keyframes qw-slide-left {
           0%   { transform: translateX(-420px); opacity: 0; }
           15%  { transform: translateX(-350px); opacity: 1; }
-          65%  { transform: translateX(36px);   opacity: 1; }
+          58%  { transform: translateX(12px);   opacity: 1; }
+          78%  { transform: translateX(-4px);   opacity: 1; }
+          92%  { transform: translateX(2px);    opacity: 1; }
           100% { transform: translateX(0);      opacity: 1; }
         }
         @keyframes qw-slide-right {
           0%   { transform: translateX(420px);  opacity: 0; }
           15%  { transform: translateX(350px);  opacity: 1; }
-          65%  { transform: translateX(-36px);  opacity: 1; }
+          58%  { transform: translateX(-12px);  opacity: 1; }
+          78%  { transform: translateX(4px);    opacity: 1; }
+          92%  { transform: translateX(-2px);   opacity: 1; }
           100% { transform: translateX(0);      opacity: 1; }
         }
         @keyframes qw-overlap {
