@@ -259,7 +259,13 @@ export class OutboundEngineService {
           assistantId: language === 'fr' && env.VAPI_ASSISTANT_ID_FR ? env.VAPI_ASSISTANT_ID_FR : env.VAPI_ASSISTANT_ID,
           assistantOverrides: {
             firstMessage: script.split('\n')[0],
-            instructions: script,
+            // NOTE: VAPI rejects an "instructions" field on assistantOverrides.
+            // To override the full prompt, pass it via model.messages below.
+            model: {
+              provider: 'openai',
+              model: env.VAPI_MODEL,
+              messages: [{ role: 'system', content: script }],
+            },
             maxDurationSeconds: 300,
           },
           metadata: {
@@ -276,6 +282,11 @@ export class OutboundEngineService {
         const errText = await callRes.text();
         logger.error(`[OutboundEngine] VAPI call failed for ${prospect.businessName}:`, errText);
         await discordService.notifyAlerts(`⚠️ VAPI call failed: ${prospect.businessName}\n${errText}`);
+        // Rollback the quota we reserved above — the call never actually happened
+        await prisma.botStatus.updateMany({
+          where: { id: botStatus.id },
+          data: { callsToday: { decrement: 1 } },
+        }).catch(e => logger.error('[OutboundEngine] Quota rollback failed:', e));
         return false;
       }
 
@@ -324,6 +335,11 @@ export class OutboundEngineService {
     } catch (err) {
       logger.error('[OutboundEngine] Call error:', err);
       await discordService.notifyAlerts(`❌ OutboundEngine error: ${(err as Error).message}`);
+      // Rollback the quota we reserved above — the call never actually happened
+      await prisma.botStatus.updateMany({
+        where: { id: botStatus.id },
+        data: { callsToday: { decrement: 1 } },
+      }).catch(e => logger.error('[OutboundEngine] Quota rollback failed:', e));
       return false;
     }
   }
