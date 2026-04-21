@@ -1,9 +1,9 @@
 /**
- * Qwillio animated loader — the two brand bubbles (each with its own letter
- * baked in: Q on the left, W on the right) slide in from the left and right
- * edges, meet in the middle, the overlap intersection fades in, and the
- * final settled state is the exact static Qwillio logo. Plays once and
- * holds until the component is unmounted.
+ * Qwillio animated loader — the two brand bubbles glide in fluidly from
+ * the left and right edges, cross paths slightly past the centre, settle
+ * into their final Venn positions, then the Q and W letters fade in
+ * centred inside each bubble. Plays once and holds the final logo until
+ * the component is unmounted.
  */
 
 const Q_PATH =
@@ -51,27 +51,31 @@ export default function QwillioLoader({
           </clipPath>
         </defs>
 
-        {/* Left half — bubble + Q letter, slide in from the left together */}
+        {/* Left bubble — slides in from the left, no letter baked in */}
         <g className="qw-loader__left">
           <circle cx="198" cy="256" r="176" fill="url(#qwlA)" opacity="0.82" />
           <circle cx="198" cy="256" r="176" fill="url(#qwlHi)" />
-          <g transform="translate(198 256) scale(0.680)">
-            <path fill="#ffffff" d={Q_PATH} />
-          </g>
         </g>
 
-        {/* Right half — bubble + W letter, slide in from the right together */}
+        {/* Right bubble — slides in from the right, no letter baked in */}
         <g className="qw-loader__right">
           <circle cx="314" cy="256" r="176" fill="url(#qwlB)" opacity="0.92" />
           <circle cx="314" cy="256" r="176" fill="url(#qwlHi)" />
+        </g>
+
+        {/* Intersection overlay — fades in once the bubbles have crossed */}
+        <g className="qw-loader__overlap">
+          <circle cx="314" cy="256" r="176" fill="#2B1166" opacity="0.65" clipPath="url(#qwlClip)" />
+        </g>
+
+        {/* Letters — fade in centred on each bubble after the crossing */}
+        <g className="qw-loader__letters">
+          <g transform="translate(198 256) scale(0.680)">
+            <path fill="#ffffff" d={Q_PATH} />
+          </g>
           <g transform="translate(314 256) scale(0.680)">
             <path fill="#ffffff" d={W_PATH} />
           </g>
-        </g>
-
-        {/* Intersection overlay — fades in once the halves meet */}
-        <g className="qw-loader__overlap">
-          <circle cx="314" cy="256" r="176" fill="#2B1166" opacity="0.65" clipPath="url(#qwlClip)" />
         </g>
       </svg>
       {label ? <div className="qw-loader__label">{label}</div> : null}
@@ -92,22 +96,32 @@ export default function QwillioLoader({
 
         .qw-loader__left,
         .qw-loader__right,
-        .qw-loader__overlap {
+        .qw-loader__overlap,
+        .qw-loader__letters {
           transform-box: fill-box;
           transform-origin: center;
         }
 
+        /* Bubbles glide in from the edges, cross slightly past centre, then
+           settle into their final Venn positions. */
         .qw-loader__left {
           opacity: 0;
-          animation: qw-slide-left 950ms cubic-bezier(0.22, 1, 0.36, 1) 0ms 1 forwards;
+          animation: qw-slide-left 1100ms cubic-bezier(0.22, 1, 0.32, 1) 0ms 1 forwards;
         }
         .qw-loader__right {
           opacity: 0;
-          animation: qw-slide-right 950ms cubic-bezier(0.22, 1, 0.36, 1) 0ms 1 forwards;
+          animation: qw-slide-right 1100ms cubic-bezier(0.22, 1, 0.32, 1) 0ms 1 forwards;
         }
+        /* Overlap fades in right as the bubbles settle. */
         .qw-loader__overlap {
           opacity: 0;
-          animation: qw-overlap 550ms ease-out 750ms 1 forwards;
+          animation: qw-overlap 500ms ease-out 950ms 1 forwards;
+        }
+        /* Letters fade in, centred in each bubble, after the logo has
+           fully formed. */
+        .qw-loader__letters {
+          opacity: 0;
+          animation: qw-letters 650ms ease-out 1350ms 1 forwards;
         }
 
         .qw-loader__label {
@@ -117,24 +131,30 @@ export default function QwillioLoader({
           letter-spacing: 0.02em;
           color: #a1a1aa;
           opacity: 0;
-          animation: qw-label-in 400ms ease-out 1200ms 1 forwards;
+          animation: qw-label 400ms ease-out 1700ms 1 forwards;
         }
 
         @keyframes qw-slide-left {
-          0%   { transform: translateX(-360px); opacity: 0; }
-          60%  { transform: translateX(18px);   opacity: 1; }
+          0%   { transform: translateX(-420px); opacity: 0; }
+          15%  { transform: translateX(-350px); opacity: 1; }
+          65%  { transform: translateX(36px);   opacity: 1; }
           100% { transform: translateX(0);      opacity: 1; }
         }
         @keyframes qw-slide-right {
-          0%   { transform: translateX(360px);  opacity: 0; }
-          60%  { transform: translateX(-18px);  opacity: 1; }
+          0%   { transform: translateX(420px);  opacity: 0; }
+          15%  { transform: translateX(350px);  opacity: 1; }
+          65%  { transform: translateX(-36px);  opacity: 1; }
           100% { transform: translateX(0);      opacity: 1; }
         }
         @keyframes qw-overlap {
           0%   { opacity: 0; }
           100% { opacity: 1; }
         }
-        @keyframes qw-label-in {
+        @keyframes qw-letters {
+          0%   { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        @keyframes qw-label {
           0%   { opacity: 0; }
           100% { opacity: 1; }
         }
@@ -143,6 +163,7 @@ export default function QwillioLoader({
           .qw-loader__left,
           .qw-loader__right,
           .qw-loader__overlap,
+          .qw-loader__letters,
           .qw-loader__label {
             animation: none;
             opacity: 1;
