@@ -270,6 +270,80 @@ async function startServer() {
       logger.warn('[Startup] Fake data cleanup (non-fatal):', cleanupErr);
     }
 
+    // ── Bootstrap: auto-activate a test client from env vars ──
+    // If BOOTSTRAP_ACTIVATE_EMAIL is set, upsert a fully-paid Client row
+    // for that user on every boot. Lets the owner QA the client dashboard
+    // from mobile without calling any admin API. Safe because only Render
+    // env vars can trigger it.
+    const bootstrapEmail = (process.env.BOOTSTRAP_ACTIVATE_EMAIL || '').trim().toLowerCase();
+    const bootstrapPlan  = (process.env.BOOTSTRAP_ACTIVATE_PLAN  || 'pro').toLowerCase();
+    const BOOTSTRAP_PLANS: Record<string, { monthly: number; calls: number }> = {
+      starter:    { monthly: 497,  calls: 800 },
+      pro:        { monthly: 1297, calls: 2000 },
+      enterprise: { monthly: 2497, calls: 4000 },
+    };
+    if (bootstrapEmail) {
+      try {
+        const crypto = await import('crypto');
+        const spec   = BOOTSTRAP_PLANS[bootstrapPlan] || BOOTSTRAP_PLANS.pro;
+        const user   = await prisma.user.findUnique({ where: { email: bootstrapEmail } });
+        if (!user) {
+          logger.warn(`[bootstrap] No user with email ${bootstrapEmail} — skipping test-activation`);
+        } else {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              onboardingCompleted: true,
+              planType: bootstrapPlan,
+              businessName: user.businessName ?? `${user.name || bootstrapEmail.split('@')[0]} — Test`,
+            },
+          });
+          const dashboardToken = crypto.randomBytes(24).toString('hex');
+          const now = new Date();
+          const client = await prisma.client.upsert({
+            where: { userId: user.id },
+            create: {
+              userId:                user.id,
+              businessName:          user.businessName ?? `${user.name || bootstrapEmail.split('@')[0]} — Test`,
+              businessType:          user.industry ?? 'home_services',
+              contactName:           user.name ?? bootstrapEmail,
+              contactEmail:          bootstrapEmail,
+              contactPhone:          user.businessPhone ?? null,
+              planType:              bootstrapPlan,
+              setupFee:              0,
+              monthlyFee:            spec.monthly,
+              monthlyCallsQuota:     spec.calls,
+              currency:              'USD',
+              subscriptionStatus:    'active',
+              onboardingStatus:      'completed',
+              onboardingCompletedAt: now,
+              activationDate:        now,
+              dashboardToken,
+              agentLanguage:         'en',
+              agentName:             'Ashley',
+              isTrial:               false,
+            },
+            update: {
+              planType:              bootstrapPlan,
+              monthlyFee:            spec.monthly,
+              monthlyCallsQuota:     spec.calls,
+              subscriptionStatus:    'active',
+              onboardingStatus:      'completed',
+              onboardingCompletedAt: now,
+              activationDate:        now,
+              dashboardToken,
+              isTrial:               false,
+            },
+          });
+          logger.info(`[bootstrap] ✅ Test-activated client ${bootstrapEmail} (plan=${bootstrapPlan})`);
+          logger.info(`[bootstrap] Client ID: ${client.id}`);
+          logger.info(`[bootstrap] Dashboard URL: ${env.FRONTEND_URL.split(',')[0]}/portal/${dashboardToken}`);
+        }
+      } catch (err) {
+        logger.error('[bootstrap] Test-activate failed:', err);
+      }
+    }
+
     // Initialize bot loop (creates bot_status record if needed)
     await botLoop.initialize();
     logger.info('Bot loop initialized');
