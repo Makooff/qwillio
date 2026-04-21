@@ -1,11 +1,15 @@
 import { PrismaClient } from '@prisma/client';
 import { logger } from './logger';
 
-// Neon serverless drops idle connections after ~5 min.
-// connection_limit keeps pool small so stale connections are recycled faster.
+// Neon serverless drops idle connections after ~5 min and its pooler
+// behaves like PgBouncer in transaction mode. We:
+//   - append `pgbouncer=true` so Prisma disables prepared statements that
+//     break under transaction pooling,
+//   - cap `connection_limit` to 3 so stale connections get recycled fast,
+//   - set a short `connect_timeout` so a dead connection fails quickly.
 const rawUrl = process.env.DATABASE_URL || '';
-const neonParams = 'connect_timeout=10&connection_limit=5';
-const dbUrl = rawUrl.includes('neon.tech') && !rawUrl.includes('connect_timeout')
+const neonParams = 'pgbouncer=true&connect_timeout=10&connection_limit=3';
+const dbUrl = rawUrl.includes('neon.tech') && !rawUrl.includes('pgbouncer=true')
   ? `${rawUrl}${rawUrl.includes('?') ? '&' : '?'}${neonParams}`
   : rawUrl;
 
@@ -29,10 +33,32 @@ basePrisma.$on('warn', (e) => {
 });
 
 // ═══ Retry middleware for transient Neon disconnections ═══
-// When Neon kills an idle connection, the first query fails with "Server has closed the connection".
-// The retry catches this and re-runs the query on a fresh connection.
+// When Neon kills an idle connection, the first query fails with "Server has
+// closed the connection". Prisma will NOT retry automatically. The extension
+// below catches the error, on the second attempt forces the client to drop
+// its pool and reconnect, then re-runs the query on a fresh connection.
 const RETRYABLE_ERRORS = ['Server has closed the connection', 'kind: Closed', 'connection closed', 'Connection refused', 'ECONNRESET'];
 const MAX_RETRIES = 2;
+
+// Avoid thrashing $disconnect() when many concurrent queries all hit the same
+// dead pool at once — coalesce reconnect attempts.
+let reconnectInFlight: Promise<void> | null = null;
+async function forceReconnect(): Promise<void> {
+  if (!reconnectInFlight) {
+    reconnectInFlight = (async () => {
+      try {
+        await basePrisma.$disconnect();
+      } catch { /* swallow */ }
+      try {
+        await basePrisma.$connect();
+      } catch { /* swallow — next query will re-establish */ }
+    })();
+    // Release the lock after the cycle completes so future cold errors can
+    // trigger a new reconnect.
+    reconnectInFlight.finally(() => { reconnectInFlight = null; });
+  }
+  return reconnectInFlight;
+}
 
 const prisma = basePrisma.$extends({
   query: {
@@ -44,10 +70,9 @@ const prisma = basePrisma.$extends({
           const msg = error?.message || '';
           const isRetryable = RETRYABLE_ERRORS.some(e => msg.includes(e));
           if (isRetryable && attempt < MAX_RETRIES) {
-            logger.debug(`Neon connection lost, retrying query (attempt ${attempt + 1}/${MAX_RETRIES})...`);
-            await new Promise(r => setTimeout(r, 300 * Math.pow(2, attempt)));
-            // Force a fresh connection before retrying
-            try { await basePrisma.$connect(); } catch { /* ignore */ }
+            logger.warn(`[prisma] Neon connection lost (attempt ${attempt + 1}/${MAX_RETRIES}) — reconnecting…`);
+            await forceReconnect();
+            await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
             continue;
           }
           throw error;
