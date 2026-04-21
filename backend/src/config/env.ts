@@ -105,6 +105,9 @@ export const env = {
   DISCORD_WEBHOOK_LEADS: process.env.DISCORD_WEBHOOK_LEADS || '',
   DISCORD_WEBHOOK_SYSTEM: process.env.DISCORD_WEBHOOK_SYSTEM || '',
   DISCORD_WEBHOOK_ALERTS: process.env.DISCORD_WEBHOOK_ALERTS || '',
+  // Dedicated errors channel (channel id 1458455361337167983 on the guild).
+  // Falls back to DISCORD_WEBHOOK_ALERTS then DISCORD_WEBHOOK_URL if unset.
+  DISCORD_WEBHOOK_ERRORS: process.env.DISCORD_WEBHOOK_ERRORS || '',
 
   // ─── Demo links (used in follow-up SMS/email) ────────────
   DEMO_LINK_EN: process.env.DEMO_LINK_EN || 'https://qwillio.com/demo',

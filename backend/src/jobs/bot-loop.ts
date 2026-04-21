@@ -158,7 +158,7 @@ class BotLoop {
         await discordService.notify(`🔍 DAILY PROSPECTION\n\n${count} new prospects added`);
       } catch (error) {
         logger.error('[CRON] Prospection failed:', error);
-        await discordService.notify(`❌ PROSPECTION ERROR: ${(error as Error).message}`);
+        await discordService.notifyErrors(`❌ PROSPECTION ERROR: ${(error as Error).message}`);
       }
     }, { timezone: 'America/New_York' });
 
@@ -559,7 +559,7 @@ class BotLoop {
         await discordService.notifySystem(`🕷️ APIFY SCRAPING: ${count} new prospects added`);
       } catch (error) {
         logger.error('[CRON] Apify scraping failed:', error);
-        await discordService.notifyAlerts(`❌ APIFY SCRAPING FAILED: ${(error as Error).message}`);
+        await discordService.notifyErrors(`❌ APIFY SCRAPING FAILED: ${(error as Error).message}`);
       }
     }, { timezone: 'UTC' });
 
@@ -613,7 +613,7 @@ class BotLoop {
         await scriptLearningService.runWeeklyAnalysis();
       } catch (error) {
         logger.error('[CRON] Script learning failed:', error);
-        await discordService.notifyAlerts(`❌ SCRIPT LEARNING FAILED: ${(error as Error).message}`);
+        await discordService.notifyErrors(`❌ SCRIPT LEARNING FAILED: ${(error as Error).message}`);
       }
     }, { timezone: 'UTC' });
 
@@ -630,7 +630,7 @@ class BotLoop {
         logger.info('[CRON] Call intelligence weekly analysis complete');
       } catch (error) {
         logger.error('[CRON] Call intelligence weekly analysis failed:', error);
-        await discordService.notifyAlerts(`❌ CALL INTELLIGENCE FAILED: ${(error as Error).message}`);
+        await discordService.notifyErrors(`❌ CALL INTELLIGENCE FAILED: ${(error as Error).message}`);
       }
     }, { timezone: 'UTC' });
 
@@ -743,7 +743,7 @@ class BotLoop {
       }
     });
 
-    await discordService.notify('🤖 Qwillio started! All 29 cron jobs active (incl. 6 Agent AI + 7 Prospecting Engine + 3 Operational).');
+    await discordService.notifyAlerts('🤖 Qwillio started! All 29 cron jobs active (incl. 6 Agent AI + 7 Prospecting Engine + 3 Operational).');
     logger.info('🤖 All 29 cron jobs started. Bot is running in automatic loop.');
   }
 
@@ -792,7 +792,7 @@ class BotLoop {
       });
     }
 
-    await discordService.notify('🛑 Qwillio stopped. All cron jobs halted.');
+    await discordService.notifyAlerts('🛑 Qwillio stopped. All cron jobs halted.');
     logger.info('🛑 Qwillio stopped. All cron jobs halted.');
   }
 

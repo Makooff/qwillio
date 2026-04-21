@@ -264,7 +264,7 @@ export class OnboardingService {
     } catch (error) {
       if (attempt >= 3) {
         // Alert Discord after final retry failure
-        await discordService.notify(`🚨 VAPI CREATION FAILED 3x\n\nAction required: manual VAPI setup\nError: ${(error as Error).message}`);
+        await discordService.notifyErrors(`🚨 VAPI CREATION FAILED 3x\n\nAction required: manual VAPI setup\nError: ${(error as Error).message}`);
         throw new Error(`VAPI createAssistant failed after ${attempt} attempts: ${(error as Error).message}`);
       }
 

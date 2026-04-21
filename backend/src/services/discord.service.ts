@@ -1,14 +1,17 @@
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 
-type DiscordChannel = 'default' | 'calls' | 'leads' | 'system' | 'alerts';
+type DiscordChannel = 'default' | 'calls' | 'leads' | 'system' | 'alerts' | 'errors';
 
 const CHANNEL_WEBHOOKS: Record<DiscordChannel, () => string> = {
   default: () => env.DISCORD_WEBHOOK_URL,
-  calls:   () => env.DISCORD_WEBHOOK_CALLS || env.DISCORD_WEBHOOK_URL,
-  leads:   () => env.DISCORD_WEBHOOK_LEADS || env.DISCORD_WEBHOOK_URL,
+  calls:   () => env.DISCORD_WEBHOOK_CALLS  || env.DISCORD_WEBHOOK_URL,
+  leads:   () => env.DISCORD_WEBHOOK_LEADS  || env.DISCORD_WEBHOOK_URL,
   system:  () => env.DISCORD_WEBHOOK_SYSTEM || env.DISCORD_WEBHOOK_URL,
   alerts:  () => env.DISCORD_WEBHOOK_ALERTS || env.DISCORD_WEBHOOK_URL,
+  // Dedicated channel for runtime errors and failed operations. Falls back
+  // to #alerts so nothing is silently dropped if the webhook is missing.
+  errors:  () => env.DISCORD_WEBHOOK_ERRORS || env.DISCORD_WEBHOOK_ALERTS || env.DISCORD_WEBHOOK_URL,
 };
 
 export class DiscordService {
@@ -35,6 +38,7 @@ export class DiscordService {
   async notifyLeads(message: string)  { return this.notify(message, 'leads'); }
   async notifySystem(message: string) { return this.notify(message, 'system'); }
   async notifyAlerts(message: string) { return this.notify(message, 'alerts'); }
+  async notifyErrors(message: string) { return this.notify(message, 'errors'); }
 }
 
 export const discordService = new DiscordService();

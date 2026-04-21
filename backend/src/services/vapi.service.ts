@@ -316,7 +316,7 @@ export class VapiService {
         }
       } else {
         logger.error(`Error calling prospect ${prospect.businessName}:`, error);
-        await discordService.notify(`❌ CALL ERROR: ${prospect.businessName} - ${(error as Error).message}`);
+        await discordService.notifyErrors(`❌ CALL ERROR: ${prospect.businessName} - ${(error as Error).message}`);
       }
 
       // ── Rollback quota increment — VAPI call failed, shouldn't count ──
@@ -770,7 +770,7 @@ Return a JSON with:
       return vapiCall;
     } catch (error) {
       logger.error(`🧪 TEST CALL ERROR:`, error);
-      await discordService.notify(`❌ TEST CALL FAILED: ${(error as Error).message}`);
+      await discordService.notifyErrors(`❌ TEST CALL FAILED: ${(error as Error).message}`);
       throw error;
     }
   }

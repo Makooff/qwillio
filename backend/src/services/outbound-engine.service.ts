@@ -281,7 +281,7 @@ export class OutboundEngineService {
       if (!callRes.ok) {
         const errText = await callRes.text();
         logger.error(`[OutboundEngine] VAPI call failed for ${prospect.businessName}:`, errText);
-        await discordService.notifyAlerts(`⚠️ VAPI call failed: ${prospect.businessName}\n${errText}`);
+        await discordService.notifyErrors(`⚠️ VAPI call failed: ${prospect.businessName}\n${errText}`);
         // Rollback the quota we reserved above — the call never actually happened
         await prisma.botStatus.updateMany({
           where: { id: botStatus.id },
@@ -334,7 +334,7 @@ export class OutboundEngineService {
       return true;
     } catch (err) {
       logger.error('[OutboundEngine] Call error:', err);
-      await discordService.notifyAlerts(`❌ OutboundEngine error: ${(err as Error).message}`);
+      await discordService.notifyErrors(`❌ OutboundEngine error: ${(err as Error).message}`);
       // Rollback the quota we reserved above — the call never actually happened
       await prisma.botStatus.updateMany({
         where: { id: botStatus.id },
