@@ -86,6 +86,42 @@ class BotLoop {
       });
       logger.info('Bot status record created (inactive by default)');
     }
+
+    // ── Cleanup orphaned "queued" calls ─────────────────────
+    // Call rows can be left in "queued" status if the request to VAPI
+    // failed after the DB row was created but before it transitioned to
+    // "in-progress". They stay forever otherwise.
+    try {
+      const { count: removed } = await prisma.call.deleteMany({
+        where: { status: 'queued' },
+      });
+      if (removed > 0) {
+        logger.info(`[cleanup] Removed ${removed} orphaned "queued" call(s)`);
+      }
+    } catch (e) {
+      logger.warn('[cleanup] Could not purge queued calls:', e);
+    }
+
+    // ── Reconcile callsToday with the real count ─────────────
+    // If past bugs left the in-memory quota drifted from reality, sync it
+    // to the actual number of calls made today in the Call table.
+    try {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const realToday = await prisma.call.count({
+        where: { startedAt: { gte: todayStart } },
+      });
+      const status = await prisma.botStatus.findFirst();
+      if (status && status.callsToday !== realToday) {
+        await prisma.botStatus.update({
+          where: { id: status.id },
+          data: { callsToday: realToday },
+        });
+        logger.info(`[cleanup] callsToday synced ${status.callsToday} → ${realToday}`);
+      }
+    } catch (e) {
+      logger.warn('[cleanup] Could not reconcile callsToday:', e);
+    }
   }
 
   async start() {
