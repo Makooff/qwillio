@@ -13,9 +13,9 @@ import api from '../services/api';
 type Step = 1 | 2 | 3;
 
 const plans = [
-  { key: 'starter', name: 'Starter', price: 197, setup: 697, calls: 200, trial: '1er mois gratuit' },
-  { key: 'pro', name: 'Pro', price: 347, setup: 997, calls: 500, popular: true, trial: '1er mois gratuit' },
-  { key: 'enterprise', name: 'Enterprise', price: 497, setup: 1497, calls: 1000, trial: '1er mois gratuit' },
+  { key: 'starter', name: 'Starter', price: 497, calls: 800, trial: '1er mois gratuit' },
+  { key: 'pro', name: 'Pro', price: 1297, calls: 2000, popular: true, trial: '1er mois gratuit' },
+  { key: 'enterprise', name: 'Enterprise', price: 2497, calls: 4000, trial: '1er mois gratuit' },
 ];
 
 export default function SelfOnboard() {
@@ -241,19 +241,20 @@ export default function SelfOnboard() {
                   <button
                     key={plan.key}
                     onClick={() => setSelectedPlan(plan.key)}
-                    className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all text-left ${
+                    className={`w-full flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl border-2 transition-all text-left ${
                       selectedPlan === plan.key
                         ? 'border-[#6366f1] bg-white'
                         : 'border-[#d2d2d7] bg-white hover:border-[#86868b]'
                     }`}
                   >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                       selectedPlan === plan.key ? 'border-[#6366f1] bg-[#6366f1]' : 'border-[#d2d2d7]'
                     }`}>
                       {selectedPlan === plan.key && <Check size={12} className="text-white" />}
                     </div>
+
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="text-base font-semibold">{plan.name}</span>
                         {plan.popular && (
                           <span className="text-[10px] font-semibold uppercase tracking-wider bg-[#6366f1] text-white px-2 py-0.5 rounded-full">
@@ -264,12 +265,16 @@ export default function SelfOnboard() {
                       <p className="text-sm text-[#86868b] mt-0.5">
                         {plan.calls.toLocaleString()} {t('register.callsIncluded')}
                       </p>
+                      {plan.trial && (
+                        <p className="text-[11px] font-semibold text-emerald-600 mt-1.5">{plan.trial}</p>
+                      )}
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <span className="text-lg font-semibold">${plan.price}</span>
-                      <span className="text-sm text-[#86868b]">{t('register.mo')}</span>
-                      <p className="text-xs text-[#86868b]">+ ${plan.setup.toLocaleString()} {t('register.setupFee')}</p>
-                      {plan.trial && <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">{plan.trial}</p>}
+
+                    <div className="flex-shrink-0 text-right leading-tight whitespace-nowrap">
+                      <div>
+                        <span className="text-lg font-semibold">${plan.price}</span>
+                        <span className="text-sm text-[#86868b]">{t('register.mo')}</span>
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -278,19 +283,19 @@ export default function SelfOnboard() {
           )}
 
           {/* ── Navigation ── */}
-          <div className="flex items-center justify-between mt-10 pt-6 border-t border-[#d2d2d7]/40">
+          <div className="flex items-center justify-between gap-4 mt-10 pt-6 px-2 sm:px-4 border-t border-[#d2d2d7]/40">
             {step > 1 ? (
               <button
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-[#86868b] hover:text-[#1d1d1f] transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-[#86868b] hover:text-[#1d1d1f] transition-colors flex-shrink-0"
                 onClick={() => setStep((step - 1) as Step)}
               >
                 <ArrowLeft size={18} /> {t('onboard.prev')}
               </button>
-            ) : <div />}
+            ) : <div className="flex-shrink-0" />}
 
             {step < 3 ? (
               <button
-                className="inline-flex items-center gap-1.5 bg-[#6366f1] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 bg-[#6366f1] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
                 disabled={step === 1 && !businessName.trim()}
                 onClick={() => setStep((step + 1) as Step)}
               >
@@ -298,14 +303,14 @@ export default function SelfOnboard() {
               </button>
             ) : (
               <button
-                className="inline-flex items-center gap-1.5 bg-[#1d1d1f] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#424245] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center gap-1.5 bg-[#1d1d1f] text-white text-sm font-medium px-5 sm:px-6 py-3 rounded-full hover:bg-[#424245] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink min-w-0"
                 disabled={loading}
                 onClick={handleFinish}
               >
                 {loading ? (
-                  <><Loader2 size={18} className="animate-spin" /> Redirection vers le paiement...</>
+                  <><Loader2 size={18} className="animate-spin flex-shrink-0" /> <span className="truncate">Redirection…</span></>
                 ) : (
-                  <><CreditCard size={18} /> Continuer vers le paiement</>
+                  <><CreditCard size={18} className="flex-shrink-0" /> <span className="truncate">Continuer vers le paiement</span></>
                 )}
               </button>
             )}
