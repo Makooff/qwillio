@@ -19,11 +19,11 @@
     </radialGradient>
   </defs>
 
-  <circle cx="196" cy="256" r="176" fill="url(#qwLeft)" opacity="0.92"/>
   <circle cx="316" cy="256" r="176" fill="url(#qwRight)" opacity="0.92"/>
+  <circle cx="196" cy="256" r="176" fill="url(#qwLeft)" opacity="0.92"/>
   <circle cx="316" cy="256" r="176" fill="#3D2F9E" opacity="0.58" clip-path="url(#qwClipLeft)"/>
-  <circle cx="196" cy="256" r="176" fill="url(#qwHighlight)"/>
   <circle cx="316" cy="256" r="176" fill="url(#qwHighlight)"/>
+  <circle cx="196" cy="256" r="176" fill="url(#qwHighlight)"/>
 
   <!-- Q pixel-centred on the LEFT bubble (cx=196) — Inter Display Black, scale 0.685 -->
   <g transform="translate(196 256) scale(0.685)">

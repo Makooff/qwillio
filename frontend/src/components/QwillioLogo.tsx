@@ -39,11 +39,11 @@ export default function QwillioLogo({ size = 32, className = '' }: { size?: numb
           <circle cx="196" cy="256" r="176" />
         </clipPath>
       </defs>
-      <circle cx="196" cy="256" r="176" fill="url(#qwLogoA)" opacity={0.92} />
       <circle cx="316" cy="256" r="176" fill="url(#qwLogoB)" opacity={0.92} />
+      <circle cx="196" cy="256" r="176" fill="url(#qwLogoA)" opacity={0.92} />
       <circle cx="316" cy="256" r="176" fill="#3D2F9E" opacity={0.58} clipPath="url(#qwIntersect)" />
-      <circle cx="196" cy="256" r="176" fill="url(#qwLogoHi)" />
       <circle cx="316" cy="256" r="176" fill="url(#qwLogoHi)" />
+      <circle cx="196" cy="256" r="176" fill="url(#qwLogoHi)" />
       <g transform="translate(196 256) scale(0.685)">
         <path fill="#ffffff" d={Q_PATH} />
       </g>
