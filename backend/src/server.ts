@@ -298,8 +298,19 @@ async function startServer() {
               businessName: user.businessName ?? `${user.name || bootstrapEmail.split('@')[0]} — Test`,
             },
           });
-          const dashboardToken = crypto.randomBytes(24).toString('hex');
+          // Reuse the existing dashboard token so the link stays stable
+          // across boots (bookmark-friendly).
+          const existingClient = await prisma.client.findUnique({ where: { userId: user.id } });
+          const dashboardToken = existingClient?.dashboardToken ?? crypto.randomBytes(24).toString('hex');
           const now = new Date();
+          const onboardingDataSeed = {
+            businessType: user.industry ?? 'home_services',
+            services: ['Appointment booking', '24/7 call answering', 'Lead capture'],
+            hours: 'Mon-Fri 9h-18h',
+            transferNumber: user.businessPhone ?? null,
+            bootstrapped: true,
+            bootstrappedAt: now.toISOString(),
+          };
           const client = await prisma.client.upsert({
             where: { userId: user.id },
             create: {
@@ -322,6 +333,12 @@ async function startServer() {
               agentLanguage:         'en',
               agentName:             'Ashley',
               isTrial:               false,
+              // Complete the row so the portal reads as a real paying client
+              stripeCustomerId:      'cus_bootstrap_test',
+              stripeSubscriptionId:  'sub_bootstrap_test',
+              contractSignedAt:      now,
+              transferNumber:        user.businessPhone ?? null,
+              onboardingData:        onboardingDataSeed,
               vapiAssistantId:       env.VAPI_ASSISTANT_ID || null,
               vapiPhoneNumber:       env.VAPI_PHONE_NUMBER || null,
               forwardingStatus:      env.VAPI_PHONE_NUMBER ? 'verified' : null,
@@ -335,8 +352,10 @@ async function startServer() {
               onboardingStatus:      'completed',
               onboardingCompletedAt: now,
               activationDate:        now,
-              dashboardToken,
               isTrial:               false,
+              contractSignedAt:      now,
+              stripeCustomerId:      'cus_bootstrap_test',
+              stripeSubscriptionId:  'sub_bootstrap_test',
               vapiAssistantId:       env.VAPI_ASSISTANT_ID || undefined,
               vapiPhoneNumber:       env.VAPI_PHONE_NUMBER || undefined,
               forwardingStatus:      env.VAPI_PHONE_NUMBER ? 'verified' : undefined,
