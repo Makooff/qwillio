@@ -5,9 +5,9 @@
     <radialGradient id="h" cx="35%" cy="25%" r="60%"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="60%" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
     <clipPath id="c"><circle cx="12.375" cy="16" r="11"/></clipPath>
   </defs>
+  <circle cx="12.375" cy="16" r="11" fill="url(#a)" opacity="0.82"/>
   <circle cx="19.625" cy="16" r="11" fill="url(#b)" opacity="0.92"/>
-  <circle cx="12.375" cy="16" r="11" fill="url(#a)" opacity="0.95"/>
-  <circle cx="19.625" cy="16" r="11" fill="#2B1166" opacity="0.55" clip-path="url(#c)"/>
+  <circle cx="19.625" cy="16" r="11" fill="#2B1166" opacity="0.65" clip-path="url(#c)"/>
   <circle cx="12.375" cy="16" r="11" fill="url(#h)"/>
   <circle cx="19.625" cy="16" r="11" fill="url(#h)"/>
   <g transform="translate(12.375 16) scale(0.0425)">

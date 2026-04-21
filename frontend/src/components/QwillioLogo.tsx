@@ -39,9 +39,9 @@ export default function QwillioLogo({ size = 32, className = '' }: { size?: numb
           <circle cx="198" cy="256" r="176" />
         </clipPath>
       </defs>
+      <circle cx="198" cy="256" r="176" fill="url(#qwLogoA)" opacity={0.82} />
       <circle cx="314" cy="256" r="176" fill="url(#qwLogoB)" opacity={0.92} />
-      <circle cx="198" cy="256" r="176" fill="url(#qwLogoA)" opacity={0.95} />
-      <circle cx="314" cy="256" r="176" fill="#2B1166" opacity={0.55} clipPath="url(#qwIntersect)" />
+      <circle cx="314" cy="256" r="176" fill="#2B1166" opacity={0.65} clipPath="url(#qwIntersect)" />
       <circle cx="198" cy="256" r="176" fill="url(#qwLogoHi)" />
       <circle cx="314" cy="256" r="176" fill="url(#qwLogoHi)" />
       <g transform="translate(198 256) scale(0.680)">
