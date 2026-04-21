@@ -3,6 +3,7 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import QwillioLogo from '../QwillioLogo';
+import AiStatusPill from '../AiStatusPill';
 import {
   LayoutDashboard, Phone, Users, BarChart3, CreditCard,
   Bot, UserCircle, HelpCircle, LogOut, Menu, X, Settings,
@@ -22,6 +23,19 @@ const SETTINGS_NAV = [
   { path: '/dashboard/billing',      icon: CreditCard,  label: 'Facturation' },
   { path: '/dashboard/support',      icon: HelpCircle,  label: 'Support' },
 ];
+
+// Apple-minimal palette — muted neutrals with one restrained accent.
+const C = {
+  bg:       '#0B0B0D',
+  panel:    '#101014',
+  border:   'rgba(255,255,255,0.06)',
+  borderHi: 'rgba(255,255,255,0.12)',
+  text:     '#F2F2F2',
+  textSec:  '#9A9AA5',
+  textTer:  '#6B6B75',
+  accent:   '#E5E5EA',       // active = warm white, not neon purple
+  accentBg: 'rgba(255,255,255,0.06)',
+};
 
 export default function ClientLayout() {
   const { user, logout } = useAuthStore();
@@ -45,13 +59,13 @@ export default function ClientLayout() {
       <Link
         to={item.path}
         onClick={() => setMobileOpen(false)}
-        className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
-          ${active ? 'bg-[#7B5CF0]/15 text-[#7B5CF0]' : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.04]'}`}
+        className="relative flex items-center gap-3 px-3 h-9 rounded-lg text-[13px] font-medium transition-colors"
+        style={{
+          color: active ? C.text : C.textSec,
+          background: active ? C.accentBg : 'transparent',
+        }}
       >
-        {active && (
-          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#7B5CF0] rounded-r-full" />
-        )}
-        <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+        <item.icon className="w-[17px] h-[17px] flex-shrink-0" />
         <span>{item.label}</span>
       </Link>
     );
@@ -63,10 +77,13 @@ export default function ClientLayout() {
       <Link
         to={item.path}
         onClick={() => setMobileOpen(false)}
-        className={`flex items-center gap-3 pl-9 pr-3 py-2 rounded-xl text-[13px] transition-all
-          ${active ? 'text-[#7B5CF0] bg-[#7B5CF0]/10' : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.04]'}`}
+        className="flex items-center gap-3 pl-9 pr-3 h-8 rounded-lg text-[12.5px] transition-colors"
+        style={{
+          color: active ? C.text : C.textSec,
+          background: active ? C.accentBg : 'transparent',
+        }}
       >
-        <item.icon className="w-4 h-4 flex-shrink-0" />
+        <item.icon className="w-[14px] h-[14px] flex-shrink-0" />
         <span>{item.label}</span>
       </Link>
     );
@@ -76,10 +93,10 @@ export default function ClientLayout() {
     const settingsIsActive = SETTINGS_NAV.some(i => isActive(i.path));
     return (
       <div className="flex flex-col h-full min-h-0">
-        {/* Logo */}
-        <div className="flex items-center gap-3 mb-6 px-1 flex-shrink-0">
-          <QwillioLogo size={32} />
-          <span className="text-base font-bold text-[#F8F8FF] tracking-tight">Qwillio</span>
+        {/* Logo — compact, discreet */}
+        <div className="flex items-center gap-2.5 mb-8 px-1 flex-shrink-0">
+          <QwillioLogo size={22} />
+          <span className="text-[13px] font-semibold tracking-tight" style={{ color: C.text }}>Qwillio</span>
         </div>
 
         {/* Nav */}
@@ -89,14 +106,17 @@ export default function ClientLayout() {
           {/* Settings expandable */}
           <button
             onClick={() => setSettingsOpen(v => !v)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
-              ${settingsIsActive ? 'text-[#7B5CF0]' : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.04]'}`}
+            className="w-full flex items-center gap-3 px-3 h-9 rounded-lg text-[13px] font-medium transition-colors"
+            style={{
+              color: settingsIsActive ? C.text : C.textSec,
+              background: settingsIsActive ? C.accentBg : 'transparent',
+            }}
           >
-            <Settings className="w-[18px] h-[18px] flex-shrink-0" />
+            <Settings className="w-[17px] h-[17px] flex-shrink-0" />
             <span className="flex-1 text-left">Paramètres</span>
             {settingsOpen
-              ? <ChevronDown className="w-4 h-4 flex-shrink-0 opacity-60" />
-              : <ChevronRight className="w-4 h-4 flex-shrink-0 opacity-60" />
+              ? <ChevronDown className="w-3.5 h-3.5 flex-shrink-0 opacity-50" />
+              : <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 opacity-50" />
             }
           </button>
 
@@ -106,7 +126,7 @@ export default function ClientLayout() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.18 }}
                 className="overflow-hidden"
               >
                 <div className="space-y-0.5 py-1">
@@ -117,22 +137,24 @@ export default function ClientLayout() {
           </AnimatePresence>
         </nav>
 
-        {/* Bottom — user identity + sign out (mirrors admin layout) */}
-        <div className="flex-shrink-0 space-y-1 mt-3 pt-3 border-t border-white/[0.06]">
-          <div className="flex items-center gap-3 px-3 py-2.5">
-            <div className="w-7 h-7 rounded-full bg-[#7B5CF0]/30 flex items-center justify-center flex-shrink-0">
-              <span className="text-[10px] font-bold text-[#7B5CF0]">{initials}</span>
+        {/* Bottom — user + sign out (mirrors admin layout) */}
+        <div className="flex-shrink-0 space-y-0.5 mt-3 pt-3" style={{ borderTop: `1px solid ${C.border}` }}>
+          <div className="flex items-center gap-3 px-3 py-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                 style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <span className="text-[10px] font-semibold" style={{ color: C.text }}>{initials}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-[#F8F8FF] truncate">{user?.name ?? 'Client'}</p>
-              <p className="text-[10px] text-[#8B8BA7] truncate">{user?.email}</p>
+              <p className="text-[12px] font-medium truncate" style={{ color: C.text }}>{user?.name ?? 'Client'}</p>
+              <p className="text-[10.5px] truncate" style={{ color: C.textTer }}>{user?.email}</p>
             </div>
           </div>
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[#8B8BA7] hover:text-red-400 hover:bg-red-500/[0.08] transition-all text-sm"
+            className="w-full flex items-center gap-3 px-3 h-9 rounded-lg text-[13px] transition-colors hover:text-red-400"
+            style={{ color: C.textSec }}
           >
-            <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
+            <LogOut className="w-[17px] h-[17px] flex-shrink-0" />
             Sign out
           </button>
         </div>
@@ -141,10 +163,11 @@ export default function ClientLayout() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#0A0A0F] text-[#F8F8FF]">
+    <div className="min-h-screen flex" style={{ background: C.bg, color: C.text }}>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col h-screen sticky top-0 w-[220px] flex-shrink-0 bg-[#0D0D15] border-r border-white/[0.06] px-4 py-5">
+      <aside className="hidden md:flex flex-col h-screen sticky top-0 w-[220px] flex-shrink-0 px-3 py-4"
+             style={{ background: C.panel, borderRight: `1px solid ${C.border}` }}>
         <SidebarContent />
       </aside>
 
@@ -160,11 +183,13 @@ export default function ClientLayout() {
             <motion.aside
               initial={{ x: -240 }} animate={{ x: 0 }} exit={{ x: -240 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] bg-[#0D0D15] border-r border-white/[0.06] px-4 py-5"
+              className="md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] px-3 py-4"
+              style={{ background: C.panel, borderRight: `1px solid ${C.border}` }}
             >
               <button
                 onClick={() => setMobileOpen(false)}
-                className="absolute right-3 top-4 text-[#8B8BA7] hover:text-[#F8F8FF]"
+                className="absolute right-3 top-3 opacity-60 hover:opacity-100"
+                style={{ color: C.text }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -176,33 +201,33 @@ export default function ClientLayout() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
-        <header className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6 bg-[#0A0A0F]/80 backdrop-blur-xl border-b border-white/[0.06]">
+        {/* Top bar — minimal, translucent */}
+        <header className="sticky top-0 z-30 h-12 flex items-center gap-3 px-4 md:px-6"
+                style={{ background: 'rgba(11,11,13,0.72)', backdropFilter: 'blur(20px)', borderBottom: `1px solid ${C.border}` }}>
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden text-[#8B8BA7] hover:text-[#F8F8FF] p-1"
+            className="md:hidden p-1 opacity-60 hover:opacity-100"
+            style={{ color: C.text }}
           >
             <Menu className="w-5 h-5" />
           </button>
 
           {/* Mobile logo */}
           <div className="md:hidden flex items-center gap-2">
-            <QwillioLogo size={24} />
-            <span className="text-sm font-bold text-[#F8F8FF]">Qwillio</span>
+            <QwillioLogo size={20} />
+            <span className="text-[12.5px] font-semibold tracking-tight" style={{ color: C.text }}>Qwillio</span>
           </div>
 
-          {/* Right: identity + link to account (no logout shortcut) */}
-          <div className="ml-auto flex items-center gap-3">
-            <div className="hidden sm:block text-right">
-              <p className="text-xs font-medium text-[#F8F8FF]">{user?.name}</p>
-              <p className="text-[10px] text-[#8B8BA7]">{user?.email}</p>
-            </div>
+          {/* Right: AI pill + avatar (logout moved to sidebar settings) */}
+          <div className="ml-auto flex items-center gap-2.5">
+            <AiStatusPill />
             <Link
               to="/dashboard/account"
               title="Compte"
-              className="w-8 h-8 rounded-full bg-[#7B5CF0]/30 flex items-center justify-center transition-all hover:bg-[#7B5CF0]/45"
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-opacity hover:opacity-80"
+              style={{ background: 'rgba(255,255,255,0.08)' }}
             >
-              <span className="text-xs font-bold text-[#7B5CF0]">{initials}</span>
+              <span className="text-[11px] font-semibold" style={{ color: C.text }}>{initials}</span>
             </Link>
           </div>
         </header>
@@ -213,15 +238,15 @@ export default function ClientLayout() {
         </main>
       </div>
 
-      {/* Mobile bottom nav — floating pill */}
-      <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
-        <div className="relative w-full flex items-center justify-around py-3 px-2">
+      {/* Mobile bottom nav — subtle pill */}
+      <div className="fixed bottom-4 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
+        <div className="relative w-full flex items-center justify-around py-2.5 px-2">
           <div
             className="absolute inset-0 rounded-full pointer-events-none"
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
+              background: 'rgba(16,16,20,0.78)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
               border: '1px solid rgba(255,255,255,0.08)',
             }}
           />
@@ -239,27 +264,24 @@ export default function ClientLayout() {
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
                 className="relative z-10 flex flex-col items-center gap-0.5 w-[18%] py-0.5"
-                style={{ color: active ? '#fff' : 'rgba(255,255,255,0.38)' }}
+                style={{ color: active ? C.text : C.textTer }}
               >
                 {active && (
                   <motion.span
                     layoutId="client-nav-bubble"
                     className="absolute rounded-full"
                     style={{
-                      width: 68, height: 68,
+                      width: 54, height: 54,
                       top: '50%', left: '50%',
                       x: '-50%', y: '-50%',
-                      background: 'rgba(123,92,240,0.30)',
-                      backdropFilter: 'blur(20px)',
-                      WebkitBackdropFilter: 'blur(20px)',
-                      border: '1.5px solid rgba(123,92,240,0.50)',
-                      boxShadow: '0 0 28px rgba(123,92,240,0.30), inset 0 1px 0 rgba(255,255,255,0.14)',
+                      background: 'rgba(255,255,255,0.07)',
+                      border: '1px solid rgba(255,255,255,0.10)',
                     }}
                     transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.8 }}
                   />
                 )}
-                <item.icon className="relative z-10 w-[22px] h-[22px]" />
-                <span className="relative z-10 text-[9px] font-medium mt-0.5">{item.label}</span>
+                <item.icon className="relative z-10 w-[20px] h-[20px]" />
+                <span className="relative z-10 text-[9px] font-medium mt-0.5 tracking-tight">{item.label}</span>
               </Link>
             );
           })}

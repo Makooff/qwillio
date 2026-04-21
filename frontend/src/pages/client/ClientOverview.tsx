@@ -98,10 +98,19 @@ export default function ClientOverview() {
     setToggling(true);
     try {
       await api.post(`/my-dashboard/${isActive ? 'pause' : 'resume'}`);
+      // Sync the top-bar AiStatusPill so everything updates together.
+      window.dispatchEvent(new CustomEvent('ai-status-change'));
       await load();
     } catch { /* ignore */ }
     finally { setToggling(false); }
   };
+
+  // Also refresh the local view if the pill in the top bar toggled.
+  useEffect(() => {
+    const h = () => { load(); };
+    window.addEventListener('ai-status-change', h);
+    return () => window.removeEventListener('ai-status-change', h);
+  }, [load]);
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-32 gap-4">
@@ -177,30 +186,20 @@ export default function ClientOverview() {
 
   return (
     <div className="space-y-5">
-      {/* ── Header ── */}
+      {/* ── Header ── minimal Apple-style: greeting + date + refresh only.
+           The Pause / Activer control lives in the top bar AI pill now. */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#F8F8FF]">{greeting(user?.name || 'Utilisateur')}</h1>
-          <p className="text-sm text-[#8B8BA7] mt-0.5">
+          <h1 className="text-[19px] font-semibold tracking-tight text-[#F2F2F2]">{greeting(user?.name || 'Utilisateur')}</h1>
+          <p className="text-[12.5px] text-[#9A9AA5] mt-0.5">
             {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={handleToggle} disabled={toggling}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-              isActive
-                ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20'
-                : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
-            }`}>
-            {toggling
-              ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              : isActive ? <><Pause className="w-4 h-4" /> Pause</> : <><Play className="w-4 h-4" /> Activer</>}
-          </button>
-          <button onClick={() => { setLoading(true); load(); }}
-            className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
-            <RefreshCw className="w-4 h-4" />
-          </button>
-        </div>
+        <button onClick={() => { setLoading(true); load(); }}
+          title="Rafraîchir"
+          className="p-2 rounded-lg hover:bg-white/[0.06] text-[#9A9AA5] transition-colors">
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </motion.div>
 
       {/* ── Onboarding checklist (show only if not fully set up) ── */}
