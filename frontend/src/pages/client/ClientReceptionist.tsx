@@ -11,18 +11,18 @@ import api from '../../services/api';
 const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
 const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
 
-function Section({ title, icon: Icon, color, children, defaultOpen = true }: {
-  title: string; icon: React.ElementType; color: string; children: React.ReactNode; defaultOpen?: boolean;
+function Section({ title, icon: Icon, children, defaultOpen = true }: {
+  title: string; icon: React.ElementType; color?: string; children: React.ReactNode; defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-white/[0.06] bg-[#12121A] overflow-hidden">
+      className="rounded-2xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
       <button onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-2.5 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors">
-        {open ? <ChevronDown className="w-3.5 h-3.5 text-[#8B8BA7]" /> : <ChevronRight className="w-3.5 h-3.5 text-[#8B8BA7]" />}
-        <Icon size={16} style={{ color }} />
-        <span className="text-sm font-semibold text-[#F8F8FF]">{title}</span>
+        {open ? <ChevronDown className="w-3.5 h-3.5 text-[#6B6B75]" /> : <ChevronRight className="w-3.5 h-3.5 text-[#6B6B75]" />}
+        <Icon size={15} className="text-[#9A9AA5]" />
+        <span className="text-[13px] font-semibold text-[#F2F2F2]">{title}</span>
       </button>
       {open && <div className="px-5 pb-5 pt-0">{children}</div>}
     </motion.div>
@@ -165,124 +165,123 @@ export default function ClientReceptionist() {
 
   return (
     <div className="max-w-3xl space-y-4">
-      {/* Header */}
+      {/* Header — neutral, less ornamentation */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#F8F8FF] tracking-tight">Réceptionniste IA</h1>
-          <p className="text-sm text-[#8B8BA7]">Gérez votre agent IA et tous ses paramètres</p>
+          <h1 className="text-[20px] font-semibold text-[#F2F2F2] tracking-tight">Réceptionniste IA</h1>
+          <p className="text-[12.5px] text-[#9A9AA5]">Gérez votre agent IA et tous ses paramètres</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={load} className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7]">
+          <button onClick={load} title="Rafraîchir"
+            className="p-2 rounded-xl hover:bg-white/[0.06] text-[#9A9AA5] transition-colors">
             <RefreshCw className="w-4 h-4" />
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6a4ee0] disabled:opacity-50 transition-colors">
-            {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={14} />}
-            {saving ? 'Sauvegarde...' : saved ? 'Sauvegardé ✓' : 'Sauvegarder'}
+            className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-[#0B0B0D] bg-[#F2F2F2] rounded-xl hover:bg-white disabled:opacity-50 transition-colors">
+            {saving ? <div className="w-3.5 h-3.5 border-2 border-[#0B0B0D] border-t-transparent rounded-full animate-spin" /> : <Save size={13} />}
+            {saving ? 'Sauvegarde…' : saved ? 'Sauvegardé' : 'Sauvegarder'}
           </button>
         </div>
       </div>
 
-      {/* ── Status card ── */}
+      {/* ── Status card ── neutral surface, single colour dot only */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-        className={`rounded-xl border p-5 ${isActive ? 'border-emerald-400/20 bg-emerald-400/[0.04]' : 'border-amber-400/20 bg-amber-400/[0.04]'}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isActive ? 'bg-emerald-400/10' : 'bg-amber-400/10'}`}>
-              <Bot size={24} className={isActive ? 'text-emerald-400' : 'text-amber-400'} />
+        className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <Bot size={18} className="text-[#E5E5EA]" />
             </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-                <span className={`text-sm font-semibold ${isActive ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {isActive ? 'IA Active — répond aux appels' : 'IA en pause'}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                <span className="text-[13px] font-semibold text-[#F2F2F2] truncate">
+                  {isActive ? 'IA active' : 'IA en pause'}
                 </span>
               </div>
-              <p className="text-xs text-[#8B8BA7]">
+              <p className="text-[11.5px] text-[#9A9AA5] truncate">
                 {client.businessName || businessName || 'Votre entreprise'} · Plan {client.planType || 'starter'}
                 {client.isTrial && <span className="ml-1 text-amber-400">(essai)</span>}
               </p>
             </div>
           </div>
           <button onClick={handleToggle} disabled={toggling || status === 'cancelled'}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all disabled:opacity-40 ${
-              isPaused
-                ? 'bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20 border border-emerald-400/20'
-                : 'bg-amber-400/10 text-amber-400 hover:bg-amber-400/20 border border-amber-400/20'
-            }`}>
-            {toggling ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              : isPaused ? <><Play size={14} /> Activer</> : <><Pause size={14} /> Mettre en pause</>}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-full border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-[#E5E5EA] transition-colors disabled:opacity-40 flex-shrink-0">
+            {toggling ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              : isPaused ? <><Play size={12} /> Activer</> : <><Pause size={12} /> Mettre en pause</>}
           </button>
         </div>
       </motion.div>
 
-      {/* ── Phone + Stats row ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* ── Phone + Stats row — flat neutral surfaces ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Phone number */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-          className="rounded-xl border border-white/[0.06] bg-[#12121A] p-5">
-          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-3 flex items-center gap-2">
-            <Phone size={15} className="text-[#7B5CF0]" /> Numéro IA
-          </h3>
+          className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Phone size={13} className="text-[#9A9AA5]" />
+            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#9A9AA5]">Numéro IA</h3>
+          </div>
           {phone ? (
             <div className="flex items-center gap-2">
-              <div className="flex-1 px-4 py-3 rounded-xl bg-[#7B5CF0]/10 border border-[#7B5CF0]/20">
-                <p className="text-lg font-mono font-bold text-[#7B5CF0]">{phone}</p>
+              <div className="flex-1 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                <p className="text-[15px] font-mono font-semibold text-[#F2F2F2] tabular-nums">{phone}</p>
               </div>
               <button onClick={copyPhone}
-                className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
-                {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                className="p-2.5 rounded-xl hover:bg-white/[0.06] text-[#9A9AA5] transition-colors">
+                {copied ? <Check size={15} className="text-emerald-400" /> : <Copy size={15} />}
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-[#8B8BA7]">
-              <AlertCircle size={14} className="text-amber-400" />
-              <p className="text-xs">En cours d'attribution</p>
+            <div className="flex items-center gap-2 text-[#9A9AA5]">
+              <AlertCircle size={13} className="text-amber-400" />
+              <p className="text-[12px]">En cours d'attribution</p>
             </div>
           )}
-          {/* Forwarding status */}
-          <div className="mt-3 pt-3 border-t border-white/[0.04]">
+          <div className="mt-3 pt-3 border-t border-white/[0.05]">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-[#8B8BA7]">Transfert d'appel</span>
-              {fwdVerified ? (
+              <span className="text-[11px] text-[#9A9AA5]">Transfert d'appel</span>
+              {fwdVerified && transferNumber ? (
                 <span className="flex items-center gap-1 text-[11px] text-emerald-400"><CheckCircle2 size={12} /> Vérifié</span>
               ) : fwdStatus === 'pending' ? (
                 <span className="flex items-center gap-1 text-[11px] text-amber-400"><Clock size={12} /> En attente</span>
               ) : (
-                <span className="flex items-center gap-1 text-[11px] text-[#8B8BA7]"><XCircle size={12} /> Non configuré</span>
+                <span className="flex items-center gap-1 text-[11px] text-[#6B6B75]"><XCircle size={12} /> Non configuré</span>
               )}
             </div>
           </div>
         </motion.div>
 
-        {/* Stats */}
+        {/* Stats — uniform white numbers */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="rounded-xl border border-white/[0.06] bg-[#12121A] p-5">
-          <h3 className="text-sm font-semibold text-[#F8F8FF] mb-3 flex items-center gap-2">
-            <Activity size={15} className="text-[#22C55E]" /> Statistiques
-          </h3>
+          className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Activity size={13} className="text-[#9A9AA5]" />
+            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#9A9AA5]">Statistiques</h3>
+          </div>
           <div className="grid grid-cols-3 gap-2 mb-3">
             {[
-              { label: 'Ce mois', value: overview?.calls?.thisMonth || 0, color: '#7B5CF0' },
-              { label: 'Leads', value: overview?.leads?.thisMonth || 0, color: '#22C55E' },
-              { label: 'Total', value: settings?.totalCallsMade || client.totalCallsMade || 0, color: '#3B82F6' },
+              { label: 'Ce mois', value: overview?.calls?.thisMonth || 0 },
+              { label: 'Leads',   value: overview?.leads?.thisMonth || 0 },
+              { label: 'Total',   value: settings?.totalCallsMade || client.totalCallsMade || 0 },
             ].map((s, i) => (
               <div key={i} className="bg-[#0D0D15] rounded-lg p-2.5 text-center">
-                <p className="text-lg font-bold tabular-nums" style={{ color: s.color }}>{s.value}</p>
-                <p className="text-[8px] text-[#8B8BA7] uppercase">{s.label}</p>
+                <p className="text-[18px] font-semibold tabular-nums text-[#F2F2F2]">{s.value}</p>
+                <p className="text-[9px] text-[#9A9AA5] uppercase tracking-wider mt-0.5">{s.label}</p>
               </div>
             ))}
           </div>
           {/* Quota bar */}
           <div>
-            <div className="flex justify-between text-[10px] text-[#8B8BA7] mb-1">
+            <div className="flex justify-between text-[10px] text-[#9A9AA5] mb-1">
               <span>Quota mensuel</span>
               <span className="tabular-nums">{used} / {quota} ({quotaPct}%)</span>
             </div>
-            <div className="h-2 rounded-full bg-[#0D0D15] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
               <div className="h-full rounded-full transition-all" style={{
                 width: `${Math.min(quotaPct, 100)}%`,
-                background: quotaPct > 90 ? '#EF4444' : quotaPct > 70 ? '#F59E0B' : '#7B5CF0',
+                background: quotaPct > 90 ? '#EF4444' : quotaPct > 70 ? '#F59E0B' : '#E5E5EA',
               }} />
             </div>
           </div>
