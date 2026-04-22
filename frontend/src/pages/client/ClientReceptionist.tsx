@@ -91,6 +91,18 @@ export default function ClientReceptionist() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Scroll to #transfer (or any other section) when the URL includes a hash
+  useEffect(() => {
+    if (loading) return;
+    const hash = window.location.hash.replace('#', '');
+    if (!hash) return;
+    // wait one frame so the DOM with the new markup is mounted
+    requestAnimationFrame(() => {
+      const el = document.getElementById(hash);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [loading]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -319,6 +331,7 @@ export default function ClientReceptionist() {
       </Section>
 
       {/* ── Transfert d'appel ── */}
+      <div id="transfer" style={{ scrollMarginTop: 80 }}>
       <Section title="Transfert d'appel" icon={PhoneForwarded} color="#3B82F6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -339,13 +352,14 @@ export default function ClientReceptionist() {
             <p className="text-[10px] text-[#8B8BA7] mt-1">Quand transférer les appels à un humain</p>
           </div>
         </div>
-        {fwdVerified && (
+        {fwdVerified && transferNumber && (
           <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-400/5 border border-emerald-400/15">
             <CheckCircle2 size={14} className="text-emerald-400" />
             <span className="text-xs text-emerald-400">Transfert vérifié le {new Date(fwdVerified).toLocaleDateString('fr-FR')}</span>
           </div>
         )}
       </Section>
+      </div>
 
       {/* ── Contact & adresse ── */}
       <Section title="Coordonnées" icon={MapPin} color="#F59E0B" defaultOpen={false}>

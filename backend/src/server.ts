@@ -341,8 +341,11 @@ async function startServer() {
               onboardingData:        onboardingDataSeed,
               vapiAssistantId:       env.VAPI_ASSISTANT_ID || null,
               vapiPhoneNumber:       env.VAPI_PHONE_NUMBER || null,
-              forwardingStatus:      env.VAPI_PHONE_NUMBER ? 'verified' : null,
-              forwardingVerifiedAt:  env.VAPI_PHONE_NUMBER ? now : null,
+              // Forwarding "verified" only makes sense when an actual transfer
+              // number exists. Otherwise leave it null so the UI shows
+              // "Non configuré" and the banner links to the config page.
+              forwardingStatus:      user.businessPhone ? 'verified' : null,
+              forwardingVerifiedAt:  user.businessPhone ? now : null,
             },
             update: {
               planType:              bootstrapPlan,
@@ -358,8 +361,8 @@ async function startServer() {
               stripeSubscriptionId:  'sub_bootstrap_test',
               vapiAssistantId:       env.VAPI_ASSISTANT_ID || undefined,
               vapiPhoneNumber:       env.VAPI_PHONE_NUMBER || undefined,
-              forwardingStatus:      env.VAPI_PHONE_NUMBER ? 'verified' : undefined,
-              forwardingVerifiedAt:  env.VAPI_PHONE_NUMBER ? now : undefined,
+              forwardingStatus:      user.businessPhone ? 'verified' : undefined,
+              forwardingVerifiedAt:  user.businessPhone ? now : undefined,
             },
           });
           logger.info(`[bootstrap] ✅ Test-activated client ${bootstrapEmail} (plan=${bootstrapPlan})`);

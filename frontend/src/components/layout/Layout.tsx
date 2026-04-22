@@ -4,30 +4,35 @@ import { useAuthStore } from '../../stores/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, Phone, Zap, Target, Brain,
-  CreditCard, Settings, LogOut, ChevronLeft, ChevronRight,
+  CreditCard, Settings, LogOut, ChevronLeft, ChevronRight, ChevronDown,
   Search, RefreshCw, X, Crosshair, ExternalLink, TrendingUp,
-  ScrollText,
+  ScrollText, Activity, DollarSign, RotateCcw, Send, PhoneMissed,
 } from 'lucide-react';
 import QwillioLogo from '../QwillioLogo';
 import CommandPalette from '../ui/CommandPalette';
 import { t, glass } from '../../styles/admin-theme';
 
-const NAV_SECTIONS = [
-  {
-    label: '',
-    items: [
-      { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-      { path: '/admin/prospects', icon: Target, label: 'Prospects' },
-      { path: '/admin/calls', icon: Phone, label: 'Appels' },
-      { path: '/admin/leads', icon: Zap, label: 'Leads' },
-      { path: '/admin/clients', icon: Users, label: 'Clients' },
-      { path: '/admin/prospecting', icon: Crosshair, label: 'Prospection' },
-      { path: '/admin/ai-learning', icon: Brain, label: 'IA' },
-      { path: '/admin/logs', icon: ScrollText, label: 'Logs' },
-      { path: '/admin/billing', icon: CreditCard, label: 'Facturation' },
-      { path: '/admin/settings', icon: Settings, label: 'Paramètres' },
-    ],
-  },
+const PRIMARY_NAV = [
+  { path: '/admin',             icon: LayoutDashboard, label: 'Dashboard', exact: true },
+  { path: '/admin/prospects',   icon: Target,          label: 'Prospects' },
+  { path: '/admin/calls',       icon: Phone,           label: 'Appels' },
+  { path: '/admin/leads',       icon: Zap,             label: 'Leads' },
+  { path: '/admin/clients',     icon: Users,           label: 'Clients' },
+  { path: '/admin/prospecting', icon: Crosshair,       label: 'Prospection' },
+  { path: '/admin/ai-learning', icon: Brain,           label: 'IA' },
+  { path: '/admin/logs',        icon: ScrollText,      label: 'Logs' },
+  { path: '/admin/billing',     icon: CreditCard,      label: 'Facturation' },
+];
+
+const SETTINGS_SUB = [
+  { path: '/admin/settings',          icon: Settings,    label: 'Général' },
+  { path: '/admin/system',            icon: Activity,    label: 'Système' },
+  { path: '/admin/monitor',           icon: TrendingUp,  label: 'Moniteur live' },
+  { path: '/admin/phone-validation',  icon: PhoneMissed, label: 'Validation tél.' },
+  { path: '/admin/campaigns',         icon: Send,        label: 'Campagnes' },
+  { path: '/admin/followups',         icon: RotateCcw,   label: 'Suivis' },
+  { path: '/admin/costs',             icon: DollarSign,  label: 'Coûts' },
+  { path: '/admin/retention',         icon: Users,       label: 'Rétention' },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
@@ -110,7 +115,12 @@ export default function Layout() {
 
   const initials = user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) ?? 'AD';
 
-  const SidebarLink = ({ item, exact }: { item: (typeof NAV_SECTIONS[0]['items'][0]); exact?: boolean }) => {
+  const [settingsOpen, setSettingsOpen] = useState(
+    SETTINGS_SUB.some(i => location.pathname.startsWith(i.path))
+  );
+  const settingsActive = SETTINGS_SUB.some(i => isActive(i.path));
+
+  const SidebarLink = ({ item, exact }: { item: { path: string; label: string; icon: any }; exact?: boolean }) => {
     const active = isActive(item.path, exact);
     return (
       <Link
@@ -119,10 +129,7 @@ export default function Layout() {
         title={collapsed ? item.label : undefined}
         className={`relative flex items-center gap-3 rounded-xl transition-all duration-150 group
           ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
-          ${active
-            ? 'text-[#7B5CF0]'
-            : 'hover:bg-white/[0.04]'
-          }`}
+          ${active ? 'text-[#7B5CF0]' : 'hover:bg-white/[0.04]'}`}
         style={{ color: active ? t.brand : t.textSec }}
       >
         {active && (
@@ -143,6 +150,22 @@ export default function Layout() {
     );
   };
 
+  const SettingsSubLink = ({ item }: { item: { path: string; label: string; icon: any } }) => {
+    const active = isActive(item.path);
+    return (
+      <Link
+        to={item.path}
+        onClick={() => setMobileOpen(false)}
+        className={`flex items-center gap-3 py-2 rounded-xl transition-colors pl-9 pr-3
+          ${active ? '' : 'hover:bg-white/[0.04]'}`}
+        style={{ color: active ? t.brand : t.textSec }}
+      >
+        <item.icon className="w-4 h-4 flex-shrink-0" />
+        <span className="text-[13px] font-medium">{item.label}</span>
+      </Link>
+    );
+  };
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full min-h-0">
       {/* Logo */}
@@ -156,9 +179,46 @@ export default function Layout() {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide min-h-0 pb-2">
         <div className="space-y-0.5">
-          {NAV_SECTIONS[0].items.map((item) => (
-            <SidebarLink key={item.path} item={item} exact={'exact' in item ? (item as any).exact : undefined} />
+          {PRIMARY_NAV.map((item) => (
+            <SidebarLink key={item.path} item={item} exact={item.exact} />
           ))}
+
+          {/* Paramètres — expandable with organized sub-items */}
+          <button
+            onClick={() => { if (!collapsed) setSettingsOpen(v => !v); }}
+            title={collapsed ? 'Paramètres' : undefined}
+            className={`w-full relative flex items-center gap-3 rounded-xl transition-all duration-150 group
+              ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
+              ${settingsActive ? '' : 'hover:bg-white/[0.04]'}`}
+            style={{ color: settingsActive ? t.brand : t.textSec }}
+          >
+            {settingsActive && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ background: t.brand }} />
+            )}
+            <Settings className="w-[18px] h-[18px] flex-shrink-0" />
+            {!collapsed && <span className="text-sm font-medium flex-1 text-left">Paramètres</span>}
+            {!collapsed && (
+              <ChevronDown
+                className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${settingsOpen ? 'rotate-0' : '-rotate-90'}`}
+                style={{ color: t.textTer }}
+              />
+            )}
+            {collapsed && (
+              <span
+                className="absolute left-full ml-3 px-2 py-1 text-xs rounded-lg
+                  opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl backdrop-blur-xl"
+                style={{ background: t.panelSolid, color: t.text, border: `1px solid ${t.borderHi}` }}
+              >
+                Paramètres
+              </span>
+            )}
+          </button>
+
+          {!collapsed && settingsOpen && (
+            <div className="space-y-0.5 py-0.5">
+              {SETTINGS_SUB.map(item => <SettingsSubLink key={item.path} item={item} />)}
+            </div>
+          )}
         </div>
       </nav>
 

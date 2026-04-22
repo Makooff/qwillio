@@ -238,7 +238,7 @@ export default function ClientOverview() {
           className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-2xl px-5 py-3">
           <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
           <p className="text-sm text-red-300 flex-1">Numéro de transfert non configuré</p>
-          <Link to="/dashboard/receptionist" className="text-sm font-medium text-red-400 hover:underline whitespace-nowrap">Configurer →</Link>
+          <Link to="/dashboard/receptionist#transfer" className="text-sm font-medium text-red-400 hover:underline whitespace-nowrap">Configurer →</Link>
         </motion.div>
       )}
 
