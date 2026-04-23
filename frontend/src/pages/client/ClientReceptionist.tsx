@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Bot, Phone, PhoneForwarded, Pause, Play, Check, AlertCircle,
   Activity, Save, Power, Globe, User, Clock, Shield, Calendar,
-  Volume2, Languages, Building2, MapPin, RefreshCw, Settings,
+  Volume2, Languages, Building2, MapPin, Settings,
   ChevronDown, ChevronRight, Copy, CheckCircle2, XCircle,
 } from 'lucide-react';
 import api from '../../services/api';
@@ -172,17 +172,11 @@ export default function ClientReceptionist() {
           <h1 className="text-[20px] font-semibold text-[#F2F2F2] tracking-tight">Réceptionniste IA</h1>
           <p className="text-[12.5px] text-[#9A9AA5]">Gérez votre agent IA et tous ses paramètres</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={load} title="Rafraîchir"
-            className="p-2 rounded-xl hover:bg-white/[0.06] text-[#9A9AA5] transition-colors">
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-[#0B0B0D] bg-[#F2F2F2] rounded-xl hover:bg-white disabled:opacity-50 transition-colors">
-            {saving ? <div className="w-3.5 h-3.5 border-2 border-[#0B0B0D] border-t-transparent rounded-full animate-spin" /> : <Save size={13} />}
-            {saving ? 'Sauvegarde…' : saved ? 'Sauvegardé' : 'Sauvegarder'}
-          </button>
-        </div>
+        <button onClick={handleSave} disabled={saving}
+          className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-[#0B0B0D] bg-[#F2F2F2] rounded-xl hover:bg-white disabled:opacity-50 transition-colors">
+          {saving ? <div className="w-3.5 h-3.5 border-2 border-[#0B0B0D] border-t-transparent rounded-full animate-spin" /> : <Save size={13} />}
+          {saving ? 'Sauvegarde…' : saved ? 'Sauvegardé' : 'Sauvegarder'}
+        </button>
       </div>
 
       {/* ── Status card ── neutral surface, single colour dot only */}

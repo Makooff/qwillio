@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Phone, Users, AlertCircle, ArrowRight, ChevronRight, RefreshCw,
+  Phone, Users, AlertCircle, ArrowRight, ChevronRight,
   Bot, BarChart3, ArrowUpRight, ArrowDownRight, Sparkles,
   CheckCircle2, Settings, Headphones,
 } from 'lucide-react';
@@ -224,11 +224,6 @@ export default function ClientOverview() {
             {isActive ? 'Service actif' : isPaused ? 'En pause' : 'Inactif'}
           </p>
         </div>
-        <button onClick={() => { setLoading(true); load(); }}
-          className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
-          style={{ color: C.textSec }}>
-          <RefreshCw className="w-4 h-4" />
-        </button>
       </motion.div>
 
       {/* ─── Onboarding (only if not done) ─── */}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
@@ -45,6 +45,12 @@ export default function ClientLayout() {
   const [settingsOpen, setSettingsOpen] = useState(
     SETTINGS_SUB.some(i => location.pathname.startsWith(i.path))
   );
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname]);
 
   const isActive = (path: string, exact?: boolean) => {
     if (exact) return location.pathname === path;
@@ -58,8 +64,7 @@ export default function ClientLayout() {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    window.dispatchEvent(new CustomEvent('client-refresh'));
-    setTimeout(() => setRefreshing(false), 1000);
+    window.location.reload();
   };
 
   const SidebarLink = ({ item, exact }: { item: { path: string; label: string; icon: any }; exact?: boolean }) => {
@@ -288,59 +293,75 @@ export default function ClientLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 pb-32 md:pb-6 overflow-auto">
+        <main ref={mainRef} className="flex-1 p-4 md:p-6 pb-32 md:pb-6 overflow-auto">
           <Outlet />
         </main>
       </div>
 
       {/* Mobile bottom nav */}
-      <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
-        <div className="relative w-full flex items-center justify-around py-3 px-2">
-          <div
-            className="absolute inset-0 rounded-full pointer-events-none"
+      <MobileBottomNav pathname={location.pathname} />
+    </div>
+  );
+}
+
+const MOBILE_NAV = [
+  { icon: LayoutDashboard, label: 'Home',   path: '/dashboard',           exact: true },
+  { icon: Phone,           label: 'Appels', path: '/dashboard/calls' },
+  { icon: Users,           label: 'Leads',  path: '/dashboard/leads' },
+  { icon: Bot,             label: 'IA',     path: '/dashboard/receptionist' },
+  { icon: Settings,        label: 'Params', path: '/dashboard/account' },
+];
+
+function MobileBottomNav({ pathname }: { pathname: string }) {
+  const activeIdx = MOBILE_NAV.findIndex(item =>
+    item.exact ? pathname === item.path : pathname.startsWith(item.path)
+  );
+  const itemPct = 100 / MOBILE_NAV.length;
+  const showBubble = activeIdx >= 0;
+
+  return (
+    <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
+      <div className="relative w-full flex items-center justify-around py-3 px-2">
+        <div
+          className="absolute inset-0 rounded-full pointer-events-none"
+          style={{
+            background: 'rgba(17,17,19,0.78)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: `1px solid ${t.border}`,
+          }}
+        />
+
+        {showBubble && (
+          <motion.span
+            className="absolute rounded-full pointer-events-none"
+            initial={false}
+            animate={{ left: `${activeIdx * itemPct + itemPct / 2}%` }}
+            transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.8 }}
             style={{
-              background: 'rgba(17,17,19,0.78)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: `1px solid ${t.border}`,
+              width: 60, height: 60,
+              top: '50%',
+              x: '-50%', y: '-50%',
+              background: `${t.brand}26`,
+              border: `1px solid ${t.brand}55`,
             }}
           />
-          {[
-            { icon: LayoutDashboard, label: 'Home',   path: '/dashboard',           exact: true },
-            { icon: Phone,           label: 'Appels', path: '/dashboard/calls' },
-            { icon: Users,           label: 'Leads',  path: '/dashboard/leads' },
-            { icon: Bot,             label: 'IA',     path: '/dashboard/receptionist' },
-            { icon: Settings,        label: 'Params', path: '/dashboard/account' },
-          ].map(item => {
-            const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileOpen(false)}
-                className="relative z-10 flex flex-col items-center gap-0.5 w-[18%] py-0.5"
-                style={{ color: active ? t.text : t.textTer }}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="client-nav-bubble"
-                    className="absolute rounded-full"
-                    style={{
-                      width: 60, height: 60,
-                      top: '50%', left: '50%',
-                      x: '-50%', y: '-50%',
-                      background: `${t.brand}26`,
-                      border: `1px solid ${t.brand}55`,
-                    }}
-                    transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.8 }}
-                  />
-                )}
-                <item.icon className="relative z-10 w-[21px] h-[21px]" />
-                <span className="relative z-10 text-[9px] font-medium mt-0.5 tracking-tight">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
+        )}
+
+        {MOBILE_NAV.map((item, i) => {
+          const active = i === activeIdx;
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className="relative z-10 flex flex-col items-center gap-0.5 w-[18%] py-0.5"
+              style={{ color: active ? t.text : t.textTer }}
+            >
+              <item.icon className="relative z-10 w-[21px] h-[21px]" />
+              <span className="relative z-10 text-[9px] font-medium mt-0.5 tracking-tight">{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
