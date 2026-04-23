@@ -1,14 +1,33 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../../services/api';
-import { RefreshCw, Brain, Search, Info } from 'lucide-react';
+import { RefreshCw, Brain, Search, Info, Check, X } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
-import Badge from '../../components/ui/Badge';
 import SlideSheet from '../../components/ui/SlideSheet';
 import Pagination from '../../components/ui/Pagination';
-import EmptyState from '../../components/ui/EmptyState';
-import { TableRowSkeleton } from '../../components/ui/Skeleton';
-import { t, glass, inputStyle } from '../../styles/admin-theme';
+import QwillioLoader from '../../components/QwillioLoader';
+import { pro } from '../../styles/pro-theme';
+import {
+  PageHeader, Card, SectionHead, Stat, IconBtn, GhostBtn, Pill,
+} from '../../components/pro/ProBlocks';
+
+type PillColor = 'neutral' | 'ok' | 'warn' | 'bad' | 'info' | 'accent';
+
+const fmtDateTime = (iso?: string) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const date = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  return `${date} · ${time}`;
+};
+
+const outcomeColor = (outcome?: string): PillColor => {
+  const v = (outcome || '').toLowerCase();
+  if (['approved', 'auto_approved', 'success', 'ok'].includes(v)) return 'ok';
+  if (['rejected', 'failed', 'error', 'denied'].includes(v)) return 'bad';
+  if (['pending', 'needs_review', 'review'].includes(v)) return 'warn';
+  return 'neutral';
+};
 
 export default function AiDecisions() {
   const [data, setData] = useState<any[]>([]);
@@ -34,114 +53,179 @@ export default function AiDecisions() {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPage(1); }, [search]);
 
+  // KPI counts (best-effort from current page data)
+  const totalCount = total || data.length;
+  const autoApproved = data.filter((d: any) => {
+    const v = (d.outcome ?? d.result ?? '').toLowerCase();
+    return v === 'approved' || v === 'auto_approved' || v === 'success' || v === 'ok';
+  }).length;
+  const needsReview = data.filter((d: any) => {
+    const v = (d.outcome ?? d.result ?? '').toLowerCase();
+    return v === 'pending' || v === 'needs_review' || v === 'review';
+  }).length;
+  const rejected = data.filter((d: any) => {
+    const v = (d.outcome ?? d.result ?? '').toLowerCase();
+    return v === 'rejected' || v === 'failed' || v === 'error' || v === 'denied';
+  }).length;
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-[1200px]">
       <ToastContainer toasts={toasts} remove={remove} />
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold" style={{ color: t.text }}>IA — Décisions</h1>
-          <p className="text-sm mt-0.5" style={{ color: t.textSec }}>Journal des décisions automatiques</p>
+
+      <PageHeader
+        title="IA — Décisions"
+        subtitle="Journal des décisions automatiques"
+        right={
+          <IconBtn onClick={load} title="Rafraîchir">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </IconBtn>
+        }
+      />
+
+      {/* KPI Grid */}
+      <section>
+        <SectionHead title="Aperçu" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Stat label="Décisions totales" value={totalCount} hint="Toutes dates confondues" />
+          <Stat label="Auto-approuvées" value={autoApproved} hint="Sur la page en cours" />
+          <Stat label="À examiner" value={needsReview} hint="Sur la page en cours" />
+          <Stat label="Rejetées" value={rejected} hint="Sur la page en cours" />
         </div>
-        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }}>
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </div>
+      </section>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: t.textSec }} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher décisions..."
-          style={inputStyle}
-          className="w-full pl-9 pr-4 py-2.5 placeholder-[#48484A] focus:outline-none focus:border-white/[0.18]" />
-      </div>
+      {/* Filters */}
+      <Card>
+        <div className="flex items-center gap-2.5 px-4 h-11">
+          <Search className="w-4 h-4" style={{ color: pro.textTer }} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher décisions…"
+            className="flex-1 bg-transparent text-[13px] outline-none placeholder-[#6B6B75]"
+            style={{ color: pro.text }}
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="text-[11px]" style={{ color: pro.textSec }}>
+              Effacer
+            </button>
+          )}
+        </div>
+      </Card>
 
-      <div className="overflow-hidden" style={glass}>
-        <table className="w-full text-sm">
-          <thead>
-            <tr style={{ borderBottom: `1px solid ${t.border}` }}>
-              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Type</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Niche</th>
-              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Action</th>
-              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Résult.</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Confiance</th>
-              <th className="hidden md:table-cell px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Date</th>
-              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading
-              ? Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={7} />)
-              : data.length === 0
-                ? <tr><td colSpan={7}><EmptyState icon={<Brain className="w-7 h-7" />} title="Aucune décision IA" /></td></tr>
-                : data.map((d: any) => (
-                  <tr key={d.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] group">
-                    <td className="px-3 py-3"><Badge label={d.type ?? 'decision'} size="xs" /></td>
-                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs" style={{ color: t.text }}>{d.niche ?? '—'}</span></td>
-                    <td className="px-3 py-3">
-                      <span className="text-xs truncate max-w-[100px] md:max-w-[160px] block" style={{ color: t.textSec }}>{d.action ?? '—'}</span>
-                      <p className="text-[10px] md:hidden" style={{ color: t.textSec }}>{d.niche ?? ''}</p>
-                    </td>
-                    <td className="px-3 py-3">
-                      <Badge label={d.outcome ?? d.result ?? 'processed'} dot size="xs" />
-                    </td>
-                    <td className="hidden md:table-cell px-3 py-3">
-                      {d.confidence != null && (
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-16 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                            <div className="h-full bg-white/[0.25] rounded-full" style={{ width: `${d.confidence * 100}%` }} />
-                          </div>
-                          <span className="text-xs" style={{ color: t.textSec }}>{(d.confidence * 100).toFixed(0)}%</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="hidden md:table-cell px-3 py-3"><span className="text-xs" style={{ color: t.textSec }}>{new Date(d.createdAt).toLocaleString('fr-FR')}</span></td>
-                    <td className="px-3 py-3">
-                      <button onClick={() => setSelected(d)}
-                        className="p-1.5 rounded-lg hover:bg-white/[0.08] transition-all opacity-0 group-hover:opacity-100"
-                        style={{ color: t.textSec }}>
-                        <Info className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-          </tbody>
-        </table>
-        <div className="px-4 pb-4"><Pagination page={page} total={total} limit={LIMIT} onChange={setPage} /></div>
-      </div>
+      {/* Decision list */}
+      <Card>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <QwillioLoader size={120} fullscreen={false} />
+          </div>
+        ) : data.length === 0 ? (
+          <div className="p-12 text-center" style={{ color: pro.textTer }}>
+            <Brain className="w-7 h-7 mx-auto mb-3" />
+            <p className="text-[13px]">Aucune décision IA</p>
+          </div>
+        ) : (
+          data.map((d: any, i: number) => {
+            const outcome = d.outcome ?? d.result ?? 'processed';
+            return (
+              <div
+                key={d.id}
+                className="flex items-center gap-3.5 px-4 py-3 transition-colors hover:bg-white/[0.02]"
+                style={{ borderTop: i > 0 ? `1px solid ${pro.border}` : undefined }}
+              >
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <Brain size={14} style={{ color: pro.text }} />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Pill color="neutral">{d.type ?? 'decision'}</Pill>
+                    <Pill color={outcomeColor(outcome)}>{outcome}</Pill>
+                    {d.confidence != null && (
+                      <span className="text-[11px] tabular-nums" style={{ color: pro.textTer }}>
+                        {(d.confidence * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[13px] font-medium truncate" style={{ color: pro.text }}>
+                    {d.action ?? '—'}
+                  </p>
+                  <p className="text-[11.5px] truncate" style={{ color: pro.textTer }}>
+                    {d.niche ? `${d.niche} · ` : ''}{fmtDateTime(d.createdAt)}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <GhostBtn size="sm" onClick={() => setSelected(d)}>
+                    <Info size={12} /> Détail
+                  </GhostBtn>
+                  <IconBtn title="Approuver">
+                    <Check className="w-4 h-4" />
+                  </IconBtn>
+                  <IconBtn title="Rejeter">
+                    <X className="w-4 h-4" />
+                  </IconBtn>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div className="px-4 pb-4 pt-2">
+          <Pagination page={page} total={total} limit={LIMIT} onChange={setPage} />
+        </div>
+      </Card>
 
       <SlideSheet open={!!selected} onClose={() => setSelected(null)}
         title="Détail décision IA"
-        subtitle={selected ? new Date(selected.createdAt).toLocaleString('fr-FR') : ''}>
+        subtitle={selected ? fmtDateTime(selected.createdAt) : ''}>
         {selected && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl p-3 text-center" style={{ background: t.elevated, borderRadius: t.rSm }}>
-                <Badge label={selected.type ?? 'decision'} />
-                <p className="text-[10px] mt-1.5" style={{ color: t.textSec }}>Type</p>
+              <div className="rounded-xl p-3 text-center border"
+                   style={{ background: pro.panel, borderColor: pro.border }}>
+                <Pill color="neutral">{selected.type ?? 'decision'}</Pill>
+                <p className="text-[10px] mt-1.5 uppercase tracking-wider" style={{ color: pro.textTer }}>Type</p>
               </div>
-              <div className="rounded-xl p-3 text-center" style={{ background: t.elevated, borderRadius: t.rSm }}>
+              <div className="rounded-xl p-3 text-center border"
+                   style={{ background: pro.panel, borderColor: pro.border }}>
                 {selected.confidence != null
-                  ? <p className="text-xl font-bold" style={{ color: t.text }}>{(selected.confidence * 100).toFixed(0)}%</p>
-                  : <p className="text-xl font-bold" style={{ color: t.textSec }}>—</p>}
-                <p className="text-[10px] mt-1.5" style={{ color: t.textSec }}>Confiance</p>
+                  ? <p className="text-xl font-semibold tabular-nums" style={{ color: pro.text }}>{(selected.confidence * 100).toFixed(0)}%</p>
+                  : <p className="text-xl font-semibold" style={{ color: pro.textSec }}>—</p>}
+                <p className="text-[10px] mt-1.5 uppercase tracking-wider" style={{ color: pro.textTer }}>Confiance</p>
               </div>
             </div>
-            {selected.niche && <div className="flex justify-between text-xs p-3 rounded-xl" style={{ background: t.elevated, borderRadius: t.rSm }}><span style={{ color: t.textSec }}>Niche</span><span style={{ color: t.text }}>{selected.niche}</span></div>}
+            {selected.niche && (
+              <div className="flex justify-between text-xs p-3 rounded-xl border"
+                   style={{ background: pro.panel, borderColor: pro.border }}>
+                <span style={{ color: pro.textSec }}>Niche</span>
+                <span style={{ color: pro.text }}>{selected.niche}</span>
+              </div>
+            )}
             {selected.action && (
               <div>
-                <p className="text-xs mb-2" style={{ color: t.textSec }}>Action</p>
-                <p className="text-xs p-3 rounded-xl" style={{ color: t.text, background: t.elevated, borderRadius: t.rSm }}>{selected.action}</p>
+                <p className="text-xs mb-2 uppercase tracking-wider" style={{ color: pro.textTer }}>Action</p>
+                <p className="text-xs p-3 rounded-xl border"
+                   style={{ color: pro.text, background: pro.panel, borderColor: pro.border }}>
+                  {selected.action}
+                </p>
               </div>
             )}
             {selected.reasoning && (
               <div>
-                <p className="text-xs mb-2" style={{ color: t.textSec }}>Raisonnement</p>
-                <p className="text-xs leading-relaxed p-3 rounded-xl" style={{ color: t.text, background: t.elevated, borderRadius: t.rSm }}>{selected.reasoning}</p>
+                <p className="text-xs mb-2 uppercase tracking-wider" style={{ color: pro.textTer }}>Raisonnement</p>
+                <p className="text-xs leading-relaxed p-3 rounded-xl border"
+                   style={{ color: pro.text, background: pro.panel, borderColor: pro.border }}>
+                  {selected.reasoning}
+                </p>
               </div>
             )}
             {selected.data && (
               <div>
-                <p className="text-xs mb-2" style={{ color: t.textSec }}>Données</p>
-                <pre className="text-[10px] overflow-x-auto leading-relaxed p-3 rounded-xl" style={{ color: t.text, background: t.elevated, borderRadius: t.rSm }}>{JSON.stringify(selected.data, null, 2)}</pre>
+                <p className="text-xs mb-2 uppercase tracking-wider" style={{ color: pro.textTer }}>Données</p>
+                <pre className="text-[10px] overflow-x-auto leading-relaxed p-3 rounded-xl border"
+                     style={{ color: pro.text, background: pro.panel, borderColor: pro.border }}>
+                  {JSON.stringify(selected.data, null, 2)}
+                </pre>
               </div>
             )}
           </div>

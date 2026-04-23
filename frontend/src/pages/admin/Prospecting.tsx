@@ -1,31 +1,44 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { RefreshCw, Zap, Activity, Play, TrendingUp, Search, Phone, Clock, CheckCircle } from 'lucide-react';
+import {
+  RefreshCw, Zap, Activity, TrendingUp, Search, Phone, Clock, CheckCircle,
+  Target, Sparkles,
+} from 'lucide-react';
+import QwillioLoader from '../../components/QwillioLoader';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
-import Badge from '../../components/ui/Badge';
-import { StatCardSkeleton } from '../../components/ui/Skeleton';
-import StatCard from '../../components/ui/StatCard';
-import { t, glass } from '../../styles/admin-theme';
+import { pro } from '../../styles/pro-theme';
+import {
+  PageHeader, Card, SectionHead, Stat, IconBtn, PrimaryBtn, GhostBtn, Pill,
+} from '../../components/pro/ProBlocks';
+
+type StatusColor = 'ok' | 'warn' | 'bad' | 'info' | 'neutral' | 'accent';
 
 interface TriggerAction {
   id: string;
   label: string;
   description: string;
   endpoint: string;
-  icon: React.ReactNode;
+  icon: any;
 }
 
 const TRIGGERS: TriggerAction[] = [
-  { id: 'scrape', label: 'Scraping Apify', description: 'Lancer scraping Google Maps', endpoint: '/prospecting/trigger/scrape', icon: <Search className="w-4 h-4" /> },
-  { id: 'call', label: 'Tenter un appel', description: 'Déclencher 1 appel sortant', endpoint: '/prospecting/trigger/call', icon: <Phone className="w-4 h-4" /> },
-  { id: 'ab-analysis', label: 'Analyse A/B', description: 'Analyser résultats tests A/B', endpoint: '/prospecting/trigger/ab-analysis', icon: <TrendingUp className="w-4 h-4" /> },
-  { id: 'best-time', label: 'Meilleurs horaires', description: 'Calculer horaires optimaux', endpoint: '/prospecting/trigger/best-time', icon: <Clock className="w-4 h-4" /> },
-  { id: 'script-learning', label: 'Script learning', description: 'Lancer optimisation script', endpoint: '/prospecting/trigger/script-learning', icon: <Activity className="w-4 h-4" /> },
-  { id: 'follow-ups', label: 'Follow-ups', description: 'Traiter suivis dus', endpoint: '/prospecting/trigger/follow-ups', icon: <CheckCircle className="w-4 h-4" /> },
-  { id: 'rescore', label: 'Re-scoring', description: 'Rescorer prospects non scorés', endpoint: '/prospecting/trigger/rescore', icon: <Zap className="w-4 h-4" /> },
-  { id: 'seed-local-presence', label: 'Local presence', description: 'Alimenter numéros locaux', endpoint: '/prospecting/trigger/seed-local-presence', icon: <Phone className="w-4 h-4" /> },
+  { id: 'scrape',              label: 'Scraping Apify',       description: 'Lancer scraping Google Maps',   endpoint: '/prospecting/trigger/scrape',              icon: Search },
+  { id: 'call',                label: 'Tenter un appel',      description: 'Déclencher 1 appel sortant',    endpoint: '/prospecting/trigger/call',                icon: Phone },
+  { id: 'ab-analysis',         label: 'Analyse A/B',          description: 'Analyser résultats tests A/B',  endpoint: '/prospecting/trigger/ab-analysis',         icon: TrendingUp },
+  { id: 'best-time',           label: 'Meilleurs horaires',   description: 'Calculer horaires optimaux',    endpoint: '/prospecting/trigger/best-time',           icon: Clock },
+  { id: 'script-learning',     label: 'Script learning',      description: 'Lancer optimisation script',    endpoint: '/prospecting/trigger/script-learning',     icon: Activity },
+  { id: 'follow-ups',          label: 'Follow-ups',           description: 'Traiter suivis dus',            endpoint: '/prospecting/trigger/follow-ups',          icon: CheckCircle },
+  { id: 'rescore',             label: 'Re-scoring',           description: 'Rescorer prospects non scorés', endpoint: '/prospecting/trigger/rescore',             icon: Zap },
+  { id: 'seed-local-presence', label: 'Local presence',       description: 'Alimenter numéros locaux',      endpoint: '/prospecting/trigger/seed-local-presence', icon: Phone },
 ];
+
+const fmtTime = (v?: string) => {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+};
 
 export default function AdminProspecting() {
   const [status, setStatus] = useState<any>(null);
@@ -33,6 +46,7 @@ export default function AdminProspecting() {
   const [mutations, setMutations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState<string | null>(null);
+  const [mainBusy, setMainBusy] = useState(false);
   const { toasts, add: toast, remove } = useToast();
 
   const load = async () => {
@@ -60,89 +74,178 @@ export default function AdminProspecting() {
     } finally { setTriggering(null); }
   };
 
+  const runMain = async () => {
+    setMainBusy(true);
+    try {
+      await api.post('/prospecting/trigger/scrape');
+      toast('Cycle de prospection lancé', 'success');
+      setTimeout(load, 1500);
+    } catch { toast('Erreur lancement prospection', 'error'); }
+    finally { setMainBusy(false); }
+  };
+
+  // Derived counts
+  const totalProspects = status?.prospectsFound ?? status?.totalProspects ?? 0;
+  const called         = status?.callsToday     ?? 0;
+  const interested     = status?.interested     ?? status?.interestedCount ?? 0;
+  const converted      = status?.converted      ?? status?.convertedCount  ?? 0;
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-32">
+      <QwillioLoader size={120} fullscreen={false} />
+    </div>
+  );
+
+  const mutationPill = (m: any): { color: StatusColor; label: string } => {
+    if (m.blocked) return { color: 'bad', label: 'Bloqué' };
+    if (m.status === 'winner') return { color: 'ok', label: 'Gagnant' };
+    return { color: 'neutral', label: m.status ?? 'active' };
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 max-w-[1200px]">
       <ToastContainer toasts={toasts} remove={remove} />
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold" style={{ color: t.text }}>Moteur de prospection</h1>
-          <p className="text-sm mt-0.5" style={{ color: t.textSec }}>Contrôle et déclenchement manuel</p>
-        </div>
-        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }}>
-          <RefreshCw className="w-4 h-4" />
-        </button>
+
+      <PageHeader
+        title="Moteur de prospection"
+        subtitle="Pipeline de leads, scoring et tests A/B"
+        right={
+          <IconBtn onClick={load} title="Rafraîchir">
+            <RefreshCw className="w-4 h-4" />
+          </IconBtn>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Stat icon={Target}     label="Prospects"  value={totalProspects} hint="Base totale" />
+        <Stat icon={Phone}      label="Appelés"    value={called}         hint="Aujourd'hui" />
+        <Stat icon={Sparkles}   label="Intéressés" value={interested}     hint="Score ≥ 7" />
+        <Stat icon={TrendingUp} label="Convertis"  value={converted}      hint="Clients signés" />
       </div>
 
-      {/* Engine Status */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {loading ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />) : <>
-          <StatCard label="Prospects trouvés" value={status?.prospectsFound ?? 0} icon={<Search className="w-4 h-4" />} />
-          <StatCard label="Appels aujourd'hui" value={status?.callsToday ?? 0} icon={<Phone className="w-4 h-4" />} />
-          <StatCard label="Tests A/B actifs" value={abTests.length} icon={<TrendingUp className="w-4 h-4" />} />
-          <StatCard label="Mutations actives" value={mutations.length} icon={<Activity className="w-4 h-4" />} />
-        </>}
-      </div>
+      {/* Main cron control */}
+      <section>
+        <SectionHead title="Contrôle cycle" />
+        <Card>
+          <div className="p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <Activity size={18} style={{ color: pro.text }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold" style={{ color: pro.text }}>
+                Cycle de prospection
+              </p>
+              <p className="text-[11.5px]" style={{ color: pro.textSec }}>
+                {status?.isRunning ? 'En cours…' : 'Prêt à lancer'}
+                {status?.lastScrape ? ` · dernier scrape ${fmtTime(status.lastScrape)}` : ''}
+              </p>
+            </div>
+            <PrimaryBtn size="sm" onClick={runMain} disabled={mainBusy}>
+              {mainBusy ? '…' : (<><Zap size={12} /> Lancer le cycle</>)}
+            </PrimaryBtn>
+          </div>
+        </Card>
+      </section>
 
-      {/* Triggers */}
-      <div className="p-5" style={glass}>
-        <h3 className="text-sm font-semibold mb-4" style={{ color: t.text }}>Déclenchement manuel</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          {TRIGGERS.map(action => (
-            <button key={action.id} onClick={() => trigger(action)} disabled={triggering === action.id}
-              className="flex items-start gap-3 p-4 rounded-xl text-left transition-all disabled:opacity-50 group hover:border-white/[0.15]"
-              style={{ background: t.elevated, border: `1px solid ${t.border}`, borderRadius: t.rSm }}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors bg-white/[0.06]"
-                style={{ color: t.textSec }}>
-                {triggering === action.id ? (
-                  <div className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                ) : action.icon}
+      {/* Manual triggers */}
+      <section>
+        <SectionHead title="Déclenchement manuel" />
+        <Card>
+          {TRIGGERS.map((action, i) => {
+            const Icon = action.icon;
+            const busy = triggering === action.id;
+            return (
+              <div
+                key={action.id}
+                className="flex items-center gap-3.5 px-4 py-3"
+                style={{ borderTop: i > 0 ? `1px solid ${pro.border}` : undefined }}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <Icon size={14} style={{ color: pro.text }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium truncate" style={{ color: pro.text }}>
+                    {action.label}
+                  </p>
+                  <p className="text-[11.5px] truncate" style={{ color: pro.textTer }}>
+                    {action.description}
+                  </p>
+                </div>
+                <GhostBtn size="sm" onClick={() => trigger(action)} disabled={busy}>
+                  {busy ? '…' : 'Exécuter'}
+                </GhostBtn>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold" style={{ color: t.text }}>{action.label}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: t.textSec }}>{action.description}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+            );
+          })}
+        </Card>
+      </section>
 
       {/* A/B Tests */}
       {abTests.length > 0 && (
-        <div className="p-5" style={glass}>
-          <h3 className="text-sm font-semibold mb-4" style={{ color: t.text }}>Tests A/B actifs</h3>
-          <div className="space-y-3">
-            {abTests.slice(0, 5).map((ab: any) => (
-              <div key={ab.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: t.elevated, borderRadius: t.rSm }}>
-                <div>
-                  <p className="text-sm" style={{ color: t.text }}>{ab.niche ?? 'Global'}</p>
-                  <p className="text-xs" style={{ color: t.textSec }}>Appels: A={ab.callsA ?? 0} / B={ab.callsB ?? 0}</p>
+        <section>
+          <SectionHead title="Tests A/B actifs" />
+          <Card>
+            {abTests.slice(0, 5).map((ab: any, i: number) => (
+              <div
+                key={ab.id}
+                className="flex items-center gap-3.5 px-4 py-3"
+                style={{ borderTop: i > 0 ? `1px solid ${pro.border}` : undefined }}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <TrendingUp size={14} style={{ color: pro.text }} />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge label={ab.winnerId ? 'Terminé' : 'En cours'} dot={!ab.winnerId} size="xs" variant={ab.winnerId ? 'success' : 'warning'} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium truncate" style={{ color: pro.text }}>
+                    {ab.niche ?? 'Global'}
+                  </p>
+                  <p className="text-[11.5px] truncate tabular-nums" style={{ color: pro.textTer }}>
+                    A : {ab.callsA ?? 0} · B : {ab.callsB ?? 0}
+                  </p>
                 </div>
+                <Pill color={ab.winnerId ? 'ok' : 'warn'}>
+                  {ab.winnerId ? 'Terminé' : 'En cours'}
+                </Pill>
               </div>
             ))}
-          </div>
-        </div>
+          </Card>
+        </section>
       )}
 
-      {/* Mutations */}
+      {/* Recent mutations */}
       {mutations.length > 0 && (
-        <div className="p-5" style={glass}>
-          <h3 className="text-sm font-semibold mb-4" style={{ color: t.text }}>Mutations de script récentes</h3>
-          <div className="space-y-2">
-            {mutations.slice(0, 6).map((m: any) => (
-              <div key={m.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: t.elevated, borderRadius: t.rSm }}>
-                <div>
-                  <p className="text-xs font-medium" style={{ color: t.text }}>{m.niche ?? 'Global'} — {m.type}</p>
-                  <p className="text-[10px]" style={{ color: t.textSec }}>Score succès: {(m.successRate ?? 0).toFixed(1)}%</p>
+        <section>
+          <SectionHead title="Mutations de script récentes" />
+          <Card>
+            {mutations.slice(0, 6).map((m: any, i: number) => {
+              const p = mutationPill(m);
+              return (
+                <div
+                  key={m.id}
+                  className="flex items-center gap-3.5 px-4 py-3"
+                  style={{ borderTop: i > 0 ? `1px solid ${pro.border}` : undefined }}
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                       style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <Sparkles size={14} style={{ color: pro.text }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium truncate" style={{ color: pro.text }}>
+                      {m.niche ?? 'Global'} — {m.type}
+                    </p>
+                    <p className="text-[11.5px] truncate tabular-nums" style={{ color: pro.textTer }}>
+                      Succès : {(m.successRate ?? 0).toFixed(1)}%
+                    </p>
+                  </div>
+                  <Pill color={p.color}>{p.label}</Pill>
                 </div>
-                <Badge label={m.blocked ? 'Bloqué' : m.status ?? 'active'} dot size="xs"
-                  variant={m.blocked ? 'danger' : m.status === 'winner' ? 'success' : 'neutral'} />
-              </div>
-            ))}
-          </div>
-        </div>
+              );
+            })}
+          </Card>
+        </section>
       )}
     </div>
   );

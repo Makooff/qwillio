@@ -1,23 +1,23 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '../../services/api';
-import { Search, RefreshCw, FileText, Phone, Clock, Play, Pause, Download, ChevronDown, ChevronUp, X } from 'lucide-react';
-import Badge from '../../components/ui/Badge';
+import {
+  Search, RefreshCw, FileText, Phone, Clock, Play, Pause, Download,
+} from 'lucide-react';
+import QwillioLoader from '../../components/QwillioLoader';
 import SlideSheet from '../../components/ui/SlideSheet';
 import Pagination from '../../components/ui/Pagination';
-import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
-import { t, glass, inputStyle } from '../../styles/admin-theme';
+import { pro } from '../../styles/pro-theme';
+import {
+  PageHeader, Card, Stat, IconBtn, Pill,
+} from '../../components/pro/ProBlocks';
 
-const OUTCOMES = ['','interested','voicemail','no_answer','rejected','converted','callback','not_interested','technical_issue'];
+const OUTCOMES = ['', 'interested', 'voicemail', 'no_answer', 'rejected', 'converted', 'callback', 'not_interested', 'technical_issue'];
 
 function fmtDuration(s?: number) {
   if (!s) return '—';
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
-
-function scoreColor(s: number) {
-  return s >= 7 ? t.success : s >= 4 ? t.warning : t.danger;
+  return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 }
 
 function fmtDateTime(iso?: string) {
@@ -26,6 +26,25 @@ function fmtDateTime(iso?: string) {
   const timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   return `${dateStr} · ${timeStr}`;
+}
+
+type PillColor = 'neutral' | 'ok' | 'warn' | 'bad' | 'info' | 'accent';
+function outcomeColor(o?: string): PillColor {
+  switch ((o || '').toLowerCase()) {
+    case 'interested':
+    case 'converted':      return 'ok';
+    case 'callback':       return 'info';
+    case 'voicemail':
+    case 'no_answer':      return 'warn';
+    case 'rejected':
+    case 'not_interested':
+    case 'technical_issue': return 'bad';
+    default:               return 'neutral';
+  }
+}
+
+function scoreColor(s: number): PillColor {
+  return s >= 7 ? 'ok' : s >= 4 ? 'warn' : 'bad';
 }
 
 function downloadCSV(rows: any[], filename: string) {
@@ -38,7 +57,7 @@ function downloadCSV(rows: any[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-// ── Inline audio player ──────────────────────────────────────────────────────
+// Inline audio player
 function AudioPlayer({ src, autoPlay = false }: { src: string; autoPlay?: boolean }) {
   const audioRef = React.useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(autoPlay);
@@ -53,13 +72,15 @@ function AudioPlayer({ src, autoPlay = false }: { src: string; autoPlay?: boolea
     }
   }, [autoPlay]);
 
-  const toggle = () => {
+  const toggle = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (!audioRef.current) return;
     if (playing) { audioRef.current.pause(); setPlaying(false); }
     else { audioRef.current.play(); setPlaying(true); }
   };
 
   const seek = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
     if (!audioRef.current || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = (e.clientX - rect.left) / rect.width;
@@ -67,7 +88,7 @@ function AudioPlayer({ src, autoPlay = false }: { src: string; autoPlay?: boolea
   };
 
   return (
-    <div className="flex items-center gap-3 w-full">
+    <div className="flex items-center gap-2.5 w-full">
       <audio
         ref={audioRef}
         src={src}
@@ -75,105 +96,40 @@ function AudioPlayer({ src, autoPlay = false }: { src: string; autoPlay?: boolea
         onLoadedMetadata={() => { if (audioRef.current) setDuration(audioRef.current.duration); }}
         onEnded={() => setPlaying(false)}
       />
-      <button onClick={toggle} className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all"
-        style={{ background: `${t.brand}20`, color: t.brand }}>
-        {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+      <button onClick={toggle} className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+        style={{ background: 'rgba(255,255,255,0.06)', color: pro.text }}>
+        {playing ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
       </button>
       <div className="flex-1 flex flex-col gap-1">
-        <div className="relative h-1.5 rounded-full cursor-pointer" style={{ background: 'rgba(255,255,255,0.08)' }} onClick={seek}>
-          <div className="absolute left-0 top-0 h-full rounded-full transition-all" style={{ width: `${progress}%`, background: t.brand }} />
+        <div className="relative h-1 rounded-full cursor-pointer"
+             style={{ background: 'rgba(255,255,255,0.06)' }} onClick={seek}>
+          <div className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${progress}%`, background: pro.text }} />
         </div>
         <div className="flex justify-between">
-          <span className="text-[10px]" style={{ color: t.textSec }}>{fmtDuration(Math.floor(current))}</span>
-          <span className="text-[10px]" style={{ color: t.textSec }}>{fmtDuration(Math.floor(duration))}</span>
+          <span className="text-[10px] tabular-nums" style={{ color: pro.textTer }}>{fmtDuration(Math.floor(current))}</span>
+          <span className="text-[10px] tabular-nums" style={{ color: pro.textTer }}>{fmtDuration(Math.floor(duration))}</span>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Mobile call card ─────────────────────────────────────────────────────────
-function CallCard({ c, onSelect }: { c: any; onSelect: (c: any) => void }) {
-  const [expanded, setExpanded] = useState(false);
-  const score = c.interestScore ?? c.interestLevel;
-  const hasRecording = !!c.recordingUrl;
-  const hasTranscript = !!c.transcript || !!c.summary;
-
+// Select — minimal styled
+function ProSelect({
+  value, onChange, children,
+}: { value: string; onChange: (v: string) => void; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl overflow-hidden transition-all" style={{ background: t.elevated, border: `1px solid ${t.border}` }}>
-      {/* Main row */}
-      <div className="p-3.5" onClick={() => setExpanded(!expanded)}>
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate" style={{ color: t.text }}>
-              {c.prospect?.businessName ?? c.businessName ?? '—'}
-            </p>
-            {c.phoneNumber && (
-              <p className="text-[11px] mt-0.5 font-mono" style={{ color: t.textSec }}>{c.phoneNumber}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {score != null && (
-              <span className="text-sm font-bold" style={{ color: scoreColor(score) }}>{score}<span className="text-[10px] font-normal" style={{ color: t.textSec }}>/10</span></span>
-            )}
-            <Badge label={c.outcome ?? 'unknown'} dot size="xs" />
-          </div>
-        </div>
-
-        {/* Date + duration row — always visible on mobile */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Clock className="w-3 h-3 flex-shrink-0" style={{ color: t.textSec }} />
-            <span className="text-[11px] font-medium" style={{ color: t.textSec }}>
-              {fmtDateTime(c.createdAt ?? c.startedAt)}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            {(c.duration ?? c.durationSeconds) > 0 && (
-              <span className="text-[11px]" style={{ color: t.textSec }}>
-                {fmtDuration(c.duration ?? c.durationSeconds)}
-              </span>
-            )}
-            <div className="flex items-center gap-1.5">
-              {hasRecording && <Play className="w-3 h-3" style={{ color: t.brand }} />}
-              {hasTranscript && <FileText className="w-3 h-3" style={{ color: t.textTer }} />}
-            </div>
-            {(hasRecording || hasTranscript) && (
-              <span style={{ color: t.textSec }}>
-                {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Expanded: audio player + summary preview */}
-      {expanded && (
-        <div className="px-3.5 pb-3.5 space-y-3 border-t" style={{ borderColor: t.border }}>
-          {hasRecording && (
-            <div className="pt-3">
-              <AudioPlayer src={c.recordingUrl} />
-            </div>
-          )}
-          {c.summary && (
-            <div className="rounded-xl p-2.5" style={{ background: t.inset }}>
-              <p className="text-[10px] font-medium uppercase tracking-wider mb-1" style={{ color: t.textTer }}>Résumé IA</p>
-              <p className="text-[11px] leading-relaxed line-clamp-3" style={{ color: t.textSec }}>{c.summary}</p>
-            </div>
-          )}
-          <button
-            onClick={(e) => { e.stopPropagation(); onSelect(c); }}
-            className="w-full py-2 rounded-xl text-[11px] font-medium transition-all"
-            style={{ background: `${t.brand}15`, color: t.brand, border: `1px solid ${t.brand}30` }}>
-            Voir le détail complet
-          </button>
-        </div>
-      )}
-    </div>
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="h-9 px-3 text-[12.5px] rounded-xl outline-none cursor-pointer"
+      style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.text }}
+    >
+      {children}
+    </select>
   );
 }
 
-// ── Main page ────────────────────────────────────────────────────────────────
 export default function AdminCalls() {
   const [data, setData] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -182,186 +138,238 @@ export default function AdminCalls() {
   const [outcome, setOutcome] = useState('');
   const [minScore, setMinScore] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<any>(null);
   const { toasts, add: toast, remove } = useToast();
   const LIMIT = 25;
 
   const load = useCallback(async () => {
-    setLoading(true);
+    setRefreshing(true);
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(LIMIT), ...(search && { search }), ...(outcome && { outcome }), ...(minScore && { minScore }) });
       const { data: res } = await api.get(`/dashboard/calls?${params}`);
       setData(Array.isArray(res.calls) ? res.calls : (Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : [])));
       setTotal(res.total ?? res.pagination?.total ?? (Array.isArray(res) ? res.length : 0));
     } catch { toast('Erreur chargement', 'error'); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setRefreshing(false); }
   }, [page, search, outcome, minScore]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPage(1); }, [search, outcome, minScore]);
 
+  const stats = useMemo(() => {
+    const today = new Date();
+    const todayCount = data.filter((c: any) => {
+      const d = new Date(c.createdAt ?? c.startedAt);
+      return d.toDateString() === today.toDateString();
+    }).length;
+    const durations = data
+      .map((c: any) => Number(c.duration ?? c.durationSeconds ?? 0))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const avgDur = durations.length ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+    const successful = data.filter((c: any) =>
+      ['interested', 'converted', 'callback'].includes((c.outcome || '').toLowerCase())
+    ).length;
+    const successRate = data.length ? Math.round((successful / data.length) * 100) : 0;
+    return { todayCount, avgDur, successRate };
+  }, [data]);
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-32">
+      <QwillioLoader size={120} fullscreen={false} />
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 max-w-[1200px]">
       <ToastContainer toasts={toasts} remove={remove} />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold" style={{ color: t.text }}>Appels</h1>
-          <p className="text-sm mt-0.5" style={{ color: t.textSec }}>{total} appel{total > 1 ? 's' : ''}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => downloadCSV(data.map(c => ({
-              'Business': c.prospect?.businessName ?? c.businessName ?? '',
-              'Phone': c.phoneNumber ?? '',
-              'Outcome': c.outcome ?? '',
-              'Score': c.interestScore ?? c.interestLevel ?? '',
-              'Duration': fmtDuration(c.duration ?? c.durationSeconds),
-              'Date': fmtDateTime(c.createdAt ?? c.startedAt),
-            })), 'calls-export.csv')}
-            className="p-2 rounded-xl transition-all" style={{ background: t.elevated, color: t.textSec }}
-            title="Export CSV">
-            <Download className="w-4 h-4" />
-          </button>
-          <button onClick={load} className="p-2 rounded-xl transition-all" style={{ background: t.elevated, color: t.textSec }}>
-            <RefreshCw className="w-4 h-4" />
-          </button>
-        </div>
+      <PageHeader
+        title="Appels"
+        subtitle={`${total} appel${total > 1 ? 's' : ''}`}
+        right={
+          <>
+            <IconBtn
+              title="Export CSV"
+              onClick={() => downloadCSV(data.map((c: any) => ({
+                'Business': c.prospect?.businessName ?? c.businessName ?? '',
+                'Phone': c.phoneNumber ?? '',
+                'Outcome': c.outcome ?? '',
+                'Score': c.interestScore ?? c.interestLevel ?? '',
+                'Duration': fmtDuration(c.duration ?? c.durationSeconds),
+                'Date': fmtDateTime(c.createdAt ?? c.startedAt),
+              })), 'calls-export.csv')}
+            >
+              <Download className="w-4 h-4" />
+            </IconBtn>
+            <IconBtn onClick={load} title="Rafraîchir">
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </IconBtn>
+          </>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Stat label="Total" value={total} hint="Tous les appels" />
+        <Stat label="Aujourd'hui" value={stats.todayCount} hint="Sur cette page" />
+        <Stat label="Durée moyenne" value={fmtDuration(Math.floor(stats.avgDur))} hint="Par appel" />
+        <Stat label="Taux réussite" value={`${stats.successRate}%`} hint="Intéressés / convertis" />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-[140px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: t.textSec }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..."
-            style={inputStyle} className="w-full pl-8 pr-3 py-2 placeholder-[#48484A] focus:outline-none focus:border-white/[0.18]" />
+      {/* Search + filters */}
+      <Card>
+        <div className="flex items-center gap-2.5 px-4 h-11">
+          <Search className="w-4 h-4" style={{ color: pro.textTer }} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher par entreprise ou téléphone…"
+            className="flex-1 bg-transparent text-[13px] outline-none placeholder-[#6B6B75]"
+            style={{ color: pro.text }}
+          />
+          {search && <button onClick={() => setSearch('')} className="text-[11px]" style={{ color: pro.textSec }}>Effacer</button>}
         </div>
-        <select value={outcome} onChange={e => setOutcome(e.target.value)} style={inputStyle} className="px-3 py-2 focus:outline-none">
-          <option value="">Résultat</option>
-          {OUTCOMES.filter(Boolean).map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <select value={minScore} onChange={e => setMinScore(e.target.value)} style={inputStyle} className="px-3 py-2 focus:outline-none">
-          <option value="">Score</option>
-          {[3, 5, 7, 8, 9].map(s => <option key={s} value={String(s)}>≥{s}</option>)}
-        </select>
-      </div>
+        <div className="flex flex-wrap gap-2 px-3 pb-3" style={{ borderTop: `1px solid ${pro.border}`, paddingTop: 12 }}>
+          <ProSelect value={outcome} onChange={setOutcome}>
+            <option value="">Tous les résultats</option>
+            {OUTCOMES.filter(Boolean).map(o => <option key={o} value={o}>{o}</option>)}
+          </ProSelect>
+          <ProSelect value={minScore} onChange={setMinScore}>
+            <option value="">Score minimum</option>
+            {[3, 5, 7, 8, 9].map(s => <option key={s} value={String(s)}>≥ {s}</option>)}
+          </ProSelect>
+          {(outcome || minScore) && (
+            <button
+              onClick={() => { setOutcome(''); setMinScore(''); }}
+              className="h-9 px-3 text-[12px] rounded-xl"
+              style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.textSec }}
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
+      </Card>
 
-      {/* Mobile: card list */}
-      <div className="md:hidden space-y-2">
-        {loading ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="rounded-2xl p-3.5 animate-pulse" style={{ background: t.elevated, height: 88 }} />
-          ))
-        ) : data.length === 0 ? (
-          <div className="rounded-2xl py-12" style={glass}>
-            <EmptyState icon={<Phone className="w-7 h-7" />} title="Aucun appel" />
+      {/* List */}
+      <Card>
+        {data.length === 0 ? (
+          <div className="p-12 text-center" style={{ color: pro.textTer }}>
+            <Phone className="w-6 h-6 mx-auto mb-3 opacity-60" />
+            <p className="text-[13px]">Aucun appel</p>
           </div>
         ) : (
-          data.map((c: any) => <CallCard key={c.id} c={c} onSelect={setSelected} />)
+          data.map((c: any, i: number) => {
+            const name = c.prospect?.businessName ?? c.businessName ?? c.phoneNumber ?? '—';
+            const score = c.interestScore ?? c.interestLevel;
+            const hasRecording = !!c.recordingUrl;
+            const hasTranscript = !!c.transcript || !!c.summary;
+            return (
+              <div
+                key={c.id ?? i}
+                onClick={() => setSelected(c)}
+                className="flex items-center gap-3.5 px-4 py-3 transition-colors hover:bg-white/[0.02] cursor-pointer"
+                style={{ borderTop: i > 0 ? `1px solid ${pro.border}` : undefined }}
+              >
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-semibold"
+                     style={{ background: 'rgba(255,255,255,0.05)', color: pro.text }}>
+                  {(name?.charAt(0) || '?').toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium truncate" style={{ color: pro.text }}>{name}</p>
+                  {c.phoneNumber && (
+                    <p className="text-[11.5px] truncate font-mono" style={{ color: pro.textTer }}>{c.phoneNumber}</p>
+                  )}
+                  <div className="flex items-center gap-1.5 mt-1" style={{ color: pro.textTer }}>
+                    <Clock size={11} />
+                    <span className="text-[11px]">{fmtDateTime(c.createdAt ?? c.startedAt)}</span>
+                    <span className="text-[11px] ml-2 tabular-nums">· {fmtDuration(c.duration ?? c.durationSeconds)}</span>
+                    {hasTranscript && <FileText size={11} className="ml-2" />}
+                  </div>
+                </div>
+                <div className="hidden md:flex items-center gap-3 flex-shrink-0">
+                  {hasRecording && (
+                    <div className="w-44" onClick={e => e.stopPropagation()}>
+                      <AudioPlayer src={c.recordingUrl} />
+                    </div>
+                  )}
+                </div>
+                <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
+                  <Pill color={outcomeColor(c.outcome)}>{c.outcome ?? 'UNKNOWN'}</Pill>
+                  {score != null && (
+                    <span className="text-[11px] tabular-nums" style={{ color: pro.textTer }}>
+                      <Pill color={scoreColor(score)}>{score}/10</Pill>
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })
         )}
-        <div className="pt-1"><Pagination page={page} total={total} limit={LIMIT} onChange={setPage} /></div>
-      </div>
-
-      {/* Desktop: table */}
-      <div className="hidden md:block overflow-hidden" style={glass}>
-        <table className="w-full text-sm">
-          <thead>
-            <tr style={{ borderBottom: `1px solid ${t.border}` }}>
-              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Entreprise</th>
-              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Date & heure</th>
-              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Résultat</th>
-              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Score</th>
-              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Durée</th>
-              <th className="px-3 py-3 text-left text-[10px] font-medium uppercase" style={{ color: t.textSec }}>Lecture</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? Array.from({ length: 6 }).map((_, i) => (
-              <tr key={i} className="border-b border-white/[0.04]">
-                {[1, 2, 3, 4, 5, 6].map(j => (
-                  <td key={j} className="px-3 py-3"><div className="h-3 bg-white/[0.06] rounded animate-pulse w-20" /></td>
-                ))}
-              </tr>
-            )) : data.length === 0 ? (
-              <tr><td colSpan={6}><EmptyState icon={<Phone className="w-7 h-7" />} title="Aucun appel" /></td></tr>
-            ) : data.map((c: any) => (
-              <tr key={c.id} onClick={() => setSelected(c)}
-                className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors cursor-pointer">
-                <td className="px-3 py-3">
-                  <p className="text-xs font-medium" style={{ color: t.text }}>{c.prospect?.businessName ?? c.businessName ?? '—'}</p>
-                  {c.phoneNumber && <p className="text-[10px] font-mono mt-0.5" style={{ color: t.textTer }}>{c.phoneNumber}</p>}
-                </td>
-                <td className="px-3 py-3">
-                  <span className="text-xs" style={{ color: t.text }}>{fmtDateTime(c.createdAt ?? c.startedAt)}</span>
-                </td>
-                <td className="px-3 py-3"><Badge label={c.outcome ?? 'unknown'} dot size="xs" /></td>
-                <td className="px-3 py-3">
-                  {(c.interestScore ?? c.interestLevel) != null
-                    ? <span className="text-xs font-bold" style={{ color: scoreColor(c.interestScore ?? c.interestLevel) }}>{c.interestScore ?? c.interestLevel}/10</span>
-                    : <span style={{ color: t.textSec }}>—</span>}
-                </td>
-                <td className="px-3 py-3">
-                  <span className="flex items-center gap-1 text-xs" style={{ color: t.textSec }}>
-                    <Clock className="w-3 h-3" />{fmtDuration(c.duration ?? c.durationSeconds)}
-                  </span>
-                </td>
-                <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
-                  {c.recordingUrl
-                    ? <AudioPlayer src={c.recordingUrl} />
-                    : <span className="text-xs" style={{ color: t.textTer }}>—</span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="px-3 pb-4"><Pagination page={page} total={total} limit={LIMIT} onChange={setPage} /></div>
-      </div>
+        <div className="px-4 pb-3">
+          <Pagination page={page} total={total} limit={LIMIT} onChange={setPage} />
+        </div>
+      </Card>
 
       {/* Detail sheet */}
       <SlideSheet
         open={!!selected} onClose={() => setSelected(null)}
         title={selected?.businessName ?? selected?.prospect?.businessName ?? 'Détail appel'}
-        subtitle={[selected?.outcome, fmtDuration(selected?.duration ?? selected?.durationSeconds)].filter(Boolean).join(' · ')}>
+        subtitle={[selected?.outcome, fmtDuration(selected?.duration ?? selected?.durationSeconds)].filter(Boolean).join(' · ')}
+      >
         {selected && (
           <div className="space-y-4">
-            {/* Date/time prominent */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: t.elevated }}>
-              <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: t.brand }} />
-              <span className="text-sm font-medium" style={{ color: t.text }}>{fmtDateTime(selected.createdAt ?? selected.startedAt)}</span>
+            {/* Date/time */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                 style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: pro.textSec }} />
+              <span className="text-[13px] font-medium" style={{ color: pro.text }}>
+                {fmtDateTime(selected.createdAt ?? selected.startedAt)}
+              </span>
             </div>
 
-            {/* KPI grid */}
+            {/* KPIs */}
             <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-xl p-3 text-center" style={{ background: t.elevated }}>
-                <p className="text-base font-bold" style={{ color: scoreColor((selected.interestScore ?? selected.interestLevel) ?? 0) }}>
-                  {selected.interestScore ?? selected.interestLevel ?? '—'}{(selected.interestScore ?? selected.interestLevel) ? '/10' : ''}
+              <div className="rounded-xl p-3 text-center"
+                   style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
+                <p className="text-[18px] font-semibold tabular-nums" style={{ color: pro.text }}>
+                  {(selected.interestScore ?? selected.interestLevel) != null
+                    ? `${selected.interestScore ?? selected.interestLevel}/10`
+                    : '—'}
                 </p>
-                <p className="text-[10px] mt-0.5" style={{ color: t.textSec }}>Score</p>
+                <p className="text-[10px] mt-0.5 uppercase tracking-wider" style={{ color: pro.textTer }}>Score</p>
               </div>
-              <div className="rounded-xl p-3 text-center" style={{ background: t.elevated }}>
-                <p className="text-base font-bold" style={{ color: t.text }}>{fmtDuration(selected.duration ?? selected.durationSeconds)}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: t.textSec }}>Durée</p>
+              <div className="rounded-xl p-3 text-center"
+                   style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
+                <p className="text-[18px] font-semibold tabular-nums" style={{ color: pro.text }}>
+                  {fmtDuration(selected.duration ?? selected.durationSeconds)}
+                </p>
+                <p className="text-[10px] mt-0.5 uppercase tracking-wider" style={{ color: pro.textTer }}>Durée</p>
               </div>
-              <div className="rounded-xl p-3 text-center" style={{ background: t.elevated }}>
-                <Badge label={selected.outcome ?? 'unknown'} dot size="xs" />
-                <p className="text-[10px] mt-1" style={{ color: t.textSec }}>Résultat</p>
+              <div className="rounded-xl p-3 text-center"
+                   style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
+                <div className="flex items-center justify-center" style={{ minHeight: 24 }}>
+                  <Pill color={outcomeColor(selected.outcome)}>{selected.outcome ?? 'UNKNOWN'}</Pill>
+                </div>
+                <p className="text-[10px] mt-1 uppercase tracking-wider" style={{ color: pro.textTer }}>Résultat</p>
               </div>
             </div>
 
             {/* Phone */}
             {selected.phoneNumber && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: t.elevated }}>
-                <Phone className="w-3.5 h-3.5" style={{ color: t.textSec }} />
-                <span className="text-sm font-mono" style={{ color: t.text }}>{selected.phoneNumber}</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                   style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
+                <Phone className="w-3.5 h-3.5" style={{ color: pro.textSec }} />
+                <span className="text-[13px] font-mono" style={{ color: pro.text }}>{selected.phoneNumber}</span>
               </div>
             )}
 
-            {/* Audio player */}
+            {/* Audio */}
             {selected.recordingUrl && (
               <div>
-                <p className="text-xs mb-2 font-medium" style={{ color: t.textSec }}>Enregistrement</p>
-                <div className="rounded-xl p-3" style={{ background: t.elevated }}>
+                <p className="text-[11px] mb-2 font-semibold uppercase tracking-wider" style={{ color: pro.textSec }}>Enregistrement</p>
+                <div className="rounded-xl p-3"
+                     style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
                   <AudioPlayer src={selected.recordingUrl} />
                 </div>
               </div>
@@ -370,16 +378,22 @@ export default function AdminCalls() {
             {/* Summary */}
             {selected.summary && (
               <div>
-                <p className="text-xs mb-2 font-medium" style={{ color: t.textSec }}>Résumé IA</p>
-                <p className="text-xs leading-relaxed rounded-xl p-3" style={{ color: t.text, background: t.elevated }}>{selected.summary}</p>
+                <p className="text-[11px] mb-2 font-semibold uppercase tracking-wider" style={{ color: pro.textSec }}>Résumé IA</p>
+                <p className="text-[12.5px] leading-relaxed rounded-xl p-3"
+                   style={{ color: pro.text, background: pro.panel, border: `1px solid ${pro.border}` }}>
+                  {selected.summary}
+                </p>
               </div>
             )}
 
             {/* Transcript */}
             {selected.transcript && (
               <div>
-                <p className="text-xs mb-2 font-medium" style={{ color: t.textSec }}>Transcription</p>
-                <p className="text-xs leading-relaxed max-h-80 overflow-y-auto whitespace-pre-wrap rounded-xl p-3" style={{ color: t.text, background: t.elevated }}>{selected.transcript}</p>
+                <p className="text-[11px] mb-2 font-semibold uppercase tracking-wider" style={{ color: pro.textSec }}>Transcription</p>
+                <p className="text-[12px] leading-relaxed max-h-80 overflow-y-auto whitespace-pre-wrap rounded-xl p-3"
+                   style={{ color: pro.text, background: pro.panel, border: `1px solid ${pro.border}` }}>
+                  {selected.transcript}
+                </p>
               </div>
             )}
           </div>

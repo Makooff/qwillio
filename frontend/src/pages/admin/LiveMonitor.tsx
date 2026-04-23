@@ -1,15 +1,20 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../../services/api';
 import {
-  Play, Square, Activity, Phone, Search, CheckCircle2, XCircle,
-  AlertCircle, RefreshCw, Zap, Clock, TrendingUp, Wifi, WifiOff,
-  Users, Database, Cpu, RotateCcw,
+  Play, Square, Activity, Phone, Search, RefreshCw, Zap, Clock,
+  TrendingUp, RotateCcw,
 } from 'lucide-react';
+import QwillioLoader from '../../components/QwillioLoader';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { t, glass } from '../../styles/admin-theme';
+import { pro } from '../../styles/pro-theme';
+import {
+  PageHeader, Card, SectionHead, Stat, IconBtn, PrimaryBtn, GhostBtn, Pill,
+} from '../../components/pro/ProBlocks';
+
+type StatusColor = 'ok' | 'warn' | 'bad' | 'info' | 'neutral' | 'accent';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface BotStatus {
@@ -20,21 +25,45 @@ interface BotStatus {
   lastProspection: string | null; lastRunProspecting: string | null;
   lastRunScoring: string | null; lastRunCalling: string | null;
   lastRunFollowUp: string | null;
+  activeCalls?: any[];
+  avgCallDuration?: number;
 }
 interface ProspectingStatus {
   isRunning?: boolean; lastScrape?: string; prospectsQueued?: number;
   prospectsFound?: number; callsToday?: number; abTestsActive?: number;
+  apifyConfigured?: boolean;
 }
-interface ActivityItem { icon?: string; message?: string; businessName?: string; date?: string; outcome?: string; interestScore?: number; }
+interface ActivityItem {
+  icon?: string;
+  message?: string;
+  businessName?: string;
+  date?: string;
+  outcome?: string;
+  interestScore?: number;
+  status?: string;
+  duration?: number;
+  startedAt?: string;
+}
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────────────
 function timeAgo(d?: string | null) {
   if (!d) return 'Jamais';
   try { return formatDistanceToNow(new Date(d), { addSuffix: true, locale: fr }); } catch { return '—'; }
 }
-function scoreColor(s: number) { return s >= 7 ? t.success : s >= 4 ? t.warning : t.danger; }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+function fmtDuration(seconds: number) {
+  if (!seconds || isNaN(seconds)) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function scorePillColor(s?: number): StatusColor {
+  if (s === undefined) return 'neutral';
+  return s >= 7 ? 'ok' : s >= 4 ? 'warn' : 'bad';
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
 export default function LiveMonitor() {
   const [bot, setBot] = useState<BotStatus | null>(null);
   const [prospecting, setProspecting] = useState<ProspectingStatus | null>(null);
@@ -43,10 +72,12 @@ export default function LiveMonitor() {
   const [connected, setConnected] = useState(true);
   const [botOp, setBotOp] = useState<'starting' | 'stopping' | null>(null);
   const [scrapeOp, setScrapeOp] = useState<'running' | null>(null);
-  const [botVerified, setBotVerified] = useState<boolean | null>(null);
-  const [scrapeVerified, setScrapeVerified] = useState<boolean | null>(null);
+  const [, setBotVerified] = useState<boolean | null>(null);
+  const [, setScrapeVerified] = useState<boolean | null>(null);
+  const [now, setNow] = useState(Date.now());
   const { toasts, add: toast, remove } = useToast();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickRef = useRef(0);
 
   const poll = useCallback(async (silent = false) => {
@@ -74,7 +105,12 @@ export default function LiveMonitor() {
       tickRef.current += 1;
       poll(true);
     }, 8000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    // Second-by-second ticker for live duration counters
+    tickerRef.current = setInterval(() => setNow(Date.now()), 1000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (tickerRef.current)   clearInterval(tickerRef.current);
+    };
   }, [poll]);
 
   const startBot = async () => {
@@ -82,7 +118,7 @@ export default function LiveMonitor() {
     setBotVerified(null);
     try {
       await api.post('/bot/start');
-      toast('Démarrage en cours...', 'info');
+      toast('Démarrage en cours…', 'info');
       await new Promise(r => setTimeout(r, 3000));
       const { data } = await api.get('/bot/status');
       setBot(data);
@@ -118,7 +154,7 @@ export default function LiveMonitor() {
     setScrapeVerified(null);
     try {
       const { data: triggerData } = await api.post('/prospecting/trigger/scrape');
-      toast('Scraping démarré en arrière-plan...', 'info');
+      toast('Scraping démarré en arrière-plan…', 'info');
       await new Promise(r => setTimeout(r, 5000));
       const { data } = await api.get('/prospecting/status');
       setProspecting(data);
@@ -153,286 +189,315 @@ export default function LiveMonitor() {
     } catch { toast('Erreur follow-ups', 'error'); }
   };
 
-  const isActive = bot?.isActive || bot?.isRunning;
-  const quota = bot?.callsQuotaDaily ?? 50;
-  const callsPct = Math.min(((bot?.callsToday ?? 0) / quota) * 100, 100);
+  const runCall = async () => {
+    try { await api.post('/bot/trigger/call'); toast('Appel déclenché', 'success'); }
+    catch { toast('Erreur déclenchement appel', 'error'); }
+  };
+
+  const runRescore = async () => {
+    try { await api.post('/prospecting/trigger/rescore'); toast('Re-scoring lancé', 'success'); }
+    catch { toast('Erreur re-scoring', 'error'); }
+  };
+
+  const isActive    = !!(bot?.isActive || bot?.isRunning);
+  const quota       = bot?.callsQuotaDaily ?? 50;
+  const callsToday  = bot?.callsToday ?? 0;
+  const quotaPct    = Math.min(Math.round((callsToday / quota) * 100), 100);
+  const avgDuration = bot?.avgCallDuration ?? 0;
+
+  // Active calls derived from activity feed (items tagged as in-progress)
+  const activeCalls: ActivityItem[] = (bot?.activeCalls && Array.isArray(bot.activeCalls) && bot.activeCalls.length)
+    ? bot.activeCalls
+    : activity.filter(a => a.status === 'in_progress' || a.status === 'ringing' || a.status === 'active');
+
+  const callsInProgress = activeCalls.length;
+
+  const statusPill = (s?: string): { color: StatusColor; label: string } => {
+    switch ((s || '').toLowerCase()) {
+      case 'in_progress':
+      case 'active':       return { color: 'ok',   label: 'En cours' };
+      case 'ringing':      return { color: 'info', label: 'Sonne' };
+      case 'completed':    return { color: 'neutral', label: 'Terminé' };
+      case 'failed':       return { color: 'bad',  label: 'Échec' };
+      case 'no_answer':    return { color: 'warn', label: 'Pas de réponse' };
+      default:             return { color: 'neutral', label: s || '—' };
+    }
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-32">
+      <QwillioLoader size={120} fullscreen={false} />
+    </div>
+  );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-[1200px]">
       <ToastContainer toasts={toasts} remove={remove} />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold" style={{ color: t.text }}>Moniteur live</h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            {connected
-              ? <span className="flex items-center gap-1 text-xs" style={{ color: t.live }}><Wifi className="w-3 h-3" />Connecté · mise à jour auto 8s</span>
-              : <span className="flex items-center gap-1 text-xs" style={{ color: t.danger }}><WifiOff className="w-3 h-3" />Déconnecté</span>}
-          </div>
-        </div>
-        <button onClick={() => poll()} className="p-2 rounded-xl hover:bg-white/[0.08] transition-all" style={{ background: t.elevated, color: t.textSec }}>
-          <RefreshCw className="w-4 h-4" />
-        </button>
+      <PageHeader
+        title="Moniteur live"
+        subtitle={
+          connected
+            ? 'Connecté · mise à jour auto toutes les 8s'
+            : 'Connexion interrompue — les données peuvent être obsolètes'
+        }
+        right={
+          <>
+            {isActive
+              ? <GhostBtn size="sm" onClick={stopBot} disabled={!!botOp}>
+                  {botOp === 'stopping' ? '…' : (<><Square className="w-3 h-3" /> Arrêter</>)}
+                </GhostBtn>
+              : <PrimaryBtn size="sm" onClick={startBot} disabled={!!botOp}>
+                  {botOp === 'starting' ? '…' : (<><Play className="w-3 h-3" /> Démarrer</>)}
+                </PrimaryBtn>}
+            <IconBtn onClick={() => poll()} title="Rafraîchir">
+              <RefreshCw className="w-4 h-4" />
+            </IconBtn>
+          </>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Stat
+          icon={Activity}
+          label="Appels en cours"
+          value={callsInProgress}
+          hint={isActive ? 'Bot actif' : 'Bot en pause'}
+        />
+        <Stat
+          icon={Phone}
+          label="Appels aujourd'hui"
+          value={callsToday}
+          hint={`Quota : ${quota}`}
+        />
+        <Stat
+          icon={Clock}
+          label="Durée moyenne"
+          value={fmtDuration(avgDuration)}
+          hint="Par appel complété"
+        />
+        <Stat
+          icon={TrendingUp}
+          label="Quota utilisé"
+          value={`${quotaPct}%`}
+          hint={`${callsToday}/${quota}`}
+        />
       </div>
 
-      {/* BOT CONTROL CARD */}
-      <div className="p-5 transition-all" style={{ ...glass, border: isActive ? `1px solid ${t.borderHi}` : glass.border }}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-colors"
-              style={{ background: isActive ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.06)' }}>
-              <Activity className="w-6 h-6" style={{ color: isActive ? t.live : t.textSec }} />
+      {/* Bot status */}
+      <section>
+        <SectionHead title="Bot d'appels" />
+        <Card>
+          <div className="p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style={{ background: 'rgba(255,255,255,0.06)' }}>
+                <Activity size={18} style={{ color: pro.text }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{
+                      background: isActive ? pro.ok : pro.textTer,
+                      animation: isActive ? 'qwPulse 1.4s ease infinite' : undefined,
+                    }}
+                  />
+                  <span className="text-[13px] font-semibold" style={{ color: pro.text }}>
+                    {botOp === 'starting' ? 'Démarrage…' : botOp === 'stopping' ? 'Arrêt…' : isActive ? 'Bot actif' : 'Bot en pause'}
+                  </span>
+                </div>
+                <p className="text-[11.5px]" style={{ color: pro.textSec }}>
+                  Dernière activité {timeAgo(bot?.lastActivity)}
+                </p>
+              </div>
+              <Pill color={connected ? 'ok' : 'bad'}>
+                {connected ? 'LIVE' : 'OFFLINE'}
+              </Pill>
             </div>
+
+            {/* Quota bar */}
             <div>
-              <p className="text-base font-bold" style={{ color: t.text }}>Bot d'appels Qwillio</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: isActive ? t.live : t.textSec, animation: isActive ? 'pulse 2s infinite' : 'none' }} />
-                <span className="text-xs font-medium" style={{ color: isActive ? t.live : t.textSec }}>
-                  {botOp === 'starting' ? 'Démarrage...' : botOp === 'stopping' ? 'Arrêt...' : isActive ? 'ACTIF' : 'ARRÊTÉ'}
-                </span>
-                {botVerified === true && <span className="text-xs flex items-center gap-0.5" style={{ color: t.success }}><CheckCircle2 className="w-3 h-3" />vérifié</span>}
-                {botVerified === false && <span className="text-xs flex items-center gap-0.5" style={{ color: t.danger }}><AlertCircle className="w-3 h-3" />problème</span>}
+              <div className="flex justify-between text-[11.5px] mb-1.5">
+                <span style={{ color: pro.textSec }}>Appels aujourd'hui</span>
+                <span className="tabular-nums" style={{ color: pro.text }}>{callsToday} / {quota}</span>
+              </div>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <div className="h-full rounded-full transition-all"
+                     style={{
+                       width: `${quotaPct}%`,
+                       background: quotaPct >= 90 ? pro.bad : quotaPct >= 70 ? pro.warn : pro.accent,
+                     }} />
               </div>
             </div>
           </div>
+        </Card>
+      </section>
 
-          <button
-            onClick={isActive ? stopBot : startBot}
-            disabled={!!botOp}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all disabled:opacity-50"
-            style={isActive
-              ? { background: 'rgba(248,113,113,0.1)', borderColor: 'rgba(248,113,113,0.3)', color: t.danger }
-              : { background: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.3)', color: t.live }}>
-            {botOp
-              ? <div className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-              : isActive ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            {botOp === 'starting' ? 'Démarrage...' : botOp === 'stopping' ? 'Arrêt...' : isActive ? 'Arrêter' : 'Démarrer'}
-          </button>
-        </div>
+      {/* Active calls */}
+      <section>
+        <SectionHead
+          title="Appels actifs"
+          action={
+            <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider"
+                  style={{ color: pro.textSec }}>
+              <span className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: pro.ok, animation: 'qwPulse 1.4s ease infinite' }} />
+              Temps réel
+            </span>
+          }
+        />
+        <Card>
+          {activeCalls.length === 0 ? (
+            <div className="p-12 text-center">
+              <Activity className="w-8 h-8 mx-auto mb-3" style={{ color: pro.textTer }} />
+              <p className="text-[13px]" style={{ color: pro.textSec }}>
+                Aucun appel en cours
+              </p>
+            </div>
+          ) : (
+            activeCalls.slice(0, 10).map((call, i) => {
+              const startedMs = call.startedAt ? new Date(call.startedAt).getTime() : null;
+              const duration  = startedMs ? Math.max(0, Math.floor((now - startedMs) / 1000)) : (call.duration ?? 0);
+              const s = statusPill(call.status);
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3.5 px-4 h-[58px]"
+                  style={{ borderTop: i > 0 ? `1px solid ${pro.border}` : undefined }}
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 relative"
+                       style={{ background: 'rgba(34,197,94,0.08)' }}>
+                    <Phone size={14} style={{ color: pro.ok }} />
+                    <span
+                      className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+                      style={{ background: pro.ok, animation: 'qwPulse 1.2s ease infinite' }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium truncate" style={{ color: pro.text }}>
+                      {call.businessName ?? call.message ?? 'Appel en cours'}
+                    </p>
+                    <p className="text-[11.5px] truncate" style={{ color: pro.textTer }}>
+                      {call.outcome ?? 'Conversation en direct'}
+                    </p>
+                  </div>
+                  <span className="text-[12px] font-medium tabular-nums" style={{ color: pro.text }}>
+                    {fmtDuration(duration)}
+                  </span>
+                  <Pill color={s.color}>{s.label}</Pill>
+                </div>
+              );
+            })
+          )}
+        </Card>
+      </section>
 
-        {/* Quota bar */}
-        <div className="mb-4">
-          <div className="flex justify-between text-xs mb-1.5">
-            <span style={{ color: t.textSec }}>Appels aujourd'hui</span>
-            <span className="font-semibold" style={{ color: t.text }}>{bot?.callsToday ?? 0} / {quota}</span>
+      {/* Scraping control */}
+      <section>
+        <SectionHead title="Scraping prospects" />
+        <Card>
+          <div className="p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <Search size={18} style={{ color: pro.text }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold" style={{ color: pro.text }}>
+                Apify · Google Maps
+              </p>
+              <p className="text-[11.5px]" style={{ color: pro.textSec }}>
+                {prospecting?.prospectsFound ? `${prospecting.prospectsFound} prospects trouvés` : 'Aucun prospect récent'}
+                {prospecting?.lastScrape ? ` · ${timeAgo(prospecting.lastScrape)}` : ''}
+              </p>
+            </div>
+            {prospecting?.apifyConfigured === false && (
+              <Pill color="warn">Clé manquante</Pill>
+            )}
+            <GhostBtn size="sm" onClick={startScraping} disabled={!!scrapeOp}>
+              {scrapeOp ? '…' : (<><Zap className="w-3 h-3" /> Lancer</>)}
+            </GhostBtn>
           </div>
-          <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${callsPct}%`, background: callsPct >= 90 ? t.danger : callsPct >= 70 ? t.warning : 'rgba(255,255,255,0.25)' }} />
-          </div>
-        </div>
+        </Card>
+      </section>
 
-        {/* Last run times */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      {/* Quick actions */}
+      <section>
+        <SectionHead title="Actions rapides" />
+        <Card>
           {[
-            { label: 'Dernière activité', value: bot?.lastActivity },
-            { label: 'Dernier appel', value: bot?.lastCall ?? bot?.lastRunCalling },
-            { label: 'Dernière prospection', value: bot?.lastProspection ?? bot?.lastRunProspecting },
-            { label: 'Dernier suivi', value: bot?.lastRunFollowUp },
-          ].map(f => (
-            <div key={f.label} className="rounded-xl p-2.5" style={{ background: 'rgba(0,0,0,0.2)' }}>
-              <p className="text-[9px] uppercase tracking-wide mb-0.5" style={{ color: t.textSec }}>{f.label}</p>
-              <p className="text-[11px]" style={{ color: t.text }}>{timeAgo(f.value)}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* SCRAPING + ACTIONS RAPIDES */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        {/* Scraping card */}
-        <div className="p-5 transition-all" style={{
-          ...glass,
-          background: scrapeVerified === false ? 'rgba(248,113,113,0.05)' : glass.background,
-          border: scrapeVerified === false ? `1px solid rgba(248,113,113,0.2)` : glass.border,
-        }}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.04)' }}>
-                <Search className="w-5 h-5" style={{ color: t.textSec }} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold" style={{ color: t.text }}>Scraping prospects</p>
-                <p className="text-xs" style={{ color: t.textSec }}>
-                  {prospecting?.prospectsFound ? `${prospecting.prospectsFound} trouvés` : 'Apify Google Maps'}
-                  {prospecting?.lastScrape ? ` · ${timeAgo(prospecting.lastScrape)}` : ''}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={startScraping}
-              disabled={!!scrapeOp}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
-              style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${t.border}`, color: t.textSec }}>
-              {scrapeOp ? (
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
-              ) : (
-                <Zap className="w-3.5 h-3.5" />
-              )}
-              {scrapeOp ? 'Scraping...' : 'Lancer scraping'}
-            </button>
-          </div>
-
-          {scrapeVerified !== null && (
-            <div className="flex items-center gap-2 p-2.5 rounded-xl text-xs font-medium"
-              style={{
-                background: scrapeVerified ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)',
-                color: scrapeVerified ? t.success : t.danger,
-              }}>
-              {scrapeVerified ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-              {scrapeVerified
-                ? 'Scraping en cours — résultats dans quelques minutes'
-                : 'APIFY_API_KEY manquante — ajoutez-la dans Render > Environment'}
-            </div>
-          )}
-          {!scrapeVerified && prospecting && (prospecting as any).apifyConfigured === false && (
-            <div className="flex items-center gap-2 p-2.5 rounded-xl text-xs"
-              style={{ background: 'rgba(251,191,36,0.1)', color: t.warning }}>
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>Configurez <code className="font-mono px-1 rounded" style={{ background: 'rgba(0,0,0,0.2)' }}>APIFY_API_KEY</code> sur Render pour activer le scraping réel</span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-3 gap-2 mt-3">
-            {[
-              { label: 'File d\'attente', value: prospecting?.prospectsQueued ?? '—' },
-              { label: 'Tests A/B', value: prospecting?.abTestsActive ?? '—' },
-              { label: 'Appels', value: prospecting?.callsToday ?? '—' },
-            ].map(s => (
-              <div key={s.label} className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(0,0,0,0.2)' }}>
-                <p className="text-base font-bold" style={{ color: t.text }}>{s.value}</p>
-                <p className="text-[9px] uppercase tracking-wide mt-0.5" style={{ color: t.textSec }}>{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Actions rapides */}
-        <div className="p-5" style={glass}>
-          <p className="text-sm font-semibold mb-4" style={{ color: t.text }}>Actions rapides</p>
-          <div className="space-y-2">
-            {[
-              { label: 'Scorer les prospects', desc: 'Recalculer scores IA', icon: <TrendingUp className="w-4 h-4" />, action: runScoring },
-              { label: 'Envoyer follow-ups', desc: 'Traiter relances dues', icon: <Clock className="w-4 h-4" />, action: runFollowUps },
-              {
-                label: 'Tentative d\'appel', desc: 'Forcer 1 appel sortant', icon: <Phone className="w-4 h-4" />,
-                action: async () => {
-                  try { await api.post('/bot/trigger/call'); toast('Appel déclenché', 'success'); }
-                  catch { toast('Erreur déclenchement appel', 'error'); }
-                }
-              },
-              {
-                label: 'Re-scorer prospects', desc: 'Scorer les non-scorés', icon: <RotateCcw className="w-4 h-4" />,
-                action: async () => {
-                  try { await api.post('/prospecting/trigger/rescore'); toast('Re-scoring lancé', 'success'); }
-                  catch { toast('Erreur re-scoring', 'error'); }
-                }
-              },
-            ].map(a => (
-              <button key={a.label} onClick={a.action}
-                className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all group hover:bg-white/[0.04]"
-                style={{ background: t.inset, border: `1px solid ${t.border}` }}>
+            { label: 'Scorer les prospects', desc: 'Recalculer scores IA',     icon: TrendingUp, onClick: runScoring },
+            { label: 'Envoyer follow-ups',   desc: 'Traiter relances dues',    icon: Clock,      onClick: runFollowUps },
+            { label: "Tentative d'appel",    desc: 'Forcer 1 appel sortant',   icon: Phone,      onClick: runCall },
+            { label: 'Re-scorer prospects',  desc: 'Scorer les non-scorés',    icon: RotateCcw,  onClick: runRescore },
+          ].map((a, i) => {
+            const Icon = a.icon;
+            return (
+              <button
+                key={a.label}
+                onClick={a.onClick}
+                className="w-full flex items-center gap-3.5 px-4 h-[58px] text-left transition-colors hover:bg-white/[0.02]"
+                style={{ borderTop: i > 0 ? `1px solid ${pro.border}` : undefined }}
+              >
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.04)', color: t.textSec }}>
-                  {a.icon}
+                     style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <Icon size={14} style={{ color: pro.text }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium" style={{ color: t.text }}>{a.label}</p>
-                  <p className="text-[10px]" style={{ color: t.textSec }}>{a.desc}</p>
+                  <p className="text-[13px] font-medium truncate" style={{ color: pro.text }}>{a.label}</p>
+                  <p className="text-[11.5px] truncate" style={{ color: pro.textTer }}>{a.desc}</p>
                 </div>
-                <Play className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: t.textSec }} />
+                <Play size={12} style={{ color: pro.textTer }} />
               </button>
-            ))}
-          </div>
-        </div>
-      </div>
+            );
+          })}
+        </Card>
+      </section>
 
-      {/* HEALTH API */}
-      <div className="p-5" style={glass}>
-        <p className="text-sm font-semibold mb-3" style={{ color: t.text }}>Santé système</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: 'Backend API', ok: connected, icon: <Cpu className="w-4 h-4" /> },
-            { label: 'Bot engine', ok: bot !== null, icon: <Activity className="w-4 h-4" /> },
-            { label: 'Prospects DB', ok: (bot?.prospectsFound ?? 0) >= 0, icon: <Database className="w-4 h-4" /> },
-            { label: 'File d\'appels', ok: isActive, icon: <Phone className="w-4 h-4" /> },
-          ].map(s => (
-            <div key={s.label} className="flex items-center gap-2.5 p-3 rounded-xl transition-all"
-              style={{ ...glass, background: s.ok ? 'rgba(52,211,153,0.05)' : 'rgba(248,113,113,0.05)' }}>
-              <span style={{ color: s.ok ? t.success : t.danger }}>{s.icon}</span>
-              <div>
-                <p className="text-[11px] font-medium" style={{ color: t.text }}>{s.label}</p>
-                <p className="text-[9px]" style={{ color: s.ok ? t.success : t.danger }}>
-                  {s.ok ? 'OK' : 'Problème'}
-                </p>
-              </div>
+      {/* Activity feed */}
+      <section>
+        <SectionHead title="Activité en direct" />
+        <Card>
+          {activity.length === 0 ? (
+            <div className="p-12 text-center">
+              <Activity className="w-8 h-8 mx-auto mb-3" style={{ color: pro.textTer }} />
+              <p className="text-[13px]" style={{ color: pro.textSec }}>
+                Aucune activité — démarrez le bot
+              </p>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* LIVE ACTIVITY FEED */}
-      <div className="p-5" style={glass}>
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-semibold" style={{ color: t.text }}>Activité en direct</p>
-          <span className="flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full"
-            style={{ color: t.live, background: 'rgba(34,197,94,0.1)' }}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: t.live }} />LIVE
-          </span>
-        </div>
-
-        {loading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 animate-pulse">
-                <div className="w-9 h-9 rounded-xl flex-shrink-0" style={{ background: 'rgba(255,255,255,0.06)' }} />
-                <div className="flex-1 space-y-1.5">
-                  <div className="h-3 rounded w-2/3" style={{ background: 'rgba(255,255,255,0.06)' }} />
-                  <div className="h-2 rounded w-1/3" style={{ background: 'rgba(255,255,255,0.04)' }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : activity.length === 0 ? (
-          <div className="py-12 text-center">
-            <Activity className="w-8 h-8 mx-auto mb-3" style={{ color: t.textSec }} />
-            <p className="text-sm" style={{ color: t.textSec }}>Aucune activité — démarrez le bot</p>
-          </div>
-        ) : (
-          <div className="space-y-1 max-h-80 overflow-y-auto scrollbar-hide">
-            {activity.slice(0, 20).map((item, i) => (
-              <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.03] transition-all">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
-                  style={{ background: 'rgba(255,255,255,0.04)' }}>
-                  {item.icon ?? '📞'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate" style={{ color: t.text }}>{item.message ?? item.businessName ?? 'Événement'}</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: t.textSec }}>{timeAgo(item.date)}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+          ) : (
+            activity.slice(0, 20).map((item, i) => {
+              const scoreColor = scorePillColor(item.interestScore);
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3.5 px-4 py-3"
+                  style={{ borderTop: i > 0 ? `1px solid ${pro.border}` : undefined }}
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                       style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <Phone size={14} style={{ color: pro.text }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium truncate" style={{ color: pro.text }}>
+                      {item.message ?? item.businessName ?? 'Événement'}
+                    </p>
+                    <p className="text-[11.5px] truncate" style={{ color: pro.textTer }}>
+                      {timeAgo(item.date)}{item.outcome ? ` · ${item.outcome}` : ''}
+                    </p>
+                  </div>
                   {item.interestScore !== undefined && (
-                    <span className="text-xs font-bold" style={{ color: scoreColor(item.interestScore) }}>
-                      {item.interestScore}/10
-                    </span>
-                  )}
-                  {item.outcome && (
-                    <span className="text-[10px]" style={{ color: t.textSec }}>{item.outcome}</span>
+                    <Pill color={scoreColor}>{item.interestScore}/10</Pill>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              );
+            })
+          )}
+        </Card>
+      </section>
 
-        <div className="mt-3 pt-3 flex items-center justify-between text-xs" style={{ borderTop: `1px solid ${t.border}`, color: t.textSec }}>
-          <span>Mise à jour toutes les 8s</span>
-          <span>{activity.length} événements</span>
-        </div>
-      </div>
+      <style>{`@keyframes qwPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }`}</style>
     </div>
   );
 }
