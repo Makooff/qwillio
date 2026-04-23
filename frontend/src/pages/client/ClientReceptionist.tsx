@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronRight, Copy, CheckCircle2, XCircle,
 } from 'lucide-react';
 import api from '../../services/api';
+import QwillioLoader from "../../components/QwillioLoader";
 
 const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
 const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
@@ -140,7 +141,7 @@ export default function ClientReceptionist() {
 
   if (loading) return (
     <div className="flex justify-center py-16">
-      <div className="w-8 h-8 border-2 border-[#7B5CF0] border-t-transparent rounded-full animate-spin" />
+      <QwillioLoader size={120} fullscreen={false} />
     </div>
   );
 

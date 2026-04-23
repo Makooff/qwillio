@@ -9,6 +9,7 @@ import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import { formatDuration, formatDateTime, exportToCSV } from '../../utils/format';
+import QwillioLoader from "../../components/QwillioLoader";
 
 type SortKey = 'createdAt' | 'durationSeconds' | 'callerName' | 'sentiment';
 type SortDir = 'asc' | 'desc';
@@ -217,7 +218,7 @@ export default function ClientCalls() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-2 border-[#7B5CF0] border-t-transparent rounded-full animate-spin" />
+          <QwillioLoader size={120} fullscreen={false} />
         </div>
       ) : sortedCalls.length === 0 ? (
         <EmptyState

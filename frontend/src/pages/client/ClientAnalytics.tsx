@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import api from '../../services/api';
 import { formatDuration, formatShortDate } from '../../utils/format';
+import QwillioLoader from "../../components/QwillioLoader";
 
 const SENTIMENT_COLORS: Record<string, string> = {
   positive: '#34d399',
@@ -58,7 +59,7 @@ export default function ClientAnalytics() {
   if (loading) {
     return (
       <div className="flex justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#7B5CF0] border-t-transparent rounded-full animate-spin" />
+        <QwillioLoader size={120} fullscreen={false} />
       </div>
     );
   }

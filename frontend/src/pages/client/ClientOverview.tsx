@@ -13,6 +13,7 @@ import {
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
+import QwillioLoader from '../../components/QwillioLoader';
 import { formatDuration, formatDateTime, formatShortDate, daysUntil } from '../../utils/format';
 import OnboardingChecklist from '../../components/client/OnboardingChecklist';
 
@@ -114,7 +115,7 @@ export default function ClientOverview() {
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-32 gap-4">
-      <div className="w-8 h-8 border-2 border-[#7B5CF0] border-t-transparent rounded-full animate-spin" />
+      <QwillioLoader size={120} fullscreen={false} />
       {paymentPending && (
         <div className="text-center">
           <p className="text-sm font-medium text-[#F8F8FF]">Paiement reçu !</p>

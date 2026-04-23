@@ -6,6 +6,7 @@ import {
 import api from '../../services/api';
 import StatusBadge from '../../components/client-dashboard/StatusBadge';
 import { formatDate, daysUntil } from '../../utils/format';
+import QwillioLoader from "../../components/QwillioLoader";
 
 const PLANS = [
   {
@@ -73,7 +74,7 @@ export default function ClientBilling() {
   if (loading) {
     return (
       <div className="flex justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#7B5CF0] border-t-transparent rounded-full animate-spin" />
+        <QwillioLoader size={120} fullscreen={false} />
       </div>
     );
   }
