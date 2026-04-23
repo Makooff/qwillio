@@ -108,17 +108,17 @@ export default function ClientLeads() {
     <div>
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#F8F8FF] tracking-tight">Leads</h1>
-          <p className="text-sm text-[#8B8BA7]">{pagination.total} leads qualifiés</p>
+          <h1 className="text-[22px] font-semibold text-[#F5F5F7] tracking-tight">Leads</h1>
+          <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">{pagination.total} leads qualifiés</p>
         </div>
         <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1">
           <button onClick={() => setView('table')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${view === 'table' ? 'bg-[#7B5CF0] text-white' : 'text-[#8B8BA7] hover:text-[#F8F8FF]'}`}
+            className={`px-3 py-1.5 rounded-lg transition-all ${view === 'table' ? 'bg-[#7B5CF0] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
           >
             <List size={14} />
           </button>
           <button onClick={() => setView('kanban')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${view === 'kanban' ? 'bg-[#7B5CF0] text-white' : 'text-[#8B8BA7] hover:text-[#F8F8FF]'}`}
+            className={`px-3 py-1.5 rounded-lg transition-all ${view === 'kanban' ? 'bg-[#7B5CF0] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
           >
             <Columns3 size={14} />
           </button>
@@ -138,26 +138,26 @@ export default function ClientLeads() {
             className={`rounded-xl p-3 text-center transition-all border ${
               statusFilter === s.filter
                 ? 'border-[#7B5CF0]/30 bg-[#7B5CF0]/10'
-                : 'border-white/[0.06] bg-[#12121A] hover:border-white/[0.10]'
+                : 'border-white/[0.07] bg-white/[0.03] hover:border-white/[0.10]'
             }`}
           >
-            <p className="text-xl font-bold text-[#F8F8FF]" style={s.color ? { color: s.color } : {}}>
+            <p className="text-xl font-bold text-[#F5F5F7]" style={s.color ? { color: s.color } : {}}>
               {s.value}
             </p>
-            <p className="text-[10px] text-[#8B8BA7] font-medium">{s.label}</p>
+            <p className="text-[10px] text-[#A1A1A8] font-medium">{s.label}</p>
           </button>
         ))}
       </div>
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8B8BA7]" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A8]" />
         <input
           type="text"
           placeholder="Rechercher des leads..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all"
+          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all"
         />
       </div>
 
@@ -175,7 +175,7 @@ export default function ClientLeads() {
               const sc = STATUS_STYLES[status] || STATUS_STYLES.new;
               return (
                 <motion.div key={lead.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.02 }}
-                  className="rounded-xl border border-white/[0.06] bg-[#12121A] hover:border-white/[0.12] cursor-pointer group transition-all"
+                  className="rounded-xl border border-white/[0.07] bg-white/[0.03] hover:border-white/[0.12] cursor-pointer group transition-all"
                   onClick={() => { setSelectedLead(lead); setNoteText(lead.notes || ''); }}
                 >
                   <div className="flex items-center gap-3 px-5 py-3.5">
@@ -183,8 +183,8 @@ export default function ClientLeads() {
                       <Users size={16} className="text-amber-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[#F8F8FF] truncate">{lead.callerName || lead.nameCollected || 'Inconnu'}</p>
-                      <p className="text-[11px] text-[#8B8BA7]">
+                      <p className="text-sm font-semibold text-[#F5F5F7] truncate">{lead.callerName || lead.nameCollected || 'Inconnu'}</p>
+                      <p className="text-[11px] text-[#A1A1A8]">
                         {lead.callerNumber || lead.phoneCollected || ''}
                         {lead.emailCollected && ` · ${lead.emailCollected}`}
                       </p>
@@ -200,7 +200,7 @@ export default function ClientLeads() {
                         </div>
                       )}
                       <SentimentBadge sentiment={lead.sentiment} />
-                      <span className="text-[10px] text-[#8B8BA7] hidden lg:inline">{formatDateTime(lead.createdAt)}</span>
+                      <span className="text-[10px] text-[#A1A1A8] hidden lg:inline">{formatDateTime(lead.createdAt)}</span>
                       <ChevronRight size={14} className="text-white/20 group-hover:text-[#7B5CF0] transition-colors" />
                     </div>
                   </div>
@@ -223,17 +223,17 @@ export default function ClientLeads() {
               <div key={col.key}>
                 <div className="flex items-center gap-2 mb-3 px-1">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: col.color }} />
-                  <span className="text-sm font-semibold text-[#F8F8FF]">{col.label}</span>
-                  <span className="text-xs text-[#8B8BA7] bg-white/[0.06] px-2 py-0.5 rounded-full">{items.length}</span>
+                  <span className="text-sm font-semibold text-[#F5F5F7]">{col.label}</span>
+                  <span className="text-xs text-[#A1A1A8] bg-white/[0.06] px-2 py-0.5 rounded-full">{items.length}</span>
                 </div>
                 <div className="space-y-2 min-h-[200px] rounded-xl bg-white/[0.02] border border-white/[0.04] p-2">
                   {items.map(lead => (
                     <motion.div key={lead.id} layout
-                      className="rounded-xl bg-[#12121A] border border-white/[0.06] p-3.5 cursor-pointer hover:border-white/[0.12] transition-all"
+                      className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-3.5 cursor-pointer hover:border-white/[0.12] transition-all"
                       onClick={() => { setSelectedLead(lead); setNoteText(lead.notes || ''); }}
                     >
-                      <p className="text-sm font-semibold text-[#F8F8FF] truncate mb-1">{lead.callerName || lead.nameCollected || 'Inconnu'}</p>
-                      <p className="text-[11px] text-[#8B8BA7] mb-2">{lead.callerNumber || ''}</p>
+                      <p className="text-sm font-semibold text-[#F5F5F7] truncate mb-1">{lead.callerName || lead.nameCollected || 'Inconnu'}</p>
+                      <p className="text-[11px] text-[#A1A1A8] mb-2">{lead.callerNumber || ''}</p>
                       <div className="flex items-center justify-between">
                         <SentimentBadge sentiment={lead.sentiment} />
                         {lead.leadScore != null && (
@@ -243,7 +243,7 @@ export default function ClientLeads() {
                     </motion.div>
                   ))}
                   {items.length === 0 && (
-                    <p className="text-xs text-[#8B8BA7] text-center py-8">Aucun lead</p>
+                    <p className="text-xs text-[#A1A1A8] text-center py-8">Aucun lead</p>
                   )}
                 </div>
               </div>
@@ -261,12 +261,12 @@ export default function ClientLeads() {
             />
             <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#0D0D15] border-l border-white/[0.06] shadow-2xl z-50 overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white/[0.02] border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
             >
-              <div className="sticky top-0 bg-[#0D0D15]/90 backdrop-blur-xl border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-[#F8F8FF]">Détails du lead</h2>
+              <div className="sticky top-0 bg-white/[0.02]/90 backdrop-blur-xl border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
+                <h2 className="text-base font-semibold text-[#F5F5F7]">Détails du lead</h2>
                 <button onClick={() => setSelectedLead(null)}
-                  className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.10] text-[#8B8BA7] hover:text-[#F8F8FF] transition-colors"
+                  className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.10] text-[#A1A1A8] hover:text-[#F5F5F7] transition-colors"
                 >
                   <X size={16} />
                 </button>
@@ -277,29 +277,29 @@ export default function ClientLeads() {
                     <Users size={22} className="text-amber-400" />
                   </div>
                   <div>
-                    <p className="text-base font-semibold text-[#F8F8FF]">{selectedLead.callerName || selectedLead.nameCollected || 'Inconnu'}</p>
-                    <p className="text-sm text-[#8B8BA7]">{formatDateTime(selectedLead.createdAt)}</p>
+                    <p className="text-base font-semibold text-[#F5F5F7]">{selectedLead.callerName || selectedLead.nameCollected || 'Inconnu'}</p>
+                    <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">{formatDateTime(selectedLead.createdAt)}</p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   {(selectedLead.callerNumber || selectedLead.phoneCollected) && (
-                    <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/[0.06] px-4 py-3">
-                      <Phone size={14} className="text-[#8B8BA7]" />
-                      <span className="text-sm text-[#F8F8FF]">{selectedLead.callerNumber || selectedLead.phoneCollected}</span>
+                    <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/[0.07] px-4 py-3">
+                      <Phone size={14} className="text-[#A1A1A8]" />
+                      <span className="text-sm text-[#F5F5F7]">{selectedLead.callerNumber || selectedLead.phoneCollected}</span>
                     </div>
                   )}
                   {selectedLead.emailCollected && (
-                    <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/[0.06] px-4 py-3">
-                      <Mail size={14} className="text-[#8B8BA7]" />
-                      <span className="text-sm text-[#F8F8FF]">{selectedLead.emailCollected}</span>
+                    <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/[0.07] px-4 py-3">
+                      <Mail size={14} className="text-[#A1A1A8]" />
+                      <span className="text-sm text-[#F5F5F7]">{selectedLead.emailCollected}</span>
                     </div>
                   )}
                 </div>
 
                 {selectedLead.leadScore != null && (
                   <div>
-                    <p className="text-xs text-[#8B8BA7] mb-2">Score lead</p>
+                    <p className="text-xs text-[#A1A1A8] mb-2">Score lead</p>
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-2.5 bg-white/[0.06] rounded-full overflow-hidden">
                         <div className="h-full bg-gradient-to-r from-[#7B5CF0] to-[#a78bfa] rounded-full"
@@ -312,13 +312,13 @@ export default function ClientLeads() {
                 )}
 
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-[#8B8BA7]">Sentiment :</span>
+                  <span className="text-xs text-[#A1A1A8]">Sentiment :</span>
                   <SentimentBadge sentiment={selectedLead.sentiment} />
                 </div>
 
                 {/* Pipeline status */}
                 <div>
-                  <p className="text-xs text-[#8B8BA7] mb-2">Statut pipeline</p>
+                  <p className="text-xs text-[#A1A1A8] mb-2">Statut pipeline</p>
                   <div className="grid grid-cols-2 gap-2">
                     {KANBAN_COLS.map(col => {
                       const isActive = getLeadStatus(selectedLead) === col.key;
@@ -328,7 +328,7 @@ export default function ClientLeads() {
                           className={`px-3 py-2 text-xs font-medium rounded-xl border transition-all ${
                             isActive
                               ? `${sc.pill} ${sc.border}`
-                              : 'bg-white/[0.04] border-white/[0.08] text-[#8B8BA7] hover:bg-white/[0.08]'
+                              : 'bg-white/[0.04] border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.08]'
                           }`}
                         >
                           {col.label}
@@ -340,14 +340,14 @@ export default function ClientLeads() {
 
                 {selectedLead.summary && (
                   <div>
-                    <p className="text-xs text-[#8B8BA7] mb-2">Résumé de l'appel</p>
-                    <p className="text-sm text-[#F8F8FF] leading-relaxed bg-white/[0.04] rounded-xl p-4 border border-white/[0.06]">{selectedLead.summary}</p>
+                    <p className="text-xs text-[#A1A1A8] mb-2">Résumé de l'appel</p>
+                    <p className="text-sm text-[#F5F5F7] leading-relaxed bg-white/[0.04] rounded-xl p-4 border border-white/[0.07]">{selectedLead.summary}</p>
                   </div>
                 )}
 
                 {/* Notes */}
                 <div>
-                  <p className="text-xs text-[#8B8BA7] mb-2 flex items-center gap-1">
+                  <p className="text-xs text-[#A1A1A8] mb-2 flex items-center gap-1">
                     <StickyNote size={12} /> Notes
                   </p>
                   <textarea
@@ -355,7 +355,7 @@ export default function ClientLeads() {
                     onChange={e => setNoteText(e.target.value)}
                     placeholder="Ajouter des notes sur ce lead..."
                     rows={3}
-                    className="w-full px-4 py-3 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0F] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 resize-none transition-all"
+                    className="w-full px-4 py-3 text-sm rounded-xl border border-white/[0.07] bg-[#0A0A0F] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 resize-none transition-all"
                   />
                   <button
                     onClick={() => handleSaveNote(selectedLead.id)}

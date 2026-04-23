@@ -56,7 +56,7 @@ const FAQ_ITEMS = [
   },
 ];
 
-const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all';
+const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all';
 
 export default function ClientSupport() {
   const [subject, setSubject] = useState('');
@@ -99,34 +99,34 @@ export default function ClientSupport() {
   return (
     <div>
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <h1 className="text-2xl font-bold text-[#F8F8FF] tracking-tight">Aide & Support</h1>
-        <p className="text-sm text-[#8B8BA7]">Trouvez des réponses ou contactez notre équipe</p>
+        <h1 className="text-[22px] font-semibold text-[#F5F5F7] tracking-tight">Aide & Support</h1>
+        <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">Trouvez des réponses ou contactez notre équipe</p>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
         {/* FAQ */}
         <div className="lg:col-span-3">
-          <div className="rounded-xl border border-white/[0.06] bg-[#12121A] p-6">
-            <h2 className="text-sm font-semibold text-[#F8F8FF] mb-4 flex items-center gap-2">
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-6">
+            <h2 className="text-sm font-semibold text-[#F5F5F7] mb-4 flex items-center gap-2">
               <BookOpen size={16} className="text-[#7B5CF0]" />
               Questions fréquentes
             </h2>
 
             <div className="relative mb-4">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8B8BA7]" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A8]" />
               <input
                 type="text"
                 placeholder="Rechercher dans la FAQ..."
                 value={faqSearch}
                 onChange={e => setFaqSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all"
+                className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all"
               />
             </div>
 
             <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
               <button onClick={() => setFaqCategory('all')}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
-                  faqCategory === 'all' ? 'bg-[#7B5CF0] text-white' : 'bg-white/[0.04] text-[#8B8BA7] hover:text-[#F8F8FF]'
+                  faqCategory === 'all' ? 'bg-[#7B5CF0] text-white' : 'bg-white/[0.04] text-[#A1A1A8] hover:text-[#F5F5F7]'
                 }`}
               >
                 Tous
@@ -134,7 +134,7 @@ export default function ClientSupport() {
               {CATEGORIES.map(c => (
                 <button key={c.id} onClick={() => setFaqCategory(c.id)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1.5 ${
-                    faqCategory === c.id ? 'bg-[#7B5CF0] text-white' : 'bg-white/[0.04] text-[#8B8BA7] hover:text-[#F8F8FF]'
+                    faqCategory === c.id ? 'bg-[#7B5CF0] text-white' : 'bg-white/[0.04] text-[#A1A1A8] hover:text-[#F5F5F7]'
                   }`}
                 >
                   <c.icon size={11} />
@@ -145,21 +145,21 @@ export default function ClientSupport() {
 
             <div className="space-y-2">
               {filteredFaq.map((faq, i) => (
-                <div key={i} className="rounded-xl border border-white/[0.06] bg-[#0D0D15] overflow-hidden">
+                <div key={i} className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
                   <button
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="w-full flex items-center justify-between px-4 py-3.5 text-left text-sm font-medium text-[#F8F8FF] hover:bg-white/[0.04] transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-3.5 text-left text-sm font-medium text-[#F5F5F7] hover:bg-white/[0.04] transition-colors"
                   >
                     <span className="pr-4">{faq.q}</span>
                     {openFaq === i
-                      ? <ChevronUp size={15} className="text-[#8B8BA7] flex-shrink-0" />
-                      : <ChevronDown size={15} className="text-[#8B8BA7] flex-shrink-0" />}
+                      ? <ChevronUp size={15} className="text-[#A1A1A8] flex-shrink-0" />
+                      : <ChevronDown size={15} className="text-[#A1A1A8] flex-shrink-0" />}
                   </button>
                   <AnimatePresence>
                     {openFaq === i && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
                         <div className="px-4 pb-4 pt-0">
-                          <p className="text-sm text-[#8B8BA7] leading-relaxed">{faq.a}</p>
+                          <p className="text-sm text-[#A1A1A8] leading-relaxed">{faq.a}</p>
                         </div>
                       </motion.div>
                     )}
@@ -167,7 +167,7 @@ export default function ClientSupport() {
                 </div>
               ))}
               {filteredFaq.length === 0 && (
-                <p className="text-sm text-[#8B8BA7] text-center py-6">Aucun résultat</p>
+                <p className="text-sm text-[#A1A1A8] text-center py-6">Aucun résultat</p>
               )}
             </div>
           </div>
@@ -175,8 +175,8 @@ export default function ClientSupport() {
 
         {/* Contact form */}
         <div className="lg:col-span-2">
-          <div className="rounded-xl border border-white/[0.06] bg-[#12121A] p-6 sticky top-20">
-            <h2 className="text-sm font-semibold text-[#F8F8FF] mb-4 flex items-center gap-2">
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-6 sticky top-20">
+            <h2 className="text-sm font-semibold text-[#F5F5F7] mb-4 flex items-center gap-2">
               <MessageCircle size={16} className="text-[#7B5CF0]" />
               Contacter le support
             </h2>
@@ -186,8 +186,8 @@ export default function ClientSupport() {
                 <div className="w-14 h-14 rounded-2xl bg-emerald-400/10 flex items-center justify-center mx-auto mb-4">
                   <Send size={26} className="text-emerald-400" />
                 </div>
-                <p className="text-base font-semibold text-[#F8F8FF] mb-1">Message envoyé !</p>
-                <p className="text-sm text-[#8B8BA7] mb-4">Nous vous répondrons dans les 24h</p>
+                <p className="text-base font-semibold text-[#F5F5F7] mb-1">Message envoyé !</p>
+                <p className="text-sm text-[#A1A1A8] mb-4">Nous vous répondrons dans les 24h</p>
                 <button onClick={() => setSent(false)} className="text-sm text-[#7B5CF0] hover:underline">
                   Envoyer un autre message
                 </button>
@@ -195,14 +195,14 @@ export default function ClientSupport() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-xs text-[#8B8BA7] mb-1.5 block">Catégorie</label>
+                  <label className="text-xs text-[#A1A1A8] mb-1.5 block">Catégorie</label>
                   <div className="grid grid-cols-2 gap-2">
                     {CATEGORIES.map(c => (
                       <button key={c.id} type="button" onClick={() => setCategory(c.id)}
                         className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl border transition-all ${
                           category === c.id
                             ? 'border-[#7B5CF0] bg-[#7B5CF0]/10 text-[#7B5CF0]'
-                            : 'border-white/[0.08] text-[#8B8BA7] hover:bg-white/[0.04]'
+                            : 'border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.04]'
                         }`}
                       >
                         <c.icon size={13} />
@@ -213,14 +213,14 @@ export default function ClientSupport() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-[#8B8BA7] mb-1.5 block">Sujet</label>
+                  <label className="text-xs text-[#A1A1A8] mb-1.5 block">Sujet</label>
                   <input type="text" value={subject} onChange={e => setSubject(e.target.value)}
                     required placeholder="Décrivez brièvement votre problème"
                     className={inputCls}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-[#8B8BA7] mb-1.5 block">Message</label>
+                  <label className="text-xs text-[#A1A1A8] mb-1.5 block">Message</label>
                   <textarea value={message} onChange={e => setMessage(e.target.value)}
                     required rows={5} placeholder="Décrivez votre problème en détail..."
                     className={inputCls + ' resize-none'}

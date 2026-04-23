@@ -14,7 +14,7 @@ import QwillioLoader from "../../components/QwillioLoader";
 type SortKey = 'createdAt' | 'durationSeconds' | 'callerName' | 'sentiment';
 type SortDir = 'asc' | 'desc';
 
-const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all';
+const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all';
 
 export default function ClientCalls() {
   const [calls, setCalls] = useState<any[]>([]);
@@ -94,7 +94,7 @@ export default function ClientCalls() {
   };
 
   const SortIcon = ({ k }: { k: SortKey }) => {
-    if (sortKey !== k) return <ArrowUpDown size={12} className="text-[#8B8BA7]" />;
+    if (sortKey !== k) return <ArrowUpDown size={12} className="text-[#A1A1A8]" />;
     return sortDir === 'asc' ? <ArrowUp size={12} className="text-[#7B5CF0]" /> : <ArrowDown size={12} className="text-[#7B5CF0]" />;
   };
 
@@ -109,8 +109,8 @@ export default function ClientCalls() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#F8F8FF] tracking-tight">Appels</h1>
-          <p className="text-sm text-[#8B8BA7]">{pagination.total} appels au total</p>
+          <h1 className="text-[22px] font-semibold text-[#F5F5F7] tracking-tight">Appels</h1>
+          <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">{pagination.total} appels au total</p>
         </div>
         <button
           onClick={handleExport}
@@ -131,13 +131,13 @@ export default function ClientCalls() {
           { label: 'Leads ce mois', value: leadsMonth, icon: Users },
         ].map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-            className="rounded-xl border border-white/[0.06] bg-[#12121A] p-4"
+            className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-4"
           >
             <div className="flex items-center gap-2 mb-1.5">
-              <s.icon size={14} className="text-[#8B8BA7]" />
-              <span className="text-xs text-[#8B8BA7]">{s.label}</span>
+              <s.icon size={14} className="text-[#A1A1A8]" />
+              <span className="text-xs text-[#A1A1A8]">{s.label}</span>
             </div>
-            <p className="text-xl font-bold text-[#F8F8FF]">{s.value}</p>
+            <p className="text-xl font-bold text-[#F5F5F7]">{s.value}</p>
           </motion.div>
         ))}
       </div>
@@ -145,13 +145,13 @@ export default function ClientCalls() {
       {/* Search & Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8B8BA7]" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A8]" />
           <input
             type="text"
             placeholder="Rechercher par nom, téléphone, résumé..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all"
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all"
           />
         </div>
         <button
@@ -159,7 +159,7 @@ export default function ClientCalls() {
           className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium rounded-xl border transition-all ${
             showFilters || hasActiveFilters
               ? 'bg-[#7B5CF0]/10 border-[#7B5CF0]/30 text-[#7B5CF0]'
-              : 'bg-[#12121A] border-white/[0.08] text-[#8B8BA7] hover:text-[#F8F8FF]'
+              : 'bg-white/[0.03] border-white/[0.07] text-[#A1A1A8] hover:text-[#F5F5F7]'
           }`}
         >
           <Filter size={14} />
@@ -177,15 +177,15 @@ export default function ClientCalls() {
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mb-4"
           >
-            <div className="rounded-xl border border-white/[0.06] bg-[#12121A] p-4 space-y-4">
+            <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-4 space-y-4">
               <div className="flex flex-wrap gap-4">
                 <div>
-                  <label className="text-xs text-[#8B8BA7] mb-1.5 block">Sentiment</label>
+                  <label className="text-xs text-[#A1A1A8] mb-1.5 block">Sentiment</label>
                   <div className="flex gap-1">
                     {['', 'positive', 'neutral', 'negative'].map(f => (
                       <button key={f} onClick={() => setSentimentFilter(f)}
                         className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                          sentimentFilter === f ? 'bg-[#7B5CF0] text-white' : 'bg-white/[0.04] text-[#8B8BA7] hover:bg-white/[0.08]'
+                          sentimentFilter === f ? 'bg-[#7B5CF0] text-white' : 'bg-white/[0.04] text-[#A1A1A8] hover:bg-white/[0.08]'
                         }`}
                       >
                         {f || 'Tous'}
@@ -194,15 +194,15 @@ export default function ClientCalls() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-[#8B8BA7] mb-1.5 block">Du</label>
+                  <label className="text-xs text-[#A1A1A8] mb-1.5 block">Du</label>
                   <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50"
+                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-[#7B5CF0]/50"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-[#8B8BA7] mb-1.5 block">Au</label>
+                  <label className="text-xs text-[#A1A1A8] mb-1.5 block">Au</label>
                   <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50"
+                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-[#7B5CF0]/50"
                   />
                 </div>
               </div>
@@ -229,17 +229,17 @@ export default function ClientCalls() {
       ) : (
         <>
           {/* Table header — desktop */}
-          <div className="hidden md:grid grid-cols-[1fr_120px_100px_140px_32px] gap-3 px-5 py-2.5 text-xs text-[#8B8BA7] font-medium border-b border-white/[0.06] mb-1">
-            <button onClick={() => toggleSort('callerName')} className="flex items-center gap-1 hover:text-[#F8F8FF]">
+          <div className="hidden md:grid grid-cols-[1fr_120px_100px_140px_32px] gap-3 px-5 py-2.5 text-xs text-[#A1A1A8] font-medium border-b border-white/[0.07] mb-1">
+            <button onClick={() => toggleSort('callerName')} className="flex items-center gap-1 hover:text-[#F5F5F7]">
               Appelant <SortIcon k="callerName" />
             </button>
-            <button onClick={() => toggleSort('durationSeconds')} className="flex items-center gap-1 hover:text-[#F8F8FF]">
+            <button onClick={() => toggleSort('durationSeconds')} className="flex items-center gap-1 hover:text-[#F5F5F7]">
               Durée <SortIcon k="durationSeconds" />
             </button>
-            <button onClick={() => toggleSort('sentiment')} className="flex items-center gap-1 hover:text-[#F8F8FF]">
+            <button onClick={() => toggleSort('sentiment')} className="flex items-center gap-1 hover:text-[#F5F5F7]">
               Sentiment <SortIcon k="sentiment" />
             </button>
-            <button onClick={() => toggleSort('createdAt')} className="flex items-center gap-1 hover:text-[#F8F8FF]">
+            <button onClick={() => toggleSort('createdAt')} className="flex items-center gap-1 hover:text-[#F5F5F7]">
               Date <SortIcon k="createdAt" />
             </button>
             <div />
@@ -248,7 +248,7 @@ export default function ClientCalls() {
           <div className="space-y-1">
             {sortedCalls.map((call: any, idx: number) => (
               <motion.div key={call.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.02 }}
-                className="rounded-xl border border-white/[0.06] bg-[#12121A] hover:border-white/[0.12] hover:bg-[#12121A]/80 cursor-pointer transition-all group"
+                className="rounded-xl border border-white/[0.07] bg-white/[0.03] hover:border-white/[0.12] hover:bg-white/[0.03]/80 cursor-pointer transition-all group"
                 onClick={() => setSelectedCall(call)}
               >
                 {/* Desktop */}
@@ -258,18 +258,18 @@ export default function ClientCalls() {
                       {call.isLead ? <Users size={14} className="text-amber-400" /> : <Phone size={14} className="text-[#7B5CF0]" />}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#F8F8FF] truncate">{call.callerName || call.callerNumber || 'Inconnu'}</p>
+                      <p className="text-sm font-medium text-[#F5F5F7] truncate">{call.callerName || call.callerNumber || 'Inconnu'}</p>
                       {call.callerName && call.callerNumber && (
-                        <p className="text-[11px] text-[#8B8BA7]">{call.callerNumber}</p>
+                        <p className="text-[11px] text-[#A1A1A8]">{call.callerNumber}</p>
                       )}
                     </div>
                     {call.isLead && (
                       <span className="text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full flex-shrink-0">LEAD</span>
                     )}
                   </div>
-                  <span className="text-sm text-[#8B8BA7]">{formatDuration(call.durationSeconds)}</span>
+                  <span className="text-sm text-[#A1A1A8]">{formatDuration(call.durationSeconds)}</span>
                   <SentimentBadge sentiment={call.sentiment} />
-                  <span className="text-xs text-[#8B8BA7]">{formatDateTime(call.createdAt)}</span>
+                  <span className="text-xs text-[#A1A1A8]">{formatDateTime(call.createdAt)}</span>
                   <ChevronRight size={14} className="text-white/20 group-hover:text-[#7B5CF0] transition-colors" />
                 </div>
 
@@ -280,8 +280,8 @@ export default function ClientCalls() {
                       {call.isLead ? <Users size={16} className="text-amber-400" /> : <Phone size={16} className="text-[#7B5CF0]" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#F8F8FF] truncate">{call.callerName || call.callerNumber || 'Inconnu'}</p>
-                      <p className="text-[11px] text-[#8B8BA7]">{formatDuration(call.durationSeconds)} · {formatDateTime(call.createdAt)}</p>
+                      <p className="text-sm font-medium text-[#F5F5F7] truncate">{call.callerName || call.callerNumber || 'Inconnu'}</p>
+                      <p className="text-[11px] text-[#A1A1A8]">{formatDuration(call.durationSeconds)} · {formatDateTime(call.createdAt)}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <SentimentBadge sentiment={call.sentiment} />
@@ -310,12 +310,12 @@ export default function ClientCalls() {
             />
             <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#0D0D15] border-l border-white/[0.06] shadow-2xl z-50 overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white/[0.02] border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
             >
-              <div className="sticky top-0 bg-[#0D0D15]/90 backdrop-blur-xl border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-[#F8F8FF]">Détails de l'appel</h2>
+              <div className="sticky top-0 bg-white/[0.02]/90 backdrop-blur-xl border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
+                <h2 className="text-base font-semibold text-[#F5F5F7]">Détails de l'appel</h2>
                 <button onClick={() => setSelectedCall(null)}
-                  className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.10] transition-colors text-[#8B8BA7] hover:text-[#F8F8FF]"
+                  className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.10] transition-colors text-[#A1A1A8] hover:text-[#F5F5F7]"
                 >
                   <X size={16} />
                 </button>
@@ -326,8 +326,8 @@ export default function ClientCalls() {
                     {selectedCall.isLead ? <Users size={22} className="text-amber-400" /> : <Phone size={22} className="text-[#7B5CF0]" />}
                   </div>
                   <div>
-                    <p className="text-base font-semibold text-[#F8F8FF]">{selectedCall.callerName || 'Appelant inconnu'}</p>
-                    <p className="text-sm text-[#8B8BA7]">{selectedCall.callerNumber || 'Pas de numéro'}</p>
+                    <p className="text-base font-semibold text-[#F5F5F7]">{selectedCall.callerName || 'Appelant inconnu'}</p>
+                    <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">{selectedCall.callerNumber || 'Pas de numéro'}</p>
                   </div>
                 </div>
 
@@ -337,13 +337,13 @@ export default function ClientCalls() {
                     { label: 'Date', value: formatDateTime(selectedCall.createdAt) },
                     { label: 'Résultat', value: selectedCall.outcome || 'N/A' },
                   ].map((m, i) => (
-                    <div key={i} className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-3">
-                      <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-1">{m.label}</p>
-                      <p className="text-sm font-medium text-[#F8F8FF] capitalize">{m.value}</p>
+                    <div key={i} className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-3">
+                      <p className="text-[10px] text-[#A1A1A8] uppercase tracking-wide mb-1">{m.label}</p>
+                      <p className="text-sm font-medium text-[#F5F5F7] capitalize">{m.value}</p>
                     </div>
                   ))}
-                  <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-3">
-                    <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-1">Sentiment</p>
+                  <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-3">
+                    <p className="text-[10px] text-[#A1A1A8] uppercase tracking-wide mb-1">Sentiment</p>
                     <SentimentBadge sentiment={selectedCall.sentiment} />
                   </div>
                 </div>
@@ -358,13 +358,13 @@ export default function ClientCalls() {
                     </span>
                   )}
                   {selectedCall.emailCollected && (
-                    <span className="text-xs text-[#8B8BA7] bg-white/[0.04] px-2.5 py-1 rounded-full">{selectedCall.emailCollected}</span>
+                    <span className="text-xs text-[#A1A1A8] bg-white/[0.04] px-2.5 py-1 rounded-full">{selectedCall.emailCollected}</span>
                   )}
                 </div>
 
                 {selectedCall.leadScore != null && (
                   <div>
-                    <p className="text-xs text-[#8B8BA7] mb-2">Score lead</p>
+                    <p className="text-xs text-[#A1A1A8] mb-2">Score lead</p>
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
                         <div className="h-full bg-[#7B5CF0] rounded-full" style={{ width: `${selectedCall.leadScore * 10}%` }} />
@@ -376,15 +376,15 @@ export default function ClientCalls() {
 
                 {selectedCall.summary && (
                   <div>
-                    <p className="text-xs text-[#8B8BA7] mb-2">Résumé IA</p>
-                    <p className="text-sm text-[#F8F8FF] leading-relaxed bg-white/[0.04] rounded-xl p-4 border border-white/[0.06]">{selectedCall.summary}</p>
+                    <p className="text-xs text-[#A1A1A8] mb-2">Résumé IA</p>
+                    <p className="text-sm text-[#F5F5F7] leading-relaxed bg-white/[0.04] rounded-xl p-4 border border-white/[0.07]">{selectedCall.summary}</p>
                   </div>
                 )}
 
                 {selectedCall.bookingDetails && (
                   <div>
-                    <p className="text-xs text-[#8B8BA7] mb-2">Détails réservation</p>
-                    <p className="text-sm text-[#F8F8FF] bg-white/[0.04] rounded-xl p-4 border border-white/[0.06]">
+                    <p className="text-xs text-[#A1A1A8] mb-2">Détails réservation</p>
+                    <p className="text-sm text-[#F5F5F7] bg-white/[0.04] rounded-xl p-4 border border-white/[0.07]">
                       {typeof selectedCall.bookingDetails === 'string'
                         ? selectedCall.bookingDetails
                         : JSON.stringify(selectedCall.bookingDetails, null, 2)}
@@ -394,8 +394,8 @@ export default function ClientCalls() {
 
                 {selectedCall.recordingUrl && (
                   <div>
-                    <p className="text-xs text-[#8B8BA7] mb-2">Enregistrement</p>
-                    <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-4">
+                    <p className="text-xs text-[#A1A1A8] mb-2">Enregistrement</p>
+                    <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-4">
                       <button
                         onClick={() => setPlayingId(playingId === selectedCall.id ? null : selectedCall.id)}
                         className="inline-flex items-center gap-2 text-sm font-medium text-[#7B5CF0] hover:underline mb-2"
