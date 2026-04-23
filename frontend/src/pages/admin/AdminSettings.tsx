@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../../services/api';
+import QwillioLoader from '../../components/QwillioLoader';
 import {
   Save, AlertTriangle, Clock, Phone, Settings, Server, Database,
   CheckCircle2, XCircle, Loader2, Globe, Brain, Mail, DollarSign,
@@ -79,18 +80,21 @@ function fmtUptime(seconds: number) {
   return h > 0 ? `${h}h ${m}min` : `${m}min`;
 }
 
-// Collapsible section
+// Collapsible section — Stripe/Vercel-style card
 function Section({ title, icon: Icon, children, defaultOpen = true }: {
   title: string; icon: React.ElementType; color?: string; children: React.ReactNode; defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="overflow-hidden" style={glass}>
+    <div className="rounded-2xl overflow-hidden border"
+         style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
       <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors">
-        {open ? <ChevronDown className="w-3.5 h-3.5" style={{ color: t.textSec }} /> : <ChevronRight className="w-3.5 h-3.5" style={{ color: t.textSec }} />}
-        <Icon className="w-3.5 h-3.5" style={{ color: t.textSec }} />
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: t.textSec }}>{title}</span>
+        className="w-full flex items-center gap-2.5 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors">
+        {open
+          ? <ChevronDown className="w-3.5 h-3.5" style={{ color: t.textTer }} />
+          : <ChevronRight className="w-3.5 h-3.5" style={{ color: t.textTer }} />}
+        <Icon className="w-4 h-4" style={{ color: t.textSec }} />
+        <span className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: t.textSec }}>{title}</span>
       </button>
       {open && <div className="px-5 pb-5 pt-0">{children}</div>}
     </div>
@@ -205,31 +209,34 @@ export default function AdminSettings() {
   );
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-6 h-6 animate-spin" style={{ color: t.textSec }} />
+    <div className="flex items-center justify-center py-32">
+      <QwillioLoader size={120} fullscreen={false} />
     </div>
   );
 
   return (
-    <div className="space-y-4 max-w-[1400px]">
+    <div className="space-y-5 max-w-[1200px]">
       <ToastContainer toasts={toasts} remove={remove} />
 
-      {/* Header */}
+      {/* Header — Stripe/Vercel style */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: t.text }}>Paramètres</h1>
-          <p className="text-sm mt-0.5" style={{ color: t.textSec }}>Configuration complète du système Qwillio</p>
+          <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: t.text }}>Paramètres</h1>
+          <p className="text-[12.5px] mt-0.5" style={{ color: t.textSec }}>
+            Configuration complète du système · Modifications enregistrées manuellement
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={load} className="p-2.5 rounded-xl transition-all hover:bg-white/[0.04]"
-            style={{ background: t.panel, border: `1px solid ${t.border}`, color: t.textSec }}>
+        <div className="flex items-center gap-2">
+          <button onClick={load} title="Rafraîchir"
+            className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
+            style={{ color: t.textSec }}>
             <RefreshCw className="w-4 h-4" />
           </button>
           <button onClick={save} disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
-            style={{ background: 'rgba(255,255,255,0.10)', color: t.text }}>
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+            className="inline-flex items-center gap-2 px-4 h-9 text-[12.5px] font-medium rounded-xl transition-colors disabled:opacity-50"
+            style={{ background: '#F5F5F7', color: '#0B0B0D' }}>
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            {saving ? 'Sauvegarde…' : 'Sauvegarder'}
           </button>
         </div>
       </div>
