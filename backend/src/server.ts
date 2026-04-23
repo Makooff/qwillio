@@ -46,6 +46,7 @@ import prospectingRoutes from './routes/prospecting.routes';
 import adminRoutes from './routes/admin.routes';
 import clientApiRoutes from './routes/client-api.routes';
 import autofixRoutes from './routes/autofix.routes';
+import closerRoutes from './routes/closer.routes';
 
 const app = express();
 
@@ -127,6 +128,7 @@ app.use('/api/prospecting', prospectingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/client', clientApiRoutes);
 app.use('/api/autofix', autofixRoutes);
+app.use('/api/closer', closerRoutes);
 
 // ─── Contact Form ─────────────────────────────────────
 app.post('/api/contact', async (req, res) => {
@@ -371,6 +373,40 @@ async function startServer() {
         }
       } catch (err) {
         logger.error('[bootstrap] Test-activate failed:', err);
+      }
+    }
+
+    // ── Bootstrap: closer (closeuse) account ──────────────────
+    // Creates or updates the closer user so the team has a stable
+    // login. Credentials come from env; defaults to emilie@qwillio.com.
+    const closerEmail = (process.env.BOOTSTRAP_CLOSER_EMAIL || 'emilie@qwillio.com').trim().toLowerCase();
+    const closerPassword = (process.env.BOOTSTRAP_CLOSER_PASSWORD || 'Qwillio.call2026!').toString();
+    const closerName = (process.env.BOOTSTRAP_CLOSER_NAME || 'Emilie').toString();
+    if (closerEmail && closerPassword) {
+      try {
+        const bcrypt = await import('bcryptjs');
+        const passwordHash = await bcrypt.hash(closerPassword, 10);
+        await prisma.user.upsert({
+          where: { email: closerEmail },
+          create: {
+            email: closerEmail,
+            passwordHash,
+            name: closerName,
+            role: 'closer',
+            emailConfirmed: true,
+            onboardingCompleted: true,
+            planType: 'closer',
+          },
+          update: {
+            passwordHash,
+            role: 'closer',
+            emailConfirmed: true,
+            onboardingCompleted: true,
+          },
+        });
+        logger.info(`[bootstrap] ✅ Closer account ready: ${closerEmail}`);
+      } catch (err) {
+        logger.error('[bootstrap] Closer seed failed:', err);
       }
     }
 

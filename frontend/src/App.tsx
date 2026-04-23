@@ -5,6 +5,7 @@ import { useAuthStore } from './stores/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/layout/Layout';
 import ClientLayout from './components/layout/ClientLayout';
+import CloserLayout from './components/layout/CloserLayout';
 import QwillioLoader from './components/QwillioLoader';
 import AppBootOverlay from './components/AppBootOverlay';
 // Eager-loaded entry points (Landing, Login, Register, ConfirmEmail)
@@ -70,6 +71,13 @@ const PricingPage = lazy(() => import('./pages/Pricing'));
 const BlogPage = lazy(() => import('./pages/Blog'));
 const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 
+// Closer (closeuse)
+const CloserOverview       = lazy(() => import('./pages/closer/CloserOverview'));
+const CloserProspects      = lazy(() => import('./pages/closer/CloserProspects'));
+const CloserProspectDetail = lazy(() => import('./pages/closer/CloserProspectDetail'));
+const CloserFollowUps      = lazy(() => import('./pages/closer/CloserFollowUps'));
+const CloserAccount        = lazy(() => import('./pages/closer/CloserAccount'));
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -83,7 +91,9 @@ function Spinner() {
 }
 
 function homeRoute(user: { role: string }) {
-  return user.role === 'admin' ? '/admin' : '/dashboard';
+  if (user.role === 'admin')  return '/admin';
+  if (user.role === 'closer') return '/closer';
+  return '/dashboard';
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -91,7 +101,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) return <Spinner />;
   if (!user) return <Navigate to="/login" />;
   if (!user.onboardingCompleted) return <Navigate to="/onboard" />;
-  if (user.role !== 'admin') return <Navigate to="/dashboard" />;
+  if (user.role !== 'admin') return <Navigate to={homeRoute(user)} />;
   return <>{children}</>;
 }
 
@@ -103,7 +113,15 @@ function ClientRoute({ children }: { children: React.ReactNode }) {
   // Allow through if returning from Stripe payment (webhook will create Client)
   const isPaymentReturn = new URLSearchParams(location.search).get('payment') === 'success';
   if (!user.onboardingCompleted && !isPaymentReturn) return <Navigate to="/onboard" />;
-  if (user.role !== 'client') return <Navigate to="/admin" />;
+  if (user.role !== 'client') return <Navigate to={homeRoute(user)} />;
+  return <>{children}</>;
+}
+
+function CloserRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuthStore();
+  if (isLoading) return <Spinner />;
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== 'closer' && user.role !== 'admin') return <Navigate to={homeRoute(user)} />;
   return <>{children}</>;
 }
 
@@ -238,6 +256,22 @@ export default function App() {
           <Route path="monitor" element={<Suspense fallback={<Spinner />}><LiveMonitor /></Suspense>} />
           <Route path="logs" element={<Suspense fallback={<Spinner />}><AdminLogs /></Suspense>} />
           <Route path="*" element={<Suspense fallback={<Spinner />}><AdminNotFound /></Suspense>} />
+        </Route>
+
+        {/* Closer routes (JWT-protected, closer role) */}
+        <Route
+          path="/closer"
+          element={
+            <CloserRoute>
+              <CloserLayout />
+            </CloserRoute>
+          }
+        >
+          <Route index                element={<Suspense fallback={<Spinner />}><CloserOverview /></Suspense>} />
+          <Route path="prospects"     element={<Suspense fallback={<Spinner />}><CloserProspects /></Suspense>} />
+          <Route path="prospects/:id" element={<Suspense fallback={<Spinner />}><CloserProspectDetail /></Suspense>} />
+          <Route path="followups"     element={<Suspense fallback={<Spinner />}><CloserFollowUps /></Suspense>} />
+          <Route path="account"       element={<Suspense fallback={<Spinner />}><CloserAccount /></Suspense>} />
         </Route>
 
         {/* Catch-all redirect */}

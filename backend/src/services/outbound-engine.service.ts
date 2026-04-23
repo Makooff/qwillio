@@ -191,6 +191,8 @@ export class OutboundEngineService {
     const now = new Date();
 
     // ── 3. Find eligible prospect ──────────────────────────
+    // Skip prospects that a human closer has claimed — they'll be worked
+    // manually and should NOT receive a bot call on top.
     const prospect = await prisma.prospect.findFirst({
       where: {
         status: 'new',
@@ -198,6 +200,7 @@ export class OutboundEngineService {
         eligibleForCall: true,
         isMobile: false,
         callAttempts: { lt: 3 },
+        assignedToUserId: null,
         OR: [
           { nextCallAt: null },
           { nextCallAt: { lte: now } },

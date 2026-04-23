@@ -98,6 +98,12 @@ export async function requireAdmin(req: AuthRequest, res: Response, next: NextFu
   return res.status(403).json({ error: 'Accès refusé — zone admin uniquement' });
 }
 
+export function closerMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+  // Admins can impersonate the closer dashboard for QA
+  if (req.userRole === 'closer' || req.userRole === 'admin') return next();
+  return res.status(403).json({ error: 'Accès refusé — closeuse uniquement' });
+}
+
 export async function clientMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   if (req.userRole !== 'client') {
     return res.status(403).json({ error: 'Client access only' });
