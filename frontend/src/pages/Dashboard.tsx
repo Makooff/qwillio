@@ -1,129 +1,373 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  Target, Users, DollarSign, Phone, Bot, Play, Pause,
+  ChevronRight, RefreshCw, AlertCircle, Activity, BarChart3,
+  Zap, Settings as SettingsIcon, Sparkles, CreditCard,
+  ArrowUpRight, ArrowDownRight,
+} from 'lucide-react';
+import QwillioLoader from '../components/QwillioLoader';
 
 const API = 'https://qwillio.onrender.com';
-const getH = (): Record<string, string> => { const t = localStorage.getItem('token'); return t ? { Authorization: `Bearer ${t}` } : {}; };
-const fmt = (iso: string) => { if (!iso) return ''; const d = new Date(iso), diff = Date.now() - d.getTime(); if (diff < 3600000) return `${Math.floor(diff/60000)}min`; if (diff < 86400000) return `${Math.floor(diff/3600000)}h`; return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); };
-const C: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (<div style={{ background: '#161616', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', ...style }}>{children}</div>);
+const getH = (): Record<string, string> => {
+  const t = localStorage.getItem('token');
+  return t ? { Authorization: `Bearer ${t}` } : {};
+};
+
+const fmtRelative = (iso: string) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  if (diff < 60_000)       return 'à l\'instant';
+  if (diff < 3_600_000)    return `il y a ${Math.floor(diff / 60_000)} min`;
+  if (diff < 86_400_000)   return `il y a ${Math.floor(diff / 3_600_000)} h`;
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+};
+
+// ── Stripe / Vercel-style design tokens (local) ─────────────────────────
+const C = {
+  bg:       '#0A0A0C',
+  panel:    'rgba(255,255,255,0.03)',
+  border:   'rgba(255,255,255,0.07)',
+  borderHi: 'rgba(255,255,255,0.12)',
+  text:     '#F5F5F7',
+  textSec:  '#A1A1A8',
+  textTer:  '#6B6B75',
+  accent:   '#7B5CF0',
+  ok:       '#22C55E',
+  warn:     '#F59E0B',
+  bad:      '#EF4444',
+};
+
 interface BotAction { message: string; timestamp: string; }
 interface NextAction { name: string; inMinutes: number; }
-interface D { prospects: { total: number; newThisMonth: number }; clients: { totalActive: number; newThisMonth: number }; revenue: { mrr: number }; calls: { today: number; thisWeek: number }; bot: { isActive: boolean; callsToday: number; callsQuota: number; lastAction?: BotAction | null; previousAction?: BotAction | null; nextAction?: NextAction | null }; activity: any[]; }
+interface D {
+  prospects: { total: number; newThisMonth: number };
+  clients:   { totalActive: number; newThisMonth: number };
+  revenue:   { mrr: number };
+  calls:     { today: number; thisWeek: number };
+  bot:       {
+    isActive: boolean;
+    callsToday: number;
+    callsQuota: number;
+    lastAction?: BotAction | null;
+    previousAction?: BotAction | null;
+    nextAction?: NextAction | null;
+  };
+  activity:  any[];
+}
+
+// ── Building blocks ─────────────────────────────────────────────────────
+const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
+  <div className={`rounded-2xl border ${className}`} style={{ background: C.panel, borderColor: C.border }}>
+    {children}
+  </div>
+);
+
+const SectionHead: React.FC<{ title: string; action?: React.ReactNode }> = ({ title, action }) => (
+  <div className="flex items-center justify-between mb-3 px-1">
+    <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: C.textSec }}>{title}</h2>
+    {action}
+  </div>
+);
+
+const Stat: React.FC<{
+  label: string; value: string | number; hint?: string;
+  icon?: any; to?: string;
+  trend?: { dir: 'up' | 'down' | 'flat'; pct: number };
+}> = ({ label, value, hint, icon: Icon, to, trend }) => {
+  const inner = (
+    <Card className={to ? 'hover:border-white/[0.14] transition-colors' : ''}>
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          {Icon && <Icon size={14} style={{ color: C.textSec }} />}
+          <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: C.textTer }}>{label}</p>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <p className="text-[26px] font-semibold tabular-nums leading-none" style={{ color: C.text }}>{value}</p>
+          {trend && trend.pct > 0 && (
+            <span className="inline-flex items-center gap-0.5 text-[11px] font-medium"
+              style={{ color: trend.dir === 'up' ? C.ok : trend.dir === 'down' ? C.bad : C.textSec }}>
+              {trend.dir === 'up'   && <ArrowUpRight   size={11} />}
+              {trend.dir === 'down' && <ArrowDownRight size={11} />}
+              {trend.pct}%
+            </span>
+          )}
+        </div>
+        {hint && <p className="text-[11.5px] mt-1.5" style={{ color: C.textTer }}>{hint}</p>}
+      </div>
+    </Card>
+  );
+  return to ? <Link to={to} className="block">{inner}</Link> : inner;
+};
+
+const QuickAction: React.FC<{ icon: any; label: string; desc: string; to: string }> = ({ icon: Icon, label, desc, to }) => (
+  <Link to={to} className="block">
+    <Card className="hover:border-white/[0.14] transition-colors group">
+      <div className="p-4">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <Icon size={14} style={{ color: C.text }} />
+          </div>
+          <ChevronRight size={14} className="ml-auto opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: C.textSec }} />
+        </div>
+        <p className="text-[13px] font-semibold" style={{ color: C.text }}>{label}</p>
+        <p className="text-[11.5px] mt-0.5" style={{ color: C.textTer }}>{desc}</p>
+      </div>
+    </Card>
+  </Link>
+);
+
+// ── Main page ───────────────────────────────────────────────────────────
 const Dashboard: React.FC = () => {
-  const [data, setData] = useState<D | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [prevAction, setPrevAction] = useState<string>('');
-  const [actionAnim, setActionAnim] = useState(false);
   const nav = useNavigate();
-  const load = () => fetch(`${API}/api/admin/dashboard`, { headers: getH() }).then(r => r.json()).then((d: D) => {
-    setData(d);
-    const newAction = d?.bot?.lastAction?.message || '';
-    if (newAction && newAction !== prevAction) { setPrevAction(newAction); setActionAnim(true); setTimeout(() => setActionAnim(false), 400); }
-  }).catch(console.error).finally(() => setLoading(false));
-  useEffect(() => { load(); const id = setInterval(load, 15000); return () => clearInterval(id); }, []);
-  const toggle = async () => {
+  const [data, setData]       = useState<D | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
+  const [busy, setBusy]       = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch(`${API}/api/admin/dashboard`, { headers: getH() });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d: D = await r.json();
+      setData(d);
+      setError(null);
+    } catch (e: any) {
+      setError(e.message || 'Erreur de chargement');
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 15_000);
+    return () => clearInterval(id);
+  }, [load]);
+
+  const toggleBot = async () => {
     if (!data) return;
     setBusy(true);
     const action = data.bot?.isActive ? 'stop' : 'start';
     try {
-      const r = await fetch(`${API}/api/admin/bot/${action}`, { method: 'POST', headers: { ...getH(), 'Content-Type': 'application/json' } });
+      const r = await fetch(`${API}/api/admin/bot/${action}`, {
+        method: 'POST',
+        headers: { ...getH(), 'Content-Type': 'application/json' },
+      });
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
-        console.error(`Bot ${action} failed:`, r.status, err);
         alert(`Erreur ${r.status}: ${err.error || 'Échec'}`);
       }
-    } catch (e) {
-      console.error(`Bot ${action} network error:`, e);
-      alert('Erreur réseau — le serveur est peut-être en train de démarrer. Réessaie dans 30s.');
+    } catch (e: any) {
+      alert(`Erreur réseau : ${e.message || 'inconnu'}`);
     }
     await load();
     setBusy(false);
   };
-  if (loading) return (<div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #8B5CF6', borderTopColor: 'transparent', animation: 'spin .8s linear infinite' }} /><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
-  const d = data!; const active = d?.bot?.isActive ?? false;
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-32">
+      <QwillioLoader size={120} fullscreen={false} />
+    </div>
+  );
+
+  if (error || !data) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+      <AlertCircle className="w-9 h-9 mb-3" style={{ color: C.bad }} />
+      <p className="text-sm" style={{ color: C.textSec }}>{error || 'Impossible de charger le dashboard'}</p>
+      <button onClick={load} className="mt-4 px-4 py-2 rounded-xl text-sm font-medium"
+              style={{ background: C.accent, color: '#fff' }}>
+        Réessayer
+      </button>
+    </div>
+  );
+
+  const d = data;
+  const active = d.bot?.isActive ?? false;
+  const quotaPct = d.bot?.callsQuota
+    ? Math.min(100, Math.round(((d.bot?.callsToday ?? 0) / d.bot.callsQuota) * 100))
+    : 0;
+
   return (
-    <div style={{ background: '#0a0a0a', minHeight: '100vh', color: 'white' }}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes orb-spin{to{transform:rotate(360deg)}} @keyframes orb-pulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:.15}} @keyframes fade-up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`}</style>
-      <div style={{ padding: '56px 20px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0, color: 'white' }}>Q</div>
-        <div style={{ flex: 1, background: '#161616', borderRadius: 20, padding: '10px 16px', fontSize: 14, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 8, border: '1px solid rgba(255,255,255,0.06)' }}>🔍 Rechercher</div>
-      </div>
-      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <C>
-          <div style={{ padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 4 }}>
-              <div style={{ position: 'relative', width: 40, height: 40, flexShrink: 0 }}>
-                {active ? (<><div style={{ position: 'absolute', inset: 0, borderRadius: '50%', animation: 'orb-spin 3s linear infinite', background: 'conic-gradient(from 0deg, #6366F1, #8B5CF6, #a78bfa, #6366F1)' }} /><div style={{ position: 'absolute', inset: 2, borderRadius: '50%', background: '#161616' }} /><div style={{ position: 'absolute', inset: 4, borderRadius: '50%', animation: 'orb-pulse 2.5s ease-in-out infinite', background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }} /></>) : (<div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />)}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 15, fontWeight: 600 }}>Bot Qwillio</span>
-                  {active && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', animation: 'blink 1.4s ease infinite', display: 'inline-block' }} />}
-                </div>
-                {active ? (
-                  <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {d.bot?.previousAction && (
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        ✓ {d.bot.previousAction.message}
-                      </div>
-                    )}
-                    <div key={prevAction} style={{ fontSize: 12, color: '#a78bfa', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', animation: actionAnim ? 'fade-up .35s ease' : 'none' }}>
-                      ▸ {d.bot?.lastAction?.message || 'En attente...'}
-                    </div>
-                    {d.bot?.nextAction && (
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        ○ {d.bot.nextAction.name} — dans {d.bot.nextAction.inMinutes < 60 ? `${d.bot.nextAction.inMinutes} min` : `${Math.floor(d.bot.nextAction.inMinutes / 60)}h${d.bot.nextAction.inMinutes % 60 > 0 ? String(d.bot.nextAction.inMinutes % 60).padStart(2, '0') : ''}`}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Inactif</div>
-                )}
-              </div>
-              <button onClick={toggle} disabled={busy} style={{ padding: '7px 16px', borderRadius: 20, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: active ? 'rgba(255,59,48,0.1)' : 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: active ? 'rgba(255,80,70,0.9)' : 'white', whiteSpace: 'nowrap', opacity: busy ? 0.5 : 1, boxShadow: active ? 'none' : '0 2px 12px rgba(139,92,246,0.3)' }}>{busy ? '...' : active ? 'Arrêter' : 'Démarrer'}</button>
+    <div className="space-y-8 max-w-[1200px]">
+
+      {/* ─── Header ─── */}
+      <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: C.text }}>Dashboard</h1>
+          <p className="text-[12.5px] mt-0.5" style={{ color: C.textSec }}>
+            Vue d'ensemble de la plateforme · Mis à jour {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+        <button onClick={load} className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
+                style={{ color: C.textSec }}>
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </motion.div>
+
+      {/* ─── Bot status card (compact, monochrome) ─── */}
+      <Card>
+        <div className="p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+               style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <Bot size={18} style={{ color: C.text }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: active ? C.ok : C.textTer, animation: active ? 'pulse 1.4s ease infinite' : undefined }} />
+              <span className="text-[13px] font-semibold" style={{ color: C.text }}>
+                {active ? 'Bot actif' : 'Bot en pause'}
+              </span>
+              {active && d.bot?.nextAction && (
+                <span className="text-[11px]" style={{ color: C.textTer }}>
+                  · prochaine action dans {d.bot.nextAction.inMinutes < 60
+                    ? `${d.bot.nextAction.inMinutes} min`
+                    : `${Math.floor(d.bot.nextAction.inMinutes / 60)} h`}
+                </span>
+              )}
             </div>
-            {[{ label: 'Prospects', sub: `+${d.prospects?.newThisMonth ?? 0} ce mois`, value: `${d.prospects?.total ?? 0}`, color: '#8B5CF6', icon: '◎', to: '/admin/prospects' }, { label: 'Clients', sub: `+${d.clients?.newThisMonth ?? 0} ce mois`, value: `${d.clients?.totalActive ?? 0}`, color: '#a78bfa', icon: '◍', to: '/admin/clients' }, { label: 'MRR', sub: 'récurrent', value: `${(d.revenue?.mrr ?? 0).toFixed(0)}€`, color: '#c4b5fd', icon: '◑', to: '/admin/billing' }].map((item, i) => (
-              <div key={i} onClick={() => nav(item.to)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none', cursor: 'pointer' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: item.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 16, color: item.color }}>{item.icon}</span></div>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 500 }}>{item.label}</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{item.sub}</div></div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: item.color }}>{item.value}</div>
-              </div>
-            ))}
+            {active
+              ? <p className="text-[11.5px] truncate" style={{ color: C.textSec }}>
+                  {d.bot?.lastAction?.message || 'En attente…'}
+                </p>
+              : <p className="text-[11.5px]" style={{ color: C.textTer }}>Les jobs automatiques ne tournent pas</p>
+            }
           </div>
-        </C>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 4px' }}>Appels</div>
-        <C>
-          <div style={{ padding: '4px 0' }}>
-            {[{ label: 'Aujourd\'hui', value: `${d.calls?.today ?? 0}`, sub: 'appels passés', pct: Math.min(100, ((d.calls?.today ?? 0) / (d.bot?.callsQuota ?? 50)) * 100) }, { label: 'Cette semaine', value: `${d.calls?.thisWeek ?? 0}`, sub: 'total', pct: null }, { label: 'Quota', value: `${d.bot?.callsToday ?? 0}/${d.bot?.callsQuota ?? 50}`, sub: "aujourd'hui", pct: Math.min(100, ((d.bot?.callsToday ?? 0) / (d.bot?.callsQuota ?? 50)) * 100) }].map((row, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>📞</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 500 }}>{row.label}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{row.sub}</div>
-                  {row.pct !== null && <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', marginTop: 6 }}><div style={{ height: '100%', borderRadius: 3, background: 'linear-gradient(90deg,#6366F1,#8B5CF6)', width: `${row.pct}%` }} /></div>}
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 600 }}>{row.value}</div>
-              </div>
-            ))}
+          <button onClick={toggleBot} disabled={busy}
+            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-[12px] font-medium transition-colors disabled:opacity-40"
+            style={{
+              background: active ? 'rgba(239,68,68,0.08)' : C.accent,
+              color:      active ? C.bad               : '#fff',
+              border:     active ? `1px solid rgba(239,68,68,0.25)` : 'none',
+            }}>
+            {busy ? '…' : active ? <><Pause size={12}/> Arrêter</> : <><Play size={12}/> Démarrer</>}
+          </button>
+        </div>
+      </Card>
+
+      {/* ─── KPI grid ─── */}
+      <section>
+        <SectionHead title="Aperçu" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Stat icon={Target}     label="Prospects"      value={d.prospects?.total ?? 0}
+                hint={`+${d.prospects?.newThisMonth ?? 0} ce mois`} to="/admin/prospects" />
+          <Stat icon={Users}      label="Clients actifs" value={d.clients?.totalActive ?? 0}
+                hint={`+${d.clients?.newThisMonth ?? 0} ce mois`}   to="/admin/clients" />
+          <Stat icon={DollarSign} label="MRR"            value={`${(d.revenue?.mrr ?? 0).toFixed(0)}€`}
+                hint="Récurrent mensuel"                            to="/admin/billing" />
+          <Stat icon={Phone}      label="Appels aujourd'hui"
+                value={d.calls?.today ?? 0}
+                hint={`Cette semaine : ${d.calls?.thisWeek ?? 0}`}   to="/admin/calls" />
+        </div>
+      </section>
+
+      {/* ─── Quota + state card ─── */}
+      <section>
+        <SectionHead title="Quota du jour" />
+        <Card>
+          <div className="p-4">
+            <div className="flex items-baseline justify-between mb-3">
+              <p className="text-[13px]" style={{ color: C.text }}>
+                <span className="text-[20px] font-semibold tabular-nums">{d.bot?.callsToday ?? 0}</span>
+                <span className="text-[13px]" style={{ color: C.textSec }}> / {d.bot?.callsQuota ?? 50} appels</span>
+              </p>
+              <span className="text-[11.5px] tabular-nums" style={{ color: C.textSec }}>{quotaPct}%</span>
+            </div>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <div className="h-full rounded-full transition-all"
+                   style={{
+                     width: `${quotaPct}%`,
+                     background: quotaPct > 90 ? C.bad : quotaPct > 70 ? C.warn : C.accent,
+                   }} />
+            </div>
           </div>
-        </C>
-        {(d.activity?.length ?? 0) > 0 && (<>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 4px' }}>Activité</div>
-          <C>
-            <div style={{ padding: '4px 0' }}>
-              {d.activity.slice(0, 5).map((a: any, i: number) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderBottom: i < 4 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#8B5CF6', opacity: 1 - i * 0.15 }} /></div>
-                  <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.description || a.message || a.type || '—'}</div></div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>{fmt(a.createdAt || a.timestamp)}</div>
+        </Card>
+      </section>
+
+      {/* ─── Recent activity ─── */}
+      {(d.activity?.length ?? 0) > 0 && (
+        <section>
+          <SectionHead
+            title="Activité récente"
+            action={<Link to="/admin/logs" className="text-[11.5px] font-medium hover:underline" style={{ color: C.textSec }}>Tout voir →</Link>}
+          />
+          <Card>
+            <div>
+              {d.activity.slice(0, 6).map((a: any, i: number) => (
+                <div key={i}
+                  className="flex items-center gap-3 px-4 py-3"
+                  style={{ borderTop: i > 0 ? `1px solid ${C.border}` : undefined }}>
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                       style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <Activity size={12} style={{ color: C.textSec }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] truncate" style={{ color: C.text }}>
+                      {a.description || a.message || a.type || '—'}
+                    </p>
+                  </div>
+                  <span className="text-[11px] flex-shrink-0 tabular-nums" style={{ color: C.textTer }}>
+                    {fmtRelative(a.createdAt || a.timestamp)}
+                  </span>
                 </div>
               ))}
             </div>
-          </C>
-        </>)}
-        <div style={{ height: 20 }} />
-      </div>
+          </Card>
+        </section>
+      )}
+
+      {/* ─── Quick actions ─── */}
+      <section>
+        <SectionHead title="Accès rapide" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <QuickAction icon={Target}       label="Prospects"    desc="Base et scoring"        to="/admin/prospects" />
+          <QuickAction icon={Phone}        label="Appels"       desc="Journal et analyses"    to="/admin/calls" />
+          <QuickAction icon={Zap}          label="Leads"        desc="Conversions récentes"   to="/admin/leads" />
+          <QuickAction icon={CreditCard}   label="Facturation"  desc="Clients et MRR"         to="/admin/billing" />
+        </div>
+      </section>
+
+      {/* ─── Management strip ─── */}
+      <section>
+        <SectionHead title="Gestion" />
+        <Card>
+          <Link to="/admin/ai-learning"
+            className="flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.02] transition-colors"
+            style={{ borderBottom: `1px solid ${C.border}` }}>
+            <Sparkles size={14} style={{ color: C.textSec }} />
+            <div className="flex-1">
+              <p className="text-[13px] font-medium" style={{ color: C.text }}>IA — apprentissage</p>
+              <p className="text-[11.5px]" style={{ color: C.textTer }}>Scripts, variants A/B, décisions</p>
+            </div>
+            <ChevronRight size={14} style={{ color: C.textTer }} />
+          </Link>
+          <Link to="/admin/logs"
+            className="flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.02] transition-colors"
+            style={{ borderBottom: `1px solid ${C.border}` }}>
+            <BarChart3 size={14} style={{ color: C.textSec }} />
+            <div className="flex-1">
+              <p className="text-[13px] font-medium" style={{ color: C.text }}>Logs temps réel</p>
+              <p className="text-[11.5px]" style={{ color: C.textTer }}>Événements serveur et crons</p>
+            </div>
+            <ChevronRight size={14} style={{ color: C.textTer }} />
+          </Link>
+          <button onClick={() => nav('/admin/settings')}
+            className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.02] transition-colors text-left">
+            <SettingsIcon size={14} style={{ color: C.textSec }} />
+            <div className="flex-1">
+              <p className="text-[13px] font-medium" style={{ color: C.text }}>Paramètres</p>
+              <p className="text-[11.5px]" style={{ color: C.textTer }}>Général, système, campagnes, coûts</p>
+            </div>
+            <ChevronRight size={14} style={{ color: C.textTer }} />
+          </button>
+        </Card>
+      </section>
+
+      <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }`}</style>
     </div>
   );
 };
+
 export default Dashboard;
