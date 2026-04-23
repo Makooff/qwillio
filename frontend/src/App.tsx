@@ -42,6 +42,7 @@ const ClientCalls = lazy(() => import('./pages/client/ClientCalls'));
 const ClientLeads = lazy(() => import('./pages/client/ClientLeads'));
 const ClientReceptionist = lazy(() => import('./pages/client/ClientReceptionist'));
 const ClientAccount = lazy(() => import('./pages/client/ClientAccount'));
+const ClientSetupForwarding = lazy(() => import('./pages/client/ClientSetupForwarding'));
 const ClientSupport = lazy(() => import('./pages/client/ClientSupport'));
 const ClientAnalytics = lazy(() => import('./pages/client/ClientAnalytics'));
 const ClientBilling = lazy(() => import('./pages/client/ClientBilling'));
@@ -188,6 +189,7 @@ export default function App() {
           <Route path="analytics" element={<Suspense fallback={<Spinner />}><ClientAnalytics /></Suspense>} />
           <Route path="billing" element={<Suspense fallback={<Spinner />}><ClientBilling /></Suspense>} />
           <Route path="account" element={<Suspense fallback={<Spinner />}><ClientAccount /></Suspense>} />
+          <Route path="setup/call-forwarding" element={<Suspense fallback={<Spinner />}><ClientSetupForwarding /></Suspense>} />
           <Route path="support" element={<Suspense fallback={<Spinner />}><ClientSupport /></Suspense>} />
           {/* Agent IA */}
           <Route path="agent" element={<Suspense fallback={<Spinner />}><AgentDashboard /></Suspense>} />

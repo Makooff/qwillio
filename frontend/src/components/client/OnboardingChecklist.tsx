@@ -39,7 +39,7 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
     {
       label: 'Configurer votre numéro de téléphone',
       done: !!(client.hasPhone || client.transferNumber || client.vapiPhoneNumber),
-      to: '/dashboard/receptionist',
+      to: '/dashboard/setup/call-forwarding',
       icon: Phone,
     },
     {
