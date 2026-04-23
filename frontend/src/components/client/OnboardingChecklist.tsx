@@ -1,15 +1,22 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Phone, PhoneCall, Settings, Rocket, X, PartyPopper } from 'lucide-react';
+import {
+  Check, Phone, PhoneCall, Settings, Rocket, X, PartyPopper,
+  PhoneForwarded, ChevronRight,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
+import { pro } from '../../styles/pro-theme';
 
 interface OnboardingClient {
   hasPhone?: boolean;
   hasTestCall?: boolean;
   hasCustomConfig?: boolean;
+  hasCallForwarding?: boolean;
   isActive?: boolean;
   transferNumber?: string;
   vapiPhoneNumber?: string;
+  forwardingVerifiedAt?: string | null;
+  forwardingStatus?: string | null;
   subscriptionStatus?: string;
   businessName?: string;
 }
@@ -21,6 +28,7 @@ interface Props {
 
 interface Step {
   label: string;
+  hint: string;
   done: boolean;
   to: string;
   icon: React.ElementType;
@@ -29,36 +37,55 @@ interface Step {
 export default function OnboardingChecklist({ client, onDismiss }: Props) {
   const [dismissed, setDismissed] = useState(false);
 
+  const forwardingDone = !!(
+    client.hasCallForwarding ||
+    client.forwardingVerifiedAt ||
+    client.forwardingStatus === 'verified'
+  );
+
   const steps: Step[] = [
     {
       label: 'Compte créé',
-      done: true,
-      to: '/dashboard',
-      icon: Check,
+      hint:  'Bienvenue sur Qwillio',
+      done:  true,
+      to:    '/dashboard',
+      icon:  Check,
     },
     {
-      label: 'Configurer votre numéro de téléphone',
-      done: !!(client.hasPhone || client.transferNumber || client.vapiPhoneNumber),
-      to: '/dashboard/setup/call-forwarding',
-      icon: Phone,
+      // ── The important one — expose the forwarding setup explicitly ──
+      label: 'Rediriger vos appels vers Qwillio',
+      hint:  'iPhone ou Android — guide pas à pas, activation en 1 clic',
+      done:  forwardingDone,
+      to:    '/dashboard/setup/call-forwarding',
+      icon:  PhoneForwarded,
+    },
+    {
+      label: 'Configurer votre numéro de contact',
+      hint:  'Ajoutez le numéro interne vers lequel transférer les urgences',
+      done:  !!(client.transferNumber || client.vapiPhoneNumber),
+      to:    '/dashboard/receptionist#transfer',
+      icon:  Phone,
     },
     {
       label: 'Tester un appel de démonstration',
-      done: !!client.hasTestCall,
-      to: '/dashboard/calls',
-      icon: PhoneCall,
+      hint:  'Appelez votre numéro Qwillio pour écouter Ashley en direct',
+      done:  !!client.hasTestCall,
+      to:    '/dashboard/calls',
+      icon:  PhoneCall,
     },
     {
       label: 'Personnaliser votre réceptionniste',
-      done: !!client.hasCustomConfig,
-      to: '/dashboard/receptionist',
-      icon: Settings,
+      hint:  'Voix, scripts, FAQ, intégration calendrier',
+      done:  !!client.hasCustomConfig,
+      to:    '/dashboard/receptionist',
+      icon:  Settings,
     },
     {
       label: 'Activer en production',
-      done: !!(client.isActive || client.subscriptionStatus === 'active'),
-      to: '/dashboard/billing',
-      icon: Rocket,
+      hint:  'Abonnement actif — appels comptabilisés dans votre quota',
+      done:  !!(client.isActive || client.subscriptionStatus === 'active'),
+      to:    '/dashboard/billing',
+      icon:  Rocket,
     },
   ];
 
@@ -70,113 +97,90 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-white/[0.06] p-5"
-      style={{
-        background: 'rgba(255,255,255,0.025)',
-        backdropFilter: 'blur(40px)',
-        WebkitBackdropFilter: 'blur(40px)',
-      }}
+      className="rounded-2xl overflow-hidden border"
+      style={{ background: pro.panel, borderColor: pro.border }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-sm font-semibold text-[#F8F8FF]">
-            {allDone ? 'Configuration terminée !' : 'Démarrer avec Qwillio'}
-          </h3>
-          <p className="text-[10px] text-[#8B8BA7] mt-0.5">
+      <div className="flex items-center justify-between px-5 pt-4 pb-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
             {allDone
-              ? 'Votre réceptionniste IA est prête.'
-              : `${doneCount} sur ${steps.length} étapes complétées`}
+              ? <PartyPopper size={15} style={{ color: pro.ok }} />
+              : <span className="w-1.5 h-1.5 rounded-full" style={{ background: pro.accent }} />
+            }
+            <h3 className="text-[13px] font-semibold" style={{ color: pro.text }}>
+              {allDone ? 'Vous êtes prêt' : 'Démarrer avec Qwillio'}
+            </h3>
+          </div>
+          <p className="text-[11.5px] mt-0.5" style={{ color: pro.textSec }}>
+            {doneCount} / {steps.length} étape{doneCount > 1 ? 's' : ''} complétée{doneCount > 1 ? 's' : ''}
           </p>
         </div>
-        {allDone && (
+        {(allDone || onDismiss) && (
           <button
             onClick={() => { setDismissed(true); onDismiss?.(); }}
-            className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors"
+            className="p-1 rounded hover:bg-white/[0.06]"
+            style={{ color: pro.textTer }}
           >
-            <X className="w-4 h-4 text-[#8B8BA7]" />
+            <X size={14} />
           </button>
         )}
       </div>
 
       {/* Progress bar */}
-      <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden mb-5">
-        <motion.div
-          className="h-full rounded-full"
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          style={{
-            background: allDone
-              ? '#22C55E'
-              : 'linear-gradient(90deg, #7B5CF0, #A78BFA)',
-          }}
+      <div className="h-1 mx-5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, background: allDone ? pro.ok : pro.accent }}
         />
       </div>
 
-      {/* All done message */}
-      {allDone ? (
-        <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/15 rounded-xl px-4 py-3">
-          <PartyPopper className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-emerald-400">Félicitations !</p>
-            <p className="text-xs text-[#8B8BA7]">
-              Toutes les étapes sont complétées. Votre réceptionniste IA est en service.
-            </p>
-          </div>
-        </div>
-      ) : (
-        /* Steps list */
-        <div className="space-y-1">
-          {steps.map((step, i) => (
+      {/* Steps list */}
+      <div className="mt-4">
+        {steps.map((s, i) => {
+          const highlighted = !s.done && steps.slice(0, i).every(x => x.done);
+          return (
             <Link
               key={i}
-              to={step.done ? '#' : step.to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${
-                step.done
-                  ? 'opacity-60 cursor-default'
-                  : 'hover:bg-white/[0.03] cursor-pointer'
-              }`}
-              onClick={step.done ? (e) => e.preventDefault() : undefined}
+              to={s.to}
+              className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-white/[0.02]"
+              style={{
+                borderTop: `1px solid ${pro.border}`,
+                background: highlighted ? 'rgba(123,92,240,0.05)' : undefined,
+              }}
             >
-              {/* Checkbox circle */}
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border transition-colors ${
-                  step.done
-                    ? 'bg-emerald-500/20 border-emerald-500/30'
-                    : 'border-white/[0.12] group-hover:border-[#7B5CF0]/40'
-                }`}
+                className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: s.done ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                  border: highlighted ? `1px solid ${pro.accent}55` : undefined,
+                }}
               >
-                {step.done ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <step.icon className="w-3.5 h-3.5 text-[#8B8BA7] group-hover:text-[#7B5CF0]" />
+                {s.done
+                  ? <Check size={13} style={{ color: pro.ok }} />
+                  : <s.icon size={12} style={{ color: highlighted ? pro.accent : pro.textSec }} />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p
+                  className={`text-[13px] font-medium truncate ${s.done ? 'line-through' : ''}`}
+                  style={{ color: s.done ? pro.textTer : pro.text }}
+                >
+                  {s.label}
+                </p>
+                {!s.done && (
+                  <p className="text-[11px] truncate" style={{ color: pro.textTer }}>{s.hint}</p>
                 )}
               </div>
-
-              {/* Label */}
-              <span
-                className={`text-sm flex-1 ${
-                  step.done
-                    ? 'text-[#8B8BA7] line-through'
-                    : 'text-[#F8F8FF] group-hover:text-white'
-                }`}
-              >
-                {step.label}
-              </span>
-
-              {/* Arrow for incomplete */}
-              {!step.done && (
-                <span className="text-xs text-[#8B8BA7] group-hover:text-[#7B5CF0] transition-colors">
-                  Configurer &rarr;
-                </span>
+              {!s.done && (
+                <ChevronRight size={14} style={{ color: highlighted ? pro.accent : pro.textTer }} />
               )}
             </Link>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </motion.div>
   );
 }

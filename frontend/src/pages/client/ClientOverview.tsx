@@ -251,7 +251,7 @@ export default function ClientOverview() {
         <Card className="px-5 py-3 flex items-center gap-3" >
           <AlertCircle size={14} style={{ color: C.bad }} />
           <p className="text-[13px] flex-1" style={{ color: C.text }}>Numéro de transfert non configuré</p>
-          <Link to="/dashboard/setup/call-forwarding" className="text-[12.5px] font-medium hover:underline whitespace-nowrap" style={{ color: C.accent }}>
+          <Link to="/dashboard/receptionist#transfer" className="text-[12.5px] font-medium hover:underline whitespace-nowrap" style={{ color: C.accent }}>
             Configurer →
           </Link>
         </Card>
