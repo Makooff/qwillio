@@ -672,7 +672,7 @@ class BotLoop {
     // Syncs active CRM integrations (placeholder per-provider logic)
     // ═══════════════════════════════════════════════════════════
     this.crmSyncJob = cron.schedule('*/15 * * * *', async () => {
-      logger.info('[CRON] CRM sync running...');
+      logger.debug('[CRON] CRM sync running...');
       trackAction('Synchronisation CRM intégrations');
       try {
         const integrations = await prisma.crmIntegration.findMany({ where: { syncStatus: { not: 'disabled' } } });
@@ -715,7 +715,9 @@ class BotLoop {
             data: { forwardingVerifiedAt: new Date() },
           });
         }
-        logger.info(`[CRON] Forwarding verification completed for ${clients.length} clients`);
+        if (clients.length > 0) {
+          logger.info(`[CRON] Forwarding verification completed for ${clients.length} clients`);
+        }
       } catch (error) {
         logger.error('[CRON] Forwarding verification error:', error);
       }

@@ -216,7 +216,9 @@ export class AgentPaymentsService {
         }
       }
 
-      logger.info(`Processed ${overdueInvoices.length} overdue invoices`);
+      if (overdueInvoices.length > 0) {
+        logger.info(`Processed ${overdueInvoices.length} overdue invoices`);
+      }
     } catch (error) {
       logger.error('Failed to process overdue invoices:', error);
     }

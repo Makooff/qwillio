@@ -210,7 +210,7 @@ export class OutboundEngineService {
     });
 
     if (!prospect || !prospect.phone) {
-      logger.info('[OutboundEngine] No eligible prospects found');
+      logger.debug('[OutboundEngine] No eligible prospects found');
       return false;
     }
 

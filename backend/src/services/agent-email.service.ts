@@ -538,7 +538,9 @@ Body: ${email.bodyPreview.substring(0, 500)}`;
       select: { clientId: true },
     });
 
-    logger.info(`syncAllClients: processing ${configuredClients.length} clients`);
+    if (configuredClients.length > 0) {
+      logger.info(`syncAllClients: processing ${configuredClients.length} clients`);
+    }
 
     for (const { clientId } of configuredClients) {
       try {

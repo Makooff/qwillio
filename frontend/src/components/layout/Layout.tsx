@@ -324,21 +324,6 @@ export default function Layout() {
             <h1 className="text-sm font-semibold" style={{ color: t.text }}>{pageTitle}</h1>
           </div>
 
-          {/* Search */}
-          <button
-            onClick={() => setCmdOpen(true)}
-            className="flex items-center gap-2 flex-1 max-w-xs mx-auto md:mx-0 md:ml-4
-              px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.06]
-              text-sm hover:bg-white/[0.08] transition-all"
-            style={{ color: t.textSec }}
-          >
-            <Search className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="hidden sm:block flex-1 text-left">Search...</span>
-            <kbd className="hidden sm:flex items-center gap-0.5 text-[10px] bg-white/[0.06] px-1.5 py-0.5 rounded-md border border-white/[0.08]">
-              ⌘K
-            </kbd>
-          </button>
-
           <div className="flex items-center gap-2 ml-auto">
             {/* Refresh */}
             <button

@@ -66,7 +66,14 @@ const prisma = basePrisma.$extends({
           const isRetryable = RETRYABLE_ERRORS.some(e => msg.includes(e));
           if (isRetryable && attempt < MAX_RETRIES) {
             const backoff = 250 * Math.pow(2, attempt); // 250, 500, 1000 ms
-            logger.warn(`[prisma] transient DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms…`);
+            // Only surface the retry if we're already at the 2nd attempt —
+            // a first-try reconnect is so frequent on Neon that it pollutes
+            // the log without being actionable.
+            if (attempt >= 1) {
+              logger.warn(`[prisma] transient DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms…`);
+            } else {
+              logger.debug(`[prisma] transient DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms…`);
+            }
             await new Promise(r => setTimeout(r, backoff));
             continue;
           }
