@@ -366,7 +366,7 @@ function MobileBottomNav({
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
               border: '1.5px solid rgba(123,92,240,0.50)',
-              boxShadow: '0 0 28px rgba(123,92,240,0.30), inset 0 1px 0 rgba(255,255,255,0.14)',
+              boxShadow: '0 0 32px rgba(123,92,240,0.35), inset 0 1px 0 rgba(255,255,255,0.16)',
             }}
           />
         )}
