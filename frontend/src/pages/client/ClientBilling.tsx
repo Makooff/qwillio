@@ -74,7 +74,7 @@ export default function ClientBilling() {
   if (loading) {
     return (
       <div className="flex justify-center py-16">
-        <OrbsLoader size={120} fullscreen={false} />
+        <OrbsLoader size={40} fullscreen={false} />
       </div>
     );
   }

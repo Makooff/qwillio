@@ -83,7 +83,7 @@ export default function ClientDashboardJWT() {
   }
 
   if (loading) {
-    return <OrbsLoader size={128} label={t('portal.loading')} />;
+    return <OrbsLoader size={40} label={t('portal.loading')} />;
   }
 
   const ov = data.overview || {};

@@ -148,7 +148,7 @@ export default function ClientOverview() {
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-32 gap-4">
-      <OrbsLoader size={120} fullscreen={false} />
+      <OrbsLoader size={40} fullscreen={false} />
       {paymentPending && (
         <div className="text-center">
           <p className="text-sm font-medium" style={{ color: C.text }}>Paiement reçu</p>

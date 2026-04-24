@@ -56,7 +56,7 @@ export default function AppBootOverlay({
         pointerEvents: fadingOut ? 'none' : 'auto',
       }}
     >
-      <QwillioLoader fullscreen={false} size={160} />
+      <QwillioLoader fullscreen={false} size={96} />
     </div>
   );
 }

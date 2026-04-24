@@ -35,7 +35,7 @@ export default function Costs() {
 
   if (loading && !data) return (
     <div className="flex items-center justify-center py-32">
-      <OrbsLoader size={120} fullscreen={false} />
+      <OrbsLoader size={40} fullscreen={false} />
     </div>
   );
 

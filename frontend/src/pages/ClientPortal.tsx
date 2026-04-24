@@ -92,7 +92,7 @@ export default function ClientPortal() {
     return (
       <>
         <LangToggle className="fixed top-4 right-4 z-50" />
-        <OrbsLoader size={128} label={t('portal.loading')} />
+        <OrbsLoader size={40} label={t('portal.loading')} />
       </>
     );
   }

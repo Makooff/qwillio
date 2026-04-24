@@ -163,7 +163,7 @@ export default function ClientLeads() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <OrbsLoader size={120} fullscreen={false} />
+          <OrbsLoader size={40} fullscreen={false} />
         </div>
       ) : filteredLeads.length === 0 ? (
         <EmptyState icon={Users} title="Aucun lead trouvé" description="Les leads apparaîtront une fois que votre IA qualifie les appelants" />

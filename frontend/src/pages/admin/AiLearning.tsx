@@ -70,7 +70,7 @@ export default function AiLearning() {
   if (loading && !stats && mutations.length === 0 && abTests.length === 0) {
     return (
       <div className="flex items-center justify-center py-32">
-        <OrbsLoader size={120} fullscreen={false} />
+        <OrbsLoader size={40} fullscreen={false} />
       </div>
     );
   }

@@ -115,7 +115,7 @@ function ScrollToTop() {
 }
 
 function Spinner() {
-  return <OrbsLoader size={128} />;
+  return <OrbsLoader size={40} />;
 }
 
 function homeRoute(user: { role: string }) {

@@ -116,7 +116,7 @@ export default function AiDecisions() {
       <Card>
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <OrbsLoader size={120} fullscreen={false} />
+            <OrbsLoader size={40} fullscreen={false} />
           </div>
         ) : data.length === 0 ? (
           <div className="p-12 text-center" style={{ color: pro.textTer }}>
