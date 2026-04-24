@@ -73,10 +73,14 @@ export default function DashboardShell(props: DashboardShellProps) {
   );
   const mainRef = useRef<HTMLElement>(null);
 
-  // Scroll main + window to top on every route change
-  useEffect(() => {
+  const scrollToTop = () => {
     mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  };
+
+  // Scroll main + window to top on every route change
+  useEffect(() => {
+    scrollToTop();
   }, [location.pathname]);
 
   const isActive = (path: string, exact?: boolean) =>
@@ -93,7 +97,7 @@ export default function DashboardShell(props: DashboardShellProps) {
     return (
       <Link
         to={item.path}
-        onClick={() => setMobileOpen(false)}
+        onClick={() => { setMobileOpen(false); scrollToTop(); }}
         title={collapsed ? item.label : undefined}
         className={`relative flex items-center gap-3 rounded-xl transition-all duration-150 group
           ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
@@ -123,7 +127,7 @@ export default function DashboardShell(props: DashboardShellProps) {
     return (
       <Link
         to={item.path}
-        onClick={() => setMobileOpen(false)}
+        onClick={() => { setMobileOpen(false); scrollToTop(); }}
         className={`flex items-center gap-3 py-2 rounded-xl transition-colors pl-9 pr-3
           ${active ? '' : 'hover:bg-white/[0.04]'}`}
         style={{ color: active ? t.brand : t.textSec }}
@@ -322,7 +326,7 @@ export default function DashboardShell(props: DashboardShellProps) {
       </div>
 
       {/* Mobile bottom nav — floating pill with sliding bubble (scoped per dashboard) */}
-      <MobileBottomNav items={mobileNav} pathname={location.pathname} scope={scope} />
+      <MobileBottomNav items={mobileNav} pathname={location.pathname} scope={scope} onTap={scrollToTop} />
 
       {overlay}
     </div>
@@ -330,8 +334,8 @@ export default function DashboardShell(props: DashboardShellProps) {
 }
 
 function MobileBottomNav({
-  items, pathname, scope,
-}: { items: NavItem[]; pathname: string; scope: string }) {
+  items, pathname, scope, onTap,
+}: { items: NavItem[]; pathname: string; scope: string; onTap?: () => void }) {
   const activeIdx = items.findIndex(item =>
     item.exact ? pathname === item.path : pathname.startsWith(item.path)
   );
@@ -377,7 +381,8 @@ function MobileBottomNav({
             <Link
               key={item.path}
               to={item.path}
-              className="relative z-10 flex flex-col items-center gap-0.5 w-[18%] py-0.5"
+              onClick={() => onTap?.()}
+              className="relative z-10 flex-1 flex flex-col items-center gap-0.5 py-0.5"
               style={{ color: active ? '#fff' : 'rgba(255,255,255,0.38)' }}
             >
               <item.icon className="relative z-10 w-[22px] h-[22px]" />
