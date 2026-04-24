@@ -80,7 +80,19 @@ const CloserAccount        = lazy(() => import('./pages/closer/CloserAccount'));
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Force every possible scrolling element back to the top.
+    // iOS Safari / Chrome can scroll the document when the URL bar collapses,
+    // so window.scrollTo alone isn't always enough.
+    const jump = () => {
+      window.scrollTo(0, 0);
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    };
+    jump();
+    // Run again on the next frame so it wins the race against the freshly
+    // mounted page's layout.
+    const r = requestAnimationFrame(jump);
+    return () => cancelAnimationFrame(r);
   }, [pathname]);
   return null;
 }

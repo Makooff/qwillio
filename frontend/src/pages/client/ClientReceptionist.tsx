@@ -5,12 +5,29 @@ import {
   Activity, Save, Power, Globe, User, Clock, Shield, Calendar,
   Volume2, Languages, Building2, MapPin, Settings,
   ChevronDown, ChevronRight, Copy, CheckCircle2, XCircle,
+  BookOpen, Tag, HelpCircle, Clock3, StickyNote,
 } from 'lucide-react';
 import api from '../../services/api';
 import QwillioLoader from "../../components/QwillioLoader";
 
-const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
-const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
+const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
+const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
+
+const PLACEHOLDERS_BY_NICHE: Record<string, string> = {
+  salon:        'Coupe femme 35€\nCoupe homme 25€\nColoration à partir de 55€\nBalayage 90€',
+  dental:       'Consultation 50€\nDétartrage 80€\nCarie simple 120€\nCouronne céramique 700€',
+  law:          'Consultation initiale 30 min — gratuite\nHeure de conseil 180€ HT\nForfait divorce à l\'amiable à partir de 1 200€ HT',
+  restaurant:   'Menu midi 18€\nMenu découverte 3 plats 32€\nMenu dégustation 7 plats 68€\nBoissons non incluses',
+  hotel:        'Chambre standard 95€ / nuit\nChambre supérieure 140€ / nuit\nSuite 220€ / nuit\nPetit-déj inclus',
+  auto:         'Vidange + filtre à partir de 80€\nFreins avant 150€\nContrôle technique 78€\nDiagnostic 50€',
+  medical:      'Consultation 30€ (conventionné)\nVisite à domicile 45€\nDépassement sur rendez-vous spécialisé',
+  home_services:'Déplacement 45€\nHeure d\'intervention 55€\nDevis gratuit sous 24h',
+  garage:       'Vidange 80€\nPneu monté/équilibré à partir de 35€\nEmbrayage 500€',
+};
+
+function placeholderForPriceList(niche: string): string {
+  return PLACEHOLDERS_BY_NICHE[niche] || 'Prestation A — prix\nPrestation B — prix\nOptions, remises, etc.';
+}
 
 function Section({ title, icon: Icon, children, defaultOpen = true }: {
   title: string; icon: React.ElementType; color?: string; children: React.ReactNode; defaultOpen?: boolean;
@@ -61,6 +78,12 @@ export default function ClientReceptionist() {
   const [postalCode, setPostalCode] = useState('');
   const [forwardingType, setForwardingType] = useState('');
   const [googleCalendarId, setGoogleCalendarId] = useState('');
+  // Knowledge base (stored inside vapiConfig JSON, exposed top-level)
+  const [priceList, setPriceList] = useState('');
+  const [faq, setFaq] = useState('');
+  const [services, setServices] = useState('');
+  const [hours, setHours] = useState('');
+  const [specialNotes, setSpecialNotes] = useState('');
 
   const load = useCallback(async () => {
     setError(null);
@@ -83,6 +106,11 @@ export default function ClientReceptionist() {
       setPostalCode(s?.postalCode || '');
       setForwardingType(s?.forwardingType || '');
       setGoogleCalendarId(s?.googleCalendarId || '');
+      setPriceList(s?.priceList || '');
+      setFaq(s?.faq || '');
+      setServices(s?.services || '');
+      setHours(s?.hours || '');
+      setSpecialNotes(s?.specialNotes || '');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Erreur de chargement');
     } finally {
@@ -111,6 +139,7 @@ export default function ClientReceptionist() {
         businessName, businessType, transferNumber, agentName,
         agentLanguage, contactPhone, address, city, postalCode,
         forwardingType, googleCalendarId,
+        priceList, faq, services, hours, specialNotes,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -261,7 +290,7 @@ export default function ClientReceptionist() {
               { label: 'Leads',   value: overview?.leads?.thisMonth || 0 },
               { label: 'Total',   value: settings?.totalCallsMade || client.totalCallsMade || 0 },
             ].map((s, i) => (
-              <div key={i} className="bg-[#0D0D15] rounded-lg p-2.5 text-center">
+              <div key={i} className="bg-[#0A0A0C] rounded-lg p-2.5 text-center">
                 <p className="text-[18px] font-semibold tabular-nums text-[#F2F2F2]">{s.value}</p>
                 <p className="text-[9px] text-[#9A9AA5] uppercase tracking-wider mt-0.5">{s.label}</p>
               </div>
@@ -320,6 +349,90 @@ export default function ClientReceptionist() {
               <option value="home_services">Services maison</option>
               <option value="other">Autre</option>
             </select>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── Connaissances IA (niche-specific) ── */}
+      <Section title="Base de connaissances" icon={BookOpen} color="#7B5CF0" defaultOpen={false}>
+        <p className="text-[12px] text-[#9A9AA5] mb-4 leading-relaxed">
+          Remplissez les champs utiles à votre activité. L'IA s'appuie sur ces
+          informations pour répondre aux questions des appelants (prix, horaires,
+          services, FAQ).
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
+              <Tag size={12} /> Menu / Tarifs
+            </label>
+            <textarea
+              value={priceList}
+              onChange={e => setPriceList(e.target.value)}
+              rows={6}
+              placeholder={placeholderForPriceList(businessType)}
+              className={`${inputCls} resize-y leading-relaxed`}
+              style={{ minHeight: 140 }}
+            />
+            <p className="text-[11px] text-[#6B6B75] mt-1">
+              Exemple : « Coupe homme 25€ · Coupe + barbe 35€ · Coloration à partir de 50€ »
+            </p>
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
+              <Settings size={12} /> Services proposés
+            </label>
+            <textarea
+              value={services}
+              onChange={e => setServices(e.target.value)}
+              rows={4}
+              placeholder="Listez vos prestations, un élément par ligne."
+              className={`${inputCls} resize-y leading-relaxed`}
+              style={{ minHeight: 100 }}
+            />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
+              <Clock3 size={12} /> Horaires d'ouverture
+            </label>
+            <textarea
+              value={hours}
+              onChange={e => setHours(e.target.value)}
+              rows={3}
+              placeholder="Ex. : Lun-Ven 9h-18h · Sam 10h-16h · Dim fermé"
+              className={`${inputCls} resize-y leading-relaxed`}
+              style={{ minHeight: 80 }}
+            />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
+              <HelpCircle size={12} /> FAQ
+            </label>
+            <textarea
+              value={faq}
+              onChange={e => setFaq(e.target.value)}
+              rows={6}
+              placeholder="Q : Faut-il réserver ?&#10;R : Oui, on privilégie le rendez-vous, mais on accepte aussi les walk-ins si le créneau est libre."
+              className={`${inputCls} resize-y leading-relaxed`}
+              style={{ minHeight: 140 }}
+            />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
+              <StickyNote size={12} /> Notes et consignes
+            </label>
+            <textarea
+              value={specialNotes}
+              onChange={e => setSpecialNotes(e.target.value)}
+              rows={4}
+              placeholder="Tout ce que l'IA doit savoir : promotions en cours, restrictions, ton à adopter, mots à éviter…"
+              className={`${inputCls} resize-y leading-relaxed`}
+              style={{ minHeight: 100 }}
+            />
           </div>
         </div>
       </Section>

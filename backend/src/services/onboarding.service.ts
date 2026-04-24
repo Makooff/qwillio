@@ -306,6 +306,18 @@ export class OnboardingService {
     // Get industry-specific knowledge
     const industryKnowledge = this.getIndustryKnowledge(client.businessType);
 
+    // Per-client knowledge stored in vapiConfig JSON (menu/prix, services, horaires, FAQ)
+    const cfg = (client.vapiConfig as any) || {};
+    const clientKnowledgeBlocks: string[] = [];
+    if (cfg.priceList)    clientKnowledgeBlocks.push(`MENU / PRICES:\n${cfg.priceList}`);
+    if (cfg.services)     clientKnowledgeBlocks.push(`SERVICES OFFERED:\n${cfg.services}`);
+    if (cfg.hours)        clientKnowledgeBlocks.push(`BUSINESS HOURS:\n${cfg.hours}`);
+    if (cfg.faq)          clientKnowledgeBlocks.push(`FAQ (answer these with the given answers):\n${cfg.faq}`);
+    if (cfg.specialNotes) clientKnowledgeBlocks.push(`SPECIAL NOTES AND CONSTRAINTS:\n${cfg.specialNotes}`);
+    const clientKnowledge = clientKnowledgeBlocks.length
+      ? '\n' + clientKnowledgeBlocks.join('\n\n') + '\n'
+      : '';
+
     // Build transfer instructions based on whether client has a transfer number
     const transferInstructions = client.transferNumber
       ? `
@@ -345,7 +357,7 @@ BUSINESS INFORMATION:
 - Phone: ${client.contactPhone || 'N/A'}
 - Email: ${client.contactEmail}
 
-${industryKnowledge}
+${industryKnowledge}${clientKnowledge}
 ${transferInstructions}
 
 YOUR STYLE:
@@ -361,7 +373,7 @@ GENERAL INSTRUCTIONS:
 1. For questions outside your knowledge: offer to take a message
 2. For urgent matters: offer to transfer the call immediately
 3. Always end with "Is there anything else I can help you with?"
-4. If asked about pricing and you don't have specifics, say you'll have someone get back to them
+4. If asked about pricing: answer precisely from MENU / PRICES above when available; otherwise say you'll have someone get back to them
 
 IMPORTANT: You represent ${client.businessName} - be impeccable!`;
   }

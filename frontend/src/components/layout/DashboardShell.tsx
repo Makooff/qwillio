@@ -74,13 +74,24 @@ export default function DashboardShell(props: DashboardShellProps) {
   const mainRef = useRef<HTMLElement>(null);
 
   const scrollToTop = () => {
-    mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    // On desktop + most mobile setups the main is the scroll container
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+      mainRef.current.scrollLeft = 0;
+    }
+    // iOS Safari / Chrome can scroll the document when the URL bar hides —
+    // force every possible scrolling element back to the top so the sticky
+    // header never overlaps the page title.
+    window.scrollTo(0, 0);
+    if (document.documentElement) document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
   };
 
-  // Scroll main + window to top on every route change
+  // Scroll to top on every route change — after the new page has mounted
   useEffect(() => {
     scrollToTop();
+    const r = requestAnimationFrame(scrollToTop);
+    return () => cancelAnimationFrame(r);
   }, [location.pathname]);
 
   const isActive = (path: string, exact?: boolean) =>

@@ -226,7 +226,17 @@ export class ClientDashboardController {
         },
       });
       if (!client) return res.status(404).json({ error: 'Client not found' });
-      res.json(client);
+      // Surface JSON-held knowledge fields at top level so the UI can bind
+      // directly (priceList, faq, services, hours, specialNotes).
+      const cfg = (client.vapiConfig as any) || {};
+      res.json({
+        ...client,
+        priceList:    cfg.priceList    ?? '',
+        faq:          cfg.faq          ?? '',
+        services:     cfg.services     ?? '',
+        hours:        cfg.hours        ?? '',
+        specialNotes: cfg.specialNotes ?? '',
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -251,6 +261,25 @@ export class ClientDashboardController {
       if (body.forwardingType !== undefined) updateData.forwardingType = body.forwardingType || null;
       if (body.loomVideoUrl !== undefined) updateData.loomVideoUrl = body.loomVideoUrl || null;
       if (body.googleCalendarId !== undefined) updateData.googleCalendarId = body.googleCalendarId || null;
+
+      // Merge knowledge-base fields into vapiConfig JSON so the IA has context
+      // (menu/prix, FAQ, services, horaires, notes).  Avoids a schema change.
+      const knowledgeFields = ['priceList', 'faq', 'services', 'hours', 'specialNotes'] as const;
+      const hasKnowledgeUpdate = knowledgeFields.some(k => body[k] !== undefined);
+      if (hasKnowledgeUpdate) {
+        const existing = await prisma.client.findUnique({
+          where: { id: req.clientId },
+          select: { vapiConfig: true },
+        });
+        const prev = (existing?.vapiConfig as any) || {};
+        const next: any = { ...prev };
+        for (const k of knowledgeFields) {
+          if (body[k] !== undefined) {
+            next[k] = typeof body[k] === 'string' ? body[k].slice(0, 8000) : body[k];
+          }
+        }
+        updateData.vapiConfig = next;
+      }
 
       const client = await prisma.client.update({
         where: { id: req.clientId },

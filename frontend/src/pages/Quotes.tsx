@@ -154,16 +154,16 @@ export default function Quotes() {
         {selected && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#0D0D15] rounded-xl p-4 text-center">
+              <div className="bg-[#0A0A0C] rounded-xl p-4 text-center">
                 <p className="text-xl font-bold text-[#F8F8FF]">${selected.setupFee}</p>
                 <p className="text-[10px] text-[#8B8BA7] mt-1 uppercase tracking-wide">Setup</p>
               </div>
-              <div className="bg-[#0D0D15] rounded-xl p-4 text-center">
+              <div className="bg-[#0A0A0C] rounded-xl p-4 text-center">
                 <p className="text-xl font-bold text-[#22C55E]">${selected.monthlyFee}/mo</p>
                 <p className="text-[10px] text-[#8B8BA7] mt-1 uppercase tracking-wide">Mensuel</p>
               </div>
             </div>
-            <div className="flex items-center justify-between p-3 bg-[#0D0D15] rounded-xl">
+            <div className="flex items-center justify-between p-3 bg-[#0A0A0C] rounded-xl">
               <span className="text-sm text-[#8B8BA7]">Statut</span>
               <Badge label={selected.status} dot />
             </div>
