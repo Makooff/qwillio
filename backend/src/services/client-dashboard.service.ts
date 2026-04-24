@@ -90,6 +90,8 @@ export class ClientDashboardService {
         // Onboarding checklist flags
         hasCustomConfig,
         hasTestCall,
+        forwardingStatus: client.forwardingStatus,
+        forwardingVerifiedAt: client.forwardingVerifiedAt,
       },
       calls: {
         total: totalCallsAllTime,

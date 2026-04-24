@@ -259,6 +259,12 @@ export class ClientDashboardController {
       if (body.city !== undefined) updateData.city = body.city || null;
       if (body.postalCode !== undefined) updateData.postalCode = body.postalCode || null;
       if (body.forwardingType !== undefined) updateData.forwardingType = body.forwardingType || null;
+      if (body.forwardingStatus !== undefined) {
+        updateData.forwardingStatus = body.forwardingStatus || null;
+        if (body.forwardingStatus === 'verified') {
+          updateData.forwardingVerifiedAt = new Date();
+        }
+      }
       if (body.loomVideoUrl !== undefined) updateData.loomVideoUrl = body.loomVideoUrl || null;
       if (body.googleCalendarId !== undefined) updateData.googleCalendarId = body.googleCalendarId || null;
 

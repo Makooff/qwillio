@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ChevronLeft, Check, Phone, Settings as SettingsIcon,
@@ -22,6 +22,15 @@ export default function ClientSetupForwarding() {
   const [platform, setPlatform] = useState<Platform>('ios');
   const [number, setNumber] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  const confirmForwarding = async () => {
+    setConfirming(true);
+    try {
+      await api.put('/my-dashboard/settings', { forwardingStatus: 'verified' });
+    } catch { /* non-blocking — still move on */ }
+    navigate('/dashboard');
+  };
 
   useEffect(() => {
     const p = detectPlatform();
@@ -159,10 +168,12 @@ export default function ClientSetupForwarding() {
       </div>
 
       {/* Done */}
-      <Link to="/dashboard/receptionist"
-        className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-[#F2F2F2] text-[#0B0B0D] text-[13px] font-semibold hover:bg-white transition-colors">
-        J'ai configuré mon téléphone <ArrowRight size={14} />
-      </Link>
+      <button
+        onClick={confirmForwarding}
+        disabled={confirming}
+        className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-[#F2F2F2] text-[#0B0B0D] text-[13px] font-semibold hover:bg-white disabled:opacity-60 transition-colors">
+        {confirming ? 'Enregistrement…' : (<>J'ai configuré mon téléphone <ArrowRight size={14} /></>)}
+      </button>
     </div>
   );
 }
