@@ -30,7 +30,8 @@ interface Step {
   label: string;
   hint: string;
   done: boolean;
-  to: string;
+  to?: string;    // internal react-router route
+  href?: string;  // external / tel: link
   icon: React.ElementType;
 }
 
@@ -42,6 +43,8 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
     client.forwardingVerifiedAt ||
     client.forwardingStatus === 'verified'
   );
+
+  const qwillioNumber = client.vapiPhoneNumber;
 
   const steps: Step[] = [
     {
@@ -68,9 +71,15 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
     },
     {
       label: 'Tester un appel de démonstration',
-      hint:  'Appelez votre numéro Qwillio pour écouter Ashley en direct',
+      hint:  qwillioNumber
+        ? `Touchez pour appeler ${qwillioNumber} et parler à Ashley`
+        : 'Votre numéro Qwillio sera disponible après la configuration',
       done:  !!client.hasTestCall,
-      to:    '/dashboard/calls',
+      // tel: launches the phone dialer directly when a number is set,
+      // otherwise fall back to the receptionist page where the number
+      // is displayed and can be copied.
+      href:  qwillioNumber ? `tel:${qwillioNumber}` : undefined,
+      to:    qwillioNumber ? undefined : '/dashboard/receptionist',
       icon:  PhoneCall,
     },
     {
@@ -141,16 +150,13 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
       <div className="mt-4">
         {steps.map((s, i) => {
           const highlighted = !s.done && steps.slice(0, i).every(x => x.done);
-          return (
-            <Link
-              key={i}
-              to={s.to}
-              className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-white/[0.02]"
-              style={{
-                borderTop: `1px solid ${pro.border}`,
-                background: highlighted ? 'rgba(123,92,240,0.05)' : undefined,
-              }}
-            >
+          const rowClass = 'flex items-center gap-3 px-5 py-3 transition-colors hover:bg-white/[0.02]';
+          const rowStyle = {
+            borderTop: `1px solid ${pro.border}`,
+            background: highlighted ? 'rgba(123,92,240,0.05)' : undefined,
+          } as const;
+          const inner = (
+            <>
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{
@@ -177,7 +183,15 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
               {!s.done && (
                 <ChevronRight size={14} style={{ color: highlighted ? pro.accent : pro.textTer }} />
               )}
-            </Link>
+            </>
+          );
+          if (s.href) {
+            return (
+              <a key={i} href={s.href} className={rowClass} style={rowStyle}>{inner}</a>
+            );
+          }
+          return (
+            <Link key={i} to={s.to || '#'} className={rowClass} style={rowStyle}>{inner}</Link>
           );
         })}
       </div>
