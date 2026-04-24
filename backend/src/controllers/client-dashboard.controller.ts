@@ -227,15 +227,15 @@ export class ClientDashboardController {
       });
       if (!client) return res.status(404).json({ error: 'Client not found' });
       // Surface JSON-held knowledge fields at top level so the UI can bind
-      // directly (priceList, faq, services, hours, specialNotes).
+      // directly (items, hours, faq, personalityPreset, personalityNotes).
       const cfg = (client.vapiConfig as any) || {};
       res.json({
         ...client,
-        priceList:    cfg.priceList    ?? '',
-        faq:          cfg.faq          ?? '',
-        services:     cfg.services     ?? '',
-        hours:        cfg.hours        ?? '',
-        specialNotes: cfg.specialNotes ?? '',
+        items:             Array.isArray(cfg.items) ? cfg.items : [],
+        hours:             cfg.hours && typeof cfg.hours === 'object' ? cfg.hours : null,
+        faq:               cfg.faq               ?? '',
+        personalityPreset: cfg.personalityPreset ?? 'warm',
+        personalityNotes:  cfg.personalityNotes  ?? cfg.specialNotes ?? '',
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -262,10 +262,17 @@ export class ClientDashboardController {
       if (body.loomVideoUrl !== undefined) updateData.loomVideoUrl = body.loomVideoUrl || null;
       if (body.googleCalendarId !== undefined) updateData.googleCalendarId = body.googleCalendarId || null;
 
-      // Merge knowledge-base fields into vapiConfig JSON so the IA has context
-      // (menu/prix, FAQ, services, horaires, notes).  Avoids a schema change.
-      const knowledgeFields = ['priceList', 'faq', 'services', 'hours', 'specialNotes'] as const;
-      const hasKnowledgeUpdate = knowledgeFields.some(k => body[k] !== undefined);
+      // Merge knowledge-base fields into vapiConfig JSON so the IA has context.
+      // - items  : structured list [{ category, name, price }]
+      // - hours  : weekly schedule { monday: { open, from, to }, ... }
+      // - faq    : free text (Q/A pairs)
+      // - specialNotes : free text
+      const hasKnowledgeUpdate =
+        body.items !== undefined ||
+        body.hours !== undefined ||
+        body.faq !== undefined ||
+        body.personalityPreset !== undefined ||
+        body.personalityNotes !== undefined;
       if (hasKnowledgeUpdate) {
         const existing = await prisma.client.findUnique({
           where: { id: req.clientId },
@@ -273,10 +280,36 @@ export class ClientDashboardController {
         });
         const prev = (existing?.vapiConfig as any) || {};
         const next: any = { ...prev };
-        for (const k of knowledgeFields) {
-          if (body[k] !== undefined) {
-            next[k] = typeof body[k] === 'string' ? body[k].slice(0, 8000) : body[k];
+        // Drop legacy free-text keys that the new structured UI replaces.
+        delete next.priceList;
+        delete next.services;
+        if (body.items !== undefined) {
+          const arr = Array.isArray(body.items) ? body.items : [];
+          next.items = arr.slice(0, 200).map((it: any) => ({
+            id:       String(it?.id || Math.random().toString(36).slice(2, 10)),
+            category: String(it?.category || 'service').slice(0, 40),
+            name:     String(it?.name || '').slice(0, 200),
+            price:    String(it?.price || '').slice(0, 80),
+          }));
+        }
+        if (body.hours !== undefined) {
+          if (body.hours && typeof body.hours === 'object' && !Array.isArray(body.hours)) {
+            next.hours = body.hours;
+          } else {
+            next.hours = null;
           }
+        }
+        if (body.faq !== undefined) {
+          next.faq = typeof body.faq === 'string' ? body.faq.slice(0, 8000) : '';
+        }
+        if (body.personalityPreset !== undefined) {
+          const allowed = new Set(['warm','professional','casual','energetic','luxury','caring']);
+          const v = String(body.personalityPreset || '');
+          next.personalityPreset = allowed.has(v) ? v : 'warm';
+        }
+        if (body.personalityNotes !== undefined) {
+          next.personalityNotes = typeof body.personalityNotes === 'string' ? body.personalityNotes.slice(0, 4000) : '';
+          delete next.specialNotes;  // legacy key superseded
         }
         updateData.vapiConfig = next;
       }

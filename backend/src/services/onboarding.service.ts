@@ -306,17 +306,74 @@ export class OnboardingService {
     // Get industry-specific knowledge
     const industryKnowledge = this.getIndustryKnowledge(client.businessType);
 
-    // Per-client knowledge stored in vapiConfig JSON (menu/prix, services, horaires, FAQ)
+    // Per-client knowledge stored in vapiConfig JSON
+    // - items  : [{ category, name, price }]
+    // - hours  : { monday: { open, from, to }, ... }
+    // - faq    : free text
+    // - specialNotes : free text
     const cfg = (client.vapiConfig as any) || {};
     const clientKnowledgeBlocks: string[] = [];
-    if (cfg.priceList)    clientKnowledgeBlocks.push(`MENU / PRICES:\n${cfg.priceList}`);
-    if (cfg.services)     clientKnowledgeBlocks.push(`SERVICES OFFERED:\n${cfg.services}`);
-    if (cfg.hours)        clientKnowledgeBlocks.push(`BUSINESS HOURS:\n${cfg.hours}`);
-    if (cfg.faq)          clientKnowledgeBlocks.push(`FAQ (answer these with the given answers):\n${cfg.faq}`);
-    if (cfg.specialNotes) clientKnowledgeBlocks.push(`SPECIAL NOTES AND CONSTRAINTS:\n${cfg.specialNotes}`);
+
+    // Items grouped by category → readable bullet list
+    if (Array.isArray(cfg.items) && cfg.items.length) {
+      const byCat: Record<string, string[]> = {};
+      for (const it of cfg.items) {
+        if (!it || !it.name) continue;
+        const cat = (it.category || 'autre').toString();
+        if (!byCat[cat]) byCat[cat] = [];
+        byCat[cat].push(`- ${it.name}${it.price ? ` — ${it.price}` : ''}`);
+      }
+      const catLabels: Record<string, string> = {
+        service:    'SERVICES',
+        menu:       'MENU',
+        tarif:      'PRICES',
+        produit:    'PRODUCTS',
+        prestation: 'OFFERINGS',
+        autre:      'OTHER',
+      };
+      const blocks = Object.entries(byCat).map(([cat, lines]) =>
+        `${catLabels[cat] || cat.toUpperCase()}:\n${lines.join('\n')}`
+      );
+      if (blocks.length) clientKnowledgeBlocks.push(blocks.join('\n\n'));
+    }
+
+    // Weekly schedule → "Monday: 9:00–18:00 · Sunday: Closed"
+    if (cfg.hours && typeof cfg.hours === 'object') {
+      const dayLabel: Record<string, string> = {
+        monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday',
+        thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday',
+      };
+      const order = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+      const lines = order
+        .filter(d => cfg.hours[d])
+        .map(d => {
+          const h = cfg.hours[d];
+          if (!h.open) return `- ${dayLabel[d]}: Closed`;
+          return `- ${dayLabel[d]}: ${h.from || ''}–${h.to || ''}`;
+        });
+      if (lines.length) clientKnowledgeBlocks.push(`BUSINESS HOURS:\n${lines.join('\n')}`);
+    }
+
+    if (cfg.faq) clientKnowledgeBlocks.push(`FAQ (answer these with the given answers):\n${cfg.faq}`);
+
     const clientKnowledge = clientKnowledgeBlocks.length
       ? '\n' + clientKnowledgeBlocks.join('\n\n') + '\n'
       : '';
+
+    // Personality (preset + free-text refinement) — affects voice style
+    const PERSONALITY_PROMPTS: Record<string, string> = {
+      warm:         'Warm, welcoming, empathetic — smile in your voice. Use friendly phrasing and acknowledge feelings.',
+      professional: 'Professional, direct, precise. Keep things crisp; minimal small talk.',
+      casual:       'Casual and conversational, like a relaxed colleague. Contractions are fine. Stay natural.',
+      energetic:    'Energetic, enthusiastic, upbeat. Sound excited to help.',
+      luxury:       'Polished, refined, articulate. Use elevated vocabulary; project a premium brand feel.',
+      caring:       'Soft, reassuring, attentive — ideal for health/medical contexts. Speak slowly and patiently.',
+    };
+    const personaPreset = (cfg.personalityPreset && PERSONALITY_PROMPTS[cfg.personalityPreset]) || PERSONALITY_PROMPTS.warm;
+    const personaNotes = cfg.personalityNotes || cfg.specialNotes || '';
+    const personaBlock =
+      `PERSONALITY AND TONE:\n- ${personaPreset}` +
+      (personaNotes ? `\n\nADDITIONAL CUSTOMIZATION (must follow):\n${personaNotes}` : '');
 
     // Build transfer instructions based on whether client has a transfer number
     const transferInstructions = client.transferNumber

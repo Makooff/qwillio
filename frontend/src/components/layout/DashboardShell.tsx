@@ -247,7 +247,7 @@ export default function DashboardShell(props: DashboardShellProps) {
   );
 
   return (
-    <div className="min-h-screen flex" style={{ background: t.bg, color: t.text }}>
+    <div className="h-screen md:h-screen flex overflow-hidden" style={{ height: '100dvh', background: t.bg, color: t.text }}>
       {/* Desktop Sidebar */}
       <aside
         className={`hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
@@ -298,8 +298,8 @@ export default function DashboardShell(props: DashboardShellProps) {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         <header
-          className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6 backdrop-blur-xl"
-          style={{ background: `${t.bg}CC`, borderBottom: `1px solid ${t.border}` }}
+          className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6"
+          style={{ background: t.bg, borderBottom: `1px solid ${t.border}` }}
         >
           <button
             onClick={() => setMobileOpen(true)}
@@ -331,7 +331,7 @@ export default function DashboardShell(props: DashboardShellProps) {
           </div>
         </header>
 
-        <main ref={mainRef} className="flex-1 p-4 md:p-6 pb-32 md:pb-6 overflow-auto">
+        <main ref={mainRef} data-scroll-root className="flex-1 p-4 md:p-6 pb-32 md:pb-6 overflow-auto">
           <Outlet />
         </main>
       </div>

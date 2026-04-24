@@ -5,29 +5,59 @@ import {
   Activity, Save, Power, Globe, User, Clock, Shield, Calendar,
   Volume2, Languages, Building2, MapPin, Settings,
   ChevronDown, ChevronRight, Copy, CheckCircle2, XCircle,
-  BookOpen, Tag, HelpCircle, Clock3, StickyNote,
+  BookOpen, Tag, HelpCircle, Clock3, Plus, X,
 } from 'lucide-react';
 import api from '../../services/api';
 import QwillioLoader from "../../components/QwillioLoader";
 
 const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
 const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
+const compactInputCls = 'h-9 px-3 text-[13px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#6B6B75] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
 
-const PLACEHOLDERS_BY_NICHE: Record<string, string> = {
-  salon:        'Coupe femme 35€\nCoupe homme 25€\nColoration à partir de 55€\nBalayage 90€',
-  dental:       'Consultation 50€\nDétartrage 80€\nCarie simple 120€\nCouronne céramique 700€',
-  law:          'Consultation initiale 30 min — gratuite\nHeure de conseil 180€ HT\nForfait divorce à l\'amiable à partir de 1 200€ HT',
-  restaurant:   'Menu midi 18€\nMenu découverte 3 plats 32€\nMenu dégustation 7 plats 68€\nBoissons non incluses',
-  hotel:        'Chambre standard 95€ / nuit\nChambre supérieure 140€ / nuit\nSuite 220€ / nuit\nPetit-déj inclus',
-  auto:         'Vidange + filtre à partir de 80€\nFreins avant 150€\nContrôle technique 78€\nDiagnostic 50€',
-  medical:      'Consultation 30€ (conventionné)\nVisite à domicile 45€\nDépassement sur rendez-vous spécialisé',
-  home_services:'Déplacement 45€\nHeure d\'intervention 55€\nDevis gratuit sous 24h',
-  garage:       'Vidange 80€\nPneu monté/équilibré à partir de 35€\nEmbrayage 500€',
+interface KbItem { id: string; category: string; name: string; price: string; }
+interface DayHours { open: boolean; from: string; to: string; }
+type WeekDay = 'monday'|'tuesday'|'wednesday'|'thursday'|'friday'|'saturday'|'sunday';
+type WeekHours = Record<WeekDay, DayHours>;
+
+const ITEM_CATEGORIES: { v: string; l: string }[] = [
+  { v: 'service',    l: 'Service' },
+  { v: 'menu',       l: 'Menu' },
+  { v: 'tarif',      l: 'Tarif' },
+  { v: 'produit',    l: 'Produit' },
+  { v: 'prestation', l: 'Prestation' },
+  { v: 'autre',      l: 'Autre' },
+];
+
+const DAYS: { k: WeekDay; l: string }[] = [
+  { k: 'monday',    l: 'Lundi' },
+  { k: 'tuesday',   l: 'Mardi' },
+  { k: 'wednesday', l: 'Mercredi' },
+  { k: 'thursday',  l: 'Jeudi' },
+  { k: 'friday',    l: 'Vendredi' },
+  { k: 'saturday',  l: 'Samedi' },
+  { k: 'sunday',    l: 'Dimanche' },
+];
+
+const DEFAULT_HOURS: WeekHours = {
+  monday:    { open: true,  from: '09:00', to: '18:00' },
+  tuesday:   { open: true,  from: '09:00', to: '18:00' },
+  wednesday: { open: true,  from: '09:00', to: '18:00' },
+  thursday:  { open: true,  from: '09:00', to: '18:00' },
+  friday:    { open: true,  from: '09:00', to: '18:00' },
+  saturday:  { open: false, from: '10:00', to: '16:00' },
+  sunday:    { open: false, from: '10:00', to: '16:00' },
 };
 
-function placeholderForPriceList(niche: string): string {
-  return PLACEHOLDERS_BY_NICHE[niche] || 'Prestation A — prix\nPrestation B — prix\nOptions, remises, etc.';
-}
+const newId = () => Math.random().toString(36).slice(2, 10);
+
+const PERSONALITY_PRESETS: { v: string; l: string; d: string }[] = [
+  { v: 'warm',         l: 'Chaleureux',   d: 'Accueillant, empathique, sourire dans la voix' },
+  { v: 'professional', l: 'Professionnel', d: 'Direct, précis, cadre formel' },
+  { v: 'casual',       l: 'Décontracté',  d: 'Détendu, fluide, ton conversationnel' },
+  { v: 'energetic',    l: 'Énergique',    d: 'Dynamique, enthousiaste, upbeat' },
+  { v: 'luxury',       l: 'Premium',      d: 'Soigné, raffiné, langage soutenu' },
+  { v: 'caring',       l: 'Bienveillant', d: 'Doux, rassurant, idéal pour santé / médical' },
+];
 
 function Section({ title, icon: Icon, children, defaultOpen = true }: {
   title: string; icon: React.ElementType; color?: string; children: React.ReactNode; defaultOpen?: boolean;
@@ -79,11 +109,11 @@ export default function ClientReceptionist() {
   const [forwardingType, setForwardingType] = useState('');
   const [googleCalendarId, setGoogleCalendarId] = useState('');
   // Knowledge base (stored inside vapiConfig JSON, exposed top-level)
-  const [priceList, setPriceList] = useState('');
+  const [items, setItems] = useState<KbItem[]>([]);
+  const [weekHours, setWeekHours] = useState<WeekHours>(DEFAULT_HOURS);
   const [faq, setFaq] = useState('');
-  const [services, setServices] = useState('');
-  const [hours, setHours] = useState('');
-  const [specialNotes, setSpecialNotes] = useState('');
+  const [personalityPreset, setPersonalityPreset] = useState<string>('warm');
+  const [personalityNotes, setPersonalityNotes] = useState('');
 
   const load = useCallback(async () => {
     setError(null);
@@ -106,11 +136,23 @@ export default function ClientReceptionist() {
       setPostalCode(s?.postalCode || '');
       setForwardingType(s?.forwardingType || '');
       setGoogleCalendarId(s?.googleCalendarId || '');
-      setPriceList(s?.priceList || '');
+      // Items: stored as array; if backend still has the legacy string, ignore.
+      const rawItems = Array.isArray(s?.items) ? s.items : [];
+      setItems(rawItems.map((it: any) => ({
+        id:       it.id || newId(),
+        category: it.category || 'service',
+        name:     it.name || '',
+        price:    it.price || '',
+      })));
+      // Hours: object {day: {open, from, to}}
+      if (s?.hours && typeof s.hours === 'object' && !Array.isArray(s.hours)) {
+        setWeekHours({ ...DEFAULT_HOURS, ...s.hours });
+      } else {
+        setWeekHours(DEFAULT_HOURS);
+      }
       setFaq(s?.faq || '');
-      setServices(s?.services || '');
-      setHours(s?.hours || '');
-      setSpecialNotes(s?.specialNotes || '');
+      setPersonalityPreset(s?.personalityPreset || 'warm');
+      setPersonalityNotes(s?.personalityNotes || '');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Erreur de chargement');
     } finally {
@@ -139,7 +181,11 @@ export default function ClientReceptionist() {
         businessName, businessType, transferNumber, agentName,
         agentLanguage, contactPhone, address, city, postalCode,
         forwardingType, googleCalendarId,
-        priceList, faq, services, hours, specialNotes,
+        items: items.filter(i => i.name.trim()),
+        hours: weekHours,
+        faq,
+        personalityPreset,
+        personalityNotes,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -351,90 +397,171 @@ export default function ClientReceptionist() {
             </select>
           </div>
         </div>
-      </Section>
 
-      {/* ── Connaissances IA (niche-specific) ── */}
-      <Section title="Base de connaissances" icon={BookOpen} color="#7B5CF0" defaultOpen={false}>
-        <p className="text-[12px] text-[#9A9AA5] mb-4 leading-relaxed">
-          Remplissez les champs utiles à votre activité. L'IA s'appuie sur ces
-          informations pour répondre aux questions des appelants (prix, horaires,
-          services, FAQ).
-        </p>
-
-        <div className="space-y-4">
-          <div>
-            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
-              <Tag size={12} /> Menu / Tarifs
-            </label>
-            <textarea
-              value={priceList}
-              onChange={e => setPriceList(e.target.value)}
-              rows={6}
-              placeholder={placeholderForPriceList(businessType)}
-              className={`${inputCls} resize-y leading-relaxed`}
-              style={{ minHeight: 140 }}
-            />
-            <p className="text-[11px] text-[#6B6B75] mt-1">
-              Exemple : « Coupe homme 25€ · Coupe + barbe 35€ · Coloration à partir de 50€ »
-            </p>
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
-              <Settings size={12} /> Services proposés
-            </label>
-            <textarea
-              value={services}
-              onChange={e => setServices(e.target.value)}
-              rows={4}
-              placeholder="Listez vos prestations, un élément par ligne."
-              className={`${inputCls} resize-y leading-relaxed`}
-              style={{ minHeight: 100 }}
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
-              <Clock3 size={12} /> Horaires d'ouverture
-            </label>
-            <textarea
-              value={hours}
-              onChange={e => setHours(e.target.value)}
-              rows={3}
-              placeholder="Ex. : Lun-Ven 9h-18h · Sam 10h-16h · Dim fermé"
-              className={`${inputCls} resize-y leading-relaxed`}
-              style={{ minHeight: 80 }}
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
-              <HelpCircle size={12} /> FAQ
-            </label>
-            <textarea
-              value={faq}
-              onChange={e => setFaq(e.target.value)}
-              rows={6}
-              placeholder="Q : Faut-il réserver ?&#10;R : Oui, on privilégie le rendez-vous, mais on accepte aussi les walk-ins si le créneau est libre."
-              className={`${inputCls} resize-y leading-relaxed`}
-              style={{ minHeight: 140 }}
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
-              <StickyNote size={12} /> Notes et consignes
-            </label>
-            <textarea
-              value={specialNotes}
-              onChange={e => setSpecialNotes(e.target.value)}
-              rows={4}
-              placeholder="Tout ce que l'IA doit savoir : promotions en cours, restrictions, ton à adopter, mots à éviter…"
-              className={`${inputCls} resize-y leading-relaxed`}
-              style={{ minHeight: 100 }}
-            />
+        {/* ── Personnalité (preset + personnalisation libre) ── */}
+        <div className="mt-6">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-3">
+            Ton et personnalité
+          </label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {PERSONALITY_PRESETS.map(p => {
+              const sel = personalityPreset === p.v;
+              return (
+                <button
+                  key={p.v}
+                  type="button"
+                  onClick={() => setPersonalityPreset(p.v)}
+                  className="text-left p-3 rounded-xl border transition-colors"
+                  style={{
+                    background: sel ? 'rgba(123,92,240,0.10)' : '#0A0A0C',
+                    borderColor: sel ? 'rgba(123,92,240,0.55)' : 'rgba(255,255,255,0.08)',
+                    color: sel ? '#7B5CF0' : '#F2F2F2',
+                  }}
+                >
+                  <p className="text-[13px] font-semibold">{p.l}</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: sel ? 'rgba(123,92,240,0.85)' : '#8B8BA7' }}>{p.d}</p>
+                </button>
+              );
+            })}
           </div>
         </div>
+
+        <div className="mt-4">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
+            Personnalisation
+          </label>
+          <textarea
+            value={personalityNotes}
+            onChange={e => setPersonalityNotes(e.target.value)}
+            rows={4}
+            placeholder="Précisez ce qui vous est propre : promotions en cours, mots à utiliser, à éviter, formule d'accueil…"
+            className={`${inputCls} resize-y leading-relaxed`}
+            style={{ minHeight: 100 }}
+          />
+        </div>
+      </Section>
+
+      {/* ── Connaissances IA — items list + week schedule ── */}
+      <Section title="Base de connaissances" icon={BookOpen} color="#7B5CF0" defaultOpen={false}>
+        <p className="text-[12px] text-[#9A9AA5] mb-5 leading-relaxed">
+          Ce que l'IA doit savoir pour répondre aux appelants : services, menu,
+          tarifs, horaires, FAQ. Plus c'est précis, plus elle sera précise.
+        </p>
+
+        {/* ── Services / Menu / Tarifs ── */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5]">
+              <Tag size={12} /> Services, menu, tarifs
+            </label>
+            <span className="text-[11px] text-[#6B6B75]">{items.length} élément{items.length > 1 ? 's' : ''}</span>
+          </div>
+
+          <div className="space-y-2">
+            {items.length === 0 && (
+              <div className="rounded-xl border border-dashed border-white/[0.08] p-4 text-center">
+                <p className="text-[12px] text-[#6B6B75]">Aucun élément — ajoutez votre premier service.</p>
+              </div>
+            )}
+            {items.map(it => (
+              <div key={it.id} className="grid grid-cols-12 gap-2 items-center">
+                <select
+                  value={it.category}
+                  onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, category: e.target.value } : x))}
+                  className={`${compactInputCls} col-span-3`}
+                >
+                  {ITEM_CATEGORIES.map(c => <option key={c.v} value={c.v}>{c.l}</option>)}
+                </select>
+                <input
+                  value={it.name}
+                  onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, name: e.target.value } : x))}
+                  placeholder="Nom (ex. Coupe homme)"
+                  className={`${compactInputCls} col-span-5`}
+                />
+                <input
+                  value={it.price}
+                  onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, price: e.target.value } : x))}
+                  placeholder="Prix (ex. 25€)"
+                  className={`${compactInputCls} col-span-3`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setItems(arr => arr.filter(x => x.id !== it.id))}
+                  className="col-span-1 h-9 rounded-lg flex items-center justify-center hover:bg-red-500/[0.08] hover:text-red-400 transition-colors text-[#6B6B75]"
+                  title="Supprimer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setItems(arr => [...arr, { id: newId(), category: 'service', name: '', price: '' }])}
+            className="mt-3 inline-flex items-center gap-1.5 px-3 h-9 rounded-lg text-[12.5px] font-medium border border-white/[0.08] hover:bg-white/[0.04] transition-colors text-[#F2F2F2]"
+          >
+            <Plus size={13} /> Ajouter un élément
+          </button>
+        </div>
+
+        {/* ── Horaires hebdomadaires ── */}
+        <div className="mb-6">
+          <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-3">
+            <Clock3 size={12} /> Horaires d'ouverture
+          </label>
+          <div className="rounded-xl border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">
+            {DAYS.map(d => {
+              const h = weekHours[d.k];
+              return (
+                <div key={d.k} className="grid grid-cols-12 gap-2 items-center px-3 py-2.5">
+                  <span className="col-span-3 text-[13px] font-medium text-[#F2F2F2]">{d.l}</span>
+                  <button
+                    type="button"
+                    onClick={() => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], open: !w[d.k].open } }))}
+                    className="col-span-3 h-8 px-3 rounded-lg text-[11.5px] font-semibold uppercase tracking-wider transition-colors"
+                    style={{
+                      background: h.open ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.08)',
+                      color:      h.open ? '#22C55E' : '#EF4444',
+                    }}
+                  >
+                    {h.open ? 'Ouvert' : 'Fermé'}
+                  </button>
+                  <input
+                    type="time"
+                    value={h.from}
+                    disabled={!h.open}
+                    onChange={e => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], from: e.target.value } }))}
+                    className={`${compactInputCls} col-span-3 disabled:opacity-30`}
+                  />
+                  <input
+                    type="time"
+                    value={h.to}
+                    disabled={!h.open}
+                    onChange={e => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], to: e.target.value } }))}
+                    className={`${compactInputCls} col-span-3 disabled:opacity-30`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── FAQ ── */}
+        <div className="mb-6">
+          <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
+            <HelpCircle size={12} /> FAQ
+          </label>
+          <textarea
+            value={faq}
+            onChange={e => setFaq(e.target.value)}
+            rows={6}
+            placeholder="Q : Faut-il réserver ?&#10;R : Oui, on privilégie le rendez-vous mais on accepte les walk-ins si le créneau est libre."
+            className={`${inputCls} resize-y leading-relaxed`}
+            style={{ minHeight: 140 }}
+          />
+        </div>
+
       </Section>
 
       {/* ── Transfert d'appel ── */}

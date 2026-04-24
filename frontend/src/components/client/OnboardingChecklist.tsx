@@ -84,9 +84,9 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
     },
     {
       label: 'Personnaliser votre réceptionniste',
-      hint:  'Voix, scripts, FAQ, intégration calendrier',
+      hint:  'Étapes guidées : ton, services, horaires, FAQ',
       done:  !!client.hasCustomConfig,
-      to:    '/dashboard/receptionist',
+      to:    '/dashboard/setup/customize',
       icon:  Settings,
     },
     {

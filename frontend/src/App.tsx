@@ -44,6 +44,7 @@ const ClientLeads = lazy(() => import('./pages/client/ClientLeads'));
 const ClientReceptionist = lazy(() => import('./pages/client/ClientReceptionist'));
 const ClientAccount = lazy(() => import('./pages/client/ClientAccount'));
 const ClientSetupForwarding = lazy(() => import('./pages/client/ClientSetupForwarding'));
+const ClientSetupCustomize  = lazy(() => import('./pages/client/ClientSetupCustomize'));
 const ClientSupport = lazy(() => import('./pages/client/ClientSupport'));
 const ClientAnalytics = lazy(() => import('./pages/client/ClientAnalytics'));
 const ClientBilling = lazy(() => import('./pages/client/ClientBilling'));
@@ -77,22 +78,38 @@ const CloserProspects      = lazy(() => import('./pages/closer/CloserProspects')
 const CloserFollowUps      = lazy(() => import('./pages/closer/CloserFollowUps'));
 const CloserAccount        = lazy(() => import('./pages/closer/CloserAccount'));
 
+// Tell the browser to stop restoring previous scroll positions on
+// back / forward / route change — we manage scroll ourselves below.
+if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+  try { window.history.scrollRestoration = 'manual'; } catch { /* empty */ }
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
     // Force every possible scrolling element back to the top.
     // iOS Safari / Chrome can scroll the document when the URL bar collapses,
-    // so window.scrollTo alone isn't always enough.
+    // so window.scrollTo alone isn't always enough.  We also re-scroll any
+    // element that opted into being a scroll container (data-scroll-root).
     const jump = () => {
       window.scrollTo(0, 0);
       if (document.documentElement) document.documentElement.scrollTop = 0;
       if (document.body) document.body.scrollTop = 0;
+      document.querySelectorAll<HTMLElement>('[data-scroll-root]').forEach(el => {
+        el.scrollTop = 0;
+        el.scrollLeft = 0;
+      });
     };
     jump();
     // Run again on the next frame so it wins the race against the freshly
     // mounted page's layout.
-    const r = requestAnimationFrame(jump);
-    return () => cancelAnimationFrame(r);
+    const r1 = requestAnimationFrame(jump);
+    // And once more after layout/paint settles (covers iOS URL-bar collapses).
+    const r2 = window.setTimeout(jump, 60);
+    return () => {
+      cancelAnimationFrame(r1);
+      window.clearTimeout(r2);
+    };
   }, [pathname]);
   return null;
 }
@@ -219,6 +236,7 @@ export default function App() {
           <Route path="billing" element={<Suspense fallback={<Spinner />}><ClientBilling /></Suspense>} />
           <Route path="account" element={<Suspense fallback={<Spinner />}><ClientAccount /></Suspense>} />
           <Route path="setup/call-forwarding" element={<Suspense fallback={<Spinner />}><ClientSetupForwarding /></Suspense>} />
+          <Route path="setup/customize"       element={<Suspense fallback={<Spinner />}><ClientSetupCustomize /></Suspense>} />
           <Route path="support" element={<Suspense fallback={<Spinner />}><ClientSupport /></Suspense>} />
           {/* Agent IA */}
           <Route path="agent" element={<Suspense fallback={<Spinner />}><AgentDashboard /></Suspense>} />
