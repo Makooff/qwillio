@@ -3,7 +3,7 @@ import api from '../../services/api';
 import {
   Search, RefreshCw, FileText, Phone, Clock, Play, Pause, Download,
 } from 'lucide-react';
-import QwillioLoader from '../../components/QwillioLoader';
+import OrbsLoader from '../../components/OrbsLoader';
 import SlideSheet from '../../components/ui/SlideSheet';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../hooks/useToast';
@@ -176,7 +176,7 @@ export default function AdminCalls() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-32">
-      <QwillioLoader size={120} fullscreen={false} />
+      <OrbsLoader size={120} fullscreen={false} />
     </div>
   );
 

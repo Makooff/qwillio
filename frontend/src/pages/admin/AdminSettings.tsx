@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../../services/api';
-import QwillioLoader from '../../components/QwillioLoader';
+import OrbsLoader from '../../components/OrbsLoader';
 import {
   Save, AlertTriangle, Clock, Phone, Settings, Server, Database,
   CheckCircle2, XCircle, Loader2, Globe, Brain, Mail, DollarSign,
@@ -210,7 +210,7 @@ export default function AdminSettings() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-32">
-      <QwillioLoader size={120} fullscreen={false} />
+      <OrbsLoader size={120} fullscreen={false} />
     </div>
   );
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../services/api';
 import { RefreshCw, DollarSign, Phone, Cpu, TrendingUp, Layers } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import QwillioLoader from '../components/QwillioLoader';
+import OrbsLoader from '../components/OrbsLoader';
 import { pro } from '../styles/pro-theme';
 import { PageHeader, Card, SectionHead, Stat, IconBtn, GhostBtn } from '../components/pro/ProBlocks';
 
@@ -35,7 +35,7 @@ export default function Costs() {
 
   if (loading && !data) return (
     <div className="flex items-center justify-center py-32">
-      <QwillioLoader size={120} fullscreen={false} />
+      <OrbsLoader size={120} fullscreen={false} />
     </div>
   );
 

@@ -6,7 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/layout/Layout';
 import ClientLayout from './components/layout/ClientLayout';
 import CloserLayout from './components/layout/CloserLayout';
-import QwillioLoader from './components/QwillioLoader';
+import OrbsLoader from './components/OrbsLoader';
 import AppBootOverlay from './components/AppBootOverlay';
 // Eager-loaded entry points (Landing, Login, Register, ConfirmEmail)
 import Login from './pages/Login';
@@ -115,7 +115,7 @@ function ScrollToTop() {
 }
 
 function Spinner() {
-  return <QwillioLoader size={128} />;
+  return <OrbsLoader size={128} />;
 }
 
 function homeRoute(user: { role: string }) {

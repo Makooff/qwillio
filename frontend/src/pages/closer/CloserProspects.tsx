@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Phone, ChevronRight } from 'lucide-react';
 import api from '../../services/api';
-import QwillioLoader from '../../components/QwillioLoader';
+import OrbsLoader from '../../components/OrbsLoader';
 import { pro } from '../../styles/pro-theme';
 import { PageHeader, Card, Pill } from '../../components/pro/ProBlocks';
 
@@ -63,7 +63,7 @@ export default function CloserProspects() {
 
   if (loading && items.length === 0) return (
     <div className="flex items-center justify-center py-32">
-      <QwillioLoader size={120} fullscreen={false} />
+      <OrbsLoader size={120} fullscreen={false} />
     </div>
   );
 

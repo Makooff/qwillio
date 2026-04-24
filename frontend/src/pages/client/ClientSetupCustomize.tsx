@@ -6,7 +6,7 @@ import {
   Sparkles, Tag, Clock3, HelpCircle, MessageSquare, Plus, X,
 } from 'lucide-react';
 import api from '../../services/api';
-import QwillioLoader from '../../components/QwillioLoader';
+import OrbsLoader from '../../components/OrbsLoader';
 import { pro } from '../../styles/pro-theme';
 import { Card } from '../../components/pro/ProBlocks';
 
@@ -394,7 +394,7 @@ export default function ClientSetupCustomize() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-32">
-      <QwillioLoader size={120} fullscreen={false} />
+      <OrbsLoader size={120} fullscreen={false} />
     </div>
   );
 

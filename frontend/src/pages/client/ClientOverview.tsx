@@ -11,7 +11,7 @@ import {
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
-import QwillioLoader from '../../components/QwillioLoader';
+import OrbsLoader from '../../components/OrbsLoader';
 import { formatShortDate, daysUntil } from '../../utils/format';
 import OnboardingChecklist from '../../components/client/OnboardingChecklist';
 
@@ -148,7 +148,7 @@ export default function ClientOverview() {
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-32 gap-4">
-      <QwillioLoader size={120} fullscreen={false} />
+      <OrbsLoader size={120} fullscreen={false} />
       {paymentPending && (
         <div className="text-center">
           <p className="text-sm font-medium" style={{ color: C.text }}>Paiement reçu</p>

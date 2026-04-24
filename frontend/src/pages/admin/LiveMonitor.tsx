@@ -4,7 +4,7 @@ import {
   Play, Square, Activity, Phone, Search, RefreshCw, Zap, Clock,
   TrendingUp, RotateCcw,
 } from 'lucide-react';
-import QwillioLoader from '../../components/QwillioLoader';
+import OrbsLoader from '../../components/OrbsLoader';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -226,7 +226,7 @@ export default function LiveMonitor() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-32">
-      <QwillioLoader size={120} fullscreen={false} />
+      <OrbsLoader size={120} fullscreen={false} />
     </div>
   );
 

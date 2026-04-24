@@ -3,7 +3,7 @@ import api from '../../services/api';
 import { RefreshCw, Brain, Clock, BarChart3, Trash2, Edit3 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
-import QwillioLoader from '../../components/QwillioLoader';
+import OrbsLoader from '../../components/OrbsLoader';
 import { pro } from '../../styles/pro-theme';
 import {
   PageHeader, Card, SectionHead, Stat, IconBtn, Pill,
@@ -70,7 +70,7 @@ export default function AiLearning() {
   if (loading && !stats && mutations.length === 0 && abTests.length === 0) {
     return (
       <div className="flex items-center justify-center py-32">
-        <QwillioLoader size={120} fullscreen={false} />
+        <OrbsLoader size={120} fullscreen={false} />
       </div>
     );
   }

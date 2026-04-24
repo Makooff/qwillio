@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Clock, Search, RefreshCw } from 'lucide-react';
-import QwillioLoader from '../components/QwillioLoader';
+import OrbsLoader from '../components/OrbsLoader';
 import { pro } from '../styles/pro-theme';
 import { PageHeader, Card, IconBtn, Stat } from '../components/pro/ProBlocks';
 
@@ -54,7 +54,7 @@ export default function Clients() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-32">
-      <QwillioLoader size={120} fullscreen={false} />
+      <OrbsLoader size={120} fullscreen={false} />
     </div>
   );
 

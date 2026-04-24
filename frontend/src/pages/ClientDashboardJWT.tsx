@@ -9,7 +9,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 import QwillioLogo from '../components/QwillioLogo';
-import QwillioLoader from '../components/QwillioLoader';
+import OrbsLoader from '../components/OrbsLoader';
 import LangToggle from '../components/LangToggle';
 import { useLang } from '../stores/langStore';
 import { useAuthStore } from '../stores/authStore';
@@ -83,7 +83,7 @@ export default function ClientDashboardJWT() {
   }
 
   if (loading) {
-    return <QwillioLoader size={128} label={t('portal.loading')} />;
+    return <OrbsLoader size={128} label={t('portal.loading')} />;
   }
 
   const ov = data.overview || {};

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { RefreshCw, DollarSign, TrendingUp, Users, AlertCircle, CreditCard } from 'lucide-react';
-import QwillioLoader from '../../components/QwillioLoader';
+import OrbsLoader from '../../components/OrbsLoader';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
 import { pro } from '../../styles/pro-theme';
@@ -74,7 +74,7 @@ export default function AdminBilling() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-32">
-      <QwillioLoader size={120} fullscreen={false} />
+      <OrbsLoader size={120} fullscreen={false} />
     </div>
   );
 

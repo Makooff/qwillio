@@ -8,7 +8,7 @@ import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import { formatDateTime } from '../../utils/format';
-import QwillioLoader from "../../components/QwillioLoader";
+import OrbsLoader from "../../components/OrbsLoader";
 
 type ViewMode = 'table' | 'kanban';
 type LeadStatus = '' | 'new' | 'contacted' | 'converted' | 'lost';
@@ -163,7 +163,7 @@ export default function ClientLeads() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <QwillioLoader size={120} fullscreen={false} />
+          <OrbsLoader size={120} fullscreen={false} />
         </div>
       ) : filteredLeads.length === 0 ? (
         <EmptyState icon={Users} title="Aucun lead trouvé" description="Les leads apparaîtront une fois que votre IA qualifie les appelants" />

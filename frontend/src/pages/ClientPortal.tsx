@@ -11,7 +11,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 import QwillioLogo from '../components/QwillioLogo';
-import QwillioLoader from '../components/QwillioLoader';
+import OrbsLoader from '../components/OrbsLoader';
 import LangToggle from '../components/LangToggle';
 import { useLang } from '../stores/langStore';
 
@@ -92,7 +92,7 @@ export default function ClientPortal() {
     return (
       <>
         <LangToggle className="fixed top-4 right-4 z-50" />
-        <QwillioLoader size={128} label={t('portal.loading')} />
+        <OrbsLoader size={128} label={t('portal.loading')} />
       </>
     );
   }

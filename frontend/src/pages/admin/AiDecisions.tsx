@@ -5,7 +5,7 @@ import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
 import SlideSheet from '../../components/ui/SlideSheet';
 import Pagination from '../../components/ui/Pagination';
-import QwillioLoader from '../../components/QwillioLoader';
+import OrbsLoader from '../../components/OrbsLoader';
 import { pro } from '../../styles/pro-theme';
 import {
   PageHeader, Card, SectionHead, Stat, IconBtn, GhostBtn, Pill,
@@ -116,7 +116,7 @@ export default function AiDecisions() {
       <Card>
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <QwillioLoader size={120} fullscreen={false} />
+            <OrbsLoader size={120} fullscreen={false} />
           </div>
         ) : data.length === 0 ? (
           <div className="p-12 text-center" style={{ color: pro.textTer }}>

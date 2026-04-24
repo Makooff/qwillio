@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import api from '../../services/api';
 import { formatDuration, formatShortDate } from '../../utils/format';
-import QwillioLoader from "../../components/QwillioLoader";
+import OrbsLoader from "../../components/OrbsLoader";
 
 const SENTIMENT_COLORS: Record<string, string> = {
   positive: '#34d399',
@@ -59,7 +59,7 @@ export default function ClientAnalytics() {
   if (loading) {
     return (
       <div className="flex justify-center py-16">
-        <QwillioLoader size={120} fullscreen={false} />
+        <OrbsLoader size={120} fullscreen={false} />
       </div>
     );
   }

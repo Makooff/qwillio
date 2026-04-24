@@ -6,7 +6,7 @@ import {
 import api from '../../services/api';
 import StatusBadge from '../../components/client-dashboard/StatusBadge';
 import { formatDate, daysUntil } from '../../utils/format';
-import QwillioLoader from "../../components/QwillioLoader";
+import OrbsLoader from "../../components/OrbsLoader";
 
 const PLANS = [
   {
@@ -74,7 +74,7 @@ export default function ClientBilling() {
   if (loading) {
     return (
       <div className="flex justify-center py-16">
-        <QwillioLoader size={120} fullscreen={false} />
+        <OrbsLoader size={120} fullscreen={false} />
       </div>
     );
   }

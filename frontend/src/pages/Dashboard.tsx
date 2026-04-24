@@ -7,7 +7,7 @@ import {
   Zap, Settings as SettingsIcon, Sparkles, CreditCard,
   ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
-import QwillioLoader from '../components/QwillioLoader';
+import OrbsLoader from '../components/OrbsLoader';
 
 const API = 'https://qwillio.onrender.com';
 const getH = (): Record<string, string> => {
@@ -167,7 +167,7 @@ const Dashboard: React.FC = () => {
 
   if (loading) return (
     <div className="flex items-center justify-center py-32">
-      <QwillioLoader size={120} fullscreen={false} />
+      <OrbsLoader size={120} fullscreen={false} />
     </div>
   );
 
