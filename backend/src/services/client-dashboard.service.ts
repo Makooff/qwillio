@@ -54,6 +54,17 @@ export class ClientDashboardService {
       if (s.sentiment) sentimentMap[s.sentiment] = s._count.id;
     });
 
+    // Onboarding flags derived from existing data — marks steps done
+    // as soon as the user has completed them, no separate boolean column.
+    const cfg = (client.vapiConfig as any) || {};
+    const hasCustomConfig = !!(
+      (Array.isArray(cfg.items) && cfg.items.some((i: any) => i?.name)) ||
+      (cfg.hours && typeof cfg.hours === 'object') ||
+      (typeof cfg.personalityNotes === 'string' && cfg.personalityNotes.trim()) ||
+      (typeof cfg.faq === 'string' && cfg.faq.trim())
+    );
+    const hasTestCall = totalCallsAllTime > 0 || (client.totalCallsMade ?? 0) > 0;
+
     return {
       client: {
         id: client.id,
@@ -76,6 +87,9 @@ export class ClientDashboardService {
         trialConvertedAt: client.trialConvertedAt,
         contactName: client.contactName,
         contactEmail: client.contactEmail,
+        // Onboarding checklist flags
+        hasCustomConfig,
+        hasTestCall,
       },
       calls: {
         total: totalCallsAllTime,
