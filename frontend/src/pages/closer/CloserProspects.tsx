@@ -78,8 +78,8 @@ export default function CloserProspects() {
         {p.businessName?.charAt(0) || '?'}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-medium truncate" style={{ color: pro.text }}>{p.businessName}</p>
-        <p className="text-[11.5px] truncate" style={{ color: pro.textTer }}>
+        <p className="text-[13px] font-medium break-words leading-snug" style={{ color: pro.text }}>{p.businessName}</p>
+        <p className="text-[11.5px] mt-0.5 break-words" style={{ color: pro.textTer }}>
           <Phone size={10} className="inline -mt-0.5 mr-1" />
           <span className="tabular-nums">{p.phone || '—'}</span>
           {p.city ? ` · ${p.city}` : ''}

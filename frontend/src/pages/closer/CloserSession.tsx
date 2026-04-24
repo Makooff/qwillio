@@ -196,22 +196,22 @@ export default function CloserSession() {
       {/* Prospect card — call-first */}
       <Card>
         <div className="p-5">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-start gap-3 mb-4">
             <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-[15px] font-semibold"
                  style={{ background: pro.panelHi, color: pro.text }}>
               {current.businessName?.charAt(0) || '?'}
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="text-[17px] font-semibold tracking-tight truncate" style={{ color: pro.text }}>
+              <h1 className="text-[17px] font-semibold tracking-tight leading-snug break-words" style={{ color: pro.text }}>
                 {current.businessName}
               </h1>
-              <p className="text-[12px] mt-0.5 truncate" style={{ color: pro.textSec }}>
+              <p className="text-[12px] mt-1 break-words" style={{ color: pro.textSec }}>
                 {current.contactName || '—'}{current.city ? ` · ${current.city}` : ''}
                 {current.sector ? ` · ${current.sector}` : ''}
               </p>
             </div>
             <div className="flex-shrink-0 text-right">
-              <p className="text-[11px] tabular-nums" style={{ color: pro.textTer }}>
+              <p className="text-[11px] tabular-nums whitespace-nowrap" style={{ color: pro.textTer }}>
                 Score {current.score ?? '—'}/22
               </p>
               {isMine && (
