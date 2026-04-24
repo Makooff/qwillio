@@ -1,25 +1,25 @@
-import { LayoutDashboard, Users, Bell, UserCircle } from 'lucide-react';
+import { Phone, List, Bell, UserCircle } from 'lucide-react';
 import DashboardShell, { NavItem } from './DashboardShell';
 
 const PRIMARY_NAV: NavItem[] = [
-  { path: '/closer',            icon: LayoutDashboard, label: "Vue d'ensemble", exact: true },
-  { path: '/closer/prospects',  icon: Users,           label: 'Prospects' },
-  { path: '/closer/followups',  icon: Bell,            label: 'Follow-ups' },
-  { path: '/closer/account',    icon: UserCircle,      label: 'Compte' },
+  { path: '/closer',           icon: Phone,      label: "Appeler", exact: true },
+  { path: '/closer/prospects', icon: List,       label: 'Prospects' },
+  { path: '/closer/followups', icon: Bell,       label: 'Follow-ups' },
+  { path: '/closer/account',   icon: UserCircle, label: 'Compte' },
 ];
 
 const MOBILE_NAV: NavItem[] = [
-  { path: '/closer',            icon: LayoutDashboard, label: "Home",      exact: true },
-  { path: '/closer/prospects',  icon: Users,           label: 'Prospects' },
-  { path: '/closer/followups',  icon: Bell,            label: 'Suivis' },
-  { path: '/closer/account',    icon: UserCircle,      label: 'Compte' },
+  { path: '/closer',           icon: Phone,      label: "Appeler", exact: true },
+  { path: '/closer/prospects', icon: List,       label: 'Liste' },
+  { path: '/closer/followups', icon: Bell,       label: 'Suivis' },
+  { path: '/closer/account',   icon: UserCircle, label: 'Compte' },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
-  '/closer':            "Vue d'ensemble",
-  '/closer/prospects':  'Prospects',
-  '/closer/followups':  'Follow-ups',
-  '/closer/account':    'Compte',
+  '/closer':           'Session d\'appels',
+  '/closer/prospects': 'Prospects',
+  '/closer/followups': 'Follow-ups',
+  '/closer/account':   'Compte',
 };
 
 export default function CloserLayout() {
@@ -31,7 +31,7 @@ export default function CloserLayout() {
       pageTitles={PAGE_TITLES}
       mobileNav={MOBILE_NAV}
       userFallbackName="Closeuse"
-      userFallbackInitials="CL"
+      userFallbackInitials="EM"
     />
   );
 }

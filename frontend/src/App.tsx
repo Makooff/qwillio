@@ -72,9 +72,8 @@ const BlogPage = lazy(() => import('./pages/Blog'));
 const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 
 // Closer (closeuse)
-const CloserOverview       = lazy(() => import('./pages/closer/CloserOverview'));
+const CloserSession        = lazy(() => import('./pages/closer/CloserSession'));
 const CloserProspects      = lazy(() => import('./pages/closer/CloserProspects'));
-const CloserProspectDetail = lazy(() => import('./pages/closer/CloserProspectDetail'));
 const CloserFollowUps      = lazy(() => import('./pages/closer/CloserFollowUps'));
 const CloserAccount        = lazy(() => import('./pages/closer/CloserAccount'));
 
@@ -267,11 +266,10 @@ export default function App() {
             </CloserRoute>
           }
         >
-          <Route index                element={<Suspense fallback={<Spinner />}><CloserOverview /></Suspense>} />
-          <Route path="prospects"     element={<Suspense fallback={<Spinner />}><CloserProspects /></Suspense>} />
-          <Route path="prospects/:id" element={<Suspense fallback={<Spinner />}><CloserProspectDetail /></Suspense>} />
-          <Route path="followups"     element={<Suspense fallback={<Spinner />}><CloserFollowUps /></Suspense>} />
-          <Route path="account"       element={<Suspense fallback={<Spinner />}><CloserAccount /></Suspense>} />
+          <Route index            element={<Suspense fallback={<Spinner />}><CloserSession /></Suspense>} />
+          <Route path="prospects" element={<Suspense fallback={<Spinner />}><CloserProspects /></Suspense>} />
+          <Route path="followups" element={<Suspense fallback={<Spinner />}><CloserFollowUps /></Suspense>} />
+          <Route path="account"   element={<Suspense fallback={<Spinner />}><CloserAccount /></Suspense>} />
         </Route>
 
         {/* Catch-all redirect */}
