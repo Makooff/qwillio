@@ -12,8 +12,8 @@ import QwillioLoader from './QwillioLoader';
  *   - the minimum animation duration has elapsed (so the intro never cuts)
  */
 export default function AppBootOverlay({
-  minDurationMs = 900,
-  fadeMs = 350,
+  minDurationMs = 2500,
+  fadeMs = 450,
   background = '#0A0A0F',
 }: {
   minDurationMs?: number;
@@ -56,7 +56,7 @@ export default function AppBootOverlay({
         pointerEvents: fadingOut ? 'none' : 'auto',
       }}
     >
-      <QwillioLoader fullscreen={false} size={96} />
+      <QwillioLoader fullscreen={false} size={160} />
     </div>
   );
 }
