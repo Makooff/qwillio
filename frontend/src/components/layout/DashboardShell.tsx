@@ -344,7 +344,7 @@ function MobileBottomNav({
 
   return (
     <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
-      <div className="relative w-full flex items-center justify-around py-3 px-2">
+      <div className="relative w-full flex items-center py-3">
         <div
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
