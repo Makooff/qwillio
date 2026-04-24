@@ -1,13 +1,13 @@
 /**
- * Qwillio minimal loader — the two logo orbs (blue + violet) pulsing
- * and drifting together/apart in a gentle breathing loop.
+ * Qwillio minimal loader — a thin gradient arc (blue → violet) rotating
+ * inside a neutral ring.  Used everywhere except the initial site boot.
  *
- * Use this EVERYWHERE except the initial site-boot overlay
- * (AppBootOverlay keeps the full cinematic QwillioLoader).
+ * Size prop is diameter in px.  Background ring stays faint so it reads
+ * on any page surface.
  */
 
 export default function OrbsLoader({
-  size = 72,
+  size = 32,
   label,
   fullscreen = false,
 }: {
@@ -15,115 +15,81 @@ export default function OrbsLoader({
   label?: string;
   fullscreen?: boolean;
 }) {
-  const svg = (
-    <div className="qw-orbs" style={{ width: size, height: size }}>
-      <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" aria-label="Chargement" role="img">
+  // Stroke scales with size so the ring stays visually consistent.
+  const stroke = Math.max(1.5, Math.round(size / 18));
+  const radius = 50 - stroke;            // viewBox = 100
+  const circ = 2 * Math.PI * radius;
+  const arcLen = circ * 0.25;            // 25% of the circle
+
+  const spinner = (
+    <div className="qw-loader" style={{ width: size, height: size }}>
+      <svg viewBox="0 0 100 100" aria-label="Chargement" role="img">
         <defs>
-          <linearGradient id="orbsA" x1="30%" y1="0%" x2="70%" y2="100%">
+          <linearGradient id="qwLoaderArc" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%"   stopColor="#7D7CFB" />
-            <stop offset="55%"  stopColor="#6366F1" />
-            <stop offset="100%" stopColor="#4F46E5" />
+            <stop offset="100%" stopColor="#A855F7" />
           </linearGradient>
-          <linearGradient id="orbsB" x1="30%" y1="0%" x2="70%" y2="100%">
-            <stop offset="0%"   stopColor="#C286FA" />
-            <stop offset="55%"  stopColor="#A855F7" />
-            <stop offset="100%" stopColor="#9333EA" />
-          </linearGradient>
-          <radialGradient id="orbsHi" cx="35%" cy="25%" r="60%">
-            <stop offset="0%"  stopColor="#ffffff" stopOpacity="0.22" />
-            <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
-          </radialGradient>
-          <clipPath id="orbsClip">
-            <circle cx="80" cy="50" r="38" />
-          </clipPath>
         </defs>
-
-        {/* Right orb (violet) — underneath */}
-        <g className="qw-orbs__right">
-          <circle cx="120" cy="50" r="38" fill="url(#orbsB)" opacity="0.92" />
-          <circle cx="120" cy="50" r="38" fill="url(#orbsHi)" />
-        </g>
-
-        {/* Left orb (blue) — on top */}
-        <g className="qw-orbs__left">
-          <circle cx="80" cy="50" r="38" fill="url(#orbsA)" opacity="0.92" />
-          <circle cx="80" cy="50" r="38" fill="url(#orbsHi)" />
-        </g>
-
-        {/* Overlap deepening — visible only when the orbs meet */}
-        <g className="qw-orbs__overlap">
-          <circle cx="120" cy="50" r="38" fill="#3D2F9E" opacity="0.55" clipPath="url(#orbsClip)" />
-        </g>
+        <circle
+          cx="50" cy="50" r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx="50" cy="50" r={radius}
+          fill="none"
+          stroke="url(#qwLoaderArc)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${arcLen} ${circ - arcLen}`}
+          className="qw-loader__arc"
+        />
       </svg>
-      {label ? <div className="qw-orbs__label">{label}</div> : null}
+      {label ? <div className="qw-loader__label">{label}</div> : null}
 
       <style>{`
-        .qw-orbs {
+        .qw-loader {
           display: inline-flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           gap: 12px;
         }
-        .qw-orbs svg {
+        .qw-loader svg {
           width: 100%;
-          height: auto;
+          height: 100%;
           overflow: visible;
         }
-        .qw-orbs__left,
-        .qw-orbs__right,
-        .qw-orbs__overlap {
-          transform-box: fill-box;
-          transform-origin: center;
-          will-change: transform, opacity;
+        .qw-loader__arc {
+          transform-origin: 50% 50%;
+          animation: qw-loader-spin 0.9s linear infinite;
+          will-change: transform;
         }
-        .qw-orbs__left {
-          animation: qw-orbs-left 1800ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
-        }
-        .qw-orbs__right {
-          animation: qw-orbs-right 1800ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
-        }
-        .qw-orbs__overlap {
-          opacity: 0;
-          animation: qw-orbs-overlap 1800ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
-        }
-        .qw-orbs__label {
+        .qw-loader__label {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
           font-size: 12.5px;
           font-weight: 500;
           color: #A1A1A8;
           letter-spacing: 0.01em;
         }
-        @keyframes qw-orbs-left {
-          0%   { transform: translateX(0);      opacity: 0.85; }
-          50%  { transform: translateX(22px);   opacity: 1; }
-          100% { transform: translateX(0);      opacity: 0.85; }
-        }
-        @keyframes qw-orbs-right {
-          0%   { transform: translateX(0);      opacity: 0.85; }
-          50%  { transform: translateX(-22px);  opacity: 1; }
-          100% { transform: translateX(0);      opacity: 0.85; }
-        }
-        @keyframes qw-orbs-overlap {
-          0%, 100% { opacity: 0; }
-          50%      { opacity: 1; }
+        @keyframes qw-loader-spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
         @media (prefers-reduced-motion: reduce) {
-          .qw-orbs__left,
-          .qw-orbs__right,
-          .qw-orbs__overlap {
-            animation: none;
+          .qw-loader__arc {
+            animation-duration: 3s;
           }
-          .qw-orbs__overlap { opacity: 0.6; }
         }
       `}</style>
     </div>
   );
 
-  if (!fullscreen) return svg;
+  if (!fullscreen) return spinner;
   return (
     <div
-      className="qw-orbs-screen"
+      className="qw-loader-screen"
       style={{
         minHeight: '60vh',
         width: '100%',
@@ -132,7 +98,7 @@ export default function OrbsLoader({
         justifyContent: 'center',
       }}
     >
-      {svg}
+      {spinner}
     </div>
   );
 }
