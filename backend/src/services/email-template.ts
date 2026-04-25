@@ -88,9 +88,10 @@ export function brandText(html: string): string {
   return `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:${BRAND.textSec};">${html}</p>`;
 }
 
-/** Inbox preview line. */
+/** Inbox preview line — invisible but extracted by Gmail / Apple Mail. */
 function preheader(text: string): string {
-  return `<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:${BRAND.violet};">${text}</div>`;
+  return `<div style="display:none !important;visibility:hidden;mso-hide:all;max-height:0;max-width:0;opacity:0;overflow:hidden;font-size:1px;line-height:1px;color:transparent;">${text}</div>
+  <div style="display:none !important;font-size:1px;line-height:1px;">&#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;</div>`;
 }
 
 /**
