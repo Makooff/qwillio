@@ -258,6 +258,86 @@ export default function AdminSystem() {
           })}
         </Card>
       </section>
+
+      <TestEmailCard />
     </div>
+  );
+}
+
+const EMAIL_TEMPLATES: { v: string; l: string }[] = [
+  { v: 'welcome',        l: 'Welcome (post-paiement)' },
+  { v: 'trial-welcome',  l: 'Trial démarré' },
+  { v: 'loom',           l: 'Loom vidéo (setup ready)' },
+  { v: 'payment-failed', l: 'Paiement échoué' },
+  { v: 'confirmation',   l: 'Confirmation inscription' },
+];
+
+function TestEmailCard() {
+  const [to, setTo] = useState('matpol65@gmail.com');
+  const [type, setType] = useState('welcome');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const send = async () => {
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await api.post('/admin/test-email', { to, type });
+      setResult({ ok: !!res.data?.ok, msg: res.data?.ok
+        ? `Envoyé à ${to} · Resend ID ${res.data.resend?.id || res.data.resend?.data?.id || '—'}`
+        : `Échec : ${res.data?.error || 'inconnu'}` });
+    } catch (e: any) {
+      setResult({ ok: false, msg: e?.response?.data?.error || e.message || 'Échec' });
+    } finally { setSending(false); }
+  };
+
+  return (
+    <section>
+      <SectionHead title="Tester un email" />
+      <Card>
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <input
+              type="email"
+              value={to}
+              onChange={e => setTo(e.target.value)}
+              placeholder="destinataire@email.com"
+              className="md:col-span-2 h-10 px-3 text-[13px] rounded-lg outline-none"
+              style={{ background: pro.bg, color: pro.text, border: `1px solid ${pro.border}` }}
+            />
+            <select
+              value={type}
+              onChange={e => setType(e.target.value)}
+              className="h-10 px-3 text-[13px] rounded-lg outline-none"
+              style={{ background: pro.bg, color: pro.text, border: `1px solid ${pro.border}` }}
+            >
+              {EMAIL_TEMPLATES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={send}
+              disabled={sending || !to.trim()}
+              className="h-10 px-4 inline-flex items-center gap-2 text-[13px] font-medium rounded-lg disabled:opacity-40"
+              style={{ background: pro.text, color: '#0B0B0D' }}
+            >
+              <Mail size={13} /> {sending ? 'Envoi…' : 'Envoyer test'}
+            </button>
+            {result && (
+              <Pill color={result.ok ? 'ok' : 'bad'}>{result.ok ? 'OK' : 'Erreur'}</Pill>
+            )}
+          </div>
+          {result && (
+            <p className="text-[12px]" style={{ color: result.ok ? pro.ok : pro.bad }}>
+              {result.msg}
+            </p>
+          )}
+          <p className="text-[11.5px]" style={{ color: pro.textTer }}>
+            Le mail part via Resend depuis Qwillio &lt;hello@qwillio.com&gt;. Vérifiez ensuite dans
+            l'onglet Emails de Resend pour voir le statut de livraison.
+          </p>
+        </div>
+      </Card>
+    </section>
   );
 }

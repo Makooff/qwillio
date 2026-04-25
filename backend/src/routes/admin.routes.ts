@@ -8,6 +8,7 @@ import { getLogsFromDb, getLastIdFromDb, clearLogsInDb, isDbLogStoreReady } from
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 import { env } from '../config/env';
 import { getErrors, markResolved } from '../utils/error-store';
+import { emailService } from '../services/email.service';
 
 const router = Router();
 
@@ -47,6 +48,64 @@ router.delete('/logs', async (_req: Request, res: Response) => {
   clearLogs();
   await clearLogsInDb();
   res.json({ success: true });
+});
+
+// ─── Test email — fires any of our transactional templates against
+// an arbitrary address. Admin only. Reports the Resend ID + error
+// inline so we can debug deliverability without leaving the app.
+router.post('/test-email', async (req: Request, res: Response) => {
+  const to   = String(req.body?.to   || '').trim();
+  const type = String(req.body?.type || 'welcome').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    return res.status(400).json({ ok: false, error: 'Email destinataire invalide' });
+  }
+  const dashboardUrl = env.FRONTEND_URL?.split(',')[0] || 'https://qwillio.com';
+  const sample = {
+    to,
+    contactName:  'Mathieu Test',
+    businessName: 'Demo Plumbing',
+    dashboardUrl: `${dashboardUrl}/dashboard`,
+  };
+  try {
+    let result: any;
+    switch (type) {
+      case 'welcome':
+        result = await (emailService as any).sendWelcomeEmail({
+          ...sample,
+          planType: 'pro',
+          vapiPhoneNumber: env.VAPI_PHONE_NUMBER || '+1 607 354 8569',
+        });
+        break;
+      case 'trial-welcome':
+        result = await (emailService as any).sendTrialWelcomeEmail({
+          ...sample,
+          packageType: 'pro',
+          trialEndDate: new Date(Date.now() + 30 * 86_400_000),
+          trialCallsQuota: 100,
+        });
+        break;
+      case 'loom':
+        result = await (emailService as any).sendLoomVideoEmail(sample);
+        break;
+      case 'payment-failed':
+        result = await (emailService as any).sendPaymentFailedEmail({ ...sample, amount: 1297, paymentLink: null });
+        break;
+      case 'confirmation':
+        result = await (emailService as any).sendConfirmationEmail({
+          to,
+          name: sample.contactName,
+          confirmUrl: `${dashboardUrl}/auth/confirm?token=test`,
+        });
+        break;
+      default:
+        return res.status(400).json({ ok: false, error: `Type d'email inconnu: ${type}` });
+    }
+    logger.info(`[admin/test-email] sent type=${type} to=${to}`);
+    res.json({ ok: true, type, to, resend: result ?? null });
+  } catch (err: any) {
+    logger.error('[admin/test-email] failed:', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Échec envoi' });
+  }
 });
 
 // ─── Bot config (used by AdminSettings page) ─────────────
