@@ -17,12 +17,15 @@ import { followUpSequencesService } from './follow-up-sequences.service';
 import { isHoliday } from '../config/scheduling';
 
 // ─── US Federal holidays (YYYY-MM-DD) ────────────────────
+// Wide call windows so a /5 min cron can reasonably fill a 50-call/day
+// quota. Lunch break 12-13h kept so we don't hammer prospects during
+// noon. Friday afternoon kept short — closing rate plummets after 14h.
 const CALL_WINDOWS_BY_DAY: Record<number, Array<[number, number]>> = {
-  1: [[10, 11.5]],                       // Monday: 10:00–11:30
-  2: [[9, 11.5], [14, 17]],             // Tuesday: 9–11:30, 2–5
-  3: [[9, 11.5], [14, 17]],             // Wednesday: 9–11:30, 2–5
-  4: [[9, 11.5], [14, 16]],             // Thursday: 9–11:30, 2–4
-  5: [[10, 11.5]],                       // Friday: 10:00–11:30
+  1: [[9, 12], [13, 17]],   // Monday    : 9-12, 13-17  → 7h
+  2: [[9, 12], [13, 17]],   // Tuesday   : 9-12, 13-17  → 7h
+  3: [[9, 12], [13, 17]],   // Wednesday : 9-12, 13-17  → 7h
+  4: [[9, 12], [13, 17]],   // Thursday  : 9-12, 13-17  → 7h
+  5: [[9, 12], [13, 14]],   // Friday    : 9-12, 13-14  → 4h
 };
 
 // ─── Ashley scripts (EN) ─────────────────────────────────
@@ -173,22 +176,31 @@ export class OutboundEngineService {
 
   /** Main calling loop: pick next eligible prospect and initiate call */
   async callNextProspect(): Promise<boolean> {
+    const tickId = new Date().toISOString().slice(11, 19);
+
     // ── 1. Time checks (fast exit) ─────────────────────────
     if (isHoliday(new Date(), 'US')) {
-      logger.info('[OutboundEngine] Holiday, skipping call');
+      logger.info(`[OutboundEngine][${tickId}] SKIP · US holiday`);
       return false;
     }
 
     // ── 2. Bot status check ────────────────────────────────
     const botStatus = await prisma.botStatus.findFirst();
-    if (!botStatus?.isActive) return false;
-
+    if (!botStatus) {
+      logger.warn(`[OutboundEngine][${tickId}] SKIP · no botStatus row`);
+      return false;
+    }
+    if (!botStatus.isActive) {
+      logger.info(`[OutboundEngine][${tickId}] SKIP · bot is paused`);
+      return false;
+    }
     if (botStatus.callsToday >= botStatus.callsQuotaDaily) {
-      logger.info('[OutboundEngine] Daily quota reached');
+      logger.info(`[OutboundEngine][${tickId}] SKIP · daily quota reached (${botStatus.callsToday}/${botStatus.callsQuotaDaily})`);
       return false;
     }
 
     const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     // ── 3. Find eligible prospect ──────────────────────────
     // Skip prospects that a human closer has claimed — they'll be worked
@@ -205,22 +217,38 @@ export class OutboundEngineService {
           { nextCallAt: null },
           { nextCallAt: { lte: now } },
         ],
-        lastCallDate: {
-          not: { gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()) },
-        },
+        lastCallDate: { not: { gte: startOfDay } },
       },
       orderBy: { priorityScore: 'desc' },
     });
 
     if (!prospect || !prospect.phone) {
-      logger.debug('[OutboundEngine] No eligible prospects found');
+      // Diagnose WHY no eligible prospect — it's the #1 reason for empty
+      // days, and the answer is usually trivial (pool exhausted, all
+      // already called today, all tried 3+ times).
+      const [pool, poolToday, poolMaxedOut, poolAssigned] = await Promise.all([
+        prisma.prospect.count({ where: { status: 'new', phone: { not: null }, eligibleForCall: true, isMobile: false } }),
+        prisma.prospect.count({ where: { status: 'new', phone: { not: null }, eligibleForCall: true, isMobile: false, lastCallDate: { gte: startOfDay } } }),
+        prisma.prospect.count({ where: { status: 'new', phone: { not: null }, eligibleForCall: true, isMobile: false, callAttempts: { gte: 3 } } }),
+        prisma.prospect.count({ where: { status: 'new', phone: { not: null }, eligibleForCall: true, isMobile: false, assignedToUserId: { not: null } } }),
+      ]);
+      logger.info(
+        `[OutboundEngine][${tickId}] SKIP · no eligible prospect ` +
+        `· pool=${pool} alreadyCalledToday=${poolToday} maxedAttempts=${poolMaxedOut} claimedByCloser=${poolAssigned} ` +
+        `· quota=${botStatus.callsToday}/${botStatus.callsQuotaDaily}`
+      );
       return false;
     }
 
     // Check call window for prospect timezone
     const tz = prospect.timezone ?? 'America/New_York';
     if (!this.isWithinCallWindow(tz)) {
-      logger.debug(`[OutboundEngine] Outside call window for ${prospect.businessName} (${tz})`);
+      const localHour = new Date(new Date().toLocaleString('en-US', { timeZone: tz }))
+        .toTimeString().slice(0, 5);
+      logger.info(
+        `[OutboundEngine][${tickId}] SKIP · outside call window ` +
+        `· top prospect=${prospect.businessName} tz=${tz} localTime=${localHour}`
+      );
       return false;
     }
 

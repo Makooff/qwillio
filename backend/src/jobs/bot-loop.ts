@@ -567,10 +567,13 @@ class BotLoop {
     }, { timezone: 'UTC' });
 
     // ═══════════════════════════════════════════════════════════
-    // PROSPECTING ENGINE — CRON P2: Outbound engine — every 20min during call windows
-    // Tue-Thu: 9-11:30, 14-17 | Mon/Fri: 10-11:30 (prospect local time enforced in service)
+    // PROSPECTING ENGINE — CRON P2: Outbound engine — every 5 min so a
+    // 50-call/day quota is actually reachable.  Server-time UTC window
+    // covers 6h-22h to span US Pacific business hours; the per-prospect
+    // window check inside the service then enforces the prospect's
+    // local 9-12 / 13-17 schedule.
     // ═══════════════════════════════════════════════════════════
-    this.outboundEngineJob = cron.schedule('*/20 9-17 * * 1-5', async () => {
+    this.outboundEngineJob = cron.schedule('*/5 6-22 * * 1-5', async () => {
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
 

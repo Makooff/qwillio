@@ -83,7 +83,7 @@ export const env = {
   AUTOMATION_START_HOUR: parseInt(process.env.AUTOMATION_START_HOUR || '9', 10),
   AUTOMATION_END_HOUR: parseInt(process.env.AUTOMATION_END_HOUR || '19', 10),
   AUTOMATION_DAYS: (process.env.AUTOMATION_DAYS || '1,2,3,4,5').split(',').map(Number),
-  CALL_INTERVAL_MINUTES: parseInt(process.env.CALL_INTERVAL_MINUTES || '20', 10),
+  CALL_INTERVAL_MINUTES: parseInt(process.env.CALL_INTERVAL_MINUTES || '5', 10),
   PROSPECTION_DAILY_QUOTA: parseInt(process.env.PROSPECTION_DAILY_QUOTA || '30', 10),
   PROSPECTION_RADIUS_METERS: parseInt(process.env.PROSPECTION_RADIUS_METERS || '5000', 10),
   PROSPECTION_CITIES: (process.env.PROSPECTION_CITIES || 'Bruxelles,Anvers,Gand').split(','),
