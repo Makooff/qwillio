@@ -125,11 +125,11 @@ export function brandWrap(opts: {
     <tr>
       <td align="center">
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
-          <!-- Brand header -->
+          <!-- Brand header — top-left -->
           <tr>
-            <td style="padding:0 0 24px 0;text-align:center;">
-              <img src="${BRAND.logoUrl}" alt="Qwillio" width="40" height="40" style="border-radius:10px;display:inline-block;vertical-align:middle;border:0;">
-              <span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.01em;margin-left:10px;vertical-align:middle;color:${BRAND.text};">Qwillio</span>
+            <td style="padding:0 4px 24px 4px;text-align:left;">
+              <img src="${BRAND.logoUrl}" alt="Qwillio" width="36" height="36" style="border-radius:9px;display:inline-block;vertical-align:middle;border:0;">
+              <span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:18px;font-weight:700;letter-spacing:-0.01em;margin-left:10px;vertical-align:middle;color:${BRAND.text};">Qwillio</span>
             </td>
           </tr>
           <!-- Frosted glass card -->
@@ -140,7 +140,7 @@ export function brandWrap(opts: {
           </tr>
           <!-- Footer -->
           <tr>
-            <td style="padding:24px 8px 8px 8px;text-align:center;">
+            <td style="padding:24px 4px 8px 4px;text-align:left;">
               <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:12px;color:${BRAND.textMuted};line-height:1.6;">
                 Qwillio — AI receptionist for service businesses<br>
                 <a href="${BRAND.homeUrl}" style="color:${BRAND.textMuted};text-decoration:underline;">qwillio.com</a>

@@ -60,10 +60,14 @@ router.post('/test-email', async (req: Request, res: Response) => {
     return res.status(400).json({ ok: false, error: 'Email destinataire invalide' });
   }
   const dashboardUrl = env.FRONTEND_URL?.split(',')[0] || 'https://qwillio.com';
+  // Tag the businessName with a short unique suffix so consecutive tests
+  // produce distinct subjects — otherwise Gmail collapses them into a
+  // single thread and hides everything behind the "…" trim toggle.
+  const stamp = new Date().toISOString().slice(11, 19).replace(/:/g, '');
   const sample = {
     to,
     contactName:  'Mathieu Test',
-    businessName: 'Demo Plumbing',
+    businessName: `Demo Plumbing ${stamp}`,
     dashboardUrl: `${dashboardUrl}/dashboard`,
   };
   try {
