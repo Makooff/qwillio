@@ -233,6 +233,15 @@ class BotLoop {
       } catch (error) {
         logger.error('[CRON] Daily reset failed:', error);
       }
+
+      // Purge bot_log entries older than 7 days so the table stays small
+      try {
+        const { purgeOldLogs } = await import('../config/db-log-store');
+        const removed = await purgeOldLogs(7);
+        if (removed > 0) logger.info(`[CRON] bot_log purge — removed ${removed} entries older than 7 days`);
+      } catch (err) {
+        logger.warn('[CRON] bot_log purge failed (non-fatal):', err);
+      }
     }, { timezone: env.TZ });
 
     // ═══════════════════════════════════════════════════════════

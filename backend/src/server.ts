@@ -410,6 +410,17 @@ async function startServer() {
       }
     }
 
+    // Persistent log table (7-day retention) — runs idempotent CREATE
+    // TABLE IF NOT EXISTS, then logger writes start landing in DB.
+    try {
+      const { ensureBotLogTable } = await import('./config/db-log-store');
+      await ensureBotLogTable();
+      logger.info('[bot_log] persistent log table ready (7-day retention)');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[bot_log] init failed (non-fatal):', err);
+    }
+
     // Initialize bot loop (creates bot_status record if needed)
     await botLoop.initialize();
     logger.info('Bot loop initialized');

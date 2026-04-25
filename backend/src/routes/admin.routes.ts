@@ -4,6 +4,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { analyticsService } from '../services/analytics.service';
 import { getLogs, clearLogs, getLastId } from '../config/log-store';
+import { getLogsFromDb, getLastIdFromDb, clearLogsInDb, isDbLogStoreReady } from '../config/db-log-store';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 import { env } from '../config/env';
 import { getErrors, markResolved } from '../utils/error-store';
@@ -15,18 +16,36 @@ router.use(authMiddleware);
 router.use(adminMiddleware);
 
 // ─── Log viewer endpoints ─────────────────────────────────
-router.get('/logs', (req: Request, res: Response) => {
+// Reads from the persistent bot_log table (7-day retention) when
+// available; falls back to the in-memory ring buffer if the DB query
+// fails or the table isn't ready yet.
+router.get('/logs', async (req: Request, res: Response) => {
   const since = req.query.since ? parseInt(req.query.since as string) : undefined;
   const level = req.query.level as string | undefined;
   const search = req.query.search as string | undefined;
+  const limit = req.query.limit ? Math.min(parseInt(req.query.limit as string) || 200, 1000) : 200;
+
+  if (isDbLogStoreReady()) {
+    try {
+      const [logs, lastId] = await Promise.all([
+        getLogsFromDb({ since, level, search, limit }),
+        getLastIdFromDb(),
+      ]);
+      return res.json({ logs, lastId, source: 'db' });
+    } catch {
+      /* fall through to memory */
+    }
+  }
   res.json({
-    logs: getLogs({ since, level, search, limit: 200 }),
+    logs: getLogs({ since, level, search, limit }),
     lastId: getLastId(),
+    source: 'memory',
   });
 });
 
-router.delete('/logs', (_req: Request, res: Response) => {
+router.delete('/logs', async (_req: Request, res: Response) => {
   clearLogs();
+  await clearLogsInDb();
   res.json({ success: true });
 });
 

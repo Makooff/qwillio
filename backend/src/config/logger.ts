@@ -2,9 +2,14 @@ import winston from 'winston';
 import Transport from 'winston-transport';
 import { env } from './env';
 import { addLog } from './log-store';
+import { addLogToDb } from './db-log-store';
 import { DiscordErrorTransport } from './discord-error-transport';
 
-/** Custom transport — captures logs in the in-memory ring buffer */
+/**
+ * Custom transport — captures logs in the in-memory ring buffer (fast,
+ * 500 entries) AND persists info+ entries to Postgres (bot_log) with
+ * 7-day retention. DB write is fire-and-forget.
+ */
 class MemoryTransport extends Transport {
   log(info: any, callback: () => void) {
     setImmediate(() => this.emit('logged', info));
@@ -25,13 +30,22 @@ class MemoryTransport extends Transport {
     const errInSplat = splat.find((s) => s instanceof Error) as Error | undefined;
     const stack = info.stack || errInSplat?.stack;
 
-    addLog({
+    const entry = {
       timestamp: info.timestamp || new Date().toISOString(),
       level: info.level as 'error' | 'warn' | 'info' | 'debug',
       message,
       service: info.service,
       stack,
-    });
+    };
+
+    addLog(entry);
+
+    // Persist info+ to DB so /admin/logs has 7 days of history. Skip
+    // debug — it would bloat the table with noise.
+    if (entry.level !== 'debug') {
+      addLogToDb(entry).catch(() => { /* never crash on logging */ });
+    }
+
     callback();
   }
 }
