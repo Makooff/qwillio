@@ -427,6 +427,7 @@ export class EmailService {
       body: [
         brandTitle('Your AI receptionist is live'),
         brandText(`Hi ${data.contactName}, your AI receptionist for <strong>${data.businessName}</strong> is now answering calls 24/7.`),
+        brandButton('Open my dashboard', data.dashboardUrl),
         brandHighlight('Your AI phone number', data.vapiPhoneNumber, 22),
         brandText('Three quick steps to make the most of it:'),
         brandList([
@@ -434,7 +435,6 @@ export class EmailService {
           `<strong>Customize it.</strong> Open the dashboard to set hours, FAQ and pricing.`,
           `<strong>Forward your calls.</strong> Redirect your main line to ${data.vapiPhoneNumber} when you're ready.`,
         ]),
-        brandButton('Open dashboard', data.dashboardUrl),
         brandSmall('Tip — during the first 7 days, keep your current phone system running in parallel for a smooth transition.'),
       ].join(''),
     });
@@ -638,6 +638,7 @@ export class EmailService {
       body: [
         brandTitle('Your setup is complete'),
         brandText(`Hi ${data.contactName}, your AI receptionist for <strong>${data.businessName}</strong> is now fully configured with your business information.`),
+        brandButton('Open my dashboard', data.dashboardUrl),
         brandText("A teammate is recording a personalized walkthrough video — you'll receive it within 24 hours."),
         brandText('Your AI now knows:'),
         brandList([
@@ -647,7 +648,6 @@ export class EmailService {
           'Urgent call handling',
           'Industry-specific knowledge',
         ]),
-        brandButton('Open dashboard', data.dashboardUrl),
         brandSmall('— The Qwillio Team'),
       ].join(''),
     });
@@ -804,10 +804,13 @@ export class EmailService {
       body: [
         brandTitle('Payment issue'),
         brandText(`Hi ${data.contactName}, we were unable to process your payment of <strong>$${data.amount}</strong> for ${data.businessName}.`),
-        brandText('Your AI receptionist is still active, but we need you to update your payment method to avoid any service interruption.'),
         data.paymentLink
           ? brandButton('Update payment method', data.paymentLink)
-          : brandText('Stripe will automatically retry the payment in a few days. If you\'d like to update your card now, reply to this email and we\'ll send a secure link.'),
+          : '',
+        brandText('Your AI receptionist is still active, but we need you to update your payment method to avoid any service interruption.'),
+        !data.paymentLink
+          ? brandText('Stripe will automatically retry the payment in a few days. If you\'d like to update your card now, reply to this email and we\'ll send a secure link.')
+          : '',
         brandText('Common reasons for failed payments:'),
         brandList(['Expired credit card', 'Insufficient funds', 'Card blocked by your bank', 'Outdated billing address']),
         brandSmall('— The Qwillio Team'),

@@ -36,14 +36,15 @@ const BRAND = {
   highlightBorder: '#EAEAEC',
 };
 
-/** Primary CTA — gradient violet pill with white text. */
+/** Primary CTA — large, centered, gradient violet pill. Designed to be
+ *  the first action the reader sees, so it sits high in every email. */
 export function brandButton(label: string, url: string): string {
   return `
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 8px 0;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:8px auto 24px auto;width:auto;">
       <tr>
-        <td style="border-radius:12px;background:linear-gradient(135deg,${BRAND.violetLite} 0%,${BRAND.violet} 50%,${BRAND.violetDeep} 100%);box-shadow:0 8px 24px rgba(123,92,240,0.40);">
-          <a href="${url}" style="display:inline-block;padding:14px 28px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:#FFFFFF;font-size:14px;font-weight:600;text-decoration:none;border-radius:12px;letter-spacing:0.01em;">
-            ${label}
+        <td align="center" style="border-radius:14px;background:linear-gradient(135deg,${BRAND.violetLite} 0%,${BRAND.violet} 50%,${BRAND.violetDeep} 100%);box-shadow:0 12px 32px rgba(123,92,240,0.45);">
+          <a href="${url}" style="display:inline-block;padding:16px 38px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;border-radius:14px;letter-spacing:0.01em;">
+            ${label} →
           </a>
         </td>
       </tr>
