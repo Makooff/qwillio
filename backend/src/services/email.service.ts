@@ -3,6 +3,15 @@ import { env } from '../config/env';
 import { logger } from '../config/logger';
 import { PACKAGES } from '../types';
 import { formatDate } from '../utils/helpers';
+import { brandWrap, brandTitle, brandText, brandButton, brandList, brandSmall } from './email-template';
+
+/** Soft surface block (e.g. phone number, price). Stays consistent across templates. */
+function brandHighlight(label: string, value: string, valueSize = 24): string {
+  return `<div style="margin:24px 0;padding:20px 24px;background:#FAFAFC;border:1px solid #EAEAEC;border-radius:12px;text-align:center;">
+    <p style="margin:0 0 6px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;color:#86868B;letter-spacing:0.06em;text-transform:uppercase;">${label}</p>
+    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:${valueSize}px;font-weight:700;letter-spacing:-0.01em;color:#0B0B0D;font-feature-settings:'tnum';">${value}</p>
+  </div>`;
+}
 
 export class EmailService {
   /**
@@ -412,41 +421,23 @@ export class EmailService {
     vapiPhoneNumber: string;
     dashboardUrl: string;
   }): string {
-    return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"></head>
-<body style="font-family:'Segoe UI',sans-serif;line-height:1.6;color:#333;background:#f4f4f4;margin:0;padding:0;">
-<div style="max-width:600px;margin:20px auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
-  <div style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:40px 30px;text-align:center;">
-    <h1 style="margin:0;">Welcome to Qwillio!</h1>
-    <p style="margin:10px 0 0;">Your AI receptionist is ready</p>
-  </div>
-  <div style="padding:40px 30px;">
-    <p>Hi ${data.contactName},</p>
-    <p><strong>Congratulations!</strong> Your AI receptionist for <strong>${data.businessName}</strong> is now live.</p>
-    <div style="background:#f0fdf4;border-left:4px solid #10b981;padding:20px;margin:25px 0;">
-      <h3 style="margin:0 0 15px;color:#059669;">Your New AI Phone Number</h3>
-      <p style="font-size:32px;font-weight:700;color:#10b981;margin:0;">${data.vapiPhoneNumber}</p>
-      <p style="margin:10px 0 0;color:#666;">This number is now managed by your 24/7 AI receptionist</p>
-    </div>
-    <h3>What to do next?</h3>
-    <ol style="line-height:2;">
-      <li><strong>Test your receptionist</strong><br>Call ${data.vapiPhoneNumber} to see how she responds</li>
-      <li><strong>Customize it</strong><br>Log into your dashboard to configure hours, FAQ, etc.</li>
-      <li><strong>Forward your calls</strong><br>Redirect your main number to ${data.vapiPhoneNumber}</li>
-    </ol>
-    <div style="text-align:center;margin:35px 0;">
-      <a href="${data.dashboardUrl}" style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:16px 40px;text-decoration:none;border-radius:30px;font-weight:700;font-size:16px;">Access My Dashboard</a>
-    </div>
-    <div style="background:#fef3c7;border:1px solid #f59e0b;padding:15px;border-radius:8px;margin:25px 0;">
-      <p style="margin:0;color:#92400e;"><strong>Tip:</strong> During the first 7 days, keep your current system running in parallel for a smooth transition.</p>
-    </div>
-    <p style="margin-top:40px;">Talk soon,</p>
-    <p><strong>The Qwillio Team</strong></p>
-  </div>
-  <div style="background:#f8f9fa;padding:30px;text-align:center;color:#666;font-size:14px;border-top:1px solid #e9ecef;">
-    <p>Qwillio - Your 24/7 AI Receptionist</p>
-  </div>
-</div></body></html>`;
+    return brandWrap({
+      title: 'Welcome to Qwillio',
+      preheader: `Your AI receptionist for ${data.businessName} is live.`,
+      body: [
+        brandTitle('Your AI receptionist is live'),
+        brandText(`Hi ${data.contactName}, your AI receptionist for <strong>${data.businessName}</strong> is now answering calls 24/7.`),
+        brandHighlight('Your AI phone number', data.vapiPhoneNumber, 22),
+        brandText('Three quick steps to make the most of it:'),
+        brandList([
+          `<strong>Test it.</strong> Call ${data.vapiPhoneNumber} and hear your AI in action.`,
+          `<strong>Customize it.</strong> Open the dashboard to set hours, FAQ and pricing.`,
+          `<strong>Forward your calls.</strong> Redirect your main line to ${data.vapiPhoneNumber} when you're ready.`,
+        ]),
+        brandButton('Open dashboard', data.dashboardUrl),
+        brandSmall('Tip — during the first 7 days, keep your current phone system running in parallel for a smooth transition.'),
+      ].join(''),
+    });
   }
 
   private renderTrialWelcomeTemplate(data: {
@@ -456,49 +447,25 @@ export class EmailService {
     trialEndDate: Date;
     trialCallsQuota: number;
   }): string {
-    return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"></head>
-<body style="font-family:'Segoe UI',sans-serif;line-height:1.6;color:#333;background:#f4f4f4;margin:0;padding:0;">
-<div style="max-width:600px;margin:20px auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
-  <div style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:40px 30px;text-align:center;">
-    <h1 style="margin:0;font-size:28px;">Your Free Trial is Active!</h1>
-    <p style="margin:10px 0 0;font-size:16px;opacity:0.9;">30 days to test Qwillio with zero commitment</p>
-  </div>
-  <div style="padding:40px 30px;">
-    <p style="font-size:18px;">Hi ${data.contactName},</p>
-    <p>Thanks for giving us a try! Your <strong>30-day free trial</strong> for <strong>${data.businessName}</strong> has just been activated.</p>
-    <div style="background:#f0fdf4;border-left:4px solid #10b981;padding:20px;margin:25px 0;border-radius:5px;">
-      <h3 style="margin:0 0 15px;color:#059669;">What's included in your trial:</h3>
-      <ul style="margin:0;padding-left:20px;">
-        <li>AI receptionist available 24/7</li>
-        <li>${data.trialCallsQuota} calls included during trial period</li>
-        <li>Automatic booking & reservations</li>
-        <li>Real-time tracking dashboard</li>
-        <li>Email technical support</li>
-      </ul>
-    </div>
-    <div style="background:#fff3cd;border:1px solid #ffc107;color:#856404;padding:15px;border-radius:5px;margin:20px 0;text-align:center;">
-      <strong>Your trial ends on ${formatDate(data.trialEndDate)}</strong><br>
-      No payment will be charged before that date.
-    </div>
-    <h3>Next steps:</h3>
-    <ol style="line-height:2;">
-      <li><strong>Our team will set up your AI assistant</strong> (within 24-48 hours)</li>
-      <li><strong>You'll receive an email</strong> with your AI phone number</li>
-      <li><strong>Test and enjoy</strong> your receptionist for 30 days</li>
-    </ol>
-    <p>Have questions? Simply reply to this email!</p>
-    <div style="margin-top:30px;padding-top:20px;border-top:2px solid #e9ecef;">
-      <p style="margin:5px 0;"><strong>Ashley</strong></p>
-      <p style="margin:5px 0;color:#666;">Sales Consultant</p>
-      <p style="margin:5px 0;color:#10b981;"><strong>Qwillio</strong></p>
-    </div>
-  </div>
-  <div style="background:#f8f9fa;padding:30px;text-align:center;color:#666;font-size:14px;border-top:1px solid #e9ecef;">
-    <p style="margin:5px 0;">Qwillio - Your 24/7 AI Receptionist</p>
-    <p style="margin:5px 0;font-size:12px;">Free trial with zero commitment - No credit card required</p>
-  </div>
-</div></body></html>`;
+    return brandWrap({
+      title: 'Your free trial is active',
+      preheader: `30 days to test Qwillio for ${data.businessName}.`,
+      body: [
+        brandTitle('Your free trial is active'),
+        brandText(`Hi ${data.contactName}, your <strong>30-day free trial</strong> for <strong>${data.businessName}</strong> has just been activated. No commitment, no card required.`),
+        brandText("What's included in your trial:"),
+        brandList([
+          'AI receptionist available 24/7',
+          `${data.trialCallsQuota} calls during the trial period`,
+          'Automatic booking & reservations',
+          'Real-time tracking dashboard',
+          'Email technical support',
+        ]),
+        brandHighlight('Trial ends on', formatDate(data.trialEndDate), 18),
+        brandText('Next steps: our team will set up your AI assistant in the next 24–48 hours and email you the AI phone number. From there, just test and enjoy.'),
+        brandSmall('Questions? Reply to this email and Ashley will jump in. — The Qwillio Team'),
+      ].join(''),
+    });
   }
 
   private renderTrialEndingTemplate(data: {
@@ -665,28 +632,25 @@ export class EmailService {
   // LOOM VIDEO EMAIL - After onboarding form completed
   // ═══════════════════════════════════════════════════════════
   async sendLoomVideoEmail(data: { to: string; contactName: string; businessName: string; dashboardUrl: string; }) {
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="font-family:'Segoe UI',sans-serif;line-height:1.6;color:#333;background:#f4f4f4;margin:0;padding:0;">
-<div style="max-width:600px;margin:20px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-  <div style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:35px 30px;text-align:center;">
-    <h1 style="margin:0;font-size:24px;">🎬 Your Setup is Complete!</h1>
-    <p style="margin:10px 0 0;opacity:0.9;">Your AI receptionist is fully personalized</p>
-  </div>
-  <div style="padding:40px 30px;">
-    <p>Hi ${data.contactName},</p>
-    <p>Your AI receptionist for <strong>${data.businessName}</strong> is now fully configured with your business information!</p>
-    <div style="background:#f0f0ff;border-radius:10px;padding:25px;margin:25px 0;text-align:center;">
-      <p style="margin:0 0 10px;font-size:18px;font-weight:700;">📹 Personalized Walkthrough</p>
-      <p style="margin:0;color:#666;">A team member will record a personalized Loom video showing how your receptionist handles calls. You'll receive it within 24 hours.</p>
-    </div>
-    <h3>Your AI now knows:</h3>
-    <ul style="line-height:2;"><li>✅ Business hours & location</li><li>✅ Services, pricing & FAQ</li><li>✅ Booking protocols</li><li>✅ Urgent call handling</li><li>✅ Industry-specific knowledge</li></ul>
-    <div style="text-align:center;margin:30px 0;">
-      <a href="${data.dashboardUrl}" style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:16px 40px;text-decoration:none;border-radius:25px;font-weight:700;">View My Dashboard →</a>
-    </div>
-    <p>The Qwillio Team</p>
-  </div>
-</div></body></html>`;
+    const html = brandWrap({
+      title: 'Your setup is complete',
+      preheader: 'Your AI receptionist is fully personalized.',
+      body: [
+        brandTitle('Your setup is complete'),
+        brandText(`Hi ${data.contactName}, your AI receptionist for <strong>${data.businessName}</strong> is now fully configured with your business information.`),
+        brandText("A teammate is recording a personalized walkthrough video — you'll receive it within 24 hours."),
+        brandText('Your AI now knows:'),
+        brandList([
+          'Business hours & location',
+          'Services, pricing and FAQ',
+          'Booking protocols',
+          'Urgent call handling',
+          'Industry-specific knowledge',
+        ]),
+        brandButton('Open dashboard', data.dashboardUrl),
+        brandSmall('— The Qwillio Team'),
+      ].join(''),
+    });
     try {
       await resend.emails.send({
         from: env.RESEND_FROM_EMAIL, to: data.to,
@@ -834,35 +798,21 @@ export class EmailService {
   // PAYMENT FAILED EMAIL - Notify client to update payment
   // ═══════════════════════════════════════════════════════════
   async sendPaymentFailedEmail(data: { to: string; contactName: string; businessName: string; amount: number; paymentLink?: string | null; }) {
-    const paymentButton = data.paymentLink
-      ? `<div style="text-align:center;margin:25px 0;"><a href="${data.paymentLink}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">Update Payment Method</a></div>`
-      : `<p>Stripe will automatically retry the payment in a few days. If you'd like to update your card now, please reply to this email and we'll send you a secure link.</p>`;
-
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="font-family:'Segoe UI',sans-serif;line-height:1.6;color:#333;background:#f4f4f4;margin:0;padding:0;">
-<div style="max-width:600px;margin:20px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-  <div style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;padding:35px 30px;text-align:center;">
-    <h1 style="margin:0;font-size:24px;">Payment Issue</h1>
-    <p style="margin:10px 0 0;opacity:0.9;">${data.businessName}</p>
-  </div>
-  <div style="padding:40px 30px;">
-    <p>Hi ${data.contactName},</p>
-    <p>We were unable to process your payment of <strong>$${data.amount}</strong> for your Qwillio subscription.</p>
-    <div style="background:#fef2f2;border:1px solid #fecaca;padding:20px;border-radius:8px;margin:25px 0;">
-      <p style="margin:0;color:#dc2626;"><strong>Your AI receptionist is still active</strong>, but we need you to update your payment method to avoid any service interruption.</p>
-    </div>
-    ${paymentButton}
-    <div style="background:#f8f9ff;padding:15px;border-radius:8px;margin:25px 0;font-size:14px;">
-      <p style="margin:0;"><strong>Common reasons for failed payments:</strong></p>
-      <ul style="margin:10px 0 0;padding-left:20px;">
-        <li>Expired credit card</li>
-        <li>Insufficient funds</li>
-        <li>Card flagged by bank</li>
-      </ul>
-    </div>
-    <p>The Qwillio Team</p>
-  </div>
-</div></body></html>`;
+    const html = brandWrap({
+      title: 'Payment issue',
+      preheader: `Update your payment method to keep ${data.businessName} active.`,
+      body: [
+        brandTitle('Payment issue'),
+        brandText(`Hi ${data.contactName}, we were unable to process your payment of <strong>$${data.amount}</strong> for ${data.businessName}.`),
+        brandText('Your AI receptionist is still active, but we need you to update your payment method to avoid any service interruption.'),
+        data.paymentLink
+          ? brandButton('Update payment method', data.paymentLink)
+          : brandText('Stripe will automatically retry the payment in a few days. If you\'d like to update your card now, reply to this email and we\'ll send a secure link.'),
+        brandText('Common reasons for failed payments:'),
+        brandList(['Expired credit card', 'Insufficient funds', 'Card blocked by your bank', 'Outdated billing address']),
+        brandSmall('— The Qwillio Team'),
+      ].join(''),
+    });
     try {
       await resend.emails.send({
         from: env.RESEND_FROM_EMAIL, to: data.to,
@@ -1049,23 +999,17 @@ export class EmailService {
   }): Promise<{ success: boolean; emailId?: string }> {
     const firstName = data.name.split(' ')[0] || data.name;
 
-    const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f7f8;">
-<div style="max-width:520px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
-  <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:30px;text-align:center;color:#fff;">
-    <h1 style="margin:0;font-size:24px;">Welcome to Qwillio!</h1>
-    <p style="margin:10px 0 0;opacity:0.9;font-size:14px;">Confirm your email to get started</p>
-  </div>
-  <div style="padding:30px;color:#333;">
-    <p style="font-size:16px;">Hi ${firstName},</p>
-    <p>Thanks for signing up for Qwillio! Please confirm your email address to activate your account and start your free trial.</p>
-    <div style="text-align:center;margin:30px 0;">
-      <a href="${data.confirmUrl}" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:16px 40px;text-decoration:none;border-radius:30px;font-weight:700;font-size:16px;">Confirm my email</a>
-    </div>
-    <p style="color:#666;font-size:14px;">Or copy and paste this link in your browser:</p>
-    <p style="word-break:break-all;color:#6366f1;font-size:13px;">${data.confirmUrl}</p>
-    <p style="color:#888;font-size:12px;margin-top:30px;border-top:1px solid #eee;padding-top:15px;">If you didn't create this account, you can safely ignore this email.</p>
-  </div>
-</div></body></html>`;
+    const html = brandWrap({
+      title: 'Confirm your Qwillio account',
+      preheader: 'One click to activate your free trial.',
+      body: [
+        brandTitle('Confirm your email'),
+        brandText(`Hi ${firstName}, thanks for signing up for Qwillio. Confirm your email to activate your account and start your free trial.`),
+        brandButton('Confirm my email', data.confirmUrl),
+        brandSmall(`Or paste this link into your browser:<br><span style="word-break:break-all;color:#A855F7;">${data.confirmUrl}</span>`),
+        brandSmall("If you didn't create this account, you can safely ignore this email."),
+      ].join(''),
+    });
 
     try {
       const result = await resend.emails.send({
