@@ -540,26 +540,65 @@ function CallingStep({
   return (
     <Card>
       <div className="p-8 flex flex-col items-center text-center">
-        {/* Pulsing rings + phone */}
-        <div className="relative w-32 h-32 flex items-center justify-center mb-6">
-          {[0, 1, 2].map(i => (
-            <motion.span
-              key={i}
-              className="absolute rounded-full"
+        {/* Two Qwillio orbs orbiting around a central phone icon — bounded
+            box so nothing escapes the card. */}
+        <div className="relative mb-6"
+             style={{ width: 176, height: 176 }}>
+          {/* Faint orbit guides */}
+          <span className="absolute inset-0 rounded-full"
+                style={{ border: `1px dashed ${pro.borderHi}`, opacity: 0.35 }} />
+          <span className="absolute rounded-full"
+                style={{
+                  inset: 24,
+                  border: `1px dashed ${pro.borderHi}`,
+                  opacity: 0.25,
+                }} />
+
+          {/* Outer orbit — violet orb, clockwise */}
+          <motion.div
+            className="absolute inset-0"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 4.2, repeat: Infinity, ease: 'linear' }}
+          >
+            <div className="absolute left-1/2 -translate-x-1/2"
+                 style={{
+                   top: -8,
+                   width: 22, height: 22, borderRadius: '50%',
+                   background: 'radial-gradient(circle at 35% 30%, #DDB0FF 0%, #A855F7 55%, #9333EA 100%)',
+                   boxShadow: '0 0 22px rgba(168,85,247,0.55), inset 0 1px 0 rgba(255,255,255,0.2)',
+                 }} />
+          </motion.div>
+
+          {/* Inner orbit — blue orb, counter-clockwise, faster */}
+          <motion.div
+            className="absolute"
+            style={{ inset: 24 }}
+            animate={{ rotate: -360 }}
+            transition={{ duration: 2.8, repeat: Infinity, ease: 'linear' }}
+          >
+            <div className="absolute left-1/2 -translate-x-1/2"
+                 style={{
+                   top: -7,
+                   width: 18, height: 18, borderRadius: '50%',
+                   background: 'radial-gradient(circle at 35% 30%, #A5A4FF 0%, #6366F1 55%, #4F46E5 100%)',
+                   boxShadow: '0 0 18px rgba(99,102,241,0.55), inset 0 1px 0 rgba(255,255,255,0.2)',
+                 }} />
+          </motion.div>
+
+          {/* Center phone — gentle breathing pulse, never grows beyond bounds */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <motion.div
+              className="rounded-full flex items-center justify-center"
+              animate={{ scale: [1, 1.06, 1] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
               style={{
-                width: '100%', height: '100%',
-                border: `2px solid ${pro.accent}`,
+                width: 76, height: 76,
+                background: `linear-gradient(135deg, ${pro.accent} 0%, #6541E0 100%)`,
+                boxShadow: `0 6px 24px ${pro.accent}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
               }}
-              animate={{ scale: [1, 2.2], opacity: [0.6, 0] }}
-              transition={{ duration: 2, delay: i * 0.65, repeat: Infinity, ease: 'easeOut' }}
-            />
-          ))}
-          <div className="relative w-20 h-20 rounded-full flex items-center justify-center"
-               style={{
-                 background: `linear-gradient(135deg, ${pro.accent} 0%, #6541E0 100%)`,
-                 boxShadow: `0 6px 24px ${pro.accent}55`,
-               }}>
-            <Phone size={30} color="#fff" />
+            >
+              <Phone size={28} color="#fff" />
+            </motion.div>
           </div>
         </div>
 
