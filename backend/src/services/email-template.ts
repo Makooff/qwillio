@@ -1,38 +1,55 @@
 /**
- * Shared branded email template — Qwillio logo + colors, Stripe/Apple
- * minimalist style. Every transactional email funnels through `brandWrap`.
+ * Shared branded email template — solid Qwillio violet with subtle
+ * orbs + frosted translucent card.  Inspired by the Sales Rep Guide
+ * page but adapted for transactional emails (sober, no marketing
+ * decorations, white-on-violet typography).
  *
- * Style choices:
- *   - Off-white page background (#F5F5F7) — Apple Mail / Gmail dark mode safe
- *   - Single white card with soft shadow + 16 px radius
- *   - SF system font stack with -webkit-font-smoothing
- *   - Single brand accent: blue → violet linear gradient (#7D7CFB → #A855F7)
- *   - Logo: hosted PNG at the qwillio.com root (192 px, served by Vercel)
+ * Background:
+ *   - Solid Qwillio violet base (#7B5CF0)
+ *   - Two soft orb overlays (lighter violet on top, deeper violet
+ *     bottom-right) painted via stacked radial-gradients.  Apple Mail
+ *     and Gmail web honor multi-background; older Outlook falls back
+ *     to the solid violet bgcolor.
+ *
+ * Card:
+ *   - rgba(255,255,255,0.10) over the violet → reads as a frosted
+ *     translucent panel everywhere, even without backdrop-filter
+ *   - 1 px rgba(255,255,255,0.18) border, 16 px radius
+ *   - backdrop-filter: blur(20px) is added for clients that support
+ *     it (Apple Mail iOS 16+) — pure bonus
+ *
+ * Typography on violet:
+ *   - Headings  : pure white #FFFFFF
+ *   - Body      : rgba(255,255,255,0.85)
+ *   - Muted     : rgba(255,255,255,0.62)
  */
 
 const BRAND = {
   logoUrl:    'https://qwillio.com/icon-192.png',
   homeUrl:    'https://qwillio.com',
   supportUrl: 'mailto:contact@qwillio.com',
-  // Gradient stops (used inline via linear-gradient)
-  blue:       '#7D7CFB',
-  violet:     '#A855F7',
-  // Text
-  text:       '#0B0B0D',
-  textSec:    '#2C2C30',
-  textMuted:  '#86868B',
-  // Surfaces
-  bg:         '#F5F5F7',
-  card:       '#FFFFFF',
+  // Base violet — same as the Sales Rep Guide page
+  violet:     '#7B5CF0',
+  violetDeep: '#5C3CE0',
+  violetLite: '#9F86FF',
+  // Text on the violet bg (kept as constants for the helpers)
+  text:       '#FFFFFF',
+  textSec:    'rgba(255,255,255,0.85)',
+  textMuted:  'rgba(255,255,255,0.62)',
+  // Translucent surfaces
+  cardBg:     'rgba(255,255,255,0.10)',
+  cardBorder: 'rgba(255,255,255,0.18)',
+  highlightBg:     'rgba(255,255,255,0.07)',
+  highlightBorder: 'rgba(255,255,255,0.14)',
 };
 
-/** A primary CTA button. Email-client safe (table-based, inline styles). */
+/** Primary CTA — white pill on violet bg (high contrast). */
 export function brandButton(label: string, url: string): string {
   return `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 8px 0;">
       <tr>
-        <td style="border-radius:12px;background:linear-gradient(135deg,${BRAND.blue} 0%,${BRAND.violet} 100%);">
-          <a href="${url}" style="display:inline-block;padding:14px 28px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:#FFFFFF;font-size:14px;font-weight:600;text-decoration:none;border-radius:12px;letter-spacing:0.01em;">
+        <td style="border-radius:12px;background:#FFFFFF;box-shadow:0 6px 20px rgba(0,0,0,0.18);">
+          <a href="${url}" style="display:inline-block;padding:14px 28px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:${BRAND.violetDeep};font-size:14px;font-weight:600;text-decoration:none;border-radius:12px;letter-spacing:0.01em;">
             ${label}
           </a>
         </td>
@@ -40,46 +57,45 @@ export function brandButton(label: string, url: string): string {
     </table>`;
 }
 
-/** A subtle secondary action — text-only link in brand color. */
+/** Subtle secondary action — text-only inline link. */
 export function brandLink(label: string, url: string): string {
-  return `<a href="${url}" style="color:${BRAND.violet};font-weight:500;text-decoration:none;">${label}</a>`;
+  return `<a href="${url}" style="color:#FFFFFF;font-weight:600;text-decoration:underline;">${label}</a>`;
 }
 
-/** Ordered list / unordered list helpers — Apple-style bullet rows. */
+/** Branded bullet list (white dots glowing on violet). */
 export function brandList(items: string[]): string {
   return `<ul style="margin:16px 0;padding:0;list-style:none;">${
     items.map(it => `
       <li style="margin:0 0 12px 0;padding:0 0 0 24px;position:relative;font-size:15px;line-height:1.55;color:${BRAND.textSec};">
-        <span style="position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,${BRAND.blue} 0%,${BRAND.violet} 100%);display:inline-block;"></span>
+        <span style="position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:#FFFFFF;display:inline-block;box-shadow:0 0 10px rgba(255,255,255,0.65);"></span>
         ${it}
       </li>`).join('')
   }</ul>`;
 }
 
-/** A small dim helper paragraph (e.g. legal / fine print). */
+/** Muted helper paragraph. */
 export function brandSmall(html: string): string {
   return `<p style="margin:18px 0 0 0;font-size:12.5px;line-height:1.55;color:${BRAND.textMuted};">${html}</p>`;
 }
 
-/** A heading — H1 inside the card. */
+/** H1 inside the card. */
 export function brandTitle(text: string): string {
   return `<h1 style="margin:0 0 12px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.01em;color:${BRAND.text};line-height:1.25;">${text}</h1>`;
 }
 
-/** A paragraph — body copy. */
+/** Body paragraph. */
 export function brandText(html: string): string {
   return `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:${BRAND.textSec};">${html}</p>`;
 }
 
-/** A muted "preheader" that shows in inbox previews. */
+/** Inbox preview line. */
 function preheader(text: string): string {
-  return `<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:${BRAND.bg};">${text}</div>`;
+  return `<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:${BRAND.violet};">${text}</div>`;
 }
 
 /**
  * Wrap arbitrary content HTML inside the branded shell (header logo,
- * white card, footer).  `body` is whatever you want inside the card —
- * use the brand* helpers above for consistency.
+ * frosted card, footer).  `body` is composed via the brand* helpers.
  */
 export function brandWrap(opts: {
   title: string;
@@ -88,6 +104,13 @@ export function brandWrap(opts: {
   unsubscribeHtml?: string;
 }): string {
   const { title, preheader: ph, body, unsubscribeHtml = '' } = opts;
+  // Two soft brand orbs over the violet base — Apple Mail / Gmail web
+  // render the multi-background; legacy clients fall back to bgcolor.
+  const pageBg =
+    `radial-gradient(circle at 88% 14%, rgba(255,255,255,0.22), transparent 35%),` +
+    `radial-gradient(circle at 8% 88%, rgba(255,255,255,0.16), transparent 38%),` +
+    `${BRAND.violet}`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -95,22 +118,22 @@ export function brandWrap(opts: {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${title}</title>
 </head>
-<body style="margin:0;padding:0;background:${BRAND.bg};font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:${BRAND.text};-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;background:${BRAND.violet};font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:${BRAND.text};-webkit-font-smoothing:antialiased;">
   ${ph ? preheader(ph) : ''}
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${BRAND.bg};padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${BRAND.violet}" style="background:${pageBg};padding:32px 16px;">
     <tr>
       <td align="center">
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
           <!-- Brand header -->
           <tr>
             <td style="padding:0 0 24px 0;text-align:center;">
-              <img src="${BRAND.logoUrl}" alt="Qwillio" width="44" height="44" style="border-radius:10px;display:inline-block;vertical-align:middle;border:0;">
+              <img src="${BRAND.logoUrl}" alt="Qwillio" width="40" height="40" style="border-radius:10px;display:inline-block;vertical-align:middle;border:0;">
               <span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.01em;margin-left:10px;vertical-align:middle;color:${BRAND.text};">Qwillio</span>
             </td>
           </tr>
-          <!-- Card -->
+          <!-- Frosted glass card -->
           <tr>
-            <td style="background:${BRAND.card};border-radius:16px;padding:40px 36px;box-shadow:0 1px 2px rgba(0,0,0,0.04),0 6px 18px rgba(0,0,0,0.05);">
+            <td style="background:${BRAND.cardBg};border:1px solid ${BRAND.cardBorder};border-radius:16px;padding:40px 36px;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);">
               ${body}
             </td>
           </tr>
