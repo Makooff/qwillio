@@ -65,19 +65,31 @@ export class ProspectionService {
   }
 
   async runDailyProspection(): Promise<number> {
-    logger.info('Starting daily prospection...');
     this.requestCount = 0; // Reset per run
     let totalAdded = 0;
 
-    const cities = env.PROSPECTION_CITIES;
-    const quotaPerCity = Math.floor(env.PROSPECTION_DAILY_QUOTA / cities.length);
+    // Filter env cities down to the ones we actually have coords for. If
+    // the env was set to unsupported cities (or left at the legacy BE
+    // default while the calling code targets US), fall back to the full
+    // US set so the cron isn't a silent no-op.
+    const requested = env.PROSPECTION_CITIES;
+    const matched = requested.filter(c => !!CITIES_COORDINATES[c]);
+    const unmatched = requested.filter(c => !CITIES_COORDINATES[c]);
+    if (unmatched.length) {
+      logger.warn(`[Prospection] Skipping cities without coordinates: ${unmatched.join(', ')}`);
+    }
+    const cities = matched.length > 0
+      ? matched
+      : Object.keys(CITIES_COORDINATES);
+    if (matched.length === 0) {
+      logger.warn(`[Prospection] No env city matched CITIES_COORDINATES — falling back to US default (${cities.join(', ')})`);
+    }
+    const quotaPerCity = Math.max(1, Math.floor(env.PROSPECTION_DAILY_QUOTA / cities.length));
+    logger.info(`[Prospection] Starting · target=${env.PROSPECTION_DAILY_QUOTA} · ${cities.length} cit${cities.length > 1 ? 'ies' : 'y'} (~${quotaPerCity}/each) · cities=${cities.join(', ')}`);
 
     for (const city of cities) {
       const coords = CITIES_COORDINATES[city];
-      if (!coords) {
-        logger.warn(`No coordinates for city: ${city}`);
-        continue;
-      }
+      if (!coords) continue;
 
       for (const type of GOOGLE_PLACES_TYPES) {
         if (totalAdded >= env.PROSPECTION_DAILY_QUOTA) break;

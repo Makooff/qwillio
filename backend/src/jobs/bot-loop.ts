@@ -135,13 +135,26 @@ class BotLoop {
       data: { isActive: true },
     });
 
+    // Startup health log — tells you in one glance whether the pipeline
+    // is wired correctly (scrape city match, call cadence, validate
+    // capacity).  Mismatches show up here before they show up as a
+    // silent "0 calls today".
+    const US_CITIES = new Set(['New York','Los Angeles','Chicago','Houston','Miami','San Francisco']);
+    const cityMatch = env.PROSPECTION_CITIES.filter(c => US_CITIES.has(c));
+    const cityMiss  = env.PROSPECTION_CITIES.filter(c => !US_CITIES.has(c));
     logger.info('🤖 QWILLIO STARTING...');
-    logger.info('================================');
-    logger.info(`Calls per day: ${env.CALLS_PER_DAY}`);
-    logger.info(`Hours: ${env.AUTOMATION_START_HOUR}h - ${env.AUTOMATION_END_HOUR}h`);
-    logger.info(`Days: ${env.AUTOMATION_DAYS.join(', ')}`);
-    logger.info(`Cities: ${env.PROSPECTION_CITIES.join(', ')}`);
-    logger.info('================================');
+    logger.info('=================================================================');
+    logger.info(`SCRAPE   · target ${env.PROSPECTION_DAILY_QUOTA}/day · cities OK=[${cityMatch.join(', ')}]${cityMiss.length ? ` · IGNORED=[${cityMiss.join(', ')}]` : ''}`);
+    logger.info(`VALIDATE · Twilio Lookup batch 10 every 10 min (~1 440/day capacity)`);
+    logger.info(`CALL     · target ${env.CALLS_PER_DAY}/day · tick every ${env.CALL_INTERVAL_MINUTES} min · prospect-local 9-12 / 13-17 (Mon-Thu) and 9-12 / 13-14 (Fri)`);
+    logger.info(`AUTOMATION · ${env.AUTOMATION_START_HOUR}h-${env.AUTOMATION_END_HOUR}h · days ${env.AUTOMATION_DAYS.join(',')}`);
+    logger.info('=================================================================');
+    if (cityMiss.length || cityMatch.length === 0) {
+      logger.warn(`⚠️  PROSPECTION_CITIES contains entries not in the US coordinate map. ${cityMatch.length === 0 ? 'NO city will be scraped — set PROSPECTION_CITIES to US cities only.' : 'Those entries will be ignored.'}`);
+    }
+    if (env.PROSPECTION_DAILY_QUOTA < env.CALLS_PER_DAY) {
+      logger.warn(`⚠️  PROSPECTION_DAILY_QUOTA (${env.PROSPECTION_DAILY_QUOTA}) < CALLS_PER_DAY (${env.CALLS_PER_DAY}) — pool will drain faster than it refills.`);
+    }
 
     // ═══════════════════════════════════════════════════════════
     // CRON 1: PROSPECTION - Every day at 8h US Eastern (Mon-Fri)

@@ -208,6 +208,7 @@ export class OutboundEngineService {
     const prospect = await prisma.prospect.findFirst({
       where: {
         status: 'new',
+        country: 'US',
         phone: { not: null },
         eligibleForCall: true,
         isMobile: false,
@@ -226,11 +227,12 @@ export class OutboundEngineService {
       // Diagnose WHY no eligible prospect — it's the #1 reason for empty
       // days, and the answer is usually trivial (pool exhausted, all
       // already called today, all tried 3+ times).
+      const baseUS = { status: 'new', country: 'US', phone: { not: null }, eligibleForCall: true, isMobile: false } as const;
       const [pool, poolToday, poolMaxedOut, poolAssigned] = await Promise.all([
-        prisma.prospect.count({ where: { status: 'new', phone: { not: null }, eligibleForCall: true, isMobile: false } }),
-        prisma.prospect.count({ where: { status: 'new', phone: { not: null }, eligibleForCall: true, isMobile: false, lastCallDate: { gte: startOfDay } } }),
-        prisma.prospect.count({ where: { status: 'new', phone: { not: null }, eligibleForCall: true, isMobile: false, callAttempts: { gte: 3 } } }),
-        prisma.prospect.count({ where: { status: 'new', phone: { not: null }, eligibleForCall: true, isMobile: false, assignedToUserId: { not: null } } }),
+        prisma.prospect.count({ where: baseUS }),
+        prisma.prospect.count({ where: { ...baseUS, lastCallDate: { gte: startOfDay } } }),
+        prisma.prospect.count({ where: { ...baseUS, callAttempts: { gte: 3 } } }),
+        prisma.prospect.count({ where: { ...baseUS, assignedToUserId: { not: null } } }),
       ]);
       logger.info(
         `[OutboundEngine][${tickId}] SKIP · no eligible prospect ` +
