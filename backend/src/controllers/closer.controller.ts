@@ -279,6 +279,28 @@ export async function updateProspect(req: AuthRequest, res: Response) {
       const d = new Date(body.nextActionDate);
       if (!isNaN(d.getTime())) data.nextActionDate = d;
     }
+    // Contact details — closer can fix missing data on the fly so emails / SMS
+    // can actually be sent.
+    if (typeof body.email === 'string') {
+      const e = body.email.trim();
+      if (e === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
+        data.email = e || null;
+        if (e) {
+          // Touching the email re-enables future communications.
+          data.emailUnsubscribed = false;
+          data.emailBounced = false;
+        }
+      } else {
+        return res.status(400).json({ error: 'Email invalide' });
+      }
+    }
+    if (typeof body.phone === 'string') {
+      const p = body.phone.trim();
+      data.phone = p || null;
+    }
+    if (typeof body.contactName === 'string') {
+      data.contactName = body.contactName.trim().slice(0, 200) || null;
+    }
 
     if (!Object.keys(data).length) {
       return res.status(400).json({ error: 'Aucun champ valide' });
