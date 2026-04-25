@@ -14,6 +14,7 @@ router.post('/prospects/:id/claim',             closerCtrl.claimProspect);
 router.post('/prospects/:id/release',           closerCtrl.releaseProspect);
 router.put('/prospects/:id',                    closerCtrl.updateProspect);
 router.post('/prospects/:id/followup',          closerCtrl.scheduleFollowUp);
+router.post('/prospects/:id/send-now',           closerCtrl.sendFollowUpNow);
 
 router.get('/followups',                        closerCtrl.listFollowUps);
 router.delete('/followups/:id',                 closerCtrl.cancelFollowUp);

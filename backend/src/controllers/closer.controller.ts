@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { followUpSequencesService } from '../services/follow-up-sequences.service';
 
 const ALLOWED_STATUSES = new Set([
   'new', 'contacted', 'interested', 'qualified', 'converted', 'lost',
@@ -346,6 +347,79 @@ export async function scheduleFollowUp(req: AuthRequest, res: Response) {
     res.status(201).json(created);
   } catch (err: any) {
     logger.error('[closer] scheduleFollowUp failed:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+/**
+ * POST /api/closer/prospects/:id/send-now
+ * Body: { type: 'sms' | 'email' }
+ * Sends the standard follow-up SMS/email RIGHT NOW (creates a
+ * FollowUpSequence row scheduled to "now" and immediately processes
+ * the queue so the cron tick latency is bypassed).
+ */
+export async function sendFollowUpNow(req: AuthRequest, res: Response) {
+  try {
+    const closerId = String(req.userId);
+    const prospectId = String(req.params.id);
+    const type = String(req.body?.type || '').toLowerCase();
+    if (type !== 'sms' && type !== 'email') {
+      return res.status(400).json({ error: 'Type invalide (sms|email)' });
+    }
+
+    const existing = await prisma.prospect.findUnique({
+      where: { id: prospectId },
+      select: {
+        assignedToUserId: true,
+        phone: true,
+        email: true,
+        smsOptedOut: true,
+        emailUnsubscribed: true,
+      },
+    });
+    if (!existing) return res.status(404).json({ error: 'Prospect introuvable' });
+    if (existing.assignedToUserId !== closerId && req.userRole !== 'admin') {
+      return res.status(403).json({ error: 'Prospect non attribué à vous' });
+    }
+    if (type === 'sms' && (!existing.phone || existing.smsOptedOut)) {
+      return res.status(400).json({ error: 'Pas de numéro de téléphone ou prospect désinscrit des SMS' });
+    }
+    if (type === 'email' && (!existing.email || existing.emailUnsubscribed)) {
+      return res.status(400).json({ error: 'Pas d\'email ou prospect désinscrit' });
+    }
+
+    // Reuse the FollowUpSequence pipeline so tracking + sentAt stays
+    // consistent with scheduled follow-ups.
+    const lastStep = await prisma.followUpSequence.findFirst({
+      where: { prospectId },
+      orderBy: { step: 'desc' },
+      select: { step: true },
+    });
+    await prisma.followUpSequence.create({
+      data: {
+        prospectId,
+        type,
+        step: (lastStep?.step ?? 0) + 1,
+        scheduledAt: new Date(),
+      },
+    });
+
+    // Process the queue right now (picks up the row we just created).
+    await followUpSequencesService.processDue();
+
+    // Refetch the just-sent row so the UI knows whether it actually went out.
+    const sentRow = await prisma.followUpSequence.findFirst({
+      where: { prospectId, type },
+      orderBy: { id: 'desc' },
+      select: { id: true, sentAt: true },
+    });
+
+    res.status(201).json({
+      ok: !!sentRow?.sentAt,
+      sentAt: sentRow?.sentAt ?? null,
+    });
+  } catch (err: any) {
+    logger.error('[closer] sendFollowUpNow failed:', err);
     res.status(500).json({ error: err.message });
   }
 }

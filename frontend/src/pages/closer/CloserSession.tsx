@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   Phone, SkipForward, Check, X, Clock, PartyPopper, Send,
   ChevronRight, Building2, MapPin, Mail, MessageSquare, List,
@@ -49,6 +50,9 @@ export default function CloserSession() {
   const [notes, setNotes] = useState('');
   const [fu, setFu] = useState<typeof FU_PRESETS[number] | null>(null);
   const [claimed, setClaimed] = useState(false);
+  // "Maintenant" buttons — instant send tracking
+  const [sendingNow, setSendingNow] = useState<'sms' | 'email' | null>(null);
+  const [sentNow, setSentNow] = useState<{ sms: boolean; email: boolean }>({ sms: false, email: false });
 
   const currentRef = useRef<Prospect | null>(null);
 
@@ -82,6 +86,7 @@ export default function CloserSession() {
     setNotes(current?.notes || '');
     setFu(null);
     setClaimed(false);
+    setSentNow({ sms: false, email: false });
     // Remove ?id= from URL once the session moves past the pinned prospect
     if (initialId && current && current.id !== initialId) {
       searchParams.delete('id');
@@ -96,6 +101,28 @@ export default function CloserSession() {
     try { await api.post(`/closer/prospects/${current.id}/claim`); setClaimed(true); }
     catch { /* non-blocking — the tel: link still opens */ }
     if (current.phone) window.location.href = `tel:${current.phone}`;
+  };
+
+  const sendNow = async (type: 'sms' | 'email') => {
+    if (!current || sendingNow) return;
+    setSendingNow(type);
+    try {
+      // Auto-claim so we own the prospect (and the bot stops calling)
+      if (!claimed && !current.assignedToUserId) {
+        await api.post(`/closer/prospects/${current.id}/claim`).catch(() => {});
+        setClaimed(true);
+      }
+      const res = await api.post(`/closer/prospects/${current.id}/send-now`, { type });
+      if (res.data?.ok) {
+        setSentNow(s => ({ ...s, [type]: true }));
+      } else {
+        alert(`Échec envoi ${type}`);
+      }
+    } catch (e: any) {
+      alert(e?.response?.data?.error || `Échec envoi ${type}`);
+    } finally {
+      setSendingNow(null);
+    }
   };
 
   const saveAndNext = async () => {
@@ -317,9 +344,41 @@ export default function CloserSession() {
 
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: pro.textSec }}>
-              Follow-up (optionnel)
+              Follow-up
             </p>
             <div className="flex flex-wrap gap-1.5">
+              {/* Instant-send chips — fire on tap, morph to green "Envoyé" */}
+              {[
+                { type: 'sms'   as const, l: 'Envoyer SMS',   icon: MessageSquare },
+                { type: 'email' as const, l: 'Envoyer email', icon: Mail },
+              ].map(p => {
+                const isSent    = sentNow[p.type];
+                const isSending = sendingNow === p.type;
+                return (
+                  <motion.button
+                    key={p.type}
+                    onClick={() => sendNow(p.type)}
+                    disabled={isSending || isSent}
+                    initial={false}
+                    animate={isSent ? { scale: [1, 1.06, 1] } : { scale: 1 }}
+                    transition={{ duration: 0.35 }}
+                    className="px-3 h-8 text-[12px] font-medium rounded-lg inline-flex items-center gap-1.5 transition-colors disabled:opacity-100"
+                    style={{
+                      background: isSent ? 'rgba(34,197,94,0.14)' : pro.panelHi,
+                      color:      isSent ? pro.ok : pro.text,
+                      border:     `1px solid ${isSent ? 'rgba(34,197,94,0.55)' : pro.border}`,
+                    }}
+                  >
+                    {isSent
+                      ? <><Check size={11} /> {p.type === 'sms' ? 'SMS envoyé' : 'Email envoyé'}</>
+                      : (isSending
+                        ? <><Send size={11} className="animate-pulse" /> Envoi…</>
+                        : <><p.icon size={11} /> {p.l}</>)}
+                  </motion.button>
+                );
+              })}
+
+              {/* Planned chips — only fire when "Enregistrer & suivant" is clicked */}
               {FU_PRESETS.map((p, i) => {
                 const sel = fu === p;
                 return (
