@@ -5,11 +5,11 @@ import { PACKAGES } from '../types';
 import { formatDate } from '../utils/helpers';
 import { brandWrap, brandTitle, brandText, brandButton, brandList, brandSmall } from './email-template';
 
-/** Highlight block on the light translucent card — used for phone numbers, prices, dates. */
+/** Highlight block on the translucent violet card — used for phone numbers, prices, dates. */
 function brandHighlight(label: string, value: string, valueSize = 24): string {
-  return `<div style="margin:24px 0;padding:20px 24px;background:rgba(123,92,240,0.06);border:1px solid rgba(123,92,240,0.20);border-radius:12px;text-align:center;">
-    <p style="margin:0 0 6px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;color:#86868B;letter-spacing:0.06em;text-transform:uppercase;">${label}</p>
-    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:${valueSize}px;font-weight:700;letter-spacing:-0.01em;color:#0B0B0D;font-feature-settings:'tnum';">${value}</p>
+  return `<div style="margin:24px 0;padding:20px 24px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:12px;text-align:center;">
+    <p style="margin:0 0 6px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.70);letter-spacing:0.06em;text-transform:uppercase;">${label}</p>
+    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:${valueSize}px;font-weight:700;letter-spacing:-0.01em;color:#FFFFFF;font-feature-settings:'tnum';">${value}</p>
   </div>`;
 }
 
@@ -425,11 +425,11 @@ export class EmailService {
       title: 'Welcome to Qwillio',
       preheader: `Your AI receptionist for ${data.businessName} is live.`,
       body: [
-        brandTitle('Your AI receptionist is live'),
+        brandTitle('Your AI is live'),
         brandText(`Hi ${data.contactName}, your AI receptionist for <strong>${data.businessName}</strong> is now answering calls 24/7.`),
         brandButton('Open my dashboard', data.dashboardUrl),
         brandHighlight('Your AI phone number', data.vapiPhoneNumber, 22),
-        brandText('Three quick steps to make the most of it:'),
+        brandText('Next step on your dashboard:'),
         brandList([
           `<strong>Test it.</strong> Call ${data.vapiPhoneNumber} and hear your AI in action.`,
           `<strong>Customize it.</strong> Open the dashboard to set hours, FAQ and pricing.`,
