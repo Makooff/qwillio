@@ -111,7 +111,7 @@ export function brandWrap(opts: {
           </tr>
           <!-- Frosted glass card -->
           <tr>
-            <td style="background:rgba(255,255,255,0.10);border-radius:16px;padding:40px 36px;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);">
+            <td style="padding:8px 4px;">
               ${body}
             </td>
           </tr>
