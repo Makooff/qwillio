@@ -5,26 +5,26 @@
  */
 
 const BRAND = {
-  // Hosted transparent PNG (just the two orbs, no white background)
-  logoUrl:    'https://qwillio.com/logo-orbs.png',
+  // Hosted transparent PNG (orbs + Q/W letters in white, no white square)
+  logoUrl:    'https://qwillio.com/logo-qw.png',
   homeUrl:    'https://qwillio.com',
   supportUrl: 'mailto:contact@qwillio.com',
   // Brand violets
   violet:     '#7B5CF0',
   violetDeep: '#5C3CE0',
   violetLite: '#9F86FF',
-  // Wordmark on the violet bg — black per design
-  wordmark:   '#000000',
+  // Wordmark on the violet bg — white per design
+  wordmark:   '#FFFFFF',
 };
 
-/** Primary CTA — large, centered, gradient violet pill with WHITE text. */
+/** Primary CTA — large, centered, WHITE pill with VIOLET text. */
 export function brandButton(label: string, url: string): string {
   return `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:8px auto 24px auto;width:auto;">
       <tr>
-        <td align="center" bgcolor="${BRAND.violetDeep}" style="border-radius:14px;background:linear-gradient(135deg,${BRAND.violetLite} 0%,${BRAND.violet} 50%,${BRAND.violetDeep} 100%);box-shadow:0 12px 32px rgba(0,0,0,0.30);">
-          <a href="${url}" style="display:inline-block;padding:16px 38px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:#FFFFFF !important;font-size:15px;font-weight:700;text-decoration:none;border-radius:14px;letter-spacing:0.01em;mso-text-raise:0;">
-            <span style="color:#FFFFFF !important;font-weight:700;">${label} &rarr;</span>
+        <td align="center" bgcolor="#FFFFFF" style="border-radius:14px;background:#FFFFFF;box-shadow:0 12px 32px rgba(0,0,0,0.18);">
+          <a href="${url}" style="display:inline-block;padding:16px 38px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:${BRAND.violetDeep} !important;font-size:15px;font-weight:700;text-decoration:none;border-radius:14px;letter-spacing:0.01em;mso-text-raise:0;">
+            <span style="color:${BRAND.violetDeep} !important;font-weight:700;">${label} &rarr;</span>
           </a>
         </td>
       </tr>
