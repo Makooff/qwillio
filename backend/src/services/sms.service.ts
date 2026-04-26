@@ -38,16 +38,20 @@ export class SmsService {
   /**
    * Send an SMS via Twilio
    */
-  async sendSMS(to: string, body: string, metadata?: { messageType?: string; prospectId?: string; clientId?: string }): Promise<{ success: boolean; messageId?: string }> {
+  async sendSMS(to: string, body: string, metadata?: { messageType?: string; prospectId?: string; clientId?: string }): Promise<{ success: boolean; messageId?: string; error?: string }> {
     if (!env.SMS_ENABLED) {
       logger.debug('SMS disabled, skipping send');
-      return { success: false };
+      return { success: false, error: 'SMS_ENABLED=false' };
     }
 
     const client = this.getTwilioClient();
-    if (!client || !env.TWILIO_PHONE_NUMBER) {
-      logger.warn('Twilio not configured, cannot send SMS');
-      return { success: false };
+    if (!client) {
+      const msg = 'Twilio client not initialized — set TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN';
+      logger.warn(`[SMS] ${msg}`);
+      return { success: false, error: msg };
+    }
+    if (!env.TWILIO_PHONE_NUMBER) {
+      return { success: false, error: 'TWILIO_PHONE_NUMBER not set' };
     }
 
     try {
@@ -90,7 +94,16 @@ export class SmsService {
 
       return { success: true, messageId: message.sid };
     } catch (error: any) {
-      logger.error(`SMS send failed to ${to}:`, error.message);
+      // Surface the actual Twilio error so debug is fast.
+      // Common ones:
+      //   21408 — "Permission to send an SMS has not been enabled for the region indicated by the 'To' number"
+      //   21211 — Invalid 'To' phone number
+      //   21606 — 'From' number is not a valid, SMS-capable Twilio phone number
+      //   21610 — STOP from recipient
+      //   20003 — Authentication Error (bad SID / token)
+      const code = error?.code ? ` [Twilio ${error.code}]` : '';
+      const msg = `${error?.message || 'Twilio error'}${code}`;
+      logger.error(`SMS send failed to ${to}: ${msg}`);
 
       // Log failed SMS attempt
       await prisma.smsLog.create({
@@ -99,7 +112,7 @@ export class SmsService {
           body: body.substring(0, 1600),
           messageType: metadata?.messageType || 'unknown',
           status: 'failed',
-          errorMsg: error.message,
+          errorMsg: msg.slice(0, 500),
           prospectId: metadata?.prospectId || null,
           clientId: metadata?.clientId || null,
         },
@@ -113,7 +126,7 @@ export class SmsService {
         create: { date: today, smsFailed: 1 },
       });
 
-      return { success: false };
+      return { success: false, error: msg };
     }
   }
 

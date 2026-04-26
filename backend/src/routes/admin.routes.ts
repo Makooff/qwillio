@@ -176,7 +176,11 @@ router.post('/test-sms', async (req: Request, res: Response) => {
       logger.info(`[admin/test-sms] sent type=${type} to=${to} sid=${result.messageId}`);
       return res.json({ ok: true, type, to, messageId: result.messageId, body });
     }
-    return res.status(500).json({ ok: false, error: 'Échec envoi (Twilio mal configuré ou refus opérateur). Vérifie TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN sur Render.' });
+    return res.status(500).json({
+      ok: false,
+      error: result.error || 'Échec envoi (raison inconnue)',
+      body,
+    });
   } catch (err: any) {
     logger.error('[admin/test-sms] failed:', err);
     res.status(500).json({ ok: false, error: err?.message || 'Échec' });
