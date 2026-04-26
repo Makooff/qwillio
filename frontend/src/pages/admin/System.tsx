@@ -265,22 +265,39 @@ export default function AdminSystem() {
   );
 }
 
+const SMS_TEMPLATES: { v: string; l: string }[] = [
+  { v: 'welcome',           l: 'Welcome (post-appel qualifié)' },
+  { v: 'voicemail',         l: 'Voicemail follow-up' },
+  { v: 'interested',        l: 'Prospect intéressé' },
+  { v: 'callback',          l: 'Rappel demandé' },
+  { v: 'noanswer',          l: 'Pas de réponse' },
+  { v: 'email-bounce',      l: 'Email a bounced' },
+  { v: 'exhausted',         l: 'Tentatives épuisées' },
+  { v: 'booking-confirm',   l: 'Confirmation rendez-vous' },
+  { v: 'booking-reminder',  l: 'Rappel rendez-vous J-1' },
+  { v: 'custom',            l: 'Message personnalisé…' },
+];
+
 function TestSmsCard() {
   const [to, setTo] = useState('+1');
-  const [body, setBody] = useState('Test SMS Qwillio');
+  const [type, setType] = useState('welcome');
+  const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [result, setResult] = useState<{ ok: boolean; msg: string; preview?: string } | null>(null);
 
   const send = async () => {
     setSending(true);
     setResult(null);
     try {
-      const res = await api.post('/admin/test-sms', { to, body });
+      const payload: any = { to, type };
+      if (type === 'custom') payload.body = body;
+      const res = await api.post('/admin/test-sms', payload);
       setResult({
         ok: !!res.data?.ok,
         msg: res.data?.ok
           ? `Envoyé à ${to} · SID ${res.data.messageId || '—'}`
           : `Échec : ${res.data?.error || 'inconnu'}`,
+        preview: res.data?.body,
       });
     } catch (e: any) {
       setResult({ ok: false, msg: e?.response?.data?.error || e.message || 'Échec' });
@@ -301,19 +318,30 @@ function TestSmsCard() {
               className="h-10 px-3 text-[13px] rounded-lg outline-none tabular-nums"
               style={{ background: pro.bg, color: pro.text, border: `1px solid ${pro.border}` }}
             />
-            <input
-              type="text"
-              value={body}
-              onChange={e => setBody(e.target.value)}
-              placeholder="Message"
+            <select
+              value={type}
+              onChange={e => setType(e.target.value)}
               className="md:col-span-2 h-10 px-3 text-[13px] rounded-lg outline-none"
               style={{ background: pro.bg, color: pro.text, border: `1px solid ${pro.border}` }}
-            />
+            >
+              {SMS_TEMPLATES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
+            </select>
           </div>
+          {type === 'custom' && (
+            <textarea
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              rows={3}
+              maxLength={1600}
+              placeholder="Tapez votre message SMS…"
+              className="w-full px-3 py-2 text-[13px] rounded-lg outline-none resize-y"
+              style={{ background: pro.bg, color: pro.text, border: `1px solid ${pro.border}`, minHeight: 70 }}
+            />
+          )}
           <div className="flex items-center gap-2">
             <button
               onClick={send}
-              disabled={sending || !to.trim() || to.length < 10}
+              disabled={sending || !to.trim() || to.length < 10 || (type === 'custom' && !body.trim())}
               className="h-10 px-4 inline-flex items-center gap-2 text-[13px] font-medium rounded-lg disabled:opacity-40"
               style={{ background: pro.text, color: '#0B0B0D' }}
             >
@@ -324,12 +352,18 @@ function TestSmsCard() {
             )}
           </div>
           {result && (
-            <p className="text-[12px]" style={{ color: result.ok ? pro.ok : pro.bad }}>
-              {result.msg}
-            </p>
+            <>
+              <p className="text-[12px]" style={{ color: result.ok ? pro.ok : pro.bad }}>{result.msg}</p>
+              {result.ok && result.preview && (
+                <p className="text-[11.5px] leading-relaxed p-3 rounded-lg"
+                   style={{ background: pro.bg, color: pro.textSec, border: `1px solid ${pro.border}` }}>
+                  {result.preview}
+                </p>
+              )}
+            </>
           )}
           <p className="text-[11.5px]" style={{ color: pro.textTer }}>
-            Envoyé via Twilio depuis +1 934 465 5108. Format E.164 (commence par +indicatif). Vérifiez ensuite Twilio Console &rarr; Logs.
+            Envoyé via Twilio depuis +1 934 465 5108. Format E.164 (commence par +indicatif). Vérifie ensuite Twilio Console &rarr; SMS Logs.
           </p>
         </div>
       </Card>

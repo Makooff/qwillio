@@ -113,21 +113,68 @@ router.post('/test-email', async (req: Request, res: Response) => {
   }
 });
 
-// ─── Test SMS — fires a real Twilio SMS to verify the pipeline.
+// ─── Test SMS — fires a real Twilio SMS using one of the production templates.
 router.post('/test-sms', async (req: Request, res: Response) => {
   const to   = String(req.body?.to   || '').trim();
-  const body = String(req.body?.body || `Test SMS Qwillio · ${new Date().toLocaleTimeString('fr-FR')}`).slice(0, 320);
+  const type = String(req.body?.type || 'welcome').trim();
   if (!/^\+?[0-9 .()-]{7,}$/.test(to)) {
     return res.status(400).json({ ok: false, error: 'Numéro invalide (format E.164 attendu, ex. +14155552671)' });
   }
   if (!env.SMS_ENABLED) {
     return res.status(400).json({ ok: false, error: 'SMS_ENABLED=false dans les env vars' });
   }
+
+  const sample = {
+    firstName:        'Mathieu',
+    businessName:     'Demo Plumbing',
+    niche:            'plumbers',
+    agentName:        'Ashley',
+    registrationLink: 'https://qwillio.com/register',
+  };
+
+  let body: string;
+  switch (type) {
+    case 'welcome':
+      body = `Hi ${sample.firstName}, it's ${sample.agentName} from Qwillio. Start your free 30-day trial: ${sample.registrationLink}. No commitment. Reply STOP to opt out.`;
+      break;
+    case 'voicemail':
+      body = `Hi, I left you a voicemail about Qwillio — AI receptionist for ${sample.niche} businesses. Start your free 30-day trial: ${sample.registrationLink}. Reply STOP to opt out.`;
+      break;
+    case 'interested':
+      body = `Hi ${sample.firstName}! Thanks for chatting with ${sample.agentName} from Qwillio. Start your free 30-day trial here: ${sample.registrationLink} — No commitment, cancel anytime.`;
+      break;
+    case 'callback':
+      body = `Hi ${sample.firstName}! ${sample.agentName} from Qwillio here. Sorry we couldn't connect fully today. We'll follow up soon. In the meantime, learn more at qwillio.com`;
+      break;
+    case 'noanswer':
+      body = `Hi ${sample.firstName}! ${sample.agentName} from Qwillio tried to reach you about ${sample.businessName}. We help businesses never miss a call with AI. Learn more: qwillio.com`;
+      break;
+    case 'email-bounce':
+      body = `Hi ${sample.firstName}! ${sample.agentName} from Qwillio here. I tried sending you the demo video for ${sample.businessName} but the email bounced. Could you reply with your correct email? Thanks!`;
+      break;
+    case 'exhausted':
+      body = `Hi ${sample.firstName}! ${sample.agentName} from Qwillio — I tried reaching you a couple times about ${sample.businessName}. No worries! If you're ever curious how AI can help you never miss a call again, here's a quick 2-min video: qwillio.com/demo. Have a great day!`;
+      break;
+    case 'booking-confirm':
+      body = `Hi ${sample.firstName}! Your appointment at ${sample.businessName} is confirmed for Monday, January 15 at 10:00 AM (consultation). To reschedule or cancel, please contact ${sample.businessName} directly. — Powered by Qwillio`;
+      break;
+    case 'booking-reminder':
+      body = `Reminder: Hi ${sample.firstName}! Your appointment at ${sample.businessName} is tomorrow at 10:00 AM for your consultation. See you soon! — Powered by Qwillio`;
+      break;
+    case 'custom':
+      body = String(req.body?.body || '').trim();
+      if (!body) return res.status(400).json({ ok: false, error: 'Body vide pour SMS custom' });
+      body = body.slice(0, 1600);
+      break;
+    default:
+      return res.status(400).json({ ok: false, error: `Type SMS inconnu: ${type}` });
+  }
+
   try {
-    const result = await smsService.sendSMS(to, body, { messageType: 'admin_test' });
+    const result = await smsService.sendSMS(to, body, { messageType: `admin_test_${type}` });
     if (result.success) {
-      logger.info(`[admin/test-sms] sent to=${to} sid=${result.messageId}`);
-      return res.json({ ok: true, to, messageId: result.messageId });
+      logger.info(`[admin/test-sms] sent type=${type} to=${to} sid=${result.messageId}`);
+      return res.json({ ok: true, type, to, messageId: result.messageId, body });
     }
     return res.status(500).json({ ok: false, error: 'Échec envoi (Twilio mal configuré ou refus opérateur). Vérifie TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN sur Render.' });
   } catch (err: any) {
