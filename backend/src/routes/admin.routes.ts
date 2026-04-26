@@ -9,6 +9,7 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 import { env } from '../config/env';
 import { getErrors, markResolved } from '../utils/error-store';
 import { emailService } from '../services/email.service';
+import { smsService } from '../services/sms.service';
 
 const router = Router();
 
@@ -109,6 +110,29 @@ router.post('/test-email', async (req: Request, res: Response) => {
   } catch (err: any) {
     logger.error('[admin/test-email] failed:', err);
     res.status(500).json({ ok: false, error: err?.message || 'Échec envoi' });
+  }
+});
+
+// ─── Test SMS — fires a real Twilio SMS to verify the pipeline.
+router.post('/test-sms', async (req: Request, res: Response) => {
+  const to   = String(req.body?.to   || '').trim();
+  const body = String(req.body?.body || `Test SMS Qwillio · ${new Date().toLocaleTimeString('fr-FR')}`).slice(0, 320);
+  if (!/^\+?[0-9 .()-]{7,}$/.test(to)) {
+    return res.status(400).json({ ok: false, error: 'Numéro invalide (format E.164 attendu, ex. +14155552671)' });
+  }
+  if (!env.SMS_ENABLED) {
+    return res.status(400).json({ ok: false, error: 'SMS_ENABLED=false dans les env vars' });
+  }
+  try {
+    const result = await smsService.sendSMS(to, body, { messageType: 'admin_test' });
+    if (result.success) {
+      logger.info(`[admin/test-sms] sent to=${to} sid=${result.messageId}`);
+      return res.json({ ok: true, to, messageId: result.messageId });
+    }
+    return res.status(500).json({ ok: false, error: 'Échec envoi (Twilio mal configuré ou refus opérateur). Vérifie TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN sur Render.' });
+  } catch (err: any) {
+    logger.error('[admin/test-sms] failed:', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Échec' });
   }
 });
 

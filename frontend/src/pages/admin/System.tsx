@@ -260,7 +260,80 @@ export default function AdminSystem() {
       </section>
 
       <TestEmailCard />
+      <TestSmsCard />
     </div>
+  );
+}
+
+function TestSmsCard() {
+  const [to, setTo] = useState('+1');
+  const [body, setBody] = useState('Test SMS Qwillio');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const send = async () => {
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await api.post('/admin/test-sms', { to, body });
+      setResult({
+        ok: !!res.data?.ok,
+        msg: res.data?.ok
+          ? `Envoyé à ${to} · SID ${res.data.messageId || '—'}`
+          : `Échec : ${res.data?.error || 'inconnu'}`,
+      });
+    } catch (e: any) {
+      setResult({ ok: false, msg: e?.response?.data?.error || e.message || 'Échec' });
+    } finally { setSending(false); }
+  };
+
+  return (
+    <section>
+      <SectionHead title="Tester un SMS" />
+      <Card>
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <input
+              type="tel"
+              value={to}
+              onChange={e => setTo(e.target.value)}
+              placeholder="+14155552671"
+              className="h-10 px-3 text-[13px] rounded-lg outline-none tabular-nums"
+              style={{ background: pro.bg, color: pro.text, border: `1px solid ${pro.border}` }}
+            />
+            <input
+              type="text"
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              placeholder="Message"
+              className="md:col-span-2 h-10 px-3 text-[13px] rounded-lg outline-none"
+              style={{ background: pro.bg, color: pro.text, border: `1px solid ${pro.border}` }}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={send}
+              disabled={sending || !to.trim() || to.length < 10}
+              className="h-10 px-4 inline-flex items-center gap-2 text-[13px] font-medium rounded-lg disabled:opacity-40"
+              style={{ background: pro.text, color: '#0B0B0D' }}
+            >
+              <MessageSquare size={13} /> {sending ? 'Envoi…' : 'Envoyer test'}
+            </button>
+            {result && (
+              <Pill color={result.ok ? 'ok' : 'bad'}>{result.ok ? 'OK' : 'Erreur'}</Pill>
+            )}
+          </div>
+          {result && (
+            <p className="text-[12px]" style={{ color: result.ok ? pro.ok : pro.bad }}>
+              {result.msg}
+            </p>
+          )}
+          <p className="text-[11.5px]" style={{ color: pro.textTer }}>
+            Envoyé via Twilio depuis +1 934 465 5108. Format E.164 (commence par +indicatif). Vérifiez ensuite Twilio Console &rarr; Logs.
+          </p>
+        </div>
+      </Card>
+    </section>
   );
 }
 

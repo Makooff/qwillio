@@ -6,13 +6,31 @@ export class SmsService {
   private twilioClient: any = null;
 
   private getTwilioClient() {
-    if (!this.twilioClient && env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
-      try {
-        const twilio = require('twilio');
+    if (this.twilioClient) return this.twilioClient;
+    try {
+      const twilio = require('twilio');
+      // Primary auth: Account SID + Auth Token
+      if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
         this.twilioClient = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
-      } catch (e) {
-        logger.warn('Twilio SDK not available, SMS disabled');
+        return this.twilioClient;
       }
+      // Fallback: API Key (SK…) + Secret. Twilio's Node SDK still needs
+      // the Account SID for the request URL — derive it from any AC…
+      // value present in the env (some deployments mis-name vars).
+      if (env.TWILIO_API_KEY_SID && env.TWILIO_API_KEY_SECRET) {
+        const possibleAcSid =
+          env.TWILIO_ACCOUNT_SID ||
+          Object.values(process.env).find(v => typeof v === 'string' && /^AC[a-f0-9]{32}$/.test(v));
+        if (possibleAcSid) {
+          this.twilioClient = twilio(env.TWILIO_API_KEY_SID, env.TWILIO_API_KEY_SECRET, { accountSid: possibleAcSid });
+          return this.twilioClient;
+        }
+        logger.warn('[SMS] TWILIO_API_KEY_SID/SECRET set but no TWILIO_ACCOUNT_SID found — cannot init Twilio client');
+      } else {
+        logger.warn('[SMS] Twilio not configured (need TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN, or TWILIO_API_KEY_SID + SECRET + accountSid)');
+      }
+    } catch (e: any) {
+      logger.warn('Twilio SDK init failed, SMS disabled:', e?.message);
     }
     return this.twilioClient;
   }
