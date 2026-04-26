@@ -54,7 +54,7 @@ export function brandSmall(html: string): string {
 
 /** H1 inside the card — pure white. */
 export function brandTitle(text: string): string {
-  return `<h1 style="margin:0 0 12px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.01em;color:#FFFFFF;line-height:1.25;">${text}</h1>`;
+  return `<h1 style="margin:0 0 12px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.01em;color:#FFFFFF;line-height:1.25;text-align:center;">${text}</h1>`;
 }
 
 /** Body paragraph — high-opacity white on violet. */
@@ -109,8 +109,8 @@ export function brandWrap(opts: {
           <!-- Brand header — top-left, transparent orbs PNG + black wordmark -->
           <tr>
             <td style="padding:0 4px 24px 4px;text-align:left;">
-              <img src="${BRAND.logoUrl}" alt="" width="36" height="36" style="display:inline-block;vertical-align:middle;border:0;background:transparent;">
-              <span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.01em;margin-left:10px;vertical-align:middle;color:${BRAND.wordmark};">Qwillio</span>
+              <img src="${BRAND.logoUrl}" alt="" width="28" height="28" style="display:inline-block;vertical-align:middle;border:0;background:transparent;">
+              <span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:20px;font-weight:600;letter-spacing:-0.02em;margin-left:8px;vertical-align:middle;color:${BRAND.wordmark};">Qwillio</span>
             </td>
           </tr>
           <!-- Frosted glass card -->
