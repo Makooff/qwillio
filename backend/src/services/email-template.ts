@@ -27,24 +27,43 @@ const BRAND = {
   text:       '#0B0B0D',
   textSec:    '#2C2C30',
   textMuted:  '#86868B',
-  // Wordmark on the white area of the gradient
-  wordmark:   '#1A0A2E',
+  // Wordmark on the white area of the gradient — pure black per design
+  wordmark:   '#000000',
   // Translucent surfaces
-  cardBg:     'rgba(255,255,255,0.62)',
-  cardBorder: 'rgba(123,92,240,0.18)',
+  cardBg:     'rgba(255,255,255,0.42)',
+  cardBorder: 'rgba(123,92,240,0.20)',
   highlightBg:     '#FAFAFC',
   highlightBorder: '#EAEAEC',
 };
 
-/** Primary CTA — large, centered, gradient violet pill. Designed to be
- *  the first action the reader sees, so it sits high in every email. */
+/** Inline SVG of just the two Qwillio orbs (no white square background).
+ *  Email-safe: gradients work in Gmail web + Apple Mail + iOS Mail.
+ *  Outlook will fall through to the wordmark text alone, which is fine. */
+function brandLogoSvg(size = 36): string {
+  return `<span style="display:inline-block;width:${size}px;height:${size}px;vertical-align:middle;line-height:0;">
+    <svg width="${size}" height="${size}" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+      <defs>
+        <linearGradient id="qBlue" x1="30%" y1="0%" x2="70%" y2="100%">
+          <stop offset="0%" stop-color="#7D7CFB"/><stop offset="100%" stop-color="#4F46E5"/>
+        </linearGradient>
+        <linearGradient id="qViolet" x1="30%" y1="0%" x2="70%" y2="100%">
+          <stop offset="0%" stop-color="#C286FA"/><stop offset="100%" stop-color="#9333EA"/>
+        </linearGradient>
+      </defs>
+      <circle cx="316" cy="256" r="176" fill="url(#qViolet)" opacity="0.92"/>
+      <circle cx="196" cy="256" r="176" fill="url(#qBlue)" opacity="0.92"/>
+    </svg>
+  </span>`;
+}
+
+/** Primary CTA — large, centered, gradient violet pill with WHITE text. */
 export function brandButton(label: string, url: string): string {
   return `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:8px auto 24px auto;width:auto;">
       <tr>
-        <td align="center" style="border-radius:14px;background:linear-gradient(135deg,${BRAND.violetLite} 0%,${BRAND.violet} 50%,${BRAND.violetDeep} 100%);box-shadow:0 12px 32px rgba(123,92,240,0.45);">
-          <a href="${url}" style="display:inline-block;padding:16px 38px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;border-radius:14px;letter-spacing:0.01em;">
-            ${label} →
+        <td align="center" bgcolor="${BRAND.violet}" style="border-radius:14px;background:linear-gradient(135deg,${BRAND.violetLite} 0%,${BRAND.violet} 50%,${BRAND.violetDeep} 100%);box-shadow:0 12px 32px rgba(123,92,240,0.45);">
+          <a href="${url}" style="display:inline-block;padding:16px 38px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:#FFFFFF !important;font-size:15px;font-weight:600;text-decoration:none;border-radius:14px;letter-spacing:0.01em;mso-text-raise:0;">
+            <span style="color:#FFFFFF !important;">${label} &rarr;</span>
           </a>
         </td>
       </tr>
@@ -56,12 +75,12 @@ export function brandLink(label: string, url: string): string {
   return `<a href="${url}" style="color:${BRAND.violet};font-weight:600;text-decoration:underline;">${label}</a>`;
 }
 
-/** Branded bullet list (gradient dot markers). */
+/** Branded bullet list — WHITE dots with a subtle violet glow. */
 export function brandList(items: string[]): string {
   return `<ul style="margin:16px 0;padding:0;list-style:none;">${
     items.map(it => `
       <li style="margin:0 0 12px 0;padding:0 0 0 24px;position:relative;font-size:15px;line-height:1.55;color:${BRAND.textSec};">
-        <span style="position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,${BRAND.violetLite} 0%,${BRAND.violetDeep} 100%);display:inline-block;box-shadow:0 0 8px rgba(123,92,240,0.45);"></span>
+        <span style="position:absolute;left:0;top:8px;width:7px;height:7px;border-radius:50%;background:#FFFFFF;display:inline-block;box-shadow:0 0 0 1px rgba(123,92,240,0.30),0 0 10px rgba(255,255,255,0.85);"></span>
         ${it}
       </li>`).join('')
   }</ul>`;
@@ -100,13 +119,13 @@ export function brandWrap(opts: {
 }): string {
   const { title, preheader: ph, body, unsubscribeHtml = '' } = opts;
   // Diagonal gradient white → violet, with two clearly visible orbs
-  // matching the Sales Rep Guide style: a large pale-lavender circle
-  // sitting in the white half (top-left) and a bigger lighter-violet
-  // circle in the violet half (bottom-right). Sharp transitions so
+  // (matching the Sales Rep Guide example): a large pale-lavender
+  // circle sitting in the white half (top-left) and a bigger lighter-
+  // violet circle in the violet half (bottom-right). Hard-edged so
   // they read as filled circles, not soft gradients.
   const pageBg =
-    `radial-gradient(circle at 88% 92%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.55) 14%, rgba(255,255,255,0) 32%),` +
-    `radial-gradient(circle at 12% 10%, rgba(196,181,253,0.55) 0%, rgba(196,181,253,0.55) 14%, rgba(196,181,253,0) 32%),` +
+    `radial-gradient(circle at 92% 92%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.62) 16%, rgba(255,255,255,0) 30%),` +
+    `radial-gradient(circle at 8% 8%, rgba(196,181,253,0.85) 0%, rgba(196,181,253,0.55) 16%, rgba(196,181,253,0) 30%),` +
     `linear-gradient(135deg, #FFFFFF 0%, #F5F0FF 22%, #C4B5FD 58%, ${BRAND.violet} 100%)`;
   const fallbackBg = '#F5F0FF';
 
@@ -123,11 +142,11 @@ export function brandWrap(opts: {
     <tr>
       <td align="center">
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
-          <!-- Brand header — top-left, dark on the white area of the gradient -->
+          <!-- Brand header — top-left, transparent SVG orbs + black wordmark -->
           <tr>
             <td style="padding:0 4px 24px 4px;text-align:left;">
-              <img src="${BRAND.logoUrl}" alt="Qwillio" width="36" height="36" style="border-radius:9px;display:inline-block;vertical-align:middle;border:0;">
-              <span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:18px;font-weight:700;letter-spacing:-0.01em;margin-left:10px;vertical-align:middle;color:${BRAND.wordmark};">Qwillio</span>
+              ${brandLogoSvg(34)}
+              <span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.01em;margin-left:10px;vertical-align:middle;color:${BRAND.wordmark};">Qwillio</span>
             </td>
           </tr>
           <!-- Frosted glass card -->
