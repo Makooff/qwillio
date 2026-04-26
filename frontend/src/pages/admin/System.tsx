@@ -284,6 +284,19 @@ function TestSmsCard() {
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; msg: string; preview?: string } | null>(null);
+  const [diag, setDiag] = useState<any | null>(null);
+  const [diagLoading, setDiagLoading] = useState(false);
+
+  const runDiag = async () => {
+    setDiagLoading(true);
+    setDiag(null);
+    try {
+      const res = await api.get('/admin/twilio-info');
+      setDiag(res.data);
+    } catch (e: any) {
+      setDiag({ ok: false, error: e?.response?.data?.error || e.message });
+    } finally { setDiagLoading(false); }
+  };
 
   const send = async () => {
     setSending(true);
@@ -363,8 +376,45 @@ function TestSmsCard() {
             </>
           )}
           <p className="text-[11.5px]" style={{ color: pro.textTer }}>
-            Envoyé via Twilio depuis +1 934 465 5108. Format E.164 (commence par +indicatif). Vérifie ensuite Twilio Console &rarr; SMS Logs.
+            Envoyé via Twilio. Format E.164 (commence par +indicatif). Vérifie ensuite Twilio Console &rarr; SMS Logs.
           </p>
+
+          <div className="pt-3 mt-1" style={{ borderTop: `1px solid ${pro.border}` }}>
+            <button onClick={runDiag} disabled={diagLoading}
+                    className="h-9 px-3 inline-flex items-center gap-1.5 text-[12px] font-medium rounded-lg disabled:opacity-40"
+                    style={{ background: pro.panel, color: pro.text, border: `1px solid ${pro.border}` }}>
+              {diagLoading ? 'Diagnostic…' : 'Diagnostiquer Twilio'}
+            </button>
+
+            {diag && (
+              <div className="mt-3 space-y-2 text-[12px]" style={{ color: pro.textSec }}>
+                {diag.ok ? (
+                  <>
+                    <p>
+                      <span style={{ color: pro.textTer }}>Compte :</span> {diag.accountName} · {diag.accountStatus} ·
+                      <span style={{ color: pro.textTer }}> Solde :</span> {diag.balance ?? '—'}
+                    </p>
+                    <p style={{ color: diag.configuredOk ? pro.ok : pro.bad }}>{diag.hint}</p>
+                    <p style={{ color: pro.textTer }}>{diag.numbers?.length || 0} numéro{(diag.numbers?.length || 0) > 1 ? 's' : ''} dans le compte :</p>
+                    <ul className="space-y-1">
+                      {diag.numbers?.map((n: any) => (
+                        <li key={n.phoneNumber} className="px-3 py-2 rounded-lg flex items-center justify-between"
+                            style={{ background: pro.panelHi, border: n.isConfigured ? `1px solid ${pro.accent}66` : `1px solid ${pro.border}` }}>
+                          <span className="tabular-nums">{n.phoneNumber} <span style={{ color: pro.textTer }}>· {n.friendlyName}</span></span>
+                          <span className="text-[10.5px]">
+                            {n.smsEnabled ? <span style={{ color: pro.ok }}>SMS ✓</span> : <span style={{ color: pro.bad }}>SMS ✗</span>}
+                            {n.isConfigured && <span className="ml-2" style={{ color: pro.accent }}>← configuré</span>}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <p style={{ color: pro.bad }}>{diag.error}</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </Card>
     </section>

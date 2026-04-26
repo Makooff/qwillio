@@ -187,6 +187,67 @@ router.post('/test-sms', async (req: Request, res: Response) => {
   }
 });
 
+// ─── Diagnostic Twilio — list the account, balance, and the numbers
+// it actually owns. Helps debug "21659 'From' not in account" errors
+// caused by a stale TWILIO_PHONE_NUMBER env value.
+router.get('/twilio-info', async (_req: Request, res: Response) => {
+  try {
+    const twilio = require('twilio');
+    const accountSid =
+      env.TWILIO_ACCOUNT_SID ||
+      Object.values(process.env).find(v => typeof v === 'string' && /^AC[a-f0-9]{32}$/.test(v as string)) as string | undefined;
+
+    if (!accountSid) {
+      return res.status(400).json({ ok: false, error: 'TWILIO_ACCOUNT_SID introuvable dans les env vars' });
+    }
+
+    let client: any;
+    if (env.TWILIO_AUTH_TOKEN) {
+      client = twilio(accountSid, env.TWILIO_AUTH_TOKEN);
+    } else if (env.TWILIO_API_KEY_SID && env.TWILIO_API_KEY_SECRET) {
+      client = twilio(env.TWILIO_API_KEY_SID, env.TWILIO_API_KEY_SECRET, { accountSid });
+    } else {
+      return res.status(400).json({ ok: false, error: 'Auth Twilio incomplète (TWILIO_AUTH_TOKEN ou API_KEY)' });
+    }
+
+    const [account, numbers, balance] = await Promise.all([
+      client.api.v2010.accounts(accountSid).fetch().catch(() => null),
+      client.incomingPhoneNumbers.list({ limit: 50 }),
+      client.balance.fetch().catch(() => null),
+    ]);
+
+    const configuredFrom = env.TWILIO_PHONE_NUMBER;
+    const numberList = numbers.map((n: any) => ({
+      phoneNumber:  n.phoneNumber,
+      friendlyName: n.friendlyName,
+      smsEnabled:   !!n.capabilities?.sms,
+      mmsEnabled:   !!n.capabilities?.mms,
+      voiceEnabled: !!n.capabilities?.voice,
+      countryISO:   (n.phoneNumber || '').startsWith('+1') ? 'US/CA' : 'OTHER',
+      isConfigured: n.phoneNumber === configuredFrom,
+    }));
+
+    const configuredOk = numberList.some((n: any) => n.isConfigured && n.smsEnabled);
+
+    res.json({
+      ok: true,
+      accountSid,
+      accountName:   account?.friendlyName ?? null,
+      accountStatus: account?.status ?? null,
+      balance:       balance ? `${balance.balance} ${balance.currency}` : null,
+      configuredFrom,
+      configuredOk,
+      numbers: numberList,
+      hint: configuredOk
+        ? '✅ TWILIO_PHONE_NUMBER est bien dans le compte et SMS-capable.'
+        : `❌ TWILIO_PHONE_NUMBER (${configuredFrom}) n'est pas SMS-capable ou pas dans ce compte. Choisis un numéro dans la liste ci-dessus.`,
+    });
+  } catch (err: any) {
+    logger.error('[admin/twilio-info] failed:', err);
+    res.status(500).json({ ok: false, error: `${err?.message || 'Échec'}${err?.code ? ` [Twilio ${err.code}]` : ''}` });
+  }
+});
+
 // ─── Bot config (used by AdminSettings page) ─────────────
 // GET  /api/admin/bot-config  — returns AdminConfig + BotStatus + env defaults
 router.get('/bot-config', async (_req: Request, res: Response) => {
