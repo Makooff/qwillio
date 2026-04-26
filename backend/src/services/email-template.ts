@@ -94,11 +94,15 @@ export function brandWrap(opts: {
   <meta name="color-scheme" content="light only">
   <meta name="supported-color-schemes" content="light only">
   <title>${title}</title>
-  <style>:root{color-scheme:light only;supported-color-schemes:light only;}</style>
+  <style>
+    :root{color-scheme:light only;supported-color-schemes:light only;}
+    html,body{margin:0!important;padding:0!important;background:${BRAND.violet}!important;width:100%!important;}
+    .qw-bg{background:${BRAND.violet}!important;}
+  </style>
 </head>
-<body style="margin:0;padding:0;background:${BRAND.violet};font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:#FFFFFF;-webkit-font-smoothing:antialiased;color-scheme:light only;">
+<body bgcolor="${BRAND.violet}" style="margin:0;padding:0;background:${BRAND.violet};font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:#FFFFFF;-webkit-font-smoothing:antialiased;color-scheme:light only;width:100%;">
   ${ph ? preheader(ph) : ''}
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${BRAND.violet}" style="background:${pageBg};padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${BRAND.violet}" class="qw-bg" style="background:${pageBg};padding:32px 16px;margin:0;border-collapse:collapse;">
     <tr>
       <td align="center">
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
