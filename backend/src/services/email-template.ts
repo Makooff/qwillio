@@ -11,8 +11,8 @@ const BRAND = {
   violet:     '#7B5CF0',
   violetDeep: '#5C3CE0',
   violetLite: '#9F86FF',
-  // Wordmark on the white bg — deep violet
-  wordmark:   '#5C3CE0',
+  // Wordmark on the white bg — black, matches site
+  wordmark:   '#1d1d1f',
   // Page bg + main text
   pageBg:     '#FFFFFF',
   textMain:   '#1d1d1f',
@@ -22,7 +22,7 @@ const BRAND = {
 /** Primary CTA — large, centered, VIOLET pill with WHITE text. */
 export function brandButton(label: string, url: string): string {
   return `
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:24px auto 56px auto;width:auto;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:16px auto 40px auto;width:auto;">
       <tr>
         <td align="center" bgcolor="${BRAND.violet}" style="border-radius:14px;background:${BRAND.violet};box-shadow:0 12px 28px rgba(123,92,240,0.32);">
           <a href="${url}" style="display:inline-block;padding:16px 38px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:#FFFFFF !important;font-size:15px;font-weight:700;text-decoration:none;border-radius:14px;letter-spacing:0.01em;mso-text-raise:0;">
@@ -33,9 +33,9 @@ export function brandButton(label: string, url: string): string {
     </table>`;
 }
 
-/** Subtle secondary action — text-only inline link in violet. */
+/** Subtle secondary action — text-only inline link in black with violet underline tone. */
 export function brandLink(label: string, url: string): string {
-  return `<a href="${url}" style="color:${BRAND.violetDeep};font-weight:600;text-decoration:underline;">${label}</a>`;
+  return `<a href="${url}" style="color:${BRAND.textMain};font-weight:600;text-decoration:underline;">${label}</a>`;
 }
 
 /** Branded bullet list — violet dots + dark text on white, block-centered. */
@@ -54,14 +54,14 @@ export function brandSmall(html: string): string {
   return `<p style="margin:18px 0 0 0;font-size:12.5px;line-height:1.55;color:${BRAND.textMuted};text-align:center;">${html}</p>`;
 }
 
-/** H1 — deep violet, centered. */
+/** H1 — black, centered. */
 export function brandTitle(text: string): string {
-  return `<h1 style="margin:0 0 28px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.01em;color:${BRAND.violetDeep};line-height:1.25;text-align:center;">${text}</h1>`;
+  return `<h1 style="margin:0 0 16px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em;color:${BRAND.textMain};line-height:1.2;text-align:center;">${text}</h1>`;
 }
 
 /** Body paragraph — dark gray, centered, for readability on white. */
 export function brandText(html: string): string {
-  return `<p style="margin:0 0 28px 0;font-size:15px;line-height:1.6;color:${BRAND.textMain};text-align:center;">${html}</p>`;
+  return `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:${BRAND.textMain};text-align:center;">${html}</p>`;
 }
 
 /** Inbox preview line — invisible but extracted by Gmail / Apple Mail. */
@@ -99,13 +99,13 @@ export function brandWrap(opts: {
 </head>
 <body bgcolor="${BRAND.pageBg}" style="margin:0;padding:0;background:${BRAND.pageBg};font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:${BRAND.textMain};-webkit-font-smoothing:antialiased;color-scheme:light only;width:100%;">
   ${ph ? preheader(ph) : ''}
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${BRAND.pageBg}" class="qw-bg" style="background:${BRAND.pageBg};padding:64px 32px;margin:0;border-collapse:collapse;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${BRAND.pageBg}" class="qw-bg" style="background:${BRAND.pageBg};padding:40px 32px;margin:0;border-collapse:collapse;">
     <tr>
       <td align="center">
         <table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;width:100%;">
-          <!-- Brand header — centered logo + violet wordmark -->
+          <!-- Brand header — top-left logo + black wordmark, like the site -->
           <tr>
-            <td style="padding:0 4px 72px 4px;text-align:center;">
+            <td style="padding:0 0 40px 0;text-align:left;">
               <img src="${BRAND.logoUrl}" alt="" width="28" height="28" style="display:inline-block;vertical-align:middle;border:0;background:transparent;">
               <span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:20px;font-weight:600;letter-spacing:-0.02em;margin-left:8px;vertical-align:middle;color:${BRAND.wordmark};">Qwillio</span>
             </td>
