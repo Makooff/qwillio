@@ -21,7 +21,7 @@ export default function QwillioLoader({
   size = 140,
   label,
   fullscreen = true,
-  background = '#0A0A0F',
+  background = '#FFFFFF',
 }: {
   size?: number;
   label?: string;
@@ -171,7 +171,7 @@ export default function QwillioLoader({
           font-size: 14px;
           font-weight: 500;
           letter-spacing: 0.02em;
-          color: #a1a1aa;
+          color: #71717a;
           opacity: 0;
           animation: qw-label 400ms ease-out 2000ms 1 forwards;
         }

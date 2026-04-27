@@ -14,7 +14,7 @@ import QwillioLoader from './QwillioLoader';
 export default function AppBootOverlay({
   minDurationMs = 2500,
   fadeMs = 450,
-  background = '#0A0A0F',
+  background = '#FFFFFF',
 }: {
   minDurationMs?: number;
   fadeMs?: number;
