@@ -38,9 +38,9 @@ export function brandLink(label: string, url: string): string {
   return `<a href="${url}" style="color:${BRAND.violetDeep};font-weight:600;text-decoration:underline;">${label}</a>`;
 }
 
-/** Branded bullet list — violet dots + dark text on white. */
+/** Branded bullet list — violet dots + dark text on white, block-centered. */
 export function brandList(items: string[]): string {
-  return `<ul style="margin:16px 0;padding:0;list-style:none;">${
+  return `<ul style="margin:16px auto;padding:0;list-style:none;display:inline-block;text-align:left;max-width:100%;">${
     items.map(it => `
       <li style="margin:0 0 12px 0;padding:0 0 0 24px;position:relative;font-size:15px;line-height:1.55;color:${BRAND.textMain};">
         <span style="position:absolute;left:0;top:8px;width:7px;height:7px;border-radius:50%;background:${BRAND.violet};display:inline-block;"></span>
@@ -49,9 +49,9 @@ export function brandList(items: string[]): string {
   }</ul>`;
 }
 
-/** Muted helper paragraph. */
+/** Muted helper paragraph — centered. */
 export function brandSmall(html: string): string {
-  return `<p style="margin:18px 0 0 0;font-size:12.5px;line-height:1.55;color:${BRAND.textMuted};">${html}</p>`;
+  return `<p style="margin:18px 0 0 0;font-size:12.5px;line-height:1.55;color:${BRAND.textMuted};text-align:center;">${html}</p>`;
 }
 
 /** H1 — deep violet, centered. */
@@ -59,9 +59,9 @@ export function brandTitle(text: string): string {
   return `<h1 style="margin:0 0 12px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.01em;color:${BRAND.violetDeep};line-height:1.25;text-align:center;">${text}</h1>`;
 }
 
-/** Body paragraph — dark gray for readability on white. */
+/** Body paragraph — dark gray, centered, for readability on white. */
 export function brandText(html: string): string {
-  return `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:${BRAND.textMain};">${html}</p>`;
+  return `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:${BRAND.textMain};text-align:center;">${html}</p>`;
 }
 
 /** Inbox preview line — invisible but extracted by Gmail / Apple Mail. */
@@ -99,26 +99,26 @@ export function brandWrap(opts: {
 </head>
 <body bgcolor="${BRAND.pageBg}" style="margin:0;padding:0;background:${BRAND.pageBg};font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:${BRAND.textMain};-webkit-font-smoothing:antialiased;color-scheme:light only;width:100%;">
   ${ph ? preheader(ph) : ''}
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${BRAND.pageBg}" class="qw-bg" style="background:${BRAND.pageBg};padding:32px 16px;margin:0;border-collapse:collapse;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${BRAND.pageBg}" class="qw-bg" style="background:${BRAND.pageBg};padding:40px 32px;margin:0;border-collapse:collapse;">
     <tr>
       <td align="center">
-        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
-          <!-- Brand header — logo + violet wordmark -->
+        <table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;width:100%;">
+          <!-- Brand header — centered logo + violet wordmark -->
           <tr>
-            <td style="padding:0 4px 24px 4px;text-align:left;">
+            <td style="padding:0 4px 28px 4px;text-align:center;">
               <img src="${BRAND.logoUrl}" alt="" width="28" height="28" style="display:inline-block;vertical-align:middle;border:0;background:transparent;">
               <span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:20px;font-weight:600;letter-spacing:-0.02em;margin-left:8px;vertical-align:middle;color:${BRAND.wordmark};">Qwillio</span>
             </td>
           </tr>
           <!-- Body -->
           <tr>
-            <td style="padding:8px 4px;">
+            <td style="padding:8px 4px;text-align:center;">
               ${body}
             </td>
           </tr>
           <!-- Footer -->
           <tr>
-            <td style="padding:24px 4px 8px 4px;text-align:left;">
+            <td style="padding:28px 4px 8px 4px;text-align:center;">
               <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:12px;color:${BRAND.textMuted};line-height:1.6;">
                 Qwillio — AI receptionist for service businesses<br>
                 <a href="${BRAND.homeUrl}" style="color:${BRAND.textMuted};text-decoration:underline;">qwillio.com</a>
