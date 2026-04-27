@@ -22,7 +22,7 @@ const BRAND = {
 /** Primary CTA — large, centered, VIOLET pill with WHITE text. */
 export function brandButton(label: string, url: string): string {
   return `
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:16px auto 40px auto;width:auto;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:40px auto 40px auto;width:auto;">
       <tr>
         <td align="center" bgcolor="${BRAND.violet}" style="border-radius:14px;background:${BRAND.violet};box-shadow:0 12px 28px rgba(123,92,240,0.32);">
           <a href="${url}" style="display:inline-block;padding:16px 38px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:#FFFFFF !important;font-size:15px;font-weight:700;text-decoration:none;border-radius:14px;letter-spacing:0.01em;mso-text-raise:0;">
