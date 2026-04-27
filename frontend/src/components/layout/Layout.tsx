@@ -83,6 +83,14 @@ export default function Layout() {
     let lastKey = '';
     const handler = (e: KeyboardEvent) => {
       if (cmdOpen) return;
+      // Don't hijack typing in inputs/textareas/contenteditable
+      const t = e.target as HTMLElement | null;
+      if (t) {
+        const tag = t.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t.isContentEditable) return;
+      }
+      // Modifier keys mean the user is using a real shortcut (cmd+L, etc.)
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 'g') { lastKey = 'g'; return; }
       if (lastKey === 'g') {
         const shortcuts: Record<string, string> = {
