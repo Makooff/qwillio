@@ -14,12 +14,19 @@ import QwillioLoader from './QwillioLoader';
 export default function AppBootOverlay({
   minDurationMs = 2500,
   fadeMs = 450,
-  background = '#FFFFFF',
+  background,
 }: {
   minDurationMs?: number;
   fadeMs?: number;
   background?: string;
 }) {
+  // Heuristic: if a token exists, the user is heading to the dashboard
+  // (dark theme). Otherwise show the public/white intro.
+  const resolvedBg =
+    background ??
+    (typeof window !== 'undefined' && window.localStorage.getItem('token')
+      ? '#0A0A0F'
+      : '#FFFFFF');
   const authLoading = useAuthStore((s) => s.isLoading);
   const [minElapsed, setMinElapsed] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
@@ -47,7 +54,7 @@ export default function AppBootOverlay({
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        background,
+        background: resolvedBg,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
