@@ -10,6 +10,7 @@ import { env } from '../config/env';
 import { getErrors, markResolved } from '../utils/error-store';
 import { emailService } from '../services/email.service';
 import { smsService } from '../services/sms.service';
+import { smsTemplates } from '../services/sms-templates';
 
 const router = Router();
 
@@ -102,6 +103,145 @@ router.post('/test-email', async (req: Request, res: Response) => {
           confirmUrl: `${dashboardUrl}/auth/confirm?token=test`,
         });
         break;
+      case 'quote':
+        result = await (emailService as any).sendQuoteEmail({
+          ...sample,
+          packageType:  'pro',
+          setupPrice:   1297,
+          monthlyPrice: 397,
+          features: [
+            'AI receptionist available 24/7',
+            'Up to 500 calls per month',
+            'Automatic booking & reservations',
+            'Real-time tracking dashboard',
+            'Priority technical support',
+          ],
+          validUntil:  new Date(Date.now() + 7 * 86_400_000),
+          paymentLink: `${dashboardUrl}/pay/test`,
+          quoteId:     'QUO-TEST-001',
+        });
+        break;
+      case 'followup-day1':
+      case 'followup-day3':
+      case 'followup-day7':
+        result = await (emailService as any).sendFollowUpEmail({
+          ...sample,
+          packageName:  'Pro',
+          monthlyPrice: 397,
+          setupPrice:   1297,
+          paymentLink:  `${dashboardUrl}/pay/test`,
+          type:         type.replace('followup-', '') as 'day1' | 'day3' | 'day7',
+        });
+        break;
+      case 'trial-ending-7d':
+      case 'trial-ending-1d': {
+        const daysLeft = type === 'trial-ending-1d' ? 1 : 7;
+        result = await (emailService as any).sendTrialEndingEmail({
+          ...sample,
+          packageType:  'pro',
+          daysLeft,
+          trialEndDate: new Date(Date.now() + daysLeft * 86_400_000),
+          paymentLink:  `${dashboardUrl}/pay/test`,
+          monthlyPrice: 397,
+        });
+        break;
+      }
+      case 'trial-expired':
+        result = await (emailService as any).sendTrialExpiredEmail({
+          ...sample,
+          packageType:  'pro',
+          paymentLink:  `${dashboardUrl}/pay/test`,
+          monthlyPrice: 397,
+        });
+        break;
+      case 'callback-3months':
+        result = await (emailService as any).sendCallback3MonthsEmail(sample);
+        break;
+      case 'onboarding':
+        result = await (emailService as any).sendOnboardingEmail({
+          ...sample,
+          businessType:    'plumbing',
+          planType:        'pro',
+          isTrial:         true,
+          trialEndDate:    new Date(Date.now() + 30 * 86_400_000),
+          formUrl:         `${dashboardUrl}/onboarding/test`,
+          vapiPhoneNumber: env.VAPI_PHONE_NUMBER || '+1 607 354 8569',
+        });
+        break;
+      case 'trial-end-invoice':
+        result = await (emailService as any).sendTrialEndInvoiceEmail({
+          ...sample,
+          planType:     'pro',
+          packageName:  'Pro',
+          monthlyPrice: 397,
+          setupPrice:   1297,
+          paymentLink:  `${dashboardUrl}/pay/test`,
+          trialStats:   { totalCalls: 87, totalBookings: 24, totalLeads: 12 },
+        });
+        break;
+      case 'account-deactivated':
+        result = await (emailService as any).sendAccountDeactivatedEmail(sample);
+        break;
+      case 'payment-link-signature':
+        result = await (emailService as any).sendPaymentLinkAfterSignature({
+          ...sample,
+          packageType: 'pro',
+          setupFee:    1297,
+          monthlyFee:  397,
+          paymentLink: `${dashboardUrl}/pay/test`,
+        });
+        break;
+      case 'booking-reminder':
+        result = await (emailService as any).sendBookingReminderEmail({
+          to,
+          customerName:    sample.contactName,
+          businessName:    sample.businessName,
+          bookingDate:     new Date(Date.now() + 86_400_000),
+          bookingTime:     '10:00 AM',
+          serviceType:     'Consultation',
+          specialRequests: null,
+          businessPhone:   env.VAPI_PHONE_NUMBER || '+1 607 354 8569',
+        });
+        break;
+      case 'reschedule':
+        result = await (emailService as any).sendRescheduleEmail({
+          to,
+          customerName:  sample.contactName,
+          businessName:  sample.businessName,
+          originalDate:  new Date(Date.now() - 86_400_000),
+          businessPhone: env.VAPI_PHONE_NUMBER || '+1 607 354 8569',
+        });
+        break;
+      case 'email-confirmation':
+        result = await (emailService as any).sendEmailConfirmation({
+          to,
+          contactName:  sample.contactName,
+          businessName: sample.businessName,
+          prospectId:   'PROSPECT-TEST-001',
+        });
+        break;
+      case 'digest':
+        result = await (emailService as any).sendDigestEmail({
+          to,
+          contactName:  sample.contactName,
+          businessName: sample.businessName,
+          totalEmails:  42,
+          urgent:       3,
+          appointment:  8,
+          payment:      2,
+          autoReplied:  27,
+          needsReview:  2,
+        });
+        break;
+      case 'registration-invite':
+        result = await (emailService as any).sendRegistrationInvite({
+          to,
+          contactName:     sample.contactName,
+          businessName:    sample.businessName,
+          registrationUrl: `${dashboardUrl}/register?token=test`,
+          recommendedPlan: 'pro',
+        });
+        break;
       default:
         return res.status(400).json({ ok: false, error: `Type d'email inconnu: ${type}` });
     }
@@ -135,31 +275,42 @@ router.post('/test-sms', async (req: Request, res: Response) => {
   let body: string;
   switch (type) {
     case 'welcome':
-      body = `Hi ${sample.firstName}, it's ${sample.agentName} from Qwillio. Start your free 30-day trial: ${sample.registrationLink}. No commitment. Reply STOP to opt out.`;
+      body = smsTemplates.welcome(sample);
       break;
     case 'voicemail':
-      body = `Hi, I left you a voicemail about Qwillio — AI receptionist for ${sample.niche} businesses. Start your free 30-day trial: ${sample.registrationLink}. Reply STOP to opt out.`;
+      body = smsTemplates.voicemail(sample);
       break;
     case 'interested':
-      body = `Hi ${sample.firstName}! Thanks for chatting with ${sample.agentName} from Qwillio. Start your free 30-day trial here: ${sample.registrationLink} — No commitment, cancel anytime.`;
+      body = smsTemplates.interested(sample);
       break;
     case 'callback':
-      body = `Hi ${sample.firstName}! ${sample.agentName} from Qwillio here. Sorry we couldn't connect fully today. We'll follow up soon. In the meantime, learn more at qwillio.com`;
+      body = smsTemplates.callback(sample);
       break;
     case 'noanswer':
-      body = `Hi ${sample.firstName}! ${sample.agentName} from Qwillio tried to reach you about ${sample.businessName}. We help businesses never miss a call with AI. Learn more: qwillio.com`;
+      body = smsTemplates.noanswer(sample);
       break;
     case 'email-bounce':
-      body = `Hi ${sample.firstName}! ${sample.agentName} from Qwillio here. I tried sending you the demo video for ${sample.businessName} but the email bounced. Could you reply with your correct email? Thanks!`;
+      body = smsTemplates.emailBounce(sample);
       break;
     case 'exhausted':
-      body = `Hi ${sample.firstName}! ${sample.agentName} from Qwillio — I tried reaching you a couple times about ${sample.businessName}. No worries! If you're ever curious how AI can help you never miss a call again, here's a quick 2-min video: qwillio.com/demo. Have a great day!`;
+      body = smsTemplates.exhausted(sample);
       break;
     case 'booking-confirm':
-      body = `Hi ${sample.firstName}! Your appointment at ${sample.businessName} is confirmed for Monday, January 15 at 10:00 AM (consultation). To reschedule or cancel, please contact ${sample.businessName} directly. — Powered by Qwillio`;
+      body = smsTemplates.bookingConfirm({
+        firstName:    sample.firstName,
+        businessName: sample.businessName,
+        date:         'Monday, January 15',
+        time:         ' at 10:00 AM',
+        service:      ' (consultation)',
+      });
       break;
     case 'booking-reminder':
-      body = `Reminder: Hi ${sample.firstName}! Your appointment at ${sample.businessName} is tomorrow at 10:00 AM for your consultation. See you soon! — Powered by Qwillio`;
+      body = smsTemplates.bookingReminder({
+        firstName:    sample.firstName,
+        businessName: sample.businessName,
+        time:         ' tomorrow at 10:00 AM',
+        service:      ' for your consultation',
+      });
       break;
     case 'custom':
       body = String(req.body?.body || '').trim();

@@ -13,6 +13,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { smsService } from './sms.service';
+import { smsTemplates } from './sms-templates';
 import { emailService } from './email.service';
 import { resend } from '../config/resend';
 import { discordService } from './discord.service';
@@ -76,7 +77,7 @@ export class FollowUpSequencesService {
     if (interestScore >= 5 && prospect.phone && !prospect.smsOptedOut) {
       const smsBody = lang === 'fr'
         ? `Bonjour ${firstName}, c'est ${agentName} de Qwillio. Sympa d'avoir échangé ! Démarrez votre essai gratuit de 30 jours : ${registrationUrl}. Aucun engagement. Répondez STOP pour vous désinscrire.`
-        : `Hi ${firstName}, it's ${agentName} from Qwillio. Great speaking with you! Start your free 30-day trial: ${registrationUrl}. No commitment, cancel anytime. Reply STOP to opt out.`;
+        : smsTemplates.welcome({ firstName, agentName, registrationLink: registrationUrl });
 
       await this.scheduleOrSend('sms', prospect.id, 1, new Date(), smsBody, prospect.phone);
     }
@@ -90,7 +91,7 @@ export class FollowUpSequencesService {
     ) {
       const smsBody = lang === 'fr'
         ? `Bonjour, j'ai laissé un message vocal concernant Qwillio — réceptionniste IA pour les ${niche}. Essai gratuit 30 jours : ${registrationUrl}. Répondez STOP pour vous désinscrire.`
-        : `Hi, I left you a voicemail about Qwillio — AI receptionist for ${niche} businesses. Never miss a customer call again. Start your free 30-day trial: ${registrationUrl}. Reply STOP to opt out.`;
+        : smsTemplates.voicemail({ niche, registrationLink: registrationUrl });
 
       const sendAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
       await this.scheduleOrSend('sms_voicemail', prospect.id, 3, sendAt, smsBody, prospect.phone);
@@ -152,10 +153,10 @@ export class FollowUpSequencesService {
           const body = item.type === 'sms_voicemail'
             ? (lang === 'fr'
               ? `Bonjour, j'ai laissé un message vocal concernant Qwillio — réceptionniste IA pour les ${niche}. Essai gratuit 30 jours : ${registrationLink}. Répondez STOP.`
-              : `Hi, I left you a voicemail about Qwillio — AI receptionist for ${niche} businesses. Start your free 30-day trial: ${registrationLink}. Reply STOP to opt out.`)
+              : smsTemplates.voicemail({ niche, registrationLink }))
             : (lang === 'fr'
               ? `Bonjour ${firstName}, c'est ${agentName} de Qwillio. Essai gratuit 30 jours : ${registrationLink}. Aucun engagement. Répondez STOP pour vous désinscrire.`
-              : `Hi ${firstName}, it's ${agentName} from Qwillio. Start your free 30-day trial: ${registrationLink}. No commitment. Reply STOP to opt out.`);
+              : smsTemplates.welcome({ firstName, agentName, registrationLink }));
 
           const result = await smsService.sendSMS(p.phone, body, {
             messageType: item.type,

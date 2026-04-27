@@ -422,11 +422,28 @@ function TestSmsCard() {
 }
 
 const EMAIL_TEMPLATES: { v: string; l: string }[] = [
-  { v: 'welcome',        l: 'Welcome (post-paiement)' },
-  { v: 'trial-welcome',  l: 'Trial démarré' },
-  { v: 'loom',           l: 'Loom vidéo (setup ready)' },
-  { v: 'payment-failed', l: 'Paiement échoué' },
-  { v: 'confirmation',   l: 'Confirmation inscription' },
+  { v: 'welcome',                l: 'Welcome (post-paiement)' },
+  { v: 'trial-welcome',          l: 'Trial démarré' },
+  { v: 'loom',                   l: 'Loom vidéo (setup ready)' },
+  { v: 'payment-failed',         l: 'Paiement échoué' },
+  { v: 'confirmation',           l: 'Confirmation inscription' },
+  { v: 'quote',                  l: 'Devis personnalisé' },
+  { v: 'followup-day1',          l: 'Relance J+1' },
+  { v: 'followup-day3',          l: 'Relance J+3' },
+  { v: 'followup-day7',          l: 'Relance J+7 (last chance)' },
+  { v: 'trial-ending-7d',        l: 'Trial finit dans 7j' },
+  { v: 'trial-ending-1d',        l: 'Trial finit demain' },
+  { v: 'trial-expired',          l: 'Trial expiré' },
+  { v: 'callback-3months',       l: 'Rappel 3 mois' },
+  { v: 'onboarding',             l: 'Onboarding client' },
+  { v: 'trial-end-invoice',      l: 'Facture fin de trial' },
+  { v: 'account-deactivated',    l: 'Compte désactivé' },
+  { v: 'payment-link-signature', l: 'Lien paiement post-signature' },
+  { v: 'booking-reminder',       l: 'Rappel rendez-vous client' },
+  { v: 'reschedule',             l: 'Reprogrammation' },
+  { v: 'email-confirmation',     l: 'Confirmation double opt-in' },
+  { v: 'digest',                 l: 'Digest quotidien' },
+  { v: 'registration-invite',    l: "Invitation à s'inscrire" },
 ];
 
 function TestEmailCard() {

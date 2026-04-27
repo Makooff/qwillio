@@ -1,6 +1,7 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
+import { smsTemplates } from './sms-templates';
 
 export class SmsService {
   private twilioClient: any = null;
@@ -141,21 +142,22 @@ export class SmsService {
   }, callOutcome: string, registrationUrl?: string): Promise<boolean> {
     if (!prospect.phone || prospect.smsOptedOut) return false;
 
-    let body: string;
-    const name = prospect.contactName || 'there';
-    const regLink = registrationUrl || 'https://qwillio.com/register';
+    const firstName = (prospect.contactName?.split(' ')[0]) || 'there';
+    const agentName = 'Ashley';
+    const registrationLink = registrationUrl || 'https://qwillio.com/register';
 
+    let body: string;
     switch (callOutcome) {
       case 'qualified':
       case 'interested':
-        body = `Hi ${name}! Thanks for chatting with Ashley from Qwillio. Start your free 30-day trial here: ${regLink} — No commitment, cancel anytime.`;
+        body = smsTemplates.interested({ firstName, agentName, registrationLink });
         break;
       case 'callback_later':
-        body = `Hi ${name}! Ashley from Qwillio here. Sorry we couldn't connect fully today. We'll follow up soon. In the meantime, learn more at qwillio.com`;
+        body = smsTemplates.callback({ firstName, agentName });
         break;
       case 'voicemail':
       case 'no-answer':
-        body = `Hi ${name}! Ashley from Qwillio tried to reach you about ${prospect.businessName}. We help businesses never miss a call with AI. Learn more: qwillio.com`;
+        body = smsTemplates.noanswer({ firstName, agentName, businessName: prospect.businessName });
         break;
       default:
         return false; // Don't SMS for not_interested, wrong_number, etc.
@@ -177,10 +179,11 @@ export class SmsService {
   }, reason: 'bounce' | 'no_open'): Promise<boolean> {
     if (!prospect.phone || prospect.smsOptedOut) return false;
 
-    const name = prospect.contactName || 'there';
+    const firstName = (prospect.contactName?.split(' ')[0]) || 'there';
+    const agentName = 'Ashley';
     const body = reason === 'bounce'
-      ? `Hi ${name}! Ashley from Qwillio here. I tried sending you the demo video for ${prospect.businessName} but the email bounced. Could you reply with your correct email? Thanks!`
-      : `Hi ${name}! Ashley from Qwillio — I sent you a demo video for ${prospect.businessName} yesterday but it looks like it might have gone to spam. Could you reply with your email and I'll resend it? Thanks!`;
+      ? smsTemplates.emailBounce({ firstName, agentName, businessName: prospect.businessName })
+      : smsTemplates.emailNoOpen({ firstName, agentName, businessName: prospect.businessName });
 
     const result = await this.sendSMS(prospect.phone, body);
     return result.success;
@@ -198,8 +201,8 @@ export class SmsService {
   }): Promise<boolean> {
     if (!prospect.phone || prospect.smsOptedOut) return false;
 
-    const name = prospect.contactName || 'there';
-    const body = `Hi ${name}! Ashley from Qwillio here — I tried reaching you a couple times about ${prospect.businessName}. No worries at all! If you're ever curious how AI can help you never miss a call again, here's a quick 2-min video: qwillio.com/demo. Have a great day!`;
+    const firstName = (prospect.contactName?.split(' ')[0]) || 'there';
+    const body = smsTemplates.exhausted({ firstName, agentName: 'Ashley', businessName: prospect.businessName });
 
     const result = await this.sendSMS(prospect.phone, body);
     return result.success;
@@ -217,14 +220,20 @@ export class SmsService {
   }): Promise<boolean> {
     if (!booking.customerPhone) return false;
 
-    const name = booking.customerName || 'there';
+    const firstName = (booking.customerName?.split(' ')[0]) || 'there';
     const date = new Date(booking.bookingDate).toLocaleDateString('en-US', {
       weekday: 'long', month: 'long', day: 'numeric',
     });
     const time = booking.bookingTime ? ` at ${booking.bookingTime}` : '';
     const service = booking.serviceType ? ` (${booking.serviceType})` : '';
 
-    const body = `Hi ${name}! Your appointment at ${booking.businessName} is confirmed for ${date}${time}${service}. To reschedule or cancel, please contact ${booking.businessName} directly. — Powered by Qwillio`;
+    const body = smsTemplates.bookingConfirm({
+      firstName,
+      businessName: booking.businessName,
+      date,
+      time,
+      service,
+    });
 
     const result = await this.sendSMS(booking.customerPhone, body);
     if (result.success) {
@@ -246,11 +255,16 @@ export class SmsService {
   }): Promise<boolean> {
     if (!booking.customerPhone) return false;
 
-    const name = booking.customerName || 'there';
+    const firstName = (booking.customerName?.split(' ')[0]) || 'there';
     const time = booking.bookingTime ? ` at ${booking.bookingTime}` : ' tomorrow';
     const service = booking.serviceType ? ` for your ${booking.serviceType}` : '';
 
-    const body = `Reminder: Hi ${name}! Your appointment at ${booking.businessName} is${time}${service}. See you soon! — Powered by Qwillio`;
+    const body = smsTemplates.bookingReminder({
+      firstName,
+      businessName: booking.businessName,
+      time,
+      service,
+    });
 
     const result = await this.sendSMS(booking.customerPhone, body);
     if (result.success) {
