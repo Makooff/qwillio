@@ -22,7 +22,7 @@ const BRAND = {
 /** Primary CTA — large, centered, VIOLET pill with WHITE text. */
 export function brandButton(label: string, url: string): string {
   return `
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:8px auto 24px auto;width:auto;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:16px auto 40px auto;width:auto;">
       <tr>
         <td align="center" bgcolor="${BRAND.violet}" style="border-radius:14px;background:${BRAND.violet};box-shadow:0 12px 28px rgba(123,92,240,0.32);">
           <a href="${url}" style="display:inline-block;padding:16px 38px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;color:#FFFFFF !important;font-size:15px;font-weight:700;text-decoration:none;border-radius:14px;letter-spacing:0.01em;mso-text-raise:0;">
@@ -105,7 +105,7 @@ export function brandWrap(opts: {
         <table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;width:100%;">
           <!-- Brand header — centered logo + violet wordmark -->
           <tr>
-            <td style="padding:0 4px 28px 4px;text-align:center;">
+            <td style="padding:0 4px 56px 4px;text-align:center;">
               <img src="${BRAND.logoUrl}" alt="" width="28" height="28" style="display:inline-block;vertical-align:middle;border:0;background:transparent;">
               <span style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:20px;font-weight:600;letter-spacing:-0.02em;margin-left:8px;vertical-align:middle;color:${BRAND.wordmark};">Qwillio</span>
             </td>
