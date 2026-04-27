@@ -5,11 +5,11 @@ import { PACKAGES } from '../types';
 import { formatDate } from '../utils/helpers';
 import { brandWrap, brandTitle, brandText, brandButton, brandList, brandSmall } from './email-template';
 
-/** Highlight block on the translucent violet card — used for phone numbers, prices, dates. */
+/** Highlight block — used for phone numbers, prices, dates (light violet card on white). */
 function brandHighlight(label: string, value: string, valueSize = 24): string {
-  return `<div style="margin:24px 0;padding:20px 24px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:12px;text-align:center;">
-    <p style="margin:0 0 6px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.70);letter-spacing:0.06em;text-transform:uppercase;">${label}</p>
-    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:${valueSize}px;font-weight:700;letter-spacing:-0.01em;color:#FFFFFF;font-feature-settings:'tnum';">${value}</p>
+  return `<div style="margin:24px 0;padding:20px 24px;background:rgba(123,92,240,0.08);border:1px solid rgba(123,92,240,0.18);border-radius:12px;text-align:center;">
+    <p style="margin:0 0 6px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;color:rgba(92,60,224,0.70);letter-spacing:0.06em;text-transform:uppercase;">${label}</p>
+    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:${valueSize}px;font-weight:700;letter-spacing:-0.01em;color:#5C3CE0;font-feature-settings:'tnum';">${value}</p>
   </div>`;
 }
 
