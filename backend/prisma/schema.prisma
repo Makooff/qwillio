@@ -30,6 +30,7 @@ model User {
   client              Client?
   contractAcceptances ContractAcceptance[]
   trialFingerprints   TrialFingerprint[]
+  closerCalls         Call[]               @relation("CloserCalls")
 
   @@map("users")
 }
@@ -168,13 +169,19 @@ model Call {
   callQualityScore     Int?      @map("call_quality_score")
   createdAt            DateTime  @default(now()) @map("created_at")
   metadata             Json?
+  // ─── Closer browser-dial fields (Twilio Voice SDK) ──────
+  closerId             String?   @map("closer_id") @db.Uuid
+  twilioCallSid        String?   @unique @map("twilio_call_sid") @db.VarChar(255)
+  recordingSid         String?   @map("recording_sid") @db.VarChar(255)
 
   prospect Prospect? @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  closer   User?     @relation("CloserCalls", fields: [closerId], references: [id], onDelete: SetNull)
 
   @@index([prospectId])
   @@index([status])
   @@index([niche])
   @@index([detectionResult])
+  @@index([closerId])
   @@map("calls")
 }
 
