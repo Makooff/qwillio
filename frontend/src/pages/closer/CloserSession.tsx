@@ -5,11 +5,13 @@ import {
   Phone, SkipForward, Check, X, Clock, PartyPopper, Send,
   ChevronRight, Building2, Mail, MessageSquare, List,
   ArrowLeft, ArrowRight, MapPin, Bot, PhoneOff, User,
+  Mic, MicOff, Play,
 } from 'lucide-react';
 import api from '../../services/api';
 import OrbsLoader from '../../components/OrbsLoader';
 import { pro } from '../../styles/pro-theme';
 import { Card, Pill } from '../../components/pro/ProBlocks';
+import { useCloserDialer } from '../../hooks/useCloserDialer';
 
 interface Prospect {
   id: string; businessName: string; contactName?: string; phone?: string;
@@ -24,6 +26,15 @@ interface Prospect {
 
 type Outcome = 'interested' | 'lost' | 'callback' | 'converted';
 type Phase   = 'info' | 'calling' | 'outcome' | 'notes' | 'followup';
+
+interface RecordingItem {
+  id: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  durationSeconds: number | null;
+  status: string;
+  recordingUrl: string | null;
+}
 
 const PHASES: Phase[] = ['info', 'calling', 'outcome', 'notes', 'followup'];
 const PHASE_LABELS: Record<Phase, string> = {
@@ -84,9 +95,15 @@ export default function CloserSession() {
   const [fu, setFu] = useState<typeof FU_PRESETS[number] | null>(null);
   const [claimed, setClaimed] = useState(false);
 
-  // Call timer
+  // Call timer (used only when the browser dialer is unavailable and we
+  // fall back to a tel: redirect — the dialer tracks its own duration).
   const [callStartAt, setCallStartAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+
+  // Browser-based dialer (Twilio Voice SDK + recording).
+  const dialer = useCloserDialer();
+  const [recordings, setRecordings] = useState<RecordingItem[]>([]);
+  const [recordingsLoading, setRecordingsLoading] = useState(false);
 
   // Instant send chips
   const [sendingNow, setSendingNow] = useState<'sms' | 'email' | null>(null);
@@ -143,6 +160,40 @@ export default function CloserSession() {
     return () => window.clearInterval(t);
   }, [phase, callStartAt]);
 
+  // Load past recordings for the current prospect, and re-poll for ~60s
+  // after a call ends so the freshly uploaded recording shows up.
+  const fetchRecordings = useCallback(async (prospectId: string) => {
+    setRecordingsLoading(true);
+    try {
+      const { data } = await api.get(`/closer/voice/calls/${prospectId}`);
+      setRecordings((data?.items || []) as RecordingItem[]);
+    } catch {
+      setRecordings([]);
+    } finally {
+      setRecordingsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!current?.id) { setRecordings([]); return; }
+    fetchRecordings(current.id);
+  }, [current?.id, fetchRecordings]);
+
+  useEffect(() => {
+    if (dialer.status !== 'ended') return;
+    const id = current?.id;
+    if (!id) return;
+    // Poll every 5s for up to 60s while Twilio uploads the recording.
+    let n = 0;
+    const t = window.setInterval(() => {
+      n += 1;
+      fetchRecordings(id);
+      if (n >= 12) window.clearInterval(t);
+    }, 5000);
+    fetchRecordings(id);
+    return () => window.clearInterval(t);
+  }, [dialer.status, current?.id, fetchRecordings]);
+
   // ── Actions ────────────────────────────────────────────────
   const startCall = async () => {
     if (!current) return;
@@ -150,10 +201,20 @@ export default function CloserSession() {
     catch { /* non-blocking */ }
     setCallStartAt(Date.now());
     setPhase('calling');
-    if (current.phone) window.location.href = `tel:${current.phone}`;
+    if (!current.phone) return;
+
+    // Try the browser dialer first (records the call). If Twilio Voice
+    // isn't configured server-side, fall back to a tel: redirect so the
+    // closer can still dial from their device.
+    if (dialer.ready) {
+      try { await dialer.call(current.phone, current.id); return; }
+      catch { /* fallthrough to tel: */ }
+    }
+    window.location.href = `tel:${current.phone}`;
   };
 
   const endCall = () => {
+    dialer.hangup();
     setPhase('outcome');
   };
 
@@ -312,8 +373,17 @@ export default function CloserSession() {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18 }}
         >
-          {phase === 'info'     && <InfoStep p={current} onStart={startCall} />}
-          {phase === 'calling'  && <CallingStep p={current} startedAt={callStartAt} now={now} onEnd={endCall} />}
+          {phase === 'info'     && (
+            <InfoStep p={current} onStart={startCall} recordings={recordings} recordingsLoading={recordingsLoading} />
+          )}
+          {phase === 'calling'  && (
+            <CallingStep
+              p={current}
+              startedAt={callStartAt}
+              now={now}
+              dialer={dialer}
+            />
+          )}
           {phase === 'outcome'  && <OutcomeStep selected={outcome} onSelect={setOutcome} />}
           {phase === 'notes'    && <NotesStep notes={notes} onChange={setNotes} />}
           {phase === 'followup' && (
@@ -357,7 +427,14 @@ export default function CloserSession() {
 
 /* ─── Step components ─────────────────────────────────────── */
 
-function InfoStep({ p, onStart: _ }: { p: Prospect; onStart: () => void }) {
+function InfoStep({
+  p, onStart: _, recordings, recordingsLoading,
+}: {
+  p: Prospect;
+  onStart: () => void;
+  recordings: RecordingItem[];
+  recordingsLoading: boolean;
+}) {
   const isMine = !!p.assignedToUserId;
 
   // Local editable copy of contact fields — saved to API on blur.
@@ -472,8 +549,70 @@ function InfoStep({ p, onStart: _ }: { p: Prospect; onStart: () => void }) {
             </pre>
           </details>
         )}
+
+        {(recordings.length > 0 || recordingsLoading) && (
+          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${pro.border}` }}>
+            <div className="px-3 py-2.5 text-[10px] uppercase tracking-wider font-semibold"
+                 style={{ color: pro.textSec, background: pro.panelHi, borderBottom: `1px solid ${pro.border}` }}>
+              Enregistrements
+            </div>
+            {recordingsLoading && recordings.length === 0 ? (
+              <p className="text-[12px] px-3 py-3" style={{ color: pro.textTer }}>
+                Chargement…
+              </p>
+            ) : (
+              recordings.map((r, i) => (
+                <RecordingRow key={r.id} item={r} divided={i > 0} />
+              ))
+            )}
+          </div>
+        )}
       </div>
     </Card>
+  );
+}
+
+function RecordingRow({ item, divided }: { item: RecordingItem; divided: boolean }) {
+  const date = item.startedAt
+    ? new Date(item.startedAt).toLocaleString('fr-FR', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      })
+    : '—';
+  const duration = item.durationSeconds
+    ? `${Math.floor(item.durationSeconds / 60)}:${String(item.durationSeconds % 60).padStart(2, '0')}`
+    : '—';
+  const url = item.recordingUrl;
+
+  return (
+    <div className="px-3 py-3"
+         style={{ borderTop: divided ? `1px solid ${pro.border}` : undefined }}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[12.5px] font-medium" style={{ color: pro.text }}>
+            {date}
+          </p>
+          <p className="text-[11px] tabular-nums" style={{ color: pro.textTer }}>
+            {duration} · {item.status}
+          </p>
+        </div>
+        {url ? (
+          <a href={url} target="_blank" rel="noopener noreferrer"
+             className="px-2.5 h-8 inline-flex items-center gap-1.5 text-[11.5px] font-medium rounded-lg"
+             style={{ background: pro.panelHi, color: pro.text, border: `1px solid ${pro.border}` }}>
+            <Play size={12} /> Écouter
+          </a>
+        ) : (
+          <span className="text-[11px]" style={{ color: pro.textTer }}>
+            En cours…
+          </span>
+        )}
+      </div>
+      {url && (
+        <audio controls preload="none" className="w-full mt-2" style={{ height: 32 }}>
+          <source src={url} type="audio/mpeg" />
+        </audio>
+      )}
+    </div>
   );
 }
 
@@ -534,9 +673,30 @@ function InfoRow({
 }
 
 function CallingStep({
-  p, startedAt, now, onEnd: _,
-}: { p: Prospect; startedAt: number | null; now: number; onEnd: () => void }) {
-  const elapsed = startedAt ? now - startedAt : 0;
+  p, startedAt, now, dialer,
+}: {
+  p: Prospect;
+  startedAt: number | null;
+  now: number;
+  dialer: ReturnType<typeof useCloserDialer>;
+}) {
+  // When the browser dialer is in flight we trust its duration; otherwise
+  // we fall back to the wall-clock timer (used when tel: is dialed).
+  const browserActive = dialer.status !== 'idle' && dialer.status !== 'ended';
+  const elapsed = browserActive
+    ? dialer.durationMs
+    : (startedAt ? now - startedAt : 0);
+
+  const statusLabel: Record<typeof dialer.status, string> = {
+    idle:       'Composition…',
+    preparing:  'Connexion Twilio…',
+    connecting: 'Composition…',
+    ringing:    'Sonnerie…',
+    'in-call':  'En communication',
+    ended:      'Appel terminé',
+    error:      dialer.error || 'Erreur',
+  };
+
   return (
     <Card>
       <div className="p-8 flex flex-col items-center text-center">
@@ -603,7 +763,7 @@ function CallingStep({
         </div>
 
         <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: pro.accent }}>
-          Appel en cours
+          {browserActive ? statusLabel[dialer.status] : 'Appel en cours'}
         </p>
         <h2 className="text-[18px] font-semibold tracking-tight mt-1 break-words" style={{ color: pro.text }}>
           {p.businessName}
@@ -614,8 +774,41 @@ function CallingStep({
         <p className="text-[28px] font-semibold tabular-nums mt-3" style={{ color: pro.text }}>
           {fmtElapsed(elapsed)}
         </p>
+
+        {browserActive && (
+          <div className="flex items-center gap-2 mt-4">
+            <button
+              onClick={dialer.toggleMute}
+              className="px-3 h-9 inline-flex items-center gap-1.5 text-[12px] font-medium rounded-xl"
+              style={{
+                background: dialer.muted ? pro.bad : pro.panel,
+                color: dialer.muted ? '#fff' : pro.text,
+                border: `1px solid ${pro.border}`,
+              }}
+            >
+              {dialer.muted ? <MicOff size={13} /> : <Mic size={13} />}
+              {dialer.muted ? 'Muet' : 'Micro'}
+            </button>
+            <button
+              onClick={dialer.hangup}
+              className="px-3 h-9 inline-flex items-center gap-1.5 text-[12px] font-medium rounded-xl"
+              style={{ background: pro.bad, color: '#fff' }}
+            >
+              <PhoneOff size={13} /> Raccrocher
+            </button>
+          </div>
+        )}
+
+        {dialer.status === 'error' && (
+          <p className="text-[11.5px] mt-3" style={{ color: pro.bad }}>
+            {dialer.error}. Bascule en composition manuelle.
+          </p>
+        )}
+
         <p className="text-[11.5px] mt-3" style={{ color: pro.textTer }}>
-          Quand l'appel est terminé, touchez "Fin d'appel" en bas pour passer à l'issue.
+          {browserActive
+            ? "L'appel est enregistré automatiquement. Touchez \"Fin d'appel\" en bas pour passer à l'issue."
+            : "Quand l'appel est terminé, touchez \"Fin d'appel\" en bas pour passer à l'issue."}
         </p>
       </div>
     </Card>

@@ -77,6 +77,8 @@ export const env = {
   TWILIO_API_KEY_SID: process.env.TWILIO_API_KEY_SID || '',
   TWILIO_API_KEY_SECRET: process.env.TWILIO_API_KEY_SECRET || '',
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER || '',
+  TWILIO_TWIML_APP_SID: process.env.TWILIO_TWIML_APP_SID || '',
+  TWILIO_RECORDING_ENABLED: process.env.TWILIO_RECORDING_ENABLED !== 'false',
   SMS_ENABLED: process.env.SMS_ENABLED === 'true',
 
   CALLS_PER_DAY: parseInt(process.env.CALLS_PER_DAY || '50', 10),

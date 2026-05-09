@@ -47,6 +47,7 @@ import adminRoutes from './routes/admin.routes';
 import clientApiRoutes from './routes/client-api.routes';
 import autofixRoutes from './routes/autofix.routes';
 import closerRoutes from './routes/closer.routes';
+import closerVoiceRoutes from './routes/closer-voice.routes';
 
 const app = express();
 
@@ -129,6 +130,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/client', clientApiRoutes);
 app.use('/api/autofix', autofixRoutes);
 app.use('/api/closer', closerRoutes);
+app.use('/api/closer/voice', closerVoiceRoutes);
 
 // ─── Contact Form ─────────────────────────────────────
 app.post('/api/contact', async (req, res) => {
