@@ -99,13 +99,24 @@ export class PhoneValidationService {
    * Validate unvalidated prospects in batches
    */
   async validateBatch(batchSize: number = 10): Promise<number> {
+    // Cutoff: prospects marked invalid before this date are suspected
+    // false-negatives from the broken Twilio LTI flow (fixed in 07f660a,
+    // 2026-04-17). Re-validate them once with the new basic-lookup fallback.
+    const FALSE_NEGATIVE_CUTOFF = new Date('2026-04-18T00:00:00Z');
+
     const prospects = await prisma.prospect.findMany({
       where: {
         phone: { not: null },
-        phoneValidatedAt: null,  // Only pick never-validated prospects (not re-check already-invalid ones)
         status: { in: ['new', 'contacted'] },
+        OR: [
+          { phoneValidatedAt: null }, // never validated
+          {
+            phoneValidated: false,
+            phoneValidatedAt: { lt: FALSE_NEGATIVE_CUTOFF },
+          },
+        ],
       },
-      orderBy: { score: 'desc' },
+      orderBy: [{ phoneValidatedAt: 'asc' }, { score: 'desc' }],
       take: batchSize,
     });
 

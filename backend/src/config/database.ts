@@ -5,10 +5,13 @@ import { logger } from './logger';
 // behaves like PgBouncer in transaction mode. We:
 //   - append `pgbouncer=true` so Prisma disables prepared statements that
 //     break under transaction pooling,
-//   - cap `connection_limit` to 3 so stale connections get recycled fast,
+//   - keep `connection_limit` generous (15) since PgBouncer already manages
+//     a large server-side pool — a small client pool just causes timeouts
+//     under concurrent cron jobs ("connection limit: 3" was the bottleneck),
+//   - extend `pool_timeout` so concurrent queries don't bail in 10s,
 //   - set a short `connect_timeout` so a dead connection fails quickly.
 const rawUrl = process.env.DATABASE_URL || '';
-const neonParams = 'pgbouncer=true&connect_timeout=10&connection_limit=3';
+const neonParams = 'pgbouncer=true&connect_timeout=10&connection_limit=15&pool_timeout=30';
 const dbUrl = rawUrl.includes('neon.tech') && !rawUrl.includes('pgbouncer=true')
   ? `${rawUrl}${rawUrl.includes('?') ? '&' : '?'}${neonParams}`
   : rawUrl;
@@ -52,6 +55,8 @@ const RETRYABLE_ERRORS = [
   'Connection refused',
   'ECONNRESET',
   'Engine is not yet connected',
+  'Timed out fetching a new connection from the connection pool',
+  "Can't reach database server",
 ];
 const MAX_RETRIES = 3;
 
