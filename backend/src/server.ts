@@ -213,17 +213,8 @@ async function startServer() {
     await prisma.$connect();
     logger.info('Database connected successfully');
 
-    // Create the bot_log table BEFORE any later operations log to it.
-    // Doing this here (instead of after seeding) avoids a race where 40+
-    // boot-time logger.info calls hit addLogToDb before the table exists,
-    // surfacing `relation "bot_log" does not exist` (42P01) noise.
-    try {
-      const { ensureBotLogTable } = await import('./config/db-log-store');
-      await ensureBotLogTable();
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[bot_log] early init failed (non-fatal):', err);
-    }
+    // DB log persistence is currently disabled (see logger.ts comment).
+    // The in-memory 500-entry ring buffer is what /admin/logs reads.
 
     // Seed/reset admin accounts
     try {
@@ -421,9 +412,6 @@ async function startServer() {
         logger.error('[bootstrap] Closer seed failed:', err);
       }
     }
-
-    // (bot_log table already created at the top of startServer)
-    logger.info('[bot_log] persistent log table ready (7-day retention)');
 
     // Initialize bot loop (creates bot_status record if needed)
     await botLoop.initialize();

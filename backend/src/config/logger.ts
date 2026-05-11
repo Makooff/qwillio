@@ -2,7 +2,7 @@ import winston from 'winston';
 import Transport from 'winston-transport';
 import { env } from './env';
 import { addLog } from './log-store';
-import { addLogToDb } from './db-log-store';
+// addLogToDb intentionally not imported — DB persistence disabled to avoid 42P01 race
 import { DiscordErrorTransport } from './discord-error-transport';
 
 /**
@@ -40,11 +40,15 @@ class MemoryTransport extends Transport {
 
     addLog(entry);
 
-    // Persist info+ to DB so /admin/logs has 7 days of history. Skip
-    // debug — it would bloat the table with noise.
-    if (entry.level !== 'debug') {
-      addLogToDb(entry).catch(() => { /* never crash on logging */ });
-    }
+    // DB persistence intentionally disabled: it ran into 42P01 races at boot
+    // (the bot_log table is created lazily but error events surfaced even
+    // through the tableReady guard via Prisma's $on('error') queue). The
+    // 500-entry in-memory ring buffer is sufficient for /admin/logs use.
+    // To re-enable, uncomment below AND ensure the table exists before any
+    // logger call (e.g. via a Prisma migration, not a runtime $executeRaw).
+    // if (entry.level !== 'debug') {
+    //   addLogToDb(entry).catch(() => { /* never crash on logging */ });
+    // }
 
     callback();
   }
