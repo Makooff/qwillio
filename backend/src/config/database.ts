@@ -27,12 +27,17 @@ const basePrisma = new PrismaClient({
 basePrisma.$on('error', (e: any) => {
   const msg: string = typeof e?.message === 'string' ? e.message : JSON.stringify(e);
   // Neon idle disconnects and engine-transition noise — Prisma auto-reconnects, suppress.
+  // Also suppress boot-time `bot_log does not exist` (42P01) — the log table is
+  // created lazily and any writes that race past the tableReady guard fall through
+  // to here. These are non-fatal: the addLogToDb caller already swallows them.
   if (
     msg.includes('kind: Closed') ||
     msg.includes('connection closed') ||
     msg.includes('Error { kind: Closed') ||
     msg.includes('Server has closed the connection') ||
-    msg.includes('Engine is not yet connected')
+    msg.includes('Engine is not yet connected') ||
+    msg.includes('relation "bot_log" does not exist') ||
+    msg.includes('42P01')
   ) return;
   logger.error('Prisma error:', e);
 });

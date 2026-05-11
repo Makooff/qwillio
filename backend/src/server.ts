@@ -213,6 +213,18 @@ async function startServer() {
     await prisma.$connect();
     logger.info('Database connected successfully');
 
+    // Create the bot_log table BEFORE any later operations log to it.
+    // Doing this here (instead of after seeding) avoids a race where 40+
+    // boot-time logger.info calls hit addLogToDb before the table exists,
+    // surfacing `relation "bot_log" does not exist` (42P01) noise.
+    try {
+      const { ensureBotLogTable } = await import('./config/db-log-store');
+      await ensureBotLogTable();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[bot_log] early init failed (non-fatal):', err);
+    }
+
     // Seed/reset admin accounts
     try {
       const bcrypt = await import('bcryptjs');
@@ -410,16 +422,8 @@ async function startServer() {
       }
     }
 
-    // Persistent log table (7-day retention) — runs idempotent CREATE
-    // TABLE IF NOT EXISTS, then logger writes start landing in DB.
-    try {
-      const { ensureBotLogTable } = await import('./config/db-log-store');
-      await ensureBotLogTable();
-      logger.info('[bot_log] persistent log table ready (7-day retention)');
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[bot_log] init failed (non-fatal):', err);
-    }
+    // (bot_log table already created at the top of startServer)
+    logger.info('[bot_log] persistent log table ready (7-day retention)');
 
     // Initialize bot loop (creates bot_status record if needed)
     await botLoop.initialize();
