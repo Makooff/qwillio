@@ -58,7 +58,11 @@ const RETRYABLE_ERRORS = [
   'Timed out fetching a new connection from the connection pool',
   "Can't reach database server",
 ];
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
+// "Can't reach database server" usually means Neon compute is cold-starting
+// (5-10s on the free plan). Give those much longer backoffs than transient
+// pool/connection hiccups, which recover in <500ms.
+const COLDSTART_PATTERNS = ["Can't reach database server", 'Connection refused', 'ECONNRESET'];
 
 const prisma = basePrisma.$extends({
   query: {
@@ -70,14 +74,16 @@ const prisma = basePrisma.$extends({
           const msg = error?.message || '';
           const isRetryable = RETRYABLE_ERRORS.some(e => msg.includes(e));
           if (isRetryable && attempt < MAX_RETRIES) {
-            const backoff = 250 * Math.pow(2, attempt); // 250, 500, 1000 ms
-            // Only surface the retry if we're already at the 2nd attempt —
-            // a first-try reconnect is so frequent on Neon that it pollutes
-            // the log without being actionable.
+            const isColdStart = COLDSTART_PATTERNS.some(e => msg.includes(e));
+            // Cold-start: 1s, 2s, 4s, 8s, 8s (up to ~23s total — Neon usually
+            // wakes within 5-10s). Transient: 250, 500, 1000, 2000, 4000 ms.
+            const backoff = isColdStart
+              ? Math.min(8000, 1000 * Math.pow(2, attempt))
+              : 250 * Math.pow(2, attempt);
             if (attempt >= 1) {
-              logger.warn(`[prisma] transient DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms…`);
+              logger.warn(`[prisma] ${isColdStart ? 'cold-start' : 'transient'} DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms…`);
             } else {
-              logger.debug(`[prisma] transient DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms…`);
+              logger.debug(`[prisma] ${isColdStart ? 'cold-start' : 'transient'} DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms…`);
             }
             await new Promise(r => setTimeout(r, backoff));
             continue;

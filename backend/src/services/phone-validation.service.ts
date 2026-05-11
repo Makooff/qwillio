@@ -130,6 +130,10 @@ export class PhoneValidationService {
       try {
         const result = await this.validatePhone(prospect.phone);
 
+        // Flag personal mobile only when Twilio is highly confident. Anything
+        // else (landline/VoIP/unknown) is treated as a callable business line.
+        const isMobile = result.type === 'mobile' && result.confidence >= 0.9;
+
         await prisma.prospect.update({
           where: { id: prospect.id },
           data: {
@@ -137,6 +141,7 @@ export class PhoneValidationService {
             phoneValidationSource: result.source,
             phoneNumberConfidence: result.confidence,
             phoneValidatedAt: new Date(),
+            isMobile,
             // Recalculate score with validation bonus
             score: result.valid ? Math.min(prospect.score + 1, 22) : prospect.score,
           },

@@ -211,7 +211,10 @@ export class OutboundEngineService {
         country: 'US',
         phone: { not: null },
         eligibleForCall: true,
-        isMobile: false,
+        // Skip phones explicitly flagged as personal mobile (Twilio LTI:
+        // type=mobile + confidence>=0.9). Treat null as "unknown, callable" —
+        // many small businesses use VoIP/landline reported as unclassified.
+        NOT: { isMobile: true },
         callAttempts: { lt: 3 },
         assignedToUserId: null,
         OR: [
