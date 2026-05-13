@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
-import { Check, ArrowRight, Mail, CreditCard, Calculator, Package, Plus } from 'lucide-react';
+import { Check, ArrowRight, Mail, CreditCard, Calculator, Package, Plus, X } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
@@ -16,6 +17,18 @@ function FadeIn({ children, delay = 0, className = '' }: { children: React.React
 export default function Pricing() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
+  const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly');
+  const [callsDay, setCallsDay] = useState(15);
+  const [jobValue, setJobValue] = useState(500);
+
+  const annualPrice = (p: number) => p * 10;
+  const effectiveMonthly = (p: number) => Math.round(p * 10 / 12);
+  const displayPrice = (p: number) => billing === 'annual' ? effectiveMonthly(p) : p;
+
+  const missedPerMonth = Math.round(callsDay * 0.28 * 22);
+  const lostRevenue = missedPerMonth * jobValue;
+  const starterBreakeven = Math.ceil(497 / Math.max(1, jobValue));
+
   useSEO({
     title: 'Pricing',
     description: isFr
@@ -94,14 +107,104 @@ export default function Pricing() {
         </FadeIn>
       </section>
 
+      {/* ROI Calculator */}
+      <section className="pb-20 px-6">
+        <div className="max-w-[780px] mx-auto">
+          <FadeIn>
+            <div className="rounded-3xl bg-[#f5f5f7] border border-[#d2d2d7] p-8 md:p-10">
+              <div className="text-center mb-8">
+                <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-2">{isFr ? 'Calculateur ROI' : 'ROI Calculator'}</p>
+                <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
+                  {isFr ? 'Combien perdez-vous en appels manqués ?' : 'How much are you losing in missed calls?'}
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div>
+                  <label className="block text-sm font-medium mb-3">
+                    {isFr ? 'Appels entrants par jour' : 'Inbound calls per day'}
+                    <span className="ml-2 text-[#6366f1] font-semibold">{callsDay}</span>
+                  </label>
+                  <input type="range" min={3} max={80} value={callsDay} onChange={e => setCallsDay(+e.target.value)}
+                    className="w-full accent-[#6366f1]" />
+                  <div className="flex justify-between text-xs text-[#86868b] mt-1"><span>3</span><span>80</span></div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-3">
+                    {isFr ? 'Valeur moyenne d\'un client ($)' : 'Average job / client value ($)'}
+                    <span className="ml-2 text-[#6366f1] font-semibold">${jobValue.toLocaleString()}</span>
+                  </label>
+                  <input type="range" min={100} max={2000} step={50} value={jobValue} onChange={e => setJobValue(+e.target.value)}
+                    className="w-full accent-[#6366f1]" />
+                  <div className="flex justify-between text-xs text-[#86868b] mt-1"><span>$100</span><span>$2,000</span></div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="rounded-2xl bg-white border border-[#d2d2d7] p-5 text-center">
+                  <p className="text-xs text-[#86868b] mb-1">{isFr ? 'Appels manqués/mois' : 'Missed calls/month'}</p>
+                  <p className="text-3xl font-semibold text-[#1d1d1f]">{missedPerMonth}</p>
+                  <p className="text-xs text-[#86868b] mt-1">{isFr ? '(~28% sans répondeur)' : '(~28% without answering)'}</p>
+                </div>
+                <div className="rounded-2xl bg-red-50 border border-red-200 p-5 text-center">
+                  <p className="text-xs text-red-500 mb-1">{isFr ? 'Revenus perdus/mois' : 'Revenue lost/month'}</p>
+                  <p className="text-3xl font-semibold text-red-600">${lostRevenue.toLocaleString()}</p>
+                  <p className="text-xs text-red-400 mt-1">{isFr ? 'conservatif' : 'conservative estimate'}</p>
+                </div>
+                <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5 text-center">
+                  <p className="text-xs text-emerald-600 mb-1">{isFr ? 'ROI avec Qwillio Starter' : 'ROI with Qwillio Starter'}</p>
+                  <p className="text-3xl font-semibold text-emerald-700">
+                    {lostRevenue > 497 ? `${Math.round(lostRevenue / 497)}x` : '—'}
+                  </p>
+                  <p className="text-xs text-emerald-600 mt-1">
+                    {lostRevenue > 497
+                      ? (isFr ? `rentable dès ${starterBreakeven} appel${starterBreakeven > 1 ? 's' : ''} récupéré${starterBreakeven > 1 ? 's' : ''}` : `pays off in ${starterBreakeven} saved call${starterBreakeven > 1 ? 's' : ''}`)
+                      : (isFr ? 'ajustez les valeurs' : 'adjust the sliders')}
+                  </p>
+                </div>
+              </div>
+              {lostRevenue > 497 && (
+                <p className="text-center text-sm text-[#86868b] mt-6">
+                  {isFr
+                    ? `Qwillio Starter à $497/mois récupère ${Math.round(lostRevenue / 497)}x sa valeur rien qu'en appels non manqués.`
+                    : `Qwillio Starter at $497/month recovers ${Math.round(lostRevenue / 497)}x its cost just from answered calls.`}
+                </p>
+              )}
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
       {/* Receptionist Plans */}
       <section className="pb-24 px-6">
         <div className="max-w-[1120px] mx-auto">
           <FadeIn>
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">{isFr ? 'Receptionist AI' : 'Receptionist AI'}</h2>
               <p className="text-[#86868b] mt-3">{isFr ? 'Votre standardiste IA qui repond 24/7' : 'Your AI receptionist that answers 24/7'}</p>
             </div>
+
+            {/* Billing Toggle */}
+            <div className="flex items-center justify-center gap-4 mb-10">
+              <button
+                onClick={() => setBilling('monthly')}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${billing === 'monthly' ? 'bg-[#1d1d1f] text-white' : 'text-[#86868b] hover:text-[#1d1d1f]'}`}
+              >
+                {isFr ? 'Mensuel' : 'Monthly'}
+              </button>
+              <button
+                onClick={() => setBilling('annual')}
+                className={`relative px-5 py-2 rounded-full text-sm font-medium transition-colors ${billing === 'annual' ? 'bg-[#1d1d1f] text-white' : 'text-[#86868b] hover:text-[#1d1d1f]'}`}
+              >
+                {isFr ? 'Annuel' : 'Annual'}
+                <span className="absolute -top-2.5 -right-2 bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                  -17%
+                </span>
+              </button>
+            </div>
+            {billing === 'annual' && (
+              <p className="text-center text-sm text-emerald-600 font-medium -mt-6 mb-8">
+                {isFr ? '✓ 2 mois offerts — facturé annuellement' : '✓ 2 months free — billed annually'}
+              </p>
+            )}
           </FadeIn>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -116,9 +219,15 @@ export default function Pricing() {
                   <h3 className="text-xl font-semibold mb-1">{plan.name}</h3>
                   <p className={`text-sm mb-6 ${plan.popular ? 'text-white/50' : 'text-[#86868b]'}`}>{plan.sub}</p>
                   <div className="mb-2">
-                    <span className="text-4xl font-semibold tracking-tight">${plan.price.toLocaleString()}</span>
+                    <span className="text-4xl font-semibold tracking-tight">${displayPrice(plan.price).toLocaleString()}</span>
                     <span className={plan.popular ? 'text-white/50' : 'text-[#86868b]'}>/mo</span>
-                    <span className={`block text-sm mt-1 ${plan.popular ? 'text-white/40' : 'text-[#86868b]'}`}>(~{'\u20AC'}{eur(plan.price).toLocaleString()}/mo)</span>
+                    {billing === 'annual' ? (
+                      <span className={`block text-sm mt-1 font-medium ${plan.popular ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                        {isFr ? `factur\u00E9 $${annualPrice(plan.price).toLocaleString()}/an` : `billed $${annualPrice(plan.price).toLocaleString()}/year`}
+                      </span>
+                    ) : (
+                      <span className={`block text-sm mt-1 ${plan.popular ? 'text-white/40' : 'text-[#86868b]'}`}>(~{'\u20AC'}{eur(plan.price).toLocaleString()}/mo)</span>
+                    )}
                   </div>
                   <p className={`text-sm font-semibold mb-1 ${plan.popular ? 'text-emerald-400' : 'text-emerald-600'}`}>
                     {isFr ? '✓ Premier mois gratuit' : '✓ First month free'}
@@ -145,7 +254,7 @@ export default function Pricing() {
                       <span>{isFr ? 'Ajouter des add-ons' : 'Add add-ons'}</span>
                     </a>
                   </div>
-                  <Link to={`/register?plan=${plan.name.toLowerCase()}`} className="block text-center text-sm font-medium px-6 py-3 rounded-full transition-colors bg-[#6366f1] text-white hover:bg-[#4f46e5]">
+                  <Link to={`/register?plan=${plan.name.toLowerCase()}${billing === 'annual' ? '&billing=annual' : ''}`} className="block text-center text-sm font-medium px-6 py-3 rounded-full transition-colors bg-[#6366f1] text-white hover:bg-[#4f46e5]">
                     {isFr ? 'Choisir ce plan' : 'Choose this plan'}
                   </Link>
                 </div>
@@ -272,6 +381,67 @@ export default function Pricing() {
                 </tbody>
               </table>
             </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* Vs competitors */}
+      <section className="py-24 md:py-32 px-6 bg-[#1d1d1f] text-white">
+        <div className="max-w-[900px] mx-auto">
+          <FadeIn>
+            <div className="text-center mb-12">
+              <p className="text-sm font-medium text-[#818cf8] tracking-wide uppercase mb-3">{isFr ? 'Comparaison marché' : 'Market comparison'}</p>
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
+                {isFr ? 'Pourquoi Qwillio Pro ?' : 'Why Qwillio Pro?'}
+              </h2>
+              <p className="text-white/50 mt-3 max-w-lg mx-auto text-sm">
+                {isFr ? 'Les concurrents facturent à la minute ou à l\'appel. À volume, Qwillio gagne à chaque fois.' : 'Competitors charge per minute or per call. At volume, Qwillio wins every time.'}
+              </p>
+            </div>
+          </FadeIn>
+          <FadeIn delay={100}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="text-left py-4 pr-4 font-medium text-white/40">{isFr ? 'Service' : 'Service'}</th>
+                    <th className="text-center py-4 px-3 font-semibold text-[#818cf8]">Qwillio Pro</th>
+                    <th className="text-center py-4 px-3 font-medium text-white/60">Smith.ai</th>
+                    <th className="text-center py-4 px-3 font-medium text-white/60">Ruby</th>
+                    <th className="text-center py-4 px-3 font-medium text-white/60">Trillet</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { feature: isFr ? 'Prix mensuel' : 'Monthly price', q: '$1,297', s: '$285+', r: '$245+', t: '$49' },
+                    { feature: isFr ? 'Appels inclus' : 'Calls included', q: '2,000', s: '30', r: '50', t: '150' },
+                    { feature: isFr ? 'Coût par appel' : 'Cost per call', q: '$0.65', s: '$9.50+', r: '$4.90+', t: '$0.33' },
+                    { feature: isFr ? 'Type de réceptionniste' : 'Receptionist type', q: 'AI 24/7', s: isFr ? 'Humain' : 'Human', r: isFr ? 'Humain' : 'Human', t: 'AI limité' },
+                    { feature: isFr ? 'Moteur appels sortants' : 'Outbound call engine', q: true, s: false, r: false, t: false },
+                    { feature: isFr ? 'Sync CRM natif' : 'Native CRM sync', q: true, s: false, r: false, t: false },
+                    { feature: isFr ? 'Pipeline de leads' : 'Lead pipeline', q: true, s: false, r: false, t: false },
+                    { feature: isFr ? 'Analytics & sentiment' : 'Analytics & sentiment', q: true, s: false, r: false, t: false },
+                    { feature: isFr ? 'Essai 30 jours' : '30-day free trial', q: true, s: false, r: false, t: false },
+                  ].map((row, i) => (
+                    <tr key={i} className="border-b border-white/5">
+                      <td className="py-3 pr-4 text-white/60">{row.feature}</td>
+                      {(['q', 's', 'r', 't'] as const).map((k, ki) => (
+                        <td key={k} className={`text-center py-3 px-3 ${ki === 0 ? 'text-white font-medium' : 'text-white/40'}`}>
+                          {typeof row[k] === 'boolean'
+                            ? row[k]
+                              ? <Check size={15} className={ki === 0 ? 'text-emerald-400 mx-auto' : 'text-white/20 mx-auto'} />
+                              : <X size={15} className="text-white/20 mx-auto" />
+                            : row[k]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-white/30 mt-4 text-center">
+              {isFr ? '* Prix publics au 2025. Smith.ai 30 calls/mo plan. Ruby 50 receptionist minutes plan.' : '* Public pricing as of 2025. Smith.ai 30 calls/mo plan. Ruby 50 receptionist minutes plan.'}
+            </p>
           </FadeIn>
         </div>
       </section>

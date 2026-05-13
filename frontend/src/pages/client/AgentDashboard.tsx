@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import api from '../../services/api';
 import { motion } from 'framer-motion';
 import {
   Mail, CreditCard, BookOpen, Package,
@@ -106,14 +107,31 @@ const ACTIVITY_COLORS: Record<string, string> = {
 export default function AgentDashboard() {
   const [modules, setModules] = useState<Module[]>(INITIAL_MODULES);
 
+  useEffect(() => {
+    api.get('/my-dashboard/settings').then((res) => {
+      const saved: Array<{ id: string; enabled: boolean }> | undefined = res.data?.vapiConfig?.agentModules;
+      if (Array.isArray(saved) && saved.length > 0) {
+        setModules(prev =>
+          prev.map(m => {
+            const s = saved.find(x => x.id === m.id);
+            if (!s) return m;
+            return { ...m, enabled: s.enabled, status: s.enabled ? 'active' : 'paused' };
+          })
+        );
+      }
+    }).catch(() => { /* keep defaults */ });
+  }, []);
+
   const toggleModule = (id: string) => {
-    setModules(prev =>
-      prev.map(m =>
-        m.id === id
-          ? { ...m, enabled: !m.enabled, status: !m.enabled ? 'active' : 'paused' }
-          : m
-      )
+    const next = modules.map(m =>
+      m.id === id
+        ? { ...m, enabled: !m.enabled, status: (!m.enabled ? 'active' : 'paused') as ModuleStatus }
+        : m
     );
+    setModules(next);
+    api.put('/my-dashboard/agent-modules', {
+      modules: next.map(m => ({ id: m.id, enabled: m.enabled })),
+    }).catch(() => { /* best-effort */ });
   };
 
   const stats = [

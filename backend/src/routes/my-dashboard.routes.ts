@@ -1,7 +1,17 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { clientMiddleware } from '../middleware/auth.middleware';
 import { clientDashboardController } from '../controllers/client-dashboard.controller';
+
+const billingLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 5,
+  keyGenerator: (req: any) => req.clientId || req.ip,
+  message: { error: 'Too many billing requests, please wait a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const router = Router();
 
@@ -31,6 +41,13 @@ router.put('/profile', (req, res) => clientDashboardController.updateProfile(req
 router.put('/password', (req, res) => clientDashboardController.changePassword(req, res));
 router.get('/billing', (req, res) => clientDashboardController.getBilling(req, res));
 router.post('/cancel', (req, res) => clientDashboardController.cancelSubscription(req, res));
+router.post('/upgrade', billingLimiter, (req, res) => clientDashboardController.upgradeSubscription(req, res));
+
+// ─── Agent modules ──────────────────────────────────────
+router.put('/agent-modules', (req, res) => clientDashboardController.updateAgentModules(req, res));
+
+// ─── Notifications ──────────────────────────────────────
+router.put('/notifications', (req, res) => clientDashboardController.updateNotifications(req, res));
 
 // ─── Support ────────────────────────────────────────────
 router.post('/support', (req, res) => clientDashboardController.sendSupport(req, res));

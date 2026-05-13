@@ -1,6 +1,23 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, DollarSign, Calendar, TrendingUp, User, Loader2 } from 'lucide-react';
+import { Plus, X, DollarSign, Calendar, TrendingUp, User, Loader2, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
+  type DragStartEvent,
+  type DragEndEvent,
+  type DragOverEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import api from '../../services/api';
 
 type DealStage = 'new' | 'qualified' | 'appointment' | 'client' | 'inactive' | 'lost';
@@ -29,11 +46,122 @@ function fmt(n: number) {
   return n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n}`;
 }
 
+// ─── Sortable deal card ───────────────────────────────────────────────────────
+function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof STAGES[number]; overlay?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: deal.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  const card = (
+    <div
+      className={`bg-white rounded-xl border border-[#d2d2d7]/60 p-3.5 transition-all group
+        ${overlay ? 'shadow-2xl rotate-1 scale-[1.02]' : 'hover:shadow-sm hover:border-[#d2d2d7]'}`}
+    >
+      <div className="flex items-start gap-2">
+        <button
+          {...(overlay ? {} : listeners)}
+          {...(overlay ? {} : attributes)}
+          className="mt-0.5 cursor-grab active:cursor-grabbing text-[#d2d2d7] hover:text-[#86868b] transition-colors flex-shrink-0"
+          tabIndex={-1}
+        >
+          <GripVertical size={14} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-semibold text-[#1d1d1f] mb-0.5 truncate">{deal.title}</p>
+          <div className="flex items-center gap-1 mb-2">
+            <User size={10} className="text-[#86868b]" />
+            <p className="text-[10px] text-[#86868b] truncate">{deal.contactName}</p>
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1">
+              <DollarSign size={11} className="text-emerald-600" />
+              <span className="text-xs font-bold text-emerald-600">{fmt(deal.value)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <TrendingUp size={11} className="text-[#6366f1]" />
+              <span className="text-[10px] font-semibold text-[#6366f1]">{deal.probability}%</span>
+            </div>
+          </div>
+          <div className="h-1 bg-[#f5f5f7] rounded-full overflow-hidden mb-2">
+            <div className="h-full rounded-full" style={{ width: `${deal.probability}%`, background: stage.color }} />
+          </div>
+          <div className="flex items-center gap-1">
+            <Calendar size={10} className="text-[#86868b]" />
+            <span className="text-[10px] text-[#86868b]">{deal.closeDate}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (overlay) return card;
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {card}
+    </div>
+  );
+}
+
+// ─── Droppable column ─────────────────────────────────────────────────────────
+function StageColumn({
+  stage,
+  deals,
+  isOver,
+}: {
+  stage: typeof STAGES[number];
+  deals: Deal[];
+  isOver: boolean;
+}) {
+  const total = deals.reduce((s, d) => s + d.value, 0);
+
+  return (
+    <div className="w-64 flex-shrink-0">
+      <div className={`flex items-center justify-between mb-2 px-3 py-2 rounded-xl ${stage.bgLight} ${stage.border} border`}>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full" style={{ background: stage.color }} />
+          <span className="text-xs font-semibold" style={{ color: stage.color }}>{stage.label}</span>
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-white/60 text-[#86868b]">{deals.length}</span>
+        </div>
+        <span className="text-xs font-bold text-[#1d1d1f]">{fmt(total)}</span>
+      </div>
+
+      <SortableContext items={deals.map(d => d.id)} strategy={verticalListSortingStrategy}>
+        <div
+          className={`space-y-2 min-h-[120px] rounded-2xl p-2 transition-colors
+            ${isOver ? 'bg-[#6366f1]/[0.06] ring-1 ring-[#6366f1]/30' : 'bg-[#f5f5f7]/50'}`}
+          data-stage={stage.key}
+        >
+          {deals.map(deal => (
+            <DealCard key={deal.id} deal={deal} stage={stage} />
+          ))}
+          {deals.length === 0 && (
+            <p className="text-[11px] text-[#86868b] text-center py-6">
+              {isOver ? 'Drop here' : 'No deals'}
+            </p>
+          )}
+        </div>
+      </SortableContext>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function CrmDeals() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newDeal, setNewDeal] = useState({ contactName: '', title: '', value: '', probability: '50', closeDate: '', stage: 'new' as DealStage });
+  const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
+  const [overStage, setOverStage] = useState<DealStage | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
 
   const fetchDeals = async () => {
     try {
@@ -51,7 +179,7 @@ export default function CrmDeals() {
       }));
       setDeals(mapped);
     } catch {
-      // Keep existing state
+      // keep state
     } finally {
       setLoading(false);
     }
@@ -61,6 +189,53 @@ export default function CrmDeals() {
 
   const stageDeals = (stage: DealStage) => deals.filter(d => d.stage === stage);
   const stageTotal = (stage: DealStage) => stageDeals(stage).reduce((s, d) => s + d.value, 0);
+  const totalPipeline = deals.filter(d => d.stage !== 'lost').reduce((s, d) => s + d.value, 0);
+  const wonValue = stageTotal('client');
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const deal = deals.find(d => d.id === event.active.id);
+    setActiveDeal(deal ?? null);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event;
+    if (!over) { setOverStage(null); return; }
+    // over.id is either a deal id or a stage key
+    const targetDeal = deals.find(d => d.id === over.id);
+    const stage = targetDeal
+      ? targetDeal.stage
+      : (STAGES.find(s => s.key === over.id)?.key ?? null);
+    setOverStage(stage as DealStage | null);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDeal(null);
+    setOverStage(null);
+
+    if (!over || active.id === over.id) return;
+
+    const draggedDeal = deals.find(d => d.id === active.id);
+    if (!draggedDeal) return;
+
+    // Determine target stage: over.id may be a deal id or stage key
+    const overDeal = deals.find(d => d.id === over.id);
+    const targetStage: DealStage = overDeal
+      ? overDeal.stage
+      : (STAGES.find(s => s.key === over.id)?.key ?? draggedDeal.stage) as DealStage;
+
+    if (draggedDeal.stage === targetStage) return;
+
+    // Optimistic update
+    setDeals(prev => prev.map(d => d.id === draggedDeal.id ? { ...d, stage: targetStage } : d));
+
+    try {
+      await api.put(`/crm/deals/${draggedDeal.id}`, { stage: targetStage });
+    } catch {
+      // Revert on failure
+      setDeals(prev => prev.map(d => d.id === draggedDeal.id ? { ...d, stage: draggedDeal.stage } : d));
+    }
+  };
 
   const handleAddDeal = async () => {
     if (!newDeal.title || !newDeal.contactName) return;
@@ -78,16 +253,6 @@ export default function CrmDeals() {
     } catch {}
   };
 
-  const handleStageChange = async (dealId: string, newStage: DealStage) => {
-    try {
-      await api.put(`/crm/deals/${dealId}`, { stage: newStage });
-      setDeals(prev => prev.map(d => d.id === dealId ? { ...d, stage: newStage } : d));
-    } catch {}
-  };
-
-  const totalPipeline = deals.filter(d => d.stage !== 'lost').reduce((s, d) => s + d.value, 0);
-  const wonValue = stageTotal('client');
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -95,6 +260,8 @@ export default function CrmDeals() {
       </div>
     );
   }
+
+  const activeStageConfig = activeDeal ? STAGES.find(s => s.key === activeDeal.stage)! : null;
 
   return (
     <div>
@@ -127,63 +294,33 @@ export default function CrmDeals() {
         ))}
       </div>
 
-      {/* Kanban board */}
-      <div className="overflow-x-auto pb-4">
-        <div className="flex gap-3 min-w-max">
-          {STAGES.map(stage => {
-            const items = stageDeals(stage.key);
-            const total = stageTotal(stage.key);
-            return (
-              <div key={stage.key} className="w-64 flex-shrink-0">
-                {/* Column header */}
-                <div className={`flex items-center justify-between mb-2 px-3 py-2 rounded-xl ${stage.bgLight} ${stage.border} border`}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ background: stage.color }} />
-                    <span className="text-xs font-semibold" style={{ color: stage.color }}>{stage.label}</span>
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-white/60 text-[#86868b]">{items.length}</span>
-                  </div>
-                  <span className="text-xs font-bold text-[#1d1d1f]">{fmt(total)}</span>
-                </div>
-
-                {/* Cards */}
-                <div className="space-y-2 min-h-[120px] rounded-2xl bg-[#f5f5f7]/50 p-2">
-                  {items.map((deal, idx) => (
-                    <motion.div key={deal.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}
-                      className="bg-white rounded-xl border border-[#d2d2d7]/60 p-3.5 hover:shadow-sm hover:border-[#d2d2d7] transition-all cursor-pointer group">
-                      <p className="text-[11px] font-semibold text-[#1d1d1f] mb-0.5 truncate">{deal.title}</p>
-                      <div className="flex items-center gap-1 mb-2">
-                        <User size={10} className="text-[#86868b]" />
-                        <p className="text-[10px] text-[#86868b] truncate">{deal.contactName}</p>
-                      </div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1">
-                          <DollarSign size={11} className="text-emerald-600" />
-                          <span className="text-xs font-bold text-emerald-600">{fmt(deal.value)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp size={11} className="text-[#6366f1]" />
-                          <span className="text-[10px] font-semibold text-[#6366f1]">{deal.probability}%</span>
-                        </div>
-                      </div>
-                      {/* Probability bar */}
-                      <div className="h-1 bg-[#f5f5f7] rounded-full overflow-hidden mb-2">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${deal.probability}%`, background: stage.color }} />
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar size={10} className="text-[#86868b]" />
-                        <span className="text-[10px] text-[#86868b]">{deal.closeDate}</span>
-                      </div>
-                    </motion.div>
-                  ))}
-                  {items.length === 0 && (
-                    <p className="text-[11px] text-[#86868b] text-center py-6">No deals</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+      {/* Kanban board with drag-and-drop */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="overflow-x-auto pb-4">
+          <div className="flex gap-3 min-w-max">
+            {STAGES.map(stage => (
+              <StageColumn
+                key={stage.key}
+                stage={stage}
+                deals={stageDeals(stage.key)}
+                isOver={overStage === stage.key}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+
+        <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
+          {activeDeal && activeStageConfig ? (
+            <DealCard deal={activeDeal} stage={activeStageConfig} overlay />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* Add Deal Modal */}
       <AnimatePresence>

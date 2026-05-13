@@ -3,16 +3,17 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAuthStore } from './stores/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
-import Layout from './components/layout/Layout';
-import ClientLayout from './components/layout/ClientLayout';
-import CloserLayout from './components/layout/CloserLayout';
+const Layout = lazy(() => import('./components/layout/Layout'));
+const ClientLayout = lazy(() => import('./components/layout/ClientLayout'));
+const CloserLayout = lazy(() => import('./components/layout/CloserLayout'));
 import OrbsLoader from './components/OrbsLoader';
 import AppBootOverlay from './components/AppBootOverlay';
-// Eager-loaded entry points (Landing, Login, Register, ConfirmEmail)
+// Eager-loaded entry points (Login, Register, ConfirmEmail)
 import Login from './pages/Login';
-import Landing from './pages/Landing';
 import Register from './pages/Register';
 import ConfirmEmail from './pages/ConfirmEmail';
+// Landing is large — lazy load it
+const Landing = lazy(() => import('./pages/Landing'));
 // Admin pages (lazy loaded)
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -203,7 +204,7 @@ export default function App() {
         <Route path="/fr/gdpr" element={<Suspense fallback={<Spinner />}><Gdpr /></Suspense>} />
         <Route path="/fr/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
         <Route path="/fr/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
-        <Route path="/receptionist" element={<Landing />} />
+        <Route path="/receptionist" element={<Suspense fallback={<Spinner />}><Landing /></Suspense>} />
         <Route path="/agent" element={<Suspense fallback={<Spinner />}><AgentPage /></Suspense>} />
         <Route path="/pricing" element={<Suspense fallback={<Spinner />}><PricingPage /></Suspense>} />
         <Route path="/blog" element={<Suspense fallback={<Spinner />}><BlogPage /></Suspense>} />
@@ -224,7 +225,7 @@ export default function App() {
           path="/dashboard"
           element={
             <ClientRoute>
-              <ClientLayout />
+              <Suspense fallback={<Spinner />}><ClientLayout /></Suspense>
             </ClientRoute>
           }
         >
@@ -262,7 +263,7 @@ export default function App() {
           path="/admin"
           element={
             <AdminRoute>
-              <Layout />
+              <Suspense fallback={<Spinner />}><Layout /></Suspense>
             </AdminRoute>
           }
         >
@@ -292,7 +293,7 @@ export default function App() {
           path="/closer"
           element={
             <CloserRoute>
-              <CloserLayout />
+              <Suspense fallback={<Spinner />}><CloserLayout /></Suspense>
             </CloserRoute>
           }
         >

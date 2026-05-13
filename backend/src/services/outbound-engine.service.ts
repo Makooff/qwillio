@@ -131,11 +131,12 @@ export class OutboundEngineService {
     });
     if (dbNumber) return dbNumber.phoneNumber;
 
-    // Fall back to static map
-    if (AREA_CODE_MAP[areaCode]) return AREA_CODE_MAP[areaCode];
+    // Fall back to static map — skip placeholder (5550000) numbers
+    const staticNumber = AREA_CODE_MAP[areaCode];
+    if (staticNumber && !staticNumber.includes('5550000')) return staticNumber;
 
-    // Geographic fallback — use default VAPI number
-    return env.VAPI_PHONE_NUMBER;
+    // Final fallback — default outbound Twilio number
+    return env.TWILIO_PHONE_NUMBER || env.VAPI_PHONE_NUMBER;
   }
 
   /** Build personalized script from template */

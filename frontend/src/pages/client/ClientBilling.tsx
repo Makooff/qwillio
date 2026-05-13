@@ -12,27 +12,30 @@ const PLANS = [
   {
     id: 'starter',
     name: 'Starter',
-    monthly: 197,
-    setup: 697,
-    calls: 200,
-    features: ['200 appels/mois', 'Réceptionniste IA', 'Capture de leads', 'Analytiques', 'Support email'],
+    monthly: 497,
+    setup: 0,
+    calls: 800,
+    overage: 0.22,
+    features: ['800 appels/mois', 'Réceptionniste IA 24/7', 'Capture de leads', 'Analytiques', 'Support email', 'Transcription des appels'],
   },
   {
     id: 'pro',
     name: 'Pro',
-    monthly: 347,
-    setup: 997,
-    calls: 500,
-    features: ['500 appels/mois', 'Tout Starter inclus', 'Support prioritaire', 'Analytiques avancées', 'Scripts personnalisés'],
+    monthly: 1297,
+    setup: 0,
+    calls: 2000,
+    overage: 0.18,
+    features: ['2 000 appels/mois', 'Tout Starter inclus', 'Analytiques avancées + sentiments', 'Transfert d\'appel intelligent', 'Support prioritaire', 'Intégrations CRM natives'],
     popular: true,
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    monthly: 497,
-    setup: 1497,
-    calls: 1000,
-    features: ['1 000 appels/mois', 'Tout Pro inclus', 'Responsable dédié', 'Accès API', 'Intégrations custom'],
+    monthly: 2497,
+    setup: 0,
+    calls: 4000,
+    overage: 0.15,
+    features: ['4 000 appels/mois', 'Tout Pro inclus', 'Responsable dédié', 'SLA 99.5% uptime', 'Accès API complet', 'IA auto-apprenante'],
   },
 ];
 
@@ -42,6 +45,7 @@ export default function ClientBilling() {
   const [loading, setLoading] = useState(true);
   const [showCancel, setShowCancel] = useState(false);
   const [cancelInput, setCancelInput] = useState('');
+  const [upgrading, setUpgrading] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -59,6 +63,22 @@ export default function ClientBilling() {
       }
     })();
   }, []);
+
+  const handleUpgrade = async (planId: string) => {
+    setUpgrading(planId);
+    try {
+      const { data } = await api.post('/my-dashboard/upgrade', { planType: planId });
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else if (data.success) {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Upgrade error', err);
+    } finally {
+      setUpgrading(null);
+    }
+  };
 
   const handleCancel = async () => {
     try {
@@ -130,8 +150,8 @@ export default function ClientBilling() {
           </div>
           <div className="bg-white/[0.06] rounded-xl px-4 py-3 hidden md:block">
             <CreditCard size={14} className="text-[#A1A1A8] mb-1" />
-            <p className="text-sm font-semibold text-[#F5F5F7]">{client.currency === 'EUR' ? '€' : '$'}{client.setupFee || currentPlan.setup}</p>
-            <p className="text-[10px] text-[#A1A1A8]">Frais de setup (payé)</p>
+            <p className="text-sm font-semibold text-[#F5F5F7]">${(currentPlan as any).overage}/appel</p>
+            <p className="text-[10px] text-[#A1A1A8]">Dépassement de quota</p>
           </div>
         </div>
         <div>
@@ -171,10 +191,10 @@ export default function ClientBilling() {
               )}
               <p className="text-base font-bold text-[#F5F5F7] mb-1">{plan.name}</p>
               <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-2xl font-bold text-[#F5F5F7]">${plan.monthly}</span>
+                <span className="text-2xl font-bold text-[#F5F5F7]">${plan.monthly.toLocaleString()}</span>
                 <span className="text-sm text-[#A1A1A8]">/mois</span>
               </div>
-              <p className="text-xs text-[#A1A1A8] mb-4">+ ${plan.setup} setup</p>
+              <p className="text-xs text-[#A1A1A8] mb-4">{plan.calls.toLocaleString()} appels · ${(plan as any).overage}/appel supp.</p>
               <ul className="space-y-2 mb-6">
                 {plan.features.map((f, j) => (
                   <li key={j} className="flex items-center gap-2 text-sm text-[#F5F5F7]">
@@ -184,8 +204,12 @@ export default function ClientBilling() {
                 ))}
               </ul>
               {!isCurrent && (
-                <button className="w-full py-2.5 text-sm font-medium rounded-xl border border-[#7B5CF0] text-[#7B5CF0] hover:bg-[#7B5CF0] hover:text-white transition-all">
-                  {PLANS.indexOf(plan) > PLANS.indexOf(currentPlan) ? 'Upgrader' : 'Réduire'}
+                <button
+                  onClick={() => handleUpgrade(plan.id)}
+                  disabled={upgrading === plan.id}
+                  className="w-full py-2.5 text-sm font-medium rounded-xl border border-[#7B5CF0] text-[#7B5CF0] hover:bg-[#7B5CF0] hover:text-white transition-all disabled:opacity-50"
+                >
+                  {upgrading === plan.id ? 'Redirection…' : PLANS.indexOf(plan) > PLANS.indexOf(currentPlan) ? 'Upgrader' : 'Réduire'}
                 </button>
               )}
             </motion.div>

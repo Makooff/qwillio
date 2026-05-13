@@ -197,6 +197,15 @@ export class WebhooksController {
   }
 
   async vapiClientWebhook(req: Request, res: Response) {
+    const vapiSecret = env.VAPI_WEBHOOK_SECRET;
+    if (vapiSecret) {
+      const headerSecret = req.headers['x-vapi-secret'] as string;
+      if (headerSecret !== vapiSecret) {
+        logger.warn('VAPI client webhook: invalid secret header');
+        return res.status(401).json({ error: 'Invalid webhook secret' });
+      }
+    }
+
     const clientId = req.params.clientId as string;
     const event = req.body;
 

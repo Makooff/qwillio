@@ -17,6 +17,7 @@ import { agentPaymentsService } from '../services/agent-payments.service';
 import { agentAccountingService } from '../services/agent-accounting.service';
 import { agentInventoryService } from '../services/agent-inventory.service';
 import { agentEmailService } from '../services/agent-email.service';
+import { crmSyncService } from '../services/crm-sync.service';
 // ─── Prospecting Engine ───────────────────────────────────
 import { apifyScrapingService } from '../services/apify-scraping.service';
 import { outboundEngineService } from '../services/outbound-engine.service';
@@ -359,10 +360,8 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     // CRON 10: AI OPTIMIZATION - Every Sunday at midnight
     // Auto-tunes Enterprise client assistants based on call data
+    // Enterprise-only filter applied inside optimizationService.runWeeklyOptimization()
     // ═══════════════════════════════════════════════════════════
-    // NOTE: Optimization should ideally run only for Enterprise clients.
-    // Currently optimizationService.runWeeklyOptimization() runs for all clients.
-    // TODO: Filter to enterprise-only inside the service or pass a filter param.
     this.optimizationJob = cron.schedule('0 0 * * 0', async () => {
       logger.info('🔧 [CRON] Running weekly AI optimization (enterprise-only)...');
       trackAction('Optimisation IA assistants vocaux');
@@ -698,24 +697,30 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.crmSyncJob = cron.schedule('*/15 * * * *', async () => {
       logger.debug('[CRON] CRM sync running...');
-      trackAction('Synchronisation CRM intégrations');
       try {
-        const integrations = await prisma.crmIntegration.findMany({ where: { syncStatus: { not: 'disabled' } } });
+        const integrations = await prisma.crmIntegration.findMany({
+          where: { syncStatus: { not: 'disabled' } },
+        });
+        if (integrations.length === 0) return;
+
+        let synced = 0;
         for (const integration of integrations) {
           try {
-            // Placeholder: each provider would have its own sync logic
+            await crmSyncService.syncIntegration(integration);
             await prisma.crmIntegration.update({
               where: { id: integration.id },
               data: { lastSync: new Date(), syncStatus: 'synced' },
             });
+            synced++;
           } catch (err) {
-            logger.warn(`CRM sync failed for ${integration.provider} (client ${integration.clientId}):`, err);
+            logger.warn(`[CrmSync] Failed for ${integration.provider} (client ${integration.clientId}): ${(err as Error).message}`);
             await prisma.crmIntegration.update({
               where: { id: integration.id },
               data: { syncStatus: 'error' },
             });
           }
         }
+        if (synced > 0) logger.info(`[CRON] CRM sync: ${synced}/${integrations.length} integrations synced`);
       } catch (error) {
         logger.error('[CRON] CRM sync error:', error);
       }

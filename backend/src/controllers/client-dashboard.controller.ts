@@ -260,10 +260,12 @@ export class ClientDashboardController {
       if (body.postalCode !== undefined) updateData.postalCode = body.postalCode || null;
       if (body.forwardingType !== undefined) updateData.forwardingType = body.forwardingType || null;
       if (body.forwardingStatus !== undefined) {
-        updateData.forwardingStatus = body.forwardingStatus || null;
-        if (body.forwardingStatus === 'verified') {
-          updateData.forwardingVerifiedAt = new Date();
+        const allowedStatuses = ['pending', 'active', 'inactive', 'failed'];
+        if (body.forwardingStatus && !allowedStatuses.includes(body.forwardingStatus)) {
+          return res.status(400).json({ error: 'Invalid forwardingStatus' });
         }
+        updateData.forwardingStatus = body.forwardingStatus || null;
+        // forwardingVerifiedAt is set only by server-side verification, never by the client
       }
       if (body.loomVideoUrl !== undefined) updateData.loomVideoUrl = body.loomVideoUrl || null;
       if (body.googleCalendarId !== undefined) updateData.googleCalendarId = body.googleCalendarId || null;
@@ -457,6 +459,79 @@ export class ClientDashboardController {
     }
   }
 
+  // ═══ Billing ═══
+
+  // POST /my-dashboard/upgrade
+  async upgradeSubscription(req: any, res: Response) {
+    try {
+      const { planType } = req.body;
+      const validPlans = ['starter', 'pro', 'enterprise'];
+      if (!validPlans.includes(planType)) return res.status(400).json({ error: 'Invalid plan' });
+
+      const client = await prisma.client.findUnique({ where: { id: req.clientId } });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+      if (client.planType === planType) return res.status(400).json({ error: 'Already on this plan' });
+
+      const { stripeService } = await import('../services/stripe.service');
+      const checkoutUrl = await stripeService.createUpgradeCheckout(client, planType);
+      res.json({ success: true, checkoutUrl });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // ═══ Agent modules ═══
+
+  // PUT /my-dashboard/agent-modules
+  async updateAgentModules(req: any, res: Response) {
+    try {
+      const { modules } = req.body;
+      if (!Array.isArray(modules)) return res.status(400).json({ error: 'modules must be an array' });
+
+      const client = await prisma.client.findUnique({ where: { id: req.clientId } });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+
+      const current = (client.vapiConfig as Record<string, unknown>) ?? {};
+      await prisma.client.update({
+        where: { id: req.clientId },
+        data: {
+          vapiConfig: {
+            ...current,
+            agentModules: modules.map((m: any) => ({ id: String(m.id || '').slice(0, 64), enabled: Boolean(m.enabled) })),
+          },
+        },
+      });
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // ═══ Notifications ═══
+
+  // PUT /my-dashboard/notifications
+  async updateNotifications(req: any, res: Response) {
+    try {
+      const { notifEmail, notifWeekly, notifLeads, notifQuota } = req.body;
+      const client = await prisma.client.findUnique({ where: { id: req.clientId } });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+
+      const current = (client.vapiConfig as Record<string, unknown>) ?? {};
+      await prisma.client.update({
+        where: { id: req.clientId },
+        data: {
+          vapiConfig: {
+            ...current,
+            notifications: { notifEmail, notifWeekly, notifLeads, notifQuota },
+          },
+        },
+      });
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // ═══ Support ═══
 
   // POST /my-dashboard/support
@@ -485,7 +560,7 @@ export class ClientDashboardController {
             <p><strong>Business:</strong> ${client?.businessName}</p>
             <p><strong>Plan:</strong> ${client?.planType}</p>
             <hr/>
-            <p>${message.replace(/\n/g, '<br/>')}</p>
+            <p>${message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g, '<br/>')}</p>
           `,
         });
       } catch {

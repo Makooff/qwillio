@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -87,6 +87,24 @@ export default function ClientAccount() {
   const [notifWeekly, setNotifWeekly] = useState(true);
   const [notifLeads, setNotifLeads] = useState(true);
   const [notifQuota, setNotifQuota] = useState(true);
+
+  useEffect(() => {
+    api.get('/my-dashboard/settings').then((res) => {
+      const notif = res.data?.vapiConfig?.notifications;
+      if (notif) {
+        if (typeof notif.notifEmail  === 'boolean') setNotifEmail(notif.notifEmail);
+        if (typeof notif.notifWeekly === 'boolean') setNotifWeekly(notif.notifWeekly);
+        if (typeof notif.notifLeads  === 'boolean') setNotifLeads(notif.notifLeads);
+        if (typeof notif.notifQuota  === 'boolean') setNotifQuota(notif.notifQuota);
+      }
+    }).catch(() => { /* keep defaults */ });
+  }, []);
+
+  const saveNotifications = useCallback((vals: {
+    notifEmail: boolean; notifWeekly: boolean; notifLeads: boolean; notifQuota: boolean;
+  }) => {
+    api.put('/my-dashboard/notifications', vals).catch(() => { /* best-effort */ });
+  }, []);
 
   const [open, setOpen] = useState<string | null>(null);
   const toggle = (k: string) => setOpen(o => (o === k ? null : k));
@@ -239,10 +257,10 @@ export default function ClientAccount() {
                 transition={{ duration: 0.18 }} className="overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
                 <div className="p-5">
                   {[
-                    { label: 'Notifications email', desc: 'Événements importants', checked: notifEmail,  set: setNotifEmail  },
-                    { label: 'Rapport hebdomadaire', desc: 'Résumé chaque lundi',   checked: notifWeekly, set: setNotifWeekly },
-                    { label: 'Nouveaux leads',       desc: 'Alerte à chaque capture', checked: notifLeads,  set: setNotifLeads  },
-                    { label: 'Alertes quota',        desc: 'Seuil 80% et 100%',      checked: notifQuota,  set: setNotifQuota  },
+                    { label: 'Notifications email', desc: 'Événements importants', checked: notifEmail,  set: (v: boolean) => { setNotifEmail(v);  saveNotifications({ notifEmail: v, notifWeekly, notifLeads, notifQuota }); } },
+                    { label: 'Rapport hebdomadaire', desc: 'Résumé chaque lundi',  checked: notifWeekly, set: (v: boolean) => { setNotifWeekly(v); saveNotifications({ notifEmail, notifWeekly: v, notifLeads, notifQuota }); } },
+                    { label: 'Nouveaux leads',       desc: 'Alerte à chaque capture', checked: notifLeads, set: (v: boolean) => { setNotifLeads(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads: v, notifQuota }); } },
+                    { label: 'Alertes quota',        desc: 'Seuil 80% et 100%',    checked: notifQuota,  set: (v: boolean) => { setNotifQuota(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads, notifQuota: v }); } },
                   ].map((n, i, arr) => (
                     <div key={i} className="flex items-center justify-between py-2.5"
                          style={{ borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : undefined }}>

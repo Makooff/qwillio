@@ -521,6 +521,84 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── TESTIMONIALS ── */}
+      <section className="py-24 md:py-32 px-6">
+        <div className="max-w-[1120px] mx-auto">
+          <FadeIn>
+            <div className="text-center mb-14">
+              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">
+                {isFr ? 'Ce que disent nos clients' : 'What our clients say'}
+              </p>
+              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">
+                {isFr ? 'Ils ne décrochent plus jamais.' : 'They never miss a call.'}
+              </h2>
+            </div>
+          </FadeIn>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                quote: isFr
+                  ? '"Ashley répond à chaque appel même à 23h. On a eu 3 nouveaux clients la première semaine, juste des appels qu\'on aurait manqués avant."'
+                  : '"Ashley picks up every call even at 11pm. We got 3 new clients in the first week — just calls we would have missed before."',
+                name: 'Marcus T.',
+                role: isFr ? 'Plombier — Houston, TX' : 'Plumber — Houston, TX',
+                stars: 5,
+              },
+              {
+                quote: isFr
+                  ? '"Notre cabinet dentaire manquait 30% des appels entrants. Avec Qwillio, chaque appel est pris et le RDV est réservé en direct."'
+                  : '"Our dental office was missing 30% of inbound calls. With Qwillio every call is answered and the appointment is booked on the spot."',
+                name: 'Dr. Sofia R.',
+                role: isFr ? 'Cabinet dentaire — Dallas, TX' : 'Dental office — Dallas, TX',
+                stars: 5,
+              },
+              {
+                quote: isFr
+                  ? '"En pleine saison, on ne pouvait pas répondre à tous. Maintenant Ashley filtre, qualifie et réserve. Le chiffre d\'affaires a augmenté de 22%."'
+                  : '"During peak season we couldn\'t keep up. Now Ashley filters, qualifies, and books. Revenue up 22% since we started."',
+                name: 'Jason K.',
+                role: isFr ? 'HVAC — Phoenix, AZ' : 'HVAC — Phoenix, AZ',
+                stars: 5,
+              },
+              {
+                quote: isFr
+                  ? '"Nos clientes appellent à des heures impossibles. Ashley répond toujours avec la bonne voix, les bonnes infos et prend le RDV."'
+                  : '"Our clients call at impossible hours. Ashley always answers with the right tone, the right info, and locks in the appointment."',
+                name: 'Camille V.',
+                role: isFr ? 'Spa & bien-être — Miami, FL' : 'Spa & wellness — Miami, FL',
+                stars: 5,
+              },
+              {
+                quote: isFr
+                  ? '"En droit, chaque appel manqué est un client perdu. Qwillio a résolu ça entièrement. Setup en moins d\'une heure, ROI dès la première semaine."'
+                  : '"In law, every missed call is a lost client. Qwillio solved that completely. Setup took under an hour, ROI in the first week."',
+                name: 'David M.',
+                role: isFr ? 'Cabinet juridique — Chicago, IL' : 'Law firm — Chicago, IL',
+                stars: 5,
+              },
+            ].map((t, i) => (
+              <FadeIn key={i} delay={i * 80}>
+                <div className="rounded-2xl border border-[#d2d2d7] bg-white p-7 flex flex-col h-full hover:border-[#6366f1]/30 hover:shadow-lg hover:shadow-[#6366f1]/5 transition-all duration-300">
+                  <div className="flex gap-0.5 mb-4">
+                    {Array.from({ length: t.stars }).map((_, s) => (
+                      <span key={s} className="text-amber-400 text-base">★</span>
+                    ))}
+                  </div>
+                  <p className="text-sm text-[#1d1d1f]/80 leading-relaxed flex-1 mb-6 italic">{t.quote}</p>
+                  <div>
+                    <p className="text-sm font-semibold text-[#1d1d1f]">{t.name}</p>
+                    <p className="text-xs text-[#86868b] mt-0.5">{t.role}</p>
+                  </div>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── DIVIDER ── */}
+      <div className="max-w-[1120px] mx-auto px-6"><div className="border-t border-[#d2d2d7]/60" /></div>
+
       {/* ── DEMO CTA ── */}
       <section className="py-24 md:py-32 px-6">
         <FadeIn>

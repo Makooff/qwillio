@@ -6,6 +6,7 @@ import { env } from '../config/env';
 import { PACKAGES } from '../types';
 import { discordService } from './discord.service';
 import { emailService } from './email.service';
+import { onboardingService } from './onboarding.service';
 
 export class StripeService {
   async handleCheckoutCompleted(session: any) {
@@ -14,6 +15,12 @@ export class StripeService {
     // ── Self-onboarding flow: card registered → create Client + start trial ──
     if (session.metadata?.source === 'self-onboarding') {
       await this.handleSelfOnboardingCheckout(session);
+      return;
+    }
+
+    // ── Plan upgrade via Checkout (trial clients upgrading to a different plan) ──
+    if (session.metadata?.source === 'plan-upgrade') {
+      await this.handlePlanUpgradeCheckout(session);
       return;
     }
 
@@ -76,9 +83,9 @@ export class StripeService {
     const industry = session.metadata?.industry || user.industry || 'other';
 
     const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number }> = {
-      starter:    { setupFee: 697, monthlyFee: 197, callsQuota: 200 },
-      pro:        { setupFee: 997, monthlyFee: 347, callsQuota: 500 },
-      enterprise: { setupFee: 1497, monthlyFee: 497, callsQuota: 1000 },
+      starter:    { setupFee: 0, monthlyFee: 497,  callsQuota: 800 },
+      pro:        { setupFee: 0, monthlyFee: 1297, callsQuota: 2000 },
+      enterprise: { setupFee: 0, monthlyFee: 2497, callsQuota: 4000 },
     };
 
     const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
@@ -101,7 +108,7 @@ export class StripeService {
         monthlyFee: pricing.monthlyFee,
         currency: 'USD',
         dashboardToken,
-        onboardingStatus: 'completed',
+        onboardingStatus: 'pending',
         subscriptionStatus: 'active',
         isTrial: true,
         trialStartDate: new Date(),
@@ -132,6 +139,12 @@ export class StripeService {
     );
 
     logger.info(`Self-onboarding complete: Client created for ${user.email} — clientId: ${client.id}, plan: ${planType}`);
+
+    // Trigger VAPI assistant creation + welcome email asynchronously.
+    // Fire-and-forget: the 5-min onboarding retry cron handles failures.
+    onboardingService.onboardClient(client.id).catch((err: Error) => {
+      logger.error(`Async onboarding failed for client ${client.id}: ${err.message}`);
+    });
   }
 
   private async handleTrialConversion(client: any, session: any) {
@@ -378,12 +391,120 @@ export class StripeService {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // PLAN UPGRADE — Via Stripe Checkout (trial clients)
+  // ═══════════════════════════════════════════════════════════════
+  private async handlePlanUpgradeCheckout(session: any) {
+    const clientId = session.metadata?.clientId || session.client_reference_id;
+    const planType = session.metadata?.planType;
+    if (!clientId || !planType) {
+      logger.error('Plan upgrade checkout: missing clientId or planType in metadata');
+      return;
+    }
+
+    const VALID_PLANS = ['starter', 'pro', 'enterprise'] as const;
+    if (!(VALID_PLANS as readonly string[]).includes(planType)) {
+      logger.error(`Plan upgrade: invalid planType "${planType}" in metadata — aborting to prevent DB corruption`);
+      return;
+    }
+
+    const PLAN_QUOTAS: Record<string, number> = { starter: 800, pro: 2000, enterprise: 4000 };
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) {
+      logger.error(`Plan upgrade: client ${clientId} not found`);
+      return;
+    }
+
+    await prisma.client.update({
+      where: { id: clientId },
+      data: {
+        planType,
+        monthlyCallsQuota: PLAN_QUOTAS[planType] ?? 2000,
+        isTrial: false,
+        subscriptionStatus: 'active',
+        trialConvertedAt: new Date(),
+        stripeCustomerId: session.customer || client.stripeCustomerId,
+        stripeSubscriptionId: session.subscription || client.stripeSubscriptionId,
+      },
+    });
+
+    await prisma.reminder.updateMany({
+      where: { targetId: clientId, targetType: 'client', status: 'pending' },
+      data: { status: 'canceled' },
+    });
+
+    await discordService.notify(
+      `🔄 PLAN UPGRADED (checkout)\n\nClient: ${client.businessName}\nNew plan: ${planType.toUpperCase()}\nPrev plan: ${client.planType.toUpperCase()}`
+    );
+
+    logger.info(`Plan upgrade completed: ${client.businessName} → ${planType}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // CREATE UPGRADE CHECKOUT — For billing page plan change button
+  // Returns null for paid clients (subscription updated inline);
+  // returns Stripe Checkout URL for trial clients.
+  // ═══════════════════════════════════════════════════════════════
+  async createUpgradeCheckout(client: any, planType: string): Promise<string | null> {
+    const PLAN_QUOTAS: Record<string, number> = { starter: 800, pro: 2000, enterprise: 4000 };
+    const priceId = this.getMonthlyPriceId(planType);
+    if (!priceId) throw new Error(`No Stripe price configured for plan: ${planType}`);
+
+    // Paid client with active subscription → update subscription directly, no checkout
+    const isActivePaid = client.stripeSubscriptionId &&
+      !client.isTrial &&
+      client.subscriptionStatus !== 'canceled' &&
+      client.subscriptionStatus !== 'cancelled';
+    if (isActivePaid) {
+      const subscription = await stripe.subscriptions.retrieve(client.stripeSubscriptionId);
+      const itemId = subscription.items.data[0]?.id;
+      if (itemId) {
+        await stripe.subscriptions.update(client.stripeSubscriptionId, {
+          items: [{ id: itemId, price: priceId }],
+          metadata: { client_id: client.id, plan_type: planType },
+        });
+      }
+      await prisma.client.update({
+        where: { id: client.id },
+        data: { planType, monthlyCallsQuota: PLAN_QUOTAS[planType] ?? 2000 },
+      });
+      await discordService.notify(
+        `🔄 PLAN UPGRADED (inline)\n\nClient: ${client.businessName}\nNew plan: ${planType.toUpperCase()}\nPrev plan: ${client.planType.toUpperCase()}`
+      );
+      logger.info(`Inline plan upgrade: ${client.businessName} → ${planType}`);
+      return null;
+    }
+
+    // Trial or no subscription → Stripe Checkout session
+    const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      ...(client.stripeCustomerId ? { customer: client.stripeCustomerId } : {}),
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: `${frontendUrl}/dashboard/billing?payment=success`,
+      cancel_url: `${frontendUrl}/dashboard/billing`,
+      metadata: {
+        source: 'plan-upgrade',
+        clientId: client.id,
+        planType,
+      },
+      client_reference_id: client.id,
+    });
+
+    return session.url;
+  }
+
   private getMonthlyPriceId(packageType: string): string {
     switch (packageType) {
-      case 'basic': return env.STRIPE_PRICE_BASIC_MONTHLY;
-      case 'pro': return env.STRIPE_PRICE_PRO_MONTHLY;
-      case 'enterprise': return env.STRIPE_PRICE_ENTERPRISE_MONTHLY;
-      default: return env.STRIPE_PRICE_BASIC_MONTHLY;
+      case 'starter':
+      case 'basic':
+        return env.STRIPE_PRICE_BASIC_MONTHLY;
+      case 'pro':
+        return env.STRIPE_PRICE_PRO_MONTHLY;
+      case 'enterprise':
+        return env.STRIPE_PRICE_ENTERPRISE_MONTHLY;
+      default:
+        throw new Error(`No Stripe price configured for plan: ${packageType}`);
     }
   }
 }
