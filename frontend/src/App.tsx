@@ -73,6 +73,15 @@ const PricingPage = lazy(() => import('./pages/Pricing'));
 const BlogPage = lazy(() => import('./pages/Blog'));
 const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 
+// AI Agents admin pages (lazy loaded)
+const Analytics = lazy(() => import('./pages/admin/Analytics'));
+const Notifications = lazy(() => import('./pages/admin/Notifications'));
+const Agents = lazy(() => import('./pages/admin/Agents'));
+const WorkPlanner = lazy(() => import('./pages/admin/WorkPlanner'));
+const BusinessPlanAgent = lazy(() => import('./pages/admin/BusinessPlanAgent'));
+const BrandingAgent = lazy(() => import('./pages/admin/BrandingAgent'));
+const AgentEvolution = lazy(() => import('./pages/admin/AgentEvolution'));
+
 // Closer (closeuse)
 const CloserSession        = lazy(() => import('./pages/closer/CloserSession'));
 const CloserProspects      = lazy(() => import('./pages/closer/CloserProspects'));
@@ -285,6 +294,13 @@ export default function App() {
           <Route path="system" element={<Suspense fallback={<Spinner />}><AdminSystem /></Suspense>} />
           <Route path="monitor" element={<Suspense fallback={<Spinner />}><LiveMonitor /></Suspense>} />
           <Route path="logs" element={<Suspense fallback={<Spinner />}><AdminLogs /></Suspense>} />
+          <Route path="analytics" element={<Suspense fallback={<Spinner />}><Analytics /></Suspense>} />
+          <Route path="notifications" element={<Suspense fallback={<Spinner />}><Notifications /></Suspense>} />
+          <Route path="agents" element={<Suspense fallback={<Spinner />}><Agents /></Suspense>} />
+          <Route path="agents/work-planner" element={<Suspense fallback={<Spinner />}><WorkPlanner /></Suspense>} />
+          <Route path="agents/business-plan" element={<Suspense fallback={<Spinner />}><BusinessPlanAgent /></Suspense>} />
+          <Route path="agents/branding" element={<Suspense fallback={<Spinner />}><BrandingAgent /></Suspense>} />
+          <Route path="agents/evolution" element={<Suspense fallback={<Spinner />}><AgentEvolution /></Suspense>} />
           <Route path="*" element={<Suspense fallback={<Spinner />}><AdminNotFound /></Suspense>} />
         </Route>
 

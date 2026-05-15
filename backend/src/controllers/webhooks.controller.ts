@@ -11,6 +11,7 @@ import { emailService } from '../services/email.service';
 import { discordService } from '../services/discord.service';
 import { extractEmailFromText, isValidEmail, normalizeEmail } from '../utils/validators';
 import { storeError } from '../utils/error-store';
+import { closerAgentService } from '../services/closer-agent.service';
 
 export class WebhooksController {
   async stripeWebhook(req: Request, res: Response) {
@@ -39,9 +40,41 @@ export class WebhooksController {
         case 'checkout.session.completed':
           await stripeService.handleCheckoutCompleted(event.data.object);
           break;
-        case 'invoice.paid':
-          await stripeService.handleInvoicePaid(event.data.object);
+        case 'invoice.paid': {
+          const invoiceObj = event.data.object as { subscription?: string; customer?: string };
+          await stripeService.handleInvoicePaid(invoiceObj);
+
+          // Backpropagate reward to all agent actions for the paying prospect
+          setImmediate(async () => {
+            try {
+              // Find prospect linked via Client.stripeCustomerId → Client.prospectId
+              const stripeCustomerId = invoiceObj.customer;
+              let prospectId: string | null = null;
+
+              if (stripeCustomerId) {
+                const client = await prisma.client.findFirst({
+                  where: { stripeCustomerId },
+                  select: { prospectId: true },
+                });
+                prospectId = client?.prospectId ?? null;
+              }
+
+              if (prospectId) {
+                const { agentMemoryService } = await import('../services/agent-memory.service');
+                const actions = await prisma.agentAction.findMany({
+                  where: { prospectId, outcome: null },
+                });
+                await Promise.all(
+                  actions.map(a => agentMemoryService.updateOutcome(a.id, 'converted', 1.0))
+                );
+                logger.info(`[Stripe] Backpropagated reward to ${actions.length} agent actions for prospect ${prospectId}`);
+              }
+            } catch (err) {
+              logger.error('[Stripe] Reward backpropagation failed:', err);
+            }
+          });
           break;
+        }
         case 'invoice.payment_failed':
           await stripeService.handlePaymentFailed(event.data.object);
           break;
@@ -418,13 +451,20 @@ export class WebhooksController {
 
       logger.info(`Email updated for ${prospect.businessName}: ${prospect.email} → ${normalized}`);
     } else {
-      // No email found in the reply — log it for manual review
+      // No email found in reply — store raw + let AI closer respond
       await prisma.prospect.update({
         where: { id: prospect.id },
         data: { emailSmsReplyRaw: body },
       });
 
-      logger.info(`Inbound SMS from ${prospect.businessName} but no email extracted: "${body}"`);
+      logger.info(`Inbound SMS from ${prospect.businessName}: "${body}" — routing to closer agent`);
+
+      // AI closer responds in background (non-blocking)
+      closerAgentService.handleInboundReply({
+        prospectId: prospect.id,
+        fromPhone: phone,
+        message: body,
+      }).catch(err => logger.error('[Webhook] Closer agent reply failed:', err));
     }
 
     // Return empty TwiML response

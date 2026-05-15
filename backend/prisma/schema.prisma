@@ -8,101 +8,100 @@ datasource db {
 }
 
 model User {
-  id                  String   @id @default(uuid()) @db.Uuid
-  email               String   @unique @db.VarChar(255)
-  passwordHash        String?  @map("password_hash") @db.VarChar(255)
-  googleId            String?  @unique @map("google_id") @db.VarChar(255)
-  name                String   @db.VarChar(255)
-  role                String   @default("user") @db.VarChar(50)
-  emailConfirmed      Boolean  @default(false) @map("email_confirmed")
-  confirmationToken   String?  @unique @map("confirmation_token") @db.VarChar(255)
-  onboardingCompleted Boolean  @default(false) @map("onboarding_completed")
-  businessName        String?  @map("business_name") @db.VarChar(500)
-  businessPhone       String?  @map("business_phone") @db.VarChar(50)
-  industry            String?  @db.VarChar(100)
-  website             String?  @db.VarChar(500)
-  planType            String?  @map("plan_type") @db.VarChar(50)
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
-
-  prospects           Prospect[]
+  id                  String               @id @default(uuid()) @db.Uuid
+  email               String               @unique @db.VarChar(255)
+  passwordHash        String?              @map("password_hash") @db.VarChar(255)
+  name                String               @db.VarChar(255)
+  role                String               @default("user") @db.VarChar(50)
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @default(now()) @updatedAt @map("updated_at")
+  businessName        String?              @map("business_name") @db.VarChar(500)
+  businessPhone       String?              @map("business_phone") @db.VarChar(50)
+  confirmationToken   String?              @unique @map("confirmation_token") @db.VarChar(255)
+  emailConfirmed      Boolean              @default(false) @map("email_confirmed")
+  onboardingCompleted Boolean              @default(false) @map("onboarding_completed")
+  planType            String?              @map("plan_type") @db.VarChar(50)
+  industry            String?              @db.VarChar(100)
+  website             String?              @db.VarChar(500)
+  googleId            String?              @unique @map("google_id") @db.VarChar(255)
   campaigns           Campaign[]
   client              Client?
   contractAcceptances ContractAcceptance[]
+  prospects           Prospect[]
   trialFingerprints   TrialFingerprint[]
 
   @@map("users")
 }
 
 model Prospect {
-  id                 String    @id @default(uuid()) @db.Uuid
-  businessName       String    @map("business_name") @db.VarChar(500)
-  businessType       String    @map("business_type") @db.VarChar(100)
-  sector             String?   @db.VarChar(100)
-  address            String?   @db.VarChar(500)
-  city               String?   @db.VarChar(100)
-  postalCode         String?   @map("postal_code") @db.VarChar(20)
-  country            String    @default("US") @db.VarChar(10)
-  phone              String?   @db.VarChar(50)
-  email              String?   @db.VarChar(255)
-  website            String?   @db.VarChar(500)
-  contactName        String?   @map("contact_name") @db.VarChar(255)
-  googlePlaceId      String?   @unique @map("google_place_id") @db.VarChar(255)
-  googleRating       Float?    @map("google_rating")
-  googleReviewsCount Int?      @map("google_reviews_count")
-  googleTypes        String[]  @default([]) @map("google_types")
-  score              Int       @default(0)
-  status             String    @default("new") @db.VarChar(50)
-  lastCallDate       DateTime? @map("last_call_date")
-  callDuration       Int?      @map("call_duration")
-  callTranscript     String?   @map("call_transcript") @db.Text
-  callSentiment      String?   @map("call_sentiment") @db.VarChar(50)
-  interestLevel      Int?      @map("interest_level")
-  painPoints         String[]  @default([]) @map("pain_points")
-  needsIdentified    String?   @map("needs_identified") @db.Text
-  notes              String?   @db.Text
-  nextAction         String?   @map("next_action") @db.VarChar(255)
-  nextActionDate     DateTime? @map("next_action_date")
-  lastContactDate    DateTime? @map("last_contact_date")
-  assignedToUserId   String?   @map("assigned_to_user_id") @db.Uuid
-  timezone           String    @default("America/New_York") @db.VarChar(50)
-  emailVerified      Boolean   @default(false) @map("email_verified")
-  emailVerifiedAt    DateTime? @map("email_verified_at")
-  emailBounced       Boolean   @default(false) @map("email_bounced")
-  emailBouncedAt     DateTime? @map("email_bounced_at")
-  emailSmsFollowupSent Boolean @default(false) @map("email_sms_followup_sent")
-  emailSmsReplyRaw   String?   @map("email_sms_reply_raw") @db.Text
-  emailConfirmationId String?  @map("email_confirmation_id") @db.VarChar(255)
-  phoneValidated     Boolean   @default(false) @map("phone_validated")
-  phoneValidationSource String? @map("phone_validation_source") @db.VarChar(50)
-  phoneNumberConfidence Float? @map("phone_number_confidence")
-  phoneValidatedAt   DateTime? @map("phone_validated_at")
-  smsOptedOut        Boolean   @default(false) @map("sms_opted_out")
-  smsOptedOutAt      DateTime? @map("sms_opted_out_at")
-  emailUnsubscribed  Boolean   @default(false) @map("email_unsubscribed")
-  emailUnsubscribedAt DateTime? @map("email_unsubscribed_at")
-  callAttempts       Int       @default(0) @map("call_attempts")
-  maxAttempts        Int       @default(3) @map("max_attempts")
-  // ─── Prospecting engine fields ───────────────────────────
-  state              String?   @db.VarChar(50)
-  niche              String?   @db.VarChar(100)
-  priorityScore      Int       @default(0) @map("priority_score")
-  lineType           String?   @map("line_type") @db.VarChar(50)
-  carrier            String?   @db.VarChar(100)
-  isMobile           Boolean   @default(false) @map("is_mobile")
-  eligibleForCall    Boolean   @default(true) @map("eligible_for_call")
-  nextCallAt         DateTime? @map("next_call_at")
-  scriptVariantUsed  String?   @map("script_variant_used") @db.VarChar(10)
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
-
-  assignedTo         User?             @relation(fields: [assignedToUserId], references: [id])
-  calls              Call[]
-  quotes             Quote[]
-  campaignSends      CampaignSend[]
-  followUpSequences  FollowUpSequence[]
-  smsLogs            SmsLog[]
-  clients            Client[]
+  id                    String             @id @default(uuid()) @db.Uuid
+  businessName          String             @map("business_name") @db.VarChar(500)
+  businessType          String             @map("business_type") @db.VarChar(100)
+  sector                String?            @db.VarChar(100)
+  address               String?            @db.VarChar(500)
+  city                  String?            @db.VarChar(100)
+  postalCode            String?            @map("postal_code") @db.VarChar(20)
+  country               String             @default("US") @db.VarChar(10)
+  phone                 String?            @db.VarChar(50)
+  email                 String?            @db.VarChar(255)
+  website               String?            @db.VarChar(500)
+  contactName           String?            @map("contact_name") @db.VarChar(255)
+  googlePlaceId         String?            @unique @map("google_place_id") @db.VarChar(255)
+  googleRating          Float?             @map("google_rating")
+  googleReviewsCount    Int?               @map("google_reviews_count")
+  googleTypes           String[]           @default([]) @map("google_types")
+  score                 Int                @default(0)
+  status                String             @default("new") @db.VarChar(50)
+  lastCallDate          DateTime?          @map("last_call_date")
+  callDuration          Int?               @map("call_duration")
+  callTranscript        String?            @map("call_transcript")
+  callSentiment         String?            @map("call_sentiment") @db.VarChar(50)
+  interestLevel         Int?               @map("interest_level")
+  painPoints            String[]           @default([]) @map("pain_points")
+  needsIdentified       String?            @map("needs_identified")
+  notes                 String?
+  nextAction            String?            @map("next_action") @db.VarChar(255)
+  nextActionDate        DateTime?          @map("next_action_date")
+  lastContactDate       DateTime?          @map("last_contact_date")
+  assignedToUserId      String?            @map("assigned_to_user_id") @db.Uuid
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @default(now()) @updatedAt @map("updated_at")
+  callAttempts          Int                @default(0) @map("call_attempts")
+  maxAttempts           Int                @default(3) @map("max_attempts")
+  phoneNumberConfidence Float?             @map("phone_number_confidence")
+  phoneValidated        Boolean            @default(false) @map("phone_validated")
+  phoneValidatedAt      DateTime?          @map("phone_validated_at")
+  phoneValidationSource String?            @map("phone_validation_source") @db.VarChar(50)
+  timezone              String             @default("America/New_York") @db.VarChar(50)
+  emailBounced          Boolean            @default(false) @map("email_bounced")
+  emailBouncedAt        DateTime?          @map("email_bounced_at")
+  emailConfirmationId   String?            @map("email_confirmation_id") @db.VarChar(255)
+  emailSmsFollowupSent  Boolean            @default(false) @map("email_sms_followup_sent")
+  emailSmsReplyRaw      String?            @map("email_sms_reply_raw")
+  emailVerified         Boolean            @default(false) @map("email_verified")
+  emailVerifiedAt       DateTime?          @map("email_verified_at")
+  emailUnsubscribed     Boolean            @default(false) @map("email_unsubscribed")
+  emailUnsubscribedAt   DateTime?          @map("email_unsubscribed_at")
+  smsOptedOut           Boolean            @default(false) @map("sms_opted_out")
+  smsOptedOutAt         DateTime?          @map("sms_opted_out_at")
+  carrier               String?            @db.VarChar(100)
+  eligibleForCall       Boolean            @default(true) @map("eligible_for_call")
+  isMobile              Boolean            @default(false) @map("is_mobile")
+  lineType              String?            @map("line_type") @db.VarChar(50)
+  nextCallAt            DateTime?          @map("next_call_at")
+  niche                 String?            @db.VarChar(100)
+  enrichedData          Json?              @map("enriched_data")
+  priorityScore         Int                @default(0) @map("priority_score")
+  scriptVariantUsed     String?            @map("script_variant_used") @db.VarChar(10)
+  state                 String?            @db.VarChar(50)
+  calls                 Call[]
+  campaignSends         CampaignSend[]
+  clients               Client[]
+  followUpSequences     FollowUpSequence[]
+  bookingSlots          ProspectBookingSlot[]
+  assignedTo            User?              @relation(fields: [assignedToUserId], references: [id])
+  quotes                Quote[]
+  smsLogs               SmsLog[]
 
   @@index([status])
   @@index([businessType])
@@ -115,61 +114,58 @@ model Prospect {
 }
 
 model Call {
-  id                   String    @id @default(uuid()) @db.Uuid
-  prospectId           String?   @map("prospect_id") @db.Uuid
-  vapiCallId           String?   @unique @map("vapi_call_id") @db.VarChar(255)
-  phoneNumber          String    @map("phone_number") @db.VarChar(50)
-  direction            String    @default("outbound") @db.VarChar(20)
-  startedAt            DateTime? @map("started_at")
-  endedAt              DateTime? @map("ended_at")
-  durationSeconds      Int?      @map("duration_seconds")
-  status               String    @default("queued") @db.VarChar(50)
-  transcript           String?   @db.Text
-  summary              String?   @db.Text
-  sentiment            String?   @db.VarChar(50)
-  interestLevel        Int?      @map("interest_level")
-  emailCollected       String?   @map("email_collected") @db.VarChar(255)
-  needsMentioned       String[]  @default([]) @map("needs_mentioned")
-  objections           String[]  @default([])
-  budgetMentioned      String?   @map("budget_mentioned") @db.VarChar(100)
-  timelineMentioned    String?   @map("timeline_mentioned") @db.VarChar(100)
-  decisionMakerReached Boolean   @default(false) @map("decision_maker_reached")
-  outcome              String?   @db.VarChar(100)
-  recommendedPackage   String?   @map("recommended_package") @db.VarChar(50)
-  nextAction           String?   @map("next_action") @db.VarChar(255)
-  recordingUrl         String?   @map("recording_url") @db.VarChar(500)
-  setupFeeObjectionRaised Boolean @default(false) @map("setup_fee_objection_raised")
-  cost                 Decimal?  @db.Decimal(10, 4)
-  qualityScore         Int?      @map("quality_score")
-  scriptDropOffPoint   String?   @map("script_drop_off_point") @db.VarChar(50)
-  // ─── Prospecting engine fields ───────────────────────────
-  interestScore        Int?      @map("interest_score")
-  scriptVariant        String?   @map("script_variant") @db.VarChar(10)
-  leadCaptured         Boolean   @default(false) @map("lead_captured")
-  transferRequested    Boolean   @default(false) @map("transfer_requested")
-  twilioNumberUsed     String?   @map("twilio_number_used") @db.VarChar(50)
-  claudeSummary        String?   @map("claude_summary") @db.Text
-  niche                String?   @db.VarChar(100)
-  language             String?   @db.VarChar(10)
-  detectionResult      String?   @map("detection_result") @db.VarChar(50)
-  // ─── Deep transcript analysis fields ────────────────────
-  dropOffReason        String?   @map("drop_off_reason") @db.Text
-  prospectSentiment    String?   @map("prospect_sentiment") @db.VarChar(50)
-  sentimentShift       String?   @map("sentiment_shift") @db.VarChar(20)
-  keyObjection         String?   @map("key_objection") @db.Text
-  whatWorked           String?   @map("what_worked") @db.Text
-  whatFailed           String?   @map("what_failed") @db.Text
-  missedOpportunity    String?   @map("missed_opportunity") @db.Text
-  prospectPainLevel    Int?      @map("prospect_pain_level")
-  agentConfidenceScore Int?      @map("agent_confidence_score")
-  recommendedMicroFix  String?   @map("recommended_micro_fix") @db.Text
-  sentimentTimeline    Json?     @map("sentiment_timeline")
-  fillerWordsUsed      String[]  @default([]) @map("filler_words_used")
-  callQualityScore     Int?      @map("call_quality_score")
-  createdAt            DateTime  @default(now()) @map("created_at")
-  metadata             Json?
-
-  prospect Prospect? @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  id                      String    @id @default(uuid()) @db.Uuid
+  prospectId              String?   @map("prospect_id") @db.Uuid
+  vapiCallId              String?   @unique @map("vapi_call_id") @db.VarChar(255)
+  phoneNumber             String    @map("phone_number") @db.VarChar(50)
+  direction               String    @default("outbound") @db.VarChar(20)
+  startedAt               DateTime? @map("started_at")
+  endedAt                 DateTime? @map("ended_at")
+  durationSeconds         Int?      @map("duration_seconds")
+  status                  String    @default("queued") @db.VarChar(50)
+  transcript              String?
+  summary                 String?
+  sentiment               String?   @db.VarChar(50)
+  interestLevel           Int?      @map("interest_level")
+  emailCollected          String?   @map("email_collected") @db.VarChar(255)
+  needsMentioned          String[]  @default([]) @map("needs_mentioned")
+  objections              String[]  @default([])
+  budgetMentioned         String?   @map("budget_mentioned") @db.VarChar(100)
+  timelineMentioned       String?   @map("timeline_mentioned") @db.VarChar(100)
+  decisionMakerReached    Boolean   @default(false) @map("decision_maker_reached")
+  outcome                 String?   @db.VarChar(100)
+  recommendedPackage      String?   @map("recommended_package") @db.VarChar(50)
+  nextAction              String?   @map("next_action") @db.VarChar(255)
+  recordingUrl            String?   @map("recording_url") @db.VarChar(500)
+  cost                    Decimal?  @db.Decimal(10, 4)
+  createdAt               DateTime  @default(now()) @map("created_at")
+  metadata                Json?
+  setupFeeObjectionRaised Boolean   @default(false) @map("setup_fee_objection_raised")
+  qualityScore            Int?      @map("quality_score")
+  scriptDropOffPoint      String?   @map("script_drop_off_point") @db.VarChar(50)
+  claudeSummary           String?   @map("claude_summary")
+  detectionResult         String?   @map("detection_result") @db.VarChar(50)
+  interestScore           Int?      @map("interest_score")
+  language                String?   @db.VarChar(10)
+  leadCaptured            Boolean   @default(false) @map("lead_captured")
+  niche                   String?   @db.VarChar(100)
+  scriptVariant           String?   @map("script_variant") @db.VarChar(10)
+  transferRequested       Boolean   @default(false) @map("transfer_requested")
+  twilioNumberUsed        String?   @map("twilio_number_used") @db.VarChar(50)
+  agentConfidenceScore    Int?      @map("agent_confidence_score")
+  callQualityScore        Int?      @map("call_quality_score")
+  dropOffReason           String?   @map("drop_off_reason")
+  fillerWordsUsed         String[]  @default([]) @map("filler_words_used")
+  keyObjection            String?   @map("key_objection")
+  missedOpportunity       String?   @map("missed_opportunity")
+  prospectPainLevel       Int?      @map("prospect_pain_level")
+  prospectSentiment       String?   @map("prospect_sentiment") @db.VarChar(50)
+  recommendedMicroFix     String?   @map("recommended_micro_fix")
+  sentimentShift          String?   @map("sentiment_shift") @db.VarChar(20)
+  sentimentTimeline       Json?     @map("sentiment_timeline")
+  whatFailed              String?   @map("what_failed")
+  whatWorked              String?   @map("what_worked")
+  prospect                Prospect? @relation(fields: [prospectId], references: [id], onDelete: Cascade)
 
   @@index([prospectId])
   @@index([status])
@@ -179,30 +175,29 @@ model Call {
 }
 
 model Quote {
-  id                String    @id @default(uuid()) @db.Uuid
-  prospectId        String?   @map("prospect_id") @db.Uuid
-  packageType       String    @map("package_type") @db.VarChar(50)
-  setupFee          Decimal   @map("setup_fee") @db.Decimal(10, 2)
-  monthlyFee        Decimal   @map("monthly_fee") @db.Decimal(10, 2)
-  currency          String    @default("USD") @db.VarChar(10)
-  featuresIncluded  Json      @map("features_included")
-  validUntil        DateTime  @map("valid_until") @db.Date
-  status            String    @default("sent") @db.VarChar(50)
-  sentAt            DateTime? @map("sent_at")
-  viewedAt          DateTime? @map("viewed_at")
-  acceptedAt        DateTime? @map("accepted_at")
-  stripePaymentLink String?   @map("stripe_payment_link") @db.VarChar(500)
-  setupFeeInstallment Boolean @default(false) @map("setup_fee_installment")
-  installmentMonths   Int     @default(1) @map("installment_months")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
-  notes             String?   @db.Text
-  docusignEnvelopeId String?  @map("docusign_envelope_id") @db.VarChar(100)
-  contractSignedAt   DateTime? @map("contract_signed_at")
-  contractPdfUrl     String?  @map("contract_pdf_url") @db.VarChar(500)
-
-  prospect Prospect? @relation(fields: [prospectId], references: [id], onDelete: SetNull)
-  clients  Client[]
+  id                  String    @id @default(uuid()) @db.Uuid
+  prospectId          String?   @map("prospect_id") @db.Uuid
+  packageType         String    @map("package_type") @db.VarChar(50)
+  setupFee            Decimal   @map("setup_fee") @db.Decimal(10, 2)
+  monthlyFee          Decimal   @map("monthly_fee") @db.Decimal(10, 2)
+  currency            String    @default("USD") @db.VarChar(10)
+  featuresIncluded    Json      @map("features_included")
+  validUntil          DateTime  @map("valid_until") @db.Date
+  status              String    @default("sent") @db.VarChar(50)
+  sentAt              DateTime? @map("sent_at")
+  viewedAt            DateTime? @map("viewed_at")
+  acceptedAt          DateTime? @map("accepted_at")
+  stripePaymentLink   String?   @map("stripe_payment_link") @db.VarChar(500)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+  notes               String?
+  installmentMonths   Int       @default(1) @map("installment_months")
+  setupFeeInstallment Boolean   @default(false) @map("setup_fee_installment")
+  contractPdfUrl      String?   @map("contract_pdf_url") @db.VarChar(500)
+  contractSignedAt    DateTime? @map("contract_signed_at")
+  docusignEnvelopeId  String?   @map("docusign_envelope_id") @db.VarChar(100)
+  clients             Client[]
+  prospect            Prospect? @relation(fields: [prospectId], references: [id])
 
   @@index([prospectId])
   @@index([status])
@@ -210,88 +205,87 @@ model Quote {
 }
 
 model Client {
-  id                    String    @id @default(uuid()) @db.Uuid
-  userId                String?   @unique @map("user_id") @db.Uuid
-  prospectId            String?   @map("prospect_id") @db.Uuid
-  quoteId               String?   @map("quote_id") @db.Uuid
-  businessName          String    @map("business_name") @db.VarChar(500)
-  businessType          String    @map("business_type") @db.VarChar(100)
-  sector                String?   @db.VarChar(100)
-  contactName           String    @map("contact_name") @db.VarChar(255)
-  contactEmail          String    @map("contact_email") @db.VarChar(255)
-  contactPhone          String?   @map("contact_phone") @db.VarChar(50)
-  address               String?   @db.VarChar(500)
-  city                  String?   @db.VarChar(100)
-  postalCode            String?   @map("postal_code") @db.VarChar(20)
-  country               String    @default("BE") @db.VarChar(10)
-  planType              String    @map("plan_type") @db.VarChar(50)
-  setupFee              Decimal   @map("setup_fee") @db.Decimal(10, 2)
-  monthlyFee            Decimal   @map("monthly_fee") @db.Decimal(10, 2)
-  currency              String    @default("EUR") @db.VarChar(10)
-  stripeCustomerId      String?   @unique @map("stripe_customer_id") @db.VarChar(255)
-  stripeSubscriptionId  String?   @unique @map("stripe_subscription_id") @db.VarChar(255)
-  subscriptionStatus    String    @default("active") @map("subscription_status") @db.VarChar(50)
-  vapiAssistantId       String?   @map("vapi_assistant_id") @db.VarChar(255)
-  vapiPhoneNumber       String?   @map("vapi_phone_number") @db.VarChar(50)
-  vapiConfig            Json?     @map("vapi_config")
-  onboardingStatus      String    @default("pending") @map("onboarding_status") @db.VarChar(50)
-  onboardingCompletedAt DateTime? @map("onboarding_completed_at")
-  activationDate        DateTime? @map("activation_date")
-  cancellationDate      DateTime? @map("cancellation_date")
-  isTrial               Boolean   @default(false) @map("is_trial")
-  trialStartDate        DateTime? @map("trial_start_date")
-  trialEndDate          DateTime? @map("trial_end_date")
-  trialConvertedAt      DateTime? @map("trial_converted_at")
-  onboardingData        Json?     @map("onboarding_data")
-  onboardingFormSentAt  DateTime? @map("onboarding_form_sent_at")
-  onboardingFormDoneAt  DateTime? @map("onboarding_form_done_at")
-  transferNumber        String?   @map("transfer_number") @db.VarChar(50)
-  loomVideoUrl          String?   @map("loom_video_url") @db.VarChar(500)
-  dashboardToken        String?   @unique @map("dashboard_token") @db.VarChar(255)
-  addOns                Json?     @map("add_ons")
-  googleCalendarRefreshToken String? @map("google_calendar_refresh_token") @db.Text
-  googleCalendarId      String?   @map("google_calendar_id") @db.VarChar(255)
-  contractSignedAt      DateTime? @map("contract_signed_at")
-  contractUrl           String?   @map("contract_url") @db.VarChar(500)
-  totalCallsMade        Int       @default(0) @map("total_calls_made")
-  monthlyCallsQuota     Int?      @map("monthly_calls_quota")
-  lastCallDate          DateTime? @map("last_call_date")
-  agentLanguage         String    @default("en") @map("agent_language") @db.VarChar(10)
-  agentName             String?   @map("agent_name") @db.VarChar(100)
-  forwardingStatus      String?   @map("forwarding_status") @db.VarChar(50)
-  forwardingType        String?   @map("forwarding_type") @db.VarChar(50)
-  forwardingVerifiedAt  DateTime? @map("forwarding_verified_at")
-  notes                 String?   @db.Text
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
-
-  user     User?     @relation(fields: [userId], references: [id])
-  quote    Quote?    @relation(fields: [quoteId], references: [id], onDelete: SetNull)
-  payments Payment[]
-  clientCalls       ClientCall[]
-  clientBookings    ClientBooking[]
-  clientAnalytics   ClientAnalyticsDaily[]
-  callTransfers     CallTransfer[]
-  agentSubscriptions AgentSubscription[]
-  agentEmailConfigs  AgentEmailConfig[]
-  agentInventory     AgentInventory[]
-  agentAccounting    AgentAccounting[]
-  contacts           Contact[]
-  deals              Deal[]
-  activities         Activity[]
-  crmIntegrations    CrmIntegration[]
-  agentInvoices      AgentInvoice[]
-  agentExpenses      AgentExpense[]
-  agentIncomes       AgentIncome[]
-  agentFinancialReports AgentFinancialReport[]
-  agentEmails        AgentEmail[]
-  smsLogs            SmsLog[]
-  syncLogs           SyncLog[]
-  syncConflicts      SyncConflict[]
-  agentInventoryLogs AgentInventoryLog[]
-  agentReorderRequests AgentReorderRequest[]
-  contractAcceptances ContractAcceptance[]
-  prospect           Prospect?  @relation(fields: [prospectId], references: [id], onDelete: SetNull)
+  id                         String                 @id @default(uuid()) @db.Uuid
+  prospectId                 String?                @map("prospect_id") @db.Uuid
+  quoteId                    String?                @map("quote_id") @db.Uuid
+  businessName               String                 @map("business_name") @db.VarChar(500)
+  businessType               String                 @map("business_type") @db.VarChar(100)
+  sector                     String?                @db.VarChar(100)
+  contactName                String                 @map("contact_name") @db.VarChar(255)
+  contactEmail               String                 @map("contact_email") @db.VarChar(255)
+  contactPhone               String?                @map("contact_phone") @db.VarChar(50)
+  address                    String?                @db.VarChar(500)
+  city                       String?                @db.VarChar(100)
+  postalCode                 String?                @map("postal_code") @db.VarChar(20)
+  country                    String                 @default("BE") @db.VarChar(10)
+  planType                   String                 @map("plan_type") @db.VarChar(50)
+  setupFee                   Decimal                @map("setup_fee") @db.Decimal(10, 2)
+  monthlyFee                 Decimal                @map("monthly_fee") @db.Decimal(10, 2)
+  currency                   String                 @default("EUR") @db.VarChar(10)
+  stripeCustomerId           String?                @unique @map("stripe_customer_id") @db.VarChar(255)
+  stripeSubscriptionId       String?                @unique @map("stripe_subscription_id") @db.VarChar(255)
+  subscriptionStatus         String                 @default("active") @map("subscription_status") @db.VarChar(50)
+  vapiAssistantId            String?                @map("vapi_assistant_id") @db.VarChar(255)
+  vapiPhoneNumber            String?                @map("vapi_phone_number") @db.VarChar(50)
+  vapiConfig                 Json?                  @map("vapi_config")
+  onboardingStatus           String                 @default("pending") @map("onboarding_status") @db.VarChar(50)
+  onboardingCompletedAt      DateTime?              @map("onboarding_completed_at")
+  activationDate             DateTime?              @map("activation_date")
+  cancellationDate           DateTime?              @map("cancellation_date")
+  totalCallsMade             Int                    @default(0) @map("total_calls_made")
+  monthlyCallsQuota          Int?                   @map("monthly_calls_quota")
+  lastCallDate               DateTime?              @map("last_call_date")
+  notes                      String?
+  createdAt                  DateTime               @default(now()) @map("created_at")
+  updatedAt                  DateTime               @default(now()) @updatedAt @map("updated_at")
+  isTrial                    Boolean                @default(false) @map("is_trial")
+  trialConvertedAt           DateTime?              @map("trial_converted_at")
+  trialEndDate               DateTime?              @map("trial_end_date")
+  trialStartDate             DateTime?              @map("trial_start_date")
+  addOns                     Json?                  @map("add_ons")
+  contractSignedAt           DateTime?              @map("contract_signed_at")
+  contractUrl                String?                @map("contract_url") @db.VarChar(500)
+  dashboardToken             String?                @unique @map("dashboard_token") @db.VarChar(255)
+  loomVideoUrl               String?                @map("loom_video_url") @db.VarChar(500)
+  onboardingData             Json?                  @map("onboarding_data")
+  onboardingFormDoneAt       DateTime?              @map("onboarding_form_done_at")
+  onboardingFormSentAt       DateTime?              @map("onboarding_form_sent_at")
+  transferNumber             String?                @map("transfer_number") @db.VarChar(50)
+  userId                     String?                @unique @map("user_id") @db.Uuid
+  googleCalendarId           String?                @map("google_calendar_id") @db.VarChar(255)
+  googleCalendarRefreshToken String?                @map("google_calendar_refresh_token")
+  agentLanguage              String                 @default("en") @map("agent_language") @db.VarChar(10)
+  agentName                  String?                @map("agent_name") @db.VarChar(100)
+  forwardingStatus           String?                @map("forwarding_status") @db.VarChar(50)
+  forwardingType             String?                @map("forwarding_type") @db.VarChar(50)
+  forwardingVerifiedAt       DateTime?              @map("forwarding_verified_at")
+  activities                 Activity[]
+  agentAccounting            AgentAccounting?
+  agentEmailConfigs          AgentEmailConfig?
+  agentEmails                AgentEmail[]
+  agentExpenses              AgentExpense[]
+  agentFinancialReports      AgentFinancialReport[]
+  agentIncomes               AgentIncome[]
+  agentInventory             AgentInventory[]
+  agentInventoryLogs         AgentInventoryLog[]
+  agentInvoices              AgentInvoice[]
+  agentReorderRequests       AgentReorderRequest[]
+  agentSubscriptions         AgentSubscription?
+  callTransfers              CallTransfer[]
+  clientAnalytics            ClientAnalyticsDaily[]
+  clientBookings             ClientBooking[]
+  clientCalls                ClientCall[]
+  prospect                   Prospect?              @relation(fields: [prospectId], references: [id])
+  quote                      Quote?                 @relation(fields: [quoteId], references: [id])
+  user                       User?                  @relation(fields: [userId], references: [id])
+  contacts                   Contact[]
+  contractAcceptances        ContractAcceptance[]
+  crmIntegrations            CrmIntegration[]
+  deals                      Deal[]
+  payments                   Payment[]
+  smsLogs                    SmsLog[]
+  syncConflicts              SyncConflict[]
+  syncLogs                   SyncLog[]
 
   @@index([subscriptionStatus])
   @@index([planType])
@@ -300,31 +294,30 @@ model Client {
 }
 
 model Campaign {
-  id                  String    @id @default(uuid()) @db.Uuid
-  name                String    @db.VarChar(255)
-  type                String    @default("email") @db.VarChar(50)
-  targetBusinessTypes String[]  @default([]) @map("target_business_types")
-  targetCities        String[]  @default([]) @map("target_cities")
-  targetMinScore      Int?      @map("target_min_score")
-  targetMaxScore      Int?      @map("target_max_score")
-  targetStatuses      String[]  @default([]) @map("target_statuses")
-  subjectLine         String?   @map("subject_line") @db.VarChar(255)
-  messageTemplate     String    @map("message_template") @db.Text
-  scheduledDate       DateTime? @map("scheduled_date")
-  status              String    @default("draft") @db.VarChar(50)
-  sentCount           Int       @default(0) @map("sent_count")
-  deliveredCount      Int       @default(0) @map("delivered_count")
-  openedCount         Int       @default(0) @map("opened_count")
-  clickedCount        Int       @default(0) @map("clicked_count")
-  repliedCount        Int       @default(0) @map("replied_count")
-  bouncedCount        Int       @default(0) @map("bounced_count")
-  createdByUserId     String?   @map("created_by_user_id") @db.Uuid
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
-  completedAt         DateTime? @map("completed_at")
-
-  createdBy User?          @relation(fields: [createdByUserId], references: [id])
-  sends     CampaignSend[]
+  id                  String         @id @default(uuid()) @db.Uuid
+  name                String         @db.VarChar(255)
+  type                String         @default("email") @db.VarChar(50)
+  targetBusinessTypes String[]       @default([]) @map("target_business_types")
+  targetCities        String[]       @default([]) @map("target_cities")
+  targetMinScore      Int?           @map("target_min_score")
+  targetMaxScore      Int?           @map("target_max_score")
+  targetStatuses      String[]       @default([]) @map("target_statuses")
+  subjectLine         String?        @map("subject_line") @db.VarChar(255)
+  messageTemplate     String         @map("message_template")
+  scheduledDate       DateTime?      @map("scheduled_date")
+  status              String         @default("draft") @db.VarChar(50)
+  sentCount           Int            @default(0) @map("sent_count")
+  deliveredCount      Int            @default(0) @map("delivered_count")
+  openedCount         Int            @default(0) @map("opened_count")
+  clickedCount        Int            @default(0) @map("clicked_count")
+  repliedCount        Int            @default(0) @map("replied_count")
+  bouncedCount        Int            @default(0) @map("bounced_count")
+  createdByUserId     String?        @map("created_by_user_id") @db.Uuid
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @default(now()) @updatedAt @map("updated_at")
+  completedAt         DateTime?      @map("completed_at")
+  sends               CampaignSend[]
+  createdBy           User?          @relation(fields: [createdByUserId], references: [id])
 
   @@index([status])
   @@map("campaigns")
@@ -341,11 +334,10 @@ model CampaignSend {
   repliedAt    DateTime? @map("replied_at")
   bouncedAt    DateTime? @map("bounced_at")
   status       String    @default("pending") @db.VarChar(50)
-  errorMessage String?   @map("error_message") @db.Text
+  errorMessage String?   @map("error_message")
   messageId    String?   @map("message_id") @db.VarChar(255)
-
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  prospect Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  campaign     Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  prospect     Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
 
   @@unique([campaignId, prospectId])
   @@index([campaignId])
@@ -361,8 +353,8 @@ model Reminder {
   scheduledAt  DateTime  @map("scheduled_at")
   status       String    @default("pending") @db.VarChar(50)
   sentAt       DateTime? @map("sent_at")
-  result       String?   @db.Text
-  errorMessage String?   @map("error_message") @db.Text
+  result       String?
+  errorMessage String?   @map("error_message")
   createdAt    DateTime  @default(now()) @map("created_at")
 
   @@index([status])
@@ -381,12 +373,11 @@ model Payment {
   paidAt                DateTime? @map("paid_at")
   failedAt              DateTime? @map("failed_at")
   refundedAt            DateTime? @map("refunded_at")
-  description           String?   @db.Text
-  failureReason         String?   @map("failure_reason") @db.Text
+  description           String?
+  failureReason         String?   @map("failure_reason")
   createdAt             DateTime  @default(now()) @map("created_at")
   metadata              Json?
-
-  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  client                Client?   @relation(fields: [clientId], references: [id])
 
   @@index([clientId])
   @@index([status])
@@ -401,7 +392,7 @@ model WebhookLog {
   headers      Json?
   status       String    @default("received") @db.VarChar(50)
   processedAt  DateTime? @map("processed_at")
-  errorMessage String?   @map("error_message") @db.Text
+  errorMessage String?   @map("error_message")
   retryCount   Int       @default(0) @map("retry_count")
   createdAt    DateTime  @default(now()) @map("created_at")
 
@@ -410,23 +401,19 @@ model WebhookLog {
   @@map("webhook_logs")
 }
 
-// ═══════════════════════════════════════════════════════════
-// SMS LOG - Track all SMS attempts for debugging and compliance
-// ═══════════════════════════════════════════════════════════
 model SmsLog {
   id          String    @id @default(uuid()) @db.Uuid
   to          String    @db.VarChar(50)
-  body        String    @db.Text
-  messageType String    @map("message_type") @db.VarChar(50) // post_call, booking_confirmation, booking_reminder, exhausted, email_fallback
+  body        String
+  messageType String    @map("message_type") @db.VarChar(50)
   twilioSid   String?   @map("twilio_sid") @db.VarChar(100)
-  status      String    @default("sent") @db.VarChar(20) // sent, failed
-  errorMsg    String?   @map("error_msg") @db.Text
+  status      String    @default("sent") @db.VarChar(20)
+  errorMsg    String?   @map("error_msg")
   prospectId  String?   @map("prospect_id") @db.Uuid
   clientId    String?   @map("client_id") @db.Uuid
   createdAt   DateTime  @default(now()) @map("created_at")
-
-  prospect Prospect? @relation(fields: [prospectId], references: [id], onDelete: SetNull)
-  client   Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  client      Client?   @relation(fields: [clientId], references: [id])
+  prospect    Prospect? @relation(fields: [prospectId], references: [id])
 
   @@index([to])
   @@index([messageType])
@@ -451,14 +438,14 @@ model AnalyticsDaily {
   revenueSubscriptions Decimal  @default(0) @map("revenue_subscriptions") @db.Decimal(10, 2)
   costVapiCalls        Decimal  @default(0) @map("cost_vapi_calls") @db.Decimal(10, 4)
   costApis             Decimal  @default(0) @map("cost_apis") @db.Decimal(10, 4)
-  costTwilioSms        Decimal  @default(0) @map("cost_twilio_sms") @db.Decimal(10, 4)
-  costTwilioLookup     Decimal  @default(0) @map("cost_twilio_lookup") @db.Decimal(10, 4)
-  smsSent              Int      @default(0) @map("sms_sent")
-  smsDelivered         Int      @default(0) @map("sms_delivered")
-  smsFailed            Int      @default(0) @map("sms_failed")
-  phonesValidated      Int      @default(0) @map("phones_validated")
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @default(now()) @updatedAt @map("updated_at")
+  costTwilioLookup     Decimal  @default(0) @map("cost_twilio_lookup") @db.Decimal(10, 4)
+  costTwilioSms        Decimal  @default(0) @map("cost_twilio_sms") @db.Decimal(10, 4)
+  phonesValidated      Int      @default(0) @map("phones_validated")
+  smsDelivered         Int      @default(0) @map("sms_delivered")
+  smsFailed            Int      @default(0) @map("sms_failed")
+  smsSent              Int      @default(0) @map("sms_sent")
 
   @@map("analytics_daily")
 }
@@ -476,41 +463,37 @@ model BotStatus {
   @@map("bot_status")
 }
 
-// ═══════════════════════════════════════════════════════════
-// CLIENT CALL LOG - Tracks incoming calls to client's AI receptionist
-// ═══════════════════════════════════════════════════════════
 model ClientCall {
-  id              String    @id @default(uuid()) @db.Uuid
-  clientId        String    @map("client_id") @db.Uuid
-  vapiCallId      String?   @unique @map("vapi_call_id") @db.VarChar(255)
-  callerNumber    String?   @map("caller_number") @db.VarChar(50)
-  callerName      String?   @map("caller_name") @db.VarChar(255)
-  direction       String    @default("inbound") @db.VarChar(20)
-  startedAt       DateTime? @map("started_at")
-  endedAt         DateTime? @map("ended_at")
-  durationSeconds Int?      @map("duration_seconds")
-  status          String    @default("in-progress") @db.VarChar(50)
-  transcript      String?   @db.Text
-  summary         String?   @db.Text
-  sentiment       String?   @db.VarChar(50)
-  outcome         String?   @db.VarChar(100)
-  recordingUrl    String?   @map("recording_url") @db.VarChar(500)
-  emailCollected  String?   @map("email_collected") @db.VarChar(255)
-  nameCollected   String?   @map("name_collected") @db.VarChar(255)
-  phoneCollected  String?   @map("phone_collected") @db.VarChar(50)
-  bookingRequested Boolean  @default(false) @map("booking_requested")
-  bookingDate     DateTime? @map("booking_date")
-  bookingDetails  String?   @map("booking_details") @db.Text
-  isLead          Boolean   @default(false) @map("is_lead")
-  leadScore       Int?      @map("lead_score")
-  tags            String[]  @default([])
-  metadata        Json?
-  createdAt       DateTime  @default(now()) @map("created_at")
-
-  client         Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientBookings ClientBooking[]
-  callTransfers  CallTransfer[]
-  activities     Activity[]
+  id               String          @id @default(uuid()) @db.Uuid
+  clientId         String          @map("client_id") @db.Uuid
+  vapiCallId       String?         @unique @map("vapi_call_id") @db.VarChar(255)
+  callerNumber     String?         @map("caller_number") @db.VarChar(50)
+  callerName       String?         @map("caller_name") @db.VarChar(255)
+  direction        String          @default("inbound") @db.VarChar(20)
+  startedAt        DateTime?       @map("started_at")
+  endedAt          DateTime?       @map("ended_at")
+  durationSeconds  Int?            @map("duration_seconds")
+  status           String          @default("in-progress") @db.VarChar(50)
+  transcript       String?
+  summary          String?
+  sentiment        String?         @db.VarChar(50)
+  outcome          String?         @db.VarChar(100)
+  recordingUrl     String?         @map("recording_url") @db.VarChar(500)
+  emailCollected   String?         @map("email_collected") @db.VarChar(255)
+  nameCollected    String?         @map("name_collected") @db.VarChar(255)
+  phoneCollected   String?         @map("phone_collected") @db.VarChar(50)
+  bookingRequested Boolean         @default(false) @map("booking_requested")
+  bookingDate      DateTime?       @map("booking_date")
+  bookingDetails   String?         @map("booking_details")
+  isLead           Boolean         @default(false) @map("is_lead")
+  leadScore        Int?            @map("lead_score")
+  tags             String[]        @default([])
+  metadata         Json?
+  createdAt        DateTime        @default(now()) @map("created_at")
+  activities       Activity[]
+  callTransfers    CallTransfer[]
+  clientBookings   ClientBooking[]
+  client           Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([status])
@@ -519,33 +502,29 @@ model ClientCall {
   @@map("client_calls")
 }
 
-// ═══════════════════════════════════════════════════════════
-// CLIENT BOOKING - Appointments booked via AI receptionist
-// ═══════════════════════════════════════════════════════════
 model ClientBooking {
-  id              String    @id @default(uuid()) @db.Uuid
-  clientId        String    @map("client_id") @db.Uuid
-  clientCallId    String?   @map("client_call_id") @db.Uuid
-  customerName    String    @map("customer_name") @db.VarChar(255)
-  customerPhone   String?   @map("customer_phone") @db.VarChar(50)
-  customerEmail   String?   @map("customer_email") @db.VarChar(255)
-  bookingDate     DateTime  @map("booking_date")
-  bookingTime     String?   @map("booking_time") @db.VarChar(20)
-  serviceType     String?   @map("service_type") @db.VarChar(255)
-  partySize       Int?      @map("party_size")
-  specialRequests String?   @map("special_requests") @db.Text
-  status          String    @default("confirmed") @db.VarChar(50)
-  reminderSent    Boolean   @default(false) @map("reminder_sent")
-  reminderSentAt  DateTime? @map("reminder_sent_at")
-  smsConfirmationSent Boolean @default(false) @map("sms_confirmation_sent")
-  smsReminderSent     Boolean @default(false) @map("sms_reminder_sent")
-  googleEventId   String?   @map("google_event_id") @db.VarChar(255)
-  notes           String?   @db.Text
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
-
-  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientCall ClientCall? @relation(fields: [clientCallId], references: [id], onDelete: SetNull)
+  id                  String      @id @default(uuid()) @db.Uuid
+  clientId            String      @map("client_id") @db.Uuid
+  clientCallId        String?     @map("client_call_id") @db.Uuid
+  customerName        String      @map("customer_name") @db.VarChar(255)
+  customerPhone       String?     @map("customer_phone") @db.VarChar(50)
+  customerEmail       String?     @map("customer_email") @db.VarChar(255)
+  bookingDate         DateTime    @map("booking_date")
+  bookingTime         String?     @map("booking_time") @db.VarChar(20)
+  serviceType         String?     @map("service_type") @db.VarChar(255)
+  partySize           Int?        @map("party_size")
+  specialRequests     String?     @map("special_requests")
+  status              String      @default("confirmed") @db.VarChar(50)
+  reminderSent        Boolean     @default(false) @map("reminder_sent")
+  reminderSentAt      DateTime?   @map("reminder_sent_at")
+  googleEventId       String?     @map("google_event_id") @db.VarChar(255)
+  notes               String?
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @default(now()) @updatedAt @map("updated_at")
+  smsConfirmationSent Boolean     @default(false) @map("sms_confirmation_sent")
+  smsReminderSent     Boolean     @default(false) @map("sms_reminder_sent")
+  clientCall          ClientCall? @relation(fields: [clientCallId], references: [id])
+  client              Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([bookingDate])
@@ -554,28 +533,24 @@ model ClientBooking {
   @@map("client_bookings")
 }
 
-// ═══════════════════════════════════════════════════════════
-// CLIENT ANALYTICS DAILY - Aggregated stats per client per day
-// ═══════════════════════════════════════════════════════════
 model ClientAnalyticsDaily {
-  id                  String   @id @default(uuid()) @db.Uuid
-  clientId            String   @map("client_id") @db.Uuid
-  date                DateTime @db.Date
-  totalCalls          Int      @default(0) @map("total_calls")
-  answeredCalls       Int      @default(0) @map("answered_calls")
-  missedCalls         Int      @default(0) @map("missed_calls")
-  totalDuration       Int      @default(0) @map("total_duration")
-  avgDuration         Int      @default(0) @map("avg_duration")
-  leadsGenerated      Int      @default(0) @map("leads_generated")
-  bookingsMade        Int      @default(0) @map("bookings_made")
-  emailsCollected     Int      @default(0) @map("emails_collected")
-  sentimentPositive   Int      @default(0) @map("sentiment_positive")
-  sentimentNeutral    Int      @default(0) @map("sentiment_neutral")
-  sentimentNegative   Int      @default(0) @map("sentiment_negative")
-  topIssues           String[] @default([]) @map("top_issues")
-  createdAt           DateTime @default(now()) @map("created_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                String   @id @default(uuid()) @db.Uuid
+  clientId          String   @map("client_id") @db.Uuid
+  date              DateTime @db.Date
+  totalCalls        Int      @default(0) @map("total_calls")
+  answeredCalls     Int      @default(0) @map("answered_calls")
+  missedCalls       Int      @default(0) @map("missed_calls")
+  totalDuration     Int      @default(0) @map("total_duration")
+  avgDuration       Int      @default(0) @map("avg_duration")
+  leadsGenerated    Int      @default(0) @map("leads_generated")
+  bookingsMade      Int      @default(0) @map("bookings_made")
+  emailsCollected   Int      @default(0) @map("emails_collected")
+  sentimentPositive Int      @default(0) @map("sentiment_positive")
+  sentimentNeutral  Int      @default(0) @map("sentiment_neutral")
+  sentimentNegative Int      @default(0) @map("sentiment_negative")
+  topIssues         String[] @default([]) @map("top_issues")
+  createdAt         DateTime @default(now()) @map("created_at")
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@unique([clientId, date])
   @@index([clientId])
@@ -583,29 +558,25 @@ model ClientAnalyticsDaily {
   @@map("client_analytics_daily")
 }
 
-// ═══════════════════════════════════════════════════════════
-// CALL TRANSFER LOG - Tracks human transfers from AI receptionist
-// ═══════════════════════════════════════════════════════════
 model CallTransfer {
-  id                 String    @id @default(uuid()) @db.Uuid
-  clientId           String    @map("client_id") @db.Uuid
-  clientCallId       String?   @map("client_call_id") @db.Uuid
-  vapiCallId         String?   @map("vapi_call_id") @db.VarChar(255)
-  transferNumber     String    @map("transfer_number") @db.VarChar(50)
-  reason             String    @db.VarChar(50) // keyword_trigger | frustration_detected | explicit_request
-  triggerPhrase      String?   @map("trigger_phrase") @db.VarChar(500)
-  preTransferMessage String?   @map("pre_transfer_message") @db.Text
-  transferStatus     String    @default("initiated") @map("transfer_status") @db.VarChar(50) // initiated | completed | failed
-  failedReason       String?   @map("failed_reason") @db.Text
-  callbackRequested  Boolean   @default(false) @map("callback_requested")
-  callbackNumber     String?   @map("callback_number") @db.VarChar(50)
-  callbackPriority   String    @default("normal") @map("callback_priority") @db.VarChar(20) // normal | high
-  callbackCompletedAt DateTime? @map("callback_completed_at")
-  timestamp          DateTime  @default(now())
-  createdAt          DateTime  @default(now()) @map("created_at")
-
-  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientCall ClientCall? @relation(fields: [clientCallId], references: [id], onDelete: SetNull)
+  id                  String      @id @default(uuid()) @db.Uuid
+  clientId            String      @map("client_id") @db.Uuid
+  clientCallId        String?     @map("client_call_id") @db.Uuid
+  vapiCallId          String?     @map("vapi_call_id") @db.VarChar(255)
+  transferNumber      String      @map("transfer_number") @db.VarChar(50)
+  reason              String      @db.VarChar(50)
+  triggerPhrase       String?     @map("trigger_phrase") @db.VarChar(500)
+  preTransferMessage  String?     @map("pre_transfer_message")
+  transferStatus      String      @default("initiated") @map("transfer_status") @db.VarChar(50)
+  failedReason        String?     @map("failed_reason")
+  callbackRequested   Boolean     @default(false) @map("callback_requested")
+  callbackNumber      String?     @map("callback_number") @db.VarChar(50)
+  callbackPriority    String      @default("normal") @map("callback_priority") @db.VarChar(20)
+  callbackCompletedAt DateTime?   @map("callback_completed_at")
+  timestamp           DateTime    @default(now())
+  createdAt           DateTime    @default(now()) @map("created_at")
+  clientCall          ClientCall? @relation(fields: [clientCallId], references: [id])
+  client              Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([transferStatus])
@@ -613,22 +584,19 @@ model CallTransfer {
   @@map("call_transfers")
 }
 
-// ═══════════════════════════════════════════════════════════
-// NICHE INSIGHT - Ashley's learnings from failed sales calls
-// ═══════════════════════════════════════════════════════════
 model NicheInsight {
-  id               String   @id @default(uuid()) @db.Uuid
-  niche            String   @db.VarChar(100)
-  insightType      String   @map("insight_type") @db.VarChar(50)   // objection | failure_reason | script_suggestion
-  content          String   @db.Text
-  frequency        Int      @default(1)
-  sampleSize       Int      @default(1) @map("sample_size")
-  confidence       Float    @default(0.5)
-  isActive         Boolean  @default(true) @map("is_active")
-  source           String   @default("post_call") @db.VarChar(50)  // post_call | weekly_aggregation
-  lastSeenAt       DateTime @default(now()) @map("last_seen_at")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  niche       String   @db.VarChar(100)
+  insightType String   @map("insight_type") @db.VarChar(50)
+  content     String
+  frequency   Int      @default(1)
+  sampleSize  Int      @default(1) @map("sample_size")
+  confidence  Float    @default(0.5)
+  isActive    Boolean  @default(true) @map("is_active")
+  source      String   @default("post_call") @db.VarChar(50)
+  lastSeenAt  DateTime @default(now()) @map("last_seen_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@unique([niche, insightType, content])
   @@index([niche])
@@ -636,9 +604,6 @@ model NicheInsight {
   @@map("niche_insights")
 }
 
-// ═══════════════════════════════════════════════════════════
-// TRIAL FINGERPRINT — Anti-abuse: one free trial per person
-// ═══════════════════════════════════════════════════════════
 model TrialFingerprint {
   id                    String    @id @default(uuid()) @db.Uuid
   accountId             String?   @map("account_id") @db.Uuid
@@ -653,11 +618,10 @@ model TrialFingerprint {
   suspiciousSignals     Int       @default(0) @map("suspicious_signals")
   usedTrial             Boolean   @default(false) @map("used_trial")
   blocked               Boolean   @default(false)
-  blockReason           String?   @map("block_reason") @db.Text
+  blockReason           String?   @map("block_reason")
   deletedAt             DateTime? @map("deleted_at")
   createdAt             DateTime  @default(now()) @map("created_at")
-
-  account User? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  account               User?     @relation(fields: [accountId], references: [id])
 
   @@index([emailHash])
   @@index([phoneHash])
@@ -667,21 +631,18 @@ model TrialFingerprint {
   @@map("trial_fingerprints")
 }
 
-// ═══════════════════════════════════════════════════════════
-// ACCOUNT DELETION LOG — Prevent delete-and-recreate abuse
-// ═══════════════════════════════════════════════════════════
 model AccountDeletion {
-  id                    String    @id @default(uuid()) @db.Uuid
-  originalAccountId     String    @map("original_account_id") @db.Uuid
-  emailHash             String    @map("email_hash") @db.VarChar(128)
-  phoneHash             String?   @map("phone_hash") @db.VarChar(128)
-  deviceFingerprintHash String?   @map("device_fingerprint_hash") @db.VarChar(128)
-  ipHash                String?   @map("ip_hash") @db.VarChar(128)
-  cardFingerprint       String?   @map("card_fingerprint") @db.VarChar(255)
-  hadActiveTrial        Boolean   @default(false) @map("had_active_trial")
-  hadPaidSubscription   Boolean   @default(false) @map("had_paid_subscription")
-  deletedAt             DateTime  @default(now()) @map("deleted_at")
-  cooldownUntil         DateTime  @map("cooldown_until") // 48h after deletion
+  id                    String   @id @default(uuid()) @db.Uuid
+  originalAccountId     String   @map("original_account_id") @db.Uuid
+  emailHash             String   @map("email_hash") @db.VarChar(128)
+  phoneHash             String?  @map("phone_hash") @db.VarChar(128)
+  deviceFingerprintHash String?  @map("device_fingerprint_hash") @db.VarChar(128)
+  ipHash                String?  @map("ip_hash") @db.VarChar(128)
+  cardFingerprint       String?  @map("card_fingerprint") @db.VarChar(255)
+  hadActiveTrial        Boolean  @default(false) @map("had_active_trial")
+  hadPaidSubscription   Boolean  @default(false) @map("had_paid_subscription")
+  deletedAt             DateTime @default(now()) @map("deleted_at")
+  cooldownUntil         DateTime @map("cooldown_until")
 
   @@index([emailHash])
   @@index([phoneHash])
@@ -689,9 +650,6 @@ model AccountDeletion {
   @@map("account_deletions")
 }
 
-// ═══════════════════════════════════════════════════════════
-// CONTRACT ACCEPTANCE — Legal record of contract agreement
-// ═══════════════════════════════════════════════════════════
 model ContractAcceptance {
   id              String   @id @default(uuid()) @db.Uuid
   clientId        String?  @map("client_id") @db.Uuid
@@ -700,41 +658,36 @@ model ContractAcceptance {
   planType        String   @map("plan_type") @db.VarChar(50)
   acceptedAt      DateTime @default(now()) @map("accepted_at")
   ipAddress       String   @map("ip_address") @db.VarChar(45)
-  userAgent       String   @map("user_agent") @db.Text
+  userAgent       String   @map("user_agent")
   contractPdfUrl  String?  @map("contract_pdf_url") @db.VarChar(500)
   createdAt       DateTime @default(now()) @map("created_at")
-
-  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  client          Client?  @relation(fields: [clientId], references: [id])
+  user            User?    @relation(fields: [userId], references: [id])
 
   @@index([clientId])
   @@index([userId])
   @@map("contract_acceptances")
 }
 
-// ═══════════════════════════════════════════════════════════
-// CONTACTS — Unified CRM contacts across all integrations
-// ═══════════════════════════════════════════════════════════
 model Contact {
-  id          String   @id @default(uuid()) @db.Uuid
-  clientId    String   @map("client_id") @db.Uuid
-  name        String   @db.VarChar(255)
-  email       String?  @db.VarChar(255)
-  phone       String?  @db.VarChar(50)
-  address     String?  @db.VarChar(500)
-  niche       String?  @db.VarChar(100)
-  leadScore   Int?     @map("lead_score")
-  status      String   @default("new") @db.VarChar(50)
-  tags        String[] @default([])
-  notes       String?  @db.Text
-  externalIds Json?    @map("external_ids")
-  enrichedData Json?   @map("enriched_data")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
-
-  client     Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  deals      Deal[]
-  activities Activity[]
+  id            String         @id @default(uuid()) @db.Uuid
+  clientId      String         @map("client_id") @db.Uuid
+  name          String         @db.VarChar(255)
+  email         String?        @db.VarChar(255)
+  phone         String?        @db.VarChar(50)
+  address       String?        @db.VarChar(500)
+  niche         String?        @db.VarChar(100)
+  leadScore     Int?           @map("lead_score")
+  status        String         @default("new") @db.VarChar(50)
+  tags          String[]       @default([])
+  notes         String?
+  externalIds   Json?          @map("external_ids")
+  enrichedData  Json?          @map("enriched_data")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
+  activities    Activity[]
+  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  deals         Deal[]
   syncConflicts SyncConflict[]
 
   @@index([clientId])
@@ -744,9 +697,6 @@ model Contact {
   @@map("contacts")
 }
 
-// ═══════════════════════════════════════════════════════════
-// DEALS — Sales pipeline tracking
-// ═══════════════════════════════════════════════════════════
 model Deal {
   id          String    @id @default(uuid()) @db.Uuid
   contactId   String    @map("contact_id") @db.Uuid
@@ -757,60 +707,48 @@ model Deal {
   probability Int?
   closeDate   DateTime? @map("close_date") @db.Date
   createdAt   DateTime  @default(now()) @map("created_at")
-
-  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contact     Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([stage])
   @@map("deals")
 }
 
-// ═══════════════════════════════════════════════════════════
-// ACTIVITIES — Timeline of actions on contacts
-// ═══════════════════════════════════════════════════════════
 model Activity {
-  id          String   @id @default(uuid()) @db.Uuid
-  contactId   String   @map("contact_id") @db.Uuid
-  clientId    String   @map("client_id") @db.Uuid
-  type        String   @db.VarChar(50)
-  description String?  @db.Text
-  callId      String?  @map("call_id") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  contact    Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientCall ClientCall? @relation(fields: [callId], references: [id], onDelete: SetNull)
+  id          String      @id @default(uuid()) @db.Uuid
+  contactId   String      @map("contact_id") @db.Uuid
+  clientId    String      @map("client_id") @db.Uuid
+  type        String      @db.VarChar(50)
+  description String?
+  callId      String?     @map("call_id") @db.Uuid
+  createdAt   DateTime    @default(now()) @map("created_at")
+  clientCall  ClientCall? @relation(fields: [callId], references: [id])
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contact     Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([contactId])
   @@map("activities")
 }
 
-// ═══════════════════════════════════════════════════════════
-// CRM INTEGRATIONS — OAuth tokens for external CRMs
-// ═══════════════════════════════════════════════════════════
 model CrmIntegration {
   id           String    @id @default(uuid()) @db.Uuid
   clientId     String    @map("client_id") @db.Uuid
   provider     String    @db.VarChar(50)
-  accessToken  String?   @map("access_token") @db.Text
-  refreshToken String?   @map("refresh_token") @db.Text
+  accessToken  String?   @map("access_token")
+  refreshToken String?   @map("refresh_token")
   config       Json?
   lastSync     DateTime? @map("last_sync")
   syncStatus   String?   @map("sync_status") @db.VarChar(50)
   createdAt    DateTime  @default(now()) @map("created_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@unique([clientId, provider])
   @@index([clientId])
   @@map("crm_integrations")
 }
 
-// ═══════════════════════════════════════════════════════════
-// SYNC LOG — Track CRM sync operations
-// ═══════════════════════════════════════════════════════════
 model SyncLog {
   id         String   @id @default(uuid()) @db.Uuid
   clientId   String   @map("client_id") @db.Uuid
@@ -819,18 +757,14 @@ model SyncLog {
   entity     String   @db.VarChar(50)
   externalId String?  @map("external_id") @db.VarChar(255)
   status     String   @db.VarChar(50)
-  error      String?  @db.Text
+  error      String?
   createdAt  DateTime @default(now()) @map("created_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@map("sync_logs")
 }
 
-// ═══════════════════════════════════════════════════════════
-// SYNC CONFLICTS — CRM merge conflicts
-// ═══════════════════════════════════════════════════════════
 model SyncConflict {
   id              String   @id @default(uuid()) @db.Uuid
   clientId        String   @map("client_id") @db.Uuid
@@ -841,76 +775,63 @@ model SyncConflict {
   resolved        Boolean  @default(false)
   resolution      Json?
   createdAt       DateTime @default(now()) @map("created_at")
-
-  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contact         Contact? @relation(fields: [contactId], references: [id])
 
   @@index([clientId])
   @@map("sync_conflicts")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AGENT SUBSCRIPTIONS — Optional Qwillio Agent modules
-// ═══════════════════════════════════════════════════════════
 model AgentSubscription {
-  id                    String   @id @default(uuid()) @db.Uuid
-  clientId              String   @unique @map("client_id") @db.Uuid
-  emailAi               Boolean  @default(false) @map("email_ai")
-  paymentsAi            Boolean  @default(false) @map("payments_ai")
-  accountingAi          Boolean  @default(false) @map("accounting_ai")
-  inventoryAi           Boolean  @default(false) @map("inventory_ai")
-  bundle                Boolean  @default(false)
-  stripeSubscriptionId  String?  @map("stripe_subscription_id") @db.VarChar(255)
-  status                String   @default("active") @db.VarChar(50)
-  createdAt             DateTime @default(now()) @map("created_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                   String   @id @default(uuid()) @db.Uuid
+  clientId             String   @unique @map("client_id") @db.Uuid
+  emailAi              Boolean  @default(false) @map("email_ai")
+  paymentsAi           Boolean  @default(false) @map("payments_ai")
+  accountingAi         Boolean  @default(false) @map("accounting_ai")
+  inventoryAi          Boolean  @default(false) @map("inventory_ai")
+  bundle               Boolean  @default(false)
+  stripeSubscriptionId String?  @map("stripe_subscription_id") @db.VarChar(255)
+  status               String   @default("active") @db.VarChar(50)
+  createdAt            DateTime @default(now()) @map("created_at")
+  client               Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@map("agent_subscriptions")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AGENT EMAIL CONFIG — Email AI module settings
-// ═══════════════════════════════════════════════════════════
 model AgentEmailConfig {
-  id             String   @id @default(uuid()) @db.Uuid
-  clientId       String   @unique @map("client_id") @db.Uuid
-  gmailToken     Json?    @map("gmail_token")
-  outlookToken   Json?    @map("outlook_token")
-  autoReply      Boolean  @default(false) @map("auto_reply")
-  replyTone      String   @default("professional") @map("reply_tone") @db.VarChar(50)
-  blockedSenders String[] @default([]) @map("blocked_senders")
-  templates      Json?
-  lastSyncAt        DateTime? @map("last_sync_at")
-  businessContext   String?   @map("business_context") @db.Text
-  followUpEnabled   Boolean   @default(false) @map("follow_up_enabled")
-  followUpDelayHours Int      @default(24) @map("follow_up_delay_hours")
-  active         Boolean  @default(true)
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                 String    @id @default(uuid()) @db.Uuid
+  clientId           String    @unique @map("client_id") @db.Uuid
+  gmailToken         Json?     @map("gmail_token")
+  outlookToken       Json?     @map("outlook_token")
+  autoReply          Boolean   @default(false) @map("auto_reply")
+  replyTone          String    @default("professional") @map("reply_tone") @db.VarChar(50)
+  blockedSenders     String[]  @default([]) @map("blocked_senders")
+  templates          Json?
+  active             Boolean   @default(true)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  businessContext    String?   @map("business_context")
+  followUpDelayHours Int       @default(24) @map("follow_up_delay_hours")
+  followUpEnabled    Boolean   @default(false) @map("follow_up_enabled")
+  lastSyncAt         DateTime? @map("last_sync_at")
+  client             Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@map("agent_email_configs")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AGENT INVENTORY — Inventory tracking module
-// ═══════════════════════════════════════════════════════════
 model AgentInventory {
-  id            String    @id @default(uuid()) @db.Uuid
-  clientId      String    @map("client_id") @db.Uuid
-  productName   String    @map("product_name") @db.VarChar(255)
-  quantity      Decimal   @db.Decimal(10, 2)
-  unit          String?   @db.VarChar(50)
-  minThreshold  Decimal?  @map("min_threshold") @db.Decimal(10, 2)
-  supplierEmail String?   @map("supplier_email") @db.VarChar(255)
-  autoOrder     Boolean   @default(false) @map("auto_order")
-  lastOrderedAt  DateTime? @map("last_ordered_at")
-  avgDailyUsage  Decimal?  @map("avg_daily_usage") @db.Decimal(10, 2)
-  daysUntilEmpty Int?      @map("days_until_empty")
-  lastUpdated   DateTime  @default(now()) @map("last_updated") @updatedAt
-
-  client          Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id              String                @id @default(uuid()) @db.Uuid
+  clientId        String                @map("client_id") @db.Uuid
+  productName     String                @map("product_name") @db.VarChar(255)
+  quantity        Decimal               @db.Decimal(10, 2)
+  unit            String?               @db.VarChar(50)
+  minThreshold    Decimal?              @map("min_threshold") @db.Decimal(10, 2)
+  supplierEmail   String?               @map("supplier_email") @db.VarChar(255)
+  autoOrder       Boolean               @default(false) @map("auto_order")
+  lastUpdated     DateTime              @default(now()) @updatedAt @map("last_updated")
+  avgDailyUsage   Decimal?              @map("avg_daily_usage") @db.Decimal(10, 2)
+  daysUntilEmpty  Int?                  @map("days_until_empty")
+  lastOrderedAt   DateTime?             @map("last_ordered_at")
+  client          Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
   inventoryLogs   AgentInventoryLog[]
   reorderRequests AgentReorderRequest[]
 
@@ -918,44 +839,36 @@ model AgentInventory {
   @@map("agent_inventory")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AGENT ACCOUNTING — Accounting AI module settings
-// ═══════════════════════════════════════════════════════════
 model AgentAccounting {
-  id               String   @id @default(uuid()) @db.Uuid
-  clientId         String   @unique @map("client_id") @db.Uuid
-  quickbooksToken  Json?    @map("quickbooks_token")
-  waveToken        Json?    @map("wave_token")
-  stripeConnected  Boolean  @default(false) @map("stripe_connected")
-  autoInvoice      Boolean  @default(false) @map("auto_invoice")
-  invoiceTemplate  Json?    @map("invoice_template")
-  taxRate          Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 2)
-  createdAt        DateTime @default(now()) @map("created_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid()) @db.Uuid
+  clientId        String   @unique @map("client_id") @db.Uuid
+  quickbooksToken Json?    @map("quickbooks_token")
+  waveToken       Json?    @map("wave_token")
+  stripeConnected Boolean  @default(false) @map("stripe_connected")
+  autoInvoice     Boolean  @default(false) @map("auto_invoice")
+  invoiceTemplate Json?    @map("invoice_template")
+  taxRate         Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@map("agent_accounting")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AGENT EXPENSES — Accounting AI expense tracking
-// ═══════════════════════════════════════════════════════════
 model AgentExpense {
-  id                 String    @id @default(uuid()) @db.Uuid
-  clientId           String    @map("client_id") @db.Uuid
-  description        String    @db.VarChar(500)
-  amount             Decimal   @db.Decimal(12, 2)
-  currency           String    @default("USD") @db.VarChar(10)
-  category           String?   @db.VarChar(50)
-  categoryConfidence Float?    @map("category_confidence")
+  id                 String   @id @default(uuid()) @db.Uuid
+  clientId           String   @map("client_id") @db.Uuid
+  description        String   @db.VarChar(500)
+  amount             Decimal  @db.Decimal(12, 2)
+  currency           String   @default("USD") @db.VarChar(10)
+  category           String?  @db.VarChar(50)
+  categoryConfidence Float?   @map("category_confidence")
   date               DateTime
-  vendor             String?   @db.VarChar(255)
-  receiptUrl         String?   @map("receipt_url") @db.VarChar(500)
-  isRecurring        Boolean   @default(false) @map("is_recurring")
-  notes              String?   @db.Text
-  createdAt          DateTime  @default(now()) @map("created_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  vendor             String?  @db.VarChar(255)
+  receiptUrl         String?  @map("receipt_url") @db.VarChar(500)
+  isRecurring        Boolean  @default(false) @map("is_recurring")
+  notes              String?
+  createdAt          DateTime @default(now()) @map("created_at")
+  client             Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([clientId, date])
@@ -963,9 +876,6 @@ model AgentExpense {
   @@map("agent_expenses")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AGENT INCOME — Accounting AI income tracking
-// ═══════════════════════════════════════════════════════════
 model AgentIncome {
   id          String   @id @default(uuid()) @db.Uuid
   clientId    String   @map("client_id") @db.Uuid
@@ -976,17 +886,13 @@ model AgentIncome {
   invoiceId   String?  @map("invoice_id") @db.VarChar(255)
   date        DateTime
   createdAt   DateTime @default(now()) @map("created_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([clientId, date])
   @@map("agent_income")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AGENT FINANCIAL REPORTS — Accounting AI generated reports
-// ═══════════════════════════════════════════════════════════
 model AgentFinancialReport {
   id              String   @id @default(uuid()) @db.Uuid
   clientId        String   @map("client_id") @db.Uuid
@@ -997,19 +903,15 @@ model AgentFinancialReport {
   totalExpenses   Decimal  @map("total_expenses") @db.Decimal(12, 2)
   netProfit       Decimal  @map("net_profit") @db.Decimal(12, 2)
   categorySummary Json     @map("category_summary")
-  aiInsights      String?  @map("ai_insights") @db.Text
+  aiInsights      String?  @map("ai_insights")
   createdAt       DateTime @default(now()) @map("created_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([clientId, reportType])
   @@map("agent_financial_reports")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AGENT INVOICES — Payment AI invoice tracking
-// ═══════════════════════════════════════════════════════════
 model AgentInvoice {
   id             String    @id @default(uuid()) @db.Uuid
   clientId       String    @map("client_id") @db.Uuid
@@ -1027,11 +929,10 @@ model AgentInvoice {
   remindersSent  Int       @default(0) @map("reminders_sent")
   lastReminderAt DateTime? @map("last_reminder_at")
   lineItems      Json      @map("line_items")
-  notes          String?   @db.Text
+  notes          String?
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([status])
@@ -1039,21 +940,17 @@ model AgentInvoice {
   @@map("agent_invoices")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AGENT INVENTORY LOGS — Stock movement history
-// ═══════════════════════════════════════════════════════════
 model AgentInventoryLog {
-  id              String   @id @default(uuid()) @db.Uuid
-  inventoryId     String   @map("inventory_id") @db.Uuid
-  clientId        String   @map("client_id") @db.Uuid
-  changeType      String   @map("change_type") @db.VarChar(50)
-  quantityChange  Decimal  @map("quantity_change") @db.Decimal(10, 2)
-  quantityAfter   Decimal  @map("quantity_after") @db.Decimal(10, 2)
-  note            String?  @db.VarChar(500)
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  inventory AgentInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id             String         @id @default(uuid()) @db.Uuid
+  inventoryId    String         @map("inventory_id") @db.Uuid
+  clientId       String         @map("client_id") @db.Uuid
+  changeType     String         @map("change_type") @db.VarChar(50)
+  quantityChange Decimal        @map("quantity_change") @db.Decimal(10, 2)
+  quantityAfter  Decimal        @map("quantity_after") @db.Decimal(10, 2)
+  note           String?        @db.VarChar(500)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  client         Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  inventory      AgentInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@index([inventoryId])
   @@index([clientId])
@@ -1061,51 +958,43 @@ model AgentInventoryLog {
   @@map("agent_inventory_logs")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AGENT REORDER REQUESTS — Auto-reorder history
-// ═══════════════════════════════════════════════════════════
 model AgentReorderRequest {
-  id            String    @id @default(uuid()) @db.Uuid
-  inventoryId   String    @map("inventory_id") @db.Uuid
-  clientId      String    @map("client_id") @db.Uuid
-  supplierEmail String    @map("supplier_email") @db.VarChar(255)
-  quantity      Decimal   @db.Decimal(10, 2)
-  emailBody     String    @map("email_body") @db.Text
-  status        String    @default("sent") @db.VarChar(50)
-  sentAt        DateTime  @map("sent_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-
-  inventory AgentInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id            String         @id @default(uuid()) @db.Uuid
+  inventoryId   String         @map("inventory_id") @db.Uuid
+  clientId      String         @map("client_id") @db.Uuid
+  supplierEmail String         @map("supplier_email") @db.VarChar(255)
+  quantity      Decimal        @db.Decimal(10, 2)
+  emailBody     String         @map("email_body")
+  status        String         @default("sent") @db.VarChar(50)
+  sentAt        DateTime       @map("sent_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  inventory     AgentInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@map("agent_reorder_requests")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AGENT EMAILS — Email AI classified emails
-// ═══════════════════════════════════════════════════════════
 model AgentEmail {
-  id              String    @id @default(uuid()) @db.Uuid
-  clientId        String    @map("client_id") @db.Uuid
-  gmailMessageId  String    @unique @map("gmail_message_id") @db.VarChar(255)
-  threadId        String?   @map("thread_id") @db.VarChar(255)
-  fromAddress     String    @map("from_address") @db.VarChar(500)
-  toAddress       String    @map("to_address") @db.VarChar(500)
-  subject         String    @db.VarChar(1000)
-  bodyPreview     String    @map("body_preview") @db.Text
-  receivedAt      DateTime  @map("received_at")
-  classification  String?   @db.VarChar(50)
-  classificationConfidence Float? @map("classification_confidence")
-  autoReplied     Boolean   @default(false) @map("auto_replied")
-  autoReplyText   String?   @map("auto_reply_text") @db.Text
-  needsFollowUp   Boolean   @default(false) @map("needs_follow_up")
-  followUpAt      DateTime? @map("follow_up_at")
-  followUpSent    Boolean   @default(false) @map("follow_up_sent")
-  isRead          Boolean   @default(false) @map("is_read")
-  createdAt       DateTime  @default(now()) @map("created_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                       String    @id @default(uuid()) @db.Uuid
+  clientId                 String    @map("client_id") @db.Uuid
+  gmailMessageId           String    @unique @map("gmail_message_id") @db.VarChar(255)
+  threadId                 String?   @map("thread_id") @db.VarChar(255)
+  fromAddress              String    @map("from_address") @db.VarChar(500)
+  toAddress                String    @map("to_address") @db.VarChar(500)
+  subject                  String    @db.VarChar(1000)
+  bodyPreview              String    @map("body_preview")
+  receivedAt               DateTime  @map("received_at")
+  classification           String?   @db.VarChar(50)
+  classificationConfidence Float?    @map("classification_confidence")
+  autoReplied              Boolean   @default(false) @map("auto_replied")
+  autoReplyText            String?   @map("auto_reply_text")
+  needsFollowUp            Boolean   @default(false) @map("needs_follow_up")
+  followUpAt               DateTime? @map("follow_up_at")
+  followUpSent             Boolean   @default(false) @map("follow_up_sent")
+  isRead                   Boolean   @default(false) @map("is_read")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  client                   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([classification])
@@ -1113,41 +1002,35 @@ model AgentEmail {
   @@map("agent_emails")
 }
 
-// ═══════════════════════════════════════════════════════════
-// SCRIPT MUTATIONS — AI self-learning script changes
-// ═══════════════════════════════════════════════════════════
 model ScriptMutation {
-  id               String    @id @default(uuid()) @db.Uuid
-  niche            String    @db.VarChar(100)
-  language         String    @db.VarChar(10)
-  type             String    @db.VarChar(50)
-  changeApplied    String    @map("change_applied") @db.Text
-  reason           String    @db.Text
-  date             DateTime  @default(now())
-  callsBefore      Int       @map("calls_before")
-  conversionBefore Float     @map("conversion_before")
-  callsAfter       Int       @default(0) @map("calls_after")
-  conversionAfter  Float?    @map("conversion_after")
-  status           String    @default("testing") @db.VarChar(50)
-  confidenceScore  Int?      @map("confidence_score")
-  revertedAt       DateTime? @map("reverted_at")
-  revertReason     String?   @map("revert_reason") @db.Text
-  revertForensics      String?   @map("revert_forensics") @db.Text
-  statisticalSignificance Float? @map("statistical_significance")
-  callsVariantA        Int       @default(0) @map("calls_variant_a")
-  callsVariantB        Int       @default(0) @map("calls_variant_b")
-  conversionVariantA   Float?    @map("conversion_variant_a")
-  conversionVariantB   Float?    @map("conversion_variant_b")
-  createdAt        DateTime  @default(now()) @map("created_at")
+  id                      String    @id @default(uuid()) @db.Uuid
+  niche                   String    @db.VarChar(100)
+  language                String    @db.VarChar(10)
+  type                    String    @db.VarChar(50)
+  changeApplied           String    @map("change_applied")
+  reason                  String
+  date                    DateTime  @default(now())
+  callsBefore             Int       @map("calls_before")
+  conversionBefore        Float     @map("conversion_before")
+  callsAfter              Int       @default(0) @map("calls_after")
+  conversionAfter         Float?    @map("conversion_after")
+  status                  String    @default("testing") @db.VarChar(50)
+  confidenceScore         Int?      @map("confidence_score")
+  revertedAt              DateTime? @map("reverted_at")
+  revertReason            String?   @map("revert_reason")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  callsVariantA           Int       @default(0) @map("calls_variant_a")
+  callsVariantB           Int       @default(0) @map("calls_variant_b")
+  conversionVariantA      Float?    @map("conversion_variant_a")
+  conversionVariantB      Float?    @map("conversion_variant_b")
+  revertForensics         String?   @map("revert_forensics")
+  statisticalSignificance Float?    @map("statistical_significance")
 
   @@index([niche])
   @@index([status])
   @@map("script_mutations")
 }
 
-// ═══════════════════════════════════════════════════════════
-// AI DECISIONS — Log of all AI system decisions
-// ═══════════════════════════════════════════════════════════
 model AiDecision {
   id              String   @id @default(uuid()) @db.Uuid
   timestamp       DateTime @default(now())
@@ -1165,60 +1048,51 @@ model AiDecision {
   @@map("ai_decisions")
 }
 
-// ═══════════════════════════════════════════════════════════
-// SCRIPT A/B TESTS — Variant testing for call scripts
-// ═══════════════════════════════════════════════════════════
 model ScriptAbTest {
   id           String    @id @default(uuid()) @db.Uuid
   niche        String    @db.VarChar(100)
   language     String    @db.VarChar(10)
-  variantA     String    @map("variant_a") @db.Text
-  variantB     String    @map("variant_b") @db.Text
+  variantA     String    @map("variant_a")
+  variantB     String    @map("variant_b")
   callsA       Int       @default(0) @map("calls_a")
   conversionsA Int       @default(0) @map("conversions_a")
   callsB       Int       @default(0) @map("calls_b")
   conversionsB Int       @default(0) @map("conversions_b")
   winner       String?   @db.VarChar(10)
   decidedAt    DateTime? @map("decided_at")
-  active       Boolean   @default(true)
   createdAt    DateTime  @default(now()) @map("created_at")
+  active       Boolean   @default(true)
 
   @@index([niche])
   @@map("script_ab_tests")
 }
 
-// ═══════════════════════════════════════════════════════════
-// OBJECTION HANDLERS — Live objection response database
-// ═══════════════════════════════════════════════════════════
 model ObjectionHandler {
-  id            String    @id @default(uuid()) @db.Uuid
-  niche         String    @db.VarChar(100)
-  language      String    @db.VarChar(10)
-  objectionText String    @map("objection_text") @db.Text
-  frequency     Int       @default(0)
-  handlerV1     String?   @map("handler_v1") @db.Text
-  handlerV2     String?   @map("handler_v2") @db.Text
-  winRateV1     Float     @default(0) @map("win_rate_v1")
-  winRateV2     Float     @default(0) @map("win_rate_v2")
-  activeHandler String    @default("v1") @map("active_handler") @db.VarChar(10)
-  createdAt     DateTime  @default(now()) @map("created_at")
-  lastUpdated   DateTime  @default(now()) @updatedAt @map("last_updated")
+  id            String   @id @default(uuid()) @db.Uuid
+  niche         String   @db.VarChar(100)
+  language      String   @db.VarChar(10)
+  objectionText String   @map("objection_text")
+  frequency     Int      @default(0)
+  handlerV1     String?  @map("handler_v1")
+  handlerV2     String?  @map("handler_v2")
+  winRateV1     Float    @default(0) @map("win_rate_v1")
+  winRateV2     Float    @default(0) @map("win_rate_v2")
+  activeHandler String   @default("v1") @map("active_handler") @db.VarChar(10)
+  createdAt     DateTime @default(now()) @map("created_at")
+  lastUpdated   DateTime @default(now()) @updatedAt @map("last_updated")
 
   @@index([niche])
   @@index([language])
   @@map("objection_handlers")
 }
 
-// ═══════════════════════════════════════════════════════════
-// SCRIPT VERSIONS — Full version history for every script
-// ═══════════════════════════════════════════════════════════
 model ScriptVersion {
   id               String    @id @default(uuid()) @db.Uuid
   niche            String    @db.VarChar(100)
   language         String    @db.VarChar(10)
   version          Int
-  scriptText       String    @map("script_text") @db.Text
-  openingText      String?   @map("opening_text") @db.Text
+  scriptText       String    @map("script_text")
+  openingText      String?   @map("opening_text")
   conversionRate   Float?    @map("conversion_rate")
   callsOnVersion   Int       @default(0) @map("calls_on_version")
   avgInterestScore Float?    @map("avg_interest_score")
@@ -1230,15 +1104,12 @@ model ScriptVersion {
   @@map("script_versions")
 }
 
-// ═══════════════════════════════════════════════════════════
-// OPENING VARIANTS — A/B/C testing for call openings
-// ═══════════════════════════════════════════════════════════
 model OpeningVariant {
   id             String    @id @default(uuid()) @db.Uuid
   niche          String    @db.VarChar(100)
   language       String    @db.VarChar(10)
   role           String    @db.VarChar(20)
-  openingText    String    @map("opening_text") @db.Text
+  openingText    String    @map("opening_text")
   callsCount     Int       @default(0) @map("calls_count")
   connectionRate Float     @default(0) @map("connection_rate")
   engagementRate Float     @default(0) @map("engagement_rate")
@@ -1250,25 +1121,19 @@ model OpeningVariant {
   @@map("opening_variants")
 }
 
-// ═══════════════════════════════════════════════════════════
-// NICHE BEST TIMES — Optimal calling windows per niche
-// ═══════════════════════════════════════════════════════════
 model NicheBestTime {
-  id           String   @id @default(uuid()) @db.Uuid
-  niche        String   @db.VarChar(100)
-  dayOfWeek    Int      @map("day_of_week")
-  hourUtc      Int      @map("hour_utc")
-  conversionRate Float  @map("conversion_rate")
-  sampleSize   Int      @map("sample_size")
-  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  niche          String   @db.VarChar(100)
+  dayOfWeek      Int      @map("day_of_week")
+  hourUtc        Int      @map("hour_utc")
+  conversionRate Float    @map("conversion_rate")
+  sampleSize     Int      @map("sample_size")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@unique([niche, dayOfWeek, hourUtc])
   @@map("niche_best_times")
 }
 
-// ═══════════════════════════════════════════════════════════
-// LOCAL PRESENCE NUMBERS — Area-code matched Twilio numbers
-// ═══════════════════════════════════════════════════════════
 model LocalPresenceNumber {
   id          String   @id @default(uuid()) @db.Uuid
   areaCode    String   @map("area_code") @db.VarChar(10)
@@ -1282,9 +1147,6 @@ model LocalPresenceNumber {
   @@map("local_presence_numbers")
 }
 
-// ═══════════════════════════════════════════════════════════
-// FOLLOW-UP SEQUENCES — Multi-channel follow-up tracking
-// ═══════════════════════════════════════════════════════════
 model FollowUpSequence {
   id          String    @id @default(uuid()) @db.Uuid
   prospectId  String    @map("prospect_id") @db.Uuid
@@ -1295,9 +1157,9 @@ model FollowUpSequence {
   opened      Boolean   @default(false)
   clicked     Boolean   @default(false)
   replied     Boolean   @default(false)
+  content     String?   @db.Text
   createdAt   DateTime  @default(now()) @map("created_at")
-
-  prospect Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  prospect    Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
 
   @@index([prospectId])
   @@index([scheduledAt])
@@ -1305,26 +1167,20 @@ model FollowUpSequence {
   @@map("follow_up_sequences")
 }
 
-// ═══════════════════════════════════════════════════════════
-// ADMIN CONFIG - Centralised remote configuration for Mission Control
-// ═══════════════════════════════════════════════════════════
 model AdminConfig {
   id                     String   @id @default(uuid()) @db.Uuid
-  // Bot Configuration
   callsPerDay            Int      @default(50) @map("calls_per_day")
   callWindowStart        Int      @default(9) @map("call_window_start")
   callWindowEnd          Int      @default(19) @map("call_window_end")
-  activeDays             String[] @default(["monday","tuesday","wednesday","thursday","friday"]) @map("active_days")
+  activeDays             String[] @default(["monday", "tuesday", "wednesday", "thursday", "friday"]) @map("active_days")
   callIntervalMinutes    Int      @default(20) @map("call_interval_minutes")
   prospectionQuotaPerDay Int      @default(100) @map("prospection_quota_per_day")
   minPriorityScore       Int      @default(0) @map("min_priority_score")
   targetCities           String[] @default([]) @map("target_cities")
-  // VAPI Configuration
   vapiAssistantId        String?  @map("vapi_assistant_id") @db.VarChar(255)
   vapiVoiceId            String?  @map("vapi_voice_id") @db.VarChar(100)
   maxCallDurationMin     Int      @default(10) @map("max_call_duration_min")
   silenceTimeoutSeconds  Int      @default(30) @map("silence_timeout_seconds")
-  // Prospecting Configuration
   apifyActorId           String?  @map("apify_actor_id") @db.VarChar(255)
   targetNiches           String[] @default([]) @map("target_niches")
   apifyTargetCities      String[] @default([]) @map("apify_target_cities")
@@ -1332,4 +1188,110 @@ model AdminConfig {
   updatedAt              DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@map("admin_config")
+}
+
+// ─── Prospect Auto-Booking ────────────────────────────────────────────────────
+
+model ProspectBookingSlot {
+  id            String    @id @default(uuid()) @db.Uuid
+  prospectId    String    @map("prospect_id") @db.Uuid
+  token         String    @unique @db.VarChar(64)
+  slots         Json
+  selectedSlot  DateTime? @map("selected_slot")
+  status        String    @default("pending") @db.VarChar(20)
+  confirmedAt   DateTime? @map("confirmed_at")
+  expiresAt     DateTime  @map("expires_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  prospect      Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([status])
+  @@index([prospectId])
+  @@map("prospect_booking_slots")
+}
+
+// ─── Agent Anomaly Alerts ─────────────────────────────────────────────────────
+
+model AgentAnomaly {
+  id           String    @id @default(uuid()) @db.Uuid
+  metricName   String    @map("metric_name") @db.VarChar(100)
+  currentValue Float     @map("current_value")
+  avgValue     Float     @map("avg_value")
+  deviation    Float
+  diagnosis    String?   @db.Text
+  severity     String    @default("warn") @db.VarChar(20)
+  resolvedAt   DateTime? @map("resolved_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([metricName])
+  @@index([severity])
+  @@index([createdAt])
+  @@map("agent_anomalies")
+}
+
+// ─── Self-Learning Agent System ───────────────────────────────────────────────
+
+model AgentStrategy {
+  id          String   @id @default(uuid()) @db.Uuid
+  agentType   String   @map("agent_type") @db.VarChar(50)
+  niche       String   @db.VarChar(100)
+  language    String   @default("en") @db.VarChar(10)
+  isActive    Boolean  @default(true) @map("is_active")
+  version     Int      @default(1)
+  playbook    Json
+  winRate     Float    @default(0) @map("win_rate")
+  sampleSize  Int      @default(0) @map("sample_size")
+  evolvedAt   DateTime @default(now()) @map("evolved_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([agentType, niche, language, isActive])
+  @@index([agentType])
+  @@index([niche])
+  @@index([isActive])
+  @@map("agent_strategies")
+}
+
+model AgentAction {
+  id          String    @id @default(uuid()) @db.Uuid
+  agentType   String    @map("agent_type") @db.VarChar(50)
+  prospectId  String?   @map("prospect_id") @db.Uuid
+  niche       String?   @db.VarChar(100)
+  language    String    @default("en") @db.VarChar(10)
+  strategyId  String?   @map("strategy_id") @db.Uuid
+  input       Json
+  output      Json
+  features    Json
+  outcome     String?   @db.VarChar(50)
+  reward      Float?
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([agentType])
+  @@index([niche])
+  @@index([outcome])
+  @@index([createdAt])
+  @@map("agent_actions")
+}
+
+model AgentInsight {
+  id           String   @id @default(uuid()) @db.Uuid
+  sourceAgent  String   @map("source_agent") @db.VarChar(50)
+  targetAgents String[] @default([]) @map("target_agents")
+  niche        String?  @db.VarChar(100)
+  language     String   @default("en") @db.VarChar(10)
+  insightType  String   @map("insight_type") @db.VarChar(50)
+  pattern      Json
+  confidence   Float    @default(0.5)
+  sampleSize   Int      @default(1) @map("sample_size")
+  isActive     Boolean  @default(true) @map("is_active")
+  appliedCount Int      @default(0) @map("applied_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([sourceAgent])
+  @@index([niche])
+  @@index([isActive])
+  @@map("agent_insights")
 }

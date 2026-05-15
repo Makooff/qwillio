@@ -15,6 +15,8 @@ import { discordService } from './discord.service';
 import { abTestingService } from './ab-testing.service';
 import { followUpSequencesService } from './follow-up-sequences.service';
 import { isHoliday } from '../config/scheduling';
+import { aiScriptGeneratorService } from './ai-script-generator.service';
+import { closerAgentService } from './closer-agent.service';
 
 // ─── US Federal holidays (YYYY-MM-DD) ────────────────────
 // Wide call windows so a /5 min cron can reasonably fill a 50-call/day
@@ -139,20 +141,41 @@ export class OutboundEngineService {
     return env.TWILIO_PHONE_NUMBER || env.VAPI_PHONE_NUMBER;
   }
 
-  /** Build personalized script from template */
-  private buildScript(
+  /** Build personalized script from hardcoded templates or AI fallback */
+  private async buildScript(
     niche: string,
     language: 'en' | 'fr',
     variant: 'A' | 'B',
     businessName: string,
     city: string,
-  ): string {
+    extra?: { reviewCount?: number | null; rating?: number | null; hasWebsite?: boolean },
+  ): Promise<string> {
     const scriptMap = language === 'fr' ? MARIE_SCRIPTS : ASHLEY_SCRIPTS;
     const nicheKey = niche.replace(/-/g, '_');
-    const scripts = scriptMap[nicheKey] ?? scriptMap['home_services'];
-    const template = scripts[variant] ?? scripts['A'];
 
-    return template
+    // Use hardcoded script if we have one for this niche
+    if (scriptMap[nicheKey]) {
+      const template = (scriptMap[nicheKey][variant] ?? scriptMap[nicheKey]['A']) as string;
+      return template
+        .replace(/\{\{business_name\}\}/g, businessName)
+        .replace(/\{\{city\}\}/g, city)
+        .replace(/\{\{niche\}\}/g, niche);
+    }
+
+    // Unknown niche — generate via AI
+    logger.info(`[OutboundEngine] No hardcoded script for niche="${nicheKey}", generating via AI...`);
+    const generated = await aiScriptGeneratorService.generateScript({
+      businessName,
+      niche: nicheKey,
+      city,
+      reviewCount: extra?.reviewCount,
+      rating: extra?.rating,
+      hasWebsite: extra?.hasWebsite,
+      agentName: language === 'fr' ? 'Marie' : 'Ashley',
+      language,
+    });
+
+    return generated.rawFull
       .replace(/\{\{business_name\}\}/g, businessName)
       .replace(/\{\{city\}\}/g, city)
       .replace(/\{\{niche\}\}/g, niche);
@@ -209,7 +232,7 @@ export class OutboundEngineService {
     const prospect = await prisma.prospect.findFirst({
       where: {
         status: 'new',
-        country: 'US',
+        country: { in: ['US', 'FR', 'BE'] },
         phone: { not: null },
         eligibleForCall: true,
         // Skip phones explicitly flagged as personal mobile (Twilio LTI:
@@ -231,7 +254,7 @@ export class OutboundEngineService {
       // Diagnose WHY no eligible prospect — it's the #1 reason for empty
       // days, and the answer is usually trivial (pool exhausted, all
       // already called today, all tried 3+ times).
-      const baseUS = { status: 'new', country: 'US', phone: { not: null }, eligibleForCall: true, isMobile: false } as const;
+      const baseUS = { status: 'new', country: { in: ['US', 'FR', 'BE'] as string[] }, phone: { not: null }, eligibleForCall: true, isMobile: false } as const;
       const [pool, poolToday, poolMaxedOut, poolAssigned] = await Promise.all([
         prisma.prospect.count({ where: baseUS }),
         prisma.prospect.count({ where: { ...baseUS, lastCallDate: { gte: startOfDay } } }),
@@ -270,13 +293,26 @@ export class OutboundEngineService {
 
     const attemptNumber = prospect.callAttempts + 1;
     const niche = prospect.niche ?? prospect.businessType ?? 'home_services';
-    const language = (prospect.country === 'FR' || prospect.city?.toLowerCase().includes('quebec'))
-      ? 'fr'
-      : 'en';
+    const language = (
+      prospect.country === 'FR' ||
+      prospect.country === 'BE' ||
+      prospect.city?.toLowerCase().includes('quebec')
+    ) ? 'fr' : 'en';
 
     // Select A/B variant
     const variant = await abTestingService.pickVariant(niche, language);
-    const script = this.buildScript(niche, language as 'en' | 'fr', variant, prospect.businessName, prospect.city ?? '');
+    const script = await this.buildScript(
+      niche,
+      language as 'en' | 'fr',
+      variant,
+      prospect.businessName,
+      prospect.city ?? '',
+      {
+        reviewCount: prospect.googleReviewsCount,
+        rating: prospect.googleRating,
+        hasWebsite: !!prospect.website,
+      },
+    );
 
     const localNumber = await this.getLocalPresenceNumber(prospect.phone);
 
@@ -486,16 +522,31 @@ export class OutboundEngineService {
       await abTestingService.recordConversion(call.niche, call.language, call.scriptVariant as 'A' | 'B');
     }
 
-    // Trigger post-call follow-up sequences (SMS + email)
+    // Trigger AI closer sequence (replaces generic follow-up for score >= 5)
     try {
-      await followUpSequencesService.triggerPostCallSequence(
-        call.prospectId,
+      await closerAgentService.scheduleSequence({
+        prospectId: call.prospectId,
         interestScore,
-        prospect.callAttempts ?? 1,
-        outcomeData.detectionResult ?? 'no_answer',
-      );
+        attemptNumber: prospect.callAttempts ?? 1,
+        detectionResult: outcomeData.detectionResult ?? 'no_answer',
+        transcript: outcomeData.transcript,
+        pricingDiscussed: outcomeData.pricingDiscussed,
+        prospectAskedQuestion: outcomeData.prospectAskedQuestion,
+        agreedToDemo: outcomeData.agreedToDemo,
+      });
     } catch (followUpErr) {
-      logger.error('[OutboundEngine] Follow-up trigger failed (non-fatal):', followUpErr);
+      logger.error('[OutboundEngine] Closer agent schedule failed (non-fatal):', followUpErr);
+      // Fallback to legacy follow-up sequences
+      try {
+        await followUpSequencesService.triggerPostCallSequence(
+          call.prospectId,
+          interestScore,
+          prospect.callAttempts ?? 1,
+          outcomeData.detectionResult ?? 'no_answer',
+        );
+      } catch (legacyErr) {
+        logger.error('[OutboundEngine] Legacy follow-up trigger also failed:', legacyErr);
+      }
     }
 
     // Mark exhausted after 3 failed attempts with no answer

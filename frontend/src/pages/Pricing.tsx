@@ -18,16 +18,10 @@ export default function Pricing() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
   const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly');
-  const [callsDay, setCallsDay] = useState(15);
-  const [jobValue, setJobValue] = useState(500);
 
   const annualPrice = (p: number) => p * 10;
   const effectiveMonthly = (p: number) => Math.round(p * 10 / 12);
   const displayPrice = (p: number) => billing === 'annual' ? effectiveMonthly(p) : p;
-
-  const missedPerMonth = Math.round(callsDay * 0.28 * 22);
-  const lostRevenue = missedPerMonth * jobValue;
-  const starterBreakeven = Math.ceil(497 / Math.max(1, jobValue));
 
   useSEO({
     title: 'Pricing',
@@ -105,72 +99,6 @@ export default function Pricing() {
               : 'First month free on all plans. No setup fee. Cancel anytime.'}
           </p>
         </FadeIn>
-      </section>
-
-      {/* ROI Calculator */}
-      <section className="pb-20 px-6">
-        <div className="max-w-[780px] mx-auto">
-          <FadeIn>
-            <div className="rounded-3xl bg-[#f5f5f7] border border-[#d2d2d7] p-8 md:p-10">
-              <div className="text-center mb-8">
-                <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-2">{isFr ? 'Calculateur ROI' : 'ROI Calculator'}</p>
-                <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
-                  {isFr ? 'Combien perdez-vous en appels manqués ?' : 'How much are you losing in missed calls?'}
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                <div>
-                  <label className="block text-sm font-medium mb-3">
-                    {isFr ? 'Appels entrants par jour' : 'Inbound calls per day'}
-                    <span className="ml-2 text-[#6366f1] font-semibold">{callsDay}</span>
-                  </label>
-                  <input type="range" min={3} max={80} value={callsDay} onChange={e => setCallsDay(+e.target.value)}
-                    className="w-full accent-[#6366f1]" />
-                  <div className="flex justify-between text-xs text-[#86868b] mt-1"><span>3</span><span>80</span></div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-3">
-                    {isFr ? 'Valeur moyenne d\'un client ($)' : 'Average job / client value ($)'}
-                    <span className="ml-2 text-[#6366f1] font-semibold">${jobValue.toLocaleString()}</span>
-                  </label>
-                  <input type="range" min={100} max={2000} step={50} value={jobValue} onChange={e => setJobValue(+e.target.value)}
-                    className="w-full accent-[#6366f1]" />
-                  <div className="flex justify-between text-xs text-[#86868b] mt-1"><span>$100</span><span>$2,000</span></div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-2xl bg-white border border-[#d2d2d7] p-5 text-center">
-                  <p className="text-xs text-[#86868b] mb-1">{isFr ? 'Appels manqués/mois' : 'Missed calls/month'}</p>
-                  <p className="text-3xl font-semibold text-[#1d1d1f]">{missedPerMonth}</p>
-                  <p className="text-xs text-[#86868b] mt-1">{isFr ? '(~28% sans répondeur)' : '(~28% without answering)'}</p>
-                </div>
-                <div className="rounded-2xl bg-red-50 border border-red-200 p-5 text-center">
-                  <p className="text-xs text-red-500 mb-1">{isFr ? 'Revenus perdus/mois' : 'Revenue lost/month'}</p>
-                  <p className="text-3xl font-semibold text-red-600">${lostRevenue.toLocaleString()}</p>
-                  <p className="text-xs text-red-400 mt-1">{isFr ? 'conservatif' : 'conservative estimate'}</p>
-                </div>
-                <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5 text-center">
-                  <p className="text-xs text-emerald-600 mb-1">{isFr ? 'ROI avec Qwillio Starter' : 'ROI with Qwillio Starter'}</p>
-                  <p className="text-3xl font-semibold text-emerald-700">
-                    {lostRevenue > 497 ? `${Math.round(lostRevenue / 497)}x` : '—'}
-                  </p>
-                  <p className="text-xs text-emerald-600 mt-1">
-                    {lostRevenue > 497
-                      ? (isFr ? `rentable dès ${starterBreakeven} appel${starterBreakeven > 1 ? 's' : ''} récupéré${starterBreakeven > 1 ? 's' : ''}` : `pays off in ${starterBreakeven} saved call${starterBreakeven > 1 ? 's' : ''}`)
-                      : (isFr ? 'ajustez les valeurs' : 'adjust the sliders')}
-                  </p>
-                </div>
-              </div>
-              {lostRevenue > 497 && (
-                <p className="text-center text-sm text-[#86868b] mt-6">
-                  {isFr
-                    ? `Qwillio Starter à $497/mois récupère ${Math.round(lostRevenue / 497)}x sa valeur rien qu'en appels non manqués.`
-                    : `Qwillio Starter at $497/month recovers ${Math.round(lostRevenue / 497)}x its cost just from answered calls.`}
-                </p>
-              )}
-            </div>
-          </FadeIn>
-        </div>
       </section>
 
       {/* Receptionist Plans */}

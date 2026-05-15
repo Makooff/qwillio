@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Phone, Zap, Target, Brain,
   CreditCard, Settings, ExternalLink, TrendingUp,
   ScrollText, Activity, DollarSign, RotateCcw, Send, PhoneMissed,
-  Crosshair,
+  Crosshair, Bot, BarChart2, Bell,
 } from 'lucide-react';
 import { t } from '../../styles/admin-theme';
 import CommandPalette from '../ui/CommandPalette';
@@ -18,7 +18,10 @@ const PRIMARY_NAV: NavItem[] = [
   { path: '/admin/clients',     icon: Users,           label: 'Clients' },
   { path: '/admin/prospecting', icon: Crosshair,       label: 'Prospection' },
   { path: '/admin/ai-learning', icon: Brain,           label: 'IA' },
-  { path: '/admin/logs',        icon: ScrollText,      label: 'Logs' },
+  { path: '/admin/agents',        icon: Bot,        label: 'Agents IA' },
+  { path: '/admin/analytics',     icon: BarChart2,  label: 'Analytics' },
+  { path: '/admin/notifications', icon: Bell,       label: 'Notifications' },
+  { path: '/admin/logs',          icon: ScrollText, label: 'Logs' },
   { path: '/admin/billing',     icon: CreditCard,      label: 'Facturation' },
 ];
 
@@ -50,6 +53,13 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/prospecting': 'Prospection',
   '/admin/ai-learning': 'IA',
   '/admin/ai-decisions': 'IA — Décisions',
+  '/admin/agents': 'Agents IA',
+  '/admin/analytics': 'Analytics',
+  '/admin/notifications': 'Notifications',
+  '/admin/agents/work-planner': 'Work Planner',
+  '/admin/agents/business-plan': 'Business Plan Agent',
+  '/admin/agents/branding': 'Branding Agent',
+  '/admin/agents/evolution': 'Évolution des agents',
   '/admin/billing': 'Facturation',
   '/admin/settings': 'Paramètres',
   '/admin/campaigns': 'Campagnes',

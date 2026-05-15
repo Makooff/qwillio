@@ -645,6 +645,34 @@ class BotLoop {
     }, { timezone: 'UTC' });
 
     // ═══════════════════════════════════════════════════════════
+    // PROSPECTING ENGINE — CRON P5c: Agent Evolution — Sunday 3am UTC
+    // Evolves AI agent strategies from last week's action/outcome data
+    // ═══════════════════════════════════════════════════════════
+    cron.schedule('0 3 * * 0', async () => {
+      logger.info('🤖 [CRON] Running AI agent evolution cycle...');
+      trackAction('Évolution agents IA — stratégie hebdo');
+      try {
+        const { agentEvolutionService } = await import('../services/agent-evolution.service');
+        const result = await agentEvolutionService.evolveAll();
+        logger.info(`[CRON] Agent evolution complete: ${result.evolved} evolved, ${result.skipped} skipped`);
+      } catch (error) {
+        logger.error('[CRON] Agent evolution failed:', error);
+      }
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // Anomaly Detection — every hour at :30
+    // ═══════════════════════════════════════════════════════════
+    cron.schedule('30 * * * *', async () => {
+      try {
+        const { anomalyDetectionService } = await import('../services/anomaly-detection.service');
+        await anomalyDetectionService.runAnomalyCheck();
+      } catch (error) {
+        logger.error('[CRON] Anomaly detection failed:', error);
+      }
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
     // PROSPECTING ENGINE — CRON P5b: Call Intelligence — Sunday 2am UTC
     // Deep pattern analysis, objection optimization, mutation eval, weekly report
     // ═══════════════════════════════════════════════════════════

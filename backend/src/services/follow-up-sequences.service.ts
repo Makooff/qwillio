@@ -18,6 +18,7 @@ import { emailService } from './email.service';
 import { resend } from '../config/resend';
 import { discordService } from './discord.service';
 import { NICHE_SEND_TIMES } from '../config/followup-sequence';
+import { closerAgentService } from './closer-agent.service';
 
 // ─── Niche → preferred send hour (local time) ─────────────
 // Merges the canonical NICHE_SEND_TIMES with additional alias mappings
@@ -109,8 +110,13 @@ export class FollowUpSequencesService {
     }
   }
 
-  /** Process all pending follow-ups that are due */
+  /** Process all pending follow-ups that are due (legacy + AI closer) */
   async processDue(): Promise<number> {
+    // Run AI closer steps first (they have priority)
+    const closerSent = await closerAgentService.processDueCloserSteps().catch(err => {
+      logger.error('[FollowUp] Closer agent processDue failed:', err);
+      return 0;
+    });
     const now = new Date();
     const due = await prisma.followUpSequence.findMany({
       where: {
@@ -194,10 +200,10 @@ export class FollowUpSequencesService {
     }
 
     if (sent > 0) {
-      logger.info(`[FollowUp] Sent ${sent} follow-up(s)`);
+      logger.info(`[FollowUp] Sent ${sent} legacy follow-up(s)`);
     }
 
-    return sent;
+    return sent + closerSent;
   }
 
   /** Schedule or immediately send a follow-up */

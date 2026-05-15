@@ -14,6 +14,7 @@ import { followUpSequencesService } from '../services/follow-up-sequences.servic
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
+import { aiScriptGeneratorService } from '../services/ai-script-generator.service';
 
 const router = Router();
 
@@ -21,6 +22,37 @@ const router = Router();
 router.use(requireAdmin);
 
 // ─── Manual triggers (admin) ──────────────────────────────
+
+/** POST /api/prospecting/trigger/custom-scrape — Targeted scrape from campaign builder */
+router.post('/trigger/custom-scrape', async (req: Request, res: Response) => {
+  if (!env.APIFY_API_KEY) {
+    res.status(400).json({ error: 'APIFY_API_KEY non configurée' });
+    return;
+  }
+
+  const { niches, cities, extraQueries } = req.body as {
+    niches?: string[];
+    cities?: string[];
+    extraQueries?: string[];
+  };
+
+  if (!niches?.length || !cities?.length) {
+    res.status(400).json({ error: 'niches et cities requis' });
+    return;
+  }
+
+  // Respond immediately, run in background
+  res.json({ success: true, message: 'Scraping personnalisé démarré', niches, cities });
+
+  setImmediate(async () => {
+    try {
+      const result = await apifyScrapingService.runCustomScrape({ niches, cities, extraQueries });
+      logger.info(`[API/CustomScrape] Complete: ${result.added} added, ${result.skipped} skipped`);
+    } catch (err) {
+      logger.error('[API/CustomScrape] Error:', err);
+    }
+  });
+});
 
 /** POST /api/prospecting/trigger/scrape — Run Apify scraping immediately */
 router.post('/trigger/scrape', async (_req: Request, res: Response) => {
@@ -224,6 +256,51 @@ router.post('/call/:vapiCallId/complete', async (req: Request, res: Response) =>
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
+});
+
+/** GET /api/prospecting/ai-scripts/cache — AI script generator cache stats */
+router.get('/ai-scripts/cache', (_req: Request, res: Response) => {
+  res.json(aiScriptGeneratorService.getCacheStats());
+});
+
+/** POST /api/prospecting/ai-scripts/generate — Preview AI script for a niche */
+router.post('/ai-scripts/generate', async (req: Request, res: Response) => {
+  try {
+    const { niche, businessName, city, language, reviewCount, rating, hasWebsite } = req.body as {
+      niche: string;
+      businessName?: string;
+      city?: string;
+      language?: 'en' | 'fr';
+      reviewCount?: number;
+      rating?: number;
+      hasWebsite?: boolean;
+    };
+
+    if (!niche) {
+      res.status(400).json({ error: 'niche is required' });
+      return;
+    }
+
+    const script = await aiScriptGeneratorService.generateScript({
+      niche,
+      businessName: businessName ?? 'Sample Business',
+      city: city ?? 'Houston',
+      language: language ?? 'en',
+      reviewCount,
+      rating,
+      hasWebsite,
+    });
+
+    res.json({ success: true, script });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+/** DELETE /api/prospecting/ai-scripts/cache — Clear AI script cache */
+router.delete('/ai-scripts/cache', (_req: Request, res: Response) => {
+  aiScriptGeneratorService.clearCache();
+  res.json({ success: true, message: 'AI script cache cleared' });
 });
 
 /** POST /api/prospecting/call/:callId/classify-dropout — Classify drop-off stage */
