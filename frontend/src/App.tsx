@@ -17,23 +17,11 @@ const Landing = lazy(() => import('./pages/Landing'));
 // Admin pages (lazy loaded)
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Prospects = lazy(() => import('./pages/Prospects'));
 const AdminClients = lazy(() => import('./pages/Clients'));
-const AdminCampaigns = lazy(() => import('./pages/Campaigns'));
-const AdminCosts = lazy(() => import('./pages/Costs'));
-const AdminRetention = lazy(() => import('./pages/Retention'));
-const AdminFollowUps = lazy(() => import('./pages/FollowUps'));
-const AdminPhoneValidation = lazy(() => import('./pages/PhoneValidation'));
-const AiLearning = lazy(() => import('./pages/admin/AiLearning'));
-const AiDecisions = lazy(() => import('./pages/admin/AiDecisions'));
-const Prospecting = lazy(() => import('./pages/admin/Prospecting'));
 const AdminCalls = lazy(() => import('./pages/admin/Calls'));
 const AdminLeads = lazy(() => import('./pages/admin/Leads'));
 const AdminBilling = lazy(() => import('./pages/admin/Billing'));
-const AdminSystem = lazy(() => import('./pages/admin/System'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
-const LiveMonitor = lazy(() => import('./pages/admin/LiveMonitor'));
-const AdminLogs = lazy(() => import('./pages/admin/Logs'));
 const AdminNotFound = lazy(() => import('./pages/admin/NotFound'));
 // Client portal pages (lazy loaded)
 const ClientPortal = lazy(() => import('./pages/ClientPortal'));
@@ -74,13 +62,7 @@ const BlogPage = lazy(() => import('./pages/Blog'));
 const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 
 // AI Agents admin pages (lazy loaded)
-const Analytics = lazy(() => import('./pages/admin/Analytics'));
-const Notifications = lazy(() => import('./pages/admin/Notifications'));
 const Agents = lazy(() => import('./pages/admin/Agents'));
-const WorkPlanner = lazy(() => import('./pages/admin/WorkPlanner'));
-const BusinessPlanAgent = lazy(() => import('./pages/admin/BusinessPlanAgent'));
-const BrandingAgent = lazy(() => import('./pages/admin/BrandingAgent'));
-const AgentEvolution = lazy(() => import('./pages/admin/AgentEvolution'));
 
 // Closer (closeuse)
 const CloserSession        = lazy(() => import('./pages/closer/CloserSession'));
@@ -277,30 +259,31 @@ export default function App() {
           }
         >
           <Route index element={<Suspense fallback={<Spinner />}><Dashboard /></Suspense>} />
-          <Route path="prospects" element={<Suspense fallback={<Spinner />}><Prospects /></Suspense>} />
           <Route path="clients" element={<Suspense fallback={<Spinner />}><AdminClients /></Suspense>} />
-          <Route path="campaigns" element={<Suspense fallback={<Spinner />}><AdminCampaigns /></Suspense>} />
-          <Route path="costs" element={<Suspense fallback={<Spinner />}><AdminCosts /></Suspense>} />
-          <Route path="retention" element={<Suspense fallback={<Spinner />}><AdminRetention /></Suspense>} />
-          <Route path="followups" element={<Suspense fallback={<Spinner />}><AdminFollowUps /></Suspense>} />
-          <Route path="phone-validation" element={<Suspense fallback={<Spinner />}><AdminPhoneValidation /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<Spinner />}><AdminSettings /></Suspense>} />
-          <Route path="ai-learning" element={<Suspense fallback={<Spinner />}><AiLearning /></Suspense>} />
-          <Route path="ai-decisions" element={<Suspense fallback={<Spinner />}><AiDecisions /></Suspense>} />
-          <Route path="prospecting" element={<Suspense fallback={<Spinner />}><Prospecting /></Suspense>} />
           <Route path="calls" element={<Suspense fallback={<Spinner />}><AdminCalls /></Suspense>} />
           <Route path="leads" element={<Suspense fallback={<Spinner />}><AdminLeads /></Suspense>} />
           <Route path="billing" element={<Suspense fallback={<Spinner />}><AdminBilling /></Suspense>} />
-          <Route path="system" element={<Suspense fallback={<Spinner />}><AdminSystem /></Suspense>} />
-          <Route path="monitor" element={<Suspense fallback={<Spinner />}><LiveMonitor /></Suspense>} />
-          <Route path="logs" element={<Suspense fallback={<Spinner />}><AdminLogs /></Suspense>} />
-          <Route path="analytics" element={<Suspense fallback={<Spinner />}><Analytics /></Suspense>} />
-          <Route path="notifications" element={<Suspense fallback={<Spinner />}><Notifications /></Suspense>} />
           <Route path="agents" element={<Suspense fallback={<Spinner />}><Agents /></Suspense>} />
-          <Route path="agents/work-planner" element={<Suspense fallback={<Spinner />}><WorkPlanner /></Suspense>} />
-          <Route path="agents/business-plan" element={<Suspense fallback={<Spinner />}><BusinessPlanAgent /></Suspense>} />
-          <Route path="agents/branding" element={<Suspense fallback={<Spinner />}><BrandingAgent /></Suspense>} />
-          <Route path="agents/evolution" element={<Suspense fallback={<Spinner />}><AgentEvolution /></Suspense>} />
+          {/* Old routes → redirect to new locations */}
+          <Route path="prospects" element={<Navigate to="/admin/leads" replace />} />
+          <Route path="prospecting" element={<Navigate to="/admin/agents" replace />} />
+          <Route path="ai-learning" element={<Navigate to="/admin/agents" replace />} />
+          <Route path="ai-decisions" element={<Navigate to="/admin/agents" replace />} />
+          <Route path="analytics" element={<Navigate to="/admin" replace />} />
+          <Route path="notifications" element={<Navigate to="/admin" replace />} />
+          <Route path="monitor" element={<Navigate to="/admin/agents" replace />} />
+          <Route path="system" element={<Navigate to="/admin/settings" replace />} />
+          <Route path="logs" element={<Navigate to="/admin/settings" replace />} />
+          <Route path="campaigns" element={<Navigate to="/admin/settings" replace />} />
+          <Route path="followups" element={<Navigate to="/admin/settings" replace />} />
+          <Route path="costs" element={<Navigate to="/admin/settings" replace />} />
+          <Route path="retention" element={<Navigate to="/admin/settings" replace />} />
+          <Route path="phone-validation" element={<Navigate to="/admin/settings" replace />} />
+          <Route path="agents/work-planner" element={<Navigate to="/admin/agents" replace />} />
+          <Route path="agents/business-plan" element={<Navigate to="/admin/agents" replace />} />
+          <Route path="agents/branding" element={<Navigate to="/admin/agents" replace />} />
+          <Route path="agents/evolution" element={<Navigate to="/admin/agents" replace />} />
           <Route path="*" element={<Suspense fallback={<Spinner />}><AdminNotFound /></Suspense>} />
         </Route>
 

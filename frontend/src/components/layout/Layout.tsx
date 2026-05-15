@@ -1,75 +1,38 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Phone, Zap, Target, Brain,
-  CreditCard, Settings, ExternalLink, TrendingUp,
-  ScrollText, Activity, DollarSign, RotateCcw, Send, PhoneMissed,
-  Crosshair, Bot, BarChart2, Bell,
+  LayoutDashboard, Users, Phone, Zap, Bot, Settings, ExternalLink,
 } from 'lucide-react';
 import { t } from '../../styles/admin-theme';
 import CommandPalette from '../ui/CommandPalette';
 import DashboardShell, { NavItem } from './DashboardShell';
 
 const PRIMARY_NAV: NavItem[] = [
-  { path: '/admin',             icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { path: '/admin/prospects',   icon: Target,          label: 'Prospects' },
-  { path: '/admin/calls',       icon: Phone,           label: 'Appels' },
-  { path: '/admin/leads',       icon: Zap,             label: 'Leads' },
-  { path: '/admin/clients',     icon: Users,           label: 'Clients' },
-  { path: '/admin/prospecting', icon: Crosshair,       label: 'Prospection' },
-  { path: '/admin/ai-learning', icon: Brain,           label: 'IA' },
-  { path: '/admin/agents',        icon: Bot,        label: 'Agents IA' },
-  { path: '/admin/analytics',     icon: BarChart2,  label: 'Analytics' },
-  { path: '/admin/notifications', icon: Bell,       label: 'Notifications' },
-  { path: '/admin/logs',          icon: ScrollText, label: 'Logs' },
-  { path: '/admin/billing',     icon: CreditCard,      label: 'Facturation' },
-];
-
-const SETTINGS_SUB: NavItem[] = [
-  { path: '/admin/settings',          icon: Settings,    label: 'Général' },
-  { path: '/admin/system',            icon: Activity,    label: 'Système' },
-  { path: '/admin/monitor',           icon: TrendingUp,  label: 'Moniteur live' },
-  { path: '/admin/phone-validation',  icon: PhoneMissed, label: 'Validation tél.' },
-  { path: '/admin/campaigns',         icon: Send,        label: 'Campagnes' },
-  { path: '/admin/followups',         icon: RotateCcw,   label: 'Suivis' },
-  { path: '/admin/costs',             icon: DollarSign,  label: 'Coûts' },
-  { path: '/admin/retention',         icon: Users,       label: 'Rétention' },
+  { path: '/admin',          icon: LayoutDashboard, label: 'Dashboard', exact: true },
+  { path: '/admin/leads',    icon: Zap,             label: 'Leads' },
+  { path: '/admin/calls',    icon: Phone,           label: 'Appels' },
+  { path: '/admin/agents',   icon: Bot,             label: 'Agents IA' },
+  { path: '/admin/clients',  icon: Users,           label: 'Clients' },
+  { path: '/admin/settings', icon: Settings,        label: 'Paramètres' },
 ];
 
 const MOBILE_NAV: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Home',      path: '/admin',            exact: true },
-  { icon: Users,           label: 'Clients',   path: '/admin/clients' },
-  { icon: Phone,           label: 'Calls',     path: '/admin/calls' },
-  { icon: TrendingUp,      label: 'Prospects', path: '/admin/prospects' },
-  { icon: ScrollText,      label: 'Logs',      path: '/admin/logs' },
+  { icon: LayoutDashboard, label: 'Home',       path: '/admin',          exact: true },
+  { icon: Zap,             label: 'Leads',      path: '/admin/leads' },
+  { icon: Phone,           label: 'Appels',     path: '/admin/calls' },
+  { icon: Bot,             label: 'Agents',     path: '/admin/agents' },
+  { icon: Settings,        label: 'Paramètres', path: '/admin/settings' },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
-  '/admin': 'Dashboard',
-  '/admin/prospects': 'Prospects',
-  '/admin/calls': 'Appels',
-  '/admin/leads': 'Leads',
-  '/admin/clients': 'Clients',
-  '/admin/prospecting': 'Prospection',
-  '/admin/ai-learning': 'IA',
-  '/admin/ai-decisions': 'IA — Décisions',
-  '/admin/agents': 'Agents IA',
-  '/admin/analytics': 'Analytics',
-  '/admin/notifications': 'Notifications',
-  '/admin/agents/work-planner': 'Work Planner',
-  '/admin/agents/business-plan': 'Business Plan Agent',
-  '/admin/agents/branding': 'Branding Agent',
-  '/admin/agents/evolution': 'Évolution des agents',
-  '/admin/billing': 'Facturation',
+  '/admin':          'Dashboard',
+  '/admin/leads':    'Leads',
+  '/admin/calls':    'Appels',
+  '/admin/agents':   'Agents IA',
+  '/admin/clients':  'Clients',
   '/admin/settings': 'Paramètres',
-  '/admin/campaigns': 'Campagnes',
-  '/admin/followups': 'Suivis',
-  '/admin/costs': 'Coûts',
-  '/admin/retention': 'Rétention',
-  '/admin/phone-validation': 'Validation tél.',
-  '/admin/monitor': 'Moniteur live',
-  '/admin/logs': 'Logs',
-  '/admin/system': 'Système',
+  // sub-routes that still exist
+  '/admin/billing':  'Facturation',
 };
 
 export default function Layout() {
@@ -94,10 +57,10 @@ export default function Layout() {
     const handler = (e: KeyboardEvent) => {
       if (cmdOpen) return;
       // Don't hijack typing in inputs/textareas/contenteditable
-      const t = e.target as HTMLElement | null;
-      if (t) {
-        const tag = t.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t.isContentEditable) return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return;
       }
       // Modifier keys mean the user is using a real shortcut (cmd+L, etc.)
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -105,7 +68,7 @@ export default function Layout() {
       if (lastKey === 'g') {
         const shortcuts: Record<string, string> = {
           o: '/admin', c: '/admin/clients', l: '/admin/leads',
-          p: '/admin/prospects', a: '/admin/calls', b: '/admin/billing',
+          p: '/admin/agents', a: '/admin/calls', b: '/admin/settings',
         };
         if (shortcuts[e.key]) navigate(shortcuts[e.key]);
         lastKey = '';
@@ -122,7 +85,6 @@ export default function Layout() {
       scope="admin"
       brandSuffix="admin"
       primaryNav={PRIMARY_NAV}
-      settingsSub={SETTINGS_SUB}
       pageTitles={PAGE_TITLES}
       pageTitleFallback="Admin"
       mobileNav={MOBILE_NAV}
