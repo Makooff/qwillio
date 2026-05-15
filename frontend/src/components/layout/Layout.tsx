@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Phone, Zap, Bot, Settings, ExternalLink,
+  LayoutDashboard, Users, Phone, Zap, Bot, Settings, ExternalLink, Building2,
 } from 'lucide-react';
 import { t } from '../../styles/admin-theme';
 import CommandPalette from '../ui/CommandPalette';
@@ -13,6 +13,7 @@ const PRIMARY_NAV: NavItem[] = [
   { path: '/admin/calls',    icon: Phone,           label: 'Appels' },
   { path: '/admin/agents',   icon: Bot,             label: 'Agents IA' },
   { path: '/admin/clients',  icon: Users,           label: 'Clients' },
+  { path: '/admin/agency',   icon: Building2,       label: 'Agences' },
   { path: '/admin/settings', icon: Settings,        label: 'Paramètres' },
 ];
 
@@ -30,6 +31,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/calls':    'Appels',
   '/admin/agents':   'Agents IA',
   '/admin/clients':  'Clients',
+  '/admin/agency':   'Agences & API',
   '/admin/settings': 'Paramètres',
   // sub-routes that still exist
   '/admin/billing':  'Facturation',

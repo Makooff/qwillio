@@ -29,6 +29,8 @@ model User {
   contractAcceptances ContractAcceptance[]
   prospects           Prospect[]
   trialFingerprints   TrialFingerprint[]
+  agency              Agency?
+  apiKeys             ApiKey[]
 
   @@map("users")
 }
@@ -286,6 +288,8 @@ model Client {
   smsLogs                    SmsLog[]
   syncConflicts              SyncConflict[]
   syncLogs                   SyncLog[]
+
+  agencyClients              AgencyClient[]
 
   @@index([subscriptionStatus])
   @@index([planType])
@@ -1294,4 +1298,52 @@ model AgentInsight {
   @@index([niche])
   @@index([isActive])
   @@map("agent_insights")
+}
+
+// ─── Agency / White-label System ─────────────────────────────────────────────
+
+model Agency {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  logoUrl       String?        @map("logo_url")
+  primaryColor  String?        @default("#7B5CF0") @map("primary_color")
+
+  ownerId       String         @unique @map("owner_id") @db.Uuid
+  owner         User           @relation(fields: [ownerId], references: [id])
+
+  clients       AgencyClient[]
+
+  commissionPct Float          @default(0.20) @map("commission_pct")
+
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
+
+  @@map("agencies")
+}
+
+model AgencyClient {
+  id        String   @id @default(cuid())
+  agencyId  String   @map("agency_id")
+  agency    Agency   @relation(fields: [agencyId], references: [id])
+  clientId  String   @map("client_id") @db.Uuid
+  client    Client   @relation(fields: [clientId], references: [id])
+  addedAt   DateTime @default(now()) @map("added_at")
+
+  @@unique([agencyId, clientId])
+  @@map("agency_clients")
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  key         String    @unique
+  name        String
+  userId      String    @map("user_id") @db.Uuid
+  user        User      @relation(fields: [userId], references: [id])
+  permissions String[]  @default(["read"])
+  lastUsedAt  DateTime? @map("last_used_at")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("api_keys")
 }

@@ -123,6 +123,30 @@ export class OutboundEngineService {
     return windows.some(([start, end]) => hour >= start && hour < end);
   }
 
+  /** Check NicheBestTime data to skip calls during low-conversion windows */
+  private async isOptimalCallTime(niche: string, dayOfWeek: number, hourUtc: number): Promise<boolean> {
+    // Skip weekends
+    if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+
+    const bestTime = await prisma.nicheBestTime.findFirst({
+      where: { niche, dayOfWeek, hourUtc },
+      orderBy: { conversionRate: 'desc' },
+    });
+
+    if (!bestTime) return true; // No data → allow call
+
+    const avg = await prisma.nicheBestTime.aggregate({
+      where: { niche },
+      _avg: { conversionRate: true },
+    });
+
+    const avgRate = avg._avg.conversionRate ?? 0;
+
+    // Only call if current hour is at least 80% of average (not terrible time)
+    // OR if no significant data exists (avgRate is 0)
+    return avgRate === 0 || bestTime.conversionRate >= avgRate * 0.8;
+  }
+
   /** Pick the Twilio number that best matches the prospect's area code */
   private async getLocalPresenceNumber(prospectPhone: string): Promise<string> {
     const areaCode = prospectPhone.replace(/\D/g, '').slice(1, 4); // +1AAANNNNNNN → AAA
@@ -277,6 +301,18 @@ export class OutboundEngineService {
       logger.info(
         `[OutboundEngine][${tickId}] SKIP · outside call window ` +
         `· top prospect=${prospect.businessName} tz=${tz} localTime=${localHour}`
+      );
+      return false;
+    }
+
+    // ── 3b. Predictive calling — skip if NicheBestTime data says bad time ──
+    const prospectNiche = prospect.niche ?? prospect.businessType ?? 'home_services';
+    const now2 = new Date();
+    const dayOfWeek = now2.getDay();
+    const hourUTC = now2.getUTCHours();
+    if (!await this.isOptimalCallTime(prospectNiche, dayOfWeek, hourUTC)) {
+      logger.info(
+        `[OutboundEngine] Skipping ${prospectNiche} — bad time window (${hourUTC}h UTC, day ${dayOfWeek})`
       );
       return false;
     }

@@ -71,12 +71,13 @@ export const env = {
 
   DISCORD_WEBHOOK_URL: process.env.DISCORD_WEBHOOK_URL || '',
 
-  // Twilio (SMS + Phone Validation)
+  // Twilio (SMS + Phone Validation + WhatsApp)
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || '',
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || '',
   TWILIO_API_KEY_SID: process.env.TWILIO_API_KEY_SID || '',
   TWILIO_API_KEY_SECRET: process.env.TWILIO_API_KEY_SECRET || '',
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER || '',
+  TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER,
   SMS_ENABLED: process.env.SMS_ENABLED === 'true',
 
   CALLS_PER_DAY: parseInt(process.env.CALLS_PER_DAY || '50', 10),

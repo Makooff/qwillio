@@ -319,4 +319,15 @@ router.post('/call/:callId/classify-dropout', async (req: Request, res: Response
   }
 });
 
+/** POST /api/prospecting/trigger/roi-digest — Manually trigger ROI digest for all active clients */
+router.post('/trigger/roi-digest', async (_req: Request, res: Response) => {
+  try {
+    const { roiDigestService } = await import('../services/roi-digest.service');
+    await roiDigestService.sendAllDigests();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 export default router;

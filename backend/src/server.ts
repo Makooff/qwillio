@@ -48,6 +48,7 @@ import clientApiRoutes from './routes/client-api.routes';
 import autofixRoutes from './routes/autofix.routes';
 import closerRoutes from './routes/closer.routes';
 import aiAgentsRoutes from './routes/ai-agents.routes';
+import agencyRoutes from './routes/agency.routes';
 
 const app = express();
 
@@ -131,6 +132,7 @@ app.use('/api/client', clientApiRoutes);
 app.use('/api/autofix', autofixRoutes);
 app.use('/api/closer', closerRoutes);
 app.use('/api/ai-agents', aiAgentsRoutes);
+app.use('/api/agency', agencyRoutes);
 
 // ─── Contact Form ─────────────────────────────────────
 app.post('/api/contact', async (req, res) => {

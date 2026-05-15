@@ -63,6 +63,7 @@ const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 
 // AI Agents admin pages (lazy loaded)
 const Agents = lazy(() => import('./pages/admin/Agents'));
+const Agency = lazy(() => import('./pages/admin/Agency'));
 
 // Closer (closeuse)
 const CloserSession        = lazy(() => import('./pages/closer/CloserSession'));
@@ -265,6 +266,7 @@ export default function App() {
           <Route path="leads" element={<Suspense fallback={<Spinner />}><AdminLeads /></Suspense>} />
           <Route path="billing" element={<Suspense fallback={<Spinner />}><AdminBilling /></Suspense>} />
           <Route path="agents" element={<Suspense fallback={<Spinner />}><Agents /></Suspense>} />
+          <Route path="agency" element={<Suspense fallback={<Spinner />}><Agency /></Suspense>} />
           {/* Old routes → redirect to new locations */}
           <Route path="prospects" element={<Navigate to="/admin/leads" replace />} />
           <Route path="prospecting" element={<Navigate to="/admin/agents" replace />} />

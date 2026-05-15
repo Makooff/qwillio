@@ -62,6 +62,7 @@ class BotLoop {
   private agentNoShowJob: cron.ScheduledTask | null = null;
   // ─── Prospecting Engine cron jobs ─────────────────────
   private apifyScrapingJob: cron.ScheduledTask | null = null;
+  private linkedInScrapingJob: cron.ScheduledTask | null = null;
   private outboundEngineJob: cron.ScheduledTask | null = null;
   private abTestingJob: cron.ScheduledTask | null = null;
   private bestTimeJob: cron.ScheduledTask | null = null;
@@ -568,6 +569,26 @@ class BotLoop {
     }, { timezone: env.TZ || 'America/New_York' });
 
     // ═══════════════════════════════════════════════════════════
+    // WHATSAPP — voicemail follow-ups — every 2 hours at :45
+    // ═══════════════════════════════════════════════════════════
+    cron.schedule('45 */2 * * *', async () => {
+      const status = await prisma.botStatus.findFirst();
+      if (!status?.isActive) return;
+      const { whatsAppService } = await import('../services/whatsapp.service');
+      await whatsAppService.processVoicemailFollowups().catch(e => logger.error('[Cron] WA voicemail followup failed', e));
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // WHATSAPP — re-engagement — weekdays at 10 AM UTC
+    // ═══════════════════════════════════════════════════════════
+    cron.schedule('0 10 * * 1-5', async () => {
+      const status = await prisma.botStatus.findFirst();
+      if (!status?.isActive) return;
+      const { whatsAppService } = await import('../services/whatsapp.service');
+      await whatsAppService.processReengagement().catch(e => logger.error('[Cron] WA reengagement failed', e));
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
     // PROSPECTING ENGINE — CRON P1: Apify scraping — daily 2am UTC
     // Scrapes Google Maps via Apify for home services & dental niches
     // ═══════════════════════════════════════════════════════════
@@ -585,6 +606,17 @@ class BotLoop {
         logger.error('[CRON] Apify scraping failed:', error);
         await discordService.notifyErrors(`❌ APIFY SCRAPING FAILED: ${(error as Error).message}`);
       }
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // LINKEDIN B2B SCRAPING — Tuesday + Thursday 3 AM UTC
+    // ═══════════════════════════════════════════════════════════
+    this.linkedInScrapingJob = cron.schedule('0 3 * * 2,4', async () => {
+      const botStatus = await prisma.botStatus.findFirst();
+      if (!botStatus?.isActive) return;
+      logger.info('[Cron] LinkedIn scraping → running');
+      const { linkedInScrapingService } = await import('../services/linkedin-scraping.service');
+      await linkedInScrapingService.scrapeAllNiches().catch(e => logger.error('[Cron] LinkedIn scraping failed', e));
     }, { timezone: 'UTC' });
 
     // ═══════════════════════════════════════════════════════════
@@ -797,6 +829,28 @@ class BotLoop {
       }
     }, { timezone: env.TZ || 'America/New_York' });
 
+    // ═══════════════════════════════════════════════════════════
+    // ROI DIGEST — Every Monday 9 AM UTC
+    // ═══════════════════════════════════════════════════════════
+    cron.schedule('0 9 * * 1', async () => {
+      const status = await prisma.botStatus.findFirst();
+      if (!status?.isActive) return;
+      logger.info('[Cron] ROI Digest → running');
+      const { roiDigestService } = await import('../services/roi-digest.service');
+      await roiDigestService.sendAllDigests().catch(e => logger.error('[Cron] ROI Digest failed', e));
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // MONTHLY REPORT — 1st of month, 9 AM UTC
+    // ═══════════════════════════════════════════════════════════
+    cron.schedule('0 9 1 * *', async () => {
+      const status = await prisma.botStatus.findFirst();
+      if (!status?.isActive) return;
+      logger.info('[Cron] Monthly Report → running');
+      const { roiDigestService } = await import('../services/roi-digest.service');
+      await roiDigestService.sendAllDigests().catch(e => logger.error('[Cron] Monthly Report failed', e));
+    }, { timezone: 'UTC' });
+
     this.keepAliveJob = cron.schedule('*/10 * * * *', async () => {
       try {
         const url = env.API_BASE_URL || `http://localhost:${env.PORT}`;
@@ -806,8 +860,8 @@ class BotLoop {
       }
     });
 
-    await discordService.notifyAlerts('🤖 Qwillio started! All 29 cron jobs active (incl. 6 Agent AI + 7 Prospecting Engine + 3 Operational).');
-    logger.info('🤖 All 29 cron jobs started. Bot is running in automatic loop.');
+    await discordService.notifyAlerts('🤖 Qwillio started! All 31 cron jobs active (incl. 6 Agent AI + 7 Prospecting Engine + 3 Operational + 2 ROI Digest).');
+    logger.info('🤖 All 31 cron jobs started. Bot is running in automatic loop.');
   }
 
   async stop() {
@@ -839,6 +893,7 @@ class BotLoop {
     this.overageJob?.stop(); this.overageJob = null;
     // Prospecting engine
     this.apifyScrapingJob?.stop(); this.apifyScrapingJob = null;
+    this.linkedInScrapingJob?.stop(); this.linkedInScrapingJob = null;
     this.outboundEngineJob?.stop(); this.outboundEngineJob = null;
     this.abTestingJob?.stop(); this.abTestingJob = null;
     this.bestTimeJob?.stop(); this.bestTimeJob = null;

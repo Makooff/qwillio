@@ -23,11 +23,29 @@ router.post('/trigger/test-call', (req, res) => botController.triggerTestCall(re
 router.post('/trigger/simulate-call', (req, res) => botController.simulateCallResult(req, res));
 router.post('/trigger/niche-learning', (req, res) => botController.triggerNicheLearning(req, res));
 
+router.post('/trigger/linkedin', async (_req, res) => {
+  const { linkedInScrapingService } = await import('../services/linkedin-scraping.service');
+  const result = await linkedInScrapingService.scrapeAllNiches();
+  res.json({ ok: true, ...result });
+});
+
 // Bot Control Panel manual run endpoints
 router.post('/run/prospecting', (req, res) => botController.runProspecting(req, res));
 router.post('/run/scoring', (req, res) => botController.runScoring(req, res));
 router.post('/run/calling', (req, res) => botController.runCalling(req, res));
 router.post('/run/followup', (req, res) => botController.runFollowUp(req, res));
+
+// POST /api/bot/trigger/whatsapp-followups — manual trigger for WhatsApp outreach
+router.post('/trigger/whatsapp-followups', async (_req, res) => {
+  try {
+    const { whatsAppService } = await import('../services/whatsapp.service');
+    const voicemail = await whatsAppService.processVoicemailFollowups();
+    const reengagement = await whatsAppService.processReengagement();
+    res.json({ ok: true, voicemail, reengagement });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
 
 // GET /api/bot/health — service health based on actual env vars
 router.get('/health', (_req: Request, res: Response) => {
