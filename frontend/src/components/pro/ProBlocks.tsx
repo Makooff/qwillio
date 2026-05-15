@@ -1,16 +1,31 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import { pro } from '../../styles/pro-theme';
+import { pro, proShadow } from '../../styles/pro-theme';
 
 /**
- * Reusable Stripe/Vercel-style building blocks shared by every dashboard
- * page (admin + client).
+ * Reusable Dark Luxury AI building blocks shared by every dashboard
+ * page (admin + client). Linear × Raycast × Vercel dark direction.
  */
 
-export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function Card({
+  children, className = '', glow,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  glow?: boolean;
+}) {
   return (
-    <div className={`rounded-2xl border ${className}`}
-         style={{ background: pro.panel, borderColor: pro.border }}>
+    <div
+      className={`pro-card rounded-2xl border ${className}`}
+      style={{
+        background: pro.panel,
+        borderColor: pro.border,
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        boxShadow: glow ? proShadow.glow : proShadow.card,
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      }}
+    >
       {children}
     </div>
   );
@@ -19,7 +34,19 @@ export function Card({ children, className = '' }: { children: React.ReactNode; 
 export function SectionHead({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-3 px-1">
-      <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: pro.textSec }}>
+      <h2 className="flex items-center text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: pro.textSec }}>
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: pro.accent,
+            display: 'inline-block',
+            marginRight: 8,
+            flexShrink: 0,
+            boxShadow: '0 0 6px rgba(123,92,240,0.5)',
+          }}
+        />
         {title}
       </h2>
       {action}
@@ -28,13 +55,35 @@ export function SectionHead({ title, action }: { title: string; action?: React.R
 }
 
 export function PageHeader({
-  title, subtitle, right,
-}: { title: string; subtitle?: string; right?: React.ReactNode }) {
+  title, subtitle, right, badge,
+}: {
+  title: string;
+  subtitle?: string;
+  right?: React.ReactNode;
+  badge?: string;
+}) {
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: pro.text }}>{title}</h1>
-        {subtitle && <p className="text-[12.5px] mt-0.5" style={{ color: pro.textSec }}>{subtitle}</p>}
+        <div className="flex items-center gap-2">
+          {badge && (
+            <Pill color="accent">{badge}</Pill>
+          )}
+          <h1
+            style={{
+              fontSize: 24,
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
+              color: pro.text,
+            }}
+          >
+            {title}
+          </h1>
+        </div>
+        {subtitle && (
+          <p className="text-[12.5px] mt-0.5" style={{ color: pro.textSec }}>{subtitle}</p>
+        )}
       </div>
       {right && <div className="flex items-center gap-2 flex-shrink-0">{right}</div>}
     </div>
@@ -43,35 +92,148 @@ export function PageHeader({
 
 export function Stat({
   label, value, hint, icon: Icon, to,
+  trend, accent,
 }: {
-  label: string; value: string | number; hint?: string;
-  icon?: any; to?: string;
+  label: string;
+  value: string | number;
+  hint?: string;
+  icon?: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  to?: string;
+  trend?: { value: number; dir: 'up' | 'down' };
+  accent?: boolean;
 }) {
   const inner = (
-    <Card className={to ? 'hover:border-white/[0.14] transition-colors' : ''}>
-      <div className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          {Icon && <Icon size={14} style={{ color: pro.textSec }} />}
-          <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: pro.textTer }}>{label}</p>
-        </div>
-        <p className="text-[26px] font-semibold tabular-nums leading-none" style={{ color: pro.text }}>{value}</p>
-        {hint && <p className="text-[11.5px] mt-1.5" style={{ color: pro.textTer }}>{hint}</p>}
+    <Card
+      glow={accent}
+      className={to ? 'hover:border-white/[0.14] transition-colors' : ''}
+    >
+      <div className="p-4" style={{ position: 'relative', overflow: 'hidden' }}>
+        {/* Ambient radial glow top-right */}
+        <div
+          style={{
+            position: 'absolute',
+            top: -24,
+            right: -24,
+            width: 80,
+            height: 80,
+            background: accent
+              ? 'radial-gradient(circle, rgba(123,92,240,0.15) 0%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(123,92,240,0.08) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Trend chip */}
+        {trend && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              fontSize: 10,
+              fontWeight: 700,
+              padding: '2px 7px',
+              borderRadius: 999,
+              background: trend.dir === 'up'
+                ? 'rgba(34,197,94,0.12)'
+                : 'rgba(239,68,68,0.12)',
+              color: trend.dir === 'up' ? pro.ok : pro.bad,
+            }}
+          >
+            {trend.dir === 'up' ? '↑' : '↓'}
+            {Math.abs(trend.value)}%
+          </div>
+        )}
+
+        {/* Icon badge */}
+        {Icon && (
+          <div
+            className="mb-3"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              background: pro.accentMid,
+              border: `1px solid ${pro.accentGlow}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Icon size={14} style={{ color: pro.accent }} />
+          </div>
+        )}
+
+        {/* Label */}
+        <p
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.07em',
+            color: pro.textTer,
+            marginBottom: 6,
+          }}
+        >
+          {label}
+        </p>
+
+        {/* Value */}
+        <p
+          className="stat-num"
+          style={{
+            fontSize: 32,
+            fontWeight: 700,
+            letterSpacing: '-0.025em',
+            lineHeight: 1,
+            color: pro.text,
+          }}
+        >
+          {value}
+        </p>
+
+        {hint && (
+          <p className="text-[11.5px] mt-1.5" style={{ color: pro.textTer }}>{hint}</p>
+        )}
       </div>
     </Card>
   );
+
   return to ? <Link to={to} className="block">{inner}</Link> : inner;
 }
 
 export function Row({
   icon: Icon, label, hint, badge, onClick, to, danger,
 }: {
-  icon: any; label: string; hint?: string; badge?: React.ReactNode;
-  onClick?: () => void; to?: string; danger?: boolean;
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  label: string;
+  hint?: string;
+  badge?: React.ReactNode;
+  onClick?: () => void;
+  to?: string;
+  danger?: boolean;
 }) {
   const inner = (
-    <div className={`flex items-center gap-3.5 px-4 h-[58px] group transition-colors ${danger ? 'hover:bg-red-500/[0.05]' : 'hover:bg-white/[0.02]'}`}>
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-           style={{ background: danger ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)' }}>
+    <div
+      className={`flex items-center gap-3.5 px-4 h-[58px] group transition-colors ${danger ? 'hover:bg-red-500/[0.05]' : 'hover:bg-white/[0.02]'}`}
+      style={{ position: 'relative' }}
+    >
+      {/* Left active indicator */}
+      <span
+        className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ width: 3, height: 20, background: danger ? pro.bad : pro.accent }}
+      />
+
+      <div
+        className="w-8 h-8 flex items-center justify-center flex-shrink-0"
+        style={{
+          borderRadius: 10,
+          background: danger ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)',
+        }}
+      >
         <Icon size={14} style={{ color: danger ? pro.bad : pro.text }} />
       </div>
       <div className="flex-1 min-w-0">
@@ -82,17 +244,26 @@ export function Row({
       {(onClick || to) && <ChevronRight size={14} style={{ color: pro.textTer }} />}
     </div>
   );
+
   if (to) return <Link to={to} className="block">{inner}</Link>;
   return <button type="button" onClick={onClick} className="w-full text-left">{inner}</button>;
 }
 
 export function IconBtn({
   onClick, title, children, active,
-}: { onClick?: () => void; title?: string; children: React.ReactNode; active?: boolean }) {
+}: {
+  onClick?: () => void;
+  title?: string;
+  children: React.ReactNode;
+  active?: boolean;
+}) {
   return (
-    <button onClick={onClick} title={title}
+    <button
+      onClick={onClick}
+      title={title}
       className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
-      style={{ color: active ? pro.text : pro.textSec }}>
+      style={{ color: active ? pro.text : pro.textSec }}
+    >
       {children}
     </button>
   );
@@ -100,12 +271,27 @@ export function IconBtn({
 
 export function PrimaryBtn({
   onClick, disabled, children, size = 'md',
-}: { onClick?: () => void; disabled?: boolean; children: React.ReactNode; size?: 'sm' | 'md' }) {
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+  size?: 'sm' | 'md';
+}) {
   const h = size === 'sm' ? 'h-8 text-[12px]' : 'h-9 text-[12.5px]';
   return (
-    <button onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center gap-2 px-4 ${h} font-medium rounded-xl disabled:opacity-50 transition-colors`}
-      style={{ background: pro.text, color: '#0B0B0D' }}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center gap-2 px-4 ${h} font-medium rounded-xl disabled:opacity-50`}
+      style={{
+        background: 'linear-gradient(135deg, #7B5CF0 0%, #9B7DF8 100%)',
+        color: '#fff',
+        boxShadow: proShadow.btn,
+        transition: 'filter 0.15s ease',
+      }}
+      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(1.08)'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.filter = ''; }}
+    >
       {children}
     </button>
   );
@@ -113,31 +299,51 @@ export function PrimaryBtn({
 
 export function GhostBtn({
   onClick, disabled, children, size = 'md',
-}: { onClick?: () => void; disabled?: boolean; children: React.ReactNode; size?: 'sm' | 'md' }) {
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+  size?: 'sm' | 'md';
+}) {
   const h = size === 'sm' ? 'h-8 text-[12px]' : 'h-9 text-[12.5px]';
   return (
-    <button onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center gap-2 px-4 ${h} font-medium rounded-xl transition-colors disabled:opacity-50 hover:bg-white/[0.06]`}
-      style={{ background: pro.panel, color: pro.text, border: `1px solid ${pro.border}` }}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center gap-2 px-4 ${h} font-medium rounded-xl transition-colors disabled:opacity-50 hover:bg-white/[0.07]`}
+      style={{
+        background: 'rgba(255,255,255,0.03)',
+        color: pro.text,
+        border: `1px solid ${pro.border}`,
+      }}
+    >
       {children}
     </button>
   );
 }
 
 export function Pill({ color = 'neutral', children }: {
-  color?: 'neutral' | 'ok' | 'warn' | 'bad' | 'info' | 'accent'; children: React.ReactNode;
+  color?: 'neutral' | 'ok' | 'warn' | 'bad' | 'info' | 'accent';
+  children: React.ReactNode;
 }) {
-  const map = {
-    neutral: { bg: 'rgba(255,255,255,0.05)', fg: pro.textSec },
-    ok:      { bg: 'rgba(34,197,94,0.10)',   fg: pro.ok },
-    warn:    { bg: 'rgba(245,158,11,0.10)',  fg: pro.warn },
-    bad:     { bg: 'rgba(239,68,68,0.10)',   fg: pro.bad },
-    info:    { bg: 'rgba(96,165,250,0.10)',  fg: pro.info },
-    accent:  { bg: 'rgba(123,92,240,0.12)',  fg: pro.accent },
-  }[color];
+  const map: Record<string, { bg: string; fg: string; shadow?: string }> = {
+    neutral: { bg: 'rgba(255,255,255,0.05)',  fg: pro.textSec },
+    ok:      { bg: 'rgba(34,197,94,0.10)',    fg: pro.ok,   shadow: `0 0 8px ${pro.ok}` },
+    warn:    { bg: 'rgba(245,158,11,0.10)',   fg: pro.warn },
+    bad:     { bg: 'rgba(239,68,68,0.10)',    fg: pro.bad,  shadow: `0 0 8px ${pro.bad}` },
+    info:    { bg: 'rgba(96,165,250,0.10)',   fg: pro.info },
+    accent:  { bg: 'rgba(123,92,240,0.12)',   fg: pro.accent },
+  };
+  const m = map[color];
   return (
-    <span className="text-[10.5px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-          style={{ background: map.bg, color: map.fg }}>
+    <span
+      className="text-[10.5px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
+      style={{
+        background: m.bg,
+        color: m.fg,
+        ...(m.shadow ? { textShadow: m.shadow } : {}),
+      }}
+    >
       {children}
     </span>
   );

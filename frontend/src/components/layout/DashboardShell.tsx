@@ -11,6 +11,7 @@ import { t } from '../../styles/admin-theme';
 
 /**
  * Shared dashboard shell — sidebar, top bar, mobile bottom nav.
+ * Dark Luxury AI direction: glassmorphism sidebar, purple accent glow.
  *
  * Every dashboard (admin, client, closeuse) uses this component.
  * Only the content of the nav arrays changes; design and animations
@@ -74,20 +75,15 @@ export default function DashboardShell(props: DashboardShellProps) {
   const mainRef = useRef<HTMLElement>(null);
 
   const scrollToTop = () => {
-    // On desktop + most mobile setups the main is the scroll container
     if (mainRef.current) {
       mainRef.current.scrollTop = 0;
       mainRef.current.scrollLeft = 0;
     }
-    // iOS Safari / Chrome can scroll the document when the URL bar hides —
-    // force every possible scrolling element back to the top so the sticky
-    // header never overlaps the page title.
     window.scrollTo(0, 0);
     if (document.documentElement) document.documentElement.scrollTop = 0;
     if (document.body) document.body.scrollTop = 0;
   };
 
-  // Scroll to top on every route change — after the new page has mounted
   useEffect(() => {
     scrollToTop();
     const r = requestAnimationFrame(scrollToTop);
@@ -111,20 +107,49 @@ export default function DashboardShell(props: DashboardShellProps) {
         onClick={() => { setMobileOpen(false); scrollToTop(); }}
         title={collapsed ? item.label : undefined}
         className={`relative flex items-center gap-3 rounded-xl transition-all duration-150 group
-          ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
-          ${active ? '' : 'hover:bg-white/[0.04]'}`}
-        style={{ color: active ? t.brand : t.textSec }}
+          ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
+        style={active ? {
+          background: 'linear-gradient(135deg, rgba(123,92,240,0.12), rgba(123,92,240,0.04))',
+          border: '1px solid rgba(123,92,240,0.20)',
+          boxShadow: '0 0 12px rgba(123,92,240,0.08)',
+          color: t.brand,
+        } : {
+          color: t.textSec,
+          border: '1px solid transparent',
+        }}
       >
         {active && (
-          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ background: t.brand }} />
+          <span
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+            style={{
+              background: t.brand,
+              boxShadow: '2px 0 8px rgba(123,92,240,0.6)',
+            }}
+          />
         )}
-        <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
-        {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+        <item.icon
+          className="w-[18px] h-[18px] flex-shrink-0"
+          style={active ? { filter: 'drop-shadow(0 0 4px rgba(123,92,240,0.5))' } as React.CSSProperties : undefined}
+        />
+        {!collapsed && (
+          <span className="text-sm font-medium">{item.label}</span>
+        )}
+        {!active && !collapsed && (
+          <span
+            className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ background: 'rgba(255,255,255,0.03)' }}
+          />
+        )}
         {collapsed && (
           <span
             className="absolute left-full ml-3 px-2 py-1 text-xs rounded-lg
               opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl backdrop-blur-xl"
-            style={{ background: t.panelSolid, color: t.text, border: `1px solid ${t.borderHi}` }}
+            style={{
+              background: t.panelSolid,
+              color: t.text,
+              border: `1px solid ${t.borderHi}`,
+              boxShadow: t.shadowFloat,
+            }}
           >
             {item.label}
           </span>
@@ -140,7 +165,7 @@ export default function DashboardShell(props: DashboardShellProps) {
         to={item.path}
         onClick={() => { setMobileOpen(false); scrollToTop(); }}
         className={`flex items-center gap-3 py-2 rounded-xl transition-colors pl-9 pr-3
-          ${active ? '' : 'hover:bg-white/[0.04]'}`}
+          ${active ? '' : 'hover:bg-white/[0.03]'}`}
         style={{ color: active ? t.brand : t.textSec }}
       >
         <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -150,13 +175,32 @@ export default function DashboardShell(props: DashboardShellProps) {
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0" style={{ position: 'relative', zIndex: 1 }}>
       {/* Logo */}
-      <div className={`flex items-center gap-3 mb-6 flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'px-1'}`}>
+      <div
+        className={`flex items-center gap-3 mb-6 flex-shrink-0 pb-4 ${collapsed ? 'justify-center px-0' : 'px-1'}`}
+        style={{ borderBottom: '1px solid rgba(123,92,240,0.12)' }}
+      >
         <QwillioLogo size={32} />
         {!collapsed && (
           <span className="text-base font-bold tracking-tight" style={{ color: t.text }}>
-            Qwillio{brandSuffix ? <> <span style={{ color: t.brand }}>{brandSuffix}</span></> : null}
+            Qwillio{brandSuffix
+              ? (
+                <>
+                  {' '}
+                  <span
+                    style={{
+                      background: t.accentGrad,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                    }}
+                  >
+                    {brandSuffix}
+                  </span>
+                </>
+              )
+              : null}
           </span>
         )}
       </div>
@@ -172,12 +216,21 @@ export default function DashboardShell(props: DashboardShellProps) {
                 onClick={() => { if (!collapsed) setSettingsOpen(v => !v); }}
                 title={collapsed ? settingsLabel : undefined}
                 className={`w-full relative flex items-center gap-3 rounded-xl transition-all duration-150 group
-                  ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
-                  ${settingsActive ? '' : 'hover:bg-white/[0.04]'}`}
-                style={{ color: settingsActive ? t.brand : t.textSec }}
+                  ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
+                style={settingsActive ? {
+                  background: 'linear-gradient(135deg, rgba(123,92,240,0.12), rgba(123,92,240,0.04))',
+                  border: '1px solid rgba(123,92,240,0.20)',
+                  color: t.brand,
+                } : {
+                  color: t.textSec,
+                  border: '1px solid transparent',
+                }}
               >
                 {settingsActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ background: t.brand }} />
+                  <span
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                    style={{ background: t.brand, boxShadow: '2px 0 8px rgba(123,92,240,0.6)' }}
+                  />
                 )}
                 <SettingsIcon className="w-[18px] h-[18px] flex-shrink-0" />
                 {!collapsed && <span className="text-sm font-medium flex-1 text-left">{settingsLabel}</span>}
@@ -221,8 +274,11 @@ export default function DashboardShell(props: DashboardShellProps) {
       {/* Bottom — user + logout */}
       <div className="flex-shrink-0 space-y-1 mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
         <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${collapsed ? 'justify-center' : ''}`}>
-          <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${t.brand}30` }}>
-            <span className="text-[10px] font-bold" style={{ color: t.brand }}>{initials}</span>
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: t.accentGrad }}
+          >
+            <span className="text-[10px] font-bold" style={{ color: '#fff' }}>{initials}</span>
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
@@ -250,18 +306,36 @@ export default function DashboardShell(props: DashboardShellProps) {
     <div className="h-screen md:h-screen flex overflow-hidden" style={{ height: '100dvh', background: t.bg, color: t.text }}>
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
+        className={`sidebar-surface hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
           backdrop-blur-xl transition-all duration-300 ease-in-out
           ${collapsed ? 'w-[64px] px-2 py-5' : 'w-[220px] px-4 py-5'}`}
-        style={{ background: t.panel, borderRight: `1px solid ${t.border}` }}
+        style={{
+          background: t.panelSolid,
+          borderRight: `1px solid ${t.border}`,
+          position: 'relative',
+        }}
       >
+        {/* Mesh gradient overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: t.mesh,
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
         <SidebarContent />
 
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="absolute -right-3 top-8 w-6 h-6 rounded-full
-            flex items-center justify-center hover:bg-white/[0.08] transition-all shadow-lg"
-          style={{ background: t.panelSolid, border: `1px solid ${t.borderHi}`, color: t.textSec }}
+            flex items-center justify-center transition-all"
+          style={{
+            background: t.panelSolid,
+            boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.4)',
+            color: t.textSec,
+          }}
         >
           {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
         </button>
@@ -279,13 +353,27 @@ export default function DashboardShell(props: DashboardShellProps) {
             <motion.aside
               initial={{ x: -240 }} animate={{ x: 0 }} exit={{ x: -240 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] px-4 pt-5 pb-28"
-              style={{ background: t.panelSolid, borderRight: `1px solid ${t.border}` }}
+              className="sidebar-surface md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] px-4 pt-5 pb-28"
+              style={{
+                background: t.panelSolid,
+                borderRight: `1px solid ${t.border}`,
+                position: 'fixed',
+              }}
             >
+              {/* Mesh gradient overlay */}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: t.mesh,
+                  pointerEvents: 'none',
+                  zIndex: 0,
+                }}
+              />
               <button
                 onClick={() => setMobileOpen(false)}
                 className="absolute right-3 top-4"
-                style={{ color: t.textSec }}
+                style={{ color: t.textSec, zIndex: 2 }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -299,7 +387,12 @@ export default function DashboardShell(props: DashboardShellProps) {
       <div className="flex-1 flex flex-col min-w-0">
         <header
           className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6"
-          style={{ background: t.bg, borderBottom: `1px solid ${t.border}` }}
+          style={{
+            background: 'rgba(6,6,14,0.80)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+          }}
         >
           <button
             onClick={() => setMobileOpen(true)}
@@ -325,8 +418,11 @@ export default function DashboardShell(props: DashboardShellProps) {
               <RefreshCw className="w-4 h-4" />
             </button>
 
-            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${t.brand}30` }}>
-              <span className="text-xs font-bold" style={{ color: t.brand }}>{initials}</span>
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ background: t.accentGrad }}
+            >
+              <span className="text-xs font-bold" style={{ color: '#fff' }}>{initials}</span>
             </div>
           </div>
         </header>
