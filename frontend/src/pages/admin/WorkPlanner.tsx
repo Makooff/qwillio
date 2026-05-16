@@ -54,11 +54,11 @@ export default function WorkPlanner() {
     setError(null);
     setPlan(null);
     try {
-      const res = await api.post('/ai-agents/work-planner/day-plan', {
+      const { data: res } = await api.post<{ success: boolean; plan: DayPlan }>('/ai-agents/work-planner/day-plan', {
         date,
         maxProspects: 50,
       });
-      setPlan(res.data);
+      setPlan(res.plan ?? null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur de génération';
       setError(msg);

@@ -558,19 +558,47 @@ router.get('/clients', async (_req: Request, res: Response) => {
   }
 });
 
-router.get('/calls', async (_req: Request, res: Response) => {
+router.get('/calls', async (req: Request, res: Response) => {
   try {
-    const calls = await prisma.call.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-      include: {
-        prospect: { select: { businessName: true, contactName: true, phone: true } }
-      }
-    });
-    res.json(calls);
+    const page = Math.max(1, parseInt(req.query['page'] as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query['limit'] as string) || 30));
+    const skip = (page - 1) * limit;
+    const statusFilter = req.query['status'] as string | undefined;
+    const search = req.query['search'] as string | undefined;
+    const dateFrom = req.query['dateFrom'] as string | undefined;
+    const dateTo = req.query['dateTo'] as string | undefined;
+
+    const where: Record<string, unknown> = {};
+    if (statusFilter && statusFilter !== 'all') where['status'] = statusFilter;
+    if (dateFrom || dateTo) {
+      where['createdAt'] = {
+        ...(dateFrom ? { gte: new Date(`${dateFrom}T00:00:00.000Z`) } : {}),
+        ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
+      };
+    }
+    if (search) {
+      where['OR'] = [
+        { phoneNumber: { contains: search, mode: 'insensitive' } },
+        { prospect: { businessName: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [calls, total] = await Promise.all([
+      prisma.call.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          prospect: { select: { businessName: true, contactName: true, phone: true, niche: true } },
+        },
+      }),
+      prisma.call.count({ where }),
+    ]);
+    res.json({ calls, total, page, limit });
   } catch (err: any) {
     logger.error('[API] Calls list error:', err);
-    res.json([]);
+    res.json({ calls: [], total: 0, page: 1, limit: 30 });
   }
 });
 

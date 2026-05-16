@@ -121,9 +121,9 @@ function AgencyCreateForm({ onCreate }: { onCreate: (stats: AgencyStats) => void
     }
     setSaving(true);
     try {
-      const { data } = await api.post<AgencyStats>('/agency', form);
+      const { data: res } = await api.post<{ success: boolean; data: AgencyStats }>('/agency', form);
       add('Agence créée avec succès', 'success');
-      onCreate(data);
+      onCreate(res.data);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur lors de la création';
       add(msg, 'error');
@@ -302,9 +302,11 @@ function NewKeyForm({ onCreated }: { onCreated: (keys: ApiKey[]) => void }) {
     if (form.permissions.length === 0) { add('Sélectionnez au moins une permission', 'error'); return; }
     setSaving(true);
     try {
-      const { data } = await api.post<{ key: string; keys: ApiKey[] }>('/agency/api-keys', form);
-      setNewKeyValue(data.key);
-      onCreated(data.keys);
+      const { data: res } = await api.post<{ success: boolean; data: ApiKey & { key: string } }>('/agency/api-keys', form);
+      setNewKeyValue(res.data.key);
+      // Refresh the full key list after creating a new key
+      const { data: keysRes } = await api.get<{ success: boolean; data: ApiKey[] }>('/agency/api-keys');
+      onCreated(keysRes.data ?? []);
       setForm({ name: '', permissions: ['read'] });
       add('Clé créée — copiez-la maintenant!', 'success');
     } catch (err: unknown) {
@@ -415,8 +417,8 @@ export default function Agency() {
   const fetchStats = useCallback(async () => {
     setStatsState('loading');
     try {
-      const { data } = await api.get<AgencyStats | null>('/agency/me');
-      setAgencyStats(data);
+      const { data: res } = await api.get<{ success: boolean; data: AgencyStats | null }>('/agency/me');
+      setAgencyStats(res.data);
       setStatsState('idle');
     } catch {
       setStatsState('error');
@@ -426,8 +428,8 @@ export default function Agency() {
   const fetchKeys = useCallback(async () => {
     setKeysState('loading');
     try {
-      const { data } = await api.get<ApiKey[]>('/agency/api-keys');
-      setApiKeys(data);
+      const { data: res } = await api.get<{ success: boolean; data: ApiKey[] }>('/agency/api-keys');
+      setApiKeys(res.data ?? []);
       setKeysState('idle');
     } catch {
       setKeysState('error');

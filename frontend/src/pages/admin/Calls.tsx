@@ -163,10 +163,13 @@ export default function AdminCalls() {
         ...(dateFrom && { dateFrom }),
         ...(dateTo && { dateTo }),
       });
-      const { data: res } = await api.get<CallsResponse>(`/calls?${params}`);
-      const list = res.calls ?? res.data ?? [];
+      const { data: res } = await api.get<CallsResponse | CallRecord[]>(`/admin/calls?${params}`);
+      const list = Array.isArray(res)
+        ? res
+        : (res as CallsResponse).calls ?? (res as CallsResponse).data ?? [];
       setCalls(list);
-      setTotal(res.total ?? res.pagination?.total ?? list.length);
+      const resTyped = res as CallsResponse;
+      setTotal(resTyped.total ?? resTyped.pagination?.total ?? list.length);
     } catch {
       toast('Erreur chargement des appels', 'error');
     } finally {

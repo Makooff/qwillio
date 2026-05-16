@@ -16,11 +16,14 @@ export const prospectQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
   status: z.string().optional(),
   businessType: z.string().optional(),
+  niche: z.string().optional(),
   city: z.string().optional(),
   minScore: z.coerce.number().optional(),
   maxScore: z.coerce.number().optional(),
   search: z.string().optional(),
-  sortBy: z.string().default('score'),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  sortBy: z.string().default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 

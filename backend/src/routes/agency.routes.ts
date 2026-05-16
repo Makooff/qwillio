@@ -13,7 +13,8 @@ router.post('/', async (req: AuthRequest, res) => {
       return;
     }
     const agency = await agencyService.createAgency(req.userId, req.body);
-    res.json({ success: true, data: agency });
+    const stats = await agencyService.getAgencyStats(agency.id);
+    res.json({ success: true, data: stats });
   } catch (err: unknown) {
     res.status(400).json({ success: false, error: err instanceof Error ? err.message : 'Erreur' });
   }

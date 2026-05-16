@@ -11,6 +11,7 @@ export class ProspectsController {
 
       if (query.status) where.status = query.status;
       if (query.businessType) where.businessType = query.businessType;
+      if (query.niche) where.niche = query.niche;
       if (query.city) where.city = query.city;
       if (query.minScore !== undefined) where.score = { ...((where.score as any) || {}), gte: query.minScore };
       if (query.maxScore !== undefined) where.score = { ...((where.score as any) || {}), lte: query.maxScore };
