@@ -457,6 +457,13 @@ function TabMoniteur() {
   const [botActive, setBotActive] = useState(false);
   const [activity, setActivity]   = useState<BotActivity[]>([]);
   const [loading, setLoading]     = useState(true);
+  const [testPhone, setTestPhone]     = useState('');
+  const [testBusiness, setTestBusiness] = useState('');
+  const [testType, setTestType]       = useState('cabinet_dentaire');
+  const [testCity, setTestCity]       = useState('Paris');
+  const [testBusy, setTestBusy]       = useState(false);
+  const [testResult, setTestResult]   = useState<string | null>(null);
+  const { add: toast } = useToast();
 
   const load = useCallback(async () => {
     const [bot, act] = await Promise.allSettled([
@@ -477,9 +484,39 @@ function TabMoniteur() {
     return () => clearInterval(id);
   }, [load]);
 
+  const launchTestCall = async () => {
+    if (!testPhone) { toast('Numéro de téléphone requis', 'error'); return; }
+    setTestBusy(true);
+    setTestResult(null);
+    try {
+      await api.post('/vapi/test', {
+        phoneNumber: testPhone,
+        businessName: testBusiness || 'Test Business',
+        businessType: testType,
+        city: testCity,
+      });
+      setTestResult('✅ Appel lancé — ton téléphone va sonner dans quelques secondes');
+      toast('Appel test lancé !', 'success');
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Erreur';
+      setTestResult(`❌ ${msg}`);
+      toast(msg, 'error');
+    }
+    setTestBusy(false);
+  };
+
+  const NICHES_FR = [
+    'cabinet_dentaire','cabinet_avocat','salon_coiffure','restaurant','hotel',
+    'agence_marketing','cabinet_comptable','agence_immobiliere','cabinet_recrutement',
+    'agence_web','garage_auto','coach','consultant_formation',
+    'dental','law','salon','auto',
+  ];
+
   return (
     <div className="space-y-4">
       <SectionHead title="Moniteur live" action={<GhostBtn onClick={load} size="sm"><RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /></GhostBtn>} />
+
+      {/* Bot status */}
       <Card>
         <div className="p-4 flex items-center gap-3">
           <div
@@ -494,6 +531,72 @@ function TabMoniteur() {
           </p>
         </div>
       </Card>
+
+      {/* Test Call */}
+      <Card>
+        <div className="p-4 space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: pro.textSec }}>🧪 Test Call — appel direct</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] mb-1 block" style={{ color: pro.textTer }}>Téléphone (+33…)</label>
+              <input
+                type="text"
+                value={testPhone}
+                onChange={e => setTestPhone(e.target.value)}
+                placeholder="+33612345678"
+                className="w-full px-3 py-2 text-[13px] rounded-[10px] outline-none"
+                style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${pro.border}`, color: pro.text }}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] mb-1 block" style={{ color: pro.textTer }}>Nom entreprise</label>
+              <input
+                type="text"
+                value={testBusiness}
+                onChange={e => setTestBusiness(e.target.value)}
+                placeholder="Cabinet Durand"
+                className="w-full px-3 py-2 text-[13px] rounded-[10px] outline-none"
+                style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${pro.border}`, color: pro.text }}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] mb-1 block" style={{ color: pro.textTer }}>Niche</label>
+              <select
+                value={testType}
+                onChange={e => setTestType(e.target.value)}
+                className="w-full px-3 py-2 text-[13px] rounded-[10px] outline-none"
+                style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${pro.border}`, color: pro.text }}
+              >
+                {NICHES_FR.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] mb-1 block" style={{ color: pro.textTer }}>Ville</label>
+              <input
+                type="text"
+                value={testCity}
+                onChange={e => setTestCity(e.target.value)}
+                placeholder="Lyon"
+                className="w-full px-3 py-2 text-[13px] rounded-[10px] outline-none"
+                style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${pro.border}`, color: pro.text }}
+              />
+            </div>
+          </div>
+          <div style={{ width: '100%' }}>
+            <PrimaryBtn onClick={launchTestCall} disabled={testBusy}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Play size={12} /> {testBusy ? 'Appel en cours…' : 'Lancer test call'}
+              </span>
+            </PrimaryBtn>
+          </div>
+          {testResult && (
+            <p className="text-[12px] px-3 py-2 rounded-[8px]" style={{ background: 'rgba(0,0,0,0.2)', color: pro.textSec }}>
+              {testResult}
+            </p>
+          )}
+        </div>
+      </Card>
+
       {activity.length > 0 && (
         <Card>
           <div className="divide-y" style={{ '--tw-divide-opacity': 1 } as React.CSSProperties}>
