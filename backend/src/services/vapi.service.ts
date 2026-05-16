@@ -228,18 +228,18 @@ export class VapiService {
           },
           voice: {
             provider: '11labs',
-            voiceId: env.VAPI_VOICE_ID,
-            model: 'eleven_turbo_v2_5',
-            stability: 0.30,
-            similarityBoost: 0.72,
-            style: 0.60,
+            voiceId: env.VAPI_VOICE_ID || 'cgSgspJ2msm6clMCkdW9', // Jessica — most natural conversational EN voice
+            model: 'eleven_flash_v2_5', // <300ms latency → sounds more human (quick reactions)
+            stability: 0.22,        // low = natural pitch variation, not flat
+            similarityBoost: 0.65,  // less "clean" = more human
+            style: 0.70,            // high expressiveness
             useSpeakerBoost: true,
             optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
-            speed: 1.05, // natural, slightly relaxed delivery
+            speed: 1.0, // natural pace
             fallbackPlan: {
               voices: [
-                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1 },
-                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2 },
+                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1 || '9BWtsMINqrJLrRacOk9x' }, // Aria
+                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2 || 'EXAVITQu4vr4xnSDxMaL' }, // Sarah
               ],
             },
           },
@@ -727,18 +727,18 @@ Return a JSON with:
           },
           voice: {
             provider: '11labs',
-            voiceId: env.VAPI_VOICE_ID,
-            model: 'eleven_turbo_v2_5',
-            stability: 0.30,
-            similarityBoost: 0.72,
-            style: 0.60,
+            voiceId: env.VAPI_VOICE_ID || 'cgSgspJ2msm6clMCkdW9', // Jessica — most natural conversational EN voice
+            model: 'eleven_flash_v2_5', // <300ms latency → sounds more human (quick reactions)
+            stability: 0.22,        // low = natural pitch variation, not flat
+            similarityBoost: 0.65,  // less "clean" = more human
+            style: 0.70,            // high expressiveness
             useSpeakerBoost: true,
             optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
-            speed: 1.05, // natural, slightly relaxed delivery
+            speed: 1.0, // natural pace
             fallbackPlan: {
               voices: [
-                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1 },
-                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2 },
+                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1 || '9BWtsMINqrJLrRacOk9x' }, // Aria
+                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2 || 'EXAVITQu4vr4xnSDxMaL' }, // Sarah
               ],
             },
           },
