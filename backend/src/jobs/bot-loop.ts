@@ -74,6 +74,9 @@ class BotLoop {
   private crmSyncJob: cron.ScheduledTask | null = null;
   private forwardingVerificationJob: cron.ScheduledTask | null = null;
   private overageJob: cron.ScheduledTask | null = null;
+  // ─── LinkedIn Outreach ─────────────────────────────────
+  private linkedInConnectionsJob: cron.ScheduledTask | null = null;
+  private linkedInFollowUpsJob: cron.ScheduledTask | null = null;
 
   async initialize() {
     // Ensure bot_status record exists
@@ -830,6 +833,30 @@ class BotLoop {
     }, { timezone: env.TZ || 'America/New_York' });
 
     // ═══════════════════════════════════════════════════════════
+    // LINKEDIN OUTREACH — Connection requests — weekdays 9am CET (8am UTC)
+    // ═══════════════════════════════════════════════════════════
+    this.linkedInConnectionsJob = cron.schedule('0 8 * * 1-5', async () => {
+      const status = await prisma.botStatus.findFirst();
+      if (!status?.isActive) return;
+      logger.info('[Cron] LinkedIn connections → running');
+      const { linkedInOutreachService } = await import('../services/linkedin-outreach.service');
+      await linkedInOutreachService.sendConnectionRequests()
+        .catch(e => logger.error('[Cron] LinkedIn connections failed', e));
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // LINKEDIN OUTREACH — Follow-ups — weekdays 2pm CET (1pm UTC)
+    // ═══════════════════════════════════════════════════════════
+    this.linkedInFollowUpsJob = cron.schedule('0 13 * * 1-5', async () => {
+      const status = await prisma.botStatus.findFirst();
+      if (!status?.isActive) return;
+      logger.info('[Cron] LinkedIn follow-ups → running');
+      const { linkedInOutreachService } = await import('../services/linkedin-outreach.service');
+      await linkedInOutreachService.processFollowUps()
+        .catch(e => logger.error('[Cron] LinkedIn follow-ups failed', e));
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
     // ROI DIGEST — Every Monday 9 AM UTC
     // ═══════════════════════════════════════════════════════════
     cron.schedule('0 9 * * 1', async () => {
@@ -891,6 +918,9 @@ class BotLoop {
     this.crmSyncJob?.stop(); this.crmSyncJob = null;
     this.forwardingVerificationJob?.stop(); this.forwardingVerificationJob = null;
     this.overageJob?.stop(); this.overageJob = null;
+    // LinkedIn Outreach
+    this.linkedInConnectionsJob?.stop(); this.linkedInConnectionsJob = null;
+    this.linkedInFollowUpsJob?.stop(); this.linkedInFollowUpsJob = null;
     // Prospecting engine
     this.apifyScrapingJob?.stop(); this.apifyScrapingJob = null;
     this.linkedInScrapingJob?.stop(); this.linkedInScrapingJob = null;
@@ -985,6 +1015,9 @@ class BotLoop {
         crmSync: cronState(this.crmSyncJob),
         forwardingVerification: cronState(this.forwardingVerificationJob),
         overageBilling: cronState(this.overageJob),
+        // LinkedIn Outreach
+        linkedInConnections: cronState(this.linkedInConnectionsJob),
+        linkedInFollowUps: cronState(this.linkedInFollowUpsJob),
       },
     };
   }

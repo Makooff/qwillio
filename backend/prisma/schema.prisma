@@ -35,6 +35,32 @@ model User {
   @@map("users")
 }
 
+model LinkedInOutreach {
+  id                    String    @id @default(cuid())
+  prospectId            String?   @db.Uuid
+  prospect              Prospect? @relation(fields: [prospectId], references: [id])
+  linkedinUrl           String    @unique
+  profileName           String?
+  profileTitle          String?
+  companyName           String?
+  niche                 String?
+  connectionStatus      String    @default("pending")
+  // pending → requested → connected → message1_sent → message2_sent → replied → qualified → not_interested
+  connectionRequestAt   DateTime?
+  connectedAt           DateTime?
+  message1SentAt        DateTime?
+  message2SentAt        DateTime?
+  lastReplyAt           DateTime?
+  replyContent          String?
+  interestScore         Int?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([connectionStatus])
+  @@index([niche])
+  @@map("linkedin_outreach")
+}
+
 model Prospect {
   id                    String             @id @default(uuid()) @db.Uuid
   businessName          String             @map("business_name") @db.VarChar(500)
@@ -104,6 +130,7 @@ model Prospect {
   assignedTo            User?              @relation(fields: [assignedToUserId], references: [id])
   quotes                Quote[]
   smsLogs               SmsLog[]
+  linkedInOutreach      LinkedInOutreach[]
 
   @@index([status])
   @@index([businessType])

@@ -47,6 +47,44 @@ router.post('/trigger/whatsapp-followups', async (_req, res) => {
   }
 });
 
+// ─── LinkedIn Outreach manual triggers ────────────────────────────────────────
+
+// POST /api/bot/trigger/linkedin-connections — send connection requests
+router.post('/trigger/linkedin-connections', async (_req: Request, res: Response) => {
+  try {
+    const { linkedInOutreachService } = await import('../services/linkedin-outreach.service');
+    const result = await linkedInOutreachService.sendConnectionRequests();
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    logger.error('[API] LinkedIn connections trigger error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// POST /api/bot/trigger/linkedin-followups — process follow-ups
+router.post('/trigger/linkedin-followups', async (_req: Request, res: Response) => {
+  try {
+    const { linkedInOutreachService } = await import('../services/linkedin-outreach.service');
+    const result = await linkedInOutreachService.processFollowUps();
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    logger.error('[API] LinkedIn follow-ups trigger error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// GET /api/bot/linkedin/stats — outreach statistics
+router.get('/linkedin/stats', async (_req: Request, res: Response) => {
+  try {
+    const { linkedInOutreachService } = await import('../services/linkedin-outreach.service');
+    const stats = await linkedInOutreachService.getStats();
+    res.json({ ok: true, data: stats });
+  } catch (err) {
+    logger.error('[API] LinkedIn stats error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 // GET /api/bot/health — service health based on actual env vars
 router.get('/health', (_req: Request, res: Response) => {
   const twilioConfigured = !!(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN);

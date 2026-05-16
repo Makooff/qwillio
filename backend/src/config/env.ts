@@ -121,4 +121,8 @@ export const env = {
   // ─── Admin access control ─────────────────────────────────
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'makho.off@gmail.com',
   ADMIN_SECRET: process.env.ADMIN_SECRET || '',
+
+  // ─── LinkedIn Outreach ────────────────────────────────────
+  LINKEDIN_COOKIES: process.env.LINKEDIN_COOKIES || '', // JSON string of LinkedIn session cookies
+  LINKEDIN_DAILY_LIMIT: parseInt(process.env.LINKEDIN_DAILY_LIMIT || '15', 10), // max connections/day
 };
