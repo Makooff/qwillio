@@ -1,120 +1,69 @@
-﻿import { useEffect, useState, useCallback, useRef } from 'react';
+// === FILE: ClientOverview.tsx ===
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Phone, Users, AlertCircle, ArrowRight, ChevronRight,
-  Bot, BarChart3, ArrowUpRight, ArrowDownRight, Sparkles,
-  CheckCircle2, Settings, Headphones,
+  Phone, Users, Bot, Settings, ChevronRight, AlertCircle,
+  Headphones, Sparkles, TrendingUp, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
-import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-} from 'recharts';
-import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
-import OrbsLoader from '../../components/OrbsLoader';
 import { formatShortDate, daysUntil } from '../../utils/format';
 import OnboardingChecklist from '../../components/client/OnboardingChecklist';
 
-function greeting(name: string) {
+type TrendDir = 'up' | 'down' | 'flat';
+
+interface KpiItem {
+  label: string;
+  value: string | number;
+  hint?: string;
+  trend?: { dir: TrendDir; pct: number };
+}
+
+function greeting(name: string): string {
   const h = new Date().getHours();
   const first = name?.split(' ')[0] || name;
   if (h < 12) return `Bonjour, ${first}`;
-  if (h < 18) return `Bon aprÃ¨s-midi, ${first}`;
+  if (h < 18) return `Bon après-midi, ${first}`;
   return `Bonsoir, ${first}`;
 }
 
-// â”€â”€ Stripe / Vercel-style design tokens (local to this page) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const C = {
-  bg:       '#0A0A0C',
-  panel:    'rgba(255,255,255,0.03)',
-  border:   'rgba(255,255,255,0.07)',
-  borderHi: 'rgba(255,255,255,0.12)',
-  text:     '#F5F5F7',
-  textSec:  '#A1A1A8',
-  textTer:  '#6B6B75',
-  accent:   '#6366F1',
-  ok:       '#22C55E',
-  warn:     '#F59E0B',
-  bad:      '#EF4444',
-};
+function outcomeLabel(outcome: string): string {
+  if (outcome === 'lead_captured') return 'Lead';
+  if (outcome === 'transferred') return 'Transféré';
+  return outcome;
+}
 
-// â”€â”€ Reusable building blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-  <div className={`rounded-2xl border ${className}`} style={{ background: C.panel, borderColor: C.border }}>
-    {children}
-  </div>
-);
+function outcomePill(outcome: string): string {
+  if (outcome === 'lead_captured') return 'bg-emerald-400/10 text-emerald-400';
+  if (outcome === 'transferred') return 'bg-indigo-400/10 text-indigo-400';
+  return 'bg-white/[0.05] text-white/40';
+}
 
-const SectionHead = ({ title, action }: { title: string; action?: React.ReactNode }) => (
-  <div className="flex items-center justify-between mb-3 px-1">
-    <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: C.textSec }}>{title}</h2>
-    {action}
-  </div>
-);
-
-const Stat = ({ label, value, hint, trend }: {
-  label: string; value: string | number; hint?: string;
-  trend?: { dir: 'up' | 'down' | 'flat'; pct: number };
-}) => (
-  <Card>
-    <div className="p-4">
-      <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: C.textTer }}>{label}</p>
-      <div className="mt-2 flex items-baseline gap-2">
-        <p className="text-[26px] font-semibold tabular-nums leading-none" style={{ color: C.text }}>{value}</p>
-        {trend && trend.pct > 0 && (
-          <span className="inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: trend.dir === 'up' ? C.ok : trend.dir === 'down' ? C.bad : C.textSec }}>
-            {trend.dir === 'up' && <ArrowUpRight size={11} />}
-            {trend.dir === 'down' && <ArrowDownRight size={11} />}
-            {trend.pct}%
-          </span>
-        )}
-      </div>
-      {hint && <p className="text-[11.5px] mt-1.5" style={{ color: C.textTer }}>{hint}</p>}
-    </div>
-  </Card>
-);
-
-const QuickAction = ({ icon: Icon, label, desc, to }: { icon: any; label: string; desc: string; to: string }) => (
-  <Link to={to} className="block">
-    <Card className="hover:border-white/[0.14] transition-colors group">
-      <div className="p-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <Icon size={14} style={{ color: C.text }} />
-          </div>
-          <ChevronRight size={14} className="ml-auto opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: C.textSec }} />
-        </div>
-        <p className="text-[13px] font-semibold" style={{ color: C.text }}>{label}</p>
-        <p className="text-[11.5px] mt-0.5" style={{ color: C.textTer }}>{desc}</p>
-      </div>
-    </Card>
-  </Link>
-);
+// Skeleton block
+function Bone({ className }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-white/[0.06] ${className ?? ''}`} />;
+}
 
 export default function ClientOverview() {
   const { user, checkAuth } = useAuthStore();
-  const navigate = useNavigate();
+  const [, setNavigate] = useState(useNavigate);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [data, setData] = useState<any>(null);
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [calls, setCalls] = useState<any[]>([]);
+  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [calls, setCalls] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [paymentPending, setPaymentPending] = useState(false);
-  const [chartRange, setChartRange] = useState<7 | 30>(30);
   const retryCount = useRef(0);
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [ov, an, cl] = await Promise.all([
+      const [ov, cl] = await Promise.all([
         api.get('/my-dashboard/overview'),
-        api.get(`/my-dashboard/analytics?days=${chartRange}`).catch(() => ({ data: null })),
-        api.get('/my-dashboard/calls?page=1&limit=6').catch(() => ({ data: { data: [] } })),
+        api.get('/my-dashboard/calls?page=1&limit=5').catch(() => ({ data: { data: [] } })),
       ]);
       setData(ov.data);
-      setAnalytics(an.data);
-      setCalls(cl.data?.data || []);
+      setCalls((cl.data?.data as Record<string, unknown>[]) || []);
       setPaymentPending(false);
       retryCount.current = 0;
       checkAuth();
@@ -122,304 +71,327 @@ export default function ClientOverview() {
         searchParams.delete('payment');
         setSearchParams(searchParams, { replace: true });
       }
-    } catch (err: any) {
-      // Auto-retry on 4xx (paid â†’ activation in flight)
-      const code = err?.response?.status;
-      if ((code === 401 || code === 403 || code === 404) && retryCount.current < 6) {
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number; data?: { error?: string } } })?.response?.status;
+      if ((status === 401 || status === 403 || status === 404) && retryCount.current < 6) {
         retryCount.current++;
         setPaymentPending(true);
         setTimeout(load, 2500);
         return;
       }
-      setError(err?.response?.data?.error || 'Erreur de chargement');
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setError(msg || 'Erreur de chargement');
     } finally {
       setLoading(false);
     }
-  }, [chartRange, checkAuth, searchParams, setSearchParams]);
+  }, [checkAuth, searchParams, setSearchParams]);
 
   useEffect(() => { load(); }, [load]);
-
-  // Sync with the AI status pill toggle from the top bar
   useEffect(() => {
-    const h = () => { load(); };
-    window.addEventListener('ai-status-change', h);
-    return () => window.removeEventListener('ai-status-change', h);
+    const handler = () => load();
+    window.addEventListener('ai-status-change', handler);
+    return () => window.removeEventListener('ai-status-change', handler);
   }, [load]);
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center py-32 gap-4">
-      <OrbsLoader size={40} fullscreen={false} />
-      {paymentPending && (
-        <div className="text-center">
-          <p className="text-sm font-medium" style={{ color: C.text }}>Paiement reÃ§u</p>
-          <p className="text-xs mt-1" style={{ color: C.textSec }}>Activation de votre compte en coursâ€¦</p>
-        </div>
-      )}
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-      <AlertCircle className="w-9 h-9 mb-3" style={{ color: C.bad }} />
-      <p className="text-sm" style={{ color: C.textSec }}>{error}</p>
-      <button onClick={load} className="mt-4 px-4 py-2 rounded-xl text-sm font-medium" style={{ background: C.accent, color: '#fff' }}>
-        RÃ©essayer
-      </button>
-    </div>
-  );
-
-  const c = data?.client || {};
+  // Derived values
+  const c = (data as Record<string, unknown> & { client?: Record<string, unknown> })?.client ?? {};
   const isActive = c.subscriptionStatus === 'active' || c.subscriptionStatus === 'trialing';
   const isPaused = c.subscriptionStatus === 'paused';
 
-  const callsToday = data?.calls?.today ?? 0;
-  const callsYesterday = data?.calls?.yesterday ?? 0;
-  const callsMonth = data?.calls?.thisMonth ?? 0;
-  const leadsMonth = data?.leads?.thisMonth ?? 0;
-  const sentTotal = (data?.sentiment?.positive || 0) + (data?.sentiment?.neutral || 0) + (data?.sentiment?.negative || 0);
-  const positiveRate = sentTotal > 0 ? Math.round((data.sentiment.positive / sentTotal) * 100) : 0;
-  const convRate = callsMonth > 0 ? Math.round((leadsMonth / callsMonth) * 100) : 0;
+  const calls_ = (data as Record<string, unknown> & { calls?: Record<string, number> })?.calls ?? {};
+  const sentiment_ = (data as Record<string, unknown> & { sentiment?: Record<string, number> })?.sentiment ?? {};
+  const leads_ = (data as Record<string, unknown> & { leads?: Record<string, number> })?.leads ?? {};
 
+  const callsToday = (calls_ as Record<string, number>).today ?? 0;
+  const callsYesterday = (calls_ as Record<string, number>).yesterday ?? 0;
+  const callsMonth = (calls_ as Record<string, number>).thisMonth ?? 0;
+  const leadsMonth = (leads_ as Record<string, number>).thisMonth ?? 0;
+  const sentTotal = ((sentiment_ as Record<string, number>).positive ?? 0)
+    + ((sentiment_ as Record<string, number>).neutral ?? 0)
+    + ((sentiment_ as Record<string, number>).negative ?? 0);
+  const convRate = callsMonth > 0 ? Math.round((leadsMonth / callsMonth) * 100) : 0;
+  const positiveRate = sentTotal > 0 ? Math.round(((sentiment_ as Record<string, number>).positive / sentTotal) * 100) : 0;
   const callsTodayPct = callsYesterday > 0
     ? Math.abs(Math.round(((callsToday - callsYesterday) / callsYesterday) * 100))
     : 0;
-  const callsTodayDir: 'up' | 'down' | 'flat' = callsToday > callsYesterday ? 'up' : callsToday < callsYesterday ? 'down' : 'flat';
+  const callsTodayDir: TrendDir = callsToday > callsYesterday ? 'up' : callsToday < callsYesterday ? 'down' : 'flat';
 
-  const quotaUsed = data?.calls?.quotaUsed || 0;
-  const quotaTotal = c.monthlyCallsQuota || data?.calls?.quota || 0;
+  const quotaUsed = (calls_ as Record<string, number>).quotaUsed ?? 0;
+  const quotaTotal = (c.monthlyCallsQuota as number) ?? (calls_ as Record<string, number>).quota ?? 0;
   const quotaPct = quotaTotal > 0 ? Math.round((quotaUsed / quotaTotal) * 100) : 0;
 
-  const chartData = (analytics?.daily || []).map((d: any) => ({
-    date: formatShortDate(d.date),
-    Appels: d.calls,
-    Leads: d.leads,
-  }));
+  const kpis: KpiItem[] = [
+    {
+      label: "Appels totaux",
+      value: callsMonth,
+      hint: quotaTotal ? `${quotaPct}% quota (${quotaUsed}/${quotaTotal})` : undefined,
+    },
+    {
+      label: "Leads qualifiés",
+      value: leadsMonth,
+      hint: callsMonth > 0 ? `${convRate}% de conversion` : undefined,
+    },
+    {
+      label: "Taux conversion",
+      value: `${convRate}%`,
+      hint: `${leadsMonth} leads ce mois`,
+    },
+    {
+      label: "Score moyen",
+      value: `${positiveRate}%`,
+      hint: sentTotal > 0 ? `${sentTotal} appels analysés` : 'Pas encore de données',
+      trend: callsTodayPct > 0 ? { dir: callsTodayDir, pct: callsTodayPct } : undefined,
+    },
+  ];
 
   const onboardingClient = {
     hasPhone: !!(c.transferNumber || c.vapiPhoneNumber),
     hasTestCall: !!c.hasTestCall,
     hasCustomConfig: !!c.hasCustomConfig,
     hasCallForwarding: c.forwardingStatus === 'verified' || !!c.forwardingVerifiedAt,
-    forwardingStatus: c.forwardingStatus,
-    forwardingVerifiedAt: c.forwardingVerifiedAt,
+    forwardingStatus: c.forwardingStatus as string | undefined,
+    forwardingVerifiedAt: c.forwardingVerifiedAt as string | undefined,
     isActive,
-    transferNumber: c.transferNumber,
-    vapiPhoneNumber: c.vapiPhoneNumber,
-    subscriptionStatus: c.subscriptionStatus,
-    businessName: c.businessName,
+    transferNumber: c.transferNumber as string | undefined,
+    vapiPhoneNumber: c.vapiPhoneNumber as string | undefined,
+    subscriptionStatus: c.subscriptionStatus as string | undefined,
+    businessName: c.businessName as string | undefined,
   };
-  const onboardingDone =
-    onboardingClient.hasPhone && onboardingClient.hasTestCall && onboardingClient.hasCustomConfig && onboardingClient.isActive;
+  const onboardingDone = onboardingClient.hasPhone && onboardingClient.hasTestCall
+    && onboardingClient.hasCustomConfig && onboardingClient.isActive;
+
+  // --- Loading skeleton ---
+  if (loading) {
+    return (
+      <main className="space-y-8 max-w-[1200px]" aria-busy="true">
+        {paymentPending && (
+          <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.05] px-5 py-3">
+            <p className="text-sm text-white/70">Activation de votre compte en cours…</p>
+          </div>
+        )}
+        <div className="flex items-end justify-between">
+          <div className="space-y-2"><Bone className="h-7 w-44" /><Bone className="h-4 w-32" /></div>
+        </div>
+        {/* KPI strip skeleton */}
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-white/[0.06]">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="px-5 space-y-2 first:pl-0 last:pr-0">
+                <Bone className="h-3 w-20" />
+                <Bone className="h-8 w-14" />
+                <Bone className="h-3 w-24" />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Calls skeleton */}
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04]">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-b-0">
+              <Bone className="h-8 w-8 rounded-full flex-shrink-0" />
+              <div className="flex-1 space-y-1.5"><Bone className="h-3.5 w-36" /><Bone className="h-3 w-24" /></div>
+              <Bone className="h-5 w-14 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </main>
+    );
+  }
+
+  // --- Error state ---
+  if (error) {
+    return (
+      <main className="flex flex-col items-center justify-center py-24 text-center px-6">
+        <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
+          <AlertCircle className="w-5 h-5 text-red-400" />
+        </div>
+        <p className="text-sm text-white/60 mb-4">{error}</p>
+        <button
+          onClick={load}
+          className="px-5 py-2 rounded-xl text-sm font-medium bg-indigo-500 text-white hover:bg-indigo-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+        >
+          Réessayer
+        </button>
+      </main>
+    );
+  }
 
   return (
-    <div className="space-y-8 max-w-[1200px]">
-      {/* â”€â”€â”€ Header â”€â”€â”€ */}
-      <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+    <main className="space-y-8 max-w-[1200px]">
+      {/* Header */}
+      <section className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: C.text }}>
+          <h1 className="text-[22px] font-semibold tracking-tight text-white/90">
             {greeting(user?.name || 'Utilisateur')}
           </h1>
-          <p className="text-[12.5px] mt-0.5" style={{ color: C.textSec }}>
+          <p className="text-[12.5px] mt-1 text-white/50">
             {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-            {' Â· '}
-            <span style={{ color: isActive ? C.ok : isPaused ? C.warn : C.bad }}>â—</span>
-            {' '}
-            {isActive ? 'Service actif' : isPaused ? 'En pause' : 'Inactif'}
+            <span className="mx-1.5 text-white/20">·</span>
+            <span className={isActive ? 'text-emerald-400' : isPaused ? 'text-amber-400' : 'text-red-400'}>
+              {isActive ? 'Service actif' : isPaused ? 'En pause' : 'Inactif'}
+            </span>
           </p>
         </div>
-      </motion.div>
+      </section>
 
-      {/* â”€â”€â”€ Onboarding (only if not done) â”€â”€â”€ */}
+      {/* Onboarding */}
       {!onboardingDone && <OnboardingChecklist client={onboardingClient} />}
 
-      {/* â”€â”€â”€ Banners â”€â”€â”€ */}
-      {c.isTrial && (
-        <Card className="px-5 py-3 flex items-center gap-3">
-          <Sparkles size={16} style={{ color: C.accent }} />
-          <p className="text-[13px] flex-1" style={{ color: C.text }}>
-            PÃ©riode d'essai â€” <strong>{daysUntil(c.trialEndDate)} jours restants</strong>
+      {/* Banners */}
+      {!!c.isTrial && (
+        <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.05] px-5 py-3 flex items-center gap-3">
+          <Sparkles size={15} className="text-indigo-400 flex-shrink-0" />
+          <p className="text-[13px] text-white/80 flex-1">
+            Période d'essai — <strong className="text-white/90">{daysUntil(c.trialEndDate as string)} jours restants</strong>
           </p>
-          <Link to="/dashboard/billing" className="text-[12.5px] font-medium hover:underline whitespace-nowrap" style={{ color: C.accent }}>
-            Mettre Ã  jour â†’
+          <Link
+            to="/dashboard/billing"
+            className="text-[12px] font-medium text-indigo-400 hover:text-indigo-300 whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 rounded"
+          >
+            Mettre à jour
           </Link>
-        </Card>
-      )}
-
-      {!c.transferNumber && (
-        <Card className="px-5 py-3 flex items-center gap-3" >
-          <AlertCircle size={14} style={{ color: C.bad }} />
-          <p className="text-[13px] flex-1" style={{ color: C.text }}>NumÃ©ro de transfert non configurÃ©</p>
-          <Link to="/dashboard/receptionist#transfer" className="text-[12.5px] font-medium hover:underline whitespace-nowrap" style={{ color: C.accent }}>
-            Configurer â†’
-          </Link>
-        </Card>
-      )}
-
-      {/* â”€â”€â”€ KPI grid â”€â”€â”€ */}
-      <section>
-        <SectionHead title="AperÃ§u" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Stat
-            label="Appels aujourd'hui"
-            value={callsToday}
-            trend={callsTodayPct > 0 ? { dir: callsTodayDir, pct: callsTodayPct } : undefined}
-            hint={callsYesterday ? `vs ${callsYesterday} hier` : undefined}
-          />
-          <Stat
-            label="Appels ce mois"
-            value={callsMonth}
-            hint={quotaTotal ? `${quotaPct}% du quota (${quotaUsed}/${quotaTotal})` : undefined}
-          />
-          <Stat
-            label="Leads ce mois"
-            value={leadsMonth}
-            hint={callsMonth > 0 ? `${convRate}% de conversion` : undefined}
-          />
-          <Stat
-            label="Sentiment positif"
-            value={`${positiveRate}%`}
-            hint={sentTotal > 0 ? `${sentTotal} appel${sentTotal > 1 ? 's' : ''} analysÃ©${sentTotal > 1 ? 's' : ''}` : 'Pas encore de donnÃ©es'}
-          />
         </div>
-      </section>
+      )}
+      {!c.transferNumber && (
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.05] px-5 py-3 flex items-center gap-3">
+          <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
+          <p className="text-[13px] text-white/80 flex-1">Numéro de transfert non configuré</p>
+          <Link
+            to="/dashboard/receptionist#transfer"
+            className="text-[12px] font-medium text-indigo-400 hover:text-indigo-300 whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 rounded"
+          >
+            Configurer
+          </Link>
+        </div>
+      )}
 
-      {/* â”€â”€â”€ Performance chart â”€â”€â”€ */}
-      <section>
-        <SectionHead
-          title="Performance"
-          action={
-            <div className="flex p-0.5 rounded-lg border" style={{ borderColor: C.border, background: C.panel }}>
-              {[7, 30].map(d => (
-                <button key={d} onClick={() => setChartRange(d as 7 | 30)}
-                  className="text-[11px] font-medium px-2.5 h-6 rounded-md transition-colors"
-                  style={{
-                    color: chartRange === d ? C.text : C.textSec,
-                    background: chartRange === d ? 'rgba(255,255,255,0.06)' : 'transparent',
-                  }}>
-                  {d}j
-                </button>
-              ))}
-            </div>
-          }
-        />
-        <Card>
-          <div className="p-4 h-[240px]">
-            {chartData.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center" style={{ color: C.textTer }}>
-                <BarChart3 size={28} className="opacity-50 mb-2" />
-                <p className="text-[12px]">Pas encore de donnÃ©es</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="appels" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={C.accent} stopOpacity={0.4} />
-                      <stop offset="100%" stopColor={C.accent} stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="leads" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={C.ok} stopOpacity={0.3} />
-                      <stop offset="100%" stopColor={C.ok} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke={C.border} strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="date" stroke={C.textTer} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis stroke={C.textTer} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: '#141417', border: `1px solid ${C.borderHi}`, borderRadius: 8, fontSize: 11, color: C.text }}
-                    cursor={{ stroke: C.borderHi, strokeWidth: 1 }}
-                  />
-                  <Area type="monotone" dataKey="Appels" stroke={C.accent} strokeWidth={1.5} fill="url(#appels)" />
-                  <Area type="monotone" dataKey="Leads"  stroke={C.ok}     strokeWidth={1.5} fill="url(#leads)"  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </Card>
-      </section>
-
-      {/* â”€â”€â”€ Recent activity â”€â”€â”€ */}
-      <section>
-        <SectionHead
-          title="ActivitÃ© rÃ©cente"
-          action={<Link to="/dashboard/calls" className="text-[11.5px] font-medium hover:underline" style={{ color: C.textSec }}>Tout voir â†’</Link>}
-        />
-        <Card>
-          {calls.length === 0 ? (
-            <div className="p-12 flex flex-col items-center" style={{ color: C.textTer }}>
-              <Phone size={28} className="opacity-50 mb-2" />
-              <p className="text-[12.5px]">Aucun appel pour le moment</p>
-            </div>
-          ) : (
-            <div>
-              {calls.slice(0, 6).map((call: any, i: number) => (
-                <Link to={`/dashboard/calls?id=${call.id}`} key={call.id || i}
-                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.02]"
-                  style={{ borderTop: i > 0 ? `1px solid ${C.border}` : undefined }}>
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                       style={{ background: 'rgba(255,255,255,0.05)' }}>
-                    <Phone size={13} style={{ color: C.textSec }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium truncate" style={{ color: C.text }}>
-                      {call.callerName || call.phoneNumber || 'Appel inconnu'}
-                    </p>
-                    <p className="text-[11px]" style={{ color: C.textTer }}>
-                      {call.startedAt
-                        ? new Date(call.startedAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                        : 'â€”'}
-                      {call.duration ? ` Â· ${Math.round(call.duration)}s` : ''}
-                    </p>
-                  </div>
-                  {call.outcome && (
-                    <span className="text-[10.5px] font-medium px-2 py-0.5 rounded-full uppercase tracking-wider"
-                      style={{
-                        background: call.outcome === 'lead_captured' ? 'rgba(34,197,94,0.10)'
-                                  : call.outcome === 'transferred'   ? 'rgba(123,92,240,0.10)'
-                                  : 'rgba(255,255,255,0.04)',
-                        color: call.outcome === 'lead_captured' ? C.ok
-                              : call.outcome === 'transferred'   ? C.accent
-                              : C.textSec,
-                      }}>
-                      {call.outcome === 'lead_captured' ? 'Lead' : call.outcome === 'transferred' ? 'TransfÃ©rÃ©' : call.outcome}
+      {/* KPI strip */}
+      <section aria-label="Indicateurs clés">
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04]">
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-white/[0.06]">
+            {kpis.map((kpi, i) => (
+              <div key={i} className="px-6 py-5">
+                <p className="text-[11px] font-medium uppercase tracking-widest text-white/30 mb-2">{kpi.label}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-[28px] font-semibold tabular-nums leading-none text-white/90">{kpi.value}</p>
+                  {kpi.trend && kpi.trend.pct > 0 && (
+                    <span className={`inline-flex items-center gap-0.5 text-[11px] font-medium ${kpi.trend.dir === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {kpi.trend.dir === 'up' ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+                      {kpi.trend.pct}%
                     </span>
                   )}
-                  <ChevronRight size={14} style={{ color: C.textTer }} />
-                </Link>
-              ))}
-            </div>
-          )}
-        </Card>
-      </section>
-
-      {/* â”€â”€â”€ Quick actions â”€â”€â”€ */}
-      <section>
-        <SectionHead title="Actions rapides" />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <QuickAction icon={Phone}    label="Configurer le renvoi"     desc="iPhone et Android â€” guide pas Ã  pas" to="/dashboard/setup/call-forwarding" />
-          <QuickAction icon={Bot}      label="Personnaliser l'IA"       desc="Voix, scripts, transferts"          to="/dashboard/receptionist" />
-          <QuickAction icon={Settings} label="ParamÃ¨tres du compte"     desc="Profil, sÃ©curitÃ©, notifications"    to="/dashboard/account" />
+                </div>
+                {kpi.hint && <p className="text-[11px] mt-1 text-white/30">{kpi.hint}</p>}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* â”€â”€â”€ Helper / support â”€â”€â”€ */}
-      <section className="pt-2">
-        <Card>
-          <div className="p-4 flex items-center gap-3">
-            <Headphones size={16} style={{ color: C.textSec }} />
-            <p className="text-[12.5px] flex-1" style={{ color: C.text }}>
-              Besoin d'aide ? Notre Ã©quipe rÃ©pond en moins d'une heure.
-            </p>
-            <Link to="/dashboard/support" className="text-[12px] font-medium hover:underline" style={{ color: C.accent }}>
-              Contacter le support â†’
-            </Link>
-          </div>
-        </Card>
+      {/* Recent calls */}
+      <section aria-label="Appels récents">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/40">Activité récente</h2>
+          <Link
+            to="/dashboard/calls"
+            className="text-[11.5px] font-medium text-white/40 hover:text-white/70 transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 rounded"
+          >
+            Tout voir <ChevronRight size={12} />
+          </Link>
+        </div>
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04] overflow-hidden">
+          {(calls as unknown[]).length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-white/30">
+              <Phone size={28} className="opacity-40 mb-3" />
+              <p className="text-[13px]">Aucun appel pour le moment</p>
+            </div>
+          ) : (
+            <ul>
+              {(calls as Record<string, unknown>[]).map((call, i) => (
+                <li key={(call.id as string) || i}>
+                  <Link
+                    to={`/dashboard/calls?id=${call.id}`}
+                    className="flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0 group focus:outline-none focus-visible:ring-inset focus-visible:ring-1 focus-visible:ring-indigo-400"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center flex-shrink-0">
+                      <Phone size={13} className="text-white/40" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-white/90 truncate">
+                        {(call.callerName as string) || (call.phoneNumber as string) || 'Appel inconnu'}
+                      </p>
+                      <p className="text-[11px] text-white/30">
+                        {call.startedAt
+                          ? new Date(call.startedAt as string).toLocaleString('fr-FR', {
+                              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                            })
+                          : '—'}
+                        {call.duration ? ` · ${Math.round(call.duration as number)}s` : ''}
+                      </p>
+                    </div>
+                    {!!call.outcome && (
+                      <span className={`text-[10.5px] font-medium px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${outcomePill(call.outcome as string)}`}>
+                        {outcomeLabel(call.outcome as string)}
+                      </span>
+                    )}
+                    <ChevronRight size={13} className="text-white/20 group-hover:text-white/50 transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </section>
 
-      <p className="text-center text-[10px]" style={{ color: C.textTer }}>
-        Qwillio Â· {c.planType ? `Plan ${c.planType.charAt(0).toUpperCase() + c.planType.slice(1)}` : 'Plan'} Â· Mis Ã  jour {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+      {/* Quick links */}
+      <section aria-label="Actions rapides">
+        <div className="flex items-center mb-3 px-1">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/40">Actions rapides</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { icon: Phone, label: 'Configurer le renvoi', desc: 'iPhone et Android – guide pas à pas', to: '/dashboard/setup/call-forwarding' },
+            { icon: Bot, label: "Personnaliser l'IA", desc: 'Voix, scripts, transferts', to: '/dashboard/receptionist' },
+            { icon: Settings, label: 'Paramètres du compte', desc: 'Profil, sécurité, notifications', to: '/dashboard/account' },
+          ].map(({ icon: Icon, label, desc, to }) => (
+            <Link
+              key={to}
+              to={to}
+              className="group rounded-2xl border border-white/[0.06] bg-white/[0.04] p-4 hover:border-white/[0.12] hover:bg-white/[0.06] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            >
+              <div className="flex items-center gap-3 mb-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
+                  <Icon size={14} className="text-white/70" />
+                </div>
+                <ChevronRight size={13} className="ml-auto text-white/20 group-hover:text-indigo-400 transition-colors" />
+              </div>
+              <p className="text-[13px] font-semibold text-white/90">{label}</p>
+              <p className="text-[11.5px] mt-0.5 text-white/30">{desc}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Support */}
+      <section>
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04] px-5 py-4 flex items-center gap-3">
+          <Headphones size={15} className="text-white/40 flex-shrink-0" />
+          <p className="text-[12.5px] text-white/70 flex-1">
+            Besoin d'aide ? Notre équipe répond en moins d'une heure.
+          </p>
+          <Link
+            to="/dashboard/support"
+            className="text-[12px] font-medium text-indigo-400 hover:text-indigo-300 whitespace-nowrap transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 rounded"
+          >
+            Contacter le support <TrendingUp size={11} />
+          </Link>
+        </div>
+      </section>
+
+      <p className="text-center text-[10px] text-white/20 pb-2">
+        Qwillio · {c.planType ? `Plan ${(c.planType as string).charAt(0).toUpperCase() + (c.planType as string).slice(1)}` : 'Plan'}
+        {' · '}Mis à jour {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
       </p>
-    </div>
+    </main>
   );
 }

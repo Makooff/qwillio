@@ -3,6 +3,7 @@ import {
   Bot, Play, Pause, RefreshCw, AlertCircle,
   Activity, Zap, Users, DollarSign, Phone,
   TrendingUp, CheckCircle, AlertTriangle,
+  Megaphone, PhoneCall, Target,
 } from 'lucide-react';
 import {
   AreaChart, Area, ResponsiveContainer, Tooltip, CartesianGrid, XAxis, YAxis,
@@ -11,7 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { pro, proShadow } from '../styles/pro-theme';
 import {
-  Card, PageHeader, Stat, SectionHead, PrimaryBtn, GhostBtn, Pill,
+  Card, PageHeader, Stat, SectionHead, PrimaryBtn, Pill,
 } from '../components/pro/ProBlocks';
 
 const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com';
@@ -23,7 +24,7 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────
 
 interface BotStatus {
   isActive: boolean;
@@ -62,7 +63,7 @@ interface Anomaly {
 
 type PillColor = 'ok' | 'warn' | 'bad' | 'info' | 'accent' | 'neutral';
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
+// ── Skeleton ───────────────────────────────────────────────────────────────
 
 function SkeletonCard({ h = 'h-24' }: { h?: string }) {
   return (
@@ -73,7 +74,33 @@ function SkeletonCard({ h = 'h-24' }: { h?: string }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Custom tooltip ─────────────────────────────────────────────────────────
+
+function ChartTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div
+      className="px-3 py-2 rounded-xl"
+      style={{
+        background: pro.panelHi,
+        border: `1px solid ${pro.borderHi}`,
+        boxShadow: proShadow.float,
+      }}
+    >
+      <p className="text-[11px] mb-1" style={{ color: pro.textTer }}>{label}</p>
+      <p className="text-[15px] font-bold tabular-nums" style={{ color: pro.text }}>
+        {payload[0].value}
+        <span className="text-[11px] font-normal ml-1" style={{ color: pro.textSec }}>appels</span>
+      </p>
+    </div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
   const [botStatus, setBotStatus]   = useState<BotStatus | null>(null);
@@ -160,7 +187,7 @@ export default function Dashboard() {
         headers: getHeaders(),
       });
       if (!r.ok) alert(`Erreur ${r.status}`);
-    } catch { /* silent */ }
+    } catch { /* intentional */ }
     setActionBusy(null);
     await load();
   };
@@ -168,13 +195,13 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="space-y-4 admin-page">
-        <SkeletonCard h="h-32" />
+        <SkeletonCard h="h-36" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[0, 1, 2, 3].map(i => <SkeletonCard key={i} />)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <SkeletonCard h="h-52" />
-          <SkeletonCard h="h-52" />
+          <SkeletonCard h="h-56" />
+          <SkeletonCard h="h-56" />
         </div>
       </div>
     );
@@ -190,11 +217,11 @@ export default function Dashboard() {
     );
   }
 
-  const active  = botStatus?.isActive ?? false;
-  const quota   = botStatus?.callsQuota ?? 50;
-  const calls   = botStatus?.callsToday ?? 0;
-  const pct     = quota > 0 ? Math.min(100, Math.round((calls / quota) * 100)) : 0;
-  const barColor = pct > 90 ? pro.bad : pct > 70 ? pro.warn : pro.accent;
+  const active    = botStatus?.isActive ?? false;
+  const quota     = botStatus?.callsQuota ?? 50;
+  const calls     = botStatus?.callsToday ?? 0;
+  const pct       = quota > 0 ? Math.min(100, Math.round((calls / quota) * 100)) : 0;
+  const barColor  = pct > 90 ? pro.bad : pct > 70 ? pro.warn : pro.accent;
 
   const severityColor = (s: string): PillColor => {
     const v = s.toLowerCase();
@@ -215,117 +242,126 @@ export default function Dashboard() {
   const activityIcon = (type: string) => {
     const t = type.toLowerCase();
     if (t.includes('call') || t.includes('appel')) return Phone;
-    if (t.includes('lead'))  return Zap;
+    if (t.includes('lead'))   return Zap;
     if (t.includes('client')) return Users;
-    if (t.includes('bot'))   return Bot;
+    if (t.includes('bot'))    return Bot;
     return Activity;
   };
 
-  // Latest activity timestamp for "last updated" display
   const latestTs = activity[0]?.createdAt ?? activity[0]?.timestamp;
 
   return (
-    <div className="space-y-4 admin-page">
+    <div className="space-y-5 admin-page">
 
-      {/* ── Row 1: Bot status hero ────────────────────────────────────────── */}
-      <div className="mb-5">
-        <Card glow={active}>
-          <div className="p-5">
-            <div className="flex items-start gap-4">
-              {/* Status icon */}
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: active ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
-                  boxShadow: active ? `0 0 20px ${pro.okGlow}` : undefined,
-                }}
-              >
-                <Bot size={20} style={{ color: active ? pro.ok : pro.textSec }} />
-              </div>
+      {/* ── Page header ───────────────────────────────────────────────── */}
+      <PageHeader
+        title="Tableau de bord"
+        subtitle={latestTs ? `Mis à jour ${fmtRelative(latestTs)}` : undefined}
+      />
 
-              {/* Main status + numbers */}
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-3 mb-3">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{
-                        background: active ? pro.ok : pro.textTer,
-                        boxShadow: active ? `0 0 6px ${pro.ok}` : undefined,
-                        animation: active ? 'dash-pulse 1.4s ease infinite' : undefined,
-                      }}
-                    />
-                    <span className="text-[15px] font-semibold" style={{ color: pro.text }}>
-                      {active ? 'BOT ACTIF' : 'BOT INACTIF'}
-                    </span>
-                  </div>
+      {/* ── Bot status hero ───────────────────────────────────────────── */}
+      <Card glow={active}>
+        <div className="p-5">
+          <div className="flex items-start gap-4">
 
-                  {/* 3 key numbers inline */}
-                  <div className="flex flex-wrap gap-4 ml-2">
-                    <span className="text-[12px]" style={{ color: pro.textSec }}>
-                      <span className="font-semibold tabular-nums" style={{ color: pro.text }}>{calls}</span>
-                      {' '}appels aujourd'hui
-                    </span>
-                    <span className="text-[12px]" style={{ color: pro.textSec }}>
-                      <span className="font-semibold tabular-nums" style={{ color: pro.text }}>
-                        {botStatus?.eligibleProspects ?? '—'}
-                      </span>
-                      {' '}prospects éligibles
-                    </span>
-                    <span className="text-[12px]" style={{ color: pro.textSec }}>
-                      <span className="font-semibold tabular-nums" style={{ color: barColor }}>
-                        {quota - calls}
-                      </span>
-                      {' '}quota restant
-                    </span>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="h-1.5 rounded-full overflow-hidden mb-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${pct}%`, background: barColor }}
-                  />
-                </div>
-                <p className="text-[10.5px] tabular-nums" style={{ color: pro.textTer }}>
-                  {calls} / {quota} appels ({pct}%)
-                </p>
-              </div>
-
-              {/* Toggle button */}
-              <button
-                onClick={toggleBot}
-                disabled={busy}
-                className="inline-flex items-center gap-1.5 px-4 h-9 rounded-full text-[12.5px] font-semibold transition-all disabled:opacity-40 flex-shrink-0 cursor-pointer"
-                style={{
-                  background:  active ? 'rgba(239,68,68,0.10)' : pro.accentGrad,
-                  color:       active ? pro.bad : '#fff',
-                  border:      active ? `1px solid rgba(239,68,68,0.28)` : 'none',
-                  boxShadow:   active ? undefined : proShadow.btn,
-                }}
-              >
-                {busy ? '…' : active
-                  ? <><Pause size={12} /> Arrêter</>
-                  : <><Play  size={12} /> Démarrer</>}
-              </button>
+            {/* Pulsing status orb */}
+            <div
+              className="relative w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: active
+                  ? 'oklch(72% 0.18 145 / 0.10)'
+                  : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${active ? 'oklch(72% 0.18 145 / 0.28)' : pro.border}`,
+              }}
+            >
+              {active && (
+                <span
+                  className="absolute inset-0 rounded-2xl animate-ping"
+                  style={{ background: 'oklch(72% 0.18 145 / 0.08)' }}
+                />
+              )}
+              <Bot size={22} style={{ color: active ? pro.ok : pro.textSec }} />
             </div>
+
+            {/* Status label + metrics */}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{
+                      background: active ? pro.ok : pro.textTer,
+                      boxShadow: active ? `0 0 8px ${pro.okGlow}` : undefined,
+                    }}
+                  />
+                  <span className="text-base font-bold tracking-tight" style={{ color: pro.text }}>
+                    {active ? 'Bot actif' : 'Bot inactif'}
+                  </span>
+                </div>
+
+                <span className="text-[12px]" style={{ color: pro.textSec }}>
+                  <span className="font-semibold tabular-nums" style={{ color: pro.text }}>{calls}</span>
+                  {' '}appels aujourd'hui
+                </span>
+                <span className="text-[12px]" style={{ color: pro.textSec }}>
+                  <span className="font-semibold tabular-nums" style={{ color: pro.text }}>
+                    {botStatus?.eligibleProspects ?? '—'}
+                  </span>
+                  {' '}prospects éligibles
+                </span>
+                <span className="text-[12px]" style={{ color: pro.textSec }}>
+                  quota restant{' '}
+                  <span className="font-semibold tabular-nums" style={{ color: barColor }}>
+                    {quota - calls}
+                  </span>
+                </span>
+              </div>
+
+              {/* Quota progress bar */}
+              <div
+                className="h-2 rounded-full overflow-hidden mb-1.5"
+                style={{ background: 'rgba(255,255,255,0.06)' }}
+                role="progressbar"
+                aria-valuenow={pct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Quota d'appels"
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${pct}%`, background: barColor }}
+                />
+              </div>
+              <p className="text-[11px] tabular-nums" style={{ color: pro.textTer }}>
+                {calls} / {quota} appels utilisés ({pct}%)
+              </p>
+            </div>
+
+            {/* Toggle */}
+            <button
+              onClick={toggleBot}
+              disabled={busy}
+              className="inline-flex items-center gap-1.5 px-4 h-9 rounded-full text-[12.5px] font-semibold transition-all disabled:opacity-40 flex-shrink-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              style={{
+                background:  active ? 'rgba(239,68,68,0.10)' : pro.accentGrad,
+                color:       active ? pro.bad : '#fff',
+                border:      active ? `1px solid rgba(239,68,68,0.28)` : 'none',
+                boxShadow:   active ? undefined : proShadow.btn,
+              }}
+            >
+              {busy
+                ? <RefreshCw size={12} className="animate-spin" />
+                : active
+                  ? <><Pause size={12} /> Arrêter</>
+                  : <><Play  size={12} /> Démarrer</>
+              }
+            </button>
           </div>
-        </Card>
+        </div>
+      </Card>
 
-        {/* Last updated hint */}
-        {latestTs && (
-          <p
-            className="mt-2 px-1"
-            style={{ fontSize: 11, color: pro.textTer }}
-          >
-            Mis à jour {fmtRelative(latestTs)}
-          </p>
-        )}
-      </div>
-
-      {/* ── Row 2: 4 KPI stats ────────────────────────────────────────────── */}
-      <section className="mb-6">
+      {/* ── 4 KPI stats ───────────────────────────────────────────────── */}
+      <section>
         <SectionHead title="Aperçu" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Stat
@@ -347,25 +383,25 @@ export default function Dashboard() {
           <Stat
             icon={DollarSign}
             label="MRR"
-            value={stats ? `${(stats.revenue.mrr).toFixed(0)} €` : '—'}
+            value={stats ? `${stats.revenue.mrr.toFixed(0)} €` : '—'}
           />
         </div>
       </section>
 
-      {/* ── Row 3: Chart + Activity ───────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-5">
+      {/* ── Chart + Activity feed ─────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
-        {/* Left: Area chart (60%) */}
+        {/* Area chart */}
         <Card className="lg:col-span-3">
           <div className="p-4">
             <SectionHead title="Appels — 7 derniers jours" />
-            <div style={{ height: 180 }}>
+            <div style={{ height: 190 }}>
               {callsChart.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={callsChart} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="callGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor={pro.accent} stopOpacity={0.28} />
+                        <stop offset="5%"  stopColor={pro.accent} stopOpacity={0.30} />
                         <stop offset="95%" stopColor={pro.accent} stopOpacity={0} />
                       </linearGradient>
                     </defs>
@@ -381,22 +417,15 @@ export default function Dashboard() {
                       tickLine={false}
                       axisLine={false}
                     />
-                    <Tooltip
-                      contentStyle={{
-                        background: 'rgba(13,13,24,0.97)',
-                        border: '1px solid rgba(255,255,255,0.10)',
-                        borderRadius: 10,
-                        fontSize: 12,
-                        color: pro.text,
-                      }}
-                      cursor={{ stroke: pro.accent, strokeWidth: 1 }}
-                    />
+                    <Tooltip content={<ChartTooltip />} cursor={{ stroke: pro.accent, strokeWidth: 1 }} />
                     <Area
                       type="monotone"
                       dataKey="calls"
                       stroke={pro.accent}
                       strokeWidth={2}
                       fill="url(#callGrad)"
+                      dot={false}
+                      activeDot={{ r: 4, fill: pro.accent, strokeWidth: 0 }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -409,19 +438,21 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        {/* Right: Activity feed (40%) */}
+        {/* Activity feed */}
         <Card className="lg:col-span-2">
           <div className="p-4">
             <SectionHead title="Activité récente" />
             {activity.length === 0 ? (
-              <p className="text-[12px] py-8 text-center" style={{ color: pro.textTer }}>Aucune activité récente</p>
+              <p className="text-[12px] py-10 text-center" style={{ color: pro.textTer }}>
+                Aucune activité récente
+              </p>
             ) : (
-              <div className="space-y-0">
+              <ul className="space-y-0">
                 {activity.slice(0, 8).map((a, i) => {
                   const Icon = activityIcon(a.type);
                   const ts = a.createdAt ?? a.timestamp;
                   return (
-                    <div
+                    <li
                       key={a.id ?? i}
                       className="flex items-start gap-3 py-2.5"
                       style={{ borderTop: i > 0 ? `1px solid ${pro.border}` : undefined }}
@@ -442,31 +473,31 @@ export default function Dashboard() {
                           </p>
                         )}
                       </div>
-                    </div>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
           </div>
         </Card>
       </div>
 
-      {/* ── Row 4: Anomalies + Quick actions ─────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-0">
+      {/* ── Anomalies + Quick actions ─────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* Anomalies */}
         <Card>
           <div className="p-4">
-            <SectionHead title="Anomalies" />
+            <SectionHead title="Anomalies détectées" />
             {anomalies.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-2">
+              <div className="flex flex-col items-center justify-center py-10 gap-2">
                 <CheckCircle size={28} style={{ color: pro.ok }} />
                 <p className="text-[13px]" style={{ color: pro.textSec }}>Aucune anomalie</p>
               </div>
             ) : (
-              <div className="space-y-0">
+              <ul className="space-y-0">
                 {anomalies.slice(0, 5).map((a, i) => (
-                  <div
+                  <li
                     key={a.id}
                     className="flex items-start gap-3 py-2.5"
                     style={{ borderTop: i > 0 ? `1px solid ${pro.border}` : undefined }}
@@ -481,53 +512,58 @@ export default function Dashboard() {
                         <p className="text-[11px] mt-0.5 truncate" style={{ color: pro.textSec }}>{a.diagnosis}</p>
                       )}
                     </div>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
         </Card>
 
-        {/* Quick actions */}
+        {/* Prochaines actions */}
         <Card>
           <div className="p-4">
-            <SectionHead title="Actions rapides" />
-            {/* Trigger label */}
-            <p
-              className="px-1 mb-2"
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: pro.textTer,
-              }}
-            >
-              Déclencher
-            </p>
+            <SectionHead title="Prochaines actions" />
             <div className="grid grid-cols-1 gap-2">
               {[
-                { label: 'Lancer scraping',   endpoint: 'admin/trigger-scraping',       color: pro.info },
-                { label: 'Déclencher appel',   endpoint: 'admin/trigger-call',           color: pro.accent },
-                { label: 'Traiter suivis',     endpoint: 'admin/trigger-followups',      color: pro.ok },
-              ].map(({ label, endpoint, color }) => (
+                {
+                  label:    'Lancer scraping prospects',
+                  endpoint: 'admin/trigger-scraping',
+                  icon:     Target,
+                  color:    pro.info,
+                },
+                {
+                  label:    'Déclencher un appel',
+                  endpoint: 'admin/trigger-call',
+                  icon:     PhoneCall,
+                  color:    pro.accent,
+                },
+                {
+                  label:    'Traiter les suivis',
+                  endpoint: 'admin/trigger-followups',
+                  icon:     Megaphone,
+                  color:    pro.ok,
+                },
+              ].map(({ label, endpoint, icon: Icon, color }) => (
                 <button
                   key={label}
                   onClick={() => quickAction(label, endpoint)}
                   disabled={actionBusy === label}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all disabled:opacity-50 hover:brightness-110 cursor-pointer"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all disabled:opacity-50 hover:brightness-110 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                   style={{
                     background: `${color}12`,
                     border: `1px solid ${color}28`,
-                    color: color,
                   }}
                 >
-                  {actionBusy === label ? (
-                    <RefreshCw size={13} className="animate-spin" />
-                  ) : (
-                    <Play size={13} />
-                  )}
-                  <span className="text-[13px] font-medium">{label}</span>
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: `${color}18` }}
+                  >
+                    {actionBusy === label
+                      ? <RefreshCw size={13} className="animate-spin" style={{ color }} />
+                      : <Icon size={14} style={{ color }} />
+                    }
+                  </div>
+                  <span className="text-[13px] font-medium" style={{ color }}>{label}</span>
                 </button>
               ))}
             </div>
