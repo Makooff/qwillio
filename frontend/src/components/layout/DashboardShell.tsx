@@ -109,9 +109,9 @@ export default function DashboardShell(props: DashboardShellProps) {
         className={`relative flex items-center gap-3 rounded-xl transition-all duration-150 group
           ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
         style={active ? {
-          background: 'linear-gradient(135deg, rgba(123,92,240,0.12), rgba(123,92,240,0.04))',
-          border: '1px solid rgba(123,92,240,0.20)',
-          boxShadow: '0 0 12px rgba(123,92,240,0.08)',
+          background: 'oklch(68% 0.22 160 / 0.10)',
+          border: '1px solid oklch(68% 0.22 160 / 0.22)',
+          boxShadow: '0 0 12px oklch(68% 0.22 160 / 0.08)',
           color: t.brand,
         } : {
           color: t.textSec,
@@ -123,13 +123,13 @@ export default function DashboardShell(props: DashboardShellProps) {
             className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
             style={{
               background: t.brand,
-              boxShadow: '2px 0 8px rgba(123,92,240,0.6)',
+              boxShadow: `2px 0 8px ${t.accentGlow}`,
             }}
           />
         )}
         <item.icon
           className="w-[18px] h-[18px] flex-shrink-0"
-          style={active ? { filter: 'drop-shadow(0 0 4px rgba(123,92,240,0.5))' } as React.CSSProperties : undefined}
+          style={active ? { filter: `drop-shadow(0 0 4px ${t.accentGlow})` } as React.CSSProperties : undefined}
         />
         {!collapsed && (
           <span className="text-sm font-medium">{item.label}</span>
@@ -179,7 +179,7 @@ export default function DashboardShell(props: DashboardShellProps) {
       {/* Logo */}
       <div
         className={`flex items-center gap-3 mb-6 flex-shrink-0 pb-4 ${collapsed ? 'justify-center px-0' : 'px-1'}`}
-        style={{ borderBottom: '1px solid rgba(123,92,240,0.12)' }}
+        style={{ borderBottom: `1px solid oklch(68% 0.22 160 / 0.12)` }}
       >
         <QwillioLogo size={32} />
         {!collapsed && (
@@ -188,14 +188,7 @@ export default function DashboardShell(props: DashboardShellProps) {
               ? (
                 <>
                   {' '}
-                  <span
-                    style={{
-                      background: t.accentGrad,
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
-                    }}
-                  >
+                  <span style={{ color: t.brand }}>
                     {brandSuffix}
                   </span>
                 </>
@@ -218,8 +211,8 @@ export default function DashboardShell(props: DashboardShellProps) {
                 className={`w-full relative flex items-center gap-3 rounded-xl transition-all duration-150 group
                   ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
                 style={settingsActive ? {
-                  background: 'linear-gradient(135deg, rgba(123,92,240,0.12), rgba(123,92,240,0.04))',
-                  border: '1px solid rgba(123,92,240,0.20)',
+                  background: 'oklch(68% 0.22 160 / 0.10)',
+                  border: '1px solid oklch(68% 0.22 160 / 0.22)',
                   color: t.brand,
                 } : {
                   color: t.textSec,
@@ -229,7 +222,7 @@ export default function DashboardShell(props: DashboardShellProps) {
                 {settingsActive && (
                   <span
                     className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-                    style={{ background: t.brand, boxShadow: '2px 0 8px rgba(123,92,240,0.6)' }}
+                    style={{ background: t.brand, boxShadow: `2px 0 8px ${t.accentGlow}` }}
                   />
                 )}
                 <SettingsIcon className="w-[18px] h-[18px] flex-shrink-0" />
@@ -333,7 +326,7 @@ export default function DashboardShell(props: DashboardShellProps) {
             flex items-center justify-center transition-all"
           style={{
             background: t.panelSolid,
-            boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.4)',
+            boxShadow: '0 0 0 1px oklch(100% 0 0 / 0.08), 0 2px 8px oklch(0% 0 0 / 0.40)',
             color: t.textSec,
           }}
         >
@@ -388,10 +381,10 @@ export default function DashboardShell(props: DashboardShellProps) {
         <header
           className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6"
           style={{
-            background: 'rgba(6,6,14,0.80)',
+            background: 'oklch(8% 0.004 160 / 0.85)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            borderBottom: '1px solid oklch(22% 0.006 160 / 0.4)',
           }}
         >
           <button
@@ -455,10 +448,10 @@ function MobileBottomNav({
         <div
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
-            background: 'rgba(255,255,255,0.04)',
+            background: 'oklch(11% 0.006 160 / 0.90)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid oklch(22% 0.006 160 / 0.5)',
           }}
         />
 
@@ -473,11 +466,11 @@ function MobileBottomNav({
               width: 68, height: 68,
               top: '50%',
               x: '-50%', y: '-50%',
-              background: 'rgba(123,92,240,0.30)',
+              background: 'oklch(68% 0.22 160 / 0.22)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              border: '1.5px solid rgba(123,92,240,0.50)',
-              boxShadow: '0 0 32px rgba(123,92,240,0.35), inset 0 1px 0 rgba(255,255,255,0.16)',
+              border: '1.5px solid oklch(68% 0.22 160 / 0.45)',
+              boxShadow: '0 0 32px oklch(68% 0.22 160 / 0.30), inset 0 1px 0 oklch(100% 0 0 / 0.14)',
             }}
           />
         )}

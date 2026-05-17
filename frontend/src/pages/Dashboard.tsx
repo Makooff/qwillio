@@ -221,96 +221,111 @@ export default function Dashboard() {
     return Activity;
   };
 
+  // Latest activity timestamp for "last updated" display
+  const latestTs = activity[0]?.createdAt ?? activity[0]?.timestamp;
+
   return (
     <div className="space-y-4 admin-page">
 
       {/* ── Row 1: Bot status hero ────────────────────────────────────────── */}
-      <Card glow={active}>
-        <div className="p-5">
-          <div className="flex items-start gap-4">
-            {/* Status icon */}
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-              style={{
-                background: active ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
-                boxShadow: active ? `0 0 20px ${pro.okGlow}` : undefined,
-              }}
-            >
-              <Bot size={20} style={{ color: active ? pro.ok : pro.textSec }} />
-            </div>
+      <div className="mb-5">
+        <Card glow={active}>
+          <div className="p-5">
+            <div className="flex items-start gap-4">
+              {/* Status icon */}
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: active ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                  boxShadow: active ? `0 0 20px ${pro.okGlow}` : undefined,
+                }}
+              >
+                <Bot size={20} style={{ color: active ? pro.ok : pro.textSec }} />
+              </div>
 
-            {/* Main status + numbers */}
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-3 mb-3">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{
-                      background: active ? pro.ok : pro.textTer,
-                      boxShadow: active ? `0 0 6px ${pro.ok}` : undefined,
-                      animation: active ? 'dash-pulse 1.4s ease infinite' : undefined,
-                    }}
+              {/* Main status + numbers */}
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        background: active ? pro.ok : pro.textTer,
+                        boxShadow: active ? `0 0 6px ${pro.ok}` : undefined,
+                        animation: active ? 'dash-pulse 1.4s ease infinite' : undefined,
+                      }}
+                    />
+                    <span className="text-[15px] font-semibold" style={{ color: pro.text }}>
+                      {active ? 'BOT ACTIF' : 'BOT INACTIF'}
+                    </span>
+                  </div>
+
+                  {/* 3 key numbers inline */}
+                  <div className="flex flex-wrap gap-4 ml-2">
+                    <span className="text-[12px]" style={{ color: pro.textSec }}>
+                      <span className="font-semibold tabular-nums" style={{ color: pro.text }}>{calls}</span>
+                      {' '}appels aujourd'hui
+                    </span>
+                    <span className="text-[12px]" style={{ color: pro.textSec }}>
+                      <span className="font-semibold tabular-nums" style={{ color: pro.text }}>
+                        {botStatus?.eligibleProspects ?? '—'}
+                      </span>
+                      {' '}prospects éligibles
+                    </span>
+                    <span className="text-[12px]" style={{ color: pro.textSec }}>
+                      <span className="font-semibold tabular-nums" style={{ color: barColor }}>
+                        {quota - calls}
+                      </span>
+                      {' '}quota restant
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-1.5 rounded-full overflow-hidden mb-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${pct}%`, background: barColor }}
                   />
-                  <span className="text-[15px] font-semibold" style={{ color: pro.text }}>
-                    {active ? 'BOT ACTIF' : 'BOT INACTIF'}
-                  </span>
                 </div>
-
-                {/* 3 key numbers inline */}
-                <div className="flex flex-wrap gap-4 ml-2">
-                  <span className="text-[12px]" style={{ color: pro.textSec }}>
-                    <span className="font-semibold tabular-nums" style={{ color: pro.text }}>{calls}</span>
-                    {' '}appels aujourd'hui
-                  </span>
-                  <span className="text-[12px]" style={{ color: pro.textSec }}>
-                    <span className="font-semibold tabular-nums" style={{ color: pro.text }}>
-                      {botStatus?.eligibleProspects ?? '—'}
-                    </span>
-                    {' '}prospects éligibles
-                  </span>
-                  <span className="text-[12px]" style={{ color: pro.textSec }}>
-                    <span className="font-semibold tabular-nums" style={{ color: barColor }}>
-                      {quota - calls}
-                    </span>
-                    {' '}quota restant
-                  </span>
-                </div>
+                <p className="text-[10.5px] tabular-nums" style={{ color: pro.textTer }}>
+                  {calls} / {quota} appels ({pct}%)
+                </p>
               </div>
 
-              {/* Progress bar */}
-              <div className="h-1.5 rounded-full overflow-hidden mb-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${pct}%`, background: barColor }}
-                />
-              </div>
-              <p className="text-[10.5px] tabular-nums" style={{ color: pro.textTer }}>
-                {calls} / {quota} appels ({pct}%)
-              </p>
+              {/* Toggle button */}
+              <button
+                onClick={toggleBot}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 px-4 h-9 rounded-full text-[12.5px] font-semibold transition-all disabled:opacity-40 flex-shrink-0 cursor-pointer"
+                style={{
+                  background:  active ? 'rgba(239,68,68,0.10)' : pro.accentGrad,
+                  color:       active ? pro.bad : '#fff',
+                  border:      active ? `1px solid rgba(239,68,68,0.28)` : 'none',
+                  boxShadow:   active ? undefined : proShadow.btn,
+                }}
+              >
+                {busy ? '…' : active
+                  ? <><Pause size={12} /> Arrêter</>
+                  : <><Play  size={12} /> Démarrer</>}
+              </button>
             </div>
-
-            {/* Toggle button */}
-            <button
-              onClick={toggleBot}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 px-4 h-9 rounded-full text-[12.5px] font-semibold transition-all disabled:opacity-40 flex-shrink-0"
-              style={{
-                background:  active ? 'rgba(239,68,68,0.10)' : pro.accentGrad,
-                color:       active ? pro.bad : '#fff',
-                border:      active ? `1px solid rgba(239,68,68,0.28)` : 'none',
-                boxShadow:   active ? undefined : proShadow.btn,
-              }}
-            >
-              {busy ? '…' : active
-                ? <><Pause size={12} /> Arrêter</>
-                : <><Play  size={12} /> Démarrer</>}
-            </button>
           </div>
-        </div>
-      </Card>
+        </Card>
+
+        {/* Last updated hint */}
+        {latestTs && (
+          <p
+            className="mt-2 px-1"
+            style={{ fontSize: 11, color: pro.textTer }}
+          >
+            Mis à jour {fmtRelative(latestTs)}
+          </p>
+        )}
+      </div>
 
       {/* ── Row 2: 4 KPI stats ────────────────────────────────────────────── */}
-      <section>
+      <section className="mb-6">
         <SectionHead title="Aperçu" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Stat
@@ -338,7 +353,7 @@ export default function Dashboard() {
       </section>
 
       {/* ── Row 3: Chart + Activity ───────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-5">
 
         {/* Left: Area chart (60%) */}
         <Card className="lg:col-span-3">
@@ -437,7 +452,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Row 4: Anomalies + Quick actions ─────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-0">
 
         {/* Anomalies */}
         <Card>
@@ -477,6 +492,19 @@ export default function Dashboard() {
         <Card>
           <div className="p-4">
             <SectionHead title="Actions rapides" />
+            {/* Trigger label */}
+            <p
+              className="px-1 mb-2"
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: pro.textTer,
+              }}
+            >
+              Déclencher
+            </p>
             <div className="grid grid-cols-1 gap-2">
               {[
                 { label: 'Lancer scraping',   endpoint: 'admin/trigger-scraping',       color: pro.info },
@@ -487,7 +515,7 @@ export default function Dashboard() {
                   key={label}
                   onClick={() => quickAction(label, endpoint)}
                   disabled={actionBusy === label}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all disabled:opacity-50 hover:brightness-110"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all disabled:opacity-50 hover:brightness-110 cursor-pointer"
                   style={{
                     background: `${color}12`,
                     border: `1px solid ${color}28`,
@@ -506,13 +534,6 @@ export default function Dashboard() {
           </div>
         </Card>
       </div>
-
-      <style>{`
-        @keyframes dash-pulse {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.35; }
-        }
-      `}</style>
     </div>
   );
 }

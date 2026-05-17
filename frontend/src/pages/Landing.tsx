@@ -1,593 +1,845 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSEO } from '../hooks/useSEO';
 import { Link } from 'react-router-dom';
-import {
-  Phone, Calendar, BarChart3, Shield, Zap, Clock,
-  ChevronRight, Play, Pause, ArrowRight, Check,
-  MessageSquare, BrainCircuit, Globe,
-  Mail, CreditCard, Calculator, Package, Plus,
-  PhoneForwarded, Mic, Filter, Target, UserCheck, Send, Search, Link2, Activity, FileText, Headphones, Languages, Cpu, Lock, Gauge, Wifi,
-  Stethoscope, Scale, Home as HomeIcon, Sparkles, Wrench, Wind, UtensilsCrossed, Car
-} from 'lucide-react';
+import { ArrowRight, Check, Phone, BarChart2, Clock, Shield } from 'lucide-react';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
+import { useSEO } from '../hooks/useSEO';
 import QwillioLogo from '../components/QwillioLogo';
-import LangToggle from '../components/LangToggle';
-import PublicNavbar from '../components/PublicNavbar';
-import PublicFooter from '../components/PublicFooter';
-import { useLang } from '../stores/langStore';
 
-/* ── Waveform audio player ── */
-function WaveformPlayer({ src, label }: { src: string; label: string }) {
-  const [playing, setPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const bars = useRef(Array.from({ length: 32 }, () => Math.random() * 100));
+/* ──────────────────────────────────────────────────────
+   Design tokens — Signal Dark
+   Skills: taste-skill (DV=8 MI=6), emil-design-eng, impeccable
+   Scene: directeur commercial Lyon, bureau, 15h, MacBook
+   Theme: emerald-drenched dark — the brand IS the darkness
+   ────────────────────────────────────────────────────── */
+const D = {
+  bg:        'oklch(9% 0.014 160)',
+  bg2:       'oklch(12% 0.017 160)',
+  bg3:       'oklch(16% 0.020 160)',
+  bgLight:   'oklch(96% 0.010 55)',
+  border:    'oklch(26% 0.014 160 / 0.55)',
+  borderHi:  'oklch(38% 0.016 160 / 0.70)',
+  text:      'oklch(95% 0.006 160)',
+  text2:     'oklch(62% 0.009 160)',
+  text3:     'oklch(40% 0.007 160)',
+  accent:    'oklch(68% 0.22 160)',
+  accentHi:  'oklch(73% 0.21 160)',
+  accentDim: 'oklch(68% 0.22 160 / 0.12)',
+  accentBrd: 'oklch(68% 0.22 160 / 0.35)',
+  ok:        'oklch(72% 0.18 145)',
+  okDim:     'oklch(72% 0.18 145 / 0.12)',
+  lText:     'oklch(12% 0.006 0)',
+  lText2:    'oklch(40% 0.006 0)',
+  lBorder:   'oklch(84% 0.012 55)',
+  lPanel:    'oklch(91% 0.012 55)',
+} as const;
 
-  const toggle = () => {
-    if (!audioRef.current) return;
-    if (playing) { audioRef.current.pause(); }
-    else { audioRef.current.play(); }
-    setPlaying(!playing);
-  };
+/* ── ease-out expo (emil-design-eng) ── */
+const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
-  return (
-    <div className="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3 border border-white/10">
-      <button onClick={toggle} className="w-10 h-10 rounded-full bg-[#6366f1] flex items-center justify-center text-white hover:bg-[#5558e6] transition-colors flex-shrink-0">
-        {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-      </button>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-white">{label}</div>
-        <div className="flex items-center gap-[2px] h-4 mt-1">
-          {bars.current.map((h, i) => (
-            <div key={i} className={`w-[3px] rounded-full transition-all duration-150 ${playing ? 'bg-[#6366f1] animate-pulse' : 'bg-white/20'}`} style={{ height: `${h}%`, animationDelay: `${i * 50}ms` }} />
-          ))}
-        </div>
-      </div>
-      <audio ref={audioRef} src={src} onEnded={() => setPlaying(false)} />
-    </div>
-  );
-}
-
-/* ── Animated counter ── */
-function Counter({ value, suffix = '' }: { value: number; suffix?: string }) {
-  const [n, setN] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const done = useRef(false);
-  useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && !done.current) {
-        done.current = true;
-        let t0 = 0;
-        const step = (ts: number) => {
-          if (!t0) t0 = ts;
-          const p = Math.min((ts - t0) / 1800, 1);
-          setN(Math.floor((1 - Math.pow(1 - p, 3)) * value));
-          if (p < 1) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-      }
-    }, { threshold: 0.4 });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, [value]);
-  return <span ref={ref}>{n.toLocaleString()}{suffix}</span>;
-}
-
-/* ── Section observer for fade-in ── */
-function FadeIn({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+/* ──────────────────────────────────────────────────────
+   FadeIn — scroll reveal. scale(0.98) → scale(1).
+   Never from scale(0). (emil-design-eng rule)
+   ────────────────────────────────────────────────────── */
+function FadeIn({
+  children,
+  delay = 0,
+  style,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  style?: React.CSSProperties;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+
   useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) { setVisible(true); obs.disconnect(); }
-    }, { threshold: 0.1 });
-    if (ref.current) obs.observe(ref.current);
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.06 }
+    );
+    obs.observe(el);
     return () => obs.disconnect();
   }, []);
+
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.98)',
+        transition: `opacity 0.65s ${EASE} ${delay}ms, transform 0.65s ${EASE} ${delay}ms`,
+        ...style,
+      }}
     >
       {children}
     </div>
   );
 }
 
-/* ── Niches Section ── */
-function NichesSection() {
-  const { t } = useLang();
-  const niches: { key: string; icon: React.ElementType; color: string }[] = [
-    { key: 'dental',     icon: Stethoscope,    color: '#6366f1' },
-    { key: 'medical',    icon: Activity,        color: '#a855f7' },
-    { key: 'law',        icon: Scale,           color: '#7c3aed' },
-    { key: 'realestate', icon: HomeIcon,        color: '#6366f1' },
-    { key: 'spa',        icon: Sparkles,        color: '#a855f7' },
-    { key: 'plumber',    icon: Wrench,          color: '#7c3aed' },
-    { key: 'hvac',       icon: Wind,            color: '#6366f1' },
-    { key: 'restaurant', icon: UtensilsCrossed, color: '#a855f7' },
-    { key: 'auto',       icon: Car,             color: '#7c3aed' },
-    { key: 'insurance',  icon: Shield,          color: '#6366f1' },
-    { key: 'coaching',   icon: Target,          color: '#a855f7' },
-    { key: 'accounting', icon: Calculator,      color: '#7c3aed' },
-  ];
+/* ──────────────────────────────────────────────────────
+   MagneticBtn — spring physics on hover.
+   MOTION_INTENSITY=6 requirement. Emil spring rule.
+   ────────────────────────────────────────────────────── */
+function MagneticBtn({
+  to,
+  children,
+  variant = 'primary',
+}: {
+  to: string;
+  children: React.ReactNode;
+  variant?: 'primary' | 'ghost';
+}) {
+  const ref = useRef<HTMLAnchorElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const sx = useSpring(x, { stiffness: 280, damping: 18, mass: 0.8 });
+  const sy = useSpring(y, { stiffness: 280, damping: 18, mass: 0.8 });
+
+  function onMove(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (!ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    x.set((e.clientX - (r.left + r.width / 2)) * 0.22);
+    y.set((e.clientY - (r.top + r.height / 2)) * 0.22);
+  }
+
+  const primaryStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    background: D.accent,
+    color: D.bg,
+    fontFamily: 'Outfit, system-ui, sans-serif',
+    fontSize: 15,
+    fontWeight: 700,
+    padding: '14px 28px',
+    borderRadius: 14,
+    textDecoration: 'none',
+    letterSpacing: '0.01em',
+    boxShadow: `0 4px 20px ${D.accentDim}, 0 0 0 1px ${D.accentBrd}`,
+    cursor: 'pointer',
+    userSelect: 'none',
+  };
+
+  const ghostStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    background: 'transparent',
+    color: D.text2,
+    fontFamily: 'Outfit, system-ui, sans-serif',
+    fontSize: 15,
+    fontWeight: 500,
+    padding: '13px 24px',
+    borderRadius: 14,
+    border: `1.5px solid ${D.border}`,
+    textDecoration: 'none',
+    cursor: 'pointer',
+    userSelect: 'none',
+  };
 
   return (
-    <section className="py-24 md:py-32 px-6 bg-[#f5f5f7]">
-      <div className="max-w-[1120px] mx-auto">
-        <FadeIn>
-          <div className="text-center mb-14">
-            <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{t('niches.label')}</p>
-            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">{t('niches.title')}</h2>
-            <p className="text-lg text-[#86868b] mt-4 max-w-lg mx-auto">{t('niches.subtitle')}</p>
+    <motion.a
+      ref={ref}
+      href={to}
+      style={{
+        ...(variant === 'primary' ? primaryStyle : ghostStyle),
+        x: sx,
+        y: sy,
+      }}
+      onMouseMove={onMove}
+      onMouseLeave={() => { x.set(0); y.set(0); }}
+      whileHover={variant === 'primary' ? { background: D.accentHi } : { borderColor: D.accent, color: D.accent }}
+      whileTap={{ scale: 0.97, transition: { duration: 0.1 } }}
+    >
+      {children}
+    </motion.a>
+  );
+}
+
+/* ──────────────────────────────────────────────────────
+   Live Call Demo — animated transcript
+   ────────────────────────────────────────────────────── */
+const SETS = [
+  [
+    { r: 'ai', t: `Bonjour, je suis l'assistante IA de Veritas Solutions. Vous êtes bien M. Mercier ?` },
+    { r: 'h', t: `Oui c'est moi.` },
+    { r: 'ai', t: `Parfait. Je vous appelle pour votre besoin CRM. Vous avez 5 minutes ?` },
+  ],
+  [
+    { r: 'ai', t: `Bonjour, j'appelle pour Apex Agency. Votre demande date de 3 jours, j'avais une question.` },
+    { r: 'h', t: `Oui, allez-y.` },
+    { r: 'ai', t: `Votre équipe fait combien d'appels par semaine actuellement ?` },
+  ],
+  [
+    { r: 'ai', t: `Bonjour Mme Fontaine, c'est Aria pour Kairos Conseil. Votre demande signale que vous prospectez manuellement.` },
+    { r: 'h', t: `C'est ça, c'est chronophage.` },
+    { r: 'ai', t: `Je comprends. Nos clients récupèrent 2h par jour en moyenne. Je vous envoie un exemple ?` },
+  ],
+];
+
+const PROSPECTS = [
+  { initials: 'RM', name: 'René Mercier', company: 'Axiom Group' },
+  { initials: 'CB', name: 'Clara Bertrand', company: 'Nexum Partners' },
+  { initials: 'MF', name: 'M. Fontaine', company: 'ImmoPro Lyon' },
+];
+
+function LiveCallDemo() {
+  const [setIdx, setSetIdx] = useState(0);
+  const [lineIdx, setLineIdx] = useState(0);
+  const [typing, setTyping] = useState(false);
+
+  useEffect(() => {
+    const lines = SETS[setIdx];
+    if (lineIdx >= lines.length) {
+      const t = setTimeout(() => {
+        setSetIdx(i => (i + 1) % SETS.length);
+        setLineIdx(0);
+      }, 3200);
+      return () => clearTimeout(t);
+    }
+    setTyping(true);
+    const dur = SETS[setIdx][lineIdx].r === 'ai' ? 900 : 600;
+    const t1 = setTimeout(() => setTyping(false), dur);
+    const t2 = setTimeout(() => setLineIdx(i => i + 1), dur + 350);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [setIdx, lineIdx]);
+
+  const prospect = PROSPECTS[setIdx];
+  const visible = SETS[setIdx].slice(0, lineIdx);
+
+  return (
+    <div style={{
+      background: D.bg2,
+      border: `1px solid ${D.border}`,
+      borderRadius: 24,
+      padding: '1.8rem',
+      boxShadow: `0 32px 80px oklch(0% 0 0 / 0.5), 0 0 0 1px oklch(100% 0 0 / 0.04)`,
+      maxWidth: 400,
+      width: '100%',
+    }}>
+      {/* Live badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.2rem' }}>
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 5,
+          background: D.okDim,
+          color: D.ok,
+          fontSize: 11,
+          fontWeight: 700,
+          padding: '4px 10px',
+          borderRadius: 999,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+        }}>
+          <span style={{
+            width: 5, height: 5, background: D.ok, borderRadius: '50%',
+            animation: 'livePulse 1.6s ease-in-out infinite',
+          }} />
+          En direct
+        </span>
+        <span style={{ fontSize: 12, color: D.text3 }}>Appel en cours</span>
+      </div>
+
+      {/* Caller info */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.2rem' }}>
+        <div style={{
+          width: 42, height: 42,
+          background: D.accentDim,
+          border: `1px solid ${D.accentBrd}`,
+          borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: D.accent, fontSize: 13, fontWeight: 700, flexShrink: 0,
+        }}>
+          {prospect.initials}
+        </div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: D.text }}>{prospect.name}</div>
+          <div style={{ fontSize: 12, color: D.text3 }}>{prospect.company}</div>
+        </div>
+        <Phone size={16} style={{ color: D.accent, marginLeft: 'auto' }} />
+      </div>
+
+      {/* Transcript */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 160, marginBottom: '1rem' }}>
+        {visible.map((line, i) => (
+          <div key={i}>
+            <div style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: line.r === 'ai' ? D.accent : D.text3,
+              marginBottom: 3,
+            }}>
+              {line.r === 'ai' ? 'Qwillio IA' : 'Prospect'}
+            </div>
+            <div style={{
+              padding: '8px 12px',
+              borderRadius: 10,
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: 'oklch(85% 0.005 160)',
+              background: line.r === 'ai' ? D.accentDim : D.bg3,
+              border: line.r === 'ai' ? `1px solid ${D.accentBrd}` : `1px solid ${D.border}`,
+            }}>
+              {line.t}
+            </div>
           </div>
-        </FadeIn>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {niches.map((n, i) => (
-            <FadeIn key={n.key} delay={i * 50}>
-              <div className="rounded-2xl bg-white border border-[#d2d2d7]/60 p-6 hover:border-[#6366f1]/40 hover:shadow-md transition-all duration-200 h-full">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style={{ background: `${n.color}15` }}>
-                  <n.icon size={20} style={{ color: n.color }} />
+        ))}
+        {typing && (
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: D.accent, marginBottom: 3 }}>
+              Qwillio IA
+            </div>
+            <div style={{
+              padding: '10px 14px', borderRadius: 10,
+              background: D.accentDim, border: `1px solid ${D.accentBrd}`,
+              display: 'inline-flex', gap: 4, alignItems: 'center',
+            }}>
+              {[0, 1, 2].map(i => (
+                <span key={i} style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: D.accent, opacity: 0.7,
+                  animation: `typingDot 1s ${EASE} ${i * 120}ms infinite`,
+                }} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Waveform */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 28 }}>
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div key={i} style={{
+            flex: 1,
+            background: D.accent,
+            borderRadius: 999,
+            opacity: 0.5,
+            animation: `waveBar 1.1s ${EASE} ${i * 55}ms infinite alternate`,
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────
+   Main
+   ────────────────────────────────────────────────────── */
+export default function Landing() {
+  useSEO({ title: `Qwillio — L'IA vocale qui prospecte pour vous` });
+
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
+  }, []);
+
+  const rootStyle: React.CSSProperties = {
+    background: D.bg,
+    color: D.text,
+    fontFamily: `'Outfit', system-ui, -apple-system, sans-serif`,
+    overflowX: 'hidden',
+    WebkitFontSmoothing: 'antialiased',
+  };
+
+  return (
+    <div style={rootStyle}>
+      <style>{`
+        @keyframes livePulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.3; transform: scale(0.7); }
+        }
+        @keyframes waveBar {
+          0%   { height: 15%; }
+          100% { height: 100%; }
+        }
+        @keyframes typingDot {
+          0%, 100% { transform: translateY(0); opacity: 0.7; }
+          50%       { transform: translateY(-4px); opacity: 1; }
+        }
+        @keyframes marquee {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0ms !important;
+            transition-duration: 0ms !important;
+          }
+        }
+      `}</style>
+
+      {/* ── NAV ── */}
+      <header style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+        padding: scrolled ? '0.7rem 0' : '1.3rem 0',
+        background: scrolled ? `oklch(9% 0.014 160 / 0.92)` : 'transparent',
+        backdropFilter: scrolled ? 'blur(20px) saturate(160%)' : 'none',
+        borderBottom: scrolled ? `1px solid ${D.border}` : '1px solid transparent',
+        transition: `all 0.35s ${EASE}`,
+      }}>
+        <div style={{
+          maxWidth: 1200, margin: '0 auto',
+          padding: '0 2.5rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <Link to="/" style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            fontSize: 18, fontWeight: 800, color: D.text,
+            letterSpacing: '-0.025em', textDecoration: 'none',
+          }}>
+            <QwillioLogo size={26} />
+            Qwillio
+          </Link>
+
+          <nav style={{ display: 'flex', gap: '2.5rem' }}>
+            {[
+              ['Fonctionnalités', '#features'],
+              ['Tarifs', '#pricing'],
+              ['Blog', '/blog'],
+            ].map(([label, href]) => (
+              <a key={label} href={href} style={{
+                fontSize: 14, color: D.text2, textDecoration: 'none', fontWeight: 500,
+                transition: `color 0.2s`,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = D.text)}
+              onMouseLeave={e => (e.currentTarget.style.color = D.text2)}
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <Link to="/login" style={{
+              fontSize: 14, color: D.text2, textDecoration: 'none', fontWeight: 500,
+              transition: `color 0.2s`,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = D.text)}
+            onMouseLeave={e => (e.currentTarget.style.color = D.text2)}
+            >
+              Connexion
+            </Link>
+            <Link to="/register" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: D.accent,
+              color: D.bg,
+              fontSize: 13, fontWeight: 700,
+              padding: '8px 20px', borderRadius: 10,
+              textDecoration: 'none',
+              letterSpacing: '0.01em',
+              transition: `background 0.2s, transform 0.15s ${EASE}`,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = D.accentHi; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = D.accent; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              Essai gratuit
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* ── HERO ── */}
+      <section style={{
+        minHeight: '100dvh',
+        display: 'grid',
+        gridTemplateColumns: '1fr 420px',
+        gap: '4rem',
+        alignItems: 'center',
+        maxWidth: 1200, margin: '0 auto',
+        padding: '8rem 2.5rem 5rem',
+        position: 'relative',
+      }}>
+        {/* Subtle glow in background */}
+        <div style={{
+          position: 'absolute', top: '25%', left: '-10%',
+          width: 600, height: 600,
+          background: `radial-gradient(ellipse at center, oklch(68% 0.22 160 / 0.06) 0%, transparent 70%)`,
+          pointerEvents: 'none', zIndex: 0,
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* Badge */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: D.accentDim,
+            border: `1px solid ${D.accentBrd}`,
+            color: D.accent,
+            fontSize: 11, fontWeight: 700,
+            padding: '6px 14px', borderRadius: 999,
+            marginBottom: '2rem',
+            textTransform: 'uppercase', letterSpacing: '0.09em',
+          }}>
+            <span style={{
+              width: 5, height: 5, background: D.accent, borderRadius: '50%',
+              animation: 'livePulse 2s ease-in-out infinite',
+            }} />
+            IA Vocale B2B — France
+          </div>
+
+          {/* H1 */}
+          <h1 style={{
+            fontSize: 'clamp(3rem, 5.5vw, 5rem)',
+            fontWeight: 800,
+            lineHeight: 1.0,
+            letterSpacing: '-0.045em',
+            color: D.text,
+            marginBottom: '1.5rem',
+          }}>
+            Vos prospects<br />
+            appelés la nuit.<br />
+            <span style={{ color: D.accent }}>Rendez-vous pris.</span>
+          </h1>
+
+          {/* Sub */}
+          <p style={{
+            fontSize: 17,
+            color: D.text2,
+            lineHeight: 1.65,
+            maxWidth: 420,
+            marginBottom: '2.5rem',
+            fontWeight: 400,
+          }}>
+            Qwillio automatise les appels froids pour les agences B2B. Premiers appels en 10 minutes, premiers rendez-vous le jour même.
+          </p>
+
+          {/* CTAs */}
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '3rem' }}>
+            <MagneticBtn to="/register">
+              Commencer gratuitement
+              <ArrowRight size={16} />
+            </MagneticBtn>
+            <MagneticBtn to="#demo" variant="ghost">
+              Voir une démonstration
+            </MagneticBtn>
+          </div>
+
+          {/* Inline stats — no hero-metric template (impeccable ban) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
+            {[
+              { val: '47', lbl: 'agences actives' },
+              { val: '12 800+', lbl: 'appels cette semaine' },
+              { val: '4.8/5', lbl: 'satisfaction client' },
+            ].map((s, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{
+                  fontSize: 22, fontWeight: 800, color: D.text,
+                  letterSpacing: '-0.03em', lineHeight: 1,
+                }}>
+                  {s.val}
+                </span>
+                <span style={{ fontSize: 12, color: D.text3, fontWeight: 500, marginTop: 2 }}>
+                  {s.lbl}
+                </span>
+              </div>
+            )).reduce((acc, el, i) => {
+              if (i > 0) acc.push(
+                <div key={`div-${i}`} style={{ width: 1, height: 32, background: D.border }} />
+              );
+              acc.push(el);
+              return acc;
+            }, [] as React.ReactNode[])}
+          </div>
+        </div>
+
+        {/* Live call demo (right column) */}
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 24, rotate: -1 }}
+            animate={{ opacity: 1, y: 0, rotate: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+          >
+            <LiveCallDemo />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── TRUST STRIP ── */}
+      <div style={{
+        borderTop: `1px solid ${D.border}`,
+        borderBottom: `1px solid ${D.border}`,
+        padding: '1.5rem 0',
+        overflow: 'hidden',
+        background: D.bg2,
+      }}>
+        <div style={{
+          display: 'flex',
+          animation: 'marquee 22s linear infinite',
+          width: 'max-content',
+        }}>
+          {[...Array(2)].map((_, outer) => (
+            <div key={outer} style={{ display: 'flex', alignItems: 'center', gap: '4rem', padding: '0 2rem' }}>
+              {[
+                'Propulse Agency', 'Axion Partners', 'ImmoPro Lyon',
+                'Kairos Conseil', 'Veritas Group', 'Nova Recrutement',
+                'Ares Consulting', 'Lumia Solutions', 'Crest Agency',
+              ].map(name => (
+                <span key={name} style={{
+                  fontSize: 13, fontWeight: 600, color: D.text3,
+                  letterSpacing: '0.02em', whiteSpace: 'nowrap',
+                }}>
+                  {name}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── HOW IT WORKS ── */}
+      <section id="features" style={{
+        padding: '8rem 2.5rem',
+        background: D.bgLight,
+        fontFamily: `'Outfit', system-ui, sans-serif`,
+      }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <FadeIn>
+            <div style={{ marginBottom: '5rem' }}>
+              <div style={{
+                display: 'inline-block',
+                background: 'oklch(68% 0.22 160 / 0.10)',
+                color: 'oklch(42% 0.18 160)',
+                fontSize: 11, fontWeight: 700,
+                padding: '5px 14px', borderRadius: 999,
+                textTransform: 'uppercase', letterSpacing: '0.09em',
+                marginBottom: '1rem',
+              }}>
+                Comment ca marche
+              </div>
+              <h2 style={{
+                fontSize: 'clamp(2rem, 4vw, 3.2rem)',
+                fontWeight: 800, letterSpacing: '-0.035em',
+                color: D.lText, lineHeight: 1.1, marginBottom: '1rem',
+              }}>
+                Trois etapes.<br />Premier rendez-vous aujourd'hui.
+              </h2>
+              <p style={{ fontSize: 17, color: D.lText2, lineHeight: 1.65, maxWidth: 480 }}>
+                Pas de parametrage complexe. Pas de formation. Vous importez vos prospects, on s'occupe du reste.
+              </p>
+            </div>
+          </FadeIn>
+
+          {/* Steps — zigzag layout, NOT 3-col identical cards */}
+          {[
+            {
+              num: '01',
+              title: 'Importez vos prospects',
+              desc: `Collez un fichier CSV ou connectez votre CRM. Qwillio importe, valide et deduplique vos contacts en quelques secondes. Aucun champ obligatoire au-dela de l'email ou du telephone.`,
+              icon: <BarChart2 size={48} style={{ color: 'oklch(68% 0.22 160)' }} />,
+            },
+            {
+              num: '02',
+              title: `L'IA appelle, qualifie, note`,
+              desc: `Ashley appelle chaque prospect sur votre plage horaire, detecte les signaux d'intention, et retranscrit l'echange mot pour mot. Vous recevez un score de qualification + la transcription complete.`,
+              icon: <Phone size={48} style={{ color: 'oklch(68% 0.22 160)' }} />,
+            },
+            {
+              num: '03',
+              title: `Votre equipe ferme les deals`,
+              desc: `Vos commerciaux ne voient que les leads chauds. Plus de cold calling inutile. Ils recoivent un briefing complet sur chaque prospect qualifie, avec contexte et prochaine action recommandee.`,
+              icon: <Clock size={48} style={{ color: 'oklch(68% 0.22 160)' }} />,
+            },
+          ].map((step, i) => (
+            <FadeIn key={step.num} delay={i * 80}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: i % 2 === 0 ? '1fr 1fr' : '1fr 1fr',
+                direction: i % 2 === 1 ? 'rtl' : 'ltr',
+                gap: '6rem',
+                alignItems: 'center',
+                marginBottom: i < 2 ? '6rem' : 0,
+              }}>
+                <div style={{ direction: 'ltr' }}>
+                  <div style={{
+                    fontSize: '6rem', fontWeight: 800,
+                    color: 'oklch(84% 0.012 55)',
+                    letterSpacing: '-0.05em', lineHeight: 1,
+                    marginBottom: '0.5rem',
+                    fontFeatureSettings: `'tnum'`,
+                  }}>
+                    {step.num}
+                  </div>
+                  <h3 style={{
+                    fontSize: '1.7rem', fontWeight: 700,
+                    color: D.lText, letterSpacing: '-0.02em',
+                    marginBottom: '0.8rem',
+                  }}>
+                    {step.title}
+                  </h3>
+                  <p style={{
+                    fontSize: 16, color: D.lText2, lineHeight: 1.7, maxWidth: 400,
+                  }}>
+                    {step.desc}
+                  </p>
                 </div>
-                <p className="text-base font-semibold text-[#1d1d1f] mb-1.5">{t(`niches.${n.key}` as any)}</p>
-                <p className="text-sm text-[#86868b] leading-relaxed">{t(`niches.${n.key}.desc` as any)}</p>
+                <div style={{ direction: 'ltr' }}>
+                  <div style={{
+                    background: 'oklch(96% 0.010 55)',
+                    border: `1px solid ${D.lBorder}`,
+                    borderRadius: 24,
+                    padding: '3rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    aspectRatio: '4/3',
+                    position: 'relative', overflow: 'hidden',
+                  }}>
+                    {step.icon}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: `radial-gradient(ellipse at 70% 30%, oklch(68% 0.22 160 / 0.06) 0%, transparent 60%)`,
+                      pointerEvents: 'none',
+                    }} />
+                  </div>
+                </div>
               </div>
             </FadeIn>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   LANDING PAGE — Apple-inspired minimal
-   ═══════════════════════════════════════════ */
-export default function Landing() {
-  const [scrolled, setScrolled] = useState(false);
-  const { t, lang } = useLang();
-  const isFr = lang === 'fr';
-  useSEO({
-    title: 'Receptionist AI',
-    description: isFr
-      ? 'Ashley (EN) ou Marie (FR) – votre réceptionniste IA répond à chaque appel, prend les rendez-vous et relance vos clients. 24/7, sans jamais dormir.'
-      : 'Ashley (EN) or Marie (FR) – your AI receptionist answers every call, books appointments, and follows up with clients. Sub-1s response, 24/7.',
-    canonical: 'https://qwillio.com/receptionist',
-  });
-
-  useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', fn);
-    return () => window.removeEventListener('scroll', fn);
-  }, []);
-
-  /* ── Feature categories (simplified for card layout) ── */
-  const callIntelligenceFeatures = [
-    { icon: Phone, title: isFr ? 'R\u00e9ponse 24/7' : '24/7 Answering', desc: isFr ? 'Chaque appel d\u00e9croch\u00e9 en <1s, jour et nuit.' : 'Every call answered in <1s, day and night.' },
-    { icon: Mic, title: isFr ? 'Voix naturelle' : 'Natural Voice', desc: isFr ? 'Ashley (EN) & Marie (FR) — voix ElevenLabs.' : 'Ashley (EN) & Marie (FR) — ElevenLabs voices.' },
-    { icon: PhoneForwarded, title: isFr ? 'Transfert intelligent' : 'Smart Transfer', desc: isFr ? 'Routage vers la bonne personne selon le contexte.' : 'Route to the right person based on context.' },
-    { icon: MessageSquare, title: isFr ? 'D\u00e9tection messagerie' : 'Voicemail Detection', desc: isFr ? 'D\u00e9tecte, r\u00e9essaie et laisse un message auto.' : 'Detects, retries, and leaves auto voicemail.' },
-    { icon: Filter, title: isFr ? 'Anti-spam' : 'Spam Filtering', desc: isFr ? 'Bloque les appels ind\u00e9sirables automatiquement.' : 'Blocks unwanted calls automatically.' },
-  ];
-
-  const leadManagementFeatures = [
-    { icon: Target, title: isFr ? 'Scoring des leads' : 'Lead Scoring', desc: isFr ? 'Score d\u2019int\u00e9r\u00eat de 1 \u00e0 10 pour chaque prospect.' : 'Interest score from 1 to 10 for every prospect.' },
-    { icon: Calendar, title: isFr ? 'R\u00e9servation auto' : 'Auto Booking', desc: isFr ? 'R\u00e9serve le RDV pendant l\u2019appel + SMS de confirmation.' : 'Books appointment during the call + SMS confirmation.' },
-    { icon: Send, title: isFr ? 'Relances SMS' : 'SMS Follow-Up', desc: isFr ? 'S\u00e9quences de relance automatiques post-appel.' : 'Automatic post-call follow-up sequences.' },
-    { icon: Search, title: isFr ? 'Enrichissement' : 'Lead Enrichment', desc: isFr ? 'Google Places : adresse, avis, site web auto.' : 'Google Places: address, reviews, website auto.' },
-    { icon: Link2, title: isFr ? 'Sync CRM' : 'CRM Sync', desc: isFr ? 'HubSpot, Salesforce, Pipedrive en temps r\u00e9el.' : 'HubSpot, Salesforce, Pipedrive in real time.' },
-  ];
-
-  const analyticsFeatures = [
-    { icon: Activity, title: isFr ? 'Dashboard temps r\u00e9el' : 'Real-Time Dashboard', desc: isFr ? 'Appels, transcriptions, scores — tout en un.' : 'Calls, transcripts, scores — all in one.' },
-    { icon: BrainCircuit, title: isFr ? 'Analyse de sentiment' : 'Sentiment Analysis', desc: isFr ? 'D\u00e9tecte le ton et les \u00e9motions des appelants.' : 'Detects caller tone and emotions.' },
-    { icon: Headphones, title: isFr ? 'Enregistrement' : 'Call Recording', desc: isFr ? 'Audio + transcription compl\u00e8te de chaque appel.' : 'Audio + full transcript for every call.' },
-    { icon: FileText, title: isFr ? 'Scripts par niche' : 'Niche Scripts', desc: isFr ? 'Scripts IA optimis\u00e9s par industrie.' : 'AI scripts optimized per industry.' },
-    { icon: Languages, title: isFr ? 'Bilingue auto' : 'Auto Bilingual', desc: isFr ? 'D\u00e9tection EN/FR automatique en temps r\u00e9el.' : 'Automatic EN/FR detection in real time.' },
-  ];
-
-  return (
-    <div className="bg-white text-[#1d1d1f] min-h-screen">
-
-      {/* ── NAVBAR ── */}
-      <PublicNavbar />
-
-      {/* ── HERO ── */}
-      <section className="pt-32 pb-20 md:pt-44 md:pb-32 text-center px-6">
-        <FadeIn>
-          <h1 className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.05] max-w-3xl mx-auto">
-            {t('hero.title1')}<br />
-            <span className="bg-gradient-to-r from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">
-              {t('hero.title2')}
-            </span>
-          </h1>
-        </FadeIn>
-        <FadeIn delay={100}>
-          <p className="mt-6 text-lg md:text-xl text-[#86868b] max-w-xl mx-auto leading-relaxed">
-            {t('hero.subtitle')}
-          </p>
-        </FadeIn>
-        <FadeIn delay={200}>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-base font-medium px-8 py-3.5 rounded-full hover:bg-[#4f46e5] transition-colors"
-            >
-              {t('hero.cta')} <ArrowRight size={18} />
-            </Link>
-            <a
-              href="#how"
-              className="inline-flex items-center gap-1.5 text-[#6366f1] text-base font-medium hover:underline"
-            >
-              {t('hero.how')} <ChevronRight size={16} />
-            </a>
-          </div>
-        </FadeIn>
-
-        {/* Stats */}
-        <FadeIn delay={400}>
-          <div className="mt-20 flex flex-row items-stretch justify-center divide-x divide-[#d2d2d7] w-full mx-auto">
-            {[
-              { value: 98,   suffix: '%', label: t('hero.stat1') },
-              { value: 2500, suffix: '+', label: t('hero.stat2') },
-              { value: 35,   suffix: '%', label: t('hero.stat3') },
-            ].map((s, i) => (
-              <div key={i} className="flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-2">
-                <p className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight whitespace-nowrap">
-                  <Counter value={s.value} suffix={s.suffix} />
-                </p>
-                <p className="text-[10px] sm:text-xs md:text-sm text-[#86868b] mt-1 text-center leading-tight">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </FadeIn>
       </section>
 
-      {/* ── DIVIDER ── */}
-      <div className="max-w-[1120px] mx-auto px-6"><div className="border-t border-[#d2d2d7]/60" /></div>
-
-      {/* ── HOW IT WORKS (3 steps) ── */}
-      <section id="how" className="py-24 md:py-32 px-6 bg-[#f5f5f7]">
-        <div className="max-w-[1120px] mx-auto">
-          <FadeIn>
-            <div className="text-center mb-20">
-              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{t('how.label')}</p>
-              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">
-                {t('how.title')}
-              </h2>
+      {/* ── TESTIMONIALS ── asymmetric layout, NOT 3-col identical (taste-skill ban) */}
+      <section style={{ padding: '8rem 2.5rem', background: D.bg }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <FadeIn style={{ marginBottom: '4rem' }}>
+            <div style={{
+              display: 'inline-block',
+              background: D.accentDim,
+              border: `1px solid ${D.accentBrd}`,
+              color: D.accent,
+              fontSize: 11, fontWeight: 700,
+              padding: '5px 14px', borderRadius: 999,
+              textTransform: 'uppercase', letterSpacing: '0.09em',
+              marginBottom: '1rem',
+            }}>
+              Ils nous font confiance
             </div>
-          </FadeIn>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
-            {[
-              {
-                num: '01',
-                title: isFr ? 'Configurez votre agent' : 'Configure your agent',
-                desc: isFr
-                  ? 'Décrivez votre activité, vos services et vos consignes. Qwillio crée un agent personnalisé en quelques minutes.'
-                  : 'Describe your business, services and guidelines. Qwillio creates a custom agent in minutes.',
-              },
-              {
-                num: '02',
-                title: isFr ? 'Transférez vos appels' : 'Forward your calls',
-                desc: isFr
-                  ? 'Redirigez votre ligne en 30 secondes. Aucune installation, aucun matériel. Fonctionne avec tous les opérateurs.'
-                  : 'Redirect your line in 30 seconds. No installation, no hardware. Works with any carrier.',
-              },
-              {
-                num: '03',
-                title: isFr ? 'L\u2019IA fait le reste' : 'AI does the rest',
-                desc: isFr
-                  ? 'Ashley ou Marie répond 24/7, qualifie les leads, réserve les rendez-vous et vous envoie un résumé en temps réel.'
-                  : 'Ashley or Marie answers 24/7, qualifies leads, books appointments, and sends you a real-time summary.',
-              },
-            ].map((step, i) => (
-              <FadeIn key={i} delay={i * 150}>
-                <div className="text-center">
-                  <p className="text-6xl md:text-7xl font-bold mb-6 text-[#6366f1]">{step.num}</p>
-                  <h3 className="text-xl font-semibold mb-3 tracking-tight">{step.title}</h3>
-                  <p className="text-[15px] text-[#86868b] leading-relaxed max-w-xs mx-auto">{step.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FEATURES ── */}
-      <section id="features" className="py-24 md:py-32 px-6 bg-[#f5f5f7]">
-        <div className="max-w-[1120px] mx-auto">
-          <FadeIn>
-            <div className="text-center mb-20">
-              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{t('feat.label')}</p>
-              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">
-                {t('feat.title')}<br />{t('feat.title2')}
-              </h2>
-            </div>
+            <h2 style={{
+              fontSize: 'clamp(2rem, 3.5vw, 3rem)',
+              fontWeight: 800, color: D.text,
+              letterSpacing: '-0.035em', lineHeight: 1.1,
+            }}>
+              Des resultats, pas des promesses.
+            </h2>
           </FadeIn>
 
-          {/* ── Bento Grid ── */}
-          <div className="space-y-16">
-
-            {/* ── Category 1: Call Intelligence ── */}
-            <FadeIn>
-              <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-9 h-9 rounded-xl bg-[#6366f1] flex items-center justify-center">
-                    <Phone size={18} className="text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold">{isFr ? 'Intelligence d’appel' : 'Call Intelligence'}</h3>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                  {/* Big card */}
-                  <div className="col-span-2 md:row-span-2 bg-gradient-to-br from-[#6366f1] to-[#818cf8] rounded-3xl p-7 text-white flex flex-col justify-between min-h-[240px] group hover:shadow-xl hover:shadow-[#6366f1]/20 transition-all duration-500">
-                    <div>
-                      <Phone size={28} className="text-white/80 mb-4" strokeWidth={1.5} />
-                      <h4 className="text-lg font-semibold mb-2">{callIntelligenceFeatures[0].title}</h4>
-                      <p className="text-sm text-white/70 leading-relaxed">{callIntelligenceFeatures[0].desc}</p>
-                    </div>
-                    <div className="mt-6 flex items-end gap-1">
-                      {[40, 65, 45, 80, 55, 90, 70, 95].map((h, i) => (
-                        <div key={i} className="flex-1 bg-white/20 rounded-sm group-hover:bg-white/30 transition-all duration-500" style={{ height: h + 'px' }} />
-                      ))}
-                    </div>
-                  </div>
-                  {/* 4 small cards */}
-                  {callIntelligenceFeatures.slice(1).map((f, i) => (
-                    <div key={i} className="col-span-1 md:col-span-2 bg-white rounded-2xl p-5 border border-[#e5e5ea] hover:border-[#6366f1]/30 hover:shadow-lg hover:shadow-[#6366f1]/5 transition-all duration-300 group">
-                      <div className="w-10 h-10 rounded-xl bg-[#6366f1]/10 flex items-center justify-center mb-3 group-hover:bg-[#6366f1]/15 transition-colors">
-                        <f.icon size={20} className="text-[#6366f1]" strokeWidth={1.5} />
-                      </div>
-                      <h4 className="text-sm font-semibold mb-1.5">{f.title}</h4>
-                      <p className="text-xs text-[#86868b] leading-relaxed">{f.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* ── Category 2: Lead Management ── */}
-            <FadeIn>
-              <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-9 h-9 rounded-xl bg-[#8b5cf6] flex items-center justify-center">
-                    <Target size={18} className="text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold">{isFr ? 'Gestion des leads' : 'Lead Management'}</h3>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {/* Top row - 3 cards */}
-                  {leadManagementFeatures.slice(0, 3).map((f, i) => (
-                    <div key={i} className="col-span-1 bg-white rounded-2xl p-5 border border-[#e5e5ea] hover:border-[#8b5cf6]/30 hover:shadow-lg hover:shadow-[#8b5cf6]/5 transition-all duration-300 group">
-                      <div className="w-10 h-10 rounded-xl bg-[#8b5cf6]/10 flex items-center justify-center mb-3 group-hover:bg-[#8b5cf6]/15 transition-colors">
-                        <f.icon size={20} className="text-[#8b5cf6]" strokeWidth={1.5} />
-                      </div>
-                      <h4 className="text-sm font-semibold mb-1.5">{f.title}</h4>
-                      <p className="text-xs text-[#86868b] leading-relaxed">{f.desc}</p>
-                    </div>
-                  ))}
-                  {/* Bottom row - 1 wide gradient + 1 card */}
-                  <div className="col-span-2 bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] rounded-3xl p-7 text-white flex items-center gap-8 group hover:shadow-xl hover:shadow-[#8b5cf6]/20 transition-all duration-500">
-                    <div className="flex-1">
-                      <Search size={28} className="text-white/80 mb-3" strokeWidth={1.5} />
-                      <h4 className="text-lg font-semibold mb-2">{leadManagementFeatures[3].title}</h4>
-                      <p className="text-sm text-white/70 leading-relaxed">{leadManagementFeatures[3].desc}</p>
-                    </div>
-                    <div className="hidden md:flex items-center gap-3 text-white/30">
-                      <div className="w-12 h-12 rounded-full border-2 border-white/20 flex items-center justify-center"><Search size={20} className="text-white/50" /></div>
-                      <ArrowRight size={16} />
-                      <div className="w-12 h-12 rounded-full border-2 border-white/20 flex items-center justify-center"><UserCheck size={20} className="text-white/50" /></div>
-                      <ArrowRight size={16} />
-                      <div className="w-12 h-12 rounded-full border-2 border-white/30 flex items-center justify-center"><Check size={20} className="text-white/60" /></div>
-                    </div>
-                  </div>
-                  <div className="col-span-2 md:col-span-1 bg-white rounded-2xl p-5 border border-[#e5e5ea] hover:border-[#8b5cf6]/30 hover:shadow-lg hover:shadow-[#8b5cf6]/5 transition-all duration-300 group">
-                    <div className="w-10 h-10 rounded-xl bg-[#8b5cf6]/10 flex items-center justify-center mb-3 group-hover:bg-[#8b5cf6]/15 transition-colors">
-                      <Link2 size={20} className="text-[#8b5cf6]" strokeWidth={1.5} />
-                    </div>
-                    <h4 className="text-sm font-semibold mb-1.5">{leadManagementFeatures[4].title}</h4>
-                    <p className="text-xs text-[#86868b] leading-relaxed">{leadManagementFeatures[4].desc}</p>
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* ── Category 3: Analytics & Control ── */}
-            <FadeIn>
-              <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-9 h-9 rounded-xl bg-[#6366f1] flex items-center justify-center">
-                    <BarChart3 size={18} className="text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold">{isFr ? 'Analytique & contrôle' : 'Analytics & Control'}</h3>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                  {/* 2 small cards */}
-                  {analyticsFeatures.slice(0, 2).map((f, i) => (
-                    <div key={i} className="col-span-1 md:col-span-2 bg-white rounded-2xl p-5 border border-[#e5e5ea] hover:border-[#6366f1]/30 hover:shadow-lg hover:shadow-[#6366f1]/5 transition-all duration-300 group">
-                      <div className="w-10 h-10 rounded-xl bg-[#6366f1]/10 flex items-center justify-center mb-3 group-hover:bg-[#6366f1]/15 transition-colors">
-                        <f.icon size={20} className="text-[#6366f1]" strokeWidth={1.5} />
-                      </div>
-                      <h4 className="text-sm font-semibold mb-1.5">{f.title}</h4>
-                      <p className="text-xs text-[#86868b] leading-relaxed">{f.desc}</p>
-                    </div>
-                  ))}
-                  {/* Big card on the right */}
-                  <div className="col-span-2 md:row-span-2 bg-gradient-to-br from-[#6366f1] to-[#818cf8] rounded-3xl p-7 text-white flex flex-col justify-between min-h-[240px] group hover:shadow-xl hover:shadow-[#6366f1]/20 transition-all duration-500">
-                    <div>
-                      <Headphones size={28} className="text-white/80 mb-4" strokeWidth={1.5} />
-                      <h4 className="text-lg font-semibold mb-2">{analyticsFeatures[2].title}</h4>
-                      <p className="text-sm text-white/70 leading-relaxed">{analyticsFeatures[2].desc}</p>
-                    </div>
-                    <div className="mt-6 space-y-2">
-                      {[85, 60, 92].map((w, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                            <div className="h-full bg-white/30 rounded-full group-hover:bg-white/40 transition-all duration-700" style={{ width: w + '%' }} />
-                          </div>
-                          <span className="text-xs text-white/40 w-8">{w}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {/* 2 more small cards */}
-                  {analyticsFeatures.slice(3).map((f, i) => (
-                    <div key={i} className="col-span-1 md:col-span-2 bg-white rounded-2xl p-5 border border-[#e5e5ea] hover:border-[#6366f1]/30 hover:shadow-lg hover:shadow-[#6366f1]/5 transition-all duration-300 group">
-                      <div className="w-10 h-10 rounded-xl bg-[#6366f1]/10 flex items-center justify-center mb-3 group-hover:bg-[#6366f1]/15 transition-colors">
-                        <f.icon size={20} className="text-[#6366f1]" strokeWidth={1.5} />
-                      </div>
-                      <h4 className="text-sm font-semibold mb-1.5">{f.title}</h4>
-                      <p className="text-xs text-[#86868b] leading-relaxed">{f.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </FadeIn>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ── TECHNOLOGY ── */}
-      <section className="py-24 md:py-32 px-6 bg-[#1d1d1f] text-white">
-        <div className="max-w-[1120px] mx-auto">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <p className="text-sm font-medium text-[#818cf8] tracking-wide uppercase mb-3">
-                {isFr ? 'Technologie' : 'Technology'}
-              </p>
-              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">
-                {isFr ? 'Propuls\u00e9 par les meilleurs' : 'Powered by the Best'}
-              </h2>
-              <p className="text-lg text-white/50 mt-4 max-w-lg mx-auto">
-                {isFr
-                  ? 'Une infrastructure de pointe pour des conversations ind\u00e9tectables de l\u2019IA.'
-                  : 'Cutting-edge infrastructure for AI conversations indistinguishable from humans.'}
-              </p>
-            </div>
-          </FadeIn>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: Mic,
-                title: isFr ? 'Synth\u00e8se vocale ElevenLabs' : 'ElevenLabs Voice Synthesis',
-                desc: isFr
-                  ? 'Ashley utilise la voix Rachel, Marie la voix Am\u00e9lie. Les voix les plus r\u00e9alistes du march\u00e9, avec intonation naturelle et \u00e9motion.'
-                  : 'Ashley uses the Rachel voice, Marie uses the Amelie voice. The most realistic voices on the market, with natural intonation and emotion.',
-              },
-              {
-                icon: Cpu,
-                title: isFr ? 'Conversations GPT-4' : 'GPT-4 Powered Conversations',
-                desc: isFr
-                  ? 'Chaque conversation est pilot\u00e9e par GPT-4 pour une compr\u00e9hension contextuelle profonde, des r\u00e9ponses intelligentes et une adaptation en temps r\u00e9el.'
-                  : 'Every conversation is powered by GPT-4 for deep contextual understanding, intelligent responses, and real-time adaptation.',
-              },
-              {
-                icon: Gauge,
-                title: isFr ? 'Temps de r\u00e9ponse < 1 seconde' : '<1 Second Response Time',
-                desc: isFr
-                  ? 'Latence inf\u00e9rieure \u00e0 une seconde entre chaque r\u00e9plique. La conversation coule naturellement, sans pauses artificielles ni d\u00e9lais perceptibles.'
-                  : 'Sub-one-second latency between each reply. Conversation flows naturally with no artificial pauses or noticeable delays.',
-              },
-              {
-                icon: Wifi,
-                title: isFr ? 'SLA 99.5% de disponibilit\u00e9' : '99.5% Uptime SLA',
-                desc: isFr
-                  ? 'Infrastructure redondante avec basculement automatique. Votre r\u00e9ceptionniste IA est toujours en ligne, garanti par contrat.'
-                  : 'Redundant infrastructure with automatic failover. Your AI receptionist is always online, guaranteed by contract.',
-              },
-              {
-                icon: Lock,
-                title: isFr ? 'Chiffrement bout en bout' : 'End-to-End Encryption',
-                desc: isFr
-                  ? 'Toutes les donn\u00e9es d\u2019appel, transcriptions et enregistrements sont chiffr\u00e9s en transit et au repos. Vos donn\u00e9es restent les v\u00f4tres.'
-                  : 'All call data, transcripts, and recordings are encrypted in transit and at rest. Your data stays yours.',
-              },
-              {
-                icon: Shield,
-                title: isFr ? 'Conforme RGPD + CCPA' : 'GDPR + CCPA Compliant',
-                desc: isFr
-                  ? 'Pleinement conforme aux r\u00e9glementations europ\u00e9ennes (RGPD) et californiennes (CCPA). Suppression des donn\u00e9es sur demande, consentement enregistr\u00e9.'
-                  : 'Fully compliant with European (GDPR) and California (CCPA) regulations. Data deletion on request, recorded consent.',
-              },
-            ].map((item, i) => (
-              <FadeIn key={i} delay={i * 100}>
-                <div className="p-8 rounded-2xl bg-white/5 border border-white/10 hover:border-[#6366f1]/40 transition-colors duration-300 h-full">
-                  <item.icon size={28} className="text-[#818cf8] mb-5" strokeWidth={1.5} />
-                  <h3 className="text-lg font-semibold mb-2 tracking-tight">{item.title}</h3>
-                  <p className="text-[15px] text-white/50 leading-relaxed">{item.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ── */}
-      <section className="py-24 md:py-32 px-6">
-        <div className="max-w-[1120px] mx-auto">
-          <FadeIn>
-            <div className="text-center mb-14">
-              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">
-                {isFr ? 'Ce que disent nos clients' : 'What our clients say'}
-              </p>
-              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">
-                {isFr ? 'Ils ne décrochent plus jamais.' : 'They never miss a call.'}
-              </h2>
-            </div>
-          </FadeIn>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                quote: isFr
-                  ? '"Ashley répond à chaque appel même à 23h. On a eu 3 nouveaux clients la première semaine, juste des appels qu\'on aurait manqués avant."'
-                  : '"Ashley picks up every call even at 11pm. We got 3 new clients in the first week — just calls we would have missed before."',
-                name: 'Marcus T.',
-                role: isFr ? 'Plombier — Houston, TX' : 'Plumber — Houston, TX',
-                stars: 5,
-              },
-              {
-                quote: isFr
-                  ? '"Notre cabinet dentaire manquait 30% des appels entrants. Avec Qwillio, chaque appel est pris et le RDV est réservé en direct."'
-                  : '"Our dental office was missing 30% of inbound calls. With Qwillio every call is answered and the appointment is booked on the spot."',
-                name: 'Dr. Sofia R.',
-                role: isFr ? 'Cabinet dentaire — Dallas, TX' : 'Dental office — Dallas, TX',
-                stars: 5,
-              },
-              {
-                quote: isFr
-                  ? '"En pleine saison, on ne pouvait pas répondre à tous. Maintenant Ashley filtre, qualifie et réserve. Le chiffre d\'affaires a augmenté de 22%."'
-                  : '"During peak season we couldn\'t keep up. Now Ashley filters, qualifies, and books. Revenue up 22% since we started."',
-                name: 'Jason K.',
-                role: isFr ? 'HVAC — Phoenix, AZ' : 'HVAC — Phoenix, AZ',
-                stars: 5,
-              },
-              {
-                quote: isFr
-                  ? '"Nos clientes appellent à des heures impossibles. Ashley répond toujours avec la bonne voix, les bonnes infos et prend le RDV."'
-                  : '"Our clients call at impossible hours. Ashley always answers with the right tone, the right info, and locks in the appointment."',
-                name: 'Camille V.',
-                role: isFr ? 'Spa & bien-être — Miami, FL' : 'Spa & wellness — Miami, FL',
-                stars: 5,
-              },
-              {
-                quote: isFr
-                  ? '"En droit, chaque appel manqué est un client perdu. Qwillio a résolu ça entièrement. Setup en moins d\'une heure, ROI dès la première semaine."'
-                  : '"In law, every missed call is a lost client. Qwillio solved that completely. Setup took under an hour, ROI in the first week."',
-                name: 'David M.',
-                role: isFr ? 'Cabinet juridique — Chicago, IL' : 'Law firm — Chicago, IL',
-                stars: 5,
-              },
-            ].map((t, i) => (
-              <FadeIn key={i} delay={i * 80}>
-                <div className="rounded-2xl border border-[#d2d2d7] bg-white p-7 flex flex-col h-full hover:border-[#6366f1]/30 hover:shadow-lg hover:shadow-[#6366f1]/5 transition-all duration-300">
-                  <div className="flex gap-0.5 mb-4">
-                    {Array.from({ length: t.stars }).map((_, s) => (
-                      <span key={s} className="text-amber-400 text-base">★</span>
+          {/* Asymmetric: big featured left (2fr), two stacked right (1fr) */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '2fr 1fr',
+            gridTemplateRows: 'auto auto',
+            gap: '1.5rem',
+          }}>
+            {/* Featured quote — spans 2 rows */}
+            <FadeIn delay={0} style={{ gridRow: '1 / 3' }}>
+              <div style={{
+                height: '100%',
+                background: D.bg2,
+                border: `1px solid ${D.border}`,
+                borderRadius: 24,
+                padding: '3rem',
+                display: 'flex', flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}>
+                <div>
+                  <div style={{ display: 'flex', gap: 3, marginBottom: '1.5rem' }}>
+                    {[0,1,2,3,4].map(i => (
+                      <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill={D.accent}>
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
                     ))}
                   </div>
-                  <p className="text-sm text-[#1d1d1f]/80 leading-relaxed flex-1 mb-6 italic">{t.quote}</p>
+                  <blockquote style={{
+                    fontSize: 'clamp(1.1rem, 2vw, 1.4rem)',
+                    fontWeight: 600,
+                    color: D.text,
+                    lineHeight: 1.55,
+                    letterSpacing: '-0.015em',
+                    marginBottom: '2rem',
+                  }}>
+                    "Nos commerciaux ne font plus que du closing. Qwillio gere tout le cold call. En un mois, on a triple notre pipeline sans embaucher personne."
+                  </blockquote>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{
+                    width: 48, height: 48,
+                    background: D.accentDim, border: `1px solid ${D.accentBrd}`,
+                    borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: D.accent, fontWeight: 700, fontSize: 15,
+                  }}>
+                    AB
+                  </div>
                   <div>
-                    <p className="text-sm font-semibold text-[#1d1d1f]">{t.name}</p>
-                    <p className="text-xs text-[#86868b] mt-0.5">{t.role}</p>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: D.text }}>Alexandre Blanchard</div>
+                    <div style={{ fontSize: 13, color: D.text3 }}>Directeur, Propulse Agency</div>
+                  </div>
+                  <div style={{
+                    marginLeft: 'auto',
+                    background: D.accentDim,
+                    border: `1px solid ${D.accentBrd}`,
+                    borderRadius: 10,
+                    padding: '6px 14px',
+                    fontSize: 13, fontWeight: 700, color: D.accent,
+                  }}>
+                    +340% pipeline
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+
+            {/* Smaller quotes stacked right */}
+            {[
+              {
+                initials: 'TM', name: 'Thomas Moreau', role: 'CEO, Axion Partners',
+                quote: `ROI positif la premiere semaine. La voix est indiscernable d'un vrai commercial.`,
+                stat: 'ROI semaine 1',
+              },
+              {
+                initials: 'SR', name: 'Sophie Renard', role: 'Fondatrice, ImmoPro',
+                quote: `On a divise notre cout d'acquisition par trois. Mes equipes adorent.`,
+                stat: `-3x CAC`,
+              },
+            ].map((t, i) => (
+              <FadeIn key={i} delay={(i + 1) * 80}>
+                <div style={{
+                  background: D.bg2,
+                  border: `1px solid ${D.border}`,
+                  borderRadius: 20,
+                  padding: '2rem',
+                }}>
+                  <div style={{ display: 'flex', gap: 3, marginBottom: '0.8rem' }}>
+                    {[0,1,2,3,4].map(j => (
+                      <svg key={j} width="12" height="12" viewBox="0 0 24 24" fill={D.accent}>
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: 14, color: D.text2, lineHeight: 1.6, marginBottom: '1.2rem' }}>
+                    "{t.quote}"
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      background: D.accentDim, border: `1px solid ${D.accentBrd}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: D.accent, fontSize: 12, fontWeight: 700,
+                    }}>
+                      {t.initials}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: D.text }}>{t.name}</div>
+                      <div style={{ fontSize: 12, color: D.text3 }}>{t.role}</div>
+                    </div>
+                    <span style={{
+                      marginLeft: 'auto',
+                      fontSize: 11, fontWeight: 800, color: D.accent,
+                      letterSpacing: '0.02em',
+                    }}>
+                      {t.stat}
+                    </span>
                   </div>
                 </div>
               </FadeIn>
@@ -596,253 +848,265 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── DIVIDER ── */}
-      <div className="max-w-[1120px] mx-auto px-6"><div className="border-t border-[#d2d2d7]/60" /></div>
-
-      {/* ── DEMO CTA ── */}
-      <section className="py-24 md:py-32 px-6">
-        <FadeIn>
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-5">
-              {t('demo.title')}
+      {/* ── PRICING ── different visual weight per tier */}
+      <section id="pricing" style={{ padding: '8rem 2.5rem', background: D.bg2 }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          <FadeIn style={{ marginBottom: '4rem' }}>
+            <h2 style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              fontWeight: 800, color: D.text,
+              letterSpacing: '-0.035em', marginBottom: '0.8rem',
+            }}>
+              Simple. Transparent.
             </h2>
-            <p className="text-lg text-[#86868b] max-w-lg mx-auto mb-10 leading-relaxed">
-              {t('demo.subtitle')}
+            <p style={{ fontSize: 16, color: D.text2, lineHeight: 1.6 }}>
+              Sans engagement annuel. Arretez quand vous voulez.
             </p>
-            <div className="max-w-md mx-auto mb-10 space-y-3">
-              <WaveformPlayer src="/demo-ashley.mp3" label="Ashley (EN)" />
-              <WaveformPlayer src="/demo-marie.mp3" label="Marie (FR)" />
-            </div>
-            <a
-              href="/demo.html"
-              className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium px-8 py-3.5 rounded-full hover:bg-[#424245] transition-colors"
-            >
-              <Phone size={18} /> {t('demo.cta')}
-            </a>
-          </div>
-        </FadeIn>
-      </section>
-
-      {/* ── DIVIDER ── */}
-      <div className="max-w-[1120px] mx-auto px-6"><div className="border-t border-[#d2d2d7]/60" /></div>
-
-      {/* ── NICHES ── */}
-      <NichesSection />
-
-      {/* ── DIVIDER ── */}
-      <div className="max-w-[1120px] mx-auto px-6"><div className="border-t border-[#d2d2d7]/60" /></div>
-
-      {/* ── PRICING ── */}
-      <section id="pricing" className="py-24 md:py-32 px-6">
-        <div className="max-w-[1120px] mx-auto">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{t('price.label')}</p>
-              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">
-                {t('price.title')}
-              </h2>
-              <p className="text-lg text-[#86868b] mt-4">
-                {t('price.trial')}
-              </p>
-            </div>
           </FadeIn>
 
-          {/* ── Ashley Receptionist Plans ── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Starter */}
-            <FadeIn delay={0}>
-              <div className="rounded-2xl border border-[#d2d2d7] p-8 flex flex-col h-full">
-                <h3 className="text-xl font-semibold mb-1">Starter</h3>
-                <p className="text-[#86868b] text-sm mb-6">{t('price.starter.sub')}</p>
-                <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$497</span>
-                  <span className="text-[#86868b]">/mo</span>
-                </div>
-                <p className="text-sm text-emerald-600 font-medium mb-1">✓ {t('price.firstFree')}</p>
-                <p className="text-xs text-blue-500 font-medium mb-4">{t('price.noSetup')}</p>
-                <p className="text-sm font-medium text-[#6366f1] mb-1">800 {t('price.calls')}</p>
-                <p className="text-xs text-[#86868b] mb-6">$0.22 {t('price.overage')}</p>
-                <ul className="space-y-3 mb-6 flex-1">
-                  {[t('pf.starter.1'), t('pf.starter.2'), t('pf.starter.3'), t('pf.starter.4'), t('pf.starter.5')].map((f, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-[#1d1d1f]/80">
-                      <Check size={16} className="text-[#6366f1] mt-0.5 flex-shrink-0" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                <div className="space-y-2 mb-6">
-                  <Link to="/register?plan=starter&bundle=true" className="flex items-center justify-between rounded-full border border-[#6366f1] px-4 py-3 text-[#6366f1] hover:bg-[#6366f1] hover:text-white transition-colors">
-                    <span className="flex items-center gap-2 text-sm font-medium"><Plus size={16} /> Add Agent Bundle</span>
-                    <span className="text-sm font-semibold">+$597/mo</span>
-                  </Link>
-                  <a href="#addons" className="flex items-center justify-center gap-2 rounded-full border border-[#6366f1] px-4 py-3 text-sm font-medium text-[#6366f1] hover:bg-[#6366f1] hover:text-white transition-colors">
-                    <Plus size={16} />
-                    <span>Add add-ons</span>
-                  </a>
-                </div>
-                <Link to="/register?plan=starter" className="block text-center bg-[#6366f1] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors">
-                  {t('price.choose')}
-                </Link>
-              </div>
-            </FadeIn>
-
-            {/* Pro */}
-            <FadeIn delay={100}>
-              <div className="rounded-2xl bg-[#1d1d1f] text-white p-8 flex flex-col h-full relative">
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#6366f1] text-white text-xs font-semibold px-4 py-1 rounded-full">
-                  {t('price.popular')}
-                </span>
-                <h3 className="text-xl font-semibold mb-1">Pro</h3>
-                <p className="text-white/50 text-sm mb-6">{t('price.pro.sub')}</p>
-                <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$1,297</span>
-                  <span className="text-white/50">/mo</span>
-                </div>
-                <p className="text-sm text-emerald-400 font-medium mb-1">✓ {t('price.firstFree')}</p>
-                <p className="text-xs text-blue-400 font-medium mb-4">{t('price.noSetup')}</p>
-                <p className="text-sm font-medium text-[#6366f1] mb-1">2,000 {t('price.calls')}</p>
-                <p className="text-xs text-white/40 mb-6">$0.18 {t('price.overage')}</p>
-                <ul className="space-y-3 mb-6 flex-1">
-                  {[t('pf.pro.1'), t('pf.pro.2'), t('pf.pro.3'), t('pf.pro.4'), t('pf.pro.5'), t('pf.pro.6')].map((f, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-white/70">
-                      <Check size={16} className="text-[#6366f1] mt-0.5 flex-shrink-0" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                <div className="space-y-2 mb-6">
-                  <Link to="/register?plan=pro&bundle=true" className="flex items-center justify-between rounded-full border border-white/40 px-4 py-3 text-white hover:bg-white/10 transition-colors">
-                    <span className="flex items-center gap-2 text-sm font-medium"><Plus size={16} /> Add Agent Bundle</span>
-                    <span className="text-sm font-semibold">+$597/mo</span>
-                  </Link>
-                  <a href="#addons" className="flex items-center justify-center gap-2 rounded-full border border-white/40 px-4 py-3 text-sm font-medium text-white hover:bg-white/10 transition-colors">
-                    <Plus size={16} />
-                    <span>Add add-ons</span>
-                  </a>
-                </div>
-                <Link to="/register?plan=pro" className="block text-center bg-[#6366f1] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors">
-                  {t('price.choose')}
-                </Link>
-              </div>
-            </FadeIn>
-
-            {/* Enterprise */}
-            <FadeIn delay={200}>
-              <div className="rounded-2xl border border-[#d2d2d7] p-8 flex flex-col h-full">
-                <h3 className="text-xl font-semibold mb-1">Enterprise</h3>
-                <p className="text-[#86868b] text-sm mb-6">{t('price.enterprise.sub')}</p>
-                <div className="mb-1">
-                  <span className="text-4xl font-semibold tracking-tight">$2,497</span>
-                  <span className="text-[#86868b]">/mo</span>
-                </div>
-                <p className="text-sm text-emerald-600 font-medium mb-1">✓ {t('price.firstFree')}</p>
-                <p className="text-xs text-blue-500 font-medium mb-4">{t('price.noSetup')}</p>
-                <p className="text-sm font-medium text-[#6366f1] mb-1">4,000 {t('price.calls')}</p>
-                <p className="text-xs text-[#86868b] mb-6">$0.15 {t('price.overage')}</p>
-                <ul className="space-y-3 mb-6 flex-1">
-                  {[t('pf.enterprise.1'), t('pf.enterprise.2'), t('pf.enterprise.3'), t('pf.enterprise.4'), t('pf.enterprise.5'), t('pf.enterprise.6')].map((f, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-[#1d1d1f]/80">
-                      <Check size={16} className="text-[#6366f1] mt-0.5 flex-shrink-0" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                <div className="space-y-2 mb-6">
-                  <Link to="/register?plan=enterprise&bundle=true" className="flex items-center justify-between rounded-full border border-[#6366f1] px-4 py-3 text-[#6366f1] hover:bg-[#6366f1] hover:text-white transition-colors">
-                    <span className="flex items-center gap-2 text-sm font-medium"><Plus size={16} /> Add Agent Bundle</span>
-                    <span className="text-sm font-semibold">+$597/mo</span>
-                  </Link>
-                  <a href="#addons" className="flex items-center justify-center gap-2 rounded-full border border-[#6366f1] px-4 py-3 text-sm font-medium text-[#6366f1] hover:bg-[#6366f1] hover:text-white transition-colors">
-                    <Plus size={16} />
-                    <span>Add add-ons</span>
-                  </a>
-                </div>
-                <Link to="/register?plan=enterprise" className="block text-center bg-[#6366f1] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors">
-                  {t('price.choose')}
-                </Link>
-              </div>
-            </FadeIn>
-          </div>
-
-          {/* ── Qwillio Agent Add-ons ── */}
-          <FadeIn delay={300}>
-            <div id="addons" className="mt-20 text-center mb-12 scroll-mt-24">
-              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{t('agent.label')}</p>
-              <h3 className="text-3xl md:text-4xl font-semibold tracking-tight">{t('agent.title')}</h3>
-              <p className="text-[#86868b] mt-3 max-w-lg mx-auto">{t('agent.subtitle')}</p>
-            </div>
-          </FadeIn>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Asymmetric: 1fr 1.35fr 1fr — Pro is larger */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1.35fr 1fr',
+            gap: '1.25rem',
+            alignItems: 'start',
+          }}>
             {[
-              { name: 'Email AI', icon: Mail, price: 197, desc: t('agent.email'), features: [t('agent.email.1'), t('agent.email.2'), t('agent.email.3'), t('agent.email.4'), t('agent.email.5')] },
-              { name: 'Payments AI', icon: CreditCard, price: 97, desc: t('agent.payments'), features: [t('agent.payments.1'), t('agent.payments.2'), t('agent.payments.3'), t('agent.payments.4'), t('agent.payments.5')] },
-              { name: 'Accounting AI', icon: Calculator, price: 297, desc: t('agent.accounting'), features: [t('agent.accounting.1'), t('agent.accounting.2'), t('agent.accounting.3'), t('agent.accounting.4'), t('agent.accounting.5')] },
-              { name: 'Inventory AI', icon: Package, price: 197, desc: t('agent.inventory'), features: [t('agent.inventory.1'), t('agent.inventory.2'), t('agent.inventory.3'), t('agent.inventory.4'), t('agent.inventory.5')] },
-            ].map((mod, i) => (
-              <FadeIn key={i} delay={i * 80}>
-                <div className="rounded-2xl border border-[#d2d2d7] p-8 hover:border-[#6366f1]/40 transition-colors h-full flex flex-col">
-                  <mod.icon size={28} className="text-[#6366f1] mb-4" strokeWidth={1.5} />
-                  <h4 className="text-lg font-semibold mb-1">{mod.name}</h4>
-                  <p className="text-sm text-[#86868b] mb-4 leading-relaxed">{mod.desc}</p>
-                  <div className="mb-6">
-                    <span className="text-3xl font-semibold tracking-tight">+${mod.price}</span>
-                    <span className="text-[#86868b]">/mo</span>
+              {
+                name: 'Starter',
+                price: '197',
+                calls: '200 appels / mois',
+                popular: false,
+                features: [
+                  'Appels IA illimites en duree',
+                  'Transcription automatique',
+                  'Score de qualification',
+                  'Support par email',
+                ],
+                cta: 'Commencer',
+              },
+              {
+                name: 'Pro',
+                price: '497',
+                calls: '600 appels / mois',
+                popular: true,
+                features: [
+                  'Tout Starter inclus',
+                  `Priorite file d'appels`,
+                  'Integrations CRM (HubSpot, Pipedrive)',
+                  'Rapport hebdomadaire',
+                  'Support prioritaire 7j/7',
+                ],
+                cta: 'Demarrer en Pro',
+              },
+              {
+                name: 'Agence',
+                price: '997',
+                calls: 'Appels illimites',
+                popular: false,
+                features: [
+                  'Tout Pro inclus',
+                  'Multi-clients & white-label',
+                  'API complete',
+                  'SLA garanti',
+                ],
+                cta: 'Nous contacter',
+              },
+            ].map((tier, i) => (
+              <FadeIn key={tier.name} delay={i * 60}>
+                <div style={{
+                  background: tier.popular ? D.bg3 : D.bg,
+                  border: `1px solid ${tier.popular ? D.accentBrd : D.border}`,
+                  borderRadius: 20,
+                  padding: tier.popular ? '2.5rem' : '2rem',
+                  position: 'relative',
+                  boxShadow: tier.popular ? `0 0 0 1px ${D.accentDim}, 0 8px 32px oklch(68% 0.22 160 / 0.08)` : 'none',
+                }}>
+                  {tier.popular && (
+                    <div style={{
+                      position: 'absolute', top: -12, left: '50%',
+                      transform: 'translateX(-50%)',
+                      background: D.accent, color: D.bg,
+                      fontSize: 10, fontWeight: 800,
+                      padding: '4px 16px', borderRadius: 999,
+                      whiteSpace: 'nowrap',
+                      textTransform: 'uppercase', letterSpacing: '0.09em',
+                    }}>
+                      Le plus choisi
+                    </div>
+                  )}
+
+                  <div style={{
+                    fontSize: 11, fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.1em',
+                    color: D.text3, marginBottom: '1.2rem',
+                  }}>
+                    {tier.name}
                   </div>
-                  <ul className="space-y-2.5 mb-8 flex-1">
-                    {mod.features.map((f, j) => (
-                      <li key={j} className="flex items-start gap-2.5 text-sm text-[#1d1d1f]/80">
-                        <Check size={15} className="text-[#6366f1] mt-0.5 flex-shrink-0" /> {f}
+
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: '0.4rem' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: D.text3 }}>€</span>
+                    <span style={{
+                      fontSize: tier.popular ? '3.5rem' : '3rem',
+                      fontWeight: 800, color: D.text,
+                      letterSpacing: '-0.04em', lineHeight: 1,
+                    }}>
+                      {tier.price}
+                    </span>
+                    <span style={{ fontSize: 14, color: D.text3, fontWeight: 400 }}>/mois</span>
+                  </div>
+
+                  <div style={{ fontSize: 13, color: D.accent, fontWeight: 600, marginBottom: '2rem' }}>
+                    {tier.calls}
+                  </div>
+
+                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {tier.features.map(f => (
+                      <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: D.text2, lineHeight: 1.5 }}>
+                        <Check size={14} style={{ color: D.ok, flexShrink: 0, marginTop: 2 }} />
+                        {f}
                       </li>
                     ))}
                   </ul>
-                  <Link to="/register" className="block text-center border border-[#6366f1] text-[#6366f1] text-sm font-medium px-6 py-2.5 rounded-full hover:bg-[#6366f1] hover:text-white transition-colors">
-                    Add
+
+                  <Link to="/register" style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    width: '100%', padding: '0.85rem',
+                    borderRadius: 12, fontSize: 14, fontWeight: 600,
+                    textDecoration: 'none',
+                    background: tier.popular ? D.accent : 'transparent',
+                    color: tier.popular ? D.bg : D.text2,
+                    border: tier.popular ? 'none' : `1.5px solid ${D.border}`,
+                    boxShadow: tier.popular ? `0 4px 20px oklch(68% 0.22 160 / 0.3)` : 'none',
+                    transition: `all 0.2s ${EASE}`,
+                  }}
+                  onMouseEnter={e => {
+                    if (tier.popular) {
+                      e.currentTarget.style.background = D.accentHi;
+                    } else {
+                      e.currentTarget.style.borderColor = D.accent;
+                      e.currentTarget.style.color = D.accent;
+                    }
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = tier.popular ? D.accent : 'transparent';
+                    e.currentTarget.style.color = tier.popular ? D.bg : D.text2;
+                    e.currentTarget.style.borderColor = tier.popular ? 'none' : D.border;
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                  >
+                    {tier.cta}
+                    <ArrowRight size={14} />
                   </Link>
                 </div>
               </FadeIn>
             ))}
           </div>
 
-          {/* ── Integrations ── */}
-          <FadeIn delay={500}>
-            <div className="mt-20 text-center">
-              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{t('integrations.label')}</p>
-              <h3 className="text-2xl font-semibold tracking-tight mb-8">{t('integrations.title')}</h3>
-              <div className="flex flex-wrap justify-center gap-6 text-[#86868b] text-sm font-medium">
-                {['HubSpot', 'Salesforce', 'Pipedrive', 'Zoho CRM', 'GoHighLevel', 'Google Sheets', 'Notion', 'QuickBooks', 'Stripe', 'Google Calendar', 'Zapier'].map((name) => (
-                  <span key={name} className="px-4 py-2 rounded-full bg-[#f5f5f7] border border-[#d2d2d7]/60">{name}</span>
-                ))}
-              </div>
+          {/* Compliance note */}
+          <FadeIn delay={240}>
+            <div style={{
+              marginTop: '2.5rem',
+              display: 'flex', alignItems: 'center', gap: 8,
+              color: D.text3, fontSize: 13,
+            }}>
+              <Shield size={14} style={{ color: D.text3, flexShrink: 0 }} />
+              Conforme RGPD. Sans engagement annuel. Annulation en 1 clic.
             </div>
           </FadeIn>
         </div>
       </section>
 
-      {/* ── FINAL CTA ── */}
-      <section className="py-24 md:py-32 px-6 text-center">
-        <FadeIn>
-          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight max-w-2xl mx-auto">
-            {t('final.title')}
-          </h2>
-          <p className="mt-5 text-lg text-[#86868b] max-w-md mx-auto">
-            {t('final.subtitle')}
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-base font-medium px-8 py-3.5 rounded-full hover:bg-[#4f46e5] transition-colors"
-            >
-              {t('final.cta')} <ArrowRight size={18} />
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-1.5 text-[#6366f1] text-base font-medium hover:underline"
-            >
-              {t('final.dashboard')} <ArrowRight size={16} />
-            </Link>
-          </div>
-        </FadeIn>
+      {/* ── FINAL CTA ── left-aligned, not centered cliche */}
+      <section style={{
+        padding: '9rem 2.5rem',
+        background: D.bg,
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: '30%', right: '10%',
+          width: 500, height: 500,
+          background: `radial-gradient(ellipse at center, oklch(68% 0.22 160 / 0.05) 0%, transparent 70%)`,
+          pointerEvents: 'none',
+        }} />
+        <div style={{ maxWidth: 680, margin: '0 auto', position: 'relative' }}>
+          <FadeIn>
+            <div style={{
+              display: 'inline-block',
+              background: D.accentDim,
+              border: `1px solid ${D.accentBrd}`,
+              color: D.accent,
+              fontSize: 11, fontWeight: 700,
+              padding: '5px 14px', borderRadius: 999,
+              textTransform: 'uppercase', letterSpacing: '0.09em',
+              marginBottom: '1.5rem',
+            }}>
+              Pret a commencer ?
+            </div>
+            <h2 style={{
+              fontSize: 'clamp(2.2rem, 4.5vw, 3.8rem)',
+              fontWeight: 800, color: D.text,
+              letterSpacing: '-0.04em', lineHeight: 1.05,
+              marginBottom: '1.2rem',
+            }}>
+              Vos concurrents prospectent deja la nuit.
+            </h2>
+            <p style={{
+              fontSize: 17, color: D.text2, lineHeight: 1.65,
+              marginBottom: '2.5rem', maxWidth: 500,
+            }}>
+              10 minutes de configuration. Premiers appels aujourd'hui. Aucune carte bancaire pour l'essai.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <MagneticBtn to="/register">
+                Essayer gratuitement
+                <ArrowRight size={16} />
+              </MagneticBtn>
+              <MagneticBtn to="/login" variant="ghost">
+                J'ai deja un compte
+              </MagneticBtn>
+            </div>
+          </FadeIn>
+        </div>
       </section>
 
       {/* ── FOOTER ── */}
-      <PublicFooter />
+      <footer style={{
+        borderTop: `1px solid ${D.border}`,
+        padding: '2.5rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: '1rem',
+        fontFamily: `'Outfit', system-ui, sans-serif`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <QwillioLogo size={20} />
+          <span style={{ fontSize: 15, fontWeight: 800, color: D.text, letterSpacing: '-0.02em' }}>
+            Qwillio
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+          {[
+            ['CGU', '/legal/terms'],
+            ['Confidentialite', '/legal/privacy'],
+            ['RGPD', '/legal/gdpr'],
+            ['Contact', '/legal/contact'],
+          ].map(([label, href]) => (
+            <Link key={label} to={href} style={{
+              fontSize: 13, color: D.text3, textDecoration: 'none',
+              transition: `color 0.2s`,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = D.text2)}
+            onMouseLeave={e => (e.currentTarget.style.color = D.text3)}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+        <div style={{ fontSize: 13, color: D.text3 }}>
+          {new Date().getFullYear()} Qwillio SAS
+        </div>
+      </footer>
     </div>
   );
 }

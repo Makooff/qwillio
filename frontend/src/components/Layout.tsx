@@ -1,6 +1,14 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+const Q = {
+  bg:       'oklch(8% 0.004 160)',
+  accent:   'oklch(68% 0.22 160)',
+  accentDim:'oklch(68% 0.22 160 / 0.15)',
+  border:   'oklch(22% 0.006 160 / 0.6)',
+  textMuted:'oklch(38% 0.004 0)',
+};
+
 const TABS = [
   { path: '/admin', label: 'Accueil', svg: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z' },
   { path: '/admin/prospects', label: 'Prospects', svg: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z' },
@@ -15,21 +23,47 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const nav = useNavigate();
   const loc = useLocation();
   return (
-    <div style={{ background: '#0a0a0a', minHeight: '100vh', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', position: 'relative' }}>
+    <div style={{ background: Q.bg, minHeight: '100vh', fontFamily: "'Geist', 'Inter', -apple-system, sans-serif", position: 'relative' }}>
       <style>{`
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         ::-webkit-scrollbar { width: 0; }
       `}</style>
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 80, background: 'linear-gradient(to bottom, #0a0a0a 0%, transparent 100%)', zIndex: 30, pointerEvents: 'none' }} />
-      <div style={{ position: 'fixed', bottom: 68, left: 0, right: 0, height: 80, background: 'linear-gradient(to top, #0a0a0a 0%, transparent 100%)', zIndex: 30, pointerEvents: 'none' }} />
+      {/* Top fade */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, ${Q.bg} 0%, transparent 100%)`, zIndex: 30, pointerEvents: 'none' }} />
+      {/* Bottom fade */}
+      <div style={{ position: 'fixed', bottom: 68, left: 0, right: 0, height: 80, background: `linear-gradient(to top, ${Q.bg} 0%, transparent 100%)`, zIndex: 30, pointerEvents: 'none' }} />
       <div style={{ paddingBottom: 88 }}>{children}</div>
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 76, background: 'rgba(12,12,12,0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '0 8px 8px', zIndex: 40 }}>
+      {/* Bottom nav */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, height: 76,
+        background: 'oklch(8% 0.004 160 / 0.96)',
+        backdropFilter: 'blur(20px)',
+        borderTop: `1px solid ${Q.border}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+        padding: '0 8px 8px', zIndex: 40,
+      }}>
         {TABS.map(tab => {
-          const active = tab.path === '/admin' ? loc.pathname === '/admin' || loc.pathname === '/admin/' : loc.pathname.startsWith(tab.path);
+          const active = tab.path === '/admin'
+            ? loc.pathname === '/admin' || loc.pathname === '/admin/'
+            : loc.pathname.startsWith(tab.path);
           return (
-            <button key={tab.path} onClick={() => nav(tab.path)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 14, border: 'none', cursor: 'pointer', background: active ? 'rgba(139,92,246,0.15)' : 'transparent', transition: 'all 0.2s ease', minWidth: 56 }}>
-              <svg width='22' height='22' viewBox='0 0 24 24' fill={active ? '#8B5CF6' : 'rgba(255,255,255,0.3)'}><path d={tab.svg} /></svg>
-              <span style={{ fontSize: 10, fontWeight: active ? 600 : 400, color: active ? '#8B5CF6' : 'rgba(255,255,255,0.3)' }}>{tab.label}</span>
+            <button
+              key={tab.path}
+              onClick={() => nav(tab.path)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                padding: '6px 12px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                background: active ? Q.accentDim : 'transparent',
+                transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                minWidth: 56,
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? Q.accent : Q.textMuted}>
+                <path d={tab.svg} />
+              </svg>
+              <span style={{ fontSize: 10, fontWeight: active ? 600 : 400, color: active ? Q.accent : Q.textMuted }}>
+                {tab.label}
+              </span>
             </button>
           );
         })}

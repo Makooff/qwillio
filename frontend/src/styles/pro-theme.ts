@@ -1,75 +1,68 @@
 /**
- * Shared Dark Luxury AI dashboard tokens.
- * Linear × Raycast × Vercel dark direction.
- *
- * Every dashboard page — admin and client — imports these so the design
- * stays consistent: deep black surface, purple accent, uppercase
- * section labels, tabular-nums, rounded-2xl cards.
+ * Qwillio Design Tokens — Signal Dark v2
+ * OKLCH. Emerald-drenched dark base (the brand color IS the darkness).
+ * Skills: taste-skill, emil-design-eng, impeccable
  */
 
 export const pro = {
-  // Backgrounds
-  bg:       '#06060E',
-  panel:    'rgba(255,255,255,0.028)',
-  panelHi:  'rgba(255,255,255,0.05)',
+  // ── Backgrounds ──────────────────────────────────────────────────────────
+  bg:       'oklch(9% 0.014 160)',
+  panel:    'oklch(13% 0.018 160)',
+  panelHi:  'oklch(17% 0.022 160)',
 
-  // Borders
-  border:   'rgba(255,255,255,0.06)',
-  borderHi: 'rgba(255,255,255,0.10)',
+  // ── Borders ──────────────────────────────────────────────────────────────
+  border:   'oklch(26% 0.014 160 / 0.55)',
+  borderHi: 'oklch(36% 0.016 160 / 0.70)',
 
-  // Text
-  text:     '#F5F5F7',
-  textSec:  '#A1A1A8',
-  textTer:  '#6B6B75',
+  // ── Text ─────────────────────────────────────────────────────────────────
+  text:    'oklch(95% 0.006 160)',
+  textSec: 'oklch(62% 0.009 160)',
+  textTer: 'oklch(40% 0.007 160)',
 
-  // Accent — purple gradient system
-  accent:    '#7B5CF0',
-  accentHi:  '#9B7DF8',
-  accentMid: 'rgba(123,92,240,0.10)',
-  accentGrad:'linear-gradient(135deg, #7B5CF0 0%, #9B7DF8 100%)',
-  accentGlow:'rgba(123,92,240,0.18)',
+  // ── Accent — Signal Emerald ───────────────────────────────────────────────
+  accent:     'oklch(68% 0.22 160)',
+  accentHi:   'oklch(74% 0.20 160)',
+  accentDim:  'oklch(68% 0.22 160 / 0.12)',
+  accentGlow: 'oklch(68% 0.22 160 / 0.22)',
+  accentGrad: 'linear-gradient(135deg, oklch(64% 0.23 160) 0%, oklch(72% 0.20 155) 100%)',
+  accentMid:  'oklch(68% 0.22 160 / 0.10)',
+  accentBrd:  'oklch(68% 0.22 160 / 0.35)',
 
-  // Status
-  ok:       '#22C55E',
-  warn:     '#F59E0B',
-  bad:      '#EF4444',
-  info:     '#60A5FA',
+  // ── Status ───────────────────────────────────────────────────────────────
+  ok:   'oklch(72% 0.18 145)',
+  warn: 'oklch(78% 0.18 75)',
+  bad:  'oklch(65% 0.22 25)',
+  info: 'oklch(70% 0.18 240)',
 
-  // Status glows
-  okGlow:   'rgba(34,197,94,0.18)',
-  warnGlow: 'rgba(245,158,11,0.18)',
-  badGlow:  'rgba(239,68,68,0.18)',
-  infoGlow: 'rgba(96,165,250,0.18)',
+  // ── Status glows ─────────────────────────────────────────────────────────
+  okGlow:   'oklch(72% 0.18 145 / 0.22)',
+  warnGlow: 'oklch(78% 0.18 75 / 0.22)',
+  badGlow:  'oklch(65% 0.22 25 / 0.22)',
+  infoGlow: 'oklch(70% 0.18 240 / 0.20)',
 } as const;
 
-/** Shadow system */
 export const proShadow = {
-  card:  '0 1px 3px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)',
-  float: '0 8px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)',
-  glow:  '0 0 0 1px rgba(123,92,240,0.3), 0 4px 20px rgba(123,92,240,0.18)',
-  btn:   '0 2px 12px rgba(123,92,240,0.35)',
+  card:  '0 1px 3px oklch(0% 0 0 / 0.60), 0 0 0 1px oklch(100% 0 0 / 0.04)',
+  float: '0 8px 40px oklch(0% 0 0 / 0.75), 0 0 0 1px oklch(100% 0 0 / 0.06)',
+  glow:  '0 0 0 1px oklch(68% 0.22 160 / 0.35), 0 4px 24px oklch(68% 0.22 160 / 0.22)',
+  btn:   '0 2px 16px oklch(68% 0.22 160 / 0.45)',
 } as const;
 
-/** Card wrapper style (translucent glass surface, 1px border, rounded-2xl). */
 export const proCard = {
   background:   pro.panel,
   border:       `1px solid ${pro.border}`,
   borderRadius: 16,
   boxShadow:    proShadow.card,
-  backdropFilter: 'blur(8px)',
-  WebkitBackdropFilter: 'blur(8px)',
 } as const;
 
-/** Primary "save / confirm" button — purple gradient, not white. */
 export const proPrimaryBtn = {
   background: pro.accentGrad,
-  color:      '#fff',
+  color:      'oklch(9% 0.014 160)',
   boxShadow:  proShadow.btn,
 } as const;
 
-/** Outline / ghost button (white on panel). */
 export const proGhostBtn = {
-  background: 'rgba(255,255,255,0.03)',
+  background: 'oklch(100% 0 0 / 0.03)',
   color:      pro.text,
   border:     `1px solid ${pro.border}`,
 } as const;

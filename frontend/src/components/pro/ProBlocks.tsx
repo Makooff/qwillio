@@ -7,19 +7,29 @@ import { pro, proShadow } from '../../styles/pro-theme';
  * page (admin + client). Linear × Raycast × Vercel dark direction.
  */
 
+type CardSize = 'sm' | 'md' | 'lg';
+
+const cardRadius: Record<CardSize, number> = {
+  sm: 12,
+  md: 16,
+  lg: 20,
+};
+
 export function Card({
-  children, className = '', glow,
+  children, className = '', glow, size = 'md',
 }: {
   children: React.ReactNode;
   className?: string;
   glow?: boolean;
+  size?: CardSize;
 }) {
   return (
     <div
-      className={`pro-card rounded-2xl border ${className}`}
+      className={`pro-card border ${className}`}
       style={{
         background: pro.panel,
         borderColor: pro.border,
+        borderRadius: cardRadius[size],
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         boxShadow: glow ? proShadow.glow : proShadow.card,
@@ -44,7 +54,7 @@ export function SectionHead({ title, action }: { title: string; action?: React.R
             display: 'inline-block',
             marginRight: 8,
             flexShrink: 0,
-            boxShadow: '0 0 6px rgba(123,92,240,0.5)',
+            boxShadow: `0 0 6px ${pro.accentGlow}`,
           }}
         />
         {title}
@@ -102,6 +112,15 @@ export function Stat({
   trend?: { value: number; dir: 'up' | 'down' };
   accent?: boolean;
 }) {
+  const trendBg = trend
+    ? trend.dir === 'up'
+      ? 'rgba(34,197,94,0.12)'
+      : 'rgba(239,68,68,0.12)'
+    : undefined;
+  const trendColor = trend
+    ? trend.dir === 'up' ? pro.ok : pro.bad
+    : undefined;
+
   const inner = (
     <Card
       glow={accent}
@@ -117,8 +136,8 @@ export function Stat({
             width: 80,
             height: 80,
             background: accent
-              ? 'radial-gradient(circle, rgba(123,92,240,0.15) 0%, transparent 70%)'
-              : 'radial-gradient(circle, rgba(123,92,240,0.08) 0%, transparent 70%)',
+              ? `radial-gradient(circle, ${pro.accentDim} 0%, transparent 70%)`
+              : `radial-gradient(circle, ${pro.accentMid} 0%, transparent 70%)`,
             pointerEvents: 'none',
           }}
         />
@@ -137,10 +156,8 @@ export function Stat({
               fontWeight: 700,
               padding: '2px 7px',
               borderRadius: 999,
-              background: trend.dir === 'up'
-                ? 'rgba(34,197,94,0.12)'
-                : 'rgba(239,68,68,0.12)',
-              color: trend.dir === 'up' ? pro.ok : pro.bad,
+              background: trendBg,
+              color: trendColor,
             }}
           >
             {trend.dir === 'up' ? '↑' : '↓'}
@@ -181,7 +198,7 @@ export function Stat({
           {label}
         </p>
 
-        {/* Value */}
+        {/* Value — solid color, no gradient */}
         <p
           className="stat-num"
           style={{
@@ -246,7 +263,7 @@ export function Row({
   );
 
   if (to) return <Link to={to} className="block">{inner}</Link>;
-  return <button type="button" onClick={onClick} className="w-full text-left">{inner}</button>;
+  return <button type="button" onClick={onClick} className="w-full text-left cursor-pointer">{inner}</button>;
 }
 
 export function IconBtn({
@@ -261,7 +278,7 @@ export function IconBtn({
     <button
       onClick={onClick}
       title={title}
-      className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
+      className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
       style={{ color: active ? pro.text : pro.textSec }}
     >
       {children}
@@ -282,9 +299,9 @@ export function PrimaryBtn({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center gap-2 px-4 ${h} font-medium rounded-xl disabled:opacity-50`}
+      className={`inline-flex items-center gap-2 px-4 ${h} font-medium rounded-xl disabled:opacity-40 cursor-pointer`}
       style={{
-        background: 'linear-gradient(135deg, #7B5CF0 0%, #9B7DF8 100%)',
+        background: pro.accentGrad,
         color: '#fff',
         boxShadow: proShadow.btn,
         transition: 'filter 0.15s ease',
@@ -310,7 +327,7 @@ export function GhostBtn({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center gap-2 px-4 ${h} font-medium rounded-xl transition-colors disabled:opacity-50 hover:bg-white/[0.07]`}
+      className={`inline-flex items-center gap-2 px-4 ${h} font-medium rounded-xl transition-colors disabled:opacity-40 hover:bg-white/[0.07] cursor-pointer`}
       style={{
         background: 'rgba(255,255,255,0.03)',
         color: pro.text,
@@ -327,12 +344,12 @@ export function Pill({ color = 'neutral', children }: {
   children: React.ReactNode;
 }) {
   const map: Record<string, { bg: string; fg: string; shadow?: string }> = {
-    neutral: { bg: 'rgba(255,255,255,0.05)',  fg: pro.textSec },
-    ok:      { bg: 'rgba(34,197,94,0.10)',    fg: pro.ok,   shadow: `0 0 8px ${pro.ok}` },
-    warn:    { bg: 'rgba(245,158,11,0.10)',   fg: pro.warn },
-    bad:     { bg: 'rgba(239,68,68,0.10)',    fg: pro.bad,  shadow: `0 0 8px ${pro.bad}` },
-    info:    { bg: 'rgba(96,165,250,0.10)',   fg: pro.info },
-    accent:  { bg: 'rgba(123,92,240,0.12)',   fg: pro.accent },
+    neutral: { bg: 'rgba(255,255,255,0.05)',        fg: pro.textSec },
+    ok:      { bg: `${pro.ok}1a`,                   fg: pro.ok,     shadow: `0 0 8px ${pro.okGlow}` },
+    warn:    { bg: `${pro.warn}1a`,                 fg: pro.warn },
+    bad:     { bg: `${pro.bad}1a`,                  fg: pro.bad,    shadow: `0 0 8px ${pro.badGlow}` },
+    info:    { bg: `${pro.info}1a`,                 fg: pro.info },
+    accent:  { bg: pro.accentDim,                   fg: pro.accent },
   };
   const m = map[color];
   return (
