@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, AlertTriangle, Flame, Zap, CheckCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -11,7 +11,7 @@ import {
   PageHeader, Card, SectionHead, GhostBtn,
 } from '../../components/pro/ProBlocks';
 
-// ── Interfaces ──────────────────────────────────────────────────────────────
+// â”€â”€ Interfaces â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface Anomaly {
   id: string;
@@ -54,7 +54,7 @@ interface ProspectsResponse {
   prospects?: HotLead[];
 }
 
-// ── Unified notification ──────────────────────────────────────────────────────
+// â”€â”€ Unified notification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type NotifType = 'anomaly' | 'hot_lead' | 'evolution';
 
@@ -69,13 +69,13 @@ interface Notification {
   evolution?: EvolutionEvent;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function timeAgo(iso: string): string {
   try {
     return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: fr });
   } catch {
-    return '—';
+    return 'â€”';
   }
 }
 
@@ -85,7 +85,7 @@ function formatMetricName(metric: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// ── Icon components ───────────────────────────────────────────────────────────
+// â”€â”€ Icon components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AnomalyIcon() {
   return (
@@ -110,7 +110,7 @@ function HotLeadIcon() {
 }
 
 function EvolutionIcon() {
-  const purple = '#8B5CF6';
+  const purple = '#6366F1';
   return (
     <div
       className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
@@ -121,7 +121,7 @@ function EvolutionIcon() {
   );
 }
 
-// ── Notification Card Row ─────────────────────────────────────────────────────
+// â”€â”€ Notification Card Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface NotifRowProps {
   notif: Notification;
@@ -138,20 +138,20 @@ function NotifRow({ notif, onMarkRead, onAction }: NotifRowProps) {
 
   if (type === 'anomaly' && anomaly) {
     title = formatMetricName(anomaly.metric);
-    subtitle = `Actuel: ${anomaly.current.toFixed(2)} (moy: ${anomaly.avg.toFixed(2)}, déviation: ${anomaly.deviation > 0 ? '+' : ''}${anomaly.deviation.toFixed(1)}σ)${anomaly.diagnosis ? ` — ${anomaly.diagnosis}` : ''}`;
-    actionLabel = 'Voir détails';
+    subtitle = `Actuel: ${anomaly.current.toFixed(2)} (moy: ${anomaly.avg.toFixed(2)}, dÃ©viation: ${anomaly.deviation > 0 ? '+' : ''}${anomaly.deviation.toFixed(1)}Ïƒ)${anomaly.diagnosis ? ` â€” ${anomaly.diagnosis}` : ''}`;
+    actionLabel = 'Voir dÃ©tails';
   } else if (type === 'hot_lead' && hotLead) {
     title = hotLead.businessName;
     const parts: string[] = [];
     if (hotLead.niche) parts.push(hotLead.niche);
     if (hotLead.city) parts.push(hotLead.city);
-    if (hotLead.interestLevel != null) parts.push(`Intérêt: ${hotLead.interestLevel}/10`);
-    subtitle = parts.join(' · ');
-    actionLabel = 'Business plan →';
+    if (hotLead.interestLevel != null) parts.push(`IntÃ©rÃªt: ${hotLead.interestLevel}/10`);
+    subtitle = parts.join(' Â· ');
+    actionLabel = 'Business plan â†’';
   } else if (type === 'evolution' && evolution) {
-    title = `Stratégie évoluée: ${evolution.agentType} / ${evolution.niche}`;
-    subtitle = `Version v${evolution.version} · Win rate ${evolution.winRate.toFixed(1)}% · ${evolution.sampleSize} samples`;
-    actionLabel = 'Voir évolution';
+    title = `StratÃ©gie Ã©voluÃ©e: ${evolution.agentType} / ${evolution.niche}`;
+    subtitle = `Version v${evolution.version} Â· Win rate ${evolution.winRate.toFixed(1)}% Â· ${evolution.sampleSize} samples`;
+    actionLabel = 'Voir Ã©volution';
   }
 
   return (
@@ -210,7 +210,7 @@ function NotifRow({ notif, onMarkRead, onAction }: NotifRowProps) {
   );
 }
 
-// ── Skeleton ─────────────────────────────────────────────────────────────────
+// â”€â”€ Skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function NotifSkeleton() {
   return (
@@ -232,7 +232,7 @@ function NotifSkeleton() {
   );
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function Notifications() {
   const navigate = useNavigate();
@@ -347,7 +347,7 @@ export default function Notifications() {
       {/* Header */}
       <PageHeader
         title="Notifications"
-        subtitle="Anomalies, hot leads et évolutions IA"
+        subtitle="Anomalies, hot leads et Ã©volutions IA"
         right={
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
@@ -394,7 +394,7 @@ export default function Notifications() {
         </Card>
       ) : (
         <div className="space-y-5">
-          {/* Section — Anomalies */}
+          {/* Section â€” Anomalies */}
           {anomalyNotifs.length > 0 && (
             <section>
               <SectionHead
@@ -415,7 +415,7 @@ export default function Notifications() {
             </section>
           )}
 
-          {/* Section — Hot Leads */}
+          {/* Section â€” Hot Leads */}
           {leadNotifs.length > 0 && (
             <section>
               <SectionHead title={`Hot Leads (${leadNotifs.length})`} />
@@ -434,10 +434,10 @@ export default function Notifications() {
             </section>
           )}
 
-          {/* Section — Evolutions */}
+          {/* Section â€” Evolutions */}
           {evolutionNotifs.length > 0 && (
             <section>
-              <SectionHead title={`Évolutions IA (${evolutionNotifs.length})`} />
+              <SectionHead title={`Ã‰volutions IA (${evolutionNotifs.length})`} />
               <Card>
                 <div>
                   {evolutionNotifs.map((notif) => (

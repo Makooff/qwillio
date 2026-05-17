@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useSEO } from '../hooks/useSEO';
 import { Link } from 'react-router-dom';
 import {
@@ -63,9 +63,9 @@ export default function Agent() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
   useSEO({
-    title: 'Qwillio Agent – AI Modules',
+    title: 'Qwillio Agent â€“ AI Modules',
     description: isFr
-      ? 'Qwillio Agent automatise votre CRM, facturation, suivi clients, emails et inventaire. Des modules IA avancés pour développer votre entreprise.'
+      ? 'Qwillio Agent automatise votre CRM, facturation, suivi clients, emails et inventaire. Des modules IA avancÃ©s pour dÃ©velopper votre entreprise.'
       : 'Qwillio Agent automates your CRM, billing, client follow-up, emails and inventory. Advanced AI modules to grow your business.',
     canonical: 'https://qwillio.com/agent',
   });
@@ -73,7 +73,7 @@ export default function Agent() {
   const benefits = [
     { icon: Zap, title: isFr ? 'Activation instantanee' : 'Instant activation', desc: isFr ? 'Un clic depuis votre dashboard. Operationnel en 60s.' : 'One click from your dashboard. Live in 60s.' },
     { icon: Shield, title: isFr ? 'Securise & conforme' : 'Secure & compliant', desc: isFr ? 'RGPD, CCPA, chiffrement bout-en-bout.' : 'GDPR, CCPA, end-to-end encryption.' },
-    { icon: BarChart3, title: isFr ? 'Analytics avancés' : 'Advanced analytics', desc: isFr ? 'Performances par module en temps reel.' : 'Per-module performance in real time.' },
+    { icon: BarChart3, title: isFr ? 'Analytics avancÃ©s' : 'Advanced analytics', desc: isFr ? 'Performances par module en temps reel.' : 'Per-module performance in real time.' },
     { icon: RefreshCw, title: isFr ? 'Auto-apprentissage' : 'Self-learning', desc: isFr ? 'Micro-optimisations hebdomadaires auto.' : 'Automatic weekly micro-optimizations.' },
     { icon: BrainCircuit, title: isFr ? 'Propulse par GPT-4' : 'GPT-4 powered', desc: isFr ? 'Comprend le contexte de votre business.' : 'Understands your business context.' },
     { icon: Clock, title: isFr ? '24/7 autonome' : '24/7 autonomous', desc: isFr ? 'Nuits, week-ends, jours feries inclus.' : 'Nights, weekends, holidays included.' },
@@ -221,13 +221,13 @@ export default function Agent() {
       icon: Calculator,
       price: 297,
       desc: isFr
-        ? 'Votre comptabilite en pilote automatique. Factures generees apres chaque appel, P&L mensuel, relances impayés automatiques et export fiscal. Synchronisez QuickBooks et Wave sans effort.'
+        ? 'Votre comptabilite en pilote automatique. Factures generees apres chaque appel, P&L mensuel, relances impayÃ©s automatiques et export fiscal. Synchronisez QuickBooks et Wave sans effort.'
         : 'Your accounting on autopilot. Invoices generated after every call, monthly P&L, automatic overdue reminders, and tax export. Sync QuickBooks and Wave effortlessly.',
       features: isFr
         ? [
             'Factures auto-generees depuis les appels',
             'Rapports P&L mensuels',
-            'Relances impayés (3, 7, 14, 30 jours)',
+            'Relances impayÃ©s (3, 7, 14, 30 jours)',
             'Export fiscal PDF & CSV',
             'Synchronisation QuickBooks Online',
             'Integration Wave',
@@ -257,7 +257,7 @@ export default function Agent() {
         ? [
             'Cabinet avocat: facturation horaire automatique avec ventilation par dossier et client',
             'Restaurant: P&L en temps reel avec comparaison mensuelle et alertes de marge',
-            'Salon de coiffure: relances clients impayés avec escalade automatique et notification SMS',
+            'Salon de coiffure: relances clients impayÃ©s avec escalade automatique et notification SMS',
             'Agence immobiliere: factures de commissions auto-generees a la cloture de chaque vente',
             'Clinique veterinaire: export fiscal trimestriel avec categorisation automatique des depenses',
           ]
@@ -419,7 +419,7 @@ export default function Agent() {
         </div>
       </section>
 
-      {/* Features — 4 Modules */}
+      {/* Features â€” 4 Modules */}
       <section id="features" className="py-24 md:py-32 px-6">
         <div className="max-w-[1120px] mx-auto">
           <FadeIn>
@@ -436,7 +436,7 @@ export default function Agent() {
               <FadeIn key={idx} delay={idx * 100}>
                 <div className={`grid grid-cols-1 lg:grid-cols-2 gap-0 rounded-3xl overflow-hidden border border-[#e5e5ea] hover:shadow-xl hover:shadow-[#6366f1]/10 transition-all duration-500 ${idx % 2 === 1 ? 'lg:grid-flow-dense' : ''}`}>
                   {/* Gradient side */}
-                  <div className={`bg-gradient-to-br ${idx % 2 === 0 ? 'from-[#6366f1] to-[#818cf8]' : 'from-[#8b5cf6] to-[#a78bfa]'} p-8 md:p-10 text-white flex flex-col justify-between min-h-[340px] ${idx % 2 === 1 ? 'lg:col-start-2' : ''}`}>
+                  <div className={`bg-gradient-to-br ${idx % 2 === 0 ? 'from-[#6366f1] to-[#818cf8]' : 'from-[#6366F1] to-[#818cf8]'} p-8 md:p-10 text-white flex flex-col justify-between min-h-[340px] ${idx % 2 === 1 ? 'lg:col-start-2' : ''}`}>
                     <div>
                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
@@ -463,8 +463,8 @@ export default function Agent() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {mod.features.map((f, j) => (
                         <div key={j} className="flex items-start gap-3 p-3 rounded-xl hover:bg-[#f5f5f7] transition-colors">
-                          <div className={`w-6 h-6 rounded-lg ${idx % 2 === 0 ? 'bg-[#6366f1]/10' : 'bg-[#8b5cf6]/10'} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                            <Check size={14} className={idx % 2 === 0 ? 'text-[#6366f1]' : 'text-[#8b5cf6]'} />
+                          <div className={`w-6 h-6 rounded-lg ${idx % 2 === 0 ? 'bg-[#6366f1]/10' : 'bg-[#6366F1]/10'} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                            <Check size={14} className={idx % 2 === 0 ? 'text-[#6366f1]' : 'text-[#6366F1]'} />
                           </div>
                           <span className="text-sm text-[#1d1d1f]/80 leading-snug">{f}</span>
                         </div>
@@ -472,7 +472,7 @@ export default function Agent() {
                     </div>
                     <Link
                       to="/register"
-                      className={`inline-flex items-center gap-2 ${idx % 2 === 0 ? 'bg-[#6366f1] hover:bg-[#4f46e5]' : 'bg-[#8b5cf6] hover:bg-[#7c3aed]'} text-white text-sm font-medium px-6 py-3 rounded-full transition-colors mt-8 self-start`}
+                      className={`inline-flex items-center gap-2 ${idx % 2 === 0 ? 'bg-[#6366f1] hover:bg-[#4f46e5]' : 'bg-[#6366F1] hover:bg-[#7c3aed]'} text-white text-sm font-medium px-6 py-3 rounded-full transition-colors mt-8 self-start`}
                     >
                       {isFr ? 'Ajouter ce module' : 'Add this module'} <ArrowRight size={16} />
                     </Link>
@@ -515,7 +515,7 @@ export default function Agent() {
 
       <div className="max-w-[1120px] mx-auto px-6"><div className="border-t border-[#d2d2d7]/60" /></div>
 
-      {/* ── PRICING ── */}
+      {/* â”€â”€ PRICING â”€â”€ */}
       <section id="pricing" className="py-24 md:py-32 px-6">
         <div className="max-w-[1120px] mx-auto">
           <FadeIn>
@@ -530,7 +530,7 @@ export default function Agent() {
             </div>
           </FadeIn>
 
-          {/* ── Add-on Module Cards ── */}
+          {/* â”€â”€ Add-on Module Cards â”€â”€ */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {[
               { name: 'Email AI', icon: Mail, price: 197, features: isFr ? ['Int\u00e9gration Gmail & Outlook', 'Classification IA', 'R\u00e9ponses personnalis\u00e9es', 'Confirmations RDV', 'S\u00e9quences de suivi'] : ['Gmail & Outlook integration', 'AI classification', 'Personalized auto-replies', 'Appointment confirmations', 'Follow-up sequences'] },
@@ -561,7 +561,7 @@ export default function Agent() {
             ))}
           </div>
 
-          {/* ── Agent Bundle ── */}
+          {/* â”€â”€ Agent Bundle â”€â”€ */}
           <FadeIn delay={400}>
             <div className="rounded-2xl border-2 border-[#6366f1] p-8 md:p-10 relative">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#6366f1] text-white text-xs font-semibold px-4 py-1 rounded-full">
@@ -602,7 +602,7 @@ export default function Agent() {
             </div>
           </FadeIn>
 
-          {/* ── Compare Plans link ── */}
+          {/* â”€â”€ Compare Plans link â”€â”€ */}
           <div className="mt-8 text-center">
             <Link to="/pricing" className="inline-flex items-center gap-1.5 text-[#6366f1] text-base font-medium hover:underline">
               {isFr ? 'Comparer tous les plans' : 'Compare all plans'} <ArrowRight size={16} />

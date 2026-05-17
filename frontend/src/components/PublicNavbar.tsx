@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Play, ChevronDown, Phone, Bot, Building2, BookOpen, Mail as MailIcon, DollarSign } from 'lucide-react';
 import QwillioLogo from './QwillioLogo';
@@ -96,18 +96,18 @@ export default function PublicNavbar() {
 
   const productItems = [
     { to: '/receptionist', icon: Phone, label: 'Receptionist AI', desc: isFr ? 'Votre standardiste IA 24/7' : 'Your 24/7 AI receptionist' },
-    { to: '/agent', icon: Bot, label: 'Qwillio Agent', desc: isFr ? 'Modules IA avancés' : 'Advanced AI modules' },
+    { to: '/agent', icon: Bot, label: 'Qwillio Agent', desc: isFr ? 'Modules IA avancÃ©s' : 'Advanced AI modules' },
   ];
   const companyItems = [
-    { to: '/about', icon: Building2, label: isFr ? 'À propos' : 'About', desc: isFr ? 'Notre mission et vision' : 'Our mission and vision' },
-    { to: '/blog', icon: BookOpen, label: 'Blog', desc: isFr ? 'Articles et actualités' : 'Articles and news' },
+    { to: '/about', icon: Building2, label: isFr ? 'Ã€ propos' : 'About', desc: isFr ? 'Notre mission et vision' : 'Our mission and vision' },
+    { to: '/blog', icon: BookOpen, label: 'Blog', desc: isFr ? 'Articles et actualitÃ©s' : 'Articles and news' },
     { to: '/contact', icon: MailIcon, label: 'Contact', desc: isFr ? 'Nous contacter' : 'Get in touch' },
     { to: '/affiliate', icon: DollarSign, label: isFr ? 'Affiliation' : 'Affiliate', desc: isFr ? 'Gagnez en nous recommandant' : 'Earn by referring us' },
   ];
 
   return (
     <>
-      {/* ══ DESKTOP NAV ══ */}
+      {/* â•â• DESKTOP NAV â•â• */}
       <nav className="hidden md:block fixed top-0 left-0 right-0 z-50">
         <div className={`absolute inset-0 -z-10 transition-all duration-300 ${bubblesVisible ? 'bg-white/80 backdrop-blur-xl shadow-sm' : ''}`} />
         <div className="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
@@ -133,7 +133,7 @@ export default function PublicNavbar() {
         </div>
       </nav>
 
-      {/* ══ MOBILE FLOATING ELEMENTS — no header bar, bubbles appear on scroll ══ */}
+      {/* â•â• MOBILE FLOATING ELEMENTS â€” no header bar, bubbles appear on scroll â•â• */}
       <div
         className="md:hidden fixed left-0 right-0 z-[61] pointer-events-none"
         style={{ top: 'env(safe-area-inset-top)' }}
@@ -161,7 +161,7 @@ export default function PublicNavbar() {
 
           {/* RIGHT: Try it pill + hamburger bubble */}
           <div className="absolute right-4 top-0 bottom-0 flex items-center gap-1.5 pointer-events-auto">
-            {/* Try it — hides when menu open */}
+            {/* Try it â€” hides when menu open */}
             <a
               href="/demo.html"
               className={`flex items-center justify-center bg-[#6366f1] text-white text-sm font-medium rounded-full overflow-hidden whitespace-nowrap transition-all duration-500 ease-in-out min-w-[44px] h-11 ${
@@ -178,7 +178,7 @@ export default function PublicNavbar() {
               </span>
             </a>
 
-            {/* Hamburger → X */}
+            {/* Hamburger â†’ X */}
             <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
               <span className={`absolute inset-0 rounded-full transition-all duration-500 ease-in-out ${
                 bubblesVisible || menuOpen ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
@@ -201,10 +201,10 @@ export default function PublicNavbar() {
       </div>
 
 
-      {/* ── FULLSCREEN MENU — slides in from top ── */}
+      {/* â”€â”€ FULLSCREEN MENU â€” slides in from top â”€â”€ */}
       {menuOpen && (
         <>
-          {/* Instant full-screen blur backdrop — covers page including bottom */}
+          {/* Instant full-screen blur backdrop â€” covers page including bottom */}
           <div className="md:hidden fixed inset-0 z-[59]" style={{
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
@@ -250,7 +250,7 @@ export default function PublicNavbar() {
             <div className="border-t border-[#d2d2d7]/60 mb-5" />
             <Link to="/login" onClick={closeMenu}
               className="flex items-center justify-center w-full text-white text-base font-medium px-4 py-4 rounded-full transition-all hover:opacity-90 active:scale-[0.98] mb-3"
-              style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}>
+              style={{ background: 'linear-gradient(135deg, #6366f1 0%, #6366F1 100%)' }}>
               {isFr ? 'Connexion' : 'Login'}
             </Link>
             <Link to="/register" onClick={closeMenu}

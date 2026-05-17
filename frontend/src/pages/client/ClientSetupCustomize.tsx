@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -45,27 +45,27 @@ const ITEM_CATEGORIES = [
 
 const PERSONALITY_PRESETS = [
   { v: 'warm',         l: 'Chaleureux',    d: 'Accueillant, empathique, sourire dans la voix' },
-  { v: 'professional', l: 'Professionnel', d: 'Direct, précis, cadre formel' },
-  { v: 'casual',       l: 'Décontracté',   d: 'Détendu, fluide, ton conversationnel' },
-  { v: 'energetic',    l: 'Énergique',     d: 'Dynamique, enthousiaste, upbeat' },
-  { v: 'luxury',       l: 'Premium',       d: 'Soigné, raffiné, langage soutenu' },
-  { v: 'caring',       l: 'Bienveillant',  d: 'Doux, rassurant, idéal pour santé' },
+  { v: 'professional', l: 'Professionnel', d: 'Direct, prÃ©cis, cadre formel' },
+  { v: 'casual',       l: 'DÃ©contractÃ©',   d: 'DÃ©tendu, fluide, ton conversationnel' },
+  { v: 'energetic',    l: 'Ã‰nergique',     d: 'Dynamique, enthousiaste, upbeat' },
+  { v: 'luxury',       l: 'Premium',       d: 'SoignÃ©, raffinÃ©, langage soutenu' },
+  { v: 'caring',       l: 'Bienveillant',  d: 'Doux, rassurant, idÃ©al pour santÃ©' },
 ];
 
 const BUSINESS_TYPES = [
   { v: 'dental',        l: 'Dentaire' },
-  { v: 'medical',       l: 'Médical' },
+  { v: 'medical',       l: 'MÃ©dical' },
   { v: 'law',           l: 'Juridique' },
-  { v: 'salon',         l: 'Salon de beauté' },
+  { v: 'salon',         l: 'Salon de beautÃ©' },
   { v: 'restaurant',    l: 'Restaurant' },
   { v: 'garage',        l: 'Garage auto' },
-  { v: 'hotel',         l: 'Hôtel' },
-  { v: 'home_services', l: 'Services à domicile' },
+  { v: 'hotel',         l: 'HÃ´tel' },
+  { v: 'home_services', l: 'Services Ã  domicile' },
   { v: 'other',         l: 'Autre' },
 ];
 
-const inputCls = 'w-full px-4 py-3 text-[15px] rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none focus:border-[#7B5CF0]/50 transition-all';
-const compactInputCls = 'h-10 px-3 text-[14px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-30';
+const inputCls = 'w-full px-4 py-3 text-[15px] rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none focus:border-[#6366F1]/50 transition-all';
+const compactInputCls = 'h-10 px-3 text-[14px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none focus:border-[#6366F1]/50 transition-all disabled:opacity-30';
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
@@ -119,19 +119,19 @@ export default function ClientSetupCustomize() {
     {
       key: 'identity',
       icon: Bot,
-      title: 'Présentation de votre IA',
-      hint: 'Le prénom et la langue que votre réceptionniste utilisera',
+      title: 'PrÃ©sentation de votre IA',
+      hint: 'Le prÃ©nom et la langue que votre rÃ©ceptionniste utilisera',
       isValid: () => !!agentName.trim(),
       render: () => (
         <div className="space-y-5">
           <div>
             <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: pro.textSec }}>
-              Prénom de l'IA
+              PrÃ©nom de l'IA
             </label>
             <input value={agentName} onChange={e => setAgentName(e.target.value)}
-                   placeholder="Ashley, Marie, Sophie…" className={inputCls} />
+                   placeholder="Ashley, Marie, Sophieâ€¦" className={inputCls} />
             <p className="text-[12px] mt-1.5" style={{ color: pro.textTer }}>
-              C'est le prénom utilisé pour se présenter au téléphone.
+              C'est le prÃ©nom utilisÃ© pour se prÃ©senter au tÃ©lÃ©phone.
             </p>
           </div>
           <div>
@@ -141,7 +141,7 @@ export default function ClientSetupCustomize() {
             <div className="grid grid-cols-2 gap-2">
               {[
                 { v: 'en', l: 'Anglais', d: 'Voix d\'Ashley' },
-                { v: 'fr', l: 'Français', d: 'Voix de Marie' },
+                { v: 'fr', l: 'FranÃ§ais', d: 'Voix de Marie' },
               ].map(opt => {
                 const sel = agentLanguage === opt.v;
                 return (
@@ -167,7 +167,7 @@ export default function ClientSetupCustomize() {
       key: 'business',
       icon: Building2,
       title: 'Votre entreprise',
-      hint: 'Le nom et le type d\'activité — pour adapter le ton',
+      hint: 'Le nom et le type d\'activitÃ© â€” pour adapter le ton',
       isValid: () => !!businessName.trim(),
       render: () => (
         <div className="space-y-5">
@@ -206,7 +206,7 @@ export default function ClientSetupCustomize() {
     {
       key: 'personality',
       icon: Sparkles,
-      title: 'Ton et personnalité',
+      title: 'Ton et personnalitÃ©',
       hint: 'Comment votre IA doit parler aux appelants',
       isValid: () => !!personalityPreset,
       render: () => (
@@ -234,20 +234,20 @@ export default function ClientSetupCustomize() {
       key: 'personalization',
       icon: MessageSquare,
       title: 'Personnalisation',
-      hint: 'Vos consignes spécifiques (optionnel)',
+      hint: 'Vos consignes spÃ©cifiques (optionnel)',
       isValid: () => true,
       render: () => (
         <div>
           <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: pro.textSec }}>
-            Précisions
+            PrÃ©cisions
           </label>
           <textarea value={personalityNotes} onChange={e => setPersonalityNotes(e.target.value)}
                     rows={6}
-                    placeholder="Ex. : « Toujours rappeler la promotion en cours · Ne jamais dire le mot prix sans préciser HT · Privilégier le tutoiement »"
+                    placeholder="Ex. : Â« Toujours rappeler la promotion en cours Â· Ne jamais dire le mot prix sans prÃ©ciser HT Â· PrivilÃ©gier le tutoiement Â»"
                     className={`${inputCls} resize-y leading-relaxed`}
                     style={{ minHeight: 160 }} />
           <p className="text-[12px] mt-2" style={{ color: pro.textTer }}>
-            L'IA appliquera ces consignes en plus du ton choisi à l'étape précédente.
+            L'IA appliquera ces consignes en plus du ton choisi Ã  l'Ã©tape prÃ©cÃ©dente.
           </p>
         </div>
       ),
@@ -264,7 +264,7 @@ export default function ClientSetupCustomize() {
             {items.length === 0 && (
               <div className="rounded-xl border border-dashed p-4 text-center"
                    style={{ borderColor: pro.border, color: pro.textTer }}>
-                <p className="text-[13px]">Aucun élément — ajoutez un service ou un tarif.</p>
+                <p className="text-[13px]">Aucun Ã©lÃ©ment â€” ajoutez un service ou un tarif.</p>
               </div>
             )}
             {items.map(it => (
@@ -295,10 +295,10 @@ export default function ClientSetupCustomize() {
                   onClick={() => setItems(arr => [...arr, { id: newId(), category: 'service', name: '', price: '' }])}
                   className="inline-flex items-center gap-1.5 px-3 h-10 rounded-lg text-[13px] font-medium border transition-colors"
                   style={{ borderColor: pro.border, color: pro.text, background: pro.bg }}>
-            <Plus size={14} /> Ajouter un élément
+            <Plus size={14} /> Ajouter un Ã©lÃ©ment
           </button>
           <p className="text-[12px] mt-3" style={{ color: pro.textTer }}>
-            Vous pouvez en ajouter d'autres plus tard depuis votre Réceptionniste.
+            Vous pouvez en ajouter d'autres plus tard depuis votre RÃ©ceptionniste.
           </p>
         </div>
       ),
@@ -307,7 +307,7 @@ export default function ClientSetupCustomize() {
       key: 'hours',
       icon: Clock3,
       title: 'Horaires d\'ouverture',
-      hint: 'L\'IA répondra "fermé" en dehors de ces créneaux',
+      hint: 'L\'IA rÃ©pondra "fermÃ©" en dehors de ces crÃ©neaux',
       isValid: () => true,
       render: () => (
         <div className="rounded-xl border overflow-hidden divide-y divide-white/[0.04]"
@@ -325,7 +325,7 @@ export default function ClientSetupCustomize() {
                           background: h.open ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.08)',
                           color:      h.open ? pro.ok : pro.bad,
                         }}>
-                  {h.open ? 'Ouvert' : 'Fermé'}
+                  {h.open ? 'Ouvert' : 'FermÃ©'}
                 </button>
                 <input type="time" value={h.from} disabled={!h.open}
                        onChange={e => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], from: e.target.value } }))}
@@ -343,12 +343,12 @@ export default function ClientSetupCustomize() {
       key: 'faq',
       icon: HelpCircle,
       title: 'FAQ (optionnel)',
-      hint: 'Questions fréquentes et réponses prêtes pour l\'IA',
+      hint: 'Questions frÃ©quentes et rÃ©ponses prÃªtes pour l\'IA',
       isValid: () => true,
       render: () => (
         <textarea value={faq} onChange={e => setFaq(e.target.value)}
                   rows={8}
-                  placeholder={`Q : Faut-il prendre rendez-vous ?\nR : Oui, on privilégie le rendez-vous mais on accepte les walk-ins si le créneau est libre.\n\nQ : Acceptez-vous les cartes bancaires ?\nR : Oui, toutes les cartes ainsi qu'Apple Pay et Google Pay.`}
+                  placeholder={`Q : Faut-il prendre rendez-vous ?\nR : Oui, on privilÃ©gie le rendez-vous mais on accepte les walk-ins si le crÃ©neau est libre.\n\nQ : Acceptez-vous les cartes bancaires ?\nR : Oui, toutes les cartes ainsi qu'Apple Pay et Google Pay.`}
                   className={`${inputCls} resize-y leading-relaxed font-mono`}
                   style={{ minHeight: 220, fontSize: 13 }} />
       ),
@@ -374,7 +374,7 @@ export default function ClientSetupCustomize() {
       // it from a few signals: agentName + items + hours)
       navigate('/dashboard');
     } catch (e: any) {
-      alert(e?.response?.data?.error || 'Échec de l\'enregistrement');
+      alert(e?.response?.data?.error || 'Ã‰chec de l\'enregistrement');
     } finally { setSaving(false); }
   };
 
@@ -402,15 +402,15 @@ export default function ClientSetupCustomize() {
 
   return (
     <div className="max-w-[760px] mx-auto space-y-4">
-      {/* Header — back link + step counter */}
+      {/* Header â€” back link + step counter */}
       <div className="flex items-center justify-between">
         <button onClick={prev}
                 className="inline-flex items-center gap-1.5 text-[12.5px]"
                 style={{ color: pro.textSec }}>
-          <ArrowLeft size={13} /> {step === 0 ? 'Quitter' : 'Précédent'}
+          <ArrowLeft size={13} /> {step === 0 ? 'Quitter' : 'PrÃ©cÃ©dent'}
         </button>
         <span className="text-[11.5px] font-semibold uppercase tracking-wider" style={{ color: pro.textTer }}>
-          Étape {step + 1} / {totalSteps}
+          Ã‰tape {step + 1} / {totalSteps}
         </span>
       </div>
 
@@ -455,18 +455,18 @@ export default function ClientSetupCustomize() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Footer — next / finish */}
+      {/* Footer â€” next / finish */}
       <div className="flex items-center justify-between gap-2">
         <button onClick={prev} disabled={saving}
                 className="px-4 h-11 inline-flex items-center gap-1.5 text-[13px] font-medium rounded-xl disabled:opacity-40"
                 style={{ background: pro.panel, color: pro.text, border: `1px solid ${pro.border}` }}>
-          <ArrowLeft size={14} /> Précédent
+          <ArrowLeft size={14} /> PrÃ©cÃ©dent
         </button>
         <button onClick={next} disabled={!currentStep.isValid() || saving}
                 className="flex-1 h-11 inline-flex items-center justify-center gap-1.5 text-[13px] font-medium rounded-xl disabled:opacity-40"
                 style={{ background: pro.text, color: '#0B0B0D' }}>
           {step === totalSteps - 1
-            ? (<><Check size={14} /> {saving ? 'Enregistrement…' : 'Terminer'}</>)
+            ? (<><Check size={14} /> {saving ? 'Enregistrementâ€¦' : 'Terminer'}</>)
             : (<>Suivant <ArrowRight size={14} /></>)}
         </button>
       </div>

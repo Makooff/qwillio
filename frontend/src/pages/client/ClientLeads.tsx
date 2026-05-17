@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3, Search,
@@ -15,14 +15,14 @@ type LeadStatus = '' | 'new' | 'contacted' | 'converted' | 'lost';
 
 const STATUS_STYLES: Record<string, { pill: string; border: string }> = {
   new:       { pill: 'bg-blue-400/10 text-blue-400',    border: 'border-blue-400/20' },
-  contacted: { pill: 'bg-[#7B5CF0]/10 text-[#7B5CF0]', border: 'border-[#7B5CF0]/20' },
+  contacted: { pill: 'bg-[#6366F1]/10 text-[#6366F1]', border: 'border-[#6366F1]/20' },
   converted: { pill: 'bg-emerald-400/10 text-emerald-400', border: 'border-emerald-400/20' },
   lost:      { pill: 'bg-red-400/10 text-red-400',      border: 'border-red-400/20' },
 };
 
 const KANBAN_COLS = [
   { key: 'new',       label: 'Nouveau',   color: '#60a5fa' },
-  { key: 'contacted', label: 'Contacté',  color: '#7B5CF0' },
+  { key: 'contacted', label: 'ContactÃ©',  color: '#6366F1' },
   { key: 'converted', label: 'Converti',  color: '#34d399' },
   { key: 'lost',      label: 'Perdu',     color: '#f87171' },
 ];
@@ -109,16 +109,16 @@ export default function ClientLeads() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-[22px] font-semibold text-[#F5F5F7] tracking-tight">Leads</h1>
-          <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">{pagination.total} leads qualifiés</p>
+          <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">{pagination.total} leads qualifiÃ©s</p>
         </div>
         <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1">
           <button onClick={() => setView('table')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${view === 'table' ? 'bg-[#7B5CF0] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
+            className={`px-3 py-1.5 rounded-lg transition-all ${view === 'table' ? 'bg-[#6366F1] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
           >
             <List size={14} />
           </button>
           <button onClick={() => setView('kanban')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${view === 'kanban' ? 'bg-[#7B5CF0] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
+            className={`px-3 py-1.5 rounded-lg transition-all ${view === 'kanban' ? 'bg-[#6366F1] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
           >
             <Columns3 size={14} />
           </button>
@@ -130,14 +130,14 @@ export default function ClientLeads() {
         {[
           { label: 'Total', value: statCounts.total, filter: '' as LeadStatus },
           { label: 'Nouveau', value: statCounts.new, filter: 'new' as LeadStatus, color: '#60a5fa' },
-          { label: 'Contacté', value: statCounts.contacted, filter: 'contacted' as LeadStatus, color: '#7B5CF0' },
+          { label: 'ContactÃ©', value: statCounts.contacted, filter: 'contacted' as LeadStatus, color: '#6366F1' },
           { label: 'Converti', value: statCounts.converted, filter: 'converted' as LeadStatus, color: '#34d399' },
           { label: 'Perdu', value: statCounts.lost, filter: 'lost' as LeadStatus, color: '#f87171' },
         ].map((s, i) => (
           <button key={i} onClick={() => setStatusFilter(s.filter)}
             className={`rounded-xl p-3 text-center transition-all border ${
               statusFilter === s.filter
-                ? 'border-[#7B5CF0]/30 bg-[#7B5CF0]/10'
+                ? 'border-[#6366F1]/30 bg-[#6366F1]/10'
                 : 'border-white/[0.07] bg-white/[0.03] hover:border-white/[0.10]'
             }`}
           >
@@ -157,7 +157,7 @@ export default function ClientLeads() {
           placeholder="Rechercher des leads..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all"
+          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#6366F1]/50 transition-all"
         />
       </div>
 
@@ -166,7 +166,7 @@ export default function ClientLeads() {
           <OrbsLoader size={40} fullscreen={false} />
         </div>
       ) : filteredLeads.length === 0 ? (
-        <EmptyState icon={Users} title="Aucun lead trouvé" description="Les leads apparaîtront une fois que votre IA qualifie les appelants" />
+        <EmptyState icon={Users} title="Aucun lead trouvÃ©" description="Les leads apparaÃ®tront une fois que votre IA qualifie les appelants" />
       ) : view === 'table' ? (
         <>
           <div className="space-y-1.5">
@@ -186,7 +186,7 @@ export default function ClientLeads() {
                       <p className="text-sm font-semibold text-[#F5F5F7] truncate">{lead.callerName || lead.nameCollected || 'Inconnu'}</p>
                       <p className="text-[11px] text-[#A1A1A8]">
                         {lead.callerNumber || lead.phoneCollected || ''}
-                        {lead.emailCollected && ` · ${lead.emailCollected}`}
+                        {lead.emailCollected && ` Â· ${lead.emailCollected}`}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
@@ -195,13 +195,13 @@ export default function ClientLeads() {
                       </span>
                       {lead.leadScore != null && (
                         <div className="hidden sm:flex items-center gap-1">
-                          <Star size={12} className="text-[#7B5CF0]" />
-                          <span className="text-xs font-bold text-[#7B5CF0]">{lead.leadScore}/10</span>
+                          <Star size={12} className="text-[#6366F1]" />
+                          <span className="text-xs font-bold text-[#6366F1]">{lead.leadScore}/10</span>
                         </div>
                       )}
                       <SentimentBadge sentiment={lead.sentiment} />
                       <span className="text-[10px] text-[#A1A1A8] hidden lg:inline">{formatDateTime(lead.createdAt)}</span>
-                      <ChevronRight size={14} className="text-white/20 group-hover:text-[#7B5CF0] transition-colors" />
+                      <ChevronRight size={14} className="text-white/20 group-hover:text-[#6366F1] transition-colors" />
                     </div>
                   </div>
                 </motion.div>
@@ -237,7 +237,7 @@ export default function ClientLeads() {
                       <div className="flex items-center justify-between">
                         <SentimentBadge sentiment={lead.sentiment} />
                         {lead.leadScore != null && (
-                          <span className="text-[10px] font-bold text-[#7B5CF0]">{lead.leadScore}/10</span>
+                          <span className="text-[10px] font-bold text-[#6366F1]">{lead.leadScore}/10</span>
                         )}
                       </div>
                     </motion.div>
@@ -264,7 +264,7 @@ export default function ClientLeads() {
               className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white/[0.02] border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
             >
               <div className="sticky top-0 bg-white/[0.02]/90 backdrop-blur-xl border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-[#F5F5F7]">Détails du lead</h2>
+                <h2 className="text-base font-semibold text-[#F5F5F7]">DÃ©tails du lead</h2>
                 <button onClick={() => setSelectedLead(null)}
                   className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.10] text-[#A1A1A8] hover:text-[#F5F5F7] transition-colors"
                 >
@@ -302,11 +302,11 @@ export default function ClientLeads() {
                     <p className="text-xs text-[#A1A1A8] mb-2">Score lead</p>
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-2.5 bg-white/[0.06] rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-[#7B5CF0] to-[#a78bfa] rounded-full"
+                        <div className="h-full bg-gradient-to-r from-[#6366F1] to-[#818cf8] rounded-full"
                           style={{ width: `${selectedLead.leadScore * 10}%` }}
                         />
                       </div>
-                      <span className="text-lg font-bold text-[#7B5CF0]">{selectedLead.leadScore}/10</span>
+                      <span className="text-lg font-bold text-[#6366F1]">{selectedLead.leadScore}/10</span>
                     </div>
                   </div>
                 )}
@@ -340,7 +340,7 @@ export default function ClientLeads() {
 
                 {selectedLead.summary && (
                   <div>
-                    <p className="text-xs text-[#A1A1A8] mb-2">Résumé de l'appel</p>
+                    <p className="text-xs text-[#A1A1A8] mb-2">RÃ©sumÃ© de l'appel</p>
                     <p className="text-sm text-[#F5F5F7] leading-relaxed bg-white/[0.04] rounded-xl p-4 border border-white/[0.07]">{selectedLead.summary}</p>
                   </div>
                 )}
@@ -355,12 +355,12 @@ export default function ClientLeads() {
                     onChange={e => setNoteText(e.target.value)}
                     placeholder="Ajouter des notes sur ce lead..."
                     rows={3}
-                    className="w-full px-4 py-3 text-sm rounded-xl border border-white/[0.07] bg-[#0A0A0F] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 resize-none transition-all"
+                    className="w-full px-4 py-3 text-sm rounded-xl border border-white/[0.07] bg-[#0A0A0F] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#6366F1]/50 resize-none transition-all"
                   />
                   <button
                     onClick={() => handleSaveNote(selectedLead.id)}
                     disabled={savingNote || !noteText.trim()}
-                    className="mt-2 px-4 py-2 text-xs font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6a4ee0] disabled:opacity-40 transition-colors"
+                    className="mt-2 px-4 py-2 text-xs font-medium text-white bg-[#6366F1] rounded-xl hover:bg-[#6a4ee0] disabled:opacity-40 transition-colors"
                   >
                     {savingNote ? 'Enregistrement...' : 'Sauvegarder'}
                   </button>

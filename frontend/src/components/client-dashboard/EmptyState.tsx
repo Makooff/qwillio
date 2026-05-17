@@ -1,4 +1,4 @@
-import { LucideIcon, Inbox } from 'lucide-react';
+﻿import { LucideIcon, Inbox } from 'lucide-react';
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -18,7 +18,7 @@ export default function EmptyState({ icon: Icon = Inbox, title, description, act
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-4 px-4 py-2 text-sm font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6a4ee0] transition-colors"
+          className="mt-4 px-4 py-2 text-sm font-medium text-white bg-[#6366F1] rounded-xl hover:bg-[#6a4ee0] transition-colors"
         >
           {action.label}
         </button>

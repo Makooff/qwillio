@@ -4,23 +4,24 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Design Tokens — Signal Dark v2 ─── */
+/* ─── Design Tokens — Signal Dark v3 — Indigo ─── */
 :root {
-  /* Unified dark system — emerald-drenched */
-  --q-bg:         oklch(9% 0.014 160);
-  --q-bg2:        oklch(12% 0.017 160);
-  --q-bg3:        oklch(16% 0.020 160);
-  --q-panel:      oklch(13% 0.018 160);
-  --q-panel-hi:   oklch(17% 0.022 160);
-  --q-border:     oklch(26% 0.014 160 / 0.55);
-  --q-border-hi:  oklch(38% 0.016 160 / 0.70);
-  --q-accent:     oklch(68% 0.22 160);
-  --q-accent-hi:  oklch(73% 0.21 160);
-  --q-accent-dim: oklch(68% 0.22 160 / 0.12);
-  --q-accent-brd: oklch(68% 0.22 160 / 0.35);
-  --q-text:       oklch(95% 0.006 160);
-  --q-text-2:     oklch(62% 0.009 160);
-  --q-text-3:     oklch(40% 0.007 160);
+  /* Indigo-tinted dark system — logo Q-circle primary */
+  --q-bg:         oklch(8% 0.009 265);
+  --q-bg2:        oklch(11% 0.013 265);
+  --q-bg3:        oklch(15% 0.017 265);
+  --q-panel:      oklch(11% 0.013 265);
+  --q-panel-hi:   oklch(15% 0.017 265);
+  --q-border:     oklch(22% 0.012 265 / 0.55);
+  --q-border-hi:  oklch(30% 0.014 265 / 0.70);
+  --q-accent:     oklch(56% 0.22 264);
+  --q-accent-hi:  oklch(63% 0.21 264);
+  --q-accent-dim: oklch(56% 0.22 264 / 0.12);
+  --q-accent-brd: oklch(56% 0.22 264 / 0.35);
+  --q-violet:     oklch(67% 0.26 299);
+  --q-text:       oklch(95% 0.004 265);
+  --q-text-2:     oklch(65% 0.007 265);
+  --q-text-3:     oklch(42% 0.006 265);
   --q-ok:         oklch(72% 0.18 145);
   --q-warn:       oklch(78% 0.18 75);
   --q-bad:        oklch(65% 0.22 25);
@@ -28,11 +29,11 @@
 
 /* ─── Global Reset ─── */
 html {
-  background-color: oklch(9% 0.014 160);
+  background-color: oklch(8% 0.009 265);
 }
 body {
   font-family: 'Outfit', system-ui, -apple-system, sans-serif;
-  background-color: oklch(9% 0.014 160);
+  background-color: oklch(8% 0.009 265);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding-top: env(safe-area-inset-top);
@@ -54,53 +55,53 @@ body {
 @layer components {
   .btn-primary {
     @apply px-6 py-2.5 rounded-lg font-semibold transition-all duration-200;
-    background: oklch(68% 0.22 160);
-    color: oklch(9% 0.014 160);
-    box-shadow: 0 4px 16px oklch(68% 0.22 160 / 0.25);
+    background: oklch(56% 0.22 264);
+    color: oklch(98% 0.004 265);
+    box-shadow: 0 4px 16px oklch(56% 0.22 264 / 0.30);
   }
-  .btn-primary:hover { background: oklch(73% 0.21 160); }
+  .btn-primary:hover { background: oklch(63% 0.21 264); }
 
   .btn-secondary {
     @apply px-6 py-2.5 rounded-lg font-semibold transition-all duration-200;
-    background: oklch(16% 0.020 160);
-    color: oklch(95% 0.006 160);
-    border: 1px solid oklch(26% 0.014 160 / 0.55);
+    background: oklch(15% 0.017 265);
+    color: oklch(95% 0.004 265);
+    border: 1px solid oklch(22% 0.012 265 / 0.55);
   }
   .btn-danger {
     @apply px-6 py-2.5 rounded-lg font-semibold transition-all duration-200;
     background: oklch(65% 0.22 25);
-    color: oklch(95% 0 0);
+    color: oklch(98% 0 0);
   }
   .btn-success {
     @apply px-6 py-2.5 rounded-lg font-semibold transition-all duration-200;
     background: oklch(72% 0.18 145);
-    color: oklch(9% 0.014 160);
+    color: oklch(8% 0.009 265);
   }
   .card {
     border-radius: 14px;
     padding: 1.5rem;
-    background: oklch(13% 0.018 160);
-    border: 1px solid oklch(26% 0.014 160 / 0.55);
+    background: oklch(11% 0.013 265);
+    border: 1px solid oklch(22% 0.012 265 / 0.55);
   }
   .stat-card {
     border-radius: 14px;
     padding: 1.5rem;
-    background: oklch(13% 0.018 160);
-    border: 1px solid oklch(26% 0.014 160 / 0.55);
+    background: oklch(11% 0.013 265);
+    border: 1px solid oklch(22% 0.012 265 / 0.55);
     transition: border-color 0.2s;
   }
   .stat-card:hover {
-    border-color: oklch(38% 0.016 160 / 0.70);
+    border-color: oklch(30% 0.014 265 / 0.70);
   }
   .input {
     @apply w-full px-4 py-2.5 rounded-lg outline-none transition-all;
-    background: oklch(6% 0.008 160);
-    border: 1px solid oklch(26% 0.014 160 / 0.55);
-    color: oklch(95% 0.006 160);
+    background: oklch(6% 0.007 265);
+    border: 1px solid oklch(22% 0.012 265 / 0.55);
+    color: oklch(95% 0.004 265);
     font-family: 'Outfit', system-ui, sans-serif;
   }
   .input:focus {
-    border-color: oklch(68% 0.22 160 / 0.45);
+    border-color: oklch(56% 0.22 264 / 0.45);
   }
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
@@ -108,7 +109,7 @@ body {
   .badge-new        { background: oklch(70% 0.18 240 / 0.15); color: oklch(70% 0.18 240); }
   .badge-contacted  { background: oklch(78% 0.18 75 / 0.15);  color: oklch(78% 0.18 75); }
   .badge-interested { background: oklch(75% 0.18 50 / 0.15);  color: oklch(75% 0.18 50); }
-  .badge-qualified  { background: oklch(68% 0.22 160 / 0.15); color: oklch(68% 0.22 160); }
+  .badge-qualified  { background: oklch(56% 0.22 264 / 0.15); color: oklch(56% 0.22 264); }
   .badge-converted  { background: oklch(72% 0.18 145 / 0.15); color: oklch(72% 0.18 145); }
   .badge-lost       { background: oklch(65% 0.22 25 / 0.15);  color: oklch(65% 0.22 25); }
   .badge-active     { background: oklch(72% 0.18 145 / 0.15); color: oklch(72% 0.18 145); }

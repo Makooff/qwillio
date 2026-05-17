@@ -1,22 +1,22 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, Eye, EyeOff, BarChart2, Phone, Clock } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
 import { useSEO } from '../hooks/useSEO';
 
-/* ── Design tokens (emerald-drenched dark) ── */
+/* â”€â”€ Design tokens (emerald-drenched dark) â”€â”€ */
 const D = {
-  bg:        'oklch(9% 0.014 160)',
-  bg2:       'oklch(12% 0.017 160)',
-  border:    'oklch(26% 0.014 160 / 0.55)',
-  text:      'oklch(95% 0.006 160)',
-  text2:     'oklch(62% 0.009 160)',
-  text3:     'oklch(40% 0.007 160)',
-  accent:    'oklch(68% 0.22 160)',
-  accentHi:  'oklch(73% 0.21 160)',
-  accentDim: 'oklch(68% 0.22 160 / 0.12)',
-  accentBrd: 'oklch(68% 0.22 160 / 0.35)',
+  bg:        'oklch(8% 0.009 265)',
+  bg2:       'oklch(11% 0.013 265)',
+  border:    'oklch(22% 0.012 265 / 0.55)',
+  text:      'oklch(95% 0.004 265)',
+  text2:     'oklch(65% 0.007 265)',
+  text3:     'oklch(42% 0.006 265)',
+  accent:    'oklch(56% 0.22 264)',
+  accentHi:  'oklch(63% 0.21 264)',
+  accentDim: 'oklch(56% 0.22 264 / 0.12)',
+  accentBrd: 'oklch(56% 0.22 264 / 0.40)',
   bad:       'oklch(65% 0.22 25)',
   badDim:    'oklch(65% 0.22 25 / 0.10)',
   lBg:       'oklch(96% 0.010 55)',
@@ -27,7 +27,7 @@ const D = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'oklch(6% 0.008 160)',
+  background: 'oklch(6% 0.007 265)',
   border: `1px solid ${D.border}`,
   borderRadius: 10,
   padding: '13px 16px',
@@ -50,7 +50,7 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default function Login() {
-  useSEO({ title: 'Connexion — Qwillio', noindex: true });
+  useSEO({ title: 'Connexion â€” Qwillio', noindex: true });
 
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -84,7 +84,7 @@ export default function Login() {
       minHeight: '100dvh',
       fontFamily: `'Outfit', system-ui, sans-serif`,
     }}>
-      {/* ── LEFT — cream brand panel ── */}
+      {/* â”€â”€ LEFT â€” cream brand panel â”€â”€ */}
       <div style={{
         background: D.lBg,
         padding: '4rem',
@@ -105,8 +105,8 @@ export default function Login() {
         <div>
           <div style={{
             display: 'inline-block',
-            background: 'oklch(68% 0.22 160 / 0.10)',
-            color: 'oklch(42% 0.18 160)',
+            background: 'oklch(56% 0.22 264 / 0.10)',
+            color: 'oklch(42% 0.18 264)',
             fontSize: 10, fontWeight: 700,
             padding: '5px 12px', borderRadius: 999,
             textTransform: 'uppercase', letterSpacing: '0.09em',
@@ -121,11 +121,11 @@ export default function Login() {
             marginBottom: '1rem',
           }}>
             Vos prospects{` `}
-            <span style={{ color: 'oklch(52% 0.20 160)' }}>appelés</span>
+            <span style={{ color: 'oklch(52% 0.20 264)' }}>appelÃ©s</span>
             {`. Vos rendez-vous pris.`}
           </h2>
           <p style={{ fontSize: 15, color: D.lText2, lineHeight: 1.65, maxWidth: 360 }}>
-            L'IA vocale B2B qui prospecte pendant que votre équipe dort.
+            L'IA vocale B2B qui prospecte pendant que votre Ã©quipe dort.
           </p>
         </div>
 
@@ -133,16 +133,16 @@ export default function Login() {
           {[
             { icon: <Phone size={14} />, text: `Appels IA indiscernables d'un humain` },
             { icon: <BarChart2 size={14} />, text: 'Qualification automatique des leads' },
-            { icon: <Clock size={14} />, text: 'Premiers rendez-vous le jour même' },
+            { icon: <Clock size={14} />, text: 'Premiers rendez-vous le jour mÃªme' },
           ].map((f, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
                 width: 30, height: 30,
-                background: 'oklch(68% 0.22 160 / 0.10)',
-                border: '1px solid oklch(68% 0.22 160 / 0.22)',
+                background: 'oklch(56% 0.22 264 / 0.10)',
+                border: '1px solid oklch(56% 0.22 264 / 0.22)',
                 borderRadius: 7,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'oklch(42% 0.18 160)', flexShrink: 0,
+                color: 'oklch(42% 0.18 264)', flexShrink: 0,
               }}>
                 {f.icon}
               </div>
@@ -152,7 +152,7 @@ export default function Login() {
         </div>
       </div>
 
-      {/* ── RIGHT — dark form panel ── */}
+      {/* â”€â”€ RIGHT â€” dark form panel â”€â”€ */}
       <div style={{
         background: D.bg,
         padding: '4rem',
@@ -163,7 +163,7 @@ export default function Login() {
       }}>
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          background: `radial-gradient(ellipse 400px 300px at 70% 15%, oklch(68% 0.22 160 / 0.06) 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse 400px 300px at 70% 15%, oklch(56% 0.22 264 / 0.06) 0%, transparent 70%)`,
           pointerEvents: 'none',
         }} />
 
@@ -177,7 +177,7 @@ export default function Login() {
               Bienvenue
             </h1>
             <p style={{ fontSize: 15, color: D.text2 }}>
-              Connectez-vous à votre espace Qwillio.
+              Connectez-vous Ã  votre espace Qwillio.
             </p>
           </div>
 
@@ -213,7 +213,7 @@ export default function Login() {
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   required autoComplete="current-password"
                   style={{ ...inputStyle, paddingRight: 44 }}
                   onFocus={e => { e.target.style.borderColor = D.accentBrd; }}
@@ -238,7 +238,7 @@ export default function Login() {
                   onMouseEnter={e => (e.currentTarget.style.color = D.accent)}
                   onMouseLeave={e => (e.currentTarget.style.color = D.text3)}
                 >
-                  Mot de passe oublié ?
+                  Mot de passe oubliÃ© ?
                 </a>
               </div>
             </div>
@@ -248,7 +248,7 @@ export default function Login() {
               disabled={loading}
               style={{
                 width: '100%', padding: '13px 0',
-                background: loading ? 'oklch(40% 0.10 160)' : D.accent,
+                background: loading ? 'oklch(40% 0.10 264)' : D.accent,
                 color: loading ? D.text2 : D.bg,
                 border: 'none', borderRadius: 12,
                 fontSize: 15, fontWeight: 700,
@@ -257,7 +257,7 @@ export default function Login() {
                 fontFamily: `'Outfit', system-ui, sans-serif`,
                 transition: 'all 0.18s',
                 letterSpacing: '0.01em', marginTop: '0.4rem',
-                boxShadow: loading ? 'none' : `0 4px 16px oklch(68% 0.22 160 / 0.3)`,
+                boxShadow: loading ? 'none' : `0 4px 16px oklch(56% 0.22 264 / 0.3)`,
               }}
               onMouseEnter={e => {
                 if (!loading) {
@@ -266,7 +266,7 @@ export default function Login() {
                 }
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = loading ? 'oklch(40% 0.10 160)' : D.accent;
+                e.currentTarget.style.background = loading ? 'oklch(40% 0.10 264)' : D.accent;
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
@@ -278,7 +278,7 @@ export default function Login() {
           <p style={{ marginTop: '1.5rem', fontSize: 13, color: D.text3 }}>
             Pas encore de compte ?{' '}
             <Link to="/register" style={{ color: D.accent, fontWeight: 600, textDecoration: 'none' }}>
-              Créer un compte
+              CrÃ©er un compte
             </Link>
           </p>
         </div>

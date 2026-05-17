@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { ArrowRight, Clock, BookOpen } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
@@ -104,7 +104,7 @@ export default function Blog() {
         </p>
       </section>
 
-      {/* ── SEO Articles (dark glassmorphism cards) ── */}
+      {/* â”€â”€ SEO Articles (dark glassmorphism cards) â”€â”€ */}
       <section className="pb-16 px-6">
         <div className="max-w-[900px] mx-auto">
           <h2 className="text-sm font-semibold text-[#1d1d1f] uppercase tracking-wider mb-6">
@@ -122,12 +122,12 @@ export default function Blog() {
               >
                 {/* Subtle glow */}
                 <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-20 blur-3xl"
-                  style={{ background: i % 2 === 0 ? '#7B5CF0' : '#3B82F6' }} />
+                  style={{ background: i % 2 === 0 ? '#6366F1' : '#3B82F6' }} />
 
                 <div className="relative">
                   <div className="flex items-center gap-3 mb-4">
                     <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
-                      style={{ background: 'rgba(123,92,240,0.15)', color: '#A78BFA' }}>
+                      style={{ background: 'rgba(123,92,240,0.15)', color: '#818cf8' }}>
                       {isFr ? article.tagFr : article.tag}
                     </span>
                     <span className="flex items-center gap-1 text-[10px]" style={{ color: '#86868B' }}>
@@ -149,7 +149,7 @@ export default function Blog() {
                   <span className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-xl transition-all"
                     style={{
                       background: 'rgba(255,255,255,0.06)',
-                      color: '#A78BFA',
+                      color: '#818cf8',
                       cursor: article.ready ? 'pointer' : 'default',
                     }}>
                     {article.ready
@@ -164,7 +164,7 @@ export default function Blog() {
         </div>
       </section>
 
-      {/* ── Legacy posts ── */}
+      {/* â”€â”€ Legacy posts â”€â”€ */}
       <section className="pb-24 md:pb-32 px-6">
         <div className="max-w-[900px] mx-auto space-y-8">
           <h2 className="text-sm font-semibold text-[#1d1d1f] uppercase tracking-wider mb-2">

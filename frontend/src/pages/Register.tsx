@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, Mail, Check, Eye, EyeOff } from 'lucide-react';
@@ -6,17 +6,17 @@ import QwillioLogo from '../components/QwillioLogo';
 import { useSEO } from '../hooks/useSEO';
 import api from '../services/api';
 
-/* ── Design tokens (emerald-drenched dark) ── */
+/* â”€â”€ Design tokens (emerald-drenched dark) â”€â”€ */
 const D = {
-  bg:        'oklch(9% 0.014 160)',
-  border:    'oklch(26% 0.014 160 / 0.55)',
-  text:      'oklch(95% 0.006 160)',
-  text2:     'oklch(62% 0.009 160)',
-  text3:     'oklch(40% 0.007 160)',
-  accent:    'oklch(68% 0.22 160)',
-  accentHi:  'oklch(73% 0.21 160)',
-  accentDim: 'oklch(68% 0.22 160 / 0.12)',
-  accentBrd: 'oklch(68% 0.22 160 / 0.35)',
+  bg:        'oklch(8% 0.009 265)',
+  border:    'oklch(22% 0.012 265 / 0.55)',
+  text:      'oklch(95% 0.004 265)',
+  text2:     'oklch(65% 0.007 265)',
+  text3:     'oklch(42% 0.006 265)',
+  accent:    'oklch(56% 0.22 264)',
+  accentHi:  'oklch(63% 0.21 264)',
+  accentDim: 'oklch(56% 0.22 264 / 0.12)',
+  accentBrd: 'oklch(56% 0.22 264 / 0.40)',
   ok:        'oklch(72% 0.18 145)',
   okDim:     'oklch(72% 0.18 145 / 0.12)',
   okBrd:     'oklch(72% 0.18 145 / 0.35)',
@@ -30,7 +30,7 @@ const D = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'oklch(6% 0.008 160)',
+  background: 'oklch(6% 0.007 265)',
   border: `1px solid ${D.border}`,
   borderRadius: 10,
   padding: '13px 16px',
@@ -55,13 +55,13 @@ const labelStyle: React.CSSProperties = {
 type Step = 'form' | 'activation';
 
 const QUOTES = [
-  { text: `Nos commerciaux ne font plus que du closing. Qwillio gère tout le reste.`, author: 'Alexandre B., Propulse Agency' },
-  { text: `ROI positif dès la première semaine. La voix est indiscernable d'un vrai commercial.`, author: 'Thomas M., Axion Partners' },
-  { text: `On a divisé notre coût d'acquisition par trois en un mois.`, author: 'Sophie R., ImmoPro Lyon' },
+  { text: `Nos commerciaux ne font plus que du closing. Qwillio gÃ¨re tout le reste.`, author: 'Alexandre B., Propulse Agency' },
+  { text: `ROI positif dÃ¨s la premiÃ¨re semaine. La voix est indiscernable d'un vrai commercial.`, author: 'Thomas M., Axion Partners' },
+  { text: `On a divisÃ© notre coÃ»t d'acquisition par trois en un mois.`, author: 'Sophie R., ImmoPro Lyon' },
 ];
 
 export default function Register() {
-  useSEO({ title: 'Créer un compte — Qwillio', noindex: true });
+  useSEO({ title: 'CrÃ©er un compte â€” Qwillio', noindex: true });
 
   const [step, setStep]              = useState<Step>('form');
   const [email, setEmail]            = useState('');
@@ -81,7 +81,7 @@ export default function Register() {
     e.preventDefault();
     setError('');
     if (password !== confirmPw) { setError('Les mots de passe ne correspondent pas.'); return; }
-    if (password.length < 8) { setError('Le mot de passe doit contenir au moins 8 caractères.'); return; }
+    if (password.length < 8) { setError('Le mot de passe doit contenir au moins 8 caractÃ¨res.'); return; }
     setLoading(true);
     try {
       await register(email.trim(), password, '');
@@ -93,7 +93,7 @@ export default function Register() {
         typeof errData === 'string' ? errData
           : ((errData as { message?: string })?.message ||
              (err as { message?: string })?.message ||
-             'Une erreur est survenue. Réessayez.')
+             'Une erreur est survenue. RÃ©essayez.')
       );
     } finally {
       setLoading(false);
@@ -119,7 +119,7 @@ export default function Register() {
       minHeight: '100dvh',
       fontFamily: `'Outfit', system-ui, sans-serif`,
     }}>
-      {/* ── LEFT — cream brand panel ── */}
+      {/* â”€â”€ LEFT â€” cream brand panel â”€â”€ */}
       <div style={{
         background: D.lBg,
         padding: '4rem',
@@ -141,10 +141,10 @@ export default function Register() {
         <div>
           <div style={{
             fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.09em', color: 'oklch(42% 0.18 160)',
+            letterSpacing: '0.09em', color: 'oklch(42% 0.18 264)',
             marginBottom: '1rem',
           }}>
-            Témoignage client
+            TÃ©moignage client
           </div>
           <blockquote style={{
             fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)',
@@ -169,12 +169,12 @@ export default function Register() {
             <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{
                 width: 18, height: 18, borderRadius: '50%',
-                background: 'oklch(68% 0.22 160 / 0.12)',
-                border: '1px solid oklch(68% 0.22 160 / 0.25)',
+                background: 'oklch(56% 0.22 264 / 0.12)',
+                border: '1px solid oklch(56% 0.22 264 / 0.25)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}>
-                <Check size={10} style={{ color: 'oklch(52% 0.20 160)' }} />
+                <Check size={10} style={{ color: 'oklch(52% 0.20 264)' }} />
               </div>
               <span style={{ fontSize: 13, color: D.lText2, fontWeight: 500 }}>{item}</span>
             </div>
@@ -182,7 +182,7 @@ export default function Register() {
         </div>
       </div>
 
-      {/* ── RIGHT — dark form panel ── */}
+      {/* â”€â”€ RIGHT â€” dark form panel â”€â”€ */}
       <div style={{
         background: D.bg,
         padding: '4rem',
@@ -193,7 +193,7 @@ export default function Register() {
       }}>
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          background: `radial-gradient(ellipse 400px 300px at 80% 15%, oklch(68% 0.22 160 / 0.06) 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse 400px 300px at 80% 15%, oklch(56% 0.22 264 / 0.06) 0%, transparent 70%)`,
           pointerEvents: 'none',
         }} />
 
@@ -205,7 +205,7 @@ export default function Register() {
                   fontSize: '1.8rem', fontWeight: 800,
                   color: D.text, letterSpacing: '-0.035em', marginBottom: '0.4rem',
                 }}>
-                  Créer votre compte
+                  CrÃ©er votre compte
                 </h1>
                 <p style={{ fontSize: 15, color: D.text2 }}>
                   Premiers appels en 10 minutes.
@@ -243,7 +243,7 @@ export default function Register() {
                       type={showPw ? 'text' : 'password'}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      placeholder="8 caractères minimum"
+                      placeholder="8 caractÃ¨res minimum"
                       required autoComplete="new-password"
                       style={{ ...inputStyle, paddingRight: 44 }}
                       onFocus={e => { e.target.style.borderColor = D.accentBrd; }}
@@ -269,7 +269,7 @@ export default function Register() {
                     type={showPw ? 'text' : 'password'}
                     value={confirmPw}
                     onChange={e => setConfirmPw(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                     required autoComplete="new-password"
                     style={inputStyle}
                     onFocus={e => { e.target.style.borderColor = D.accentBrd; }}
@@ -281,7 +281,7 @@ export default function Register() {
                   type="submit" disabled={loading}
                   style={{
                     width: '100%', padding: '13px 0',
-                    background: loading ? 'oklch(40% 0.10 160)' : D.accent,
+                    background: loading ? 'oklch(40% 0.10 264)' : D.accent,
                     color: loading ? D.text2 : D.bg,
                     border: 'none', borderRadius: 12,
                     fontSize: 15, fontWeight: 700,
@@ -289,7 +289,7 @@ export default function Register() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     fontFamily: `'Outfit', system-ui, sans-serif`,
                     transition: 'all 0.18s', letterSpacing: '0.01em', marginTop: '0.4rem',
-                    boxShadow: loading ? 'none' : `0 4px 16px oklch(68% 0.22 160 / 0.3)`,
+                    boxShadow: loading ? 'none' : `0 4px 16px oklch(56% 0.22 264 / 0.3)`,
                   }}
                   onMouseEnter={e => {
                     if (!loading) {
@@ -298,31 +298,31 @@ export default function Register() {
                     }
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.background = loading ? 'oklch(40% 0.10 160)' : D.accent;
+                    e.currentTarget.style.background = loading ? 'oklch(40% 0.10 264)' : D.accent;
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
-                  {loading ? 'Création...' : 'Créer mon compte'}
+                  {loading ? 'CrÃ©ation...' : 'CrÃ©er mon compte'}
                   {!loading && <ArrowRight size={16} />}
                 </button>
               </form>
 
               <p style={{ marginTop: '1.5rem', fontSize: 13, color: D.text3 }}>
-                Déjà un compte ?{' '}
+                DÃ©jÃ  un compte ?{' '}
                 <Link to="/login" style={{ color: D.accent, fontWeight: 600, textDecoration: 'none' }}>
                   Se connecter
                 </Link>
               </p>
 
-              <p style={{ marginTop: '1rem', fontSize: 12, color: 'oklch(35% 0.006 160)', lineHeight: 1.5 }}>
-                En créant un compte, vous acceptez nos{' '}
+              <p style={{ marginTop: '1rem', fontSize: 12, color: 'oklch(35% 0.006 265)', lineHeight: 1.5 }}>
+                En crÃ©ant un compte, vous acceptez nos{' '}
                 <a href="#" style={{ color: D.text3 }}>CGU</a>
                 {' '}et notre{' '}
-                <a href="#" style={{ color: D.text3 }}>politique de confidentialité</a>.
+                <a href="#" style={{ color: D.text3 }}>politique de confidentialitÃ©</a>.
               </p>
             </>
           ) : (
-            /* ── Activation screen ── */
+            /* â”€â”€ Activation screen â”€â”€ */
             <div style={{ textAlign: 'center' }}>
               <div style={{
                 width: 64, height: 64,
@@ -337,10 +337,10 @@ export default function Register() {
                 fontSize: '1.5rem', fontWeight: 800,
                 color: D.text, letterSpacing: '-0.03em', marginBottom: '0.75rem',
               }}>
-                Vérifiez votre email
+                VÃ©rifiez votre email
               </h2>
               <p style={{ fontSize: 14, color: D.text2, lineHeight: 1.6, marginBottom: '0.5rem' }}>
-                Un lien d'activation a été envoyé à
+                Un lien d'activation a Ã©tÃ© envoyÃ© Ã 
               </p>
               <p style={{ fontSize: 15, fontWeight: 600, color: D.text, marginBottom: '2rem' }}>
                 {email}
@@ -353,7 +353,7 @@ export default function Register() {
                   fontSize: 13, color: D.ok, marginBottom: '1.2rem',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}>
-                  <Check size={14} /> Email renvoyé avec succès
+                  <Check size={14} /> Email renvoyÃ© avec succÃ¨s
                 </div>
               )}
 
@@ -384,7 +384,7 @@ export default function Register() {
 
               <div style={{ marginTop: '2rem' }}>
                 <Link to="/login" style={{ fontSize: 13, color: D.text3, textDecoration: 'none' }}>
-                  Retour à la connexion
+                  Retour Ã  la connexion
                 </Link>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Bot, Phone, PhoneForwarded, Pause, Play, Check, AlertCircle,
@@ -10,9 +10,9 @@ import {
 import api from '../../services/api';
 import OrbsLoader from "../../components/OrbsLoader";
 
-const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
-const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
-const compactInputCls = 'h-9 px-3 text-[13px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#6B6B75] focus:outline-none focus:border-[#7B5CF0]/50 transition-all disabled:opacity-50';
+const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#6366F1]/50 transition-all disabled:opacity-50';
+const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] focus:outline-none focus:border-[#6366F1]/50 transition-all disabled:opacity-50';
+const compactInputCls = 'h-9 px-3 text-[13px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#6B6B75] focus:outline-none focus:border-[#6366F1]/50 transition-all disabled:opacity-50';
 
 interface KbItem { id: string; category: string; name: string; price: string; }
 interface DayHours { open: boolean; from: string; to: string; }
@@ -52,11 +52,11 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 
 const PERSONALITY_PRESETS: { v: string; l: string; d: string }[] = [
   { v: 'warm',         l: 'Chaleureux',   d: 'Accueillant, empathique, sourire dans la voix' },
-  { v: 'professional', l: 'Professionnel', d: 'Direct, précis, cadre formel' },
-  { v: 'casual',       l: 'Décontracté',  d: 'Détendu, fluide, ton conversationnel' },
-  { v: 'energetic',    l: 'Énergique',    d: 'Dynamique, enthousiaste, upbeat' },
-  { v: 'luxury',       l: 'Premium',      d: 'Soigné, raffiné, langage soutenu' },
-  { v: 'caring',       l: 'Bienveillant', d: 'Doux, rassurant, idéal pour santé / médical' },
+  { v: 'professional', l: 'Professionnel', d: 'Direct, prÃ©cis, cadre formel' },
+  { v: 'casual',       l: 'DÃ©contractÃ©',  d: 'DÃ©tendu, fluide, ton conversationnel' },
+  { v: 'energetic',    l: 'Ã‰nergique',    d: 'Dynamique, enthousiaste, upbeat' },
+  { v: 'luxury',       l: 'Premium',      d: 'SoignÃ©, raffinÃ©, langage soutenu' },
+  { v: 'caring',       l: 'Bienveillant', d: 'Doux, rassurant, idÃ©al pour santÃ© / mÃ©dical' },
 ];
 
 function Section({ title, icon: Icon, children, defaultOpen = true }: {
@@ -224,7 +224,7 @@ export default function ClientReceptionist() {
     <div className="flex flex-col items-center justify-center py-20 text-center px-6">
       <AlertCircle className="w-10 h-10 text-[#EF4444] mb-3" />
       <p className="text-sm text-[#8B8BA7]">{error}</p>
-      <button onClick={load} className="mt-4 px-4 py-2 rounded-xl bg-[#7B5CF0] text-white text-sm">Réessayer</button>
+      <button onClick={load} className="mt-4 px-4 py-2 rounded-xl bg-[#6366F1] text-white text-sm">RÃ©essayer</button>
     </div>
   );
 
@@ -241,20 +241,20 @@ export default function ClientReceptionist() {
 
   return (
     <div className="max-w-3xl space-y-4">
-      {/* Header — neutral, less ornamentation */}
+      {/* Header â€” neutral, less ornamentation */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[20px] font-semibold text-[#F2F2F2] tracking-tight">Réceptionniste IA</h1>
-          <p className="text-[12.5px] text-[#9A9AA5]">Gérez votre agent IA et tous ses paramètres</p>
+          <h1 className="text-[20px] font-semibold text-[#F2F2F2] tracking-tight">RÃ©ceptionniste IA</h1>
+          <p className="text-[12.5px] text-[#9A9AA5]">GÃ©rez votre agent IA et tous ses paramÃ¨tres</p>
         </div>
         <button onClick={handleSave} disabled={saving}
           className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-[#0B0B0D] bg-[#F2F2F2] rounded-xl hover:bg-white disabled:opacity-50 transition-colors">
           {saving ? <div className="w-3.5 h-3.5 border-2 border-[#0B0B0D] border-t-transparent rounded-full animate-spin" /> : <Save size={13} />}
-          {saving ? 'Sauvegarde…' : saved ? 'Sauvegardé' : 'Sauvegarder'}
+          {saving ? 'Sauvegardeâ€¦' : saved ? 'SauvegardÃ©' : 'Sauvegarder'}
         </button>
       </div>
 
-      {/* ── Status card ── neutral surface, single colour dot only */}
+      {/* â”€â”€ Status card â”€â”€ neutral surface, single colour dot only */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
         <div className="flex items-center justify-between gap-3">
@@ -271,7 +271,7 @@ export default function ClientReceptionist() {
                 </span>
               </div>
               <p className="text-[11.5px] text-[#9A9AA5] truncate">
-                {client.businessName || businessName || 'Votre entreprise'} · Plan {client.planType || 'starter'}
+                {client.businessName || businessName || 'Votre entreprise'} Â· Plan {client.planType || 'starter'}
                 {client.isTrial && <span className="ml-1 text-amber-400">(essai)</span>}
               </p>
             </div>
@@ -284,14 +284,14 @@ export default function ClientReceptionist() {
         </div>
       </motion.div>
 
-      {/* ── Phone + Stats row — flat neutral surfaces ── */}
+      {/* â”€â”€ Phone + Stats row â€” flat neutral surfaces â”€â”€ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Phone number */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
           className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
           <div className="flex items-center gap-2 mb-3">
             <Phone size={13} className="text-[#9A9AA5]" />
-            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#9A9AA5]">Numéro IA</h3>
+            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#9A9AA5]">NumÃ©ro IA</h3>
           </div>
           {phone ? (
             <div className="flex items-center gap-2">
@@ -313,17 +313,17 @@ export default function ClientReceptionist() {
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-[#9A9AA5]">Transfert d'appel</span>
               {fwdVerified && transferNumber ? (
-                <span className="flex items-center gap-1 text-[11px] text-emerald-400"><CheckCircle2 size={12} /> Vérifié</span>
+                <span className="flex items-center gap-1 text-[11px] text-emerald-400"><CheckCircle2 size={12} /> VÃ©rifiÃ©</span>
               ) : fwdStatus === 'pending' ? (
                 <span className="flex items-center gap-1 text-[11px] text-amber-400"><Clock size={12} /> En attente</span>
               ) : (
-                <span className="flex items-center gap-1 text-[11px] text-[#6B6B75]"><XCircle size={12} /> Non configuré</span>
+                <span className="flex items-center gap-1 text-[11px] text-[#6B6B75]"><XCircle size={12} /> Non configurÃ©</span>
               )}
             </div>
           </div>
         </motion.div>
 
-        {/* Stats — uniform white numbers */}
+        {/* Stats â€” uniform white numbers */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -358,50 +358,50 @@ export default function ClientReceptionist() {
         </motion.div>
       </div>
 
-      {/* ── Agent identity ── */}
-      <Section title="Identité de l'agent" icon={Bot} color="#7B5CF0">
+      {/* â”€â”€ Agent identity â”€â”€ */}
+      <Section title="IdentitÃ© de l'agent" icon={Bot} color="#6366F1">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Nom de l'agent</label>
             <input type="text" value={agentName} onChange={e => setAgentName(e.target.value)}
               placeholder="Ex: Ashley, Marie..." className={inputCls} />
-            <p className="text-[10px] text-[#8B8BA7] mt-1">Le prénom utilisé par l'IA pour se présenter</p>
+            <p className="text-[10px] text-[#8B8BA7] mt-1">Le prÃ©nom utilisÃ© par l'IA pour se prÃ©senter</p>
           </div>
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Langue</label>
             <select value={agentLanguage} onChange={e => setAgentLanguage(e.target.value)} className={selectCls}>
               <option value="en">Anglais (Ashley)</option>
-              <option value="fr">Français (Marie)</option>
+              <option value="fr">FranÃ§ais (Marie)</option>
             </select>
-            <p className="text-[10px] text-[#8B8BA7] mt-1">Langue parlée par votre réceptionniste IA</p>
+            <p className="text-[10px] text-[#8B8BA7] mt-1">Langue parlÃ©e par votre rÃ©ceptionniste IA</p>
           </div>
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Nom de l'entreprise</label>
             <input type="text" value={businessName} onChange={e => setBusinessName(e.target.value)}
               placeholder="Ex: Plomberie Dupont" className={inputCls} />
-            <p className="text-[10px] text-[#8B8BA7] mt-1">Utilisé par l'IA pour se présenter au téléphone</p>
+            <p className="text-[10px] text-[#8B8BA7] mt-1">UtilisÃ© par l'IA pour se prÃ©senter au tÃ©lÃ©phone</p>
           </div>
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Type d'entreprise</label>
             <select value={businessType} onChange={e => setBusinessType(e.target.value)} className={selectCls}>
-              <option value="">Sélectionner...</option>
+              <option value="">SÃ©lectionner...</option>
               <option value="dental">Dentaire</option>
-              <option value="medical">Médical</option>
+              <option value="medical">MÃ©dical</option>
               <option value="law">Juridique</option>
               <option value="salon">Salon</option>
               <option value="restaurant">Restaurant</option>
               <option value="garage">Garage auto</option>
-              <option value="hotel">Hôtel</option>
+              <option value="hotel">HÃ´tel</option>
               <option value="home_services">Services maison</option>
               <option value="other">Autre</option>
             </select>
           </div>
         </div>
 
-        {/* ── Personnalité (preset + personnalisation libre) ── */}
+        {/* â”€â”€ PersonnalitÃ© (preset + personnalisation libre) â”€â”€ */}
         <div className="mt-6">
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-3">
-            Ton et personnalité
+            Ton et personnalitÃ©
           </label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {PERSONALITY_PRESETS.map(p => {
@@ -415,7 +415,7 @@ export default function ClientReceptionist() {
                   style={{
                     background: sel ? 'rgba(123,92,240,0.10)' : '#0A0A0C',
                     borderColor: sel ? 'rgba(123,92,240,0.55)' : 'rgba(255,255,255,0.08)',
-                    color: sel ? '#7B5CF0' : '#F2F2F2',
+                    color: sel ? '#6366F1' : '#F2F2F2',
                   }}
                 >
                   <p className="text-[13px] font-semibold">{p.l}</p>
@@ -434,33 +434,33 @@ export default function ClientReceptionist() {
             value={personalityNotes}
             onChange={e => setPersonalityNotes(e.target.value)}
             rows={4}
-            placeholder="Précisez ce qui vous est propre : promotions en cours, mots à utiliser, à éviter, formule d'accueil…"
+            placeholder="PrÃ©cisez ce qui vous est propre : promotions en cours, mots Ã  utiliser, Ã  Ã©viter, formule d'accueilâ€¦"
             className={`${inputCls} resize-y leading-relaxed`}
             style={{ minHeight: 100 }}
           />
         </div>
       </Section>
 
-      {/* ── Connaissances IA — items list + week schedule ── */}
-      <Section title="Base de connaissances" icon={BookOpen} color="#7B5CF0" defaultOpen={false}>
+      {/* â”€â”€ Connaissances IA â€” items list + week schedule â”€â”€ */}
+      <Section title="Base de connaissances" icon={BookOpen} color="#6366F1" defaultOpen={false}>
         <p className="text-[12px] text-[#9A9AA5] mb-5 leading-relaxed">
-          Ce que l'IA doit savoir pour répondre aux appelants : services, menu,
-          tarifs, horaires, FAQ. Plus c'est précis, plus elle sera précise.
+          Ce que l'IA doit savoir pour rÃ©pondre aux appelants : services, menu,
+          tarifs, horaires, FAQ. Plus c'est prÃ©cis, plus elle sera prÃ©cise.
         </p>
 
-        {/* ── Services / Menu / Tarifs ── */}
+        {/* â”€â”€ Services / Menu / Tarifs â”€â”€ */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5]">
               <Tag size={12} /> Services, menu, tarifs
             </label>
-            <span className="text-[11px] text-[#6B6B75]">{items.length} élément{items.length > 1 ? 's' : ''}</span>
+            <span className="text-[11px] text-[#6B6B75]">{items.length} Ã©lÃ©ment{items.length > 1 ? 's' : ''}</span>
           </div>
 
           <div className="space-y-2">
             {items.length === 0 && (
               <div className="rounded-xl border border-dashed border-white/[0.08] p-4 text-center">
-                <p className="text-[12px] text-[#6B6B75]">Aucun élément — ajoutez votre premier service.</p>
+                <p className="text-[12px] text-[#6B6B75]">Aucun Ã©lÃ©ment â€” ajoutez votre premier service.</p>
               </div>
             )}
             {items.map(it => (
@@ -481,7 +481,7 @@ export default function ClientReceptionist() {
                 <input
                   value={it.price}
                   onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, price: e.target.value } : x))}
-                  placeholder="Prix (ex. 25€)"
+                  placeholder="Prix (ex. 25â‚¬)"
                   className={`${compactInputCls} col-span-3`}
                 />
                 <button
@@ -501,11 +501,11 @@ export default function ClientReceptionist() {
             onClick={() => setItems(arr => [...arr, { id: newId(), category: 'service', name: '', price: '' }])}
             className="mt-3 inline-flex items-center gap-1.5 px-3 h-9 rounded-lg text-[12.5px] font-medium border border-white/[0.08] hover:bg-white/[0.04] transition-colors text-[#F2F2F2]"
           >
-            <Plus size={13} /> Ajouter un élément
+            <Plus size={13} /> Ajouter un Ã©lÃ©ment
           </button>
         </div>
 
-        {/* ── Horaires hebdomadaires ── */}
+        {/* â”€â”€ Horaires hebdomadaires â”€â”€ */}
         <div className="mb-6">
           <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-3">
             <Clock3 size={12} /> Horaires d'ouverture
@@ -525,7 +525,7 @@ export default function ClientReceptionist() {
                       color:      h.open ? '#22C55E' : '#EF4444',
                     }}
                   >
-                    {h.open ? 'Ouvert' : 'Fermé'}
+                    {h.open ? 'Ouvert' : 'FermÃ©'}
                   </button>
                   <input
                     type="time"
@@ -547,7 +547,7 @@ export default function ClientReceptionist() {
           </div>
         </div>
 
-        {/* ── FAQ ── */}
+        {/* â”€â”€ FAQ â”€â”€ */}
         <div className="mb-6">
           <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
             <HelpCircle size={12} /> FAQ
@@ -556,7 +556,7 @@ export default function ClientReceptionist() {
             value={faq}
             onChange={e => setFaq(e.target.value)}
             rows={6}
-            placeholder="Q : Faut-il réserver ?&#10;R : Oui, on privilégie le rendez-vous mais on accepte les walk-ins si le créneau est libre."
+            placeholder="Q : Faut-il rÃ©server ?&#10;R : Oui, on privilÃ©gie le rendez-vous mais on accepte les walk-ins si le crÃ©neau est libre."
             className={`${inputCls} resize-y leading-relaxed`}
             style={{ minHeight: 140 }}
           />
@@ -564,42 +564,42 @@ export default function ClientReceptionist() {
 
       </Section>
 
-      {/* ── Transfert d'appel ── */}
+      {/* â”€â”€ Transfert d'appel â”€â”€ */}
       <div id="transfer" style={{ scrollMarginTop: 80 }}>
       <Section title="Transfert d'appel" icon={PhoneForwarded} color="#3B82F6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Numéro de transfert</label>
+            <label className="text-xs text-[#8B8BA7] mb-1.5 block">NumÃ©ro de transfert</label>
             <input type="tel" value={transferNumber} onChange={e => setTransferNumber(e.target.value)}
               placeholder="+1 (555) 000-0000" className={inputCls} />
-            <p className="text-[10px] text-[#8B8BA7] mt-1">L'IA transfère les appels urgents à ce numéro</p>
+            <p className="text-[10px] text-[#8B8BA7] mt-1">L'IA transfÃ¨re les appels urgents Ã  ce numÃ©ro</p>
           </div>
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Type de transfert</label>
             <select value={forwardingType} onChange={e => setForwardingType(e.target.value)} className={selectCls}>
               <option value="">Automatique</option>
               <option value="unconditional">Inconditionnel (tous les appels)</option>
-              <option value="busy">Si occupé</option>
-              <option value="no_answer">Si pas de réponse</option>
-              <option value="scheduled">Programmé (hors heures)</option>
+              <option value="busy">Si occupÃ©</option>
+              <option value="no_answer">Si pas de rÃ©ponse</option>
+              <option value="scheduled">ProgrammÃ© (hors heures)</option>
             </select>
-            <p className="text-[10px] text-[#8B8BA7] mt-1">Quand transférer les appels à un humain</p>
+            <p className="text-[10px] text-[#8B8BA7] mt-1">Quand transfÃ©rer les appels Ã  un humain</p>
           </div>
         </div>
         {fwdVerified && transferNumber && (
           <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-400/5 border border-emerald-400/15">
             <CheckCircle2 size={14} className="text-emerald-400" />
-            <span className="text-xs text-emerald-400">Transfert vérifié le {new Date(fwdVerified).toLocaleDateString('fr-FR')}</span>
+            <span className="text-xs text-emerald-400">Transfert vÃ©rifiÃ© le {new Date(fwdVerified).toLocaleDateString('fr-FR')}</span>
           </div>
         )}
       </Section>
       </div>
 
-      {/* ── Contact & adresse ── */}
-      <Section title="Coordonnées" icon={MapPin} color="#F59E0B" defaultOpen={false}>
+      {/* â”€â”€ Contact & adresse â”€â”€ */}
+      <Section title="CoordonnÃ©es" icon={MapPin} color="#F59E0B" defaultOpen={false}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Téléphone de contact</label>
+            <label className="text-xs text-[#8B8BA7] mb-1.5 block">TÃ©lÃ©phone de contact</label>
             <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)}
               placeholder="+1 (555) 000-0000" className={inputCls} />
           </div>
@@ -611,7 +611,7 @@ export default function ClientReceptionist() {
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Ville</label>
             <input type="text" value={city} onChange={e => setCity(e.target.value)}
-              placeholder="Montréal" className={inputCls} />
+              placeholder="MontrÃ©al" className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Code postal</label>
@@ -620,14 +620,14 @@ export default function ClientReceptionist() {
           </div>
         </div>
         <div className="mt-3 pt-3 border-t border-white/[0.04]">
-          <Row l="Contact principal" v={settings?.contactName || client.contactName || '—'} />
-          <Row l="Email" v={settings?.contactEmail || client.contactEmail || '—'} />
-          <Row l="Pays" v={settings?.country || client.country || '—'} />
+          <Row l="Contact principal" v={settings?.contactName || client.contactName || 'â€”'} />
+          <Row l="Email" v={settings?.contactEmail || client.contactEmail || 'â€”'} />
+          <Row l="Pays" v={settings?.country || client.country || 'â€”'} />
         </div>
       </Section>
 
-      {/* ── Intégrations ── */}
-      <Section title="Intégrations" icon={Calendar} color="#8B5CF6" defaultOpen={false}>
+      {/* â”€â”€ IntÃ©grations â”€â”€ */}
+      <Section title="IntÃ©grations" icon={Calendar} color="#6366F1" defaultOpen={false}>
         <div className="space-y-4">
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Google Calendar ID</label>
@@ -636,32 +636,32 @@ export default function ClientReceptionist() {
             <p className="text-[10px] text-[#8B8BA7] mt-1">Connectez votre calendrier pour que l'IA puisse prendre des rendez-vous</p>
           </div>
           <div className="pt-3 border-t border-white/[0.04]">
-            <Row l="Google Calendar" v={googleCalendarId ? 'Connecté' : 'Non connecté'} c={googleCalendarId ? '#22C55E' : '#8B8BA7'} />
-            <Row l="VAPI Assistant" v={settings?.vapiAssistantId ? 'Configuré' : 'En attente'} c={settings?.vapiAssistantId ? '#22C55E' : '#F59E0B'} />
+            <Row l="Google Calendar" v={googleCalendarId ? 'ConnectÃ©' : 'Non connectÃ©'} c={googleCalendarId ? '#22C55E' : '#8B8BA7'} />
+            <Row l="VAPI Assistant" v={settings?.vapiAssistantId ? 'ConfigurÃ©' : 'En attente'} c={settings?.vapiAssistantId ? '#22C55E' : '#F59E0B'} />
           </div>
         </div>
       </Section>
 
-      {/* ── Subscription info ── */}
+      {/* â”€â”€ Subscription info â”€â”€ */}
       <Section title="Abonnement" icon={Shield} color="#22C55E" defaultOpen={false}>
-        <Row l="Plan" v={(client.planType || 'starter').charAt(0).toUpperCase() + (client.planType || 'starter').slice(1)} c="#7B5CF0" />
+        <Row l="Plan" v={(client.planType || 'starter').charAt(0).toUpperCase() + (client.planType || 'starter').slice(1)} c="#6366F1" />
         <Row l="Statut" v={
-          status === 'active' ? 'Actif' : status === 'trialing' ? 'Essai' : status === 'paused' ? 'En pause' : status === 'cancelled' ? 'Annulé' : status
+          status === 'active' ? 'Actif' : status === 'trialing' ? 'Essai' : status === 'paused' ? 'En pause' : status === 'cancelled' ? 'AnnulÃ©' : status
         } c={isActive ? '#22C55E' : isPaused ? '#F59E0B' : '#EF4444'} />
         {client.isTrial && client.trialEndDate && (
           <Row l="Fin de l'essai" v={new Date(client.trialEndDate).toLocaleDateString('fr-FR')} c="#F59E0B" />
         )}
         <Row l="Quota mensuel" v={`${quota} appels`} />
-        <Row l="Utilisés ce mois" v={`${used} appels`} />
-        {settings?.activationDate && <Row l="Activé le" v={new Date(settings.activationDate).toLocaleDateString('fr-FR')} />}
+        <Row l="UtilisÃ©s ce mois" v={`${used} appels`} />
+        {settings?.activationDate && <Row l="ActivÃ© le" v={new Date(settings.activationDate).toLocaleDateString('fr-FR')} />}
         {settings?.lastCallDate && <Row l="Dernier appel" v={new Date(settings.lastCallDate).toLocaleDateString('fr-FR')} />}
       </Section>
 
-      {/* ── Info box ── */}
+      {/* â”€â”€ Info box â”€â”€ */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-        className="rounded-xl border border-[#7B5CF0]/15 bg-[#7B5CF0]/[0.04] p-4">
+        className="rounded-xl border border-[#6366F1]/15 bg-[#6366F1]/[0.04] p-4">
         <p className="text-xs text-[#8B8BA7] leading-relaxed">
-          <span className="text-[#7B5CF0] font-medium">Besoin d'aide ?</span> — Pour modifier la voix, le script personnalisé, ou les paramètres VAPI avancés de votre IA, contactez notre équipe via le Support. Nous nous occupons de tout en moins de 24h.
+          <span className="text-[#6366F1] font-medium">Besoin d'aide ?</span> â€” Pour modifier la voix, le script personnalisÃ©, ou les paramÃ¨tres VAPI avancÃ©s de votre IA, contactez notre Ã©quipe via le Support. Nous nous occupons de tout en moins de 24h.
         </p>
       </motion.div>
     </div>

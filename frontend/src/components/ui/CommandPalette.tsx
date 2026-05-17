@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, LayoutDashboard, Users, Phone, TrendingUp, Settings, BarChart3, Bot, Zap, FileText } from 'lucide-react';
 
@@ -68,7 +68,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
             return (
               <button
                 key={cmd.path}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${i === selectedIndex ? 'bg-[#7B5CF0]/20 text-white' : 'text-[#C0C0D0] hover:bg-white/5'}`}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${i === selectedIndex ? 'bg-[#6366F1]/20 text-white' : 'text-[#C0C0D0] hover:bg-white/5'}`}
                 onClick={() => { navigate(cmd.path); onClose(); }}
                 onMouseEnter={() => setSelectedIndex(i)}
               >
@@ -80,7 +80,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
           })}
         </div>
         <div className="px-4 py-2 border-t border-white/10 flex items-center gap-4 text-xs text-[#8B8BA7]">
-          <span>↑↓ navigate</span><span>↵ select</span><span>esc close</span>
+          <span>â†‘â†“ navigate</span><span>â†µ select</span><span>esc close</span>
         </div>
       </div>
     </div>

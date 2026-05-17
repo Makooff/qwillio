@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+﻿import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Phone, Users, AlertCircle, ArrowRight, ChevronRight,
@@ -19,11 +19,11 @@ function greeting(name: string) {
   const h = new Date().getHours();
   const first = name?.split(' ')[0] || name;
   if (h < 12) return `Bonjour, ${first}`;
-  if (h < 18) return `Bon après-midi, ${first}`;
+  if (h < 18) return `Bon aprÃ¨s-midi, ${first}`;
   return `Bonsoir, ${first}`;
 }
 
-// ── Stripe / Vercel-style design tokens (local to this page) ─────────────
+// â”€â”€ Stripe / Vercel-style design tokens (local to this page) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const C = {
   bg:       '#0A0A0C',
   panel:    'rgba(255,255,255,0.03)',
@@ -32,13 +32,13 @@ const C = {
   text:     '#F5F5F7',
   textSec:  '#A1A1A8',
   textTer:  '#6B6B75',
-  accent:   '#7B5CF0',
+  accent:   '#6366F1',
   ok:       '#22C55E',
   warn:     '#F59E0B',
   bad:      '#EF4444',
 };
 
-// ── Reusable building blocks ────────────────────────────────────────────
+// â”€â”€ Reusable building blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
   <div className={`rounded-2xl border ${className}`} style={{ background: C.panel, borderColor: C.border }}>
     {children}
@@ -123,7 +123,7 @@ export default function ClientOverview() {
         setSearchParams(searchParams, { replace: true });
       }
     } catch (err: any) {
-      // Auto-retry on 4xx (paid → activation in flight)
+      // Auto-retry on 4xx (paid â†’ activation in flight)
       const code = err?.response?.status;
       if ((code === 401 || code === 403 || code === 404) && retryCount.current < 6) {
         retryCount.current++;
@@ -151,8 +151,8 @@ export default function ClientOverview() {
       <OrbsLoader size={40} fullscreen={false} />
       {paymentPending && (
         <div className="text-center">
-          <p className="text-sm font-medium" style={{ color: C.text }}>Paiement reçu</p>
-          <p className="text-xs mt-1" style={{ color: C.textSec }}>Activation de votre compte en cours…</p>
+          <p className="text-sm font-medium" style={{ color: C.text }}>Paiement reÃ§u</p>
+          <p className="text-xs mt-1" style={{ color: C.textSec }}>Activation de votre compte en coursâ€¦</p>
         </div>
       )}
     </div>
@@ -163,7 +163,7 @@ export default function ClientOverview() {
       <AlertCircle className="w-9 h-9 mb-3" style={{ color: C.bad }} />
       <p className="text-sm" style={{ color: C.textSec }}>{error}</p>
       <button onClick={load} className="mt-4 px-4 py-2 rounded-xl text-sm font-medium" style={{ background: C.accent, color: '#fff' }}>
-        Réessayer
+        RÃ©essayer
       </button>
     </div>
   );
@@ -213,7 +213,7 @@ export default function ClientOverview() {
 
   return (
     <div className="space-y-8 max-w-[1200px]">
-      {/* ─── Header ─── */}
+      {/* â”€â”€â”€ Header â”€â”€â”€ */}
       <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: C.text }}>
@@ -221,26 +221,26 @@ export default function ClientOverview() {
           </h1>
           <p className="text-[12.5px] mt-0.5" style={{ color: C.textSec }}>
             {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-            {' · '}
-            <span style={{ color: isActive ? C.ok : isPaused ? C.warn : C.bad }}>●</span>
+            {' Â· '}
+            <span style={{ color: isActive ? C.ok : isPaused ? C.warn : C.bad }}>â—</span>
             {' '}
             {isActive ? 'Service actif' : isPaused ? 'En pause' : 'Inactif'}
           </p>
         </div>
       </motion.div>
 
-      {/* ─── Onboarding (only if not done) ─── */}
+      {/* â”€â”€â”€ Onboarding (only if not done) â”€â”€â”€ */}
       {!onboardingDone && <OnboardingChecklist client={onboardingClient} />}
 
-      {/* ─── Banners ─── */}
+      {/* â”€â”€â”€ Banners â”€â”€â”€ */}
       {c.isTrial && (
         <Card className="px-5 py-3 flex items-center gap-3">
           <Sparkles size={16} style={{ color: C.accent }} />
           <p className="text-[13px] flex-1" style={{ color: C.text }}>
-            Période d'essai — <strong>{daysUntil(c.trialEndDate)} jours restants</strong>
+            PÃ©riode d'essai â€” <strong>{daysUntil(c.trialEndDate)} jours restants</strong>
           </p>
           <Link to="/dashboard/billing" className="text-[12.5px] font-medium hover:underline whitespace-nowrap" style={{ color: C.accent }}>
-            Mettre à jour →
+            Mettre Ã  jour â†’
           </Link>
         </Card>
       )}
@@ -248,16 +248,16 @@ export default function ClientOverview() {
       {!c.transferNumber && (
         <Card className="px-5 py-3 flex items-center gap-3" >
           <AlertCircle size={14} style={{ color: C.bad }} />
-          <p className="text-[13px] flex-1" style={{ color: C.text }}>Numéro de transfert non configuré</p>
+          <p className="text-[13px] flex-1" style={{ color: C.text }}>NumÃ©ro de transfert non configurÃ©</p>
           <Link to="/dashboard/receptionist#transfer" className="text-[12.5px] font-medium hover:underline whitespace-nowrap" style={{ color: C.accent }}>
-            Configurer →
+            Configurer â†’
           </Link>
         </Card>
       )}
 
-      {/* ─── KPI grid ─── */}
+      {/* â”€â”€â”€ KPI grid â”€â”€â”€ */}
       <section>
-        <SectionHead title="Aperçu" />
+        <SectionHead title="AperÃ§u" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Stat
             label="Appels aujourd'hui"
@@ -278,12 +278,12 @@ export default function ClientOverview() {
           <Stat
             label="Sentiment positif"
             value={`${positiveRate}%`}
-            hint={sentTotal > 0 ? `${sentTotal} appel${sentTotal > 1 ? 's' : ''} analysé${sentTotal > 1 ? 's' : ''}` : 'Pas encore de données'}
+            hint={sentTotal > 0 ? `${sentTotal} appel${sentTotal > 1 ? 's' : ''} analysÃ©${sentTotal > 1 ? 's' : ''}` : 'Pas encore de donnÃ©es'}
           />
         </div>
       </section>
 
-      {/* ─── Performance chart ─── */}
+      {/* â”€â”€â”€ Performance chart â”€â”€â”€ */}
       <section>
         <SectionHead
           title="Performance"
@@ -307,7 +307,7 @@ export default function ClientOverview() {
             {chartData.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center" style={{ color: C.textTer }}>
                 <BarChart3 size={28} className="opacity-50 mb-2" />
-                <p className="text-[12px]">Pas encore de données</p>
+                <p className="text-[12px]">Pas encore de donnÃ©es</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -338,11 +338,11 @@ export default function ClientOverview() {
         </Card>
       </section>
 
-      {/* ─── Recent activity ─── */}
+      {/* â”€â”€â”€ Recent activity â”€â”€â”€ */}
       <section>
         <SectionHead
-          title="Activité récente"
-          action={<Link to="/dashboard/calls" className="text-[11.5px] font-medium hover:underline" style={{ color: C.textSec }}>Tout voir →</Link>}
+          title="ActivitÃ© rÃ©cente"
+          action={<Link to="/dashboard/calls" className="text-[11.5px] font-medium hover:underline" style={{ color: C.textSec }}>Tout voir â†’</Link>}
         />
         <Card>
           {calls.length === 0 ? (
@@ -367,8 +367,8 @@ export default function ClientOverview() {
                     <p className="text-[11px]" style={{ color: C.textTer }}>
                       {call.startedAt
                         ? new Date(call.startedAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                        : '—'}
-                      {call.duration ? ` · ${Math.round(call.duration)}s` : ''}
+                        : 'â€”'}
+                      {call.duration ? ` Â· ${Math.round(call.duration)}s` : ''}
                     </p>
                   </div>
                   {call.outcome && (
@@ -381,7 +381,7 @@ export default function ClientOverview() {
                               : call.outcome === 'transferred'   ? C.accent
                               : C.textSec,
                       }}>
-                      {call.outcome === 'lead_captured' ? 'Lead' : call.outcome === 'transferred' ? 'Transféré' : call.outcome}
+                      {call.outcome === 'lead_captured' ? 'Lead' : call.outcome === 'transferred' ? 'TransfÃ©rÃ©' : call.outcome}
                     </span>
                   )}
                   <ChevronRight size={14} style={{ color: C.textTer }} />
@@ -392,33 +392,33 @@ export default function ClientOverview() {
         </Card>
       </section>
 
-      {/* ─── Quick actions ─── */}
+      {/* â”€â”€â”€ Quick actions â”€â”€â”€ */}
       <section>
         <SectionHead title="Actions rapides" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <QuickAction icon={Phone}    label="Configurer le renvoi"     desc="iPhone et Android — guide pas à pas" to="/dashboard/setup/call-forwarding" />
+          <QuickAction icon={Phone}    label="Configurer le renvoi"     desc="iPhone et Android â€” guide pas Ã  pas" to="/dashboard/setup/call-forwarding" />
           <QuickAction icon={Bot}      label="Personnaliser l'IA"       desc="Voix, scripts, transferts"          to="/dashboard/receptionist" />
-          <QuickAction icon={Settings} label="Paramètres du compte"     desc="Profil, sécurité, notifications"    to="/dashboard/account" />
+          <QuickAction icon={Settings} label="ParamÃ¨tres du compte"     desc="Profil, sÃ©curitÃ©, notifications"    to="/dashboard/account" />
         </div>
       </section>
 
-      {/* ─── Helper / support ─── */}
+      {/* â”€â”€â”€ Helper / support â”€â”€â”€ */}
       <section className="pt-2">
         <Card>
           <div className="p-4 flex items-center gap-3">
             <Headphones size={16} style={{ color: C.textSec }} />
             <p className="text-[12.5px] flex-1" style={{ color: C.text }}>
-              Besoin d'aide ? Notre équipe répond en moins d'une heure.
+              Besoin d'aide ? Notre Ã©quipe rÃ©pond en moins d'une heure.
             </p>
             <Link to="/dashboard/support" className="text-[12px] font-medium hover:underline" style={{ color: C.accent }}>
-              Contacter le support →
+              Contacter le support â†’
             </Link>
           </div>
         </Card>
       </section>
 
       <p className="text-center text-[10px]" style={{ color: C.textTer }}>
-        Qwillio · {c.planType ? `Plan ${c.planType.charAt(0).toUpperCase() + c.planType.slice(1)}` : 'Plan'} · Mis à jour {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+        Qwillio Â· {c.planType ? `Plan ${c.planType.charAt(0).toUpperCase() + c.planType.slice(1)}` : 'Plan'} Â· Mis Ã  jour {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
       </p>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   CreditCard, Check, AlertTriangle, Shield, Phone, Users, FileText, Download,
@@ -16,7 +16,7 @@ const PLANS = [
     setup: 0,
     calls: 800,
     overage: 0.22,
-    features: ['800 appels/mois', 'Réceptionniste IA 24/7', 'Capture de leads', 'Analytiques', 'Support email', 'Transcription des appels'],
+    features: ['800 appels/mois', 'RÃ©ceptionniste IA 24/7', 'Capture de leads', 'Analytiques', 'Support email', 'Transcription des appels'],
   },
   {
     id: 'pro',
@@ -25,7 +25,7 @@ const PLANS = [
     setup: 0,
     calls: 2000,
     overage: 0.18,
-    features: ['2 000 appels/mois', 'Tout Starter inclus', 'Analytiques avancées + sentiments', 'Transfert d\'appel intelligent', 'Support prioritaire', 'Intégrations CRM natives'],
+    features: ['2 000 appels/mois', 'Tout Starter inclus', 'Analytiques avancÃ©es + sentiments', 'Transfert d\'appel intelligent', 'Support prioritaire', 'IntÃ©grations CRM natives'],
     popular: true,
   },
   {
@@ -35,7 +35,7 @@ const PLANS = [
     setup: 0,
     calls: 4000,
     overage: 0.15,
-    features: ['4 000 appels/mois', 'Tout Pro inclus', 'Responsable dédié', 'SLA 99.5% uptime', 'Accès API complet', 'IA auto-apprenante'],
+    features: ['4 000 appels/mois', 'Tout Pro inclus', 'Responsable dÃ©diÃ©', 'SLA 99.5% uptime', 'AccÃ¨s API complet', 'IA auto-apprenante'],
   },
 ];
 
@@ -106,25 +106,25 @@ export default function ClientBilling() {
     <div>
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
         <h1 className="text-[22px] font-semibold text-[#F5F5F7] tracking-tight">Facturation</h1>
-        <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">Gérez votre abonnement et vos factures</p>
+        <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">GÃ©rez votre abonnement et vos factures</p>
       </motion.div>
 
       {/* Trial banner */}
       {client.isTrial && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="flex items-center gap-3 bg-[#7B5CF0]/10 border border-[#7B5CF0]/20 rounded-xl px-5 py-4 mb-6"
+          className="flex items-center gap-3 bg-[#6366F1]/10 border border-[#6366F1]/20 rounded-xl px-5 py-4 mb-6"
         >
-          <Shield size={18} className="text-[#7B5CF0] flex-shrink-0" />
+          <Shield size={18} className="text-[#6366F1] flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-[#F5F5F7]">Essai gratuit — <strong>{daysUntil(client.trialEndDate)} jours restants</strong></p>
-            <p className="text-xs text-[#A1A1A8]">Votre IA s'arrêtera si vous ne passez pas à un plan payant avant la fin de l'essai</p>
+            <p className="text-sm font-medium text-[#F5F5F7]">Essai gratuit â€” <strong>{daysUntil(client.trialEndDate)} jours restants</strong></p>
+            <p className="text-xs text-[#A1A1A8]">Votre IA s'arrÃªtera si vous ne passez pas Ã  un plan payant avant la fin de l'essai</p>
           </div>
         </motion.div>
       )}
 
       {/* Current plan */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl border border-[#7B5CF0]/30 bg-gradient-to-br from-[#7B5CF0]/20 to-[#7B5CF0]/5 p-6 mb-6"
+        className="rounded-xl border border-[#6366F1]/30 bg-gradient-to-br from-[#6366F1]/20 to-[#6366F1]/5 p-6 mb-6"
       >
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -134,14 +134,14 @@ export default function ClientBilling() {
           <StatusBadge status={client.subscriptionStatus || 'active'} />
         </div>
         <div className="flex items-baseline gap-1 mb-5">
-          <span className="text-3xl font-bold text-[#F5F5F7]">{client.currency === 'EUR' ? '€' : '$'}{client.monthlyFee || currentPlan.monthly}</span>
+          <span className="text-3xl font-bold text-[#F5F5F7]">{client.currency === 'EUR' ? 'â‚¬' : '$'}{client.monthlyFee || currentPlan.monthly}</span>
           <span className="text-[#A1A1A8]">/mois</span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
           <div className="bg-white/[0.06] rounded-xl px-4 py-3">
             <Phone size={14} className="text-[#A1A1A8] mb-1" />
             <p className="text-sm font-semibold text-[#F5F5F7]">{overview?.calls?.quotaUsed || 0} / {client.monthlyCallsQuota || currentPlan.calls}</p>
-            <p className="text-[10px] text-[#A1A1A8]">Appels utilisés</p>
+            <p className="text-[10px] text-[#A1A1A8]">Appels utilisÃ©s</p>
           </div>
           <div className="bg-white/[0.06] rounded-xl px-4 py-3">
             <Users size={14} className="text-[#A1A1A8] mb-1" />
@@ -151,16 +151,16 @@ export default function ClientBilling() {
           <div className="bg-white/[0.06] rounded-xl px-4 py-3 hidden md:block">
             <CreditCard size={14} className="text-[#A1A1A8] mb-1" />
             <p className="text-sm font-semibold text-[#F5F5F7]">${(currentPlan as any).overage}/appel</p>
-            <p className="text-[10px] text-[#A1A1A8]">Dépassement de quota</p>
+            <p className="text-[10px] text-[#A1A1A8]">DÃ©passement de quota</p>
           </div>
         </div>
         <div>
           <div className="h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
-            <div className="h-full bg-[#7B5CF0] rounded-full transition-all"
+            <div className="h-full bg-[#6366F1] rounded-full transition-all"
               style={{ width: `${Math.min(overview?.calls?.quotaPercent || 0, 100)}%` }}
             />
           </div>
-          <p className="text-[10px] text-[#A1A1A8] mt-1">{overview?.calls?.quotaPercent || 0}% du quota mensuel utilisé</p>
+          <p className="text-[10px] text-[#A1A1A8] mt-1">{overview?.calls?.quotaPercent || 0}% du quota mensuel utilisÃ©</p>
         </div>
       </motion.div>
 
@@ -173,14 +173,14 @@ export default function ClientBilling() {
             <motion.div key={plan.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               className={`rounded-xl border p-6 relative ${
                 isCurrent
-                  ? 'border-[#7B5CF0] bg-[#7B5CF0]/[0.06]'
+                  ? 'border-[#6366F1] bg-[#6366F1]/[0.06]'
                   : plan.popular
-                    ? 'border-[#7B5CF0]/30 bg-white/[0.03]'
+                    ? 'border-[#6366F1]/30 bg-white/[0.03]'
                     : 'border-white/[0.07] bg-white/[0.03]'
               }`}
             >
               {plan.popular && !isCurrent && (
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#7B5CF0] text-white text-[10px] font-bold px-3 py-0.5 rounded-full">
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#6366F1] text-white text-[10px] font-bold px-3 py-0.5 rounded-full">
                   POPULAIRE
                 </span>
               )}
@@ -194,7 +194,7 @@ export default function ClientBilling() {
                 <span className="text-2xl font-bold text-[#F5F5F7]">${plan.monthly.toLocaleString()}</span>
                 <span className="text-sm text-[#A1A1A8]">/mois</span>
               </div>
-              <p className="text-xs text-[#A1A1A8] mb-4">{plan.calls.toLocaleString()} appels · ${(plan as any).overage}/appel supp.</p>
+              <p className="text-xs text-[#A1A1A8] mb-4">{plan.calls.toLocaleString()} appels Â· ${(plan as any).overage}/appel supp.</p>
               <ul className="space-y-2 mb-6">
                 {plan.features.map((f, j) => (
                   <li key={j} className="flex items-center gap-2 text-sm text-[#F5F5F7]">
@@ -207,9 +207,9 @@ export default function ClientBilling() {
                 <button
                   onClick={() => handleUpgrade(plan.id)}
                   disabled={upgrading === plan.id}
-                  className="w-full py-2.5 text-sm font-medium rounded-xl border border-[#7B5CF0] text-[#7B5CF0] hover:bg-[#7B5CF0] hover:text-white transition-all disabled:opacity-50"
+                  className="w-full py-2.5 text-sm font-medium rounded-xl border border-[#6366F1] text-[#6366F1] hover:bg-[#6366F1] hover:text-white transition-all disabled:opacity-50"
                 >
-                  {upgrading === plan.id ? 'Redirection…' : PLANS.indexOf(plan) > PLANS.indexOf(currentPlan) ? 'Upgrader' : 'Réduire'}
+                  {upgrading === plan.id ? 'Redirectionâ€¦' : PLANS.indexOf(plan) > PLANS.indexOf(currentPlan) ? 'Upgrader' : 'RÃ©duire'}
                 </button>
               )}
             </motion.div>
@@ -220,7 +220,7 @@ export default function ClientBilling() {
       {/* Invoice history */}
       <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-6 mb-6">
         <h2 className="text-sm font-semibold text-[#F5F5F7] mb-4 flex items-center gap-2">
-          <FileText size={16} className="text-[#7B5CF0]" />
+          <FileText size={16} className="text-[#6366F1]" />
           Historique des paiements
         </h2>
         {payments.length > 0 ? (
@@ -245,7 +245,7 @@ export default function ClientBilling() {
                     <td className="py-3">
                       {p.invoiceUrl && (
                         <a href={p.invoiceUrl} target="_blank" rel="noreferrer"
-                          className="text-[#7B5CF0] hover:underline text-xs flex items-center gap-1"
+                          className="text-[#6366F1] hover:underline text-xs flex items-center gap-1"
                         >
                           <Download size={12} /> PDF
                         </a>
@@ -268,14 +268,14 @@ export default function ClientBilling() {
           Annuler l'abonnement
         </h2>
         <p className="text-sm text-[#A1A1A8] mb-4">
-          Une fois annulé, votre réceptionniste IA cessera de répondre. Cette action est irréversible.
+          Une fois annulÃ©, votre rÃ©ceptionniste IA cessera de rÃ©pondre. Cette action est irrÃ©versible.
         </p>
         <button
           onClick={() => setShowCancel(true)}
           disabled={client.subscriptionStatus === 'cancelled'}
           className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-xl hover:bg-red-600 disabled:opacity-40 transition-colors"
         >
-          {client.subscriptionStatus === 'cancelled' ? 'Abonnement annulé' : 'Annuler l\'abonnement'}
+          {client.subscriptionStatus === 'cancelled' ? 'Abonnement annulÃ©' : 'Annuler l\'abonnement'}
         </button>
       </div>
 
@@ -291,7 +291,7 @@ export default function ClientBilling() {
             </div>
             <h3 className="text-lg font-bold text-[#F5F5F7] text-center mb-2">Annuler l'abonnement ?</h3>
             <p className="text-sm text-[#A1A1A8] text-center mb-4">
-              Votre IA s'arrêtera immédiatement. Tapez <strong className="text-[#F5F5F7]">ANNULER</strong> pour confirmer.
+              Votre IA s'arrÃªtera immÃ©diatement. Tapez <strong className="text-[#F5F5F7]">ANNULER</strong> pour confirmer.
             </p>
             <input
               type="text"

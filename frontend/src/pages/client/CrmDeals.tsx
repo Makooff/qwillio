@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, DollarSign, Calendar, TrendingUp, User, Loader2, GripVertical } from 'lucide-react';
 import {
@@ -35,7 +35,7 @@ interface Deal {
 
 const STAGES: { key: DealStage; label: string; color: string; bgLight: string; border: string }[] = [
   { key: 'new',         label: 'New',         color: '#3b82f6', bgLight: 'bg-blue-50',    border: 'border-blue-200' },
-  { key: 'qualified',   label: 'Qualified',   color: '#8b5cf6', bgLight: 'bg-violet-50',  border: 'border-violet-200' },
+  { key: 'qualified',   label: 'Qualified',   color: '#6366F1', bgLight: 'bg-violet-50',  border: 'border-violet-200' },
   { key: 'appointment', label: 'Appointment', color: '#f59e0b', bgLight: 'bg-amber-50',   border: 'border-amber-200' },
   { key: 'client',      label: 'Client',      color: '#10b981', bgLight: 'bg-emerald-50', border: 'border-emerald-200' },
   { key: 'inactive',    label: 'Inactive',    color: '#6b7280', bgLight: 'bg-gray-50',    border: 'border-gray-200' },
@@ -46,7 +46,7 @@ function fmt(n: number) {
   return n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n}`;
 }
 
-// ─── Sortable deal card ───────────────────────────────────────────────────────
+// â”€â”€â”€ Sortable deal card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof STAGES[number]; overlay?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: deal.id });
 
@@ -107,7 +107,7 @@ function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof 
   );
 }
 
-// ─── Droppable column ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Droppable column â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StageColumn({
   stage,
   deals,
@@ -150,7 +150,7 @@ function StageColumn({
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function CrmDeals() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -269,7 +269,7 @@ export default function CrmDeals() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Deal Pipeline</h1>
-          <p className="text-sm text-[#86868b]">{deals.length} deals · ${totalPipeline.toLocaleString()} total pipeline</p>
+          <p className="text-sm text-[#86868b]">{deals.length} deals Â· ${totalPipeline.toLocaleString()} total pipeline</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}

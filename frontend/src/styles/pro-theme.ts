@@ -1,32 +1,39 @@
 /**
- * Qwillio Design Tokens — Signal Dark v2
- * OKLCH. Emerald-drenched dark base (the brand color IS the darkness).
+ * Qwillio Design Tokens — Signal Dark v3
+ * OKLCH. Indigo-tinted dark base — logo Q-circle primary.
+ * Primary: oklch(56% 0.22 264)  ≈ #6366F1 (logo indigo)
+ * Violet:  oklch(67% 0.26 299)  ≈ #A855F7 (logo violet)
  * Skills: taste-skill, emil-design-eng, impeccable
  */
 
 export const pro = {
   // ── Backgrounds ──────────────────────────────────────────────────────────
-  bg:       'oklch(9% 0.014 160)',
-  panel:    'oklch(13% 0.018 160)',
-  panelHi:  'oklch(17% 0.022 160)',
+  bg:       'oklch(8% 0.009 265)',
+  panel:    'oklch(11% 0.013 265)',
+  panelHi:  'oklch(15% 0.017 265)',
 
   // ── Borders ──────────────────────────────────────────────────────────────
-  border:   'oklch(26% 0.014 160 / 0.55)',
-  borderHi: 'oklch(36% 0.016 160 / 0.70)',
+  border:   'oklch(22% 0.012 265 / 0.55)',
+  borderHi: 'oklch(30% 0.014 265 / 0.70)',
 
   // ── Text ─────────────────────────────────────────────────────────────────
-  text:    'oklch(95% 0.006 160)',
-  textSec: 'oklch(62% 0.009 160)',
-  textTer: 'oklch(40% 0.007 160)',
+  text:    'oklch(95% 0.004 265)',
+  textSec: 'oklch(65% 0.007 265)',
+  textTer: 'oklch(42% 0.006 265)',
 
-  // ── Accent — Signal Emerald ───────────────────────────────────────────────
-  accent:     'oklch(68% 0.22 160)',
-  accentHi:   'oklch(74% 0.20 160)',
-  accentDim:  'oklch(68% 0.22 160 / 0.12)',
-  accentGlow: 'oklch(68% 0.22 160 / 0.22)',
-  accentGrad: 'linear-gradient(135deg, oklch(64% 0.23 160) 0%, oklch(72% 0.20 155) 100%)',
-  accentMid:  'oklch(68% 0.22 160 / 0.10)',
-  accentBrd:  'oklch(68% 0.22 160 / 0.35)',
+  // ── Accent — logo Q-circle indigo (PRIMARY) ───────────────────────────────
+  accent:     'oklch(56% 0.22 264)',
+  accentHi:   'oklch(63% 0.21 264)',
+  accentDim:  'oklch(56% 0.22 264 / 0.12)',
+  accentGlow: 'oklch(56% 0.22 264 / 0.22)',
+  accentGrad: 'linear-gradient(135deg, oklch(52% 0.24 264) 0%, oklch(63% 0.22 264) 100%)',
+  accentMid:  'oklch(56% 0.22 264 / 0.10)',
+  accentBrd:  'oklch(56% 0.22 264 / 0.40)',
+
+  // ── Violet — logo W-circle (secondary) ───────────────────────────────────
+  violet:     'oklch(67% 0.26 299)',
+  violetDim:  'oklch(67% 0.26 299 / 0.12)',
+  violetGlow: 'oklch(67% 0.26 299 / 0.20)',
 
   // ── Status ───────────────────────────────────────────────────────────────
   ok:   'oklch(72% 0.18 145)',
@@ -44,8 +51,8 @@ export const pro = {
 export const proShadow = {
   card:  '0 1px 3px oklch(0% 0 0 / 0.60), 0 0 0 1px oklch(100% 0 0 / 0.04)',
   float: '0 8px 40px oklch(0% 0 0 / 0.75), 0 0 0 1px oklch(100% 0 0 / 0.06)',
-  glow:  '0 0 0 1px oklch(68% 0.22 160 / 0.35), 0 4px 24px oklch(68% 0.22 160 / 0.22)',
-  btn:   '0 2px 16px oklch(68% 0.22 160 / 0.45)',
+  glow:  '0 0 0 1px oklch(56% 0.22 264 / 0.35), 0 4px 24px oklch(56% 0.22 264 / 0.22)',
+  btn:   '0 2px 16px oklch(56% 0.22 264 / 0.45)',
 } as const;
 
 export const proCard = {
@@ -57,7 +64,7 @@ export const proCard = {
 
 export const proPrimaryBtn = {
   background: pro.accentGrad,
-  color:      'oklch(9% 0.014 160)',
+  color:      'oklch(98% 0.004 265)',
   boxShadow:  proShadow.btn,
 } as const;
 

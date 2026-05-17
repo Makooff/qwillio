@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -16,8 +16,8 @@ const DEMO_CONTACTS: Record<string, any> = {
     status: 'client', leadScore: 9, company: 'Bright Home Realty', tags: ['VIP', 'Real Estate'],
     address: '4820 Oak Street, Phoenix, AZ 85001', website: 'brighthomerealty.com',
     rating: 4.8, createdAt: 'Feb 14, 2026', lastActivity: '2 hours ago',
-    suggestedAction: 'Schedule quarterly check-in — Sarah is a top client. Upsell opportunity for analytics add-on.',
-    enrichment: { employees: '12–50', industry: 'Real Estate', annualRevenue: '$2.4M', timezone: 'MST' },
+    suggestedAction: 'Schedule quarterly check-in â€” Sarah is a top client. Upsell opportunity for analytics add-on.',
+    enrichment: { employees: '12â€“50', industry: 'Real Estate', annualRevenue: '$2.4M', timezone: 'MST' },
     notes: 'Very responsive. Prefers Zoom calls. Referred 2 clients already. VIP treatment always.',
   },
   '2': {
@@ -25,8 +25,8 @@ const DEMO_CONTACTS: Record<string, any> = {
     status: 'prospect', leadScore: 7, company: 'AutoMax', tags: ['Auto', 'Hot Lead'],
     address: '901 Commerce Blvd, Dallas, TX 75201', website: 'automax.net',
     rating: 4.2, createdAt: 'Mar 10, 2026', lastActivity: '5 hours ago',
-    suggestedAction: 'Follow up by Friday — James is waiting on GM approval. Send a 1-page ROI summary to close.',
-    enrichment: { employees: '50–200', industry: 'Automotive Dealerships', annualRevenue: '$8.1M', timezone: 'CST' },
+    suggestedAction: 'Follow up by Friday â€” James is waiting on GM approval. Send a 1-page ROI summary to close.',
+    enrichment: { employees: '50â€“200', industry: 'Automotive Dealerships', annualRevenue: '$8.1M', timezone: 'CST' },
     notes: 'Decision requires GM sign-off. Budget approved. Very interested in the lead qualifier feature.',
   },
 };
@@ -40,13 +40,13 @@ const FALLBACK_CONTACT = {
 
 const DEMO_TIMELINE: Record<string, any[]> = {
   '1': [
-    { id: 't1', type: 'call',        description: 'Inbound call — discussed renewal. Very happy with the service.', timestamp: '10:32 AM', date: 'Mar 22' },
+    { id: 't1', type: 'call',        description: 'Inbound call â€” discussed renewal. Very happy with the service.', timestamp: '10:32 AM', date: 'Mar 22' },
     { id: 't2', type: 'deal_update', description: 'Renewal deal created: $4,200 for Year 2.', timestamp: '10:45 AM', date: 'Mar 22' },
     { id: 't3', type: 'email',       description: 'Sent renewal proposal with updated pricing.', timestamp: '11:00 AM', date: 'Mar 20' },
     { id: 't4', type: 'note',        description: 'Sarah referred Linda Park. Added to CRM.', timestamp: '2:00 PM', date: 'Mar 18' },
   ],
   '2': [
-    { id: 't5', type: 'call',        description: 'Discovery call — 18 min. Strong interest.', timestamp: '3:22 PM', date: 'Mar 21' },
+    { id: 't5', type: 'call',        description: 'Discovery call â€” 18 min. Strong interest.', timestamp: '3:22 PM', date: 'Mar 21' },
     { id: 't6', type: 'email',       description: 'Sent follow-up proposal email.', timestamp: '8:50 AM', date: 'Mar 22' },
     { id: 't7', type: 'note',        description: 'GM approval expected by end of week.', timestamp: '2:10 PM', date: 'Mar 21' },
   ],
@@ -74,7 +74,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 const STAGE_COLORS: Record<string, string> = {
-  new: '#3b82f6', qualified: '#8b5cf6', appointment: '#f59e0b', client: '#10b981', inactive: '#6b7280', lost: '#ef4444',
+  new: '#3b82f6', qualified: '#6366F1', appointment: '#f59e0b', client: '#10b981', inactive: '#6b7280', lost: '#ef4444',
 };
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -118,7 +118,7 @@ export default function CrmContactDetail() {
         className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6 mb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center flex-shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#6366f1] to-[#6366F1] flex items-center justify-center flex-shrink-0">
               <span className="text-white text-xl font-bold">{contact.name.charAt(0)}</span>
             </div>
             <div>
@@ -257,7 +257,7 @@ export default function CrmContactDetail() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-[#1d1d1f]">{a.description}</p>
-                  <p className="text-xs text-[#86868b] mt-0.5">{a.date} · {a.timestamp}</p>
+                  <p className="text-xs text-[#86868b] mt-0.5">{a.date} Â· {a.timestamp}</p>
                 </div>
               </div>
             ))}
@@ -279,7 +279,7 @@ export default function CrmContactDetail() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-[#1d1d1f]">{a.description}</p>
-                  <p className="text-xs text-[#86868b] mt-0.5">{a.date} · {a.timestamp}</p>
+                  <p className="text-xs text-[#86868b] mt-0.5">{a.date} Â· {a.timestamp}</p>
                 </div>
               </div>
             ))}
@@ -356,7 +356,7 @@ export default function CrmContactDetail() {
                       <div className="flex-1 rounded-2xl border border-[#d2d2d7]/60 bg-white px-4 py-3">
                         <div className="flex items-center justify-between mb-1">
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.iconColor}`}>{cfg.label.toUpperCase()}</span>
-                          <span className="text-[11px] text-[#86868b]">{a.date} · {a.timestamp}</span>
+                          <span className="text-[11px] text-[#86868b]">{a.date} Â· {a.timestamp}</span>
                         </div>
                         <p className="text-[12px] text-[#86868b] leading-relaxed">{a.description}</p>
                       </div>

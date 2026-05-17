@@ -1,30 +1,32 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check, Phone, BarChart2, Clock, Shield } from 'lucide-react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { useSEO } from '../hooks/useSEO';
 import QwillioLogo from '../components/QwillioLogo';
 
-/* ──────────────────────────────────────────────────────
-   Design tokens — Signal Dark
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   Design tokens â€” Signal Dark
    Skills: taste-skill (DV=8 MI=6), emil-design-eng, impeccable
    Scene: directeur commercial Lyon, bureau, 15h, MacBook
-   Theme: emerald-drenched dark — the brand IS the darkness
-   ────────────────────────────────────────────────────── */
+   Theme: emerald-drenched dark â€” the brand IS the darkness
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const D = {
-  bg:        'oklch(9% 0.014 160)',
-  bg2:       'oklch(12% 0.017 160)',
-  bg3:       'oklch(16% 0.020 160)',
+  bg:        'oklch(8% 0.009 265)',
+  bg2:       'oklch(11% 0.013 265)',
+  bg3:       'oklch(15% 0.017 265)',
   bgLight:   'oklch(96% 0.010 55)',
-  border:    'oklch(26% 0.014 160 / 0.55)',
-  borderHi:  'oklch(38% 0.016 160 / 0.70)',
-  text:      'oklch(95% 0.006 160)',
-  text2:     'oklch(62% 0.009 160)',
-  text3:     'oklch(40% 0.007 160)',
-  accent:    'oklch(68% 0.22 160)',
-  accentHi:  'oklch(73% 0.21 160)',
-  accentDim: 'oklch(68% 0.22 160 / 0.12)',
-  accentBrd: 'oklch(68% 0.22 160 / 0.35)',
+  border:    'oklch(22% 0.012 265 / 0.55)',
+  borderHi:  'oklch(30% 0.014 265 / 0.70)',
+  text:      'oklch(95% 0.004 265)',
+  text2:     'oklch(65% 0.007 265)',
+  text3:     'oklch(42% 0.006 265)',
+  accent:    'oklch(56% 0.22 264)',
+  accentHi:  'oklch(63% 0.21 264)',
+  accentDim: 'oklch(56% 0.22 264 / 0.12)',
+  accentBrd: 'oklch(56% 0.22 264 / 0.40)',
+  violet:    'oklch(67% 0.26 299)',
+  violetDim: 'oklch(67% 0.26 299 / 0.12)',
   ok:        'oklch(72% 0.18 145)',
   okDim:     'oklch(72% 0.18 145 / 0.12)',
   lText:     'oklch(12% 0.006 0)',
@@ -33,13 +35,13 @@ const D = {
   lPanel:    'oklch(91% 0.012 55)',
 } as const;
 
-/* ── ease-out expo (emil-design-eng) ── */
+/* â”€â”€ ease-out expo (emil-design-eng) â”€â”€ */
 const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
-/* ──────────────────────────────────────────────────────
-   FadeIn — scroll reveal. scale(0.98) → scale(1).
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   FadeIn â€” scroll reveal. scale(0.98) â†’ scale(1).
    Never from scale(0). (emil-design-eng rule)
-   ────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function FadeIn({
   children,
   delay = 0,
@@ -78,10 +80,10 @@ function FadeIn({
   );
 }
 
-/* ──────────────────────────────────────────────────────
-   MagneticBtn — spring physics on hover.
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   MagneticBtn â€” spring physics on hover.
    MOTION_INTENSITY=6 requirement. Emil spring rule.
-   ────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function MagneticBtn({
   to,
   children,
@@ -158,29 +160,29 @@ function MagneticBtn({
   );
 }
 
-/* ──────────────────────────────────────────────────────
-   Live Call Demo — animated transcript
-   ────────────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   Live Call Demo â€” animated transcript
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const SETS = [
   [
-    { r: 'ai', t: `Bonjour, je suis l'assistante IA de Veritas Solutions. Vous êtes bien M. Mercier ?` },
+    { r: 'ai', t: `Bonjour, je suis l'assistante IA de Veritas Solutions. Vous Ãªtes bien M. Mercier ?` },
     { r: 'h', t: `Oui c'est moi.` },
     { r: 'ai', t: `Parfait. Je vous appelle pour votre besoin CRM. Vous avez 5 minutes ?` },
   ],
   [
     { r: 'ai', t: `Bonjour, j'appelle pour Apex Agency. Votre demande date de 3 jours, j'avais une question.` },
     { r: 'h', t: `Oui, allez-y.` },
-    { r: 'ai', t: `Votre équipe fait combien d'appels par semaine actuellement ?` },
+    { r: 'ai', t: `Votre Ã©quipe fait combien d'appels par semaine actuellement ?` },
   ],
   [
     { r: 'ai', t: `Bonjour Mme Fontaine, c'est Aria pour Kairos Conseil. Votre demande signale que vous prospectez manuellement.` },
-    { r: 'h', t: `C'est ça, c'est chronophage.` },
-    { r: 'ai', t: `Je comprends. Nos clients récupèrent 2h par jour en moyenne. Je vous envoie un exemple ?` },
+    { r: 'h', t: `C'est Ã§a, c'est chronophage.` },
+    { r: 'ai', t: `Je comprends. Nos clients rÃ©cupÃ¨rent 2h par jour en moyenne. Je vous envoie un exemple ?` },
   ],
 ];
 
 const PROSPECTS = [
-  { initials: 'RM', name: 'René Mercier', company: 'Axiom Group' },
+  { initials: 'RM', name: 'RenÃ© Mercier', company: 'Axiom Group' },
   { initials: 'CB', name: 'Clara Bertrand', company: 'Nexum Partners' },
   { initials: 'MF', name: 'M. Fontaine', company: 'ImmoPro Lyon' },
 ];
@@ -279,7 +281,7 @@ function LiveCallDemo() {
               borderRadius: 10,
               fontSize: 13,
               lineHeight: 1.5,
-              color: 'oklch(85% 0.005 160)',
+              color: 'oklch(85% 0.005 265)',
               background: line.r === 'ai' ? D.accentDim : D.bg3,
               border: line.r === 'ai' ? `1px solid ${D.accentBrd}` : `1px solid ${D.border}`,
             }}>
@@ -325,11 +327,11 @@ function LiveCallDemo() {
   );
 }
 
-/* ──────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Main
-   ────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function Landing() {
-  useSEO({ title: `Qwillio — L'IA vocale qui prospecte pour vous` });
+  useSEO({ title: `Qwillio â€” L'IA vocale qui prospecte pour vous` });
 
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -373,11 +375,11 @@ export default function Landing() {
         }
       `}</style>
 
-      {/* ── NAV ── */}
+      {/* â”€â”€ NAV â”€â”€ */}
       <header style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         padding: scrolled ? '0.7rem 0' : '1.3rem 0',
-        background: scrolled ? `oklch(9% 0.014 160 / 0.92)` : 'transparent',
+        background: scrolled ? `oklch(8% 0.009 265 / 0.92)` : 'transparent',
         backdropFilter: scrolled ? 'blur(20px) saturate(160%)' : 'none',
         borderBottom: scrolled ? `1px solid ${D.border}` : '1px solid transparent',
         transition: `all 0.35s ${EASE}`,
@@ -398,7 +400,7 @@ export default function Landing() {
 
           <nav style={{ display: 'flex', gap: '2.5rem' }}>
             {[
-              ['Fonctionnalités', '#features'],
+              ['FonctionnalitÃ©s', '#features'],
               ['Tarifs', '#pricing'],
               ['Blog', '/blog'],
             ].map(([label, href]) => (
@@ -443,7 +445,7 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* ── HERO ── */}
+      {/* â”€â”€ HERO â”€â”€ */}
       <section style={{
         minHeight: '100dvh',
         display: 'grid',
@@ -458,7 +460,7 @@ export default function Landing() {
         <div style={{
           position: 'absolute', top: '25%', left: '-10%',
           width: 600, height: 600,
-          background: `radial-gradient(ellipse at center, oklch(68% 0.22 160 / 0.06) 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse at center, oklch(56% 0.22 264 / 0.06) 0%, transparent 70%)`,
           pointerEvents: 'none', zIndex: 0,
         }} />
 
@@ -478,7 +480,7 @@ export default function Landing() {
               width: 5, height: 5, background: D.accent, borderRadius: '50%',
               animation: 'livePulse 2s ease-in-out infinite',
             }} />
-            IA Vocale B2B — France
+            IA Vocale B2B â€” France
           </div>
 
           {/* H1 */}
@@ -491,7 +493,7 @@ export default function Landing() {
             marginBottom: '1.5rem',
           }}>
             Vos prospects<br />
-            appelés la nuit.<br />
+            appelÃ©s la nuit.<br />
             <span style={{ color: D.accent }}>Rendez-vous pris.</span>
           </h1>
 
@@ -504,7 +506,7 @@ export default function Landing() {
             marginBottom: '2.5rem',
             fontWeight: 400,
           }}>
-            Qwillio automatise les appels froids pour les agences B2B. Premiers appels en 10 minutes, premiers rendez-vous le jour même.
+            Qwillio automatise les appels froids pour les agences B2B. Premiers appels en 10 minutes, premiers rendez-vous le jour mÃªme.
           </p>
 
           {/* CTAs */}
@@ -514,11 +516,11 @@ export default function Landing() {
               <ArrowRight size={16} />
             </MagneticBtn>
             <MagneticBtn to="#demo" variant="ghost">
-              Voir une démonstration
+              Voir une dÃ©monstration
             </MagneticBtn>
           </div>
 
-          {/* Inline stats — no hero-metric template (impeccable ban) */}
+          {/* Inline stats â€” no hero-metric template (impeccable ban) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
             {[
               { val: '47', lbl: 'agences actives' },
@@ -558,7 +560,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── TRUST STRIP ── */}
+      {/* â”€â”€ TRUST STRIP â”€â”€ */}
       <div style={{
         borderTop: `1px solid ${D.border}`,
         borderBottom: `1px solid ${D.border}`,
@@ -590,7 +592,7 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* ── HOW IT WORKS ── */}
+      {/* â”€â”€ HOW IT WORKS â”€â”€ */}
       <section id="features" style={{
         padding: '8rem 2.5rem',
         background: D.bgLight,
@@ -601,8 +603,8 @@ export default function Landing() {
             <div style={{ marginBottom: '5rem' }}>
               <div style={{
                 display: 'inline-block',
-                background: 'oklch(68% 0.22 160 / 0.10)',
-                color: 'oklch(42% 0.18 160)',
+                background: 'oklch(56% 0.22 264 / 0.10)',
+                color: 'oklch(42% 0.18 264)',
                 fontSize: 11, fontWeight: 700,
                 padding: '5px 14px', borderRadius: 999,
                 textTransform: 'uppercase', letterSpacing: '0.09em',
@@ -623,25 +625,25 @@ export default function Landing() {
             </div>
           </FadeIn>
 
-          {/* Steps — zigzag layout, NOT 3-col identical cards */}
+          {/* Steps â€” zigzag layout, NOT 3-col identical cards */}
           {[
             {
               num: '01',
               title: 'Importez vos prospects',
               desc: `Collez un fichier CSV ou connectez votre CRM. Qwillio importe, valide et deduplique vos contacts en quelques secondes. Aucun champ obligatoire au-dela de l'email ou du telephone.`,
-              icon: <BarChart2 size={48} style={{ color: 'oklch(68% 0.22 160)' }} />,
+              icon: <BarChart2 size={48} style={{ color: 'oklch(56% 0.22 264)' }} />,
             },
             {
               num: '02',
               title: `L'IA appelle, qualifie, note`,
               desc: `Ashley appelle chaque prospect sur votre plage horaire, detecte les signaux d'intention, et retranscrit l'echange mot pour mot. Vous recevez un score de qualification + la transcription complete.`,
-              icon: <Phone size={48} style={{ color: 'oklch(68% 0.22 160)' }} />,
+              icon: <Phone size={48} style={{ color: 'oklch(56% 0.22 264)' }} />,
             },
             {
               num: '03',
               title: `Votre equipe ferme les deals`,
               desc: `Vos commerciaux ne voient que les leads chauds. Plus de cold calling inutile. Ils recoivent un briefing complet sur chaque prospect qualifie, avec contexte et prochaine action recommandee.`,
-              icon: <Clock size={48} style={{ color: 'oklch(68% 0.22 160)' }} />,
+              icon: <Clock size={48} style={{ color: 'oklch(56% 0.22 264)' }} />,
             },
           ].map((step, i) => (
             <FadeIn key={step.num} delay={i * 80}>
@@ -689,7 +691,7 @@ export default function Landing() {
                     {step.icon}
                     <div style={{
                       position: 'absolute', inset: 0,
-                      background: `radial-gradient(ellipse at 70% 30%, oklch(68% 0.22 160 / 0.06) 0%, transparent 60%)`,
+                      background: `radial-gradient(ellipse at 70% 30%, oklch(56% 0.22 264 / 0.06) 0%, transparent 60%)`,
                       pointerEvents: 'none',
                     }} />
                   </div>
@@ -700,7 +702,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── TESTIMONIALS ── asymmetric layout, NOT 3-col identical (taste-skill ban) */}
+      {/* â”€â”€ TESTIMONIALS â”€â”€ asymmetric layout, NOT 3-col identical (taste-skill ban) */}
       <section style={{ padding: '8rem 2.5rem', background: D.bg }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <FadeIn style={{ marginBottom: '4rem' }}>
@@ -732,7 +734,7 @@ export default function Landing() {
             gridTemplateRows: 'auto auto',
             gap: '1.5rem',
           }}>
-            {/* Featured quote — spans 2 rows */}
+            {/* Featured quote â€” spans 2 rows */}
             <FadeIn delay={0} style={{ gridRow: '1 / 3' }}>
               <div style={{
                 height: '100%',
@@ -848,7 +850,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── PRICING ── different visual weight per tier */}
+      {/* â”€â”€ PRICING â”€â”€ different visual weight per tier */}
       <section id="pricing" style={{ padding: '8rem 2.5rem', background: D.bg2 }}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <FadeIn style={{ marginBottom: '4rem' }}>
@@ -864,7 +866,7 @@ export default function Landing() {
             </p>
           </FadeIn>
 
-          {/* Asymmetric: 1fr 1.35fr 1fr — Pro is larger */}
+          {/* Asymmetric: 1fr 1.35fr 1fr â€” Pro is larger */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1.35fr 1fr',
@@ -920,7 +922,7 @@ export default function Landing() {
                   borderRadius: 20,
                   padding: tier.popular ? '2.5rem' : '2rem',
                   position: 'relative',
-                  boxShadow: tier.popular ? `0 0 0 1px ${D.accentDim}, 0 8px 32px oklch(68% 0.22 160 / 0.08)` : 'none',
+                  boxShadow: tier.popular ? `0 0 0 1px ${D.accentDim}, 0 8px 32px oklch(56% 0.22 264 / 0.08)` : 'none',
                 }}>
                   {tier.popular && (
                     <div style={{
@@ -945,7 +947,7 @@ export default function Landing() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: '0.4rem' }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: D.text3 }}>€</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: D.text3 }}>â‚¬</span>
                     <span style={{
                       fontSize: tier.popular ? '3.5rem' : '3rem',
                       fontWeight: 800, color: D.text,
@@ -977,7 +979,7 @@ export default function Landing() {
                     background: tier.popular ? D.accent : 'transparent',
                     color: tier.popular ? D.bg : D.text2,
                     border: tier.popular ? 'none' : `1.5px solid ${D.border}`,
-                    boxShadow: tier.popular ? `0 4px 20px oklch(68% 0.22 160 / 0.3)` : 'none',
+                    boxShadow: tier.popular ? `0 4px 20px oklch(56% 0.22 264 / 0.3)` : 'none',
                     transition: `all 0.2s ${EASE}`,
                   }}
                   onMouseEnter={e => {
@@ -1018,7 +1020,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── FINAL CTA ── left-aligned, not centered cliche */}
+      {/* â”€â”€ FINAL CTA â”€â”€ left-aligned, not centered cliche */}
       <section style={{
         padding: '9rem 2.5rem',
         background: D.bg,
@@ -1027,7 +1029,7 @@ export default function Landing() {
         <div style={{
           position: 'absolute', top: '30%', right: '10%',
           width: 500, height: 500,
-          background: `radial-gradient(ellipse at center, oklch(68% 0.22 160 / 0.05) 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse at center, oklch(56% 0.22 264 / 0.05) 0%, transparent 70%)`,
           pointerEvents: 'none',
         }} />
         <div style={{ maxWidth: 680, margin: '0 auto', position: 'relative' }}>
@@ -1071,7 +1073,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
+      {/* â”€â”€ FOOTER â”€â”€ */}
       <footer style={{
         borderTop: `1px solid ${D.border}`,
         padding: '2.5rem',

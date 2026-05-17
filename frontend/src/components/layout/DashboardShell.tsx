@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -10,7 +10,7 @@ import QwillioLogo from '../QwillioLogo';
 import { t } from '../../styles/admin-theme';
 
 /**
- * Shared dashboard shell — sidebar, top bar, mobile bottom nav.
+ * Shared dashboard shell â€” sidebar, top bar, mobile bottom nav.
  * Dark Luxury AI direction: glassmorphism sidebar, purple accent glow.
  *
  * Every dashboard (admin, client, closeuse) uses this component.
@@ -26,22 +26,22 @@ export interface NavItem {
 }
 
 export interface DashboardShellProps {
-  /** Main sidebar nav — rendered at the top of the sidebar. */
+  /** Main sidebar nav â€” rendered at the top of the sidebar. */
   primaryNav: NavItem[];
   /**
-   * Optional expandable "Settings" section — renders a chevron-collapsible
+   * Optional expandable "Settings" section â€” renders a chevron-collapsible
    * group at the bottom of the primary nav, with pl-9 sub-items.
    */
   settingsSub?: NavItem[];
   settingsLabel?: string;
-  /** Exact-pathname → page title map used in the top bar (md+). */
+  /** Exact-pathname â†’ page title map used in the top bar (md+). */
   pageTitles: Record<string, string>;
   pageTitleFallback?: string;
   /** 5-item list for the mobile bottom pill nav. */
   mobileNav: NavItem[];
-  /** e.g. "admin", "closeuse" — shown next to the Qwillio wordmark. */
+  /** e.g. "admin", "closeuse" â€” shown next to the Qwillio wordmark. */
   brandSuffix?: string;
-  /** Unique id — used so each dashboard has its own motion scope. */
+  /** Unique id â€” used so each dashboard has its own motion scope. */
   scope: string;
   /** Fallback label if user.name is empty. */
   userFallbackName: string;
@@ -58,7 +58,7 @@ export interface DashboardShellProps {
 
 export default function DashboardShell(props: DashboardShellProps) {
   const {
-    primaryNav, settingsSub, settingsLabel = 'Paramètres',
+    primaryNav, settingsSub, settingsLabel = 'ParamÃ¨tres',
     pageTitles, pageTitleFallback = 'Qwillio',
     mobileNav, brandSuffix, scope,
     userFallbackName, userFallbackInitials,
@@ -109,9 +109,9 @@ export default function DashboardShell(props: DashboardShellProps) {
         className={`relative flex items-center gap-3 rounded-xl transition-all duration-150 group
           ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
         style={active ? {
-          background: 'oklch(68% 0.22 160 / 0.10)',
-          border: '1px solid oklch(68% 0.22 160 / 0.22)',
-          boxShadow: '0 0 12px oklch(68% 0.22 160 / 0.08)',
+          background: 'oklch(56% 0.22 264 / 0.10)',
+          border: '1px solid oklch(56% 0.22 264 / 0.22)',
+          boxShadow: '0 0 12px oklch(56% 0.22 264 / 0.08)',
           color: t.brand,
         } : {
           color: t.textSec,
@@ -179,7 +179,7 @@ export default function DashboardShell(props: DashboardShellProps) {
       {/* Logo */}
       <div
         className={`flex items-center gap-3 mb-6 flex-shrink-0 pb-4 ${collapsed ? 'justify-center px-0' : 'px-1'}`}
-        style={{ borderBottom: `1px solid oklch(68% 0.22 160 / 0.12)` }}
+        style={{ borderBottom: `1px solid oklch(56% 0.22 264 / 0.12)` }}
       >
         <QwillioLogo size={32} />
         {!collapsed && (
@@ -211,8 +211,8 @@ export default function DashboardShell(props: DashboardShellProps) {
                 className={`w-full relative flex items-center gap-3 rounded-xl transition-all duration-150 group
                   ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
                 style={settingsActive ? {
-                  background: 'oklch(68% 0.22 160 / 0.10)',
-                  border: '1px solid oklch(68% 0.22 160 / 0.22)',
+                  background: 'oklch(56% 0.22 264 / 0.10)',
+                  border: '1px solid oklch(56% 0.22 264 / 0.22)',
                   color: t.brand,
                 } : {
                   color: t.textSec,
@@ -264,7 +264,7 @@ export default function DashboardShell(props: DashboardShellProps) {
         </div>
       </nav>
 
-      {/* Bottom — user + logout */}
+      {/* Bottom â€” user + logout */}
       <div className="flex-shrink-0 space-y-1 mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
         <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${collapsed ? 'justify-center' : ''}`}>
           <div
@@ -283,13 +283,13 @@ export default function DashboardShell(props: DashboardShellProps) {
 
         <button
           onClick={logout}
-          title={collapsed ? 'Déconnexion' : undefined}
+          title={collapsed ? 'DÃ©connexion' : undefined}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:text-red-400 hover:bg-red-500/[0.08] transition-all text-sm
             ${collapsed ? 'justify-center' : ''}`}
           style={{ color: t.textSec }}
         >
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-          {!collapsed && 'Déconnexion'}
+          {!collapsed && 'DÃ©connexion'}
         </button>
       </div>
     </div>
@@ -381,10 +381,10 @@ export default function DashboardShell(props: DashboardShellProps) {
         <header
           className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6"
           style={{
-            background: 'oklch(8% 0.004 160 / 0.85)',
+            background: 'oklch(8% 0.009 265 / 0.85)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            borderBottom: '1px solid oklch(22% 0.006 160 / 0.4)',
+            borderBottom: '1px solid oklch(22% 0.012 265 / 0.4)',
           }}
         >
           <button
@@ -404,7 +404,7 @@ export default function DashboardShell(props: DashboardShellProps) {
 
             <button
               onClick={() => window.location.reload()}
-              title="Rafraîchir"
+              title="RafraÃ®chir"
               className="p-2 rounded-xl hover:bg-white/[0.06] transition-all"
               style={{ color: t.textSec }}
             >
@@ -425,7 +425,7 @@ export default function DashboardShell(props: DashboardShellProps) {
         </main>
       </div>
 
-      {/* Mobile bottom nav — floating pill with sliding bubble (scoped per dashboard) */}
+      {/* Mobile bottom nav â€” floating pill with sliding bubble (scoped per dashboard) */}
       <MobileBottomNav items={mobileNav} pathname={location.pathname} scope={scope} onTap={scrollToTop} />
 
       {overlay}
@@ -448,10 +448,10 @@ function MobileBottomNav({
         <div
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
-            background: 'oklch(11% 0.006 160 / 0.90)',
+            background: 'oklch(11% 0.013 265 / 0.90)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid oklch(22% 0.006 160 / 0.5)',
+            border: '1px solid oklch(22% 0.012 265 / 0.5)',
           }}
         />
 
@@ -466,11 +466,11 @@ function MobileBottomNav({
               width: 68, height: 68,
               top: '50%',
               x: '-50%', y: '-50%',
-              background: 'oklch(68% 0.22 160 / 0.22)',
+              background: 'oklch(56% 0.22 264 / 0.22)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              border: '1.5px solid oklch(68% 0.22 160 / 0.45)',
-              boxShadow: '0 0 32px oklch(68% 0.22 160 / 0.30), inset 0 1px 0 oklch(100% 0 0 / 0.14)',
+              border: '1.5px solid oklch(56% 0.22 264 / 0.45)',
+              boxShadow: '0 0 32px oklch(56% 0.22 264 / 0.30), inset 0 1px 0 oklch(100% 0 0 / 0.14)',
             }}
           />
         )}

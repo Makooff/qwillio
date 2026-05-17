@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, Phone, Users, Clock, Zap, ArrowUp, ArrowDown, DollarSign, Calculator } from 'lucide-react';
 import {
@@ -66,8 +66,8 @@ export default function ClientAnalytics() {
 
   if (error === 'no-profile' || (!data && !loading)) return (
     <div className="flex flex-col items-center justify-center py-24 text-center px-6">
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${error === 'no-profile' ? 'bg-[#7B5CF0]/10' : 'bg-red-400/10'}`}>
-        <BarChart3 size={28} className={error === 'no-profile' ? 'text-[#7B5CF0]' : 'text-red-400'} />
+      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${error === 'no-profile' ? 'bg-[#6366F1]/10' : 'bg-red-400/10'}`}>
+        <BarChart3 size={28} className={error === 'no-profile' ? 'text-[#6366F1]' : 'text-red-400'} />
       </div>
       <h2 className="text-lg font-semibold text-[#F5F5F7] mb-1">
         {error === 'no-profile' ? 'Compte en cours de configuration' : 'Impossible de charger les analytiques'}
@@ -75,17 +75,17 @@ export default function ClientAnalytics() {
       <p className="text-sm text-[#A1A1A8] mb-4 max-w-xs leading-relaxed">
         {error === 'no-profile'
           ? 'Votre espace client est en cours d\'activation.'
-          : (error || 'Vérifiez votre connexion et réessayez.')}
+          : (error || 'VÃ©rifiez votre connexion et rÃ©essayez.')}
       </p>
       <div className="flex gap-3">
         {error === 'no-profile' && (
-          <a href="/dashboard/support" className="px-5 py-2.5 text-sm font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6a4ee0] transition-colors">
+          <a href="/dashboard/support" className="px-5 py-2.5 text-sm font-medium text-white bg-[#6366F1] rounded-xl hover:bg-[#6a4ee0] transition-colors">
             Contacter le support
           </a>
         )}
         <button onClick={() => fetchData()}
           className="px-5 py-2.5 text-sm font-medium text-[#A1A1A8] bg-white/[0.06] rounded-xl hover:bg-white/[0.10] transition-colors">
-          Réessayer
+          RÃ©essayer
         </button>
       </div>
     </div>
@@ -118,8 +118,8 @@ export default function ClientAnalytics() {
   const roi = monthlyFee > 0 ? Math.round(((potentialRevenue - monthlyFee) / monthlyFee) * 100) : 0;
 
   const funnelData = [
-    { stage: 'Total appels', value: summary.totalCalls, color: '#7B5CF0' },
-    { stage: 'Leads captés', value: summary.totalLeads, color: '#a78bfa' },
+    { stage: 'Total appels', value: summary.totalCalls, color: '#6366F1' },
+    { stage: 'Leads captÃ©s', value: summary.totalLeads, color: '#818cf8' },
     { stage: 'Conversions est.', value: Math.round(summary.totalLeads * (summary.conversionRate / 100)), color: '#34d399' },
   ];
 
@@ -128,13 +128,13 @@ export default function ClientAnalytics() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-[22px] font-semibold text-[#F5F5F7] tracking-tight">Analytique</h1>
-          <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">Performances de votre réceptionniste IA</p>
+          <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">Performances de votre rÃ©ceptionniste IA</p>
         </div>
         <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1">
           {[7, 30, 90].map(d => (
             <button key={d} onClick={() => setPeriod(d)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                period === d ? 'bg-[#7B5CF0] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'
+                period === d ? 'bg-[#6366F1] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'
               }`}
             >
               {d}j
@@ -147,9 +147,9 @@ export default function ClientAnalytics() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
           { label: 'Total appels', value: summary.totalCalls, delta: callsDelta, icon: Phone },
-          { label: 'Leads captés', value: summary.totalLeads, delta: leadsDelta, icon: Users },
+          { label: 'Leads captÃ©s', value: summary.totalLeads, delta: leadsDelta, icon: Users },
           { label: 'Taux conversion', value: `${summary.conversionRate}%`, icon: Zap },
-          { label: 'Durée moy.', value: formatDuration(summary.avgCallDuration), icon: Clock },
+          { label: 'DurÃ©e moy.', value: formatDuration(summary.avgCallDuration), icon: Clock },
         ].map((kpi, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
             className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-4"
@@ -181,8 +181,8 @@ export default function ClientAnalytics() {
                 <AreaChart data={daily}>
                   <defs>
                     <linearGradient id="gCalls" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#7B5CF0" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#7B5CF0" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#6366F1" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#6366F1" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} />
@@ -193,12 +193,12 @@ export default function ClientAnalytics() {
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#8B8BA7' }} tickFormatter={d => formatShortDate(d)} />
                   <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} width={28} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
-                  <Area type="monotone" dataKey="calls" stroke="#7B5CF0" fill="url(#gCalls)" strokeWidth={2} name="Appels" />
+                  <Area type="monotone" dataKey="calls" stroke="#6366F1" fill="url(#gCalls)" strokeWidth={2} name="Appels" />
                   <Area type="monotone" dataKey="leads" stroke="#fbbf24" fill="url(#gLeads)" strokeWidth={2} name="Leads" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-sm text-[#A1A1A8]">Pas encore de données</div>
+              <div className="h-full flex items-center justify-center text-sm text-[#A1A1A8]">Pas encore de donnÃ©es</div>
             )}
           </div>
         </div>
@@ -236,12 +236,12 @@ export default function ClientAnalytics() {
                   })}
                   <div className="pt-2 border-t border-white/[0.07]">
                     <p className="text-xs text-[#A1A1A8]">Score satisfaction</p>
-                    <p className="text-lg font-bold text-[#7B5CF0]">{summary.satisfactionScore}%</p>
+                    <p className="text-lg font-bold text-[#6366F1]">{summary.satisfactionScore}%</p>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">Pas de données sentiment</p>
+              <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">Pas de donnÃ©es sentiment</p>
             )}
           </div>
         </div>
@@ -258,11 +258,11 @@ export default function ClientAnalytics() {
                   <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#8B8BA7' }} />
                   <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} width={24} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
-                  <Bar dataKey="calls" fill="#7B5CF0" radius={[4, 4, 0, 0]} name="Appels" />
+                  <Bar dataKey="calls" fill="#6366F1" radius={[4, 4, 0, 0]} name="Appels" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-sm text-[#A1A1A8]">Pas encore de données</div>
+              <div className="h-full flex items-center justify-center text-sm text-[#A1A1A8]">Pas encore de donnÃ©es</div>
             )}
           </div>
         </div>
@@ -270,7 +270,7 @@ export default function ClientAnalytics() {
         {/* Day distribution */}
         <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-6">
           <h3 className="text-sm font-semibold text-[#F5F5F7] mb-1">Appels par jour</h3>
-          <p className="text-xs text-[#A1A1A8] mb-4">Jours les plus chargés</p>
+          <p className="text-xs text-[#A1A1A8] mb-4">Jours les plus chargÃ©s</p>
           <div className="h-48">
             {dayData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -279,11 +279,11 @@ export default function ClientAnalytics() {
                   <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#8B8BA7' }} />
                   <YAxis tick={{ fontSize: 10, fill: '#8B8BA7' }} width={24} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
-                  <Bar dataKey="calls" fill="#a78bfa" radius={[4, 4, 0, 0]} name="Appels" />
+                  <Bar dataKey="calls" fill="#818cf8" radius={[4, 4, 0, 0]} name="Appels" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-sm text-[#A1A1A8]">Pas encore de données</div>
+              <div className="h-full flex items-center justify-center text-sm text-[#A1A1A8]">Pas encore de donnÃ©es</div>
             )}
           </div>
         </div>
@@ -313,16 +313,16 @@ export default function ClientAnalytics() {
 
       {/* ROI Calculator */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-        className="rounded-xl border border-[#7B5CF0]/20 bg-[#7B5CF0]/[0.04] p-6"
+        className="rounded-xl border border-[#6366F1]/20 bg-[#6366F1]/[0.04] p-6"
       >
         <h3 className="text-sm font-semibold text-[#F5F5F7] mb-4 flex items-center gap-2">
-          <Calculator size={16} className="text-[#7B5CF0]" />
+          <Calculator size={16} className="text-[#6366F1]" />
           Calculateur ROI
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-4">
             <div>
-              <label className="text-xs text-[#A1A1A8] mb-1.5 block">Coût par lead (manuel)</label>
+              <label className="text-xs text-[#A1A1A8] mb-1.5 block">CoÃ»t par lead (manuel)</label>
               <div className="flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3">
                 <DollarSign size={14} className="text-[#A1A1A8]" />
                 <input type="number" value={costPerLead} onChange={e => setCostPerLead(Number(e.target.value))}
@@ -342,11 +342,11 @@ export default function ClientAnalytics() {
           </div>
           <div className="space-y-3">
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
-              <p className="text-xs text-[#A1A1A8]">Leads captés (Qwillio)</p>
-              <p className="text-xl font-bold text-[#7B5CF0]">{summary.totalLeads}</p>
+              <p className="text-xs text-[#A1A1A8]">Leads captÃ©s (Qwillio)</p>
+              <p className="text-xl font-bold text-[#6366F1]">{summary.totalLeads}</p>
             </div>
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
-              <p className="text-xs text-[#A1A1A8]">Équivalent coût manuel</p>
+              <p className="text-xs text-[#A1A1A8]">Ã‰quivalent coÃ»t manuel</p>
               <p className="text-xl font-bold text-amber-400">${leadsValue.toLocaleString()}</p>
             </div>
           </div>

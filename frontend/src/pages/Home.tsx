@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
 import {
@@ -12,7 +12,7 @@ import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
 
-/* ── FadeIn wrapper (scroll-triggered via CSS) ── */
+/* â”€â”€ FadeIn wrapper (scroll-triggered via CSS) â”€â”€ */
 function FadeIn({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -37,7 +37,7 @@ function FadeIn({ children, delay = 0, className = '' }: { children: React.React
   );
 }
 
-/* ── Animated counter ── */
+/* â”€â”€ Animated counter â”€â”€ */
 function Counter({ value, suffix = '', prefix = '' }: { value: number; suffix?: string; prefix?: string }) {
   const [n, setN] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
@@ -64,14 +64,14 @@ function Counter({ value, suffix = '', prefix = '' }: { value: number; suffix?: 
   return <span ref={ref}>{prefix}{n.toLocaleString()}{suffix}</span>;
 }
 
-/* ── Main Page ── */
+/* â”€â”€ Main Page â”€â”€ */
 export default function Home() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
   useSEO({
     title: 'Qwillio',
     description: isFr
-      ? 'Qwillio est votre réceptionniste IA qui répond à chaque appel, prend les rendez-vous et ne dort jamais. Automatisez votre entreprise 24/7.'
+      ? 'Qwillio est votre rÃ©ceptionniste IA qui rÃ©pond Ã  chaque appel, prend les rendez-vous et ne dort jamais. Automatisez votre entreprise 24/7.'
       : 'Qwillio is your AI receptionist that answers every call, books appointments, and never sleeps. Automate your business 24/7.',
     canonical: 'https://qwillio.com/',
   });
@@ -84,12 +84,12 @@ export default function Home() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /* Firefly particles — edge-to-edge, gentle perpendicular curve, slow uniform speed */
+  /* Firefly particles â€” edge-to-edge, gentle perpendicular curve, slow uniform speed */
   const antParticles = useMemo(() => {
     const r = (n: number) => ((n * 9301 + 49297) % 233280) / 233280;
-    const cols = ['#6366f1','#8b5cf6','#4f46e5','#a855f7','#6366f1'];
+    const cols = ['#6366f1','#6366F1','#4f46e5','#a855f7','#6366f1'];
 
-    // Spawn on one edge, exit on opposite or adjacent — straight traversal with gentle curve
+    // Spawn on one edge, exit on opposite or adjacent â€” straight traversal with gentle curve
     const onEdge = (edge: number, t: number) => {
       switch (edge) {
         case 0: return { x: -4,      y: t * 100 }; // left
@@ -106,7 +106,7 @@ export default function Home() {
       const glowSpread = 32 + Math.round(r(s+3) * 24);
       const opacity = +(0.55 + r(s+6) * 0.3).toFixed(2);
 
-      // Random entry edge → random exit edge (not same)
+      // Random entry edge â†’ random exit edge (not same)
       const startEdge = Math.floor(r(s+20) * 4);
       const endEdge   = (startEdge + 1 + Math.floor(r(s+21) * 3)) % 4;
       const p0 = onEdge(startEdge, r(s+22));
@@ -117,13 +117,13 @@ export default function Home() {
       const myBase = (p0.y + p1.y) / 2;
       const dx = p1.x - p0.x, dy = p1.y - p0.y;
       const len = Math.sqrt(dx*dx + dy*dy) || 1;
-      const offset = (r(s+24) - 0.5) * 30; // ±15 units curve
+      const offset = (r(s+24) - 0.5) * 30; // Â±15 units curve
       const xm = +(mxBase + (-dy/len) * offset).toFixed(1);
       const ym = +(myBase + (dx/len)  * offset).toFixed(1);
 
-      // Speed: nearly uniform 9–12s (slight variation only)
+      // Speed: nearly uniform 9â€“12s (slight variation only)
       const dur = +(9 + r(s+7) * 3).toFixed(1);
-      // Each its own gentle easing — NOT synchronized
+      // Each its own gentle easing â€” NOT synchronized
       const b1 = +(0.3 + r(s+50) * 0.3).toFixed(2);
       const b2 = +(r(s+51) * 0.2).toFixed(2);
       const b3 = +(0.5 + r(s+52) * 0.3).toFixed(2);
@@ -220,7 +220,7 @@ export default function Home() {
     <div className="min-h-screen bg-white">
       <PublicNavbar />
 
-      {/* ══════════ HERO ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• HERO â•â•â•â•â•â•â•â•â•â• */}
       <style>{`
         ${particleCSS}
         @keyframes shimmer {
@@ -241,7 +241,7 @@ export default function Home() {
 
       <section className="relative pt-28 pb-24 md:pt-40 md:pb-32 overflow-hidden bg-white">
 
-        {/* ── Ant-colony: small blurry orbs travelling fast across the background ── */}
+        {/* â”€â”€ Ant-colony: small blurry orbs travelling fast across the background â”€â”€ */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {antParticles.map(p => (
             <div
@@ -271,7 +271,7 @@ export default function Home() {
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight text-[#1d1d1f] leading-[1.08] mb-6">
               {isFr ? 'Votre entreprise.' : 'Your business.'}<br />
               <span className="bg-gradient-to-r from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">
-                {isFr ? "Amplifiée par l'IA." : 'Amplified by AI.'}
+                {isFr ? "AmplifiÃ©e par l'IA." : 'Amplified by AI.'}
               </span>
             </h1>
           </FadeIn>
@@ -279,8 +279,8 @@ export default function Home() {
           <FadeIn delay={200}>
             <p className="text-lg md:text-xl text-[#86868b] max-w-2xl mx-auto mb-10 leading-relaxed">
               {isFr
-                ? "Réceptionniste, agent, CRM, facturation — Qwillio réunit tout en une plateforme intelligente qui travaille pour vous 24/7."
-                : 'Receptionist, agent, CRM, billing — Qwillio brings everything into one intelligent platform that works for you 24/7.'}
+                ? "RÃ©ceptionniste, agent, CRM, facturation â€” Qwillio rÃ©unit tout en une plateforme intelligente qui travaille pour vous 24/7."
+                : 'Receptionist, agent, CRM, billing â€” Qwillio brings everything into one intelligent platform that works for you 24/7.'}
             </p>
           </FadeIn>
 
@@ -291,7 +291,7 @@ export default function Home() {
                 className="group inline-flex items-center gap-2 bg-[#6366f1] text-white text-base font-medium px-8 py-3.5 rounded-full hover:bg-[#4f46e5] transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-[#6366f1]/30 shadow-lg shadow-[#6366f1]/20"
               >
                 <Play size={16} className="transition-transform duration-300 group-hover:scale-110" />
-                {isFr ? 'Essayer la démo' : 'Try the demo'}
+                {isFr ? 'Essayer la dÃ©mo' : 'Try the demo'}
               </a>
               <Link
                 to="/pricing"
@@ -307,7 +307,7 @@ export default function Home() {
           <FadeIn delay={400}>
             <div className="flex flex-row items-stretch justify-center w-full">
               {[
-                { value: '98%',    label: isFr ? 'Taux de réponse'      : 'Answer rate' },
+                { value: '98%',    label: isFr ? 'Taux de rÃ©ponse'      : 'Answer rate' },
                 { value: '2 500+', label: isFr ? 'Appels / jour'         : 'Calls / day' },
                 { value: '35%',    label: isFr ? 'Plus de rendez-vous'   : 'More appointments' },
               ].map((stat, i) => (
@@ -321,7 +321,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════ PRODUCT SHOWCASE ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• PRODUCT SHOWCASE â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-20 md:py-28 bg-white">
         <div className="max-w-[1120px] mx-auto px-6">
           <FadeIn>
@@ -422,7 +422,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════ HOW IT WORKS ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• HOW IT WORKS â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-20 md:py-28 bg-[#f5f5f7]">
         <div className="max-w-[1120px] mx-auto px-6">
           <FadeIn>
@@ -455,7 +455,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════ KEY NUMBERS (DARK) ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• KEY NUMBERS (DARK) â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-20 md:py-28 bg-[#1d1d1f] text-white relative overflow-hidden">
         {/* Decorative gradient orbs */}
         <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-[#6366f1]/10 blur-3xl pointer-events-none" />
@@ -464,7 +464,7 @@ export default function Home() {
         <div className="relative max-w-[1120px] mx-auto px-6">
           <FadeIn>
             <div className="text-center mb-16">
-              <p className="text-sm font-semibold text-[#a78bfa] uppercase tracking-wider mb-3">
+              <p className="text-sm font-semibold text-[#818cf8] uppercase tracking-wider mb-3">
                 {isFr ? 'En chiffres' : 'By the numbers'}
               </p>
               <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">
@@ -485,7 +485,7 @@ export default function Home() {
               ].map((stat, i) => (
                 <div key={i} className={`flex-1 flex flex-col items-center justify-center px-1 py-2 text-center group ${i > 0 ? 'border-l border-white/10' : ''}`}>
                   <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center mx-auto mb-2 group-hover:bg-[#6366f1]/20 transition-colors">
-                    <stat.icon size={16} className="text-[#a78bfa]" />
+                    <stat.icon size={16} className="text-[#818cf8]" />
                   </div>
                   <p className="text-2xl sm:text-3xl font-semibold tracking-tight whitespace-nowrap mb-0.5">
                     <Counter value={stat.value} suffix={stat.suffix} />
@@ -498,7 +498,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════ INDUSTRIES ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• INDUSTRIES â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-20 md:py-28 bg-white">
         <div className="max-w-[1120px] mx-auto px-6">
           <FadeIn>
@@ -531,7 +531,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════ TESTIMONIALS ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• TESTIMONIALS â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-20 md:py-28 bg-[#f5f5f7]">
         <div className="max-w-[1120px] mx-auto px-6">
           <FadeIn>
@@ -573,7 +573,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════ CTA ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• CTA â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-20 md:py-28 bg-white">
         <div className="max-w-[1120px] mx-auto px-6">
           <FadeIn>

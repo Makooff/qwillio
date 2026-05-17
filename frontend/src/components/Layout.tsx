@@ -1,11 +1,11 @@
-import React from 'react';
+﻿import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const Q = {
-  bg:       'oklch(8% 0.004 160)',
-  accent:   'oklch(68% 0.22 160)',
-  accentDim:'oklch(68% 0.22 160 / 0.15)',
-  border:   'oklch(22% 0.006 160 / 0.6)',
+  bg:       'oklch(8% 0.009 265)',
+  accent:   'oklch(56% 0.22 264)',
+  accentDim:'oklch(56% 0.22 264 / 0.15)',
+  border:   'oklch(22% 0.012 265 / 0.6)',
   textMuted:'oklch(38% 0.004 0)',
 };
 
@@ -36,7 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Bottom nav */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, height: 76,
-        background: 'oklch(8% 0.004 160 / 0.96)',
+        background: 'oklch(8% 0.009 265 / 0.96)',
         backdropFilter: 'blur(20px)',
         borderTop: `1px solid ${Q.border}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-around',
