@@ -7,7 +7,7 @@ import path from 'path';
 import rateLimit from 'express-rate-limit';
 import { env } from './config/env';
 import { logger } from './config/logger';
-import { prisma } from './config/database';
+import { prisma, basePrisma } from './config/database';
 import { errorMiddleware } from './middleware/error.middleware';
 import { botLoop } from './jobs/bot-loop';
 import { initSocket } from './config/socket';
@@ -228,7 +228,8 @@ async function startServer() {
       while (Date.now() < deadline) {
         attempt++;
         try {
-          await prisma.$queryRaw`SELECT 1`;
+          // Use basePrisma (no retry middleware) so each probe has a fast timeout
+          await (basePrisma as any).$queryRaw`SELECT 1`;
           dbReady = true;
           logger.info(`Database ready (attempt ${attempt})`);
           break;
