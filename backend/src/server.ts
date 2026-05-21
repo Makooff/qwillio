@@ -52,6 +52,10 @@ import agencyRoutes from './routes/agency.routes';
 
 const app = express();
 
+// Render (and most PaaS) sit behind a reverse proxy — trust it so
+// express-rate-limit can read the real client IP from X-Forwarded-For.
+app.set('trust proxy', 1);
+
 // ─── Security ────────────────────────────────────────────
 app.use(helmet());
 const allowedOrigins = new Set(env.FRONTEND_URL.split(',').map(o => o.trim()).filter(Boolean));
