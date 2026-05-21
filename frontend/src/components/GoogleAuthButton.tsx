@@ -2,7 +2,6 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { useLang } from '../stores/langStore';
 
 const GoogleSVG = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
@@ -22,7 +21,6 @@ interface Props {
 function GoogleButton({ mode, disabled, onError }: Props) {
   const { googleLogin } = useAuthStore();
   const navigate = useNavigate();
-  const { t } = useLang();
   const [loading, setLoading] = useState(false);
   const [slow, setSlow] = useState(false);
 
@@ -46,22 +44,22 @@ function GoogleButton({ mode, disabled, onError }: Props) {
         await googleLogin(tokenResponse.access_token, 'token');
         clearTimeout(slowTimer);
         clearTimeout(abortTimer);
-        if (timedOut) return;
+        // Always navigate on success, even if the slow-start timer fired
+        setLoading(false);
+        setSlow(false);
         const { user } = useAuthStore.getState();
         navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
       } catch (err: any) {
         clearTimeout(slowTimer);
         clearTimeout(abortTimer);
+        setLoading(false);
+        setSlow(false);
+        // Don't overwrite the timeout message if it already fired
         if (timedOut) return;
         if (!err.response) {
           onError('Serveur indisponible. Réessaie dans quelques secondes.');
         } else {
           onError(err.response.data?.error || `Google Sign-${mode === 'login' ? 'In' : 'Up'} failed`);
-        }
-      } finally {
-        if (!timedOut) {
-          setLoading(false);
-          setSlow(false);
         }
       }
     },
@@ -76,9 +74,7 @@ function GoogleButton({ mode, disabled, onError }: Props) {
     flow: 'implicit',
   });
 
-  const label = mode === 'login'
-    ? (t('login.google') || 'Se connecter avec Google')
-    : (t('register.google') || "S'inscrire avec Google");
+  const label = mode === 'login' ? 'Se connecter avec Google' : "S'inscrire avec Google";
 
   const loadingLabel = slow ? 'Démarrage du serveur...' : 'Connexion en cours...';
 
