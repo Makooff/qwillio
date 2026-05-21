@@ -12,6 +12,14 @@ import { stripe } from '../config/stripe';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
+function sanitizeError(error: any): string {
+  const msg: string = error?.message || '';
+  if (msg.includes("Can't reach database") || msg.includes('neon.tech') || msg.includes('P1001') || msg.includes('P1008')) {
+    return 'Service temporairement indisponible. Réessayez dans quelques secondes.';
+  }
+  return msg;
+}
+
 export class AuthController {
   async login(req: Request, res: Response) {
     try {
@@ -58,7 +66,7 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ error: sanitizeError(error) });
     }
   }
 
@@ -124,7 +132,7 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ error: sanitizeError(error) });
     }
   }
 
@@ -185,7 +193,7 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: sanitizeError(error) });
     }
   }
 
@@ -223,7 +231,7 @@ export class AuthController {
       logger.info(`Confirmation email resent to ${user.email}`);
       res.json({ message: 'Confirmation email sent' });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: sanitizeError(error) });
     }
   }
 
@@ -326,7 +334,7 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: sanitizeError(error) });
     }
   }
 
@@ -411,7 +419,7 @@ export class AuthController {
       });
     } catch (error: any) {
       logger.error('Google auth error:', error?.message || error);
-      res.status(500).json({ error: error?.message || 'Google authentication failed' });
+      res.status(500).json({ error: sanitizeError(error) || 'Google authentication failed' });
     }
   }
 
@@ -444,7 +452,7 @@ export class AuthController {
       const { client, ...rest } = user;
       res.json({ ...rest, clientId: client?.id || null, token: freshToken });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: sanitizeError(error) });
     }
   }
 }
