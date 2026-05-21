@@ -410,8 +410,8 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      logger.error('Google auth error:', error);
-      res.status(401).json({ error: 'Google authentication failed' });
+      logger.error('Google auth error:', error?.message || error);
+      res.status(500).json({ error: error?.message || 'Google authentication failed' });
     }
   }
 
