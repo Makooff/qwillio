@@ -12,12 +12,24 @@ import { stripe } from '../config/stripe';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
-function sanitizeError(error: any): string {
+function isColdStartError(error: any): boolean {
   const msg: string = error?.message || '';
-  if (msg.includes("Can't reach database") || msg.includes('neon.tech') || msg.includes('P1001') || msg.includes('P1008')) {
+  return (
+    msg.includes("Can't reach database") ||
+    msg.includes('neon.tech') ||
+    msg.includes('P1001') ||
+    msg.includes('P1008') ||
+    msg.includes('Connection refused') ||
+    msg.includes('ECONNRESET') ||
+    error?.constructor?.name === 'PrismaClientInitializationError'
+  );
+}
+
+function sanitizeError(error: any): string {
+  if (isColdStartError(error)) {
     return 'Service temporairement indisponible. Réessayez dans quelques secondes.';
   }
-  return msg;
+  return error?.message || '';
 }
 
 export class AuthController {
@@ -418,7 +430,11 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      logger.error('Google auth error:', error?.message || error);
+      if (isColdStartError(error)) {
+        logger.warn('Google auth cold-start DB error (non-fatal):', error?.message);
+      } else {
+        logger.error('Google auth error:', error?.message || error);
+      }
       res.status(500).json({ error: sanitizeError(error) || 'Google authentication failed' });
     }
   }
