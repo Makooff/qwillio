@@ -1,7 +1,7 @@
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 const GoogleSVG = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
@@ -18,47 +18,53 @@ interface Props {
   onError: (msg: string) => void;
 }
 
+const MAX_ATTEMPTS = 6;
+const RETRY_DELAY  = 8000; // ms between retries
+
 function GoogleButton({ mode, disabled, onError }: Props) {
   const { googleLogin } = useAuthStore();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [slow, setSlow] = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [attempt, setAttempt]   = useState(0);
+  const cancelledRef = useRef(false);
+
+  async function doLogin(token: string, attemptNum: number): Promise<void> {
+    if (cancelledRef.current) return;
+    setAttempt(attemptNum);
+    try {
+      await googleLogin(token, 'token');
+      if (cancelledRef.current) return;
+      const { user } = useAuthStore.getState();
+      navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
+    } catch (err: any) {
+      if (cancelledRef.current) return;
+      const isServerError = !err?.response || err?.response?.status === 500 || err?.response?.status === 503;
+      if (isServerError && attemptNum < MAX_ATTEMPTS) {
+        // Server/DB still cold — retry after delay
+        await new Promise(r => setTimeout(r, RETRY_DELAY));
+        return doLogin(token, attemptNum + 1);
+      }
+      // Final failure or non-retryable error
+      const msg = err?.response?.data?.error;
+      onError(msg || 'Serveur indisponible. Réessaie dans quelques secondes.');
+      setLoading(false);
+      setAttempt(0);
+    }
+  }
 
   const googleSignIn = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       onError('');
+      cancelledRef.current = false;
       setLoading(true);
-      setSlow(false);
-
-      // After 8s show "starting server" — Neon free tier can take up to 3min to wake
-      const slowTimer = setTimeout(() => setSlow(true), 8000);
-
-      try {
-        await googleLogin(tokenResponse.access_token, 'token');
-        clearTimeout(slowTimer);
-        const { user } = useAuthStore.getState();
-        navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
-      } catch (err: any) {
-        clearTimeout(slowTimer);
-        const msg = err?.response?.data?.error;
-        if (msg) {
-          onError(msg);
-        } else if (err?.code === 'ECONNABORTED' || !err?.response) {
-          onError('Serveur indisponible. Réessaie dans quelques secondes.');
-        } else {
-          onError(`Erreur Google Sign-In. Utilise email/mot de passe.`);
-        }
-      } finally {
-        clearTimeout(slowTimer);
-        setLoading(false);
-        setSlow(false);
-      }
+      setAttempt(1);
+      await doLogin(tokenResponse.access_token, 1);
     },
     onError: (err?: any) => {
       const code = err?.error || '';
       if (code === 'popup_closed_by_user' || code === 'access_denied') return;
-      if (code === 'idpiframe_initialization_failed' || code === 'popup_blocked_by_browser') {
-        onError('Le popup Google a été bloqué. Autorise les popups pour ce site.');
+      if (code === 'popup_blocked_by_browser') {
+        onError('Popup bloqué. Autorise les popups pour ce site.');
       } else {
         onError('Google Sign-In non configuré pour ce domaine. Utilise email/mot de passe.');
       }
@@ -66,8 +72,14 @@ function GoogleButton({ mode, disabled, onError }: Props) {
     flow: 'implicit',
   });
 
-  const label = mode === 'login' ? 'Se connecter avec Google' : "S'inscrire avec Google";
-  const loadingLabel = slow ? 'Démarrage du serveur...' : 'Connexion en cours...';
+  const baseLabel = mode === 'login' ? 'Se connecter avec Google' : "S'inscrire avec Google";
+
+  function getLabel() {
+    if (!loading) return baseLabel;
+    if (attempt <= 1) return 'Connexion en cours...';
+    if (attempt <= 2) return 'Démarrage du serveur...';
+    return `Connexion... (${attempt}/${MAX_ATTEMPTS})`;
+  }
 
   return (
     <button
@@ -77,12 +89,11 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       className="w-full inline-flex items-center justify-center gap-2 bg-white text-[#1d1d1f] text-base font-medium px-6 py-3.5 rounded-full border border-[#d2d2d7] hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <GoogleSVG />
-      {loading ? loadingLabel : label}
+      {getLabel()}
     </button>
   );
 }
 
-// Only renders if VITE_GOOGLE_CLIENT_ID is configured — prevents broken OAuth errors
 export default function GoogleAuthButton(props: Props) {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   if (!clientId) return null;
