@@ -431,9 +431,13 @@ async function startServer() {
       }
     }
 
-    // Initialize bot loop (creates bot_status record if needed)
-    await botLoop.initialize();
-    logger.info('Bot loop initialized');
+    // Initialize bot loop (non-fatal — DB may still be waking up)
+    try {
+      await botLoop.initialize();
+      logger.info('Bot loop initialized');
+    } catch (initErr) {
+      logger.warn('Bot loop init failed (non-fatal, will retry on first cron tick):', initErr);
+    }
 
     // Auto-start bot loop in production
     if (env.NODE_ENV === 'production') {
