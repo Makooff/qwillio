@@ -24,19 +24,29 @@ function GoogleButton({ mode, disabled, onError }: Props) {
   const navigate = useNavigate();
   const { t } = useLang();
   const [loading, setLoading] = useState(false);
+  const [slow, setSlow] = useState(false);
 
   const googleSignIn = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       onError('');
       setLoading(true);
+      setSlow(false);
+      const slowTimer = setTimeout(() => setSlow(true), 8000);
       try {
         await googleLogin(tokenResponse.access_token, 'token');
+        clearTimeout(slowTimer);
         const { user } = useAuthStore.getState();
         navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
       } catch (err: any) {
-        onError(err.response?.data?.error || `Google Sign-${mode === 'login' ? 'In' : 'Up'} failed`);
+        clearTimeout(slowTimer);
+        if (!err.response) {
+          onError('Serveur indisponible. Réessaie dans quelques secondes.');
+        } else {
+          onError(err.response.data?.error || `Google Sign-${mode === 'login' ? 'In' : 'Up'} failed`);
+        }
       } finally {
         setLoading(false);
+        setSlow(false);
       }
     },
     onError: (err?: any) => {
@@ -54,6 +64,8 @@ function GoogleButton({ mode, disabled, onError }: Props) {
     ? (t('login.google') || 'Se connecter avec Google')
     : (t('register.google') || "S'inscrire avec Google");
 
+  const loadingLabel = slow ? 'Démarrage du serveur...' : 'Connexion en cours...';
+
   return (
     <button
       type="button"
@@ -62,7 +74,7 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       className="w-full inline-flex items-center justify-center gap-2 bg-white text-[#1d1d1f] text-base font-medium px-6 py-3.5 rounded-full border border-[#d2d2d7] hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <GoogleSVG />
-      {loading ? '...' : label}
+      {loading ? loadingLabel : label}
     </button>
   );
 }
