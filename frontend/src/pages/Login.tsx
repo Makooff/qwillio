@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, Eye, EyeOff, BarChart2, Phone, Clock } from 'lucide-react';
@@ -42,12 +42,6 @@ export default function Login() {
   const [showPw, setShowPw]   = useState(false);
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Pre-warm Render backend on mount so it's awake before the user submits
-  useEffect(() => {
-    const url = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/api$/, '');
-    fetch(`${url}/api/health`, { method: 'GET' }).catch(() => {/* silent — just waking the dyno */});
-  }, []);
 
   const { login } = useAuthStore();
   const navigate  = useNavigate();

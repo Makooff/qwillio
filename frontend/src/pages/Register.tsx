@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, Mail, Check, Eye, EyeOff } from 'lucide-react';
@@ -46,24 +46,6 @@ const QUOTES = [
 
 export default function Register() {
   useSEO({ title: 'Créer un compte — Qwillio', noindex: true });
-
-  const [serverReady, setServerReady] = useState(false);
-
-  useEffect(() => {
-    const url = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/api$/, '');
-    let cancelled = false;
-    const ping = async () => {
-      while (!cancelled) {
-        try {
-          const res = await fetch(`${url}/api/health`, { method: 'GET', signal: AbortSignal.timeout(8000) });
-          if (res.ok) { if (!cancelled) setServerReady(true); return; }
-        } catch { /* still waking */ }
-        await new Promise(r => setTimeout(r, 4000));
-      }
-    };
-    ping();
-    return () => { cancelled = true; };
-  }, []);
 
   const [step, setStep]           = useState<Step>('form');
   const [email, setEmail]         = useState('');
@@ -228,12 +210,7 @@ export default function Register() {
               )}
 
               {/* Google button */}
-              {!serverReady && (
-                <p className="text-center text-[12px] mb-2" style={{ color: D.text3 }}>
-                  Démarrage du serveur...
-                </p>
-              )}
-              <GoogleAuthButton mode="register" onError={setError} disabled={loading || !serverReady} />
+              <GoogleAuthButton mode="register" onError={setError} disabled={loading} />
 
               {/* Divider */}
               <div className="relative my-5 flex items-center gap-3">
