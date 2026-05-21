@@ -5,7 +5,7 @@ const baseURL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
 
 const api = axios.create({
   baseURL,
-  timeout: 20000,
+  timeout: 90000,
   headers: {
     'Content-Type': 'application/json',
     ...(import.meta.env.DEV ? { 'ngrok-skip-browser-warning': 'true' } : {}),
@@ -20,6 +20,28 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Auto-retry on 500 "service unavailable" (Neon cold-start propagated through)
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const status = error.response?.status;
+    const errMsg = error.response?.data?.error || '';
+    const config = error.config;
+
+    if (
+      status === 500 &&
+      errMsg.includes('temporairement indisponible') &&
+      !config._retried
+    ) {
+      config._retried = true;
+      await new Promise(r => setTimeout(r, 5000));
+      return api(config);
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 // Interceptor to handle auth errors globally
 api.interceptors.response.use(

@@ -1,11 +1,11 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, Eye, EyeOff, BarChart2, Phone, Clock } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
+import GoogleAuthButton from '../components/GoogleAuthButton';
 import { useSEO } from '../hooks/useSEO';
 
-/* â”€â”€ Design tokens (emerald-drenched dark) â”€â”€ */
 const D = {
   bg:        'oklch(8% 0.009 265)',
   bg2:       'oklch(11% 0.013 265)',
@@ -15,7 +15,6 @@ const D = {
   text3:     'oklch(42% 0.006 265)',
   accent:    'oklch(56% 0.22 264)',
   accentHi:  'oklch(63% 0.21 264)',
-  accentDim: 'oklch(56% 0.22 264 / 0.12)',
   accentBrd: 'oklch(56% 0.22 264 / 0.40)',
   bad:       'oklch(65% 0.22 25)',
   badDim:    'oklch(65% 0.22 25 / 0.10)',
@@ -25,41 +24,30 @@ const D = {
   lText2:    'oklch(40% 0.006 0)',
 } as const;
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  background: 'oklch(6% 0.007 265)',
-  border: `1px solid ${D.border}`,
-  borderRadius: 10,
-  padding: '13px 16px',
-  color: D.text,
-  fontSize: 15,
-  fontFamily: `'Outfit', system-ui, sans-serif`,
-  outline: 'none',
-  transition: 'border-color 0.15s',
-  boxSizing: 'border-box',
-};
+const inputCls = `
+  w-full bg-[oklch(6%_0.007_265)] border border-[oklch(22%_0.012_265/0.55)]
+  rounded-[10px] px-4 py-[13px] text-[oklch(95%_0.004_265)] text-[15px]
+  font-[Outfit,system-ui,sans-serif] outline-none
+  transition-colors focus:border-[oklch(56%_0.22_264/0.40)]
+  placeholder:text-[oklch(35%_0.006_265)]
+`.replace(/\s+/g, ' ').trim();
 
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 11,
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.08em',
-  color: D.text3,
-  marginBottom: 8,
-};
+const labelCls = 'block text-[11px] font-bold uppercase tracking-[0.08em] text-[oklch(42%_0.006_265)] mb-2';
 
 export default function Login() {
-  useSEO({ title: 'Connexion â€” Qwillio', noindex: true });
+  useSEO({ title: 'Connexion — Qwillio', noindex: true });
 
-  const [email, setEmail]       = useState('');
+  const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw]     = useState(false);
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [showPw, setShowPw]   = useState(false);
+  const [error, setError]     = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Clear any stale error when the page first mounts
+  useEffect(() => { setError(''); }, []);
 
   const { login } = useAuthStore();
-  const navigate   = useNavigate();
+  const navigate  = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,167 +66,182 @@ export default function Login() {
   }
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      minHeight: '100dvh',
-      fontFamily: `'Outfit', system-ui, sans-serif`,
-    }}>
-      {/* â”€â”€ LEFT â€” cream brand panel â”€â”€ */}
-      <div style={{
-        background: D.lBg,
-        padding: '4rem',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        borderRight: `1px solid ${D.lBorder}`,
-      }}>
-        <Link to="/" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          fontSize: 18, fontWeight: 800, color: D.lText,
-          letterSpacing: '-0.025em', textDecoration: 'none',
-        }}>
+    <div
+      className="min-h-dvh grid lg:grid-cols-2"
+      style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}
+    >
+      {/* ── LEFT — cream brand panel (desktop only) ── */}
+      <div
+        className="hidden lg:flex flex-col justify-between p-16 border-r"
+        style={{ background: D.lBg, borderColor: D.lBorder }}
+      >
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-[18px] font-extrabold no-underline tracking-[-0.025em]"
+          style={{ color: D.lText }}
+        >
           <QwillioLogo size={26} />
           Qwillio
         </Link>
 
         <div>
-          <div style={{
-            display: 'inline-block',
-            background: 'oklch(56% 0.22 264 / 0.10)',
-            color: 'oklch(42% 0.18 264)',
-            fontSize: 10, fontWeight: 700,
-            padding: '5px 12px', borderRadius: 999,
-            textTransform: 'uppercase', letterSpacing: '0.09em',
-            marginBottom: '1.5rem',
-          }}>
+          <div
+            className="inline-block text-[10px] font-bold uppercase tracking-[0.09em] px-3 py-1.5 rounded-full mb-6"
+            style={{
+              background: 'oklch(56% 0.22 264 / 0.10)',
+              color: 'oklch(42% 0.18 264)',
+            }}
+          >
             Plateforme IA vocale
           </div>
-          <h2 style={{
-            fontSize: 'clamp(1.8rem, 3vw, 2.6rem)',
-            fontWeight: 800, color: D.lText,
-            letterSpacing: '-0.035em', lineHeight: 1.1,
-            marginBottom: '1rem',
-          }}>
-            Vos prospects{` `}
-            <span style={{ color: 'oklch(52% 0.20 264)' }}>appelÃ©s</span>
-            {`. Vos rendez-vous pris.`}
+          <h2
+            className="font-extrabold tracking-[-0.035em] leading-[1.1] mb-4"
+            style={{
+              fontSize: 'clamp(1.8rem, 3vw, 2.6rem)',
+              color: D.lText,
+            }}
+          >
+            Vos prospects{' '}
+            <span style={{ color: 'oklch(52% 0.20 264)' }}>appelés</span>
+            {'. Vos rendez-vous pris.'}
           </h2>
-          <p style={{ fontSize: 15, color: D.lText2, lineHeight: 1.65, maxWidth: 360 }}>
-            L'IA vocale B2B qui prospecte pendant que votre Ã©quipe dort.
+          <p className="text-[15px] leading-[1.65] max-w-[360px]" style={{ color: D.lText2 }}>
+            L'IA vocale B2B qui prospecte pendant que votre équipe dort.
           </p>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+        <div className="flex flex-col gap-3.5">
           {[
             { icon: <Phone size={14} />, text: `Appels IA indiscernables d'un humain` },
             { icon: <BarChart2 size={14} />, text: 'Qualification automatique des leads' },
-            { icon: <Clock size={14} />, text: 'Premiers rendez-vous le jour mÃªme' },
+            { icon: <Clock size={14} />, text: 'Premiers rendez-vous le jour même' },
           ].map((f, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 30, height: 30,
-                background: 'oklch(56% 0.22 264 / 0.10)',
-                border: '1px solid oklch(56% 0.22 264 / 0.22)',
-                borderRadius: 7,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'oklch(42% 0.18 264)', flexShrink: 0,
-              }}>
+            <div key={i} className="flex items-center gap-2.5">
+              <div
+                className="w-[30px] h-[30px] rounded-[7px] flex items-center justify-center shrink-0"
+                style={{
+                  background: 'oklch(56% 0.22 264 / 0.10)',
+                  border: '1px solid oklch(56% 0.22 264 / 0.22)',
+                  color: 'oklch(42% 0.18 264)',
+                }}
+              >
                 {f.icon}
               </div>
-              <span style={{ fontSize: 13, color: D.lText2, fontWeight: 500 }}>{f.text}</span>
+              <span className="text-[13px] font-medium" style={{ color: D.lText2 }}>{f.text}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* â”€â”€ RIGHT â€” dark form panel â”€â”€ */}
-      <div style={{
-        background: D.bg,
-        padding: '4rem',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        position: 'relative',
-      }}>
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          background: `radial-gradient(ellipse 400px 300px at 70% 15%, oklch(56% 0.22 264 / 0.06) 0%, transparent 70%)`,
-          pointerEvents: 'none',
-        }} />
+      {/* ── RIGHT — dark form panel ── */}
+      <div
+        className="flex flex-col justify-center min-h-dvh px-5 py-10 sm:px-10 lg:px-16 relative"
+        style={{ background: D.bg }}
+      >
+        {/* Glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 400px 300px at 70% 15%, oklch(56% 0.22 264 / 0.06) 0%, transparent 70%)',
+          }}
+        />
 
-        <div style={{ position: 'relative', maxWidth: 400, width: '100%', margin: '0 auto' }}>
-          <div style={{ marginBottom: '2.5rem' }}>
-            <h1 style={{
-              fontSize: '1.8rem', fontWeight: 800,
-              color: D.text, letterSpacing: '-0.035em',
-              marginBottom: '0.4rem',
-            }}>
+        {/* Mobile logo */}
+        <div className="lg:hidden mb-8 relative">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-[17px] font-extrabold no-underline tracking-[-0.025em]"
+            style={{ color: D.text }}
+          >
+            <QwillioLogo size={24} />
+            Qwillio
+          </Link>
+        </div>
+
+        <div className="relative w-full max-w-sm mx-auto">
+          <div className="mb-8">
+            <h1
+              className="text-[1.8rem] font-extrabold tracking-[-0.035em] mb-1"
+              style={{ color: D.text }}
+            >
               Bienvenue
             </h1>
-            <p style={{ fontSize: 15, color: D.text2 }}>
-              Connectez-vous Ã  votre espace Qwillio.
+            <p className="text-[15px]" style={{ color: D.text2 }}>
+              Connectez-vous à votre espace Qwillio.
             </p>
           </div>
 
           {error && (
-            <div style={{
-              background: D.badDim,
-              border: `1px solid ${D.bad}`,
-              borderRadius: 10, padding: '10px 14px',
-              fontSize: 13, color: D.bad, marginBottom: '1.2rem',
-            }}>
+            <div
+              className="rounded-[10px] px-3.5 py-2.5 text-[13px] mb-5"
+              style={{
+                background: D.badDim,
+                border: `1px solid ${D.bad}`,
+                color: D.bad,
+              }}
+            >
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+          {/* Google button */}
+          <GoogleAuthButton mode="login" onError={setError} disabled={loading} />
+
+          {/* Divider */}
+          <div className="relative my-5 flex items-center gap-3">
+            <div className="flex-1 h-px" style={{ background: D.border }} />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ color: D.text3 }}>
+              ou
+            </span>
+            <div className="flex-1 h-px" style={{ background: D.border }} />
+          </div>
+
+          {/* Email / password form */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div>
-              <label style={labelStyle}>Adresse email</label>
+              <label htmlFor="login-email" className={labelCls}>Adresse email</label>
               <input
-                type="email" value={email}
+                id="login-email"
+                type="email"
+                value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="vous@agence.fr"
-                required autoComplete="email"
-                style={inputStyle}
-                onFocus={e => { e.target.style.borderColor = D.accentBrd; }}
-                onBlur={e => { e.target.style.borderColor = D.border; }}
+                required
+                autoComplete="email"
+                className={inputCls}
               />
             </div>
 
             <div>
-              <label style={labelStyle}>Mot de passe</label>
-              <div style={{ position: 'relative' }}>
+              <label htmlFor="login-password" className={labelCls}>Mot de passe</label>
+              <div className="relative">
                 <input
+                  id="login-password"
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-                  required autoComplete="current-password"
-                  style={{ ...inputStyle, paddingRight: 44 }}
-                  onFocus={e => { e.target.style.borderColor = D.accentBrd; }}
-                  onBlur={e => { e.target.style.borderColor = D.border; }}
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                  className={`${inputCls} pr-11`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  style={{
-                    position: 'absolute', right: 12, top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: D.text3, display: 'flex', alignItems: 'center', padding: 0,
-                  }}
+                  aria-label={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0 bg-transparent border-none cursor-pointer flex items-center"
+                  style={{ color: D.text3 }}
                 >
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <div style={{ marginTop: 8, textAlign: 'right' }}>
-                <a href="#" style={{ fontSize: 12, color: D.text3, textDecoration: 'none',
-                  transition: 'color 0.2s' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = D.accent)}
-                  onMouseLeave={e => (e.currentTarget.style.color = D.text3)}
+              <div className="mt-2 text-right">
+                <a
+                  href="#"
+                  className="text-[12px] no-underline transition-colors hover:text-[oklch(56%_0.22_264)]"
+                  style={{ color: D.text3 }}
                 >
-                  Mot de passe oubliÃ© ?
+                  Mot de passe oublié ?
                 </a>
               </div>
             </div>
@@ -246,28 +249,12 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
+              className="w-full py-[13px] rounded-xl text-[15px] font-bold border-none cursor-pointer flex items-center justify-center gap-2 transition-all mt-1 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
-                width: '100%', padding: '13px 0',
                 background: loading ? 'oklch(40% 0.10 264)' : D.accent,
                 color: loading ? D.text2 : D.bg,
-                border: 'none', borderRadius: 12,
-                fontSize: 15, fontWeight: 700,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                fontFamily: `'Outfit', system-ui, sans-serif`,
-                transition: 'all 0.18s',
-                letterSpacing: '0.01em', marginTop: '0.4rem',
-                boxShadow: loading ? 'none' : `0 4px 16px oklch(56% 0.22 264 / 0.3)`,
-              }}
-              onMouseEnter={e => {
-                if (!loading) {
-                  e.currentTarget.style.background = D.accentHi;
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = loading ? 'oklch(40% 0.10 264)' : D.accent;
-                e.currentTarget.style.transform = 'translateY(0)';
+                boxShadow: loading ? 'none' : '0 4px 16px oklch(56% 0.22 264 / 0.3)',
+                fontFamily: "'Outfit', system-ui, sans-serif",
               }}
             >
               {loading ? 'Connexion...' : 'Se connecter'}
@@ -275,10 +262,10 @@ export default function Login() {
             </button>
           </form>
 
-          <p style={{ marginTop: '1.5rem', fontSize: 13, color: D.text3 }}>
+          <p className="mt-5 text-[13px]" style={{ color: D.text3 }}>
             Pas encore de compte ?{' '}
-            <Link to="/register" style={{ color: D.accent, fontWeight: 600, textDecoration: 'none' }}>
-              CrÃ©er un compte
+            <Link to="/register" className="font-semibold no-underline" style={{ color: D.accent }}>
+              Créer un compte
             </Link>
           </p>
         </div>
