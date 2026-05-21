@@ -2,11 +2,26 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+function escapeNonAscii() {
+  return {
+    name: 'escape-non-ascii',
+    generateBundle(_: any, bundle: any) {
+      for (const chunk of Object.values(bundle) as any[]) {
+        if (chunk.type === 'chunk' && typeof chunk.code === 'string') {
+          chunk.code = chunk.code.replace(/[^\x00-\x7F]/g, (c: string) => {
+            const cp = c.codePointAt(0)!;
+            return cp > 0xffff
+              ? `\\u{${cp.toString(16)}}`
+              : `\\u${cp.toString(16).padStart(4, '0')}`;
+          });
+        }
+      }
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [react()],
-  esbuild: {
-    charset: 'ascii',
-  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -24,6 +39,7 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 500,
     rollupOptions: {
+      plugins: [escapeNonAscii()],
       output: {
         manualChunks(id) {
           if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/'))
