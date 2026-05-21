@@ -30,41 +30,33 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       setLoading(true);
       setSlow(false);
 
-      // Hard timeout: if backend doesn't respond in 75s, reset and ask to retry
-      let timedOut = false;
-      const slowTimer   = setTimeout(() => setSlow(true), 8000);
-      const abortTimer  = setTimeout(() => {
-        timedOut = true;
-        setLoading(false);
-        setSlow(false);
-        onError('Le serveur démarre, réessayez dans 20 secondes.');
-      }, 75000);
+      // After 8s show "starting server" — Neon free tier can take up to 3min to wake
+      const slowTimer = setTimeout(() => setSlow(true), 8000);
 
       try {
         await googleLogin(tokenResponse.access_token, 'token');
         clearTimeout(slowTimer);
-        clearTimeout(abortTimer);
-        // Always navigate on success, even if the slow-start timer fired
-        setLoading(false);
-        setSlow(false);
         const { user } = useAuthStore.getState();
         navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
       } catch (err: any) {
         clearTimeout(slowTimer);
-        clearTimeout(abortTimer);
-        setLoading(false);
-        setSlow(false);
-        // Don't overwrite the timeout message if it already fired
-        if (timedOut) return;
-        if (!err.response) {
+        const msg = err?.response?.data?.error;
+        if (msg) {
+          onError(msg);
+        } else if (err?.code === 'ECONNABORTED' || !err?.response) {
           onError('Serveur indisponible. Réessaie dans quelques secondes.');
         } else {
-          onError(err.response.data?.error || `Google Sign-${mode === 'login' ? 'In' : 'Up'} failed`);
+          onError(`Erreur Google Sign-In. Utilise email/mot de passe.`);
         }
+      } finally {
+        clearTimeout(slowTimer);
+        setLoading(false);
+        setSlow(false);
       }
     },
     onError: (err?: any) => {
       const code = err?.error || '';
+      if (code === 'popup_closed_by_user' || code === 'access_denied') return;
       if (code === 'idpiframe_initialization_failed' || code === 'popup_blocked_by_browser') {
         onError('Le popup Google a été bloqué. Autorise les popups pour ce site.');
       } else {
@@ -75,13 +67,12 @@ function GoogleButton({ mode, disabled, onError }: Props) {
   });
 
   const label = mode === 'login' ? 'Se connecter avec Google' : "S'inscrire avec Google";
-
   const loadingLabel = slow ? 'Démarrage du serveur...' : 'Connexion en cours...';
 
   return (
     <button
       type="button"
-      onClick={() => googleSignIn()}
+      onClick={() => !loading && googleSignIn()}
       disabled={disabled || loading}
       className="w-full inline-flex items-center justify-center gap-2 bg-white text-[#1d1d1f] text-base font-medium px-6 py-3.5 rounded-full border border-[#d2d2d7] hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
