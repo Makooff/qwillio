@@ -1,4 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
+import QwillioLoader from '../components/QwillioLoader';
+import { useToast } from '../hooks/useToast';
+import ToastContainer from '../components/ui/Toast';
 import {
   Bot, Play, Pause, RefreshCw, AlertCircle,
   Activity, Zap, Users, DollarSign, Phone,
@@ -103,6 +106,8 @@ function ChartTooltip({ active, payload, label }: {
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
+  const [showIntro, setShowIntro]   = useState(() => !sessionStorage.getItem('qw-intro-played'));
+  const [introFading, setIntroFading] = useState(false);
   const [botStatus, setBotStatus]   = useState<BotStatus | null>(null);
   const [stats, setStats]           = useState<DashStats | null>(null);
   const [activity, setActivity]     = useState<ActivityItem[]>([]);
@@ -112,6 +117,17 @@ export default function Dashboard() {
   const [error, setError]           = useState<string | null>(null);
   const [busy, setBusy]             = useState(false);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const { toasts, add: addToast, remove: removeToast } = useToast();
+
+  useEffect(() => {
+    if (!showIntro) return;
+    const fadeTimer = window.setTimeout(() => setIntroFading(true), 2300);
+    const hideTimer = window.setTimeout(() => {
+      setShowIntro(false);
+      sessionStorage.setItem('qw-intro-played', '1');
+    }, 2750);
+    return () => { window.clearTimeout(fadeTimer); window.clearTimeout(hideTimer); };
+  }, [showIntro]);
 
   const load = useCallback(async () => {
     try {
@@ -170,10 +186,10 @@ export default function Dashboard() {
       if (!r.ok) {
         const err: unknown = await r.json().catch(() => ({}));
         const msg = (err as Record<string, string>).error ?? 'Échec';
-        alert(`Erreur ${r.status}: ${msg}`);
+        addToast(`Erreur ${r.status}: ${msg}`, 'error');
       }
     } catch (e: unknown) {
-      alert(`Erreur réseau : ${e instanceof Error ? e.message : 'inconnu'}`);
+      addToast(`Erreur réseau : ${e instanceof Error ? e.message : 'inconnu'}`, 'error');
     }
     await load();
     setBusy(false);
@@ -186,7 +202,7 @@ export default function Dashboard() {
         method: 'POST',
         headers: getHeaders(),
       });
-      if (!r.ok) alert(`Erreur ${r.status}`);
+      if (!r.ok) addToast(`Erreur ${r.status}`, 'error');
     } catch { /* intentional */ }
     setActionBusy(null);
     await load();
@@ -200,8 +216,8 @@ export default function Dashboard() {
           {[0, 1, 2, 3].map(i => <SkeletonCard key={i} />)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <SkeletonCard h="h-56" />
-          <SkeletonCard h="h-56" />
+          <div className="lg:col-span-3"><SkeletonCard h="h-56" /></div>
+          <div className="lg:col-span-2"><SkeletonCard h="h-56" /></div>
         </div>
       </div>
     );
@@ -252,6 +268,27 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5 admin-page">
+      <ToastContainer toasts={toasts} remove={removeToast} />
+
+      {showIntro && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9998,
+            background: '#0A0A0F',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: introFading ? 0 : 1,
+            transition: 'opacity 450ms ease-out',
+            pointerEvents: introFading ? 'none' : 'auto',
+          }}
+        >
+          <QwillioLoader fullscreen={false} size={160} />
+        </div>
+      )}
 
       {/* ── Page header ───────────────────────────────────────────────── */}
       <PageHeader
@@ -328,7 +365,7 @@ export default function Dashboard() {
                 aria-label="Quota d'appels"
               >
                 <div
-                  className="h-full rounded-full transition-all duration-700"
+                  className="h-full rounded-full transition-[width] duration-700 ease-out"
                   style={{ width: `${pct}%`, background: barColor }}
                 />
               </div>
@@ -341,7 +378,7 @@ export default function Dashboard() {
             <button
               onClick={toggleBot}
               disabled={busy}
-              className="inline-flex items-center gap-1.5 px-4 h-9 rounded-full text-[12.5px] font-semibold transition-all disabled:opacity-40 flex-shrink-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="inline-flex items-center gap-1.5 px-4 h-9 rounded-full text-[12.5px] font-semibold transition-colors disabled:opacity-40 flex-shrink-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               style={{
                 background:  active ? 'rgba(239,68,68,0.10)' : pro.accentGrad,
                 color:       active ? pro.bad : '#fff',
@@ -548,7 +585,7 @@ export default function Dashboard() {
                   key={label}
                   onClick={() => quickAction(label, endpoint)}
                   disabled={actionBusy === label}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all disabled:opacity-50 hover:brightness-110 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors disabled:opacity-50 hover:brightness-110 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                   style={{
                     background: `${color}12`,
                     border: `1px solid ${color}28`,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import {
@@ -65,9 +65,10 @@ export default function SelfOnboard() {
       }
 
       navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard');
-    } catch (err: any) {
-      const errData = err.response?.data?.error;
-      setError(typeof errData === 'string' ? errData : (errData?.message || err.message || 'Something went wrong.'));
+    } catch (err: unknown) {
+      const response = (err as { response?: { data?: { error?: string | { message?: string } } } })?.response;
+      const errData = response?.data?.error;
+      setError(typeof errData === 'string' ? errData : ((errData as { message?: string })?.message || (err instanceof Error ? err.message : 'Something went wrong.')));
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,7 @@ export default function SelfOnboard() {
         </div>
         <div className="h-1 bg-[#d2d2d7]/30">
           <div
-            className="h-full bg-[#6366f1] transition-all duration-500 ease-out"
+            className="h-full bg-[#6366f1] transition-colors duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -110,7 +111,7 @@ export default function SelfOnboard() {
         {[1, 2, 3].map(s => (
           <div
             key={s}
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
               s < step
                 ? 'bg-[#6366f1] text-white'
                 : s === step
@@ -155,7 +156,7 @@ export default function SelfOnboard() {
                     type="text"
                     value={businessName}
                     onChange={e => setBusinessName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
                     placeholder="Acme Inc."
                     required
                   />
@@ -165,7 +166,7 @@ export default function SelfOnboard() {
                   <select
                     value={industry}
                     onChange={e => setIndustry(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
                   >
                     <option value="">{t('selfOnboard.selectIndustry')}</option>
                     <option value="restaurant">Restaurant / Food</option>
@@ -186,7 +187,7 @@ export default function SelfOnboard() {
                     type="url"
                     value={website}
                     onChange={e => setWebsite(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
                     placeholder="https://mywebsite.com"
                   />
                 </div>
@@ -214,7 +215,7 @@ export default function SelfOnboard() {
                     type="tel"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
                     placeholder="+1 (555) 123-4567"
                   />
                   <p className="text-xs text-[#86868b] mt-2">{t('selfOnboard.phoneHint')}</p>
@@ -241,7 +242,7 @@ export default function SelfOnboard() {
                   <button
                     key={plan.key}
                     onClick={() => setSelectedPlan(plan.key)}
-                    className={`w-full flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl border-2 transition-all text-left ${
+                    className={`w-full flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl border-2 transition-colors text-left ${
                       selectedPlan === plan.key
                         ? 'border-[#6366f1] bg-white'
                         : 'border-[#d2d2d7] bg-white hover:border-[#86868b]'

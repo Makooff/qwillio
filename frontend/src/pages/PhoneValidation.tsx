@@ -7,7 +7,19 @@ import StatCard from '../components/ui/StatCard';
 import { t, glass, tooltipStyle } from '../styles/admin-theme';
 
 export default function PhoneValidation() {
-  const [data, setData] = useState<any>(null);
+  interface PhoneData {
+    totalWithPhone?: number;
+    total?: number;
+    validated?: number;
+    valid?: number;
+    notValidated?: number;
+    invalid?: number;
+    validatedPct?: number;
+    validRate?: number;
+    confidence?: { high: number; medium: number; low: number };
+    [key: string]: unknown;
+  }
+  const [data, setData] = useState<PhoneData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

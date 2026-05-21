@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { ChevronDown, ChevronRight, RefreshCw, GitBranch } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../hooks/useToast';
@@ -53,7 +53,7 @@ function WinRateBar({ rate }: { rate: number }) {
     <div className="flex items-center gap-2">
       <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
         <div
-          className="h-full rounded-full transition-all duration-300"
+          className="h-full rounded-full transition-[width] duration-300 ease-out"
           style={{ width: `${pct}%`, background: winRateBarColor(rate) }}
         />
       </div>

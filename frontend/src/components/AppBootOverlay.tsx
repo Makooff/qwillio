@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
-import QwillioLoader from './QwillioLoader';
+import OrbsLoader from './OrbsLoader';
 
 /**
  * Fullscreen boot overlay that plays the Qwillio logo animation in full
@@ -12,7 +12,7 @@ import QwillioLoader from './QwillioLoader';
  *   - the minimum animation duration has elapsed (so the intro never cuts)
  */
 export default function AppBootOverlay({
-  minDurationMs = 2500,
+  minDurationMs = 900,
   fadeMs = 450,
   background,
 }: {
@@ -63,7 +63,7 @@ export default function AppBootOverlay({
         pointerEvents: fadingOut ? 'none' : 'auto',
       }}
     >
-      <QwillioLoader fullscreen={false} size={160} />
+      <OrbsLoader size={48} />
     </div>
   );
 }

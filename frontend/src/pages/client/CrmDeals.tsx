@@ -33,6 +33,28 @@ interface Deal {
   company?: string;
 }
 
+interface RawDeal {
+  id: string;
+  contactName?: string;
+  title?: string;
+  value?: number | string;
+  probability?: number;
+  closeDate?: string;
+  stage?: string;
+  contact?: { name?: string; niche?: string };
+}
+
+interface NewDealState {
+  contactName: string;
+  title: string;
+  value: string;
+  probability: string;
+  closeDate: string;
+  stage: DealStage;
+}
+
+type NewDealTextField = 'contactName' | 'title' | 'value' | 'closeDate';
+
 const STAGES: { key: DealStage; label: string; color: string; bgLight: string; border: string }[] = [
   { key: 'new',         label: 'New',         color: '#3b82f6', bgLight: 'bg-blue-50',    border: 'border-blue-200' },
   { key: 'qualified',   label: 'Qualified',   color: '#6366F1', bgLight: 'bg-violet-50',  border: 'border-violet-200' },
@@ -42,11 +64,18 @@ const STAGES: { key: DealStage; label: string; color: string; bgLight: string; b
   { key: 'lost',        label: 'Lost',        color: '#ef4444', bgLight: 'bg-red-50',     border: 'border-red-200' },
 ];
 
+const MODAL_FIELDS: Array<{ label: string; key: NewDealTextField; type: string; placeholder: string }> = [
+  { label: 'Contact Name *', key: 'contactName', type: 'text',   placeholder: 'Jane Smith' },
+  { label: 'Deal Title *',   key: 'title',       type: 'text',   placeholder: 'AI Receptionist Setup' },
+  { label: 'Value ($)',      key: 'value',       type: 'number', placeholder: '2500' },
+  { label: 'Close Date',    key: 'closeDate',   type: 'text',   placeholder: 'Apr 15' },
+];
+
 function fmt(n: number) {
   return n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n}`;
 }
 
-// â”€â”€â”€ Sortable deal card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Sortable deal card ---
 function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof STAGES[number]; overlay?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: deal.id });
 
@@ -58,11 +87,12 @@ function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof 
 
   const card = (
     <div
-      className={`bg-white rounded-xl border border-[#d2d2d7]/60 p-3.5 transition-all group
+      className={`bg-white rounded-xl border border-[#d2d2d7]/60 p-3.5 transition-colors group
         ${overlay ? 'shadow-2xl rotate-1 scale-[1.02]' : 'hover:shadow-sm hover:border-[#d2d2d7]'}`}
     >
       <div className="flex items-start gap-2">
         <button
+          type="button"
           {...(overlay ? {} : listeners)}
           {...(overlay ? {} : attributes)}
           className="mt-0.5 cursor-grab active:cursor-grabbing text-[#d2d2d7] hover:text-[#86868b] transition-colors flex-shrink-0"
@@ -78,12 +108,12 @@ function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof 
           </div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1">
-              <DollarSign size={11} className="text-emerald-600" />
-              <span className="text-xs font-bold text-emerald-600">{fmt(deal.value)}</span>
+              <DollarSign size={11} className="text-[#6366f1]" />
+              <span className="text-xs font-bold text-[#6366f1]">{fmt(deal.value)}</span>
             </div>
             <div className="flex items-center gap-1">
-              <TrendingUp size={11} className="text-[#6366f1]" />
-              <span className="text-[10px] font-semibold text-[#6366f1]">{deal.probability}%</span>
+              <TrendingUp size={11} className="text-[#a855f7]" />
+              <span className="text-[10px] font-semibold text-[#a855f7]">{deal.probability}%</span>
             </div>
           </div>
           <div className="h-1 bg-[#f5f5f7] rounded-full overflow-hidden mb-2">
@@ -107,7 +137,7 @@ function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof 
   );
 }
 
-// â”€â”€â”€ Droppable column â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Droppable column ---
 function StageColumn({
   stage,
   deals,
@@ -150,12 +180,14 @@ function StageColumn({
   );
 }
 
-// â”€â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Main component ---
 export default function CrmDeals() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newDeal, setNewDeal] = useState({ contactName: '', title: '', value: '', probability: '50', closeDate: '', stage: 'new' as DealStage });
+  const [newDeal, setNewDeal] = useState<NewDealState>({
+    contactName: '', title: '', value: '', probability: '50', closeDate: '', stage: 'new',
+  });
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
   const [overStage, setOverStage] = useState<DealStage | null>(null);
 
@@ -167,7 +199,7 @@ export default function CrmDeals() {
     try {
       setLoading(true);
       const { data } = await api.get('/crm/deals');
-      const mapped = (data.deals || []).map((d: any) => ({
+      const mapped = (data.deals || []).map((d: RawDeal): Deal => ({
         id: d.id,
         contactName: d.contact?.name || d.contactName || 'Unknown',
         title: d.title || '',
@@ -250,7 +282,7 @@ export default function CrmDeals() {
       setNewDeal({ contactName: '', title: '', value: '', probability: '50', closeDate: '', stage: 'new' });
       setShowAddModal(false);
       fetchDeals();
-    } catch {}
+    } catch { /* silent */ }
   };
 
   if (loading) {
@@ -269,9 +301,10 @@ export default function CrmDeals() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Deal Pipeline</h1>
-          <p className="text-sm text-[#86868b]">{deals.length} deals Â· ${totalPipeline.toLocaleString()} total pipeline</p>
+          <p className="text-sm text-[#86868b]">{deals.length} deals · ${totalPipeline.toLocaleString()} total pipeline</p>
         </div>
         <button
+          type="button"
           onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-[#6366f1] text-white text-sm font-medium rounded-xl hover:bg-[#4f46e5] transition-colors"
         >
@@ -283,8 +316,8 @@ export default function CrmDeals() {
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
           { label: 'Total Pipeline', value: `$${totalPipeline.toLocaleString()}`, sub: `${deals.filter(d => d.stage !== 'lost').length} active deals`, color: '#6366f1' },
-          { label: 'Won (Clients)',   value: `$${wonValue.toLocaleString()}`, sub: `${stageDeals('client').length} closed`, color: '#10b981' },
-          { label: 'Lost',            value: `$${stageTotal('lost').toLocaleString()}`, sub: `${stageDeals('lost').length} lost deals`, color: '#ef4444' },
+          { label: 'Won (Clients)',   value: `$${wonValue.toLocaleString()}`,       sub: `${stageDeals('client').length} closed`,                          color: '#10b981' },
+          { label: 'Lost',           value: `$${stageTotal('lost').toLocaleString()}`, sub: `${stageDeals('lost').length} lost deals`,                    color: '#ef4444' },
         ].map((s, i) => (
           <div key={i} className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-4">
             <p className="text-xs text-[#86868b] mb-1">{s.label}</p>
@@ -333,48 +366,62 @@ export default function CrmDeals() {
               onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-semibold">Add Deal</h2>
-                <button onClick={() => setShowAddModal(false)} className="w-8 h-8 rounded-lg bg-[#f5f5f7] flex items-center justify-center hover:bg-[#e8e8ed]">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="w-8 h-8 rounded-lg bg-[#f5f5f7] flex items-center justify-center hover:bg-[#e8e8ed]"
+                >
                   <X size={16} />
                 </button>
               </div>
               <div className="space-y-3">
-                {[
-                  { label: 'Contact Name *', key: 'contactName', type: 'text', placeholder: 'Jane Smith' },
-                  { label: 'Deal Title *',   key: 'title',       type: 'text', placeholder: 'AI Receptionist Setup' },
-                  { label: 'Value ($)',       key: 'value',       type: 'number', placeholder: '2500' },
-                  { label: 'Close Date',      key: 'closeDate',   type: 'text', placeholder: 'Apr 15' },
-                ].map(f => (
+                {MODAL_FIELDS.map(f => (
                   <div key={f.key}>
                     <label className="text-xs font-medium text-[#86868b] mb-1 block">{f.label}</label>
-                    <input type={f.type} placeholder={f.placeholder}
-                      value={(newDeal as any)[f.key]}
+                    <input
+                      type={f.type}
+                      placeholder={f.placeholder}
+                      value={newDeal[f.key]}
                       onChange={e => setNewDeal(p => ({ ...p, [f.key]: e.target.value }))}
-                      className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 transition-all"
+                      className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 transition-colors"
                     />
                   </div>
                 ))}
                 <div>
                   <label className="text-xs font-medium text-[#86868b] mb-1 block">Probability: {newDeal.probability}%</label>
-                  <input type="range" min={0} max={100} value={newDeal.probability}
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={newDeal.probability}
                     onChange={e => setNewDeal(p => ({ ...p, probability: e.target.value }))}
                     className="w-full accent-[#6366f1]"
                   />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-[#86868b] mb-1 block">Stage</label>
-                  <select value={newDeal.stage} onChange={e => setNewDeal(p => ({ ...p, stage: e.target.value as DealStage }))}
-                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 bg-white">
+                  <select
+                    value={newDeal.stage}
+                    onChange={e => setNewDeal(p => ({ ...p, stage: e.target.value as DealStage }))}
+                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 bg-white"
+                  >
                     {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                   </select>
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setShowAddModal(false)}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors"
+                >
                   Cancel
                 </button>
-                <button onClick={handleAddDeal}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] transition-colors">
+                <button
+                  type="button"
+                  onClick={handleAddDeal}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] transition-colors"
+                >
                   Add Deal
                 </button>
               </div>

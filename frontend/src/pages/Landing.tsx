@@ -1,1247 +1,1053 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, Phone, BarChart2, Clock, Shield } from 'lucide-react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { useSEO } from '../hooks/useSEO';
-import QwillioLogo from '../components/QwillioLogo';
+import {
+  Phone, Mic, Calendar, MessageSquare, ArrowRight, Play, Check,
+  Shield, Bot, Headphones, Zap, PhoneCall, Languages, Volume2,
+} from 'lucide-react';
+import PublicNavbar from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
+import { useLang } from '../stores/langStore';
+import Reveal from '../components/ui/Reveal';
+import Card3D from '../components/ui/Card3D';
 
-/* ─────────────────────────────────────────────────────
-   Design tokens — Indigo-drenched dark
-   Scene: directeur commercial B2B, Lyon, 15h, MacBook
-   ───────────────────────────────────────────────────── */
-const D = {
-  bg:        'oklch(8% 0.009 265)',
-  bg2:       'oklch(11% 0.013 265)',
-  bg3:       'oklch(15% 0.017 265)',
-  bgLight:   'oklch(96% 0.010 55)',
-  border:    'oklch(22% 0.012 265 / 0.55)',
-  borderHi:  'oklch(30% 0.014 265 / 0.70)',
-  text:      'oklch(95% 0.004 265)',
-  text2:     'oklch(65% 0.007 265)',
-  text3:     'oklch(42% 0.006 265)',
-  accent:    'oklch(56% 0.22 264)',
-  accentHi:  'oklch(63% 0.21 264)',
-  accentDim: 'oklch(56% 0.22 264 / 0.12)',
-  accentBrd: 'oklch(56% 0.22 264 / 0.40)',
-  violet:    'oklch(67% 0.26 299)',
-  violetDim: 'oklch(67% 0.26 299 / 0.12)',
-  ok:        'oklch(72% 0.18 145)',
-  okDim:     'oklch(72% 0.18 145 / 0.12)',
-  lText:     'oklch(12% 0.006 0)',
-  lText2:    'oklch(40% 0.006 0)',
-  lBorder:   'oklch(84% 0.012 55)',
-  lPanel:    'oklch(91% 0.012 55)',
-} as const;
+/* ── Live call simulation visual (hero right column) ──────────────────────── */
+interface TranscriptLine {
+  who: 'ai' | 'caller';
+  text: string;
+}
 
-const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+function PhoneCallVisual({ isFr }: { isFr: boolean }) {
+  const aiName = isFr ? 'Marie' : 'Ashley';
+  const lines: TranscriptLine[] = isFr
+    ? [
+        { who: 'ai', text: 'Bonjour, cabinet Bright Dental, c\'est Marie. Comment puis-je vous aider ?' },
+        { who: 'caller', text: "J'aimerais prendre rendez-vous pour un détartrage." },
+        { who: 'ai', text: 'Bien sûr. Mardi 14h ou jeudi 10h conviennent ?' },
+        { who: 'caller', text: 'Mardi 14h, parfait.' },
+        { who: 'ai', text: 'Réservé. Un SMS de confirmation arrive dans la minute.' },
+      ]
+    : [
+        { who: 'ai', text: "Hi, Bright Dental, this is Ashley. How can I help you today?" },
+        { who: 'caller', text: "I'd like to book a cleaning appointment." },
+        { who: 'ai', text: 'Of course. Tuesday 2pm or Thursday 10am?' },
+        { who: 'caller', text: 'Tuesday 2pm, perfect.' },
+        { who: 'ai', text: "Booked. A confirmation SMS is on the way." },
+      ];
 
-/* ─────────────────────────────────────────────────────
-   FadeIn — scroll reveal. scale(0.98) → scale(1).
-   ───────────────────────────────────────────────────── */
-function FadeIn({
-  children,
-  delay = 0,
-  style,
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  style?: React.CSSProperties;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [revealed, setRevealed] = useState(0);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.06 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
+    if (revealed >= lines.length) return;
+    const t = setTimeout(() => setRevealed((n) => n + 1), 1100);
+    return () => clearTimeout(t);
+  }, [revealed, lines.length]);
 
   return (
     <div
-      ref={ref}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.98)',
-        transition: `opacity 0.65s ${EASE} ${delay}ms, transform 0.65s ${EASE} ${delay}ms`,
-        ...style,
-      }}
+      className="relative rounded-3xl border border-[#1d1d1f]/8 bg-[#1d1d1f] p-6 overflow-hidden"
+      style={{ boxShadow: '0 40px 80px -20px rgba(29,29,31,0.35)' }}
     >
-      {children}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────
-   MagneticBtn — spring physics on hover.
-   stiffness 280 damping 18 mass 0.8
-   ───────────────────────────────────────────────────── */
-function MagneticBtn({
-  to,
-  children,
-  variant = 'primary',
-}: {
-  to: string;
-  children: React.ReactNode;
-  variant?: 'primary' | 'ghost';
-}) {
-  const ref = useRef<HTMLAnchorElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const sx = useSpring(x, { stiffness: 280, damping: 18, mass: 0.8 });
-  const sy = useSpring(y, { stiffness: 280, damping: 18, mass: 0.8 });
-
-  function onMove(e: React.MouseEvent<HTMLAnchorElement>) {
-    if (!ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    x.set((e.clientX - (r.left + r.width / 2)) * 0.22);
-    y.set((e.clientY - (r.top + r.height / 2)) * 0.22);
-  }
-
-  const primaryStyle: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 8,
-    background: D.accent,
-    color: D.bg,
-    fontFamily: 'Outfit, system-ui, sans-serif',
-    fontSize: 15,
-    fontWeight: 700,
-    padding: '14px 28px',
-    borderRadius: 14,
-    textDecoration: 'none',
-    letterSpacing: '0.01em',
-    boxShadow: `0 4px 20px ${D.accentDim}, 0 0 0 1px ${D.accentBrd}`,
-    cursor: 'pointer',
-    userSelect: 'none',
-  };
-
-  const ghostStyle: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 8,
-    background: 'transparent',
-    color: D.text2,
-    fontFamily: 'Outfit, system-ui, sans-serif',
-    fontSize: 15,
-    fontWeight: 500,
-    padding: '13px 24px',
-    borderRadius: 14,
-    border: `1.5px solid ${D.border}`,
-    textDecoration: 'none',
-    cursor: 'pointer',
-    userSelect: 'none',
-  };
-
-  return (
-    <motion.a
-      ref={ref}
-      href={to}
-      style={{
-        ...(variant === 'primary' ? primaryStyle : ghostStyle),
-        x: sx,
-        y: sy,
-      }}
-      onMouseMove={onMove}
-      onMouseLeave={() => { x.set(0); y.set(0); }}
-      whileHover={variant === 'primary' ? { background: D.accentHi } : { borderColor: D.accent, color: D.accent }}
-      whileTap={{ scale: 0.97, transition: { duration: 0.1 } }}
-    >
-      {children}
-    </motion.a>
-  );
-}
-
-/* ─────────────────────────────────────────────────────
-   Live Call Demo — animated transcript cycling 3 sets
-   ───────────────────────────────────────────────────── */
-const SETS = [
-  [
-    { r: 'ai', t: `Bonjour, je suis l'assistante IA de Veritas Solutions. Vous êtes bien M. Mercier ?` },
-    { r: 'h',  t: `Oui c'est moi.` },
-    { r: 'ai', t: `Parfait. Je vous appelle pour votre besoin CRM. Vous avez 5 minutes ?` },
-  ],
-  [
-    { r: 'ai', t: `Bonjour, j'appelle pour Apex Agency. Votre demande date de 3 jours, j'avais une question.` },
-    { r: 'h',  t: `Oui, allez-y.` },
-    { r: 'ai', t: `Votre équipe fait combien d'appels par semaine actuellement ?` },
-  ],
-  [
-    { r: 'ai', t: `Bonjour Mme Fontaine, c'est Aria pour Kairos Conseil. Votre demande signale que vous prospectez manuellement.` },
-    { r: 'h',  t: `C'est ça, c'est chronophage.` },
-    { r: 'ai', t: `Je comprends. Nos clients récupèrent 2h par jour en moyenne. Je vous envoie un exemple ?` },
-  ],
-];
-
-const PROSPECTS = [
-  { initials: 'RM', name: 'René Mercier',   company: 'Axiom Group' },
-  { initials: 'CB', name: 'Clara Bertrand', company: 'Nexum Partners' },
-  { initials: 'MF', name: 'M. Fontaine',    company: 'ImmoPro Lyon' },
-];
-
-function LiveCallDemo() {
-  const [setIdx, setSetIdx] = useState(0);
-  const [lineIdx, setLineIdx] = useState(0);
-  const [typing, setTyping] = useState(false);
-
-  useEffect(() => {
-    const lines = SETS[setIdx];
-    if (lineIdx >= lines.length) {
-      const t = setTimeout(() => {
-        setSetIdx(i => (i + 1) % SETS.length);
-        setLineIdx(0);
-      }, 3200);
-      return () => clearTimeout(t);
-    }
-    setTyping(true);
-    const dur = SETS[setIdx][lineIdx].r === 'ai' ? 900 : 600;
-    const t1 = setTimeout(() => setTyping(false), dur);
-    const t2 = setTimeout(() => setLineIdx(i => i + 1), dur + 350);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [setIdx, lineIdx]);
-
-  const prospect = PROSPECTS[setIdx];
-  const visible = SETS[setIdx].slice(0, lineIdx);
-
-  return (
-    <div
-      aria-label="Démonstration d'un appel IA en cours"
-      style={{
-        background: D.bg2,
-        border: `1px solid ${D.border}`,
-        borderRadius: 24,
-        padding: '1.8rem',
-        boxShadow: `0 32px 80px oklch(0% 0 0 / 0.5), 0 0 0 1px oklch(100% 0 0 / 0.04)`,
-        maxWidth: 400,
-        width: '100%',
-      }}
-    >
-      {/* Live badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.2rem' }}>
-        <span
-          aria-live="polite"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            background: D.okDim, color: D.ok,
-            fontSize: 11, fontWeight: 700,
-            padding: '4px 10px', borderRadius: 999,
-            textTransform: 'uppercase', letterSpacing: '0.08em',
-          }}
-        >
-          <span style={{
-            width: 5, height: 5, background: D.ok, borderRadius: '50%',
-            animation: 'livePulse 1.6s ease-in-out infinite',
-          }} aria-hidden="true" />
-          En direct
+      {/* Top chrome */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2.5">
+          <span className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center">
+            <PhoneCall size={14} className="text-emerald-400" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-[12px] font-semibold text-white leading-tight">Bright Dental</p>
+            <p className="text-[10px] text-white/40 tabular-nums">
+              {isFr ? '+33 1 42 86 12 34 · 00:42' : '+1 (415) 555 0102 · 00:42'}
+            </p>
+          </div>
+        </div>
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.18em] uppercase text-emerald-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          {isFr ? 'En direct' : 'Live'}
         </span>
-        <span style={{ fontSize: 12, color: D.text3 }}>Appel en cours</span>
-      </div>
-
-      {/* Caller info */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.2rem' }}>
-        <div
-          aria-hidden="true"
-          style={{
-            width: 42, height: 42,
-            background: D.accentDim, border: `1px solid ${D.accentBrd}`,
-            borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: D.accent, fontSize: 13, fontWeight: 700, flexShrink: 0,
-          }}
-        >
-          {prospect.initials}
-        </div>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: D.text }}>{prospect.name}</div>
-          <div style={{ fontSize: 12, color: D.text3 }}>{prospect.company}</div>
-        </div>
-        <Phone size={16} style={{ color: D.accent, marginLeft: 'auto' }} aria-hidden="true" />
       </div>
 
       {/* Transcript */}
-      <div
+      <ul
+        className="space-y-2.5 h-[260px] overflow-hidden"
         role="log"
-        aria-label="Transcription de l'appel"
-        style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 160, marginBottom: '1rem' }}
+        aria-live="polite"
+        aria-label={isFr ? 'Transcription en direct' : 'Live transcript'}
       >
-        {visible.map((line, i) => (
-          <div key={i}>
-            <div style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: line.r === 'ai' ? D.accent : D.text3,
-              marginBottom: 3,
-            }}>
-              {line.r === 'ai' ? 'Qwillio IA' : 'Prospect'}
-            </div>
-            <div style={{
-              padding: '8px 12px', borderRadius: 10,
-              fontSize: 13, lineHeight: 1.5,
-              color: 'oklch(85% 0.005 265)',
-              background: line.r === 'ai' ? D.accentDim : D.bg3,
-              border: line.r === 'ai' ? `1px solid ${D.accentBrd}` : `1px solid ${D.border}`,
-            }}>
-              {line.t}
-            </div>
-          </div>
-        ))}
-        {typing && (
-          <div aria-label="L'IA est en train de répondre">
-            <div style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-              textTransform: 'uppercase', color: D.accent, marginBottom: 3,
-            }}>
-              Qwillio IA
-            </div>
-            <div style={{
-              padding: '10px 14px', borderRadius: 10,
-              background: D.accentDim, border: `1px solid ${D.accentBrd}`,
-              display: 'inline-flex', gap: 4, alignItems: 'center',
-            }}>
-              {[0, 1, 2].map(i => (
-                <span key={i} aria-hidden="true" style={{
-                  width: 5, height: 5, borderRadius: '50%',
-                  background: D.accent, opacity: 0.7,
-                  animation: `typingDot 1s ${EASE} ${i * 120}ms infinite`,
-                }} />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Waveform */}
-      <div aria-hidden="true" style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 28 }}>
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div key={i} style={{
-            flex: 1, background: D.accent, borderRadius: 999, opacity: 0.5,
-            animation: `waveBar 1.1s ${EASE} ${i * 55}ms infinite alternate`,
-          }} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────
-   Step visual panel — stylized mock-UI for features
-   ───────────────────────────────────────────────────── */
-function StepPanel({ step }: { step: number }) {
-  if (step === 0) {
-    return (
-      <div style={{
-        background: D.lPanel, border: `1px solid ${D.lBorder}`,
-        borderRadius: 20, padding: '2.5rem',
-        display: 'flex', flexDirection: 'column', gap: 10,
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: D.lText2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-          Import CSV
-        </div>
-        {['Dupont SAS — 06 12 34 56 78', 'Martine Leclerc — 06 98 76 54 32', 'Kairos Tech — 01 23 45 67 89'].map((r, i) => (
-          <div key={i} style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 14px', borderRadius: 10,
-            background: 'oklch(96% 0.010 55)',
-            border: `1px solid ${D.lBorder}`,
-          }}>
-            <div style={{
-              width: 7, height: 7, borderRadius: '50%',
-              background: i < 2 ? D.ok : 'oklch(72% 0.15 45)',
-            }} aria-hidden="true" />
-            <span style={{ fontSize: 13, color: D.lText }}>{r}</span>
-            <span style={{
-              marginLeft: 'auto', fontSize: 10, fontWeight: 700,
-              color: i < 2 ? D.ok : 'oklch(60% 0.15 45)',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-            }}>
-              {i < 2 ? 'Valide' : 'Doublon'}
-            </span>
-          </div>
-        ))}
-        <div style={{ marginTop: 4, fontSize: 12, color: D.lText2 }}>
-          847 contacts importés — 12 doublons supprimés
-        </div>
-      </div>
-    );
-  }
-  if (step === 1) {
-    return (
-      <div style={{
-        background: D.bg2, border: `1px solid ${D.border}`,
-        borderRadius: 20, padding: '2.5rem',
-        display: 'flex', flexDirection: 'column', gap: 14,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            background: D.okDim, color: D.ok,
-            fontSize: 10, fontWeight: 700,
-            padding: '3px 10px', borderRadius: 999,
-            textTransform: 'uppercase', letterSpacing: '0.08em',
-          }}>
-            <span style={{ width: 4, height: 4, background: D.ok, borderRadius: '50%', animation: 'livePulse 1.6s ease-in-out infinite' }} aria-hidden="true" />
-            14 appels en cours
-          </span>
-        </div>
-        {[
-          { name: 'Dupont SAS',   score: 87, label: 'Chaud' },
-          { name: 'Tech Innov.',  score: 62, label: 'Tiède' },
-          { name: 'Kairos Group', score: 41, label: 'Froid' },
-        ].map((item, i) => (
-          <div key={i} style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '10px 14px', borderRadius: 10,
-            background: D.bg3, border: `1px solid ${D.border}`,
-          }}>
-            <span style={{ fontSize: 13, color: D.text, flex: 1 }}>{item.name}</span>
-            <div style={{ flex: 2, height: 5, background: D.border, borderRadius: 999, overflow: 'hidden' }}>
-              <div style={{
-                width: `${item.score}%`, height: '100%', borderRadius: 999,
-                background: item.score > 75 ? D.ok : item.score > 50 ? 'oklch(72% 0.15 45)' : D.text3,
-              }} />
-            </div>
-            <span style={{
-              fontSize: 11, fontWeight: 700, color: item.score > 75 ? D.ok : item.score > 50 ? 'oklch(72% 0.15 45)' : D.text3,
-              minWidth: 36, textAlign: 'right',
-            }}>
-              {item.label}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div style={{
-      background: D.lPanel, border: `1px solid ${D.lBorder}`,
-      borderRadius: 20, padding: '2.5rem',
-      display: 'flex', flexDirection: 'column', gap: 14,
-    }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: D.lText2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-        Leads chauds du jour
-      </div>
-      {[
-        { name: 'Dupont SAS', action: 'Rappeler avant 17h', tag: 'RDV suggéré' },
-        { name: 'Nova Partners', action: 'Envoyer démo vidéo', tag: 'Intéressé' },
-      ].map((lead, i) => (
-        <div key={i} style={{
-          padding: '14px 16px', borderRadius: 12,
-          background: 'oklch(96% 0.010 55)', border: `1px solid ${D.lBorder}`,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: D.lText }}>{lead.name}</span>
-            <span style={{
-              fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
-              background: 'oklch(56% 0.22 264 / 0.10)', color: 'oklch(42% 0.18 264)',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-            }}>
-              {lead.tag}
-            </span>
-          </div>
-          <p style={{ fontSize: 12, color: D.lText2, margin: 0 }}>{lead.action}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────
-   Stars component
-   ───────────────────────────────────────────────────── */
-function Stars({ size = 14 }: { size?: number }) {
-  return (
-    <div style={{ display: 'flex', gap: 3 }} aria-label="5 étoiles sur 5">
-      {[0, 1, 2, 3, 4].map(i => (
-        <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill={D.accent} aria-hidden="true">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-        </svg>
-      ))}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────
-   Main page
-   ───────────────────────────────────────────────────── */
-export default function Landing() {
-  useSEO({ title: `Qwillio — L'IA vocale qui prospecte pour vous` });
-
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', fn, { passive: true });
-    return () => window.removeEventListener('scroll', fn);
-  }, []);
-
-  return (
-    <div style={{
-      background: D.bg,
-      color: D.text,
-      fontFamily: `'Outfit', system-ui, -apple-system, sans-serif`,
-      overflowX: 'hidden',
-      WebkitFontSmoothing: 'antialiased',
-    }}>
-      <style>{`
-        @keyframes livePulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50%       { opacity: 0.3; transform: scale(0.7); }
-        }
-        @keyframes waveBar {
-          0%   { height: 15%; }
-          100% { height: 100%; }
-        }
-        @keyframes typingDot {
-          0%, 100% { transform: translateY(0); opacity: 0.7; }
-          50%       { transform: translateY(-4px); opacity: 1; }
-        }
-        @keyframes marquee {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-      `}</style>
-
-      {/* Skip link */}
-      <a
-        href="#main-content"
-        style={{
-          position: 'absolute', top: -40, left: 8,
-          background: D.accent, color: D.bg,
-          padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 14,
-          zIndex: 200, textDecoration: 'none',
-          transition: `top 0.2s ${EASE}`,
-        }}
-        onFocus={e => { e.currentTarget.style.top = '8px'; }}
-        onBlur={e => { e.currentTarget.style.top = '-40px'; }}
-      >
-        Aller au contenu principal
-      </a>
-
-      {/* ── NAV ── */}
-      <header
-        role="banner"
-        style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-          padding: scrolled ? '0.7rem 0' : '1.3rem 0',
-          background: scrolled ? `oklch(8% 0.009 265 / 0.92)` : 'transparent',
-          backdropFilter: scrolled ? 'blur(20px) saturate(160%)' : 'none',
-          borderBottom: scrolled ? `1px solid ${D.border}` : '1px solid transparent',
-          transition: `all 0.35s ${EASE}`,
-        }}
-      >
-        <div style={{
-          maxWidth: 1200, margin: '0 auto',
-          padding: '0 2.5rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <Link
-            to="/"
-            aria-label="Qwillio — retour à l'accueil"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              fontSize: 18, fontWeight: 800, color: D.text,
-              letterSpacing: '-0.025em', textDecoration: 'none',
-            }}
+        {lines.slice(0, revealed).map((line, i) => (
+          <li
+            key={i}
+            className={`flex ${line.who === 'ai' ? 'justify-start' : 'justify-end'}`}
+            style={{ animation: 'msgIn 480ms cubic-bezier(0.16,1,0.3,1) both' }}
           >
-            <QwillioLogo size={26} />
-            Qwillio
-          </Link>
-
-          <nav aria-label="Navigation principale" style={{ display: 'flex', gap: '2.5rem' }}>
-            {[
-              ['Fonctionnalités', '#features'],
-              ['Tarifs', '#pricing'],
-              ['Blog', '/blog'],
-            ].map(([label, href]) => (
-              <a
-                key={label}
-                href={href}
-                style={{ fontSize: 14, color: D.text2, textDecoration: 'none', fontWeight: 500, transition: `color 0.2s` }}
-                onMouseEnter={e => (e.currentTarget.style.color = D.text)}
-                onMouseLeave={e => (e.currentTarget.style.color = D.text2)}
+            <div
+              className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[12.5px] leading-snug ${
+                line.who === 'ai'
+                  ? 'bg-[#6366f1]/15 border border-[#6366f1]/25 text-white rounded-bl-md'
+                  : 'bg-white/[0.06] border border-white/[0.08] text-white/90 rounded-br-md'
+              }`}
+            >
+              <span
+                className={`block text-[9px] font-bold tracking-[0.16em] uppercase mb-1 ${
+                  line.who === 'ai' ? 'text-[#a5b4fc]' : 'text-white/40'
+                }`}
               >
-                {label}
-              </a>
-            ))}
-          </nav>
+                {line.who === 'ai' ? aiName : isFr ? 'Appelant' : 'Caller'}
+              </span>
+              {line.text}
+            </div>
+          </li>
+        ))}
+        {revealed < lines.length && (
+          <li className="flex justify-start" aria-hidden="true">
+            <span className="inline-flex items-center gap-1.5 rounded-2xl bg-[#6366f1]/15 border border-[#6366f1]/25 px-3.5 py-3 rounded-bl-md">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-[#a5b4fc]"
+                  style={{ animation: `dot 1.1s ${i * 140}ms ease-in-out infinite` }}
+                />
+              ))}
+            </span>
+          </li>
+        )}
+      </ul>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <Link
-              to="/login"
-              style={{ fontSize: 14, color: D.text2, textDecoration: 'none', fontWeight: 500, transition: `color 0.2s` }}
-              onMouseEnter={e => (e.currentTarget.style.color = D.text)}
-              onMouseLeave={e => (e.currentTarget.style.color = D.text2)}
-            >
-              Connexion
-            </Link>
-            <Link
-              to="/register"
+      {/* Bottom action bar */}
+      <div className="mt-5 flex items-center gap-3 pt-4 border-t border-white/[0.06]">
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] uppercase text-[#6366f1]">
+          <Calendar size={11} aria-hidden="true" />
+          {isFr ? 'RDV pris' : 'Booked'}
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] uppercase text-emerald-400">
+          <MessageSquare size={11} aria-hidden="true" />
+          {isFr ? 'SMS envoyé' : 'SMS sent'}
+        </span>
+        <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-white/35 tabular-nums">
+          <Volume2 size={10} aria-hidden="true" />
+          0.6s
+        </span>
+      </div>
+
+      {/* Waveform footer */}
+      <div className="mt-4 flex items-center gap-[3px] h-6 overflow-hidden" aria-hidden="true">
+        {Array.from({ length: 56 }).map((_, i) => {
+          const h = 4 + Math.abs(Math.sin(i * 0.55) * 14) + (i % 4) * 3;
+          return (
+            <span
+              key={i}
+              className="flex-1 rounded-full bg-[#6366f1]/40"
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: D.accent, color: D.bg,
-                fontSize: 13, fontWeight: 700,
-                padding: '8px 20px', borderRadius: 10,
-                textDecoration: 'none', letterSpacing: '0.01em',
-                transition: `background 0.2s, transform 0.15s ${EASE}`,
+                height: `${h}px`,
+                animation: `wave 1.4s ${i * 28}ms ease-in-out infinite`,
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = D.accentHi; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = D.accent; e.currentTarget.style.transform = 'translateY(0)'; }}
-            >
-              Essai gratuit
-            </Link>
-          </div>
-        </div>
-      </header>
+            />
+          );
+        })}
+      </div>
 
-      <main id="main-content">
-        {/* ── HERO ── */}
+      <style>{`
+        @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes wave { 0%, 100% { transform: scaleY(0.6); opacity: 0.35; } 50% { transform: scaleY(1); opacity: 1; } }
+        @keyframes dot { 0%, 100% { transform: translateY(0); opacity: 0.4; } 50% { transform: translateY(-3px); opacity: 1; } }
+      `}</style>
+    </div>
+  );
+}
+
+/* ── Voice card (showcase) ────────────────────────────────────────────────── */
+interface VoiceData {
+  name: string;
+  accent: string;
+  vibe: string;
+  swatch: string;
+  ring: string;
+  initials: string;
+  lang: string;
+  sample: string;
+}
+
+function VoiceCard({ v, large = false }: { v: VoiceData; large?: boolean }) {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  function speak() {
+    if (playing) {
+      audioRef.current?.pause();
+      window.speechSynthesis?.cancel();
+      setPlaying(false);
+      return;
+    }
+
+    const audio = new Audio(`/voices/${v.name.toLowerCase()}.mp3`);
+    audioRef.current = audio;
+
+    audio.onplay = () => setPlaying(true);
+    audio.onended = () => setPlaying(false);
+    audio.onerror = () => {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(v.sample);
+      utt.lang = v.lang;
+      utt.rate = 0.95;
+      const voices = window.speechSynthesis.getVoices();
+      const match = voices.find((vx) => vx.lang.startsWith(v.lang.split('-')[0]));
+      if (match) utt.voice = match;
+      utt.onstart = () => setPlaying(true);
+      utt.onend = () => setPlaying(false);
+      utt.onerror = () => setPlaying(false);
+      window.speechSynthesis.speak(utt);
+    };
+
+    audio.play().catch(() => audio.dispatchEvent(new Event('error')));
+  }
+
+  return (
+    <Card3D intensity={4}>
+    <figure
+      className={`relative rounded-3xl border border-[#1d1d1f]/10 bg-white p-6 h-full ${
+        large ? 'md:p-8' : ''
+      } hover:border-[#6366f1]/40 transition-colors duration-300 group`}
+    >
+      <div className="flex items-start gap-4">
+        <span
+          className="w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-white font-semibold text-base tracking-tight flex-shrink-0"
+          style={{ background: v.swatch, boxShadow: `0 6px 20px -8px ${v.ring}` }}
+          aria-hidden="true"
+        >
+          {v.initials}
+        </span>
+        <div className="flex-1 min-w-0">
+          <figcaption className="flex items-baseline gap-2 mb-1">
+            <h3 className={`font-semibold tracking-[-0.02em] ${large ? 'text-xl' : 'text-lg'}`}>
+              {v.name}
+            </h3>
+            <span className="text-[11px] text-[#86868b]">{v.accent}</span>
+          </figcaption>
+          <p className="text-[13px] text-[#525257] leading-relaxed">{v.vibe}</p>
+        </div>
+      </div>
+
+      {/* Mini waveform preview */}
+      <div className="mt-5 flex items-end gap-[3px] h-8" aria-hidden="true">
+        {Array.from({ length: 32 }).map((_, i) => {
+          const h = 8 + Math.abs(Math.sin(i * 0.7 + v.initials.charCodeAt(0))) * 22;
+          return (
+            <span
+              key={i}
+              className="flex-1 rounded-full transition-[width] duration-500 ease-out"
+              style={{
+                height: `${h}px`,
+                background: v.swatch,
+                opacity: 0.18 + (i % 5) * 0.08,
+              }}
+            />
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        aria-label={`${v.name} preview`}
+        onClick={speak}
+        className="absolute top-5 right-5 w-9 h-9 rounded-full text-white flex items-center justify-center transition-colors"
+        style={{ background: playing ? v.swatch : '#1d1d1f' }}
+      >
+        {playing ? (
+          <span className="flex items-end gap-[2px] h-3" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-[3px] rounded-full"
+                style={{
+                  background: 'white',
+                  animation: `waveBar 0.6s ${i * 0.12}s ease-in-out infinite`,
+                  height: '100%',
+                }}
+              />
+            ))}
+          </span>
+        ) : (
+          <Play size={11} fill="currentColor" aria-hidden="true" />
+        )}
+      </button>
+    </figure>
+    </Card3D>
+  );
+}
+
+/* ── Page ─────────────────────────────────────────────────────────────────── */
+export default function Landing() {
+  const { lang } = useLang();
+  const isFr = lang === 'fr';
+  const voiceName = isFr ? 'Marie' : 'Ashley';
+
+  useSEO({
+    title: isFr ? 'Réceptionniste IA' : 'AI Receptionist',
+    description: isFr
+      ? "Le réceptionniste IA Qwillio répond à chaque appel en moins d'une seconde, prend les rendez-vous et qualifie vos leads, 24h sur 24."
+      : 'The Qwillio AI receptionist answers every call in under a second, books appointments, and qualifies leads, around the clock.',
+    canonical: 'https://qwillio.com/receptionist',
+  });
+
+  const voices: VoiceData[] = [
+    {
+      name: 'Ashley',
+      accent: isFr ? 'Anglais · États-Unis' : 'English · United States',
+      vibe: isFr
+        ? 'Chaleureuse, naturelle. Ventes sortantes et accueil entrant.'
+        : 'Warm, natural. Built for outbound sales and inbound reception.',
+      swatch: '#6366f1',
+      ring: 'rgba(99,102,241,0.45)',
+      initials: 'AS',
+      lang: 'en-US',
+      sample: "Hey, Bright Dental, this is Ashley. How can I help you today?",
+    },
+    {
+      name: 'Marie',
+      accent: isFr ? 'Français · France & Québec' : 'French · France & Quebec',
+      vibe: isFr
+        ? 'Chaleureuse, conversationnelle. Conçue pour le marché francophone.'
+        : 'Warm, conversational. Built for French and Quebec markets.',
+      swatch: '#a855f7',
+      ring: 'rgba(168,85,247,0.45)',
+      initials: 'MA',
+      lang: 'fr-FR',
+      sample: "Bonjour, cabinet Bright Dental, c'est Marie. Comment puis-je vous aider ?",
+    },
+  ];
+
+  const tiers = isFr
+    ? [
+        {
+          name: 'Solo',
+          price: '297',
+          desc: 'Pour les indépendants et les petites équipes qui démarrent.',
+          highlights: ['Jusqu\'à 200 appels / mois', '1 numéro dédié', 'Voix française naturelle', 'Calendrier Google ou Outlook'],
+          cta: 'Démarrer',
+        },
+        {
+          name: 'Cabinet',
+          price: '497',
+          desc: 'Le forfait le plus choisi par les cabinets et les agences.',
+          highlights: [
+            '600 appels / mois',
+            'CRM intégré + SMS de suivi',
+            'Transferts urgences',
+            'Multilingue (FR, EN, ES, IT)',
+            'Support 7j/7 prioritaire',
+          ],
+          cta: 'Premier mois offert',
+          highlighted: true,
+        },
+        {
+          name: 'Volume',
+          price: '997',
+          desc: "Pour les multi-sites, franchises et opérations à grand volume.",
+          highlights: ['Appels illimités', 'API complète + webhooks', 'White-label'],
+          cta: 'Nous contacter',
+        },
+      ]
+    : [
+        {
+          name: 'Solo',
+          price: '297',
+          desc: 'For independents and small teams getting started.',
+          highlights: ['Up to 200 calls / month', '1 dedicated number', 'Natural English voice', 'Google or Outlook calendar'],
+          cta: 'Get started',
+        },
+        {
+          name: 'Practice',
+          price: '497',
+          desc: 'The most chosen plan by practices and agencies.',
+          highlights: [
+            '600 calls / month',
+            'Built-in CRM + SMS follow-up',
+            'Urgency transfers',
+            'Multilingual (EN, FR, ES, IT)',
+            'Priority support, 7 days a week',
+          ],
+          cta: 'First month free',
+          highlighted: true,
+        },
+        {
+          name: 'Volume',
+          price: '997',
+          desc: 'For multi-site, franchises, and high-volume operations.',
+          highlights: ['Unlimited calls', 'Full API + webhooks', 'White-label'],
+          cta: 'Contact us',
+        },
+      ];
+
+  const testimonial = isFr
+    ? {
+        quote: "Marie décroche en moins d'une seconde, prend les rendez-vous, et nous transfère les vraies urgences. Nos patients pensent qu'elle fait partie de l'équipe.",
+        name: 'Dr. Sarah Chen',
+        role: 'Directrice de clinique, Bright Dental',
+      }
+    : {
+        quote: 'Ashley picks up in under a second, books the appointments, and transfers the real urgencies. Our patients think she is on the staff.',
+        name: 'Dr. Sarah Chen',
+        role: 'Clinic Director, Bright Dental',
+      };
+
+  return (
+    <div className="bg-white text-[#1d1d1f] min-h-screen">
+      <PublicNavbar />
+
+      <main>
+        {/* ════════════════════════════════════════════════════════════════
+            HERO — asymmetric editorial split (60/40)
+            ════════════════════════════════════════════════════════════════ */}
         <section
           aria-labelledby="hero-heading"
-          style={{
-            minHeight: '100dvh',
-            display: 'grid',
-            gridTemplateColumns: '1fr 420px',
-            gap: '4rem',
-            alignItems: 'center',
-            maxWidth: 1200, margin: '0 auto',
-            padding: '8rem 2.5rem 5rem',
-            position: 'relative',
-          }}
+          className="relative pt-28 md:pt-36 pb-16 md:pb-28 px-6"
         >
-          {/* Ambient glow */}
-          <div aria-hidden="true" style={{
-            position: 'absolute', top: '25%', left: '-10%',
-            width: 600, height: 600,
-            background: `radial-gradient(ellipse at center, oklch(56% 0.22 264 / 0.06) 0%, transparent 70%)`,
-            pointerEvents: 'none', zIndex: 0,
-          }} />
+          <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-20 items-center">
+            <div>
+              <Reveal>
+                <span className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#6366f1] mb-6">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#6366f1] animate-pulse" />
+                  {isFr ? 'Réceptionniste IA · Live 24/7' : 'AI Receptionist · Live 24/7'}
+                </span>
+              </Reveal>
 
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            {/* Badge */}
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: D.accentDim, border: `1px solid ${D.accentBrd}`,
-              color: D.accent,
-              fontSize: 11, fontWeight: 700,
-              padding: '6px 14px', borderRadius: 999,
-              marginBottom: '2rem',
-              textTransform: 'uppercase', letterSpacing: '0.09em',
-            }}>
-              <span aria-hidden="true" style={{
-                width: 5, height: 5, background: D.accent, borderRadius: '50%',
-                animation: 'livePulse 2s ease-in-out infinite',
-              }} />
-              IA Vocale B2B — France
-            </div>
+              <Reveal delay={0.08}>
+                <h1
+                  id="hero-heading"
+                  className="text-[clamp(2.6rem,6.5vw,5.6rem)] font-semibold tracking-[-0.04em] leading-[0.95] mb-6"
+                >
+                  {isFr ? (
+                    <>
+                      Elle décroche<br />
+                      <span className="italic font-serif text-[#6366f1]">avant la deuxième</span><br />
+                      sonnerie.<br />
+                      <span className="italic font-serif text-[#6366f1]">Toujours.</span>
+                    </>
+                  ) : (
+                    <>
+                      She picks up<br />
+                      <span className="italic font-serif text-[#6366f1]">before the second</span><br />
+                      ring.<br />
+                      <span className="italic font-serif text-[#6366f1]">Every time.</span>
+                    </>
+                  )}
+                </h1>
+              </Reveal>
 
-            {/* H1 — weight contrast, no gradient text */}
-            <h1
-              id="hero-heading"
-              style={{
-                fontSize: 'clamp(3rem, 5.5vw, 5rem)',
-                fontWeight: 800,
-                lineHeight: 1.0,
-                letterSpacing: '-0.045em',
-                color: D.text,
-                marginBottom: '1.5rem',
-              }}
-            >
-              Vos prospects<br />
-              appelés la nuit.<br />
-              <span style={{ color: D.accent }}>Rendez-vous pris.</span>
-            </h1>
+              <Reveal delay={0.16}>
+                <p className="text-lg md:text-xl text-[#424245] max-w-[480px] mb-9 leading-[1.55]">
+                  {isFr
+                    ? "Un réceptionniste IA qui parle naturellement, prend les rendez-vous dans votre calendrier, et ne demande jamais de pause café."
+                    : 'An AI receptionist that speaks naturally, books appointments in your calendar, and never asks for a coffee break.'}
+                </p>
+              </Reveal>
 
-            <p style={{
-              fontSize: 17, color: D.text2,
-              lineHeight: 1.65, maxWidth: 420,
-              marginBottom: '2.5rem', fontWeight: 400,
-            }}>
-              Qwillio automatise les appels froids pour les agences B2B françaises.
-              Premiers appels en 10 minutes, premiers rendez-vous le jour même.
-            </p>
+              <Reveal delay={0.24}>
+                <div className="flex flex-wrap items-center gap-3 mb-10">
+                  <a
+                    href="/demo.html"
+                    className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#6366f1] transition-colors duration-300"
+                  >
+                    <Play size={14} fill="currentColor" aria-hidden="true" />
+                    {isFr ? `Écouter ${voiceName} parler` : `Hear ${voiceName} speak`}
+                  </a>
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#1d1d1f] px-2 py-2 underline decoration-[#6366f1]/30 decoration-2 underline-offset-8 hover:decoration-[#6366f1] transition-colors"
+                  >
+                    {isFr ? 'Essayer gratuitement' : 'Try free'}
+                    <ArrowRight size={15} aria-hidden="true" />
+                  </Link>
+                </div>
+              </Reveal>
 
-            {/* Dual CTA */}
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '3rem' }}>
-              <MagneticBtn to="/register">
-                Commencer gratuitement
-                <ArrowRight size={16} aria-hidden="true" />
-              </MagneticBtn>
-              <MagneticBtn to="#features" variant="ghost">
-                Voir comment ça marche
-              </MagneticBtn>
-            </div>
-
-            {/* 3 inline proof numbers — NOT hero-metric card grid */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
-              {[
-                { val: '47',      lbl: 'agences actives' },
-                { val: '12 800+', lbl: 'appels cette semaine' },
-                { val: '4.8/5',   lbl: 'satisfaction client' },
-              ].reduce((acc, s, i) => {
-                if (i > 0) acc.push(
-                  <div key={`div-${i}`} aria-hidden="true" style={{ width: 1, height: 32, background: D.border }} />
-                );
-                acc.push(
-                  <div key={s.val} style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 22, fontWeight: 800, color: D.text, letterSpacing: '-0.03em', lineHeight: 1 }}>
-                      {s.val}
-                    </span>
-                    <span style={{ fontSize: 12, color: D.text3, fontWeight: 500, marginTop: 2 }}>
-                      {s.lbl}
-                    </span>
+              <Reveal delay={0.32}>
+                <dl className="flex flex-wrap gap-x-9 gap-y-3 text-sm text-[#86868b] border-t border-[#1d1d1f]/10 pt-6 max-w-[540px]">
+                  <div className="flex items-baseline gap-2">
+                    <dt className="sr-only">{isFr ? 'Temps de décrochage' : 'Pickup time'}</dt>
+                    <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">&lt;1s</dd>
+                    <span>{isFr ? 'décrochage' : 'pickup'}</span>
                   </div>
-                );
-                return acc;
-              }, [] as React.ReactNode[])}
+                  <div className="flex items-baseline gap-2">
+                    <dt className="sr-only">{isFr ? 'Langues' : 'Languages'}</dt>
+                    <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">11</dd>
+                    <span>{isFr ? 'langues' : 'languages'}</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <dt className="sr-only">{isFr ? 'Voix' : 'Voices'}</dt>
+                    <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">40+</dd>
+                    <span>{isFr ? 'voix' : 'voices'}</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <dt className="sr-only">{isFr ? 'Disponibilité' : 'Uptime'}</dt>
+                    <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">24/7</dd>
+                    <span>{isFr ? 'jamais fermé' : 'always on'}</span>
+                  </div>
+                </dl>
+              </Reveal>
             </div>
-          </div>
 
-          {/* Live call demo (right column) */}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <motion.div
-              initial={{ opacity: 0, y: 24, rotate: -1 }}
-              animate={{ opacity: 1, y: 0, rotate: 0 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-            >
-              <LiveCallDemo />
-            </motion.div>
+            <Reveal delay={0.12}>
+              <PhoneCallVisual isFr={isFr} />
+            </Reveal>
           </div>
         </section>
 
-        {/* ── TRUST MARQUEE ── */}
-        <div
-          aria-label="Agences qui utilisent Qwillio"
-          style={{
-            borderTop: `1px solid ${D.border}`,
-            borderBottom: `1px solid ${D.border}`,
-            padding: '1.5rem 0',
-            overflow: 'hidden',
-            background: D.bg2,
-          }}
-        >
-          <div style={{ display: 'flex', animation: 'marquee 22s linear infinite', width: 'max-content' }}>
-            {[0, 1].map(outer => (
-              <div key={outer} aria-hidden={outer === 1} style={{ display: 'flex', alignItems: 'center', gap: '4rem', padding: '0 2rem' }}>
-                {[
-                  'Propulse Agency', 'Axion Partners', 'ImmoPro Lyon',
-                  'Kairos Conseil', 'Veritas Group', 'Nova Recrutement',
-                  'Ares Consulting', 'Lumia Solutions', 'Crest Agency',
-                ].map(name => (
-                  <span key={name} style={{
-                    fontSize: 13, fontWeight: 600, color: D.text3,
-                    letterSpacing: '0.02em', whiteSpace: 'nowrap',
-                  }}>
-                    {name}
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── HOW IT WORKS — zigzag, NOT identical 3-col cards ── */}
+        {/* ════════════════════════════════════════════════════════════════
+            CAPABILITIES — asymmetric editorial layout
+            Sticky-left intro + 2x2 staggered feature blocks on right
+            ════════════════════════════════════════════════════════════════ */}
         <section
-          id="features"
-          aria-labelledby="features-heading"
-          style={{ padding: '8rem 2.5rem', background: D.bgLight }}
+          aria-labelledby="capabilities-heading"
+          className="py-24 md:py-36 px-6 border-t border-[#1d1d1f]/8"
         >
-          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            <FadeIn>
-              <div style={{ marginBottom: '5rem' }}>
-                <div style={{
-                  display: 'inline-block',
-                  background: 'oklch(56% 0.22 264 / 0.10)',
-                  color: 'oklch(42% 0.18 264)',
-                  fontSize: 11, fontWeight: 700,
-                  padding: '5px 14px', borderRadius: 999,
-                  textTransform: 'uppercase', letterSpacing: '0.09em',
-                  marginBottom: '1rem',
-                }}>
-                  Comment ça marche
+          <div className="max-w-[1240px] mx-auto">
+            <div className="grid lg:grid-cols-[1fr_1.6fr] gap-10 md:gap-16 lg:gap-24 items-start">
+              <div className="lg:sticky lg:top-28">
+                <Reveal>
+                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#6366f1] block mb-3">
+                    {isFr ? 'Ce qu\'elle fait' : 'What she does'}
+                  </span>
+                  <h2
+                    id="capabilities-heading"
+                    className="text-[clamp(1.9rem,4vw,3.2rem)] font-semibold tracking-[-0.035em] leading-[1.05] mb-5"
+                  >
+                    {isFr ? (
+                      <>Pas un menu vocal.<br /><span className="font-serif italic text-[#6366f1]">Une vraie conversation.</span></>
+                    ) : (
+                      <>Not a phone menu.<br /><span className="font-serif italic text-[#6366f1]">A real conversation.</span></>
+                    )}
+                  </h2>
+                  <p className="text-[#525257] text-[15px] leading-relaxed max-w-[360px] mb-8">
+                    {isFr
+                      ? `${voiceName} écoute, comprend le contexte, et agit. Elle prend les rendez-vous dans votre vrai calendrier, envoie les confirmations, et reconnaît une urgence quand elle en entend une.`
+                      : `${voiceName} listens, understands context, and acts. She books appointments in your real calendar, sends confirmations, and recognizes an emergency when she hears one.`}
+                  </p>
+                  <Link
+                    to="/pricing"
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-8 hover:decoration-[#6366f1] transition-colors"
+                  >
+                    {isFr ? 'Voir les tarifs' : 'See pricing'}
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </Link>
+                </Reveal>
+              </div>
+
+              <ul className="grid sm:grid-cols-2 gap-5" role="list">
+                {[
+                  {
+                    icon: Mic,
+                    title: isFr ? 'Conversations naturelles' : 'Natural conversation',
+                    body: isFr
+                      ? `Pas de scripts robotiques. ${voiceName} adapte le ton, gère les interruptions et reformule quand c'est flou.`
+                      : `No robotic scripts. ${voiceName} adapts tone, handles interruptions, and rephrases when something is unclear.`,
+                    tall: true,
+                    bg: '#1d1d1f',
+                    fg: 'white',
+                    accent: '#a5b4fc',
+                  },
+                  {
+                    icon: Calendar,
+                    title: isFr ? 'Rendez-vous dans votre agenda' : 'Books in your calendar',
+                    body: isFr
+                      ? `Google, Outlook, Calendly. ${voiceName} vérifie les créneaux libres et réserve directement.`
+                      : `Google, Outlook, Calendly. ${voiceName} checks availability and books straight in.`,
+                    bg: '#fafaf8',
+                    fg: '#1d1d1f',
+                    accent: '#6366f1',
+                  },
+                  {
+                    icon: MessageSquare,
+                    title: isFr ? 'SMS et email de suivi' : 'SMS and email follow-up',
+                    body: isFr
+                      ? "Confirmations envoyées dans la minute. Rappels la veille. Réponses aux questions courantes."
+                      : 'Confirmations sent within a minute. Reminders the day before. Answers to common questions.',
+                    bg: '#fafaf8',
+                    fg: '#1d1d1f',
+                    accent: '#a855f7',
+                  },
+                  {
+                    icon: Headphones,
+                    title: isFr ? 'Transferts intelligents' : 'Smart transfers',
+                    body: isFr
+                      ? `Quand un appel devient urgent, ${voiceName} identifie qui doit décrocher et transfère sans faire patienter.`
+                      : `When a call turns urgent, ${voiceName} identifies who should take it and transfers without making the caller wait.`,
+                    tall: true,
+                    bg: '#6366f1',
+                    fg: 'white',
+                    accent: 'rgba(255,255,255,0.6)',
+                  },
+                ].map((feat, i) => (
+                  <Reveal key={feat.title} delay={i * 0.08} as="li" className={feat.tall ? 'sm:row-span-2' : ''}>
+                    <article
+                      className="rounded-3xl p-7 md:p-8 h-full flex flex-col justify-between"
+                      style={{ background: feat.bg, color: feat.fg, minHeight: feat.tall ? 280 : 220 }}
+                    >
+                      <div>
+                        <span
+                          className="w-11 h-11 rounded-2xl flex items-center justify-center mb-5"
+                          style={{ background: feat.fg === 'white' ? 'rgba(255,255,255,0.10)' : 'rgba(99,102,241,0.10)' }}
+                        >
+                          <feat.icon size={18} style={{ color: feat.accent }} aria-hidden="true" />
+                        </span>
+                        <h3 className="text-[1.25rem] font-semibold tracking-[-0.015em] mb-2.5 leading-snug">
+                          {feat.title}
+                        </h3>
+                        <p
+                          className="text-[14.5px] leading-relaxed"
+                          style={{ color: feat.fg === 'white' ? 'rgba(255,255,255,0.7)' : '#525257' }}
+                        >
+                          {feat.body}
+                        </p>
+                      </div>
+                    </article>
+                  </Reveal>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            VOICES — showcase, NOT a checklist
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          aria-labelledby="voices-heading"
+          className="py-20 md:py-28 px-6 bg-[#fafaf8] border-y border-[#1d1d1f]/8"
+        >
+          <div className="max-w-[1240px] mx-auto">
+            <Reveal>
+              <div className="flex items-end justify-between gap-8 mb-12 md:mb-16 flex-wrap">
+                <div>
+                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#6366f1] block mb-3">
+                    {isFr ? 'Voix et langues' : 'Voices and languages'}
+                  </span>
+                  <h2
+                    id="voices-heading"
+                    className="text-[clamp(1.9rem,4vw,3.2rem)] font-semibold tracking-[-0.035em] leading-[1.05] max-w-[680px]"
+                  >
+                    {isFr ? (
+                      <>Choisissez la voix <span className="font-serif italic text-[#6366f1]">qui sonne comme votre marque.</span></>
+                    ) : (
+                      <>Pick the voice <span className="font-serif italic text-[#6366f1]">that sounds like your brand.</span></>
+                    )}
+                  </h2>
                 </div>
-                <h2
-                  id="features-heading"
-                  style={{
-                    fontSize: 'clamp(2rem, 4vw, 3.2rem)',
-                    fontWeight: 800, letterSpacing: '-0.035em',
-                    color: D.lText, lineHeight: 1.1, marginBottom: '1rem',
-                  }}
-                >
-                  Trois étapes.<br />Premier rendez-vous aujourd'hui.
-                </h2>
-                <p style={{ fontSize: 17, color: D.lText2, lineHeight: 1.65, maxWidth: 480 }}>
-                  Pas de paramétrage complexe. Pas de formation. Vous importez vos prospects, on s'occupe du reste.
+                <p className="text-[#525257] text-sm max-w-[300px] leading-relaxed">
+                  {isFr
+                    ? '40+ voix humaines en 11 langues. Accents régionaux, intonations naturelles, sans coupures.'
+                    : '40+ human voices across 11 languages. Regional accents, natural intonation, no cut-offs.'}
                 </p>
               </div>
-            </FadeIn>
+            </Reveal>
 
-            {/* Zigzag steps */}
-            {[
-              {
-                num: '01',
-                title: 'Importez vos prospects',
-                desc: `Collez un fichier CSV ou connectez votre CRM. Qwillio importe, valide et déduplique vos contacts en quelques secondes. Aucun champ obligatoire au-delà de l'email ou du téléphone.`,
-              },
-              {
-                num: '02',
-                title: `L'IA appelle, qualifie, note`,
-                desc: `Aria appelle chaque prospect sur votre plage horaire, détecte les signaux d'intention, et retranscrit l'échange mot pour mot. Vous recevez un score de qualification et la transcription complète.`,
-              },
-              {
-                num: '03',
-                title: `Votre équipe ferme les deals`,
-                desc: `Vos commerciaux ne voient que les leads chauds. Plus de cold calling inutile. Ils reçoivent un briefing complet avec contexte et prochaine action recommandée.`,
-              },
-            ].map((step, i) => (
-              <FadeIn key={step.num} delay={i * 80}>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  direction: i % 2 === 1 ? 'rtl' : 'ltr',
-                  gap: '6rem',
-                  alignItems: 'center',
-                  marginBottom: i < 2 ? '6rem' : 0,
-                }}>
-                  <div style={{ direction: 'ltr' }}>
-                    <div style={{
-                      fontSize: '6rem', fontWeight: 800,
-                      color: D.lBorder,
-                      letterSpacing: '-0.05em', lineHeight: 1,
-                      marginBottom: '0.5rem',
-                      fontFeatureSettings: `'tnum'`,
-                    }}>
-                      {step.num}
-                    </div>
-                    <h3 style={{
-                      fontSize: '1.7rem', fontWeight: 700,
-                      color: D.lText, letterSpacing: '-0.02em',
-                      marginBottom: '0.8rem',
-                    }}>
-                      {step.title}
-                    </h3>
-                    <p style={{ fontSize: 16, color: D.lText2, lineHeight: 1.7, maxWidth: 400 }}>
-                      {step.desc}
-                    </p>
+            <div className="grid md:grid-cols-2 gap-5 mb-10">
+              <Reveal delay={0}>
+                <VoiceCard v={voices[0]} large />
+              </Reveal>
+              <Reveal delay={0.08}>
+                <VoiceCard v={voices[1]} large />
+              </Reveal>
+            </div>
+
+            {/* Language pills (chip cloud, not grid) */}
+            <Reveal delay={0.2}>
+              <div className="flex items-center gap-5 flex-wrap">
+                <span className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#86868b]">
+                  <Languages size={13} aria-hidden="true" />
+                  {isFr ? 'Disponible en' : 'Available in'}
+                </span>
+                <ul className="flex flex-wrap gap-2" role="list">
+                  {[
+                    isFr ? 'Français' : 'French',
+                    'English',
+                    isFr ? 'Espagnol' : 'Spanish',
+                    isFr ? 'Italien' : 'Italian',
+                    isFr ? 'Allemand' : 'German',
+                    isFr ? 'Portugais' : 'Portuguese',
+                    isFr ? 'Néerlandais' : 'Dutch',
+                    isFr ? 'Arabe' : 'Arabic',
+                    isFr ? 'Mandarin' : 'Mandarin',
+                    isFr ? 'Japonais' : 'Japanese',
+                    isFr ? 'Coréen' : 'Korean',
+                  ].map((lng) => (
+                    <li key={lng}>
+                      <span className="inline-flex items-center text-xs px-3.5 py-2 rounded-full bg-white border border-[#1d1d1f]/10 text-[#1d1d1f] font-medium hover:border-[#6366f1] hover:text-[#6366f1] transition-colors cursor-default">
+                        {lng}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            HOW IT WORKS — editorial top-numbered
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          aria-labelledby="how-heading"
+          className="py-20 md:py-28 px-6"
+        >
+          <div className="max-w-[1240px] mx-auto">
+            <Reveal>
+              <h2
+                id="how-heading"
+                className="text-[clamp(1.7rem,3.2vw,2.6rem)] font-semibold tracking-[-0.025em] mb-12 max-w-[760px]"
+              >
+                {isFr
+                  ? <>Mise en route en 12 minutes. <span className="text-[#86868b] font-normal">Premier appel traité ce soir.</span></>
+                  : <>Live in 12 minutes. <span className="text-[#86868b] font-normal">First call handled tonight.</span></>}
+              </h2>
+            </Reveal>
+
+            <ol className="grid md:grid-cols-3 gap-8 md:gap-12" role="list">
+              {[
+                {
+                  num: '01',
+                  title: isFr ? 'Choisissez votre voix' : 'Pick your voice',
+                  desc: isFr
+                    ? 'Sélectionnez parmi 40+ voix. Écoutez chaque option. Personnalisez le nom, la salutation, le ton.'
+                    : 'Pick from 40+ voices. Audition each option. Customize the name, greeting, and tone.',
+                },
+                {
+                  num: '02',
+                  title: isFr ? 'Connectez votre agenda' : 'Connect your calendar',
+                  desc: isFr
+                    ? `Google, Outlook, Calendly, Cal.com. ${voiceName} voit vos créneaux libres et réserve directement.`
+                    : `Google, Outlook, Calendly, Cal.com. ${voiceName} sees your open slots and books straight in.`,
+                },
+                {
+                  num: '03',
+                  title: isFr ? 'Transférez votre numéro' : 'Forward your number',
+                  desc: isFr
+                    ? `Gardez votre numéro existant. Activez le renvoi d'appel. ${voiceName} prend le relais immédiatement.`
+                    : `Keep your existing number. Activate call forwarding. ${voiceName} takes over immediately.`,
+                },
+              ].map((step, i) => (
+                <Reveal key={step.num} delay={i * 0.1} as="li">
+                  <div className="border-t-2 border-[#1d1d1f] pt-5">
+                    <p className="text-[11px] font-bold tracking-[0.2em] text-[#6366f1] mb-3">{step.num}</p>
+                    <h3 className="text-xl font-semibold mb-2 tracking-[-0.015em]">{step.title}</h3>
+                    <p className="text-[#525257] leading-relaxed text-[15px]">{step.desc}</p>
                   </div>
-                  <div style={{ direction: 'ltr' }}>
-                    <StepPanel step={i} />
+                </Reveal>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            BIG QUOTE — drenched indigo editorial break
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          aria-label={isFr ? 'Témoignage client' : 'Customer quote'}
+          className="px-6 py-8"
+        >
+          <div className="max-w-[1240px] mx-auto">
+            <Reveal>
+              <figure
+                className="rounded-[2rem] px-8 md:px-16 py-16 md:py-24 relative overflow-hidden"
+                style={{ background: '#6366f1' }}
+              >
+                <div
+                  aria-hidden="true"
+                  className="absolute -right-32 -top-32 w-[440px] h-[440px] rounded-full opacity-30 blur-3xl"
+                  style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }}
+                />
+                <blockquote
+                  className="relative text-white text-[clamp(1.6rem,3.5vw,2.6rem)] font-semibold tracking-[-0.025em] leading-[1.18] max-w-[920px]"
+                >
+                  <span className="font-serif italic text-white/40 text-[1.8em] leading-none mr-2 align-[-0.18em]">"</span>
+                  {testimonial.quote}
+                </blockquote>
+                <figcaption className="relative mt-8 flex items-center gap-3 text-white/80 text-sm">
+                  <span className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-xs font-semibold text-white">
+                    SC
+                  </span>
+                  <span>
+                    <span className="font-semibold text-white">{testimonial.name}</span>
+                    <span className="text-white/60"> · {testimonial.role}</span>
+                  </span>
+                </figcaption>
+              </figure>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            PRICING — bento ratio 1fr / 1.35fr / 1fr (middle dominant)
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          aria-labelledby="pricing-heading"
+          className="py-24 md:py-36 px-6"
+        >
+          <div className="max-w-[1240px] mx-auto">
+            <Reveal>
+              <div className="flex items-end justify-between gap-8 mb-12 md:mb-16 flex-wrap">
+                <div>
+                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#6366f1] block mb-3">
+                    {isFr ? 'Tarifs' : 'Pricing'}
+                  </span>
+                  <h2
+                    id="pricing-heading"
+                    className="text-[clamp(1.9rem,4vw,3.2rem)] font-semibold tracking-[-0.035em] leading-[1.05] max-w-[640px]"
+                  >
+                    {isFr ? (
+                      <>Trois forfaits. <span className="font-serif italic text-[#6366f1]">Premier mois offert.</span></>
+                    ) : (
+                      <>Three plans. <span className="font-serif italic text-[#6366f1]">First month free.</span></>
+                    )}
+                  </h2>
+                </div>
+                <p className="text-[#525257] text-sm max-w-[300px] leading-relaxed">
+                  {isFr
+                    ? 'Sans engagement. Annulation en un clic. Pas de carte requise pour démarrer.'
+                    : 'No commitment. Cancel in one click. No card required to get started.'}
+                </p>
+              </div>
+            </Reveal>
+
+            <div className="grid lg:grid-cols-[1fr_1.35fr_1fr] gap-5 items-start">
+              {tiers.map((tier, i) => {
+                const isHi = !!tier.highlighted;
+                return (
+                  <Reveal key={tier.name} delay={i * 0.09}>
+                  <Card3D intensity={3}>
+                    <article
+                      aria-current={isHi ? 'true' : undefined}
+                      className={`relative rounded-[2rem] p-7 md:p-9 h-full flex flex-col ${
+                        isHi
+                          ? 'text-white'
+                          : 'bg-white border border-[#1d1d1f]/10 text-[#1d1d1f]'
+                      }`}
+                      style={
+                        isHi
+                          ? {
+                              background:
+                                'linear-gradient(160deg, #1d1d1f 0%, #2d2d40 55%, #6366f1 115%)',
+                              minHeight: 560,
+                            }
+                          : { minHeight: 480 }
+                      }
+                    >
+                      {isHi && (
+                        <span className="absolute top-5 right-5 text-[10px] font-bold tracking-[0.2em] uppercase text-[#a5b4fc]">
+                          {isFr ? 'Le plus choisi' : 'Most chosen'}
+                        </span>
+                      )}
+
+                      <div className="flex-1">
+                        <h3
+                          className={`font-semibold tracking-[-0.02em] mb-2 ${
+                            isHi ? 'text-2xl' : 'text-xl'
+                          }`}
+                        >
+                          {tier.name}
+                        </h3>
+                        <p
+                          className={`text-[13.5px] leading-relaxed mb-7 max-w-[280px] ${
+                            isHi ? 'text-white/65' : 'text-[#525257]'
+                          }`}
+                        >
+                          {tier.desc}
+                        </p>
+
+                        <div className="flex items-baseline gap-1 mb-1">
+                          <span
+                            className={`text-[clamp(2.6rem,4.5vw,3.6rem)] font-semibold tracking-[-0.04em] leading-none ${
+                              isHi ? 'text-white' : 'text-[#1d1d1f]'
+                            }`}
+                          >
+                            ${tier.price}
+                          </span>
+                          <span className={`text-sm ${isHi ? 'text-white/60' : 'text-[#86868b]'}`}>
+                            /{isFr ? 'mois' : 'mo'}
+                          </span>
+                        </div>
+                        <p className={`text-xs mb-8 ${isHi ? 'text-[#a5b4fc]' : 'text-[#6366f1]'}`}>
+                          {isFr ? 'Premier mois offert' : 'First month free'}
+                        </p>
+
+                        <ul className="space-y-2.5 mb-8" role="list">
+                          {tier.highlights.map((h) => (
+                            <li
+                              key={h}
+                              className={`flex items-start gap-2.5 text-[14px] leading-snug ${
+                                isHi ? 'text-white/85' : 'text-[#1d1d1f]'
+                              }`}
+                            >
+                              <Check
+                                size={14}
+                                className="mt-1 flex-shrink-0"
+                                style={{ color: isHi ? '#a5b4fc' : '#6366f1' }}
+                                aria-hidden="true"
+                              />
+                              <span>{h}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <Link
+                        to="/register"
+                        className={`inline-flex items-center justify-center gap-2 text-[15px] font-medium px-6 py-3.5 rounded-full transition-colors ${
+                          isHi
+                            ? 'bg-white text-[#1d1d1f] hover:bg-[#a5b4fc] hover:text-white'
+                            : 'bg-[#1d1d1f] text-white hover:bg-[#6366f1]'
+                        }`}
+                      >
+                        {tier.cta}
+                        <ArrowRight size={15} aria-hidden="true" />
+                      </Link>
+                    </article>
+                  </Card3D>
+                  </Reveal>
+                );
+              })}
+            </div>
+
+            <Reveal delay={0.3}>
+              <p className="mt-10 inline-flex items-center gap-2 text-sm text-[#86868b]">
+                <Shield size={14} aria-hidden="true" />
+                {isFr
+                  ? 'Conforme RGPD. Données hébergées en Europe. Annulation en un clic.'
+                  : 'GDPR compliant. Data hosted in the EU. Cancel in one click.'}
+              </p>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            FAQ-LIGHT / OBJECTION RELIEF — asymmetric 3 short blocks
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          aria-labelledby="trust-heading"
+          className="py-20 md:py-28 px-6 bg-[#fafaf8] border-y border-[#1d1d1f]/8"
+        >
+          <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1fr_1.8fr] gap-10 md:gap-16 items-start">
+            <Reveal>
+              <div className="lg:sticky lg:top-28">
+                <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#6366f1] block mb-3">
+                  {isFr ? 'Les questions courantes' : 'Common questions'}
+                </span>
+                <h2
+                  id="trust-heading"
+                  className="text-[clamp(1.6rem,3vw,2.4rem)] font-semibold tracking-[-0.03em] leading-[1.08] mb-5"
+                >
+                  {isFr ? (
+                    <>Trois objections. <span className="font-serif italic text-[#6366f1]">Trois réponses honnêtes.</span></>
+                  ) : (
+                    <>Three concerns. <span className="font-serif italic text-[#6366f1]">Three honest answers.</span></>
+                  )}
+                </h2>
+              </div>
+            </Reveal>
+
+            <ul className="space-y-6" role="list">
+              {[
+                {
+                  icon: Bot,
+                  q: isFr ? '"Mes clients vont sentir que c\'est une IA."' : '"My customers will know it\'s AI."',
+                  a: isFr
+                    ? `${voiceName} utilise les voix les plus avancées du marché, avec respirations, hésitations courtes et intonations naturelles. La plupart des appelants ne s'en rendent pas compte. Et nous indiquons clairement quand un appel doit être annoncé comme automatisé.`
+                    : `${voiceName} runs on the most advanced voice models, with breath, short pauses, and natural intonation. Most callers do not notice. And we make it clear when a call must be disclosed as automated.`,
+                },
+                {
+                  icon: Shield,
+                  q: isFr ? '"Et la confidentialité ?"' : '"What about privacy?"',
+                  a: isFr
+                    ? "Conformité RGPD intégrale. Données hébergées en Europe. Enregistrements chiffrés, accessibles uniquement par vous. Audit logs complets. Aucune donnée vendue ou utilisée pour l'entraînement."
+                    : 'Full GDPR compliance. Data hosted in the EU. Recordings encrypted, only accessible by you. Complete audit logs. No data sold or used for training.',
+                },
+                {
+                  icon: Zap,
+                  q: isFr ? '"Et si elle ne sait pas répondre ?"' : '"What if she does not know the answer?"',
+                  a: isFr
+                    ? `${voiceName} transfère vers vous, prend un message détaillé, ou propose un rappel. Vous pouvez aussi définir des règles précises : urgence médicale, demande VIP, plainte. Elle apprend de chaque appel.`
+                    : `${voiceName} transfers to you, takes a detailed message, or schedules a callback. You can set specific rules: medical urgency, VIP request, complaint. She learns from every call.`,
+                },
+              ].map((item, i) => (
+                <Reveal key={item.q} delay={i * 0.1} as="li">
+                  <article className="bg-white rounded-3xl p-7 md:p-8 border border-[#1d1d1f]/8">
+                    <div className="flex items-start gap-4">
+                      <span className="w-11 h-11 rounded-2xl bg-[#6366f1]/10 flex items-center justify-center flex-shrink-0">
+                        <item.icon size={18} className="text-[#6366f1]" aria-hidden="true" />
+                      </span>
+                      <div>
+                        <h3 className="text-[1.05rem] font-semibold tracking-[-0.015em] mb-2 text-[#1d1d1f]">
+                          {item.q}
+                        </h3>
+                        <p className="text-[14.5px] text-[#525257] leading-relaxed">
+                          {item.a}
+                        </p>
+                      </div>
+                    </div>
+                  </article>
+                </Reveal>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            FINAL CTA — editorial split with top border
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          aria-label={isFr ? 'Démarrer avec Qwillio' : 'Get started with Qwillio'}
+          className="py-24 md:py-36 px-6"
+        >
+          <div className="max-w-[1240px] mx-auto">
+            <Reveal>
+              <div className="grid lg:grid-cols-[1.5fr_1fr] gap-10 items-end border-t-2 border-[#1d1d1f] pt-12 md:pt-16">
+                <h2 className="text-[clamp(2.2rem,5vw,4.4rem)] font-semibold tracking-[-0.035em] leading-[0.98]">
+                  {isFr ? (
+                    <>
+                      Le prochain appel<br />
+                      arrive dans une heure.<br />
+                      <span className="font-serif italic text-[#6366f1]">Soyez prêt.</span>
+                    </>
+                  ) : (
+                    <>
+                      The next call<br />
+                      lands in an hour.<br />
+                      <span className="font-serif italic text-[#6366f1]">Be ready.</span>
+                    </>
+                  )}
+                </h2>
+                <div className="flex flex-col items-start gap-4 lg:items-end lg:text-right pb-4">
+                  <p className="text-[#525257] text-[15px] leading-relaxed max-w-[320px] lg:ml-auto">
+                    {isFr
+                      ? 'Sans engagement. Sans carte bancaire. Premier mois offert.'
+                      : 'No commitment. No credit card. First month free.'}
+                  </p>
+                  <div className="flex flex-wrap gap-3 lg:justify-end">
+                    <Link
+                      to="/register"
+                      className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#6366f1] transition-colors"
+                    >
+                      {isFr ? 'Créer un compte' : 'Create account'}
+                      <ArrowRight size={16} aria-hidden="true" />
+                    </Link>
+                    <a
+                      href="/demo.html"
+                      className="inline-flex items-center gap-2 text-base font-medium text-[#1d1d1f] pl-5 pr-2 py-4 underline decoration-[#6366f1]/30 decoration-2 underline-offset-8 hover:decoration-[#6366f1] transition-colors"
+                    >
+                      <Phone size={14} aria-hidden="true" />
+                      {isFr ? 'Appeler la démo' : 'Call the demo'}
+                    </a>
                   </div>
                 </div>
-              </FadeIn>
-            ))}
-          </div>
-        </section>
-
-        {/* ── TESTIMONIALS — asymmetric, NOT identical 3-col ── */}
-        <section
-          aria-labelledby="testimonials-heading"
-          style={{ padding: '8rem 2.5rem', background: D.bg }}
-        >
-          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            <FadeIn style={{ marginBottom: '4rem' }}>
-              <div style={{
-                display: 'inline-block',
-                background: D.accentDim, border: `1px solid ${D.accentBrd}`,
-                color: D.accent,
-                fontSize: 11, fontWeight: 700,
-                padding: '5px 14px', borderRadius: 999,
-                textTransform: 'uppercase', letterSpacing: '0.09em',
-                marginBottom: '1rem',
-              }}>
-                Ils nous font confiance
               </div>
-              <h2
-                id="testimonials-heading"
-                style={{
-                  fontSize: 'clamp(2rem, 3.5vw, 3rem)',
-                  fontWeight: 800, color: D.text,
-                  letterSpacing: '-0.035em', lineHeight: 1.1,
-                }}
-              >
-                Des résultats, pas des promesses.
-              </h2>
-            </FadeIn>
-
-            {/* 2fr featured left spanning 2 rows, 1fr two stacked right */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '2fr 1fr',
-              gridTemplateRows: 'auto auto',
-              gap: '1.5rem',
-            }}>
-              <FadeIn delay={0} style={{ gridRow: '1 / 3' }}>
-                <article style={{
-                  height: '100%',
-                  background: D.bg2, border: `1px solid ${D.border}`,
-                  borderRadius: 24, padding: '3rem',
-                  display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                }}>
-                  <div>
-                    <Stars size={14} />
-                    <blockquote style={{
-                      fontSize: 'clamp(1.1rem, 2vw, 1.4rem)',
-                      fontWeight: 600, color: D.text,
-                      lineHeight: 1.55, letterSpacing: '-0.015em',
-                      margin: '1.5rem 0 2rem',
-                    }}>
-                      "Nos commerciaux ne font plus que du closing. Qwillio gère tout le cold call.
-                      En un mois, on a triplé notre pipeline sans embaucher personne."
-                    </blockquote>
-                  </div>
-                  <footer style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div aria-hidden="true" style={{
-                      width: 48, height: 48,
-                      background: D.accentDim, border: `1px solid ${D.accentBrd}`,
-                      borderRadius: '50%',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: D.accent, fontWeight: 700, fontSize: 15,
-                    }}>
-                      AB
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: D.text }}>Alexandre Blanchard</div>
-                      <div style={{ fontSize: 13, color: D.text3 }}>Directeur, Propulse Agency</div>
-                    </div>
-                    <div style={{
-                      marginLeft: 'auto',
-                      background: D.accentDim, border: `1px solid ${D.accentBrd}`,
-                      borderRadius: 10, padding: '6px 14px',
-                      fontSize: 13, fontWeight: 700, color: D.accent,
-                    }}>
-                      +340% pipeline
-                    </div>
-                  </footer>
-                </article>
-              </FadeIn>
-
-              {[
-                {
-                  initials: 'TM', name: 'Thomas Moreau', role: 'CEO, Axion Partners',
-                  quote: `ROI positif la première semaine. La voix est indiscernable d'un vrai commercial.`,
-                  stat: 'ROI semaine 1',
-                },
-                {
-                  initials: 'SR', name: 'Sophie Renard', role: 'Fondatrice, ImmoPro',
-                  quote: `On a divisé notre coût d'acquisition par trois. Mes équipes adorent.`,
-                  stat: '-3x CAC',
-                },
-              ].map((t, i) => (
-                <FadeIn key={t.initials} delay={(i + 1) * 80}>
-                  <article style={{
-                    background: D.bg2, border: `1px solid ${D.border}`,
-                    borderRadius: 20, padding: '2rem',
-                  }}>
-                    <Stars size={12} />
-                    <blockquote style={{ fontSize: 14, color: D.text2, lineHeight: 1.6, margin: '0.8rem 0 1.2rem' }}>
-                      "{t.quote}"
-                    </blockquote>
-                    <footer style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div aria-hidden="true" style={{
-                        width: 36, height: 36, borderRadius: '50%',
-                        background: D.accentDim, border: `1px solid ${D.accentBrd}`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: D.accent, fontSize: 12, fontWeight: 700,
-                      }}>
-                        {t.initials}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: D.text }}>{t.name}</div>
-                        <div style={{ fontSize: 12, color: D.text3 }}>{t.role}</div>
-                      </div>
-                      <span style={{
-                        marginLeft: 'auto',
-                        fontSize: 11, fontWeight: 800, color: D.accent, letterSpacing: '0.02em',
-                      }}>
-                        {t.stat}
-                      </span>
-                    </footer>
-                  </article>
-                </FadeIn>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── PRICING — 1fr 1.35fr 1fr, center visually dominant ── */}
-        <section
-          id="pricing"
-          aria-labelledby="pricing-heading"
-          style={{ padding: '8rem 2.5rem', background: D.bg2 }}
-        >
-          <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-            <FadeIn style={{ marginBottom: '4rem' }}>
-              <h2
-                id="pricing-heading"
-                style={{
-                  fontSize: 'clamp(2rem, 4vw, 3rem)',
-                  fontWeight: 800, color: D.text,
-                  letterSpacing: '-0.035em', marginBottom: '0.8rem',
-                }}
-              >
-                Simple. Transparent.
-              </h2>
-              <p style={{ fontSize: 16, color: D.text2, lineHeight: 1.6 }}>
-                Sans engagement annuel. Arrêtez quand vous voulez.
-              </p>
-            </FadeIn>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1.35fr 1fr',
-              gap: '1.25rem',
-              alignItems: 'start',
-            }}>
-              {[
-                {
-                  name: 'Starter', price: '29', period: '/mois',
-                  calls: '200 appels / mois',
-                  popular: false,
-                  features: [
-                    'Appels IA illimités en durée',
-                    'Transcription automatique',
-                    'Score de qualification',
-                  ],
-                  cta: 'Commencer',
-                  ctaTo: '/register',
-                },
-                {
-                  name: 'Pro', price: '79', period: '/mois',
-                  calls: '600 appels / mois',
-                  popular: true,
-                  features: [
-                    'Tout Starter inclus',
-                    `Priorité file d'appels`,
-                    'Intégrations CRM (HubSpot, Pipedrive)',
-                    'Rapport hebdomadaire',
-                    'Support prioritaire 7j/7',
-                  ],
-                  cta: 'Démarrer en Pro',
-                  ctaTo: '/register',
-                },
-                {
-                  name: 'Agence', price: '199', period: '/mois',
-                  calls: 'Appels illimités',
-                  popular: false,
-                  features: [
-                    'Tout Pro inclus',
-                    'Multi-clients et white-label',
-                    'API complète',
-                  ],
-                  cta: 'Nous contacter',
-                  ctaTo: '/register',
-                },
-              ].map((tier, i) => (
-                <FadeIn key={tier.name} delay={i * 60}>
-                  <div
-                    aria-current={tier.popular ? 'true' : undefined}
-                    style={{
-                      background: tier.popular ? D.bg3 : D.bg,
-                      border: `1px solid ${tier.popular ? D.accentBrd : D.border}`,
-                      borderRadius: 20,
-                      padding: tier.popular ? '2.5rem' : '2rem',
-                      position: 'relative',
-                      boxShadow: tier.popular
-                        ? `0 0 0 1px ${D.accentDim}, 0 8px 32px oklch(56% 0.22 264 / 0.08)`
-                        : 'none',
-                    }}
-                  >
-                    {tier.popular && (
-                      <div style={{
-                        position: 'absolute', top: -12, left: '50%',
-                        transform: 'translateX(-50%)',
-                        background: D.accent, color: D.bg,
-                        fontSize: 10, fontWeight: 800,
-                        padding: '4px 16px', borderRadius: 999,
-                        whiteSpace: 'nowrap',
-                        textTransform: 'uppercase', letterSpacing: '0.09em',
-                      }}>
-                        Le plus choisi
-                      </div>
-                    )}
-
-                    <div style={{
-                      fontSize: 11, fontWeight: 700,
-                      textTransform: 'uppercase', letterSpacing: '0.1em',
-                      color: D.text3, marginBottom: '1.2rem',
-                    }}>
-                      {tier.name}
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: '0.4rem' }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: D.text3 }}>€</span>
-                      <span style={{
-                        fontSize: tier.popular ? '3.5rem' : '3rem',
-                        fontWeight: 800, color: D.text,
-                        letterSpacing: '-0.04em', lineHeight: 1,
-                      }}>
-                        {tier.price}
-                      </span>
-                      <span style={{ fontSize: 14, color: D.text3, fontWeight: 400 }}>{tier.period}</span>
-                    </div>
-
-                    <div style={{ fontSize: 13, color: D.accent, fontWeight: 600, marginBottom: '2rem' }}>
-                      {tier.calls}
-                    </div>
-
-                    <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {tier.features.map(f => (
-                        <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: D.text2, lineHeight: 1.5 }}>
-                          <Check size={14} style={{ color: D.ok, flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-
-                    <Link
-                      to={tier.ctaTo}
-                      aria-label={`${tier.cta} — forfait ${tier.name} à ${tier.price}€ par mois`}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        width: '100%', padding: '0.85rem',
-                        borderRadius: 12, fontSize: 14, fontWeight: 600,
-                        textDecoration: 'none',
-                        background: tier.popular ? D.accent : 'transparent',
-                        color: tier.popular ? D.bg : D.text2,
-                        border: tier.popular ? 'none' : `1.5px solid ${D.border}`,
-                        boxShadow: tier.popular ? `0 4px 20px oklch(56% 0.22 264 / 0.3)` : 'none',
-                        transition: `all 0.2s ${EASE}`,
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = tier.popular ? D.accentHi : D.accentDim;
-                        e.currentTarget.style.color = tier.popular ? D.bg : D.accent;
-                        e.currentTarget.style.borderColor = tier.popular ? 'transparent' : D.accent;
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = tier.popular ? D.accent : 'transparent';
-                        e.currentTarget.style.color = tier.popular ? D.bg : D.text2;
-                        e.currentTarget.style.borderColor = tier.popular ? 'transparent' : D.border;
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      {tier.cta}
-                      <ArrowRight size={14} aria-hidden="true" />
-                    </Link>
-                  </div>
-                </FadeIn>
-              ))}
-            </div>
-
-            <FadeIn delay={240}>
-              <div style={{
-                marginTop: '2.5rem',
-                display: 'flex', alignItems: 'center', gap: 8,
-                color: D.text3, fontSize: 13,
-              }}>
-                <Shield size={14} style={{ flexShrink: 0 }} aria-hidden="true" />
-                Conforme RGPD. Sans engagement annuel. Annulation en 1 clic.
-              </div>
-            </FadeIn>
-          </div>
-        </section>
-
-        {/* ── CTA BANNER ── */}
-        <section
-          aria-labelledby="cta-heading"
-          style={{
-            padding: '9rem 2.5rem',
-            background: D.bg,
-            position: 'relative', overflow: 'hidden',
-          }}
-        >
-          <div aria-hidden="true" style={{
-            position: 'absolute', top: '30%', right: '10%',
-            width: 500, height: 500,
-            background: `radial-gradient(ellipse at center, oklch(56% 0.22 264 / 0.05) 0%, transparent 70%)`,
-            pointerEvents: 'none',
-          }} />
-          <div style={{ maxWidth: 680, margin: '0 auto', position: 'relative' }}>
-            <FadeIn>
-              <div style={{
-                display: 'inline-block',
-                background: D.accentDim, border: `1px solid ${D.accentBrd}`,
-                color: D.accent,
-                fontSize: 11, fontWeight: 700,
-                padding: '5px 14px', borderRadius: 999,
-                textTransform: 'uppercase', letterSpacing: '0.09em',
-                marginBottom: '1.5rem',
-              }}>
-                Prêt à commencer ?
-              </div>
-              <h2
-                id="cta-heading"
-                style={{
-                  fontSize: 'clamp(2.2rem, 4.5vw, 3.8rem)',
-                  fontWeight: 800, color: D.text,
-                  letterSpacing: '-0.04em', lineHeight: 1.05,
-                  marginBottom: '1.2rem',
-                }}
-              >
-                Vos concurrents prospectent déjà la nuit.
-              </h2>
-              <p style={{
-                fontSize: 17, color: D.text2, lineHeight: 1.65,
-                marginBottom: '2.5rem', maxWidth: 500,
-              }}>
-                10 minutes de configuration. Premiers appels aujourd'hui. Aucune carte bancaire pour l'essai.
-              </p>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <MagneticBtn to="/register">
-                  Essayer gratuitement
-                  <ArrowRight size={16} aria-hidden="true" />
-                </MagneticBtn>
-                <MagneticBtn to="/login" variant="ghost">
-                  J'ai déjà un compte
-                </MagneticBtn>
-              </div>
-            </FadeIn>
+            </Reveal>
           </div>
         </section>
       </main>
 
-      {/* ── FOOTER ── */}
-      <footer
-        role="contentinfo"
-        style={{
-          borderTop: `1px solid ${D.border}`,
-          padding: '2.5rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexWrap: 'wrap', gap: '1rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <QwillioLogo size={20} />
-          <span style={{ fontSize: 15, fontWeight: 800, color: D.text, letterSpacing: '-0.02em' }}>
-            Qwillio
-          </span>
-        </div>
-
-        <nav aria-label="Liens légaux" style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-          {[
-            ['Conditions générales', '/legal/terms'],
-            ['Confidentialité', '/legal/privacy'],
-            ['RGPD', '/legal/gdpr'],
-            ['Contact', '/legal/contact'],
-          ].map(([label, href]) => (
-            <Link
-              key={label}
-              to={href}
-              style={{ fontSize: 13, color: D.text3, textDecoration: 'none', transition: `color 0.2s` }}
-              onMouseEnter={e => (e.currentTarget.style.color = D.text2)}
-              onMouseLeave={e => (e.currentTarget.style.color = D.text3)}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
-
-        <div style={{ fontSize: 13, color: D.text3 }}>
-          &copy; {new Date().getFullYear()} Qwillio SAS
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

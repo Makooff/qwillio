@@ -167,7 +167,7 @@ export default function QwillioLoader({
         }
 
         .qw-loader__label {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+          font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
           font-size: 14px;
           font-weight: 500;
           letter-spacing: 0.02em;

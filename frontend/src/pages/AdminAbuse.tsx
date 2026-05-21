@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Shield, AlertTriangle, Ban, Eye, UserX, Globe } from 'lucide-react';
 import api from '../services/api';
 import { t, glass, cx } from '../styles/admin-theme';
@@ -172,7 +172,7 @@ export default function AdminAbuse() {
                       <span className="text-xs truncate block">{item.blockReason || '\u2014'}</span>
                     </td>
                     <td className={cx.td}>
-                      <button className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-all" style={{ color: t.textSec }}>
+                      <button className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-colors" style={{ color: t.textSec }}>
                         <Eye size={14} />
                       </button>
                     </td>

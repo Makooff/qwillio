@@ -1,215 +1,256 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Mail, Send } from 'lucide-react';
-import QwillioLogo from '../../components/QwillioLogo';
-import LangToggle from '../../components/LangToggle';
+﻿import { useState } from 'react';
+import { Mail, Phone, MapPin, Send, CheckCircle2 } from 'lucide-react';
+import PublicNavbar from '../../components/PublicNavbar';
+import PublicFooter from '../../components/PublicFooter';
 import { useLang } from '../../stores/langStore';
 import { useSEO } from '../../hooks/useSEO';
 
 export default function Contact() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
-  const [scrolled, setScrolled] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [company, setCompany] = useState('');
+  const [message, setMessage] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
 
   useSEO({
-    title: 'Contact',
-    description: 'Contact Qwillio — get in touch with our team for questions about AI receptionist and business automation.',
+    title: isFr ? 'Contact · Qwillio' : 'Contact · Qwillio',
+    description: isFr ? 'Une question ? Une démo ? Écrivez-nous.' : 'A question? A demo? Write to us.',
     canonical: 'https://qwillio.com/contact',
   });
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const form = e.currentTarget;
-    const data = {
-      name: (form.elements.namedItem('name') as HTMLInputElement).value,
-      email: (form.elements.namedItem('email') as HTMLInputElement).value,
-      subject: (form.elements.namedItem('subject') as HTMLSelectElement).value,
-      message: (form.elements.namedItem('message') as HTMLTextAreaElement).value,
-    };
-    try {
-      await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-    } catch {
-      // Show success regardless for now
+    setError('');
+    if (!name.trim() || !email.trim() || !message.trim()) {
+      setError(isFr ? 'Veuillez remplir tous les champs requis.' : 'Please fill all required fields.');
+      return;
     }
-    setLoading(false);
-    setSubmitted(true);
+    setSending(true);
+    try {
+      // mailto fallback (no backend yet for contact form)
+      const subject = encodeURIComponent(`[Contact] ${name}${company ? ' · ' + company : ''}`);
+      const body = encodeURIComponent(`${message}\n\n--\n${name}\n${email}${company ? '\n' + company : ''}`);
+      window.location.href = `mailto:hello@qwillio.com?subject=${subject}&body=${body}`;
+      setSubmitted(true);
+    } catch {
+      setError(isFr ? 'Une erreur est survenue. Réessayez.' : 'Something went wrong. Try again.');
+    } finally {
+      setSending(false);
+    }
   };
+
+  const contactMethods = [
+    {
+      icon: Mail,
+      accent: '#6366f1',
+      label: 'Email',
+      value: 'hello@qwillio.com',
+      href: 'mailto:hello@qwillio.com',
+    },
+    {
+      icon: Phone,
+      accent: '#a855f7',
+      label: isFr ? 'Téléphone' : 'Phone',
+      value: '+32 2 808 80 80',
+      href: 'tel:+3228088080',
+    },
+    {
+      icon: MapPin,
+      accent: '#6366f1',
+      label: isFr ? 'Bureau' : 'Office',
+      value: 'Brussels, Belgium',
+      href: null,
+    },
+  ];
+
+  const inputCls =
+    'w-full px-4 py-3.5 rounded-2xl border border-[#1d1d1f]/12 bg-white text-[15px] text-[#1d1d1f] placeholder-[#86868b] outline-none transition-colors focus:border-[#6366f1]';
 
   return (
     <div className="bg-white text-[#1d1d1f] min-h-screen">
-      {/* Navbar */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : 'bg-white'}`}>
-        <div className="max-w-[1120px] mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight text-[#1d1d1f]">
-            <QwillioLogo size={30} /> Qwillio
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link to="/login" className="text-sm text-[#1d1d1f]/70 hover:text-[#1d1d1f] transition-colors">Login</Link>
-            <Link to="/register" className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#4f46e5] transition-colors">
-              {isFr ? 'Commencer' : 'Get started'}
-            </Link>
-            <LangToggle />
+      <PublicNavbar />
+
+      <main id="main">
+        {/* ── HERO ──────────────────────────────────────────── */}
+        <section
+          aria-labelledby="contact-heading"
+          className="pt-24 sm:pt-28 md:pt-36 pb-12 md:pb-20 px-5 sm:px-6"
+        >
+          <div className="max-w-[1240px] mx-auto">
+            <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4" style={{ color: '#6366f1' }}>
+              Contact
+            </span>
+            <h1
+              id="contact-heading"
+              className="text-[clamp(2.6rem,6.5vw,5.6rem)] font-semibold tracking-[-0.04em] leading-[0.95] max-w-[1000px]"
+            >
+              {isFr ? (
+                <><span className="font-serif italic" style={{ color: '#6366f1' }}>Parlons.</span> Aux humains, pas aux bots.</>
+              ) : (
+                <><span className="font-serif italic" style={{ color: '#6366f1' }}>Let's talk.</span> Humans, not bots.</>
+              )}
+            </h1>
           </div>
-        </div>
-      </nav>
+        </section>
 
-      {/* Content */}
-      <main className="max-w-[900px] mx-auto px-6 py-24 pt-32">
-        <h1 className="text-4xl font-bold mb-4 text-center">{isFr ? 'Contactez-nous' : 'Contact Us'}</h1>
-        <p className="text-center text-[#86868b] mb-12 max-w-[500px] mx-auto leading-relaxed">
-          {isFr
-            ? 'Une question ? Un besoin sp\u00e9cifique ? Notre \u00e9quipe vous r\u00e9pond sous 24 heures.'
-            : 'Have a question? Need something specific? Our team replies within 24 hours.'}
-        </p>
-
-        <div className="grid md:grid-cols-2 gap-12">
-          {/* Contact Info */}
-          <div>
-            <div className="bg-[#f5f5f7] rounded-2xl p-8">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-[#6366f1]/10 flex items-center justify-center">
-                  <Mail className="w-5 h-5 text-[#6366f1]" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{isFr ? 'E-mail' : 'Email'}</p>
-                  <a href="mailto:hello@qwillio.com" className="text-sm text-[#6366f1] hover:underline">hello@qwillio.com</a>
-                </div>
-              </div>
-              <p className="text-sm text-[#86868b] leading-relaxed mt-6">
-                {isFr
-                  ? 'Pour les demandes RGPD, veuillez inclure "RGPD" dans l\u2019objet de votre e-mail.'
-                  : 'For GDPR requests, please include "GDPR" in the subject of your email.'}
+        {/* ── TWO-COLUMN SPLIT ──────────────────────────────── */}
+        <section
+          aria-label={isFr ? 'Méthodes de contact et formulaire' : 'Contact methods and form'}
+          className="px-6 pb-24 md:pb-32"
+        >
+          <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1fr_1.3fr] gap-12 md:gap-20">
+            {/* Editorial contact list */}
+            <aside>
+              <p className="text-[11px] font-bold tracking-[0.18em] uppercase text-[#86868b] mb-6">
+                {isFr ? 'Joignez-nous directement' : 'Reach us directly'}
               </p>
-            </div>
-          </div>
+              <ul role="list" className="space-y-7">
+                {contactMethods.map((m) => (
+                  <li key={m.label} className="border-t border-[#1d1d1f]/10 pt-5">
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <m.icon size={15} style={{ color: m.accent }} aria-hidden="true" />
+                      <span className="text-[11px] font-semibold tracking-[0.16em] uppercase text-[#86868b]">
+                        {m.label}
+                      </span>
+                    </div>
+                    {m.href ? (
+                      <a
+                        href={m.href}
+                        className="text-lg font-medium text-[#1d1d1f] hover:text-[#6366f1] transition-colors"
+                      >
+                        {m.value}
+                      </a>
+                    ) : (
+                      <p className="text-lg font-medium text-[#1d1d1f]">{m.value}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
 
-          {/* Form */}
-          <div>
-            {submitted ? (
-              <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
-                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                  <Send className="w-6 h-6 text-green-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-green-900 mb-2">
-                  {isFr ? 'Message envoy\u00e9 !' : 'Message sent!'}
-                </h3>
-                <p className="text-sm text-green-700">
-                  {isFr ? 'Merci, nous vous r\u00e9pondrons sous 24 heures.' : 'Thanks, we\u2019ll reply within 24 hours.'}
+              <div className="mt-12 p-6 rounded-2xl bg-[#fafaf8] border border-[#1d1d1f]/8">
+                <p className="text-[11px] font-bold tracking-[0.16em] uppercase mb-2" style={{ color: '#a855f7' }}>
+                  {isFr ? 'Temps de réponse' : 'Response time'}
+                </p>
+                <p className="text-[#424245] text-sm leading-relaxed">
+                  {isFr
+                    ? 'Réponse en moins de 4 heures pendant les heures ouvrées (9h-19h, lundi-vendredi, heure de Bruxelles).'
+                    : 'Reply within 4 hours during business hours (9am-7pm, Mon-Fri, Brussels time).'}
                 </p>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">{isFr ? 'Nom' : 'Name'}</label>
-                  <input
-                    name="name"
-                    type="text"
-                    required
-                    className="w-full border border-[#d2d2d7] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1]"
-                    placeholder={isFr ? 'Votre nom' : 'Your name'}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">{isFr ? 'E-mail' : 'Email'}</label>
-                  <input
-                    name="email"
-                    type="email"
-                    required
-                    className="w-full border border-[#d2d2d7] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1]"
-                    placeholder={isFr ? 'votre@email.com' : 'you@email.com'}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">{isFr ? 'Sujet' : 'Subject'}</label>
-                  <select
-                    name="subject"
-                    required
-                    className="w-full border border-[#d2d2d7] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] bg-white"
+            </aside>
+
+            {/* Form */}
+            <form
+              onSubmit={onSubmit}
+              aria-label={isFr ? 'Formulaire de contact' : 'Contact form'}
+              className="rounded-[2rem] p-8 md:p-10 border border-[#1d1d1f]/10 bg-white"
+            >
+              {submitted ? (
+                <div className="text-center py-8">
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
+                    style={{ background: 'rgba(99,102,241,0.12)' }}
                   >
-                    <option value="">{isFr ? 'S\u00e9lectionnez un sujet' : 'Select a subject'}</option>
-                    <option value="general">{isFr ? 'G\u00e9n\u00e9ral' : 'General'}</option>
-                    <option value="sales">{isFr ? 'Ventes' : 'Sales'}</option>
-                    <option value="support">Support</option>
-                    <option value="press">{isFr ? 'Presse' : 'Press'}</option>
-                  </select>
+                    <CheckCircle2 size={24} style={{ color: '#6366f1' }} aria-hidden="true" />
+                  </div>
+                  <h2 className="text-2xl font-semibold tracking-[-0.02em] mb-2">
+                    {isFr ? 'Message envoyé.' : 'Message sent.'}
+                  </h2>
+                  <p className="text-[#525257] text-[15px]">
+                    {isFr ? 'Réponse dans la journée.' : 'Reply within the day.'}
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Message</label>
-                  <textarea
-                    name="message"
-                    required
-                    rows={5}
-                    className="w-full border border-[#d2d2d7] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] resize-none"
-                    placeholder={isFr ? 'Votre message...' : 'Your message...'}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-[#6366f1] text-white font-medium py-2.5 rounded-lg hover:bg-[#4f46e5] transition-colors disabled:opacity-50"
-                >
-                  {loading
-                    ? (isFr ? 'Envoi...' : 'Sending...')
-                    : (isFr ? 'Envoyer' : 'Send message')}
-                </button>
-              </form>
-            )}
+              ) : (
+                <>
+                  <h2 className="text-xl font-semibold tracking-[-0.02em] mb-6">
+                    {isFr ? 'Écrivez-nous' : 'Drop us a line'}
+                  </h2>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="contact-name" className="block text-xs font-semibold text-[#86868b] mb-2">
+                        {isFr ? 'Nom' : 'Name'} *
+                      </label>
+                      <input
+                        id="contact-name"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                        autoComplete="name"
+                        className={inputCls}
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="contact-email" className="block text-xs font-semibold text-[#86868b] mb-2">
+                          Email *
+                        </label>
+                        <input
+                          id="contact-email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          autoComplete="email"
+                          className={inputCls}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="contact-company" className="block text-xs font-semibold text-[#86868b] mb-2">
+                          {isFr ? 'Entreprise' : 'Company'}
+                        </label>
+                        <input
+                          id="contact-company"
+                          type="text"
+                          value={company}
+                          onChange={(e) => setCompany(e.target.value)}
+                          autoComplete="organization"
+                          className={inputCls}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="contact-message" className="block text-xs font-semibold text-[#86868b] mb-2">
+                        Message *
+                      </label>
+                      <textarea
+                        id="contact-message"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        required
+                        rows={5}
+                        className={inputCls + ' resize-none'}
+                      />
+                    </div>
+
+                    {error && (
+                      <p role="alert" className="text-sm text-red-600">{error}</p>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={sending}
+                      className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-sm font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#6366f1] transition-colors disabled:opacity-60"
+                    >
+                      <Send size={14} aria-hidden="true" />
+                      {sending ? (isFr ? 'Envoi…' : 'Sending…') : (isFr ? 'Envoyer' : 'Send')}
+                    </button>
+                  </div>
+                </>
+              )}
+            </form>
           </div>
-        </div>
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-[#d2d2d7]/60 bg-[#f5f5f7]">
-        <div className="max-w-[1120px] mx-auto px-6 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-            <div className="col-span-2 md:col-span-1">
-              <div className="flex items-center gap-2 mb-3">
-                <QwillioLogo size={24} />
-                <p className="text-base font-semibold">Qwillio</p>
-              </div>
-              <p className="text-sm text-[#86868b] leading-relaxed">{isFr ? 'L\u2019agent vocal IA qui transforme chaque appel en opportunit\u00e9.' : 'The AI voice agent that turns every call into an opportunity.'}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-[#86868b] uppercase tracking-wider mb-3">{isFr ? 'Produit' : 'Product'}</p>
-              <div className="space-y-2">
-                <Link to="/#features" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{isFr ? 'Fonctionnalit\u00e9s' : 'Features'}</Link>
-                <Link to="/#pricing" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{isFr ? 'Tarifs' : 'Pricing'}</Link>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-[#86868b] uppercase tracking-wider mb-3">{isFr ? 'Entreprise' : 'Company'}</p>
-              <div className="space-y-2">
-                <Link to="/about" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{isFr ? '\u00c0 propos' : 'About'}</Link>
-                <Link to="/contact" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">Contact</Link>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-[#86868b] uppercase tracking-wider mb-3">{isFr ? 'L\u00e9gal' : 'Legal'}</p>
-              <div className="space-y-2">
-                <Link to="/privacy" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{isFr ? 'Confidentialit\u00e9' : 'Privacy'}</Link>
-                <Link to="/terms" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{isFr ? 'Conditions' : 'Terms'}</Link>
-                <Link to="/gdpr" className="block text-sm text-[#424245] hover:text-[#1d1d1f]">{isFr ? 'RGPD' : 'GDPR'}</Link>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-[#d2d2d7]/60 pt-6">
-            <p className="text-xs text-[#86868b]">&copy; 2026 Qwillio. {isFr ? 'Tous droits r\u00e9serv\u00e9s.' : 'All rights reserved.'}</p>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

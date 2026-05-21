@@ -1,4 +1,4 @@
-// === FILE: Leads.tsx ===
+﻿// === FILE: Leads.tsx ===
 import { useEffect, useState } from 'react';
 import { RefreshCw, MapPin, Calendar, Building2 } from 'lucide-react';
 
@@ -193,7 +193,7 @@ export default function Leads() {
                 <li
                   key={lead.id}
                   className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4
-                             hover:bg-white/[0.05] hover:border-white/[0.10] transition-all group"
+                             hover:bg-white/[0.05] hover:border-white/[0.10] transition-colors group"
                 >
                   <div className="flex items-start gap-3">
                     {/* Avatar */}

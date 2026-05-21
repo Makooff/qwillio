@@ -1,104 +1,222 @@
-import React, { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react'
 
-const API = 'https://qwillio.onrender.com';
-const getHeaders = (): Record<string, string> => {
-  const t = localStorage.getItem('token');
-  return t ? { Authorization: `Bearer ${t}` } : {};
-};
+const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com'
 
-interface BillingData {
-  mrr: number; arr: number; totalClients: number;
-  byPlan: Record<string, { count: number; revenue: number }>;
-  setupFeesThisMonth: number; totalRevenueThisMonth: number;
-  growth: number;
+function getHeaders(): Record<string, string> {
+  const t = localStorage.getItem('token')
+  return t ? { Authorization: `Bearer ${t}` } : {}
 }
 
-const Billing: React.FC = () => {
-  const [data, setData] = useState<BillingData | null>(null);
-  const [loading, setLoading] = useState(true);
+interface BillingData {
+  mrr: number
+  arr: number
+  totalClients: number
+  byPlan: Record<string, { count: number; revenue: number }>
+  setupFeesThisMonth: number
+  totalRevenueThisMonth: number
+  growth: number
+}
+
+function fmt(n: number): string {
+  return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })
+}
+
+function SkeletonStat() {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-3">
+      <div className="h-3 w-24 rounded bg-white/5 animate-pulse" />
+      <div className="h-7 w-32 rounded bg-white/5 animate-pulse" />
+      <div className="h-3 w-16 rounded bg-white/5 animate-pulse" />
+    </div>
+  )
+}
+
+function PlanBar({ plan, info, mrr }: { plan: string; info: { count: number; revenue: number }; mrr: number }) {
+  const pct = mrr > 0 ? Math.round((info.revenue / mrr) * 100) : 0
+  return (
+    <li className="py-4 border-b border-white/[0.05] last:border-0">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-sm font-semibold text-white capitalize">{plan}</p>
+          <p className="text-xs text-white/35 mt-0.5">
+            {info.count} client{info.count !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm font-semibold text-white tabular-nums">{fmt(info.revenue)} €/mois</p>
+          <p className="text-xs text-white/35 mt-0.5">{pct}% du MRR</p>
+        </div>
+      </div>
+      <div
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${plan} : ${pct}% du MRR`}
+        className="h-1 rounded-full bg-white/[0.06] overflow-hidden"
+      >
+        <div
+          className="h-full rounded-full transition-[width] duration-700 ease-out"
+          style={{
+            width: `${pct}%`,
+            background: 'oklch(56% 0.22 264)',
+          }}
+        />
+      </div>
+    </li>
+  )
+}
+
+export default function Billing() {
+  const [data, setData] = useState<BillingData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     fetch(`${API}/api/admin/billing`, { headers: getHeaders() })
-      .then(r => r.json()).then(setData).catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json() as Promise<BillingData>
+      })
+      .then(setData)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }, [])
 
-  if (loading) return (
-    <div className='min-h-screen bg-gray-950 flex items-center justify-center'>
-      <div className='w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin' />
-    </div>
-  );
-
-  const d = data;
-  const plans = Object.entries(d?.byPlan || {});
+  const plans = Object.entries(data?.byPlan ?? {})
+  const growth = data?.growth ?? 0
+  const growthPositive = growth > 0
 
   return (
-    <div className='min-h-screen bg-gray-950 text-white pb-8'>
-      <div className='px-4 pt-6 pb-4'>
-        <div className='text-xs text-gray-500 uppercase tracking-widest'>Admin</div>
-        <h1 className='text-2xl font-bold mt-1'>Facturation</h1>
-      </div>
+    <main aria-label="Tableau de bord facturation" className="px-4 sm:px-6 py-6 max-w-3xl mx-auto space-y-5">
+      {/* Header */}
+      <header>
+        <p className="text-xs font-semibold tracking-widest uppercase text-white/25 mb-1">Facturation</p>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Revenus</h1>
+      </header>
 
-      {/* MRR Hero */}
-      <div className='mx-4 mb-4 bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20 rounded-2xl p-5'>
-        <div className='text-sm text-amber-400/70 mb-1'>Monthly Recurring Revenue</div>
-        <div className='text-4xl font-bold text-amber-400'>{(d?.mrr ?? 0).toFixed(0)}€</div>
-        <div className='text-xs text-gray-500 mt-1'>ARR: {(d?.arr ?? (d?.mrr ?? 0) * 12).toFixed(0)}€/an</div>
-        {(d?.growth ?? 0) !== 0 && (
-          <div className={`text-xs mt-2 font-medium ${(d?.growth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {(d?.growth ?? 0) > 0 ? '▲' : '▼'} {Math.abs(d?.growth ?? 0).toFixed(1)}% ce mois
-          </div>
-        )}
-      </div>
-
-      {/* Stats Row */}
-      <div className='px-4 grid grid-cols-2 gap-3 mb-4'>
-        <div className='bg-gray-900 border border-gray-800 rounded-2xl p-4'>
-          <div className='text-xs text-gray-500 mb-1'>Clients actifs</div>
-          <div className='text-2xl font-bold text-white'>{d?.totalClients ?? 0}</div>
-        </div>
-        <div className='bg-gray-900 border border-gray-800 rounded-2xl p-4'>
-          <div className='text-xs text-gray-500 mb-1'>Ce mois</div>
-          <div className='text-2xl font-bold text-green-400'>{(d?.totalRevenueThisMonth ?? 0).toFixed(0)}€</div>
-        </div>
-      </div>
-
-      {/* Plans Breakdown */}
-      {plans.length > 0 && (
-        <div className='px-4'>
-          <div className='text-xs text-gray-500 uppercase tracking-widest mb-3'>Répartition par plan</div>
-          <div className='space-y-2'>
-            {plans.map(([plan, info]) => {
-              const pct = d?.mrr ? Math.round((info.revenue / d.mrr) * 100) : 0;
-              return (
-                <div key={plan} className='bg-gray-900 border border-gray-800 rounded-xl p-4'>
-                  <div className='flex items-center justify-between mb-2'>
-                    <span className='font-medium text-white capitalize'>{plan}</span>
-                    <div className='text-right'>
-                      <div className='text-sm font-semibold text-white'>{info.revenue.toFixed(0)}€/mois</div>
-                      <div className='text-xs text-gray-500'>{info.count} client{info.count !== 1 ? 's' : ''}</div>
-                    </div>
-                  </div>
-                  <div className='h-1.5 bg-gray-800 rounded-full overflow-hidden'>
-                    <div className='h-full bg-gradient-to-r from-amber-500 to-orange-400 rounded-full'
-                      style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className='text-xs text-gray-600 mt-1'>{pct}% du MRR</div>
-                </div>
-              );
-            })}
-          </div>
+      {/* Error */}
+      {error && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400"
+        >
+          Impossible de charger les données de facturation.
         </div>
       )}
 
-      {plans.length === 0 && !loading && (
-        <div className='text-center py-16 text-gray-600'>
-          <div className='text-4xl mb-3'>💳</div>
-          <div>Aucune donnée de facturation</div>
+      {/* MRR hero card */}
+      {loading ? (
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 space-y-3">
+          <div className="h-3 w-40 rounded bg-white/5 animate-pulse" />
+          <div className="h-10 w-48 rounded bg-white/5 animate-pulse" />
+          <div className="h-3 w-28 rounded bg-white/5 animate-pulse" />
+        </div>
+      ) : data ? (
+        <div
+          className="rounded-2xl border p-6"
+          style={{
+            borderColor: 'oklch(56% 0.22 264 / 0.2)',
+            background: 'oklch(56% 0.22 264 / 0.06)',
+          }}
+        >
+          <p className="text-xs font-semibold tracking-widest uppercase mb-1"
+            style={{ color: 'oklch(56% 0.22 264 / 0.6)' }}>
+            Monthly Recurring Revenue
+          </p>
+          <p
+            className="text-4xl font-bold tabular-nums"
+            style={{ color: 'oklch(74% 0.18 264)' }}
+          >
+            {fmt(data.mrr)} €
+          </p>
+          <div className="flex items-center gap-4 mt-2 flex-wrap">
+            <p className="text-sm text-white/35">
+              ARR {fmt(data.arr || data.mrr * 12)} €/an
+            </p>
+            {growth !== 0 && (
+              <span
+                className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  background: growthPositive ? 'oklch(74% 0.18 155 / 0.12)' : 'oklch(60% 0.22 25 / 0.12)',
+                  color: growthPositive ? 'oklch(74% 0.18 155)' : 'oklch(68% 0.22 25)',
+                }}
+              >
+                {growthPositive ? '▲' : '▼'} {Math.abs(growth).toFixed(1)}% ce mois
+              </span>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Stats row */}
+      {loading ? (
+        <div className="grid grid-cols-2 gap-3">
+          <SkeletonStat />
+          <SkeletonStat />
+        </div>
+      ) : data ? (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <p className="text-xs text-white/35 mb-1.5">Clients actifs</p>
+            <p className="text-2xl font-bold text-white tabular-nums">{data.totalClients}</p>
+          </div>
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+            <p className="text-xs text-white/35 mb-1.5">Ce mois</p>
+            <p className="text-2xl font-bold tabular-nums" style={{ color: 'oklch(74% 0.18 264)' }}>
+              {fmt(data.totalRevenueThisMonth)} €
+            </p>
+          </div>
+          {data.setupFeesThisMonth > 0 && (
+            <div className="col-span-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+              <p className="text-xs text-white/35 mb-1.5">Frais de mise en place ce mois</p>
+              <p className="text-xl font-bold text-white tabular-nums">
+                {fmt(data.setupFeesThisMonth)} €
+              </p>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Plan breakdown */}
+      {!loading && plans.length > 0 && (
+        <section aria-labelledby="plans-heading">
+          <h2
+            id="plans-heading"
+            className="text-xs font-semibold tracking-widest uppercase text-white/25 mb-3"
+          >
+            Répartition par plan
+          </h2>
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5">
+            <ul role="list" aria-label="Plans de facturation">
+              {plans.map(([plan, info]) => (
+                <PlanBar key={plan} plan={plan} info={info} mrr={data?.mrr ?? 0} />
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {/* Empty state */}
+      {!loading && !error && plans.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-white/30">
+          <svg
+            aria-hidden="true"
+            className="w-10 h-10 opacity-40"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
+            />
+          </svg>
+          <p className="text-sm font-medium">Aucune donnée de facturation</p>
         </div>
       )}
-    </div>
-  );
-};
-
-export default Billing;
+    </main>
+  )
+}

@@ -1,4 +1,4 @@
-// === FILE: Prospects.tsx ===
+﻿// === FILE: Prospects.tsx ===
 import { useEffect, useState } from 'react';
 import { RefreshCw, Search, ChevronUp, ChevronDown, Phone, MapPin } from 'lucide-react';
 
@@ -61,7 +61,7 @@ function ScoreBar({ score }: { score: number }) {
     <div className="flex items-center gap-2 min-w-[80px]">
       <div className="flex-1 h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
         <div
-          className="h-full rounded-full transition-all"
+          className="h-full rounded-full transition-[width] duration-500 ease-out"
           style={{ width: `${pct}%`, background: colors.bar }}
           aria-hidden="true"
         />

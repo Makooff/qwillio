@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Brain, Clock, BarChart3, ChevronDown, ChevronUp, Zap, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -522,7 +522,7 @@ export default function AiLearning() {
                           </div>
                           <div className="h-6 rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
                             <div
-                              className="h-full rounded-lg transition-all duration-500 flex items-center px-2"
+                              className="h-full rounded-lg transition-colors duration-500 flex items-center px-2"
                               style={{
                                 width: `${(rA / maxR) * 100}%`,
                                 minWidth: rA > 0 ? 24 : 0,
@@ -553,7 +553,7 @@ export default function AiLearning() {
                           </div>
                           <div className="h-6 rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
                             <div
-                              className="h-full rounded-lg transition-all duration-500 flex items-center px-2"
+                              className="h-full rounded-lg transition-colors duration-500 flex items-center px-2"
                               style={{
                                 width: `${(rB / maxR) * 100}%`,
                                 minWidth: rB > 0 ? 24 : 0,
@@ -652,7 +652,7 @@ export default function AiLearning() {
                     <div className="flex items-center gap-3 mb-3">
                       <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
                         <div
-                          className="h-full rounded-full transition-all"
+                          className="h-full rounded-full transition-[width] duration-500 ease-out"
                           style={{
                             width: `${Math.min(ins.confidence, 100)}%`,
                             background: ins.confidence >= 70 ? pro.ok : ins.confidence >= 40 ? pro.warn : pro.bad,

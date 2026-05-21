@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+﻿import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Search, Phone, X, Zap, MapPin, Mail } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -85,7 +85,7 @@ function ScoreBar({ value }: { value: number }) {
   return (
     <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
       <div
-        className="h-full rounded-full transition-all"
+        className="h-full rounded-full transition-[width] duration-500 ease-out"
         style={{ width: `${pct}%`, background: scoreBarColor(pct) }}
       />
     </div>
@@ -99,6 +99,7 @@ function Chip({
 }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="h-8 px-3.5 text-[12px] font-medium rounded-xl transition-colors"
       style={{
@@ -247,7 +248,7 @@ export default function AdminLeads() {
             style={{ color: pro.text }}
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ color: pro.textTer }}>
+            <button type="button" onClick={() => setSearch('')} style={{ color: pro.textTer }}>
               <X className="w-3.5 h-3.5" />
             </button>
           )}

@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react';
+﻿import { AlertTriangle } from 'lucide-react';
 import { t } from '../../styles/admin-theme';
 
 interface Props {
@@ -33,7 +33,7 @@ export default function ConfirmDialog({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 rounded-xl text-sm font-medium bg-white/[0.06] hover:bg-white/[0.1] transition-all"
+            className="flex-1 px-4 py-2 rounded-xl text-sm font-medium bg-white/[0.06] hover:bg-white/[0.1] transition-colors"
             style={{ color: t.text }}
           >
             Annuler
@@ -41,7 +41,7 @@ export default function ConfirmDialog({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+            className="flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
             style={danger
               ? { background: t.danger, color: '#fff' }
               : { background: 'rgba(255,255,255,0.10)', color: t.text }

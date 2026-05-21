@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import api from '../services/api';
 import { RefreshCw, DollarSign, Phone, Cpu, TrendingUp, Layers } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
@@ -17,7 +17,18 @@ const tooltipStyle = {
 const fmtCurrency = (n: number) => `$${Number(n || 0).toFixed(2)}`;
 
 export default function Costs() {
-  const [data, setData] = useState<any>(null);
+  interface CostData {
+    totalCost?: number;
+    mtdCost?: number;
+    costPerCall?: number;
+    totalCalls?: number;
+    forecast?: number;
+    byDay?: Array<{ date: string; cost: number }>;
+    byClient?: Array<Record<string, unknown>>;
+    byPlan?: Array<Record<string, unknown>>;
+    [key: string]: unknown;
+  }
+  const [data, setData] = useState<CostData | null>(null);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -134,7 +145,7 @@ export default function Costs() {
                     </p>
                   </div>
                   <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                    <div className="h-full rounded-full transition-all"
+                    <div className="h-full rounded-full transition-[width] duration-500 ease-out"
                          style={{ width: `${Math.min(pct, 100)}%`, background: pro.accent }} />
                   </div>
                 </div>

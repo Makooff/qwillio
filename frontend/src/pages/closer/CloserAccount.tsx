@@ -6,7 +6,7 @@ import { PageHeader, Card, Row } from '../../components/pro/ProBlocks';
 export default function CloserAccount() {
   const { user, logout } = useAuthStore();
   const initials =
-    user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) ?? 'CL';
+    user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? 'CL';
 
   return (
     <div className="space-y-5 max-w-[720px]">

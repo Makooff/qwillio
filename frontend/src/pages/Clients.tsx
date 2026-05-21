@@ -1,4 +1,4 @@
-// === FILE: Clients.tsx ===
+﻿// === FILE: Clients.tsx ===
 import { useEffect, useState } from 'react';
 import { RefreshCw, Search, Plus, ArrowRight, TrendingUp } from 'lucide-react';
 
@@ -84,7 +84,7 @@ function ClientCard({ client }: ClientCardProps) {
 
   return (
     <li className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-5 flex flex-col gap-4
-                   hover:bg-white/[0.055] hover:border-white/[0.10] transition-all group">
+                   hover:bg-white/[0.055] hover:border-white/[0.10] transition-colors group">
       {/* Top: avatar + name + status */}
       <div className="flex items-start gap-3">
         <div

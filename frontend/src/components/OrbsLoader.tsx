@@ -67,7 +67,7 @@ export default function OrbsLoader({
           will-change: transform;
         }
         .qw-loader__label {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+          font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
           font-size: 12.5px;
           font-weight: 500;
           color: #A1A1A8;

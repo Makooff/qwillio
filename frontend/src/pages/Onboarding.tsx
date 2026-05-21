@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -33,7 +33,7 @@ export default function OnboardingPage() {
   const { t } = useLang();
 
   const [sections, setSections] = useState<FormSection[]>([]);
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [currentSection, setCurrentSection] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -60,15 +60,15 @@ export default function OnboardingPage() {
       .finally(() => setLoading(false));
   }, [clientId, token]);
 
-  const handleChange = (name: string, value: any) => {
+  const handleChange = (name: string, value: unknown) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleMultiSelect = (name: string, option: string) => {
     setFormData(prev => {
-      const current = prev[name] || [];
+      const current = Array.isArray(prev[name]) ? (prev[name] as string[]) : [];
       const next = current.includes(option)
-        ? current.filter((o: string) => o !== option)
+        ? current.filter((o) => o !== option)
         : [...current, option];
       return { ...prev, [name]: next };
     });
@@ -222,7 +222,7 @@ export default function OnboardingPage() {
         {/* Progress bar */}
         <div className="h-1 bg-[#d2d2d7]/30">
           <div
-            className="h-full bg-[#6366f1] transition-all duration-500 ease-out"
+            className="h-full bg-[#6366f1] transition-colors duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -233,7 +233,7 @@ export default function OnboardingPage() {
         {sections.map((_, i) => (
           <div
             key={i}
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
               i < currentSection
                 ? 'bg-[#6366f1] text-white'
                 : i === currentSection
@@ -264,16 +264,16 @@ export default function OnboardingPage() {
 
                 {field.type === 'textarea' ? (
                   <textarea
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors resize-none"
                     placeholder={field.placeholder}
-                    value={formData[field.name] || ''}
+                    value={(formData[field.name] as string | undefined) || ''}
                     onChange={e => handleChange(field.name, e.target.value)}
                     rows={4}
                   />
                 ) : field.type === 'select' ? (
                   <select
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
-                    value={formData[field.name] || ''}
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
+                    value={(formData[field.name] as string | undefined) || ''}
                     onChange={e => handleChange(field.name, e.target.value)}
                   >
                     <option value="">{field.placeholder || t('onboard.select')}</option>
@@ -284,11 +284,12 @@ export default function OnboardingPage() {
                 ) : field.type === 'multiselect' ? (
                   <div className="flex flex-wrap gap-2">
                     {field.options?.map(opt => {
-                      const selected = (formData[field.name] || []).includes(opt);
+                      const fieldVal = formData[field.name];
+                      const selected = Array.isArray(fieldVal) && (fieldVal as string[]).includes(opt);
                       return (
                         <label
                           key={opt}
-                          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-all ${
+                          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-colors ${
                             selected
                               ? 'bg-[#6366f1] text-white'
                               : 'bg-white border border-[#d2d2d7] text-[#1d1d1f] hover:border-[#6366f1]'
@@ -309,9 +310,9 @@ export default function OnboardingPage() {
                 ) : (
                   <input
                     type={field.type}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
                     placeholder={field.placeholder}
-                    value={formData[field.name] || ''}
+                    value={(formData[field.name] as string | undefined) || ''}
                     onChange={e => handleChange(field.name, e.target.value)}
                   />
                 )}

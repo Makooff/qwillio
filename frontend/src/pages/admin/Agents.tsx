@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import {
   Zap, TrendingUp, Brain, GitMerge, RefreshCw, AlertTriangle,
   Bot, Activity, Play, CheckCircle, XCircle,
@@ -677,18 +677,20 @@ function TabDecisions() {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
+                    type="button"
                     onClick={() => act(d.id, 'approve')}
                     disabled={busy === d.id}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all disabled:opacity-40"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors disabled:opacity-40"
                     style={{ background: 'rgba(34,197,94,0.12)', color: pro.ok, border: `1px solid rgba(34,197,94,0.24)` }}
                   >
                     <CheckCircle size={12} />
                     Approuver
                   </button>
                   <button
+                    type="button"
                     onClick={() => act(d.id, 'reject')}
                     disabled={busy === d.id}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all disabled:opacity-40"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors disabled:opacity-40"
                     style={{ background: 'rgba(239,68,68,0.10)', color: pro.bad, border: `1px solid rgba(239,68,68,0.24)` }}
                   >
                     <XCircle size={12} />
@@ -776,8 +778,9 @@ export default function Agents() {
         {TABS.map(t => (
           <button
             key={t}
+            type="button"
             onClick={() => setTab(t)}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium transition-all whitespace-nowrap"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors whitespace-nowrap"
             style={tab === t
               ? { background: 'rgba(255,255,255,0.08)', color: pro.text }
               : { color: pro.textSec }}

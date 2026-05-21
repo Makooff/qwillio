@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+﻿import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { t } from '../../styles/admin-theme';
 
 interface Props {
@@ -27,7 +27,7 @@ export default function Pagination({ page, total, limit, onChange }: Props) {
         <button
           onClick={() => onChange(page - 1)}
           disabled={page <= 1}
-          className="p-1.5 rounded-lg hover:bg-white/[0.06] disabled:opacity-30 transition-all"
+          className="p-1.5 rounded-lg hover:bg-white/[0.06] disabled:opacity-30 transition-colors"
           style={{ color: t.textSec }}
         >
           <ChevronLeft className="w-4 h-4" />
@@ -39,7 +39,7 @@ export default function Pagination({ page, total, limit, onChange }: Props) {
             <button
               key={p}
               onClick={() => onChange(p as number)}
-              className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
+              className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
                 p === page
                   ? 'bg-white/[0.10]'
                   : 'hover:bg-white/[0.06]'
@@ -53,7 +53,7 @@ export default function Pagination({ page, total, limit, onChange }: Props) {
         <button
           onClick={() => onChange(page + 1)}
           disabled={page >= totalPages}
-          className="p-1.5 rounded-lg hover:bg-white/[0.06] disabled:opacity-30 transition-all"
+          className="p-1.5 rounded-lg hover:bg-white/[0.06] disabled:opacity-30 transition-colors"
           style={{ color: t.textSec }}
         >
           <ChevronRight className="w-4 h-4" />

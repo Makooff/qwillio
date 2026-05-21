@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import api from '../services/api';
 import { BotStatus } from '../types';
 import {
@@ -7,7 +7,7 @@ import {
   Clock, MapPin, ChevronDown, ChevronUp, Radio,
 } from 'lucide-react';
 
-// ── Mission Control types ──────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const DAY_LABELS: Record<string, string> = {
@@ -30,6 +30,8 @@ const NICHES = [
   { id: 'law', label: 'Law' },
   { id: 'garage', label: 'Garage / Auto' },
 ];
+
+// ── Types ──────────────────────────────────────────────────────────────────
 
 interface BotConfig {
   callsPerDay: number;
@@ -69,35 +71,54 @@ const DEFAULT_CONFIG: BotConfig = {
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
+// ── Shared input styles ────────────────────────────────────────────────────
+
+const inputCls = [
+  'w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none transition-colors',
+  'bg-white/[0.04] border border-white/[0.08]',
+  'focus:border-[oklch(56%_0.22_264)/50] placeholder-white/25',
+].join(' ');
+
+const selectCls = inputCls + ' appearance-none cursor-pointer';
+
 // ── Sub-components ─────────────────────────────────────────────────────────
 
+function SaveIcon({ status }: { status: SaveStatus }) {
+  if (status === 'saving') return <><RotateCcw className="w-4 h-4 animate-spin" aria-hidden="true" /> Sauvegarde…</>;
+  if (status === 'saved') return <><CheckCircle2 className="w-4 h-4" aria-hidden="true" /> Sauvegardé</>;
+  if (status === 'error') return <><AlertCircle className="w-4 h-4" aria-hidden="true" /> Erreur</>;
+  return <><Save className="w-4 h-4" aria-hidden="true" /> Sauvegarder</>;
+}
+
 function ConfigSection({
-  icon, title, color, children, saveStatus, onSave,
+  icon, title, children, saveStatus, onSave, accent = 'indigo',
 }: {
   icon: React.ReactNode;
   title: string;
-  color: 'purple' | 'indigo' | 'emerald';
   children: React.ReactNode;
   saveStatus: SaveStatus;
   onSave: () => void;
+  accent?: 'indigo' | 'violet';
 }) {
-  const colors = {
-    purple: { bg: 'bg-purple-50', text: 'text-purple-600', btn: 'bg-violet-600 hover:bg-violet-700' },
-    indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', btn: 'bg-indigo-600 hover:bg-indigo-700' },
-    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', btn: 'bg-emerald-600 hover:bg-emerald-700' },
-  }[color];
+  const btnBg = accent === 'violet'
+    ? 'bg-[oklch(67%_0.26_299)] hover:bg-[oklch(63%_0.24_299)]'
+    : 'bg-[oklch(56%_0.22_264)] hover:bg-[oklch(52%_0.22_264)]';
+  const iconColor = accent === 'violet' ? 'text-[oklch(67%_0.26_299)]' : 'text-[oklch(74%_0.18_264)]';
 
   return (
-    <div className="border border-gray-100 rounded-xl p-5 bg-white">
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${colors.bg} ${colors.text}`}>{icon}</div>
-          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+          <div className={`w-9 h-9 rounded-xl bg-white/[0.04] flex items-center justify-center flex-shrink-0 ${iconColor}`}>
+            {icon}
+          </div>
+          <h3 className="text-sm font-semibold text-white">{title}</h3>
         </div>
         <button
+          type="button"
           onClick={onSave}
           disabled={saveStatus === 'saving'}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-60 ${colors.btn}`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-colors disabled:opacity-50 ${btnBg}`}
         >
           <SaveIcon status={saveStatus} />
         </button>
@@ -107,23 +128,18 @@ function ConfigSection({
   );
 }
 
-function SaveIcon({ status }: { status: SaveStatus }) {
-  if (status === 'saving') return <><RotateCcw className="w-4 h-4 animate-spin" /> Sauvegarde…</>;
-  if (status === 'saved') return <><CheckCircle2 className="w-4 h-4" /> Sauvegardé !</>;
-  if (status === 'error') return <><AlertCircle className="w-4 h-4" /> Erreur</>;
-  return <><Save className="w-4 h-4" /> Sauvegarder</>;
-}
-
 function Field({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <label className="block text-xs font-medium text-white/50 mb-2">{label}</label>
       {children}
     </div>
   );
 }
 
-function TagInput({ tags, inputValue, onInputChange, onAdd, onRemove, placeholder, icon }: {
+function TagInput({
+  tags, inputValue, onInputChange, onAdd, onRemove, placeholder, icon,
+}: {
   tags: string[];
   inputValue: string;
   onInputChange: (v: string) => void;
@@ -139,26 +155,41 @@ function TagInput({ tags, inputValue, onInputChange, onAdd, onRemove, placeholde
     <div>
       <div className="flex gap-2 mb-2">
         <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2">{icon}</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" aria-hidden="true">{icon}</span>
           <input
             type="text"
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={handleKey}
             placeholder={placeholder}
-            className="input pl-9"
+            className={inputCls + ' pl-9'}
           />
         </div>
-        <button onClick={onAdd} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors">
+        <button
+          type="button"
+          onClick={onAdd}
+          className="px-4 py-2 rounded-xl text-xs font-medium text-white/60 bg-white/[0.05] hover:bg-white/[0.08] transition-colors"
+        >
           Ajouter
         </button>
       </div>
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
-            <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1 bg-violet-50 text-violet-700 rounded-full text-sm">
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
+              style={{ background: 'oklch(56% 0.22 264 / 0.15)', color: 'oklch(74% 0.18 264)' }}
+            >
               {tag}
-              <button onClick={() => onRemove(tag)} className="hover:text-violet-900 font-bold leading-none">×</button>
+              <button
+                type="button"
+                onClick={() => onRemove(tag)}
+                className="leading-none font-bold hover:opacity-70 transition-opacity"
+                aria-label={`Retirer ${tag}`}
+              >
+                ×
+              </button>
             </span>
           ))}
         </div>
@@ -167,17 +198,15 @@ function TagInput({ tags, inputValue, onInputChange, onAdd, onRemove, placeholde
   );
 }
 
-// ── Main Settings Component ────────────────────────────────────────────────
+// ── Main Settings ──────────────────────────────────────────────────────────
 
 export default function Settings() {
-  // Bot status state
   const [botStatus, setBotStatus] = useState<BotStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [triggerLoading, setTriggerLoading] = useState('');
   const [message, setMessage] = useState('');
 
-  // Mission Control state
   const [config, setConfig] = useState<BotConfig>(DEFAULT_CONFIG);
   const [configLoading, setConfigLoading] = useState(true);
   const [botSave, setBotSave] = useState<SaveStatus>('idle');
@@ -189,38 +218,41 @@ export default function Settings() {
 
   useEffect(() => {
     fetchBotStatus();
-    const interval = setInterval(fetchBotStatus, 10000);
+    const interval = setInterval(fetchBotStatus, 10_000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    api.get('/admin/bot-config').then(({ data }) => {
-      setConfig({
-        callsPerDay: data.callsPerDay ?? 50,
-        callWindowStart: data.callWindowStart ?? 9,
-        callWindowEnd: data.callWindowEnd ?? 19,
-        activeDays: data.activeDays ?? ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-        callIntervalMinutes: data.callIntervalMinutes ?? 20,
-        prospectionQuotaPerDay: data.prospectionQuotaPerDay ?? 100,
-        minPriorityScore: data.minPriorityScore ?? 0,
-        targetCities: data.targetCities ?? [],
-        vapiAssistantId: data.vapiAssistantId ?? '',
-        vapiVoiceId: data.vapiVoiceId ?? 'jennifer-playht',
-        maxCallDurationMin: data.maxCallDurationMin ?? 10,
-        silenceTimeoutSeconds: data.silenceTimeoutSeconds ?? 30,
-        apifyActorId: data.apifyActorId ?? '',
-        targetNiches: data.targetNiches ?? [],
-        apifyTargetCities: data.apifyTargetCities ?? [],
-      });
-    }).catch(console.error).finally(() => setConfigLoading(false));
+    api.get('/admin/bot-config')
+      .then(({ data }) => {
+        setConfig({
+          callsPerDay: data.callsPerDay ?? 50,
+          callWindowStart: data.callWindowStart ?? 9,
+          callWindowEnd: data.callWindowEnd ?? 19,
+          activeDays: data.activeDays ?? ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+          callIntervalMinutes: data.callIntervalMinutes ?? 20,
+          prospectionQuotaPerDay: data.prospectionQuotaPerDay ?? 100,
+          minPriorityScore: data.minPriorityScore ?? 0,
+          targetCities: data.targetCities ?? [],
+          vapiAssistantId: data.vapiAssistantId ?? '',
+          vapiVoiceId: data.vapiVoiceId ?? 'jennifer-playht',
+          maxCallDurationMin: data.maxCallDurationMin ?? 10,
+          silenceTimeoutSeconds: data.silenceTimeoutSeconds ?? 30,
+          apifyActorId: data.apifyActorId ?? '',
+          targetNiches: data.targetNiches ?? [],
+          apifyTargetCities: data.apifyTargetCities ?? [],
+        });
+      })
+      .catch(() => { /* config unavailable — defaults remain */ })
+      .finally(() => setConfigLoading(false));
   }, []);
 
   const fetchBotStatus = async () => {
     try {
       const { data } = await api.get('/bot/status');
       setBotStatus(data);
-    } catch (error) {
-      console.error('Failed to fetch bot status:', error);
+    } catch {
+      // status unavailable — ignore
     } finally {
       setLoading(false);
     }
@@ -235,7 +267,7 @@ export default function Settings() {
         setMessage('Bot arrêté');
       } else {
         await api.post('/bot/start');
-        setMessage('Bot démarré ! Tous les crons sont actifs.');
+        setMessage('Bot démarré — tous les crons sont actifs.');
       }
       await fetchBotStatus();
     } catch {
@@ -252,8 +284,9 @@ export default function Settings() {
       const { data } = await api.post(`/bot/trigger/${action}`);
       setMessage(data.message);
       await fetchBotStatus();
-    } catch (error: any) {
-      setMessage(error.response?.data?.error || 'Erreur');
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erreur';
+      setMessage(msg);
     } finally {
       setTriggerLoading('');
     }
@@ -287,7 +320,10 @@ export default function Settings() {
     set(field, (config[field] as string[]).filter((c) => c !== city));
   };
 
-  const saveSection = async (section: 'bot' | 'vapi' | 'prospect', setSave: (s: SaveStatus) => void) => {
+  const saveSection = async (
+    section: 'bot' | 'vapi' | 'prospect',
+    setSave: (s: SaveStatus) => void,
+  ) => {
     setSave('saving');
     try {
       const payload: Partial<BotConfig> = {};
@@ -318,17 +354,20 @@ export default function Settings() {
       }
       await api.post('/admin/bot-config', payload);
       setSave('saved');
-      setTimeout(() => setSave('idle'), 2500);
+      setTimeout(() => setSave('idle'), 2_500);
     } catch {
       setSave('error');
-      setTimeout(() => setSave('idle'), 3000);
+      setTimeout(() => setSave('idle'), 3_000);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="w-10 h-10 rounded-full border-2 border-transparent border-t-violet-600 border-r-violet-600 animate-spin" />
+      <div className="flex items-center justify-center h-64" role="status" aria-label="Chargement">
+        <div
+          className="w-9 h-9 rounded-full border-2 border-transparent animate-spin"
+          style={{ borderTopColor: 'oklch(56% 0.22 264)', borderRightColor: 'oklch(56% 0.22 264)' }}
+        />
       </div>
     );
   }
@@ -336,78 +375,123 @@ export default function Settings() {
   const isActive = botStatus?.isActive ?? false;
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Réglages</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Configuration du bot et du système automatique</p>
-      </div>
+    <main aria-label="Réglages" className="space-y-5 max-w-3xl">
+      {/* Page header */}
+      <header>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Réglages</h1>
+        <p className="text-sm text-white/35 mt-0.5">Configuration du bot et du système automatique</p>
+      </header>
 
+      {/* Feedback banner */}
       {message && (
-        <div className={`px-4 py-3 rounded-xl text-sm font-medium ${
-          message.startsWith('Erreur')
-            ? 'bg-red-50 border border-red-200 text-red-700'
-            : 'bg-green-50 border border-green-200 text-green-700'
-        }`}>
+        <div
+          role="status"
+          aria-live="polite"
+          className="px-4 py-3 rounded-xl text-sm font-medium border"
+          style={
+            message.startsWith('Erreur')
+              ? { background: 'oklch(60% 0.22 25 / 0.08)', borderColor: 'oklch(60% 0.22 25 / 0.25)', color: 'oklch(68% 0.22 25)' }
+              : { background: 'oklch(74% 0.18 155 / 0.08)', borderColor: 'oklch(74% 0.18 155 / 0.25)', color: 'oklch(74% 0.18 155)' }
+          }
+        >
           {message}
         </div>
       )}
 
-      {/* ── Bot Control ───────────────────────────────────────── */}
-      <div className="card">
-        <h2 className="text-lg font-semibold mb-5 flex items-center gap-2">
-          <Bot className="w-5 h-5 text-violet-600" /> Contrôle du Bot
+      {/* ── Bot Control ─────────────────────────────────────────── */}
+      <section
+        aria-labelledby="bot-control-heading"
+        className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-5"
+      >
+        <h2 id="bot-control-heading" className="text-base font-semibold text-white flex items-center gap-2">
+          <Bot className="w-5 h-5" style={{ color: 'oklch(67% 0.26 299)' }} aria-hidden="true" />
+          Contrôle du Bot
         </h2>
 
-        <div className="flex items-center justify-between p-5 bg-gray-50 rounded-xl mb-5">
+        {/* Status row */}
+        <div className="flex items-center justify-between p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
           <div className="flex items-center gap-4">
-            <div className={`w-4 h-4 rounded-full flex-shrink-0 ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
+            <span
+              aria-hidden="true"
+              className={`w-3 h-3 rounded-full flex-shrink-0 ${isActive ? 'animate-pulse' : ''}`}
+              style={{ background: isActive ? 'oklch(74% 0.18 155)' : 'oklch(50% 0 0)' }}
+            />
             <div>
-              <p className="font-semibold text-gray-900">{isActive ? 'Bot Actif' : 'Bot Inactif'}</p>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {botStatus?.callsToday ?? 0} appels aujourd'hui · quota {botStatus?.callsQuotaDaily ?? 50}
+              <p className="text-sm font-semibold text-white">
+                {isActive ? 'Bot actif' : 'Bot inactif'}
+              </p>
+              <p className="text-xs text-white/35 mt-0.5">
+                {botStatus?.callsToday ?? 0} appels aujourd'hui — quota {botStatus?.callsQuotaDaily ?? 50}
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={toggleBot}
             disabled={toggling}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-60 ${
-              isActive
-                ? 'bg-red-500 hover:bg-red-600'
-                : 'bg-violet-600 hover:bg-violet-700 shadow-md shadow-violet-500/25'
-            }`}
+            aria-label={isActive ? 'Arrêter le bot' : 'Démarrer le bot'}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-50"
+            style={{
+              background: isActive ? 'oklch(60% 0.22 25)' : 'oklch(56% 0.22 264)',
+            }}
           >
             {toggling
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</>
+              ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Chargement…</>
               : isActive
-                ? <><Square className="w-4 h-4" /> Arrêter</>
-                : <><Play className="w-4 h-4" /> Démarrer</>
+                ? <><Square className="w-4 h-4" aria-hidden="true" /> Arrêter</>
+                : <><Play className="w-4 h-4" aria-hidden="true" /> Démarrer</>
             }
           </button>
         </div>
 
-        {/* Cron Status */}
+        {/* Cron status */}
         {botStatus?.crons && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-5">
+          <div
+            role="list"
+            aria-label="État des crons"
+            className="grid grid-cols-2 md:grid-cols-5 gap-2"
+          >
             {Object.entries(botStatus.crons).slice(0, 5).map(([name, status]) => {
               const isRunning = status === 'active';
               const isIdle = status === 'idle';
               return (
                 <div
                   key={name}
-                  className={`p-3 rounded-lg text-center ${
-                    isRunning
-                      ? 'bg-emerald-50 border border-emerald-200'
+                  role="listitem"
+                  className="p-3 rounded-xl text-center border"
+                  style={{
+                    background: isRunning
+                      ? 'oklch(74% 0.18 155 / 0.06)'
                       : isIdle
-                      ? 'bg-violet-50 border border-violet-200'
-                      : 'bg-gray-50 border border-gray-200'
-                  }`}
+                        ? 'oklch(56% 0.22 264 / 0.06)'
+                        : 'oklch(50% 0 0 / 0.06)',
+                    borderColor: isRunning
+                      ? 'oklch(74% 0.18 155 / 0.2)'
+                      : isIdle
+                        ? 'oklch(56% 0.22 264 / 0.2)'
+                        : 'oklch(100% 0 0 / 0.06)',
+                  }}
                 >
-                  <div className={`w-2 h-2 rounded-full mx-auto mb-1.5 ${
-                    isRunning ? 'bg-emerald-500' : isIdle ? 'bg-violet-400' : 'bg-gray-400'
-                  }`} />
-                  <p className="text-xs font-medium capitalize text-gray-700 truncate">{name}</p>
-                  <p className={`text-xs ${isRunning ? 'text-emerald-600' : isIdle ? 'text-violet-500' : 'text-gray-400'}`}>
+                  <div
+                    className="w-2 h-2 rounded-full mx-auto mb-1.5"
+                    style={{
+                      background: isRunning
+                        ? 'oklch(74% 0.18 155)'
+                        : isIdle
+                          ? 'oklch(56% 0.22 264)'
+                          : 'oklch(50% 0 0)',
+                    }}
+                  />
+                  <p className="text-xs font-medium text-white/70 truncate capitalize">{name}</p>
+                  <p className="text-[10px] mt-0.5"
+                    style={{
+                      color: isRunning
+                        ? 'oklch(74% 0.18 155)'
+                        : isIdle
+                          ? 'oklch(74% 0.18 264)'
+                          : 'oklch(50% 0 0)',
+                    }}
+                  >
                     {isRunning ? 'Actif' : isIdle ? 'En attente' : 'Inactif'}
                   </p>
                 </div>
@@ -416,117 +500,161 @@ export default function Settings() {
           </div>
         )}
 
-        {/* Last Activity */}
+        {/* Last activity */}
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="p-3 bg-gray-50 rounded-lg">
-            <p className="text-gray-400 text-xs mb-0.5">Dernière prospection</p>
-            <p className="font-medium text-gray-800">
-              {botStatus?.lastProspection ? new Date(botStatus.lastProspection).toLocaleString('fr-FR') : 'Jamais'}
+          <div className="p-3 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+            <p className="text-xs text-white/30 mb-1">Dernière prospection</p>
+            <p className="text-sm font-medium text-white/80">
+              {botStatus?.lastProspection
+                ? new Date(botStatus.lastProspection).toLocaleString('fr-FR')
+                : 'Jamais'}
             </p>
           </div>
-          <div className="p-3 bg-gray-50 rounded-lg">
-            <p className="text-gray-400 text-xs mb-0.5">Dernier appel</p>
-            <p className="font-medium text-gray-800">
-              {botStatus?.lastCall ? new Date(botStatus.lastCall).toLocaleString('fr-FR') : 'Jamais'}
+          <div className="p-3 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+            <p className="text-xs text-white/30 mb-1">Dernier appel</p>
+            <p className="text-sm font-medium text-white/80">
+              {botStatus?.lastCall
+                ? new Date(botStatus.lastCall).toLocaleString('fr-FR')
+                : 'Jamais'}
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── Manual Triggers ───────────────────────────────────── */}
-      <div className="card">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Zap className="w-5 h-5 text-amber-500" /> Actions Manuelles (Test)
+      {/* ── Manual Triggers ─────────────────────────────────────── */}
+      <section
+        aria-labelledby="triggers-heading"
+        className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5"
+      >
+        <h2 id="triggers-heading" className="text-base font-semibold text-white flex items-center gap-2 mb-1">
+          <Zap className="w-5 h-5 text-amber-400" aria-hidden="true" />
+          Actions manuelles
         </h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Déclenchez manuellement les actions du bot pour tester.
-        </p>
+        <p className="text-xs text-white/35 mb-4">Déclenchez les actions du bot pour tester.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <button
-            onClick={() => triggerAction('call')}
-            disabled={triggerLoading === 'call'}
-            className="p-4 border-2 border-dashed border-gray-200 rounded-xl hover:border-violet-300 hover:bg-violet-50 transition-all text-left"
-          >
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-2xl">📞</span>
-              <span className="font-semibold text-gray-800">
-                {triggerLoading === 'call' ? 'En cours...' : 'Appeler'}
-              </span>
-            </div>
-            <p className="text-xs text-gray-500">Appeler le prochain prospect avec Ashley (VAPI)</p>
-          </button>
-          <button
-            onClick={() => triggerAction('reminders')}
-            disabled={triggerLoading === 'reminders'}
-            className="p-4 border-2 border-dashed border-gray-200 rounded-xl hover:border-violet-300 hover:bg-violet-50 transition-all text-left"
-          >
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-2xl">📧</span>
-              <span className="font-semibold text-gray-800">
-                {triggerLoading === 'reminders' ? 'En cours...' : 'Relances'}
-              </span>
-            </div>
-            <p className="text-xs text-gray-500">Envoyer les relances email en attente</p>
-          </button>
+          {[
+            {
+              action: 'call',
+              label: 'Appeler',
+              description: 'Appeler le prochain prospect via VAPI',
+              icon: (
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                </svg>
+              ),
+            },
+            {
+              action: 'reminders',
+              label: 'Relances',
+              description: 'Envoyer les relances email en attente',
+              icon: (
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                </svg>
+              ),
+            },
+          ].map(({ action, label, description, icon }) => (
+            <button
+              key={action}
+              type="button"
+              onClick={() => triggerAction(action)}
+              disabled={triggerLoading === action}
+              className="flex items-start gap-3 p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04] text-left transition-colors disabled:opacity-50"
+            >
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                style={{ background: 'oklch(56% 0.22 264 / 0.12)', color: 'oklch(74% 0.18 264)' }}
+              >
+                {triggerLoading === action
+                  ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                  : icon
+                }
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  {triggerLoading === action ? 'En cours…' : label}
+                </p>
+                <p className="text-xs text-white/35 mt-0.5">{description}</p>
+              </div>
+            </button>
+          ))}
         </div>
-      </div>
+      </section>
 
-      {/* ── Automation Info ───────────────────────────────────── */}
-      <div className="card">
-        <h2 className="text-lg font-semibold mb-4">Boucle Automatique</h2>
-        <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-2 font-mono text-gray-700">
-          <p><strong>Prospection:</strong> Tous les jours à 9h (lun-ven)</p>
-          <p><strong>Appels:</strong> Toutes les 20 min, 9h-19h (lun-ven)</p>
-          <p><strong>Relances:</strong> Toutes les heures</p>
-          <p><strong>Analytics:</strong> Tous les jours à 23h55</p>
-          <p><strong>Reset quotidien:</strong> Tous les jours à 00h01</p>
-        </div>
-      </div>
+      {/* ── Automation schedule ──────────────────────────────────── */}
+      <section
+        aria-labelledby="schedule-heading"
+        className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5"
+      >
+        <h2 id="schedule-heading" className="text-base font-semibold text-white mb-4">Boucle automatique</h2>
+        <dl className="space-y-2 font-mono text-xs text-white/50">
+          {[
+            ['Prospection', 'Tous les jours à 9h (lun–ven)'],
+            ['Appels', 'Toutes les 20 min, 9h–19h (lun–ven)'],
+            ['Relances', 'Toutes les heures'],
+            ['Analytics', 'Tous les jours à 23h55'],
+            ['Reset quotidien', 'Tous les jours à 00h01'],
+          ].map(([term, detail]) => (
+            <div key={term} className="flex gap-3">
+              <dt className="font-semibold text-white/60 flex-shrink-0 w-36">{term}</dt>
+              <dd>{detail}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
-      {/* ── Configuration Avancée (Mission Control) ───────────── */}
-      <div className="card">
+      {/* ── Advanced config (collapsible) ───────────────────────── */}
+      <section aria-labelledby="advanced-heading" className="rounded-2xl border border-white/[0.06] bg-white/[0.02]">
         <button
+          type="button"
           onClick={() => setConfigOpen(!configOpen)}
-          className="w-full flex items-center justify-between"
+          aria-expanded={configOpen}
+          aria-controls="advanced-config-panel"
+          className="w-full flex items-center justify-between p-5"
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-violet-50 text-violet-600">
-              <Radio className="w-5 h-5" />
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'oklch(67% 0.26 299 / 0.12)', color: 'oklch(67% 0.26 299)' }}
+            >
+              <Radio className="w-5 h-5" aria-hidden="true" />
             </div>
             <div className="text-left">
-              <h2 className="text-lg font-semibold text-gray-900">Configuration avancée</h2>
-              <p className="text-sm text-gray-400 mt-0.5">Bot, VAPI, Prospection — configuration complète</p>
+              <h2 id="advanced-heading" className="text-sm font-semibold text-white">Configuration avancée</h2>
+              <p className="text-xs text-white/35 mt-0.5">Bot, VAPI, Prospection</p>
             </div>
           </div>
           {configOpen
-            ? <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" />
-            : <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+            ? <ChevronUp className="w-4 h-4 text-white/30 flex-shrink-0" aria-hidden="true" />
+            : <ChevronDown className="w-4 h-4 text-white/30 flex-shrink-0" aria-hidden="true" />
           }
         </button>
 
         {configOpen && (
-          <div className="mt-6 space-y-5">
+          <div id="advanced-config-panel" className="px-5 pb-5 space-y-4">
             {configLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-violet-600 animate-spin" />
+              <div className="flex items-center justify-center py-10" role="status" aria-label="Chargement">
+                <div
+                  className="w-8 h-8 rounded-full border-2 border-transparent animate-spin"
+                  style={{ borderTopColor: 'oklch(56% 0.22 264)' }}
+                />
               </div>
             ) : (
               <>
-                {/* Bot Configuration */}
+                {/* Bot config */}
                 <ConfigSection
                   icon={<BotIcon className="w-5 h-5" />}
                   title="Configuration du Bot"
-                  color="purple"
                   saveStatus={botSave}
                   onSave={() => saveSection('bot', setBotSave)}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field label="Appels par jour">
                       <input
                         type="number" min={1} max={500}
                         value={config.callsPerDay}
                         onChange={(e) => set('callsPerDay', +e.target.value)}
-                        className="input"
+                        className={inputCls}
                       />
                     </Field>
                     <Field label={`Intervalle entre appels: ${config.callIntervalMinutes} min`}>
@@ -534,50 +662,59 @@ export default function Settings() {
                         type="range" min={5} max={60} step={5}
                         value={config.callIntervalMinutes}
                         onChange={(e) => set('callIntervalMinutes', +e.target.value)}
-                        className="w-full accent-violet-600"
+                        className="w-full accent-[oklch(56%_0.22_264)]"
                       />
-                      <div className="flex justify-between text-xs text-gray-400 mt-1"><span>5 min</span><span>60 min</span></div>
+                      <div className="flex justify-between text-xs text-white/25 mt-1"><span>5 min</span><span>60 min</span></div>
                     </Field>
-                    <Field label="Plage d'appels (début → fin)">
+                    <Field label="Plage d'appels (début vers fin)">
                       <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <Clock className="w-4 h-4 text-white/30 flex-shrink-0" aria-hidden="true" />
                         <input type="number" min={0} max={23} value={config.callWindowStart}
-                          onChange={(e) => set('callWindowStart', +e.target.value)} className="input" />
-                        <span className="text-gray-400">→</span>
+                          onChange={(e) => set('callWindowStart', +e.target.value)} className={inputCls} />
+                        <span className="text-white/30" aria-hidden="true">→</span>
                         <input type="number" min={0} max={23} value={config.callWindowEnd}
-                          onChange={(e) => set('callWindowEnd', +e.target.value)} className="input" />
-                        <span className="text-xs text-gray-400">h</span>
+                          onChange={(e) => set('callWindowEnd', +e.target.value)} className={inputCls} />
+                        <span className="text-xs text-white/30" aria-hidden="true">h</span>
                       </div>
                     </Field>
                     <Field label="Quota de prospection par jour">
                       <input type="number" min={1} max={1000}
                         value={config.prospectionQuotaPerDay}
                         onChange={(e) => set('prospectionQuotaPerDay', +e.target.value)}
-                        className="input"
+                        className={inputCls}
                       />
                     </Field>
                   </div>
                   <Field label="Jours actifs" className="mt-4">
-                    <div className="flex gap-2 flex-wrap">
-                      {DAYS.map((day) => (
-                        <button key={day} onClick={() => toggleDay(day)}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border-2 ${
-                            config.activeDays.includes(day)
-                              ? 'bg-violet-600 border-violet-600 text-white'
-                              : 'border-gray-200 text-gray-500 hover:border-violet-300'
-                          }`}>
-                          {DAY_LABELS[day]}
-                        </button>
-                      ))}
+                    <div className="flex gap-2 flex-wrap" role="group" aria-label="Jours actifs">
+                      {DAYS.map((day) => {
+                        const active = config.activeDays.includes(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => toggleDay(day)}
+                            aria-pressed={active}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border"
+                            style={{
+                              background: active ? 'oklch(56% 0.22 264)' : 'oklch(100% 0 0 / 0.04)',
+                              borderColor: active ? 'oklch(56% 0.22 264)' : 'oklch(100% 0 0 / 0.08)',
+                              color: active ? 'oklch(98% 0.004 265)' : 'oklch(70% 0 0)',
+                            }}
+                          >
+                            {DAY_LABELS[day]}
+                          </button>
+                        );
+                      })}
                     </div>
                   </Field>
                   <Field label={`Score priorité minimum: ${config.minPriorityScore}`} className="mt-4">
                     <input type="range" min={0} max={22} step={1}
                       value={config.minPriorityScore}
                       onChange={(e) => set('minPriorityScore', +e.target.value)}
-                      className="w-full accent-violet-600"
+                      className="w-full accent-[oklch(56%_0.22_264)]"
                     />
-                    <div className="flex justify-between text-xs text-gray-400 mt-1"><span>0 (tous)</span><span>22 (max)</span></div>
+                    <div className="flex justify-between text-xs text-white/25 mt-1"><span>0 (tous)</span><span>22 (max)</span></div>
                   </Field>
                   <Field label="Villes cibles" className="mt-4">
                     <TagInput
@@ -585,33 +722,34 @@ export default function Settings() {
                       onInputChange={setCityInput}
                       onAdd={() => addCity('targetCities', cityInput)}
                       onRemove={(c) => removeCity('targetCities', c)}
-                      placeholder="Ex: Paris, Lyon..."
-                      icon={<MapPin className="w-4 h-4 text-gray-400" />}
+                      placeholder="Ex: Paris, Lyon…"
+                      icon={<MapPin className="w-4 h-4" />}
                     />
                   </Field>
                 </ConfigSection>
 
-                {/* VAPI Configuration */}
+                {/* VAPI config */}
                 <ConfigSection
                   icon={<Mic2 className="w-5 h-5" />}
                   title="Configuration VAPI"
-                  color="indigo"
                   saveStatus={vapiSave}
                   onSave={() => saveSection('vapi', setVapiSave)}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field label="Assistant ID (VAPI)">
                       <input type="text" value={config.vapiAssistantId}
                         onChange={(e) => set('vapiAssistantId', e.target.value)}
                         placeholder="vapi-assistant-xxxxx"
-                        className="input font-mono text-sm"
+                        className={inputCls + ' font-mono text-xs'}
                       />
                     </Field>
                     <Field label="Voice ID">
                       <select value={config.vapiVoiceId}
-                        onChange={(e) => set('vapiVoiceId', e.target.value)} className="input">
+                        onChange={(e) => set('vapiVoiceId', e.target.value)}
+                        className={selectCls}
+                      >
                         {VOICES.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
-                        {!VOICES.find(v => v.id === config.vapiVoiceId) && (
+                        {!VOICES.find((v) => v.id === config.vapiVoiceId) && (
                           <option value={config.vapiVoiceId}>{config.vapiVoiceId || 'Personnalisé…'}</option>
                         )}
                       </select>
@@ -620,50 +758,59 @@ export default function Settings() {
                       <input type="range" min={1} max={30} step={1}
                         value={config.maxCallDurationMin}
                         onChange={(e) => set('maxCallDurationMin', +e.target.value)}
-                        className="w-full accent-indigo-500"
+                        className="w-full accent-[oklch(56%_0.22_264)]"
                       />
-                      <div className="flex justify-between text-xs text-gray-400 mt-1"><span>1 min</span><span>30 min</span></div>
+                      <div className="flex justify-between text-xs text-white/25 mt-1"><span>1 min</span><span>30 min</span></div>
                     </Field>
                     <Field label={`Silence timeout: ${config.silenceTimeoutSeconds}s`}>
                       <input type="range" min={5} max={120} step={5}
                         value={config.silenceTimeoutSeconds}
                         onChange={(e) => set('silenceTimeoutSeconds', +e.target.value)}
-                        className="w-full accent-indigo-500"
+                        className="w-full accent-[oklch(56%_0.22_264)]"
                       />
-                      <div className="flex justify-between text-xs text-gray-400 mt-1"><span>5s</span><span>120s</span></div>
+                      <div className="flex justify-between text-xs text-white/25 mt-1"><span>5s</span><span>120s</span></div>
                     </Field>
                   </div>
                 </ConfigSection>
 
-                {/* Prospecting Configuration */}
+                {/* Prospecting config */}
                 <ConfigSection
                   icon={<Search className="w-5 h-5" />}
                   title="Configuration Prospection"
-                  color="emerald"
                   saveStatus={prospectSave}
                   onSave={() => saveSection('prospect', setProspectSave)}
+                  accent="violet"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field label="Apify Actor ID">
                       <input type="text" value={config.apifyActorId}
                         onChange={(e) => set('apifyActorId', e.target.value)}
                         placeholder="apify/google-maps-scraper"
-                        className="input font-mono text-sm"
+                        className={inputCls + ' font-mono text-xs'}
                       />
                     </Field>
                   </div>
                   <Field label="Niches cibles" className="mt-4">
-                    <div className="flex gap-2 flex-wrap">
-                      {NICHES.map((n) => (
-                        <button key={n.id} onClick={() => toggleNiche(n.id)}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border-2 ${
-                            config.targetNiches.includes(n.id)
-                              ? 'bg-emerald-600 border-emerald-600 text-white'
-                              : 'border-gray-200 text-gray-500 hover:border-emerald-300'
-                          }`}>
-                          {n.label}
-                        </button>
-                      ))}
+                    <div className="flex gap-2 flex-wrap" role="group" aria-label="Niches cibles">
+                      {NICHES.map((n) => {
+                        const selected = config.targetNiches.includes(n.id);
+                        return (
+                          <button
+                            key={n.id}
+                            type="button"
+                            onClick={() => toggleNiche(n.id)}
+                            aria-pressed={selected}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border"
+                            style={{
+                              background: selected ? 'oklch(67% 0.26 299)' : 'oklch(100% 0 0 / 0.04)',
+                              borderColor: selected ? 'oklch(67% 0.26 299)' : 'oklch(100% 0 0 / 0.08)',
+                              color: selected ? 'oklch(98% 0.004 265)' : 'oklch(70% 0 0)',
+                            }}
+                          >
+                            {n.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </Field>
                   <Field label="Villes pour Apify" className="mt-4">
@@ -672,8 +819,8 @@ export default function Settings() {
                       onInputChange={setApifyCityInput}
                       onAdd={() => addCity('apifyTargetCities', apifyCityInput)}
                       onRemove={(c) => removeCity('apifyTargetCities', c)}
-                      placeholder="Ex: Paris, Lyon..."
-                      icon={<MapPin className="w-4 h-4 text-gray-400" />}
+                      placeholder="Ex: Paris, Lyon…"
+                      icon={<MapPin className="w-4 h-4" />}
                     />
                   </Field>
                 </ConfigSection>
@@ -681,7 +828,7 @@ export default function Settings() {
             )}
           </div>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

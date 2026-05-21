@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Phone, Mail, FileText, TrendingUp, MessageSquare, Filter, Calendar, Loader2 } from 'lucide-react';
+import { Phone, Mail, FileText, TrendingUp, MessageSquare, Calendar, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 
 type ActivityType = 'call' | 'email' | 'note' | 'deal_update' | 'sms';
@@ -15,12 +15,21 @@ interface Activity {
   month: string;
 }
 
+interface RawActivity {
+  id: string;
+  type?: string;
+  contactName?: string;
+  description?: string;
+  createdAt: string;
+  contact?: { name?: string };
+}
+
 const TYPE_CONFIG: Record<ActivityType, { label: string; icon: React.ElementType; bg: string; text: string; iconColor: string }> = {
   call:        { label: 'Call',        icon: Phone,         bg: 'bg-blue-50',    text: 'text-blue-700',    iconColor: 'text-blue-500' },
   email:       { label: 'Email',       icon: Mail,          bg: 'bg-indigo-50',  text: 'text-indigo-700',  iconColor: 'text-indigo-500' },
   note:        { label: 'Note',        icon: FileText,      bg: 'bg-amber-50',   text: 'text-amber-700',   iconColor: 'text-amber-500' },
   deal_update: { label: 'Deal Update', icon: TrendingUp,    bg: 'bg-emerald-50', text: 'text-emerald-700', iconColor: 'text-emerald-500' },
-  sms:         { label: 'SMS',         icon: MessageSquare, bg: 'bg-purple-50',  text: 'text-purple-700',  iconColor: 'text-purple-500' },
+  sms:         { label: 'SMS',         icon: MessageSquare, bg: 'bg-violet-50',  text: 'text-violet-700',  iconColor: 'text-violet-500' },
 };
 
 export default function CrmActivities() {
@@ -35,7 +44,7 @@ export default function CrmActivities() {
         const params: Record<string, string> = { limit: '50' };
         if (typeFilter) params.type = typeFilter;
         const { data } = await api.get('/crm/activities', { params });
-        const mapped = (data.activities || []).map((a: any) => {
+        const mapped = (data.activities || []).map((a: RawActivity): Activity => {
           const d = new Date(a.createdAt);
           return {
             id: a.id,
@@ -78,20 +87,27 @@ export default function CrmActivities() {
 
       {/* Type stat pills */}
       <div className="flex flex-wrap gap-2 mb-6">
-        <button onClick={() => setTypeFilter('')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+        <button
+          type="button"
+          onClick={() => setTypeFilter('')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
             typeFilter === '' ? 'bg-[#6366f1] text-white border-[#6366f1]' : 'bg-white border-[#d2d2d7]/60 text-[#86868b] hover:bg-[#f5f5f7]'
-          }`}>
+          }`}
+        >
           All ({activities.length})
         </button>
         {(Object.keys(TYPE_CONFIG) as ActivityType[]).map(t => {
           const cfg = TYPE_CONFIG[t];
           const Icon = cfg.icon;
           return (
-            <button key={t} onClick={() => setTypeFilter(t)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTypeFilter(t)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
                 typeFilter === t ? `${cfg.bg} ${cfg.text} border-current` : 'bg-white border-[#d2d2d7]/60 text-[#86868b] hover:bg-[#f5f5f7]'
-              }`}>
+              }`}
+            >
               <Icon size={12} /> {cfg.label} ({typeCounts[t] || 0})
             </button>
           );
@@ -130,16 +146,20 @@ export default function CrmActivities() {
                     const cfg = TYPE_CONFIG[activity.type] || TYPE_CONFIG.note;
                     const Icon = cfg.icon;
                     return (
-                      <motion.div key={activity.id}
-                        initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.04 }}
-                        className="relative flex gap-3 group">
+                      <motion.div
+                        key={activity.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.04 }}
+                        className="relative flex gap-3 group"
+                      >
                         {/* Icon dot */}
                         <div className={`absolute -left-6 w-6 h-6 rounded-full ${cfg.bg} border-2 border-white flex items-center justify-center flex-shrink-0 shadow-sm`}>
                           <Icon size={11} className={cfg.iconColor} />
                         </div>
 
                         {/* Content card */}
-                        <div className="flex-1 rounded-2xl border border-[#d2d2d7]/60 bg-white px-4 py-3 hover:shadow-sm hover:border-[#d2d2d7] transition-all">
+                        <div className="flex-1 rounded-2xl border border-[#d2d2d7]/60 bg-white px-4 py-3 hover:shadow-sm hover:border-[#d2d2d7] transition-colors">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>

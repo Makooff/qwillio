@@ -1,9 +1,12 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useToast } from '../../hooks/useToast';
+import ToastContainer from '../../components/ui/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Lock, Check, Bell, LogOut, Eye, EyeOff, ChevronRight,
   CreditCard, Bot, HelpCircle, Sparkles, Shield, Globe,
+  LucideIcon,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
@@ -22,23 +25,44 @@ const C = {
 };
 
 const inputCls =
-  'w-full px-3.5 py-2.5 text-[13px] rounded-xl border bg-white/[0.03] text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none transition-all disabled:opacity-50';
+  'w-full px-3.5 py-2.5 text-[13px] rounded-xl border bg-white/[0.03] text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none transition-colors disabled:opacity-50';
 
-// â”€â”€ Building blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`rounded-2xl border overflow-hidden ${className}`} style={{ background: C.panel, borderColor: C.border }}>
-    {children}
-  </div>
-);
+// ── Building blocks ─────────────────────────────────────────────────────────
 
-const SectionHead: React.FC<{ title: string }> = ({ title }) => (
-  <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] mb-3 px-1" style={{ color: C.textSec }}>{title}</h2>
-);
+interface CardProps {
+  children: React.ReactNode;
+  className?: string;
+}
 
-const Row: React.FC<{
-  icon: any; label: string; hint?: string; badge?: React.ReactNode;
-  onClick?: () => void; to?: string; danger?: boolean;
-}> = ({ icon: Icon, label, hint, badge, onClick, to, danger }) => {
+function Card({ children, className = '' }: CardProps) {
+  return (
+    <div className={`rounded-2xl border overflow-hidden ${className}`} style={{ background: C.panel, borderColor: C.border }}>
+      {children}
+    </div>
+  );
+}
+
+interface SectionHeadProps {
+  title: string;
+}
+
+function SectionHead({ title }: SectionHeadProps) {
+  return (
+    <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] mb-3 px-1" style={{ color: C.textSec }}>{title}</h2>
+  );
+}
+
+interface RowProps {
+  icon: LucideIcon;
+  label: string;
+  hint?: string;
+  badge?: React.ReactNode;
+  onClick?: () => void;
+  to?: string;
+  danger?: boolean;
+}
+
+function Row({ icon: Icon, label, hint, badge, onClick, to, danger }: RowProps) {
   const inner = (
     <div className={`flex items-center gap-3.5 px-4 h-[58px] group transition-colors
       ${danger ? 'hover:bg-red-500/[0.05]' : 'hover:bg-white/[0.02]'}`}>
@@ -56,22 +80,44 @@ const Row: React.FC<{
   );
   if (to) return <Link to={to} className="block">{inner}</Link>;
   return <button type="button" onClick={onClick} className="w-full text-left">{inner}</button>;
+}
+
+interface ToggleProps {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}
+
+function Toggle({ checked, onChange }: ToggleProps) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="relative w-[38px] h-[22px] rounded-full flex-shrink-0 transition-colors"
+      style={{ background: checked ? C.ok : 'rgba(255,255,255,0.10)' }}
+    >
+      <span className="absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow transition-transform"
+        style={{ transform: checked ? 'translateX(16px)' : 'translateX(0)' }} />
+    </button>
+  );
+}
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+type PlanType = 'starter' | 'pro' | 'enterprise';
+
+const PLAN_LABELS: Record<PlanType, string> = {
+  starter:    'Starter',
+  pro:        'Pro',
+  enterprise: 'Enterprise',
 };
 
-const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = ({ checked, onChange }) => (
-  <button onClick={() => onChange(!checked)} type="button"
-    className="relative w-[38px] h-[22px] rounded-full flex-shrink-0 transition-colors"
-    style={{ background: checked ? C.ok : 'rgba(255,255,255,0.10)' }}>
-    <span className="absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow transition-transform"
-      style={{ transform: checked ? 'translateX(16px)' : 'translateX(0)' }} />
-  </button>
-);
+// ── Main page ────────────────────────────────────────────────────────────────
 
-// â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function ClientAccount() {
   const { user, checkAuth, logout } = useAuthStore();
+  const { toasts, add: addToast, remove: removeToast } = useToast();
 
-  const [name, setName] = useState(user?.name || '');
+  const [name, setName] = useState(user?.name ?? '');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
 
@@ -90,7 +136,12 @@ export default function ClientAccount() {
 
   useEffect(() => {
     api.get('/my-dashboard/settings').then((res) => {
-      const notif = res.data?.vapiConfig?.notifications;
+      const notif = res.data?.vapiConfig?.notifications as {
+        notifEmail?: boolean;
+        notifWeekly?: boolean;
+        notifLeads?: boolean;
+        notifQuota?: boolean;
+      } | undefined;
       if (notif) {
         if (typeof notif.notifEmail  === 'boolean') setNotifEmail(notif.notifEmail);
         if (typeof notif.notifWeekly === 'boolean') setNotifWeekly(notif.notifWeekly);
@@ -123,32 +174,35 @@ export default function ClientAccount() {
   const handleChangePassword = async () => {
     setPwError('');
     if (newPw !== confirmPw) { setPwError('Les mots de passe ne correspondent pas'); return; }
-    if (newPw.length < 6)    { setPwError('Minimum 6 caractÃ¨res'); return; }
+    if (newPw.length < 6)    { setPwError('Minimum 6 caractères'); return; }
     setPwSaving(true);
     try {
       await api.put('/my-dashboard/password', { currentPassword: currentPw, newPassword: newPw });
       setPwSaved(true);
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
       setTimeout(() => setPwSaved(false), 2000);
-    } catch (err: any) {
-      setPwError(err?.response?.data?.error || 'Erreur lors du changement');
+    } catch (err: unknown) {
+      const errMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setPwError(errMsg ?? 'Erreur lors du changement');
     } finally { setPwSaving(false); }
   };
 
-  const initials = (user?.name || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
-  const planType  = ((user as any)?.planType ?? 'pro').toString();
-  const planLabel = ({ starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' } as Record<string, string>)[planType] ?? 'Pro';
+  const initials = (user?.name ?? 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const rawPlan  = (user as unknown as Record<string, unknown> | undefined)?.planType;
+  const planType: PlanType = (rawPlan === 'starter' || rawPlan === 'enterprise') ? rawPlan : 'pro';
+  const planLabel = PLAN_LABELS[planType];
 
   return (
     <div className="max-w-[720px] space-y-6">
+      <ToastContainer toasts={toasts} remove={removeToast} />
 
-      {/* â”€â”€â”€ Header â”€â”€â”€ */}
+      {/* ─── Header ─── */}
       <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: C.text }}>ParamÃ¨tres du compte</h1>
-        <p className="text-[12.5px] mt-0.5" style={{ color: C.textSec }}>Profil, sÃ©curitÃ©, notifications, abonnement.</p>
+        <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: C.text }}>Paramètres du compte</h1>
+        <p className="text-[12.5px] mt-0.5" style={{ color: C.textSec }}>Profil, sécurité, notifications, abonnement.</p>
       </motion.div>
 
-      {/* â”€â”€â”€ Identity â”€â”€â”€ */}
+      {/* ─── Identity ─── */}
       <Card>
         <div className="p-5 flex items-center gap-4">
           <div className="w-[60px] h-[60px] rounded-full flex items-center justify-center flex-shrink-0"
@@ -166,11 +220,11 @@ export default function ClientAccount() {
         </div>
       </Card>
 
-      {/* â”€â”€â”€ Compte â”€â”€â”€ */}
+      {/* ─── Compte ─── */}
       <section>
         <SectionHead title="Compte" />
         <Card>
-          <Row icon={User} label="Informations personnelles" hint="Nom affichÃ©, email"
+          <Row icon={User} label="Informations personnelles" hint="Nom affiché, email"
                onClick={() => toggle('profile')} />
           <AnimatePresence initial={false}>
             {open === 'profile' && (
@@ -187,16 +241,20 @@ export default function ClientAccount() {
                   </div>
                   <div>
                     <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Email</label>
-                    <input type="email" value={user?.email || ''} disabled
+                    <input type="email" value={user?.email ?? ''} disabled
                       className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
                   </div>
                   <div className="flex items-center gap-3 pt-2">
-                    <button onClick={handleUpdateProfile} disabled={profileSaving}
+                    <button
+                      type="button"
+                      onClick={handleUpdateProfile}
+                      disabled={profileSaving}
                       className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
-                      style={{ background: C.text, color: '#0B0B0D' }}>
-                      {profileSaving ? 'Enregistrementâ€¦' : 'Sauvegarder'}
+                      style={{ background: C.text, color: '#0B0B0D' }}
+                    >
+                      {profileSaving ? 'Enregistrement…' : 'Sauvegarder'}
                     </button>
-                    {profileSaved && <span className="text-[12px] flex items-center gap-1" style={{ color: C.ok }}><Check size={13} /> SauvegardÃ©</span>}
+                    {profileSaved && <span className="text-[12px] flex items-center gap-1" style={{ color: C.ok }}><Check size={13} /> Sauvegardé</span>}
                   </div>
                 </div>
               </motion.div>
@@ -204,7 +262,7 @@ export default function ClientAccount() {
           </AnimatePresence>
 
           <div style={{ borderTop: `1px solid ${C.border}` }} />
-          <Row icon={Lock} label="SÃ©curitÃ©" hint="Mot de passe, authentification"
+          <Row icon={Lock} label="Sécurité" hint="Mot de passe, authentification"
                onClick={() => toggle('security')} />
           <AnimatePresence initial={false}>
             {open === 'security' && (
@@ -216,8 +274,13 @@ export default function ClientAccount() {
                     <div className="relative mt-1.5">
                       <input type={showPw ? 'text' : 'password'} value={currentPw} onChange={e => setCurrentPw(e.target.value)}
                         className={inputCls + ' pr-10'} style={{ borderColor: C.border }} />
-                      <button onClick={() => setShowPw(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2"
-                        style={{ color: C.textSec }}>
+                      <button
+                        type="button"
+                        aria-label={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                        onClick={() => setShowPw(s => !s)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2"
+                        style={{ color: C.textSec }}
+                      >
                         {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                       </button>
                     </div>
@@ -236,12 +299,16 @@ export default function ClientAccount() {
                   </div>
                   {pwError && <p className="text-[12px]" style={{ color: C.bad }}>{pwError}</p>}
                   <div className="flex items-center gap-3 pt-2">
-                    <button onClick={handleChangePassword} disabled={pwSaving || !currentPw || !newPw}
+                    <button
+                      type="button"
+                      onClick={handleChangePassword}
+                      disabled={pwSaving || !currentPw || !newPw}
                       className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
-                      style={{ background: C.text, color: '#0B0B0D' }}>
-                      {pwSaving ? 'Changementâ€¦' : 'Changer le mot de passe'}
+                      style={{ background: C.text, color: '#0B0B0D' }}
+                    >
+                      {pwSaving ? 'Changement…' : 'Changer le mot de passe'}
                     </button>
-                    {pwSaved && <span className="text-[12px] flex items-center gap-1" style={{ color: C.ok }}><Check size={13} /> ChangÃ©</span>}
+                    {pwSaved && <span className="text-[12px] flex items-center gap-1" style={{ color: C.ok }}><Check size={13} /> Changé</span>}
                   </div>
                 </div>
               </motion.div>
@@ -256,12 +323,12 @@ export default function ClientAccount() {
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.18 }} className="overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
                 <div className="p-5">
-                  {[
-                    { label: 'Notifications email', desc: 'Ã‰vÃ©nements importants', checked: notifEmail,  set: (v: boolean) => { setNotifEmail(v);  saveNotifications({ notifEmail: v, notifWeekly, notifLeads, notifQuota }); } },
-                    { label: 'Rapport hebdomadaire', desc: 'RÃ©sumÃ© chaque lundi',  checked: notifWeekly, set: (v: boolean) => { setNotifWeekly(v); saveNotifications({ notifEmail, notifWeekly: v, notifLeads, notifQuota }); } },
-                    { label: 'Nouveaux leads',       desc: 'Alerte Ã  chaque capture', checked: notifLeads, set: (v: boolean) => { setNotifLeads(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads: v, notifQuota }); } },
-                    { label: 'Alertes quota',        desc: 'Seuil 80% et 100%',    checked: notifQuota,  set: (v: boolean) => { setNotifQuota(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads, notifQuota: v }); } },
-                  ].map((n, i, arr) => (
+                  {([
+                    { label: 'Notifications email',  desc: 'Évènements importants',   checked: notifEmail,  set: (v: boolean) => { setNotifEmail(v);  saveNotifications({ notifEmail: v, notifWeekly, notifLeads, notifQuota }); } },
+                    { label: 'Rapport hebdomadaire', desc: 'Résumé chaque lundi',     checked: notifWeekly, set: (v: boolean) => { setNotifWeekly(v); saveNotifications({ notifEmail, notifWeekly: v, notifLeads, notifQuota }); } },
+                    { label: 'Nouveaux leads',       desc: 'Alerte à chaque capture', checked: notifLeads,  set: (v: boolean) => { setNotifLeads(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads: v, notifQuota }); } },
+                    { label: 'Alertes quota',        desc: 'Seuil 80% et 100%',       checked: notifQuota,  set: (v: boolean) => { setNotifQuota(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads, notifQuota: v }); } },
+                  ] as const).map((n, i, arr) => (
                     <div key={i} className="flex items-center justify-between py-2.5"
                          style={{ borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : undefined }}>
                       <div>
@@ -278,17 +345,17 @@ export default function ClientAccount() {
         </Card>
       </section>
 
-      {/* â”€â”€â”€ Qwillio â”€â”€â”€ */}
+      {/* ─── Qwillio ─── */}
       <section>
         <SectionHead title="Qwillio" />
         <Card>
-          <Row icon={Bot} label="RÃ©ceptionniste IA"
+          <Row icon={Bot} label="Réceptionniste IA"
                hint="Voix, scripts, transferts d'appel"
                to="/dashboard/receptionist" />
           <div style={{ borderTop: `1px solid ${C.border}` }} />
           <Row icon={Sparkles} label="Plan & usage"
                hint={`Plan ${planLabel}`}
-               badge={<span className="text-[11px]" style={{ color: C.textSec }}>GÃ©rer</span>}
+               badge={<span className="text-[11px]" style={{ color: C.textSec }}>Gérer</span>}
                to="/dashboard/billing" />
           <div style={{ borderTop: `1px solid ${C.border}` }} />
           <Row icon={CreditCard} label="Moyens de paiement"
@@ -296,18 +363,18 @@ export default function ClientAccount() {
                to="/dashboard/billing" />
           <div style={{ borderTop: `1px solid ${C.border}` }} />
           <Row icon={Globe} label="Renvoi d'appel"
-               hint="iPhone ou Android â€” guide pas Ã  pas"
+               hint="iPhone ou Android — guide pas à pas"
                to="/dashboard/setup/call-forwarding" />
         </Card>
       </section>
 
-      {/* â”€â”€â”€ PrÃ©fÃ©rences â”€â”€â”€ */}
+      {/* ─── Préférences ─── */}
       <section>
-        <SectionHead title="PrÃ©fÃ©rences" />
+        <SectionHead title="Préférences" />
         <Card>
-          <Row icon={Shield} label="ConfidentialitÃ©"
-               hint="Exporter mes donnÃ©es, consentements"
-               onClick={() => alert('BientÃ´t disponible')} />
+          <Row icon={Shield} label="Confidentialité"
+               hint="Exporter mes données, consentements"
+               onClick={() => addToast('Bientôt disponible', 'info')} />
           <div style={{ borderTop: `1px solid ${C.border}` }} />
           <Row icon={HelpCircle} label="Support & aide"
                hint="Centre d'aide, contact"
@@ -315,15 +382,15 @@ export default function ClientAccount() {
         </Card>
       </section>
 
-      {/* â”€â”€â”€ DÃ©connexion â”€â”€â”€ */}
+      {/* ─── Déconnexion ─── */}
       <section>
         <Card>
-          <Row icon={LogOut} label="Se dÃ©connecter" danger onClick={logout} />
+          <Row icon={LogOut} label="Se déconnecter" danger onClick={logout} />
         </Card>
       </section>
 
       <p className="text-center text-[10.5px] pt-2" style={{ color: C.textTer }}>
-        Qwillio Â· {user?.email}
+        Qwillio · {user?.email}
       </p>
     </div>
   );

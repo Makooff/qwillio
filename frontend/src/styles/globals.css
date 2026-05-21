@@ -1,6 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -25,6 +23,12 @@
   --q-ok:         oklch(72% 0.18 145);
   --q-warn:       oklch(78% 0.18 75);
   --q-bad:        oklch(65% 0.22 25);
+
+  /* Custom ease curves (emil-design-eng) */
+  --ease-out:      cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:   cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer:   cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* ─── Global Reset ─── */
@@ -54,29 +58,39 @@ body {
 /* ─── Dashboard Components ─── */
 @layer components {
   .btn-primary {
-    @apply px-6 py-2.5 rounded-lg font-semibold transition-all duration-200;
+    @apply px-6 py-2.5 rounded-lg font-semibold;
     background: oklch(56% 0.22 264);
     color: oklch(98% 0.004 265);
     box-shadow: 0 4px 16px oklch(56% 0.22 264 / 0.30);
+    transition: background-color 160ms var(--ease-out), transform 120ms var(--ease-out);
   }
-  .btn-primary:hover { background: oklch(63% 0.21 264); }
+  .btn-primary:hover  { background: oklch(63% 0.21 264); }
+  .btn-primary:active { transform: scale(0.97); }
 
   .btn-secondary {
-    @apply px-6 py-2.5 rounded-lg font-semibold transition-all duration-200;
+    @apply px-6 py-2.5 rounded-lg font-semibold;
     background: oklch(15% 0.017 265);
     color: oklch(95% 0.004 265);
     border: 1px solid oklch(22% 0.012 265 / 0.55);
+    transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out), transform 120ms var(--ease-out);
   }
+  .btn-secondary:active { transform: scale(0.97); }
+
   .btn-danger {
-    @apply px-6 py-2.5 rounded-lg font-semibold transition-all duration-200;
+    @apply px-6 py-2.5 rounded-lg font-semibold;
     background: oklch(65% 0.22 25);
     color: oklch(98% 0 0);
+    transition: background-color 160ms var(--ease-out), transform 120ms var(--ease-out);
   }
+  .btn-danger:active { transform: scale(0.97); }
+
   .btn-success {
-    @apply px-6 py-2.5 rounded-lg font-semibold transition-all duration-200;
+    @apply px-6 py-2.5 rounded-lg font-semibold;
     background: oklch(72% 0.18 145);
     color: oklch(8% 0.009 265);
+    transition: background-color 160ms var(--ease-out), transform 120ms var(--ease-out);
   }
+  .btn-success:active { transform: scale(0.97); }
   .card {
     border-radius: 14px;
     padding: 1.5rem;
@@ -94,7 +108,7 @@ body {
     border-color: oklch(30% 0.014 265 / 0.70);
   }
   .input {
-    @apply w-full px-4 py-2.5 rounded-lg outline-none transition-all;
+    @apply w-full px-4 py-2.5 rounded-lg outline-none transition-colors duration-150;
     background: oklch(6% 0.007 265);
     border: 1px solid oklch(22% 0.012 265 / 0.55);
     color: oklch(95% 0.004 265);
@@ -139,6 +153,37 @@ body {
 @keyframes statusPulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.35; }
+}
+
+@keyframes waveBar {
+  0%, 100% { transform: scaleY(0.15); opacity: 0.5; }
+  50%       { transform: scaleY(1);    opacity: 1; }
+}
+.wave-bar {
+  transform-origin: bottom center;
+  animation: waveBar linear infinite;
+}
+
+/* ─── Universal tactile press feedback (emil-design-eng) ─── */
+/* All <button>, <a class="inline-flex">, and [role=button] gain scale(0.97) on :active.
+   Gated by media (hover: hover) on hover; press always works on touch. */
+button,
+a[role="button"],
+[role="button"],
+.btn-press {
+  transition: transform 120ms var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+button:active,
+a[role="button"]:active,
+[role="button"]:active,
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* Marketing CTA pills get an explicit identifier — paired with `data-press` attribute
+   on Link / a tags inside JSX so we don't rely on global selector alone. */
+[data-press]:active {
+  transform: scale(0.97);
 }
 
 /* ─── Prefers-reduced-motion ─── */

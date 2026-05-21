@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package, Plus, AlertCircle, QrCode, Download,
@@ -88,37 +88,41 @@ export default function AgentInventory() {
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#6366f1] text-white hover:bg-[#4f46e5] transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#6366f1] text-white hover:bg-[#4f46e5] transition-colors"
           >
             <Plus size={15} /> Add Product
           </button>
         </div>
       </motion.div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total Products', value: products.length, sub: 'tracked', icon: Package, color: 'blue' },
-          { label: 'Low Stock Alerts', value: lowStockProducts.length, sub: 'need reorder', icon: AlertCircle, color: 'red' },
-          { label: 'Total Stock Value', value: `$${totalStockCost.toFixed(0)}`, sub: 'on hand', icon: DollarSign, color: 'emerald' },
-          { label: 'Monthly Usage Cost', value: `$${monthlyUsageCost.toFixed(0)}`, sub: 'this month', icon: TrendingDown, color: 'amber' },
-        ].map((kpi, i) => (
-          <motion.div
-            key={kpi.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-            className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-5 hover:shadow-md hover:border-[#d2d2d7] transition-all"
-          >
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-${kpi.color}-50 text-${kpi.color}-600 mb-3`}>
-              <kpi.icon size={18} />
-            </div>
-            <p className="text-2xl font-bold tracking-tight">{kpi.value}</p>
-            <p className="text-xs text-[#86868b] mt-1">{kpi.label}</p>
-            <p className="text-[10px] text-[#86868b]/60 mt-0.5">{kpi.sub}</p>
-          </motion.div>
-        ))}
-      </div>
+      {/* Stat Strip */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="rounded-2xl border border-[#d2d2d7]/60 bg-white mb-8 flex flex-col sm:flex-row items-stretch divide-y sm:divide-y-0 sm:divide-x divide-[#d2d2d7]/60 overflow-hidden"
+      >
+        <div className="flex-[2] p-6">
+          <p className="text-[10px] font-semibold text-[#86868b] uppercase tracking-widest mb-2">Total Products</p>
+          <p className="text-4xl font-bold tracking-tight">{products.length}</p>
+          <p className="text-[10px] text-[#86868b]/50 mt-2">tracked in system</p>
+        </div>
+        <div className="flex-1 p-6 bg-red-50/50">
+          <p className="text-[10px] font-semibold text-red-400 uppercase tracking-widest mb-2">Low Stock</p>
+          <p className="text-2xl font-bold text-red-600">{lowStockProducts.length}</p>
+          <p className="text-[10px] text-red-400/60 mt-2">need reorder</p>
+        </div>
+        <div className="flex-1 p-6">
+          <p className="text-[10px] font-semibold text-[#86868b] uppercase tracking-widest mb-2">Stock Value</p>
+          <p className="text-2xl font-bold">${totalStockCost.toFixed(0)}</p>
+          <p className="text-[10px] text-[#86868b]/50 mt-2">on hand</p>
+        </div>
+        <div className="flex-1 p-6">
+          <p className="text-[10px] font-semibold text-[#86868b] uppercase tracking-widest mb-2">Monthly Usage</p>
+          <p className="text-2xl font-bold">${monthlyUsageCost.toFixed(0)}</p>
+          <p className="text-[10px] text-[#86868b]/50 mt-2">this month</p>
+        </div>
+      </motion.div>
 
       {/* Low Stock Alerts */}
       {lowStockProducts.length > 0 && (
@@ -297,7 +301,7 @@ export default function AgentInventory() {
                   </div>
                   <div className="h-1.5 bg-[#f5f5f7] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#6366f1] rounded-full transition-all duration-500"
+                      className="h-full bg-[#6366f1] rounded-full transition-[width] duration-500 ease-out"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -417,13 +421,13 @@ export default function AgentInventory() {
                 <button
                   onClick={addProduct}
                   disabled={!newProduct.name.trim()}
-                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-medium bg-[#6366f1] text-white rounded-xl hover:bg-[#4f46e5] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-medium bg-[#6366f1] text-white rounded-xl hover:bg-[#4f46e5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Check size={15} /> Add Product
                 </button>
                 <button
                   onClick={() => setShowAddModal(false)}
-                  className="px-5 py-2.5 text-sm font-medium bg-[#f5f5f7] text-[#1d1d1f] rounded-xl hover:bg-[#e8e8ed] border border-[#d2d2d7]/60 transition-all"
+                  className="px-5 py-2.5 text-sm font-medium bg-[#f5f5f7] text-[#1d1d1f] rounded-xl hover:bg-[#e8e8ed] border border-[#d2d2d7]/60 transition-colors"
                 >
                   Cancel
                 </button>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+﻿import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../../services/api';
 import OrbsLoader from '../../components/OrbsLoader';
 import {
@@ -90,7 +90,7 @@ function TabSysteme({ active }: { active: boolean }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <ProSectionHead title="Services & santé" />
-        <button onClick={reload} className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors" style={{ color: pro.textSec }}>
+        <button type="button" onClick={reload} className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors" style={{ color: pro.textSec }}>
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -212,15 +212,16 @@ function TabLogs({ active }: { active: boolean }) {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <ProSectionHead title={`Logs (${filtered.length})`} />
-        <button onClick={load} className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors ml-2" style={{ color: pro.textSec }}>
+        <button type="button" onClick={load} className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors ml-2" style={{ color: pro.textSec }}>
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
         </button>
         <div className="flex gap-1 ml-auto">
           {(['all', 'error', 'warn', 'info', 'debug'] as LogLevel[]).map(l => (
             <button
               key={l}
+              type="button"
               onClick={() => setLevel(l)}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all"
+              className="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors"
               style={levelFilter === l
                 ? { background: 'rgba(255,255,255,0.08)', color: l === 'all' ? pro.text : LOG_LEVEL_COLOR[l] }
                 : { color: pro.textSec }}
@@ -340,6 +341,7 @@ function Section({ title, icon: Icon, children, defaultOpen = true }: {
     <div className="rounded-2xl overflow-hidden border"
          style={{ background: 'rgba(255,255,255,0.03)', borderColor: pro.border }}>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-2.5 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
       >
@@ -518,11 +520,11 @@ export default function AdminSettings() {
                 <span className="text-[11.5px]" style={{ color: pro.warn }}>Modifications non sauvegardées</span>
               </div>
             )}
-            <button onClick={load} title="Rafraîchir"
+            <button type="button" onClick={load} title="Rafraîchir"
               className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors" style={{ color: pro.textSec }}>
               <RefreshCw className="w-4 h-4" />
             </button>
-            <button onClick={save} disabled={saving}
+            <button type="button" onClick={save} disabled={saving}
               className="inline-flex items-center gap-2 px-4 h-9 text-[12.5px] font-medium rounded-xl transition-colors disabled:opacity-50"
               style={{ background: pro.text, color: '#0B0B0D' }}>
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
@@ -537,8 +539,9 @@ export default function AdminSettings() {
         {(['Configuration', 'Système', 'Logs'] as SettingsTab[]).map(tab => (
           <button
             key={tab}
+            type="button"
             onClick={() => setActiveTab(tab)}
-            className="px-4 py-1.5 rounded-lg text-[12.5px] font-medium transition-all"
+            className="px-4 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors"
             style={activeTab === tab
               ? { background: 'rgba(255,255,255,0.08)', color: pro.text }
               : { color: pro.textSec }}
@@ -576,8 +579,8 @@ export default function AdminSettings() {
               const d  = i + 1;
               const on = config.activeDays.includes(d);
               return (
-                <button key={d} onClick={() => toggleDay(d)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                <button key={d} type="button" onClick={() => toggleDay(d)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
                   style={on
                     ? { background: 'rgba(255,255,255,0.06)', borderColor: pro.borderHi, color: pro.text }
                     : { background: 'rgba(255,255,255,0.02)', borderColor: pro.border, color: pro.textSec }}>
@@ -665,8 +668,8 @@ export default function AdminSettings() {
             {NICHES.map(n => {
               const on = config.targetNiches.includes(n.id);
               return (
-                <button key={n.id} onClick={() => toggleNiche(n.id)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                <button key={n.id} type="button" onClick={() => toggleNiche(n.id)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
                   style={on
                     ? { background: 'rgba(255,255,255,0.06)', borderColor: pro.borderHi, color: pro.text }
                     : { background: 'rgba(255,255,255,0.02)', borderColor: pro.border, color: pro.textSec }}>
@@ -682,7 +685,7 @@ export default function AdminSettings() {
               onKeyDown={e => e.key === 'Enter' && addCity('targetCities', newCity, setNewCity)}
               placeholder="Ajouter une ville..."
               className={`${inputCls} flex-1`} style={inputStyle} />
-            <button onClick={() => addCity('targetCities', newCity, setNewCity)}
+            <button type="button" onClick={() => addCity('targetCities', newCity, setNewCity)}
               className="px-3 py-2 rounded-xl text-xs font-medium"
               style={{ background: 'rgba(255,255,255,0.06)', color: pro.textSec, border: `1px solid ${pro.border}` }}>+</button>
           </div>
@@ -691,7 +694,7 @@ export default function AdminSettings() {
               <span key={c} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px]"
                 style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${pro.border}`, color: pro.text }}>
                 {c}
-                <button onClick={() => removeCity('targetCities', c)} className="ml-0.5" style={{ color: pro.bad }}>×</button>
+                <button type="button" onClick={() => removeCity('targetCities', c)} className="ml-0.5" style={{ color: pro.bad }}>×</button>
               </span>
             ))}
           </div>
@@ -716,7 +719,7 @@ export default function AdminSettings() {
                 onKeyDown={e => e.key === 'Enter' && addCity('apifyTargetCities', newApifyCity, setNewApifyCity)}
                 placeholder="Ajouter une ville..."
                 className={`${inputCls} flex-1`} style={inputStyle} />
-              <button onClick={() => addCity('apifyTargetCities', newApifyCity, setNewApifyCity)}
+              <button type="button" onClick={() => addCity('apifyTargetCities', newApifyCity, setNewApifyCity)}
                 className="px-3 py-2 rounded-xl text-xs font-medium"
                 style={{ background: 'rgba(255,255,255,0.06)', color: pro.textSec, border: `1px solid ${pro.border}` }}>+</button>
             </div>
@@ -725,7 +728,7 @@ export default function AdminSettings() {
                 <span key={c} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px]"
                   style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${pro.border}`, color: pro.text }}>
                   {c}
-                  <button onClick={() => removeCity('apifyTargetCities', c)} className="ml-0.5" style={{ color: pro.bad }}>×</button>
+                  <button type="button" onClick={() => removeCity('apifyTargetCities', c)} className="ml-0.5" style={{ color: pro.bad }}>×</button>
                 </span>
               ))}
             </div>
@@ -1067,14 +1070,16 @@ export default function AdminSettings() {
         </div>
         <div className="flex flex-wrap gap-3">
           <button
+            type="button"
             onClick={() => setConfirmPause(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
             style={{ background: 'rgba(239,68,68,0.10)', border: `1px solid rgba(239,68,68,0.3)`, color: pro.bad }}>
             Arrêter le bot
           </button>
           <button
+            type="button"
             onClick={() => setConfirmResume(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
             style={{ background: 'rgba(34,197,94,0.10)', border: `1px solid rgba(34,197,94,0.3)`, color: pro.ok }}>
             Démarrer le bot
           </button>

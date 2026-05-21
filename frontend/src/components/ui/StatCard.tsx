@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from 'react';
+﻿import { ReactNode, useEffect, useRef, useState } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { t, glass } from '../../styles/admin-theme';
@@ -45,7 +45,7 @@ export default function StatCard({ label, value, prefix, suffix, format, delta, 
 
   return (
     <div
-      className="group p-5 hover:border-white/[0.12] transition-all"
+      className="group p-5 hover:border-white/[0.12] transition-colors"
       style={{ ...glass }}
     >
       <div className="flex items-center justify-between mb-3">

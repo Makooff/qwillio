@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useToast } from '../../hooks/useToast';
+import ToastContainer from '../../components/ui/Toast';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone, SkipForward, Check, X, Clock, PartyPopper, Send,
   ChevronRight, Building2, Mail, MessageSquare, List,
   ArrowLeft, ArrowRight, MapPin, Bot, PhoneOff, User,
+  LucideIcon,
 } from 'lucide-react';
 import api from '../../services/api';
 import OrbsLoader from '../../components/OrbsLoader';
@@ -34,11 +37,11 @@ const PHASE_LABELS: Record<Phase, string> = {
   followup: 'Follow-up',
 };
 
-const OUTCOMES: { v: Outcome; status: string; l: string; icon: any; color: string }[] = [
-  { v: 'interested', status: 'interested', l: 'Intéressé',      icon: Check,       color: pro.ok },
-  { v: 'lost',       status: 'lost',       l: 'Pas intéressé',  icon: X,           color: pro.bad },
-  { v: 'callback',   status: 'contacted',  l: 'Rappeler',       icon: Clock,       color: pro.info },
-  { v: 'converted',  status: 'converted',  l: 'Converti',       icon: PartyPopper, color: pro.accent },
+const OUTCOMES: { v: Outcome; status: string; l: string; icon: LucideIcon; color: string }[] = [
+  { v: 'interested', status: 'interested', l: 'Intéressé',     icon: Check,       color: pro.ok },
+  { v: 'lost',       status: 'lost',       l: 'Pas intéressé', icon: X,           color: pro.bad },
+  { v: 'callback',   status: 'contacted',  l: 'Rappeler',      icon: Clock,       color: pro.info },
+  { v: 'converted',  status: 'converted',  l: 'Converti',      icon: PartyPopper, color: pro.accent },
 ];
 
 const FU_PRESETS: { type: 'sms' | 'email' | 'call'; hours: number; l: string }[] = [
@@ -49,8 +52,10 @@ const FU_PRESETS: { type: 'sms' | 'email' | 'call'; hours: number; l: string }[]
   { type: 'call',  hours: 168, l: 'Rappel 1 sem.' },
 ];
 
+type FuPreset = typeof FU_PRESETS[number];
+
 const STATUS_PILL = (s: string) => {
-  if (['interested','qualified','converted'].includes(s)) return 'ok';
+  if (['interested', 'qualified', 'converted'].includes(s)) return 'ok';
   if (s === 'contacted') return 'info';
   if (s === 'lost')      return 'bad';
   return 'neutral';
@@ -68,6 +73,23 @@ const fmtElapsed = (ms: number) => {
   return `${m}:${(s % 60).toString().padStart(2, '0')}`;
 };
 
+function getApiError(error: unknown, fallback: string): string {
+  if (
+    error != null &&
+    typeof error === 'object' &&
+    'response' in error &&
+    error.response != null &&
+    typeof error.response === 'object' &&
+    'data' in error.response &&
+    error.response.data != null &&
+    typeof error.response.data === 'object' &&
+    'error' in error.response.data
+  ) {
+    return String((error.response.data as { error: unknown }).error);
+  }
+  return fallback;
+}
+
 export default function CloserSession() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialId = searchParams.get('id');
@@ -81,7 +103,7 @@ export default function CloserSession() {
   const [phase, setPhase] = useState<Phase>('info');
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [notes, setNotes] = useState('');
-  const [fu, setFu] = useState<typeof FU_PRESETS[number] | null>(null);
+  const [fu, setFu] = useState<FuPreset | null>(null);
   const [claimed, setClaimed] = useState(false);
 
   // Call timer
@@ -91,6 +113,7 @@ export default function CloserSession() {
   // Instant send chips
   const [sendingNow, setSendingNow] = useState<'sms' | 'email' | null>(null);
   const [sentNow, setSentNow] = useState<{ sms: boolean; email: boolean }>({ sms: false, email: false });
+  const { toasts, add: addToast, remove: removeToast } = useToast();
 
   const currentRef = useRef<Prospect | null>(null);
 
@@ -167,8 +190,8 @@ export default function CloserSession() {
       }
       const res = await api.post(`/closer/prospects/${current.id}/send-now`, { type });
       if (res.data?.ok) setSentNow(s => ({ ...s, [type]: true }));
-      else alert(`Échec envoi ${type}`);
-    } catch (e: any) { alert(e?.response?.data?.error || `Échec envoi ${type}`); }
+      else addToast(`Échec envoi ${type}`, 'error');
+    } catch (err: unknown) { addToast(getApiError(err, `Échec envoi ${type}`), 'error'); }
     finally { setSendingNow(null); }
   };
 
@@ -188,7 +211,7 @@ export default function CloserSession() {
       }
       setTodayCount(c => c + 1);
       advance();
-    } catch (e: any) { alert(e?.response?.data?.error || 'Échec de l\'enregistrement'); }
+    } catch (err: unknown) { addToast(getApiError(err, "Échec de l'enregistrement"), 'error'); }
     finally { setSaving(false); }
   };
 
@@ -248,7 +271,7 @@ export default function CloserSession() {
             {todayCount} appel{todayCount > 1 ? 's' : ''} aujourd'hui
           </p>
           <div className="flex items-center justify-center gap-2 mt-5">
-            <button onClick={() => loadQueue()}
+            <button type="button" onClick={() => loadQueue()}
                     className="px-4 h-9 text-[12.5px] font-medium rounded-xl"
                     style={{ background: pro.text, color: '#0B0B0D' }}>
               Recharger
@@ -266,6 +289,7 @@ export default function CloserSession() {
 
   return (
     <div className="max-w-[720px] mx-auto space-y-4">
+      <ToastContainer toasts={toasts} remove={removeToast} />
       {/* Top strip — queue progress + phase chips */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -312,7 +336,7 @@ export default function CloserSession() {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18 }}
         >
-          {phase === 'info'     && <InfoStep p={current} onStart={startCall} />}
+          {phase === 'info'     && <InfoStep p={current} onStart={startCall} onError={msg => addToast(msg, 'error')} />}
           {phase === 'calling'  && <CallingStep p={current} startedAt={callStartAt} now={now} onEnd={endCall} />}
           {phase === 'outcome'  && <OutcomeStep selected={outcome} onSelect={setOutcome} />}
           {phase === 'notes'    && <NotesStep notes={notes} onChange={setNotes} />}
@@ -329,19 +353,19 @@ export default function CloserSession() {
       {/* Footer — prev / next */}
       <div className="flex items-center gap-2">
         {phaseIdx > 0 ? (
-          <button onClick={goPrev} disabled={saving}
+          <button type="button" onClick={goPrev} disabled={saving}
                   className="px-4 h-11 inline-flex items-center gap-1.5 text-[13px] font-medium rounded-xl disabled:opacity-40"
                   style={{ background: pro.panel, color: pro.text, border: `1px solid ${pro.border}` }}>
             <ArrowLeft size={14} /> Précédent
           </button>
         ) : (
-          <button onClick={skip} disabled={saving}
+          <button type="button" onClick={skip} disabled={saving}
                   className="px-4 h-11 inline-flex items-center gap-1.5 text-[13px] font-medium rounded-xl disabled:opacity-40"
                   style={{ background: pro.panel, color: pro.textSec, border: `1px solid ${pro.border}` }}>
             <SkipForward size={14} /> Passer
           </button>
         )}
-        <button onClick={goNext} disabled={!canGoNext() || saving}
+        <button type="button" onClick={goNext} disabled={!canGoNext() || saving}
                 className="flex-1 h-11 inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold rounded-xl disabled:opacity-40"
                 style={{ background: pro.text, color: '#0B0B0D' }}>
           {phase === 'info'     && (<><Phone size={14} /> Appeler maintenant</>)}
@@ -357,7 +381,9 @@ export default function CloserSession() {
 
 /* ─── Step components ─────────────────────────────────────── */
 
-function InfoStep({ p, onStart: _ }: { p: Prospect; onStart: () => void }) {
+type ProspectEditableField = 'phone' | 'email' | 'contactName';
+
+function InfoStep({ p, onStart: _, onError }: { p: Prospect; onStart: () => void; onError: (msg: string) => void }) {
   const isMine = !!p.assignedToUserId;
 
   // Local editable copy of contact fields — saved to API on blur.
@@ -376,8 +402,8 @@ function InfoStep({ p, onStart: _ }: { p: Prospect; onStart: () => void }) {
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [p.id]);
 
-  const persist = async (field: 'phone' | 'email' | 'contactName', value: string) => {
-    const original = (p as any)[field] || '';
+  const persist = async (field: ProspectEditableField, value: string) => {
+    const original = p[field] || '';
     if (value.trim() === original.trim()) return;
     if (field === 'email' && value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
       setEmailError('Email invalide');
@@ -387,11 +413,12 @@ function InfoStep({ p, onStart: _ }: { p: Prospect; onStart: () => void }) {
     setSavingField(field);
     try {
       await api.put(`/closer/prospects/${p.id}`, { [field]: value.trim() });
-      // Mutate local prospect so downstream phases see the new value.
-      (p as any)[field] = value.trim();
-    } catch (e: any) {
-      const msg = e?.response?.data?.error || `Échec mise à jour ${field}`;
-      if (field === 'email') setEmailError(msg); else alert(msg);
+      // Reflect the saved value back into the local prospect reference so
+      // downstream phases see the updated value without a full reload.
+      (p as unknown as Record<string, unknown>)[field] = value.trim();
+    } catch (err: unknown) {
+      const msg = getApiError(err, `Échec mise à jour ${field}`);
+      if (field === 'email') setEmailError(msg); else onError(msg);
     } finally { setSavingField(null); }
   };
 
@@ -409,7 +436,7 @@ function InfoStep({ p, onStart: _ }: { p: Prospect; onStart: () => void }) {
               {p.businessName}
             </h1>
             <div className="flex flex-wrap items-center gap-2 mt-1.5">
-              <Pill color={STATUS_PILL(p.status) as any}>{p.status}</Pill>
+              <Pill color={STATUS_PILL(p.status) as 'ok' | 'info' | 'bad' | 'neutral'}>{p.status}</Pill>
               <span className="text-[11px] tabular-nums whitespace-nowrap" style={{ color: pro.textTer }}>
                 Score {p.score ?? '—'}/22
               </span>
@@ -477,15 +504,23 @@ function InfoStep({ p, onStart: _ }: { p: Prospect; onStart: () => void }) {
   );
 }
 
-function EditableRow({
-  icon: Icon, label, value, onChange, onCommit, saving, error, placeholder, type, tabular, accent,
-}: {
-  icon: any; label: string; value: string;
+interface EditableRowProps {
+  icon: LucideIcon;
+  label: string;
+  value: string;
   onChange: (v: string) => void;
   onCommit: (v: string) => void;
-  saving?: boolean; error?: string | null;
-  placeholder?: string; type?: string; tabular?: boolean; accent?: boolean;
-}) {
+  saving?: boolean;
+  error?: string | null;
+  placeholder?: string;
+  type?: string;
+  tabular?: boolean;
+  accent?: boolean;
+}
+
+function EditableRow({
+  icon: Icon, label, value, onChange, onCommit, saving, error, placeholder, type, tabular, accent,
+}: EditableRowProps) {
   return (
     <div className="flex items-center gap-2.5 px-3 h-12 rounded-lg"
          style={{
@@ -515,9 +550,15 @@ function EditableRow({
   );
 }
 
-function InfoRow({
-  icon: Icon, label, value, accent, tabular,
-}: { icon: any; label: string; value: string; accent?: boolean; tabular?: boolean }) {
+interface InfoRowProps {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  accent?: boolean;
+  tabular?: boolean;
+}
+
+function InfoRow({ icon: Icon, label, value, accent, tabular }: InfoRowProps) {
   return (
     <div className="flex items-center gap-2.5 px-3 h-10 rounded-lg"
          style={{ background: pro.panelHi }}>
@@ -637,7 +678,7 @@ function OutcomeStep({
             return (
               <button key={o.v} type="button"
                       onClick={() => _(o.v)}
-                      className="flex items-center gap-2 h-12 px-3 rounded-xl transition-all active:scale-[0.98]"
+                      className="flex items-center gap-2 h-12 px-3 rounded-xl transition-colors active:scale-[0.98]"
                       style={{
                         background: sel ? `${o.color}22` : pro.panelHi,
                         border: `1px solid ${sel ? `${o.color}88` : pro.border}`,
@@ -685,8 +726,8 @@ function NotesStep({ notes, onChange }: { notes: string; onChange: (v: string) =
 function FollowupStep({
   fu, setFu, sentNow, sendingNow, onSendNow, prospect,
 }: {
-  fu: typeof FU_PRESETS[number] | null;
-  setFu: (v: typeof FU_PRESETS[number] | null) => void;
+  fu: FuPreset | null;
+  setFu: (v: FuPreset | null) => void;
   sentNow: { sms: boolean; email: boolean };
   sendingNow: 'sms' | 'email' | null;
   onSendNow: (t: 'sms' | 'email') => void;
@@ -707,9 +748,9 @@ function FollowupStep({
     setEmailError(null);
     try {
       await api.put(`/closer/prospects/${prospect.id}`, { email: v });
-      (prospect as any).email = v;
-    } catch (e: any) {
-      setEmailError(e?.response?.data?.error || 'Échec');
+      (prospect as unknown as Record<string, unknown>).email = v;
+    } catch (err: unknown) {
+      setEmailError(getApiError(err, 'Échec'));
     } finally { setSavingEmail(false); }
   };
 
@@ -734,7 +775,7 @@ function FollowupStep({
                   border: `1px solid ${emailError ? 'rgba(239,68,68,0.55)' : pro.border}`,
                 }}
               />
-              <button onClick={saveEmail} disabled={savingEmail || !emailDraft.trim()}
+              <button type="button" onClick={saveEmail} disabled={savingEmail || !emailDraft.trim()}
                       className="px-3 h-10 text-[12.5px] font-medium rounded-lg disabled:opacity-40"
                       style={{ background: pro.accent, color: '#fff' }}>
                 {savingEmail ? '…' : 'Enregistrer'}
@@ -758,6 +799,7 @@ function FollowupStep({
               return (
                 <motion.button
                   key={b.type}
+                  type="button"
                   onClick={() => onSendNow(b.type)}
                   disabled={isSending || isSent || b.disabled}
                   initial={false}
@@ -789,7 +831,7 @@ function FollowupStep({
             {FU_PRESETS.map((p, i) => {
               const sel = fu === p;
               return (
-                <button key={i}
+                <button key={i} type="button"
                         onClick={() => setFu(sel ? null : p)}
                         className="px-3 h-8 text-[12px] font-medium rounded-lg inline-flex items-center gap-1.5 transition-colors"
                         style={{
@@ -806,7 +848,7 @@ function FollowupStep({
 
         <div className="flex items-center gap-1.5 text-[11px]" style={{ color: pro.textTer }}>
           <ChevronRight size={11} />
-          Tapez "Terminer" pour enregistrer le statut, le note et le follow-up planifié, puis passer au prospect suivant.
+          Tapez "Terminer" pour enregistrer le statut, la note et le follow-up planifié, puis passer au prospect suivant.
         </div>
       </div>
     </Card>

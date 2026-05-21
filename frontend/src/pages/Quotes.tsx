@@ -46,7 +46,7 @@ export default function Quotes() {
     setSending(id);
     try {
       await api.post('/quotes/send', { quoteId: id });
-      toast('Devis envoyÃ©', 'success');
+      toast('Devis envoyé', 'success');
       load();
     } catch { toast('Erreur envoi devis', 'error'); }
     finally { setSending(null); }
@@ -56,7 +56,7 @@ export default function Quotes() {
     setResending(id);
     try {
       await api.post(`/quotes/${id}/resend-contract`);
-      toast('Contrat renvoyÃ©', 'success');
+      toast('Contrat renvoyé', 'success');
     } catch { toast('Erreur renvoi contrat', 'error'); }
     finally { setResending(null); }
   };
@@ -71,7 +71,7 @@ export default function Quotes() {
           <h1 className="text-xl font-bold text-[#F8F8FF]">Devis</h1>
           <p className="text-sm text-[#8B8BA7] mt-0.5">{total} devis</p>
         </div>
-        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-all">
+        <button onClick={load} className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-[#8B8BA7] transition-colors">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
@@ -110,7 +110,7 @@ export default function Quotes() {
                 : data.map(q => (
                   <tr key={q.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
                     <td className="px-3 py-3">
-                      <p className="text-xs font-medium text-[#F8F8FF] truncate max-w-[110px] md:max-w-none">{q.prospect?.businessName ?? 'â€”'}</p>
+                      <p className="text-xs font-medium text-[#F8F8FF] truncate max-w-[110px] md:max-w-none">{q.prospect?.businessName ?? '—'}</p>
                       <p className="text-[10px] text-[#22C55E] md:hidden">${q.monthlyFee}/mo</p>
                       <p className="text-[10px] text-[#8B8BA7] hidden md:block">{q.prospect?.contactName ?? ''}</p>
                     </td>
@@ -126,18 +126,18 @@ export default function Quotes() {
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => setSelected(q)}
-                          className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-all"><Eye className="w-3.5 h-3.5" /></button>
+                          className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-colors"><Eye className="w-3.5 h-3.5" /></button>
                         {q.status === 'draft' && (
                           <button onClick={() => sendQuote(q.id)} disabled={sending === q.id}
-                            className="p-1.5 rounded-lg hover:bg-[#6366F1]/10 text-[#8B8BA7] hover:text-[#6366F1] transition-all disabled:opacity-40"><Send className="w-3.5 h-3.5" /></button>
+                            className="p-1.5 rounded-lg hover:bg-[#6366F1]/10 text-[#8B8BA7] hover:text-[#6366F1] transition-colors disabled:opacity-40"><Send className="w-3.5 h-3.5" /></button>
                         )}
                         {(q.status === 'sent' || q.status === 'accepted') && (
                           <button onClick={() => resendContract(q.id)} disabled={resending === q.id}
-                            className="p-1.5 rounded-lg hover:bg-[#22C55E]/10 text-[#8B8BA7] hover:text-[#22C55E] transition-all disabled:opacity-40"><FileText className="w-3.5 h-3.5" /></button>
+                            className="p-1.5 rounded-lg hover:bg-[#22C55E]/10 text-[#8B8BA7] hover:text-[#22C55E] transition-colors disabled:opacity-40"><FileText className="w-3.5 h-3.5" /></button>
                         )}
                         {q.stripePaymentLink && (
                           <a href={q.stripePaymentLink} target="_blank" rel="noreferrer"
-                            className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-all"><ExternalLink className="w-3.5 h-3.5" /></a>
+                            className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-colors"><ExternalLink className="w-3.5 h-3.5" /></a>
                         )}
                       </div>
                     </td>
@@ -149,7 +149,7 @@ export default function Quotes() {
       </div>
 
       <SlideSheet open={!!selected} onClose={() => setSelected(null)}
-        title={`Devis â€” ${selected?.prospect?.businessName ?? ''}`}
+        title={`Devis — ${selected?.prospect?.businessName ?? ''}`}
         subtitle={`#${selected?.id.slice(0, 8)}`}>
         {selected && (
           <div className="space-y-4">
@@ -173,7 +173,7 @@ export default function Quotes() {
                 { l: 'Contact', v: selected.prospect?.contactName },
                 { l: 'Email', v: selected.prospect?.email },
                 { l: 'Valide jusqu\'au', v: new Date(selected.validUntil).toLocaleDateString('fr-FR') },
-                { l: 'CrÃ©Ã© le', v: new Date(selected.createdAt).toLocaleDateString('fr-FR') },
+                { l: 'Créé le', v: new Date(selected.createdAt).toLocaleDateString('fr-FR') },
               ].filter(x => x.v).map(({ l, v }) => (
                 <div key={l} className="flex justify-between">
                   <span className="text-[#8B8BA7]">{l}</span>
@@ -183,13 +183,13 @@ export default function Quotes() {
             </div>
             {selected.stripePaymentLink && (
               <a href={selected.stripePaymentLink} target="_blank" rel="noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20 hover:bg-[#6366F1]/20 text-sm font-medium transition-all">
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20 hover:bg-[#6366F1]/20 text-sm font-medium transition-colors">
                 <ExternalLink className="w-4 h-4" />Lien paiement Stripe
               </a>
             )}
             {selected.status === 'draft' && (
               <button onClick={() => { sendQuote(selected.id); setSelected(null); }} disabled={sending === selected.id}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#6366F1] text-white text-sm font-medium hover:bg-[#6D4FE0] transition-all disabled:opacity-50">
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#6366F1] text-white text-sm font-medium hover:bg-[#6D4FE0] transition-colors disabled:opacity-50">
                 <Send className="w-4 h-4" />Envoyer le devis
               </button>
             )}

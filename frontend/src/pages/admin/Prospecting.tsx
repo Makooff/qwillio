@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import {
   RefreshCw, Zap, Activity, TrendingUp, Search, Phone, Clock, CheckCircle,
@@ -262,7 +262,7 @@ export default function AdminProspecting() {
                 <button
                   key={c}
                   onClick={() => { setCbCountry(c); setCbCities([]); }}
-                  className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all"
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors"
                   style={{
                     background: cbCountry === c ? pro.accent : 'rgba(255,255,255,0.06)',
                     color: cbCountry === c ? '#000' : pro.text,
@@ -286,7 +286,7 @@ export default function AdminProspecting() {
                     <button
                       key={n.value}
                       onClick={() => toggleNiche(n.value)}
-                      className="px-2.5 py-1 rounded-lg text-[11.5px] transition-all"
+                      className="px-2.5 py-1 rounded-lg text-[11.5px] transition-colors"
                       style={{
                         background: sel ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)',
                         color: sel ? '#a5b4fc' : pro.textSec,
@@ -312,7 +312,7 @@ export default function AdminProspecting() {
                     <button
                       key={city}
                       onClick={() => toggleCity(city)}
-                      className="px-2.5 py-1 rounded-lg text-[11.5px] transition-all"
+                      className="px-2.5 py-1 rounded-lg text-[11.5px] transition-colors"
                       style={{
                         background: sel ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
                         color: sel ? '#86efac' : pro.textSec,

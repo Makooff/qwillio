@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Qwillio Admin — Signal Dark v3
  * OKLCH. Indigo-tinted dark base — logo Q-circle primary.
  * Primary: oklch(56% 0.22 264)  ≈ #6366F1 (logo indigo)
@@ -109,9 +109,9 @@ export const cx = {
   caption: 'text-[11px]',
   mono: 'font-mono text-[11px] tabular-nums',
 
-  btnPrimary: 'px-4 py-2 rounded-[10px] text-[13px] font-medium transition-all duration-150',
-  btnGhost: 'px-3 py-1.5 rounded-[10px] text-[13px] font-medium transition-all duration-150 hover:bg-white/[0.06]',
-  btnIcon: 'p-2 rounded-[10px] transition-all duration-150 hover:bg-white/[0.05]',
+  btnPrimary: 'px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors duration-150',
+  btnGhost: 'px-3 py-1.5 rounded-[10px] text-[13px] font-medium transition-colors duration-150 hover:bg-white/[0.06]',
+  btnIcon: 'p-2 rounded-[10px] transition-colors duration-150 hover:bg-white/[0.05]',
 
   th: 'px-4 py-3 text-left text-[10px] font-medium uppercase tracking-wider',
   td: 'px-4 py-3 text-[13px]',

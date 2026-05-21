@@ -128,6 +128,45 @@ frontend/src/
 └── lib/             # Utilities
 ```
 
+## Memoire Obsidian — Regles obligatoires
+
+Le vault Obsidian (`C:\Users\matpo\Documents\Spram\Spram\Qwillio\`) est LA source de verite pour la memoire du projet.
+
+### Quand ecrire dans Obsidian
+
+Apres chaque action significative, ecrire via:
+```powershell
+node --no-warnings "C:/Users/matpo/.claude/scripts/obsidian.js" append "Qwillio/Sessions/YYYY-MM-DD.md" "## HH:MM — [action]\n[details]"
+```
+
+**Actions qui declenchent une ecriture obligatoire:**
+- Nouveau fichier cree ou refactoring majeur → `Sessions/`
+- Decision architecturale ou de design → `04 - Decisions.md`
+- Tache completee → cocher dans `Taches.md` (PUT complet)
+- Bug important corrige → `Sessions/` + description
+- Nouvelle page ou composant → `03 - Pages.md`
+
+### Commandes disponibles
+```powershell
+# Lire une note
+node --no-warnings "C:/Users/matpo/.claude/scripts/obsidian.js" read "Qwillio/Taches.md"
+
+# Ajouter a une note (append)
+node --no-warnings "C:/Users/matpo/.claude/scripts/obsidian.js" append "Qwillio/Sessions/2026-05-18.md" "## 14:30 — Fix bug auth\nDescription"
+
+# Ecrire une note complete (overwrite)
+node --no-warnings "C:/Users/matpo/.claire/scripts/obsidian.js" write "Qwillio/Taches.md" "# Taches\n..."
+
+# Lister un dossier
+node --no-warnings "C:/Users/matpo/.claude/scripts/obsidian.js" list "Qwillio/"
+```
+
+### Contexte auto-injecte
+Au debut de chaque session, Claude recoit automatiquement:
+- Les taches ouvertes de `Taches.md`
+- Les notes de la session du jour (ou les dernieres decisions)
+→ Claude connait exactement l'etat du projet sans que l'utilisateur reexplique.
+
 ## Commit Convention
 ```
 feat: description

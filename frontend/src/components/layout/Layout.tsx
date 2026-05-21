@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Phone, Zap, Bot, Settings, ExternalLink, Building2,
@@ -97,7 +97,7 @@ export default function Layout() {
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="p-2 rounded-xl hover:bg-white/[0.06] transition-all"
+          className="p-2 rounded-xl hover:bg-white/[0.06] transition-colors"
           style={{ color: t.textSec }}
           title="Voir le site"
         >

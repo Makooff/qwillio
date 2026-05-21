@@ -1,618 +1,640 @@
-﻿import { useState, useEffect, useRef, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
-import {
-  Phone, Bot, Zap, Clock, ArrowRight, Check, Play,
-  Building2, Stethoscope, Scale, Wrench, UtensilsCrossed,
-  GraduationCap, Car, Dumbbell, Scissors, Home as HomeIcon,
-  Landmark, ShoppingBag, Star, ChevronRight, Sparkles,
-  Shield, Users, BarChart3, Globe, Cpu, Rocket
-} from 'lucide-react';
+import { Phone, Bot, ArrowRight, Play, Clock, Mic, Calendar, MessageSquare } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
+import Reveal from '../components/ui/Reveal';
+import Card3D from '../components/ui/Card3D';
 
-/* â”€â”€ FadeIn wrapper (scroll-triggered via CSS) â”€â”€ */
-function FadeIn({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+/* ── Decorative call ticker — live cycling rows + animated waveform ─────────── */
+const POOL_FR = [
+  { id: 'a', name: 'Sarah · Bright Dental',      detail: 'Rendez-vous lundi 14h confirmé',     tag: 'BOOKED'   },
+  { id: 'b', name: 'Marc · Rivera HVAC',          detail: 'Devis chauffage envoyé par email',   tag: 'LEAD'     },
+  { id: 'c', name: 'Inconnu · 06 12 34 56 78',   detail: 'Transféré à Sophie (urgence)',        tag: 'TRANSFER' },
+  { id: 'd', name: 'Larsson Law',                 detail: 'Demande de rappel mardi',             tag: 'CALLBACK' },
+  { id: 'e', name: 'Leroy · Plomberie Express',   detail: 'Urgence fuite — technicien envoyé',  tag: 'TRANSFER' },
+  { id: 'f', name: 'Cabinet Morel',               detail: 'Consultation vendredi 10h réservée', tag: 'BOOKED'   },
+  { id: 'g', name: 'Mme. Nguyen · Optique',       detail: 'Intéressée — devis demandé',         tag: 'LEAD'     },
+];
+const POOL_EN = [
+  { id: 'a', name: 'Sarah · Bright Dental',      detail: 'Monday 2pm appointment confirmed',   tag: 'BOOKED'   },
+  { id: 'b', name: 'Marc · Rivera HVAC',          detail: 'Heating quote emailed',              tag: 'LEAD'     },
+  { id: 'c', name: 'Unknown · +1 555 0102',       detail: 'Transferred to Sophie (urgent)',     tag: 'TRANSFER' },
+  { id: 'd', name: 'Larsson Law',                 detail: 'Tuesday callback requested',         tag: 'CALLBACK' },
+  { id: 'e', name: 'Plumbing Express',            detail: 'Urgent leak — tech dispatched',      tag: 'TRANSFER' },
+  { id: 'f', name: 'Morel & Associates',          detail: 'Friday 10am consultation booked',    tag: 'BOOKED'   },
+  { id: 'g', name: 'Nguyen Optical',              detail: 'Quote requested — warm lead',        tag: 'LEAD'     },
+];
+
+const TAG_STYLE: Record<string, { bg: string; fg: string }> = {
+  BOOKED:   { bg: 'rgba(99,102,241,0.18)',  fg: '#a5b4fc' },
+  LEAD:     { bg: 'rgba(168,85,247,0.18)',  fg: '#d8b4fe' },
+  TRANSFER: { bg: 'rgba(245,158,11,0.18)',  fg: '#fcd34d' },
+  CALLBACK: { bg: 'rgba(255,255,255,0.12)', fg: '#ffffff' },
+};
+
+const WAVE_HEIGHTS = Array.from({ length: 32 }, (_, i) =>
+  Math.max(4, 8 + Math.abs(Math.sin(i * 0.7) * 16) + (i % 3) * 4)
+);
+
+function CallTicker({ isFr }: { isFr: boolean }) {
+  const pool = isFr ? POOL_FR : POOL_EN;
+  const agoNew  = isFr ? 'À l\'instant' : 'Just now';
+  const ago     = isFr
+    ? ['À l\'instant', 'il y a 3 min', 'il y a 7 min', 'il y a 11 min']
+    : ['Just now', '3 min ago', '7 min ago', '11 min ago'];
+
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.15 }
-    );
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
+    const id = setInterval(() => setTick(t => t + 1), 3800);
+    return () => clearInterval(id);
   }, []);
+
+  const visible = useMemo(() =>
+    Array.from({ length: 4 }, (_, i) => {
+      const idx = ((tick - i) % pool.length + pool.length) % pool.length;
+      return { ...pool[idx], instanceId: `${pool[idx].id}-${tick - i}`, ago: ago[i] };
+    }),
+    [tick, pool, ago]
+  );
 
   return (
     <div
-      ref={ref}
-      className={`transition-all duration-700 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
+      className="relative rounded-3xl p-4 sm:p-6 overflow-hidden"
+      style={{
+        background: 'linear-gradient(155deg, #1d1d1f 0%, #2a234a 60%, #5b2f7a 110%)',
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}
     >
-      {children}
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4 sm:mb-5">
+        <div className="flex items-center gap-2">
+          <span
+            className="w-2.5 h-2.5 rounded-full status-pulse"
+            style={{ background: '#6366f1', boxShadow: '0 0 10px #6366f1' }}
+            aria-hidden="true"
+          />
+          <span className="text-[10px] sm:text-[11px] font-semibold tracking-[0.18em] uppercase text-white/55">
+            {isFr ? 'IA en ligne' : 'AI live'}
+          </span>
+        </div>
+        <span className="text-[10px] sm:text-[11px] text-white/35 tabular-nums">qwillio.ai</span>
+      </div>
+
+      {/* Cycling rows */}
+      <ul
+        className="space-y-3 overflow-hidden"
+        role="list"
+        aria-label={isFr ? 'Appels traités en direct' : 'Live handled calls'}
+        style={{ minHeight: 212 }}
+      >
+        <AnimatePresence initial={false} mode="popLayout">
+          {visible.map((row) => {
+            const tag = TAG_STYLE[row.tag];
+            const iconColor = row.tag === 'LEAD' ? '#a855f7' : '#6366f1';
+            return (
+              <motion.li
+                key={row.instanceId}
+                layout
+                initial={{ opacity: 0, y: -20, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0,   scale: 1    }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{
+                  duration: 0.38,
+                  ease: [0.16, 1, 0.3, 1],
+                  layout: { duration: 0.38, ease: [0.16, 1, 0.3, 1] },
+                }}
+                className="flex items-start gap-3 rounded-xl bg-white/[0.04] p-3.5 border border-white/[0.05]"
+              >
+                <div
+                  className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0"
+                  aria-hidden="true"
+                >
+                  <Phone size={14} style={{ color: iconColor }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                    <p className="text-[13px] font-semibold text-white truncate">{row.name}</p>
+                    <span className="text-[10px] text-white/35 flex-shrink-0">{row.ago}</span>
+                  </div>
+                  <p className="text-[12px] text-white/55 truncate">{row.detail}</p>
+                </div>
+                <span
+                  className="text-[9.5px] font-bold tracking-wider px-2 py-1 rounded-md flex-shrink-0"
+                  style={{ background: tag.bg, color: tag.fg }}
+                >
+                  {row.tag}
+                </span>
+              </motion.li>
+            );
+          })}
+        </AnimatePresence>
+      </ul>
+
+      {/* Animated waveform */}
+      <div className="mt-4 sm:mt-5 flex items-end gap-[2px] h-10" aria-hidden="true">
+        {WAVE_HEIGHTS.map((h, i) => (
+          <span
+            key={i}
+            className="wave-bar flex-1 rounded-full"
+            style={{
+              height: `${h}px`,
+              background: i % 2 === 0 ? 'rgba(99,102,241,0.6)' : 'rgba(168,85,247,0.5)',
+              animationDuration: `${0.75 + (i % 5) * 0.17}s`,
+              animationDelay: `-${(i * 0.13) % 1.4}s`,
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
-/* â”€â”€ Animated counter â”€â”€ */
-function Counter({ value, suffix = '', prefix = '' }: { value: number; suffix?: string; prefix?: string }) {
-  const [n, setN] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const done = useRef(false);
 
-  useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && !done.current) {
-        done.current = true;
-        let t0 = 0;
-        const step = (ts: number) => {
-          if (!t0) t0 = ts;
-          const p = Math.min((ts - t0) / 2000, 1);
-          setN(Math.floor((1 - Math.pow(1 - p, 3)) * value));
-          if (p < 1) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-      }
-    }, { threshold: 0.4 });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, [value]);
-
-  return <span ref={ref}>{prefix}{n.toLocaleString()}{suffix}</span>;
-}
-
-/* â”€â”€ Main Page â”€â”€ */
+/* ── Page ─────────────────────────────────────────────────────────────────── */
 export default function Home() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
+
   useSEO({
     title: 'Qwillio',
     description: isFr
-      ? 'Qwillio est votre rÃ©ceptionniste IA qui rÃ©pond Ã  chaque appel, prend les rendez-vous et ne dort jamais. Automatisez votre entreprise 24/7.'
-      : 'Qwillio is your AI receptionist that answers every call, books appointments, and never sleeps. Automate your business 24/7.',
+      ? 'Qwillio est votre réceptionniste IA qui répond à chaque appel, prend les rendez-vous et ne dort jamais.'
+      : 'Qwillio is your AI receptionist that answers every call, books appointments, and never sleeps.',
     canonical: 'https://qwillio.com/',
   });
 
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const onScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+  const heroRef = useRef<HTMLElement>(null);
+  const handleHeroMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const el = heroRef.current;
+    if (!el) return;
+    const { left, top, width, height } = el.getBoundingClientRect();
+    el.style.setProperty('--mx', `${((e.clientX - left) / width) * 100}%`);
+    el.style.setProperty('--my', `${((e.clientY - top) / height) * 100}%`);
   }, []);
 
-  /* Firefly particles â€” edge-to-edge, gentle perpendicular curve, slow uniform speed */
-  const antParticles = useMemo(() => {
-    const r = (n: number) => ((n * 9301 + 49297) % 233280) / 233280;
-    const cols = ['#6366f1','#6366F1','#4f46e5','#a855f7','#6366f1'];
+  const industries = isFr
+    ? ['Santé', 'Juridique', 'Immobilier', 'Services à domicile', 'Restauration', 'Éducation', 'Automobile', 'Fitness', 'Beauté', 'Finance', 'Commerce', 'Startups']
+    : ['Healthcare', 'Legal', 'Real Estate', 'Home Services', 'Restaurants', 'Education', 'Automotive', 'Fitness', 'Beauty', 'Finance', 'Retail', 'Startups'];
 
-    // Spawn on one edge, exit on opposite or adjacent â€” straight traversal with gentle curve
-    const onEdge = (edge: number, t: number) => {
-      switch (edge) {
-        case 0: return { x: -4,      y: t * 100 }; // left
-        case 1: return { x: 104,     y: t * 100 }; // right
-        case 2: return { x: t * 100, y: -4      }; // top
-        default: return { x: t * 100, y: 104    }; // bottom
+  const testimonial = isFr
+    ? {
+        quote: 'Qwillio a transformé notre cabinet. On ne manque plus un seul appel et les rendez-vous se prennent tout seuls.',
+        name: 'Dr. Sarah Chen',
+        role: 'Directrice de clinique, Bright Dental',
       }
-    };
-
-    return Array.from({ length: 5 }, (_, i) => {
-      const s = i * 31 + 13;
-      const color = cols[i % cols.length];
-      const coreSize = 10 + Math.round(r(s+2) * 6);
-      const glowSpread = 32 + Math.round(r(s+3) * 24);
-      const opacity = +(0.55 + r(s+6) * 0.3).toFixed(2);
-
-      // Random entry edge â†’ random exit edge (not same)
-      const startEdge = Math.floor(r(s+20) * 4);
-      const endEdge   = (startEdge + 1 + Math.floor(r(s+21) * 3)) % 4;
-      const p0 = onEdge(startEdge, r(s+22));
-      const p1 = onEdge(endEdge,   r(s+23));
-
-      // One gentle perpendicular curve in the middle
-      const mxBase = (p0.x + p1.x) / 2;
-      const myBase = (p0.y + p1.y) / 2;
-      const dx = p1.x - p0.x, dy = p1.y - p0.y;
-      const len = Math.sqrt(dx*dx + dy*dy) || 1;
-      const offset = (r(s+24) - 0.5) * 30; // Â±15 units curve
-      const xm = +(mxBase + (-dy/len) * offset).toFixed(1);
-      const ym = +(myBase + (dx/len)  * offset).toFixed(1);
-
-      // Speed: nearly uniform 9â€“12s (slight variation only)
-      const dur = +(9 + r(s+7) * 3).toFixed(1);
-      // Each its own gentle easing â€” NOT synchronized
-      const b1 = +(0.3 + r(s+50) * 0.3).toFixed(2);
-      const b2 = +(r(s+51) * 0.2).toFixed(2);
-      const b3 = +(0.5 + r(s+52) * 0.3).toFixed(2);
-      const b4 = +(0.7 + r(s+53) * 0.3).toFixed(2);
-      const easing = `cubic-bezier(${b1},${b2},${b3},${b4})`;
-
-      return {
-        id: i,
-        x0: +p0.x.toFixed(1), y0: +p0.y.toFixed(1),
-        xm, ym,
-        x1: +p1.x.toFixed(1), y1: +p1.y.toFixed(1),
-        coreSize, glowSpread, opacity, color, easing,
-        dur,
-        delay: +(-(r(s+8) * 12)).toFixed(1),
+    : {
+        quote: 'Qwillio transformed our practice. We never miss a call and appointments book themselves.',
+        name: 'Dr. Sarah Chen',
+        role: 'Clinic Director, Bright Dental',
       };
-    });
-  }, []);
-
-  const particleCSS = useMemo(() =>
-    antParticles.map(p => `
-      @keyframes ant${p.id} {
-        0%   { transform: translate(${p.x0}vw,${p.y0}vh); opacity:0; }
-        10%  { opacity:${p.opacity}; }
-        50%  { transform: translate(${p.xm}vw,${p.ym}vh); opacity:${p.opacity}; }
-        90%  { opacity:${p.opacity}; }
-        100% { transform: translate(${p.x1}vw,${p.y1}vh); opacity:0; }
-      }`).join('\n')
-  , [antParticles]);
-
-  const industries = [
-    { icon: Stethoscope, name: isFr ? 'Sante' : 'Healthcare', desc: isFr ? 'Cliniques, dentistes, optometristes' : 'Clinics, dentists, optometrists' },
-    { icon: Scale, name: isFr ? 'Juridique' : 'Legal', desc: isFr ? 'Cabinets d\'avocats, notaires' : 'Law firms, notaries' },
-    { icon: HomeIcon, name: isFr ? 'Immobilier' : 'Real Estate', desc: isFr ? 'Agents, courtiers, gestion' : 'Agents, brokers, property mgmt' },
-    { icon: Wrench, name: isFr ? 'Services' : 'Home Services', desc: isFr ? 'Plombiers, electriciens, HVAC' : 'Plumbers, electricians, HVAC' },
-    { icon: UtensilsCrossed, name: isFr ? 'Restauration' : 'Restaurants', desc: isFr ? 'Reservations, commandes' : 'Reservations, orders' },
-    { icon: GraduationCap, name: isFr ? 'Education' : 'Education', desc: isFr ? 'Ecoles, tutorat, formations' : 'Schools, tutoring, training' },
-    { icon: Car, name: isFr ? 'Automobile' : 'Automotive', desc: isFr ? 'Concessionnaires, ateliers' : 'Dealerships, repair shops' },
-    { icon: Dumbbell, name: isFr ? 'Fitness' : 'Fitness', desc: isFr ? 'Gyms, studios, coachs' : 'Gyms, studios, coaches' },
-    { icon: Scissors, name: isFr ? 'Beaute' : 'Beauty', desc: isFr ? 'Salons, spas, barbiers' : 'Salons, spas, barbers' },
-    { icon: Landmark, name: isFr ? 'Finance' : 'Finance', desc: isFr ? 'Comptables, conseillers' : 'Accountants, advisors' },
-    { icon: ShoppingBag, name: isFr ? 'Commerce' : 'Retail', desc: isFr ? 'Boutiques, e-commerce' : 'Shops, e-commerce' },
-    { icon: Building2, name: isFr ? 'Startups' : 'Startups', desc: isFr ? 'SaaS, tech, agences' : 'SaaS, tech, agencies' },
-  ];
-
-  const testimonials = [
-    {
-      quote: isFr
-        ? "Qwillio a transforme notre cabinet. On ne manque plus un seul appel et les rendez-vous se prennent tout seuls."
-        : "Qwillio transformed our practice. We never miss a call and appointments book themselves.",
-      name: 'Dr. Sarah Chen',
-      role: isFr ? 'Directrice de clinique' : 'Clinic Director',
-      company: 'Bright Dental',
-    },
-    {
-      quote: isFr
-        ? "Le ROI est incroyable. En 2 semaines, on a recupere l'investissement et gagne 35% de rendez-vous en plus."
-        : "The ROI is incredible. Within 2 weeks we recouped the investment and gained 35% more appointments.",
-      name: 'Marcus Rivera',
-      role: isFr ? 'Proprietaire' : 'Owner',
-      company: 'Rivera HVAC',
-    },
-    {
-      quote: isFr
-        ? "Nos clients pensent parler a une vraie personne. La qualite vocale et la rapidite sont impressionnantes."
-        : "Our clients think they\'re speaking to a real person. The voice quality and speed are impressive.",
-      name: 'Emily Larsson',
-      role: isFr ? 'Associee gerante' : 'Managing Partner',
-      company: 'Larsson & Associates Law',
-    },
-  ];
-
-  const steps = [
-    {
-      num: '01',
-      title: isFr ? 'Inscrivez-vous' : 'Sign Up',
-      desc: isFr ? 'Creez votre compte en 2 minutes. Premier mois offert, sans engagement.' : 'Create your account in 2 minutes. First month free, no commitment.',
-      icon: Rocket,
-    },
-    {
-      num: '02',
-      title: isFr ? 'Configurez' : 'Configure',
-      desc: isFr ? 'Personnalisez votre IA: voix, scripts, horaires, integrations calendrier.' : 'Customize your AI: voice, scripts, hours, calendar integrations.',
-      icon: Cpu,
-    },
-    {
-      num: '03',
-      title: isFr ? 'Lancez-vous' : 'Go Live',
-      desc: isFr ? 'Activez et recevez vos premiers appels. Support 24/7 inclus.' : 'Activate and receive your first calls. 24/7 support included.',
-      icon: Zap,
-    },
-  ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="bg-white text-[#1d1d1f] min-h-screen">
       <PublicNavbar />
 
-      {/* â•â•â•â•â•â•â•â•â•â• HERO â•â•â•â•â•â•â•â•â•â• */}
-      <style>{`
-        ${particleCSS}
-        @keyframes shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position:  200% center; }
-        }
-        .card-premium:hover::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background: linear-gradient(105deg, transparent 40%, rgba(99,102,241,0.06) 50%, transparent 60%);
-          background-size: 200% auto;
-          animation: shimmer 1.2s ease-in-out;
-          pointer-events: none;
-        }
-      `}</style>
+      <main id="main">
+        {/* ════════════════════════════════════════════════════════════════
+            HERO — asymmetric editorial split. Q-indigo + W-violet accents.
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          ref={heroRef}
+          aria-labelledby="hero-heading"
+          className="relative pt-24 sm:pt-28 md:pt-36 pb-16 md:pb-28 px-5 sm:px-6 overflow-hidden"
+          onMouseMove={handleHeroMouseMove}
+          style={{
+            background: 'radial-gradient(700px circle at var(--mx,50%) var(--my,30%), rgba(99,102,241,0.07), transparent 65%)',
+          }}
+        >
+          <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-20 items-center">
+            {/* Editorial column */}
+            <Reveal delay={0.05}>
+            <div>
 
-      <section className="relative pt-28 pb-24 md:pt-40 md:pb-32 overflow-hidden bg-white">
+              <h1
+                id="hero-heading"
+                className="text-[clamp(2.6rem,6.5vw,5.6rem)] font-semibold tracking-[-0.04em] leading-[0.95] mb-6"
+              >
+                {isFr ? (
+                  <>
+                    Chaque appel<br />
+                    <span className="italic font-serif" style={{ color: '#6366f1' }}>répondu.</span><br />
+                    Chaque lead<br />
+                    <span className="italic font-serif" style={{ color: '#a855f7' }}>capturé.</span>
+                  </>
+                ) : (
+                  <>
+                    Every call<br />
+                    <span className="italic font-serif" style={{ color: '#6366f1' }}>answered.</span><br />
+                    Every lead<br />
+                    <span className="italic font-serif" style={{ color: '#a855f7' }}>captured.</span>
+                  </>
+                )}
+              </h1>
 
-        {/* â”€â”€ Ant-colony: small blurry orbs travelling fast across the background â”€â”€ */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {antParticles.map(p => (
-            <div
-              key={p.id}
-              className="absolute rounded-full"
-              style={{
-                width: p.coreSize,
-                height: p.coreSize,
-                background: p.color,
-                boxShadow: `0 0 ${p.glowSpread}px ${Math.round(p.glowSpread * 0.5)}px ${p.color}`,
-                filter: 'blur(10px)',
-                opacity: 0,
-                top: 0,
-                left: 0,
-                animationName: `ant${p.id}`,
-                animationDuration: `${p.dur}s`,
-                animationTimingFunction: p.easing,
-                animationDelay: `${p.delay}s`,
-                animationIterationCount: 'infinite',
-              }}
-            />
-          ))}
-        </div>
+              <p className="text-lg md:text-xl text-[#424245] max-w-[460px] mb-9 leading-[1.55]">
+                {isFr
+                  ? 'Réceptionniste IA, CRM, facturation. Une seule plateforme qui prend vos rendez-vous, qualifie vos leads et travaille 24h sur 24.'
+                  : 'AI receptionist, CRM, billing. One platform that books your appointments, qualifies your leads, and works around the clock.'}
+              </p>
 
-        <div className="relative max-w-[1120px] mx-auto px-6 text-center">
-          <FadeIn delay={100}>
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-semibold tracking-tight text-[#1d1d1f] leading-[1.08] mb-6">
-              {isFr ? 'Votre entreprise.' : 'Your business.'}<br />
-              <span className="bg-gradient-to-r from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">
-                {isFr ? "AmplifiÃ©e par l'IA." : 'Amplified by AI.'}
+              <div className="flex flex-wrap items-center gap-3 mb-10">
+                <a
+                  href="/demo.html"
+                  className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#6366f1] transition-colors"
+                >
+                  <Play size={14} fill="currentColor" aria-hidden="true" />
+                  {isFr ? 'Écouter une démo' : 'Hear the demo'}
+                </a>
+                <Link
+                  to="/pricing"
+                  className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#1d1d1f] px-2 py-2 underline decoration-[#6366f1]/30 decoration-2 underline-offset-8 hover:decoration-[#6366f1] transition-colors"
+                >
+                  {isFr ? 'Voir les tarifs' : 'See pricing'}
+                  <ArrowRight size={15} aria-hidden="true" />
+                </Link>
+              </div>
+
+              {/* Inline credibility strip — not centered hero-metric template */}
+              <dl className="flex flex-wrap gap-x-9 gap-y-3 text-sm text-[#86868b] border-t border-[#1d1d1f]/10 pt-6 max-w-[520px]">
+                <div className="flex items-baseline gap-2">
+                  <dt className="sr-only">{isFr ? 'Taux de réponse' : 'Answer rate'}</dt>
+                  <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">98%</dd>
+                  <span>{isFr ? 'décrochage' : 'pickup'}</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <dt className="sr-only">{isFr ? 'Temps de réponse' : 'Response time'}</dt>
+                  <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">&lt;1s</dd>
+                  <span>{isFr ? 'temps réponse' : 'response'}</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <dt className="sr-only">{isFr ? 'Disponibilité' : 'Uptime'}</dt>
+                  <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">24/7</dd>
+                  <span>{isFr ? 'jamais fermé' : 'always on'}</span>
+                </div>
+              </dl>
+            </div>
+            </Reveal>
+
+            {/* Live ticker */}
+            <Reveal delay={0.15}>
+              <CallTicker isFr={isFr} />
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            BIG QUOTE — drenched indigo (Receptionist brand)
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          aria-label={isFr ? 'Témoignage client' : 'Customer quote'}
+          className="px-6"
+        >
+          <div className="max-w-[1240px] mx-auto">
+            <figure
+              className="rounded-[2rem] px-8 md:px-16 py-12 sm:py-16 md:py-24"
+              style={{ background: '#6366f1' }}
+            >
+              <blockquote className="text-white text-[clamp(1.6rem,3.5vw,2.6rem)] font-semibold tracking-[-0.025em] leading-[1.18] max-w-[920px]">
+                <span
+                  className="font-serif italic text-white/40 text-[1.8em] leading-none mr-2 align-[-0.18em]"
+                  aria-hidden="true"
+                >
+                  "
+                </span>
+                {testimonial.quote}
+              </blockquote>
+              <figcaption className="mt-8 flex items-center gap-3 text-white/80 text-sm">
+                <span
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold text-white"
+                  style={{ background: 'rgba(255,255,255,0.15)' }}
+                >
+                  SC
+                </span>
+                <span>
+                  <span className="font-semibold text-white">{testimonial.name}</span>
+                  <span className="text-white/60"> — {testimonial.role}</span>
+                </span>
+              </figcaption>
+            </figure>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            PRODUCTS — bento. Receptionist=indigo, Agent=violet
+            ════════════════════════════════════════════════════════════════ */}
+        <section aria-labelledby="products-heading" className="py-16 sm:py-20 md:py-32 px-6">
+          <div className="max-w-[1240px] mx-auto">
+            <Reveal className="mb-12 md:mb-16">
+              <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3" style={{ color: '#1d1d1f' }}>
+                {isFr ? 'Produits' : 'Products'}
               </span>
-            </h1>
-          </FadeIn>
-
-          <FadeIn delay={200}>
-            <p className="text-lg md:text-xl text-[#86868b] max-w-2xl mx-auto mb-10 leading-relaxed">
-              {isFr
-                ? "RÃ©ceptionniste, agent, CRM, facturation â€” Qwillio rÃ©unit tout en une plateforme intelligente qui travaille pour vous 24/7."
-                : 'Receptionist, agent, CRM, billing â€” Qwillio brings everything into one intelligent platform that works for you 24/7.'}
-            </p>
-          </FadeIn>
-
-          <FadeIn delay={300}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-              <a
-                href="/demo.html"
-                className="group inline-flex items-center gap-2 bg-[#6366f1] text-white text-base font-medium px-8 py-3.5 rounded-full hover:bg-[#4f46e5] transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-[#6366f1]/30 shadow-lg shadow-[#6366f1]/20"
+              <h2
+                id="products-heading"
+                className="text-[clamp(2rem,4.5vw,3.6rem)] font-semibold tracking-[-0.035em] leading-[1.02] max-w-[700px]"
               >
-                <Play size={16} className="transition-transform duration-300 group-hover:scale-110" />
-                {isFr ? 'Essayer la dÃ©mo' : 'Try the demo'}
-              </a>
+                {isFr ? (
+                  <>
+                    Deux modules.{' '}
+                    <span className="font-serif italic" style={{ color: '#6366f1' }}>Un cerveau.</span>
+                  </>
+                ) : (
+                  <>
+                    Two modules.{' '}
+                    <span className="font-serif italic" style={{ color: '#6366f1' }}>One brain.</span>
+                  </>
+                )}
+              </h2>
+              <p className="text-[#86868b] text-base max-w-[520px] leading-relaxed mt-4">
+                {isFr
+                  ? 'Conçus pour fonctionner ensemble. Adoptez ce dont vous avez besoin, quand vous en avez besoin.'
+                  : 'Built to work together. Adopt what you need, when you need it.'}
+              </p>
+            </Reveal>
+
+            <div className="grid lg:grid-cols-[1.7fr_1fr] gap-5">
+              {/* PRIMARY — Receptionist (indigo) */}
+              <Card3D intensity={3}>
               <Link
-                to="/pricing"
-                className="group inline-flex items-center gap-2 text-base font-medium text-[#1d1d1f] px-8 py-3.5 rounded-full border border-[#d2d2d7]/60 hover:border-[#6366f1]/30 hover:bg-[#6366f1]/5 hover:text-[#6366f1] transition-all duration-300"
+                to="/receptionist"
+                className="group relative rounded-[2rem] overflow-hidden block p-8 md:p-12 min-h-[460px] h-full text-white"
+                style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #6366f1 110%)' }}
               >
-                {isFr ? 'Voir les tarifs' : 'View pricing'}
-                <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
+                <div
+                  aria-hidden="true"
+                  className="absolute -right-32 -top-32 w-[440px] h-[440px] rounded-full opacity-30 blur-3xl"
+                  style={{ background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)' }}
+                />
+
+                <div className="relative flex flex-col h-full justify-between">
+                  <div>
+                    <div className="flex items-center gap-3 mb-6">
+                      <span
+                        className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                        style={{ background: 'rgba(255,255,255,0.12)' }}
+                      >
+                        <Phone size={20} aria-hidden="true" />
+                      </span>
+                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/55">
+                        {isFr ? 'Le best-seller' : 'Best-seller'}
+                      </span>
+                    </div>
+                    <h3 className="text-[clamp(1.8rem,3.5vw,2.8rem)] font-semibold tracking-[-0.03em] leading-[1.05] mb-4 max-w-[520px]">
+                      {isFr ? 'Réceptionniste IA' : 'AI Receptionist'}
+                    </h3>
+                    <p className="text-white/70 text-base md:text-lg leading-relaxed max-w-[440px]">
+                      {isFr
+                        ? 'Décroche en moins d\'une seconde. Prend les rendez-vous. Qualifie le lead. Transfère l\'urgence.'
+                        : 'Picks up in under a second. Books the appointment. Qualifies the lead. Transfers the urgency.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-10 flex flex-wrap gap-2">
+                    {(isFr
+                      ? ['Voix française naturelle', 'Calendrier auto', 'CRM intégré', 'SMS de suivi']
+                      : ['Natural voice', 'Auto-calendar', 'CRM sync', 'SMS follow-up']
+                    ).map((f) => (
+                      <span
+                        key={f}
+                        className="text-xs px-3 py-1.5 rounded-full"
+                        style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}
+                      >
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="mt-10 flex items-baseline justify-between gap-4 flex-wrap">
+                    <p className="text-white/55 text-sm">
+                      {isFr ? 'À partir de ' : 'From '}
+                      <span className="text-white font-semibold">$497<span className="text-white/55">/mois</span></span>
+                      <span className="ml-2 text-xs font-medium" style={{ color: '#a5b4fc' }}>
+                        · {isFr ? '1er mois offert' : '1st month free'}
+                      </span>
+                    </p>
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-white">
+                      {isFr ? 'Découvrir' : 'Explore'}
+                      <ArrowRight size={15} aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1" />
+                    </span>
+                  </div>
+                </div>
+              </Link>
+              </Card3D>
+
+              {/* SECONDARY — Agent (violet) */}
+              <Card3D intensity={3}>
+              <Link
+                to="/agent"
+                className="group relative rounded-[2rem] block p-8 md:p-10 min-h-[460px] h-full overflow-hidden text-white"
+                style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 55%, #a855f7 115%)' }}
+              >
+                <div
+                  aria-hidden="true"
+                  className="absolute -right-24 -top-24 w-[340px] h-[340px] rounded-full opacity-30 blur-3xl"
+                  style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }}
+                />
+                <div className="relative flex flex-col h-full justify-between">
+                  <div>
+                    <span
+                      className="w-11 h-11 rounded-2xl text-white flex items-center justify-center mb-6"
+                      style={{ background: 'rgba(255,255,255,0.12)' }}
+                    >
+                      <Bot size={20} aria-hidden="true" />
+                    </span>
+                    <h3 className="text-[clamp(1.5rem,2.8vw,2rem)] font-semibold tracking-[-0.025em] leading-[1.1] mb-3">
+                      Qwillio Agent
+                    </h3>
+                    <p className="text-white/65 text-[15px] leading-relaxed">
+                      {isFr
+                        ? 'Modules IA additionnels : Email, Facturation, Inventaire, Paiements. Greffés à votre réceptionniste.'
+                        : 'Add-on AI modules: Email, Billing, Inventory, Payments. Bolted onto your receptionist.'}
+                    </p>
+                  </div>
+
+                  <ul className="mt-10 grid grid-cols-2 gap-2.5" role="list">
+                    {[
+                      { icon: MessageSquare, label: 'Email' },
+                      { icon: Calendar,      label: isFr ? 'Facturation' : 'Billing' },
+                      { icon: Mic,           label: isFr ? 'Inventaire' : 'Inventory' },
+                      { icon: Clock,         label: isFr ? 'Paiements' : 'Payments' },
+                    ].map((m) => (
+                      <li
+                        key={m.label}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
+                        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}
+                      >
+                        <m.icon size={14} style={{ color: '#d8b4fe' }} aria-hidden="true" />
+                        <span className="text-xs font-medium text-white">{m.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-8 flex items-center justify-between">
+                    <p className="text-white/55 text-sm">
+                      <span className="text-white font-semibold">+$197</span>
+                      <span className="text-white/55">/mois · {isFr ? 'par module' : 'per module'}</span>
+                    </p>
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: '#d8b4fe' }}>
+                      {isFr ? 'Voir' : 'View'}
+                      <ArrowRight size={15} aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1" />
+                    </span>
+                  </div>
+                </div>
+              </Link>
+              </Card3D>
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            HOW IT WORKS — numbered editorial. Alternating accent colors.
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          aria-labelledby="how-heading"
+          className="py-14 sm:py-18 md:py-28 px-6 border-t border-[#1d1d1f]/8"
+        >
+          <div className="max-w-[1240px] mx-auto">
+            <Reveal>
+              <h2
+                id="how-heading"
+                className="text-[clamp(1.6rem,3vw,2.4rem)] font-semibold tracking-[-0.025em] mb-3 max-w-[720px]"
+              >
+                {isFr ? 'Trois étapes.' : 'Three steps.'}
+              </h2>
+              <p className="text-[#86868b] text-base mb-12 max-w-[480px]">
+                {isFr ? 'Premiers appels traités le jour même.' : 'First calls handled the same day.'}
+              </p>
+            </Reveal>
+
+            <ol className="grid md:grid-cols-3 gap-8 md:gap-12" role="list">
+              {[
+                {
+                  num: '01',
+                  accent: '#6366f1',
+                  title: isFr ? 'Inscrivez-vous' : 'Sign up',
+                  desc: isFr
+                    ? 'Créez votre compte en 2 minutes. Sans carte. Premier mois offert.'
+                    : 'Create your account in 2 minutes. No card. First month free.',
+                },
+                {
+                  num: '02',
+                  accent: '#a855f7',
+                  title: isFr ? 'Configurez' : 'Configure',
+                  desc: isFr
+                    ? 'Voix, scripts, horaires, intégrations calendrier. Tout se règle dans le dashboard.'
+                    : 'Voice, scripts, hours, calendar integrations. Everything from the dashboard.',
+                },
+                {
+                  num: '03',
+                  accent: '#6366f1',
+                  title: isFr ? 'Allumez la ligne' : 'Go live',
+                  desc: isFr
+                    ? 'Transférez votre numéro existant. L\'IA prend le relais. Support FR 7j/7.'
+                    : 'Forward your existing number. The AI takes over. Support 7 days a week.',
+                },
+              ].map((step) => (
+                <li key={step.num} className="border-t-2 pt-5" style={{ borderColor: step.accent }}>
+                  <p className="text-[11px] font-bold tracking-[0.2em] mb-3" style={{ color: step.accent }}>
+                    {step.num}
+                  </p>
+                  <h3 className="text-xl font-semibold mb-2 tracking-[-0.015em]">{step.title}</h3>
+                  <p className="text-[#525257] leading-relaxed text-[15px]">{step.desc}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            INDUSTRIES — asymmetric chip-cloud with brand-color hover
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          aria-labelledby="industries-heading"
+          className="py-14 sm:py-18 md:py-28 px-6 bg-[#fafaf8] border-y border-[#1d1d1f]/8"
+        >
+          <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1fr_1.8fr] gap-10 md:gap-16 items-start">
+            <Reveal className="lg:sticky lg:top-28">
+              <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3 text-[#86868b]">
+                {isFr ? 'Pour qui' : 'For whom'}
+              </span>
+              <h2
+                id="industries-heading"
+                className="text-[clamp(1.7rem,3.5vw,2.8rem)] font-semibold tracking-[-0.03em] leading-[1.08] mb-5"
+              >
+                {isFr
+                  ? <>Toute entreprise <span className="font-serif italic" style={{ color: '#6366f1' }}>qui répond au téléphone.</span></>
+                  : <>Any business <span className="font-serif italic" style={{ color: '#6366f1' }}>that answers the phone.</span></>}
+              </h2>
+              <p className="text-[#525257] text-[15px] leading-relaxed max-w-[360px]">
+                {isFr
+                  ? 'Si vous perdez un seul appel par jour, Qwillio se rentabilise dès la première semaine.'
+                  : 'If you miss one call a day, Qwillio pays for itself within the first week.'}
+              </p>
+            </Reveal>
+
+            <ul className="flex flex-wrap gap-2" role="list">
+              {industries.map((name, i) => (
+                <motion.li
+                  key={name}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: i * 0.04 }}
+                  whileHover={{ y: -2 }}
+                >
+                  <span className="inline-block px-4 py-2 rounded text-[13px] font-medium text-[#1d1d1f] bg-white border border-[#1d1d1f]/12 hover:text-[#6366f1] hover:border-[#6366f1]/40 hover:bg-[#6366f1]/5 transition-colors duration-150 cursor-default select-none">
+                    {name}
+                  </span>
+                </motion.li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            CTA — editorial split with both brand colors in headline
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          aria-label={isFr ? 'Démarrer avec Qwillio' : 'Get started with Qwillio'}
+          className="py-16 sm:py-20 md:py-32 px-6"
+        >
+          <Reveal className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.5fr_1fr] gap-10 items-end border-t-2 border-[#1d1d1f] pt-12 md:pt-16">
+            <h2 className="text-[clamp(2.2rem,5vw,4.4rem)] font-semibold tracking-[-0.035em] leading-[0.98]">
+              {isFr ? (
+                <>
+                  Arrêtez de perdre<br />
+                  des appels.<br />
+                  <span className="font-serif italic" style={{ color: '#6366f1' }}>Commencez aujourd'hui.</span>
+                </>
+              ) : (
+                <>
+                  Stop losing<br />
+                  calls.<br />
+                  <span className="font-serif italic" style={{ color: '#6366f1' }}>Start today.</span>
+                </>
+              )}
+            </h2>
+            <div className="flex flex-col items-start gap-4 lg:items-end lg:text-right pb-4">
+              <p className="text-[#525257] text-[15px] leading-relaxed max-w-[320px] lg:ml-auto">
+                {isFr
+                  ? 'Sans engagement. Sans carte bancaire. Annulez en un clic.'
+                  : 'No commitment. No credit card. Cancel anytime.'}
+              </p>
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#6366f1] transition-colors"
+              >
+                {isFr ? 'Créer un compte' : 'Create account'}
+                <ArrowRight size={16} aria-hidden="true" />
               </Link>
             </div>
-          </FadeIn>
-
-          {/* Stats row */}
-          <FadeIn delay={400}>
-            <div className="flex flex-row items-stretch justify-center w-full">
-              {[
-                { value: '98%',    label: isFr ? 'Taux de rÃ©ponse'      : 'Answer rate' },
-                { value: '2 500+', label: isFr ? 'Appels / jour'         : 'Calls / day' },
-                { value: '35%',    label: isFr ? 'Plus de rendez-vous'   : 'More appointments' },
-              ].map((stat, i) => (
-                <div key={i} className={`flex-1 flex flex-col items-center justify-center px-2 md:px-8 py-3 transition-all duration-300 hover:scale-105 ${i > 0 ? 'border-l border-[#d2d2d7]/60' : ''}`}>
-                  <p className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-[#1d1d1f] whitespace-nowrap bg-gradient-to-br from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">{stat.value}</p>
-                  <p className="text-[10px] sm:text-sm text-[#86868b] mt-1 text-center leading-tight">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* â•â•â•â•â•â•â•â•â•â• PRODUCT SHOWCASE â•â•â•â•â•â•â•â•â•â• */}
-      <section className="py-20 md:py-28 bg-white">
-        <div className="max-w-[1120px] mx-auto px-6">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <p className="text-sm font-semibold text-[#6366f1] uppercase tracking-wider mb-3">
-                {isFr ? 'Nos produits' : 'Our Products'}
-              </p>
-              <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-[#1d1d1f]">
-                {isFr ? 'Deux solutions. ' : 'Two solutions. '}
-                <span className="text-[#1d1d1f]">
-                  {isFr ? 'Un impact total.' : 'Total impact.'}
-                </span>
-              </h2>
-            </div>
-          </FadeIn>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Receptionist AI */}
-            <FadeIn delay={100}>
-              <div className="relative group rounded-2xl border border-[#d2d2d7]/60 bg-gradient-to-br from-white to-[#f5f5f7] p-8 md:p-10 hover:shadow-xl hover:shadow-[#6366f1]/5 transition-all duration-500 overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#6366f1]/5 to-transparent rounded-bl-full pointer-events-none" />
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#6366f1] to-[#4f46e5] flex items-center justify-center mb-6 shadow-lg shadow-[#6366f1]/20">
-                    <Phone size={24} className="text-white" />
-                  </div>
-                  <h3 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] mb-2">Receptionist AI</h3>
-                  <p className="text-[#86868b] mb-6 leading-relaxed">
-                    {isFr
-                      ? 'Votre standardiste IA qui repond a chaque appel, prend les rendez-vous et ne dort jamais.'
-                      : 'Your AI receptionist that answers every call, books appointments, and never sleeps.'}
-                  </p>
-                  <ul className="space-y-3 mb-8">
-                    {(isFr
-                      ? ['Reponse en moins d\'1 seconde', 'Prise de rendez-vous automatique', 'Transfert intelligent des appels', 'Support multilingue']
-                      : ['Sub-1 second response time', 'Automatic appointment booking', 'Intelligent call routing', 'Multilingual support']
-                    ).map((f, i) => (
-                      <li key={i} className="flex items-center gap-3 text-sm text-[#424245]">
-                        <Check size={16} className="text-[#6366f1] flex-shrink-0" /> {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-[#86868b]">
-                      {isFr ? 'A partir de ' : 'From '}
-                      <span className="text-[#1d1d1f] font-semibold">$497/mo</span>
-                      <span className="ml-1 text-xs text-[#6366f1] font-medium">
-                        {isFr ? '1er mois offert' : '1st month free'}
-                      </span>
-                    </p>
-                    <Link to="/receptionist" className="inline-flex items-center gap-1 text-sm font-medium text-[#6366f1] hover:gap-2 transition-all">
-                      {isFr ? 'En savoir plus' : 'Learn more'} <ArrowRight size={14} />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* Qwillio Agent */}
-            <FadeIn delay={200}>
-              <div className="relative group rounded-2xl border border-[#d2d2d7]/60 bg-gradient-to-br from-white to-[#f5f5f7] p-8 md:p-10 hover:shadow-xl hover:shadow-[#a855f7]/5 transition-all duration-500 overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#a855f7]/5 to-transparent rounded-bl-full pointer-events-none" />
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#a855f7] to-[#7c3aed] flex items-center justify-center mb-6 shadow-lg shadow-[#a855f7]/20">
-                    <Bot size={24} className="text-white" />
-                  </div>
-                  <h3 className="text-2xl font-semibold tracking-tight text-[#1d1d1f] mb-2">Qwillio Agent</h3>
-                  <p className="text-[#86868b] mb-6 leading-relaxed">
-                    {isFr
-                      ? 'Des modules IA avances: CRM, facturation, suivi clients, et bien plus.'
-                      : 'Advanced AI modules: CRM, billing, client follow-up, and much more.'}
-                  </p>
-                  <ul className="space-y-3 mb-8">
-                    {(isFr
-                      ? ['CRM intelligent integre', 'Facturation automatisee', 'Suivi et relances clients', 'Tableaux de bord analytiques']
-                      : ['Built-in intelligent CRM', 'Automated invoicing', 'Client follow-up & reminders', 'Analytics dashboards']
-                    ).map((f, i) => (
-                      <li key={i} className="flex items-center gap-3 text-sm text-[#424245]">
-                        <Check size={16} className="text-[#a855f7] flex-shrink-0" /> {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-[#86868b]">
-                      {isFr ? 'A partir de ' : 'From '}
-                      <span className="text-[#1d1d1f] font-semibold">$97/mo</span>
-                      <span className="ml-1 text-xs text-[#a855f7] font-medium">
-                        {isFr ? 'par module' : 'per module'}
-                      </span>
-                    </p>
-                    <Link to="/agent" className="inline-flex items-center gap-1 text-sm font-medium text-[#a855f7] hover:gap-2 transition-all">
-                      {isFr ? 'En savoir plus' : 'Learn more'} <ArrowRight size={14} />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-          </div>
-        </div>
-      </section>
-
-      {/* â•â•â•â•â•â•â•â•â•â• HOW IT WORKS â•â•â•â•â•â•â•â•â•â• */}
-      <section className="py-20 md:py-28 bg-[#f5f5f7]">
-        <div className="max-w-[1120px] mx-auto px-6">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <p className="text-sm font-semibold text-[#6366f1] uppercase tracking-wider mb-3">
-                {isFr ? 'Comment ca marche' : 'How it works'}
-              </p>
-              <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-[#1d1d1f]">
-                {isFr ? 'Lancez-vous en ' : 'Get started in '}
-                <span className="bg-gradient-to-r from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">
-                  {isFr ? '3 etapes.' : '3 steps.'}
-                </span>
-              </h2>
-            </div>
-          </FadeIn>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {steps.map((step, i) => (
-              <FadeIn key={i} delay={i * 150}>
-                <div className="bg-white rounded-2xl border border-[#d2d2d7]/60 p-8 text-center hover:shadow-lg transition-all duration-500 group">
-                  <div className="w-16 h-16 rounded-2xl bg-[#f5f5f7] flex items-center justify-center mx-auto mb-6 group-hover:bg-[#6366f1]/10 transition-colors">
-                    <step.icon size={28} className="text-[#6366f1]" />
-                  </div>
-                  <h3 className="text-xl font-semibold tracking-tight text-[#1d1d1f] mb-3">{step.title}</h3>
-                  <p className="text-sm text-[#86868b] leading-relaxed">{step.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* â•â•â•â•â•â•â•â•â•â• KEY NUMBERS (DARK) â•â•â•â•â•â•â•â•â•â• */}
-      <section className="py-20 md:py-28 bg-[#1d1d1f] text-white relative overflow-hidden">
-        {/* Decorative gradient orbs */}
-        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-[#6366f1]/10 blur-3xl pointer-events-none" />
-        <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-[#a855f7]/10 blur-3xl pointer-events-none" />
-
-        <div className="relative max-w-[1120px] mx-auto px-6">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <p className="text-sm font-semibold text-[#818cf8] uppercase tracking-wider mb-3">
-                {isFr ? 'En chiffres' : 'By the numbers'}
-              </p>
-              <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">
-                {isFr ? 'Des resultats qui ' : 'Results that '}
-                <span>
-                  {isFr ? 'parlent.' : 'speak.'}
-                </span>
-              </h2>
-            </div>
-          </FadeIn>
-
-          <FadeIn>
-            <div className="flex flex-row w-full">
-              {[
-                { value: 98,   suffix: '%', label: isFr ? 'Taux de reponse' : 'Answer rate',      icon: Phone },
-                { value: 2500, suffix: '+', label: isFr ? 'Appels par jour' : 'Calls per day',     icon: BarChart3 },
-                { value: 35,   suffix: '%', label: isFr ? 'Plus de rendez-vous' : 'More appts',    icon: Users },
-              ].map((stat, i) => (
-                <div key={i} className={`flex-1 flex flex-col items-center justify-center px-1 py-2 text-center group ${i > 0 ? 'border-l border-white/10' : ''}`}>
-                  <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center mx-auto mb-2 group-hover:bg-[#6366f1]/20 transition-colors">
-                    <stat.icon size={16} className="text-[#818cf8]" />
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-semibold tracking-tight whitespace-nowrap mb-0.5">
-                    <Counter value={stat.value} suffix={stat.suffix} />
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-white/50 leading-tight">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* â•â•â•â•â•â•â•â•â•â• INDUSTRIES â•â•â•â•â•â•â•â•â•â• */}
-      <section className="py-20 md:py-28 bg-white">
-        <div className="max-w-[1120px] mx-auto px-6">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <p className="text-sm font-semibold text-[#6366f1] uppercase tracking-wider mb-3">
-                {isFr ? 'Industries' : 'Industries'}
-              </p>
-              <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-[#1d1d1f]">
-                {isFr ? 'Concu pour ' : 'Built for '}
-                <span className="bg-gradient-to-r from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">
-                  {isFr ? 'votre industrie.' : 'your industry.'}
-                </span>
-              </h2>
-            </div>
-          </FadeIn>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {industries.map((ind, i) => (
-              <FadeIn key={i} delay={i * 60}>
-                <div className="rounded-2xl border border-[#d2d2d7]/60 bg-[#f5f5f7]/50 p-5 hover:bg-white hover:shadow-lg hover:shadow-[#6366f1]/5 hover:border-[#6366f1]/20 transition-all duration-300 group cursor-default">
-                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center mb-3 group-hover:bg-[#6366f1]/10 transition-colors border border-[#d2d2d7]/40">
-                    <ind.icon size={20} className="text-[#6366f1]" />
-                  </div>
-                  <h3 className="text-sm font-semibold text-[#1d1d1f] mb-1">{ind.name}</h3>
-                  <p className="text-xs text-[#86868b] leading-relaxed">{ind.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* â•â•â•â•â•â•â•â•â•â• TESTIMONIALS â•â•â•â•â•â•â•â•â•â• */}
-      <section className="py-20 md:py-28 bg-[#f5f5f7]">
-        <div className="max-w-[1120px] mx-auto px-6">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <p className="text-sm font-semibold text-[#6366f1] uppercase tracking-wider mb-3">
-                {isFr ? 'Temoignages' : 'Testimonials'}
-              </p>
-              <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-[#1d1d1f]">
-                {isFr ? 'Ils nous font confiance.' : 'They trust us.'}
-              </h2>
-            </div>
-          </FadeIn>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t, i) => (
-              <FadeIn key={i} delay={i * 150}>
-                <div className="bg-white rounded-2xl border border-[#d2d2d7]/60 p-8 hover:shadow-lg transition-all duration-500 flex flex-col h-full">
-                  <div className="flex gap-1 mb-5">
-                    {[...Array(5)].map((_, j) => (
-                      <Star key={j} size={16} className="text-[#f59e0b] fill-[#f59e0b]" />
-                    ))}
-                  </div>
-                  <p className="text-[#424245] leading-relaxed mb-6 flex-1 text-sm italic">
-                    "{t.quote}"
-                  </p>
-                  <div className="flex items-center gap-3 pt-4 border-t border-[#d2d2d7]/40">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6366f1] to-[#a855f7] flex items-center justify-center text-white text-sm font-semibold">
-                      {t.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-[#1d1d1f]">{t.name}</p>
-                      <p className="text-xs text-[#86868b]">{t.role}, {t.company}</p>
-                    </div>
-                  </div>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* â•â•â•â•â•â•â•â•â•â• CTA â•â•â•â•â•â•â•â•â•â• */}
-      <section className="py-20 md:py-28 bg-white">
-        <div className="max-w-[1120px] mx-auto px-6">
-          <FadeIn>
-            <div className="relative rounded-3xl bg-gradient-to-br from-[#6366f1] to-[#4f46e5] p-10 md:p-16 text-center text-white overflow-hidden">
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-60 h-60 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
-
-              <div className="relative">
-                <h2 className="text-3xl md:text-5xl font-semibold tracking-tight mb-4">
-                  {isFr ? 'Pret a transformer votre entreprise ?' : 'Ready to transform your business?'}
-                </h2>
-                <p className="text-white/70 text-lg max-w-xl mx-auto mb-8">
-                  {isFr
-                    ? 'Rejoignez des centaines d\'entreprises qui utilisent Qwillio pour grandir. Premier mois offert.'
-                    : 'Join hundreds of businesses using Qwillio to grow. First month free.'}
-                </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <a
-                    href="/demo.html"
-                    className="inline-flex items-center gap-2 bg-white text-[#6366f1] text-base font-medium px-8 py-3.5 rounded-full hover:bg-white/90 transition-all hover:scale-105 shadow-lg"
-                  >
-                    <Play size={16} /> {isFr ? 'Essayer la demo' : 'Try the demo'}
-                  </a>
-                  <Link
-                    to="/pricing"
-                    className="inline-flex items-center gap-2 text-base font-medium text-white px-8 py-3.5 rounded-full border border-white/30 hover:bg-white/10 transition-all"
-                  >
-                    {isFr ? 'Voir les tarifs' : 'View pricing'} <ArrowRight size={16} />
-                  </Link>
-                </div>
-                <p className="text-white/40 text-sm mt-6">
-                  {isFr ? 'Sans engagement. Configuration en 2 minutes.' : 'No commitment. 2-minute setup.'}
-                </p>
-              </div>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
+          </Reveal>
+        </section>
+      </main>
 
       <PublicFooter />
     </div>

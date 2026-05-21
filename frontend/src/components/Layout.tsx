@@ -23,7 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const nav = useNavigate();
   const loc = useLocation();
   return (
-    <div style={{ background: Q.bg, minHeight: '100vh', fontFamily: "'Geist', 'Inter', -apple-system, sans-serif", position: 'relative' }}>
+    <div style={{ background: Q.bg, minHeight: '100vh', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, system-ui, sans-serif", position: 'relative' }}>
       <style>{`
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         ::-webkit-scrollbar { width: 0; }

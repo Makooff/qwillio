@@ -35,7 +35,17 @@ const pillColor = (status: string): 'neutral' | 'ok' | 'warn' | 'bad' | 'info' |
 };
 
 export default function FollowUps() {
-  const [data, setData] = useState<any>(null);
+  interface FollowUpData {
+    totalScheduled?: number;
+    totalSent?: number;
+    openRate?: number;
+    clickRate?: number;
+    byDay?: Array<{ date: string; count: number }>;
+    byStep?: Array<{ step: string; sent: number; opened: number }>;
+    items?: Array<Record<string, unknown>>;
+    [key: string]: unknown;
+  }
+  const [data, setData] = useState<FollowUpData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [marking, setMarking] = useState<string | null>(null);

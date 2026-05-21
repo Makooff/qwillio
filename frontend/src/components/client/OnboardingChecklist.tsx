@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Check, Phone, PhoneCall, Settings, Rocket, X, PartyPopper,
@@ -141,7 +141,7 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
       {/* Progress bar */}
       <div className="h-1 mx-5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
         <div
-          className="h-full rounded-full transition-all duration-500"
+          className="h-full rounded-full transition-[width] duration-500 ease-out"
           style={{ width: `${pct}%`, background: allDone ? pro.ok : pro.accent }}
         />
       </div>

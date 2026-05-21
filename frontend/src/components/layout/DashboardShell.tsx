@@ -10,7 +10,7 @@ import QwillioLogo from '../QwillioLogo';
 import { t } from '../../styles/admin-theme';
 
 /**
- * Shared dashboard shell â€” sidebar, top bar, mobile bottom nav.
+ * Shared dashboard shell — sidebar, top bar, mobile bottom nav.
  * Dark Luxury AI direction: glassmorphism sidebar, purple accent glow.
  *
  * Every dashboard (admin, client, closeuse) uses this component.
@@ -26,10 +26,10 @@ export interface NavItem {
 }
 
 export interface DashboardShellProps {
-  /** Main sidebar nav â€” rendered at the top of the sidebar. */
+  /** Main sidebar nav — rendered at the top of the sidebar. */
   primaryNav: NavItem[];
   /**
-   * Optional expandable "Settings" section â€” renders a chevron-collapsible
+   * Optional expandable "Settings" section — renders a chevron-collapsible
    * group at the bottom of the primary nav, with pl-9 sub-items.
    */
   settingsSub?: NavItem[];
@@ -39,9 +39,9 @@ export interface DashboardShellProps {
   pageTitleFallback?: string;
   /** 5-item list for the mobile bottom pill nav. */
   mobileNav: NavItem[];
-  /** e.g. "admin", "closeuse" â€” shown next to the Qwillio wordmark. */
+  /** e.g. "admin", "closeuse" — shown next to the Qwillio wordmark. */
   brandSuffix?: string;
-  /** Unique id â€” used so each dashboard has its own motion scope. */
+  /** Unique id — used so each dashboard has its own motion scope. */
   scope: string;
   /** Fallback label if user.name is empty. */
   userFallbackName: string;
@@ -58,7 +58,7 @@ export interface DashboardShellProps {
 
 export default function DashboardShell(props: DashboardShellProps) {
   const {
-    primaryNav, settingsSub, settingsLabel = 'ParamÃ¨tres',
+    primaryNav, settingsSub, settingsLabel = 'Paramètres',
     pageTitles, pageTitleFallback = 'Qwillio',
     mobileNav, brandSuffix, scope,
     userFallbackName, userFallbackInitials,
@@ -106,7 +106,7 @@ export default function DashboardShell(props: DashboardShellProps) {
         to={item.path}
         onClick={() => { setMobileOpen(false); scrollToTop(); }}
         title={collapsed ? item.label : undefined}
-        className={`relative flex items-center gap-3 rounded-xl transition-all duration-150 group
+        className={`relative flex items-center gap-3 rounded-xl transition-colors duration-150 group
           ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
         style={active ? {
           background: 'oklch(56% 0.22 264 / 0.10)',
@@ -208,7 +208,7 @@ export default function DashboardShell(props: DashboardShellProps) {
               <button
                 onClick={() => { if (!collapsed) setSettingsOpen(v => !v); }}
                 title={collapsed ? settingsLabel : undefined}
-                className={`w-full relative flex items-center gap-3 rounded-xl transition-all duration-150 group
+                className={`w-full relative flex items-center gap-3 rounded-xl transition-colors duration-150 group
                   ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
                 style={settingsActive ? {
                   background: 'oklch(56% 0.22 264 / 0.10)',
@@ -264,7 +264,7 @@ export default function DashboardShell(props: DashboardShellProps) {
         </div>
       </nav>
 
-      {/* Bottom â€” user + logout */}
+      {/* Bottom — user + logout */}
       <div className="flex-shrink-0 space-y-1 mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
         <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${collapsed ? 'justify-center' : ''}`}>
           <div
@@ -283,13 +283,13 @@ export default function DashboardShell(props: DashboardShellProps) {
 
         <button
           onClick={logout}
-          title={collapsed ? 'DÃ©connexion' : undefined}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:text-red-400 hover:bg-red-500/[0.08] transition-all text-sm
+          title={collapsed ? 'Déconnexion' : undefined}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:text-red-400 hover:bg-red-500/[0.08] transition-colors text-sm
             ${collapsed ? 'justify-center' : ''}`}
           style={{ color: t.textSec }}
         >
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-          {!collapsed && 'DÃ©connexion'}
+          {!collapsed && 'Déconnexion'}
         </button>
       </div>
     </div>
@@ -300,7 +300,7 @@ export default function DashboardShell(props: DashboardShellProps) {
       {/* Desktop Sidebar */}
       <aside
         className={`sidebar-surface hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
-          backdrop-blur-xl transition-all duration-300 ease-in-out
+          backdrop-blur-xl transition-colors duration-300 ease-in-out
           ${collapsed ? 'w-[64px] px-2 py-5' : 'w-[220px] px-4 py-5'}`}
         style={{
           background: t.panelSolid,
@@ -323,7 +323,7 @@ export default function DashboardShell(props: DashboardShellProps) {
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="absolute -right-3 top-8 w-6 h-6 rounded-full
-            flex items-center justify-center transition-all"
+            flex items-center justify-center transition-colors"
           style={{
             background: t.panelSolid,
             boxShadow: '0 0 0 1px oklch(100% 0 0 / 0.08), 0 2px 8px oklch(0% 0 0 / 0.40)',
@@ -404,8 +404,8 @@ export default function DashboardShell(props: DashboardShellProps) {
 
             <button
               onClick={() => window.location.reload()}
-              title="RafraÃ®chir"
-              className="p-2 rounded-xl hover:bg-white/[0.06] transition-all"
+              title="Rafraîchir"
+              className="p-2 rounded-xl hover:bg-white/[0.06] transition-colors"
               style={{ color: t.textSec }}
             >
               <RefreshCw className="w-4 h-4" />
@@ -425,7 +425,7 @@ export default function DashboardShell(props: DashboardShellProps) {
         </main>
       </div>
 
-      {/* Mobile bottom nav â€” floating pill with sliding bubble (scoped per dashboard) */}
+      {/* Mobile bottom nav — floating pill with sliding bubble (scoped per dashboard) */}
       <MobileBottomNav items={mobileNav} pathname={location.pathname} scope={scope} onTap={scrollToTop} />
 
       {overlay}

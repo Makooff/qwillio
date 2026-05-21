@@ -1,106 +1,188 @@
-import React, { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react'
 
-const API = 'https://qwillio.onrender.com';
-const getHeaders = (): Record<string, string> => {
-  const t = localStorage.getItem('token');
-  return t ? { Authorization: `Bearer ${t}` } : {};
-};
+const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com'
 
-interface SystemData {
-  prospects: number; clients: number;
-  botStatus: { isActive: boolean; callsToday: number; quota: number; uptime?: number };
-  database: { status: string };
-  recentErrors?: number;
+function getHeaders(): Record<string, string> {
+  const t = localStorage.getItem('token')
+  return t ? { Authorization: `Bearer ${t}` } : {}
 }
 
-const System: React.FC = () => {
-  const [data, setData] = useState<SystemData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [ping, setPing] = useState<number | null>(null);
+interface SystemData {
+  prospects: number
+  clients: number
+  botStatus: { isActive: boolean; callsToday: number; quota: number; uptime?: number }
+  database: { status: string }
+  recentErrors?: number
+}
+
+function StatusDot({ healthy }: { healthy: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-block w-2.5 h-2.5 rounded-full"
+      style={{ background: healthy ? 'oklch(74% 0.18 155)' : 'oklch(60% 0.22 25)' }}
+    />
+  )
+}
+
+export default function System() {
+  const [data, setData] = useState<SystemData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [ping, setPing] = useState<number | null>(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
-    const t0 = Date.now();
+    const t0 = Date.now()
     fetch(`${API}/api/admin/system`, { headers: getHeaders() })
-      .then(r => r.json()).then(d => { setData(d); setPing(Date.now() - t0); })
-      .catch(console.error).finally(() => setLoading(false));
-  }, []);
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json() as Promise<SystemData>
+      })
+      .then((d) => {
+        setData(d)
+        setPing(Date.now() - t0)
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }, [])
 
-  if (loading) return (
-    <div className='min-h-screen bg-gray-950 flex items-center justify-center'>
-      <div className='w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin' />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div
+        role="status"
+        aria-label="Chargement"
+        className="flex items-center justify-center min-h-[60vh]"
+      >
+        <div
+          className="w-9 h-9 rounded-full border-2 border-transparent animate-spin"
+          style={{ borderTopColor: 'oklch(56% 0.22 264)', borderRightColor: 'oklch(56% 0.22 264)' }}
+        />
+      </div>
+    )
+  }
 
-  const d = data;
-  const healthy = d?.database?.status === 'connected' || d?.database?.status === 'ok';
+  const healthy = data?.database?.status === 'connected' || data?.database?.status === 'ok'
+  const botActive = data?.botStatus?.isActive ?? false
 
   return (
-    <div className='min-h-screen bg-gray-950 text-white pb-8'>
-      <div className='px-4 pt-6 pb-4'>
-        <div className='text-xs text-gray-500 uppercase tracking-widest'>Admin</div>
-        <h1 className='text-2xl font-bold mt-1'>Système</h1>
-      </div>
+    <main aria-label="État du système" className="px-4 sm:px-6 py-6 max-w-3xl mx-auto space-y-5">
+      <header>
+        <p className="text-xs font-semibold tracking-widest uppercase text-white/25 mb-1">Admin</p>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Système</h1>
+      </header>
 
-      {/* Health indicators */}
-      <div className='px-4 space-y-3 mb-6'>
-        {[
-          { label: 'API Backend', ok: true, detail: ping ? `${ping}ms` : '—' },
-          { label: 'Base de données', ok: healthy, detail: d?.database?.status || 'unknown' },
-          { label: 'Bot', ok: d?.botStatus?.isActive ?? false, detail: d?.botStatus?.isActive ? 'Actif' : 'Inactif' },
-        ].map((item, i) => (
-          <div key={i} className='bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex items-center justify-between'>
-            <div className='flex items-center gap-3'>
-              <div className={`w-2.5 h-2.5 rounded-full ${item.ok ? 'bg-green-400' : 'bg-red-400'}`} />
-              <span className='text-sm font-medium text-white'>{item.label}</span>
+      {error && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400"
+        >
+          Impossible de charger l'état du système.
+        </div>
+      )}
+
+      {/* Top status card */}
+      <section
+        aria-labelledby="status-heading"
+        className="rounded-2xl border p-5"
+        style={{
+          background: healthy ? 'oklch(74% 0.18 155 / 0.05)' : 'oklch(60% 0.22 25 / 0.05)',
+          borderColor: healthy ? 'oklch(74% 0.18 155 / 0.2)' : 'oklch(60% 0.22 25 / 0.2)',
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <StatusDot healthy={healthy} />
+            <div>
+              <h2 id="status-heading" className="text-base font-semibold text-white">
+                {healthy ? 'Tous les systèmes opérationnels' : 'Dégradation détectée'}
+              </h2>
+              <p className="text-xs text-white/35 mt-0.5">
+                DB {data?.database?.status ?? '—'} · ping {ping ?? '—'} ms
+              </p>
             </div>
-            <span className={`text-xs ${item.ok ? 'text-gray-400' : 'text-red-400'}`}>{item.detail}</span>
           </div>
-        ))}
-      </div>
+        </div>
+      </section>
 
-      {/* Stats */}
-      <div className='px-4 grid grid-cols-2 gap-3 mb-6'>
-        <div className='bg-gray-900 border border-gray-800 rounded-2xl p-4'>
-          <div className='text-xs text-gray-500 mb-1'>Prospects</div>
-          <div className='text-2xl font-bold text-blue-400'>{d?.prospects ?? 0}</div>
+      {/* Counts */}
+      <section aria-labelledby="counts-heading" className="grid grid-cols-2 gap-3">
+        <h2 id="counts-heading" className="sr-only">Compteurs</h2>
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+          <p className="text-xs text-white/35 mb-1.5">Prospects</p>
+          <p className="text-2xl font-bold text-white tabular-nums">{data?.prospects ?? 0}</p>
         </div>
-        <div className='bg-gray-900 border border-gray-800 rounded-2xl p-4'>
-          <div className='text-xs text-gray-500 mb-1'>Clients</div>
-          <div className='text-2xl font-bold text-green-400'>{d?.clients ?? 0}</div>
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+          <p className="text-xs text-white/35 mb-1.5">Clients</p>
+          <p className="text-2xl font-bold text-white tabular-nums">{data?.clients ?? 0}</p>
         </div>
-        <div className='bg-gray-900 border border-gray-800 rounded-2xl p-4'>
-          <div className='text-xs text-gray-500 mb-1'>Appels / quota</div>
-          <div className='text-2xl font-bold text-white'>
-            {d?.botStatus?.callsToday ?? 0}
-            <span className='text-sm text-gray-600 font-normal'>/{d?.botStatus?.quota ?? 50}</span>
-          </div>
-        </div>
-        <div className='bg-gray-900 border border-gray-800 rounded-2xl p-4'>
-          <div className='text-xs text-gray-500 mb-1'>Erreurs récentes</div>
-          <div className={`text-2xl font-bold ${(d?.recentErrors ?? 0) > 0 ? 'text-red-400' : 'text-gray-600'}`}>
-            {d?.recentErrors ?? 0}
-          </div>
-        </div>
-      </div>
+      </section>
 
-      {/* Bot quota bar */}
-      <div className='mx-4'>
-        <div className='text-xs text-gray-500 uppercase tracking-widest mb-3'>Quota appels</div>
-        <div className='bg-gray-900 border border-gray-800 rounded-2xl p-4'>
-          <div className='flex justify-between text-xs mb-2'>
-            <span className='text-gray-400'>Aujourd'hui</span>
-            <span className='text-white font-medium'>
-              {d?.botStatus?.callsToday ?? 0} / {d?.botStatus?.quota ?? 50}
-            </span>
+      {/* Bot status */}
+      <section
+        aria-labelledby="bot-heading"
+        className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <StatusDot healthy={botActive} />
+            <h2 id="bot-heading" className="text-sm font-semibold text-white">
+              Bot {botActive ? 'actif' : 'inactif'}
+            </h2>
           </div>
-          <div className='h-2 bg-gray-800 rounded-full overflow-hidden'>
-            <div className='h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all'
-              style={{ width: `${Math.min(100, ((d?.botStatus?.callsToday ?? 0) / (d?.botStatus?.quota ?? 50)) * 100)}%` }} />
-          </div>
+          {data?.botStatus?.uptime != null && (
+            <p className="text-xs text-white/35">
+              Uptime {Math.floor(data.botStatus.uptime / 3600)}h
+            </p>
+          )}
         </div>
-      </div>
-    </div>
-  );
-};
 
-export default System;
+        <dl className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <dt className="text-xs text-white/30 mb-1">Appels aujourd'hui</dt>
+            <dd className="text-lg font-semibold text-white tabular-nums">
+              {data?.botStatus?.callsToday ?? 0}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-white/30 mb-1">Quota</dt>
+            <dd className="text-lg font-semibold text-white tabular-nums">
+              {data?.botStatus?.quota ?? 0}
+            </dd>
+          </div>
+        </dl>
+
+        {(data?.botStatus?.quota ?? 0) > 0 && (
+          <div
+            role="progressbar"
+            aria-valuenow={data!.botStatus.callsToday}
+            aria-valuemin={0}
+            aria-valuemax={data!.botStatus.quota}
+            aria-label="Quota quotidien"
+            className="mt-4 h-1 rounded-full bg-white/[0.06] overflow-hidden"
+          >
+            <div
+              className="h-full rounded-full transition-[width] duration-700 ease-out"
+              style={{
+                width: `${Math.min(100, (data!.botStatus.callsToday / data!.botStatus.quota) * 100)}%`,
+                background: 'oklch(56% 0.22 264)',
+              }}
+            />
+          </div>
+        )}
+      </section>
+
+      {/* Errors */}
+      {data?.recentErrors != null && data.recentErrors > 0 && (
+        <section
+          aria-labelledby="errors-heading"
+          className="rounded-2xl border border-red-500/20 bg-red-500/5 p-5"
+        >
+          <h2 id="errors-heading" className="text-sm font-semibold text-red-400 mb-1">
+            {data.recentErrors} erreur{data.recentErrors > 1 ? 's' : ''} récente{data.recentErrors > 1 ? 's' : ''}
+          </h2>
+          <p className="text-xs text-red-400/60">Consultez les logs admin pour les détails.</p>
+        </section>
+      )}
+    </main>
+  )
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import {
   Phone, Calendar, Users, BarChart3, Clock, TrendingUp,
   ChevronDown, ChevronUp, Star, ArrowRight,
@@ -17,12 +17,15 @@ import api from '../services/api';
 
 type Tab = 'overview' | 'calls' | 'bookings' | 'leads' | 'analytics';
 
+// Dashboard data is heterogeneous per tab; loose typing intentional.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SliceAny = any;
 interface DashData {
-  overview: any;
-  calls: any;
-  bookings: any;
-  leads: any;
-  analytics: any;
+  overview: SliceAny;
+  calls: SliceAny;
+  bookings: SliceAny;
+  leads: SliceAny;
+  analytics: SliceAny;
 }
 
 const sentimentStyle = (s: string) => {
@@ -276,7 +279,7 @@ export default function ClientDashboardJWT() {
                       <span className="text-xs text-[#86868b]">{t('portal.leads.score')}</span>
                       <div className="flex-1 h-2 bg-[#d2d2d7]/40 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-[#6366f1] rounded-full transition-all"
+                          className="h-full bg-[#6366f1] rounded-full transition-[width] duration-500 ease-out"
                           style={{ width: `${Math.min(lead.score * 10, 100)}%` }}
                         />
                       </div>
@@ -342,7 +345,7 @@ export default function ClientDashboardJWT() {
                       <span className="text-sm text-[#86868b] w-20 capitalize">{key}</span>
                       <div className="flex-1 h-3 bg-[#d2d2d7]/30 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all ${
+                          className={`h-full rounded-full transition-colors ${
                             key === 'positive' ? 'bg-emerald-500' :
                             key === 'negative' ? 'bg-red-400' :
                             'bg-amber-400'

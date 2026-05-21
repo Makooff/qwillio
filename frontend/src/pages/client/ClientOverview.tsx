@@ -1,4 +1,4 @@
-// === FILE: ClientOverview.tsx ===
+﻿// === FILE: ClientOverview.tsx ===
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -357,7 +357,7 @@ export default function ClientOverview() {
             <Link
               key={to}
               to={to}
-              className="group rounded-2xl border border-white/[0.06] bg-white/[0.04] p-4 hover:border-white/[0.12] hover:bg-white/[0.06] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              className="group rounded-2xl border border-white/[0.06] bg-white/[0.04] p-4 hover:border-white/[0.12] hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             >
               <div className="flex items-center gap-3 mb-2.5">
                 <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">

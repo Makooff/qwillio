@@ -17,6 +17,31 @@ interface Integration {
   syncDirection: 'one_way' | 'bidirectional';
 }
 
+// Shape of a raw integration record returned by the API
+interface RawIntegration {
+  id?: string;
+  provider?: string;
+  lastSync?: string;
+  contactsSynced?: number;
+  syncDirection?: 'one_way' | 'bidirectional';
+}
+
+// Shape of a raw conflict record returned by the API
+interface RawConflict {
+  id: string;
+  integrationId?: string;
+  provider?: string;
+  integrationName?: string;
+  field: string;
+  localValue?: string;
+  qwillioValue?: string;
+  remoteValue?: string;
+  externalValue?: string;
+  contactName?: string;
+  contact?: { name?: string };
+  createdAt: string;
+}
+
 // Available integrations catalog (static — enriched with real status from API)
 const INTEGRATION_CATALOG: Omit<Integration, 'connected' | 'lastSync' | 'contactsSynced'>[] = [
   { id: 'hubspot', name: 'HubSpot', category: 'crm', syncDirection: 'bidirectional' },
@@ -107,9 +132,10 @@ export default function Integrations() {
       try {
         setLoading(true);
         const { data } = await api.get('/crm/integrations');
-        const connectedMap = new Map<string, any>();
-        (data.integrations || data || []).forEach((i: any) => {
-          connectedMap.set(i.provider || i.id, i);
+        const connectedMap = new Map<string, RawIntegration>();
+        (data.integrations || data || []).forEach((i: RawIntegration) => {
+          const key = i.provider ?? i.id;
+          if (key) connectedMap.set(key, i);
         });
 
         const merged: Integration[] = INTEGRATION_CATALOG.map(cat => {
@@ -119,7 +145,7 @@ export default function Integrations() {
             connected: !!real,
             lastSync: timeAgo(real?.lastSync),
             contactsSynced: real?.contactsSynced,
-            syncDirection: real?.syncDirection || cat.syncDirection,
+            syncDirection: real?.syncDirection ?? cat.syncDirection,
           };
         });
         setIntegrations(merged);
@@ -127,14 +153,14 @@ export default function Integrations() {
         // Fetch sync conflicts
         try {
           const conflictsRes = await api.get('/crm/sync-conflicts');
-          setConflicts((conflictsRes.data.conflicts || conflictsRes.data || []).map((c: any) => ({
+          setConflicts((conflictsRes.data.conflicts || conflictsRes.data || []).map((c: RawConflict) => ({
             id: c.id,
-            integrationId: c.integrationId || c.provider,
-            integrationName: c.integrationName || c.provider || 'Unknown',
+            integrationId: c.integrationId ?? c.provider ?? '',
+            integrationName: c.integrationName ?? c.provider ?? 'Unknown',
             field: c.field,
-            qwillioValue: c.localValue || c.qwillioValue || '',
-            externalValue: c.remoteValue || c.externalValue || '',
-            contactName: c.contactName || c.contact?.name || 'Unknown contact',
+            qwillioValue: c.localValue ?? c.qwillioValue ?? '',
+            externalValue: c.remoteValue ?? c.externalValue ?? '',
+            contactName: c.contactName ?? c.contact?.name ?? 'Unknown contact',
             createdAt: c.createdAt,
           })));
         } catch {
@@ -166,12 +192,16 @@ export default function Integrations() {
       // Disconnect
       try {
         await api.delete(`/crm/integrations/${id}`);
-      } catch {}
+      } catch {
+        // Optimistic toggle regardless of API error
+      }
     } else {
       // Connect
       try {
         await api.post('/crm/integrations', { provider: id, config: {} });
-      } catch {}
+      } catch {
+        // Optimistic toggle regardless of API error
+      }
     }
 
     setIntegrations(prev => prev.map(i =>
@@ -217,7 +247,9 @@ export default function Integrations() {
       setIntegrations(prev => prev.map(i =>
         i.id === id ? { ...i, lastSync: 'Just now' } : i
       ));
-    } catch {}
+    } catch {
+      // Silent — UI retains previous sync time
+    }
   };
 
   if (loading) {
@@ -243,6 +275,7 @@ export default function Integrations() {
         {['all', 'connected', 'crm', 'accounting', 'payment', 'calendar', 'automation'].map(f => (
           <button
             key={f}
+            type="button"
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === f
@@ -309,6 +342,7 @@ export default function Integrations() {
             {integration.connected && (
               <div className="flex items-center gap-2 mb-4">
                 <button
+                  type="button"
                   onClick={() => toggleDirection(integration.id)}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#f5f5f7] text-xs font-medium text-[#1d1d1f] hover:bg-[#e8e8ed] transition-colors"
                 >
@@ -324,6 +358,7 @@ export default function Integrations() {
             {/* Actions */}
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => toggleConnect(integration.id)}
                 className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${
                   integration.connected
@@ -335,10 +370,21 @@ export default function Integrations() {
               </button>
               {integration.connected && (
                 <>
-                  <button onClick={() => syncNow(integration.id)} className="p-2 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed] transition-colors" title="Sync now">
+                  <button
+                    type="button"
+                    onClick={() => syncNow(integration.id)}
+                    aria-label={`Sync ${integration.name} now`}
+                    className="p-2 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed] transition-colors"
+                    title="Sync now"
+                  >
                     <RefreshCw size={16} />
                   </button>
-                  <button className="p-2 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed] transition-colors" title="Test connection">
+                  <button
+                    type="button"
+                    aria-label={`Test ${integration.name} connection`}
+                    className="p-2 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed] transition-colors"
+                    title="Test connection"
+                  >
                     <TestTube size={16} />
                   </button>
                 </>
@@ -349,7 +395,9 @@ export default function Integrations() {
             {integration.connected && (
               <div className="mt-3 border-t border-[#d2d2d7]/40 pt-3">
                 <button
+                  type="button"
                   onClick={() => toggleFieldMapping(integration.id)}
+                  aria-label={`${expandedMappings.has(integration.id) ? 'Hide' : 'Show'} field mapping for ${integration.name}`}
                   className="flex items-center gap-1.5 text-xs font-medium text-[#86868b] hover:text-[#1d1d1f] transition-colors"
                 >
                   <MapPin size={12} />
@@ -358,8 +406,8 @@ export default function Integrations() {
                 </button>
                 {expandedMappings.has(integration.id) && (
                   <div className="mt-2 space-y-1">
-                    {(DEFAULT_FIELD_MAPPINGS[integration.id] || GENERIC_FIELD_MAPPING).map((m, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-xs text-[#86868b] bg-[#f5f5f7] rounded-lg px-2.5 py-1.5">
+                    {(DEFAULT_FIELD_MAPPINGS[integration.id] || GENERIC_FIELD_MAPPING).map((m, mapIdx) => (
+                      <div key={mapIdx} className="flex items-center gap-2 text-xs text-[#86868b] bg-[#f5f5f7] rounded-lg px-2.5 py-1.5">
                         <span className="font-medium text-[#1d1d1f]">{m.qwillio}</span>
                         <ArrowRight size={10} className="flex-shrink-0" />
                         <span className="font-mono">{m.external}</span>
@@ -414,12 +462,14 @@ export default function Integrations() {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => resolveConflict(conflict.id, 'local')}
                     className="flex-1 py-2 rounded-xl text-sm font-medium bg-[#6366f1] text-white hover:bg-[#5558e6] transition-colors"
                   >
                     Keep Qwillio
                   </button>
                   <button
+                    type="button"
                     onClick={() => resolveConflict(conflict.id, 'remote')}
                     className="flex-1 py-2 rounded-xl text-sm font-medium border border-[#d2d2d7] text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors"
                   >

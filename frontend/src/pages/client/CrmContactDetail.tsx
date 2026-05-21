@@ -10,14 +10,57 @@ import {
 type TabKey = 'overview' | 'calls' | 'emails' | 'deals' | 'notes' | 'timeline';
 type ActivityType = 'call' | 'email' | 'note' | 'deal_update' | 'sms';
 
-const DEMO_CONTACTS: Record<string, any> = {
+interface ContactEnrichment {
+  employees?: string;
+  industry?: string;
+  annualRevenue?: string;
+  timezone?: string;
+}
+
+interface Contact {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: string;
+  leadScore: number;
+  company: string;
+  tags: string[];
+  address: string;
+  website: string;
+  rating: number;
+  createdAt: string;
+  lastActivity: string;
+  suggestedAction: string;
+  enrichment: ContactEnrichment;
+  notes: string;
+}
+
+interface TimelineEntry {
+  id: string;
+  type: ActivityType;
+  description: string;
+  timestamp: string;
+  date: string;
+}
+
+interface Deal {
+  id: string;
+  title: string;
+  value: number;
+  stage: string;
+  probability: number;
+  closeDate: string;
+}
+
+const DEMO_CONTACTS: Record<string, Contact> = {
   '1': {
     id: '1', name: 'Sarah Mitchell', email: 'sarah@brighthomerealty.com', phone: '+1 (555) 201-4892',
     status: 'client', leadScore: 9, company: 'Bright Home Realty', tags: ['VIP', 'Real Estate'],
     address: '4820 Oak Street, Phoenix, AZ 85001', website: 'brighthomerealty.com',
     rating: 4.8, createdAt: 'Feb 14, 2026', lastActivity: '2 hours ago',
-    suggestedAction: 'Schedule quarterly check-in â€” Sarah is a top client. Upsell opportunity for analytics add-on.',
-    enrichment: { employees: '12â€“50', industry: 'Real Estate', annualRevenue: '$2.4M', timezone: 'MST' },
+    suggestedAction: 'Schedule quarterly check-in – Sarah is a top client. Upsell opportunity for analytics add-on.',
+    enrichment: { employees: '12–50', industry: 'Real Estate', annualRevenue: '$2.4M', timezone: 'MST' },
     notes: 'Very responsive. Prefers Zoom calls. Referred 2 clients already. VIP treatment always.',
   },
   '2': {
@@ -25,34 +68,34 @@ const DEMO_CONTACTS: Record<string, any> = {
     status: 'prospect', leadScore: 7, company: 'AutoMax', tags: ['Auto', 'Hot Lead'],
     address: '901 Commerce Blvd, Dallas, TX 75201', website: 'automax.net',
     rating: 4.2, createdAt: 'Mar 10, 2026', lastActivity: '5 hours ago',
-    suggestedAction: 'Follow up by Friday â€” James is waiting on GM approval. Send a 1-page ROI summary to close.',
-    enrichment: { employees: '50â€“200', industry: 'Automotive Dealerships', annualRevenue: '$8.1M', timezone: 'CST' },
+    suggestedAction: 'Follow up by Friday – James is waiting on GM approval. Send a 1-page ROI summary to close.',
+    enrichment: { employees: '50–200', industry: 'Automotive Dealerships', annualRevenue: '$8.1M', timezone: 'CST' },
     notes: 'Decision requires GM sign-off. Budget approved. Very interested in the lead qualifier feature.',
   },
 };
 
-const FALLBACK_CONTACT = {
+const FALLBACK_CONTACT: Contact = {
   id: '?', name: 'Contact Not Found', email: 'unknown@example.com', phone: 'N/A',
   status: 'prospect', leadScore: 5, company: 'Unknown', tags: [],
   address: '', website: '', rating: 0, createdAt: 'N/A', lastActivity: 'N/A',
   suggestedAction: 'No data available.', enrichment: {}, notes: '',
 };
 
-const DEMO_TIMELINE: Record<string, any[]> = {
+const DEMO_TIMELINE: Record<string, TimelineEntry[]> = {
   '1': [
-    { id: 't1', type: 'call',        description: 'Inbound call â€” discussed renewal. Very happy with the service.', timestamp: '10:32 AM', date: 'Mar 22' },
+    { id: 't1', type: 'call',        description: 'Inbound call – discussed renewal. Very happy with the service.', timestamp: '10:32 AM', date: 'Mar 22' },
     { id: 't2', type: 'deal_update', description: 'Renewal deal created: $4,200 for Year 2.', timestamp: '10:45 AM', date: 'Mar 22' },
     { id: 't3', type: 'email',       description: 'Sent renewal proposal with updated pricing.', timestamp: '11:00 AM', date: 'Mar 20' },
     { id: 't4', type: 'note',        description: 'Sarah referred Linda Park. Added to CRM.', timestamp: '2:00 PM', date: 'Mar 18' },
   ],
   '2': [
-    { id: 't5', type: 'call',        description: 'Discovery call â€” 18 min. Strong interest.', timestamp: '3:22 PM', date: 'Mar 21' },
+    { id: 't5', type: 'call',        description: 'Discovery call – 18 min. Strong interest.', timestamp: '3:22 PM', date: 'Mar 21' },
     { id: 't6', type: 'email',       description: 'Sent follow-up proposal email.', timestamp: '8:50 AM', date: 'Mar 22' },
     { id: 't7', type: 'note',        description: 'GM approval expected by end of week.', timestamp: '2:10 PM', date: 'Mar 21' },
   ],
 };
 
-const DEMO_DEALS: Record<string, any[]> = {
+const DEMO_DEALS: Record<string, Deal[]> = {
   '1': [{ id: 'd1', title: 'Realty AI Assistant', value: 4200, stage: 'client', probability: 90, closeDate: 'Mar 28' }],
   '2': [{ id: 'd2', title: 'Auto Dealership Agent', value: 5100, stage: 'appointment', probability: 70, closeDate: 'Apr 5' }],
 };
@@ -88,9 +131,9 @@ const TABS: { key: TabKey; label: string }[] = [
 
 export default function CrmContactDetail() {
   const { id } = useParams<{ id: string }>();
-  const contact = (id && DEMO_CONTACTS[id]) ? DEMO_CONTACTS[id] : { ...FALLBACK_CONTACT, id: id || '?' };
-  const timeline = (id && DEMO_TIMELINE[id]) ? DEMO_TIMELINE[id] : [];
-  const deals = (id && DEMO_DEALS[id]) ? DEMO_DEALS[id] : [];
+  const contact: Contact = (id && DEMO_CONTACTS[id]) ? DEMO_CONTACTS[id] : { ...FALLBACK_CONTACT, id: id || '?' };
+  const timeline: TimelineEntry[] = (id && DEMO_TIMELINE[id]) ? DEMO_TIMELINE[id] : [];
+  const deals: Deal[] = (id && DEMO_DEALS[id]) ? DEMO_DEALS[id] : [];
 
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [editing, setEditing] = useState(false);
@@ -142,7 +185,10 @@ export default function CrmContactDetail() {
               </div>
             </div>
           </div>
-          <button onClick={() => setEditing(!editing)}
+          <button
+            type="button"
+            onClick={() => setEditing(!editing)}
+            aria-label={editing ? 'Cancel editing contact' : 'Edit contact'}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors flex-shrink-0">
             <Edit2 size={13} /> Edit
           </button>
@@ -180,8 +226,11 @@ export default function CrmContactDetail() {
       {/* Tabs */}
       <div className="flex items-center gap-1 bg-[#f5f5f7] rounded-xl p-1 mb-6 overflow-x-auto">
         {TABS.map(tab => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === tab.key ? 'bg-white shadow-sm text-[#1d1d1f]' : 'text-[#86868b] hover:text-[#1d1d1f]'
             }`}>{tab.label}</button>
         ))}
@@ -230,7 +279,7 @@ export default function CrmContactDetail() {
                     <div key={key} className="flex items-center gap-3">
                       <CheckCircle size={14} className="text-emerald-500 flex-shrink-0" />
                       <span className="text-xs text-[#86868b] w-24 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                      <span className="text-sm font-medium text-[#1d1d1f]">{val as string}</span>
+                      <span className="text-sm font-medium text-[#1d1d1f]">{val}</span>
                     </div>
                   ))}
                   {Object.keys(contact.enrichment || {}).length === 0 && (
@@ -250,14 +299,14 @@ export default function CrmContactDetail() {
                 <PhoneIcon size={32} className="mx-auto text-[#d2d2d7] mb-3" />
                 <p className="text-sm text-[#86868b]">No calls logged for this contact</p>
               </div>
-            ) : timeline.filter(a => a.type === 'call').map((a: any) => (
+            ) : timeline.filter(a => a.type === 'call').map((a: TimelineEntry) => (
               <div key={a.id} className="rounded-2xl border border-[#d2d2d7]/60 bg-white px-5 py-4 flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
                   <PhoneIcon size={14} className="text-blue-500" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-[#1d1d1f]">{a.description}</p>
-                  <p className="text-xs text-[#86868b] mt-0.5">{a.date} Â· {a.timestamp}</p>
+                  <p className="text-xs text-[#86868b] mt-0.5">{a.date} · {a.timestamp}</p>
                 </div>
               </div>
             ))}
@@ -272,14 +321,14 @@ export default function CrmContactDetail() {
                 <MailIcon size={32} className="mx-auto text-[#d2d2d7] mb-3" />
                 <p className="text-sm text-[#86868b]">No emails logged for this contact</p>
               </div>
-            ) : timeline.filter(a => a.type === 'email').map((a: any) => (
+            ) : timeline.filter(a => a.type === 'email').map((a: TimelineEntry) => (
               <div key={a.id} className="rounded-2xl border border-[#d2d2d7]/60 bg-white px-5 py-4 flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
                   <MailIcon size={14} className="text-indigo-500" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-[#1d1d1f]">{a.description}</p>
-                  <p className="text-xs text-[#86868b] mt-0.5">{a.date} Â· {a.timestamp}</p>
+                  <p className="text-xs text-[#86868b] mt-0.5">{a.date} · {a.timestamp}</p>
                 </div>
               </div>
             ))}
@@ -294,7 +343,7 @@ export default function CrmContactDetail() {
                 <TrendingUp size={32} className="mx-auto text-[#d2d2d7] mb-3" />
                 <p className="text-sm text-[#86868b]">No deals linked to this contact</p>
               </div>
-            ) : deals.map((d: any) => (
+            ) : deals.map((d: Deal) => (
               <div key={d.id} className="rounded-2xl border border-[#d2d2d7]/60 bg-white px-5 py-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-semibold text-[#1d1d1f]">{d.title}</p>
@@ -327,7 +376,9 @@ export default function CrmContactDetail() {
               rows={6}
               className="w-full px-4 py-3 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 resize-none"
             />
-            <button className="mt-3 px-4 py-2 text-xs font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] transition-colors">
+            <button
+              type="submit"
+              className="mt-3 px-4 py-2 text-xs font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] transition-colors">
               Save Notes
             </button>
           </div>
@@ -344,8 +395,8 @@ export default function CrmContactDetail() {
               </div>
             ) : (
               <div className="space-y-3">
-                {timeline.map((a: any, idx: number) => {
-                  const cfg = TYPE_CONFIG[a.type as ActivityType] || TYPE_CONFIG.note;
+                {timeline.map((a: TimelineEntry, idx: number) => {
+                  const cfg = TYPE_CONFIG[a.type] || TYPE_CONFIG.note;
                   const Icon = cfg.icon;
                   return (
                     <motion.div key={a.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}
@@ -356,7 +407,7 @@ export default function CrmContactDetail() {
                       <div className="flex-1 rounded-2xl border border-[#d2d2d7]/60 bg-white px-4 py-3">
                         <div className="flex items-center justify-between mb-1">
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.iconColor}`}>{cfg.label.toUpperCase()}</span>
-                          <span className="text-[11px] text-[#86868b]">{a.date} Â· {a.timestamp}</span>
+                          <span className="text-[11px] text-[#86868b]">{a.date} · {a.timestamp}</span>
                         </div>
                         <p className="text-[12px] text-[#86868b] leading-relaxed">{a.description}</p>
                       </div>

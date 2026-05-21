@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+﻿import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   RefreshCw, Phone, Search, Mail, MessageSquare, Play, Square,
   Activity, RotateCcw, ShieldCheck, type LucideIcon,
@@ -255,7 +255,7 @@ export default function LiveMonitor() {
             </div>
             <div className="h-3 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
               <div
-                className="h-full rounded-full transition-all duration-700"
+                className="h-full rounded-full transition-[width] duration-700 ease-out"
                 style={{
                   width: `${quotaPct}%`,
                   background: quotaPct >= 90 ? pro.bad : quotaPct >= 70 ? pro.warn : pro.accent,
@@ -459,7 +459,7 @@ export default function LiveMonitor() {
                 key={key}
                 onClick={() => runAction(key, path, label)}
                 disabled={actionLoading !== null}
-                className="flex flex-col items-center gap-2.5 p-4 rounded-xl text-center transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex flex-col items-center gap-2.5 p-4 rounded-xl text-center transition-colors hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   background: 'rgba(255,255,255,0.03)',
                   border: `1px solid ${pro.border}`,

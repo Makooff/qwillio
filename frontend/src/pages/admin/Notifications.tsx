@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, AlertTriangle, Flame, Zap, CheckCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -11,7 +11,7 @@ import {
   PageHeader, Card, SectionHead, GhostBtn,
 } from '../../components/pro/ProBlocks';
 
-// â”€â”€ Interfaces â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Interfaces ────────────────────────────────────────────────────────────────
 
 interface Anomaly {
   id: string;
@@ -54,7 +54,7 @@ interface ProspectsResponse {
   prospects?: HotLead[];
 }
 
-// â”€â”€ Unified notification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Unified notification ──────────────────────────────────────────────────────
 
 type NotifType = 'anomaly' | 'hot_lead' | 'evolution';
 
@@ -69,13 +69,13 @@ interface Notification {
   evolution?: EvolutionEvent;
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function timeAgo(iso: string): string {
   try {
     return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: fr });
   } catch {
-    return 'â€”';
+    return '—';
   }
 }
 
@@ -85,7 +85,7 @@ function formatMetricName(metric: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// â”€â”€ Icon components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Icon components ───────────────────────────────────────────────────────────
 
 function AnomalyIcon() {
   return (
@@ -121,7 +121,7 @@ function EvolutionIcon() {
   );
 }
 
-// â”€â”€ Notification Card Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Notification Card Row ─────────────────────────────────────────────────────
 
 interface NotifRowProps {
   notif: Notification;
@@ -138,20 +138,20 @@ function NotifRow({ notif, onMarkRead, onAction }: NotifRowProps) {
 
   if (type === 'anomaly' && anomaly) {
     title = formatMetricName(anomaly.metric);
-    subtitle = `Actuel: ${anomaly.current.toFixed(2)} (moy: ${anomaly.avg.toFixed(2)}, dÃ©viation: ${anomaly.deviation > 0 ? '+' : ''}${anomaly.deviation.toFixed(1)}Ïƒ)${anomaly.diagnosis ? ` â€” ${anomaly.diagnosis}` : ''}`;
-    actionLabel = 'Voir dÃ©tails';
+    subtitle = `Actuel: ${anomaly.current.toFixed(2)} (moy: ${anomaly.avg.toFixed(2)}, déviation: ${anomaly.deviation > 0 ? '+' : ''}${anomaly.deviation.toFixed(1)}σ)${anomaly.diagnosis ? ` — ${anomaly.diagnosis}` : ''}`;
+    actionLabel = 'Voir détails';
   } else if (type === 'hot_lead' && hotLead) {
     title = hotLead.businessName;
     const parts: string[] = [];
     if (hotLead.niche) parts.push(hotLead.niche);
     if (hotLead.city) parts.push(hotLead.city);
-    if (hotLead.interestLevel != null) parts.push(`IntÃ©rÃªt: ${hotLead.interestLevel}/10`);
-    subtitle = parts.join(' Â· ');
-    actionLabel = 'Business plan â†’';
+    if (hotLead.interestLevel != null) parts.push(`Intérêt: ${hotLead.interestLevel}/10`);
+    subtitle = parts.join(' · ');
+    actionLabel = 'Business plan →';
   } else if (type === 'evolution' && evolution) {
-    title = `StratÃ©gie Ã©voluÃ©e: ${evolution.agentType} / ${evolution.niche}`;
-    subtitle = `Version v${evolution.version} Â· Win rate ${evolution.winRate.toFixed(1)}% Â· ${evolution.sampleSize} samples`;
-    actionLabel = 'Voir Ã©volution';
+    title = `Stratégie évoluée: ${evolution.agentType} / ${evolution.niche}`;
+    subtitle = `Version v${evolution.version} · Win rate ${evolution.winRate.toFixed(1)}% · ${evolution.sampleSize} samples`;
+    actionLabel = 'Voir évolution';
   }
 
   return (
@@ -186,6 +186,7 @@ function NotifRow({ notif, onMarkRead, onAction }: NotifRowProps) {
         </p>
         {!read && (
           <button
+            type="button"
             className="mt-1.5 text-[11.5px] font-medium transition-colors hover:underline"
             style={{ color: pro.accent }}
             onClick={(e) => {
@@ -210,7 +211,7 @@ function NotifRow({ notif, onMarkRead, onAction }: NotifRowProps) {
   );
 }
 
-// â”€â”€ Skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function NotifSkeleton() {
   return (
@@ -232,7 +233,7 @@ function NotifSkeleton() {
   );
 }
 
-// â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export default function Notifications() {
   const navigate = useNavigate();
@@ -347,7 +348,7 @@ export default function Notifications() {
       {/* Header */}
       <PageHeader
         title="Notifications"
-        subtitle="Anomalies, hot leads et Ã©volutions IA"
+        subtitle="Anomalies, hot leads et évolutions IA"
         right={
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
@@ -394,7 +395,7 @@ export default function Notifications() {
         </Card>
       ) : (
         <div className="space-y-5">
-          {/* Section â€” Anomalies */}
+          {/* Section — Anomalies */}
           {anomalyNotifs.length > 0 && (
             <section>
               <SectionHead
@@ -415,7 +416,7 @@ export default function Notifications() {
             </section>
           )}
 
-          {/* Section â€” Hot Leads */}
+          {/* Section — Hot Leads */}
           {leadNotifs.length > 0 && (
             <section>
               <SectionHead title={`Hot Leads (${leadNotifs.length})`} />
@@ -434,10 +435,10 @@ export default function Notifications() {
             </section>
           )}
 
-          {/* Section â€” Evolutions */}
+          {/* Section — Évolutions */}
           {evolutionNotifs.length > 0 && (
             <section>
-              <SectionHead title={`Ã‰volutions IA (${evolutionNotifs.length})`} />
+              <SectionHead title={`Évolutions IA (${evolutionNotifs.length})`} />
               <Card>
                 <div>
                   {evolutionNotifs.map((notif) => (

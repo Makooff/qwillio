@@ -32,7 +32,18 @@ const riskPill = (score: number): 'ok' | 'warn' | 'bad' => {
 };
 
 export default function Retention() {
-  const [data, setData] = useState<any>(null);
+  interface RetentionData {
+    churnRate?: number;
+    retentionRate?: number;
+    atRiskCount?: number;
+    activeClients?: number;
+    history?: Array<{ date: string; rate: number }>;
+    monthlyRetention?: Array<{ month: string; rate: number }>;
+    churnByPlan?: Array<{ plan: string; rate: number }>;
+    atRisk?: Array<Record<string, unknown>>;
+    [key: string]: unknown;
+  }
+  const [data, setData] = useState<RetentionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 

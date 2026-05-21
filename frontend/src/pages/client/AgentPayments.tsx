@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   CreditCard, TrendingUp, DollarSign, Percent, Download,
@@ -89,7 +89,7 @@ export default function AgentPayments() {
           )}
           <button
             onClick={() => setStripeConnected(c => !c)}
-            className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${
+            className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
               stripeConnected
                 ? 'bg-[#f5f5f7] text-[#86868b] hover:bg-red-50 hover:text-red-600 border border-[#d2d2d7]/60'
                 : 'bg-[#635bff] text-white hover:bg-[#5851e8]'
@@ -100,29 +100,29 @@ export default function AgentPayments() {
         </div>
       </div>
 
-      {/* Revenue KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {[
-          { label: 'Monthly Revenue', value: `$${mrr.toFixed(2)}`, sub: 'paid this month', icon: DollarSign, color: 'emerald' },
-          { label: 'Average Ticket', value: `$${avgTicket.toFixed(2)}`, sub: 'per transaction', icon: TrendingUp, color: 'blue' },
-          { label: 'Payment Rate', value: `${paymentRate}%`, sub: 'of invoices paid', icon: Percent, color: 'purple' },
-        ].map((kpi, i) => (
-          <motion.div
-            key={kpi.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-            className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-5 hover:shadow-md hover:border-[#d2d2d7] transition-all"
-          >
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-${kpi.color}-50 text-${kpi.color}-600 mb-3`}>
-              <kpi.icon size={18} />
-            </div>
-            <p className="text-2xl font-bold tracking-tight">{kpi.value}</p>
-            <p className="text-xs text-[#86868b] mt-1">{kpi.label}</p>
-            <p className="text-[10px] text-[#86868b]/60 mt-0.5">{kpi.sub}</p>
-          </motion.div>
-        ))}
-      </div>
+      {/* Revenue Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="rounded-2xl border border-[#d2d2d7]/60 bg-white mb-8 flex flex-col sm:flex-row items-stretch divide-y sm:divide-y-0 sm:divide-x divide-[#d2d2d7]/60 overflow-hidden"
+      >
+        <div className="flex-[2] p-6">
+          <p className="text-[10px] font-semibold text-[#86868b] uppercase tracking-widest mb-2">Monthly Revenue</p>
+          <p className="text-4xl font-bold tracking-tight">${mrr.toFixed(2)}</p>
+          <p className="text-xs text-emerald-600 font-medium mt-2">paid this month</p>
+        </div>
+        <div className="flex-1 p-6">
+          <p className="text-[10px] font-semibold text-[#86868b] uppercase tracking-widest mb-2">Avg Ticket</p>
+          <p className="text-2xl font-bold">${avgTicket.toFixed(2)}</p>
+          <p className="text-[10px] text-[#86868b]/50 mt-2">per transaction</p>
+        </div>
+        <div className="flex-1 p-6">
+          <p className="text-[10px] font-semibold text-[#86868b] uppercase tracking-widest mb-2">Payment Rate</p>
+          <p className="text-2xl font-bold">{paymentRate}%</p>
+          <p className="text-[10px] text-[#86868b]/50 mt-2">of invoices paid</p>
+        </div>
+      </motion.div>
 
       {/* Payments Table */}
       <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6 mb-8">
@@ -133,7 +133,7 @@ export default function AgentPayments() {
           </div>
           <button
             onClick={() => exportCSV(PAYMENTS)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed] border border-[#d2d2d7]/60 transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed] border border-[#d2d2d7]/60 transition-colors"
           >
             <Download size={14} /> Export CSV
           </button>

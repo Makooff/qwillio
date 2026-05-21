@@ -5,6 +5,8 @@ import api from '../../services/api';
 import OrbsLoader from '../../components/OrbsLoader';
 import { pro } from '../../styles/pro-theme';
 import { PageHeader, Card, Pill } from '../../components/pro/ProBlocks';
+import { useToast } from '../../hooks/useToast';
+import ToastContainer from '../../components/ui/Toast';
 
 interface Item {
   id: string; type: string; step: number;
@@ -21,10 +23,28 @@ const fmt = (iso: string) => {
   return `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} · ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
+function getApiError(error: unknown, fallback: string): string {
+  if (
+    error != null &&
+    typeof error === 'object' &&
+    'response' in error &&
+    error.response != null &&
+    typeof error.response === 'object' &&
+    'data' in error.response &&
+    error.response.data != null &&
+    typeof error.response.data === 'object' &&
+    'error' in error.response.data
+  ) {
+    return String((error.response.data as { error: unknown }).error);
+  }
+  return fallback;
+}
+
 export default function CloserFollowUps() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingOnly, setPendingOnly] = useState(true);
+  const { toasts, add: addToast, remove: removeToast } = useToast();
 
   const load = async () => {
     setLoading(true);
@@ -40,7 +60,7 @@ export default function CloserFollowUps() {
   const cancel = async (id: string) => {
     if (!confirm('Annuler ce follow-up ?')) return;
     try { await api.delete(`/closer/followups/${id}`); await load(); }
-    catch (e: any) { alert(e?.response?.data?.error || 'Échec'); }
+    catch (err: unknown) { addToast(getApiError(err, 'Échec'), 'error'); }
   };
 
   if (loading && items.length === 0) return (
@@ -51,6 +71,7 @@ export default function CloserFollowUps() {
 
   return (
     <div className="space-y-5 max-w-[1000px]">
+      <ToastContainer toasts={toasts} remove={removeToast} />
       <PageHeader
         title="Follow-ups"
         subtitle={`${items.length} ${pendingOnly ? 'en attente' : 'au total'}`}
@@ -63,6 +84,7 @@ export default function CloserFollowUps() {
         ].map(opt => (
           <button
             key={String(opt.v)}
+            type="button"
             onClick={() => setPendingOnly(opt.v)}
             className="px-3 h-8 text-[12px] font-medium rounded-lg transition-colors"
             style={{
@@ -102,9 +124,11 @@ export default function CloserFollowUps() {
                 </Link>
                 <Pill color={sent ? 'ok' : 'neutral'}>{sent ? 'ENVOYÉ' : 'EN ATTENTE'}</Pill>
                 {!sent && (
-                  <button onClick={() => cancel(it.id)}
+                  <button type="button"
+                          onClick={() => cancel(it.id)}
                           className="p-1.5 rounded hover:bg-white/[0.06]"
-                          style={{ color: pro.textTer }}>
+                          style={{ color: pro.textTer }}
+                          aria-label="Annuler ce follow-up">
                     <Trash2 size={13} />
                   </button>
                 )}

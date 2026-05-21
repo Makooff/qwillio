@@ -1,4 +1,4 @@
-// === FILE: ClientAnalytics.tsx ===
+﻿// === FILE: ClientAnalytics.tsx ===
 import { useEffect, useState, useCallback } from 'react';
 import {
   BarChart3, Phone, Users, Clock, Zap, ArrowUp, ArrowDown,
@@ -204,7 +204,7 @@ export default function ClientAnalytics() {
             <button
               key={d}
               onClick={() => setPeriod(d)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
                 period === d ? 'bg-indigo-500 text-white' : 'text-white/50 hover:text-white/80'
               }`}
             >

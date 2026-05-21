@@ -1,276 +1,298 @@
-import { useState, useEffect, useRef } from 'react';
-import { useSEO } from '../hooks/useSEO';
+﻿import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, DollarSign, Users, Share2, BarChart3, Gift, Zap, Shield, Clock, TrendingUp, Percent } from 'lucide-react';
+import { ArrowRight, ChevronDown, Share2, Wallet, UserPlus } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
-
-function FadeIn({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) { setVisible(true); obs.disconnect(); }
-    }, { threshold: 0.1 });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
-  return (
-    <div ref={ref} className={`transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
-      {children}
-    </div>
-  );
-}
+import { useSEO } from '../hooks/useSEO';
 
 export default function Affiliate() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+
   useSEO({
-    title: 'Affiliate Program',
+    title: isFr ? 'Programme d\'affiliation · Qwillio' : 'Affiliate program · Qwillio',
     description: isFr
-      ? 'Programme affilié Qwillio – gagnez 30% de commission récurrente à vie. Cookie 90 jours, paiements mensuels via Stripe. Sans plafond.'
-      : 'Qwillio affiliate program – earn 30% recurring commission for life. 90-day cookie, monthly Stripe payouts. No cap, no limits.',
+      ? 'Gagnez 30% de commission récurrente. Aucun plafond.'
+      : 'Earn 30% recurring commission. No cap.',
     canonical: 'https://qwillio.com/affiliate',
   });
 
   const steps = [
     {
       num: '01',
+      accent: '#6366f1',
+      icon: UserPlus,
       title: isFr ? 'Inscrivez-vous' : 'Sign up',
-      desc: isFr ? 'Creez votre compte affilie en 2 minutes. Recevez votre lien unique et vos ressources marketing.' : 'Create your affiliate account in 2 minutes. Get your unique link and marketing resources.',
+      desc: isFr
+        ? 'Compte affilié créé en 30 secondes. Obtenez votre lien unique.'
+        : 'Affiliate account created in 30 seconds. Get your unique link.',
     },
     {
       num: '02',
+      accent: '#a855f7',
+      icon: Share2,
       title: isFr ? 'Partagez' : 'Share',
-      desc: isFr ? 'Partagez votre lien avec votre audience. Nous fournissons bannieres, emails et contenus prets a utiliser.' : 'Share your link with your audience. We provide banners, emails, and ready-to-use content.',
+      desc: isFr
+        ? 'Lien dans vos emails, sur LinkedIn, votre site. Tracking automatique.'
+        : 'Link in your emails, LinkedIn, your site. Automatic tracking.',
     },
     {
       num: '03',
-      title: isFr ? 'Gagnez' : 'Earn',
-      desc: isFr ? 'Touchez 30% de commission recurrente sur chaque client. Paiements mensuels via Stripe.' : 'Earn 30% recurring commission on every client. Monthly payouts via Stripe.',
+      accent: '#6366f1',
+      icon: Wallet,
+      title: isFr ? 'Encaissez' : 'Cash in',
+      desc: isFr
+        ? 'Virement mensuel. 30% du MRR de chaque client recommandé, à vie.'
+        : 'Monthly payout. 30% of recurring revenue from every referred customer, for life.',
     },
   ];
 
-  const benefits = [
-    { icon: Percent, title: isFr ? '30% recurrent' : '30% recurring', desc: isFr ? 'Commission a vie sur chaque client referé.' : 'Lifetime commission on every referred client.' },
-    { icon: Clock, title: isFr ? 'Cookie 90 jours' : '90-day cookie', desc: isFr ? 'Vos referrals sont trackes pendant 90 jours.' : 'Your referrals are tracked for 90 days.' },
-    { icon: DollarSign, title: isFr ? 'Paiements mensuels' : 'Monthly payouts', desc: isFr ? 'Virements automatiques via Stripe chaque mois.' : 'Automatic payouts via Stripe every month.' },
-    { icon: BarChart3, title: isFr ? 'Dashboard temps reel' : 'Real-time dashboard', desc: isFr ? 'Suivez vos clics, conversions et revenus.' : 'Track your clicks, conversions, and revenue.' },
-    { icon: Gift, title: isFr ? 'Ressources marketing' : 'Marketing resources', desc: isFr ? 'Bannieres, emails, contenus prets a partager.' : 'Banners, emails, ready-to-share content.' },
-    { icon: Shield, title: isFr ? 'Pas de limite' : 'No limits', desc: isFr ? 'Aucun plafond de commission. Plus vous referez, plus vous gagnez.' : 'No commission cap. The more you refer, the more you earn.' },
-  ];
+  const faqs = isFr
+    ? [
+        { q: 'Quel est le taux de commission ?', a: '30% du MRR de chaque client recommandé, versé chaque mois tant que le client reste actif. Pas de plafond, pas de dégressivité.' },
+        { q: 'Comment suis-je payé ?', a: 'Virement bancaire automatique le 5 de chaque mois. Seuil minimum de $50. Reporting transparent dans votre dashboard affilié.' },
+        { q: 'Y a-t-il un cookie de tracking ?', a: 'Oui, 90 jours. Si un prospect clique sur votre lien puis souscrit dans les 90 jours, la commission vous revient.' },
+        { q: 'Puis-je faire de l\'affiliation et être client ?', a: 'Bien sûr. Beaucoup de nos meilleurs affiliés sont des clients qui recommandent l\'outil qu\'ils utilisent eux-mêmes.' },
+      ]
+    : [
+        { q: 'What is the commission rate?', a: '30% of recurring revenue from each referred customer, paid monthly for as long as they stay active. No cap, no decay.' },
+        { q: 'How am I paid?', a: 'Automatic bank transfer on the 5th of each month. Minimum threshold $50. Transparent reporting in your affiliate dashboard.' },
+        { q: 'Is there a tracking cookie?', a: 'Yes, 90 days. If a prospect clicks your link and subscribes within 90 days, the commission goes to you.' },
+        { q: 'Can I be both an affiliate and a customer?', a: 'Of course. Many of our best affiliates are customers who recommend the tool they use themselves.' },
+      ];
 
-  const earnings = [
-    { plan: 'Starter', price: '$497/mo', commission: '$149', yearly: '$1,788' },
-    { plan: 'Pro', price: '$1,297/mo', commission: '$389', yearly: '$4,668' },
-    { plan: 'Enterprise', price: '$2,497/mo', commission: '$749', yearly: '$8,988' },
-  ];
-
-  const idealFor = [
-    { icon: Users, title: isFr ? 'Consultants' : 'Consultants', desc: isFr ? 'Conseillers en marketing digital, business coaches.' : 'Digital marketing advisors, business coaches.' },
-    { icon: Share2, title: isFr ? 'Influenceurs' : 'Influencers', desc: isFr ? 'Createurs de contenu, YouTubers, podcasters.' : 'Content creators, YouTubers, podcasters.' },
-    { icon: TrendingUp, title: isFr ? 'Agences' : 'Agencies', desc: isFr ? 'Agences web, marketing et communication.' : 'Web, marketing and communication agencies.' },
-    { icon: Zap, title: isFr ? 'Revendeurs SaaS' : 'SaaS resellers', desc: isFr ? 'Partenaires tech qui recommandent des outils.' : 'Tech partners who recommend tools.' },
+  const tiers = [
+    {
+      name: isFr ? 'Standard' : 'Standard',
+      desc: isFr ? '1 à 9 clients actifs' : '1 to 9 active customers',
+      rate: '30%',
+      popular: false,
+    },
+    {
+      name: 'Gold',
+      desc: isFr ? '10 à 49 clients actifs' : '10 to 49 active customers',
+      rate: '35%',
+      popular: true,
+    },
+    {
+      name: 'Platinum',
+      desc: isFr ? '50+ clients actifs' : '50+ active customers',
+      rate: '40%',
+      popular: false,
+    },
   ];
 
   return (
     <div className="bg-white text-[#1d1d1f] min-h-screen">
       <PublicNavbar />
 
-      {/* Hero */}
-      <section className="pt-28 pb-14 md:pt-44 md:pb-24 text-center px-6">
-        <FadeIn>
-          <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-4">{isFr ? 'Programme affilié' : 'Affiliate program'}</p>
-          <h1 className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.05] max-w-3xl mx-auto">
-            {isFr ? 'Recommandez. ' : 'Refer. '}
-            <span className="bg-gradient-to-r from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">
-              {isFr ? 'Gagnez.' : 'Earn.'}
-            </span>
-          </h1>
-        </FadeIn>
-        <FadeIn delay={100}>
-          <p className="mt-6 text-lg md:text-xl text-[#86868b] max-w-2xl mx-auto leading-relaxed">
-            {isFr
-              ? 'Touchez 30% de commission recurrente sur chaque client que vous nous envoyez. Pas de plafond, pas de limite.'
-              : 'Earn 30% recurring commission on every client you send our way. No cap, no limits.'}
-          </p>
-        </FadeIn>
-        <FadeIn delay={200}>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/register?affiliate=true"
-              className="inline-flex items-center gap-2 bg-[#6366f1] text-white text-base font-medium px-8 py-3.5 rounded-full hover:bg-[#4f46e5] transition-colors"
-            >
-              {isFr ? 'Devenir affilie' : 'Become an affiliate'} <ArrowRight size={18} />
-            </Link>
-          </div>
-        </FadeIn>
-
-        {/* Stats */}
-        <FadeIn delay={400}>
-          <div className="mt-12 flex flex-row items-stretch justify-center divide-x divide-[#d2d2d7] text-center mx-auto">
-            <div className="px-8 py-2">
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">30%</p>
-              <p className="text-sm text-[#86868b] mt-1">{isFr ? 'Commission' : 'Commission'}</p>
+      <main id="main">
+        {/* ── HERO ──────────────────────────────────────────── */}
+        <section
+          aria-labelledby="aff-heading"
+          className="pt-24 sm:pt-28 md:pt-36 pb-12 md:pb-20 px-5 sm:px-6"
+        >
+          <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.4fr_1fr] gap-12 items-end">
+            <div>
+              <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4" style={{ color: '#a855f7' }}>
+                {isFr ? 'Programme d\'affiliation' : 'Affiliate program'}
+              </span>
+              <h1
+                id="aff-heading"
+                className="text-[clamp(2.6rem,6vw,5rem)] font-semibold tracking-[-0.04em] leading-[0.98]"
+              >
+                {isFr ? (
+                  <>
+                    <span className="font-serif italic" style={{ color: '#6366f1' }}>30% de commission.</span><br />
+                    <span className="font-serif italic" style={{ color: '#a855f7' }}>À vie.</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-serif italic" style={{ color: '#6366f1' }}>30% commission.</span><br />
+                    <span className="font-serif italic" style={{ color: '#a855f7' }}>For life.</span>
+                  </>
+                )}
+              </h1>
             </div>
-            <div className="px-8 py-2">
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">90 {isFr ? 'jours' : 'days'}</p>
-              <p className="text-sm text-[#86868b] mt-1">Cookie</p>
-            </div>
-            <div className="px-8 py-2">
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight">{isFr ? 'À vie' : 'Lifetime'}</p>
-              <p className="text-sm text-[#86868b] mt-1">{isFr ? 'Récurrence' : 'Recurring'}</p>
-            </div>
-          </div>
-        </FadeIn>
-      </section>
-
-      <div className="max-w-[1120px] mx-auto px-6"><div className="border-t border-[#d2d2d7]/60" /></div>
-
-      {/* How it works */}
-      <section className="py-24 md:py-32 px-6 bg-[#f5f5f7]">
-        <div className="max-w-[1120px] mx-auto">
-          <FadeIn>
-            <div className="text-center mb-20">
-              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{isFr ? 'Comment ca marche' : 'How it works'}</p>
-              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">
-                {isFr ? 'Simple comme 1, 2, 3.' : 'Simple as 1, 2, 3.'}
-              </h2>
-            </div>
-          </FadeIn>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
-            {steps.map((step, i) => (
-              <FadeIn key={i} delay={i * 150}>
-                <div className="text-center">
-                  <p className="text-6xl md:text-7xl font-bold mb-6 text-[#6366f1]">{step.num}</p>
-                  <h3 className="text-xl font-semibold mb-3 tracking-tight">{step.title}</h3>
-                  <p className="text-[15px] text-[#86868b] leading-relaxed max-w-xs mx-auto">{step.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits */}
-      <section className="py-24 md:py-32 px-6">
-        <div className="max-w-[1120px] mx-auto">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{isFr ? 'Avantages' : 'Benefits'}</p>
-              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">
-                {isFr ? 'Pourquoi nous rejoindre.' : 'Why join us.'}
-              </h2>
-            </div>
-          </FadeIn>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {benefits.map((b, i) => (
-              <FadeIn key={i} delay={i * 80}>
-                <div className="rounded-2xl border border-[#e5e5ea] p-6 hover:border-[#6366f1]/30 hover:shadow-lg hover:shadow-[#6366f1]/5 transition-all duration-300 group h-full">
-                  <div className="w-12 h-12 rounded-xl bg-[#6366f1]/10 flex items-center justify-center mb-4 group-hover:bg-[#6366f1]/15 transition-colors">
-                    <b.icon size={24} className="text-[#6366f1]" strokeWidth={1.5} />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{b.title}</h3>
-                  <p className="text-sm text-[#86868b] leading-relaxed">{b.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div className="max-w-[1120px] mx-auto px-6"><div className="border-t border-[#d2d2d7]/60" /></div>
-
-      {/* Earnings calculator */}
-      <section className="py-24 md:py-32 px-6 bg-[#1d1d1f] text-white">
-        <div className="max-w-[1120px] mx-auto">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <p className="text-sm font-semibold text-[#818cf8] uppercase tracking-wider mb-3">{isFr ? 'Combien pouvez-vous gagner' : 'How much can you earn'}</p>
-              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">
-                {isFr ? 'Calculez vos gains.' : 'Calculate your earnings.'}
-              </h2>
-              <p className="text-lg text-white/50 mt-4">
-                {isFr ? 'Commission de 30% sur chaque plan, chaque mois.' : '30% commission on every plan, every month.'}
-              </p>
-            </div>
-          </FadeIn>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {earnings.map((e, i) => (
-              <FadeIn key={i} delay={i * 100}>
-                <div className={`rounded-2xl p-8 text-center ${i === 1 ? 'bg-[#6366f1] ring-2 ring-[#6366f1]' : 'bg-white/5 border border-white/10'}`}>
-                  <h3 className="text-xl font-semibold mb-2">{e.plan}</h3>
-                  <p className={`text-sm mb-6 ${i === 1 ? 'text-white/60' : 'text-white/40'}`}>{e.price}</p>
-                  <p className="text-4xl font-semibold tracking-tight mb-1">{e.commission}</p>
-                  <p className={`text-sm ${i === 1 ? 'text-white/60' : 'text-white/40'}`}>{isFr ? 'par mois par client' : 'per month per client'}</p>
-                  <div className="mt-6 pt-6 border-t border-white/10">
-                    <p className="text-2xl font-semibold text-[#818cf8]">{e.yearly}</p>
-                    <p className={`text-xs ${i === 1 ? 'text-white/50' : 'text-white/30'}`}>{isFr ? 'par an par client' : 'per year per client'}</p>
-                  </div>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-          <FadeIn delay={400}>
-            <div className="mt-12 text-center">
-              <p className="text-white/50 text-sm">
-                {isFr
-                  ? '10 clients Pro = $3,890/mois en commissions recurrentes'
-                  : '10 Pro clients = $3,890/month in recurring commissions'}
-              </p>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* Ideal for */}
-      <section className="py-24 md:py-32 px-6">
-        <div className="max-w-[1120px] mx-auto">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-3">{isFr ? 'Pour qui' : 'Ideal for'}</p>
-              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">
-                {isFr ? 'Fait pour vous.' : 'Made for you.'}
-              </h2>
-            </div>
-          </FadeIn>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {idealFor.map((item, i) => (
-              <FadeIn key={i} delay={i * 80}>
-                <div className="rounded-2xl border border-[#e5e5ea] p-6 hover:border-[#6366f1]/30 hover:shadow-lg transition-all duration-300 group text-center h-full">
-                  <div className="w-14 h-14 rounded-2xl bg-[#6366f1]/10 flex items-center justify-center mb-4 mx-auto group-hover:bg-[#6366f1]/15 transition-colors">
-                    <item.icon size={28} className="text-[#6366f1]" strokeWidth={1.5} />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                  <p className="text-sm text-[#86868b] leading-relaxed">{item.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-24 md:py-32 px-6 bg-gradient-to-br from-[#6366f1] to-[#a855f7] text-white">
-        <div className="max-w-[800px] mx-auto text-center">
-          <FadeIn>
-            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-6">
-              {isFr ? 'Pret a gagner avec Qwillio ?' : 'Ready to earn with Qwillio?'}
-            </h2>
-            <p className="text-lg text-white/70 mb-10 max-w-md mx-auto">
-              {isFr ? 'Rejoignez notre programme affilie et commencez a generer des revenus recurrents des aujourd\'hui.' : 'Join our affiliate program and start generating recurring revenue today.'}
+            <p className="text-[#525257] text-[15px] leading-relaxed max-w-[400px] pb-3">
+              {isFr
+                ? 'Pas de plafond. Pas de dégressivité. Pas de minimum mensuel. Recommandez Qwillio, encaissez chaque mois.'
+                : 'No cap. No decay. No monthly minimum. Recommend Qwillio, get paid every month.'}
             </p>
-            <Link
-              to="/register?affiliate=true"
-              className="inline-flex items-center gap-2 bg-white text-[#6366f1] text-base font-medium px-8 py-3.5 rounded-full hover:bg-white/90 transition-colors"
+          </div>
+        </section>
+
+        {/* ── HOW IT WORKS ─────────────────────────────────── */}
+        <section
+          aria-labelledby="how-heading"
+          className="py-12 sm:py-16 md:py-24 px-6 border-t border-[#1d1d1f]/8"
+        >
+          <div className="max-w-[1240px] mx-auto">
+            <h2
+              id="how-heading"
+              className="text-[clamp(1.6rem,3vw,2.4rem)] font-semibold tracking-[-0.025em] mb-12 max-w-[640px]"
             >
-              {isFr ? 'Devenir affilie' : 'Become an affiliate'} <ArrowRight size={18} />
-            </Link>
-            <p className="mt-4 text-sm text-white/40">{isFr ? 'Gratuit. Aucun engagement.' : 'Free. No commitment.'}</p>
-          </FadeIn>
-        </div>
-      </section>
+              {isFr ? <>Trois étapes. <span className="text-[#86868b] font-normal">Premier virement sous 30 jours.</span></>
+                : <>Three steps. <span className="text-[#86868b] font-normal">First payout within 30 days.</span></>}
+            </h2>
+
+            <ol className="grid md:grid-cols-3 gap-8 md:gap-12" role="list">
+              {steps.map((s) => (
+                <li key={s.num} className="border-t-2 pt-5" style={{ borderColor: s.accent }}>
+                  <p className="text-[11px] font-bold tracking-[0.2em] mb-3" style={{ color: s.accent }}>{s.num}</p>
+                  <div className="flex items-center gap-3 mb-3">
+                    <s.icon size={20} style={{ color: s.accent }} aria-hidden="true" />
+                    <h3 className="text-xl font-semibold tracking-[-0.015em]">{s.title}</h3>
+                  </div>
+                  <p className="text-[#525257] leading-relaxed text-[15px]">{s.desc}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ── COMMISSION TIERS — bento ─────────────────────── */}
+        <section
+          aria-labelledby="tiers-heading"
+          className="py-12 sm:py-16 md:py-24 px-6 bg-[#fafaf8] border-y border-[#1d1d1f]/8"
+        >
+          <div className="max-w-[1240px] mx-auto">
+            <h2
+              id="tiers-heading"
+              className="text-[clamp(1.6rem,3vw,2.4rem)] font-semibold tracking-[-0.025em] mb-10 max-w-[600px]"
+            >
+              {isFr
+                ? <>Plus vous recommandez, <span className="font-serif italic" style={{ color: '#a855f7' }}>plus vous touchez.</span></>
+                : <>The more you refer, <span className="font-serif italic" style={{ color: '#a855f7' }}>the more you earn.</span></>}
+            </h2>
+
+            <div className="grid lg:grid-cols-[1fr_1.4fr_1fr] gap-5">
+              {tiers.map((t) => {
+                const isGold = t.popular;
+                return (
+                  <article
+                    key={t.name}
+                    className={`relative rounded-[2rem] p-8 md:p-10 ${
+                      isGold ? 'text-white' : 'border border-[#1d1d1f]/10 bg-white text-[#1d1d1f]'
+                    }`}
+                    style={
+                      isGold
+                        ? { background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 60%, #a855f7 115%)' }
+                        : undefined
+                    }
+                  >
+                    <p className={`text-[11px] font-bold tracking-[0.18em] uppercase mb-3 ${isGold ? 'text-white/55' : 'text-[#86868b]'}`}>
+                      {t.name}
+                    </p>
+                    <p className={`text-[clamp(2.6rem,4vw,3.4rem)] font-semibold tracking-[-0.04em] tabular-nums mb-2 ${isGold ? 'text-white' : 'text-[#1d1d1f]'}`}>
+                      {t.rate}
+                    </p>
+                    <p className={`text-sm leading-relaxed ${isGold ? 'text-white/70' : 'text-[#525257]'}`}>
+                      {t.desc}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ── TESTIMONIAL ─────────────────────────────────── */}
+        <section className="py-12 sm:py-16 md:py-24 px-6">
+          <div className="max-w-[1240px] mx-auto">
+            <figure
+              className="rounded-[2rem] px-8 md:px-16 py-14 md:py-20"
+              style={{ background: '#a855f7' }}
+            >
+              <blockquote className="text-white text-[clamp(1.4rem,3vw,2.2rem)] font-semibold tracking-[-0.025em] leading-[1.25] max-w-[820px]">
+                <span className="font-serif italic text-white/40 text-[1.8em] leading-none mr-2 align-[-0.18em]" aria-hidden="true">"</span>
+                {isFr
+                  ? 'Je touche $4 800 par mois sans rien faire. Trois clients recommandés il y a 18 mois, toujours actifs aujourd\'hui.'
+                  : 'I make $4,800 a month doing nothing. Three customers I referred 18 months ago, still active today.'}
+              </blockquote>
+              <figcaption className="mt-6 text-white/80 text-sm">
+                <span className="font-semibold text-white">Thomas K.</span>
+                <span className="text-white/60"> — {isFr ? 'Consultant indépendant' : 'Independent consultant'}</span>
+              </figcaption>
+            </figure>
+          </div>
+        </section>
+
+        {/* ── FAQ ─────────────────────────────────────────── */}
+        <section
+          aria-labelledby="faq-heading"
+          className="py-12 sm:py-16 md:py-24 px-6"
+        >
+          <div className="max-w-[900px] mx-auto">
+            <h2
+              id="faq-heading"
+              className="text-[clamp(1.8rem,3.5vw,2.8rem)] font-semibold tracking-[-0.025em] mb-8"
+            >
+              {isFr ? 'Questions fréquentes.' : 'Frequently asked.'}
+            </h2>
+            <ul role="list" className="space-y-2">
+              {faqs.map((f, i) => {
+                const open = openFaq === i;
+                return (
+                  <li key={f.q} className="border-b border-[#1d1d1f]/10">
+                    <button
+                      type="button"
+                      onClick={() => setOpenFaq(open ? null : i)}
+                      aria-expanded={open}
+                      className="w-full text-left py-5 flex items-center justify-between gap-4 group"
+                    >
+                      <span className="text-base md:text-lg font-medium text-[#1d1d1f] group-hover:text-[#a855f7] transition-colors">
+                        {f.q}
+                      </span>
+                      <ChevronDown
+                        size={18}
+                        className={`flex-shrink-0 transition-transform duration-300 ${open ? 'rotate-180 text-[#a855f7]' : 'text-[#86868b]'}`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                    {open && (
+                      <p className="text-[#525257] text-[15px] leading-relaxed pb-6 pr-8 max-w-[720px]">{f.a}</p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+
+        {/* ── FINAL CTA ──────────────────────────────────── */}
+        <section className="py-16 sm:py-20 md:py-32 px-6">
+          <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.5fr_1fr] gap-10 items-end border-t-2 border-[#1d1d1f] pt-12 md:pt-16">
+            <h2 className="text-[clamp(2.2rem,5vw,4.2rem)] font-semibold tracking-[-0.035em] leading-[0.98]">
+              {isFr ? (
+                <>
+                  Prêt à toucher<br />
+                  <span className="font-serif italic" style={{ color: '#a855f7' }}>chaque mois ?</span>
+                </>
+              ) : (
+                <>
+                  Ready to get paid<br />
+                  <span className="font-serif italic" style={{ color: '#a855f7' }}>every month?</span>
+                </>
+              )}
+            </h2>
+            <div className="flex flex-col items-start gap-4 lg:items-end lg:text-right pb-4">
+              <p className="text-[#525257] text-[15px] leading-relaxed max-w-[320px] lg:ml-auto">
+                {isFr ? 'Compte créé en 30 secondes. Lien unique immédiat.' : 'Account in 30 seconds. Unique link instantly.'}
+              </p>
+              <Link
+                to="/register?role=affiliate"
+                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#a855f7] transition-colors"
+              >
+                {isFr ? 'Devenir affilié' : 'Become an affiliate'}
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
 
       <PublicFooter />
     </div>

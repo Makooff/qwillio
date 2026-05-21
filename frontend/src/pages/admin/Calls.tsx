@@ -118,6 +118,7 @@ function Chip({
 }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="h-8 px-3.5 text-[12px] font-medium rounded-xl transition-colors"
       style={{
@@ -308,7 +309,7 @@ export default function AdminCalls() {
             style={{ color: pro.text }}
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ color: pro.textTer }}>
+            <button type="button" onClick={() => setSearch('')} style={{ color: pro.textTer }}>
               <X className="w-3.5 h-3.5" />
             </button>
           )}
