@@ -36,6 +36,11 @@ basePrisma.$on('error', (e: any) => {
     msg.includes('Error { kind: Closed') ||
     msg.includes('Server has closed the connection') ||
     msg.includes('Engine is not yet connected') ||
+    msg.includes("Can't reach database server") ||
+    msg.includes('Connection refused') ||
+    msg.includes('ECONNRESET') ||
+    msg.includes('P1001') ||
+    msg.includes('P1008') ||
     msg.includes('relation "bot_log" does not exist') ||
     msg.includes('42P01')
   ) return;
@@ -63,7 +68,7 @@ const RETRYABLE_ERRORS = [
   'Timed out fetching a new connection from the connection pool',
   "Can't reach database server",
 ];
-const MAX_RETRIES = 8;
+const MAX_RETRIES = 12;
 // "Can't reach database server" usually means Neon compute is cold-starting
 // (up to 30s on the free plan). Give those much longer backoffs than transient
 // pool/connection hiccups, which recover in <500ms.
@@ -80,10 +85,10 @@ const prisma = basePrisma.$extends({
           const isRetryable = RETRYABLE_ERRORS.some(e => msg.includes(e));
           if (isRetryable && attempt < MAX_RETRIES) {
             const isColdStart = COLDSTART_PATTERNS.some(e => msg.includes(e));
-            // Cold-start: 1s, 2s, 4s, 8s, 8s (up to ~23s total — Neon usually
-            // wakes within 5-10s). Transient: 250, 500, 1000, 2000, 4000 ms.
+            // Cold-start: 1s, 2s, 4s, 8s, 10s… (up to ~90s total — Neon free plan).
+            // Transient: 250, 500, 1000, 2000, 4000 ms.
             const backoff = isColdStart
-              ? Math.min(8000, 1000 * Math.pow(2, attempt))
+              ? Math.min(10000, 1000 * Math.pow(2, attempt))
               : 250 * Math.pow(2, attempt);
             if (attempt >= 1) {
               logger.warn(`[prisma] ${isColdStart ? 'cold-start' : 'transient'} DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms…`);
