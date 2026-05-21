@@ -445,7 +445,7 @@ async function startServer() {
         await botLoop.start();
         logger.info('Bot loop auto-started in production ✅');
       } catch (botErr) {
-        logger.error('Bot loop auto-start failed (non-fatal):', botErr);
+        logger.warn('Bot loop auto-start failed (non-fatal, will retry on first cron tick):', botErr);
       }
     }
 
