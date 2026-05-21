@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, Mail, Check, Eye, EyeOff } from 'lucide-react';
@@ -46,6 +46,12 @@ const QUOTES = [
 
 export default function Register() {
   useSEO({ title: 'Créer un compte — Qwillio', noindex: true });
+
+  // Silent pre-warm: kick the backend on page load so Neon is awake before Google popup completes
+  useEffect(() => {
+    const url = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/api$/, '');
+    fetch(`${url}/api/health`, { signal: AbortSignal.timeout(30000) }).catch(() => {});
+  }, []);
 
   const [step, setStep]           = useState<Step>('form');
   const [email, setEmail]         = useState('');

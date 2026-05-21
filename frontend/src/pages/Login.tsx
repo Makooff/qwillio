@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, Eye, EyeOff, BarChart2, Phone, Clock } from 'lucide-react';
@@ -42,6 +42,12 @@ export default function Login() {
   const [showPw, setShowPw]   = useState(false);
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Silent pre-warm: kick the backend on page load so Neon is awake before Google popup completes
+  useEffect(() => {
+    const url = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/api$/, '');
+    fetch(`${url}/api/health`, { signal: AbortSignal.timeout(30000) }).catch(() => {});
+  }, []);
 
   const { login } = useAuthStore();
   const navigate  = useNavigate();
