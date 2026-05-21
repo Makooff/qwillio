@@ -63,9 +63,9 @@ const RETRYABLE_ERRORS = [
   'Timed out fetching a new connection from the connection pool',
   "Can't reach database server",
 ];
-const MAX_RETRIES = 5;
+const MAX_RETRIES = 8;
 // "Can't reach database server" usually means Neon compute is cold-starting
-// (5-10s on the free plan). Give those much longer backoffs than transient
+// (up to 30s on the free plan). Give those much longer backoffs than transient
 // pool/connection hiccups, which recover in <500ms.
 const COLDSTART_PATTERNS = ["Can't reach database server", 'Connection refused', 'ECONNRESET'];
 
