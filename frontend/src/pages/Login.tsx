@@ -43,8 +43,11 @@ export default function Login() {
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Clear any stale error when the page first mounts
-  useEffect(() => { setError(''); }, []);
+  // Pre-warm Render backend on mount so it's awake before the user submits
+  useEffect(() => {
+    const url = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/api$/, '');
+    fetch(`${url}/api/health`, { method: 'GET' }).catch(() => {/* silent — just waking the dyno */});
+  }, []);
 
   const { login } = useAuthStore();
   const navigate  = useNavigate();

@@ -1,12 +1,12 @@
-﻿import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, Mail, Check, Eye, EyeOff } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
+import GoogleAuthButton from '../components/GoogleAuthButton';
 import { useSEO } from '../hooks/useSEO';
 import api from '../services/api';
 
-/* â”€â”€ Design tokens (emerald-drenched dark) â”€â”€ */
 const D = {
   bg:        'oklch(8% 0.009 265)',
   border:    'oklch(22% 0.012 265 / 0.55)',
@@ -14,8 +14,6 @@ const D = {
   text2:     'oklch(65% 0.007 265)',
   text3:     'oklch(42% 0.006 265)',
   accent:    'oklch(56% 0.22 264)',
-  accentHi:  'oklch(63% 0.21 264)',
-  accentDim: 'oklch(56% 0.22 264 / 0.12)',
   accentBrd: 'oklch(56% 0.22 264 / 0.40)',
   ok:        'oklch(72% 0.18 145)',
   okDim:     'oklch(72% 0.18 145 / 0.12)',
@@ -28,51 +26,42 @@ const D = {
   lText2:    'oklch(40% 0.006 0)',
 } as const;
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  background: 'oklch(6% 0.007 265)',
-  border: `1px solid ${D.border}`,
-  borderRadius: 10,
-  padding: '13px 16px',
-  color: D.text,
-  fontSize: 15,
-  fontFamily: `'Outfit', system-ui, sans-serif`,
-  outline: 'none',
-  transition: 'border-color 0.15s',
-  boxSizing: 'border-box',
-};
+const inputCls = `
+  w-full bg-[oklch(6%_0.007_265)] border border-[oklch(22%_0.012_265/0.55)]
+  rounded-[10px] px-4 py-[13px] text-[oklch(95%_0.004_265)] text-[15px]
+  font-[Outfit,system-ui,sans-serif] outline-none
+  transition-colors focus:border-[oklch(56%_0.22_264/0.40)]
+  placeholder:text-[oklch(35%_0.006_265)]
+`.replace(/\s+/g, ' ').trim();
 
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 11,
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.08em',
-  color: D.text3,
-  marginBottom: 8,
-};
+const labelCls = 'block text-[11px] font-bold uppercase tracking-[0.08em] text-[oklch(42%_0.006_265)] mb-2';
 
 type Step = 'form' | 'activation';
 
 const QUOTES = [
-  { text: `Nos commerciaux ne font plus que du closing. Qwillio gÃ¨re tout le reste.`, author: 'Alexandre B., Propulse Agency' },
-  { text: `ROI positif dÃ¨s la premiÃ¨re semaine. La voix est indiscernable d'un vrai commercial.`, author: 'Thomas M., Axion Partners' },
-  { text: `On a divisÃ© notre coÃ»t d'acquisition par trois en un mois.`, author: 'Sophie R., ImmoPro Lyon' },
+  { text: `Nos commerciaux ne font plus que du closing. Qwillio gère tout le reste.`, author: 'Alexandre B., Propulse Agency' },
+  { text: `ROI positif dès la première semaine. La voix est indiscernable d'un vrai commercial.`, author: 'Thomas M., Axion Partners' },
+  { text: `On a divisé notre coût d'acquisition par trois en un mois.`, author: 'Sophie R., ImmoPro Lyon' },
 ];
 
 export default function Register() {
-  useSEO({ title: 'CrÃ©er un compte â€” Qwillio', noindex: true });
+  useSEO({ title: 'Créer un compte — Qwillio', noindex: true });
 
-  const [step, setStep]              = useState<Step>('form');
-  const [email, setEmail]            = useState('');
-  const [password, setPassword]      = useState('');
-  const [confirmPw, setConfirmPw]    = useState('');
-  const [showPw, setShowPw]          = useState(false);
-  const [error, setError]            = useState('');
-  const [loading, setLoading]        = useState(false);
-  const [resending, setResending]    = useState(false);
-  const [resendOk, setResendOk]      = useState(false);
-  const [quoteIdx]                   = useState(() => Math.floor(Math.random() * QUOTES.length));
+  useEffect(() => {
+    const url = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/api$/, '');
+    fetch(`${url}/api/health`, { method: 'GET' }).catch(() => {});
+  }, []);
+
+  const [step, setStep]           = useState<Step>('form');
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [showPw, setShowPw]       = useState(false);
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendOk, setResendOk]   = useState(false);
+  const [quoteIdx]                = useState(() => Math.floor(Math.random() * QUOTES.length));
 
   const { register } = useAuthStore();
   const navigate      = useNavigate();
@@ -81,7 +70,7 @@ export default function Register() {
     e.preventDefault();
     setError('');
     if (password !== confirmPw) { setError('Les mots de passe ne correspondent pas.'); return; }
-    if (password.length < 8) { setError('Le mot de passe doit contenir au moins 8 caractÃ¨res.'); return; }
+    if (password.length < 8) { setError('Le mot de passe doit contenir au moins 8 caractères.'); return; }
     setLoading(true);
     try {
       await register(email.trim(), password, '');
@@ -93,7 +82,7 @@ export default function Register() {
         typeof errData === 'string' ? errData
           : ((errData as { message?: string })?.message ||
              (err as { message?: string })?.message ||
-             'Une erreur est survenue. RÃ©essayez.')
+             'Une erreur est survenue. Réessayez.')
       );
     } finally {
       setLoading(false);
@@ -113,150 +102,165 @@ export default function Register() {
   const quote = QUOTES[quoteIdx];
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      minHeight: '100dvh',
-      fontFamily: `'Outfit', system-ui, sans-serif`,
-    }}>
-      {/* â”€â”€ LEFT â€” cream brand panel â”€â”€ */}
-      <div style={{
-        background: D.lBg,
-        padding: '4rem',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        borderRight: `1px solid ${D.lBorder}`,
-      }}>
-        <Link to="/" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          fontSize: 18, fontWeight: 800, color: D.lText,
-          letterSpacing: '-0.025em', textDecoration: 'none',
-        }}>
+    <div
+      className="min-h-dvh grid lg:grid-cols-2"
+      style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}
+    >
+      {/* ── LEFT — cream brand panel (desktop only) ── */}
+      <div
+        className="hidden lg:flex flex-col justify-between p-16 border-r"
+        style={{ background: D.lBg, borderColor: D.lBorder }}
+      >
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-[18px] font-extrabold no-underline tracking-[-0.025em]"
+          style={{ color: D.lText }}
+        >
           <QwillioLogo size={26} />
           Qwillio
         </Link>
 
         {/* Testimonial */}
         <div>
-          <div style={{
-            fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.09em', color: 'oklch(42% 0.18 264)',
-            marginBottom: '1rem',
-          }}>
-            TÃ©moignage client
+          <div
+            className="text-[10px] font-bold uppercase tracking-[0.09em] mb-4"
+            style={{ color: 'oklch(42% 0.18 264)' }}
+          >
+            Témoignage client
           </div>
-          <blockquote style={{
-            fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)',
-            fontWeight: 700, color: D.lText,
-            letterSpacing: '-0.02em', lineHeight: 1.35,
-            marginBottom: '1.2rem',
-          }}>
+          <blockquote
+            className="font-bold tracking-[-0.02em] leading-[1.35] mb-5 not-italic"
+            style={{
+              fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)',
+              color: D.lText,
+            }}
+          >
             "{quote.text}"
           </blockquote>
-          <cite style={{ fontSize: 14, color: D.lText2, fontStyle: 'normal', fontWeight: 500 }}>
+          <cite className="text-[14px] font-medium not-italic" style={{ color: D.lText2 }}>
             {quote.author}
           </cite>
         </div>
 
         {/* Trust signals */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+        <div className="flex flex-col gap-3">
           {[
             'Premiers appels en 10 minutes',
             'Sans engagement annuel',
             'Support FR 7j/7',
           ].map(item => (
-            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                width: 18, height: 18, borderRadius: '50%',
-                background: 'oklch(56% 0.22 264 / 0.12)',
-                border: '1px solid oklch(56% 0.22 264 / 0.25)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
+            <div key={item} className="flex items-center gap-2">
+              <div
+                className="w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0"
+                style={{
+                  background: 'oklch(56% 0.22 264 / 0.12)',
+                  border: '1px solid oklch(56% 0.22 264 / 0.25)',
+                }}
+              >
                 <Check size={10} style={{ color: 'oklch(52% 0.20 264)' }} />
               </div>
-              <span style={{ fontSize: 13, color: D.lText2, fontWeight: 500 }}>{item}</span>
+              <span className="text-[13px] font-medium" style={{ color: D.lText2 }}>{item}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* â”€â”€ RIGHT â€” dark form panel â”€â”€ */}
-      <div style={{
-        background: D.bg,
-        padding: '4rem',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        position: 'relative',
-      }}>
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          background: `radial-gradient(ellipse 400px 300px at 80% 15%, oklch(56% 0.22 264 / 0.06) 0%, transparent 70%)`,
-          pointerEvents: 'none',
-        }} />
+      {/* ── RIGHT — dark form panel ── */}
+      <div
+        className="flex flex-col justify-center min-h-dvh px-5 py-10 sm:px-10 lg:px-16 relative"
+        style={{ background: D.bg }}
+      >
+        {/* Glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 400px 300px at 80% 15%, oklch(56% 0.22 264 / 0.06) 0%, transparent 70%)',
+          }}
+        />
 
-        <div style={{ position: 'relative', maxWidth: 400, width: '100%', margin: '0 auto' }}>
+        {/* Mobile logo */}
+        <div className="lg:hidden mb-8 relative">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-[17px] font-extrabold no-underline tracking-[-0.025em]"
+            style={{ color: D.text }}
+          >
+            <QwillioLogo size={24} />
+            Qwillio
+          </Link>
+        </div>
+
+        <div className="relative w-full max-w-sm mx-auto">
           {step === 'form' ? (
             <>
-              <div style={{ marginBottom: '2.5rem' }}>
-                <h1 style={{
-                  fontSize: '1.8rem', fontWeight: 800,
-                  color: D.text, letterSpacing: '-0.035em', marginBottom: '0.4rem',
-                }}>
-                  CrÃ©er votre compte
+              <div className="mb-8">
+                <h1
+                  className="text-[1.8rem] font-extrabold tracking-[-0.035em] mb-1"
+                  style={{ color: D.text }}
+                >
+                  Créer votre compte
                 </h1>
-                <p style={{ fontSize: 15, color: D.text2 }}>
+                <p className="text-[15px]" style={{ color: D.text2 }}>
                   Premiers appels en 10 minutes.
                 </p>
               </div>
 
               {error && (
-                <div style={{
-                  background: D.badDim, border: `1px solid ${D.bad}`,
-                  borderRadius: 10, padding: '10px 14px',
-                  fontSize: 13, color: D.bad, marginBottom: '1.2rem',
-                }}>
+                <div
+                  className="rounded-[10px] px-3.5 py-2.5 text-[13px] mb-5"
+                  style={{ background: D.badDim, border: `1px solid ${D.bad}`, color: D.bad }}
+                >
                   {error}
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+              {/* Google button */}
+              <GoogleAuthButton mode="register" onError={setError} disabled={loading} />
+
+              {/* Divider */}
+              <div className="relative my-5 flex items-center gap-3">
+                <div className="flex-1 h-px" style={{ background: D.border }} />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ color: D.text3 }}>
+                  ou
+                </span>
+                <div className="flex-1 h-px" style={{ background: D.border }} />
+              </div>
+
+              {/* Email / password form */}
+              <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                 <div>
-                  <label style={labelStyle}>Adresse email</label>
+                  <label htmlFor="reg-email" className={labelCls}>Adresse email</label>
                   <input
-                    type="email" value={email}
+                    id="reg-email"
+                    type="email"
+                    value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="vous@agence.fr"
-                    required autoComplete="email"
-                    style={inputStyle}
-                    onFocus={e => { e.target.style.borderColor = D.accentBrd; }}
-                    onBlur={e => { e.target.style.borderColor = D.border; }}
+                    required
+                    autoComplete="email"
+                    className={inputCls}
                   />
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Mot de passe</label>
-                  <div style={{ position: 'relative' }}>
+                  <label htmlFor="reg-password" className={labelCls}>Mot de passe</label>
+                  <div className="relative">
                     <input
+                      id="reg-password"
                       type={showPw ? 'text' : 'password'}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      placeholder="8 caractÃ¨res minimum"
-                      required autoComplete="new-password"
-                      style={{ ...inputStyle, paddingRight: 44 }}
-                      onFocus={e => { e.target.style.borderColor = D.accentBrd; }}
-                      onBlur={e => { e.target.style.borderColor = D.border; }}
+                      placeholder="8 caractères minimum"
+                      required
+                      autoComplete="new-password"
+                      className={`${inputCls} pr-11`}
                     />
                     <button
-                      type="button" onClick={() => setShowPw(!showPw)}
-                      style={{
-                        position: 'absolute', right: 12, top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: D.text3, display: 'flex', alignItems: 'center', padding: 0,
-                      }}
+                      type="button"
+                      onClick={() => setShowPw(!showPw)}
+                      aria-label={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0 bg-transparent border-none cursor-pointer flex items-center"
+                      style={{ color: D.text3 }}
                     >
                       {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -264,127 +268,100 @@ export default function Register() {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Confirmer le mot de passe</label>
+                  <label htmlFor="reg-confirm-password" className={labelCls}>Confirmer le mot de passe</label>
                   <input
+                    id="reg-confirm-password"
                     type={showPw ? 'text' : 'password'}
                     value={confirmPw}
                     onChange={e => setConfirmPw(e.target.value)}
-                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-                    required autoComplete="new-password"
-                    style={inputStyle}
-                    onFocus={e => { e.target.style.borderColor = D.accentBrd; }}
-                    onBlur={e => { e.target.style.borderColor = D.border; }}
+                    placeholder="••••••••"
+                    required
+                    autoComplete="new-password"
+                    className={inputCls}
                   />
                 </div>
 
                 <button
-                  type="submit" disabled={loading}
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-[13px] rounded-xl text-[15px] font-bold border-none cursor-pointer flex items-center justify-center gap-2 transition-all mt-1 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
                   style={{
-                    width: '100%', padding: '13px 0',
                     background: loading ? 'oklch(40% 0.10 264)' : D.accent,
                     color: loading ? D.text2 : D.bg,
-                    border: 'none', borderRadius: 12,
-                    fontSize: 15, fontWeight: 700,
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    fontFamily: `'Outfit', system-ui, sans-serif`,
-                    transition: 'all 0.18s', letterSpacing: '0.01em', marginTop: '0.4rem',
-                    boxShadow: loading ? 'none' : `0 4px 16px oklch(56% 0.22 264 / 0.3)`,
-                  }}
-                  onMouseEnter={e => {
-                    if (!loading) {
-                      e.currentTarget.style.background = D.accentHi;
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = loading ? 'oklch(40% 0.10 264)' : D.accent;
-                    e.currentTarget.style.transform = 'translateY(0)';
+                    boxShadow: loading ? 'none' : '0 4px 16px oklch(56% 0.22 264 / 0.3)',
+                    fontFamily: "'Outfit', system-ui, sans-serif",
                   }}
                 >
-                  {loading ? 'CrÃ©ation...' : 'CrÃ©er mon compte'}
+                  {loading ? 'Création...' : 'Créer mon compte'}
                   {!loading && <ArrowRight size={16} />}
                 </button>
               </form>
 
-              <p style={{ marginTop: '1.5rem', fontSize: 13, color: D.text3 }}>
-                DÃ©jÃ  un compte ?{' '}
-                <Link to="/login" style={{ color: D.accent, fontWeight: 600, textDecoration: 'none' }}>
+              <p className="mt-5 text-[13px]" style={{ color: D.text3 }}>
+                Déjà un compte ?{' '}
+                <Link to="/login" className="font-semibold no-underline" style={{ color: D.accent }}>
                   Se connecter
                 </Link>
               </p>
 
-              <p style={{ marginTop: '1rem', fontSize: 12, color: 'oklch(35% 0.006 265)', lineHeight: 1.5 }}>
-                En crÃ©ant un compte, vous acceptez nos{' '}
+              <p className="mt-3 text-[12px] leading-relaxed" style={{ color: 'oklch(35% 0.006 265)' }}>
+                En créant un compte, vous acceptez nos{' '}
                 <a href="#" style={{ color: D.text3 }}>CGU</a>
                 {' '}et notre{' '}
-                <a href="#" style={{ color: D.text3 }}>politique de confidentialitÃ©</a>.
+                <a href="#" style={{ color: D.text3 }}>politique de confidentialité</a>.
               </p>
             </>
           ) : (
-            /* â”€â”€ Activation screen â”€â”€ */
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                width: 64, height: 64,
-                background: D.okDim, border: `1px solid ${D.okBrd}`,
-                borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 1.5rem',
-              }}>
+            /* ── Activation screen ── */
+            <div className="text-center">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
+                style={{ background: D.okDim, border: `1px solid ${D.okBrd}` }}
+              >
                 <Mail size={28} style={{ color: D.ok }} />
               </div>
-              <h2 style={{
-                fontSize: '1.5rem', fontWeight: 800,
-                color: D.text, letterSpacing: '-0.03em', marginBottom: '0.75rem',
-              }}>
-                VÃ©rifiez votre email
+              <h2
+                className="text-[1.5rem] font-extrabold tracking-[-0.03em] mb-3"
+                style={{ color: D.text }}
+              >
+                Vérifiez votre email
               </h2>
-              <p style={{ fontSize: 14, color: D.text2, lineHeight: 1.6, marginBottom: '0.5rem' }}>
-                Un lien d'activation a Ã©tÃ© envoyÃ© Ã 
+              <p className="text-[14px] leading-[1.6] mb-1" style={{ color: D.text2 }}>
+                Un lien d'activation a été envoyé à
               </p>
-              <p style={{ fontSize: 15, fontWeight: 600, color: D.text, marginBottom: '2rem' }}>
+              <p className="text-[15px] font-semibold mb-8" style={{ color: D.text }}>
                 {email}
               </p>
 
               {resendOk && (
-                <div style={{
-                  background: D.okDim, border: `1px solid ${D.okBrd}`,
-                  borderRadius: 10, padding: '10px 14px',
-                  fontSize: 13, color: D.ok, marginBottom: '1.2rem',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}>
-                  <Check size={14} /> Email renvoyÃ© avec succÃ¨s
+                <div
+                  className="rounded-[10px] px-3.5 py-2.5 text-[13px] mb-5 flex items-center justify-center gap-1.5"
+                  style={{ background: D.okDim, border: `1px solid ${D.okBrd}`, color: D.ok }}
+                >
+                  <Check size={14} /> Email renvoyé avec succès
                 </div>
               )}
 
               <button
-                onClick={handleResend} disabled={resending}
+                onClick={handleResend}
+                disabled={resending}
+                className="border rounded-[10px] px-5 py-2.5 text-[13px] font-medium cursor-pointer transition-all bg-transparent hover:border-[oklch(56%_0.22_264/0.40)] hover:text-[oklch(56%_0.22_264)] disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  background: 'none',
-                  border: `1px solid ${D.border}`,
-                  borderRadius: 10, padding: '10px 20px',
-                  color: D.text2, fontSize: 13, fontWeight: 500,
-                  cursor: resending ? 'not-allowed' : 'pointer',
-                  fontFamily: `'Outfit', system-ui, sans-serif`,
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => {
-                  if (!resending) {
-                    e.currentTarget.style.borderColor = D.accentBrd;
-                    e.currentTarget.style.color = D.accent;
-                  }
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = D.border;
-                  e.currentTarget.style.color = D.text2;
+                  borderColor: D.border,
+                  color: D.text2,
+                  fontFamily: "'Outfit', system-ui, sans-serif",
                 }}
               >
                 {resending ? 'Renvoi...' : `Renvoyer l'email`}
               </button>
 
-              <div style={{ marginTop: '2rem' }}>
-                <Link to="/login" style={{ fontSize: 13, color: D.text3, textDecoration: 'none' }}>
-                  Retour Ã  la connexion
+              <div className="mt-8">
+                <Link
+                  to="/login"
+                  className="text-[13px] no-underline"
+                  style={{ color: D.text3 }}
+                >
+                  Retour à la connexion
                 </Link>
               </div>
             </div>
