@@ -31,22 +31,38 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       onError('');
       setLoading(true);
       setSlow(false);
-      const slowTimer = setTimeout(() => setSlow(true), 8000);
+
+      // Hard timeout: if backend doesn't respond in 75s, reset and ask to retry
+      let timedOut = false;
+      const slowTimer   = setTimeout(() => setSlow(true), 8000);
+      const abortTimer  = setTimeout(() => {
+        timedOut = true;
+        setLoading(false);
+        setSlow(false);
+        onError('Le serveur démarre, réessayez dans 20 secondes.');
+      }, 75000);
+
       try {
         await googleLogin(tokenResponse.access_token, 'token');
         clearTimeout(slowTimer);
+        clearTimeout(abortTimer);
+        if (timedOut) return;
         const { user } = useAuthStore.getState();
         navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
       } catch (err: any) {
         clearTimeout(slowTimer);
+        clearTimeout(abortTimer);
+        if (timedOut) return;
         if (!err.response) {
           onError('Serveur indisponible. Réessaie dans quelques secondes.');
         } else {
           onError(err.response.data?.error || `Google Sign-${mode === 'login' ? 'In' : 'Up'} failed`);
         }
       } finally {
-        setLoading(false);
-        setSlow(false);
+        if (!timedOut) {
+          setLoading(false);
+          setSlow(false);
+        }
       }
     },
     onError: (err?: any) => {
