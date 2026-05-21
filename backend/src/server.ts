@@ -213,9 +213,23 @@ app.use(errorMiddleware);
 // ─── Start Server ────────────────────────────────────────
 async function startServer() {
   try {
-    // Test database connection
-    await prisma.$connect();
-    logger.info('Database connected successfully');
+    // Test database connection — Neon may be sleeping, retry up to 3 times
+    let connected = false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await prisma.$connect();
+        connected = true;
+        break;
+      } catch (connErr: any) {
+        logger.warn(`DB connect attempt ${attempt}/3 failed: ${connErr?.message}`);
+        if (attempt < 3) await new Promise(r => setTimeout(r, 5000));
+      }
+    }
+    if (!connected) {
+      logger.warn('DB not reachable at startup — starting anyway, queries will auto-reconnect');
+    } else {
+      logger.info('Database connected successfully');
+    }
 
     // DB log persistence is currently disabled (see logger.ts comment).
     // The in-memory 500-entry ring buffer is what /admin/logs reads.
