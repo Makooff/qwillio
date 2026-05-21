@@ -2,6 +2,15 @@
   "buildCommand": "npm install && npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cross-Origin-Opener-Policy", "value": "unsafe-none" },
+        { "key": "Cross-Origin-Embedder-Policy", "value": "unsafe-none" }
+      ]
+    }
+  ],
   "redirects": [
     {
       "source": "/(.*)",
