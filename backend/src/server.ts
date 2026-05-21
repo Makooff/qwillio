@@ -217,22 +217,29 @@ app.use(errorMiddleware);
 // ─── Start Server ────────────────────────────────────────
 async function startServer() {
   try {
-    // Test database connection — Neon may be sleeping, retry up to 3 times
-    let connected = false;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        await prisma.$connect();
-        connected = true;
-        break;
-      } catch (connErr: any) {
-        logger.warn(`DB connect attempt ${attempt}/3 failed: ${connErr?.message}`);
-        if (attempt < 3) await new Promise(r => setTimeout(r, 5000));
+    // Wait for Neon to wake up — free tier cold-starts can take 2-3 min.
+    // We do this ONCE here so all bootstrap tasks below run on a live DB.
+    {
+      const DB_WAIT_MS = 3 * 60 * 1000; // 3 minutes max
+      const POLL_MS    = 5000;
+      const deadline   = Date.now() + DB_WAIT_MS;
+      let dbReady = false;
+      let attempt = 0;
+      while (Date.now() < deadline) {
+        attempt++;
+        try {
+          await prisma.$queryRaw`SELECT 1`;
+          dbReady = true;
+          logger.info(`Database ready (attempt ${attempt})`);
+          break;
+        } catch (e: any) {
+          logger.warn(`[startup] DB not ready yet (attempt ${attempt}): ${e?.message?.split('\n')[0]}`);
+          await new Promise(r => setTimeout(r, POLL_MS));
+        }
       }
-    }
-    if (!connected) {
-      logger.warn('DB not reachable at startup — starting anyway, queries will auto-reconnect');
-    } else {
-      logger.info('Database connected successfully');
+      if (!dbReady) {
+        logger.warn('[startup] DB still not reachable after 3 min — bootstrap tasks will be skipped, API starts anyway');
+      }
     }
 
     // DB log persistence is currently disabled (see logger.ts comment).
@@ -270,7 +277,7 @@ async function startServer() {
       });
       logger.info('Admin accounts seeded ✅');
     } catch (seedErr) {
-      logger.error('Admin seed failed (non-fatal):', seedErr);
+      logger.warn('[bootstrap] Admin seed failed (non-fatal):', seedErr);
     }
 
     // ─── One-time cleanup: remove fake Belgian prospects + vivi pizza client ──
@@ -397,7 +404,7 @@ async function startServer() {
           logger.info(`[bootstrap] Dashboard URL: ${env.FRONTEND_URL.split(',')[0]}/portal/${dashboardToken}`);
         }
       } catch (err) {
-        logger.error('[bootstrap] Test-activate failed:', err);
+        logger.warn('[bootstrap] Test-activate failed (non-fatal):', err);
       }
     }
 
@@ -431,7 +438,7 @@ async function startServer() {
         });
         logger.info(`[bootstrap] ✅ Closer account ready: ${closerEmail}`);
       } catch (err) {
-        logger.error('[bootstrap] Closer seed failed:', err);
+        logger.warn('[bootstrap] Closer seed failed (non-fatal):', err);
       }
     }
 
