@@ -215,38 +215,35 @@ if (env.SENTRY_DSN) {
 app.use(errorMiddleware);
 
 // ─── Start Server ────────────────────────────────────────
-async function startServer() {
-  try {
-    // Wait for Neon to wake up — free tier cold-starts can take 2-3 min.
-    // We do this ONCE here so all bootstrap tasks below run on a live DB.
-    {
-      const DB_WAIT_MS = 3 * 60 * 1000; // 3 minutes max
-      const POLL_MS    = 5000;
-      const deadline   = Date.now() + DB_WAIT_MS;
-      let dbReady = false;
-      let attempt = 0;
-      while (Date.now() < deadline) {
-        attempt++;
-        try {
-          // Use basePrisma (no retry middleware) so each probe has a fast timeout
-          await (basePrisma as any).$queryRaw`SELECT 1`;
-          dbReady = true;
-          logger.info(`Database ready (attempt ${attempt})`);
-          break;
-        } catch (e: any) {
-          logger.warn(`[startup] DB not ready yet (attempt ${attempt}): ${e?.message?.split('\n')[0]}`);
-          await new Promise(r => setTimeout(r, POLL_MS));
-        }
-      }
-      if (!dbReady) {
-        logger.warn('[startup] DB still not reachable after 3 min — bootstrap tasks will be skipped, API starts anyway');
-      }
+async function runBootstrap() {
+  // Wait for Neon to wake — probes every 5s, max 3 min.
+  // Uses basePrisma (no retry middleware) so each probe fails fast.
+  const DB_WAIT_MS = 3 * 60 * 1000;
+  const POLL_MS    = 5000;
+  const deadline   = Date.now() + DB_WAIT_MS;
+  let dbReady = false;
+  let attempt = 0;
+  while (Date.now() < deadline) {
+    attempt++;
+    try {
+      await (basePrisma as any).$queryRaw`SELECT 1`;
+      dbReady = true;
+      logger.info(`[bootstrap] Database ready (attempt ${attempt})`);
+      break;
+    } catch (e: any) {
+      logger.warn(`[bootstrap] DB not ready yet (attempt ${attempt}): ${e?.message?.split('\n')[0]}`);
+      await new Promise(r => setTimeout(r, POLL_MS));
     }
+  }
+  if (!dbReady) {
+    logger.warn('[bootstrap] DB still unreachable after 3 min — skipping all bootstrap tasks');
+    return;
+  }
 
-    // DB log persistence is currently disabled (see logger.ts comment).
-    // The in-memory 500-entry ring buffer is what /admin/logs reads.
+  // DB log persistence is currently disabled (see logger.ts comment).
+  // The in-memory 500-entry ring buffer is what /admin/logs reads.
 
-    // Seed/reset admin accounts
+  // Seed/reset admin accounts
     try {
       const bcrypt = await import('bcryptjs');
       const passwordHash = await bcrypt.default.hash('Qwillio2026!', 12);
@@ -461,44 +458,48 @@ async function startServer() {
       }
     }
 
-    const server = createServer(app);
-    initSocket(server);
+}
 
-    server.listen(env.PORT, () => {
-      logger.info('═══════════════════════════════════════');
-      logger.info(`  🚀 Qwillio API running on port ${env.PORT}`);
-      logger.info(`  📊 Dashboard: ${env.FRONTEND_URL}`);
-      logger.info(`  🔗 API: ${env.API_BASE_URL}`);
-      logger.info(`  📦 Environment: ${env.NODE_ENV}`);
-      logger.info('═══════════════════════════════════════');
+// ─── Start Server ────────────────────────────────────────
+// Bind the port FIRST so Render sees an open port immediately,
+// then kick off bootstrap in the background (DB wait + seeds + bot loop).
+async function startServer() {
+  const server = createServer(app);
+  initSocket(server);
 
-      // Production warnings
-      if (env.NODE_ENV === 'production') {
-        if (env.RESEND_FROM_EMAIL.includes('resend.dev')) {
-          logger.warn('⚠️  RESEND_FROM_EMAIL uses resend.dev test domain — emails will only reach verified addresses!');
-        }
-        if (!env.ANTHROPIC_API_KEY) {
-          logger.warn('⚠️  ANTHROPIC_API_KEY missing — A/B challenger generation and script learning disabled');
-        }
+  server.listen(env.PORT, () => {
+    logger.info('═══════════════════════════════════════');
+    logger.info(`  🚀 Qwillio API running on port ${env.PORT}`);
+    logger.info(`  📊 Dashboard: ${env.FRONTEND_URL}`);
+    logger.info(`  🔗 API: ${env.API_BASE_URL}`);
+    logger.info(`  📦 Environment: ${env.NODE_ENV}`);
+    logger.info('═══════════════════════════════════════');
+
+    if (env.NODE_ENV === 'production') {
+      if (env.RESEND_FROM_EMAIL.includes('resend.dev')) {
+        logger.warn('⚠️  RESEND_FROM_EMAIL uses resend.dev test domain — emails will only reach verified addresses!');
       }
+      if (!env.ANTHROPIC_API_KEY) {
+        logger.warn('⚠️  ANTHROPIC_API_KEY missing — A/B challenger generation and script learning disabled');
+      }
+    }
 
-      logger.info('');
-      logger.info('  Endpoints:');
-      logger.info('  POST /api/bot/start      → Start bot loop');
-      logger.info('  POST /api/bot/stop       → Stop bot loop');
-      logger.info('  GET  /api/bot/status      → Bot status');
-      logger.info('  GET  /api/dashboard/stats → Dashboard');
-      logger.info('  GET  /api/prospects       → Prospects list');
-      logger.info('  GET  /api/clients         → Clients list');
-      logger.info('  POST /api/webhooks/stripe → Stripe webhooks');
-      logger.info('  POST /api/webhooks/vapi   → VAPI webhooks');
-      logger.info('  GET  /api/client-portal/:id → Client dashboard');
-      logger.info('');
-    });
-  } catch (error) {
-    logger.error('Failed to start server:', error);
-    process.exit(1);
-  }
+    logger.info('');
+    logger.info('  Endpoints:');
+    logger.info('  POST /api/bot/start      → Start bot loop');
+    logger.info('  POST /api/bot/stop       → Stop bot loop');
+    logger.info('  GET  /api/bot/status      → Bot status');
+    logger.info('  GET  /api/dashboard/stats → Dashboard');
+    logger.info('  GET  /api/prospects       → Prospects list');
+    logger.info('  GET  /api/clients         → Clients list');
+    logger.info('  POST /api/webhooks/stripe → Stripe webhooks');
+    logger.info('  POST /api/webhooks/vapi   → VAPI webhooks');
+    logger.info('  GET  /api/client-portal/:id → Client dashboard');
+    logger.info('');
+  });
+
+  // Bootstrap runs async — never blocks port binding
+  runBootstrap().catch(err => logger.warn('[bootstrap] Unexpected error:', err));
 }
 
 // Graceful shutdown
