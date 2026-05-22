@@ -229,6 +229,10 @@ async function runBootstrap() {
       await (basePrisma as any).$queryRaw`SELECT 1`;
       dbReady = true;
       logger.info(`[bootstrap] Database ready (attempt ${attempt})`);
+      // Keep Neon alive — ping every 4min so it never goes idle (sleeps after 5min)
+      setInterval(async () => {
+        try { await (basePrisma as any).$queryRaw`SELECT 1`; } catch { /* silent */ }
+      }, 4 * 60 * 1000);
       break;
     } catch (e: any) {
       logger.warn(`[bootstrap] DB not ready yet (attempt ${attempt}): ${e?.message?.split('\n')[0]}`);
