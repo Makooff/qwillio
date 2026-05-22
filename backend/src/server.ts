@@ -203,8 +203,8 @@ app.get('/api/health', async (_req, res) => {
       database: 'connected',
       bot: botStatus,
     });
-  } catch (error) {
-    res.status(500).json({ status: 'error', database: 'disconnected' });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', database: 'disconnected', detail: error?.message?.split('\n')[0] });
   }
 });
 
