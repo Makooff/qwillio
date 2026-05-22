@@ -32,8 +32,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   googleLogin: async (token: string, type: 'credential' | 'token' = 'credential') => {
     const body = type === 'token' ? { access_token: token } : { credential: token };
-    // 50s per attempt — short enough to retry before Neon's full 90s cold-start
-    const { data } = await api.post('/auth/google', body, { timeout: 50000 });
+    const { data } = await api.post('/auth/google', body);
     localStorage.setItem('token', data.token);
     set({ user: data.user, token: data.token, isLoading: false });
   },

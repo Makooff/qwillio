@@ -229,10 +229,6 @@ async function runBootstrap() {
       await (basePrisma as any).$queryRaw`SELECT 1`;
       dbReady = true;
       logger.info(`[bootstrap] Database ready (attempt ${attempt})`);
-      // Keep Neon alive — ping every 4min so it never goes idle (sleeps after 5min)
-      setInterval(async () => {
-        try { await (basePrisma as any).$queryRaw`SELECT 1`; } catch { /* silent */ }
-      }, 4 * 60 * 1000);
       break;
     } catch (e: any) {
       logger.warn(`[bootstrap] DB not ready yet (attempt ${attempt}): ${e?.message?.split('\n')[0]}`);
@@ -501,6 +497,12 @@ async function startServer() {
     logger.info('  GET  /api/client-portal/:id → Client dashboard');
     logger.info('');
   });
+
+  // Keepalive: ping Neon every 4min immediately on startup — independent of bootstrap.
+  // Neon sleeps after 5min idle; this prevents cold-starts for all subsequent requests.
+  setInterval(async () => {
+    try { await (basePrisma as any).$queryRaw`SELECT 1`; } catch { /* silent — basePrisma fails fast, no retry */ }
+  }, 4 * 60 * 1000);
 
   // Bootstrap runs async — never blocks port binding
   runBootstrap().catch(err => logger.warn('[bootstrap] Unexpected error:', err));
