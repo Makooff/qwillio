@@ -193,20 +193,10 @@ app.get('/api/unsubscribe/:token', async (req, res) => {
 });
 
 // ─── Health Check ────────────────────────────────────────
-app.get('/api/health', async (_req, res) => {
-  try {
-    // user.count() goes through $allOperations retry middleware — survives Neon cold-start
-    await prisma.user.count();
-    const botStatus = await botLoop.getStatus();
-    res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      database: 'connected',
-      bot: botStatus,
-    });
-  } catch (error: any) {
-    res.status(500).json({ status: 'error', database: 'disconnected', detail: error?.message?.split('\n')[0] });
-  }
+app.get('/api/health', (_req, res) => {
+  // Lightweight — just confirms process is alive. DB status not checked here
+  // to avoid blocking the event loop during Neon cold-start.
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // ─── Error Handler ───────────────────────────────────────
@@ -499,24 +489,12 @@ async function startServer() {
     logger.info('');
   });
 
-  // Warm Neon immediately on startup, retrying every 5s until connected,
-  // then keep-alive every 4min to prevent idle sleep.
-  let neonAlive = false;
-  async function pingNeon() {
-    try {
-      // prisma.user.count() routes through $allOperations retry middleware
-      await prisma.user.count();
-      if (!neonAlive) { neonAlive = true; logger.info('[keepalive] Neon connected ✅'); }
-    } catch { /* silent — will retry */ }
-  }
-  // Aggressive warm-up: retry every 5s until first success
-  const warmupInterval = setInterval(async () => {
-    if (neonAlive) { clearInterval(warmupInterval); return; }
-    await pingNeon();
-  }, 5000);
-  pingNeon(); // immediate first attempt
-  // Once alive, keep pinging every 4min (Neon sleeps after 5min idle)
-  setInterval(() => { if (neonAlive) pingNeon(); }, 4 * 60 * 1000);
+  // Keepalive: fire a lightweight DB ping every 4min using basePrisma (no retry,
+  // no event-loop blocking). If Neon is cold it fails silently; the retry middleware
+  // on the first real request will wake it. If Neon is warm this keeps it warm.
+  setInterval(async () => {
+    try { await (basePrisma as any).$queryRawUnsafe('SELECT 1'); } catch { /* silent */ }
+  }, 4 * 60 * 1000);
 
   // Bootstrap runs async — never blocks port binding
   runBootstrap().catch(err => logger.warn('[bootstrap] Unexpected error:', err));
