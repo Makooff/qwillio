@@ -498,11 +498,13 @@ async function startServer() {
     logger.info('');
   });
 
-  // Keepalive: ping Neon every 4min immediately on startup — independent of bootstrap.
-  // Neon sleeps after 5min idle; this prevents cold-starts for all subsequent requests.
-  setInterval(async () => {
-    try { await (basePrisma as any).$queryRaw`SELECT 1`; } catch { /* silent — basePrisma fails fast, no retry */ }
-  }, 4 * 60 * 1000);
+  // Keepalive: ping Neon every 4min. Also fires immediately on startup so the
+  // first user request never hits a cold DB.
+  async function pingNeon() {
+    try { await (basePrisma as any).$queryRaw`SELECT 1`; } catch { /* silent */ }
+  }
+  pingNeon();
+  setInterval(pingNeon, 4 * 60 * 1000);
 
   // Bootstrap runs async — never blocks port binding
   runBootstrap().catch(err => logger.warn('[bootstrap] Unexpected error:', err));
