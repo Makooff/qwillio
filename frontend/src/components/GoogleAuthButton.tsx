@@ -18,33 +18,38 @@ interface Props {
   onError: (msg: string) => void;
 }
 
-const MAX_ATTEMPTS = 6;
-const RETRY_DELAY  = 8000; // ms between retries
+// Render free tier wakes in ~30-60s + Neon DB ~60-90s = up to 150s total.
+// Retry up to 10x with 20s between attempts = 200s window. Axios timeout 240s.
+const MAX_ATTEMPTS  = 10;
+const RETRY_DELAY_MS = 20000;
+
+function isRetryable(err: any): boolean {
+  if (!err?.response) return true; // network error / timeout / connection refused
+  const s = err.response.status;
+  return s === 500 || s === 502 || s === 503 || s === 504;
+}
 
 function GoogleButton({ mode, disabled, onError }: Props) {
   const { googleLogin } = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading]   = useState(false);
   const [attempt, setAttempt]   = useState(0);
-  const cancelledRef = useRef(false);
+  const cancelRef = useRef(false);
 
-  async function doLogin(token: string, attemptNum: number): Promise<void> {
-    if (cancelledRef.current) return;
-    setAttempt(attemptNum);
+  async function tryLogin(token: string, n: number): Promise<void> {
+    if (cancelRef.current) return;
+    setAttempt(n);
     try {
       await googleLogin(token, 'token');
-      if (cancelledRef.current) return;
+      if (cancelRef.current) return;
       const { user } = useAuthStore.getState();
       navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
     } catch (err: any) {
-      if (cancelledRef.current) return;
-      const isServerError = !err?.response || err?.response?.status === 500 || err?.response?.status === 503;
-      if (isServerError && attemptNum < MAX_ATTEMPTS) {
-        // Server/DB still cold — retry after delay
-        await new Promise(r => setTimeout(r, RETRY_DELAY));
-        return doLogin(token, attemptNum + 1);
+      if (cancelRef.current) return;
+      if (isRetryable(err) && n < MAX_ATTEMPTS) {
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        return tryLogin(token, n + 1);
       }
-      // Final failure or non-retryable error
       const msg = err?.response?.data?.error;
       onError(msg || 'Serveur indisponible. Réessaie dans quelques secondes.');
       setLoading(false);
@@ -53,12 +58,12 @@ function GoogleButton({ mode, disabled, onError }: Props) {
   }
 
   const googleSignIn = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
+    onSuccess: async (res) => {
       onError('');
-      cancelledRef.current = false;
+      cancelRef.current = false;
       setLoading(true);
       setAttempt(1);
-      await doLogin(tokenResponse.access_token, 1);
+      await tryLogin(res.access_token, 1);
     },
     onError: (err?: any) => {
       const code = err?.error || '';
@@ -78,7 +83,9 @@ function GoogleButton({ mode, disabled, onError }: Props) {
     if (!loading) return baseLabel;
     if (attempt <= 1) return 'Connexion en cours...';
     if (attempt <= 2) return 'Démarrage du serveur...';
-    return `Connexion... (${attempt}/${MAX_ATTEMPTS})`;
+    // Each retry = 20s. Show remaining wait roughly.
+    const remaining = Math.round(((MAX_ATTEMPTS - attempt) * RETRY_DELAY_MS) / 1000);
+    return `Démarrage... encore ~${remaining}s`;
   }
 
   return (

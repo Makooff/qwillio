@@ -5,7 +5,7 @@ const baseURL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
 
 const api = axios.create({
   baseURL,
-  timeout: 120000,
+  timeout: 240000,
   headers: {
     'Content-Type': 'application/json',
     ...(import.meta.env.DEV ? { 'ngrok-skip-browser-warning': 'true' } : {}),
