@@ -195,7 +195,8 @@ app.get('/api/unsubscribe/:token', async (req, res) => {
 // ─── Health Check ────────────────────────────────────────
 app.get('/api/health', async (_req, res) => {
   try {
-    await prisma.$queryRawUnsafe('SELECT 1');
+    // user.count() goes through $allOperations retry middleware — survives Neon cold-start
+    await prisma.user.count();
     const botStatus = await botLoop.getStatus();
     res.json({
       status: 'ok',
@@ -226,7 +227,7 @@ async function runBootstrap() {
   while (Date.now() < deadline) {
     attempt++;
     try {
-      await (basePrisma as any).$queryRawUnsafe('SELECT 1');
+      await prisma.user.count();
       dbReady = true;
       logger.info(`[bootstrap] Database ready (attempt ${attempt})`);
       break;
@@ -503,7 +504,8 @@ async function startServer() {
   let neonAlive = false;
   async function pingNeon() {
     try {
-      await (basePrisma as any).$queryRawUnsafe('SELECT 1');
+      // prisma.user.count() routes through $allOperations retry middleware
+      await prisma.user.count();
       if (!neonAlive) { neonAlive = true; logger.info('[keepalive] Neon connected ✅'); }
     } catch { /* silent — will retry */ }
   }
