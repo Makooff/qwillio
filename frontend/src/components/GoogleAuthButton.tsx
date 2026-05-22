@@ -1,7 +1,7 @@
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const GoogleSVG = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
@@ -18,13 +18,11 @@ interface Props {
   onError: (msg: string) => void;
 }
 
-// Render Starter never sleeps. Only Neon DB cold-starts (~90s max).
-// Strategy: 50s timeout per attempt, retry up to 10x with 5s gap.
 const MAX_ATTEMPTS   = 10;
 const RETRY_DELAY_MS = 5000;
 
 function isRetryable(err: any): boolean {
-  if (!err?.response) return true; // timeout / network
+  if (!err?.response) return true;
   const s = err.response.status;
   return s === 500 || s === 502 || s === 503 || s === 504;
 }
@@ -33,26 +31,41 @@ function GoogleButton({ mode, disabled, onError }: Props) {
   const { googleLogin } = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading]   = useState(false);
-  const [attempt, setAttempt]   = useState(0);
   const [slow, setSlow]         = useState(false);
+  const [elapsed, setElapsed]   = useState(0);
   const cancelRef  = useRef(false);
   const slowRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tickRef    = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startedAt  = useRef(0);
+
+  function startTimer() {
+    startedAt.current = Date.now();
+    tickRef.current = setInterval(() => {
+      setElapsed(Math.round((Date.now() - startedAt.current) / 1000));
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+    setElapsed(0);
+  }
 
   function clearSlow() {
     if (slowRef.current) { clearTimeout(slowRef.current); slowRef.current = null; }
   }
 
+  useEffect(() => () => { clearSlow(); stopTimer(); }, []);
+
   async function tryLogin(token: string, n: number): Promise<void> {
     if (cancelRef.current) return;
-    setAttempt(n);
     clearSlow();
     setSlow(false);
-    // Show "Démarrage du serveur..." after 8s on any attempt
     slowRef.current = setTimeout(() => setSlow(true), 8000);
 
     try {
       await googleLogin(token, 'token');
       clearSlow();
+      stopTimer();
       if (cancelRef.current) return;
       const { user } = useAuthStore.getState();
       navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
@@ -64,10 +77,10 @@ function GoogleButton({ mode, disabled, onError }: Props) {
         await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
         return tryLogin(token, n + 1);
       }
+      stopTimer();
       const msg = err?.response?.data?.error;
       onError(msg || 'Serveur indisponible. Réessaie dans quelques secondes.');
       setLoading(false);
-      setAttempt(0);
       setSlow(false);
     }
   }
@@ -78,6 +91,7 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       cancelRef.current = false;
       setLoading(true);
       setSlow(false);
+      startTimer();
       await tryLogin(res.access_token, 1);
     },
     onError: (err?: any) => {
@@ -96,8 +110,8 @@ function GoogleButton({ mode, disabled, onError }: Props) {
 
   function getLabel() {
     if (!loading) return baseLabel;
-    if (slow) return attempt > 2 ? `Démarrage... tentative ${attempt}/${MAX_ATTEMPTS}` : 'Démarrage du serveur...';
-    return 'Connexion en cours...';
+    if (!slow) return 'Connexion en cours...';
+    return `Démarrage du serveur... ${elapsed}s`;
   }
 
   return (
