@@ -351,6 +351,11 @@ export class AuthController {
   }
 
   async googleAuth(req: Request, res: Response) {
+    const TIMEOUT_MS = 12000;
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('DB_TIMEOUT')), TIMEOUT_MS)
+    );
+
     try {
       const { credential, access_token } = req.body;
       if (!credential && !access_token) {
@@ -360,7 +365,6 @@ export class AuthController {
       let payload: { sub: string; email: string; name?: string } | null = null;
 
       if (credential) {
-        // ID token flow (legacy / desktop)
         const ticket = await googleClient.verifyIdToken({
           idToken: credential,
           audience: env.GOOGLE_CLIENT_ID,
@@ -369,7 +373,6 @@ export class AuthController {
         if (!p || !p.email) return res.status(401).json({ error: 'Invalid Google token' });
         payload = { sub: p.sub!, email: p.email, name: p.name };
       } else {
-        // Access token flow (mobile / Safari via useGoogleLogin)
         const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${access_token}` },
         });
@@ -383,58 +386,62 @@ export class AuthController {
         return res.status(401).json({ error: 'Invalid Google token' });
       }
 
-      // Find existing user by googleId or email
-      let user = await prisma.user.findFirst({
-        where: { OR: [{ googleId: payload.sub }, { email: payload.email }] },
-      });
+      const result = await Promise.race([
+        (async () => {
+          let user = await prisma.user.findFirst({
+            where: { OR: [{ googleId: payload!.sub }, { email: payload!.email }] },
+          });
 
-      if (user) {
-        // Link Google ID if not yet linked
-        if (!user.googleId) {
-          await prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub } });
-        }
-      } else {
-        // Create new user
-        user = await prisma.user.create({
-          data: {
-            email: payload.email,
-            name: payload.name || payload.email.split('@')[0],
-            googleId: payload.sub,
-            passwordHash: null,
-            role: 'client',
-            emailConfirmed: true,
-            onboardingCompleted: false,
-          },
-        });
-        logger.info(`New Google user registered: ${payload.email}`);
-      }
+          if (user) {
+            if (!user.googleId) {
+              await prisma.user.update({ where: { id: user.id }, data: { googleId: payload!.sub } });
+            }
+          } else {
+            user = await prisma.user.create({
+              data: {
+                email: payload!.email,
+                name: payload!.name || payload!.email.split('@')[0],
+                googleId: payload!.sub,
+                passwordHash: null,
+                role: 'client',
+                emailConfirmed: true,
+                onboardingCompleted: false,
+              },
+            });
+            logger.info(`New Google user registered: ${payload!.email}`);
+          }
 
-      const token = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
-        expiresIn: env.JWT_EXPIRES_IN,
-      });
+          const token = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
+            expiresIn: env.JWT_EXPIRES_IN,
+          });
 
-      const client = user.role === 'client'
-        ? await prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
-        : null;
+          const client = user.role === 'client'
+            ? await prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
+            : null;
+
+          return { user, token, clientId: client?.id || null };
+        })(),
+        timeout,
+      ]);
 
       res.json({
-        token,
+        token: result.token,
         user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          emailConfirmed: user.emailConfirmed,
-          onboardingCompleted: user.onboardingCompleted,
-          clientId: client?.id || null,
+          id: result.user.id,
+          email: result.user.email,
+          name: result.user.name,
+          role: result.user.role,
+          emailConfirmed: result.user.emailConfirmed,
+          onboardingCompleted: result.user.onboardingCompleted,
+          clientId: result.clientId,
         },
       });
     } catch (error: any) {
-      if (isColdStartError(error)) {
-        logger.warn('Google auth cold-start DB error (non-fatal):', error?.message);
-      } else {
-        logger.error('Google auth error:', error?.message || error);
+      if (error?.message === 'DB_TIMEOUT' || isColdStartError(error)) {
+        logger.warn('Google auth: DB not ready, returning 503');
+        return res.status(503).json({ error: 'Serveur en démarrage. Attends 30s et réessaie.' });
       }
+      logger.error('Google auth error:', error?.message || error);
       res.status(500).json({ error: sanitizeError(error) || 'Google authentication failed' });
     }
   }
