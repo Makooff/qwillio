@@ -32,12 +32,21 @@ function sanitizeError(error: any): string {
   return error?.message || '';
 }
 
+function withDbTimeout<T>(promise: Promise<T>, ms = 25000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('DB_TIMEOUT')), ms)
+    ),
+  ]);
+}
+
 export class AuthController {
   async login(req: Request, res: Response) {
     try {
       const { email, password } = loginSchema.parse(req.body);
 
-      const user = await basePrisma.user.findUnique({ where: { email } });
+      const user = await withDbTimeout(prisma.user.findUnique({ where: { email } }));
       if (!user) {
         return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
       }
@@ -59,9 +68,8 @@ export class AuthController {
         expiresIn: env.JWT_REFRESH_EXPIRES_IN,
       });
 
-      // Look up linked Client for client-role users
       const client = user.role === 'client'
-        ? await basePrisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
+        ? await withDbTimeout(prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } }))
         : null;
 
       res.json({
@@ -78,8 +86,9 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      const status = isColdStartError(error) ? 503 : 400;
-      res.status(status).json({ error: sanitizeError(error) });
+      const isCold = isColdStartError(error) || error?.message === 'DB_TIMEOUT';
+      const status = isCold ? 503 : 400;
+      res.status(status).json({ error: isCold ? 'Service en démarrage. Reconnexion automatique...' : sanitizeError(error) });
     }
   }
 
@@ -352,11 +361,6 @@ export class AuthController {
   }
 
   async googleAuth(req: Request, res: Response) {
-    const TIMEOUT_MS = 12000;
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('DB_TIMEOUT')), TIMEOUT_MS)
-    );
-
     try {
       const { credential, access_token } = req.body;
       if (!credential && !access_token) {
@@ -387,60 +391,54 @@ export class AuthController {
         return res.status(401).json({ error: 'Invalid Google token' });
       }
 
-      const result = await Promise.race([
-        (async () => {
-          let user = await basePrisma.user.findFirst({
-            where: { OR: [{ googleId: payload!.sub }, { email: payload!.email }] },
-          });
+      let user = await withDbTimeout(prisma.user.findFirst({
+        where: { OR: [{ googleId: payload.sub }, { email: payload.email }] },
+      }));
 
-          if (user) {
-            if (!user.googleId) {
-              await basePrisma.user.update({ where: { id: user.id }, data: { googleId: payload!.sub } });
-            }
-          } else {
-            user = await basePrisma.user.create({
-              data: {
-                email: payload!.email,
-                name: payload!.name || payload!.email.split('@')[0],
-                googleId: payload!.sub,
-                passwordHash: null,
-                role: 'client',
-                emailConfirmed: true,
-                onboardingCompleted: false,
-              },
-            });
-            logger.info(`New Google user registered: ${payload!.email}`);
-          }
+      if (user) {
+        if (!user.googleId) {
+          await withDbTimeout(prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub } }));
+        }
+      } else {
+        user = await withDbTimeout(prisma.user.create({
+          data: {
+            email: payload.email,
+            name: payload.name || payload.email.split('@')[0],
+            googleId: payload.sub,
+            passwordHash: null,
+            role: 'client',
+            emailConfirmed: true,
+            onboardingCompleted: false,
+          },
+        }));
+        logger.info(`New Google user registered: ${payload.email}`);
+      }
 
-          const token = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
-            expiresIn: env.JWT_EXPIRES_IN,
-          });
+      const token = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
+        expiresIn: env.JWT_EXPIRES_IN,
+      });
 
-          const client = user.role === 'client'
-            ? await basePrisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
-            : null;
-
-          return { user, token, clientId: client?.id || null };
-        })(),
-        timeout,
-      ]);
+      const client = user.role === 'client'
+        ? await withDbTimeout(prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } }))
+        : null;
 
       res.json({
-        token: result.token,
+        token,
         user: {
-          id: result.user.id,
-          email: result.user.email,
-          name: result.user.name,
-          role: result.user.role,
-          emailConfirmed: result.user.emailConfirmed,
-          onboardingCompleted: result.user.onboardingCompleted,
-          clientId: result.clientId,
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          emailConfirmed: user.emailConfirmed,
+          onboardingCompleted: user.onboardingCompleted,
+          clientId: client?.id || null,
         },
       });
     } catch (error: any) {
-      if (error?.message === 'DB_TIMEOUT' || isColdStartError(error)) {
+      const isCold = isColdStartError(error) || error?.message === 'DB_TIMEOUT';
+      if (isCold) {
         logger.warn('Google auth: DB not ready, returning 503');
-        return res.status(503).json({ error: 'Serveur en démarrage. Attends 30s et réessaie.' });
+        return res.status(503).json({ error: 'Service en démarrage. Reconnexion automatique...' });
       }
       logger.error('Google auth error:', error?.message || error);
       res.status(500).json({ error: sanitizeError(error) || 'Google authentication failed' });
