@@ -1,7 +1,7 @@
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 const GoogleSVG = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
@@ -22,30 +22,40 @@ function GoogleButton({ mode, disabled, onError }: Props) {
   const { googleLogin } = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const tickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const googleSignIn = useGoogleLogin({
     onSuccess: async (res) => {
       onError('');
       setLoading(true);
+      setElapsed(0);
       const token = res.access_token;
-      for (let i = 0; i < 4; i++) {
+      const start = Date.now();
+      for (let i = 0; i < 10; i++) {
         try {
           await googleLogin(token, 'token');
+          if (tickerRef.current) clearInterval(tickerRef.current);
           const { user } = useAuthStore.getState();
           navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
           return;
         } catch (err: any) {
           const status = err?.response?.status;
-          if (status === 503 && i < 3) {
+          if (status === 503 && i < 9) {
+            if (i === 0) {
+              tickerRef.current = setInterval(() => setElapsed(Math.round((Date.now() - start) / 1000)), 1000);
+            }
             await new Promise(r => setTimeout(r, 10000));
             continue;
           }
+          if (tickerRef.current) clearInterval(tickerRef.current);
           const msg = err?.response?.data?.error;
           onError(msg || 'Serveur indisponible. Réessaie dans 30s.');
           break;
         }
       }
       setLoading(false);
+      setElapsed(0);
     },
     onError: (err?: any) => {
       const code = err?.error || '';
@@ -69,7 +79,7 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       className="w-full inline-flex items-center justify-center gap-2 bg-white text-[#1d1d1f] text-base font-medium px-6 py-3.5 rounded-full border border-[#d2d2d7] hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <GoogleSVG />
-      {loading ? 'Connexion en cours...' : label}
+      {loading && elapsed > 0 ? `Démarrage... ${elapsed}s` : loading ? 'Connexion en cours...' : label}
     </button>
   );
 }

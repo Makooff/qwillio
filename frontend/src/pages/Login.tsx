@@ -42,6 +42,8 @@ export default function Login() {
   const [showPw, setShowPw]   = useState(false);
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
+  const [warming, setWarming] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
   // Silent pre-warm: kick the backend on page load so Neon is awake before Google popup completes
   useEffect(() => {
@@ -56,23 +58,34 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    for (let i = 0; i < 4; i++) {
+    setWarming(false);
+    setElapsed(0);
+    const start = Date.now();
+    let ticker: ReturnType<typeof setInterval> | null = null;
+    for (let i = 0; i < 10; i++) {
       try {
         await login(email.trim(), password);
+        if (ticker) clearInterval(ticker);
         const { user } = useAuthStore.getState();
         navigate(user?.role === 'admin' ? '/admin' : '/dashboard');
         return;
       } catch (err: unknown) {
         const status = (err as { response?: { status?: number } })?.response?.status;
-        if (status === 503 && i < 3) {
+        if (status === 503 && i < 9) {
+          if (i === 0) {
+            setWarming(true);
+            ticker = setInterval(() => setElapsed(Math.round((Date.now() - start) / 1000)), 1000);
+          }
           await new Promise(r => setTimeout(r, 10000));
           continue;
         }
+        if (ticker) clearInterval(ticker);
         const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
         setError(msg || (err as { message?: string })?.message || 'Identifiants incorrects.');
         break;
       }
     }
+    setWarming(false);
     setLoading(false);
   }
 
@@ -268,7 +281,7 @@ export default function Login() {
                 fontFamily: "'Outfit', system-ui, sans-serif",
               }}
             >
-              {loading ? 'Connexion...' : 'Se connecter'}
+              {warming ? `Démarrage... ${elapsed}s` : loading ? 'Connexion...' : 'Se connecter'}
               {!loading && <ArrowRight size={16} />}
             </button>
           </form>
