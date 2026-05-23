@@ -37,7 +37,7 @@ export class AuthController {
     try {
       const { email, password } = loginSchema.parse(req.body);
 
-      const user = await prisma.user.findUnique({ where: { email } });
+      const user = await basePrisma.user.findUnique({ where: { email } });
       if (!user) {
         return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
       }
@@ -61,7 +61,7 @@ export class AuthController {
 
       // Look up linked Client for client-role users
       const client = user.role === 'client'
-        ? await prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
+        ? await basePrisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
         : null;
 
       res.json({
@@ -86,7 +86,7 @@ export class AuthController {
     try {
       const { email, password, name } = registerSchema.parse(req.body);
 
-      const existing = await prisma.user.findUnique({ where: { email } });
+      const existing = await basePrisma.user.findUnique({ where: { email } });
       if (existing) {
         return res.status(409).json({ error: 'Un compte existe déjà avec cet email' });
       }
@@ -98,7 +98,7 @@ export class AuthController {
       const isTestEmail = env.RESEND_FROM_EMAIL.includes('resend.dev');
       const autoConfirm = isTestEmail;
 
-      const user = await prisma.user.create({
+      const user = await basePrisma.user.create({
         data: {
           email,
           passwordHash,
@@ -152,7 +152,7 @@ export class AuthController {
     try {
       const token = req.params.token as string;
 
-      const user = await prisma.user.findUnique({
+      const user = await basePrisma.user.findUnique({
         where: { confirmationToken: token },
       });
 
@@ -179,7 +179,7 @@ export class AuthController {
         });
       }
 
-      await prisma.user.update({
+      await basePrisma.user.update({
         where: { id: user.id },
         data: {
           emailConfirmed: true,
@@ -211,7 +211,7 @@ export class AuthController {
 
   async resendConfirmation(req: any, res: Response) {
     try {
-      const user = await prisma.user.findUnique({
+      const user = await basePrisma.user.findUnique({
         where: { id: req.userId },
       });
 
@@ -226,7 +226,7 @@ export class AuthController {
       // Generate new token if none exists
       const confirmationToken = user.confirmationToken || crypto.randomUUID();
       if (!user.confirmationToken) {
-        await prisma.user.update({
+        await basePrisma.user.update({
           where: { id: user.id },
           data: { confirmationToken },
         });
@@ -262,10 +262,10 @@ export class AuthController {
       };
 
       // Check if Client already exists (user retrying onboarding after Stripe payment)
-      const existingClient = await prisma.client.findUnique({ where: { userId: req.userId } });
+      const existingClient = await basePrisma.client.findUnique({ where: { userId: req.userId } });
       let clientId: string | null = existingClient?.id || null;
 
-      const user = await prisma.user.update({
+      const user = await basePrisma.user.update({
         where: { id: req.userId },
         data: {
           businessName,
@@ -453,7 +453,7 @@ export class AuthController {
 
   async me(req: any, res: Response) {
     try {
-      const user = await prisma.user.findUnique({
+      const user = await basePrisma.user.findUnique({
         where: { id: req.userId },
         select: {
           id: true,

@@ -27,16 +27,25 @@ function GoogleButton({ mode, disabled, onError }: Props) {
     onSuccess: async (res) => {
       onError('');
       setLoading(true);
-      try {
-        await googleLogin(res.access_token, 'token');
-        const { user } = useAuthStore.getState();
-        navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
-      } catch (err: any) {
-        const msg = err?.response?.data?.error;
-        onError(msg || 'Serveur indisponible. Attends 30s et réessaie.');
-      } finally {
-        setLoading(false);
+      const token = res.access_token;
+      for (let i = 0; i < 4; i++) {
+        try {
+          await googleLogin(token, 'token');
+          const { user } = useAuthStore.getState();
+          navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
+          return;
+        } catch (err: any) {
+          const status = err?.response?.status;
+          if (status === 503 && i < 3) {
+            await new Promise(r => setTimeout(r, 10000));
+            continue;
+          }
+          const msg = err?.response?.data?.error;
+          onError(msg || 'Serveur indisponible. Réessaie dans 30s.');
+          break;
+        }
       }
+      setLoading(false);
     },
     onError: (err?: any) => {
       const code = err?.error || '';
