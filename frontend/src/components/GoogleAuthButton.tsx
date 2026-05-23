@@ -1,7 +1,7 @@
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 
 const GoogleSVG = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
@@ -18,83 +18,25 @@ interface Props {
   onError: (msg: string) => void;
 }
 
-const MAX_ATTEMPTS   = 10;
-const RETRY_DELAY_MS = 5000;
-
-function isRetryable(err: any): boolean {
-  if (!err?.response) return true;
-  const s = err.response.status;
-  return s === 500 || s === 502 || s === 503 || s === 504;
-}
-
 function GoogleButton({ mode, disabled, onError }: Props) {
   const { googleLogin } = useAuthStore();
   const navigate = useNavigate();
-  const [loading, setLoading]   = useState(false);
-  const [slow, setSlow]         = useState(false);
-  const [elapsed, setElapsed]   = useState(0);
-  const cancelRef  = useRef(false);
-  const slowRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const tickRef    = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startedAt  = useRef(0);
-
-  function startTimer() {
-    startedAt.current = Date.now();
-    tickRef.current = setInterval(() => {
-      setElapsed(Math.round((Date.now() - startedAt.current) / 1000));
-    }, 1000);
-  }
-
-  function stopTimer() {
-    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-    setElapsed(0);
-  }
-
-  function clearSlow() {
-    if (slowRef.current) { clearTimeout(slowRef.current); slowRef.current = null; }
-  }
-
-  useEffect(() => () => { clearSlow(); stopTimer(); }, []);
-
-  async function tryLogin(token: string, n: number): Promise<void> {
-    if (cancelRef.current) return;
-    // Don't reset slow state between retries — keep counter running continuously
-    if (n === 1) {
-      clearSlow();
-      setSlow(false);
-      slowRef.current = setTimeout(() => setSlow(true), 8000);
-    }
-
-    try {
-      await googleLogin(token, 'token');
-      clearSlow();
-      stopTimer();
-      if (cancelRef.current) return;
-      const { user } = useAuthStore.getState();
-      navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
-    } catch (err: any) {
-      clearSlow();
-      if (cancelRef.current) return;
-      if (isRetryable(err) && n < MAX_ATTEMPTS) {
-        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
-        return tryLogin(token, n + 1);
-      }
-      stopTimer();
-      const msg = err?.response?.data?.error;
-      onError(msg || 'Serveur indisponible. Réessaie dans quelques secondes.');
-      setLoading(false);
-      setSlow(false);
-    }
-  }
+  const [loading, setLoading] = useState(false);
 
   const googleSignIn = useGoogleLogin({
     onSuccess: async (res) => {
       onError('');
-      cancelRef.current = false;
       setLoading(true);
-      setSlow(false);
-      startTimer();
-      await tryLogin(res.access_token, 1);
+      try {
+        await googleLogin(res.access_token, 'token');
+        const { user } = useAuthStore.getState();
+        navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
+      } catch (err: any) {
+        const msg = err?.response?.data?.error;
+        onError(msg || 'Serveur indisponible. Attends 30s et réessaie.');
+      } finally {
+        setLoading(false);
+      }
     },
     onError: (err?: any) => {
       const code = err?.error || '';
@@ -102,21 +44,13 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       if (code === 'popup_blocked_by_browser') {
         onError('Popup bloqué. Autorise les popups pour ce site.');
       } else {
-        onError('Google Sign-In non configuré pour ce domaine. Utilise email/mot de passe.');
+        onError('Google Sign-In non configuré pour ce domaine.');
       }
     },
     flow: 'implicit',
   });
 
-  const baseLabel = mode === 'login' ? 'Se connecter avec Google' : "S'inscrire avec Google";
-
-  function getLabel() {
-    if (!loading) return baseLabel;
-    if (!slow) return 'Connexion en cours...';
-    if (elapsed < 30) return `Démarrage du serveur... ${elapsed}s`;
-    if (elapsed < 60) return `Base de données en démarrage... ${elapsed}s`;
-    return `Presque prêt... ${elapsed}s`;
-  }
+  const label = mode === 'login' ? 'Se connecter avec Google' : "S'inscrire avec Google";
 
   return (
     <button
@@ -126,7 +60,7 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       className="w-full inline-flex items-center justify-center gap-2 bg-white text-[#1d1d1f] text-base font-medium px-6 py-3.5 rounded-full border border-[#d2d2d7] hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <GoogleSVG />
-      {getLabel()}
+      {loading ? 'Connexion en cours...' : label}
     </button>
   );
 }
