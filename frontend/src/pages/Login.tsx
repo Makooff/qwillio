@@ -44,10 +44,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
-  // Silent pre-warm: kick the backend on page load so Neon is awake before Google popup completes
+  // Pre-warm Neon DB on page load — real query so DB is hot before user submits
   useEffect(() => {
     const url = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/api$/, '');
-    fetch(`${url}/api/health`, { signal: AbortSignal.timeout(30000) }).catch(() => {});
+    fetch(`${url}/api/auth/warmup`, { signal: AbortSignal.timeout(90000) }).catch(() => {});
   }, []);
 
   const { login } = useAuthStore();

@@ -193,9 +193,17 @@ app.get('/api/unsubscribe/:token', async (req, res) => {
 
 // ─── Health Check ────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
-  // Lightweight — just confirms process is alive. DB status not checked here
-  // to avoid blocking the event loop during Neon cold-start.
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Pre-warm endpoint — called on login page load to wake Neon before user submits
+app.get('/api/auth/warmup', async (_req, res) => {
+  try {
+    await prisma.user.count();
+    res.json({ ready: true });
+  } catch {
+    res.json({ ready: false });
+  }
 });
 
 // ─── Error Handler ───────────────────────────────────────

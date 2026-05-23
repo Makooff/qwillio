@@ -50,7 +50,7 @@ export default function Register() {
   // Silent pre-warm: kick the backend on page load so Neon is awake before Google popup completes
   useEffect(() => {
     const url = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/api$/, '');
-    fetch(`${url}/api/health`, { signal: AbortSignal.timeout(30000) }).catch(() => {});
+    fetch(`${url}/api/auth/warmup`, { signal: AbortSignal.timeout(90000) }).catch(() => {});
   }, []);
 
   const [step, setStep]           = useState<Step>('form');
