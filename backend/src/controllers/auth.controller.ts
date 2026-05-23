@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
-import { prisma } from '../config/database';
+import { prisma, basePrisma } from '../config/database';
 import { env } from '../config/env';
 import { loginSchema, registerSchema } from '../utils/validators';
 import { emailService } from '../services/email.service';
@@ -388,16 +388,16 @@ export class AuthController {
 
       const result = await Promise.race([
         (async () => {
-          let user = await prisma.user.findFirst({
+          let user = await basePrisma.user.findFirst({
             where: { OR: [{ googleId: payload!.sub }, { email: payload!.email }] },
           });
 
           if (user) {
             if (!user.googleId) {
-              await prisma.user.update({ where: { id: user.id }, data: { googleId: payload!.sub } });
+              await basePrisma.user.update({ where: { id: user.id }, data: { googleId: payload!.sub } });
             }
           } else {
-            user = await prisma.user.create({
+            user = await basePrisma.user.create({
               data: {
                 email: payload!.email,
                 name: payload!.name || payload!.email.split('@')[0],
@@ -416,7 +416,7 @@ export class AuthController {
           });
 
           const client = user.role === 'client'
-            ? await prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
+            ? await basePrisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
             : null;
 
           return { user, token, clientId: client?.id || null };
