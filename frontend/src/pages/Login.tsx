@@ -56,16 +56,24 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    try {
-      await login(email.trim(), password);
-      const { user } = useAuthStore.getState();
-      navigate(user?.role === 'admin' ? '/admin' : '/dashboard');
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setError(msg || (err as { message?: string })?.message || 'Identifiants incorrects.');
-    } finally {
-      setLoading(false);
+    for (let i = 0; i < 4; i++) {
+      try {
+        await login(email.trim(), password);
+        const { user } = useAuthStore.getState();
+        navigate(user?.role === 'admin' ? '/admin' : '/dashboard');
+        return;
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 503 && i < 3) {
+          await new Promise(r => setTimeout(r, 10000));
+          continue;
+        }
+        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+        setError(msg || (err as { message?: string })?.message || 'Identifiants incorrects.');
+        break;
+      }
     }
+    setLoading(false);
   }
 
   return (

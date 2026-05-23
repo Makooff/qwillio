@@ -78,7 +78,8 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      res.status(400).json({ error: sanitizeError(error) });
+      const status = isColdStartError(error) ? 503 : 400;
+      res.status(status).json({ error: sanitizeError(error) });
     }
   }
 
