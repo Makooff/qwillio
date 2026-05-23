@@ -32,7 +32,7 @@ function sanitizeError(error: any): string {
   return error?.message || '';
 }
 
-function withDbTimeout<T>(promise: Promise<T>, ms = 25000): Promise<T> {
+function withDbTimeout<T>(promise: Promise<T>, ms = 80000): Promise<T> {
   return Promise.race([
     promise,
     new Promise<never>((_, reject) =>

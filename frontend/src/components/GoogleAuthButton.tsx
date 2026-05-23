@@ -30,32 +30,20 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       onError('');
       setLoading(true);
       setElapsed(0);
-      const token = res.access_token;
       const start = Date.now();
-      for (let i = 0; i < 10; i++) {
-        try {
-          await googleLogin(token, 'token');
-          if (tickerRef.current) clearInterval(tickerRef.current);
-          const { user } = useAuthStore.getState();
-          navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
-          return;
-        } catch (err: any) {
-          const status = err?.response?.status;
-          if (status === 503 && i < 9) {
-            if (i === 0) {
-              tickerRef.current = setInterval(() => setElapsed(Math.round((Date.now() - start) / 1000)), 1000);
-            }
-            await new Promise(r => setTimeout(r, 10000));
-            continue;
-          }
-          if (tickerRef.current) clearInterval(tickerRef.current);
-          const msg = err?.response?.data?.error;
-          onError(msg || 'Serveur indisponible. Réessaie dans 30s.');
-          break;
-        }
+      tickerRef.current = setInterval(() => setElapsed(Math.round((Date.now() - start) / 1000)), 1000);
+      try {
+        await googleLogin(res.access_token, 'token');
+        if (tickerRef.current) clearInterval(tickerRef.current);
+        const { user } = useAuthStore.getState();
+        navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
+      } catch (err: any) {
+        if (tickerRef.current) clearInterval(tickerRef.current);
+        const msg = err?.response?.data?.error;
+        onError(msg || 'Serveur indisponible. Réessaie dans 30s.');
+        setLoading(false);
+        setElapsed(0);
       }
-      setLoading(false);
-      setElapsed(0);
     },
     onError: (err?: any) => {
       const code = err?.error || '';
@@ -79,7 +67,7 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       className="w-full inline-flex items-center justify-center gap-2 bg-white text-[#1d1d1f] text-base font-medium px-6 py-3.5 rounded-full border border-[#d2d2d7] hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <GoogleSVG />
-      {loading && elapsed > 0 ? `Démarrage... ${elapsed}s` : loading ? 'Connexion en cours...' : label}
+      {loading && elapsed > 3 ? `Démarrage serveur... ${elapsed}s` : loading ? 'Connexion en cours...' : label}
     </button>
   );
 }
