@@ -489,12 +489,12 @@ async function startServer() {
     logger.info('');
   });
 
-  // Keepalive: fire a lightweight DB ping every 4min using basePrisma (no retry,
-  // no event-loop blocking). If Neon is cold it fails silently; the retry middleware
-  // on the first real request will wake it. If Neon is warm this keeps it warm.
-  setInterval(async () => {
-    try { await (basePrisma as any).$queryRawUnsafe('SELECT 1'); } catch { /* silent */ }
-  }, 4 * 60 * 1000);
+  // Keepalive: fire prisma.user.count() immediately on start + every 4min.
+  // Fire-and-forget (no await) so event loop never blocks.
+  // Goes through $allOperations retry middleware → survives cold-start.
+  const doKeepalive = () => { prisma.user.count().catch(() => {}); };
+  doKeepalive(); // wake Neon at boot — ready before first user arrives
+  setInterval(doKeepalive, 4 * 60 * 1000);
 
   // Bootstrap runs async — never blocks port binding
   runBootstrap().catch(err => logger.warn('[bootstrap] Unexpected error:', err));
