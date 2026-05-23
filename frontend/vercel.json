@@ -1,4 +1,7 @@
 {
+  "crons": [
+    { "path": "/api/keepalive", "schedule": "*/4 * * * *" }
+  ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
