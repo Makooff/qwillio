@@ -58,9 +58,12 @@ function GoogleButton({ mode, disabled, onError }: Props) {
 
   async function tryLogin(token: string, n: number): Promise<void> {
     if (cancelRef.current) return;
-    clearSlow();
-    setSlow(false);
-    slowRef.current = setTimeout(() => setSlow(true), 8000);
+    // Don't reset slow state between retries — keep counter running continuously
+    if (n === 1) {
+      clearSlow();
+      setSlow(false);
+      slowRef.current = setTimeout(() => setSlow(true), 8000);
+    }
 
     try {
       await googleLogin(token, 'token');
@@ -73,7 +76,6 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       clearSlow();
       if (cancelRef.current) return;
       if (isRetryable(err) && n < MAX_ATTEMPTS) {
-        setSlow(false);
         await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
         return tryLogin(token, n + 1);
       }
@@ -111,7 +113,9 @@ function GoogleButton({ mode, disabled, onError }: Props) {
   function getLabel() {
     if (!loading) return baseLabel;
     if (!slow) return 'Connexion en cours...';
-    return `Démarrage du serveur... ${elapsed}s`;
+    if (elapsed < 30) return `Démarrage du serveur... ${elapsed}s`;
+    if (elapsed < 60) return `Base de données en démarrage... ${elapsed}s`;
+    return `Presque prêt... ${elapsed}s`;
   }
 
   return (
