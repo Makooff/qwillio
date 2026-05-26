@@ -362,14 +362,54 @@ export class AuthController {
 
   async googleAuth(req: Request, res: Response) {
     try {
-      const { credential, access_token } = req.body;
-      if (!credential && !access_token) {
-        return res.status(400).json({ error: 'Google credential required' });
+      const { credential, access_token, code, redirect_uri } = req.body as {
+        credential?: string;
+        access_token?: string;
+        code?: string;
+        redirect_uri?: string;
+      };
+      if (!credential && !access_token && !code) {
+        return res.status(400).json({ error: 'Google credential, access_token, or code required' });
       }
 
       let payload: { sub: string; email: string; name?: string } | null = null;
 
-      if (credential) {
+      if (code) {
+        // ─── Authorization code flow (PKCE / web) ────────────
+        // Frontend got a one-time code from useGoogleLogin({ flow: 'auth-code' }).
+        // We exchange it for an ID token using the backend client secret.
+        // redirect_uri = 'postmessage' is Google's sentinel for popup-based flows.
+        if (!env.GOOGLE_CLIENT_SECRET) {
+          logger.error('[google-auth] code flow but GOOGLE_CLIENT_SECRET missing');
+          return res.status(503).json({ error: 'Google auth not configured (server)' });
+        }
+        try {
+          const exchangeClient = new OAuth2Client(
+            env.GOOGLE_CLIENT_ID,
+            env.GOOGLE_CLIENT_SECRET,
+            redirect_uri || 'postmessage',
+          );
+          const { tokens } = await exchangeClient.getToken({
+            code,
+            redirect_uri: redirect_uri || 'postmessage',
+          });
+          if (!tokens.id_token) {
+            return res.status(401).json({ error: 'Google did not return an id_token' });
+          }
+          const ticket = await exchangeClient.verifyIdToken({
+            idToken: tokens.id_token,
+            audience: env.GOOGLE_CLIENT_ID,
+          });
+          const p = ticket.getPayload();
+          if (!p || !p.email) return res.status(401).json({ error: 'Invalid Google id_token' });
+          payload = { sub: p.sub!, email: p.email, name: p.name };
+        } catch (err: any) {
+          const desc = err?.response?.data?.error_description || err?.message || 'Code exchange failed';
+          logger.warn(`[google-auth] code exchange failed: ${desc}`);
+          return res.status(401).json({ error: `Google code exchange failed: ${desc}` });
+        }
+      } else if (credential) {
+        // ID token flow (legacy / desktop)
         const ticket = await googleClient.verifyIdToken({
           idToken: credential,
           audience: env.GOOGLE_CLIENT_ID,

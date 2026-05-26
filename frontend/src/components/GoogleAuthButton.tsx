@@ -25,36 +25,67 @@ function GoogleButton({ mode, disabled, onError }: Props) {
   const [elapsed, setElapsed] = useState(0);
   const tickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Authorization-code flow (PKCE). Returns a one-time `code` that the
+  // backend exchanges for an id_token using GOOGLE_CLIENT_SECRET. This
+  // is the path Google recommends for web apps — it survives iOS Safari
+  // ITP, popup-blockers, and strict COOP where the older implicit flow
+  // silently failed.
   const googleSignIn = useGoogleLogin({
-    onSuccess: async (res) => {
+    onSuccess: async (resp) => {
       onError('');
       setLoading(true);
       setElapsed(0);
       const start = Date.now();
       tickerRef.current = setInterval(() => setElapsed(Math.round((Date.now() - start) / 1000)), 1000);
       try {
-        await googleLogin(res.access_token, 'token');
-        if (tickerRef.current) clearInterval(tickerRef.current);
+        // `resp.code` for flow:'auth-code', `resp.access_token` for flow:'implicit'.
+        // We support both so the button still works if someone flips the flow later.
+        const r = resp as { code?: string; access_token?: string };
+        if (r.code) {
+          await googleLogin(r.code, 'code');
+        } else if (r.access_token) {
+          await googleLogin(r.access_token, 'token');
+        } else {
+          throw new Error('Google did not return a code or access_token');
+        }
         const { user } = useAuthStore.getState();
         navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
       } catch (err: any) {
+        // eslint-disable-next-line no-console
+        console.error('[Google Sign-In] backend exchange failed:', err);
+        const msg =
+          err?.response?.data?.error ||
+          err?.message ||
+          `Google Sign-${mode === 'login' ? 'In' : 'Up'} failed`;
+        onError(msg);
+      } finally {
         if (tickerRef.current) clearInterval(tickerRef.current);
-        const msg = err?.response?.data?.error;
-        onError(msg || 'Serveur indisponible. Réessaie dans 30s.');
         setLoading(false);
         setElapsed(0);
       }
     },
     onError: (err?: any) => {
-      const code = err?.error || '';
-      if (code === 'popup_closed_by_user' || code === 'access_denied') return;
-      if (code === 'popup_blocked_by_browser') {
-        onError('Popup bloqué. Autorise les popups pour ce site.');
+      // The library can pass either a NonOAuthError (popup closed, FedCM
+      // blocked) or an OAuthError. Pull whatever message is there so we
+      // stop hiding the real cause behind a generic "not configured".
+      // eslint-disable-next-line no-console
+      console.error('[Google Sign-In] OAuth error:', err);
+      const code = err?.type || err?.error || '';
+      const desc = err?.error_description || err?.message || '';
+      // User-initiated cancellations are silent.
+      if (code === 'popup_closed' || code === 'popup_closed_by_user' || code === 'access_denied') return;
+      if (code === 'popup_blocked_by_browser' || code === 'idpiframe_initialization_failed') {
+        onError('Le popup Google a été bloqué. Autorise les popups pour ce site.');
+      } else if (code === 'invalid_request' || code === 'redirect_uri_mismatch') {
+        onError(`Configuration OAuth Google invalide (${code}). Vérifie les Authorized JavaScript origins dans la console Google.`);
+      } else if (code) {
+        onError(`Google Sign-In: ${code}${desc ? ` — ${desc}` : ''}`);
       } else {
-        onError('Google Sign-In non configuré pour ce domaine.');
+        onError(`Google Sign-In a échoué${desc ? ` — ${desc}` : ''}. Réessaie ou utilise email/mot de passe.`);
       }
     },
-    flow: 'implicit',
+    flow: 'auth-code',
+    ux_mode: 'popup',
   });
 
   const label = mode === 'login' ? 'Se connecter avec Google' : "S'inscrire avec Google";
