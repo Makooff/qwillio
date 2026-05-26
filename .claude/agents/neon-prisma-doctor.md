@@ -41,7 +41,7 @@ app.get('/api/auth/warmup', async (_req, res) => {
 
 ## Keepalive strategy (current)
 
-- **GitHub Actions workflow** `.github/workflows/db-keepalive.yml` — currently BLOCKED by GitHub Free billing on this account
+- **GitHub Actions workflow** `.github/workflows/db-keepalive.yml` — was blocked by billing in May 2026; verify GitHub Settings → Billing status before assuming it is still blocked
 - **cron-job.org** (external, free, every 5 min) — hits `https://qwillio.onrender.com/api/auth/warmup` directly (NOT through Vercel — bypasses the 10s Vercel timeout)
 - **Vercel cron** was REMOVED in commit `7c91688` — do not reintroduce
 
@@ -58,7 +58,8 @@ curl -sv https://qwillio.onrender.com/api/health
 
 # 2. If backend up, hit warmup 3-4x with 5s gap
 for i in 1 2 3 4; do curl -s https://qwillio.onrender.com/api/auth/warmup; echo; sleep 5; done
-# Each call internally retries 12x over ~90s. If all four return ready:false → it's NOT cold start.
+# Each call internally retries 12x over ~90s. If 3+ consecutive calls return ready:false,
+# the issue is NOT cold-start — proceed to step 3 (Render logs) and check Neon dashboard.
 
 # 3. Check Render logs for the actual error (warmup swallows it)
 # Look for: P1001, "Can't reach", "Authentication failed", "database does not exist"
@@ -79,6 +80,17 @@ app.get('/api/auth/warmup', async (_req, res) => {
 - Frontend retries 503s up to 9x with elapsed timer (`src/pages/Login.tsx`, `Register.tsx`) — don't remove this
 - The Google sign-in popup requires `Cross-Origin-Opener-Policy: same-origin-allow-popups` (set in `vercel.json` or `frontend/api/` route headers) — see commit `eb5c242`. If popup closes immediately → COOP regression
 - Login/register pages pre-warm with a fetch to `/api/auth/warmup` on mount (commit `2cdde90`) — keep this
+
+## Neon branch DB workflow for schema changes
+
+When user wants to test a migration safely before prod:
+1. Create a branch in console.neon.tech (forks compute + data, separate connection string)
+2. Point local `DATABASE_URL` to the branch
+3. `npx prisma migrate dev --name <descriptive>` locally
+4. Smoke-test the app against the branch
+5. Once happy: merge migration to `master`, push
+6. Render's build runs `prisma migrate deploy` against prod — applies same migration safely
+Never test migrations directly against prod DATABASE_URL.
 
 ## Things you must NEVER do
 

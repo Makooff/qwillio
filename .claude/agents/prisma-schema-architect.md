@@ -99,11 +99,37 @@ When you see a `forEach` / `for of` / `Promise.all(arr.map())` containing a Pris
 
 For aggregations, use `prisma.<model>.groupBy()` instead of fetching all rows and counting in JS.
 
+## Multi-tenant verification command
+
+Quickly check every model has a tenant key (`clientId` or `userId`) — anything missing is a security concern:
+```bash
+grep -E '^model ' backend/prisma/schema.prisma | while read line; do
+  model=$(echo $line | awk '{print $2}')
+  grep -q "${model}.*clientId\|${model}.*userId" backend/prisma/schema.prisma || \
+    echo "[MISSING TENANT KEY] $model"
+done
+```
+Globally-scoped models (e.g., `NicheInsight` aggregated across tenants, `WebhookLog`) are exceptions — document them.
+
+## Foreign key cascade examples
+
+| Relation | onDelete | Why |
+|---|---|---|
+| `Call → Prospect` | Cascade | A call is meaningless without its prospect context |
+| `Activity → Contact` | Cascade | An activity only exists to track a contact's CRM journey |
+| `CampaignSend → Campaign` | Cascade | A send row is operational state of a campaign |
+| `Payment → Client` | SetNull | Payment has historical/audit value even if client is deleted |
+| `WebhookLog → (none)` | n/a | Global audit, no tenant FK |
+| `AccountDeletion → (none)` | n/a | Survives the deleted user account for cooldown enforcement |
+
+Use Cascade only when the child is meaningless or is purely operational state. Use SetNull when you need audit retention. Restrict when deletion of parent should be impossible while children exist.
+
 ## Connection pool considerations
 
 - Neon pooler is PgBouncer in transaction mode → no prepared statements
 - `connection_limit=15` in DATABASE_URL (set by `database.ts`) — don't open more than ~15 concurrent transactions or you'll get `Timed out fetching a new connection from the connection pool`
 - Long-running transactions block the pool — keep `prisma.$transaction()` blocks tight (no external API calls inside!)
+- **When `connection_limit=15` is hit**: new queries get `Timed out fetching a new connection from the connection pool`. Service returns 503. This is a backpressure signal — do NOT increase `pool_timeout` (delays the error). Instead: add indexes to slow queries, reduce concurrent transactions, move HTTP/email/SMS calls outside `$transaction()` blocks
 - Bulk inserts: prefer `createMany({ data: [...], skipDuplicates: true })` over a loop of `create`
 
 ## Schema style conventions

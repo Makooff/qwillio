@@ -90,6 +90,29 @@ Scripts live in `config/niche-scripts.ts` keyed by niche (`dental`, `salon`, `hv
 3. Add FR script to `NICHE_SCRIPTS_FR`
 4. Add scheduling rules to `scheduling.ts` if business hours differ
 
+## Rate-limit queue behavior
+
+`CALL_RATE_LIMIT_MS` (in `scheduling.ts`) enforces a minimum interval between consecutive calls to the same prospect. The check is in `bot-loop.ts` dispatch logic — calls that fall within the window are silently dropped (logged at debug level). The queue is in-memory; a server restart clears the dedup window. Don't bypass this for "high priority" — it exists to prevent spam complaints.
+
+## Adding a new niche
+
+4 steps, in order:
+1. Add the string key to `NICHE_SCRIPTS` in `config/niche-scripts.ts`
+2. Add EN script variant
+3. Add FR script variant (`NICHE_SCRIPTS_FR`)
+4. Add the niche to `NICHE_PRIORITY_ORDER` in `utils/helpers.ts`
+5. If business hours differ, add scheduling rules in `config/scheduling.ts`
+6. (Optional) Update niche map in `prospect-scoring.service.ts` NICHE_POINTS to give it a callable score
+
+Without an explicit script, `DEFAULT_SCRIPT` is used (generic). This is a soft failure — calls still go out but conversion drops.
+
+## INTERESTED_FOLLOWUP_SEQUENCE vs CALLBACK_RETRY_DELAYS (don't conflate)
+
+- `INTERESTED_FOLLOWUP_SEQUENCE` (in `config/followup-sequence.ts`): 7-day SMS + email drip triggered after a call where `interestLevel >= INTEREST_INTERESTED (4)`. The prospect did not commit but showed signal.
+- `CALLBACK_RETRY_DELAYS` (in `config/followup-sequence.ts`): staggered retries triggered when the prospect explicitly asked for a callback (recorded as `CallTransfer.callbackRequested=true`). The bot calls back at the requested time, with retries if missed.
+
+Both can apply to the same prospect simultaneously. They're independent state machines.
+
 ## Anti-patterns (real bugs that shipped, do not repeat)
 
 - ❌ Calling `vapiClient.calls.create` without circuit-breaker check

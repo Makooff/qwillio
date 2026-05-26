@@ -118,6 +118,30 @@ To unblock: GitHub Settings → Billing → add payment method. Free tier gives 
 
 If user doesn't want to fix billing, delete the workflow file — cron-job.org covers the same job.
 
+## Env validation at deploy time
+
+Render runs `prisma migrate deploy` during the build step. This requires `DATABASE_URL` to be set in Render env (even though the migration won't connect to prod data until the build is done). Failure modes:
+- `P1016` (reference target doesn't exist) → schema mismatch between committed migrations and what's applied on prod. Check (1) all migrations applied locally match committed files, (2) DATABASE_URL points to the correct Neon project (not staging by mistake).
+- `P3009` (failed migrations in history) → previous deploy left a bad migration. Manually mark it resolved with `prisma migrate resolve --rolled-back <name>` then redeploy. Coordinate with `neon-prisma-doctor`.
+
+## Verify CORS wildcard isn't leaking with credentials
+
+```bash
+curl -iH 'Origin: https://other-domain.com' https://qwillio.onrender.com/api/health | grep -i 'Access-Control-Allow-Origin'
+# Should NOT return `*` if requests also send Authorization or cookies.
+# Must echo back the request Origin only if it's in the allowlist.
+```
+
+If the response is `Access-Control-Allow-Origin: *` AND `Access-Control-Allow-Credentials: true`, browsers will block the request silently. Fix in `backend/src/server.ts` CORS setup.
+
+## Verify backend listens on Render's PORT
+
+```bash
+grep -n 'app.listen.*PORT' backend/src/server.ts
+# Must return a match. Render injects PORT env var; if server uses a hardcoded port,
+# health checks fail and service stays in "starting" forever.
+```
+
 ## Diagnostic playbook
 
 ### "Site is down"

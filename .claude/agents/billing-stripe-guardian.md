@@ -63,6 +63,27 @@ Stripe Checkout Sessions carry `metadata` that determines which flow processes t
 
 When you add a new flow, ALWAYS set `metadata.source` AND add the branch in `handleCheckoutCompleted`. Untagged sessions get the standard flow — wrong handler = silent corruption.
 
+## Trial-abuse — DEFER to `growth-expert`
+
+The 11-dimensional fingerprint detection (phone hash, email cooldown, IP, device, card fingerprint, VPN, honeypot, form speed, etc.) lives in `trial-abuse.service.ts` and is owned by `growth-expert`. You own the Stripe-side consequences only:
+- After `growth-expert` flags abuse and denies signup, no Stripe customer is created
+- When a paid client converts and `markTrialUsed()` fires (growth-expert), Stripe metadata may be tagged for audit
+- If a Stripe `radar/risk_level=high` event arrives, coordinate with growth-expert to mark the fingerprint
+
+Do NOT replicate trial-abuse logic in stripe.service.ts.
+
+## past_due → cancelled lifecycle
+
+Stripe auto-retries failed invoices over ~3 weeks (4 attempts by default). After all retries fail, Stripe fires `customer.subscription.deleted`. Handle it via webhook (don't poll):
+
+```ts
+case 'customer.subscription.deleted':
+  await stripeService.handleSubscriptionDeleted(event.data.object);
+  // Sets Client.subscriptionStatus = 'cancelled', revokes access, sends final email
+```
+
+Never manually call `stripe.subscriptions.cancel()` for `past_due` clients — that aborts the retry schedule and loses recoverable revenue.
+
 ## Trial flow gotchas
 
 - `Client.isTrial = true` means the subscription is in Stripe trial. The first paid invoice converts it (`handleTrialConversion`).
@@ -91,7 +112,7 @@ From `agency.service.ts`:
 - 30% of MRR for life of customer (not just first month)
 - Paid monthly on the 5th
 - Calculated from `Payment.amount` * 0.30 where `Client.referrerAgencyId == agency.id`
-- Stored in `AgencyCommission` table (check schema for exact name)
+- Stored in `AgencyCommission` table — VERIFY in `schema.prisma` before assuming structure (codebase has drifted historically). Expected columns: `clientId`, `agencyId`, `amount`, `period`
 
 When you change pricing, double-check the commission calc still rounds correctly (no fractional cents leaking).
 
