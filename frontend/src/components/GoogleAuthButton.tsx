@@ -1,7 +1,7 @@
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 
 const GoogleSVG = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
@@ -22,36 +22,27 @@ function GoogleButton({ mode, disabled, onError }: Props) {
   const { googleLogin } = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const tickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const googleSignIn = useGoogleLogin({
-    onSuccess: async (res) => {
+    onSuccess: async (tokenResponse) => {
       onError('');
       setLoading(true);
-      setElapsed(0);
-      const start = Date.now();
-      tickerRef.current = setInterval(() => setElapsed(Math.round((Date.now() - start) / 1000)), 1000);
       try {
-        await googleLogin(res.access_token, 'token');
-        if (tickerRef.current) clearInterval(tickerRef.current);
+        await googleLogin(tokenResponse.access_token, 'token');
         const { user } = useAuthStore.getState();
         navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
       } catch (err: any) {
-        if (tickerRef.current) clearInterval(tickerRef.current);
-        const msg = err?.response?.data?.error;
-        onError(msg || 'Serveur indisponible. Réessaie dans 30s.');
+        onError(err?.response?.data?.error || `Google Sign-${mode === 'login' ? 'In' : 'Up'} failed`);
+      } finally {
         setLoading(false);
-        setElapsed(0);
       }
     },
     onError: (err?: any) => {
       const code = err?.error || '';
-      if (code === 'popup_closed_by_user' || code === 'access_denied') return;
-      if (code === 'popup_blocked_by_browser') {
-        onError('Popup bloqué. Autorise les popups pour ce site.');
+      if (code === 'idpiframe_initialization_failed' || code === 'popup_blocked_by_browser') {
+        onError('Le popup Google a été bloqué. Autorise les popups pour ce site.');
       } else {
-        onError('Google Sign-In non configuré pour ce domaine.');
+        onError('Google Sign-In non configuré pour ce domaine. Utilise email/mot de passe.');
       }
     },
     flow: 'implicit',
@@ -67,11 +58,12 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       className="w-full inline-flex items-center justify-center gap-2 bg-white text-[#1d1d1f] text-base font-medium px-6 py-3.5 rounded-full border border-[#d2d2d7] hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <GoogleSVG />
-      {loading && elapsed > 3 ? `Démarrage serveur... ${elapsed}s` : loading ? 'Connexion en cours...' : label}
+      {loading ? '...' : label}
     </button>
   );
 }
 
+// Only renders if VITE_GOOGLE_CLIENT_ID is configured — prevents broken OAuth errors
 export default function GoogleAuthButton(props: Props) {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   if (!clientId) return null;

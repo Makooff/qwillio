@@ -3,50 +3,20 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
-import { prisma, basePrisma } from '../config/database';
+import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { loginSchema, registerSchema } from '../utils/validators';
 import { emailService } from '../services/email.service';
 import { logger } from '../config/logger';
-import { stripe } from '../config/stripe';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
-
-function isColdStartError(error: any): boolean {
-  const msg: string = error?.message || '';
-  return (
-    msg.includes("Can't reach database") ||
-    msg.includes('neon.tech') ||
-    msg.includes('P1001') ||
-    msg.includes('P1008') ||
-    msg.includes('Connection refused') ||
-    msg.includes('ECONNRESET') ||
-    error?.constructor?.name === 'PrismaClientInitializationError'
-  );
-}
-
-function sanitizeError(error: any): string {
-  if (isColdStartError(error)) {
-    return 'Service temporairement indisponible. Réessayez dans quelques secondes.';
-  }
-  return error?.message || '';
-}
-
-function withDbTimeout<T>(promise: Promise<T>, ms = 80000): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('DB_TIMEOUT')), ms)
-    ),
-  ]);
-}
 
 export class AuthController {
   async login(req: Request, res: Response) {
     try {
       const { email, password } = loginSchema.parse(req.body);
 
-      const user = await withDbTimeout(prisma.user.findUnique({ where: { email } }));
+      const user = await prisma.user.findUnique({ where: { email } });
       if (!user) {
         return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
       }
@@ -68,8 +38,9 @@ export class AuthController {
         expiresIn: env.JWT_REFRESH_EXPIRES_IN,
       });
 
+      // Look up linked Client for client-role users
       const client = user.role === 'client'
-        ? await withDbTimeout(prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } }))
+        ? await prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
         : null;
 
       res.json({
@@ -86,9 +57,7 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      const isCold = isColdStartError(error) || error?.message === 'DB_TIMEOUT';
-      const status = isCold ? 503 : 400;
-      res.status(status).json({ error: isCold ? 'Service en démarrage. Reconnexion automatique...' : sanitizeError(error) });
+      res.status(400).json({ error: error.message });
     }
   }
 
@@ -96,7 +65,7 @@ export class AuthController {
     try {
       const { email, password, name } = registerSchema.parse(req.body);
 
-      const existing = await basePrisma.user.findUnique({ where: { email } });
+      const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) {
         return res.status(409).json({ error: 'Un compte existe déjà avec cet email' });
       }
@@ -108,7 +77,7 @@ export class AuthController {
       const isTestEmail = env.RESEND_FROM_EMAIL.includes('resend.dev');
       const autoConfirm = isTestEmail;
 
-      const user = await basePrisma.user.create({
+      const user = await prisma.user.create({
         data: {
           email,
           passwordHash,
@@ -154,7 +123,7 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      res.status(400).json({ error: sanitizeError(error) });
+      res.status(400).json({ error: error.message });
     }
   }
 
@@ -162,7 +131,7 @@ export class AuthController {
     try {
       const token = req.params.token as string;
 
-      const user = await basePrisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { confirmationToken: token },
       });
 
@@ -189,7 +158,7 @@ export class AuthController {
         });
       }
 
-      await basePrisma.user.update({
+      await prisma.user.update({
         where: { id: user.id },
         data: {
           emailConfirmed: true,
@@ -215,13 +184,13 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      res.status(500).json({ error: sanitizeError(error) });
+      res.status(500).json({ error: error.message });
     }
   }
 
   async resendConfirmation(req: any, res: Response) {
     try {
-      const user = await basePrisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { id: req.userId },
       });
 
@@ -236,7 +205,7 @@ export class AuthController {
       // Generate new token if none exists
       const confirmationToken = user.confirmationToken || crypto.randomUUID();
       if (!user.confirmationToken) {
-        await basePrisma.user.update({
+        await prisma.user.update({
           where: { id: user.id },
           data: { confirmationToken },
         });
@@ -253,7 +222,7 @@ export class AuthController {
       logger.info(`Confirmation email resent to ${user.email}`);
       res.json({ message: 'Confirmation email sent' });
     } catch (error: any) {
-      res.status(500).json({ error: sanitizeError(error) });
+      res.status(500).json({ error: error.message });
     }
   }
 
@@ -265,17 +234,13 @@ export class AuthController {
         return res.status(400).json({ error: 'Business name and plan are required' });
       }
 
-      const PLAN_PRICING: Record<string, { monthlyFee: number; callsQuota: number; stripePriceMonthly: string }> = {
-        starter:    { monthlyFee: 197, callsQuota: 200,  stripePriceMonthly: env.STRIPE_PRICE_BASIC_MONTHLY },
-        pro:        { monthlyFee: 347, callsQuota: 500,  stripePriceMonthly: env.STRIPE_PRICE_PRO_MONTHLY },
-        enterprise: { monthlyFee: 497, callsQuota: 1000, stripePriceMonthly: env.STRIPE_PRICE_ENTERPRISE_MONTHLY },
+      const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number }> = {
+        starter: { setupFee: 0, monthlyFee: 497, callsQuota: 800 },
+        pro: { setupFee: 0, monthlyFee: 1297, callsQuota: 2000 },
+        enterprise: { setupFee: 0, monthlyFee: 2497, callsQuota: 4000 },
       };
 
-      // Check if Client already exists (user retrying onboarding after Stripe payment)
-      const existingClient = await basePrisma.client.findUnique({ where: { userId: req.userId } });
-      let clientId: string | null = existingClient?.id || null;
-
-      const user = await basePrisma.user.update({
+      const user = await prisma.user.update({
         where: { id: req.userId },
         data: {
           businessName,
@@ -283,80 +248,72 @@ export class AuthController {
           industry: industry || null,
           website: website || null,
           planType,
-          // Only mark onboarding complete if Client already exists (Stripe already paid)
-          // Otherwise, onboarding completes after Stripe checkout webhook creates the Client
-          onboardingCompleted: !!existingClient,
+          onboardingCompleted: true,
         },
       });
 
-      logger.info(`Onboarding info saved for user ${user.email} — plan: ${planType}, hasClient: ${!!existingClient}`);
+      // Create or reuse Client record (idempotent — safe if user retries onboarding)
+      let clientId: string | null = null;
+      if (user.role === 'client') {
+        const existing = await prisma.client.findUnique({ where: { userId: user.id } });
+        if (existing) {
+          clientId = existing.id;
+          logger.info(`Client record already exists for ${user.email} — reusing clientId: ${existing.id}`);
+        } else {
+          const dashboardToken = crypto.randomBytes(32).toString('hex');
+          const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
+          const trialEnd = new Date();
+          trialEnd.setDate(trialEnd.getDate() + 30);
+
+          const client = await prisma.client.create({
+            data: {
+              userId: user.id,
+              businessName,
+              businessType: industry || 'other',
+              contactName: user.name,
+              contactEmail: user.email,
+              contactPhone: businessPhone || null,
+              country: 'US',
+              planType,
+              setupFee: pricing.setupFee,
+              monthlyFee: pricing.monthlyFee,
+              currency: 'USD',
+              dashboardToken,
+              onboardingStatus: 'completed',
+              subscriptionStatus: 'active',
+              isTrial: true,
+              trialStartDate: new Date(),
+              trialEndDate: trialEnd,
+              monthlyCallsQuota: pricing.callsQuota,
+            },
+          });
+          clientId = client.id;
+          logger.info(`Client record created for ${user.email} — clientId: ${client.id}`);
+        }
+      }
+
+      logger.info(`Onboarding completed for user ${user.email} — plan: ${planType}`);
 
       // Issue a fresh JWT with the correct role from DB
       const freshToken = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
         expiresIn: env.JWT_EXPIRES_IN,
       });
 
-      // If Client already exists, skip Stripe — go straight to dashboard
-      let checkoutUrl: string | null = null;
-
-      if (!existingClient) {
-        // Create Stripe Checkout Session — 30-day free trial, then monthly price
-        const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
-
-        if (pricing.stripePriceMonthly && env.STRIPE_SECRET_KEY) {
-          try {
-            const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
-
-            const sessionParams: any = {
-              mode: 'subscription',
-              customer_email: user.email,
-              client_reference_id: user.id,
-              line_items: [{ price: pricing.stripePriceMonthly, quantity: 1 }],
-              success_url: `${frontendUrl}/dashboard?payment=success`,
-              cancel_url: `${frontendUrl}/onboard?payment=cancelled`,
-              subscription_data: {
-                trial_period_days: 30,
-                metadata: {
-                  userId: user.id,
-                  planType,
-                },
-              },
-              metadata: {
-                userId: user.id,
-                planType,
-                businessName,
-                businessPhone: businessPhone || '',
-                industry: industry || '',
-                website: website || '',
-                source: 'self-onboarding',
-              },
-            };
-
-            const session = await stripe.checkout.sessions.create(sessionParams);
-            checkoutUrl = session.url;
-            logger.info(`Stripe checkout created for ${user.email} — session: ${session.id}`);
-          } catch (stripeErr: any) {
-            logger.warn(`Stripe checkout creation failed for ${user.email}: ${stripeErr.message}`);
-          }
-        }
-      }
-
       res.json({
-        message: checkoutUrl ? 'Redirecting to payment' : 'Onboarding completed',
+        message: 'Onboarding completed',
         token: freshToken,
-        checkoutUrl,
         user: {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
           emailConfirmed: user.emailConfirmed,
-          onboardingCompleted: user.onboardingCompleted,
+          onboardingCompleted: true,
           clientId,
         },
       });
     } catch (error: any) {
-      res.status(500).json({ error: sanitizeError(error) });
+      res.status(500).json({ error: error.message });
     }
   }
 
@@ -370,6 +327,7 @@ export class AuthController {
       let payload: { sub: string; email: string; name?: string } | null = null;
 
       if (credential) {
+        // ID token flow (legacy / desktop)
         const ticket = await googleClient.verifyIdToken({
           idToken: credential,
           audience: env.GOOGLE_CLIENT_ID,
@@ -378,6 +336,7 @@ export class AuthController {
         if (!p || !p.email) return res.status(401).json({ error: 'Invalid Google token' });
         payload = { sub: p.sub!, email: p.email, name: p.name };
       } else {
+        // Access token flow (mobile / Safari via useGoogleLogin)
         const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${access_token}` },
         });
@@ -391,16 +350,19 @@ export class AuthController {
         return res.status(401).json({ error: 'Invalid Google token' });
       }
 
-      let user = await withDbTimeout(prisma.user.findFirst({
+      // Find existing user by googleId or email
+      let user = await prisma.user.findFirst({
         where: { OR: [{ googleId: payload.sub }, { email: payload.email }] },
-      }));
+      });
 
       if (user) {
+        // Link Google ID if not yet linked
         if (!user.googleId) {
-          await withDbTimeout(prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub } }));
+          await prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub } });
         }
       } else {
-        user = await withDbTimeout(prisma.user.create({
+        // Create new user
+        user = await prisma.user.create({
           data: {
             email: payload.email,
             name: payload.name || payload.email.split('@')[0],
@@ -410,7 +372,7 @@ export class AuthController {
             emailConfirmed: true,
             onboardingCompleted: false,
           },
-        }));
+        });
         logger.info(`New Google user registered: ${payload.email}`);
       }
 
@@ -419,7 +381,7 @@ export class AuthController {
       });
 
       const client = user.role === 'client'
-        ? await withDbTimeout(prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } }))
+        ? await prisma.client.findUnique({ where: { userId: user.id }, select: { id: true } })
         : null;
 
       res.json({
@@ -435,13 +397,8 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      const isCold = isColdStartError(error) || error?.message === 'DB_TIMEOUT';
-      if (isCold) {
-        logger.warn('Google auth: DB not ready, returning 503');
-        return res.status(503).json({ error: 'Service en démarrage. Reconnexion automatique...' });
-      }
-      logger.error('Google auth error:', error?.message || error);
-      res.status(500).json({ error: sanitizeError(error) || 'Google authentication failed' });
+      logger.error('Google auth error:', error);
+      res.status(401).json({ error: 'Google authentication failed' });
     }
   }
 
@@ -452,7 +409,7 @@ export class AuthController {
 
   async me(req: any, res: Response) {
     try {
-      const user = await basePrisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { id: req.userId },
         select: {
           id: true,
@@ -474,7 +431,7 @@ export class AuthController {
       const { client, ...rest } = user;
       res.json({ ...rest, clientId: client?.id || null, token: freshToken });
     } catch (error: any) {
-      res.status(500).json({ error: sanitizeError(error) });
+      res.status(500).json({ error: error.message });
     }
   }
 }

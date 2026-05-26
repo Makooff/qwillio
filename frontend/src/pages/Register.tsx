@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, Mail, Check, Eye, EyeOff } from 'lucide-react';
@@ -47,12 +47,6 @@ const QUOTES = [
 export default function Register() {
   useSEO({ title: 'Créer un compte — Qwillio', noindex: true });
 
-  // Silent pre-warm: kick the backend on page load so Neon is awake before Google popup completes
-  useEffect(() => {
-    const url = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/api$/, '');
-    fetch(`${url}/api/auth/warmup`, { signal: AbortSignal.timeout(90000) }).catch(() => {});
-  }, []);
-
   const [step, setStep]           = useState<Step>('form');
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
@@ -71,19 +65,17 @@ export default function Register() {
     e.preventDefault();
     setError('');
     if (password !== confirmPw) { setError('Les mots de passe ne correspondent pas.'); return; }
-    if (password.length < 8) { setError('Le mot de passe doit contenir au moins 8 caractères.'); return; }
+    if (password.length < 6) { setError('Le mot de passe doit contenir au moins 6 caractères.'); return; }
     setLoading(true);
     try {
       await register(email.trim(), password, '');
       const { user } = useAuthStore.getState();
       if (user?.emailConfirmed) { navigate('/onboard'); } else { setStep('activation'); }
-    } catch (err: unknown) {
-      const errData = (err as { response?: { data?: { error?: unknown } } })?.response?.data?.error;
+    } catch (err: any) {
+      const errData = err?.response?.data?.error;
       setError(
         typeof errData === 'string' ? errData
-          : ((errData as { message?: string })?.message ||
-             (err as { message?: string })?.message ||
-             'Une erreur est survenue. Réessayez.')
+          : (errData?.message || err?.message || 'Une erreur est survenue. Réessayez.')
       );
     } finally {
       setLoading(false);
@@ -251,7 +243,7 @@ export default function Register() {
                       type={showPw ? 'text' : 'password'}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      placeholder="8 caractères minimum"
+                      placeholder="6 caractères minimum"
                       required
                       autoComplete="new-password"
                       className={`${inputCls} pr-11`}

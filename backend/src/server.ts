@@ -196,7 +196,8 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Pre-warm endpoint — called on login page load to wake Neon before user submits
+// Neon keepalive — pinged every few minutes by Vercel cron to keep the DB
+// warm. Returns { ready: boolean } without exposing internal error details.
 app.get('/api/auth/warmup', async (_req, res) => {
   try {
     await prisma.user.count();

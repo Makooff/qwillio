@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { ArrowRight, Eye, EyeOff, BarChart2, Phone, Clock } from 'lucide-react';
@@ -42,13 +42,6 @@ export default function Login() {
   const [showPw, setShowPw]   = useState(false);
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-
-  // Pre-warm Neon DB on page load — real query so DB is hot before user submits
-  useEffect(() => {
-    const url = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/api$/, '');
-    fetch(`${url}/api/auth/warmup`, { signal: AbortSignal.timeout(90000) }).catch(() => {});
-  }, []);
 
   const { login } = useAuthStore();
   const navigate  = useNavigate();
@@ -57,20 +50,19 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setElapsed(0);
-    const start = Date.now();
-    const ticker = setInterval(() => setElapsed(Math.round((Date.now() - start) / 1000)), 1000);
     try {
       await login(email.trim(), password);
-      clearInterval(ticker);
       const { user } = useAuthStore.getState();
-      navigate(user?.role === 'admin' ? '/admin' : '/dashboard');
-    } catch (err: unknown) {
-      clearInterval(ticker);
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setError(msg || (err as { message?: string })?.message || 'Identifiants incorrects.');
+      navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
+    } catch (err: any) {
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        setError('Le serveur met du temps à répondre. Veuillez réessayer dans quelques secondes.');
+      } else {
+        const errData = err?.response?.data?.error;
+        setError(typeof errData === 'string' ? errData : (errData?.message || err?.message || 'Identifiants incorrects.'));
+      }
+    } finally {
       setLoading(false);
-      setElapsed(0);
     }
   }
 
@@ -266,7 +258,7 @@ export default function Login() {
                 fontFamily: "'Outfit', system-ui, sans-serif",
               }}
             >
-              {loading && elapsed > 3 ? `Démarrage serveur... ${elapsed}s` : loading ? 'Connexion...' : 'Se connecter'}
+              {loading ? 'Connexion...' : 'Se connecter'}
               {!loading && <ArrowRight size={16} />}
             </button>
           </form>
