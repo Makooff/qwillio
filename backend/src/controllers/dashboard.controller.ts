@@ -1,8 +1,43 @@
 import { Request, Response } from 'express';
 import { analyticsService } from '../services/analytics.service';
 import { botLoop } from '../jobs/bot-loop';
+import { prisma } from '../config/database';
 
 export class DashboardController {
+  // 7-day calls history, normalized so days with zero calls still appear
+  async getCallsChart(_req: Request, res: Response) {
+    try {
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      const start = new Date(end);
+      start.setDate(start.getDate() - 6);
+      start.setHours(0, 0, 0, 0);
+
+      const rows = await prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
+        SELECT DATE_TRUNC('day', "startedAt") AS day, COUNT(*)::bigint AS count
+        FROM "Call"
+        WHERE "startedAt" >= ${start} AND "startedAt" <= ${end}
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `;
+      const byDay = new Map<string, number>();
+      for (const r of rows) {
+        const key = r.day.toISOString().slice(0, 10);
+        byDay.set(key, Number(r.count));
+      }
+      const data: Array<{ date: string; calls: number }> = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        const key = d.toISOString().slice(0, 10);
+        data.push({ date: key, calls: byDay.get(key) ?? 0 });
+      }
+      res.json({ data });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   async getStats(_req: Request, res: Response) {
     try {
       const [stats, botStatus] = await Promise.all([

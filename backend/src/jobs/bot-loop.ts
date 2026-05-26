@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
+import { emitEvent } from '../config/socket';
 import { prospectionService } from '../services/prospection.service';
 import { vapiService } from '../services/vapi.service';
 import { reminderService } from '../services/reminder.service';
@@ -889,6 +890,7 @@ class BotLoop {
 
     await discordService.notifyAlerts('🤖 Qwillio started! All 31 cron jobs active (incl. 6 Agent AI + 7 Prospecting Engine + 3 Operational + 2 ROI Digest).');
     logger.info('🤖 All 31 cron jobs started. Bot is running in automatic loop.');
+    emitEvent('bot:status:changed', { isActive: true });
   }
 
   async stop() {
@@ -942,6 +944,7 @@ class BotLoop {
 
     await discordService.notifyAlerts('🛑 Qwillio stopped. All cron jobs halted.');
     logger.info('🛑 Qwillio stopped. All cron jobs halted.');
+    emitEvent('bot:status:changed', { isActive: false });
   }
 
   async getStatus() {
