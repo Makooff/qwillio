@@ -10,6 +10,8 @@ build/
 .env.local
 .env.*.local
 .env.production
+.env.autofix
+.autofix-state.json
 
 # Secrets
 *.key
@@ -23,8 +25,23 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Claude Code
-.claude/
+# Claude Code — track project config (agents, skills, commands, settings),
+# ignore session/local state.
+.claude/*
+!.claude/agents/
+!.claude/skills/
+!.claude/commands/
+!.claude/hooks/
+!.claude/settings.json
+!.claude/README.md
+.claude/settings.local.json
+.claude/sessions/
+.claude/session-env/
+.claude/projects/
+.claude/backups/
+.claude/shell-snapshots/
+.claude/mcp-needs-auth-cache.json
+.claude/policy-limits.json
 
 # Temp extract scripts
 extract*.mjs
