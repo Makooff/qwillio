@@ -43,6 +43,10 @@ const AgentEmail = lazy(() => import('./pages/client/AgentEmail'));
 const AgentPayments = lazy(() => import('./pages/client/AgentPayments'));
 const AgentAccounting = lazy(() => import('./pages/client/AgentAccounting'));
 const AgentInventory = lazy(() => import('./pages/client/AgentInventory'));
+const AgentMarketing = lazy(() => import('./pages/client/AgentMarketing'));
+const AgentReputation = lazy(() => import('./pages/client/AgentReputation'));
+const AgentScheduling = lazy(() => import('./pages/client/AgentScheduling'));
+const AgentSupport = lazy(() => import('./pages/client/AgentSupport'));
 // CRM pages (lazy loaded)
 const CrmContacts = lazy(() => import('./pages/client/CrmContacts'));
 const CrmDeals = lazy(() => import('./pages/client/CrmDeals'));
@@ -63,6 +67,15 @@ const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 
 // AI Agents admin pages (lazy loaded)
 const Agents = lazy(() => import('./pages/admin/Agents'));
+const ListProductAgents = lazy(() => import('./pages/admin/agents/ListProductAgents'));
+const AdminAgentEmail = lazy(() => import('./pages/admin/agents/AdminAgentEmail'));
+const AdminAgentAccounting = lazy(() => import('./pages/admin/agents/AdminAgentAccounting'));
+const AdminAgentInventory = lazy(() => import('./pages/admin/agents/AdminAgentInventory'));
+const AdminAgentPayments = lazy(() => import('./pages/admin/agents/AdminAgentPayments'));
+const AdminAgentMarketing = lazy(() => import('./pages/admin/agents/AdminAgentMarketing'));
+const AdminAgentReputation = lazy(() => import('./pages/admin/agents/AdminAgentReputation'));
+const AdminAgentScheduling = lazy(() => import('./pages/admin/agents/AdminAgentScheduling'));
+const AdminAgentSupport = lazy(() => import('./pages/admin/agents/AdminAgentSupport'));
 const Agency = lazy(() => import('./pages/admin/Agency'));
 
 // Closer (closeuse)
@@ -237,6 +250,10 @@ export default function App() {
           <Route path="agent/payments" element={<Suspense fallback={<Spinner />}><AgentPayments /></Suspense>} />
           <Route path="agent/accounting" element={<Suspense fallback={<Spinner />}><AgentAccounting /></Suspense>} />
           <Route path="agent/inventory" element={<Suspense fallback={<Spinner />}><AgentInventory /></Suspense>} />
+          <Route path="agent/marketing" element={<Suspense fallback={<Spinner />}><AgentMarketing /></Suspense>} />
+          <Route path="agent/reputation" element={<Suspense fallback={<Spinner />}><AgentReputation /></Suspense>} />
+          <Route path="agent/scheduling" element={<Suspense fallback={<Spinner />}><AgentScheduling /></Suspense>} />
+          <Route path="agent/support" element={<Suspense fallback={<Spinner />}><AgentSupport /></Suspense>} />
           {/* CRM */}
           <Route path="crm" element={<Suspense fallback={<Spinner />}><CrmContacts /></Suspense>} />
           <Route path="crm/deals" element={<Suspense fallback={<Spinner />}><CrmDeals /></Suspense>} />
@@ -265,7 +282,16 @@ export default function App() {
           <Route path="calls" element={<Suspense fallback={<Spinner />}><AdminCalls /></Suspense>} />
           <Route path="leads" element={<Suspense fallback={<Spinner />}><AdminLeads /></Suspense>} />
           <Route path="billing" element={<Suspense fallback={<Spinner />}><AdminBilling /></Suspense>} />
-          <Route path="agents" element={<Suspense fallback={<Spinner />}><Agents /></Suspense>} />
+          <Route path="agents" element={<Suspense fallback={<Spinner />}><ListProductAgents /></Suspense>} />
+          <Route path="agents/email-ai" element={<Suspense fallback={<Spinner />}><AdminAgentEmail /></Suspense>} />
+          <Route path="agents/accounting-ai" element={<Suspense fallback={<Spinner />}><AdminAgentAccounting /></Suspense>} />
+          <Route path="agents/inventory-ai" element={<Suspense fallback={<Spinner />}><AdminAgentInventory /></Suspense>} />
+          <Route path="agents/payments-ai" element={<Suspense fallback={<Spinner />}><AdminAgentPayments /></Suspense>} />
+          <Route path="agents/marketing-ai" element={<Suspense fallback={<Spinner />}><AdminAgentMarketing /></Suspense>} />
+          <Route path="agents/reputation-ai" element={<Suspense fallback={<Spinner />}><AdminAgentReputation /></Suspense>} />
+          <Route path="agents/scheduling-ai" element={<Suspense fallback={<Spinner />}><AdminAgentScheduling /></Suspense>} />
+          <Route path="agents/support-ai" element={<Suspense fallback={<Spinner />}><AdminAgentSupport /></Suspense>} />
+          <Route path="learning-agents" element={<Suspense fallback={<Spinner />}><Agents /></Suspense>} />
           <Route path="agency" element={<Suspense fallback={<Spinner />}><Agency /></Suspense>} />
           {/* Old routes → redirect to new locations */}
           <Route path="prospects" element={<Navigate to="/admin/leads" replace />} />

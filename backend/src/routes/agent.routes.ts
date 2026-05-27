@@ -5,6 +5,10 @@ import { agentPaymentsService } from '../services/agent-payments.service';
 import { agentAccountingService } from '../services/agent-accounting.service';
 import { agentInventoryService } from '../services/agent-inventory.service';
 import { agentEmailService } from '../services/agent-email.service';
+import { agentMarketingService } from '../services/agent-marketing.service';
+import { agentReputationService } from '../services/agent-reputation.service';
+import { agentSchedulingService } from '../services/agent-scheduling.service';
+import { agentSupportService } from '../services/agent-support.service';
 
 const router = Router();
 
@@ -31,7 +35,7 @@ router.get('/subscription', async (req: Request, res: Response) => {
 router.post('/subscription', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const { emailAi, paymentsAi, accountingAi, inventoryAi, bundle, stripeSubscriptionId, status } = req.body;
+    const { emailAi, paymentsAi, accountingAi, inventoryAi, marketingAi, reputationAi, schedulingAi, supportAi, bundle, stripeSubscriptionId, status } = req.body;
 
     const subscription = await prisma.agentSubscription.upsert({
       where: { clientId },
@@ -41,6 +45,10 @@ router.post('/subscription', async (req: Request, res: Response) => {
         paymentsAi: paymentsAi ?? false,
         accountingAi: accountingAi ?? false,
         inventoryAi: inventoryAi ?? false,
+        marketingAi: marketingAi ?? false,
+        reputationAi: reputationAi ?? false,
+        schedulingAi: schedulingAi ?? false,
+        supportAi: supportAi ?? false,
         bundle: bundle ?? false,
         stripeSubscriptionId: stripeSubscriptionId ?? null,
         status: status ?? 'active',
@@ -50,6 +58,10 @@ router.post('/subscription', async (req: Request, res: Response) => {
         ...(paymentsAi !== undefined && { paymentsAi }),
         ...(accountingAi !== undefined && { accountingAi }),
         ...(inventoryAi !== undefined && { inventoryAi }),
+        ...(marketingAi !== undefined && { marketingAi }),
+        ...(reputationAi !== undefined && { reputationAi }),
+        ...(schedulingAi !== undefined && { schedulingAi }),
+        ...(supportAi !== undefined && { supportAi }),
         ...(bundle !== undefined && { bundle }),
         ...(stripeSubscriptionId !== undefined && { stripeSubscriptionId }),
         ...(status !== undefined && { status }),
@@ -662,6 +674,158 @@ router.get('/email/dashboard', async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to get email dashboard' });
   }
+});
+
+// ─── Marketing AI ──────────────────────────────────────
+router.get('/marketing/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentMarketingService.getConfig(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load marketing config' }); }
+});
+router.put('/marketing/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentMarketingService.updateConfig(clientId, req.body ?? {}));
+  } catch { res.status(500).json({ error: 'Failed to update marketing config' }); }
+});
+router.post('/marketing/generate', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { contentType, topic, channel, language } = req.body ?? {};
+    if (!contentType || !topic || !channel) return res.status(400).json({ error: 'contentType, topic, channel required' });
+    res.json(await agentMarketingService.generate({ clientId, contentType, topic, channel, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/marketing/activity', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const limit = parseInt(String(req.query.limit ?? '50'));
+    res.json(await agentMarketingService.listActivity(clientId, limit));
+  } catch { res.status(500).json({ error: 'Failed to list activity' }); }
+});
+router.post('/marketing/approve/:activityId', async (req: Request, res: Response) => {
+  try { res.json(await agentMarketingService.approve(req.params.activityId as string)); }
+  catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/marketing/dashboard', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentMarketingService.getDashboard(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load dashboard' }); }
+});
+
+// ─── Reputation AI ─────────────────────────────────────
+router.get('/reputation/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentReputationService.getConfig(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load reputation config' }); }
+});
+router.put('/reputation/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentReputationService.updateConfig(clientId, req.body ?? {}));
+  } catch { res.status(500).json({ error: 'Failed to update reputation config' }); }
+});
+router.post('/reputation/draft', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { platform, rating, reviewText, reviewId, language } = req.body ?? {};
+    if (!platform || typeof rating !== 'number' || !reviewText) return res.status(400).json({ error: 'platform, rating, reviewText required' });
+    res.json(await agentReputationService.draftReply({ clientId, platform, rating, reviewText, reviewId, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/reputation/reviews', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const limit = parseInt(String(req.query.limit ?? '50'));
+    res.json(await agentReputationService.listReviews(clientId, limit));
+  } catch { res.status(500).json({ error: 'Failed to list reviews' }); }
+});
+router.post('/reputation/send/:activityId', async (req: Request, res: Response) => {
+  try { res.json(await agentReputationService.send(req.params.activityId as string)); }
+  catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/reputation/dashboard', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentReputationService.getDashboard(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load dashboard' }); }
+});
+
+// ─── Scheduling AI ─────────────────────────────────────
+router.get('/scheduling/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentSchedulingService.getConfig(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load scheduling config' }); }
+});
+router.put('/scheduling/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentSchedulingService.updateConfig(clientId, req.body ?? {}));
+  } catch { res.status(500).json({ error: 'Failed to update scheduling config' }); }
+});
+router.post('/scheduling/optimize', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { date, slotCount, language } = req.body ?? {};
+    if (!date) return res.status(400).json({ error: 'date required' });
+    res.json(await agentSchedulingService.optimize({ clientId, date, slotCount, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/scheduling/activity', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const limit = parseInt(String(req.query.limit ?? '50'));
+    res.json(await agentSchedulingService.listActivity(clientId, limit));
+  } catch { res.status(500).json({ error: 'Failed to list activity' }); }
+});
+router.get('/scheduling/dashboard', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentSchedulingService.getDashboard(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load dashboard' }); }
+});
+
+// ─── Support AI ────────────────────────────────────────
+router.get('/support/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentSupportService.getConfig(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load support config' }); }
+});
+router.put('/support/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentSupportService.updateConfig(clientId, req.body ?? {}));
+  } catch { res.status(500).json({ error: 'Failed to update support config' }); }
+});
+router.post('/support/classify', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { channel, ticketText, ticketId, language } = req.body ?? {};
+    if (!channel || !ticketText) return res.status(400).json({ error: 'channel, ticketText required' });
+    res.json(await agentSupportService.classify({ clientId, channel, ticketText, ticketId, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/support/tickets', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const limit = parseInt(String(req.query.limit ?? '50'));
+    res.json(await agentSupportService.listTickets(clientId, limit));
+  } catch { res.status(500).json({ error: 'Failed to list tickets' }); }
+});
+router.post('/support/send/:activityId', async (req: Request, res: Response) => {
+  try { res.json(await agentSupportService.sendReply(req.params.activityId as string)); }
+  catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/support/dashboard', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentSupportService.getDashboard(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load dashboard' }); }
 });
 
 export default router;

@@ -4,6 +4,7 @@ import api from '../../services/api';
 import { motion } from 'framer-motion';
 import {
   Mail, CreditCard, BookOpen, Package,
+  Megaphone, Star, CalendarClock, LifeBuoy,
   Plus, Activity, Zap, ChevronRight, ToggleLeft, ToggleRight
 } from 'lucide-react';
 
@@ -96,6 +97,46 @@ const INITIAL_MODULES: Module[] = [
     status: 'setup_required',
     enabled: false,
     href: '/dashboard/agent/inventory',
+  },
+  {
+    id: 'marketing',
+    name: 'Marketing AI',
+    description: 'Generates on-brand social posts, campaign emails, and ad copy tailored to your niche.',
+    icon: Megaphone,
+    iconStyle: ICON_STYLES.indigo,
+    status: 'setup_required',
+    enabled: false,
+    href: '/dashboard/agent/marketing',
+  },
+  {
+    id: 'reputation',
+    name: 'Reputation AI',
+    description: 'Monitors Google and Facebook reviews, drafts replies, escalates low ratings.',
+    icon: Star,
+    iconStyle: ICON_STYLES.amber,
+    status: 'setup_required',
+    enabled: false,
+    href: '/dashboard/agent/reputation',
+  },
+  {
+    id: 'scheduling',
+    name: 'Scheduling AI',
+    description: 'Optimizes appointment slots, cuts no-shows via reminders, recommends best times.',
+    icon: CalendarClock,
+    iconStyle: ICON_STYLES.violet,
+    status: 'setup_required',
+    enabled: false,
+    href: '/dashboard/agent/scheduling',
+  },
+  {
+    id: 'support',
+    name: 'Support AI',
+    description: 'Triages inbound tickets, drafts replies, escalates urgent issues to humans.',
+    icon: LifeBuoy,
+    iconStyle: ICON_STYLES.emerald,
+    status: 'setup_required',
+    enabled: false,
+    href: '/dashboard/agent/support',
   },
 ];
 

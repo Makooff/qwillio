@@ -61,6 +61,12 @@ export const env = {
   STRIPE_PRICE_ENTERPRISE_SETUP: process.env.STRIPE_PRICE_ENTERPRISE_SETUP || '',
   STRIPE_PRICE_ENTERPRISE_MONTHLY: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || '',
 
+  // Agent AI modules (+$197/mo each, manual Stripe setup required)
+  STRIPE_PRICE_MARKETING_AI: process.env.STRIPE_PRICE_MARKETING_AI || '',
+  STRIPE_PRICE_REPUTATION_AI: process.env.STRIPE_PRICE_REPUTATION_AI || '',
+  STRIPE_PRICE_SCHEDULING_AI: process.env.STRIPE_PRICE_SCHEDULING_AI || '',
+  STRIPE_PRICE_SUPPORT_AI: process.env.STRIPE_PRICE_SUPPORT_AI || '',
+
   RESEND_API_KEY: process.env.RESEND_API_KEY || '',
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'Qwillio <hello@qwillio.com>',
   RESEND_FROM_NAME: process.env.RESEND_FROM_NAME || 'Qwillio',

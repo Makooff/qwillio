@@ -2,6 +2,7 @@
 import { useSEO } from '../hooks/useSEO';
 import {
   Mail, Calculator, Package, CreditCard, ArrowRight, Check,
+  Megaphone, Star, CalendarClock, LifeBuoy,
   type LucideIcon,
 } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
@@ -27,7 +28,7 @@ export default function Agent() {
     title: isFr ? 'Qwillio Agent · Modules IA' : 'Qwillio Agent · AI Modules',
     description: isFr
       ? 'Modules IA additionnels : Email, Comptabilité, Inventaire, Paiements. Greffés à votre Réceptionniste.'
-      : 'Add-on AI modules: Email, Accounting, Inventory, Payments. Bolted onto your Receptionist.',
+      : 'Add-on AI modules: Email, Accounting, Inventory, Payments, Marketing, Reputation, Scheduling, Support. Bolted onto your Receptionist.',
     canonical: 'https://qwillio.com/agent',
   });
 
@@ -79,6 +80,54 @@ export default function Agent() {
       features: isFr
         ? ['Acomptes vocaux pendant l\'appel', 'Stripe, SEPA, Apple Pay', 'Gestion des remboursements', 'Reporting consolidé']
         : ['Voice deposits during call', 'Stripe, SEPA, Apple Pay', 'Refund handling', 'Consolidated reporting'],
+    },
+    {
+      id: 'marketing',
+      icon: Megaphone,
+      name: isFr ? 'Marketing IA' : 'Marketing AI',
+      tagline: isFr ? 'Posts, emails, ad copy' : 'Posts, emails, ad copy',
+      description: isFr
+        ? 'Génère vos publications réseaux sociaux, vos campagnes emails et vos textes publicitaires adaptés à votre niche.'
+        : 'Generates social media posts, email campaigns, and ad copy tailored to your niche.',
+      features: isFr
+        ? ['Posts Facebook et Instagram', 'Emails campagne par segment', 'Texte publicitaire Google Ads', 'Adapté au ton de votre marque']
+        : ['Facebook and Instagram posts', 'Segmented campaign emails', 'Google Ads copy', 'Matches your brand tone'],
+    },
+    {
+      id: 'reputation',
+      icon: Star,
+      name: isFr ? 'Réputation IA' : 'Reputation AI',
+      tagline: isFr ? 'Avis et réponses' : 'Reviews and replies',
+      description: isFr
+        ? 'Surveille vos avis Google et Facebook, rédige les réponses, alerte sur les notes basses.'
+        : 'Monitors your Google and Facebook reviews, drafts replies, alerts on low ratings.',
+      features: isFr
+        ? ['Surveillance temps réel des avis', 'Réponses générées par IA', 'Escalade des notes basses', 'Score réputation hebdomadaire']
+        : ['Real-time review monitoring', 'AI-drafted replies', 'Low-rating escalation', 'Weekly reputation score'],
+    },
+    {
+      id: 'scheduling',
+      icon: CalendarClock,
+      name: isFr ? 'Planification IA' : 'Scheduling AI',
+      tagline: isFr ? 'Créneaux et rappels' : 'Slots and reminders',
+      description: isFr
+        ? 'Optimise vos créneaux de rendez-vous, envoie les rappels SMS, réduit les no-shows.'
+        : 'Optimizes appointment slots, sends SMS reminders, cuts down on no-shows.',
+      features: isFr
+        ? ['Recommandation de créneaux', 'Rappels SMS automatiques', 'Détection de patterns no-show', 'Synchronisé avec votre Receptionist']
+        : ['Slot recommendations', 'Automated SMS reminders', 'No-show pattern detection', 'Synced with your Receptionist'],
+    },
+    {
+      id: 'support',
+      icon: LifeBuoy,
+      name: isFr ? 'Support IA' : 'Support AI',
+      tagline: isFr ? 'Tickets et escalade' : 'Tickets and escalation',
+      description: isFr
+        ? 'Trie les tickets email et chat, rédige les réponses, escalade ce qui demande un humain.'
+        : 'Triages email and chat tickets, drafts replies, escalates what needs a human.',
+      features: isFr
+        ? ['Classification automatique', 'Réponses générées par IA', 'Escalade par mots-clés', 'Priorisation high/normal/low']
+        : ['Automatic classification', 'AI-drafted replies', 'Keyword-based escalation', 'High/normal/low priority']
     },
   ];
 
