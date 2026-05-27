@@ -1,7 +1,12 @@
 ﻿import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
-import { Check, ArrowRight, ChevronDown } from 'lucide-react';
+import {
+  Check, ArrowRight, ChevronDown,
+  Users, Megaphone, Star, FileText, CalendarClock, MapPin,
+  Mail, Crosshair, LifeBuoy, CreditCard, LineChart, Calculator, Package,
+  Sparkles,
+} from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
@@ -226,6 +231,150 @@ export default function Pricing() {
                 </Reveal>
               );
             })}
+          </div>
+        </section>
+
+        {/* ── AI MODULES — 13 add-on agents ────────────────────────── */}
+        <section
+          aria-labelledby="modules-heading"
+          className="px-6 pb-20 md:pb-28 border-t border-[#1d1d1f]/8 pt-16 md:pt-24"
+        >
+          <div className="max-w-[1240px] mx-auto">
+            <Reveal>
+            <div className="mb-10 md:mb-14 grid lg:grid-cols-[1.4fr_1fr] gap-8 items-end">
+              <div>
+                <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3" style={{ color: '#a855f7' }}>
+                  {isFr ? 'Qwillio Agent' : 'Qwillio Agent'}
+                </span>
+                <h2
+                  id="modules-heading"
+                  className="text-[clamp(2rem,4.4vw,3.6rem)] font-semibold tracking-[-0.03em] leading-[1.02]"
+                >
+                  {isFr ? (
+                    <>13 modules IA. <span className="font-serif italic" style={{ color: '#6366f1' }}>À la carte</span> ou en bundle.</>
+                  ) : (
+                    <>13 AI modules. <span className="font-serif italic" style={{ color: '#6366f1' }}>À la carte</span> or bundled.</>
+                  )}
+                </h2>
+              </div>
+              <p className="text-[#525257] text-[15px] leading-relaxed">
+                {isFr
+                  ? 'Activez les modules dont vous avez besoin, désactivez à tout moment. Du plus demandé au moins demandé.'
+                  : 'Activate the modules you need, turn them off anytime. From most to least requested.'}
+              </p>
+            </div>
+            </Reveal>
+
+            {/* Bundle highlight card */}
+            <Reveal delay={0.1}>
+            <Card3D intensity={4}>
+            <article
+              className="relative rounded-3xl sm:rounded-[2rem] p-7 sm:p-9 md:p-11 mb-6 text-white"
+              style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #a855f7 115%)' }}
+            >
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold tracking-[0.18em] uppercase px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: '#a855f7', color: '#fff' }}>
+                {isFr ? 'Bundle complet' : 'Full bundle'}
+              </span>
+              <div className="grid md:grid-cols-[1.4fr_1fr] gap-6 items-center mt-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles size={18} style={{ color: '#a855f7' }} />
+                    <span className="text-[12.5px] font-semibold tracking-[0.08em] uppercase opacity-90">
+                      {isFr ? 'All Agents' : 'All Agents'}
+                    </span>
+                  </div>
+                  <h3 className="text-[clamp(1.6rem,3.2vw,2.8rem)] font-semibold tracking-[-0.025em] leading-[1.05] mb-3">
+                    {isFr ? 'Les 13 modules en un seul abonnement' : 'All 13 modules in one subscription'}
+                  </h3>
+                  <p className="text-[14px] leading-relaxed text-white/75 mb-4 max-w-[480px]">
+                    {isFr
+                      ? 'Au lieu de 2 561 $/mois si pris à l\'unité. Économisez 1 064 $/mois en activant tout en une fois.'
+                      : 'Instead of $2,561/mo if bought individually. Save $1,064/mo by activating everything at once.'}
+                  </p>
+                </div>
+                <div className="text-right md:text-left md:border-l md:border-white/10 md:pl-8">
+                  <div className="text-[11px] font-semibold tracking-[0.14em] uppercase opacity-60 mb-1">
+                    {isFr ? 'À partir de' : 'Starting at'}
+                  </div>
+                  <div className="text-[clamp(2.4rem,5vw,3.6rem)] font-semibold tracking-[-0.04em] tabular-nums leading-none">
+                    $1 497<span className="text-[14px] font-normal opacity-60 ml-1">/mo</span>
+                  </div>
+                  <div className="mt-1 text-[12px] tabular-nums" style={{ color: '#a855f7' }}>
+                    −$1 064/mo {isFr ? 'd\'économie' : 'savings'}
+                  </div>
+                  <Link
+                    to="/contact"
+                    className="mt-4 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[12.5px] font-semibold transition-colors active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    style={{ background: '#fff', color: '#1d1d1f' }}
+                  >
+                    {isFr ? 'Activer le bundle' : 'Activate bundle'}
+                    <ArrowRight size={13} />
+                  </Link>
+                </div>
+              </div>
+            </article>
+            </Card3D>
+            </Reveal>
+
+            {/* 13 modules grid, ordered by demand */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[
+                { id: 'crm',        icon: Users,        name: 'CRM AI',         tagline: isFr ? 'Pipeline, forecast, relances' : 'Pipeline, forecast, follow-ups',  hot: true },
+                { id: 'marketing',  icon: Megaphone,    name: 'Marketing AI',   tagline: isFr ? 'Posts, emails, ad copy' : 'Posts, emails, ad copy',                 hot: true },
+                { id: 'reputation', icon: Star,         name: 'Reputation AI',  tagline: isFr ? 'Avis et réponses' : 'Reviews and replies' },
+                { id: 'document',   icon: FileText,     name: 'Document AI',    tagline: isFr ? 'Devis, contrats, signature' : 'Quotes, contracts, signature' },
+                { id: 'scheduling', icon: CalendarClock,name: 'Scheduling AI',  tagline: isFr ? 'Créneaux et rappels' : 'Slots and reminders' },
+                { id: 'local_seo',  icon: MapPin,       name: 'Local SEO AI',   tagline: isFr ? 'GMB, keywords, audit' : 'GMB, keywords, audit' },
+                { id: 'email',      icon: Mail,         name: 'Email AI',       tagline: isFr ? 'Triage et auto-reply' : 'Triage and auto-reply' },
+                { id: 'lead_gen',   icon: Crosshair,    name: 'Lead Gen AI',    tagline: isFr ? 'Prospection sortante' : 'Outbound prospecting' },
+                { id: 'support',    icon: LifeBuoy,     name: 'Support AI',     tagline: isFr ? 'Tickets et escalade' : 'Tickets and escalation' },
+                { id: 'payments',   icon: CreditCard,   name: 'Payments AI',    tagline: isFr ? 'Encaissements et acomptes' : 'Payments and deposits' },
+                { id: 'analytics',  icon: LineChart,    name: 'Analytics AI',   tagline: isFr ? 'Digest, anomalies, forecast' : 'Digest, anomalies, forecast' },
+                { id: 'accounting', icon: Calculator,   name: 'Accounting AI',  tagline: isFr ? 'Factures et P&L' : 'Invoices and P&L' },
+                { id: 'inventory',  icon: Package,      name: 'Inventory AI',   tagline: isFr ? 'Stock et réassort' : 'Stock and reorder' },
+              ].map((m, i) => {
+                const Icon = m.icon;
+                return (
+                  <Reveal key={m.id} delay={Math.min(i * 0.04, 0.4)}>
+                  <article
+                    className="rounded-2xl p-5 transition-colors flex items-start gap-3 active:scale-[0.99] focus-within:ring-2 focus-within:ring-[#6366f1]/30"
+                    style={{ background: '#fafaf8', border: '1px solid rgba(29,29,31,0.08)' }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(99,102,241,0.10)' }}
+                    >
+                      <Icon size={18} style={{ color: '#6366f1' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="text-[14px] font-semibold tracking-[-0.005em] text-[#1d1d1f] truncate">
+                          {m.name}
+                        </h3>
+                        {m.hot && (
+                          <span className="text-[9px] font-bold tracking-[0.12em] uppercase px-1.5 py-0.5 rounded-full" style={{ background: '#a855f7', color: '#fff' }}>
+                            {isFr ? 'Top' : 'Top'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[12px] text-[#525257] mb-2 truncate">{m.tagline}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[13px] font-semibold tabular-nums text-[#1d1d1f]">$197<span className="text-[11px] font-normal text-[#86868b]">/mo</span></span>
+                        <Link
+                          to="/agent"
+                          className="text-[11.5px] font-semibold inline-flex items-center gap-1"
+                          style={{ color: '#6366f1' }}
+                        >
+                          {isFr ? 'Détail' : 'Details'}
+                          <ArrowRight size={11} />
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                  </Reveal>
+                );
+              })}
+            </div>
           </div>
         </section>
 

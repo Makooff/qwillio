@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Mail, Calculator, Package, CreditCard,
   Megaphone, Star, CalendarClock, LifeBuoy,
+  Users, FileText, MapPin, Crosshair, LineChart,
   ChevronRight, RefreshCw,
 } from 'lucide-react';
 import api from '../../../services/api';
@@ -20,37 +21,59 @@ interface ListResponse {
   subscriptions: Array<{ status: string; _count: { _all: number } }>;
 }
 
+// Ordered from most demanded to least demanded.
+const ORDER: string[] = [
+  'crm', 'marketing', 'reputation', 'document', 'scheduling',
+  'local_seo', 'email', 'lead_gen', 'support', 'payments',
+  'analytics', 'accounting', 'inventory',
+];
+
 const ICONS: Record<string, ComponentType<{ size?: number; style?: React.CSSProperties }>> = {
-  email:      Mail,
-  accounting: Calculator,
-  inventory:  Package,
-  payments:   CreditCard,
+  crm:        Users,
   marketing:  Megaphone,
   reputation: Star,
+  document:   FileText,
   scheduling: CalendarClock,
+  local_seo:  MapPin,
+  email:      Mail,
+  lead_gen:   Crosshair,
   support:    LifeBuoy,
+  payments:   CreditCard,
+  analytics:  LineChart,
+  accounting: Calculator,
+  inventory:  Package,
 };
 
 const TAGLINES: Record<string, string> = {
-  email:      'Classification + auto-reply email',
-  accounting: 'Dépenses + rapports financiers',
-  inventory:  'Suivi stock + alertes seuil',
-  payments:   'Facturation + relances',
+  crm:        'Pipeline + forecast + relances',
   marketing:  'Posts + emails + ad copy',
   reputation: 'Avis + réponses générées',
+  document:   'Devis, contrats, estimates',
   scheduling: 'Optimisation RDV + anti no-show',
+  local_seo:  'GMB posts + audit + keywords',
+  email:      'Classification + auto-reply email',
+  lead_gen:   'Découverte + séquences sortantes',
   support:    'Tickets + draft réponses',
+  payments:   'Facturation + relances',
+  analytics:  'Digest + anomalies + forecast',
+  accounting: 'Dépenses + rapports financiers',
+  inventory:  'Suivi stock + alertes seuil',
 };
 
 const SLUG: Record<string, string> = {
-  email:      'email-ai',
-  accounting: 'accounting-ai',
-  inventory:  'inventory-ai',
-  payments:   'payments-ai',
+  crm:        'crm-ai',
   marketing:  'marketing-ai',
   reputation: 'reputation-ai',
+  document:   'document-ai',
   scheduling: 'scheduling-ai',
+  local_seo:  'local-seo-ai',
+  email:      'email-ai',
+  lead_gen:   'lead-gen-ai',
   support:    'support-ai',
+  payments:   'payments-ai',
+  analytics:  'analytics-ai',
+  accounting: 'accounting-ai',
+  inventory:  'inventory-ai',
 };
 
 export default function ListProductAgents() {
@@ -96,7 +119,10 @@ export default function ListProductAgents() {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {(data?.agents ?? Object.keys(ICONS).map(type => ({ type, displayName: type, activitiesLast24h: 0 }))).map(agent => {
+        {(() => {
+          const map = new Map((data?.agents ?? []).map(a => [a.type, a]));
+          return ORDER.map(t => map.get(t) ?? { type: t, displayName: t, activitiesLast24h: 0 });
+        })().map(agent => {
           const Icon = ICONS[agent.type];
           const slug = SLUG[agent.type] ?? agent.type;
           const active24h = agent.activitiesLast24h ?? 0;

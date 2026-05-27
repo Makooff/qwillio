@@ -5,25 +5,36 @@ import { agentMarketingService } from '../services/agent-marketing.service';
 import { agentReputationService } from '../services/agent-reputation.service';
 import { agentSchedulingService } from '../services/agent-scheduling.service';
 import { agentSupportService } from '../services/agent-support.service';
+import { agentCrmService } from '../services/agent-crm.service';
+import { agentDocumentService } from '../services/agent-document.service';
+import { agentLocalSeoService } from '../services/agent-local-seo.service';
+import { agentLeadGenService } from '../services/agent-lead-gen.service';
+import { agentAnalyticsService } from '../services/agent-analytics.service';
 
 // Admin oversight of the 8 product agent modules. Mirrors per-client services
 // but at the global tenant level — admin can view aggregate metrics, edit
 // prompts (versioned), and trigger ad-hoc runs against any client.
 
 const KNOWN_AGENT_TYPES: AgentType[] = [
-  'email', 'accounting', 'inventory', 'payments',
-  'marketing', 'reputation', 'scheduling', 'support',
+  'crm', 'marketing', 'reputation', 'document', 'scheduling',
+  'local_seo', 'email', 'lead_gen', 'support', 'payments',
+  'analytics', 'accounting', 'inventory',
 ];
 
 const DISPLAY_NAMES: Record<AgentType, string> = {
-  email: 'Email AI',
-  accounting: 'Accounting AI',
-  inventory: 'Inventory AI',
-  payments: 'Payments AI',
+  crm: 'CRM AI',
   marketing: 'Marketing AI',
   reputation: 'Reputation AI',
+  document: 'Document AI',
   scheduling: 'Scheduling AI',
+  local_seo: 'Local SEO AI',
+  email: 'Email AI',
+  lead_gen: 'Lead Gen AI',
   support: 'Support AI',
+  payments: 'Payments AI',
+  analytics: 'Analytics AI',
+  accounting: 'Accounting AI',
+  inventory: 'Inventory AI',
   closer: 'Closer Agent',
   branding: 'Branding Agent',
   business_plan: 'Business Plan Agent',
@@ -216,6 +227,80 @@ export class AdminAgentsController {
           result = await agentSupportService.classify({ clientId, channel, ticketText, ticketId, language });
           break;
         }
+        case 'crm': {
+          const { task, dealId, newStage, notes, lostReason, periodMonths, language } = params ?? {};
+          if (task === 'progress_deal') {
+            if (!dealId || !newStage) return res.status(400).json({ error: 'params.dealId, newStage required' });
+            result = await agentCrmService.progressDeal({ clientId, dealId, newStage, notes });
+          } else if (task === 'analyze_lost') {
+            result = await agentCrmService.analyzeLostDeal({ clientId, dealId, lostReason, language });
+          } else if (task === 'forecast') {
+            result = await agentCrmService.forecastRevenue({ clientId, periodMonths, language });
+          } else if (task === 'relance') {
+            if (!dealId) return res.status(400).json({ error: 'params.dealId required for relance' });
+            result = await agentCrmService.generateRelance({ clientId, dealId, language });
+          } else if (task === 'sync') {
+            result = await agentCrmService.syncAll(clientId);
+          } else {
+            return res.status(400).json({ error: 'params.task required: progress_deal|analyze_lost|forecast|relance|sync' });
+          }
+          break;
+        }
+        case 'document': {
+          const { docType, items, customerInfo, language, notes } = params ?? {};
+          if (!docType || !Array.isArray(items) || !customerInfo) return res.status(400).json({ error: 'params.docType, items, customerInfo required' });
+          result = await agentDocumentService.generate({ clientId, docType, items, customerInfo, language, notes });
+          break;
+        }
+        case 'local_seo': {
+          const { task, topic, eventDate, offerDetails, count, listing, keyword, location, language } = params ?? {};
+          if (task === 'gmb_post') {
+            if (!topic) return res.status(400).json({ error: 'params.topic required' });
+            result = await agentLocalSeoService.generateGmbPost({ clientId, topic, eventDate, offerDetails, language });
+          } else if (task === 'keywords') {
+            result = await agentLocalSeoService.suggestKeywords({ clientId, count, language });
+          } else if (task === 'audit') {
+            if (!listing) return res.status(400).json({ error: 'params.listing required' });
+            result = await agentLocalSeoService.auditListing({ clientId, listing, language });
+          } else if (task === 'ranking') {
+            if (!keyword || !location) return res.status(400).json({ error: 'params.keyword, location required' });
+            result = await agentLocalSeoService.trackRanking({ clientId, keyword, location, language });
+          } else {
+            return res.status(400).json({ error: 'params.task required: gmb_post|keywords|audit|ranking' });
+          }
+          break;
+        }
+        case 'lead_gen': {
+          const { task, niches, cities, count, prospectId, channel, tone, stepCount, activityId, language } = params ?? {};
+          if (task === 'discover') {
+            result = await agentLeadGenService.discover({ clientId, niches, cities, count });
+          } else if (task === 'sequence') {
+            if (!prospectId) return res.status(400).json({ error: 'params.prospectId required' });
+            result = await agentLeadGenService.generateSequence({ clientId, prospectId, channel, tone, stepCount, language });
+          } else if (task === 'send_next') {
+            if (!activityId) return res.status(400).json({ error: 'params.activityId required' });
+            result = await agentLeadGenService.sendNextStep(activityId);
+          } else {
+            return res.status(400).json({ error: 'params.task required: discover|sequence|send_next' });
+          }
+          break;
+        }
+        case 'analytics': {
+          const { task, metric, periodDays, windowDays, language } = params ?? {};
+          if (task === 'digest') {
+            result = await agentAnalyticsService.generateWeeklyDigest({ clientId, language });
+          } else if (task === 'anomalies') {
+            result = await agentAnalyticsService.detectAnomalies({ clientId, windowDays, language });
+          } else if (task === 'forecast') {
+            if (!metric) return res.status(400).json({ error: 'params.metric required (calls|bookings|revenue)' });
+            result = await agentAnalyticsService.forecast({ clientId, metric, periodDays, language });
+          } else if (task === 'recommend') {
+            result = await agentAnalyticsService.recommend({ clientId, language });
+          } else {
+            return res.status(400).json({ error: 'params.task required: digest|anomalies|forecast|recommend' });
+          }
+          break;
+        }
         default:
           return res.status(400).json({ error: `Admin run not implemented for ${agentType}` });
       }
@@ -238,6 +323,11 @@ async function activityCount(agentType: AgentType, where: any): Promise<number> 
     case 'reputation': return prisma.agentReputationActivity.count({ where });
     case 'scheduling': return prisma.agentSchedulingActivity.count({ where });
     case 'support': return prisma.agentSupportActivity.count({ where });
+    case 'crm': return prisma.agentCrmActivity.count({ where });
+    case 'document': return prisma.agentDocumentActivity.count({ where });
+    case 'local_seo': return prisma.agentLocalSeoActivity.count({ where });
+    case 'lead_gen': return prisma.agentLeadGenActivity.count({ where });
+    case 'analytics': return prisma.agentAnalyticsActivity.count({ where });
     case 'email': return prisma.agentEmail.count({ where });
     case 'inventory': return prisma.agentInventoryLog.count({ where });
     case 'payments': return prisma.agentInvoice.count({ where });
@@ -252,6 +342,11 @@ async function activityGroupBy(agentType: AgentType, where: any): Promise<Array<
     case 'reputation': return (await (prisma.agentReputationActivity.groupBy as any)({ by: ['status'], where, _count: { _all: true } })) as any;
     case 'scheduling': return (await (prisma.agentSchedulingActivity.groupBy as any)({ by: ['status'], where, _count: { _all: true } })) as any;
     case 'support': return (await (prisma.agentSupportActivity.groupBy as any)({ by: ['status'], where, _count: { _all: true } })) as any;
+    case 'crm': return (await (prisma.agentCrmActivity.groupBy as any)({ by: ['status'], where, _count: { _all: true } })) as any;
+    case 'document': return (await (prisma.agentDocumentActivity.groupBy as any)({ by: ['status'], where, _count: { _all: true } })) as any;
+    case 'local_seo': return (await (prisma.agentLocalSeoActivity.groupBy as any)({ by: ['status'], where, _count: { _all: true } })) as any;
+    case 'lead_gen': return (await (prisma.agentLeadGenActivity.groupBy as any)({ by: ['status'], where, _count: { _all: true } })) as any;
+    case 'analytics': return (await (prisma.agentAnalyticsActivity.groupBy as any)({ by: ['status'], where, _count: { _all: true } })) as any;
     default: return [];
   }
 }
@@ -262,6 +357,11 @@ async function activityFinder(agentType: AgentType, where: any, limit: number): 
     case 'reputation': return prisma.agentReputationActivity.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit });
     case 'scheduling': return prisma.agentSchedulingActivity.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit });
     case 'support': return prisma.agentSupportActivity.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit });
+    case 'crm': return prisma.agentCrmActivity.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit });
+    case 'document': return prisma.agentDocumentActivity.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit });
+    case 'local_seo': return prisma.agentLocalSeoActivity.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit });
+    case 'lead_gen': return prisma.agentLeadGenActivity.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit });
+    case 'analytics': return prisma.agentAnalyticsActivity.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit });
     case 'email': return prisma.agentEmail.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit });
     case 'inventory': return prisma.agentInventoryLog.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit });
     case 'payments': return prisma.agentInvoice.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit });

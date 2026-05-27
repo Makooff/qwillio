@@ -47,6 +47,11 @@ const AgentMarketing = lazy(() => import('./pages/client/AgentMarketing'));
 const AgentReputation = lazy(() => import('./pages/client/AgentReputation'));
 const AgentScheduling = lazy(() => import('./pages/client/AgentScheduling'));
 const AgentSupport = lazy(() => import('./pages/client/AgentSupport'));
+const AgentCrm = lazy(() => import('./pages/client/AgentCrm'));
+const AgentDocument = lazy(() => import('./pages/client/AgentDocument'));
+const AgentLocalSeo = lazy(() => import('./pages/client/AgentLocalSeo'));
+const AgentLeadGen = lazy(() => import('./pages/client/AgentLeadGen'));
+const AgentAnalytics = lazy(() => import('./pages/client/AgentAnalytics'));
 // CRM pages (lazy loaded)
 const CrmContacts = lazy(() => import('./pages/client/CrmContacts'));
 const CrmDeals = lazy(() => import('./pages/client/CrmDeals'));
@@ -76,6 +81,11 @@ const AdminAgentMarketing = lazy(() => import('./pages/admin/agents/AdminAgentMa
 const AdminAgentReputation = lazy(() => import('./pages/admin/agents/AdminAgentReputation'));
 const AdminAgentScheduling = lazy(() => import('./pages/admin/agents/AdminAgentScheduling'));
 const AdminAgentSupport = lazy(() => import('./pages/admin/agents/AdminAgentSupport'));
+const AdminAgentCrm = lazy(() => import('./pages/admin/agents/AdminAgentCrm'));
+const AdminAgentDocument = lazy(() => import('./pages/admin/agents/AdminAgentDocument'));
+const AdminAgentLocalSeo = lazy(() => import('./pages/admin/agents/AdminAgentLocalSeo'));
+const AdminAgentLeadGen = lazy(() => import('./pages/admin/agents/AdminAgentLeadGen'));
+const AdminAgentAnalytics = lazy(() => import('./pages/admin/agents/AdminAgentAnalytics'));
 const Agency = lazy(() => import('./pages/admin/Agency'));
 
 // Closer (closeuse)
@@ -254,6 +264,11 @@ export default function App() {
           <Route path="agent/reputation" element={<Suspense fallback={<Spinner />}><AgentReputation /></Suspense>} />
           <Route path="agent/scheduling" element={<Suspense fallback={<Spinner />}><AgentScheduling /></Suspense>} />
           <Route path="agent/support" element={<Suspense fallback={<Spinner />}><AgentSupport /></Suspense>} />
+          <Route path="agent/crm" element={<Suspense fallback={<Spinner />}><AgentCrm /></Suspense>} />
+          <Route path="agent/document" element={<Suspense fallback={<Spinner />}><AgentDocument /></Suspense>} />
+          <Route path="agent/local-seo" element={<Suspense fallback={<Spinner />}><AgentLocalSeo /></Suspense>} />
+          <Route path="agent/lead-gen" element={<Suspense fallback={<Spinner />}><AgentLeadGen /></Suspense>} />
+          <Route path="agent/analytics" element={<Suspense fallback={<Spinner />}><AgentAnalytics /></Suspense>} />
           {/* CRM */}
           <Route path="crm" element={<Suspense fallback={<Spinner />}><CrmContacts /></Suspense>} />
           <Route path="crm/deals" element={<Suspense fallback={<Spinner />}><CrmDeals /></Suspense>} />
@@ -291,6 +306,11 @@ export default function App() {
           <Route path="agents/reputation-ai" element={<Suspense fallback={<Spinner />}><AdminAgentReputation /></Suspense>} />
           <Route path="agents/scheduling-ai" element={<Suspense fallback={<Spinner />}><AdminAgentScheduling /></Suspense>} />
           <Route path="agents/support-ai" element={<Suspense fallback={<Spinner />}><AdminAgentSupport /></Suspense>} />
+          <Route path="agents/crm-ai" element={<Suspense fallback={<Spinner />}><AdminAgentCrm /></Suspense>} />
+          <Route path="agents/document-ai" element={<Suspense fallback={<Spinner />}><AdminAgentDocument /></Suspense>} />
+          <Route path="agents/local-seo-ai" element={<Suspense fallback={<Spinner />}><AdminAgentLocalSeo /></Suspense>} />
+          <Route path="agents/lead-gen-ai" element={<Suspense fallback={<Spinner />}><AdminAgentLeadGen /></Suspense>} />
+          <Route path="agents/analytics-ai" element={<Suspense fallback={<Spinner />}><AdminAgentAnalytics /></Suspense>} />
           <Route path="learning-agents" element={<Suspense fallback={<Spinner />}><Agents /></Suspense>} />
           <Route path="agency" element={<Suspense fallback={<Spinner />}><Agency /></Suspense>} />
           {/* Old routes → redirect to new locations */}

@@ -9,6 +9,11 @@ import { agentMarketingService } from '../services/agent-marketing.service';
 import { agentReputationService } from '../services/agent-reputation.service';
 import { agentSchedulingService } from '../services/agent-scheduling.service';
 import { agentSupportService } from '../services/agent-support.service';
+import { agentCrmService } from '../services/agent-crm.service';
+import { agentDocumentService } from '../services/agent-document.service';
+import { agentLocalSeoService } from '../services/agent-local-seo.service';
+import { agentLeadGenService } from '../services/agent-lead-gen.service';
+import { agentAnalyticsService } from '../services/agent-analytics.service';
 
 const router = Router();
 
@@ -35,7 +40,21 @@ router.get('/subscription', async (req: Request, res: Response) => {
 router.post('/subscription', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const { emailAi, paymentsAi, accountingAi, inventoryAi, marketingAi, reputationAi, schedulingAi, supportAi, bundle, stripeSubscriptionId, status } = req.body;
+    const { emailAi, paymentsAi, accountingAi, inventoryAi, marketingAi, reputationAi, schedulingAi, supportAi, crmAi, documentAi, localSeoAi, leadGenAi, analyticsAi, bundle, stripeSubscriptionId, status } = req.body;
+
+    // Trial guard: modules are not available during the 14-day trial.
+    const requestedAny = [
+      emailAi, paymentsAi, accountingAi, inventoryAi,
+      marketingAi, reputationAi, schedulingAi, supportAi,
+      crmAi, documentAi, localSeoAi, leadGenAi, analyticsAi,
+      bundle,
+    ].some(v => v === true);
+    if (requestedAny) {
+      const client = await prisma.client.findUnique({ where: { id: clientId } });
+      if (client?.isTrial) {
+        return res.status(402).json({ error: 'Agent modules are not included in the trial. Upgrade to activate.' });
+      }
+    }
 
     const subscription = await prisma.agentSubscription.upsert({
       where: { clientId },
@@ -49,6 +68,11 @@ router.post('/subscription', async (req: Request, res: Response) => {
         reputationAi: reputationAi ?? false,
         schedulingAi: schedulingAi ?? false,
         supportAi: supportAi ?? false,
+        crmAi: crmAi ?? false,
+        documentAi: documentAi ?? false,
+        localSeoAi: localSeoAi ?? false,
+        leadGenAi: leadGenAi ?? false,
+        analyticsAi: analyticsAi ?? false,
         bundle: bundle ?? false,
         stripeSubscriptionId: stripeSubscriptionId ?? null,
         status: status ?? 'active',
@@ -62,6 +86,11 @@ router.post('/subscription', async (req: Request, res: Response) => {
         ...(reputationAi !== undefined && { reputationAi }),
         ...(schedulingAi !== undefined && { schedulingAi }),
         ...(supportAi !== undefined && { supportAi }),
+        ...(crmAi !== undefined && { crmAi }),
+        ...(documentAi !== undefined && { documentAi }),
+        ...(localSeoAi !== undefined && { localSeoAi }),
+        ...(leadGenAi !== undefined && { leadGenAi }),
+        ...(analyticsAi !== undefined && { analyticsAi }),
         ...(bundle !== undefined && { bundle }),
         ...(stripeSubscriptionId !== undefined && { stripeSubscriptionId }),
         ...(status !== undefined && { status }),
@@ -825,6 +854,278 @@ router.get('/support/dashboard', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
     res.json(await agentSupportService.getDashboard(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load dashboard' }); }
+});
+
+// ─── CRM AI ────────────────────────────────────────────
+router.get('/crm/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentCrmService.getConfig(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load crm config' }); }
+});
+router.put('/crm/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentCrmService.updateConfig(clientId, req.body ?? {}));
+  } catch { res.status(500).json({ error: 'Failed to update crm config' }); }
+});
+router.post('/crm/sync', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentCrmService.syncAll(clientId));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/crm/progress', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { dealId, newStage, notes } = req.body ?? {};
+    if (!dealId || !newStage) return res.status(400).json({ error: 'dealId and newStage required' });
+    res.json(await agentCrmService.progressDeal({ clientId, dealId, newStage, notes }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/crm/forecast', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { periodMonths, language } = req.body ?? {};
+    res.json(await agentCrmService.forecastRevenue({ clientId, periodMonths, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/crm/analyze-lost', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { dealId, lostReason, language } = req.body ?? {};
+    res.json(await agentCrmService.analyzeLostDeal({ clientId, dealId, lostReason, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/crm/relance/:dealId', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { language } = req.body ?? {};
+    res.json(await agentCrmService.generateRelance({ clientId, dealId: req.params.dealId as string, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/crm/activity', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const limit = parseInt(String(req.query.limit ?? '50'));
+    res.json(await agentCrmService.listActivity(clientId, limit));
+  } catch { res.status(500).json({ error: 'Failed to list activity' }); }
+});
+router.get('/crm/dashboard', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentCrmService.getDashboard(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load dashboard' }); }
+});
+
+// ─── Document AI ───────────────────────────────────────
+router.get('/document/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentDocumentService.getConfig(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load document config' }); }
+});
+router.put('/document/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentDocumentService.updateConfig(clientId, req.body ?? {}));
+  } catch { res.status(500).json({ error: 'Failed to update document config' }); }
+});
+router.post('/document/generate', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { docType, items, customerInfo, language, notes } = req.body ?? {};
+    if (!docType || !Array.isArray(items) || !customerInfo) return res.status(400).json({ error: 'docType, items, customerInfo required' });
+    res.json(await agentDocumentService.generate({ clientId, docType, items, customerInfo, language, notes }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/document/send/:activityId', async (req: Request, res: Response) => {
+  try { res.json(await agentDocumentService.sendForSignature(req.params.activityId as string)); }
+  catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/document/sign/:activityId', async (req: Request, res: Response) => {
+  try { res.json(await agentDocumentService.markSigned(req.params.activityId as string)); }
+  catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/document/list', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const documentType = req.query.documentType ? String(req.query.documentType) : undefined;
+    const status = req.query.status ? String(req.query.status) : undefined;
+    const limit = parseInt(String(req.query.limit ?? '50'));
+    res.json(await agentDocumentService.listDocuments(clientId, { documentType, status, limit }));
+  } catch { res.status(500).json({ error: 'Failed to list documents' }); }
+});
+router.get('/document/dashboard', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentDocumentService.getDashboard(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load dashboard' }); }
+});
+
+// ─── Local SEO AI ──────────────────────────────────────
+router.get('/local-seo/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentLocalSeoService.getConfig(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load local-seo config' }); }
+});
+router.put('/local-seo/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentLocalSeoService.updateConfig(clientId, req.body ?? {}));
+  } catch { res.status(500).json({ error: 'Failed to update local-seo config' }); }
+});
+router.post('/local-seo/gmb-post', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { topic, eventDate, offerDetails, language } = req.body ?? {};
+    if (!topic) return res.status(400).json({ error: 'topic required' });
+    res.json(await agentLocalSeoService.generateGmbPost({ clientId, topic, eventDate, offerDetails, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/local-seo/keywords', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { count, language } = req.body ?? {};
+    res.json(await agentLocalSeoService.suggestKeywords({ clientId, count, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/local-seo/audit', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { listing, language } = req.body ?? {};
+    if (!listing) return res.status(400).json({ error: 'listing required' });
+    res.json(await agentLocalSeoService.auditListing({ clientId, listing, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/local-seo/ranking', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { keyword, location, language } = req.body ?? {};
+    if (!keyword || !location) return res.status(400).json({ error: 'keyword and location required' });
+    res.json(await agentLocalSeoService.trackRanking({ clientId, keyword, location, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/local-seo/activity', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const limit = parseInt(String(req.query.limit ?? '50'));
+    res.json(await agentLocalSeoService.listActivity(clientId, limit));
+  } catch { res.status(500).json({ error: 'Failed to list activity' }); }
+});
+router.get('/local-seo/dashboard', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentLocalSeoService.getDashboard(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load dashboard' }); }
+});
+
+// ─── Lead Gen AI ───────────────────────────────────────
+router.get('/lead-gen/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentLeadGenService.getConfig(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load lead-gen config' }); }
+});
+router.put('/lead-gen/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentLeadGenService.updateConfig(clientId, req.body ?? {}));
+  } catch { res.status(500).json({ error: 'Failed to update lead-gen config' }); }
+});
+router.post('/lead-gen/discover', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { niches, cities, count } = req.body ?? {};
+    res.json(await agentLeadGenService.discover({ clientId, niches, cities, count }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/lead-gen/sequence/:prospectId', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { channel, tone, stepCount, language } = req.body ?? {};
+    res.json(await agentLeadGenService.generateSequence({ clientId, prospectId: req.params.prospectId as string, channel, tone, stepCount, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/lead-gen/send/:activityId', async (req: Request, res: Response) => {
+  try { res.json(await agentLeadGenService.sendNextStep(req.params.activityId as string)); }
+  catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/lead-gen/stats', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentLeadGenService.getCampaignStats(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load stats' }); }
+});
+router.get('/lead-gen/activity', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const limit = parseInt(String(req.query.limit ?? '50'));
+    res.json(await agentLeadGenService.listActivity(clientId, limit));
+  } catch { res.status(500).json({ error: 'Failed to list activity' }); }
+});
+router.get('/lead-gen/dashboard', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentLeadGenService.getDashboard(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load dashboard' }); }
+});
+
+// ─── Analytics AI ──────────────────────────────────────
+router.get('/analytics/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentAnalyticsService.getConfig(clientId));
+  } catch { res.status(500).json({ error: 'Failed to load analytics config' }); }
+});
+router.put('/analytics/config', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentAnalyticsService.updateConfig(clientId, req.body ?? {}));
+  } catch { res.status(500).json({ error: 'Failed to update analytics config' }); }
+});
+router.post('/analytics/digest', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { language } = req.body ?? {};
+    res.json(await agentAnalyticsService.generateWeeklyDigest({ clientId, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/analytics/anomalies', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { windowDays, language } = req.body ?? {};
+    res.json(await agentAnalyticsService.detectAnomalies({ clientId, windowDays, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/analytics/forecast', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { metric, periodDays, language } = req.body ?? {};
+    if (!metric) return res.status(400).json({ error: 'metric required (calls|bookings|revenue)' });
+    res.json(await agentAnalyticsService.forecast({ clientId, metric, periodDays, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.post('/analytics/recommend', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const { language } = req.body ?? {};
+    res.json(await agentAnalyticsService.recommend({ clientId, language }));
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+router.get('/analytics/history', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    const limit = parseInt(String(req.query.limit ?? '12'));
+    res.json(await agentAnalyticsService.getDigestHistory(clientId, limit));
+  } catch { res.status(500).json({ error: 'Failed to load history' }); }
+});
+router.get('/analytics/dashboard', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+    res.json(await agentAnalyticsService.getDashboard(clientId));
   } catch { res.status(500).json({ error: 'Failed to load dashboard' }); }
 });
 

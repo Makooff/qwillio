@@ -339,6 +339,11 @@ function defaultParamsPlaceholder(agentType: string): string {
     case 'reputation': return '{\n  "platform": "google",\n  "rating": 3,\n  "reviewText": "..."\n}';
     case 'scheduling': return '{\n  "date": "2026-06-01",\n  "slotCount": 3\n}';
     case 'support':    return '{\n  "channel": "email",\n  "ticketText": "..."\n}';
+    case 'crm':        return '{\n  "task": "forecast",\n  "periodMonths": 3\n}';
+    case 'document':   return '{\n  "docType": "quote",\n  "items": [{ "description": "...", "qty": 1, "unitPrice": 100 }],\n  "customerInfo": { "name": "...", "email": "..." }\n}';
+    case 'local_seo':  return '{\n  "task": "gmb_post",\n  "topic": "..."\n}';
+    case 'lead_gen':   return '{\n  "task": "discover",\n  "niches": ["plumber"],\n  "cities": ["Lyon"],\n  "count": 10\n}';
+    case 'analytics':  return '{\n  "task": "digest"\n}';
     default:           return '{}';
   }
 }

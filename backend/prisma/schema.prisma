@@ -308,6 +308,16 @@ model Client {
   agentSchedulingActivities  AgentSchedulingActivity[]
   agentSupportConfig         AgentSupportConfig?
   agentSupportActivities     AgentSupportActivity[]
+  agentCrmConfig             AgentCrmConfig?
+  agentCrmActivities         AgentCrmActivity[]
+  agentDocumentConfig        AgentDocumentConfig?
+  agentDocumentActivities    AgentDocumentActivity[]
+  agentLocalSeoConfig        AgentLocalSeoConfig?
+  agentLocalSeoActivities    AgentLocalSeoActivity[]
+  agentLeadGenConfig         AgentLeadGenConfig?
+  agentLeadGenActivities     AgentLeadGenActivity[]
+  agentAnalyticsConfig       AgentAnalyticsConfig?
+  agentAnalyticsActivities   AgentAnalyticsActivity[]
   callTransfers              CallTransfer[]
   clientAnalytics            ClientAnalyticsDaily[]
   clientBookings             ClientBooking[]
@@ -832,6 +842,11 @@ model AgentSubscription {
   reputationAi         Boolean  @default(false) @map("reputation_ai")
   schedulingAi         Boolean  @default(false) @map("scheduling_ai")
   supportAi            Boolean  @default(false) @map("support_ai")
+  crmAi                Boolean  @default(false) @map("crm_ai")
+  documentAi           Boolean  @default(false) @map("document_ai")
+  localSeoAi           Boolean  @default(false) @map("local_seo_ai")
+  leadGenAi            Boolean  @default(false) @map("lead_gen_ai")
+  analyticsAi          Boolean  @default(false) @map("analytics_ai")
   bundle               Boolean  @default(false)
   stripeSubscriptionId String?  @map("stripe_subscription_id") @db.VarChar(255)
   status               String   @default("active") @db.VarChar(50)
@@ -972,6 +987,182 @@ model AgentSupportActivity {
   @@index([clientId, createdAt])
   @@index([clientId, status])
   @@map("agent_support_activities")
+}
+
+// ─── CRM AI ────────────────────────────────────────────────────
+model AgentCrmConfig {
+  id                String   @id @default(uuid()) @db.Uuid
+  clientId          String   @unique @map("client_id") @db.Uuid
+  active            Boolean  @default(false)
+  provider          String   @default("hubspot") @db.VarChar(50)
+  accessToken       Json?    @map("access_token")
+  pipelineMapping   Json?    @map("pipeline_mapping")
+  autoSyncEnabled   Boolean  @default(false) @map("auto_sync_enabled")
+  relanceEnabled    Boolean  @default(true) @map("relance_enabled")
+  forecastHorizonMo Int      @default(3) @map("forecast_horizon_mo")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("agent_crm_configs")
+}
+
+model AgentCrmActivity {
+  id          String    @id @default(uuid()) @db.Uuid
+  clientId    String    @map("client_id") @db.Uuid
+  type        String    @db.VarChar(50)
+  provider    String?   @db.VarChar(50)
+  dealId      String?   @map("deal_id") @db.VarChar(255)
+  contactId   String?   @map("contact_id") @db.VarChar(255)
+  content     Json
+  status      String    @default("pending") @db.VarChar(50)
+  performedAt DateTime? @map("performed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([clientId, status])
+  @@map("agent_crm_activities")
+}
+
+// ─── Document AI ───────────────────────────────────────────────
+model AgentDocumentConfig {
+  id                String   @id @default(uuid()) @db.Uuid
+  clientId          String   @unique @map("client_id") @db.Uuid
+  active            Boolean  @default(false)
+  templates         Json?
+  signatureProvider String?  @map("signature_provider") @db.VarChar(50)
+  brandHeader       Json?    @map("brand_header")
+  defaultCurrency   String   @default("USD") @map("default_currency") @db.VarChar(10)
+  legalDisclaimer   String?  @map("legal_disclaimer")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("agent_document_configs")
+}
+
+model AgentDocumentActivity {
+  id             String    @id @default(uuid()) @db.Uuid
+  clientId       String    @map("client_id") @db.Uuid
+  type           String    @db.VarChar(50)
+  documentId     String?   @map("document_id") @db.VarChar(255)
+  documentType   String    @map("document_type") @db.VarChar(50)
+  recipientEmail String?   @map("recipient_email") @db.VarChar(255)
+  content        Json
+  status         String    @default("pending") @db.VarChar(50)
+  signedAt       DateTime? @map("signed_at")
+  performedAt    DateTime? @map("performed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([clientId, status])
+  @@map("agent_document_activities")
+}
+
+// ─── Local SEO AI ──────────────────────────────────────────────
+model AgentLocalSeoConfig {
+  id               String   @id @default(uuid()) @db.Uuid
+  clientId         String   @unique @map("client_id") @db.Uuid
+  active           Boolean  @default(false)
+  googleBusinessId String?  @map("google_business_id") @db.VarChar(255)
+  targetKeywords   String[] @default([]) @map("target_keywords")
+  serviceArea      Json?    @map("service_area")
+  platforms        Json?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("agent_local_seo_configs")
+}
+
+model AgentLocalSeoActivity {
+  id          String    @id @default(uuid()) @db.Uuid
+  clientId    String    @map("client_id") @db.Uuid
+  type        String    @db.VarChar(50)
+  platform    String?   @db.VarChar(50)
+  keyword     String?   @db.VarChar(255)
+  position    Int?
+  content     Json
+  status      String    @default("pending") @db.VarChar(50)
+  performedAt DateTime? @map("performed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([clientId, status])
+  @@map("agent_local_seo_activities")
+}
+
+// ─── Lead Gen AI ───────────────────────────────────────────────
+model AgentLeadGenConfig {
+  id                String   @id @default(uuid()) @db.Uuid
+  clientId          String   @unique @map("client_id") @db.Uuid
+  active            Boolean  @default(false)
+  targetNiches      String[] @default([]) @map("target_niches")
+  targetCities      String[] @default([]) @map("target_cities")
+  channels          Json?
+  dailyQuota        Int      @default(20) @map("daily_quota")
+  sequenceTemplates Json?    @map("sequence_templates")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("agent_lead_gen_configs")
+}
+
+model AgentLeadGenActivity {
+  id          String    @id @default(uuid()) @db.Uuid
+  clientId    String    @map("client_id") @db.Uuid
+  type        String    @db.VarChar(50)
+  prospectId  String?   @map("prospect_id") @db.Uuid
+  channel     String?   @db.VarChar(50)
+  step        Int       @default(0)
+  content     Json
+  status      String    @default("pending") @db.VarChar(50)
+  performedAt DateTime? @map("performed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([clientId, status])
+  @@index([clientId, prospectId])
+  @@map("agent_lead_gen_activities")
+}
+
+// ─── Analytics AI ──────────────────────────────────────────────
+model AgentAnalyticsConfig {
+  id                String   @id @default(uuid()) @db.Uuid
+  clientId          String   @unique @map("client_id") @db.Uuid
+  active            Boolean  @default(false)
+  digestFrequency   String   @default("weekly") @map("digest_frequency") @db.VarChar(20)
+  digestDay         Int      @default(1) @map("digest_day")
+  alertChannels     Json?    @map("alert_channels")
+  anomalyThresholds Json?    @map("anomaly_thresholds")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("agent_analytics_configs")
+}
+
+model AgentAnalyticsActivity {
+  id          String    @id @default(uuid()) @db.Uuid
+  clientId    String    @map("client_id") @db.Uuid
+  type        String    @db.VarChar(50)
+  metric      String?   @db.VarChar(100)
+  value       Float?
+  period      String?   @db.VarChar(50)
+  content     Json
+  status      String    @default("pending") @db.VarChar(50)
+  performedAt DateTime? @map("performed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([clientId, status])
+  @@map("agent_analytics_activities")
 }
 
 // ─── Editable prompts for all agents (admin can override defaults) ─

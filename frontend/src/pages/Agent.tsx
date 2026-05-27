@@ -3,6 +3,7 @@ import { useSEO } from '../hooks/useSEO';
 import {
   Mail, Calculator, Package, CreditCard, ArrowRight, Check,
   Megaphone, Star, CalendarClock, LifeBuoy,
+  Users, FileText, MapPin, Crosshair, LineChart,
   type LucideIcon,
 } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
@@ -25,61 +26,26 @@ export default function Agent() {
   const isFr = lang === 'fr';
 
   useSEO({
-    title: isFr ? 'Qwillio Agent · Modules IA' : 'Qwillio Agent · AI Modules',
+    title: isFr ? 'Qwillio Agent · 13 Modules IA' : 'Qwillio Agent · 13 AI Modules',
     description: isFr
-      ? 'Modules IA additionnels : Email, Comptabilité, Inventaire, Paiements. Greffés à votre Réceptionniste.'
-      : 'Add-on AI modules: Email, Accounting, Inventory, Payments, Marketing, Reputation, Scheduling, Support. Bolted onto your Receptionist.',
+      ? '13 modules IA add-on : CRM, Marketing, Réputation, Document, Planning, SEO local, Email, Lead Gen, Support, Paiements, Analytics, Compta, Inventaire.'
+      : '13 add-on AI modules: CRM, Marketing, Reputation, Document, Scheduling, Local SEO, Email, Lead Gen, Support, Payments, Analytics, Accounting, Inventory.',
     canonical: 'https://qwillio.com/agent',
   });
 
+  // Modules listed in order of demand (most demanded first).
   const modules: Module[] = [
     {
-      id: 'email',
-      icon: Mail,
-      name: 'Email AI',
-      tagline: isFr ? 'Triage et réponses automatiques' : 'Triage and automated replies',
+      id: 'crm',
+      icon: Users,
+      name: isFr ? 'CRM IA' : 'CRM AI',
+      tagline: isFr ? 'Pipeline, forecast et relances' : 'Pipeline, forecast and follow-ups',
       description: isFr
-        ? 'Classe vos emails par priorité, répond aux demandes simples, route le reste à votre équipe avec contexte.'
-        : 'Sorts your inbox by priority, replies to simple requests, routes the rest to your team with context.',
+        ? 'Synchronise votre CRM, fait progresser les deals, analyse les pertes et prévoit le revenu sur 3 mois.'
+        : 'Syncs your CRM, progresses deals, analyzes lost deals, forecasts revenue over 3 months.',
       features: isFr
-        ? ['Tri par catégorie (urgent, rendez-vous, facturation)', 'Réponses auto avec votre ton', 'Détection de leads chauds', 'Connecté à Gmail et Outlook']
-        : ['Category triage (urgent, appointments, billing)', 'Auto-replies in your tone', 'Hot lead detection', 'Gmail and Outlook connected'],
-    },
-    {
-      id: 'accounting',
-      icon: Calculator,
-      name: isFr ? 'Comptabilité IA' : 'Accounting AI',
-      tagline: isFr ? 'Factures et P&L automatiques' : 'Auto invoices and P&L',
-      description: isFr
-        ? 'Génère vos factures, relance les impayés, prépare votre P&L mensuel. Connecté à QuickBooks et Wave.'
-        : 'Generates invoices, chases overdue payments, prepares your monthly P&L. Synced with QuickBooks and Wave.',
-      features: isFr
-        ? ['Facturation automatique post-appel', 'Relances 7/14/30 jours', 'Export comptable mensuel', 'Synchronisation QuickBooks et Wave']
-        : ['Auto-invoicing after each call', 'Reminders at 7/14/30 days', 'Monthly accounting export', 'QuickBooks and Wave sync'],
-    },
-    {
-      id: 'inventory',
-      icon: Package,
-      name: isFr ? 'Inventaire IA' : 'Inventory AI',
-      tagline: isFr ? 'Stock et réassort intelligents' : 'Smart stock and reordering',
-      description: isFr
-        ? 'Suit vos produits, alerte avant rupture, commande automatiquement aux fournisseurs préférés.'
-        : 'Tracks your products, alerts before stockouts, auto-orders from preferred suppliers.',
-      features: isFr
-        ? ['Seuils par produit', 'Alertes de rupture', 'Commande automatique', 'QR codes pour suivi terrain']
-        : ['Per-product thresholds', 'Stockout alerts', 'Auto-reordering', 'QR codes for field tracking'],
-    },
-    {
-      id: 'payments',
-      icon: CreditCard,
-      name: isFr ? 'Paiements IA' : 'Payments AI',
-      tagline: isFr ? 'Encaissements et acomptes' : 'Payments and deposits',
-      description: isFr
-        ? 'Demande l\'acompte pendant l\'appel, encaisse à distance, gère les remboursements et impayés.'
-        : 'Collects deposit during the call, charges remotely, handles refunds and failed payments.',
-      features: isFr
-        ? ['Acomptes vocaux pendant l\'appel', 'Stripe, SEPA, Apple Pay', 'Gestion des remboursements', 'Reporting consolidé']
-        : ['Voice deposits during call', 'Stripe, SEPA, Apple Pay', 'Refund handling', 'Consolidated reporting'],
+        ? ['Sync HubSpot (lecture/écriture)', 'Forecast pondéré probabilité × valeur', 'Analyse des deals perdus', 'Relances générées par appel']
+        : ['HubSpot sync (read/write)', 'Probability-weighted forecast', 'Lost-deal analysis', 'AI follow-up drafting'],
     },
     {
       id: 'marketing',
@@ -106,6 +72,18 @@ export default function Agent() {
         : ['Real-time review monitoring', 'AI-drafted replies', 'Low-rating escalation', 'Weekly reputation score'],
     },
     {
+      id: 'document',
+      icon: FileText,
+      name: isFr ? 'Document IA' : 'Document AI',
+      tagline: isFr ? 'Devis, contrats, estimates' : 'Quotes, contracts, estimates',
+      description: isFr
+        ? 'Rédige vos devis et contrats à partir du transcript d\'appel ou d\'items structurés. Envoi pour signature en un clic.'
+        : 'Drafts your quotes and contracts from call transcripts or structured items. One-click send for signature.',
+      features: isFr
+        ? ['Devis post-appel automatique', 'Contrats par niche (plombier, avocat, HVAC)', 'Envoi pour e-signature', 'Calculs déterministes (pas d\'hallucination)']
+        : ['Auto quote after each call', 'Niche-specific contracts (plumber, lawyer, HVAC)', 'Send for e-signature', 'Deterministic math (no hallucination)'],
+    },
+    {
       id: 'scheduling',
       icon: CalendarClock,
       name: isFr ? 'Planification IA' : 'Scheduling AI',
@@ -118,6 +96,42 @@ export default function Agent() {
         : ['Slot recommendations', 'Automated SMS reminders', 'No-show pattern detection', 'Synced with your Receptionist'],
     },
     {
+      id: 'local_seo',
+      icon: MapPin,
+      name: isFr ? 'SEO Local IA' : 'Local SEO AI',
+      tagline: isFr ? 'GMB, mots-clés, citations' : 'GMB, keywords, citations',
+      description: isFr
+        ? 'Optimise votre fiche Google Business, génère vos posts, suggère les mots-clés locaux qui convertissent.'
+        : 'Optimizes your Google Business profile, drafts posts, suggests converting local keywords.',
+      features: isFr
+        ? ['Audit complétude de votre fiche', 'Posts GMB hebdomadaires générés', 'Mots-clés locaux par niche/ville', 'Recommandations actionnables']
+        : ['Listing completeness audit', 'Weekly AI-drafted GMB posts', 'Local keywords by niche and city', 'Actionable recommendations'],
+    },
+    {
+      id: 'email',
+      icon: Mail,
+      name: 'Email AI',
+      tagline: isFr ? 'Triage et réponses automatiques' : 'Triage and automated replies',
+      description: isFr
+        ? 'Classe vos emails par priorité, répond aux demandes simples, route le reste à votre équipe avec contexte.'
+        : 'Sorts your inbox by priority, replies to simple requests, routes the rest to your team with context.',
+      features: isFr
+        ? ['Tri par catégorie (urgent, rendez-vous, facturation)', 'Réponses auto avec votre ton', 'Détection de leads chauds', 'Connecté à Gmail et Outlook']
+        : ['Category triage (urgent, appointments, billing)', 'Auto-replies in your tone', 'Hot lead detection', 'Gmail and Outlook connected'],
+    },
+    {
+      id: 'lead_gen',
+      icon: Crosshair,
+      name: isFr ? 'Lead Gen IA' : 'Lead Gen AI',
+      tagline: isFr ? 'Prospection sortante ciblée' : 'Targeted outbound prospecting',
+      description: isFr
+        ? 'Découvre des prospects qualifiés par niche et ville, génère des séquences multi-touch et transfère les chauds à votre Receptionist.'
+        : 'Discovers qualified prospects by niche and city, generates multi-touch sequences, hands hot ones off to your Receptionist.',
+      features: isFr
+        ? ['Découverte de leads par niche/ville', 'Séquences email + SMS personnalisées', 'Quota journalier paramétrable', 'Handoff vers le Receptionist sur réponse']
+        : ['Lead discovery by niche/city', 'Personalized email + SMS sequences', 'Configurable daily quota', 'Handoff to Receptionist on reply'],
+    },
+    {
       id: 'support',
       icon: LifeBuoy,
       name: isFr ? 'Support IA' : 'Support AI',
@@ -128,6 +142,54 @@ export default function Agent() {
       features: isFr
         ? ['Classification automatique', 'Réponses générées par IA', 'Escalade par mots-clés', 'Priorisation high/normal/low']
         : ['Automatic classification', 'AI-drafted replies', 'Keyword-based escalation', 'High/normal/low priority']
+    },
+    {
+      id: 'payments',
+      icon: CreditCard,
+      name: isFr ? 'Paiements IA' : 'Payments AI',
+      tagline: isFr ? 'Encaissements et acomptes' : 'Payments and deposits',
+      description: isFr
+        ? 'Demande l\'acompte pendant l\'appel, encaisse à distance, gère les remboursements et impayés.'
+        : 'Collects deposit during the call, charges remotely, handles refunds and failed payments.',
+      features: isFr
+        ? ['Acomptes vocaux pendant l\'appel', 'Stripe, SEPA, Apple Pay', 'Gestion des remboursements', 'Reporting consolidé']
+        : ['Voice deposits during call', 'Stripe, SEPA, Apple Pay', 'Refund handling', 'Consolidated reporting'],
+    },
+    {
+      id: 'analytics',
+      icon: LineChart,
+      name: isFr ? 'Analytics IA' : 'Analytics AI',
+      tagline: isFr ? 'Digest, anomalies, forecast' : 'Digest, anomalies, forecast',
+      description: isFr
+        ? 'Vous envoie un digest hebdomadaire de 3 insights actionnables, détecte les anomalies par client et prévoit vos métriques.'
+        : 'Sends a weekly digest with 3 actionable insights, detects per-client anomalies, forecasts your metrics.',
+      features: isFr
+        ? ['Digest hebdomadaire actionnable', 'Détection d\'anomalies par-client', 'Forecast appels et bookings', 'Recommandations cross-module']
+        : ['Actionable weekly digest', 'Per-client anomaly detection', 'Calls and bookings forecast', 'Cross-module recommendations'],
+    },
+    {
+      id: 'accounting',
+      icon: Calculator,
+      name: isFr ? 'Comptabilité IA' : 'Accounting AI',
+      tagline: isFr ? 'Factures et P&L automatiques' : 'Auto invoices and P&L',
+      description: isFr
+        ? 'Génère vos factures, relance les impayés, prépare votre P&L mensuel. Connecté à QuickBooks et Wave.'
+        : 'Generates invoices, chases overdue payments, prepares your monthly P&L. Synced with QuickBooks and Wave.',
+      features: isFr
+        ? ['Facturation automatique post-appel', 'Relances 7/14/30 jours', 'Export comptable mensuel', 'Synchronisation QuickBooks et Wave']
+        : ['Auto-invoicing after each call', 'Reminders at 7/14/30 days', 'Monthly accounting export', 'QuickBooks and Wave sync'],
+    },
+    {
+      id: 'inventory',
+      icon: Package,
+      name: isFr ? 'Inventaire IA' : 'Inventory AI',
+      tagline: isFr ? 'Stock et réassort intelligents' : 'Smart stock and reordering',
+      description: isFr
+        ? 'Suit vos produits, alerte avant rupture, commande automatiquement aux fournisseurs préférés.'
+        : 'Tracks your products, alerts before stockouts, auto-orders from preferred suppliers.',
+      features: isFr
+        ? ['Seuils par produit', 'Alertes de rupture', 'Commande automatique', 'QR codes pour suivi terrain']
+        : ['Per-product thresholds', 'Stockout alerts', 'Auto-reordering', 'QR codes for field tracking'],
     },
   ];
 
@@ -157,12 +219,12 @@ export default function Agent() {
               >
                 {isFr ? (
                   <>
-                    Quatre modules.<br />
+                    Treize modules.<br />
                     <span className="italic font-serif" style={{ color: '#a855f7' }}>Un seul agent.</span>
                   </>
                 ) : (
                   <>
-                    Four modules.<br />
+                    Thirteen modules.<br />
                     <span className="italic font-serif" style={{ color: '#a855f7' }}>One agent.</span>
                   </>
                 )}
@@ -277,8 +339,8 @@ export default function Agent() {
               className="text-[clamp(1.8rem,3.5vw,2.8rem)] font-semibold tracking-[-0.025em] mb-12 max-w-[640px]"
             >
               {isFr
-                ? <>Quatre modules. <span className="text-[#86868b] font-normal">Chacun excellent à son métier.</span></>
-                : <>Four modules. <span className="text-[#86868b] font-normal">Each one excellent at its job.</span></>}
+                ? <>Treize modules. <span className="text-[#86868b] font-normal">Chacun excellent à son métier.</span></>
+                : <>Thirteen modules. <span className="text-[#86868b] font-normal">Each one excellent at its job.</span></>}
             </h2>
             </Reveal>
 

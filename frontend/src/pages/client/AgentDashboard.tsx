@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import {
   Mail, CreditCard, BookOpen, Package,
   Megaphone, Star, CalendarClock, LifeBuoy,
+  Users, FileText, MapPin, Crosshair, LineChart,
   Plus, Activity, Zap, ChevronRight, ToggleLeft, ToggleRight
 } from 'lucide-react';
 
@@ -137,6 +138,56 @@ const INITIAL_MODULES: Module[] = [
     status: 'setup_required',
     enabled: false,
     href: '/dashboard/agent/support',
+  },
+  {
+    id: 'crm',
+    name: 'CRM AI',
+    description: 'Pipeline management, HubSpot sync, lost-deal analysis and revenue forecast.',
+    icon: Users,
+    iconStyle: ICON_STYLES.indigo,
+    status: 'setup_required',
+    enabled: false,
+    href: '/dashboard/agent/crm',
+  },
+  {
+    id: 'document',
+    name: 'Document AI',
+    description: 'Generates quotes, contracts and estimates from your inputs, ready for signature.',
+    icon: FileText,
+    iconStyle: ICON_STYLES.violet,
+    status: 'setup_required',
+    enabled: false,
+    href: '/dashboard/agent/document',
+  },
+  {
+    id: 'local_seo',
+    name: 'Local SEO AI',
+    description: 'Google Business posts, local keyword suggestions, listing audit, ranking tracking.',
+    icon: MapPin,
+    iconStyle: ICON_STYLES.amber,
+    status: 'setup_required',
+    enabled: false,
+    href: '/dashboard/agent/local-seo',
+  },
+  {
+    id: 'lead_gen',
+    name: 'Lead Gen AI',
+    description: 'Discovers targeted prospects and runs personalized multi-touch outreach sequences.',
+    icon: Crosshair,
+    iconStyle: ICON_STYLES.blue,
+    status: 'setup_required',
+    enabled: false,
+    href: '/dashboard/agent/lead-gen',
+  },
+  {
+    id: 'analytics',
+    name: 'Analytics AI',
+    description: 'Weekly business digest, anomaly detection, forecast and cross-module recommendations.',
+    icon: LineChart,
+    iconStyle: ICON_STYLES.emerald,
+    status: 'setup_required',
+    enabled: false,
+    href: '/dashboard/agent/analytics',
   },
 ];
 
