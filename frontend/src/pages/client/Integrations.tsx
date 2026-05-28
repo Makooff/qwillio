@@ -154,7 +154,7 @@ export default function Integrations() {
         // Fetch sync conflicts
         try {
           const conflictsRes = await api.get('/crm/sync-conflicts');
-          setConflicts((conflictsRes.data.conflicts || conflictsRes.data || []).map((c: RawConflict) => ({
+          setConflicts(toArray<RawConflict>(conflictsRes.data?.conflicts ?? conflictsRes.data).map((c: RawConflict) => ({
             id: c.id,
             integrationId: c.integrationId ?? c.provider ?? '',
             integrationName: c.integrationName ?? c.provider ?? 'Unknown',

@@ -141,25 +141,31 @@ export class StripeService {
     logger.info(`Self-onboarding complete: Client created for ${user.email} — clientId: ${client.id}, plan: ${planType}`);
 
     // Activate selected agent modules from metadata (set during checkout creation).
-    // Either `bundle=true` (all 13) or comma-separated `modules=crm,marketing,...`.
-    const moduleFlags = parseModulesMetadata(session.metadata);
-    if (Object.keys(moduleFlags).length > 0 || session.metadata?.bundle === 'true') {
+    // Either `bundle=true` (all 13 modules unlocked) or comma-separated
+    // `modules=crm,marketing,...`. The bundle path expands to all field flags so
+    // module services that gate on `client.agentSubscriptions?.crmAi` etc. grant
+    // access to bundle buyers.
+    const isBundle = session.metadata?.bundle === 'true';
+    const moduleFlags = isBundle
+      ? Object.fromEntries(Object.values(MODULE_FIELD_MAP).map(field => [field, true]))
+      : parseModulesMetadata(session.metadata);
+    if (Object.keys(moduleFlags).length > 0 || isBundle) {
       try {
         await prisma.agentSubscription.upsert({
           where: { clientId: client.id },
           create: {
             clientId: client.id,
             status: 'active',
-            bundle: session.metadata?.bundle === 'true',
+            bundle: isBundle,
             ...moduleFlags,
           },
           update: {
             status: 'active',
-            bundle: session.metadata?.bundle === 'true',
+            bundle: isBundle,
             ...moduleFlags,
           },
         });
-        logger.info(`Self-onboarding: ${Object.keys(moduleFlags).length} modules activated for ${client.id}`);
+        logger.info(`Self-onboarding: ${Object.keys(moduleFlags).length} modules activated for ${client.id} (bundle=${isBundle})`);
       } catch (err) {
         logger.error(`Self-onboarding: failed to activate modules for ${client.id}:`, err);
       }
@@ -616,8 +622,13 @@ export class StripeService {
 }
 
 // Map module id (as used in frontend + metadata) → env var holding the Stripe price.
+// Empty string means the module is not yet wired to a Stripe price; the line
+// item is skipped (but activation via metadata still happens post-payment).
 const MODULE_PRICE_ID_MAP: Record<string, string> = {
-  email:      env.STRIPE_PRICE_BASIC_MONTHLY, // placeholder; modules use their own
+  email:      env.STRIPE_PRICE_EMAIL_AI,
+  payments:   env.STRIPE_PRICE_PAYMENTS_AI,
+  accounting: env.STRIPE_PRICE_ACCOUNTING_AI,
+  inventory:  env.STRIPE_PRICE_INVENTORY_AI,
   marketing:  env.STRIPE_PRICE_MARKETING_AI,
   reputation: env.STRIPE_PRICE_REPUTATION_AI,
   scheduling: env.STRIPE_PRICE_SCHEDULING_AI,

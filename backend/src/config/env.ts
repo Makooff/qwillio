@@ -62,6 +62,10 @@ export const env = {
   STRIPE_PRICE_ENTERPRISE_MONTHLY: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || '',
 
   // Agent AI modules (+$197/mo each, manual Stripe setup required)
+  STRIPE_PRICE_EMAIL_AI: process.env.STRIPE_PRICE_EMAIL_AI || '',
+  STRIPE_PRICE_PAYMENTS_AI: process.env.STRIPE_PRICE_PAYMENTS_AI || '',
+  STRIPE_PRICE_ACCOUNTING_AI: process.env.STRIPE_PRICE_ACCOUNTING_AI || '',
+  STRIPE_PRICE_INVENTORY_AI: process.env.STRIPE_PRICE_INVENTORY_AI || '',
   STRIPE_PRICE_MARKETING_AI: process.env.STRIPE_PRICE_MARKETING_AI || '',
   STRIPE_PRICE_REPUTATION_AI: process.env.STRIPE_PRICE_REPUTATION_AI || '',
   STRIPE_PRICE_SCHEDULING_AI: process.env.STRIPE_PRICE_SCHEDULING_AI || '',
@@ -75,9 +79,9 @@ export const env = {
   STRIPE_PRICE_ALL_AGENTS_BUNDLE: process.env.STRIPE_PRICE_ALL_AGENTS_BUNDLE || '',
 
   // Comma-separated list of emails that bypass payment (UX test accounts).
-  // Owner-managed, never exposed to frontend. Locked default is the owner's
-  // own customer-experience test account.
-  TEST_ACCOUNT_EMAILS: process.env.TEST_ACCOUNT_EMAILS || 'fiagakelia@gmail.com',
+  // Owner-managed, never exposed to frontend. Empty by default so the bypass
+  // is inert unless explicitly configured in the environment (fail-closed).
+  TEST_ACCOUNT_EMAILS: process.env.TEST_ACCOUNT_EMAILS || '',
 
   RESEND_API_KEY: process.env.RESEND_API_KEY || '',
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'Qwillio <hello@qwillio.com>',

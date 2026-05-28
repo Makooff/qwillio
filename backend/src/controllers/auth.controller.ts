@@ -240,6 +240,10 @@ export class AuthController {
       if (!businessName || !planType) {
         return res.status(400).json({ error: 'Business name and plan are required' });
       }
+      const VALID_PLANS = ['starter', 'pro', 'enterprise'] as const;
+      if (!VALID_PLANS.includes(planType as typeof VALID_PLANS[number])) {
+        return res.status(400).json({ error: 'invalid_plan', message: 'Unknown plan type.' });
+      }
 
       // Save form data on the user. Client record is created either by the
       // Stripe webhook after payment OR inline below if test account bypass.

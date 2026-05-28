@@ -186,10 +186,13 @@ export async function requirePaidOrTest(req: AuthRequest, res: Response, next: N
       where: { id: req.userId },
       select: { email: true },
     });
-    if (user?.email && isTestAccount(user.email)) return next();
+    // Bail when the user row is missing/email-less, so the OR query below cannot
+    // match an unrelated client whose contactEmail happens to be empty.
+    if (!user?.email) return res.status(404).json({ error: 'user_not_found' });
+    if (isTestAccount(user.email)) return next();
 
     const client = await prisma.client.findFirst({
-      where: { OR: [{ userId: req.userId }, { contactEmail: user?.email ?? '' }] },
+      where: { OR: [{ userId: req.userId }, { contactEmail: user.email }] },
       select: { subscriptionStatus: true },
     });
     if (!client) return res.status(403).json({ error: 'no_client' });

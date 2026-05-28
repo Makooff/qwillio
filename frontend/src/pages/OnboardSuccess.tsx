@@ -14,11 +14,13 @@ export default function OnboardSuccess() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const [status, setStatus] = useState<'waiting' | 'active' | 'timeout'>('waiting');
-  const [attempts, setAttempts] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     let timer: number | null = null;
+    let redirectTimer: number | null = null;
+    let attemptCount = 0;
+    const MAX_ATTEMPTS = 60; // ~120s hard cap so the tab never polls forever
 
     const poll = async () => {
       if (cancelled) return;
@@ -29,15 +31,17 @@ export default function OnboardSuccess() {
           if (!cancelled) {
             useAuthStore.setState({ user: data.user ?? data, isLoading: false });
             setStatus('active');
-            // Brief success flash, then redirect
-            window.setTimeout(() => navigate('/dashboard?welcome=1'), 1200);
+            // Brief success flash, then redirect (timer tracked so cleanup can clear it)
+            redirectTimer = window.setTimeout(() => navigate('/dashboard?welcome=1'), 1200);
           }
           return;
         }
       } catch {
         // Network blip — just retry
       }
-      setAttempts(n => n + 1);
+      attemptCount += 1;
+      if (attemptCount >= 30) setStatus(prev => (prev === 'waiting' ? 'timeout' : prev));
+      if (attemptCount >= MAX_ATTEMPTS) return; // stop polling
       timer = window.setTimeout(poll, 2000);
     };
 
@@ -45,13 +49,9 @@ export default function OnboardSuccess() {
     return () => {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
+      if (redirectTimer) window.clearTimeout(redirectTimer);
     };
   }, [navigate]);
-
-  // After 30 attempts (~60s), surface a softer "still processing" message but keep polling.
-  useEffect(() => {
-    if (attempts >= 30 && status === 'waiting') setStatus('timeout');
-  }, [attempts, status]);
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f] flex items-center justify-center px-6">
