@@ -74,6 +74,11 @@ export const env = {
   // Bundle all 13 modules — $1497/mo (saves $1064/mo)
   STRIPE_PRICE_ALL_AGENTS_BUNDLE: process.env.STRIPE_PRICE_ALL_AGENTS_BUNDLE || '',
 
+  // Comma-separated list of emails that bypass payment (UX test accounts).
+  // Owner-managed, never exposed to frontend. Locked default is the owner's
+  // own customer-experience test account.
+  TEST_ACCOUNT_EMAILS: process.env.TEST_ACCOUNT_EMAILS || 'fiagakelia@gmail.com',
+
   RESEND_API_KEY: process.env.RESEND_API_KEY || '',
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'Qwillio <hello@qwillio.com>',
   RESEND_FROM_NAME: process.env.RESEND_FROM_NAME || 'Qwillio',

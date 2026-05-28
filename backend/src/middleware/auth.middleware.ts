@@ -152,3 +152,55 @@ export async function clientMiddleware(req: AuthRequest, res: Response, next: Ne
     res.status(500).json({ error: error.message });
   }
 }
+
+// Returns 403 with `email_not_confirmed` if the authenticated user has not
+// clicked the confirmation link yet. Apply after authMiddleware on routes that
+// should be email-confirmed-only (onboard, dashboard data, client portal).
+export async function requireEmailConfirmed(req: AuthRequest, res: Response, next: NextFunction) {
+  if (!req.userId) return res.status(401).json({ error: 'auth_required' });
+  // Admins bypass — they may operate on behalf of any user.
+  if (req.userRole === 'admin') return next();
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { emailConfirmed: true },
+    });
+    if (!user) return res.status(404).json({ error: 'user_not_found' });
+    if (!user.emailConfirmed) {
+      return res.status(403).json({ error: 'email_not_confirmed', message: 'Confirm your email to continue.' });
+    }
+    next();
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
+// Returns 402 if the user's client is not on an active subscription (and is
+// not a test account). Apply after authMiddleware on dashboard + client APIs.
+export async function requirePaidOrTest(req: AuthRequest, res: Response, next: NextFunction) {
+  if (!req.userId) return res.status(401).json({ error: 'auth_required' });
+  if (req.userRole === 'admin') return next();
+  try {
+    const { isTestAccount } = await import('../lib/test-account');
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { email: true },
+    });
+    if (user?.email && isTestAccount(user.email)) return next();
+
+    const client = await prisma.client.findFirst({
+      where: { OR: [{ userId: req.userId }, { contactEmail: user?.email ?? '' }] },
+      select: { subscriptionStatus: true },
+    });
+    if (!client) return res.status(403).json({ error: 'no_client' });
+    if (client.subscriptionStatus !== 'active') {
+      return res.status(402).json({
+        error: 'payment_required',
+        message: 'Complete payment to access the dashboard.',
+      });
+    }
+    next();
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+}

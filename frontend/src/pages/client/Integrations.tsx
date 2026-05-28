@@ -6,6 +6,7 @@ import {
   TestTube, Loader2, AlertTriangle, ChevronDown, ChevronUp, MapPin
 } from 'lucide-react';
 import api from '../../services/api';
+import { toArray } from '../../lib/safe-array';
 
 interface Integration {
   id: string;
@@ -133,7 +134,7 @@ export default function Integrations() {
         setLoading(true);
         const { data } = await api.get('/crm/integrations');
         const connectedMap = new Map<string, RawIntegration>();
-        (data.integrations || data || []).forEach((i: RawIntegration) => {
+        toArray<RawIntegration>(data?.integrations ?? data).forEach((i: RawIntegration) => {
           const key = i.provider ?? i.id;
           if (key) connectedMap.set(key, i);
         });
