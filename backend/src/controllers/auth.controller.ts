@@ -502,7 +502,7 @@ export class AuthController {
           createdAt: true,
           emailConfirmed: true,
           onboardingCompleted: true,
-          client: { select: { id: true } },
+          client: { select: { id: true, subscriptionStatus: true, isTrial: true } },
         },
       });
 
@@ -512,7 +512,13 @@ export class AuthController {
         expiresIn: env.JWT_EXPIRES_IN,
       });
       const { client, ...rest } = user;
-      res.json({ ...rest, clientId: client?.id || null, token: freshToken });
+      res.json({
+        ...rest,
+        clientId: client?.id || null,
+        client: client || null,
+        subscriptionStatus: client?.subscriptionStatus || null,
+        token: freshToken,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

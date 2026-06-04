@@ -75,7 +75,7 @@ Lecture par scène : visuel, durée, mouvement caméra, texte overlay, audio cue
 ## Scène 6 — Preuve : témoignage + metrics
 
 - **Timecode** : 00:40 → 00:50 (10 s)
-- **Source visuelle** : Photo Dr. Sarah Chen (générée ou stock) + 3 cartes 3D animées + Higgsfield prompt #3 en backdrop subtil
+- **Source visuelle** : Photo Dr. Sarah Chen (générée ou stock) + 3 cartes 3D animées (pas de backdrop Higgsfield — la composition reste épurée pour ne pas distraire du témoignage)
 - **Description** : Layout split. Gauche 40% : portrait Dr. Sarah Chen, halo de lumière chaude. Droite 60% : texte témoignage qui s'écrit caractère par caractère (typewriter effect, 30ms/char). En dessous, 3 cartes 3D qui apparaissent staggered à 200ms d'écart à partir de 00:46.
 - **Caméra** : Statique. Cartes : entrent depuis le bas avec scale 0.7 → 1.0 + ease-out-expo.
 - **Texte témoignage** : « Marie décroche en moins d'une seconde. Nos patients pensent qu'elle fait partie de l'équipe. » — Dr. Sarah Chen, Bright Dental
@@ -98,7 +98,7 @@ Lecture par scène : visuel, durée, mouvement caméra, texte overlay, audio cue
 
 ## Scène 8 — End-card : logo reveal 3D
 
-- **Timecode** : 00:58 → 01:00 (3 s)
+- **Timecode** : 00:58 → 01:00 (2 s)
 - **Source visuelle** : Higgsfield prompt #6
 - **Description** : Logo Qwillio en matériau verre 3D, rotation lente sur l'axe Y, gradient indigo-violet en lighting. Tagline finale en fade-in en dessous : "Chaque appel répondu. Chaque lead capturé." URL en petit en bas.
 - **Caméra** : Push-in très lent sur le logo
@@ -118,7 +118,7 @@ Lecture par scène : visuel, durée, mouvement caméra, texte overlay, audio cue
 | 5 — Scale | 9 s | HeyGen Take 3 + Higgsfield #4 |
 | 6 — Preuve | 10 s | Photo + 3 cartes |
 | 7 — CTA | 8 s | HeyGen Take 4 |
-| 8 — End-card | 3 s | Higgsfield #6 |
-| **Total** | **61 s** | — |
+| 8 — End-card | 2 s | Higgsfield #6 |
+| **Total** | **60 s** | — |
 
-(1 seconde de marge volontaire pour les transitions wipe — le master final sera 60s exact après tightening.)
+(Master final = 60s exact. Les transitions wipe sont absorbées dans les timecodes de scène déjà cadrés.)

@@ -78,7 +78,7 @@ Testez Qwillio dès maintenant. Premier mois entièrement offert. Aucune carte d
 ```
 
 Notes prononciation :
-- "Qwillio" : `KWI-li-o`, insister sur le `kw`. Si HeyGen TTS le lit `kwi-yo` ou `qui-yo`, utiliser la **prononciation phonétique** dans l'éditeur HeyGen : taper `Kouilio` ou utiliser balise `[Kwili-o]` SSML
+- "Qwillio" : `KWI-li-o`, insister sur le `kw`. HeyGen TTS ne supporte PAS les balises SSML `<phoneme>` (seul `<break>` pour les pauses est supporté). Si le rendu sort mal (`kwi-yo` ou `qui-yo`), corriger via **Brand Glossary** (Settings → Brand Kit → Glossary) en ajoutant une entrée pour "Qwillio" avec sa prononciation cible. Alternative dans l'éditeur de script : double-cliquer le mot → menu "Pronunciation" → forcer la séparation syllabique avec tirets (`KWI-li-o`). Les corrections sauvegardées dans le Brand Glossary se réappliquent automatiquement sur les prochains takes.
 - "Soyez prêt" : pause de 400ms avant, énergie qui retombe légèrement, conclusion brand
 
 ## Workflow HeyGen pas-à-pas

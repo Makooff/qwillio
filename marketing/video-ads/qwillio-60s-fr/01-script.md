@@ -65,7 +65,7 @@
 - **AVATAR mid-shot** (regard direct, énergie haute) :
   > Testez Qwillio dès maintenant. Premier mois entièrement offert. Aucune carte demandée. Vous activez votre compte en deux minutes. Le prochain appel arrive dans une heure. Soyez prêt.
 - **Bouton CTA pulse** apparaît à 00:54, fond indigo `#6366f1`, texte blanc Outfit Bold :
-  > Créer mon compte → qwillio.com/register
+  > Créer mon compte → https://qwillio.com/register
 
 ---
 
@@ -75,7 +75,7 @@
 - **Tagline finale** sous le logo, fade-in :
   > Chaque appel répondu. Chaque lead capturé.
 - **URL** en plus petit :
-  > qwillio.com/register
+  > https://qwillio.com/register
 
 ---
 

@@ -10,11 +10,11 @@
 2. **"Rising Tide" — by Megan Wofford** — Backup si #1 utilisé ailleurs. Plus orchestral
 3. **"Forward Motion" — by Stationary Sign** — Plus électronique, conviendra mieux si cible jeune (startup, e-commerce)
 
-URL Epidemic : https://www.epidemicsound.com — abonnement Personal $15/mois suffit (licence YouTube + Email autorisée).
+URL Epidemic : https://www.epidemicsound.com — abonnement Creator ~$9.99/mois (baseline 2026, vérifier sur la page pricing pour le plan exact selon usage YouTube/Email).
 
 **Alternative gratuite** : YouTube Audio Library (chercher "Corporate Inspiring 110 BPM"). Qualité inférieure mais zéro coût.
 
-**Alternative premium** : Artlist.io ($16/mois) — souvent meilleur catalogue corporate.
+**Alternative premium** : Artlist.io — tarification variable selon le forfait (Music & SFX Social, Max, AI Suite). Voir https://artlist.io/page/pricing pour le plan adapté à un usage commercial B2B.
 
 ## SFX (6 effets nécessaires)
 

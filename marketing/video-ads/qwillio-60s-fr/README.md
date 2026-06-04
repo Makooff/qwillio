@@ -40,7 +40,7 @@ Décideurs TPE/PME francophones perdant ~35% de leurs appels entrants. Niches pr
 ## Ordre d'exécution
 
 1. **Lire** `01-script.md` en entier pour valider le ton
-2. **HeyGen** : suivre `03-heygen-brief.md` → générer 3 takes → télécharger 3 MP4 dans `assets/heygen/`
+2. **HeyGen** : suivre `03-heygen-brief.md` → générer 4 takes (take1-intro, take2-features, take3-scale, take4-cta) → télécharger les 4 MP4 dans `assets/heygen/`
 3. **Higgsfield** : suivre `04-higgsfield-prompts.md` → générer 6 scènes → télécharger 6 MP4 dans `assets/higgsfield/`
 4. **Audio** : suivre `05-audio-brief.md` → télécharger track Epidemic + SFX dans `assets/audio/`
 5. **Édition** : suivre `06-edit-timeline.md` dans DaVinci Resolve, exporter final
@@ -53,7 +53,7 @@ Décideurs TPE/PME francophones perdant ~35% de leurs appels entrants. Niches pr
 |---|---|
 | `01-script.md` | Script verbatim 60s avec timestamps + phonétique des mots durs |
 | `02-storyboard.md` | 8 scènes : visuel, durée, caméra, texte écran, audio |
-| `03-heygen-brief.md` | Avatar, voix, paramètres, 3 takes verbatim |
+| `03-heygen-brief.md` | Avatar, voix, paramètres, 4 takes verbatim |
 | `04-higgsfield-prompts.md` | 6 prompts verbatim + camera + lighting + seed |
 | `05-audio-brief.md` | 3 tracks suggérés + 6 SFX + niveaux de mix |
 | `06-edit-timeline.md` | Timeline frame-by-frame DaVinci + LUT + lower-thirds |

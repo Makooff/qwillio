@@ -146,9 +146,9 @@ Tracking GA4 → Events → `utm_campaign=video_v1`. Surveiller :
 
 ## Outils d'envoi recommandés
 
-- **Lemlist** ($59/mois) — Le meilleur pour cold outreach FR. Personnalisation avancée, A/B testing natif.
-- **Smartlead** ($39/mois) — Plus économique, scale facile.
-- **Mailmeteor** (gratuit jusqu'à 75 emails/jour via Gmail) — OK pour les premiers tests.
+- **Lemlist** (~$79/user/mois en monthly, ~$63 effectif en annual) — Le meilleur pour cold outreach FR. Personnalisation avancée, A/B testing natif.
+- **Smartlead** ($39/mois, plan Basic) — Plus économique, scale facile.
+- **Mailmeteor** (Hobby gratuit jusqu'à 500 emails/mois, Starter $5.99/user/mois au-delà) — OK pour les premiers tests via Gmail.
 
 **Avant d'envoyer en batch** :
 1. Warmup ton domaine email pendant 2 semaines (Lemwarm, Mailwarm) sinon tu finis en spam

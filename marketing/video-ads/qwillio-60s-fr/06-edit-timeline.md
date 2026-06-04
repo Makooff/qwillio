@@ -158,7 +158,7 @@ Sauvegarder le template → réutilisable sur tous les lower-thirds.
    - Codec : H.264
    - Resolution : 1920 × 1080
    - Frame rate : 30 fps
-   - Quality : Restrict to 12 Mbps (cible ~10-15 MB pour 60s)
+   - Quality : Restrict to 12 Mbps (~90 MB pour 60s, master haute qualité pour YouTube/Loom). Pour attach email direct, ré-exporter en parallèle à 1.5-2 Mbps (~10-15 MB) — variant `qwillio-60s-fr-v1-email.mp4`
    - Audio codec : AAC 192 kbps stereo
    - Filename : `qwillio-60s-fr-v1.mp4`
 
