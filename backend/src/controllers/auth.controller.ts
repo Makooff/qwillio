@@ -229,13 +229,19 @@ export class AuthController {
   async onboard(req: any, res: Response) {
     try {
       const {
-        businessName, businessPhone, industry, website, planType,
+        businessName, businessPhone, industry, website,
         selectedModules, bundle,
       } = req.body as {
         businessName?: string; businessPhone?: string; industry?: string;
         website?: string; planType?: string;
         selectedModules?: string[]; bundle?: boolean;
       };
+
+      // Normalize legacy alias 'basic' → 'starter' (still mapped to same Stripe price
+      // in stripe.service.ts getMonthlyPriceId; keeping both accepted here so old
+      // clients hitting this endpoint don't fail before checkout).
+      let planType: string | undefined = req.body?.planType;
+      if (planType === 'basic') planType = 'starter';
 
       if (!businessName || !planType) {
         return res.status(400).json({ error: 'Business name and plan are required' });
@@ -305,9 +311,23 @@ export class AuthController {
           });
           logger.info(`[test-account] Client created bypass-mode for ${user.email} — id: ${client.id}`);
         } else {
+          // Sync persisted business + plan fields with the freshly submitted form
+          // so re-running onboarding for a test account refreshes the tenant.
           client = await prisma.client.update({
             where: { id: client.id },
-            data: { subscriptionStatus: 'active', isTrial: false, trialEndDate: null },
+            data: {
+              businessName,
+              businessType: industry || client.businessType,
+              contactPhone: businessPhone ?? client.contactPhone,
+              planType,
+              setupFee: pricing.setupFee,
+              monthlyFee: pricing.monthlyFee,
+              monthlyCallsQuota: pricing.callsQuota,
+              onboardingStatus: 'completed',
+              subscriptionStatus: 'active',
+              isTrial: false,
+              trialEndDate: null,
+            },
           });
         }
 
@@ -368,6 +388,13 @@ export class AuthController {
           selectedModules: Array.isArray(selectedModules) ? selectedModules : [],
           bundle: bundle === true,
         });
+        if (!session.url) {
+          logger.error(`[onboard] Stripe checkout session ${session.id} has no hosted URL for ${user.email}`);
+          return res.status(503).json({
+            error: 'stripe_unavailable',
+            message: 'Payment provider unavailable. Try again in a moment.',
+          });
+        }
         checkoutUrl = session.url;
       } catch (stripeErr: any) {
         logger.error(`[onboard] Stripe checkout creation failed for ${user.email}:`, stripeErr);

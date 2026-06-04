@@ -80,7 +80,7 @@ Ton : énumération rythmique, 3 beats égaux sur les noms, conclusion confiante
 - **YouTube standard** : -14 LUFS integrated, -1 dBTP true peak
 - **Cold email (Loom, attachement)** : -16 LUFS pour ne pas saturer petits speakers laptop
 
-Dans Premiere Pro, utiliser **Window → Audio Track Mixer** → onglet `Effects` sur le Master track → ajouter **Loudness Radar** (legacy mais précis, ITU-R BS.1770-3) → laisser tourner sur une lecture complète → relever l'integrated LUFS final → ajuster le master fader pour atteindre la cible. Plus rapide : **Effects panel → Audio Effects → Loudness Meter** appliqué sur l'Adjustment Audio Track, fenêtre dédiée affiche LUFS short-term + true peak en temps réel.
+Dans Premiere Pro, utiliser **Window → Audio Track Mixer** → onglet `Effects` sur le Master track → ajouter **Loudness Radar** (legacy mais précis, ITU-R BS.1770-3) → laisser tourner sur une lecture complète → relever l'integrated LUFS final → ajuster le master fader pour atteindre la cible. Plus rapide : **Effects panel → Audio Effects → Loudness Meter** appliqué directement sur le Master track (Audio Track Mixer → Master → slot Effects) ou sur un clip audio individuel pour métrer en temps réel ; la fenêtre dédiée affiche LUFS short-term + true peak.
 
 Pour un mixage poussé (de-esser, EQ chirurgical sur la voix VO) : sélectionne la voix → **Edit → Edit Clip in Adobe Audition** (Dynamic Link), retour automatique dans Premiere après modifications.
 
