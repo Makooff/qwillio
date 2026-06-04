@@ -22,7 +22,7 @@ Lecture par scène : visuel, durée, mouvement caméra, texte overlay, audio cue
 ## Scène 2 — Problème : 35 % perdus
 
 - **Timecode** : 00:05 → 00:15 (10 s)
-- **Source visuelle** : Higgsfield prompt #2 + animation After Effects / DaVinci Fusion
+- **Source visuelle** : Higgsfield prompt #2 + animation Essential Graphics (Premiere) ou After Effects via Dynamic Link si compositing complexe
 - **Description** : Bar chart 3D animé qui monte jusqu'à 35%, en glow indigo-violet. Autour, silhouettes humaines floues qui s'éloignent (clients qui partent au concurrent). Fond dark `oklch(8% 0.009 265)`.
 - **Caméra** : Pan horizontal lent gauche → droite suivant la bar qui monte
 - **Texte overlay** :
@@ -112,7 +112,7 @@ Lecture par scène : visuel, durée, mouvement caméra, texte overlay, audio cue
 | Scène | Durée | Source principale |
 |---|---|---|
 | 1 — Hook | 5 s | Higgsfield #1 |
-| 2 — Problème | 10 s | Higgsfield #2 + DaVinci Fusion |
+| 2 — Problème | 10 s | Higgsfield #2 + Essential Graphics |
 | 3 — Solution intro | 8 s | HeyGen Take 1 + Higgsfield #5 |
 | 4 — Features | 8 s | HeyGen Take 2 + icônes |
 | 5 — Scale | 9 s | HeyGen Take 3 + Higgsfield #4 |

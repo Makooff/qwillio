@@ -23,7 +23,7 @@ Décideurs TPE/PME francophones perdant ~35% de leurs appels entrants. Niches pr
 | HeyGen (1 min avatar) | $0 plan Free / $30 plan Creator |
 | Higgsfield (30s motion) | ~$10 plan Pro |
 | Musique Epidemic Sound | $15/mois personal |
-| Édition DaVinci Resolve | $0 (gratuit) |
+| Édition Premiere Pro | inclus dans abonnement Creative Cloud |
 | **Total première vidéo** | **~$25** |
 
 ## Temps estimé
@@ -33,7 +33,7 @@ Décideurs TPE/PME francophones perdant ~35% de leurs appels entrants. Niches pr
 | Lecture brief + génération HeyGen | 30 min |
 | Higgsfield (6 prompts × ~3 min) | 1h |
 | Téléchargements + organisation | 15 min |
-| Édition DaVinci | 2-3h |
+| Édition Premiere | 2-3h |
 | Test mail + upload YouTube | 30 min |
 | **Total** | **4-5 heures** |
 
@@ -43,7 +43,7 @@ Décideurs TPE/PME francophones perdant ~35% de leurs appels entrants. Niches pr
 2. **HeyGen** : suivre `03-heygen-brief.md` → générer 4 takes (take1-intro, take2-features, take3-scale, take4-cta) → télécharger les 4 MP4 dans `assets/heygen/`
 3. **Higgsfield** : suivre `04-higgsfield-prompts.md` → générer 6 scènes → télécharger 6 MP4 dans `assets/higgsfield/`
 4. **Audio** : suivre `05-audio-brief.md` → télécharger track Epidemic + SFX dans `assets/audio/`
-5. **Édition** : suivre `06-edit-timeline.md` dans DaVinci Resolve, exporter final
+5. **Édition** : suivre `06-edit-timeline.md` dans Adobe Premiere Pro (CC 2024+), exporter final
 6. **Upload** YouTube unlisted + Loom
 7. **Email** : copier le corps de `07-email-outreach.md`, envoyer en cold via Lemlist/Smartlead
 
@@ -56,7 +56,7 @@ Décideurs TPE/PME francophones perdant ~35% de leurs appels entrants. Niches pr
 | `03-heygen-brief.md` | Avatar, voix, paramètres, 4 takes verbatim |
 | `04-higgsfield-prompts.md` | 6 prompts verbatim + camera + lighting + seed |
 | `05-audio-brief.md` | 3 tracks suggérés + 6 SFX + niveaux de mix |
-| `06-edit-timeline.md` | Timeline frame-by-frame DaVinci + LUT + lower-thirds |
+| `06-edit-timeline.md` | Timeline frame-by-frame Premiere Pro + Lumetri preset + .mogrt lower-thirds |
 | `07-email-outreach.md` | 2 subjects A/B, 3 body variants, UTMs, preview text |
 | `08-brand-overlays.md` | Specs lower-third + end-card + tokens couleur |
 | `mcp-setup.md` | Comment activer HeyGen MCP plus tard si tu veux automatiser |

@@ -1,24 +1,33 @@
-# Edit timeline — DaVinci Resolve 19 (gratuit)
+# Edit timeline — Adobe Premiere Pro
 
-Si tu n'as pas DaVinci Resolve : https://www.blackmagicdesign.com/products/davinciresolve (cross-platform Win/Mac/Linux, version gratuite suffit largement). Alternative simple : CapCut Desktop (gratuit, plus limité mais OK).
+Workflow optimisé Premiere Pro (CC 2024+). Si tu fais du compositing avancé (lower-thirds animées, effets), tu peux envoyer une portion de la timeline vers After Effects via **Dynamic Link** (clic droit → Replace With After Effects Composition) — utile pour les blocs 3-6.
 
 ## Setup projet
 
-1. New Project → "Qwillio Ads 60s FR"
-2. Project Settings :
-   - Timeline resolution : `1920 × 1080 HD`
-   - Frame rate : `30 fps`
-   - Color science : `DaVinci YRGB Color Managed`
-   - Output : H.264, 12 Mbps, AAC 192 kbps
+1. **File → New → Project** → Name : `Qwillio Ads 60s FR` → Location : dossier dédié contenant `assets/`
+2. **File → New → Sequence** (Ctrl/Cmd+N) :
+   - Available Presets → `Digital SLR > 1080p > DSLR 1080p30`
+   - OU onglet Settings (custom) :
+     - Editing Mode : `Custom`
+     - Timebase : `30 fps`
+     - Frame Size : `1920 horizontal × 1080 vertical`
+     - Pixel Aspect Ratio : `Square Pixels (1.0)`
+     - Audio Sample Rate : `48000 Hz`
+   - Sequence Name : `Master 60s FR`
 
-3. Import tous les assets de `assets/` dans un Bin organisé :
+3. **Color management** (recommandé) :
+   - File → Project Settings → General → Display Color Management → cocher
+   - Working color space : Rec. 709
+   - Garde les rendus Higgsfield/HeyGen interprétés en sRGB par défaut
+
+4. **Import des assets** via Media Browser (Window → Media Browser) ou drag-and-drop dans le Project panel. Organise en bins (clic droit dans Project panel → New Bin) :
    - `01 — HeyGen` (4 MP4)
    - `02 — Higgsfield` (6 MP4)
    - `03 — Audio Music` (1 file)
    - `04 — Audio VO` (2 files)
    - `05 — Audio SFX` (6 files)
    - `06 — Images` (logo, photo Dr. Chen)
-   - `07 — Graphics` (créer plus tard : lower-thirds, end-card)
+   - `07 — Graphics` (créer plus tard : lower-thirds .mogrt, end-card)
 
 ## Timeline frame-by-frame
 
@@ -115,34 +124,51 @@ Tracks utilisés (de bas en haut) :
 | A3 | Musique fade-out -∞ dB | 00:58.5 | 01:00 | |
 | A4 | `sfx-whoosh.wav` + `sfx-ding.wav` | 00:58 | 00:59 | -10 dB |
 
-## Color grade — LUT "Qwillio Indigo"
+## Color grade — Preset Lumetri "Qwillio Indigo"
 
-Créer un node DaVinci Color :
+1. **Window → Lumetri Color** pour ouvrir le panel
+2. Crée un **Adjustment Layer** (clic droit dans Project panel → New Item → Adjustment Layer), drag-and-drop sur V5 (au-dessus de tout), étire-le sur les 60 secondes
+3. Sélectionne l'Adjustment Layer → applique les réglages Lumetri Color :
 
-1. **Primary correction** :
-   - Lift : R 0.00 / G 0.00 / B 0.04 (push blacks vers indigo)
-   - Gamma : neutre
-   - Gain : R 0.98 / G 1.00 / B 1.05 (légère pousse vers le bleu)
+   **Basic Correction** :
+   - Temperature : -8 (push légèrement vers le bleu)
+   - Tint : +4 (touche magenta pour les violets)
+   - Exposure : 0
+   - Contrast : +12
 
-2. **Saturation** : 1.10 sur les rouges -10 / bleus +15 / violets +12
+   **Creative > Look** : laisser sur `None` (LUT custom inutile, on monte la couleur en numérique)
 
-3. **Curves** :
-   - Y curve : crush noirs à 0.04 minimum
-   - S-curve subtile sur midtones pour contraste
+   **Curves > RGB Curves** :
+   - Master : ancrage point à (0.04, 0.04) pour crush les noirs vers indigo
+   - Blue channel : tirer le shadows vers le haut (+5 sur les bas)
 
-4. Sauvegarder en `.cube` LUT exportable, à appliquer sur l'output node final.
+   **Color Wheels & Match > Shadows** : push vers indigo `#1a1d4d`
+   **Color Wheels & Match > Midtones** : neutre
+   **Color Wheels & Match > Highlights** : très léger push violet
 
-## Lower-thirds template
+   **HSL Secondary** :
+   - Range Red : Saturation -10
+   - Range Blue : Saturation +15
+   - Range Magenta : Saturation +12
 
-Créer un template DaVinci Fusion :
+4. **Sauvegarder le preset** : panel Lumetri Color → bouton menu burger (☰) en haut à droite → **Save Preset** → nom `Qwillio Indigo` → enregistre dans `Presets/Lumetri/`. Le fichier `.prfpset` est réutilisable sur les futures vidéos Qwillio. Drag-and-drop direct depuis le Effects panel → Lumetri Presets sur n'importe quel clip ou adjustment layer.
 
-- **Background** : Rect 480×80 px, fill `#6366f1`, corner radius 8 px, opacity 0.92
-- **Texte ligne 1** : Outfit Bold 22px white, padding-left 16 px
-- **Texte ligne 2** : Outfit Regular 16px opacity 0.75
-- **Animation IN** : slide-from-left 300ms ease-out-expo
-- **Animation OUT** : fade-out 200ms ease-out
+> Note : Premiere ne génère pas de `.cube` LUT nativement. Si tu veux exporter en LUT cross-tool (DaVinci, FCP, Resolve), passe par un Adjustment Layer + Export → "Export Color Look" en `.look` (Premiere format) ou utilise DaVinci une seule fois pour générer le `.cube` à partir d'une référence frame.
 
-Sauvegarder le template → réutilisable sur tous les lower-thirds.
+## Lower-thirds template (Essential Graphics + .mogrt)
+
+Créer un **Motion Graphics Template** réutilisable :
+
+1. **Window → Essential Graphics** pour ouvrir le panel
+2. Nouvel élément graphique sur V3 : sélectionne l'outil **Type Tool** (T) dans Program Monitor, clique pour ajouter texte, puis utilise **Rectangle Tool** dans le panel Essential Graphics pour le fond
+3. Compose :
+   - **Background** : Rect 480×80 px, fill `#6366f1`, Corner Radius 8 px (Properties → Appearance), Opacity 92%
+   - **Texte ligne 1** : Outfit Bold 22px white, padding-left 16 px
+   - **Texte ligne 2** : Outfit Regular 16px white opacity 75%
+4. **Animation IN** : avec le graphique sélectionné → Effect Controls panel → Position + Opacity → poser keyframes : slide depuis -480 horizontal → 0 sur 300 ms, courbe Bezier (Temporal Interpolation → Ease Out, puis tirer les handles vers l'horizontale pour mimer ease-out-expo)
+5. **Animation OUT** : fade Opacity 100% → 0% sur 200 ms en fin de clip
+6. **Promote en template** : Essential Graphics panel → onglet **Browse** → drag le graphique depuis la timeline vers le panel → nomme `Qwillio Lower-Third` → marque les paramètres éditables (texte ligne 1, texte ligne 2) en cochant la pastille à côté de chaque propriété
+7. **Export .mogrt** : clic droit sur le template dans Essential Graphics → Export Motion Graphics Template → enregistre dans `assets/templates/qwillio-lower-third.mogrt`. Réutilisable sur tous les autres lower-thirds : drag-and-drop depuis le panel, édite juste les 2 lignes de texte.
 
 ## End-card template
 
@@ -153,31 +179,52 @@ Sauvegarder le template → réutilisable sur tous les lower-thirds.
 
 ## Export final
 
-1. **Deliver** tab → Render Settings :
-   - Format : MP4
-   - Codec : H.264
-   - Resolution : 1920 × 1080
-   - Frame rate : 30 fps
-   - Quality : Restrict to 12 Mbps (~90 MB pour 60s, master haute qualité pour YouTube/Loom). Pour attach email direct, ré-exporter en parallèle à 1.5-2 Mbps (~10-15 MB) — variant `qwillio-60s-fr-v1-email.mp4`
-   - Audio codec : AAC 192 kbps stereo
-   - Filename : `qwillio-60s-fr-v1.mp4`
+1. **File → Export → Media** (Ctrl/Cmd+M) avec la séquence sélectionnée :
+   - Format : `H.264`
+   - Preset : commencer par `Match Source — High bitrate` puis override les champs ci-dessous
+   - Output Name : `qwillio-60s-fr-v1.mp4`
 
-2. Hit Render → attendre ~2-3 min export
+2. Onglet **Video** :
+   - Basic Video Settings → Width 1920, Height 1080, Frame Rate 30, Field Order Progressive
+   - Bitrate Settings → Bitrate Encoding `VBR, 2 pass` (qualité optimale), Target Bitrate `12 Mbps`, Maximum Bitrate `14 Mbps`
+   - Résultat ~90 MB pour 60s (master haute qualité pour YouTube/Loom)
 
-3. QA final :
-   - Lecture sur 3 devices (laptop, mobile, TV)
-   - Audio mix équilibré ?
-   - Pas de jump cut visible ?
-   - Bouton CTA bien lisible ?
+3. Onglet **Audio** :
+   - Audio Format : AAC
+   - Bitrate : 192 kbps
+   - Sample Rate : 48 kHz
+
+4. Onglet **Multiplexer** : MP4 (Standard)
+
+5. **Export** (rendu local, ~2-3 min) OU **Send to Media Encoder** (Ctrl/Cmd+Shift+M) pour rendre en background pendant que tu continues à éditer la variante verticale
+
+6. **Variant email-friendly** (10-15 MB) : duplique le preset, change Target Bitrate à `1.5 Mbps` Max `2 Mbps`, Output Name `qwillio-60s-fr-v1-email.mp4`
+
+7. **QA final** sur le master :
+   - Lecture sur 3 devices (laptop, mobile, TV/écran externe)
+   - Audio mix équilibré ? (cf. 05-audio-brief.md cible -14 LUFS)
+   - Pas de jump cut visible aux transitions de scène ?
+   - Bouton CTA bien lisible 480×120 px ?
    - End-card freeze sur le logo pour thumbnail YouTube ?
 
-## Variant vertical 1080×1920 (LinkedIn/Insta)
+## Variant vertical 1080×1920 (LinkedIn/Insta/TikTok)
 
-1. Duplicate timeline → renomme "Vertical"
-2. Project Settings → Timeline resolution `1080 × 1920`
-3. Pour chaque clip vidéo : ouvrir Inspector → Crop & Pan, recadrer manuellement pour garder le sujet centré
-4. Texts et lower-thirds : ajuster taille et position pour ratio vertical
-5. Export en `qwillio-60s-fr-vertical.mp4`
+Deux approches selon la précision souhaitée :
+
+**Approche A — Auto Reframe (rapide, recommandée)** :
+1. Project panel → clic droit sur la sequence `Master 60s FR` → **Auto Reframe Sequence**
+2. Aspect Ratio : `Vertical 9:16`, Motion Preset : `Default` (ou `Faster` pour plans rapides)
+3. Premiere génère une nouvelle sequence `Master 60s FR - Vertical (Auto-Reframed)` qui recadre dynamiquement les sujets centrés (visages avatar, big numbers, cards)
+4. Review chaque plan, corrige manuellement avec le **Motion → Position** des clips si Auto Reframe rate un sujet
+5. Repositionne lower-thirds et textes pour le ratio vertical (souvent décalés vers le centre)
+
+**Approche B — Sequence manuelle (contrôle total)** :
+1. File → New → Sequence → 1080×1920 30fps → nom `Master 60s FR Vertical`
+2. Drag la sequence master en **Nested Sequence** dans la nouvelle timeline
+3. Sélectionne le nest → Effect Controls → Motion → Scale et Position pour recadrer
+4. Repositionne manuellement tous les overlays via Essential Graphics (les .mogrt s'adaptent au ratio mais les textes doivent être centrés)
+
+6. Export `qwillio-60s-fr-vertical.mp4` en H.264 1080×1920 12 Mbps (mêmes settings que le master horizontal)
 
 ## Thumbnail YouTube (pour cold email preview)
 
