@@ -24,7 +24,7 @@ npm install
 npm run studio    # preview interactif
 npm run render    # rendu master -> out/qwillio-60s-fr-1080p.mp4
 ```
-Rendu utilise: `npx remotion render Qwillio60 out/qwillio-60s-fr-1080p.mp4 --concurrency=2 --crf=18 --timeout=120000`
+Rendu utilise: `npx remotion render Qwillio60 out/qwillio-60s-fr-1080p.mp4 --concurrency=4 --crf=18 --timeout=120000`
 
 ## Variantes (ffmpeg, depuis le master)
 ```bash

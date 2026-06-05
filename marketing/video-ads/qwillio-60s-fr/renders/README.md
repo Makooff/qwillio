@@ -14,7 +14,7 @@ Montage motion-design programmatique (Remotion + ffmpeg), DA Qwillio (Outfit, in
 Sources: 6 clips Higgsfield (seedance_2_0) + 4 takes HeyGen (avatar Brandon, voix Etienne Moreau) + 2 voix off FR (HeyGen TTS, voix Harper). Voir `../assets-manifest.json`.
 
 ## Limites connues (a finir si besoin)
-- Musique: lit ambient genere (ffmpeg), royalty-free par construction. Remplacable: depose un mp3 dans `assets/audio/music-bed.wav` et relance le rendu.
+- Musique: lit ambient genere (ffmpeg), royalty-free par construction. Remplacable: depose un fichier WAV dans `../remotion/public/assets/audio/music-bed.wav` et relance le rendu (`npm run render` depuis `../remotion/`) pour utiliser ta nouvelle piste.
 - Pas de photo de temoignage (le bloc preuve est typographique + stat-cards, aucun faux portrait IA genere).
 - Liens mp4 HeyGen sources expirent (~12 juin); le montage final est autonome (clips embarques dans le rendu).
 
