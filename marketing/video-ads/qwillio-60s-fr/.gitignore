@@ -1,0 +1,5 @@
+# Raw / intermediate media (re-downloadable via assets-manifest.json URLs,
+# or regenerable through the pipeline). The final deliverables live in renders/.
+assets/heygen/
+assets/higgsfield/
+assets/audio/
