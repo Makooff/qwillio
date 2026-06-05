@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-05T04:27:47Z",
+  "generated_at": "2026-06-05T04:59:04Z",
   "heygen": [
     {
       "take": "take1-intro",
@@ -65,11 +65,11 @@
     },
     {
       "scene": "04-dataflow",
-      "video_id": "eaef176c-0b85-4ea4-9515-90725037ea2c",
-      "url": null,
-      "duration_s": null,
-      "status": "failed",
-      "error": "Higgsfield content filter flagged the generation as nsfw (false positive, likely on 'lead cards with names, phone numbers'); no output produced. Not charged. Regenerate with a reworded prompt (drop 'names, phone numbers, statuses')."
+      "video_id": "91dc7f8e-dfe8-48ab-8c44-729f079271c5",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260605_045225_91dc7f8e-dfe8-48ab-8c44-729f079271c5.mp4",
+      "duration_s": 5.0,
+      "status": "ok",
+      "error": null
     },
     {
       "scene": "05-phone-floating",
@@ -90,10 +90,10 @@
   ],
   "totals": {
     "heygen_credits_used": 16,
-    "higgsfield_credits_used": 225,
-    "execution_time_s": 475,
-    "ok_count": 9,
-    "failed_count": 1
+    "higgsfield_credits_used": 270,
+    "execution_time_s": 775,
+    "ok_count": 10,
+    "failed_count": 0
   },
   "notes": {
     "avatar": "Anthony not in HeyGen catalog. Substitute validated by user: Brandon (look Brandon_Business_Standing_Front_public), business mid-shot front.",
@@ -103,6 +103,7 @@
     "background": "Brief asked an indigo to black gradient PNG. Used solid color #1a1a2e per take; the gradient is to be applied in Premiere per 03-heygen-brief.md fallback.",
     "higgsfield_model": "seedance_2_0, 1080p, 16:9, 5s, std mode. No negative_prompt param on this model: brief negatives and camera moves folded into each prompt as natural language. Preset 'IN THE DARK' declined to keep prompts literal.",
     "heygen_url_expiry": "HeyGen 'url' direct mp4 links are signed and expire around 2026-06-12. Use 'page_url' (stable) or re-fetch get_video for fresh links.",
-    "execution_time_note": "execution_time_s is active generation wall time (Higgsfield batch ~180s + HeyGen batch ~295s). Calendar time was longer due to account funding and a HeyGen MCP outage between stages."
+    "scene_04_regen": "04-dataflow initially failed (nsfw false positive) and was regenerated once with a reworded prompt ('wireframe customer record cards with abstract placeholder data fields and status badges' instead of 'names, phone numbers, statuses'). Second attempt succeeded. New video_id 91dc7f8e-dfe8-48ab-8c44-729f079271c5.",
+    "execution_time_note": "execution_time_s is active generation wall time (Higgsfield 6 scenes + scene 04 regen + HeyGen 4 takes). Calendar time was longer due to account funding and a HeyGen MCP outage between stages."
   }
 }
