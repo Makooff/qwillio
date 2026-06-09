@@ -247,6 +247,16 @@ export class StripeService {
 
     if (!client) return;
 
+    // Idempotency: Stripe may deliver invoice.paid more than once (retries).
+    // Without this guard we'd record the payment twice and double-count revenue.
+    if (invoice.id) {
+      const already = await prisma.payment.findFirst({ where: { stripeInvoiceId: invoice.id } });
+      if (already) {
+        logger.info(`Invoice ${invoice.id} already recorded — skipping duplicate`);
+        return;
+      }
+    }
+
     await prisma.payment.create({
       data: {
         clientId: client.id,
