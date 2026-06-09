@@ -93,6 +93,9 @@ export const env = {
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER || '',
   TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER,
   SMS_ENABLED: process.env.SMS_ENABLED === 'true',
+  // Opt-in signature verification for inbound Twilio webhooks. Leave false
+  // until the public callback URL is confirmed, then set to 'true' on Render.
+  TWILIO_VALIDATE_WEBHOOKS: process.env.TWILIO_VALIDATE_WEBHOOKS === 'true',
 
   CALLS_PER_DAY: parseInt(process.env.CALLS_PER_DAY || '50', 10),
   AUTOMATION_START_HOUR: parseInt(process.env.AUTOMATION_START_HOUR || '9', 10),
@@ -134,6 +137,9 @@ export const env = {
   // ─── Admin access control ─────────────────────────────────
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'makho.off@gmail.com',
   ADMIN_SECRET: process.env.ADMIN_SECRET || '',
+  // Password used to seed/reset the admin accounts on boot. No source-level
+  // default: if unset, the seed is skipped and existing passwords are kept.
+  ADMIN_SEED_PASSWORD: (process.env.ADMIN_SEED_PASSWORD || '').trim(),
 
   // ─── LinkedIn Outreach ────────────────────────────────────
   LINKEDIN_COOKIES: process.env.LINKEDIN_COOKIES || '', // JSON string of LinkedIn session cookies

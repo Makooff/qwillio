@@ -75,6 +75,12 @@ export class OnboardingFlowController {
       const client = await prisma.client.findUnique({ where: { id: clientId } });
       if (!client) return res.status(404).json({ error: 'Client not found' });
 
+      // Verify token (same dashboard-token scheme as the form endpoints)
+      const token = req.query.token as string;
+      if (!token || client.dashboardToken !== token) {
+        return res.status(403).json({ error: 'Invalid access token' });
+      }
+
       const addOns = onboardingFlowService.getAvailableAddOns(client.planType);
       const activeAddOns = (client.addOns as any) || {};
 
@@ -93,6 +99,19 @@ export class OnboardingFlowController {
     try {
       const clientId = req.params.clientId as string;
       const addOnId = req.params.addOnId as string;
+      const token = (req.query.token as string) || req.body?.token;
+
+      // Verify token before mutating (add-on activation can affect billing)
+      const { prisma } = await import('../config/database');
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { dashboardToken: true },
+      });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+      if (!token || client.dashboardToken !== token) {
+        return res.status(403).json({ error: 'Invalid access token' });
+      }
+
       const result = await onboardingFlowService.activateAddOn(clientId, addOnId);
       res.json(result);
     } catch (error: any) {

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { trialAbuseService } from '../services/trial-abuse.service';
+import { requireAdmin } from '../middleware/auth.middleware';
 import { logger } from '../config/logger';
 
 const router = Router();
@@ -74,7 +75,7 @@ router.post('/record-signals', async (req: Request, res: Response) => {
  * GET /api/trial/admin/stats
  * Get abuse prevention stats for admin dashboard.
  */
-router.get('/admin/stats', async (req: Request, res: Response) => {
+router.get('/admin/stats', requireAdmin, async (req: Request, res: Response) => {
   try {
     const stats = await trialAbuseService.getAbuseStats();
     res.json(stats);
@@ -88,7 +89,7 @@ router.get('/admin/stats', async (req: Request, res: Response) => {
  * GET /api/trial/admin/flagged
  * Get flagged signup attempts for admin review.
  */
-router.get('/admin/flagged', async (req: Request, res: Response) => {
+router.get('/admin/flagged', requireAdmin, async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;

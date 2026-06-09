@@ -96,6 +96,15 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
+// Public contact form: cap submissions to prevent inbox/Resend-quota abuse
+const contactLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  message: { error: 'Too many requests, please try again in a minute' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ─── Body Parsing ────────────────────────────────────────
 // Stripe webhook needs raw body
 app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
@@ -140,13 +149,17 @@ app.use('/api/ai-agents', aiAgentsRoutes);
 app.use('/api/agency', agencyRoutes);
 
 // ─── Contact Form ─────────────────────────────────────
-app.post('/api/contact', async (req, res) => {
+app.post('/api/contact', contactLimiter, async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
     if (!name || !email || !message) {
       res.status(400).json({ error: 'Missing required fields' });
       return;
     }
+    // Escape user input before embedding in the notification email's HTML
+    const esc = (s: unknown) => String(s ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     // Send via Resend
     const { resend } = await import('./config/resend');
     // Extract email address from "Name <email>" format if needed
@@ -156,7 +169,7 @@ app.post('/api/contact', async (req, res) => {
       to: 'hello@qwillio.com',
       replyTo: email,
       subject: `Contact Form — ${subject || 'General'} — ${name}`,
-      html: `<p><strong>From:</strong> ${name} (${email})</p><p><strong>Subject:</strong> ${subject}</p><p><strong>Message:</strong></p><p>${message.replace(/\n/g, '<br>')}</p>`,
+      html: `<p><strong>From:</strong> ${esc(name)} (${esc(email)})</p><p><strong>Subject:</strong> ${esc(subject || 'General')}</p><p><strong>Message:</strong></p><p>${esc(message).replace(/\n/g, '<br>')}</p>`,
     });
     logger.info(`Contact form submitted by ${email}`);
     res.json({ success: true });
@@ -244,63 +257,30 @@ async function runBootstrap() {
   // DB log persistence is currently disabled (see logger.ts comment).
   // The in-memory 500-entry ring buffer is what /admin/logs reads.
 
-  // Seed/reset admin accounts
-    try {
-      const bcrypt = await import('bcryptjs');
-      const passwordHash = await bcrypt.default.hash('Qwillio2026!', 12);
-
-      await prisma.user.upsert({
-        where: { email: 'makho.off@gmail.com' },
-        update: { passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
-        create: {
-          email: 'makho.off@gmail.com',
-          name: 'Mathieu',
-          passwordHash,
-          role: 'admin',
-          emailConfirmed: true,
-          onboardingCompleted: true,
-        },
-      });
-
-      await prisma.user.upsert({
-        where: { email: 'admin@qwillio.com' },
-        update: { passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
-        create: {
-          email: 'admin@qwillio.com',
-          name: 'Admin Qwillio',
-          passwordHash,
-          role: 'admin',
-          emailConfirmed: true,
-          onboardingCompleted: true,
-        },
-      });
-      logger.info('Admin accounts seeded ✅');
-    } catch (seedErr) {
-      logger.warn('[bootstrap] Admin seed failed (non-fatal):', seedErr);
-    }
-
-    // ─── One-time cleanup: remove fake Belgian prospects + vivi pizza client ──
-    try {
-      const belgianCities = ['Liège', 'Bruxelles', 'Anvers', 'Gand', 'Brussels', 'Antwerp', 'Ghent', 'Liege'];
-      const belgianProspects = await prisma.prospect.findMany({
-        where: { OR: [{ country: 'BE' }, { country: 'Belgium' }, { city: { in: belgianCities } }] },
-        select: { id: true },
-      });
-      if (belgianProspects.length > 0) {
-        await prisma.prospect.deleteMany({ where: { id: { in: belgianProspects.map(p => p.id) } } });
-        logger.info(`[Startup] Cleaned ${belgianProspects.length} fake Belgian prospect(s)`);
+    // Seed/reset admin accounts — password comes from ADMIN_SEED_PASSWORD env.
+    // No hardcoded credentials in source. If the env var is unset we skip the
+    // reset entirely so existing accounts keep their current password.
+    if (!env.ADMIN_SEED_PASSWORD) {
+      logger.warn('[seed] ADMIN_SEED_PASSWORD not set — skipping admin password seed/reset');
+    } else {
+      try {
+        const bcrypt = await import('bcryptjs');
+        const passwordHash = await bcrypt.default.hash(env.ADMIN_SEED_PASSWORD, env.BCRYPT_ROUNDS);
+        const admins: Array<[string, string]> = [
+          ['makho.off@gmail.com', 'Mathieu'],
+          ['admin@qwillio.com', 'Admin Qwillio'],
+        ];
+        for (const [email, name] of admins) {
+          await prisma.user.upsert({
+            where: { email },
+            update: { passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
+            create: { email, name, passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
+          });
+        }
+        logger.info('Admin accounts seeded ✅');
+      } catch (seedErr) {
+        logger.error('Admin seed failed (non-fatal):', seedErr);
       }
-      const viviClients = await prisma.client.findMany({
-        where: { OR: [{ businessName: { contains: 'vivi', mode: 'insensitive' } }, { businessName: { contains: 'pizza', mode: 'insensitive' } }] },
-        select: { id: true, businessName: true, userId: true },
-      });
-      for (const c of viviClients) {
-        await prisma.client.delete({ where: { id: c.id } });
-        if (c.userId) await prisma.user.delete({ where: { id: c.userId } }).catch(() => {});
-        logger.info(`[Startup] Deleted fake client: ${c.businessName}`);
-      }
-    } catch (cleanupErr) {
-      logger.warn('[Startup] Fake data cleanup (non-fatal):', cleanupErr);
     }
 
     // ── Bootstrap: auto-activate a test client from env vars ──
@@ -411,9 +391,12 @@ async function runBootstrap() {
     // Creates or updates the closer user so the team has a stable
     // login. Credentials come from env; defaults to emilie@qwillio.com.
     const closerEmail = (process.env.BOOTSTRAP_CLOSER_EMAIL || 'emilie@qwillio.com').trim().toLowerCase();
-    const closerPassword = (process.env.BOOTSTRAP_CLOSER_PASSWORD || 'Qwillio.call2026!').toString();
+    // No hardcoded default: closer seed is skipped unless the password is in env.
+    const closerPassword = (process.env.BOOTSTRAP_CLOSER_PASSWORD || '').toString();
     const closerName = (process.env.BOOTSTRAP_CLOSER_NAME || 'Emilie').toString();
-    if (closerEmail && closerPassword) {
+    if (!closerPassword) {
+      logger.warn('[bootstrap] BOOTSTRAP_CLOSER_PASSWORD not set — skipping closer account seed');
+    } else if (closerEmail && closerPassword) {
       try {
         const bcrypt = await import('bcryptjs');
         const passwordHash = await bcrypt.hash(closerPassword, 10);
