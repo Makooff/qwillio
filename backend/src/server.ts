@@ -257,39 +257,30 @@ async function runBootstrap() {
   // DB log persistence is currently disabled (see logger.ts comment).
   // The in-memory 500-entry ring buffer is what /admin/logs reads.
 
-  // Seed/reset admin accounts
-    try {
-      const bcrypt = await import('bcryptjs');
-      const passwordHash = await bcrypt.default.hash('Qwillio2026!', 12);
-
-      await prisma.user.upsert({
-        where: { email: 'makho.off@gmail.com' },
-        update: { passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
-        create: {
-          email: 'makho.off@gmail.com',
-          name: 'Mathieu',
-          passwordHash,
-          role: 'admin',
-          emailConfirmed: true,
-          onboardingCompleted: true,
-        },
-      });
-
-      await prisma.user.upsert({
-        where: { email: 'admin@qwillio.com' },
-        update: { passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
-        create: {
-          email: 'admin@qwillio.com',
-          name: 'Admin Qwillio',
-          passwordHash,
-          role: 'admin',
-          emailConfirmed: true,
-          onboardingCompleted: true,
-        },
-      });
-      logger.info('Admin accounts seeded ✅');
-    } catch (seedErr) {
-      logger.warn('[bootstrap] Admin seed failed (non-fatal):', seedErr);
+    // Seed/reset admin accounts — password comes from ADMIN_SEED_PASSWORD env.
+    // No hardcoded credentials in source. If the env var is unset we skip the
+    // reset entirely so existing accounts keep their current password.
+    if (!env.ADMIN_SEED_PASSWORD) {
+      logger.warn('[seed] ADMIN_SEED_PASSWORD not set — skipping admin password seed/reset');
+    } else {
+      try {
+        const bcrypt = await import('bcryptjs');
+        const passwordHash = await bcrypt.default.hash(env.ADMIN_SEED_PASSWORD, env.BCRYPT_ROUNDS);
+        const admins: Array<[string, string]> = [
+          ['makho.off@gmail.com', 'Mathieu'],
+          ['admin@qwillio.com', 'Admin Qwillio'],
+        ];
+        for (const [email, name] of admins) {
+          await prisma.user.upsert({
+            where: { email },
+            update: { passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
+            create: { email, name, passwordHash, role: 'admin', emailConfirmed: true, onboardingCompleted: true },
+          });
+        }
+        logger.info('Admin accounts seeded ✅');
+      } catch (seedErr) {
+        logger.error('Admin seed failed (non-fatal):', seedErr);
+      }
     }
 
     // ── Bootstrap: auto-activate a test client from env vars ──
@@ -400,9 +391,12 @@ async function runBootstrap() {
     // Creates or updates the closer user so the team has a stable
     // login. Credentials come from env; defaults to emilie@qwillio.com.
     const closerEmail = (process.env.BOOTSTRAP_CLOSER_EMAIL || 'emilie@qwillio.com').trim().toLowerCase();
-    const closerPassword = (process.env.BOOTSTRAP_CLOSER_PASSWORD || 'Qwillio.call2026!').toString();
+    // No hardcoded default: closer seed is skipped unless the password is in env.
+    const closerPassword = (process.env.BOOTSTRAP_CLOSER_PASSWORD || '').toString();
     const closerName = (process.env.BOOTSTRAP_CLOSER_NAME || 'Emilie').toString();
-    if (closerEmail && closerPassword) {
+    if (!closerPassword) {
+      logger.warn('[bootstrap] BOOTSTRAP_CLOSER_PASSWORD not set — skipping closer account seed');
+    } else if (closerEmail && closerPassword) {
       try {
         const bcrypt = await import('bcryptjs');
         const passwordHash = await bcrypt.hash(closerPassword, 10);

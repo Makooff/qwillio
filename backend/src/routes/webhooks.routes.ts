@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { webhooksController } from '../controllers/webhooks.controller';
+import { validateTwilioSignature } from '../middleware/twilio.middleware';
 
 const router = Router();
 
@@ -11,11 +12,11 @@ router.post('/vapi', (req, res) => webhooksController.vapiWebhook(req, res));
 router.post('/vapi/client/:clientId', (req, res) => webhooksController.vapiClientWebhook(req, res));
 
 // Twilio inbound SMS — handles prospect email corrections via SMS reply
-router.post('/twilio/sms', (req, res) => webhooksController.twilioInboundSMS(req, res));
+router.post('/twilio/sms', validateTwilioSignature, (req, res) => webhooksController.twilioInboundSMS(req, res));
 
 // Twilio voice/call status webhooks
-router.post('/twilio/voice', (req, res) => webhooksController.twilioVoiceStatus(req, res));
-router.post('/twilio/status', (req, res) => webhooksController.twilioVoiceStatus(req, res));
+router.post('/twilio/voice', validateTwilioSignature, (req, res) => webhooksController.twilioVoiceStatus(req, res));
+router.post('/twilio/status', validateTwilioSignature, (req, res) => webhooksController.twilioVoiceStatus(req, res));
 
 // Resend email bounce/delivery webhook — triggers SMS fallback on bounce
 router.post('/resend/events', (req, res) => webhooksController.resendEmailEvent(req, res));
