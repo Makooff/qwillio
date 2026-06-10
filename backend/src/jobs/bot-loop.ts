@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
+import { jobGuard } from '../utils/job-guard';
 import { emitEvent } from '../config/socket';
 import { prospectionService } from '../services/prospection.service';
 import { vapiService } from '../services/vapi.service';
@@ -165,7 +166,7 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     // CRON 1: PROSPECTION - Every day at 8h US Eastern (Mon-Fri)
     // ═══════════════════════════════════════════════════════════
-    this.prospectionJob = cron.schedule('0 8 * * 1-5', async () => {
+    this.prospectionJob = cron.schedule('0 8 * * 1-5', () => jobGuard.run('prospection', async () => {
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
 
@@ -179,7 +180,7 @@ class BotLoop {
         logger.error('[CRON] Prospection failed:', error);
         await discordService.notifyErrors(`❌ PROSPECTION ERROR: ${(error as Error).message}`);
       }
-    }, { timezone: 'America/New_York' });
+    }), { timezone: 'America/New_York' });
 
     // ═══════════════════════════════════════════════════════════
     // CRON 2: CALLS — DISABLED. Superseded by the Prospecting Engine
@@ -204,7 +205,7 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     // CRON 3: FOLLOW-UPS - Every hour
     // ═══════════════════════════════════════════════════════════
-    this.remindersJob = cron.schedule('0 * * * *', async () => {
+    this.remindersJob = cron.schedule('0 * * * *', () => jobGuard.run('reminders', async () => {
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
 
@@ -219,7 +220,7 @@ class BotLoop {
       } catch (error) {
         logger.error('[CRON] Reminders processing failed:', error);
       }
-    }, { timezone: env.TZ });
+    }), { timezone: env.TZ });
 
     // ═══════════════════════════════════════════════════════════
     // CRON 4: ANALYTICS - Every day at 23h55
@@ -330,7 +331,7 @@ class BotLoop {
     // Sends email reminders to customers 24h before appointments
     // PRO & ENTERPRISE feature
     // ═══════════════════════════════════════════════════════════
-    this.bookingRemindersJob = cron.schedule('30 * * * *', async () => {
+    this.bookingRemindersJob = cron.schedule('30 * * * *', () => jobGuard.run('booking-reminders', async () => {
       try {
         const sent = await bookingReminderService.processBookingReminders();
         if (sent > 0) {
@@ -344,7 +345,7 @@ class BotLoop {
       } catch (error) {
         logger.error('[CRON] Booking reminders failed:', error);
       }
-    }, { timezone: env.TZ });
+    }), { timezone: env.TZ });
 
     // ═══════════════════════════════════════════════════════════
     // CRON 9: CLIENT ANALYTICS AGGREGATION - Every day at 23h50
@@ -630,7 +631,7 @@ class BotLoop {
     // window check inside the service then enforces the prospect's
     // local 9-12 / 13-17 schedule.
     // ═══════════════════════════════════════════════════════════
-    this.outboundEngineJob = cron.schedule('*/5 6-22 * * 1-5', async () => {
+    this.outboundEngineJob = cron.schedule('*/5 6-22 * * 1-5', () => jobGuard.run('outbound-engine', async () => {
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
 
@@ -640,7 +641,7 @@ class BotLoop {
       } catch (error) {
         logger.error('[CRON] Outbound engine call failed:', error);
       }
-    }, { timezone: 'America/Chicago' }); // Central time (covers most target cities)
+    }), { timezone: 'America/Chicago' }); // Central time (covers most target cities)
 
     // ═══════════════════════════════════════════════════════════
     // PROSPECTING ENGINE — CRON P3: A/B testing analysis — daily 6am UTC
@@ -728,7 +729,7 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     // PROSPECTING ENGINE — CRON P6: Follow-up sequences — every 30 min
     // ═══════════════════════════════════════════════════════════
-    this.followUpJob = cron.schedule('*/30 * * * *', async () => {
+    this.followUpJob = cron.schedule('*/30 * * * *', () => jobGuard.run('follow-up-sequences', async () => {
       try {
         const sent = await followUpSequencesService.processDue();
         if (sent > 0) {
@@ -738,7 +739,7 @@ class BotLoop {
       } catch (error) {
         logger.error('[CRON] Follow-up sequences failed:', error);
       }
-    }, { timezone: env.TZ });
+    }), { timezone: env.TZ });
 
     // ═══════════════════════════════════════════════════════════
     // PROSPECTING ENGINE — CRON P7: Re-score prospects — daily 3am UTC
