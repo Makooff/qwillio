@@ -17,6 +17,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { discordService } from './discord.service';
+import { twoProportionZTest } from '../utils/statistics';
 
 const DROP_OFF_STAGES = ['opening', 'pain_amplification', 'solution', 'pricing', 'objection_handling'] as const;
 type DropOffStage = typeof DROP_OFF_STAGES[number];
@@ -206,31 +207,46 @@ export class ScriptLearningService {
       });
 
       const conversionAfter = callsAfter > 0 ? conversionsAfter / callsAfter : 0;
-      const improved = conversionAfter > mutation.conversionBefore;
 
-      if (improved) {
+      // Statistical gate: only lock a mutation into the live script if the
+      // variant is SIGNIFICANTLY better than the baseline. A raw
+      // "conversionAfter > conversionBefore" check would promote small-sample
+      // noise into production and silently drift the sales pitch.
+      const successesBefore = Math.round(mutation.conversionBefore * mutation.callsBefore);
+      const zTest = twoProportionZTest(successesBefore, mutation.callsBefore, conversionsAfter, callsAfter);
+      const enoughBaseline = mutation.callsBefore >= MIN_SAMPLE_SIZE;
+      const validated = zTest.significant && enoughBaseline;
+
+      if (validated) {
         await prisma.scriptMutation.update({
           where: { id: mutation.id },
-          data: { status: 'validated', callsAfter, conversionAfter },
+          data: { status: 'validated', callsAfter, conversionAfter, statisticalSignificance: zTest.pValue },
         });
-        logger.info(`[ScriptLearning] Mutation VALIDATED for ${mutation.niche}/${mutation.language}: ${(conversionAfter * 100).toFixed(1)}% > ${(mutation.conversionBefore * 100).toFixed(1)}%`);
+        logger.info(`[ScriptLearning] Mutation VALIDATED for ${mutation.niche}/${mutation.language}: ${(conversionAfter * 100).toFixed(1)}% vs ${(mutation.conversionBefore * 100).toFixed(1)}% (p=${zTest.pValue.toFixed(3)})`);
       } else {
+        const reason = !enoughBaseline
+          ? `Baseline sample too small (${mutation.callsBefore} < ${MIN_SAMPLE_SIZE}) — keeping previous script`
+          : zTest.zScore <= 0
+            ? `Conversion not improved: ${(conversionAfter * 100).toFixed(1)}% vs baseline ${(mutation.conversionBefore * 100).toFixed(1)}%`
+            : `Improvement not statistically significant (p=${zTest.pValue.toFixed(3)} ≥ 0.05): ${(conversionAfter * 100).toFixed(1)}% vs ${(mutation.conversionBefore * 100).toFixed(1)}%`;
+
         await prisma.scriptMutation.update({
           where: { id: mutation.id },
           data: {
             status: 'reverted',
             callsAfter,
             conversionAfter,
+            statisticalSignificance: zTest.pValue,
             revertedAt: new Date(),
-            revertReason: `Conversion dropped: ${(conversionAfter * 100).toFixed(1)}% < baseline ${(mutation.conversionBefore * 100).toFixed(1)}%`,
+            revertReason: reason,
           },
         });
-        logger.info(`[ScriptLearning] Mutation REVERTED for ${mutation.niche}/${mutation.language}`);
+        logger.info(`[ScriptLearning] Mutation REVERTED for ${mutation.niche}/${mutation.language}: ${reason}`);
 
         await discordService.notifySystem(
           `↩️ SCRIPT MUTATION REVERTED\n` +
           `Niche: ${mutation.niche} | Lang: ${mutation.language}\n` +
-          `Conversion dropped: ${(conversionAfter * 100).toFixed(1)}% vs baseline ${(mutation.conversionBefore * 100).toFixed(1)}%`
+          reason
         );
       }
     }
