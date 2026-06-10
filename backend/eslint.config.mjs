@@ -40,6 +40,9 @@ export default tseslint.config(
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' },
       ],
       'no-empty': ['warn', { allowEmptyCatch: true }],
+      // Agent services deliberately strip control chars via [\x00-\x1f] regexes
+      // (input sanitization before storage/display) — this is intentional.
+      'no-control-regex': 'off',
     },
   },
 );

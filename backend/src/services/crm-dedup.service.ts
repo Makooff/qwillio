@@ -132,7 +132,7 @@ export class CrmDedupService {
    * Normalize phone to E.164 format
    */
   private normalizePhone(phone: string): string {
-    let cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
+    let cleaned = phone.replace(/[\s\-().]/g, '');
     if (!cleaned.startsWith('+')) {
       if (cleaned.startsWith('1') && cleaned.length === 11) {
         cleaned = '+' + cleaned;

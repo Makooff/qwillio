@@ -38,7 +38,7 @@ export async function ensureBotLogTable(): Promise<void> {
     tableReady = true;
   } catch (err) {
     // Logging the failure here would loop. Just print to stderr.
-    // eslint-disable-next-line no-console
+
     console.error('[db-log-store] ensureBotLogTable failed:', err);
   }
 }
