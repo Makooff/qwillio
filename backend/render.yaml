@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: free
     buildCommand: npm install --include=dev && npx prisma generate && npm run build
-    preDeployCommand: npx prisma db push --accept-data-loss || true
+    preDeployCommand: npx prisma migrate deploy
     startCommand: npm start
     envVars:
       - key: NODE_ENV
