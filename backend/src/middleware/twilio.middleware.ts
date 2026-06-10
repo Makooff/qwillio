@@ -3,7 +3,7 @@ import { env } from '../config/env';
 import { logger } from '../config/logger';
 
 // twilio ships CommonJS; match the require() style used elsewhere in the codebase
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const twilio = require('twilio');
 
 /**

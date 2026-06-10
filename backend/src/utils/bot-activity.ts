@@ -37,7 +37,7 @@ const CRON_JOBS: ScheduledJob[] = [
 ];
 
 const MAX_ACTIONS = 30;
-let actions: BotAction[] = [];
+const actions: BotAction[] = [];
 
 export function trackAction(message: string) {
   actions.unshift({ message, timestamp: new Date().toISOString() });

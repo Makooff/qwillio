@@ -75,7 +75,7 @@ const COMMON_TYPOS: Record<string, string> = {
 export function normalizeEmail(email: string): string {
   let normalized = email.toLowerCase().trim();
   // Remove surrounding quotes, brackets, angle brackets
-  normalized = normalized.replace(/^[<"'\[({]+|[>"'\])}\s.]+$/g, '');
+  normalized = normalized.replace(/^[<"'[({]+|[>"'\])}\s.]+$/g, '');
   // Fix common domain typos
   const atIndex = normalized.indexOf('@');
   if (atIndex > 0) {

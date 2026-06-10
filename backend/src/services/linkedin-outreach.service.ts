@@ -269,7 +269,7 @@ export class LinkedInOutreachService {
 
       // Try to find a LinkedIn profile for this company
       // We use the company website as search hint if no LinkedIn URL exists
-      let profiles: Profile[] = [];
+      const profiles: Profile[] = [];
 
       if (prospect.website) {
         try {

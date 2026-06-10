@@ -11,7 +11,11 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
@@ -41,6 +45,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/archiver": "^6.0.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
@@ -49,7 +54,10 @@
     "@types/node": "^22.12.0",
     "@types/node-cron": "^3.0.11",
     "@types/uuid": "^10.0.0",
+    "eslint": "^9.39.4",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.61.0",
+    "vitest": "^2.1.9"
   }
 }

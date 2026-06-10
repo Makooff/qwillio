@@ -134,7 +134,7 @@ export class WebhooksController {
       const messageType = event.message?.type || event.type;
 
       switch (messageType) {
-        case 'end-of-call-report':
+        case 'end-of-call-report': {
           const callId = event.message?.call?.id || event.call?.id;
           const transcript = event.message?.transcript || event.transcript || '';
           const duration = event.message?.call?.duration || event.call?.duration || 0;
@@ -161,6 +161,7 @@ export class WebhooksController {
             await vapiService.handleCallCompleted(callId, transcript, duration, recordingUrl);
           }
           break;
+        }
 
         case 'call-started':
         case 'status-update':
@@ -185,7 +186,7 @@ export class WebhooksController {
           }
           break;
 
-        case 'transcript':
+        case 'transcript': {
           const tCallId = event.message?.call?.id || event.call?.id;
           const partialTranscript = event.message?.transcript || event.transcript || '';
           if (tCallId && partialTranscript) {
@@ -195,8 +196,9 @@ export class WebhooksController {
             });
           }
           break;
+        }
 
-        case 'function-call':
+        case 'function-call': {
           const functionName = event.message?.functionCall?.name || event.functionCall?.name;
           const functionParams = event.message?.functionCall?.parameters || event.functionCall?.parameters;
           logger.info(`VAPI function call: ${functionName}`, functionParams);
@@ -217,6 +219,7 @@ export class WebhooksController {
             logger.info(`Booking request from call ${bCallId}`, functionParams);
           }
           break;
+        }
 
         default:
           logger.debug(`Unhandled VAPI event: ${messageType}`);
