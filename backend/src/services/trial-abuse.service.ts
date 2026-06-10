@@ -28,7 +28,7 @@ interface AbuseCheckResult {
   matchedSignals: string[];
 }
 
-function hashValue(value: string): string {
+export function hashValue(value: string): string {
   return crypto.createHash('sha256').update(SALT + value.toLowerCase().trim()).digest('hex');
 }
 
@@ -41,13 +41,13 @@ const DISPOSABLE_PATTERNS = [
   '10minutemail', 'minutemail', 'getnada', 'emailondeck', 'moakt',
 ];
 
-function isDisposableEmail(email: string): boolean {
+export function isDisposableEmail(email: string): boolean {
   const domain = email.split('@')[1]?.toLowerCase();
   if (!domain) return false;
   return DISPOSABLE_PATTERNS.some((p) => domain.includes(p));
 }
 
-function isSuspiciousEmail(email: string): boolean {
+export function isSuspiciousEmail(email: string): boolean {
   const [user] = email.split('@');
   if (!user) return false;
 
