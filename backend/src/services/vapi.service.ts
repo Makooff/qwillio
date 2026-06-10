@@ -13,6 +13,7 @@ import { emailService } from './email.service';
 import { normalizeEmail, isValidEmail } from '../utils/validators';
 import { nicheLearningService } from './niche-learning.service';
 import { callIntelligenceService } from './call-intelligence.service';
+import { buildVapiCallPayload } from './vapi-payload';
 import { emitEvent } from '../config/socket';
 
 // Interest level thresholds — single source of truth
@@ -219,64 +220,18 @@ export class VapiService {
         ? (NICHE_SCRIPTS_FR[prospect.businessType] || DEFAULT_SCRIPT_FR)
         : (NICHE_SCRIPTS[prospect.businessType] || DEFAULT_SCRIPT);
 
-      const vapiCall = await vapiClient.createCall({
+      const vapiCall = await vapiClient.createCall(buildVapiCallPayload({
         assistantId,
-        phoneNumberId: env.VAPI_PHONE_NUMBER_ID,
-        customer: {
-          number: phoneE164,
-          name: (prospect.businessName || 'Business').substring(0, 40),
-        },
-        assistantOverrides: {
-          model: {
-            provider: 'openai',
-            model: env.VAPI_MODEL,
-            messages: [{ role: 'system', content: systemPrompt }],
-          },
-          voice: {
-            provider: '11labs',
-            voiceId,
-            model: 'eleven_flash_v2_5', // <300ms latency → sounds more human (quick reactions)
-            stability: 0.22,        // low = natural pitch variation, not flat
-            similarityBoost: 0.65,  // less "clean" = more human
-            style: 0.70,            // high expressiveness
-            useSpeakerBoost: true,
-            optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
-            speed: 1.0, // natural pace
-            fallbackPlan: {
-              voices: [
-                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1 || '9BWtsMINqrJLrRacOk9x' }, // Aria
-                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2 || 'EXAVITQu4vr4xnSDxMaL' }, // Sarah
-              ],
-            },
-          },
-          backgroundSound: 'office',
-          silenceTimeoutSeconds: env.VAPI_SILENCE_TIMEOUT,
-          maxDurationSeconds: env.VAPI_MAX_DURATION,
-          responseDelaySeconds: 0.2, // was 0.4 — faster turn-taking
-          interruptionsEnabled: true,
-          numWordsToInterruptAssistant: Math.round(env.VAPI_INTERRUPTION_THRESHOLD / 50),
-          firstMessage: nicheScript.firstMessage
-            ? nicheScript.firstMessage.replace('{businessName}', prospect.businessName)
-            : isFrench
-              ? `Allô ?`
-              : `Hi, this is Ashley from Qwillio — are you the owner of ${prospect.businessName}?`,
-          // ── Voicemail / answering machine detection ──
-          // Twilio AMD detects machine on pickup (up to 6s). If detected, VAPI
-          // invokes endCallFunction automatically — no minutes wasted, no message left.
-          voicemailDetection: {
-            provider: 'twilio',
-            enabled: true,
-            machineDetectionTimeout: 6,
-            machineDetectionSpeechThreshold: 2400,
-            machineDetectionSpeechEndThreshold: 1200,
-            machineDetectionSilenceTimeout: 5000,
-          },
-          endCallFunctionEnabled: true,
-          endCallMessage: '', // don't leave a message on voicemail
-          // Fallback: if Twilio AMD misses it, Ashley's system prompt instructs
-          // her to call the endCall function if she hears common voicemail greetings.
-        },
-      }) as any;
+        customerNumber: phoneE164,
+        customerName: (prospect.businessName || 'Business').substring(0, 40),
+        systemPrompt,
+        voiceId,
+        firstMessage: nicheScript.firstMessage
+          ? nicheScript.firstMessage.replace('{businessName}', prospect.businessName)
+          : isFrench
+            ? `Allô ?`
+            : `Hi, this is Ashley from Qwillio — are you the owner of ${prospect.businessName}?`,
+      })) as any;
 
       // Update call record with VAPI call ID
       await prisma.call.update({
@@ -732,59 +687,18 @@ Return a JSON with:
         `🧪 TEST CALL IN PROGRESS\n\nBusiness: ${businessName}\nType: ${businessType}\nCity: ${city}\nPhone: ${phoneNumber}\nLanguage: ${isTestFrench ? 'FR (Marie)' : 'EN (Ashley)'}`
       );
 
-      const vapiCall = await vapiClient.createCall({
+      const vapiCall = await vapiClient.createCall(buildVapiCallPayload({
         assistantId: testAssistantId,
-        phoneNumberId: env.VAPI_PHONE_NUMBER_ID,
-        customer: {
-          number: phoneNumber,
-          name: (businessName || '').slice(0, 40),
-        },
-        assistantOverrides: {
-          model: {
-            provider: 'openai',
-            model: env.VAPI_MODEL,
-            messages: [{ role: 'system', content: testSystemPrompt }],
-          },
-          voice: {
-            provider: '11labs',
-            voiceId: testVoiceId,
-            model: 'eleven_flash_v2_5', // <300ms latency → sounds more human (quick reactions)
-            stability: 0.22,        // low = natural pitch variation, not flat
-            similarityBoost: 0.65,  // less "clean" = more human
-            style: 0.70,            // high expressiveness
-            useSpeakerBoost: true,
-            optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
-            speed: 1.0, // natural pace
-            fallbackPlan: {
-              voices: [
-                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1 || '9BWtsMINqrJLrRacOk9x' }, // Aria
-                { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2 || 'EXAVITQu4vr4xnSDxMaL' }, // Sarah
-              ],
-            },
-          },
-          backgroundSound: 'office',
-          silenceTimeoutSeconds: env.VAPI_SILENCE_TIMEOUT,
-          maxDurationSeconds: env.VAPI_MAX_DURATION,
-          responseDelaySeconds: 0.2, // was 0.4 — faster turn-taking
-          interruptionsEnabled: true,
-          numWordsToInterruptAssistant: Math.round(env.VAPI_INTERRUPTION_THRESHOLD / 50),
-          firstMessage: testNicheScript.firstMessage
-            ? testNicheScript.firstMessage.replace('{businessName}', businessName)
-            : isTestFrench
-              ? `Allô ?`
-              : `Hi, this is Ashley from Qwillio — are you the owner of ${businessName}?`,
-          voicemailDetection: {
-            provider: 'twilio',
-            enabled: true,
-            machineDetectionTimeout: 6,
-            machineDetectionSpeechThreshold: 2400,
-            machineDetectionSpeechEndThreshold: 1200,
-            machineDetectionSilenceTimeout: 5000,
-          },
-          endCallFunctionEnabled: true,
-          endCallMessage: '',
-        },
-      }) as any;
+        customerNumber: phoneNumber,
+        customerName: (businessName || '').slice(0, 40),
+        systemPrompt: testSystemPrompt,
+        voiceId: testVoiceId,
+        firstMessage: testNicheScript.firstMessage
+          ? testNicheScript.firstMessage.replace('{businessName}', businessName)
+          : isTestFrench
+            ? `Allô ?`
+            : `Hi, this is Ashley from Qwillio — are you the owner of ${businessName}?`,
+      })) as any;
 
       logger.info(`🧪 TEST CALL started — VAPI call ID: ${vapiCall.id}`);
       await discordService.notify(`✅ TEST CALL STARTED — VAPI ID: ${vapiCall.id}`);
