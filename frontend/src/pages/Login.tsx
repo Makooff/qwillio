@@ -238,7 +238,7 @@ export default function Login() {
               </div>
               <div className="mt-2 text-right">
                 <a
-                  href="#"
+                  href="mailto:contact@qwillio.com?subject=R%C3%A9initialisation%20du%20mot%20de%20passe"
                   className="text-[12px] no-underline transition-colors hover:text-[oklch(56%_0.22_264)]"
                   style={{ color: D.text3 }}
                 >

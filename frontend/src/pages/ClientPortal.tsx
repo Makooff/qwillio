@@ -176,7 +176,7 @@ export default function ClientPortal() {
               <div className="flex items-center gap-3 bg-[#6366f1]/5 border border-[#6366f1]/20 rounded-2xl px-6 py-4">
                 <AlertCircle size={20} className="text-[#6366f1] flex-shrink-0" />
                 <span className="text-sm text-[#1d1d1f]">{t('portal.trial.text')} <strong>{ov.trialDaysLeft || 0} {t('portal.trial.days')}</strong></span>
-                <a href="#" className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-[#6366f1] hover:underline">
+                <a href="/dashboard/billing" className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-[#6366f1] hover:underline">
                   {t('portal.trial.upgrade')} <ArrowRight size={14} />
                 </a>
               </div>
