@@ -454,6 +454,39 @@ export function renderBookingReminderTemplate(data: {
   });
 }
 
+export function renderPasswordResetTemplate(data: {
+  firstName: string;
+  resetUrl: string;
+  lang?: Lang;
+}): string {
+  const lang = L(data.lang);
+  const name = data.firstName || (lang === 'fr' ? 'à vous' : 'there');
+  if (lang === 'fr') {
+    return brandWrap({
+      title: 'Réinitialisez votre mot de passe',
+      preheader: 'Lien valable 1 heure pour réinitialiser votre mot de passe Qwillio.',
+      body: [
+        brandTitle('Réinitialisez votre mot de passe'),
+        brandText(`Bonjour ${name}, nous avons reçu une demande de réinitialisation de votre mot de passe Qwillio. Cliquez ci-dessous pour en choisir un nouveau.`),
+        brandButton('Réinitialiser mon mot de passe', data.resetUrl),
+        brandSmall(`Ou collez ce lien dans votre navigateur :<br><span style="word-break:break-all;color:#A855F7;">${data.resetUrl}</span>`),
+        brandSmall("Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez ce courriel — votre mot de passe reste inchangé."),
+      ].join(''),
+    });
+  }
+  return brandWrap({
+    title: 'Reset your password',
+    preheader: 'A link valid for 1 hour to reset your Qwillio password.',
+    body: [
+      brandTitle('Reset your password'),
+      brandText(`Hi ${name}, we received a request to reset your Qwillio password. Click below to choose a new one.`),
+      brandButton('Reset my password', data.resetUrl),
+      brandSmall(`Or paste this link into your browser:<br><span style="word-break:break-all;color:#A855F7;">${data.resetUrl}</span>`),
+      brandSmall("This link expires in 1 hour. If you didn't request this, ignore this email — your password stays unchanged."),
+    ].join(''),
+  });
+}
+
 export function renderRescheduleTemplate(data: {
   to: string;
   customerName: string;

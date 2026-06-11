@@ -9,6 +9,7 @@ import {
   renderQuoteTemplate, renderFollowUpTemplate, renderWelcomeTemplate,
   renderTrialWelcomeTemplate, renderTrialEndingTemplate, renderTrialExpiredTemplate,
   renderCallback3MonthsTemplate, renderBookingReminderTemplate, renderRescheduleTemplate,
+  renderPasswordResetTemplate,
   type Lang,
 } from './email-renderers';
 
@@ -761,6 +762,32 @@ export class EmailService {
   // ═══════════════════════════════════════════════════════════
   // ACCOUNT CONFIRMATION — Sent on signup to verify email
   // ═══════════════════════════════════════════════════════════
+  async sendPasswordResetEmail(data: {
+    to: string;
+    name: string;
+    resetUrl: string;
+    lang?: Lang;
+  }): Promise<{ success: boolean }> {
+    const lang = L(data.lang);
+    const firstName = (data.name || '').split(' ')[0] || data.name;
+    const html = renderPasswordResetTemplate({ firstName, resetUrl: data.resetUrl, lang });
+    try {
+      await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL,
+        to: data.to,
+        subject: lang === 'fr' ? 'Réinitialisez votre mot de passe Qwillio' : 'Reset your Qwillio password',
+        html,
+        replyTo: env.RESEND_REPLY_TO,
+        tags: [{ name: 'campaign', value: 'password_reset' }],
+      });
+      logger.info(`Password reset email sent to ${data.to}`);
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to send password reset email:', error);
+      return { success: false };
+    }
+  }
+
   async sendConfirmationEmail(data: {
     to: string;
     name: string;

@@ -12,6 +12,8 @@ import ComingSoon from './components/client/ComingSoon';
 // Eager-loaded entry points (Login, Register, ConfirmEmail)
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import ConfirmEmail from './pages/ConfirmEmail';
 // Landing is large — lazy load it
 const Landing = lazy(() => import('./pages/Landing'));
@@ -206,6 +208,8 @@ export default function App() {
         <Route path="/" element={<PublicOrDashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth/confirm" element={<ConfirmEmail />} />
         <Route path="/privacy" element={<Suspense fallback={<Spinner />}><Privacy /></Suspense>} />
         <Route path="/terms" element={<Suspense fallback={<Spinner />}><Terms /></Suspense>} />

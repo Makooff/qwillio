@@ -11,6 +11,16 @@ export const registerSchema = z.object({
   name: z.string().min(2),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+  language: z.enum(['fr', 'en']).optional(),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20),
+  password: z.string().min(8),
+});
+
 export const prospectQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
