@@ -6,6 +6,7 @@ import { smsService } from './sms.service';
 import { discordService } from './discord.service';
 import { onboardingService } from './onboarding.service';
 import { onboardingFlowService } from './onboarding-flow.service';
+import { detectLanguage } from '../config/vapi-templates';
 import { PACKAGES } from '../types';
 
 export class ReminderService {
@@ -611,6 +612,7 @@ export class ReminderService {
         contactName: prospect.contactName || prospect.businessName,
         businessName: prospect.businessName,
         prospectId: prospect.id,
+        lang: detectLanguage(prospect.phone || ''),
       });
       if (result.success) {
         await prisma.prospect.update({

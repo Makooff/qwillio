@@ -66,11 +66,13 @@ router.post('/test-email', async (req: Request, res: Response) => {
   // produce distinct subjects — otherwise Gmail collapses them into a
   // single thread and hides everything behind the "…" trim toggle.
   const stamp = new Date().toISOString().slice(11, 19).replace(/:/g, '');
+  const lang: 'fr' | 'en' = String(req.body?.lang || 'fr').trim() === 'en' ? 'en' : 'fr';
   const sample = {
     to,
     contactName:  'Mathieu Test',
     businessName: `Demo Plumbing ${stamp}`,
     dashboardUrl: `${dashboardUrl}/dashboard`,
+    lang,
   };
   try {
     let result: any;
@@ -101,6 +103,7 @@ router.post('/test-email', async (req: Request, res: Response) => {
           to,
           name: sample.contactName,
           confirmUrl: `${dashboardUrl}/auth/confirm?token=test`,
+          lang,
         });
         break;
       case 'quote':
@@ -201,6 +204,7 @@ router.post('/test-email', async (req: Request, res: Response) => {
           serviceType:     'Consultation',
           specialRequests: null,
           businessPhone:   env.VAPI_PHONE_NUMBER || '+1 607 354 8569',
+          lang,
         });
         break;
       case 'reschedule':
@@ -210,6 +214,7 @@ router.post('/test-email', async (req: Request, res: Response) => {
           businessName:  sample.businessName,
           originalDate:  new Date(Date.now() - 86_400_000),
           businessPhone: env.VAPI_PHONE_NUMBER || '+1 607 354 8569',
+          lang,
         });
         break;
       case 'email-confirmation':
@@ -218,6 +223,7 @@ router.post('/test-email', async (req: Request, res: Response) => {
           contactName:  sample.contactName,
           businessName: sample.businessName,
           prospectId:   'PROSPECT-TEST-001',
+          lang,
         });
         break;
       case 'digest':

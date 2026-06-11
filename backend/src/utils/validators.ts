@@ -7,7 +7,9 @@ export const loginSchema = z.object({
 
 export const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  // New accounts require 8+ chars (login keeps min(6) so existing shorter
+  // passwords still authenticate).
+  password: z.string().min(8),
   name: z.string().min(2),
 });
 
