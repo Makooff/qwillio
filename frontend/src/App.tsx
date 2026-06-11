@@ -8,6 +8,7 @@ const ClientLayout = lazy(() => import('./components/layout/ClientLayout'));
 const CloserLayout = lazy(() => import('./components/layout/CloserLayout'));
 import OrbsLoader from './components/OrbsLoader';
 import AppBootOverlay from './components/AppBootOverlay';
+import ComingSoon from './components/client/ComingSoon';
 // Eager-loaded entry points (Login, Register, ConfirmEmail)
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -39,10 +40,8 @@ const ClientAnalytics = lazy(() => import('./pages/client/ClientAnalytics'));
 const ClientBilling = lazy(() => import('./pages/client/ClientBilling'));
 // Agent IA pages (lazy loaded)
 const AgentDashboard = lazy(() => import('./pages/client/AgentDashboard'));
-const AgentEmail = lazy(() => import('./pages/client/AgentEmail'));
-const AgentPayments = lazy(() => import('./pages/client/AgentPayments'));
-const AgentAccounting = lazy(() => import('./pages/client/AgentAccounting'));
-const AgentInventory = lazy(() => import('./pages/client/AgentInventory'));
+// Email / Payments / Accounting / Inventory agent pages are not functional yet
+// (no backend) — their routes render a ComingSoon notice instead of the mock UI.
 const AgentMarketing = lazy(() => import('./pages/client/AgentMarketing'));
 const AgentReputation = lazy(() => import('./pages/client/AgentReputation'));
 const AgentScheduling = lazy(() => import('./pages/client/AgentScheduling'));
@@ -256,10 +255,10 @@ export default function App() {
           <Route path="support" element={<Suspense fallback={<Spinner />}><ClientSupport /></Suspense>} />
           {/* Agent IA */}
           <Route path="agent" element={<Suspense fallback={<Spinner />}><AgentDashboard /></Suspense>} />
-          <Route path="agent/email" element={<Suspense fallback={<Spinner />}><AgentEmail /></Suspense>} />
-          <Route path="agent/payments" element={<Suspense fallback={<Spinner />}><AgentPayments /></Suspense>} />
-          <Route path="agent/accounting" element={<Suspense fallback={<Spinner />}><AgentAccounting /></Suspense>} />
-          <Route path="agent/inventory" element={<Suspense fallback={<Spinner />}><AgentInventory /></Suspense>} />
+          <Route path="agent/email" element={<ComingSoon module="Email AI" />} />
+          <Route path="agent/payments" element={<ComingSoon module="Payments AI" />} />
+          <Route path="agent/accounting" element={<ComingSoon module="Accounting AI" />} />
+          <Route path="agent/inventory" element={<ComingSoon module="Inventory AI" />} />
           <Route path="agent/marketing" element={<Suspense fallback={<Spinner />}><AgentMarketing /></Suspense>} />
           <Route path="agent/reputation" element={<Suspense fallback={<Spinner />}><AgentReputation /></Suspense>} />
           <Route path="agent/scheduling" element={<Suspense fallback={<Spinner />}><AgentScheduling /></Suspense>} />
