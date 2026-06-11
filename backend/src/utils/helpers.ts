@@ -87,8 +87,8 @@ export function recommendPackage(interestLevel: number, dailyCallVolume: number 
   return 'basic';
 }
 
-export function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
+export function formatDate(date: Date, lang: 'fr' | 'en' = 'en'): string {
+  return date.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-US', {
     month: 'long',
     day: 'numeric',
     year: 'numeric',

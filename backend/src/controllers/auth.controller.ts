@@ -102,6 +102,7 @@ export class AuthController {
             to: email,
             name,
             confirmUrl,
+            lang: req.body?.language === 'en' ? 'en' : 'fr',
           });
           logger.info(`Confirmation email sent to ${email}`);
         } catch (emailErr) {
@@ -217,6 +218,7 @@ export class AuthController {
         to: user.email,
         name: user.name,
         confirmUrl,
+        lang: req.body?.language === 'en' ? 'en' : 'fr',
       });
 
       logger.info(`Confirmation email resent to ${user.email}`);

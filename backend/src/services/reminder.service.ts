@@ -220,6 +220,7 @@ export class ReminderService {
       trialEndDate: client.trialEndDate!,
       paymentLink: `${paymentLink}?client_reference_id=${client.id}`,
       monthlyPrice: pkg.monthlyFee,
+      lang: (client as any).language === 'en' ? 'en' : 'fr',
     });
 
     await prisma.reminder.update({
@@ -357,6 +358,7 @@ export class ReminderService {
       trialEndDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000),
       paymentLink: `${paymentLink}?client_reference_id=${client.id}`,
       monthlyPrice: pkg.monthlyFee,
+      lang: (client as any).language === 'en' ? 'en' : 'fr',
     });
 
     await prisma.reminder.update({

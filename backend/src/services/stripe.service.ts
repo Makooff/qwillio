@@ -319,6 +319,7 @@ export class StripeService {
       businessName: client.businessName,
       amount: invoice.amount_due / 100,
       paymentLink: invoice.hosted_invoice_url || null,
+      lang: (client as any).language === 'en' ? 'en' : 'fr',
     });
 
     // Create payment failed reminder
