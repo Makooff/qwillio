@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import type { StringValue } from 'ms';
+import { validateEnv } from './env-validation';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -145,3 +146,15 @@ export const env = {
   LINKEDIN_COOKIES: process.env.LINKEDIN_COOKIES || '', // JSON string of LinkedIn session cookies
   LINKEDIN_DAILY_LIMIT: parseInt(process.env.LINKEDIN_DAILY_LIMIT || '15', 10), // max connections/day
 };
+
+// ─── Boot-time validation ─────────────────────────────────
+// Fail fast in production on missing/forgeable secrets; warn on money-critical
+// keys that would otherwise fail silently. No-op in dev/test.
+{
+  const { errors, warnings } = validateEnv(env);
+  for (const w of warnings) console.warn(`[env] WARNING: ${w}`);
+  if (errors.length > 0) {
+    console.error('[env] FATAL — refusing to boot:\n  - ' + errors.join('\n  - '));
+    throw new Error('Invalid environment configuration. See errors above.');
+  }
+}
