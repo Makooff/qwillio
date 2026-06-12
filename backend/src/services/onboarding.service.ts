@@ -144,6 +144,7 @@ export class OnboardingService {
         planType: client.planType,
         vapiPhoneNumber: sharedPhoneNumber,
         dashboardUrl: `${env.FRONTEND_URL}/client-dashboard/${client.id}`,
+        lang: (client as any).language === 'en' ? 'en' : 'fr',
       });
 
       // ── STEP 6: Discord notification ──

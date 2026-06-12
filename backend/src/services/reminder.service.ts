@@ -6,6 +6,7 @@ import { smsService } from './sms.service';
 import { discordService } from './discord.service';
 import { onboardingService } from './onboarding.service';
 import { onboardingFlowService } from './onboarding-flow.service';
+import { detectLanguage } from '../config/vapi-templates';
 import { PACKAGES } from '../types';
 
 export class ReminderService {
@@ -220,6 +221,7 @@ export class ReminderService {
       trialEndDate: client.trialEndDate!,
       paymentLink: `${paymentLink}?client_reference_id=${client.id}`,
       monthlyPrice: pkg.monthlyFee,
+      lang: (client as any).language === 'en' ? 'en' : 'fr',
     });
 
     await prisma.reminder.update({
@@ -357,6 +359,7 @@ export class ReminderService {
       trialEndDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000),
       paymentLink: `${paymentLink}?client_reference_id=${client.id}`,
       monthlyPrice: pkg.monthlyFee,
+      lang: (client as any).language === 'en' ? 'en' : 'fr',
     });
 
     await prisma.reminder.update({
@@ -609,6 +612,7 @@ export class ReminderService {
         contactName: prospect.contactName || prospect.businessName,
         businessName: prospect.businessName,
         prospectId: prospect.id,
+        lang: detectLanguage(prospect.phone || ''),
       });
       if (result.success) {
         await prisma.prospect.update({

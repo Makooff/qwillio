@@ -10,6 +10,7 @@ import { smsService } from '../services/sms.service';
 import { emailService } from '../services/email.service';
 import { discordService } from '../services/discord.service';
 import { extractEmailFromText, isValidEmail, normalizeEmail } from '../utils/validators';
+import { detectLanguage } from '../config/vapi-templates';
 import { storeError } from '../utils/error-store';
 import { closerAgentService } from '../services/closer-agent.service';
 
@@ -404,6 +405,7 @@ export class WebhooksController {
           contactName: prospect.contactName || prospect.businessName,
           businessName: prospect.businessName,
           prospectId: prospect.id,
+          lang: detectLanguage(prospect.phone || ''),
         });
 
         if (result.success) {

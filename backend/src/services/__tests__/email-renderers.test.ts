@@ -31,6 +31,7 @@ describe('renderQuoteTemplate', () => {
       features: ['24/7 receptionist', 'Auto booking'],
       validUntil: new Date('2026-12-31'),
       paymentLink: 'https://pay.qwillio.com/abc',
+      lang: 'en',
     });
     expect(html).toContain('Acme Dental');
     expect(html).toContain('PRO package');
@@ -40,13 +41,24 @@ describe('renderQuoteTemplate', () => {
     expect(html).toContain('https://pay.qwillio.com/abc');
   });
 
-  it('falls back to "there" when no contact name', () => {
+  it('falls back to "there" when no contact name (EN)', () => {
     const html = renderQuoteTemplate({
       contactName: '', businessName: 'X', packageType: 'basic',
       setupPrice: 0, monthlyPrice: 497, features: [],
-      validUntil: new Date(), paymentLink: 'l',
+      validUntil: new Date(), paymentLink: 'l', lang: 'en',
     });
     expect(html).toContain('Hi there,');
+  });
+
+  it('defaults to French when no language is given', () => {
+    const html = renderQuoteTemplate({
+      contactName: 'Jean', businessName: 'Acme Dentaire', packageType: 'pro',
+      setupPrice: 0, monthlyPrice: 1297, features: ['Réceptionniste 24/7'],
+      validUntil: new Date('2026-12-31'), paymentLink: 'https://pay.qwillio.com/abc',
+    });
+    expect(html).toContain('Votre devis personnalisé');
+    expect(html).toContain('Forfait PRO');
+    expect(html).toContain('1297 $/mois');
   });
 });
 
@@ -54,7 +66,7 @@ describe('renderTrialWelcomeTemplate', () => {
   it('includes the calls quota', () => {
     const html = renderTrialWelcomeTemplate({
       contactName: 'Mia', businessName: 'Bloom Spa', packageType: 'pro',
-      trialEndDate: new Date('2026-07-01'), trialCallsQuota: 800,
+      trialEndDate: new Date('2026-07-01'), trialCallsQuota: 800, lang: 'en',
     });
     expect(html).toContain('Bloom Spa');
     expect(html).toContain('800 calls during the trial period');
@@ -66,6 +78,7 @@ describe('renderBookingReminderTemplate', () => {
     to: 'c@x.com', customerName: 'Sam', businessName: 'Bright Dental',
     bookingDate: new Date('2026-06-15T00:00:00Z'), bookingTime: '2:00 PM',
     serviceType: 'Cleaning', specialRequests: null as string | null, businessPhone: '+15551234567',
+    lang: 'en' as const,
   };
 
   it('shows appointment details and a reschedule call button when a phone is set', () => {

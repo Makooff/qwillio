@@ -299,9 +299,9 @@ export default function Register() {
 
               <p className="mt-3 text-[12px] leading-relaxed" style={{ color: 'oklch(35% 0.006 265)' }}>
                 En créant un compte, vous acceptez nos{' '}
-                <a href="#" style={{ color: D.text3 }}>CGU</a>
+                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: D.text3 }}>CGU</a>
                 {' '}et notre{' '}
-                <a href="#" style={{ color: D.text3 }}>politique de confidentialité</a>.
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: D.text3 }}>politique de confidentialité</a>.
               </p>
             </>
           ) : (

@@ -7,6 +7,7 @@ import { recommendPackage, NICHE_PRIORITY_ORDER } from '../utils/helpers';
 import { discordService } from './discord.service';
 import { smsService } from './sms.service';
 import { NICHE_SCRIPTS, DEFAULT_SCRIPT, NICHE_SCRIPTS_FR, DEFAULT_SCRIPT_FR, getInstallmentAmount } from '../config/niche-scripts';
+import { detectLanguage } from '../config/vapi-templates';
 import { isHoliday, isWithinCallWindow, isPriorityDay, isBlackoutPeriod, getDayHourBonus, CALL_RATE_LIMIT_MS, MAX_CALL_ATTEMPTS } from '../config/scheduling';
 import { INTERESTED_FOLLOWUP_SEQUENCE, CALLBACK_RETRY_DELAYS } from '../config/followup-sequence';
 import { emailService } from './email.service';
@@ -411,6 +412,7 @@ export class VapiService {
         businessName: call.prospect.businessName,
         registrationUrl,
         recommendedPlan: analysis.recommendedPackage || 'pro',
+        lang: detectLanguage(call.prospect.phone || ''),
       });
       logger.info(`Registration invite sent to ${validatedEmail} for ${call.prospect.businessName}`);
     } else if (analysis.interestLevel >= INTEREST_QUALIFIED && call.prospect.emailBounced) {

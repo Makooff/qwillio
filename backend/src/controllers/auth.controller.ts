@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
-import { loginSchema, registerSchema } from '../utils/validators';
+import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from '../utils/validators';
 import { emailService } from '../services/email.service';
 import { logger } from '../config/logger';
 
@@ -102,6 +102,7 @@ export class AuthController {
             to: email,
             name,
             confirmUrl,
+            lang: req.body?.language === 'en' ? 'en' : 'fr',
           });
           logger.info(`Confirmation email sent to ${email}`);
         } catch (emailErr) {
@@ -188,6 +189,67 @@ export class AuthController {
     }
   }
 
+  // ── FORGOT PASSWORD — issue a one-time reset link ────────
+  async forgotPassword(req: Request, res: Response) {
+    // Generic response in every branch — never reveal whether the email exists.
+    const genericMessage = 'Si un compte existe pour cette adresse, un lien de réinitialisation a été envoyé.';
+    try {
+      const { email, language } = forgotPasswordSchema.parse(req.body);
+      const lang: 'fr' | 'en' = language === 'en' ? 'en' : 'fr';
+      const user = await prisma.user.findUnique({ where: { email } });
+
+      if (user) {
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+        const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { resetToken: tokenHash, resetTokenExpiry },
+        });
+        const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
+        const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
+        await emailService.sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl, lang });
+        logger.info(`Password reset link issued for ${email}`);
+      } else {
+        logger.info(`Password reset requested for unknown email: ${email}`);
+      }
+      return res.json({ message: genericMessage });
+    } catch (error: any) {
+      // Validation failure (bad email) still returns the generic message to
+      // avoid leaking, but log for diagnostics.
+      logger.warn('forgotPassword error:', error?.message);
+      return res.json({ message: genericMessage });
+    }
+  }
+
+  // ── RESET PASSWORD — consume token, set new password ─────
+  async resetPassword(req: Request, res: Response) {
+    try {
+      const { token, password } = resetPasswordSchema.parse(req.body);
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const user = await prisma.user.findUnique({ where: { resetToken: tokenHash } });
+
+      if (!user || !user.resetTokenExpiry || user.resetTokenExpiry.getTime() < Date.now()) {
+        return res.status(400).json({ error: 'Lien invalide ou expiré. Veuillez en demander un nouveau.' });
+      }
+
+      const passwordHash = await bcrypt.hash(password, env.BCRYPT_ROUNDS);
+      await prisma.user.update({
+        where: { id: user.id },
+        // One-time use: clear the token so the link cannot be replayed.
+        data: { passwordHash, resetToken: null, resetTokenExpiry: null },
+      });
+      logger.info(`Password reset completed for ${user.email}`);
+      return res.json({ message: 'Mot de passe mis à jour. Vous pouvez maintenant vous connecter.' });
+    } catch (error: any) {
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères.' });
+      }
+      logger.error('resetPassword error:', error?.message);
+      return res.status(500).json({ error: 'Impossible de réinitialiser le mot de passe.' });
+    }
+  }
+
   async resendConfirmation(req: any, res: Response) {
     try {
       const user = await prisma.user.findUnique({
@@ -217,6 +279,7 @@ export class AuthController {
         to: user.email,
         name: user.name,
         confirmUrl,
+        lang: req.body?.language === 'en' ? 'en' : 'fr',
       });
 
       logger.info(`Confirmation email resent to ${user.email}`);

@@ -18,6 +18,8 @@ model User {
   businessName        String?              @map("business_name") @db.VarChar(500)
   businessPhone       String?              @map("business_phone") @db.VarChar(50)
   confirmationToken   String?              @unique @map("confirmation_token") @db.VarChar(255)
+  resetToken          String?              @unique @map("reset_token") @db.VarChar(255)
+  resetTokenExpiry    DateTime?            @map("reset_token_expiry")
   emailConfirmed      Boolean              @default(false) @map("email_confirmed")
   onboardingCompleted Boolean              @default(false) @map("onboarding_completed")
   planType            String?              @map("plan_type") @db.VarChar(50)

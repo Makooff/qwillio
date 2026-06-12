@@ -14,6 +14,7 @@ import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { smsService } from './sms.service';
 import { smsTemplates } from './sms-templates';
+import { detectLanguage, getAgentName } from '../config/vapi-templates';
 import { emailService } from './email.service';
 import { resend } from '../config/resend';
 import { discordService } from './discord.service';
@@ -69,16 +70,14 @@ export class FollowUpSequencesService {
     if (!prospect) return;
 
     const niche = prospect.niche ?? prospect.businessType ?? 'home_services';
-    const lang = 'en' as 'en' | 'fr';
+    const lang = prospect.phone ? detectLanguage(prospect.phone) : 'en';
     const registrationUrl = `${env.FRONTEND_URL?.split(',')[0]}/register`;
-    const firstName = prospect.contactName?.split(' ')[0] ?? 'there';
-    const agentName = lang === 'fr' ? 'Marie' : 'Ashley';
+    const firstName = prospect.contactName?.split(' ')[0] ?? (lang === 'fr' ? 'à vous' : 'there');
+    const agentName = getAgentName(lang);
 
     // ─── Post-call SMS (score >= 5) ───────────────────────
     if (interestScore >= 5 && prospect.phone && !prospect.smsOptedOut) {
-      const smsBody = lang === 'fr'
-        ? `Bonjour ${firstName}, c'est ${agentName} de Qwillio. Sympa d'avoir échangé ! Démarrez votre essai gratuit de 30 jours : ${registrationUrl}. Aucun engagement. Répondez STOP pour vous désinscrire.`
-        : smsTemplates.welcome({ firstName, agentName, registrationLink: registrationUrl });
+      const smsBody = smsTemplates.welcome({ firstName, agentName, registrationLink: registrationUrl, lang });
 
       await this.scheduleOrSend('sms', prospect.id, 1, new Date(), smsBody, prospect.phone);
     }
@@ -90,9 +89,7 @@ export class FollowUpSequencesService {
       prospect.phone &&
       !prospect.smsOptedOut
     ) {
-      const smsBody = lang === 'fr'
-        ? `Bonjour, j'ai laissé un message vocal concernant Qwillio — réceptionniste IA pour les ${niche}. Essai gratuit 30 jours : ${registrationUrl}. Répondez STOP pour vous désinscrire.`
-        : smsTemplates.voicemail({ niche, registrationLink: registrationUrl });
+      const smsBody = smsTemplates.voicemail({ niche, registrationLink: registrationUrl, lang });
 
       const sendAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
       await this.scheduleOrSend('sms_voicemail', prospect.id, 3, sendAt, smsBody, prospect.phone);
@@ -147,22 +144,18 @@ export class FollowUpSequencesService {
     for (const item of due) {
       const p = item.prospect;
       const niche = p.niche ?? p.businessType ?? 'home_services';
-      const lang = 'en' as 'en' | 'fr';
+      const lang = p.phone ? detectLanguage(p.phone) : 'en';
       const registrationLink = `${env.FRONTEND_URL?.split(',')[0]}/register`;
-      const firstName = p.contactName?.split(' ')[0] ?? 'there';
-      const agentName = lang === 'fr' ? 'Marie' : 'Ashley';
+      const firstName = p.contactName?.split(' ')[0] ?? (lang === 'fr' ? 'à vous' : 'there');
+      const agentName = getAgentName(lang);
 
       try {
         let success = false;
 
         if ((item.type === 'sms' || item.type === 'sms_voicemail') && p.phone && !p.smsOptedOut) {
           const body = item.type === 'sms_voicemail'
-            ? (lang === 'fr'
-              ? `Bonjour, j'ai laissé un message vocal concernant Qwillio — réceptionniste IA pour les ${niche}. Essai gratuit 30 jours : ${registrationLink}. Répondez STOP.`
-              : smsTemplates.voicemail({ niche, registrationLink }))
-            : (lang === 'fr'
-              ? `Bonjour ${firstName}, c'est ${agentName} de Qwillio. Essai gratuit 30 jours : ${registrationLink}. Aucun engagement. Répondez STOP pour vous désinscrire.`
-              : smsTemplates.welcome({ firstName, agentName, registrationLink }));
+            ? smsTemplates.voicemail({ niche, registrationLink, lang })
+            : smsTemplates.welcome({ firstName, agentName, registrationLink, lang });
 
           const result = await smsService.sendSMS(p.phone, body, {
             messageType: item.type,

@@ -2,6 +2,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { smsTemplates } from './sms-templates';
+import { detectLanguage, getAgentName } from '../config/vapi-templates';
 
 export class SmsService {
   private twilioClient: any = null;
@@ -142,22 +143,23 @@ export class SmsService {
   }, callOutcome: string, registrationUrl?: string): Promise<boolean> {
     if (!prospect.phone || prospect.smsOptedOut) return false;
 
-    const firstName = (prospect.contactName?.split(' ')[0]) || 'there';
-    const agentName = 'Ashley';
+    const lang = detectLanguage(prospect.phone);
+    const firstName = (prospect.contactName?.split(' ')[0]) || (lang === 'fr' ? 'à vous' : 'there');
+    const agentName = getAgentName(lang);
     const registrationLink = registrationUrl || 'https://qwillio.com/register';
 
     let body: string;
     switch (callOutcome) {
       case 'qualified':
       case 'interested':
-        body = smsTemplates.interested({ firstName, agentName, registrationLink });
+        body = smsTemplates.interested({ firstName, agentName, registrationLink, lang });
         break;
       case 'callback_later':
-        body = smsTemplates.callback({ firstName, agentName });
+        body = smsTemplates.callback({ firstName, agentName, lang });
         break;
       case 'voicemail':
       case 'no-answer':
-        body = smsTemplates.noanswer({ firstName, agentName, businessName: prospect.businessName });
+        body = smsTemplates.noanswer({ firstName, agentName, businessName: prospect.businessName, lang });
         break;
       default:
         return false; // Don't SMS for not_interested, wrong_number, etc.
@@ -179,11 +181,12 @@ export class SmsService {
   }, reason: 'bounce' | 'no_open'): Promise<boolean> {
     if (!prospect.phone || prospect.smsOptedOut) return false;
 
-    const firstName = (prospect.contactName?.split(' ')[0]) || 'there';
-    const agentName = 'Ashley';
+    const lang = detectLanguage(prospect.phone);
+    const firstName = (prospect.contactName?.split(' ')[0]) || (lang === 'fr' ? 'à vous' : 'there');
+    const agentName = getAgentName(lang);
     const body = reason === 'bounce'
-      ? smsTemplates.emailBounce({ firstName, agentName, businessName: prospect.businessName })
-      : smsTemplates.emailNoOpen({ firstName, agentName, businessName: prospect.businessName });
+      ? smsTemplates.emailBounce({ firstName, agentName, businessName: prospect.businessName, lang })
+      : smsTemplates.emailNoOpen({ firstName, agentName, businessName: prospect.businessName, lang });
 
     const result = await this.sendSMS(prospect.phone, body);
     return result.success;
@@ -201,8 +204,9 @@ export class SmsService {
   }): Promise<boolean> {
     if (!prospect.phone || prospect.smsOptedOut) return false;
 
-    const firstName = (prospect.contactName?.split(' ')[0]) || 'there';
-    const body = smsTemplates.exhausted({ firstName, agentName: 'Ashley', businessName: prospect.businessName });
+    const lang = detectLanguage(prospect.phone);
+    const firstName = (prospect.contactName?.split(' ')[0]) || (lang === 'fr' ? 'à vous' : 'there');
+    const body = smsTemplates.exhausted({ firstName, agentName: getAgentName(lang), businessName: prospect.businessName, lang });
 
     const result = await this.sendSMS(prospect.phone, body);
     return result.success;
@@ -220,19 +224,16 @@ export class SmsService {
   }): Promise<boolean> {
     if (!booking.customerPhone) return false;
 
-    const firstName = (booking.customerName?.split(' ')[0]) || 'there';
-    const date = new Date(booking.bookingDate).toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric',
-    });
-    const time = booking.bookingTime ? ` at ${booking.bookingTime}` : '';
-    const service = booking.serviceType ? ` (${booking.serviceType})` : '';
+    const lang = detectLanguage(booking.customerPhone);
+    const firstName = (booking.customerName?.split(' ')[0]) || (lang === 'fr' ? 'à vous' : 'there');
 
     const body = smsTemplates.bookingConfirm({
       firstName,
       businessName: booking.businessName,
-      date,
-      time,
-      service,
+      date: booking.bookingDate,
+      time: booking.bookingTime,
+      service: booking.serviceType,
+      lang,
     });
 
     const result = await this.sendSMS(booking.customerPhone, body);
@@ -255,15 +256,15 @@ export class SmsService {
   }): Promise<boolean> {
     if (!booking.customerPhone) return false;
 
-    const firstName = (booking.customerName?.split(' ')[0]) || 'there';
-    const time = booking.bookingTime ? ` at ${booking.bookingTime}` : ' tomorrow';
-    const service = booking.serviceType ? ` for your ${booking.serviceType}` : '';
+    const lang = detectLanguage(booking.customerPhone);
+    const firstName = (booking.customerName?.split(' ')[0]) || (lang === 'fr' ? 'à vous' : 'there');
 
     const body = smsTemplates.bookingReminder({
       firstName,
       businessName: booking.businessName,
-      time,
-      service,
+      time: booking.bookingTime,
+      service: booking.serviceType,
+      lang,
     });
 
     const result = await this.sendSMS(booking.customerPhone, body);

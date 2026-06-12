@@ -237,13 +237,13 @@ export default function Login() {
                 </button>
               </div>
               <div className="mt-2 text-right">
-                <a
-                  href="#"
+                <Link
+                  to="/forgot-password"
                   className="text-[12px] no-underline transition-colors hover:text-[oklch(56%_0.22_264)]"
                   style={{ color: D.text3 }}
                 >
                   Mot de passe oublié ?
-                </a>
+                </Link>
               </div>
             </div>
 

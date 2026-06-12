@@ -7,8 +7,20 @@ export const loginSchema = z.object({
 
 export const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  // New accounts require 8+ chars (login keeps min(6) so existing shorter
+  // passwords still authenticate).
+  password: z.string().min(8),
   name: z.string().min(2),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+  language: z.enum(['fr', 'en']).optional(),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20),
+  password: z.string().min(8),
 });
 
 export const prospectQuerySchema = z.object({

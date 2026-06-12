@@ -21,6 +21,9 @@ interface Module {
   status: ModuleStatus;
   enabled: boolean;
   href: string;
+  /** Module shown as roadmap only — page is not functional yet, so the card
+   *  does not link to it and cannot be toggled on. */
+  comingSoon?: boolean;
 }
 
 interface ActivityItem {
@@ -65,9 +68,10 @@ const INITIAL_MODULES: Module[] = [
     description: 'Classifies, auto-replies, and triages your inbox. Handles appointment and payment emails autonomously.',
     icon: Mail,
     iconStyle: ICON_STYLES.blue,
-    status: 'active',
-    enabled: true,
+    status: 'setup_required',
+    enabled: false,
     href: '/dashboard/agent/email',
+    comingSoon: true,
   },
   {
     id: 'payments',
@@ -78,6 +82,7 @@ const INITIAL_MODULES: Module[] = [
     status: 'setup_required',
     enabled: false,
     href: '/dashboard/agent/payments',
+    comingSoon: true,
   },
   {
     id: 'accounting',
@@ -88,6 +93,7 @@ const INITIAL_MODULES: Module[] = [
     status: 'paused',
     enabled: false,
     href: '/dashboard/agent/accounting',
+    comingSoon: true,
   },
   {
     id: 'inventory',
@@ -98,6 +104,7 @@ const INITIAL_MODULES: Module[] = [
     status: 'setup_required',
     enabled: false,
     href: '/dashboard/agent/inventory',
+    comingSoon: true,
   },
   {
     id: 'marketing',
@@ -382,32 +389,44 @@ export default function AgentDashboard() {
                       >
                         {mod.name}
                       </h3>
-                      <span
-                        className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                        style={{ background: statusCfg.bgColor, color: statusCfg.labelColor }}
-                        aria-label={`Status: ${statusCfg.label}`}
-                      >
+                      {mod.comingSoon ? (
                         <span
-                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                          style={{ background: statusCfg.dotColor }}
-                          aria-hidden="true"
-                        />
-                        {statusCfg.label}
-                      </span>
+                          className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                          style={{ background: 'oklch(67% 0.26 299 / 0.12)', color: 'oklch(67% 0.26 299)' }}
+                          aria-label="Statut : Bientôt disponible"
+                        >
+                          Bientôt disponible
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                          style={{ background: statusCfg.bgColor, color: statusCfg.labelColor }}
+                          aria-label={`Status: ${statusCfg.label}`}
+                        >
+                          <span
+                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                            style={{ background: statusCfg.dotColor }}
+                            aria-hidden="true"
+                          />
+                          {statusCfg.label}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => toggleModule(mod.id)}
-                    aria-label={mod.enabled ? `Disable ${mod.name}` : `Enable ${mod.name}`}
-                    aria-pressed={mod.enabled}
-                    className="transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 rounded"
-                    style={{ color: mod.enabled ? INDIGO : TEXT_SECONDARY }}
-                  >
-                    {mod.enabled
-                      ? <ToggleRight size={28} aria-hidden="true" />
-                      : <ToggleLeft  size={28} aria-hidden="true" />
-                    }
-                  </button>
+                  {!mod.comingSoon && (
+                    <button
+                      onClick={() => toggleModule(mod.id)}
+                      aria-label={mod.enabled ? `Disable ${mod.name}` : `Enable ${mod.name}`}
+                      aria-pressed={mod.enabled}
+                      className="transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 rounded"
+                      style={{ color: mod.enabled ? INDIGO : TEXT_SECONDARY }}
+                    >
+                      {mod.enabled
+                        ? <ToggleRight size={28} aria-hidden="true" />
+                        : <ToggleLeft  size={28} aria-hidden="true" />
+                      }
+                    </button>
+                  )}
                 </div>
                 <p
                   className="text-[13px] leading-relaxed mb-4"
@@ -415,14 +434,23 @@ export default function AgentDashboard() {
                 >
                   {mod.description}
                 </p>
-                <Link
-                  to={mod.href}
-                  aria-label={`Configure ${mod.name}`}
-                  className="inline-flex items-center gap-1 text-[12px] font-medium hover:underline focus:outline-none focus-visible:ring-2 rounded"
-                  style={{ color: INDIGO }}
-                >
-                  Configure <ChevronRight size={12} aria-hidden="true" />
-                </Link>
+                {mod.comingSoon ? (
+                  <span
+                    className="inline-flex items-center gap-1 text-[12px] font-medium"
+                    style={{ color: TEXT_SECONDARY }}
+                  >
+                    Bientôt disponible
+                  </span>
+                ) : (
+                  <Link
+                    to={mod.href}
+                    aria-label={`Configure ${mod.name}`}
+                    className="inline-flex items-center gap-1 text-[12px] font-medium hover:underline focus:outline-none focus-visible:ring-2 rounded"
+                    style={{ color: INDIGO }}
+                  >
+                    Configure <ChevronRight size={12} aria-hidden="true" />
+                  </Link>
+                )}
               </motion.article>
             );
           })}

@@ -54,6 +54,7 @@ export class OnboardingFlowService {
       formUrl,
       dashboardUrl,
       vapiPhoneNumber: client.vapiPhoneNumber || env.VAPI_PHONE_NUMBER,
+      lang: (client as any).language === 'en' ? 'en' : 'fr',
     });
 
     logger.info(`Onboarding flow initiated for ${client.businessName} (form sent)`);
@@ -285,6 +286,7 @@ export class OnboardingFlowService {
         contactName: client.contactName,
         businessName: client.businessName,
         dashboardUrl: `${env.FRONTEND_URL}/client-portal/${clientId}?token=${client.dashboardToken}`,
+        lang: (client as any).language === 'en' ? 'en' : 'fr',
       });
 
       await discordService.notify(
@@ -469,6 +471,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       paymentLink: `${paymentLink}?client_reference_id=${client.id}`,
       dashboardUrl: `${env.FRONTEND_URL}/client-portal/${clientId}?token=${client.dashboardToken}`,
       trialStats: await this.getTrialSummaryStats(clientId),
+      lang: (client as any).language === 'en' ? 'en' : 'fr',
     });
 
     // Schedule deactivation reminder at J+3 if no payment
@@ -524,6 +527,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       to: client.contactEmail,
       contactName: client.contactName,
       businessName: client.businessName,
+      lang: (client as any).language === 'en' ? 'en' : 'fr',
     });
 
     await discordService.notify(
