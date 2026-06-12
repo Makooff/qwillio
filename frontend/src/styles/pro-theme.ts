@@ -25,8 +25,8 @@ export const pro = {
   accent:     'oklch(56% 0.22 264)',
   accentHi:   'oklch(63% 0.21 264)',
   accentDim:  'oklch(56% 0.22 264 / 0.12)',
-  accentGlow: 'oklch(56% 0.22 264 / 0.22)',
-  accentGrad: 'linear-gradient(135deg, oklch(52% 0.24 264) 0%, oklch(63% 0.22 264) 100%)',
+  accentGlow: 'oklch(56% 0.22 264 / 0.12)',
+  accentGrad: 'oklch(56% 0.22 264)',
   accentMid:  'oklch(56% 0.22 264 / 0.10)',
   accentBrd:  'oklch(56% 0.22 264 / 0.40)',
 
@@ -49,10 +49,10 @@ export const pro = {
 } as const;
 
 export const proShadow = {
-  card:  '0 1px 3px oklch(0% 0 0 / 0.60), 0 0 0 1px oklch(100% 0 0 / 0.04)',
-  float: '0 8px 40px oklch(0% 0 0 / 0.75), 0 0 0 1px oklch(100% 0 0 / 0.06)',
-  glow:  '0 0 0 1px oklch(56% 0.22 264 / 0.35), 0 4px 24px oklch(56% 0.22 264 / 0.22)',
-  btn:   '0 2px 16px oklch(56% 0.22 264 / 0.45)',
+  card:  '0 1px 2px oklch(0% 0 0 / 0.40), 0 0 0 1px oklch(100% 0 0 / 0.03)',
+  float: '0 12px 32px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.05)',
+  glow:  '0 0 0 1px oklch(56% 0.22 264 / 0.30)',
+  btn:   'none',
 } as const;
 
 export const proCard = {

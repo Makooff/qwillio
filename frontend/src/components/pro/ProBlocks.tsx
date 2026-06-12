@@ -30,8 +30,6 @@ export function Card({
         background: pro.panel,
         borderColor: pro.border,
         borderRadius: cardRadius[size],
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
         boxShadow: glow ? proShadow.glow : proShadow.card,
         transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       }}
@@ -54,7 +52,6 @@ export function SectionHead({ title, action }: { title: string; action?: React.R
             display: 'inline-block',
             marginRight: 8,
             flexShrink: 0,
-            boxShadow: `0 0 6px ${pro.accentGlow}`,
           }}
         />
         {title}
@@ -127,21 +124,6 @@ export function Stat({
       className={to ? 'hover:border-white/[0.14] transition-colors' : ''}
     >
       <div className="p-4" style={{ position: 'relative', overflow: 'hidden' }}>
-        {/* Ambient radial glow top-right */}
-        <div
-          style={{
-            position: 'absolute',
-            top: -24,
-            right: -24,
-            width: 80,
-            height: 80,
-            background: accent
-              ? `radial-gradient(circle, ${pro.accentDim} 0%, transparent 70%)`
-              : `radial-gradient(circle, ${pro.accentMid} 0%, transparent 70%)`,
-            pointerEvents: 'none',
-          }}
-        />
-
         {/* Trend chip */}
         {trend && (
           <div
@@ -172,9 +154,9 @@ export function Stat({
             style={{
               width: 32,
               height: 32,
-              borderRadius: 10,
+              borderRadius: 8,
               background: pro.accentMid,
-              border: `1px solid ${pro.accentGlow}`,
+              border: `1px solid ${pro.accentBrd}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -207,6 +189,7 @@ export function Stat({
             letterSpacing: '-0.025em',
             lineHeight: 1,
             color: pro.text,
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
           {value}
@@ -343,23 +326,19 @@ export function Pill({ color = 'neutral', children }: {
   color?: 'neutral' | 'ok' | 'warn' | 'bad' | 'info' | 'accent';
   children: React.ReactNode;
 }) {
-  const map: Record<string, { bg: string; fg: string; shadow?: string }> = {
-    neutral: { bg: 'rgba(255,255,255,0.05)',        fg: pro.textSec },
-    ok:      { bg: `${pro.ok}1a`,                   fg: pro.ok,     shadow: `0 0 8px ${pro.okGlow}` },
-    warn:    { bg: `${pro.warn}1a`,                 fg: pro.warn },
-    bad:     { bg: `${pro.bad}1a`,                  fg: pro.bad,    shadow: `0 0 8px ${pro.badGlow}` },
-    info:    { bg: `${pro.info}1a`,                 fg: pro.info },
-    accent:  { bg: pro.accentDim,                   fg: pro.accent },
+  const map: Record<string, { bg: string; fg: string }> = {
+    neutral: { bg: 'rgba(255,255,255,0.05)', fg: pro.textSec },
+    ok:      { bg: `${pro.ok}1a`,            fg: pro.ok },
+    warn:    { bg: `${pro.warn}1a`,          fg: pro.warn },
+    bad:     { bg: `${pro.bad}1a`,           fg: pro.bad },
+    info:    { bg: `${pro.info}1a`,          fg: pro.info },
+    accent:  { bg: pro.accentDim,            fg: pro.accentHi },
   };
   const m = map[color];
   return (
     <span
       className="text-[10.5px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
-      style={{
-        background: m.bg,
-        color: m.fg,
-        ...(m.shadow ? { textShadow: m.shadow } : {}),
-      }}
+      style={{ background: m.bg, color: m.fg }}
     >
       {children}
     </span>
