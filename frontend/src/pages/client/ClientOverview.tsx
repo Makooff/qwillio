@@ -1,6 +1,6 @@
 ﻿// === FILE: ClientOverview.tsx ===
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Phone, Users, Bot, Settings, ChevronRight, AlertCircle,
   Headphones, Sparkles, TrendingUp, ArrowUpRight, ArrowDownRight,
@@ -46,7 +46,6 @@ function Bone({ className }: { className?: string }) {
 
 export default function ClientOverview() {
   const { user, checkAuth } = useAuthStore();
-  const [, setNavigate] = useState(useNavigate);
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<Record<string, unknown> | null>(null);
   const [calls, setCalls] = useState<Record<string, unknown>[]>([]);
