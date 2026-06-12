@@ -106,30 +106,24 @@ export default function DashboardShell(props: DashboardShellProps) {
         to={item.path}
         onClick={() => { setMobileOpen(false); scrollToTop(); }}
         title={collapsed ? item.label : undefined}
-        className={`relative flex items-center gap-3 rounded-xl transition-colors duration-150 group
+        className={`relative flex items-center gap-3 rounded-[10px] transition-colors duration-150 group
           ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
         style={active ? {
-          background: 'oklch(56% 0.22 264 / 0.10)',
-          border: '1px solid oklch(56% 0.22 264 / 0.22)',
-          boxShadow: '0 0 12px oklch(56% 0.22 264 / 0.08)',
-          color: t.brand,
+          background: 'oklch(100% 0 0 / 0.05)',
+          color: t.text,
         } : {
           color: t.textSec,
-          border: '1px solid transparent',
         }}
       >
         {active && (
           <span
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-            style={{
-              background: t.brand,
-              boxShadow: `2px 0 8px ${t.accentGlow}`,
-            }}
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full"
+            style={{ background: t.brand }}
           />
         )}
         <item.icon
           className="w-[18px] h-[18px] flex-shrink-0"
-          style={active ? { filter: `drop-shadow(0 0 4px ${t.accentGlow})` } as React.CSSProperties : undefined}
+          style={active ? { color: t.brandHi } : undefined}
         />
         {!collapsed && (
           <span className="text-sm font-medium">{item.label}</span>
@@ -178,8 +172,8 @@ export default function DashboardShell(props: DashboardShellProps) {
     <div className="flex flex-col h-full min-h-0" style={{ position: 'relative', zIndex: 1 }}>
       {/* Logo */}
       <div
-        className={`flex items-center gap-3 mb-6 flex-shrink-0 pb-4 ${collapsed ? 'justify-center px-0' : 'px-1'}`}
-        style={{ borderBottom: `1px solid oklch(56% 0.22 264 / 0.12)` }}
+        className={`flex items-center gap-3 mb-5 flex-shrink-0 pb-4 ${collapsed ? 'justify-center px-0' : 'px-1'}`}
+        style={{ borderBottom: `1px solid ${t.border}` }}
       >
         <QwillioLogo size={32} />
         {!collapsed && (
@@ -208,24 +202,22 @@ export default function DashboardShell(props: DashboardShellProps) {
               <button
                 onClick={() => { if (!collapsed) setSettingsOpen(v => !v); }}
                 title={collapsed ? settingsLabel : undefined}
-                className={`w-full relative flex items-center gap-3 rounded-xl transition-colors duration-150 group
+                className={`w-full relative flex items-center gap-3 rounded-[10px] transition-colors duration-150 group
                   ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
                 style={settingsActive ? {
-                  background: 'oklch(56% 0.22 264 / 0.10)',
-                  border: '1px solid oklch(56% 0.22 264 / 0.22)',
-                  color: t.brand,
+                  background: 'oklch(100% 0 0 / 0.05)',
+                  color: t.text,
                 } : {
                   color: t.textSec,
-                  border: '1px solid transparent',
                 }}
               >
                 {settingsActive && (
                   <span
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-                    style={{ background: t.brand, boxShadow: `2px 0 8px ${t.accentGlow}` }}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full"
+                    style={{ background: t.brand }}
                   />
                 )}
-                <SettingsIcon className="w-[18px] h-[18px] flex-shrink-0" />
+                <SettingsIcon className="w-[18px] h-[18px] flex-shrink-0" style={settingsActive ? { color: t.brandHi } : undefined} />
                 {!collapsed && <span className="text-sm font-medium flex-1 text-left">{settingsLabel}</span>}
                 {!collapsed && (
                   <ChevronDown
@@ -463,14 +455,11 @@ function MobileBottomNav({
             animate={{ left: `${activeIdx * itemPct + itemPct / 2}%` }}
             transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.8 }}
             style={{
-              width: 68, height: 68,
+              width: 64, height: 64,
               top: '50%',
               x: '-50%', y: '-50%',
-              background: 'oklch(56% 0.22 264 / 0.22)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1.5px solid oklch(56% 0.22 264 / 0.45)',
-              boxShadow: '0 0 32px oklch(56% 0.22 264 / 0.30), inset 0 1px 0 oklch(100% 0 0 / 0.14)',
+              background: 'oklch(56% 0.22 264 / 0.14)',
+              border: '1px solid oklch(56% 0.22 264 / 0.30)',
             }}
           />
         )}

@@ -34,21 +34,23 @@ export const t = {
   live:   'oklch(72% 0.18 145)',
 
   // ── Accent system ─────────────────────────────────────────────────────────
-  accentGrad: 'linear-gradient(135deg, oklch(52% 0.24 264) 0%, oklch(63% 0.22 264) 100%)',
-  accentGlow: 'oklch(56% 0.22 264 / 0.22)',
+  // Vapi-pro: flat, restrained. No gradients, no glow. Indigo carries meaning
+  // only on the active item and the primary action — never as ambient decoration.
+  accentGrad: 'oklch(56% 0.22 264)',
+  accentGlow: 'oklch(56% 0.22 264 / 0.10)',
   accentMid:  'oklch(56% 0.22 264 / 0.10)',
   accentDim:  'oklch(56% 0.22 264 / 0.12)',
   accentBrd:  'oklch(56% 0.22 264 / 0.40)',
   violetGlow: 'oklch(67% 0.26 299 / 0.20)',
   okGlow:     'oklch(72% 0.18 145 / 0.18)',
 
-  // ── Mesh gradient — indigo ambience ──────────────────────────────────────
-  mesh: 'radial-gradient(ellipse 220px 180px at 10% 0%, oklch(56% 0.22 264 / 0.09) 0%, transparent 70%), radial-gradient(ellipse 160px 120px at 90% 100%, oklch(67% 0.26 299 / 0.06) 0%, transparent 70%)',
+  // ── Ambient — disabled (flat surfaces, hairline separation) ───────────────
+  mesh: 'none',
 
-  // ── Shadows ──────────────────────────────────────────────────────────────
-  shadow:      '0 1px 3px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.04)',
-  shadowFloat: '0 8px 40px oklch(0% 0 0 / 0.70), 0 0 0 1px oklch(100% 0 0 / 0.06)',
-  shadowGlow:  '0 0 0 1px oklch(56% 0.22 264 / 0.30), 0 4px 20px oklch(56% 0.22 264 / 0.18)',
+  // ── Shadows — subtle. Depth comes from hairline borders, not glow. ────────
+  shadow:      '0 1px 2px oklch(0% 0 0 / 0.40), 0 0 0 1px oklch(100% 0 0 / 0.03)',
+  shadowFloat: '0 12px 32px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.05)',
+  shadowGlow:  '0 0 0 1px oklch(56% 0.22 264 / 0.25)',
 
   // ── Status ───────────────────────────────────────────────────────────────
   success: 'oklch(72% 0.18 145)',
