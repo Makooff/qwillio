@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import QwillioLoader from '../components/QwillioLoader';
 import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ui/Toast';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Calendar, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { pro } from '../styles/pro-theme';
-import { PageHeader, PrimaryBtn } from '../components/pro/ProBlocks';
+import { PrimaryBtn } from '../components/pro/ProBlocks';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { DashboardHero } from '../components/dashboard/DashboardHero';
 import { DashboardKPIs } from '../components/dashboard/DashboardKPIs';
@@ -135,7 +135,39 @@ export default function Dashboard() {
         </div>
       )}
 
-      <PageHeader title="Tableau de bord" subtitle={subtitle} />
+      {/* Header — greeting + period controls */}
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-[26px] font-semibold tracking-tight" style={{ color: pro.text }}>Bon retour</h1>
+          {subtitle && <p className="text-[12.5px] mt-0.5" style={{ color: pro.textSec }}>{subtitle}</p>}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-[13px] font-medium transition-colors"
+            style={{ background: pro.panelHi, border: `1px solid ${pro.border}`, color: pro.text }}
+          >
+            30 derniers jours <ChevronDown size={14} style={{ color: pro.textSec }} />
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-[13px] font-medium transition-colors"
+            style={{ background: pro.panelHi, border: `1px solid ${pro.border}`, color: pro.textSec }}
+          >
+            <Calendar size={14} />
+            {new Date(Date.now() - 29 * 864e5).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            {' – '}
+            {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-[13px] font-medium transition-colors"
+            style={{ background: pro.panelHi, border: `1px solid ${pro.border}`, color: pro.textSec }}
+          >
+            <SlidersHorizontal size={14} /> Personnaliser
+          </button>
+        </div>
+      </header>
 
       <DashboardHero status={botStatus} busy={busy} onToggle={toggleBot} />
 
