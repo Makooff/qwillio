@@ -145,7 +145,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <DashboardCallsChart data={callsChart} className="lg:col-span-3" />
         <div className="lg:col-span-2">
-          <ChannelDonut deltaPp={2.4} />
+          {/* Real channel-source split isn't tracked yet — honest empty state
+              instead of placeholder percentages. Wire call source to populate. */}
+          <ChannelDonut data={[]} />
         </div>
       </div>
 

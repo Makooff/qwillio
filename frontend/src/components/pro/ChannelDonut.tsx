@@ -35,7 +35,9 @@ export function ChannelDonut({
   /** Optional trend in percentage points, e.g. +2.4. */
   deltaPp?: number;
 }) {
-  const total = data.reduce((s, d) => s + d.value, 0) || 1;
+  const sum = data.reduce((s, d) => s + d.value, 0);
+  const hasData = sum > 0;
+  const total = sum || 1;
 
   return (
     <Card>
@@ -44,7 +46,7 @@ export function ChannelDonut({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-[13px] font-semibold" style={{ color: pro.text }}>{title}</h3>
-              {typeof deltaPp === 'number' && (
+              {hasData && typeof deltaPp === 'number' && (
                 <Pill color={deltaPp >= 0 ? 'ok' : 'bad'}>
                   {deltaPp >= 0 ? '↑' : '↓'} {Math.abs(deltaPp)} pp
                 </Pill>
@@ -54,6 +56,16 @@ export function ChannelDonut({
           </div>
         </div>
 
+        {!hasData ? (
+          <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: 180 }}>
+            <div
+              className="w-12 h-12 rounded-full mb-3"
+              style={{ border: `2px dashed ${pro.border}` }}
+              aria-hidden="true"
+            />
+            <p className="text-[13px]" style={{ color: pro.textTer }}>Pas encore de données</p>
+          </div>
+        ) : (
         <div className="mt-4 flex flex-col sm:flex-row items-center gap-5">
           {/* Donut */}
           <div className="relative w-[180px] h-[180px] flex-shrink-0">
@@ -103,6 +115,7 @@ export function ChannelDonut({
             ))}
           </ul>
         </div>
+        )}
       </div>
     </Card>
   );
