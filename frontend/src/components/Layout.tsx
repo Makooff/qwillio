@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const Q = {
   bg:       'oklch(8% 0.009 265)',
-  accent:   'oklch(56% 0.22 264)',
-  accentDim:'oklch(56% 0.22 264 / 0.15)',
+  accent:   'oklch(56% 0.22 299)',
+  accentDim:'oklch(56% 0.22 299 / 0.15)',
   border:   'oklch(22% 0.012 265 / 0.6)',
   textMuted:'oklch(38% 0.004 0)',
 };

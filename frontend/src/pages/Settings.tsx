@@ -238,7 +238,7 @@ export default function Settings() {
       <div className="flex items-center justify-center h-64" role="status" aria-label="Chargement">
         <div
           className="w-9 h-9 rounded-full border-2 border-transparent animate-spin"
-          style={{ borderTopColor: 'oklch(56% 0.22 264)', borderRightColor: 'oklch(56% 0.22 264)' }}
+          style={{ borderTopColor: 'oklch(56% 0.22 299)', borderRightColor: 'oklch(56% 0.22 299)' }}
         />
       </div>
     );
@@ -304,7 +304,7 @@ export default function Settings() {
             aria-label={isActive ? 'Arrêter le bot' : 'Démarrer le bot'}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-50"
             style={{
-              background: isActive ? 'oklch(60% 0.22 25)' : 'oklch(56% 0.22 264)',
+              background: isActive ? 'oklch(60% 0.22 25)' : 'oklch(56% 0.22 299)',
             }}
           >
             {toggling
@@ -335,12 +335,12 @@ export default function Settings() {
                     background: isRunning
                       ? 'oklch(74% 0.18 155 / 0.06)'
                       : isIdle
-                        ? 'oklch(56% 0.22 264 / 0.06)'
+                        ? 'oklch(56% 0.22 299 / 0.06)'
                         : 'oklch(50% 0 0 / 0.06)',
                     borderColor: isRunning
                       ? 'oklch(74% 0.18 155 / 0.2)'
                       : isIdle
-                        ? 'oklch(56% 0.22 264 / 0.2)'
+                        ? 'oklch(56% 0.22 299 / 0.2)'
                         : 'oklch(100% 0 0 / 0.06)',
                   }}
                 >
@@ -350,7 +350,7 @@ export default function Settings() {
                       background: isRunning
                         ? 'oklch(74% 0.18 155)'
                         : isIdle
-                          ? 'oklch(56% 0.22 264)'
+                          ? 'oklch(56% 0.22 299)'
                           : 'oklch(50% 0 0)',
                     }}
                   />
@@ -360,7 +360,7 @@ export default function Settings() {
                       color: isRunning
                         ? 'oklch(74% 0.18 155)'
                         : isIdle
-                          ? 'oklch(74% 0.18 264)'
+                          ? 'oklch(74% 0.18 299)'
                           : 'oklch(50% 0 0)',
                     }}
                   >
@@ -435,7 +435,7 @@ export default function Settings() {
             >
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                style={{ background: 'oklch(56% 0.22 264 / 0.12)', color: 'oklch(74% 0.18 264)' }}
+                style={{ background: 'oklch(56% 0.22 299 / 0.12)', color: 'oklch(74% 0.18 299)' }}
               >
                 {triggerLoading === action
                   ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
@@ -508,7 +508,7 @@ export default function Settings() {
               <div className="flex items-center justify-center py-10" role="status" aria-label="Chargement">
                 <div
                   className="w-8 h-8 rounded-full border-2 border-transparent animate-spin"
-                  style={{ borderTopColor: 'oklch(56% 0.22 264)' }}
+                  style={{ borderTopColor: 'oklch(56% 0.22 299)' }}
                 />
               </div>
             ) : (
@@ -534,7 +534,7 @@ export default function Settings() {
                         type="range" min={5} max={60} step={5}
                         value={config.callIntervalMinutes}
                         onChange={(e) => set('callIntervalMinutes', +e.target.value)}
-                        className="w-full accent-[oklch(56%_0.22_264)]"
+                        className="w-full accent-[oklch(56%_0.22_299)]"
                       />
                       <div className="flex justify-between text-xs text-white/25 mt-1"><span>5 min</span><span>60 min</span></div>
                     </Field>
@@ -569,8 +569,8 @@ export default function Settings() {
                             aria-pressed={active}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border"
                             style={{
-                              background: active ? 'oklch(56% 0.22 264)' : 'oklch(100% 0 0 / 0.04)',
-                              borderColor: active ? 'oklch(56% 0.22 264)' : 'oklch(100% 0 0 / 0.08)',
+                              background: active ? 'oklch(56% 0.22 299)' : 'oklch(100% 0 0 / 0.04)',
+                              borderColor: active ? 'oklch(56% 0.22 299)' : 'oklch(100% 0 0 / 0.08)',
                               color: active ? 'oklch(98% 0.004 265)' : 'oklch(70% 0 0)',
                             }}
                           >
@@ -584,7 +584,7 @@ export default function Settings() {
                     <input type="range" min={0} max={22} step={1}
                       value={config.minPriorityScore}
                       onChange={(e) => set('minPriorityScore', +e.target.value)}
-                      className="w-full accent-[oklch(56%_0.22_264)]"
+                      className="w-full accent-[oklch(56%_0.22_299)]"
                     />
                     <div className="flex justify-between text-xs text-white/25 mt-1"><span>0 (tous)</span><span>22 (max)</span></div>
                   </Field>
@@ -630,7 +630,7 @@ export default function Settings() {
                       <input type="range" min={1} max={30} step={1}
                         value={config.maxCallDurationMin}
                         onChange={(e) => set('maxCallDurationMin', +e.target.value)}
-                        className="w-full accent-[oklch(56%_0.22_264)]"
+                        className="w-full accent-[oklch(56%_0.22_299)]"
                       />
                       <div className="flex justify-between text-xs text-white/25 mt-1"><span>1 min</span><span>30 min</span></div>
                     </Field>
@@ -638,7 +638,7 @@ export default function Settings() {
                       <input type="range" min={5} max={120} step={5}
                         value={config.silenceTimeoutSeconds}
                         onChange={(e) => set('silenceTimeoutSeconds', +e.target.value)}
-                        className="w-full accent-[oklch(56%_0.22_264)]"
+                        className="w-full accent-[oklch(56%_0.22_299)]"
                       />
                       <div className="flex justify-between text-xs text-white/25 mt-1"><span>5s</span><span>120s</span></div>
                     </Field>

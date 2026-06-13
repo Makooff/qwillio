@@ -139,7 +139,7 @@ export default function DashboardShell(props: DashboardShellProps) {
             className="absolute left-full ml-3 px-2 py-1 text-xs rounded-lg
               opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl backdrop-blur-xl"
             style={{
-              background: t.panelSolid,
+              background: t.elevated,
               color: t.text,
               border: `1px solid ${t.borderHi}`,
               boxShadow: t.shadowFloat,
@@ -229,7 +229,7 @@ export default function DashboardShell(props: DashboardShellProps) {
                   <span
                     className="absolute left-full ml-3 px-2 py-1 text-xs rounded-lg
                       opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl backdrop-blur-xl"
-                    style={{ background: t.panelSolid, color: t.text, border: `1px solid ${t.borderHi}` }}
+                    style={{ background: t.elevated, color: t.text, border: `1px solid ${t.borderHi}` }}
                   >
                     {settingsLabel}
                   </span>
@@ -295,7 +295,7 @@ export default function DashboardShell(props: DashboardShellProps) {
           backdrop-blur-xl transition-colors duration-300 ease-in-out
           ${collapsed ? 'w-[64px] px-2 py-5' : 'w-[220px] px-4 py-5'}`}
         style={{
-          background: t.panelSolid,
+          background: t.elevated,
           borderRight: `1px solid ${t.border}`,
           position: 'relative',
         }}
@@ -317,7 +317,7 @@ export default function DashboardShell(props: DashboardShellProps) {
           className="absolute -right-3 top-8 w-6 h-6 rounded-full
             flex items-center justify-center transition-colors"
           style={{
-            background: t.panelSolid,
+            background: t.elevated,
             boxShadow: '0 0 0 1px oklch(100% 0 0 / 0.08), 0 2px 8px oklch(0% 0 0 / 0.40)',
             color: t.textSec,
           }}
@@ -340,7 +340,7 @@ export default function DashboardShell(props: DashboardShellProps) {
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="sidebar-surface md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] px-4 pt-5 pb-28"
               style={{
-                background: t.panelSolid,
+                background: t.elevated,
                 borderRight: `1px solid ${t.border}`,
                 position: 'fixed',
               }}
@@ -368,12 +368,15 @@ export default function DashboardShell(props: DashboardShellProps) {
         )}
       </AnimatePresence>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main — inset rounded panel against the darker sidebar gutter */}
+      <div
+        className="flex-1 flex flex-col min-w-0 overflow-hidden md:rounded-tl-[28px] md:border-l md:border-t"
+        style={{ background: t.panel, borderColor: t.border }}
+      >
         <header
           className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6"
           style={{
-            background: 'oklch(8% 0.009 265 / 0.85)',
+            background: 'oklch(11% 0.004 265 / 0.85)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             borderBottom: '1px solid oklch(22% 0.012 265 / 0.4)',
@@ -458,8 +461,8 @@ function MobileBottomNav({
               width: 64, height: 64,
               top: '50%',
               x: '-50%', y: '-50%',
-              background: 'oklch(56% 0.22 264 / 0.14)',
-              border: '1px solid oklch(56% 0.22 264 / 0.30)',
+              background: 'oklch(56% 0.22 299 / 0.14)',
+              border: '1px solid oklch(56% 0.22 299 / 0.30)',
             }}
           />
         )}

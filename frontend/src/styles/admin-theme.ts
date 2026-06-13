@@ -1,7 +1,7 @@
 ﻿/**
  * Qwillio Admin — Signal Dark v3
  * OKLCH. Indigo-tinted dark base — logo Q-circle primary.
- * Primary: oklch(56% 0.22 264)  ≈ #6366F1 (logo indigo)
+ * Primary: oklch(56% 0.22 299)  ≈ #6366F1 (logo indigo)
  * Violet:  oklch(67% 0.26 299)  ≈ #A855F7 (logo violet)
  *
  * Usage: import { t } from '../styles/admin-theme';
@@ -19,7 +19,7 @@ export const t = {
   // ── Borders ──────────────────────────────────────────────────────────────
   border:      'oklch(22% 0.012 265 / 0.55)',
   borderHi:    'oklch(30% 0.014 265 / 0.70)',
-  borderFocus: 'oklch(56% 0.22 264 / 0.50)',
+  borderFocus: 'oklch(56% 0.22 299 / 0.50)',
 
   // ── Text ─────────────────────────────────────────────────────────────────
   text:     'oklch(95% 0.004 265)',
@@ -28,19 +28,19 @@ export const t = {
   textMuted:'oklch(28% 0.005 265)',
 
   // ── Brand — Qwillio Indigo (logo Q circle) ────────────────────────────
-  brand:  'oklch(56% 0.22 264)',
-  brandHi:'oklch(63% 0.21 264)',
+  brand:  'oklch(56% 0.22 299)',
+  brandHi:'oklch(63% 0.21 299)',
   violet: 'oklch(67% 0.26 299)',
   live:   'oklch(72% 0.18 145)',
 
   // ── Accent system ─────────────────────────────────────────────────────────
   // Vapi-pro: flat, restrained. No gradients, no glow. Indigo carries meaning
   // only on the active item and the primary action — never as ambient decoration.
-  accentGrad: 'oklch(56% 0.22 264)',
-  accentGlow: 'oklch(56% 0.22 264 / 0.10)',
-  accentMid:  'oklch(56% 0.22 264 / 0.10)',
-  accentDim:  'oklch(56% 0.22 264 / 0.12)',
-  accentBrd:  'oklch(56% 0.22 264 / 0.40)',
+  accentGrad: 'oklch(56% 0.22 299)',
+  accentGlow: 'oklch(56% 0.22 299 / 0.10)',
+  accentMid:  'oklch(56% 0.22 299 / 0.10)',
+  accentDim:  'oklch(56% 0.22 299 / 0.12)',
+  accentBrd:  'oklch(56% 0.22 299 / 0.40)',
   violetGlow: 'oklch(67% 0.26 299 / 0.20)',
   okGlow:     'oklch(72% 0.18 145 / 0.18)',
 
@@ -50,7 +50,7 @@ export const t = {
   // ── Shadows — subtle. Depth comes from hairline borders, not glow. ────────
   shadow:      '0 1px 2px oklch(0% 0 0 / 0.40), 0 0 0 1px oklch(100% 0 0 / 0.03)',
   shadowFloat: '0 12px 32px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.05)',
-  shadowGlow:  '0 0 0 1px oklch(56% 0.22 264 / 0.25)',
+  shadowGlow:  '0 0 0 1px oklch(56% 0.22 299 / 0.25)',
 
   // ── Status ───────────────────────────────────────────────────────────────
   success: 'oklch(72% 0.18 145)',

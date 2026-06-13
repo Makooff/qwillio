@@ -29,7 +29,7 @@ export default function ComingSoon({ module }: { module: string }) {
         <Link
           to="/dashboard/agent"
           className="inline-flex items-center gap-1.5 text-[13px] font-medium hover:underline"
-          style={{ color: 'oklch(63% 0.21 264)' }}
+          style={{ color: 'oklch(63% 0.21 299)' }}
         >
           <ArrowLeft size={14} aria-hidden="true" /> Retour à la suite agent
         </Link>

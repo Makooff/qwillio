@@ -56,7 +56,7 @@ interface StatItem {
 const ICON_STYLES: Record<string, { color: string; background: string }> = {
   blue:       { color: 'oklch(60% 0.20 230)', background: 'oklch(60% 0.20 230 / 0.12)' },
   emerald:    { color: 'oklch(65% 0.17 162)', background: 'oklch(65% 0.17 162 / 0.12)' },
-  indigo:     { color: 'oklch(56% 0.22 264)', background: 'oklch(56% 0.22 264 / 0.12)' },
+  indigo:     { color: 'oklch(56% 0.22 299)', background: 'oklch(56% 0.22 299 / 0.12)' },
   violet:     { color: 'oklch(67% 0.26 299)', background: 'oklch(67% 0.26 299 / 0.12)' },
   amber:      { color: 'oklch(75% 0.18 85)',  background: 'oklch(75% 0.18 85 / 0.12)'  },
 };
@@ -245,8 +245,8 @@ const CARD_BG  = 'rgba(255,255,255,0.025)';
 const CARD_BORDER = 'rgba(255,255,255,0.07)';
 const TEXT_PRIMARY   = '#F2F2F2';
 const TEXT_SECONDARY = '#9A9AA5';
-const INDIGO = 'oklch(56% 0.22 264)';
-const INDIGO_HOVER = 'oklch(50% 0.22 264)';
+const INDIGO = 'oklch(56% 0.22 299)';
+const INDIGO_HOVER = 'oklch(50% 0.22 299)';
 
 export default function AgentDashboard() {
   const [modules, setModules] = useState<Module[]>(INITIAL_MODULES);
