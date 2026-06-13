@@ -9,6 +9,7 @@ import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
 import { formatShortDate, daysUntil } from '../../utils/format';
 import OnboardingChecklist from '../../components/client/OnboardingChecklist';
+import { ChannelDonut } from '../../components/pro/ChannelDonut';
 
 type TrendDir = 'up' | 'down' | 'flat';
 
@@ -143,6 +144,12 @@ export default function ClientOverview() {
     },
   ];
 
+  const sentimentDonut = [
+    { label: 'Positif', value: (sentiment_ as Record<string, number>).positive ?? 0, color: 'oklch(72% 0.18 145)' },
+    { label: 'Neutre',  value: (sentiment_ as Record<string, number>).neutral ?? 0,  color: 'oklch(78% 0.18 75)' },
+    { label: 'Négatif', value: (sentiment_ as Record<string, number>).negative ?? 0, color: 'oklch(65% 0.22 25)' },
+  ];
+
   const onboardingClient = {
     hasPhone: !!(c.transferNumber || c.vapiPhoneNumber),
     hasTestCall: !!c.hasTestCall,
@@ -264,31 +271,31 @@ export default function ClientOverview() {
         </div>
       )}
 
-      {/* KPI strip */}
-      <section aria-label="Indicateurs clés">
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04]">
-          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-white/[0.06]">
-            {kpis.map((kpi, i) => (
-              <div key={i} className="px-6 py-5">
-                <p className="text-[11px] font-medium uppercase tracking-widest text-white/30 mb-2">{kpi.label}</p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-[28px] font-semibold tabular-nums leading-none text-white/90">{kpi.value}</p>
-                  {kpi.trend && kpi.trend.pct > 0 && (
-                    <span className={`inline-flex items-center gap-0.5 text-[11px] font-medium ${kpi.trend.dir === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {kpi.trend.dir === 'up' ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-                      {kpi.trend.pct}%
-                    </span>
-                  )}
-                </div>
-                {kpi.hint && <p className="text-[11px] mt-1 text-white/30">{kpi.hint}</p>}
-              </div>
-            ))}
+      {/* KPI cards — spacious, big numbers */}
+      <section aria-label="Indicateurs clés" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map((kpi, i) => (
+          <div
+            key={i}
+            className="rounded-2xl border border-white/[0.06] bg-white/[0.03] px-5 py-5 transition-colors hover:border-white/[0.12]"
+          >
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/35 mb-3">{kpi.label}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-[30px] font-semibold tabular-nums leading-none text-white">{kpi.value}</p>
+              {kpi.trend && kpi.trend.pct > 0 && (
+                <span className={`inline-flex items-center gap-0.5 text-[12px] font-medium ${kpi.trend.dir === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {kpi.trend.dir === 'up' ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                  {kpi.trend.pct}%
+                </span>
+              )}
+            </div>
+            {kpi.hint && <p className="text-[11.5px] mt-2.5 text-white/35">{kpi.hint}</p>}
           </div>
-        </div>
+        ))}
       </section>
 
-      {/* Recent calls */}
-      <section aria-label="Appels récents">
+      {/* Activity + sentiment rail */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <section aria-label="Appels récents" className="lg:col-span-2">
         <div className="flex items-center justify-between mb-3 px-1">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/40">Activité récente</h2>
           <Link
@@ -341,6 +348,15 @@ export default function ClientOverview() {
           )}
         </div>
       </section>
+
+      <div className="lg:col-span-1">
+        <ChannelDonut
+          title="Sentiment des appels"
+          subtitle="Répartition des appels analysés"
+          data={sentimentDonut}
+        />
+      </div>
+      </div>
 
       {/* Quick links */}
       <section aria-label="Actions rapides">
