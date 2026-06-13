@@ -5,11 +5,11 @@
 /* ─── Design Tokens — Signal Dark v3 — Indigo ─── */
 :root {
   /* Indigo-tinted dark system — logo Q-circle primary */
-  --q-bg:         oklch(8% 0.009 265);
-  --q-bg2:        oklch(11% 0.013 265);
-  --q-bg3:        oklch(15% 0.017 265);
-  --q-panel:      oklch(11% 0.013 265);
-  --q-panel-hi:   oklch(15% 0.017 265);
+  --q-bg:         oklch(8% 0.003 265);
+  --q-bg2:        oklch(11% 0.004 265);
+  --q-bg3:        oklch(15% 0.006 265);
+  --q-panel:      oklch(11% 0.004 265);
+  --q-panel-hi:   oklch(15% 0.006 265);
   --q-border:     oklch(22% 0.012 265 / 0.55);
   --q-border-hi:  oklch(30% 0.014 265 / 0.70);
   --q-accent:     oklch(56% 0.22 264);
@@ -33,11 +33,11 @@
 
 /* ─── Global Reset ─── */
 html {
-  background-color: oklch(8% 0.009 265);
+  background-color: oklch(8% 0.003 265);
 }
 body {
   font-family: 'Outfit', system-ui, -apple-system, sans-serif;
-  background-color: oklch(8% 0.009 265);
+  background-color: oklch(8% 0.003 265);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding-top: env(safe-area-inset-top);

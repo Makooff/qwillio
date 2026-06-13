@@ -8,13 +8,13 @@
  */
 
 export const t = {
-  // ── Backgrounds ──────────────────────────────────────────────────────────
-  bg:         'oklch(8% 0.009 265)',
-  panel:      'oklch(11% 0.013 265)',
-  panelSolid: 'oklch(10% 0.011 265)',
-  panelHover: 'oklch(15% 0.017 265)',
-  elevated:   'oklch(14% 0.015 265)',
-  inset:      'oklch(6% 0.007 265)',
+  // ── Backgrounds — near-black neutral (indigo lives in the accent, not the bg) ─
+  bg:         'oklch(8% 0.003 265)',
+  panel:      'oklch(11% 0.004 265)',
+  panelSolid: 'oklch(10% 0.004 265)',
+  panelHover: 'oklch(15% 0.006 265)',
+  elevated:   'oklch(14% 0.005 265)',
+  inset:      'oklch(6% 0.003 265)',
 
   // ── Borders ──────────────────────────────────────────────────────────────
   border:      'oklch(22% 0.012 265 / 0.55)',

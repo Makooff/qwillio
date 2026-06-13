@@ -7,10 +7,10 @@
  */
 
 export const pro = {
-  // ── Backgrounds ──────────────────────────────────────────────────────────
-  bg:       'oklch(8% 0.009 265)',
-  panel:    'oklch(11% 0.013 265)',
-  panelHi:  'oklch(15% 0.017 265)',
+  // ── Backgrounds — near-black neutral (indigo lives in the accent, not the bg) ─
+  bg:       'oklch(8% 0.003 265)',
+  panel:    'oklch(11% 0.004 265)',
+  panelHi:  'oklch(15% 0.006 265)',
 
   // ── Borders ──────────────────────────────────────────────────────────────
   border:   'oklch(22% 0.012 265 / 0.55)',
