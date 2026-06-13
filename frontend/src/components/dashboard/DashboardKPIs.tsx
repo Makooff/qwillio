@@ -1,4 +1,4 @@
-import { TrendingUp, Zap, Users, DollarSign, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { pro } from '../../styles/pro-theme';
 import { SectionHead, Stat } from '../pro/ProBlocks';
 import type { DashStats } from '../../hooks/useDashboardData';
@@ -30,23 +30,19 @@ export function DashboardKPIs({ stats }: Props) {
       )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat
-          icon={TrendingUp}
           label="Prospects total"
           value={stats?.prospects?.total ?? 0}
           hint={stats ? `+${stats.prospects.newThisMonth} ce mois` : undefined}
         />
         <Stat
-          icon={Zap}
           label="Hot leads (≥ 8)"
           value={stats?.hotLeads ?? 0}
         />
         <Stat
-          icon={Users}
           label="Clients actifs"
           value={stats?.clients?.totalActive ?? 0}
         />
         <Stat
-          icon={DollarSign}
           label="MRR"
           value={stats ? `${stats.revenue.mrr.toFixed(0)} €` : 0}
         />
