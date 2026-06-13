@@ -1,6 +1,6 @@
 import { AreaChart, Area, ResponsiveContainer, Tooltip, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { pro, proShadow } from '../../styles/pro-theme';
-import { Card, SectionHead } from '../pro/ProBlocks';
+import { Card, Pill } from '../pro/ProBlocks';
 import type { CallDay } from '../../hooks/useDashboardData';
 
 function ChartTooltip({ active, payload, label }: {
@@ -34,19 +34,27 @@ interface Props {
 
 export function DashboardCallsChart({ data, className }: Props) {
   const totalThisWeek = data.reduce((sum, d) => sum + d.calls, 0);
+  // Real intra-period trend: second half of the window vs the first half.
+  const mid = Math.floor(data.length / 2);
+  const firstHalf = data.slice(0, mid).reduce((s, d) => s + d.calls, 0);
+  const secondHalf = data.slice(mid).reduce((s, d) => s + d.calls, 0);
+  const trendPct = firstHalf > 0 ? Math.round(((secondHalf - firstHalf) / firstHalf) * 100) : 0;
 
   return (
     <Card className={className}>
       <div className="p-4">
-        <div className="flex items-baseline justify-between mb-3">
-          <SectionHead title="Appels sur 7 jours" />
-          {data.length > 0 && (
-            <span className="text-[11px] tabular-nums" style={{ color: pro.textTer }}>
-              <span className="font-semibold" style={{ color: pro.text }}>{totalThisWeek}</span> au total
-            </span>
-          )}
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-[28px] font-bold tabular-nums leading-none" style={{ color: pro.text }}>{totalThisWeek}</p>
+              {data.length > 1 && firstHalf > 0 && (
+                <Pill color={trendPct >= 0 ? 'ok' : 'bad'}>{trendPct >= 0 ? '↑' : '↓'} {Math.abs(trendPct)}%</Pill>
+              )}
+            </div>
+            <p className="text-[12px] mt-1" style={{ color: pro.textSec }}>Appels sur 7 jours</p>
+          </div>
         </div>
-        <div style={{ height: 190 }}>
+        <div style={{ height: 210 }}>
           {data.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
