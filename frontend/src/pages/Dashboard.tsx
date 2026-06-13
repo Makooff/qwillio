@@ -14,6 +14,7 @@ import { DashboardCallsChart } from '../components/dashboard/DashboardCallsChart
 import { DashboardActivityFeed } from '../components/dashboard/DashboardActivityFeed';
 import { DashboardAnomalies } from '../components/dashboard/DashboardAnomalies';
 import { DashboardQuickActions } from '../components/dashboard/DashboardQuickActions';
+import { ChannelDonut } from '../components/pro/ChannelDonut';
 
 const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com';
 
@@ -140,15 +141,23 @@ export default function Dashboard() {
 
       <DashboardKPIs stats={stats} />
 
+      {/* Main row — large chart + channel donut rail */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <DashboardCallsChart data={callsChart} className="lg:col-span-3" />
-        <DashboardActivityFeed activity={activity} className="lg:col-span-2" />
+        <div className="lg:col-span-2">
+          <ChannelDonut deltaPp={2.4} />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <DashboardAnomalies anomalies={anomalies} />
-        <DashboardQuickActions busy={actionBusy} onAction={quickAction} />
+      {/* Secondary row — recent activity + "à traiter" (anomalies) */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <DashboardActivityFeed activity={activity} className="lg:col-span-3" />
+        <div className="lg:col-span-2">
+          <DashboardAnomalies anomalies={anomalies} />
+        </div>
       </div>
+
+      <DashboardQuickActions busy={actionBusy} onAction={quickAction} />
     </div>
   );
 }
