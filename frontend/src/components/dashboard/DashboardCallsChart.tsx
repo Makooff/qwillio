@@ -72,14 +72,17 @@ export function DashboardCallsChart({ data, className }: Props) {
                 />
                 <Tooltip content={<ChartTooltip />} cursor={{ stroke: pro.accent, strokeWidth: 1 }} />
                 <Area
-                  type="monotone"
+                  type="natural"
                   dataKey="calls"
                   stroke={pro.accent}
                   strokeWidth={2}
                   fill="url(#callGrad)"
                   dot={false}
                   activeDot={{ r: 4, fill: pro.accent, strokeWidth: 0 }}
-                  animationDuration={700}
+                  isAnimationActive
+                  animationBegin={120}
+                  animationDuration={1100}
+                  animationEasing="ease-out"
                 />
               </AreaChart>
             </ResponsiveContainer>
