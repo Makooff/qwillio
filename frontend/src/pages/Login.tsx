@@ -1,50 +1,61 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { ArrowRight, Eye, EyeOff, BarChart2, Phone, Clock } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Phone, BarChart2, Clock } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 import { useSEO } from '../hooks/useSEO';
 
+/**
+ * Sign-in — two-column: glass form (left) + Qwillio brand panel (right).
+ * Structure adapted from a user-provided template, re-tokened to the Qwillio
+ * dark product register (indigo / Outfit) and wired to the real auth store.
+ */
+
 const D = {
   bg:        'oklch(8% 0.009 265)',
-  bg2:       'oklch(11% 0.013 265)',
+  panel:     'oklch(11% 0.013 265)',
+  inset:     'oklch(6% 0.007 265)',
   border:    'oklch(22% 0.012 265 / 0.55)',
   text:      'oklch(95% 0.004 265)',
   text2:     'oklch(65% 0.007 265)',
   text3:     'oklch(42% 0.006 265)',
   accent:    'oklch(56% 0.22 264)',
   accentHi:  'oklch(63% 0.21 264)',
-  accentBrd: 'oklch(56% 0.22 264 / 0.40)',
+  accentDim: 'oklch(56% 0.22 264 / 0.10)',
+  accentBrd: 'oklch(56% 0.22 264 / 0.22)',
   bad:       'oklch(65% 0.22 25)',
   badDim:    'oklch(65% 0.22 25 / 0.10)',
-  lBg:       'oklch(96% 0.010 55)',
-  lBorder:   'oklch(84% 0.012 55)',
-  lText:     'oklch(12% 0.006 0)',
-  lText2:    'oklch(40% 0.006 0)',
 } as const;
 
-const inputCls = `
-  w-full bg-[oklch(6%_0.007_265)] border border-[oklch(22%_0.012_265/0.55)]
-  rounded-[10px] px-4 py-[13px] text-[oklch(95%_0.004_265)] text-[15px]
-  font-[Outfit,system-ui,sans-serif] outline-none
-  transition-colors focus:border-[oklch(56%_0.22_264/0.40)]
-  placeholder:text-[oklch(35%_0.006_265)]
-`.replace(/\s+/g, ' ').trim();
+/** Glass input shell — subtle fill, indigo on focus-within. */
+function GlassInput({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="rounded-2xl border bg-[oklch(6%_0.007_265)] transition-colors focus-within:border-[oklch(56%_0.22_264/0.55)] focus-within:bg-[oklch(56%_0.22_264/0.06)]"
+      style={{ borderColor: D.border }}
+    >
+      {children}
+    </div>
+  );
+}
 
-const labelCls = 'block text-[11px] font-bold uppercase tracking-[0.08em] text-[oklch(42%_0.006_265)] mb-2';
+const fieldCls =
+  'w-full bg-transparent text-[15px] px-4 py-[14px] rounded-2xl outline-none placeholder:text-[oklch(35%_0.006_265)] font-[Outfit,system-ui,sans-serif]';
+const labelCls =
+  'block text-[12px] font-medium mb-1.5 text-[oklch(65%_0.007_265)]';
 
 export default function Login() {
   useSEO({ title: 'Connexion — Qwillio', noindex: true });
 
-  const [email, setEmail]     = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw]   = useState(false);
-  const [error, setError]     = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuthStore();
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -68,209 +79,182 @@ export default function Login() {
 
   return (
     <div
-      className="min-h-dvh grid lg:grid-cols-2"
-      style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}
+      className="min-h-dvh flex flex-col lg:flex-row"
+      style={{ background: D.bg, fontFamily: "'Outfit', system-ui, sans-serif" }}
     >
-      {/* ── LEFT — cream brand panel (desktop only) ── */}
-      <div
-        className="hidden lg:flex flex-col justify-between p-16 border-r"
-        style={{ background: D.lBg, borderColor: D.lBorder }}
-      >
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-[18px] font-extrabold no-underline tracking-[-0.025em]"
-          style={{ color: D.lText }}
-        >
-          <QwillioLogo size={26} />
-          Qwillio
-        </Link>
-
-        <div>
-          <div
-            className="inline-block text-[10px] font-bold uppercase tracking-[0.09em] px-3 py-1.5 rounded-full mb-6"
-            style={{
-              background: 'oklch(56% 0.22 264 / 0.10)',
-              color: 'oklch(42% 0.18 264)',
-            }}
-          >
-            Plateforme IA vocale
-          </div>
-          <h2
-            className="font-extrabold tracking-[-0.035em] leading-[1.1] mb-4"
-            style={{
-              fontSize: 'clamp(1.8rem, 3vw, 2.6rem)',
-              color: D.lText,
-            }}
-          >
-            Vos prospects{' '}
-            <span style={{ color: 'oklch(52% 0.20 264)' }}>appelés</span>
-            {'. Vos rendez-vous pris.'}
-          </h2>
-          <p className="text-[15px] leading-[1.65] max-w-[360px]" style={{ color: D.lText2 }}>
-            L'IA vocale B2B qui prospecte pendant que votre équipe dort.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3.5">
-          {[
-            { icon: <Phone size={14} />, text: `Appels IA indiscernables d'un humain` },
-            { icon: <BarChart2 size={14} />, text: 'Qualification automatique des leads' },
-            { icon: <Clock size={14} />, text: 'Premiers rendez-vous le jour même' },
-          ].map((f, i) => (
-            <div key={i} className="flex items-center gap-2.5">
-              <div
-                className="w-[30px] h-[30px] rounded-[7px] flex items-center justify-center shrink-0"
-                style={{
-                  background: 'oklch(56% 0.22 264 / 0.10)',
-                  border: '1px solid oklch(56% 0.22 264 / 0.22)',
-                  color: 'oklch(42% 0.18 264)',
-                }}
-              >
-                {f.icon}
-              </div>
-              <span className="text-[13px] font-medium" style={{ color: D.lText2 }}>{f.text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── RIGHT — dark form panel ── */}
-      <div
-        className="flex flex-col justify-center min-h-dvh px-5 py-10 sm:px-10 lg:px-16 relative"
-        style={{ background: D.bg }}
-      >
-        {/* Glow */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse 400px 300px at 70% 15%, oklch(56% 0.22 264 / 0.06) 0%, transparent 70%)',
-          }}
-        />
-
-        {/* Mobile logo */}
-        <div className="lg:hidden mb-8 relative">
+      {/* ── LEFT — sign-in form ── */}
+      <section className="flex-1 flex items-center justify-center px-5 py-10 sm:px-10">
+        <div className="w-full max-w-md">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-[17px] font-extrabold no-underline tracking-[-0.025em]"
+            className="auth-in auth-d1 inline-flex items-center gap-2 text-[17px] font-extrabold no-underline tracking-[-0.025em] mb-10"
             style={{ color: D.text }}
           >
             <QwillioLogo size={24} />
             Qwillio
           </Link>
-        </div>
 
-        <div className="relative w-full max-w-sm mx-auto">
-          <div className="mb-8">
-            <h1
-              className="text-[1.8rem] font-extrabold tracking-[-0.035em] mb-1"
-              style={{ color: D.text }}
-            >
-              Bienvenue
-            </h1>
-            <p className="text-[15px]" style={{ color: D.text2 }}>
-              Connectez-vous à votre espace Qwillio.
-            </p>
-          </div>
-
-          {error && (
-            <div
-              className="rounded-[10px] px-3.5 py-2.5 text-[13px] mb-5"
-              style={{
-                background: D.badDim,
-                border: `1px solid ${D.bad}`,
-                color: D.bad,
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          {/* Google button */}
-          <GoogleAuthButton mode="login" onError={setError} disabled={loading} />
-
-          {/* Divider */}
-          <div className="relative my-5 flex items-center gap-3">
-            <div className="flex-1 h-px" style={{ background: D.border }} />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.1em]" style={{ color: D.text3 }}>
-              ou
-            </span>
-            <div className="flex-1 h-px" style={{ background: D.border }} />
-          </div>
-
-          {/* Email / password form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <div className="flex flex-col gap-6">
             <div>
-              <label htmlFor="login-email" className={labelCls}>Adresse email</label>
-              <input
-                id="login-email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="vous@agence.fr"
-                required
-                autoComplete="email"
-                className={inputCls}
-              />
+              <h1 className="auth-in auth-d1 text-[2rem] md:text-[2.4rem] font-semibold tracking-[-0.035em] leading-[1.1]" style={{ color: D.text }}>
+                Bienvenue
+              </h1>
+              <p className="auth-in auth-d2 mt-1.5 text-[15px]" style={{ color: D.text2 }}>
+                Connectez-vous à votre espace Qwillio.
+              </p>
             </div>
 
-            <div>
-              <label htmlFor="login-password" className={labelCls}>Mot de passe</label>
-              <div className="relative">
-                <input
-                  id="login-password"
-                  type={showPw ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  autoComplete="current-password"
-                  className={`${inputCls} pr-11`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(!showPw)}
-                  aria-label={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0 bg-transparent border-none cursor-pointer flex items-center"
-                  style={{ color: D.text3 }}
-                >
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+            {error && (
+              <div
+                className="auth-in rounded-2xl px-4 py-3 text-[13px]"
+                style={{ background: D.badDim, border: `1px solid ${D.bad}`, color: D.bad }}
+                role="alert"
+              >
+                {error}
               </div>
-              <div className="mt-2 text-right">
-                <Link
-                  to="/forgot-password"
-                  className="text-[12px] no-underline transition-colors hover:text-[oklch(56%_0.22_264)]"
-                  style={{ color: D.text3 }}
-                >
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="auth-in auth-d3">
+                <label htmlFor="login-email" className={labelCls}>Adresse email</label>
+                <GlassInput>
+                  <input
+                    id="login-email"
+                    name="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="vous@agence.fr"
+                    required
+                    autoComplete="email"
+                    className={fieldCls}
+                  />
+                </GlassInput>
+              </div>
+
+              <div className="auth-in auth-d4">
+                <label htmlFor="login-password" className={labelCls}>Mot de passe</label>
+                <GlassInput>
+                  <div className="relative">
+                    <input
+                      id="login-password"
+                      name="password"
+                      type={showPw ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      autoComplete="current-password"
+                      className={`${fieldCls} pr-12`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(!showPw)}
+                      aria-label={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      className="absolute inset-y-0 right-3 flex items-center bg-transparent border-none cursor-pointer"
+                      style={{ color: D.text3 }}
+                    >
+                      {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </GlassInput>
+              </div>
+
+              <div className="auth-in auth-d5 flex items-center justify-between text-[13px]">
+                <label className="flex items-center gap-2.5 cursor-pointer" style={{ color: D.text2 }}>
+                  <input type="checkbox" name="rememberMe" defaultChecked className="auth-checkbox" />
+                  Rester connecté
+                </label>
+                <Link to="/forgot-password" className="no-underline hover:underline transition-colors" style={{ color: D.accentHi }}>
                   Mot de passe oublié ?
                 </Link>
               </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="auth-in auth-d6 w-full rounded-2xl py-[15px] text-[15px] font-semibold border-none cursor-pointer flex items-center justify-center gap-2 transition-colors active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{
+                  background: loading ? 'oklch(40% 0.10 264)' : D.accent,
+                  color: loading ? D.text2 : 'oklch(98% 0.004 265)',
+                }}
+              >
+                {loading ? 'Connexion…' : 'Se connecter'}
+                {!loading && <ArrowRight size={16} />}
+              </button>
+            </form>
+
+            <div className="auth-in auth-d7 relative flex items-center justify-center">
+              <span className="w-full border-t" style={{ borderColor: D.border }} />
+              <span className="px-4 text-[12px] absolute font-medium uppercase tracking-[0.1em]" style={{ color: D.text3, background: D.bg }}>
+                ou
+              </span>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-[13px] rounded-xl text-[15px] font-bold border-none cursor-pointer flex items-center justify-center gap-2 transition-all mt-1 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{
-                background: loading ? 'oklch(40% 0.10 264)' : D.accent,
-                color: loading ? D.text2 : D.bg,
-                boxShadow: loading ? 'none' : '0 4px 16px oklch(56% 0.22 264 / 0.3)',
-                fontFamily: "'Outfit', system-ui, sans-serif",
-              }}
-            >
-              {loading ? 'Connexion...' : 'Se connecter'}
-              {!loading && <ArrowRight size={16} />}
-            </button>
-          </form>
+            <div className="auth-in auth-d7">
+              <GoogleAuthButton mode="login" onError={setError} disabled={loading} />
+            </div>
 
-          <p className="mt-5 text-[13px]" style={{ color: D.text3 }}>
-            Pas encore de compte ?{' '}
-            <Link to="/register" className="font-semibold no-underline" style={{ color: D.accent }}>
-              Créer un compte
-            </Link>
-          </p>
+            <p className="auth-in auth-d7 text-center text-[13px]" style={{ color: D.text3 }}>
+              Pas encore de compte ?{' '}
+              <Link to="/register" className="font-semibold no-underline hover:underline" style={{ color: D.accentHi }}>
+                Créer un compte
+              </Link>
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* ── RIGHT — Qwillio brand panel (desktop) ── */}
+      <section className="hidden lg:block flex-1 relative p-4">
+        <div
+          className="auth-slide-right auth-d2 absolute inset-4 rounded-3xl overflow-hidden border flex flex-col justify-between p-12"
+          style={{
+            background: 'linear-gradient(160deg, oklch(13% 0.02 265) 0%, oklch(9% 0.012 265) 100%)',
+            borderColor: D.border,
+          }}
+        >
+          {/* restrained indigo wash — single, soft, top-right */}
+          <div
+            className="absolute pointer-events-none"
+            style={{ inset: 0, background: 'radial-gradient(ellipse 460px 360px at 85% 8%, oklch(56% 0.22 264 / 0.10) 0%, transparent 70%)' }}
+          />
+
+          <span
+            className="relative inline-block w-fit text-[11px] font-semibold uppercase tracking-[0.1em] px-3 py-1.5 rounded-full"
+            style={{ background: D.accentDim, color: D.accentHi, border: `1px solid ${D.accentBrd}` }}
+          >
+            Plateforme IA vocale
+          </span>
+
+          <div className="relative">
+            <h2 className="font-semibold tracking-[-0.035em] leading-[1.1]" style={{ fontSize: 'clamp(1.9rem, 2.6vw, 2.7rem)', color: D.text }}>
+              Vos prospects <span style={{ color: D.accentHi }}>appelés</span>. Vos rendez-vous pris.
+            </h2>
+            <p className="mt-4 text-[15px] leading-[1.65] max-w-[380px]" style={{ color: D.text2 }}>
+              L'IA vocale B2B qui prospecte et décroche pendant que votre équipe se concentre sur la fermeture.
+            </p>
+          </div>
+
+          <div className="relative flex flex-col gap-3.5">
+            {[
+              { icon: <Phone size={15} />, text: "Appels IA indiscernables d'un humain" },
+              { icon: <BarChart2 size={15} />, text: 'Qualification automatique des leads' },
+              { icon: <Clock size={15} />, text: 'Premiers rendez-vous le jour même' },
+            ].map((f, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span
+                  className="w-8 h-8 rounded-[9px] flex items-center justify-center shrink-0"
+                  style={{ background: D.accentDim, border: `1px solid ${D.accentBrd}`, color: D.accentHi }}
+                >
+                  {f.icon}
+                </span>
+                <span className="text-[14px] font-medium" style={{ color: D.text2 }}>{f.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

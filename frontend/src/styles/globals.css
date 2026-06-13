@@ -185,6 +185,38 @@ a[role="button"]:active,
   transform: scale(0.97);
 }
 
+/* ─── Auth — staggered entrance + glass inputs ─── */
+@keyframes authFadeSlideIn {
+  from { opacity: 0; filter: blur(4px); transform: translateY(14px); }
+  to   { opacity: 1; filter: blur(0);   transform: translateY(0); }
+}
+@keyframes authSlideRightIn {
+  from { opacity: 0; filter: blur(6px); transform: translateX(28px) scale(0.98); }
+  to   { opacity: 1; filter: blur(0);   transform: translateX(0) scale(1); }
+}
+.auth-in {
+  opacity: 0;
+  animation: authFadeSlideIn 0.6s var(--ease-out-expo) both;
+}
+.auth-slide-right {
+  opacity: 0;
+  animation: authSlideRightIn 0.7s var(--ease-out-expo) both;
+}
+.auth-d1 { animation-delay: 0.08s; }
+.auth-d2 { animation-delay: 0.16s; }
+.auth-d3 { animation-delay: 0.24s; }
+.auth-d4 { animation-delay: 0.32s; }
+.auth-d5 { animation-delay: 0.40s; }
+.auth-d6 { animation-delay: 0.48s; }
+.auth-d7 { animation-delay: 0.56s; }
+.auth-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  accent-color: oklch(56% 0.22 264);
+  cursor: pointer;
+}
+
 /* ─── Accessibility — visible keyboard focus everywhere ─── */
 /* Mouse clicks don't show it (:focus-visible), keyboard nav does. Overrides any
    local outline:none so inputs/buttons/links always have a clear focus ring. */
