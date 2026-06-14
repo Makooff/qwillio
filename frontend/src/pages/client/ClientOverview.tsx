@@ -10,6 +10,7 @@ import api from '../../services/api';
 import { formatShortDate, daysUntil } from '../../utils/format';
 import OnboardingChecklist from '../../components/client/OnboardingChecklist';
 import { ChannelDonut } from '../../components/pro/ChannelDonut';
+import { DashboardCallsChart } from '../../components/dashboard/DashboardCallsChart';
 
 type TrendDir = 'up' | 'down' | 'flat';
 
@@ -292,6 +293,9 @@ export default function ClientOverview() {
           </div>
         ))}
       </section>
+
+      {/* Appels — graphe (données de démonstration tant qu'il n'y a pas de série réelle) */}
+      <DashboardCallsChart data={[]} />
 
       {/* Activity + sentiment rail */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
