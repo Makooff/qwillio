@@ -8,13 +8,13 @@
  */
 
 export const t = {
-  // ── Backgrounds — neutral near-black greys (match the reference screen) ──────
-  bg:         'oklch(7% 0 0)',
-  panel:      'oklch(11% 0 0)',
-  panelSolid: 'oklch(10% 0 0)',
-  panelHover: 'oklch(15% 0 0)',
-  elevated:   'oklch(13% 0 0)',
-  inset:      'oklch(6% 0 0)',
+  // ── Backgrounds — exact hex to match the reference screen ───────────────────
+  bg:         '#0a0a0a',   // app background ("le fond")
+  panel:      '#0a0a0a',   // content surface
+  panelSolid: '#0a0a0a',
+  panelHover: '#1a1a1a',
+  elevated:   '#111111',   // sidebar
+  inset:      '#0a0a0a',   // gutter behind the rounded sidebar corner
 
   // ── Borders ──────────────────────────────────────────────────────────────
   border:      'oklch(24% 0 0 / 0.55)',

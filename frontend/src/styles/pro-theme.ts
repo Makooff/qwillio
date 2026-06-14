@@ -7,10 +7,10 @@
  */
 
 export const pro = {
-  // ── Backgrounds — neutral near-black greys (match the reference screen) ──────
-  bg:       'oklch(7% 0 0)',
-  panel:    'oklch(11% 0 0)',
-  panelHi:  'oklch(15% 0 0)',
+  // ── Backgrounds — exact hex to match the reference screen ───────────────────
+  bg:       '#0a0a0a',
+  panel:    '#0a0a0a',
+  panelHi:  '#161616',
 
   // ── Borders ──────────────────────────────────────────────────────────────
   border:   'oklch(24% 0 0 / 0.55)',
