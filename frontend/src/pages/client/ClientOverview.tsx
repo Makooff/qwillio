@@ -246,10 +246,10 @@ export default function ClientOverview() {
         <KpiSplit items={kpis} />
       </section>
 
-      {/* Main grid — content + right rail */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5">
+      {/* Main grid — content + right rail, separated by a vertical hairline */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] xl:divide-x divide-white/[0.06]">
         {/* Left column */}
-        <div className="space-y-5 min-w-0">
+        <div className="min-w-0 divide-y divide-white/[0.06] xl:pr-6">
           <HeroTrendPanel
             value={callsMonth.toLocaleString('fr-FR')}
             label="Appels traités ce mois"
@@ -259,31 +259,35 @@ export default function ClientOverview() {
             unit="appels"
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <InsightCard
-              kicker="Analyse IA"
-              icon={Sparkles}
-              action={{ label: 'Voir l’analyse', to: '/dashboard/analytics' }}
-            >
-              {insightText}
-            </InsightCard>
-            <SegmentBar
-              title="Utilisation du quota"
-              value={quotaTotal > 0 ? `${quotaUsed.toLocaleString('fr-FR')}` : callsMonth.toLocaleString('fr-FR')}
-              hint={quotaTotal > 0 ? `sur ${quotaTotal.toLocaleString('fr-FR')} appels inclus` : 'Aucun quota plafonné'}
-              segments={quotaTotal > 0
-                ? [
-                    { label: 'Utilisé', pct: quotaPct, bright: true },
-                    { label: 'Restant', pct: 100 - quotaPct },
-                  ]
-                : [{ label: 'Appels traités', pct: 100, bright: true }]}
-              action={{ label: 'Gérer', to: '/dashboard/billing' }}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-white/[0.06]">
+            <div className="md:pr-6">
+              <InsightCard
+                kicker="Analyse IA"
+                icon={Sparkles}
+                action={{ label: 'Voir l’analyse', to: '/dashboard/analytics' }}
+              >
+                {insightText}
+              </InsightCard>
+            </div>
+            <div className="md:pl-6">
+              <SegmentBar
+                title="Utilisation du quota"
+                value={quotaTotal > 0 ? `${quotaUsed.toLocaleString('fr-FR')}` : callsMonth.toLocaleString('fr-FR')}
+                hint={quotaTotal > 0 ? `sur ${quotaTotal.toLocaleString('fr-FR')} appels inclus` : 'Aucun quota plafonné'}
+                segments={quotaTotal > 0
+                  ? [
+                      { label: 'Utilisé', pct: quotaPct, bright: true },
+                      { label: 'Restant', pct: 100 - quotaPct },
+                    ]
+                  : [{ label: 'Appels traités', pct: 100, bright: true }]}
+                action={{ label: 'Gérer', to: '/dashboard/billing' }}
+              />
+            </div>
           </div>
 
-          {/* Recent activity */}
-          <section aria-label="Appels récents">
-            <div className="flex items-center justify-between mb-3 px-1">
+          {/* Recent activity — frameless, rows split by lines */}
+          <section aria-label="Appels récents" className="py-6">
+            <div className="flex items-center justify-between mb-2">
               <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/40">Activité récente</h2>
               <Link
                 to="/dashboard/calls"
@@ -292,9 +296,9 @@ export default function ClientOverview() {
                 Tout voir <ChevronRight size={12} />
               </Link>
             </div>
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+            <div className="-mx-2">
               {(calls as unknown[]).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-white/30">
+                <div className="flex flex-col items-center justify-center py-12 text-white/30">
                   <Phone size={28} className="opacity-40 mb-3" />
                   <p className="text-[13px]">Aucun appel pour le moment</p>
                 </div>
@@ -304,7 +308,7 @@ export default function ClientOverview() {
                     <li key={(call.id as string) || i}>
                       <Link
                         to={`/dashboard/calls?id=${call.id}`}
-                        className="flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0 group focus:outline-none focus-visible:ring-inset focus-visible:ring-1 focus-visible:ring-white/30"
+                        className="flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0 group focus:outline-none focus-visible:ring-inset focus-visible:ring-1 focus-visible:ring-white/30"
                       >
                         <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center flex-shrink-0">
                           <Phone size={13} className="text-white/40" />
@@ -337,8 +341,8 @@ export default function ClientOverview() {
           </section>
         </div>
 
-        {/* Right rail */}
-        <div className="space-y-5">
+        {/* Right rail — flat, divided by hairlines */}
+        <div className="divide-y divide-white/[0.06] border-t border-white/[0.06] xl:border-t-0 xl:pl-6">
           <RadialGauge
             caption={quotaTotal > 0 ? 'Quota d’appels' : 'Appels ce mois'}
             value={quotaTotal > 0 ? quotaUsed.toLocaleString('fr-FR') : callsMonth.toLocaleString('fr-FR')}
@@ -378,12 +382,10 @@ export default function ClientOverview() {
         </div>
       </div>
 
-      {/* Quick links */}
-      <section aria-label="Actions rapides">
-        <div className="flex items-center mb-3 px-1">
-          <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/40">Actions rapides</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Quick links — frameless tiles split by vertical lines */}
+      <section aria-label="Actions rapides" className="pt-6 border-t border-white/[0.06]">
+        <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/40 mb-3">Actions rapides</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06]">
           {[
             { icon: PhoneForwarded, label: 'Configurer le renvoi', desc: 'iPhone et Android, guide pas à pas', to: '/dashboard/setup/call-forwarding' },
             { icon: Bot, label: "Personnaliser l'IA", desc: 'Voix, scripts, transferts', to: '/dashboard/receptionist' },
@@ -392,7 +394,7 @@ export default function ClientOverview() {
             <Link
               key={to}
               to={to}
-              className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 hover:border-white/[0.12] hover:bg-white/[0.04] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+              className="group py-4 sm:px-6 first:sm:pl-0 last:sm:pr-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg"
             >
               <div className="flex items-center gap-3 mb-2.5">
                 <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
@@ -407,9 +409,9 @@ export default function ClientOverview() {
         </div>
       </section>
 
-      {/* Support */}
-      <section>
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-4 flex items-center gap-3">
+      {/* Support — frameless strip */}
+      <section className="pt-5 border-t border-white/[0.06]">
+        <div className="flex items-center gap-3">
           <Headphones size={15} className="text-white/40 flex-shrink-0" />
           <p className="text-[12.5px] text-white/70 flex-1">
             Besoin d'aide ? Notre équipe répond en moins d'une heure.

@@ -8,24 +8,24 @@
  */
 
 export const t = {
-  // ── Backgrounds — near-black neutral (indigo lives in the accent, not the bg) ─
-  bg:         'oklch(8% 0.003 265)',
-  panel:      'oklch(11% 0.004 265)',
-  panelSolid: 'oklch(10% 0.004 265)',
-  panelHover: 'oklch(15% 0.006 265)',
-  elevated:   'oklch(14% 0.005 265)',
-  inset:      'oklch(6% 0.003 265)',
+  // ── Backgrounds — neutral near-black greys (match the reference screen) ──────
+  bg:         'oklch(7% 0 0)',
+  panel:      'oklch(11% 0 0)',
+  panelSolid: 'oklch(10% 0 0)',
+  panelHover: 'oklch(15% 0 0)',
+  elevated:   'oklch(13% 0 0)',
+  inset:      'oklch(6% 0 0)',
 
   // ── Borders ──────────────────────────────────────────────────────────────
-  border:      'oklch(22% 0.012 265 / 0.55)',
-  borderHi:    'oklch(30% 0.014 265 / 0.70)',
+  border:      'oklch(24% 0 0 / 0.55)',
+  borderHi:    'oklch(32% 0 0 / 0.70)',
   borderFocus: 'oklch(56% 0.02 265 / 0.50)',
 
   // ── Text ─────────────────────────────────────────────────────────────────
-  text:     'oklch(95% 0.004 265)',
-  textSec:  'oklch(65% 0.007 265)',
-  textTer:  'oklch(42% 0.006 265)',
-  textMuted:'oklch(28% 0.005 265)',
+  text:     'oklch(95% 0 0)',
+  textSec:  'oklch(65% 0 0)',
+  textTer:  'oklch(42% 0 0)',
+  textMuted:'oklch(28% 0 0)',
 
   // ── Brand — Qwillio Indigo (logo Q circle) ────────────────────────────
   brand:  'oklch(56% 0.02 265)',
@@ -94,7 +94,7 @@ export const inputStyle = {
 } as const;
 
 export const tooltipStyle = {
-  background: 'oklch(10% 0.011 265 / 0.97)',
+  background: 'oklch(10% 0 0 / 0.97)',
   backdropFilter: t.blurSm,
   border: `1px solid ${t.borderHi}`,
   borderRadius: 10,

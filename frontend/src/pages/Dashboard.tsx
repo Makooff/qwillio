@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import QwillioLoader from '../components/QwillioLoader';
+import { useState } from 'react';
 import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ui/Toast';
 import {
@@ -12,13 +11,12 @@ import { pro } from '../styles/pro-theme';
 import { PrimaryBtn } from '../components/pro/ProBlocks';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { DashboardHero } from '../components/dashboard/DashboardHero';
-import { DashboardCallsChart } from '../components/dashboard/DashboardCallsChart';
 import { DashboardActivityFeed } from '../components/dashboard/DashboardActivityFeed';
 import { DashboardQuickActions } from '../components/dashboard/DashboardQuickActions';
 import {
-  KpiSplit, RadialGauge, TallyMeter, DetailCard, AttentionList,
+  KpiSplit, HeroTrendPanel, RadialGauge, TallyMeter, DetailCard, AttentionList,
   SegmentBar, InsightCard,
-  type KpiCell, type AttnItem, type Tone,
+  type KpiCell, type AttnItem, type Tone, type Dir,
 } from '../components/dashboard/OverviewBlocks';
 
 const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com';
@@ -40,23 +38,11 @@ function SkeletonCard({ h = 'h-24' }: { h?: string }) {
 }
 
 export default function Dashboard() {
-  const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('qw-intro-played'));
-  const [introFading, setIntroFading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const { toasts, add: addToast, remove: removeToast } = useToast();
 
   const { botStatus, stats, activity, callsChart, anomalies, loading, error, refetch } = useDashboardData(10_000);
-
-  useEffect(() => {
-    if (!showIntro) return;
-    const fadeTimer = window.setTimeout(() => setIntroFading(true), 2300);
-    const hideTimer = window.setTimeout(() => {
-      setShowIntro(false);
-      sessionStorage.setItem('qw-intro-played', '1');
-    }, 2750);
-    return () => { window.clearTimeout(fadeTimer); window.clearTimeout(hideTimer); };
-  }, [showIntro]);
 
   const toggleBot = async () => {
     if (!botStatus) return;
@@ -128,6 +114,17 @@ export default function Dashboard() {
   const quotaPct = callsQuota > 0 ? Math.min(100, Math.round((callsToday / callsQuota) * 100)) : 0;
   const hotPct = prospectsTotal > 0 ? Math.round((hotLeads / prospectsTotal) * 100) : 0;
 
+  const callsTotal = callsChart.reduce((s, d) => s + d.calls, 0);
+  const heroSeries = callsChart.map((d) => ({
+    label: new Date(d.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+    value: d.calls,
+  }));
+  const hMid = Math.floor(callsChart.length / 2);
+  const h1 = callsChart.slice(0, hMid).reduce((s, d) => s + d.calls, 0);
+  const h2 = callsChart.slice(hMid).reduce((s, d) => s + d.calls, 0);
+  const heroPct = h1 > 0 ? Math.abs(Math.round(((h2 - h1) / h1) * 100)) : 0;
+  const heroDir: Dir = h2 > h1 ? 'up' : h2 < h1 ? 'down' : 'flat';
+
   const kpis: KpiCell[] = [
     { label: 'Clients actifs', value: activeClients.toLocaleString('fr-FR') },
     { label: 'MRR', value: `${mrr.toLocaleString('fr-FR')} €` },
@@ -154,26 +151,6 @@ export default function Dashboard() {
   return (
     <div className="space-y-5 admin-page">
       <ToastContainer toasts={toasts} remove={removeToast} />
-
-      {showIntro && (
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9998,
-            background: pro.bg,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: introFading ? 0 : 1,
-            transition: 'opacity 450ms var(--ease-out)',
-            pointerEvents: introFading ? 'none' : 'auto',
-          }}
-        >
-          <QwillioLoader fullscreen={false} size={160} />
-        </div>
-      )}
 
       {/* Header — greeting + period controls */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -216,39 +193,48 @@ export default function Dashboard() {
         <KpiSplit items={kpis} />
       </section>
 
-      {/* Main grid — content + right rail */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5">
+      {/* Main grid — content + right rail, separated by a vertical hairline */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] xl:divide-x divide-white/[0.06]">
         {/* Left column */}
-        <div className="space-y-5 min-w-0">
-          <DashboardCallsChart data={callsChart} />
+        <div className="min-w-0 divide-y divide-white/[0.06] xl:pr-6">
+          <HeroTrendPanel
+            value={callsTotal.toLocaleString('fr-FR')}
+            label="Appels sur la période"
+            delta={heroPct > 0 ? { pct: heroPct, dir: heroDir } : undefined}
+            deltaSuffix="sur la période"
+            series={heroSeries}
+            unit="appels"
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <InsightCard
-              kicker="Analyse IA"
-              icon={Sparkles}
-              action={{ label: 'Voir les leads', to: '/admin/leads' }}
-            >
-              {insightText}
-            </InsightCard>
-            <SegmentBar
-              title="Quota d’appels du jour"
-              value={callsToday.toLocaleString('fr-FR')}
-              hint={callsQuota > 0 ? `sur ${callsQuota.toLocaleString('fr-FR')} appels autorisés` : 'Quota non défini'}
-              segments={callsQuota > 0
-                ? [
-                    { label: 'Passés', pct: quotaPct, bright: true },
-                    { label: 'Restant', pct: 100 - quotaPct },
-                  ]
-                : [{ label: 'Appels du jour', pct: 100, bright: true }]}
-              action={{ label: 'Détails', to: '/admin/calls' }}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-white/[0.06]">
+            <div className="md:pr-6">
+              <InsightCard
+                kicker="Analyse IA"
+                icon={Sparkles}
+                action={{ label: 'Voir les leads', to: '/admin/leads' }}
+              >
+                {insightText}
+              </InsightCard>
+            </div>
+            <div className="md:pl-6">
+              <SegmentBar
+                title="Quota d’appels du jour"
+                value={callsToday.toLocaleString('fr-FR')}
+                hint={callsQuota > 0 ? `sur ${callsQuota.toLocaleString('fr-FR')} appels autorisés` : 'Quota non défini'}
+                segments={callsQuota > 0
+                  ? [
+                      { label: 'Passés', pct: quotaPct, bright: true },
+                      { label: 'Restant', pct: 100 - quotaPct },
+                    ]
+                  : [{ label: 'Appels du jour', pct: 100, bright: true }]}
+                action={{ label: 'Détails', to: '/admin/calls' }}
+              />
+            </div>
           </div>
-
-          <DashboardActivityFeed activity={activity} />
         </div>
 
-        {/* Right rail */}
-        <div className="space-y-5">
+        {/* Right rail — flat, divided by hairlines */}
+        <div className="divide-y divide-white/[0.06] border-t border-white/[0.06] xl:border-t-0 xl:pl-6">
           <RadialGauge
             caption="Quota du jour"
             value={callsToday.toLocaleString('fr-FR')}
@@ -287,6 +273,8 @@ export default function Dashboard() {
           <AttentionList title="À traiter" items={attn} empty="Aucune anomalie détectée." />
         </div>
       </div>
+
+      <DashboardActivityFeed activity={activity} />
 
       <DashboardQuickActions busy={actionBusy} onAction={quickAction} />
     </div>

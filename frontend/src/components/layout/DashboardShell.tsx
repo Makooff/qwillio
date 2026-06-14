@@ -325,6 +325,7 @@ export default function DashboardShell(props: DashboardShellProps) {
       {/* Desktop Sidebar */}
       <aside
         className={`sidebar-surface hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
+          overflow-hidden md:rounded-tl-[28px]
           backdrop-blur-xl transition-colors duration-300 ease-in-out
           ${collapsed ? 'w-[64px] px-2 py-5' : 'w-[220px] px-4 py-5'}`}
         style={{
@@ -396,10 +397,10 @@ export default function DashboardShell(props: DashboardShellProps) {
         <header
           className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6"
           style={{
-            background: 'oklch(11% 0.004 265 / 0.85)',
+            background: 'oklch(11% 0 0 / 0.85)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            borderBottom: '1px solid oklch(22% 0.012 265 / 0.4)',
+            borderBottom: '1px solid oklch(24% 0 0 / 0.4)',
           }}
         >
           <button
@@ -463,10 +464,10 @@ function MobileBottomNav({
         <div
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
-            background: 'oklch(11% 0.013 265 / 0.90)',
+            background: 'oklch(11% 0 0 / 0.90)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid oklch(22% 0.012 265 / 0.5)',
+            border: '1px solid oklch(24% 0 0 / 0.5)',
           }}
         />
 
