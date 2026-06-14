@@ -59,7 +59,7 @@ function PlanBar({ plan, info, mrr }: { plan: string; info: { count: number; rev
           className="h-full rounded-full transition-[width] duration-700 ease-out"
           style={{
             width: `${pct}%`,
-            background: 'oklch(56% 0.22 264)',
+            background: 'oklch(56% 0.02 265)',
           }}
         />
       </div>
@@ -116,17 +116,17 @@ export default function Billing() {
         <div
           className="rounded-2xl border p-6"
           style={{
-            borderColor: 'oklch(56% 0.22 264 / 0.2)',
-            background: 'oklch(56% 0.22 264 / 0.06)',
+            borderColor: 'oklch(56% 0.02 265 / 0.2)',
+            background: 'oklch(56% 0.02 265 / 0.06)',
           }}
         >
           <p className="text-xs font-semibold tracking-widest uppercase mb-1"
-            style={{ color: 'oklch(56% 0.22 264 / 0.6)' }}>
+            style={{ color: 'oklch(56% 0.02 265 / 0.6)' }}>
             Monthly Recurring Revenue
           </p>
           <p
             className="text-4xl font-bold tabular-nums"
-            style={{ color: 'oklch(74% 0.18 264)' }}
+            style={{ color: 'oklch(74% 0.02 265)' }}
           >
             {fmt(data.mrr)} €
           </p>
@@ -163,7 +163,7 @@ export default function Billing() {
           </div>
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
             <p className="text-xs text-white/35 mb-1.5">Ce mois</p>
-            <p className="text-2xl font-bold tabular-nums" style={{ color: 'oklch(74% 0.18 264)' }}>
+            <p className="text-2xl font-bold tabular-nums" style={{ color: 'oklch(74% 0.02 265)' }}>
               {fmt(data.totalRevenueThisMonth)} €
             </p>
           </div>

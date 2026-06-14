@@ -9,7 +9,7 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 export const inputCls = [
   'w-full px-3 py-2.5 rounded-xl text-sm text-white/90 outline-none transition-colors',
   'bg-white/[0.04] border border-white/[0.08]',
-  'focus:border-[oklch(56%_0.22_264)/50] placeholder-white/25',
+  'focus:border-[oklch(56%_0.22_158)/50] placeholder-white/25',
 ].join(' ');
 
 export const selectCls = inputCls + ' appearance-none cursor-pointer';
@@ -34,9 +34,9 @@ export function ConfigSection({
   accent?: 'indigo' | 'violet';
 }) {
   const btnBg = accent === 'violet'
-    ? 'bg-[oklch(67%_0.26_299)] hover:bg-[oklch(63%_0.24_299)]'
-    : 'bg-[oklch(56%_0.22_264)] hover:bg-[oklch(52%_0.22_264)]';
-  const iconColor = accent === 'violet' ? 'text-[oklch(67%_0.26_299)]' : 'text-[oklch(74%_0.18_264)]';
+    ? 'bg-[oklch(67%_0.26_158)] hover:bg-[oklch(63%_0.24_158)]'
+    : 'bg-[oklch(56%_0.22_158)] hover:bg-[oklch(52%_0.22_158)]';
+  const iconColor = accent === 'violet' ? 'text-[oklch(67%_0.26_158)]' : 'text-[oklch(74%_0.18_158)]';
 
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
@@ -112,7 +112,7 @@ export function TagInput({
             <span
               key={tag}
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
-              style={{ background: 'oklch(56% 0.22 264 / 0.15)', color: 'oklch(74% 0.18 264)' }}
+              style={{ background: 'oklch(56% 0.02 265 / 0.15)', color: 'oklch(74% 0.02 265)' }}
             >
               {tag}
               <button

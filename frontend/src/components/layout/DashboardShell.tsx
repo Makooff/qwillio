@@ -2,8 +2,9 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LogOut, X, ChevronLeft, ChevronRight, ChevronDown,
-  Settings as SettingsIcon, LayoutDashboard, RefreshCw, type LucideIcon,
+  LogOut, X, ChevronDown,
+  Settings as SettingsIcon, LayoutDashboard, RefreshCw,
+  HelpCircle, BookOpen, type LucideIcon,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import QwillioLogo from '../QwillioLogo';
@@ -67,7 +68,7 @@ export default function DashboardShell(props: DashboardShellProps) {
 
   const { user, logout } = useAuthStore();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(
     (settingsSub || []).some(i => location.pathname.startsWith(i.path))
@@ -106,30 +107,24 @@ export default function DashboardShell(props: DashboardShellProps) {
         to={item.path}
         onClick={() => { setMobileOpen(false); scrollToTop(); }}
         title={collapsed ? item.label : undefined}
-        className={`relative flex items-center gap-3 rounded-xl transition-colors duration-150 group
+        className={`relative flex items-center gap-3 rounded-[10px] transition-colors duration-150 group
           ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
         style={active ? {
-          background: 'oklch(56% 0.22 264 / 0.10)',
-          border: '1px solid oklch(56% 0.22 264 / 0.22)',
-          boxShadow: '0 0 12px oklch(56% 0.22 264 / 0.08)',
-          color: t.brand,
+          background: 'oklch(100% 0 0 / 0.05)',
+          color: t.text,
         } : {
           color: t.textSec,
-          border: '1px solid transparent',
         }}
       >
         {active && (
           <span
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-            style={{
-              background: t.brand,
-              boxShadow: `2px 0 8px ${t.accentGlow}`,
-            }}
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full"
+            style={{ background: t.brand }}
           />
         )}
         <item.icon
           className="w-[18px] h-[18px] flex-shrink-0"
-          style={active ? { filter: `drop-shadow(0 0 4px ${t.accentGlow})` } as React.CSSProperties : undefined}
+          style={active ? { color: t.brandHi } : undefined}
         />
         {!collapsed && (
           <span className="text-sm font-medium">{item.label}</span>
@@ -145,7 +140,7 @@ export default function DashboardShell(props: DashboardShellProps) {
             className="absolute left-full ml-3 px-2 py-1 text-xs rounded-lg
               opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl backdrop-blur-xl"
             style={{
-              background: t.panelSolid,
+              background: t.elevated,
               color: t.text,
               border: `1px solid ${t.borderHi}`,
               boxShadow: t.shadowFloat,
@@ -178,8 +173,8 @@ export default function DashboardShell(props: DashboardShellProps) {
     <div className="flex flex-col h-full min-h-0" style={{ position: 'relative', zIndex: 1 }}>
       {/* Logo */}
       <div
-        className={`flex items-center gap-3 mb-6 flex-shrink-0 pb-4 ${collapsed ? 'justify-center px-0' : 'px-1'}`}
-        style={{ borderBottom: `1px solid oklch(56% 0.22 264 / 0.12)` }}
+        className={`flex items-center gap-3 mb-5 flex-shrink-0 pb-4 ${collapsed ? 'justify-center px-0' : 'px-1'}`}
+        style={{ borderBottom: `1px solid ${t.border}` }}
       >
         <QwillioLogo size={32} />
         {!collapsed && (
@@ -200,6 +195,14 @@ export default function DashboardShell(props: DashboardShellProps) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide min-h-0 pb-2">
+        {!collapsed && (
+          <p
+            className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.12em]"
+            style={{ color: t.textTer }}
+          >
+            Menu
+          </p>
+        )}
         <div className="space-y-0.5">
           {primaryNav.map(item => <SidebarLink key={item.path} item={item} />)}
 
@@ -208,24 +211,22 @@ export default function DashboardShell(props: DashboardShellProps) {
               <button
                 onClick={() => { if (!collapsed) setSettingsOpen(v => !v); }}
                 title={collapsed ? settingsLabel : undefined}
-                className={`w-full relative flex items-center gap-3 rounded-xl transition-colors duration-150 group
+                className={`w-full relative flex items-center gap-3 rounded-[10px] transition-colors duration-150 group
                   ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
                 style={settingsActive ? {
-                  background: 'oklch(56% 0.22 264 / 0.10)',
-                  border: '1px solid oklch(56% 0.22 264 / 0.22)',
-                  color: t.brand,
+                  background: 'oklch(100% 0 0 / 0.05)',
+                  color: t.text,
                 } : {
                   color: t.textSec,
-                  border: '1px solid transparent',
                 }}
               >
                 {settingsActive && (
                   <span
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-                    style={{ background: t.brand, boxShadow: `2px 0 8px ${t.accentGlow}` }}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full"
+                    style={{ background: t.brand }}
                   />
                 )}
-                <SettingsIcon className="w-[18px] h-[18px] flex-shrink-0" />
+                <SettingsIcon className="w-[18px] h-[18px] flex-shrink-0" style={settingsActive ? { color: t.brandHi } : undefined} />
                 {!collapsed && <span className="text-sm font-medium flex-1 text-left">{settingsLabel}</span>}
                 {!collapsed && (
                   <ChevronDown
@@ -237,7 +238,7 @@ export default function DashboardShell(props: DashboardShellProps) {
                   <span
                     className="absolute left-full ml-3 px-2 py-1 text-xs rounded-lg
                       opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl backdrop-blur-xl"
-                    style={{ background: t.panelSolid, color: t.text, border: `1px solid ${t.borderHi}` }}
+                    style={{ background: t.elevated, color: t.text, border: `1px solid ${t.borderHi}` }}
                   >
                     {settingsLabel}
                   </span>
@@ -263,6 +264,30 @@ export default function DashboardShell(props: DashboardShellProps) {
           )}
         </div>
       </nav>
+
+      {/* Help + Docs */}
+      {!collapsed && (
+        <div className="flex-shrink-0 space-y-0.5 mb-1">
+          <a
+            href="mailto:contact@qwillio.com"
+            className="flex items-center gap-3 px-3 py-2 rounded-[10px] transition-colors hover:bg-white/[0.03]"
+            style={{ color: t.textSec }}
+          >
+            <HelpCircle className="w-[18px] h-[18px] flex-shrink-0" />
+            <span className="text-[13px] font-medium">Aide</span>
+          </a>
+          <a
+            href="https://qwillio.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2 rounded-[10px] transition-colors hover:bg-white/[0.03]"
+            style={{ color: t.textSec }}
+          >
+            <BookOpen className="w-[18px] h-[18px] flex-shrink-0" />
+            <span className="text-[13px] font-medium">Documentation</span>
+          </a>
+        </div>
+      )}
 
       {/* Bottom — user + logout */}
       <div className="flex-shrink-0 space-y-1 mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
@@ -296,14 +321,14 @@ export default function DashboardShell(props: DashboardShellProps) {
   );
 
   return (
-    <div className="h-screen md:h-screen flex overflow-hidden" style={{ height: '100dvh', background: t.bg, color: t.text }}>
+    <div className="h-screen md:h-screen flex overflow-hidden" style={{ height: '100dvh', background: t.inset, color: t.text }}>
       {/* Desktop Sidebar */}
       <aside
         className={`sidebar-surface hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
           backdrop-blur-xl transition-colors duration-300 ease-in-out
           ${collapsed ? 'w-[64px] px-2 py-5' : 'w-[220px] px-4 py-5'}`}
         style={{
-          background: t.panelSolid,
+          background: t.elevated,
           borderRight: `1px solid ${t.border}`,
           position: 'relative',
         }}
@@ -319,19 +344,6 @@ export default function DashboardShell(props: DashboardShellProps) {
           }}
         />
         <SidebarContent />
-
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-8 w-6 h-6 rounded-full
-            flex items-center justify-center transition-colors"
-          style={{
-            background: t.panelSolid,
-            boxShadow: '0 0 0 1px oklch(100% 0 0 / 0.08), 0 2px 8px oklch(0% 0 0 / 0.40)',
-            color: t.textSec,
-          }}
-        >
-          {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-        </button>
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -348,7 +360,7 @@ export default function DashboardShell(props: DashboardShellProps) {
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="sidebar-surface md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] px-4 pt-5 pb-28"
               style={{
-                background: t.panelSolid,
+                background: t.elevated,
                 borderRight: `1px solid ${t.border}`,
                 position: 'fixed',
               }}
@@ -376,12 +388,15 @@ export default function DashboardShell(props: DashboardShellProps) {
         )}
       </AnimatePresence>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main — inset rounded panel against the darker sidebar gutter */}
+      <div
+        className="flex-1 flex flex-col min-w-0 overflow-hidden md:rounded-tl-[28px]"
+        style={{ background: t.panel }}
+      >
         <header
           className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6"
           style={{
-            background: 'oklch(8% 0.009 265 / 0.85)',
+            background: 'oklch(11% 0.004 265 / 0.85)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             borderBottom: '1px solid oklch(22% 0.012 265 / 0.4)',
@@ -463,14 +478,11 @@ function MobileBottomNav({
             animate={{ left: `${activeIdx * itemPct + itemPct / 2}%` }}
             transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.8 }}
             style={{
-              width: 68, height: 68,
+              width: 64, height: 64,
               top: '50%',
               x: '-50%', y: '-50%',
-              background: 'oklch(56% 0.22 264 / 0.22)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1.5px solid oklch(56% 0.22 264 / 0.45)',
-              boxShadow: '0 0 32px oklch(56% 0.22 264 / 0.30), inset 0 1px 0 oklch(100% 0 0 / 0.14)',
+              background: 'oklch(56% 0.02 265 / 0.14)',
+              border: '1px solid oklch(56% 0.02 265 / 0.30)',
             }}
           />
         )}

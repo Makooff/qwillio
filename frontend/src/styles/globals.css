@@ -5,18 +5,18 @@
 /* ─── Design Tokens — Signal Dark v3 — Indigo ─── */
 :root {
   /* Indigo-tinted dark system — logo Q-circle primary */
-  --q-bg:         oklch(8% 0.009 265);
-  --q-bg2:        oklch(11% 0.013 265);
-  --q-bg3:        oklch(15% 0.017 265);
-  --q-panel:      oklch(11% 0.013 265);
-  --q-panel-hi:   oklch(15% 0.017 265);
+  --q-bg:         oklch(8% 0.003 265);
+  --q-bg2:        oklch(11% 0.004 265);
+  --q-bg3:        oklch(15% 0.006 265);
+  --q-panel:      oklch(11% 0.004 265);
+  --q-panel-hi:   oklch(15% 0.006 265);
   --q-border:     oklch(22% 0.012 265 / 0.55);
   --q-border-hi:  oklch(30% 0.014 265 / 0.70);
-  --q-accent:     oklch(56% 0.22 264);
-  --q-accent-hi:  oklch(63% 0.21 264);
-  --q-accent-dim: oklch(56% 0.22 264 / 0.12);
-  --q-accent-brd: oklch(56% 0.22 264 / 0.35);
-  --q-violet:     oklch(67% 0.26 299);
+  --q-accent:     oklch(56% 0.02 265);
+  --q-accent-hi:  oklch(63% 0.02 265);
+  --q-accent-dim: oklch(56% 0.02 265 / 0.12);
+  --q-accent-brd: oklch(56% 0.02 265 / 0.35);
+  --q-violet:     oklch(67% 0.03 265);
   --q-text:       oklch(95% 0.004 265);
   --q-text-2:     oklch(65% 0.007 265);
   --q-text-3:     oklch(42% 0.006 265);
@@ -33,11 +33,11 @@
 
 /* ─── Global Reset ─── */
 html {
-  background-color: oklch(8% 0.009 265);
+  background-color: oklch(8% 0.003 265);
 }
 body {
   font-family: 'Outfit', system-ui, -apple-system, sans-serif;
-  background-color: oklch(8% 0.009 265);
+  background-color: oklch(8% 0.003 265);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding-top: env(safe-area-inset-top);
@@ -59,12 +59,11 @@ body {
 @layer components {
   .btn-primary {
     @apply px-6 py-2.5 rounded-lg font-semibold;
-    background: oklch(56% 0.22 264);
+    background: oklch(56% 0.02 265);
     color: oklch(98% 0.004 265);
-    box-shadow: 0 4px 16px oklch(56% 0.22 264 / 0.30);
     transition: background-color 160ms var(--ease-out), transform 120ms var(--ease-out);
   }
-  .btn-primary:hover  { background: oklch(63% 0.21 264); }
+  .btn-primary:hover  { background: oklch(63% 0.02 265); }
   .btn-primary:active { transform: scale(0.97); }
 
   .btn-secondary {
@@ -115,7 +114,7 @@ body {
     font-family: 'Outfit', system-ui, sans-serif;
   }
   .input:focus {
-    border-color: oklch(56% 0.22 264 / 0.45);
+    border-color: oklch(56% 0.02 265 / 0.45);
   }
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
@@ -123,7 +122,7 @@ body {
   .badge-new        { background: oklch(70% 0.18 240 / 0.15); color: oklch(70% 0.18 240); }
   .badge-contacted  { background: oklch(78% 0.18 75 / 0.15);  color: oklch(78% 0.18 75); }
   .badge-interested { background: oklch(75% 0.18 50 / 0.15);  color: oklch(75% 0.18 50); }
-  .badge-qualified  { background: oklch(56% 0.22 264 / 0.15); color: oklch(56% 0.22 264); }
+  .badge-qualified  { background: oklch(56% 0.02 265 / 0.15); color: oklch(56% 0.02 265); }
   .badge-converted  { background: oklch(72% 0.18 145 / 0.15); color: oklch(72% 0.18 145); }
   .badge-lost       { background: oklch(65% 0.22 25 / 0.15);  color: oklch(65% 0.22 25); }
   .badge-active     { background: oklch(72% 0.18 145 / 0.15); color: oklch(72% 0.18 145); }
@@ -184,6 +183,61 @@ a[role="button"]:active,
    on Link / a tags inside JSX so we don't rely on global selector alone. */
 [data-press]:active {
   transform: scale(0.97);
+}
+
+/* ─── Auth — staggered entrance + glass inputs ─── */
+@keyframes authFadeSlideIn {
+  from { opacity: 0; filter: blur(4px); transform: translateY(14px); }
+  to   { opacity: 1; filter: blur(0);   transform: translateY(0); }
+}
+@keyframes authSlideRightIn {
+  from { opacity: 0; filter: blur(6px); transform: translateX(28px) scale(0.98); }
+  to   { opacity: 1; filter: blur(0);   transform: translateX(0) scale(1); }
+}
+.auth-in {
+  opacity: 0;
+  animation: authFadeSlideIn 0.6s var(--ease-out-expo) both;
+}
+.auth-slide-right {
+  opacity: 0;
+  animation: authSlideRightIn 0.7s var(--ease-out-expo) both;
+}
+.auth-d1 { animation-delay: 0.08s; }
+.auth-d2 { animation-delay: 0.16s; }
+.auth-d3 { animation-delay: 0.24s; }
+.auth-d4 { animation-delay: 0.32s; }
+.auth-d5 { animation-delay: 0.40s; }
+.auth-d6 { animation-delay: 0.48s; }
+.auth-d7 { animation-delay: 0.56s; }
+.auth-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  accent-color: oklch(56% 0.02 265);
+  cursor: pointer;
+}
+
+/* ─── Accessibility — visible keyboard focus everywhere ─── */
+/* Mouse clicks don't show it (:focus-visible), keyboard nav does. Overrides any
+   local outline:none so inputs/buttons/links always have a clear focus ring. */
+:focus-visible {
+  outline: 2px solid var(--q-accent-hi);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--q-accent-hi);
+  outline-offset: 2px;
+}
+/* Don't double up: the press transform shouldn't swallow the ring. */
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* ─── Prefers-reduced-motion ─── */

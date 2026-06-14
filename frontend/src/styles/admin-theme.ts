@@ -1,25 +1,25 @@
 ﻿/**
  * Qwillio Admin — Signal Dark v3
  * OKLCH. Indigo-tinted dark base — logo Q-circle primary.
- * Primary: oklch(56% 0.22 264)  ≈ #6366F1 (logo indigo)
- * Violet:  oklch(67% 0.26 299)  ≈ #A855F7 (logo violet)
+ * Primary: oklch(56% 0.02 265)  ≈ #6366F1 (logo indigo)
+ * Violet:  oklch(67% 0.03 265)  ≈ #A855F7 (logo violet)
  *
  * Usage: import { t } from '../styles/admin-theme';
  */
 
 export const t = {
-  // ── Backgrounds ──────────────────────────────────────────────────────────
-  bg:         'oklch(8% 0.009 265)',
-  panel:      'oklch(11% 0.013 265)',
-  panelSolid: 'oklch(10% 0.011 265)',
-  panelHover: 'oklch(15% 0.017 265)',
-  elevated:   'oklch(14% 0.015 265)',
-  inset:      'oklch(6% 0.007 265)',
+  // ── Backgrounds — near-black neutral (indigo lives in the accent, not the bg) ─
+  bg:         'oklch(8% 0.003 265)',
+  panel:      'oklch(11% 0.004 265)',
+  panelSolid: 'oklch(10% 0.004 265)',
+  panelHover: 'oklch(15% 0.006 265)',
+  elevated:   'oklch(14% 0.005 265)',
+  inset:      'oklch(6% 0.003 265)',
 
   // ── Borders ──────────────────────────────────────────────────────────────
   border:      'oklch(22% 0.012 265 / 0.55)',
   borderHi:    'oklch(30% 0.014 265 / 0.70)',
-  borderFocus: 'oklch(56% 0.22 264 / 0.50)',
+  borderFocus: 'oklch(56% 0.02 265 / 0.50)',
 
   // ── Text ─────────────────────────────────────────────────────────────────
   text:     'oklch(95% 0.004 265)',
@@ -28,27 +28,29 @@ export const t = {
   textMuted:'oklch(28% 0.005 265)',
 
   // ── Brand — Qwillio Indigo (logo Q circle) ────────────────────────────
-  brand:  'oklch(56% 0.22 264)',
-  brandHi:'oklch(63% 0.21 264)',
-  violet: 'oklch(67% 0.26 299)',
+  brand:  'oklch(56% 0.02 265)',
+  brandHi:'oklch(63% 0.02 265)',
+  violet: 'oklch(67% 0.03 265)',
   live:   'oklch(72% 0.18 145)',
 
   // ── Accent system ─────────────────────────────────────────────────────────
-  accentGrad: 'linear-gradient(135deg, oklch(52% 0.24 264) 0%, oklch(63% 0.22 264) 100%)',
-  accentGlow: 'oklch(56% 0.22 264 / 0.22)',
-  accentMid:  'oklch(56% 0.22 264 / 0.10)',
-  accentDim:  'oklch(56% 0.22 264 / 0.12)',
-  accentBrd:  'oklch(56% 0.22 264 / 0.40)',
-  violetGlow: 'oklch(67% 0.26 299 / 0.20)',
+  // Vapi-pro: flat, restrained. No gradients, no glow. Indigo carries meaning
+  // only on the active item and the primary action — never as ambient decoration.
+  accentGrad: 'oklch(56% 0.02 265)',
+  accentGlow: 'oklch(56% 0.02 265 / 0.10)',
+  accentMid:  'oklch(56% 0.02 265 / 0.10)',
+  accentDim:  'oklch(56% 0.02 265 / 0.12)',
+  accentBrd:  'oklch(56% 0.02 265 / 0.40)',
+  violetGlow: 'oklch(67% 0.03 265 / 0.20)',
   okGlow:     'oklch(72% 0.18 145 / 0.18)',
 
-  // ── Mesh gradient — indigo ambience ──────────────────────────────────────
-  mesh: 'radial-gradient(ellipse 220px 180px at 10% 0%, oklch(56% 0.22 264 / 0.09) 0%, transparent 70%), radial-gradient(ellipse 160px 120px at 90% 100%, oklch(67% 0.26 299 / 0.06) 0%, transparent 70%)',
+  // ── Ambient — disabled (flat surfaces, hairline separation) ───────────────
+  mesh: 'none',
 
-  // ── Shadows ──────────────────────────────────────────────────────────────
-  shadow:      '0 1px 3px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.04)',
-  shadowFloat: '0 8px 40px oklch(0% 0 0 / 0.70), 0 0 0 1px oklch(100% 0 0 / 0.06)',
-  shadowGlow:  '0 0 0 1px oklch(56% 0.22 264 / 0.30), 0 4px 20px oklch(56% 0.22 264 / 0.18)',
+  // ── Shadows — subtle. Depth comes from hairline borders, not glow. ────────
+  shadow:      '0 1px 2px oklch(0% 0 0 / 0.40), 0 0 0 1px oklch(100% 0 0 / 0.03)',
+  shadowFloat: '0 12px 32px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.05)',
+  shadowGlow:  '0 0 0 1px oklch(56% 0.02 265 / 0.25)',
 
   // ── Status ───────────────────────────────────────────────────────────────
   success: 'oklch(72% 0.18 145)',

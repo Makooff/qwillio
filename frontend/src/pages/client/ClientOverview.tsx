@@ -1,23 +1,19 @@
-﻿// === FILE: ClientOverview.tsx ===
+// === FILE: ClientOverview.tsx ===
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  Phone, Users, Bot, Settings, ChevronRight, AlertCircle,
-  Headphones, Sparkles, TrendingUp, ArrowUpRight, ArrowDownRight,
+  Phone, Bot, Settings, ChevronRight, AlertCircle,
+  Headphones, Sparkles, PhoneForwarded, Pause, Activity,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
-import { formatShortDate, daysUntil } from '../../utils/format';
+import { daysUntil } from '../../utils/format';
 import OnboardingChecklist from '../../components/client/OnboardingChecklist';
-
-type TrendDir = 'up' | 'down' | 'flat';
-
-interface KpiItem {
-  label: string;
-  value: string | number;
-  hint?: string;
-  trend?: { dir: TrendDir; pct: number };
-}
+import {
+  KpiSplit, HeroTrendPanel, RadialGauge, TallyMeter, DetailCard,
+  AttentionList, SegmentBar, InsightCard,
+  type KpiCell, type AttnItem, type Dir,
+} from '../../components/dashboard/OverviewBlocks';
 
 function greeting(name: string): string {
   const h = new Date().getHours();
@@ -35,7 +31,7 @@ function outcomeLabel(outcome: string): string {
 
 function outcomePill(outcome: string): string {
   if (outcome === 'lead_captured') return 'bg-emerald-400/10 text-emerald-400';
-  if (outcome === 'transferred') return 'bg-indigo-400/10 text-indigo-400';
+  if (outcome === 'transferred') return 'bg-white/[0.08] text-white/60';
   return 'bg-white/[0.05] text-white/40';
 }
 
@@ -59,7 +55,7 @@ export default function ClientOverview() {
     try {
       const [ov, cl] = await Promise.all([
         api.get('/my-dashboard/overview'),
-        api.get('/my-dashboard/calls?page=1&limit=5').catch(() => ({ data: { data: [] } })),
+        api.get('/my-dashboard/calls?page=1&limit=6').catch(() => ({ data: { data: [] } })),
       ]);
       setData(ov.data);
       setCalls((cl.data?.data as Record<string, unknown>[]) || []);
@@ -108,40 +104,58 @@ export default function ClientOverview() {
   const sentTotal = ((sentiment_ as Record<string, number>).positive ?? 0)
     + ((sentiment_ as Record<string, number>).neutral ?? 0)
     + ((sentiment_ as Record<string, number>).negative ?? 0);
+  const positive = (sentiment_ as Record<string, number>).positive ?? 0;
   const convRate = callsMonth > 0 ? Math.round((leadsMonth / callsMonth) * 100) : 0;
-  const positiveRate = sentTotal > 0 ? Math.round(((sentiment_ as Record<string, number>).positive / sentTotal) * 100) : 0;
+  const positiveRate = sentTotal > 0 ? Math.round((positive / sentTotal) * 100) : 0;
   const callsTodayPct = callsYesterday > 0
     ? Math.abs(Math.round(((callsToday - callsYesterday) / callsYesterday) * 100))
     : 0;
-  const callsTodayDir: TrendDir = callsToday > callsYesterday ? 'up' : callsToday < callsYesterday ? 'down' : 'flat';
+  const callsTodayDir: Dir = callsToday > callsYesterday ? 'up' : callsToday < callsYesterday ? 'down' : 'flat';
 
-  const quotaUsed = (calls_ as Record<string, number>).quotaUsed ?? 0;
+  const quotaUsed = (calls_ as Record<string, number>).quotaUsed ?? callsMonth;
   const quotaTotal = (c.monthlyCallsQuota as number) ?? (calls_ as Record<string, number>).quota ?? 0;
-  const quotaPct = quotaTotal > 0 ? Math.round((quotaUsed / quotaTotal) * 100) : 0;
+  const quotaPct = quotaTotal > 0 ? Math.min(100, Math.round((quotaUsed / quotaTotal) * 100)) : 0;
 
-  const kpis: KpiItem[] = [
+  const planLabel = c.planType
+    ? `${(c.planType as string).charAt(0).toUpperCase()}${(c.planType as string).slice(1)}`
+    : '—';
+
+  // KPI row — three borderless figures
+  const kpis: KpiCell[] = [
     {
-      label: "Appels totaux",
-      value: callsMonth,
-      hint: quotaTotal ? `${quotaPct}% quota (${quotaUsed}/${quotaTotal})` : undefined,
-    },
-    {
-      label: "Leads qualifiés",
-      value: leadsMonth,
-      hint: callsMonth > 0 ? `${convRate}% de conversion` : undefined,
-    },
-    {
-      label: "Taux conversion",
+      label: 'Taux de conversion',
       value: `${convRate}%`,
-      hint: `${leadsMonth} leads ce mois`,
     },
     {
-      label: "Score moyen",
-      value: `${positiveRate}%`,
-      hint: sentTotal > 0 ? `${sentTotal} appels analysés` : 'Pas encore de données',
-      trend: callsTodayPct > 0 ? { dir: callsTodayDir, pct: callsTodayPct } : undefined,
+      label: 'Appels traités',
+      value: callsMonth.toLocaleString('fr-FR'),
+      delta: callsTodayPct > 0 ? { pct: callsTodayPct, dir: callsTodayDir } : undefined,
+      deltaSuffix: 'vs hier',
+    },
+    {
+      label: 'Score sentiment',
+      value: sentTotal > 0 ? `${positiveRate}%` : '—',
     },
   ];
+
+  // Needs-attention items, derived from real state
+  const attn: AttnItem[] = [];
+  if (!c.transferNumber) {
+    attn.push({ icon: AlertCircle, label: 'Numéro de transfert manquant', to: '/dashboard/receptionist#transfer', tone: 'bad' });
+  }
+  if (c.forwardingStatus !== 'verified' && !c.forwardingVerifiedAt) {
+    attn.push({ icon: PhoneForwarded, label: "Renvoi d'appel à configurer", to: '/dashboard/setup/call-forwarding', tone: 'warn' });
+  }
+  if (c.isTrial) {
+    attn.push({ icon: Sparkles, label: `Essai: ${daysUntil(c.trialEndDate as string)} jours restants`, to: '/dashboard/billing', tone: 'warn', count: daysUntil(c.trialEndDate as string) });
+  }
+  if (isPaused) {
+    attn.push({ icon: Pause, label: 'Abonnement en pause', to: '/dashboard/billing', tone: 'bad' });
+  }
+
+  const insightText = sentTotal > 0
+    ? <>Sentiment positif sur <strong className="font-semibold">{positiveRate}%</strong> des appels analysés, avec un taux de conversion de <strong className="font-semibold">{convRate}%</strong> ce mois.</>
+    : <>Connectez votre ligne pour générer des analyses automatiques de vos appels et de leur sentiment.</>;
 
   const onboardingClient = {
     hasPhone: !!(c.transferNumber || c.vapiPhoneNumber),
@@ -162,36 +176,21 @@ export default function ClientOverview() {
   // --- Loading skeleton ---
   if (loading) {
     return (
-      <main className="space-y-8 max-w-[1200px]" aria-busy="true">
+      <main className="space-y-6 max-w-[1320px]" aria-busy="true">
         {paymentPending && (
-          <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.05] px-5 py-3">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-3">
             <p className="text-sm text-white/70">Activation de votre compte en cours…</p>
           </div>
         )}
-        <div className="flex items-end justify-between">
-          <div className="space-y-2"><Bone className="h-7 w-44" /><Bone className="h-4 w-32" /></div>
-        </div>
-        {/* KPI strip skeleton */}
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-5">
-          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-white/[0.06]">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="px-5 space-y-2 first:pl-0 last:pr-0">
-                <Bone className="h-3 w-20" />
-                <Bone className="h-8 w-14" />
-                <Bone className="h-3 w-24" />
-              </div>
-            ))}
-          </div>
-        </div>
-        {/* Calls skeleton */}
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04]">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04] last:border-b-0">
-              <Bone className="h-8 w-8 rounded-full flex-shrink-0" />
-              <div className="flex-1 space-y-1.5"><Bone className="h-3.5 w-36" /><Bone className="h-3 w-24" /></div>
-              <Bone className="h-5 w-14 rounded-full" />
-            </div>
+        <div className="space-y-2"><Bone className="h-7 w-44" /><Bone className="h-4 w-40" /></div>
+        <div className="grid grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-2"><Bone className="h-3 w-24" /><Bone className="h-8 w-16" /></div>
           ))}
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5">
+          <Bone className="h-[320px] rounded-2xl" />
+          <Bone className="h-[320px] rounded-2xl" />
         </div>
       </main>
     );
@@ -207,7 +206,7 @@ export default function ClientOverview() {
         <p className="text-sm text-white/60 mb-4">{error}</p>
         <button
           onClick={load}
-          className="px-5 py-2 rounded-xl text-sm font-medium bg-indigo-500 text-white hover:bg-indigo-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+          className="px-5 py-2 rounded-xl text-sm font-medium bg-white/[0.06] text-white hover:bg-white/[0.1] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
         >
           Réessayer
         </button>
@@ -216,7 +215,7 @@ export default function ClientOverview() {
   }
 
   return (
-    <main className="space-y-8 max-w-[1200px]">
+    <main className="space-y-6 max-w-[1320px]">
       {/* Header */}
       <section className="flex items-start justify-between gap-4">
         <div>
@@ -231,138 +230,175 @@ export default function ClientOverview() {
             </span>
           </p>
         </div>
+        <div className="hidden sm:flex items-center gap-2 h-9 px-3.5 rounded-xl text-[12.5px] font-medium text-white/60"
+          style={{ background: 'oklch(100% 0 0 / 0.03)', border: '1px solid oklch(22% 0.012 265 / 0.55)' }}
+        >
+          <Activity size={13} className="text-white/40" />
+          30 derniers jours
+        </div>
       </section>
 
       {/* Onboarding */}
       {!onboardingDone && <OnboardingChecklist client={onboardingClient} />}
 
-      {/* Banners */}
-      {!!c.isTrial && (
-        <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.05] px-5 py-3 flex items-center gap-3">
-          <Sparkles size={15} className="text-indigo-400 flex-shrink-0" />
-          <p className="text-[13px] text-white/80 flex-1">
-            Période d'essai — <strong className="text-white/90">{daysUntil(c.trialEndDate as string)} jours restants</strong>
-          </p>
-          <Link
-            to="/dashboard/billing"
-            className="text-[12px] font-medium text-indigo-400 hover:text-indigo-300 whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 rounded"
-          >
-            Mettre à jour
-          </Link>
-        </div>
-      )}
-      {!c.transferNumber && (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.05] px-5 py-3 flex items-center gap-3">
-          <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
-          <p className="text-[13px] text-white/80 flex-1">Numéro de transfert non configuré</p>
-          <Link
-            to="/dashboard/receptionist#transfer"
-            className="text-[12px] font-medium text-indigo-400 hover:text-indigo-300 whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 rounded"
-          >
-            Configurer
-          </Link>
-        </div>
-      )}
+      {/* KPI split row — borderless figures with a hairline under */}
+      <section aria-label="Indicateurs clés" className="pb-6 border-b border-white/[0.06]">
+        <KpiSplit items={kpis} />
+      </section>
 
-      {/* KPI strip */}
-      <section aria-label="Indicateurs clés">
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04]">
-          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-white/[0.06]">
-            {kpis.map((kpi, i) => (
-              <div key={i} className="px-6 py-5">
-                <p className="text-[11px] font-medium uppercase tracking-widest text-white/30 mb-2">{kpi.label}</p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-[28px] font-semibold tabular-nums leading-none text-white/90">{kpi.value}</p>
-                  {kpi.trend && kpi.trend.pct > 0 && (
-                    <span className={`inline-flex items-center gap-0.5 text-[11px] font-medium ${kpi.trend.dir === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {kpi.trend.dir === 'up' ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-                      {kpi.trend.pct}%
-                    </span>
-                  )}
-                </div>
-                {kpi.hint && <p className="text-[11px] mt-1 text-white/30">{kpi.hint}</p>}
-              </div>
-            ))}
+      {/* Main grid — content + right rail */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5">
+        {/* Left column */}
+        <div className="space-y-5 min-w-0">
+          <HeroTrendPanel
+            value={callsMonth.toLocaleString('fr-FR')}
+            label="Appels traités ce mois"
+            delta={callsTodayPct > 0 ? { pct: callsTodayPct, dir: callsTodayDir } : undefined}
+            deltaSuffix="sur 24 h"
+            series={[]}
+            unit="appels"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <InsightCard
+              kicker="Analyse IA"
+              icon={Sparkles}
+              action={{ label: 'Voir l’analyse', to: '/dashboard/analytics' }}
+            >
+              {insightText}
+            </InsightCard>
+            <SegmentBar
+              title="Utilisation du quota"
+              value={quotaTotal > 0 ? `${quotaUsed.toLocaleString('fr-FR')}` : callsMonth.toLocaleString('fr-FR')}
+              hint={quotaTotal > 0 ? `sur ${quotaTotal.toLocaleString('fr-FR')} appels inclus` : 'Aucun quota plafonné'}
+              segments={quotaTotal > 0
+                ? [
+                    { label: 'Utilisé', pct: quotaPct, bright: true },
+                    { label: 'Restant', pct: 100 - quotaPct },
+                  ]
+                : [{ label: 'Appels traités', pct: 100, bright: true }]}
+              action={{ label: 'Gérer', to: '/dashboard/billing' }}
+            />
           </div>
-        </div>
-      </section>
 
-      {/* Recent calls */}
-      <section aria-label="Appels récents">
-        <div className="flex items-center justify-between mb-3 px-1">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/40">Activité récente</h2>
-          <Link
-            to="/dashboard/calls"
-            className="text-[11.5px] font-medium text-white/40 hover:text-white/70 transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 rounded"
-          >
-            Tout voir <ChevronRight size={12} />
-          </Link>
-        </div>
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04] overflow-hidden">
-          {(calls as unknown[]).length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-white/30">
-              <Phone size={28} className="opacity-40 mb-3" />
-              <p className="text-[13px]">Aucun appel pour le moment</p>
+          {/* Recent activity */}
+          <section aria-label="Appels récents">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/40">Activité récente</h2>
+              <Link
+                to="/dashboard/calls"
+                className="text-[11.5px] font-medium text-white/40 hover:text-white/70 transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded"
+              >
+                Tout voir <ChevronRight size={12} />
+              </Link>
             </div>
-          ) : (
-            <ul>
-              {(calls as Record<string, unknown>[]).map((call, i) => (
-                <li key={(call.id as string) || i}>
-                  <Link
-                    to={`/dashboard/calls?id=${call.id}`}
-                    className="flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0 group focus:outline-none focus-visible:ring-inset focus-visible:ring-1 focus-visible:ring-indigo-400"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center flex-shrink-0">
-                      <Phone size={13} className="text-white/40" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-white/90 truncate">
-                        {(call.callerName as string) || (call.phoneNumber as string) || 'Appel inconnu'}
-                      </p>
-                      <p className="text-[11px] text-white/30">
-                        {call.startedAt
-                          ? new Date(call.startedAt as string).toLocaleString('fr-FR', {
-                              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-                            })
-                          : '—'}
-                        {call.duration ? ` · ${Math.round(call.duration as number)}s` : ''}
-                      </p>
-                    </div>
-                    {!!call.outcome && (
-                      <span className={`text-[10.5px] font-medium px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${outcomePill(call.outcome as string)}`}>
-                        {outcomeLabel(call.outcome as string)}
-                      </span>
-                    )}
-                    <ChevronRight size={13} className="text-white/20 group-hover:text-white/50 transition-colors flex-shrink-0" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+              {(calls as unknown[]).length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-white/30">
+                  <Phone size={28} className="opacity-40 mb-3" />
+                  <p className="text-[13px]">Aucun appel pour le moment</p>
+                </div>
+              ) : (
+                <ul>
+                  {(calls as Record<string, unknown>[]).map((call, i) => (
+                    <li key={(call.id as string) || i}>
+                      <Link
+                        to={`/dashboard/calls?id=${call.id}`}
+                        className="flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.02] transition-colors border-b border-white/[0.04] last:border-b-0 group focus:outline-none focus-visible:ring-inset focus-visible:ring-1 focus-visible:ring-white/30"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center flex-shrink-0">
+                          <Phone size={13} className="text-white/40" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-medium text-white/90 truncate">
+                            {(call.callerName as string) || (call.phoneNumber as string) || 'Appel inconnu'}
+                          </p>
+                          <p className="text-[11px] text-white/30">
+                            {call.startedAt
+                              ? new Date(call.startedAt as string).toLocaleString('fr-FR', {
+                                  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                                })
+                              : '—'}
+                            {call.duration ? ` · ${Math.round(call.duration as number)}s` : ''}
+                          </p>
+                        </div>
+                        {!!call.outcome && (
+                          <span className={`text-[10.5px] font-medium px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${outcomePill(call.outcome as string)}`}>
+                            {outcomeLabel(call.outcome as string)}
+                          </span>
+                        )}
+                        <ChevronRight size={13} className="text-white/20 group-hover:text-white/50 transition-colors flex-shrink-0" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
         </div>
-      </section>
+
+        {/* Right rail */}
+        <div className="space-y-5">
+          <RadialGauge
+            caption={quotaTotal > 0 ? 'Quota d’appels' : 'Appels ce mois'}
+            value={quotaTotal > 0 ? quotaUsed.toLocaleString('fr-FR') : callsMonth.toLocaleString('fr-FR')}
+            fraction={quotaTotal > 0 ? quotaPct / 100 : Math.min(1, callsMonth / 200)}
+            icon={Phone}
+            legend={quotaTotal > 0
+              ? [
+                  { label: 'Utilisé', value: quotaUsed.toLocaleString('fr-FR'), bright: true },
+                  { label: 'Inclus', value: quotaTotal.toLocaleString('fr-FR') },
+                ]
+              : [{ label: 'Ce mois', value: callsMonth.toLocaleString('fr-FR'), bright: true }]}
+            action={{ label: 'Voir les appels', to: '/dashboard/calls' }}
+          />
+
+          <TallyMeter
+            caption="Leads qualifiés ce mois"
+            value={leadsMonth.toLocaleString('fr-FR')}
+            pct={convRate}
+            legend={[
+              { label: 'Qualifiés', value: '', bright: true },
+              { label: 'Total appels', value: '' },
+            ]}
+          />
+
+          <DetailCard
+            title="Abonnement"
+            rows={[
+              { k: 'Plan', v: planLabel },
+              { k: 'Statut', v: isActive ? (c.isTrial ? 'Essai' : 'Actif') : isPaused ? 'En pause' : 'Inactif', status: isActive ? 'ok' : isPaused ? 'warn' : 'bad' },
+              { k: 'Numéro IA', v: (c.vapiPhoneNumber as string) || '—' },
+              { k: c.isTrial ? 'Fin d’essai' : 'Renouvellement', v: c.trialEndDate ? new Date(c.trialEndDate as string).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' },
+            ]}
+            action={{ label: 'Gérer la facturation', to: '/dashboard/billing' }}
+          />
+
+          <AttentionList title="À traiter" items={attn} empty="Tout est en ordre." />
+        </div>
+      </div>
 
       {/* Quick links */}
       <section aria-label="Actions rapides">
         <div className="flex items-center mb-3 px-1">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/40">Actions rapides</h2>
+          <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/40">Actions rapides</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { icon: Phone, label: 'Configurer le renvoi', desc: 'iPhone et Android – guide pas à pas', to: '/dashboard/setup/call-forwarding' },
+            { icon: PhoneForwarded, label: 'Configurer le renvoi', desc: 'iPhone et Android, guide pas à pas', to: '/dashboard/setup/call-forwarding' },
             { icon: Bot, label: "Personnaliser l'IA", desc: 'Voix, scripts, transferts', to: '/dashboard/receptionist' },
             { icon: Settings, label: 'Paramètres du compte', desc: 'Profil, sécurité, notifications', to: '/dashboard/account' },
           ].map(({ icon: Icon, label, desc, to }) => (
             <Link
               key={to}
               to={to}
-              className="group rounded-2xl border border-white/[0.06] bg-white/[0.04] p-4 hover:border-white/[0.12] hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 hover:border-white/[0.12] hover:bg-white/[0.04] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
             >
               <div className="flex items-center gap-3 mb-2.5">
                 <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
                   <Icon size={14} className="text-white/70" />
                 </div>
-                <ChevronRight size={13} className="ml-auto text-white/20 group-hover:text-indigo-400 transition-colors" />
+                <ChevronRight size={13} className="ml-auto text-white/20 group-hover:text-white/60 transition-colors" />
               </div>
               <p className="text-[13px] font-semibold text-white/90">{label}</p>
               <p className="text-[11.5px] mt-0.5 text-white/30">{desc}</p>
@@ -373,22 +409,22 @@ export default function ClientOverview() {
 
       {/* Support */}
       <section>
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04] px-5 py-4 flex items-center gap-3">
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-4 flex items-center gap-3">
           <Headphones size={15} className="text-white/40 flex-shrink-0" />
           <p className="text-[12.5px] text-white/70 flex-1">
             Besoin d'aide ? Notre équipe répond en moins d'une heure.
           </p>
           <Link
             to="/dashboard/support"
-            className="text-[12px] font-medium text-indigo-400 hover:text-indigo-300 whitespace-nowrap transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 rounded"
+            className="text-[12px] font-medium text-white/70 hover:text-white whitespace-nowrap transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded"
           >
-            Contacter le support <TrendingUp size={11} />
+            Contacter le support <ChevronRight size={12} />
           </Link>
         </div>
       </section>
 
       <p className="text-center text-[10px] text-white/20 pb-2">
-        Qwillio · {c.planType ? `Plan ${(c.planType as string).charAt(0).toUpperCase() + (c.planType as string).slice(1)}` : 'Plan'}
+        Qwillio · Plan {planLabel}
         {' · '}Mis à jour {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
       </p>
     </main>

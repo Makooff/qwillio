@@ -1,16 +1,16 @@
 /**
  * Qwillio Design Tokens — Signal Dark v3
  * OKLCH. Indigo-tinted dark base — logo Q-circle primary.
- * Primary: oklch(56% 0.22 264)  ≈ #6366F1 (logo indigo)
- * Violet:  oklch(67% 0.26 299)  ≈ #A855F7 (logo violet)
+ * Primary: oklch(56% 0.02 265)  ≈ #6366F1 (logo indigo)
+ * Violet:  oklch(67% 0.03 265)  ≈ #A855F7 (logo violet)
  * Skills: taste-skill, emil-design-eng, impeccable
  */
 
 export const pro = {
-  // ── Backgrounds ──────────────────────────────────────────────────────────
-  bg:       'oklch(8% 0.009 265)',
-  panel:    'oklch(11% 0.013 265)',
-  panelHi:  'oklch(15% 0.017 265)',
+  // ── Backgrounds — near-black neutral (indigo lives in the accent, not the bg) ─
+  bg:       'oklch(8% 0.003 265)',
+  panel:    'oklch(11% 0.004 265)',
+  panelHi:  'oklch(15% 0.006 265)',
 
   // ── Borders ──────────────────────────────────────────────────────────────
   border:   'oklch(22% 0.012 265 / 0.55)',
@@ -22,18 +22,18 @@ export const pro = {
   textTer: 'oklch(42% 0.006 265)',
 
   // ── Accent — logo Q-circle indigo (PRIMARY) ───────────────────────────────
-  accent:     'oklch(56% 0.22 264)',
-  accentHi:   'oklch(63% 0.21 264)',
-  accentDim:  'oklch(56% 0.22 264 / 0.12)',
-  accentGlow: 'oklch(56% 0.22 264 / 0.22)',
-  accentGrad: 'linear-gradient(135deg, oklch(52% 0.24 264) 0%, oklch(63% 0.22 264) 100%)',
-  accentMid:  'oklch(56% 0.22 264 / 0.10)',
-  accentBrd:  'oklch(56% 0.22 264 / 0.40)',
+  accent:     'oklch(56% 0.02 265)',
+  accentHi:   'oklch(63% 0.02 265)',
+  accentDim:  'oklch(56% 0.02 265 / 0.12)',
+  accentGlow: 'oklch(56% 0.02 265 / 0.12)',
+  accentGrad: 'oklch(56% 0.02 265)',
+  accentMid:  'oklch(56% 0.02 265 / 0.10)',
+  accentBrd:  'oklch(56% 0.02 265 / 0.40)',
 
   // ── Violet — logo W-circle (secondary) ───────────────────────────────────
-  violet:     'oklch(67% 0.26 299)',
-  violetDim:  'oklch(67% 0.26 299 / 0.12)',
-  violetGlow: 'oklch(67% 0.26 299 / 0.20)',
+  violet:     'oklch(67% 0.03 265)',
+  violetDim:  'oklch(67% 0.03 265 / 0.12)',
+  violetGlow: 'oklch(67% 0.03 265 / 0.20)',
 
   // ── Status ───────────────────────────────────────────────────────────────
   ok:   'oklch(72% 0.18 145)',
@@ -49,10 +49,10 @@ export const pro = {
 } as const;
 
 export const proShadow = {
-  card:  '0 1px 3px oklch(0% 0 0 / 0.60), 0 0 0 1px oklch(100% 0 0 / 0.04)',
-  float: '0 8px 40px oklch(0% 0 0 / 0.75), 0 0 0 1px oklch(100% 0 0 / 0.06)',
-  glow:  '0 0 0 1px oklch(56% 0.22 264 / 0.35), 0 4px 24px oklch(56% 0.22 264 / 0.22)',
-  btn:   '0 2px 16px oklch(56% 0.22 264 / 0.45)',
+  card:  '0 1px 2px oklch(0% 0 0 / 0.40), 0 0 0 1px oklch(100% 0 0 / 0.03)',
+  float: '0 12px 32px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.05)',
+  glow:  '0 0 0 1px oklch(56% 0.02 265 / 0.30)',
+  btn:   'none',
 } as const;
 
 export const proCard = {
