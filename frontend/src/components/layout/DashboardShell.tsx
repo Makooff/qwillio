@@ -2,7 +2,7 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LogOut, X, ChevronLeft, ChevronRight, ChevronDown,
+  LogOut, X, ChevronDown,
   Settings as SettingsIcon, LayoutDashboard, RefreshCw,
   HelpCircle, BookOpen, type LucideIcon,
 } from 'lucide-react';
@@ -68,7 +68,7 @@ export default function DashboardShell(props: DashboardShellProps) {
 
   const { user, logout } = useAuthStore();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(
     (settingsSub || []).some(i => location.pathname.startsWith(i.path))
@@ -344,19 +344,6 @@ export default function DashboardShell(props: DashboardShellProps) {
           }}
         />
         <SidebarContent />
-
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-8 w-6 h-6 rounded-full
-            flex items-center justify-center transition-colors"
-          style={{
-            background: t.elevated,
-            boxShadow: '0 0 0 1px oklch(100% 0 0 / 0.08), 0 2px 8px oklch(0% 0 0 / 0.40)',
-            color: t.textSec,
-          }}
-        >
-          {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-        </button>
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -403,8 +390,8 @@ export default function DashboardShell(props: DashboardShellProps) {
 
       {/* Main — inset rounded panel against the darker sidebar gutter */}
       <div
-        className="flex-1 flex flex-col min-w-0 overflow-hidden md:rounded-tl-[28px] md:border-l md:border-t"
-        style={{ background: t.panel, borderColor: t.border }}
+        className="flex-1 flex flex-col min-w-0 overflow-hidden md:rounded-tl-[28px]"
+        style={{ background: t.panel }}
       >
         <header
           className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6"
