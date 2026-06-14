@@ -481,8 +481,8 @@ function MobileBottomNav({
               width: 64, height: 64,
               top: '50%',
               x: '-50%', y: '-50%',
-              background: 'oklch(56% 0.22 158 / 0.14)',
-              border: '1px solid oklch(56% 0.22 158 / 0.30)',
+              background: 'oklch(56% 0.02 265 / 0.14)',
+              border: '1px solid oklch(56% 0.02 265 / 0.30)',
             }}
           />
         )}

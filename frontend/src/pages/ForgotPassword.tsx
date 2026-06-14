@@ -12,8 +12,8 @@ const D = {
   text:   'oklch(95% 0.004 265)',
   text2:  'oklch(65% 0.007 265)',
   text3:  'oklch(42% 0.006 265)',
-  accent: 'oklch(56% 0.22 158)',
-  accentHi: 'oklch(63% 0.21 158)',
+  accent: 'oklch(56% 0.02 265)',
+  accentHi: 'oklch(63% 0.02 265)',
 } as const;
 
 const inputCls = `
@@ -70,7 +70,7 @@ export default function ForgotPassword() {
           <div>
             <div
               className="w-11 h-11 rounded-2xl flex items-center justify-center mb-5"
-              style={{ background: 'oklch(56% 0.22 158 / 0.12)' }}
+              style={{ background: 'oklch(56% 0.02 265 / 0.12)' }}
             >
               <MailCheck size={22} style={{ color: D.accentHi }} aria-hidden="true" />
             </div>

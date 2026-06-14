@@ -56,8 +56,8 @@ interface StatItem {
 const ICON_STYLES: Record<string, { color: string; background: string }> = {
   blue:       { color: 'oklch(60% 0.20 230)', background: 'oklch(60% 0.20 230 / 0.12)' },
   emerald:    { color: 'oklch(65% 0.17 162)', background: 'oklch(65% 0.17 162 / 0.12)' },
-  indigo:     { color: 'oklch(56% 0.22 158)', background: 'oklch(56% 0.22 158 / 0.12)' },
-  violet:     { color: 'oklch(67% 0.26 158)', background: 'oklch(67% 0.26 158 / 0.12)' },
+  indigo:     { color: 'oklch(56% 0.02 265)', background: 'oklch(56% 0.02 265 / 0.12)' },
+  violet:     { color: 'oklch(67% 0.03 265)', background: 'oklch(67% 0.03 265 / 0.12)' },
   amber:      { color: 'oklch(75% 0.18 85)',  background: 'oklch(75% 0.18 85 / 0.12)'  },
 };
 
@@ -245,8 +245,8 @@ const CARD_BG  = 'rgba(255,255,255,0.025)';
 const CARD_BORDER = 'rgba(255,255,255,0.07)';
 const TEXT_PRIMARY   = '#F2F2F2';
 const TEXT_SECONDARY = '#9A9AA5';
-const INDIGO = 'oklch(56% 0.22 158)';
-const INDIGO_HOVER = 'oklch(50% 0.22 158)';
+const INDIGO = 'oklch(56% 0.02 265)';
+const INDIGO_HOVER = 'oklch(50% 0.02 265)';
 
 export default function AgentDashboard() {
   const [modules, setModules] = useState<Module[]>(INITIAL_MODULES);
@@ -392,7 +392,7 @@ export default function AgentDashboard() {
                       {mod.comingSoon ? (
                         <span
                           className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                          style={{ background: 'oklch(67% 0.26 158 / 0.12)', color: 'oklch(67% 0.26 158)' }}
+                          style={{ background: 'oklch(67% 0.03 265 / 0.12)', color: 'oklch(67% 0.03 265)' }}
                           aria-label="Statut : Bientôt disponible"
                         >
                           Bientôt disponible

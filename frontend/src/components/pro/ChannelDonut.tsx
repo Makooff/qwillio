@@ -18,8 +18,8 @@ export interface ChannelSlice {
 }
 
 const DEFAULT_DATA: ChannelSlice[] = [
-  { label: 'Appels entrants', value: 52, color: 'oklch(56% 0.22 158)' }, // indigo
-  { label: 'Sortants',        value: 31, color: 'oklch(67% 0.26 158)' }, // violet
+  { label: 'Appels entrants', value: 52, color: 'oklch(56% 0.02 265)' }, // indigo
+  { label: 'Sortants',        value: 31, color: 'oklch(67% 0.03 265)' }, // violet
   { label: 'Web / démo',      value: 17, color: 'oklch(72% 0.18 195)' }, // teal
 ];
 

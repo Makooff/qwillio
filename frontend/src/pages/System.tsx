@@ -55,7 +55,7 @@ export default function System() {
       >
         <div
           className="w-9 h-9 rounded-full border-2 border-transparent animate-spin"
-          style={{ borderTopColor: 'oklch(56% 0.22 299)', borderRightColor: 'oklch(56% 0.22 299)' }}
+          style={{ borderTopColor: 'oklch(56% 0.02 265)', borderRightColor: 'oklch(56% 0.02 265)' }}
         />
       </div>
     )
@@ -164,7 +164,7 @@ export default function System() {
               className="h-full rounded-full transition-[width] duration-700 ease-out"
               style={{
                 width: `${Math.min(100, (data!.botStatus.callsToday / data!.botStatus.quota) * 100)}%`,
-                background: 'oklch(56% 0.22 299)',
+                background: 'oklch(56% 0.02 265)',
               }}
             />
           </div>
