@@ -325,7 +325,7 @@ export default function DashboardShell(props: DashboardShellProps) {
       {/* Desktop Sidebar */}
       <aside
         className={`sidebar-surface hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
-          overflow-hidden md:rounded-tl-[28px]
+          overflow-hidden md:rounded-tl-[14px]
           backdrop-blur-xl transition-colors duration-300 ease-in-out
           ${collapsed ? 'w-[64px] px-2 py-5' : 'w-[220px] px-4 py-5'}`}
         style={{
@@ -391,13 +391,13 @@ export default function DashboardShell(props: DashboardShellProps) {
 
       {/* Main — inset rounded panel against the darker sidebar gutter */}
       <div
-        className="flex-1 flex flex-col min-w-0 overflow-hidden md:rounded-tl-[28px]"
+        className="flex-1 flex flex-col min-w-0 overflow-hidden md:rounded-tl-[14px]"
         style={{ background: t.panel }}
       >
         <header
           className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6"
           style={{
-            background: 'oklch(11% 0 0 / 0.85)',
+            background: 'rgba(10,10,10,0.85)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             borderBottom: '1px solid oklch(24% 0 0 / 0.4)',

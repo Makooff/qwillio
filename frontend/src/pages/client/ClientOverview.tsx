@@ -3,7 +3,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Phone, Bot, Settings, ChevronRight, AlertCircle,
-  Headphones, Sparkles, PhoneForwarded, Pause, Activity,
+  Headphones, Sparkles, PhoneForwarded, Pause,
+  ChevronDown, Calendar, SlidersHorizontal,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
@@ -230,11 +231,31 @@ export default function ClientOverview() {
             </span>
           </p>
         </div>
-        <div className="hidden sm:flex items-center gap-2 h-9 px-3.5 rounded-xl text-[12.5px] font-medium text-white/60"
-          style={{ background: 'oklch(100% 0 0 / 0.03)', border: '1px solid oklch(22% 0.012 265 / 0.55)' }}
-        >
-          <Activity size={13} className="text-white/40" />
-          30 derniers jours
+        <div className="hidden md:flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-[13px] font-medium text-white/90 transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            style={{ background: '#161616', border: '1px solid oklch(24% 0 0 / 0.55)' }}
+          >
+            30 derniers jours <ChevronDown size={14} className="text-white/45" />
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-[13px] font-medium text-white/60 transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            style={{ background: '#161616', border: '1px solid oklch(24% 0 0 / 0.55)' }}
+          >
+            <Calendar size={14} />
+            {new Date(Date.now() - 29 * 864e5).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            {' – '}
+            {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-[13px] font-medium text-white/60 transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            style={{ background: '#161616', border: '1px solid oklch(24% 0 0 / 0.55)' }}
+          >
+            <SlidersHorizontal size={14} /> Personnaliser
+          </button>
         </div>
       </section>
 

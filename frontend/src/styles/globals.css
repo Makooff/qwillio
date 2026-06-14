@@ -4,12 +4,12 @@
 
 /* ─── Design Tokens — Signal Dark v3 — Indigo ─── */
 :root {
-  /* Neutral dark system — pure greys to match the reference screen */
-  --q-bg:         oklch(7% 0 0);
-  --q-bg2:        oklch(11% 0 0);
-  --q-bg3:        oklch(15% 0 0);
-  --q-panel:      oklch(11% 0 0);
-  --q-panel-hi:   oklch(15% 0 0);
+  /* Exact hex to match the reference screen */
+  --q-bg:         #0a0a0a;
+  --q-bg2:        #111111;
+  --q-bg3:        #1a1a1a;
+  --q-panel:      #0a0a0a;
+  --q-panel-hi:   #161616;
   --q-border:     oklch(24% 0 0 / 0.55);
   --q-border-hi:  oklch(32% 0 0 / 0.70);
   --q-accent:     oklch(56% 0.02 265);
@@ -33,11 +33,11 @@
 
 /* ─── Global Reset ─── */
 html {
-  background-color: oklch(7% 0 0);
+  background-color: #0a0a0a;
 }
 body {
   font-family: 'Outfit', system-ui, -apple-system, sans-serif;
-  background-color: oklch(7% 0 0);
+  background-color: #0a0a0a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding-top: env(safe-area-inset-top);
