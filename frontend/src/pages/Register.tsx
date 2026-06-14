@@ -19,10 +19,10 @@ const D = {
   text:      'oklch(95% 0.004 265)',
   text2:     'oklch(65% 0.007 265)',
   text3:     'oklch(42% 0.006 265)',
-  accent:    'oklch(56% 0.22 299)',
-  accentHi:  'oklch(63% 0.21 299)',
-  accentDim: 'oklch(56% 0.22 299 / 0.10)',
-  accentBrd: 'oklch(56% 0.22 299 / 0.22)',
+  accent:    'oklch(56% 0.22 158)',
+  accentHi:  'oklch(63% 0.21 158)',
+  accentDim: 'oklch(56% 0.22 158 / 0.10)',
+  accentBrd: 'oklch(56% 0.22 158 / 0.22)',
   ok:        'oklch(72% 0.18 145)',
   okDim:     'oklch(72% 0.18 145 / 0.12)',
   okBrd:     'oklch(72% 0.18 145 / 0.35)',
@@ -33,7 +33,7 @@ const D = {
 function GlassInput({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="rounded-2xl border bg-[oklch(6%_0.007_265)] transition-colors focus-within:border-[oklch(56%_0.22_299/0.55)] focus-within:bg-[oklch(56%_0.22_299/0.06)]"
+      className="rounded-2xl border bg-[oklch(6%_0.007_265)] transition-colors focus-within:border-[oklch(56%_0.22_158/0.55)] focus-within:bg-[oklch(56%_0.22_158/0.06)]"
       style={{ borderColor: D.border }}
     >
       {children}
@@ -176,7 +176,7 @@ export default function Register() {
                 <button
                   type="submit" disabled={loading}
                   className="auth-in auth-d6 w-full rounded-2xl py-[15px] text-[15px] font-semibold border-none cursor-pointer flex items-center justify-center gap-2 transition-colors active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{ background: loading ? 'oklch(40% 0.10 299)' : D.accent, color: loading ? D.text2 : 'oklch(98% 0.004 265)' }}
+                  style={{ background: loading ? 'oklch(40% 0.10 158)' : D.accent, color: loading ? D.text2 : 'oklch(98% 0.004 265)' }}
                 >
                   {loading ? 'Création…' : 'Créer mon compte'}
                   {!loading && <ArrowRight size={16} />}
@@ -224,7 +224,7 @@ export default function Register() {
 
               <button
                 onClick={handleResend} disabled={resending}
-                className="border rounded-2xl px-5 py-3 text-[13px] font-medium cursor-pointer transition-colors bg-transparent hover:border-[oklch(56%_0.22_299/0.45)] hover:text-[oklch(63%_0.21_299)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border rounded-2xl px-5 py-3 text-[13px] font-medium cursor-pointer transition-colors bg-transparent hover:border-[oklch(56%_0.22_158/0.45)] hover:text-[oklch(63%_0.21_158)] disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ borderColor: D.border, color: D.text2 }}
               >
                 {resending ? 'Renvoi…' : `Renvoyer l'email`}
@@ -244,7 +244,7 @@ export default function Register() {
           className="auth-slide-right auth-d2 absolute inset-4 rounded-3xl overflow-hidden border flex flex-col justify-between p-12"
           style={{ background: 'linear-gradient(160deg, oklch(13% 0.02 265) 0%, oklch(9% 0.012 265) 100%)', borderColor: D.border }}
         >
-          <div className="absolute pointer-events-none" style={{ inset: 0, background: 'radial-gradient(ellipse 460px 360px at 85% 8%, oklch(56% 0.22 299 / 0.10) 0%, transparent 70%)' }} />
+          <div className="absolute pointer-events-none" style={{ inset: 0, background: 'radial-gradient(ellipse 460px 360px at 85% 8%, oklch(56% 0.22 158 / 0.10) 0%, transparent 70%)' }} />
 
           <span className="relative inline-block w-fit text-[11px] font-semibold uppercase tracking-[0.1em] px-3 py-1.5 rounded-full" style={{ background: D.accentDim, color: D.accentHi, border: `1px solid ${D.accentBrd}` }}>
             Essai sans engagement

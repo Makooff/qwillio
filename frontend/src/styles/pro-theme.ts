@@ -1,8 +1,8 @@
 /**
  * Qwillio Design Tokens — Signal Dark v3
  * OKLCH. Indigo-tinted dark base — logo Q-circle primary.
- * Primary: oklch(56% 0.22 299)  ≈ #6366F1 (logo indigo)
- * Violet:  oklch(67% 0.26 299)  ≈ #A855F7 (logo violet)
+ * Primary: oklch(56% 0.22 158)  ≈ #6366F1 (logo indigo)
+ * Violet:  oklch(67% 0.26 158)  ≈ #A855F7 (logo violet)
  * Skills: taste-skill, emil-design-eng, impeccable
  */
 
@@ -22,18 +22,18 @@ export const pro = {
   textTer: 'oklch(42% 0.006 265)',
 
   // ── Accent — logo Q-circle indigo (PRIMARY) ───────────────────────────────
-  accent:     'oklch(56% 0.22 299)',
-  accentHi:   'oklch(63% 0.21 299)',
-  accentDim:  'oklch(56% 0.22 299 / 0.12)',
-  accentGlow: 'oklch(56% 0.22 299 / 0.12)',
-  accentGrad: 'oklch(56% 0.22 299)',
-  accentMid:  'oklch(56% 0.22 299 / 0.10)',
-  accentBrd:  'oklch(56% 0.22 299 / 0.40)',
+  accent:     'oklch(56% 0.22 158)',
+  accentHi:   'oklch(63% 0.21 158)',
+  accentDim:  'oklch(56% 0.22 158 / 0.12)',
+  accentGlow: 'oklch(56% 0.22 158 / 0.12)',
+  accentGrad: 'oklch(56% 0.22 158)',
+  accentMid:  'oklch(56% 0.22 158 / 0.10)',
+  accentBrd:  'oklch(56% 0.22 158 / 0.40)',
 
   // ── Violet — logo W-circle (secondary) ───────────────────────────────────
-  violet:     'oklch(67% 0.26 299)',
-  violetDim:  'oklch(67% 0.26 299 / 0.12)',
-  violetGlow: 'oklch(67% 0.26 299 / 0.20)',
+  violet:     'oklch(67% 0.26 158)',
+  violetDim:  'oklch(67% 0.26 158 / 0.12)',
+  violetGlow: 'oklch(67% 0.26 158 / 0.20)',
 
   // ── Status ───────────────────────────────────────────────────────────────
   ok:   'oklch(72% 0.18 145)',
@@ -51,7 +51,7 @@ export const pro = {
 export const proShadow = {
   card:  '0 1px 2px oklch(0% 0 0 / 0.40), 0 0 0 1px oklch(100% 0 0 / 0.03)',
   float: '0 12px 32px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.05)',
-  glow:  '0 0 0 1px oklch(56% 0.22 299 / 0.30)',
+  glow:  '0 0 0 1px oklch(56% 0.22 158 / 0.30)',
   btn:   'none',
 } as const;
 

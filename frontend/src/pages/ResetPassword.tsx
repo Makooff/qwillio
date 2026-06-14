@@ -12,8 +12,8 @@ const D = {
   text:   'oklch(95% 0.004 265)',
   text2:  'oklch(65% 0.007 265)',
   text3:  'oklch(42% 0.006 265)',
-  accent: 'oklch(56% 0.22 299)',
-  accentHi: 'oklch(63% 0.21 299)',
+  accent: 'oklch(56% 0.22 158)',
+  accentHi: 'oklch(63% 0.21 158)',
   bad:    'oklch(65% 0.22 25)',
   ok:     'oklch(72% 0.18 145)',
 } as const;
@@ -22,7 +22,7 @@ const inputCls = `
   w-full bg-[oklch(6%_0.007_265)] border border-[oklch(22%_0.012_265/0.55)]
   rounded-[10px] px-4 py-[13px] pr-11 text-[oklch(95%_0.004_265)] text-[15px]
   font-[Outfit,system-ui,sans-serif] outline-none
-  transition-colors focus:border-[oklch(56%_0.22_299/0.40)]
+  transition-colors focus:border-[oklch(56%_0.22_158/0.40)]
   placeholder:text-[oklch(35%_0.006_265)]
 `.replace(/\s+/g, ' ').trim();
 

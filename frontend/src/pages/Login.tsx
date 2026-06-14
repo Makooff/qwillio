@@ -20,10 +20,10 @@ const D = {
   text:      'oklch(95% 0.004 265)',
   text2:     'oklch(65% 0.007 265)',
   text3:     'oklch(42% 0.006 265)',
-  accent:    'oklch(56% 0.22 299)',
-  accentHi:  'oklch(63% 0.21 299)',
-  accentDim: 'oklch(56% 0.22 299 / 0.10)',
-  accentBrd: 'oklch(56% 0.22 299 / 0.22)',
+  accent:    'oklch(56% 0.22 158)',
+  accentHi:  'oklch(63% 0.21 158)',
+  accentDim: 'oklch(56% 0.22 158 / 0.10)',
+  accentBrd: 'oklch(56% 0.22 158 / 0.22)',
   bad:       'oklch(65% 0.22 25)',
   badDim:    'oklch(65% 0.22 25 / 0.10)',
 } as const;
@@ -32,7 +32,7 @@ const D = {
 function GlassInput({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="rounded-2xl border bg-[oklch(6%_0.007_265)] transition-colors focus-within:border-[oklch(56%_0.22_299/0.55)] focus-within:bg-[oklch(56%_0.22_299/0.06)]"
+      className="rounded-2xl border bg-[oklch(6%_0.007_265)] transition-colors focus-within:border-[oklch(56%_0.22_158/0.55)] focus-within:bg-[oklch(56%_0.22_158/0.06)]"
       style={{ borderColor: D.border }}
     >
       {children}
@@ -175,7 +175,7 @@ export default function Login() {
                 disabled={loading}
                 className="auth-in auth-d6 w-full rounded-2xl py-[15px] text-[15px] font-semibold border-none cursor-pointer flex items-center justify-center gap-2 transition-colors active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{
-                  background: loading ? 'oklch(40% 0.10 299)' : D.accent,
+                  background: loading ? 'oklch(40% 0.10 158)' : D.accent,
                   color: loading ? D.text2 : 'oklch(98% 0.004 265)',
                 }}
               >
@@ -217,7 +217,7 @@ export default function Login() {
           {/* restrained indigo wash — single, soft, top-right */}
           <div
             className="absolute pointer-events-none"
-            style={{ inset: 0, background: 'radial-gradient(ellipse 460px 360px at 85% 8%, oklch(56% 0.22 299 / 0.10) 0%, transparent 70%)' }}
+            style={{ inset: 0, background: 'radial-gradient(ellipse 460px 360px at 85% 8%, oklch(56% 0.22 158 / 0.10) 0%, transparent 70%)' }}
           />
 
           <span

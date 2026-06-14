@@ -321,7 +321,7 @@ export default function DashboardShell(props: DashboardShellProps) {
   );
 
   return (
-    <div className="h-screen md:h-screen flex overflow-hidden" style={{ height: '100dvh', background: t.bg, color: t.text }}>
+    <div className="h-screen md:h-screen flex overflow-hidden" style={{ height: '100dvh', background: t.inset, color: t.text }}>
       {/* Desktop Sidebar */}
       <aside
         className={`sidebar-surface hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
@@ -481,8 +481,8 @@ function MobileBottomNav({
               width: 64, height: 64,
               top: '50%',
               x: '-50%', y: '-50%',
-              background: 'oklch(56% 0.22 299 / 0.14)',
-              border: '1px solid oklch(56% 0.22 299 / 0.30)',
+              background: 'oklch(56% 0.22 158 / 0.14)',
+              border: '1px solid oklch(56% 0.22 158 / 0.30)',
             }}
           />
         )}

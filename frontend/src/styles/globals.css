@@ -12,11 +12,11 @@
   --q-panel-hi:   oklch(15% 0.006 265);
   --q-border:     oklch(22% 0.012 265 / 0.55);
   --q-border-hi:  oklch(30% 0.014 265 / 0.70);
-  --q-accent:     oklch(56% 0.22 299);
-  --q-accent-hi:  oklch(63% 0.21 299);
-  --q-accent-dim: oklch(56% 0.22 299 / 0.12);
-  --q-accent-brd: oklch(56% 0.22 299 / 0.35);
-  --q-violet:     oklch(67% 0.26 299);
+  --q-accent:     oklch(56% 0.22 158);
+  --q-accent-hi:  oklch(63% 0.21 158);
+  --q-accent-dim: oklch(56% 0.22 158 / 0.12);
+  --q-accent-brd: oklch(56% 0.22 158 / 0.35);
+  --q-violet:     oklch(67% 0.26 158);
   --q-text:       oklch(95% 0.004 265);
   --q-text-2:     oklch(65% 0.007 265);
   --q-text-3:     oklch(42% 0.006 265);
@@ -59,11 +59,11 @@ body {
 @layer components {
   .btn-primary {
     @apply px-6 py-2.5 rounded-lg font-semibold;
-    background: oklch(56% 0.22 299);
+    background: oklch(56% 0.22 158);
     color: oklch(98% 0.004 265);
     transition: background-color 160ms var(--ease-out), transform 120ms var(--ease-out);
   }
-  .btn-primary:hover  { background: oklch(63% 0.21 299); }
+  .btn-primary:hover  { background: oklch(63% 0.21 158); }
   .btn-primary:active { transform: scale(0.97); }
 
   .btn-secondary {
@@ -114,7 +114,7 @@ body {
     font-family: 'Outfit', system-ui, sans-serif;
   }
   .input:focus {
-    border-color: oklch(56% 0.22 299 / 0.45);
+    border-color: oklch(56% 0.22 158 / 0.45);
   }
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
@@ -122,7 +122,7 @@ body {
   .badge-new        { background: oklch(70% 0.18 240 / 0.15); color: oklch(70% 0.18 240); }
   .badge-contacted  { background: oklch(78% 0.18 75 / 0.15);  color: oklch(78% 0.18 75); }
   .badge-interested { background: oklch(75% 0.18 50 / 0.15);  color: oklch(75% 0.18 50); }
-  .badge-qualified  { background: oklch(56% 0.22 299 / 0.15); color: oklch(56% 0.22 299); }
+  .badge-qualified  { background: oklch(56% 0.22 158 / 0.15); color: oklch(56% 0.22 158); }
   .badge-converted  { background: oklch(72% 0.18 145 / 0.15); color: oklch(72% 0.18 145); }
   .badge-lost       { background: oklch(65% 0.22 25 / 0.15);  color: oklch(65% 0.22 25); }
   .badge-active     { background: oklch(72% 0.18 145 / 0.15); color: oklch(72% 0.18 145); }
@@ -213,7 +213,7 @@ a[role="button"]:active,
   width: 16px;
   height: 16px;
   border-radius: 5px;
-  accent-color: oklch(56% 0.22 299);
+  accent-color: oklch(56% 0.22 158);
   cursor: pointer;
 }
 

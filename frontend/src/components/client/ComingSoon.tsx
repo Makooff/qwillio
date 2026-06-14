@@ -15,9 +15,9 @@ export default function ComingSoon({ module }: { module: string }) {
       >
         <div
           className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-5"
-          style={{ background: 'oklch(67% 0.26 299 / 0.12)' }}
+          style={{ background: 'oklch(67% 0.26 158 / 0.12)' }}
         >
-          <Clock size={22} style={{ color: 'oklch(67% 0.26 299)' }} aria-hidden="true" />
+          <Clock size={22} style={{ color: 'oklch(67% 0.26 158)' }} aria-hidden="true" />
         </div>
         <h1 className="text-lg font-semibold mb-2" style={{ color: 'oklch(95% 0.004 265)' }}>
           {module} — bientôt disponible
@@ -29,7 +29,7 @@ export default function ComingSoon({ module }: { module: string }) {
         <Link
           to="/dashboard/agent"
           className="inline-flex items-center gap-1.5 text-[13px] font-medium hover:underline"
-          style={{ color: 'oklch(63% 0.21 299)' }}
+          style={{ color: 'oklch(63% 0.21 158)' }}
         >
           <ArrowLeft size={14} aria-hidden="true" /> Retour à la suite agent
         </Link>
