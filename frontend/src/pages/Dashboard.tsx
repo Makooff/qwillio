@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import QwillioLoader from '../components/QwillioLoader';
+import { useState } from 'react';
 import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ui/Toast';
 import {
@@ -39,23 +38,11 @@ function SkeletonCard({ h = 'h-24' }: { h?: string }) {
 }
 
 export default function Dashboard() {
-  const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('qw-intro-played'));
-  const [introFading, setIntroFading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const { toasts, add: addToast, remove: removeToast } = useToast();
 
   const { botStatus, stats, activity, callsChart, anomalies, loading, error, refetch } = useDashboardData(10_000);
-
-  useEffect(() => {
-    if (!showIntro) return;
-    const fadeTimer = window.setTimeout(() => setIntroFading(true), 2300);
-    const hideTimer = window.setTimeout(() => {
-      setShowIntro(false);
-      sessionStorage.setItem('qw-intro-played', '1');
-    }, 2750);
-    return () => { window.clearTimeout(fadeTimer); window.clearTimeout(hideTimer); };
-  }, [showIntro]);
 
   const toggleBot = async () => {
     if (!botStatus) return;
@@ -164,26 +151,6 @@ export default function Dashboard() {
   return (
     <div className="space-y-5 admin-page">
       <ToastContainer toasts={toasts} remove={removeToast} />
-
-      {showIntro && (
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9998,
-            background: pro.bg,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: introFading ? 0 : 1,
-            transition: 'opacity 450ms var(--ease-out)',
-            pointerEvents: introFading ? 'none' : 'auto',
-          }}
-        >
-          <QwillioLoader fullscreen={false} size={160} />
-        </div>
-      )}
 
       {/* Header — greeting + period controls */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
