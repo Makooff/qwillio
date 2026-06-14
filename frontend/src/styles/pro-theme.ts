@@ -21,14 +21,14 @@ export const pro = {
   textSec: 'oklch(65% 0 0)',
   textTer: 'oklch(42% 0 0)',
 
-  // ── Accent — logo Q-circle indigo (PRIMARY) ───────────────────────────────
-  accent:     'oklch(56% 0.02 265)',
-  accentHi:   'oklch(63% 0.02 265)',
-  accentDim:  'oklch(56% 0.02 265 / 0.12)',
-  accentGlow: 'oklch(56% 0.02 265 / 0.12)',
-  accentGrad: 'oklch(56% 0.02 265)',
-  accentMid:  'oklch(56% 0.02 265 / 0.10)',
-  accentBrd:  'oklch(56% 0.02 265 / 0.40)',
+  // ── Accent — mauve #493cbe (PRIMARY) ──────────────────────────────────────
+  accent:     '#493cbe',
+  accentHi:   '#5b4ed6',
+  accentDim:  'rgba(73,60,190,0.14)',
+  accentGlow: 'rgba(73,60,190,0.18)',
+  accentGrad: '#493cbe',
+  accentMid:  'rgba(73,60,190,0.12)',
+  accentBrd:  'rgba(73,60,190,0.42)',
 
   // ── Violet — logo W-circle (secondary) ───────────────────────────────────
   violet:     'oklch(67% 0.03 265)',
@@ -51,7 +51,7 @@ export const pro = {
 export const proShadow = {
   card:  '0 1px 2px oklch(0% 0 0 / 0.40), 0 0 0 1px oklch(100% 0 0 / 0.03)',
   float: '0 12px 32px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.05)',
-  glow:  '0 0 0 1px oklch(56% 0.02 265 / 0.30)',
+  glow:  '0 0 0 1px rgba(73,60,190,0.30)',
   btn:   'none',
 } as const;
 
