@@ -12,10 +12,10 @@
   --q-panel-hi:   #161616;
   --q-border:     oklch(24% 0 0 / 0.55);
   --q-border-hi:  oklch(32% 0 0 / 0.70);
-  --q-accent:     oklch(56% 0.02 265);
-  --q-accent-hi:  oklch(63% 0.02 265);
-  --q-accent-dim: oklch(56% 0.02 265 / 0.12);
-  --q-accent-brd: oklch(56% 0.02 265 / 0.35);
+  --q-accent:     #493cbe;
+  --q-accent-hi:  #5b4ed6;
+  --q-accent-dim: rgba(73,60,190,0.12);
+  --q-accent-brd: rgba(73,60,190,0.35);
   --q-violet:     oklch(67% 0.03 265);
   --q-text:       oklch(95% 0 0);
   --q-text-2:     oklch(65% 0 0);
@@ -59,11 +59,11 @@ body {
 @layer components {
   .btn-primary {
     @apply px-6 py-2.5 rounded-lg font-semibold;
-    background: oklch(56% 0.02 265);
+    background: #493cbe;
     color: oklch(98% 0.004 265);
     transition: background-color 160ms var(--ease-out), transform 120ms var(--ease-out);
   }
-  .btn-primary:hover  { background: oklch(63% 0.02 265); }
+  .btn-primary:hover  { background: #5b4ed6; }
   .btn-primary:active { transform: scale(0.97); }
 
   .btn-secondary {
@@ -114,7 +114,7 @@ body {
     font-family: 'Outfit', system-ui, sans-serif;
   }
   .input:focus {
-    border-color: oklch(56% 0.02 265 / 0.45);
+    border-color: rgba(73,60,190,0.45);
   }
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
@@ -122,7 +122,7 @@ body {
   .badge-new        { background: oklch(70% 0.18 240 / 0.15); color: oklch(70% 0.18 240); }
   .badge-contacted  { background: oklch(78% 0.18 75 / 0.15);  color: oklch(78% 0.18 75); }
   .badge-interested { background: oklch(75% 0.18 50 / 0.15);  color: oklch(75% 0.18 50); }
-  .badge-qualified  { background: oklch(56% 0.02 265 / 0.15); color: oklch(56% 0.02 265); }
+  .badge-qualified  { background: rgba(73,60,190,0.15); color: #5b4ed6; }
   .badge-converted  { background: oklch(72% 0.18 145 / 0.15); color: oklch(72% 0.18 145); }
   .badge-lost       { background: oklch(65% 0.22 25 / 0.15);  color: oklch(65% 0.22 25); }
   .badge-active     { background: oklch(72% 0.18 145 / 0.15); color: oklch(72% 0.18 145); }
