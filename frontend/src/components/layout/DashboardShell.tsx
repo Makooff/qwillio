@@ -325,6 +325,7 @@ export default function DashboardShell(props: DashboardShellProps) {
       {/* Desktop Sidebar */}
       <aside
         className={`sidebar-surface hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
+          overflow-hidden md:rounded-tl-[28px]
           backdrop-blur-xl transition-colors duration-300 ease-in-out
           ${collapsed ? 'w-[64px] px-2 py-5' : 'w-[220px] px-4 py-5'}`}
         style={{
