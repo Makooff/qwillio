@@ -2,19 +2,24 @@ import { useEffect, useState } from 'react';
 import QwillioLoader from '../components/QwillioLoader';
 import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ui/Toast';
-import { AlertCircle, Calendar, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import {
+  AlertCircle, Calendar, ChevronDown, SlidersHorizontal,
+  Phone, Sparkles,
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { pro } from '../styles/pro-theme';
 import { PrimaryBtn } from '../components/pro/ProBlocks';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { DashboardHero } from '../components/dashboard/DashboardHero';
-import { DashboardKPIs } from '../components/dashboard/DashboardKPIs';
 import { DashboardCallsChart } from '../components/dashboard/DashboardCallsChart';
 import { DashboardActivityFeed } from '../components/dashboard/DashboardActivityFeed';
-import { DashboardAnomalies } from '../components/dashboard/DashboardAnomalies';
 import { DashboardQuickActions } from '../components/dashboard/DashboardQuickActions';
-import { ChannelDonut } from '../components/pro/ChannelDonut';
+import {
+  KpiSplit, RadialGauge, TallyMeter, DetailCard, AttentionList,
+  SegmentBar, InsightCard,
+  type KpiCell, type AttnItem, type Tone,
+} from '../components/dashboard/OverviewBlocks';
 
 const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com';
 
@@ -111,6 +116,41 @@ export default function Dashboard() {
     ? `Mis à jour ${formatDistanceToNow(new Date(latestTs), { addSuffix: true, locale: fr })}`
     : undefined;
 
+  // ── Derived figures for the Efferd-style layout ──────────────────────────────
+  const mrr = stats?.revenue.mrr ?? 0;
+  const activeClients = stats?.clients.totalActive ?? 0;
+  const prospectsTotal = stats?.prospects.total ?? 0;
+  const newProspects = stats?.prospects.newThisMonth ?? 0;
+  const hotLeads = stats?.hotLeads ?? 0;
+  const callsToday = botStatus?.callsToday ?? 0;
+  const callsQuota = botStatus?.callsQuota ?? 0;
+  const eligible = botStatus?.eligibleProspects ?? 0;
+  const quotaPct = callsQuota > 0 ? Math.min(100, Math.round((callsToday / callsQuota) * 100)) : 0;
+  const hotPct = prospectsTotal > 0 ? Math.round((hotLeads / prospectsTotal) * 100) : 0;
+
+  const kpis: KpiCell[] = [
+    { label: 'Clients actifs', value: activeClients.toLocaleString('fr-FR') },
+    { label: 'MRR', value: `${mrr.toLocaleString('fr-FR')} €` },
+    { label: 'Prospects', value: prospectsTotal.toLocaleString('fr-FR'), hint: newProspects > 0 ? `+${newProspects} ce mois` : 'Aucun nouveau ce mois' },
+  ];
+
+  const severityTone = (s: string): Tone => {
+    const v = s.toLowerCase();
+    if (v === 'high' || v === 'critical') return 'bad';
+    if (v === 'medium' || v === 'warning') return 'warn';
+    return 'neutral';
+  };
+  const attn: AttnItem[] = anomalies.slice(0, 5).map((a) => ({
+    icon: AlertCircle,
+    label: a.diagnosis || a.metric,
+    to: '/admin/agents',
+    tone: severityTone(a.severity),
+  }));
+
+  const insightText = stats
+    ? <><strong className="font-semibold">{activeClients}</strong> clients actifs génèrent <strong className="font-semibold">{mrr.toLocaleString('fr-FR')} €</strong> de revenu récurrent, avec <strong className="font-semibold">{hotLeads}</strong> leads chauds à convertir.</>
+    : <>Les indicateurs de la plateforme se chargent.</>;
+
   return (
     <div className="space-y-5 admin-page">
       <ToastContainer toasts={toasts} remove={removeToast} />
@@ -171,23 +211,80 @@ export default function Dashboard() {
 
       <DashboardHero status={botStatus} busy={busy} onToggle={toggleBot} />
 
-      <DashboardKPIs stats={stats} />
+      {/* KPI split row — borderless figures with a hairline under */}
+      <section aria-label="Indicateurs clés" className="pb-6 border-b border-white/[0.06]">
+        <KpiSplit items={kpis} />
+      </section>
 
-      {/* Main row — large chart + channel donut rail */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <DashboardCallsChart data={callsChart} className="lg:col-span-3" />
-        <div className="lg:col-span-2">
-          {/* Real channel-source split isn't tracked yet — honest empty state
-              instead of placeholder percentages. Wire call source to populate. */}
-          <ChannelDonut data={[]} />
+      {/* Main grid — content + right rail */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5">
+        {/* Left column */}
+        <div className="space-y-5 min-w-0">
+          <DashboardCallsChart data={callsChart} />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <InsightCard
+              kicker="Analyse IA"
+              icon={Sparkles}
+              action={{ label: 'Voir les leads', to: '/admin/leads' }}
+            >
+              {insightText}
+            </InsightCard>
+            <SegmentBar
+              title="Quota d’appels du jour"
+              value={callsToday.toLocaleString('fr-FR')}
+              hint={callsQuota > 0 ? `sur ${callsQuota.toLocaleString('fr-FR')} appels autorisés` : 'Quota non défini'}
+              segments={callsQuota > 0
+                ? [
+                    { label: 'Passés', pct: quotaPct, bright: true },
+                    { label: 'Restant', pct: 100 - quotaPct },
+                  ]
+                : [{ label: 'Appels du jour', pct: 100, bright: true }]}
+              action={{ label: 'Détails', to: '/admin/calls' }}
+            />
+          </div>
+
+          <DashboardActivityFeed activity={activity} />
         </div>
-      </div>
 
-      {/* Secondary row — recent activity + "à traiter" (anomalies) */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <DashboardActivityFeed activity={activity} className="lg:col-span-3" />
-        <div className="lg:col-span-2">
-          <DashboardAnomalies anomalies={anomalies} />
+        {/* Right rail */}
+        <div className="space-y-5">
+          <RadialGauge
+            caption="Quota du jour"
+            value={callsToday.toLocaleString('fr-FR')}
+            fraction={callsQuota > 0 ? quotaPct / 100 : 0}
+            icon={Phone}
+            legend={callsQuota > 0
+              ? [
+                  { label: 'Passés', value: callsToday.toLocaleString('fr-FR'), bright: true },
+                  { label: 'Quota', value: callsQuota.toLocaleString('fr-FR') },
+                ]
+              : [{ label: 'Aujourd’hui', value: callsToday.toLocaleString('fr-FR'), bright: true }]}
+            action={{ label: 'Voir les appels', to: '/admin/calls' }}
+          />
+
+          <TallyMeter
+            caption="Leads chauds (≥ 8)"
+            value={hotLeads.toLocaleString('fr-FR')}
+            pct={hotPct}
+            legend={[
+              { label: 'Chauds', value: '', bright: true },
+              { label: 'Prospects', value: '' },
+            ]}
+          />
+
+          <DetailCard
+            title="Plateforme"
+            rows={[
+              { k: 'MRR', v: `${mrr.toLocaleString('fr-FR')} €` },
+              { k: 'Clients actifs', v: activeClients.toLocaleString('fr-FR') },
+              { k: 'Prospects éligibles', v: eligible.toLocaleString('fr-FR') },
+              { k: 'Bot', v: botStatus?.isActive ? 'En marche' : 'Arrêté', status: botStatus?.isActive ? 'ok' : 'warn' },
+            ]}
+            action={{ label: 'Facturation', to: '/admin/billing' }}
+          />
+
+          <AttentionList title="À traiter" items={attn} empty="Aucune anomalie détectée." />
         </div>
       </div>
 
