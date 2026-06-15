@@ -204,14 +204,7 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
                 style={{ color: pro.textTer }}
               />
             </button>
-            <div
-              className="grid transition-[grid-template-rows] duration-300 ease-out"
-              style={{ gridTemplateRows: showDone ? '1fr' : '0fr' }}
-            >
-              <div className="overflow-hidden">
-                {done.map(s => renderRow(s, false))}
-              </div>
-            </div>
+            {showDone && done.map(s => renderRow(s, false))}
           </>
         )}
       </div>
