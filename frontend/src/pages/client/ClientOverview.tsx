@@ -368,7 +368,6 @@ export default function ClientOverview() {
             caption={quotaTotal > 0 ? 'Quota d’appels' : 'Appels ce mois'}
             value={quotaTotal > 0 ? quotaUsed.toLocaleString('fr-FR') : callsMonth.toLocaleString('fr-FR')}
             fraction={quotaTotal > 0 ? quotaPct / 100 : Math.min(1, callsMonth / 200)}
-            icon={Phone}
             legend={quotaTotal > 0
               ? [
                   { label: 'Utilisé', value: quotaUsed.toLocaleString('fr-FR'), bright: true },
