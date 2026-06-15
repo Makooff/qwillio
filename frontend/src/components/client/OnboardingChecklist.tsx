@@ -153,20 +153,18 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
           const rowClass = 'flex items-center gap-3 px-5 py-3 transition-colors hover:bg-white/[0.02]';
           const rowStyle = {
             borderTop: `1px solid ${pro.border}`,
-            background: highlighted ? 'rgba(123,92,240,0.05)' : undefined,
+            // Active step reads as a neutral grey highlight (like hover), not mauve.
+            background: highlighted ? 'rgba(255,255,255,0.03)' : undefined,
           } as const;
           const inner = (
             <>
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: s.done ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
-                  border: highlighted ? `1px solid ${pro.accent}55` : undefined,
-                }}
+                style={{ background: s.done ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)' }}
               >
                 {s.done
                   ? <Check size={13} style={{ color: pro.ok }} />
-                  : <s.icon size={12} style={{ color: highlighted ? pro.accent : pro.textSec }} />
+                  : <span className="w-1.5 h-1.5 rounded-full" style={{ background: pro.textSec }} />
                 }
               </div>
               <div className="flex-1 min-w-0">
@@ -181,7 +179,7 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
                 )}
               </div>
               {!s.done && (
-                <ChevronRight size={14} style={{ color: highlighted ? pro.accent : pro.textTer }} />
+                <ChevronRight size={14} style={{ color: pro.textTer }} />
               )}
             </>
           );
