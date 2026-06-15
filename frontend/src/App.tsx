@@ -6,7 +6,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 const Layout = lazy(() => import('./components/layout/Layout'));
 const ClientLayout = lazy(() => import('./components/layout/ClientLayout'));
 const CloserLayout = lazy(() => import('./components/layout/CloserLayout'));
-import AppBootOverlay from './components/AppBootOverlay';
 import ComingSoon from './components/client/ComingSoon';
 // Eager-loaded entry points (Login, Register, ConfirmEmail)
 import Login from './pages/Login';
@@ -199,7 +198,6 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <AppBootOverlay />
       <GoogleOAuthProvider clientId={googleClientId}>
       <BrowserRouter>
       <ScrollToTop />
