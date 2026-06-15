@@ -434,7 +434,7 @@ export default function DashboardShell(props: DashboardShellProps) {
           </div>
         </header>
 
-        <main ref={mainRef} data-scroll-root className="flex-1 p-4 md:p-6 pb-32 md:pb-6 overflow-auto">
+        <main ref={mainRef} data-scroll-root className="flex-1 p-4 md:p-8 pb-32 md:pb-8 overflow-auto">
           <Outlet />
         </main>
       </div>
