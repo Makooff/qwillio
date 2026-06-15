@@ -226,7 +226,7 @@ export function RadialGauge({
             />
           ))}
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ paddingBottom: 24 }}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ paddingTop: 10 }}>
           {Icon && (
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center mb-3"
@@ -236,7 +236,7 @@ export function RadialGauge({
             </div>
           )}
           <p className="text-[11px] uppercase tracking-[0.08em]" style={{ color: pro.textTer }}>{caption}</p>
-          <p className="text-[24px] font-semibold tabular-nums leading-none mt-1.5" style={{ color: pro.text }}>{value}</p>
+          <p className="text-[26px] font-semibold tabular-nums leading-none mt-2" style={{ color: pro.text }}>{value}</p>
         </div>
       </div>
 
