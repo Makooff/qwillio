@@ -4,7 +4,7 @@ import {
   Check, Phone, PhoneCall, Settings, Rocket, X, PartyPopper,
   PhoneForwarded, ChevronRight, ChevronDown,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { pro } from '../../styles/pro-theme';
 
 interface OnboardingClient {
@@ -204,20 +204,14 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
                 style={{ color: pro.textTer }}
               />
             </button>
-            <AnimatePresence initial={false}>
-              {showDone && (
-                <motion.div
-                  key="done-steps"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
-                  style={{ overflow: 'hidden' }}
-                >
-                  {done.map(s => renderRow(s, false))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div
+              className="grid transition-[grid-template-rows] duration-300 ease-out"
+              style={{ gridTemplateRows: showDone ? '1fr' : '0fr' }}
+            >
+              <div className="overflow-hidden">
+                {done.map(s => renderRow(s, false))}
+              </div>
+            </div>
           </>
         )}
       </div>
