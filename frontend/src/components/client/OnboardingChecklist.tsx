@@ -4,7 +4,7 @@ import {
   Check, Phone, PhoneCall, Settings, Rocket, X, PartyPopper,
   PhoneForwarded, ChevronRight, ChevronDown,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { pro } from '../../styles/pro-theme';
 
 interface OnboardingClient {
@@ -200,11 +200,24 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
               </span>
               <ChevronDown
                 size={14}
-                className={`transition-transform duration-200 ${showDone ? 'rotate-180' : ''}`}
+                className={showDone ? 'rotate-180' : ''}
                 style={{ color: pro.textTer }}
               />
             </button>
-            {showDone && done.map(s => renderRow(s, false))}
+            <AnimatePresence initial={false}>
+              {showDone && (
+                <motion.div
+                  key="done-steps"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  {done.map(s => renderRow(s, false))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         )}
       </div>
