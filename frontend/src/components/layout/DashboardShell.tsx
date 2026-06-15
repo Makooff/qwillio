@@ -329,7 +329,6 @@ export default function DashboardShell(props: DashboardShellProps) {
           ${collapsed ? 'w-[64px] px-2 py-5' : 'w-[220px] px-4 py-5'}`}
         style={{
           background: t.elevated,
-          borderRight: '1px solid rgba(255,255,255,0.08)',
           position: 'relative',
         }}
       >
@@ -390,7 +389,7 @@ export default function DashboardShell(props: DashboardShellProps) {
 
       {/* Main — inset rounded panel against the darker sidebar gutter */}
       <div
-        className="flex-1 flex flex-col min-w-0 overflow-hidden md:rounded-tl-[40px]"
+        className="flex-1 flex flex-col min-w-0 overflow-hidden md:rounded-tl-[45px] md:border-l-2 md:border-t-2 border-white/[0.08]"
         style={{ background: t.panel }}
       >
         <header
