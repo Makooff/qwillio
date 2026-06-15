@@ -3,7 +3,7 @@ import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ui/Toast';
 import {
   AlertCircle, Calendar, ChevronDown, SlidersHorizontal,
-  Phone, Sparkles,
+  Sparkles,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -239,7 +239,6 @@ export default function Dashboard() {
             caption="Quota du jour"
             value={callsToday.toLocaleString('fr-FR')}
             fraction={callsQuota > 0 ? quotaPct / 100 : 0}
-            icon={Phone}
             legend={callsQuota > 0
               ? [
                   { label: 'Passés', value: callsToday.toLocaleString('fr-FR'), bright: true },
