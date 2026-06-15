@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import {
   Check, Phone, PhoneCall, Settings, Rocket, X, PartyPopper,
-  PhoneForwarded, ChevronRight,
+  PhoneForwarded, ChevronRight, ChevronDown,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pro } from '../../styles/pro-theme';
@@ -37,6 +37,7 @@ interface Step {
 
 export default function OnboardingChecklist({ client, onDismiss }: Props) {
   const [dismissed, setDismissed] = useState(false);
+  const [showDone, setShowDone] = useState(false);
 
   const forwardingDone = !!(
     client.hasCallForwarding ||
@@ -102,6 +103,36 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
   const allDone = doneCount === steps.length;
   const pct = Math.round((doneCount / steps.length) * 100);
 
+  const pending = steps.filter(s => !s.done);
+  const done = steps.filter(s => s.done);
+
+  const renderRow = (s: Step, highlighted: boolean) => {
+    const rowClass = 'flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-white/[0.02]';
+    const rowStyle = {
+      borderTop: `1px solid ${pro.border}`,
+      background: highlighted ? 'rgba(255,255,255,0.03)' : undefined,
+    } as const;
+    const inner = (
+      <>
+        <div
+          className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ background: s.done ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)' }}
+        >
+          {s.done
+            ? <Check size={12} style={{ color: pro.ok }} />
+            : <span className="w-1.5 h-1.5 rounded-full" style={{ background: pro.textSec }} />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-[13px] font-medium truncate ${s.done ? 'line-through' : ''}`} style={{ color: s.done ? pro.textTer : pro.text }}>{s.label}</p>
+          {highlighted && <p className="text-[11px] truncate" style={{ color: pro.textTer }}>{s.hint}</p>}
+        </div>
+        {!s.done && <ChevronRight size={14} style={{ color: pro.textTer }} />}
+      </>
+    );
+    if (s.href) return <a key={s.label} href={s.href} className={rowClass} style={rowStyle}>{inner}</a>;
+    return <Link key={s.label} to={s.to || '#'} className={rowClass} style={rowStyle}>{inner}</Link>;
+  };
+
   if (dismissed) return null;
 
   return (
@@ -112,7 +143,7 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
       style={{ background: pro.panel, borderColor: pro.border }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-3">
+      <div className="flex items-center justify-between px-5 pt-3.5 pb-2.5">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             {allDone
@@ -146,52 +177,36 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
         />
       </div>
 
-      {/* Steps list */}
-      <div className="mt-4">
-        {steps.map((s, i) => {
-          const highlighted = !s.done && steps.slice(0, i).every(x => x.done);
-          const rowClass = 'flex items-center gap-3 px-5 py-3 transition-colors hover:bg-white/[0.02]';
-          const rowStyle = {
-            borderTop: `1px solid ${pro.border}`,
-            // Active step reads as a neutral grey highlight (like hover), not mauve.
-            background: highlighted ? 'rgba(255,255,255,0.03)' : undefined,
-          } as const;
-          const inner = (
-            <>
+      {/* Steps — compact: active step(s) shown, completed ones collapsed */}
+      <div className="mt-3">
+        {pending.map((s, i) => renderRow(s, i === 0))}
+
+        {done.length > 0 && (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowDone(v => !v)}
+              className="w-full flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-white/[0.02]"
+              style={{ borderTop: `1px solid ${pro.border}` }}
+            >
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: s.done ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)' }}
+                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(34,197,94,0.12)' }}
               >
-                {s.done
-                  ? <Check size={13} style={{ color: pro.ok }} />
-                  : <span className="w-1.5 h-1.5 rounded-full" style={{ background: pro.textSec }} />
-                }
+                <Check size={12} style={{ color: pro.ok }} />
               </div>
-              <div className="flex-1 min-w-0">
-                <p
-                  className={`text-[13px] font-medium truncate ${s.done ? 'line-through' : ''}`}
-                  style={{ color: s.done ? pro.textTer : pro.text }}
-                >
-                  {s.label}
-                </p>
-                {!s.done && (
-                  <p className="text-[11px] truncate" style={{ color: pro.textTer }}>{s.hint}</p>
-                )}
-              </div>
-              {!s.done && (
-                <ChevronRight size={14} style={{ color: pro.textTer }} />
-              )}
-            </>
-          );
-          if (s.href) {
-            return (
-              <a key={i} href={s.href} className={rowClass} style={rowStyle}>{inner}</a>
-            );
-          }
-          return (
-            <Link key={i} to={s.to || '#'} className={rowClass} style={rowStyle}>{inner}</Link>
-          );
-        })}
+              <span className="flex-1 text-left text-[12.5px]" style={{ color: pro.textSec }}>
+                {done.length} étape{done.length > 1 ? 's' : ''} terminée{done.length > 1 ? 's' : ''}
+              </span>
+              <ChevronDown
+                size={14}
+                className={`transition-transform duration-200 ${showDone ? 'rotate-180' : ''}`}
+                style={{ color: pro.textTer }}
+              />
+            </button>
+            {showDone && done.map(s => renderRow(s, false))}
+          </>
+        )}
       </div>
     </motion.div>
   );
