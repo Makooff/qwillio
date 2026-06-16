@@ -9,7 +9,7 @@ import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import { formatDuration, formatDateTime, exportToCSV } from '../../utils/format';
-import OrbsLoader from '../../components/OrbsLoader';
+import { KpiSplit } from '../../components/dashboard/OverviewBlocks';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -194,29 +194,21 @@ export default function ClientCalls() {
         </button>
       </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: 'Total appels', value: totalCalls, icon: Phone },
-          { label: 'Durée moy.', value: formatDuration(avgDuration), icon: Clock },
-          { label: 'Taux positif', value: `${positiveRate}%`, icon: CheckCircle2 },
-          { label: 'Leads ce mois', value: leadsMonth, icon: Users },
-        ].map((s, i) => (
-          <motion.div
-            key={s.label}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-4"
-          >
-            <div className="flex items-center gap-2 mb-1.5">
-              <s.icon size={14} className="text-[#A1A1A8]" aria-hidden="true" />
-              <span className="text-xs text-[#A1A1A8]">{s.label}</span>
-            </div>
-            <p className="text-xl font-bold text-[#F5F5F7]">{s.value}</p>
-          </motion.div>
-        ))}
-      </div>
+      {/* Stats — frameless figures split by hairlines (Overview style) */}
+      <motion.section
+        aria-label="Statistiques"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="pb-6 mb-6 border-b border-white/[0.06]"
+      >
+        <KpiSplit items={[
+          { label: 'Total appels', value: totalCalls.toLocaleString('fr-FR') },
+          { label: 'Durée moy.', value: formatDuration(avgDuration) },
+          { label: 'Taux positif', value: `${positiveRate}%` },
+          { label: 'Leads ce mois', value: leadsMonth.toLocaleString('fr-FR') },
+        ]} />
+      </motion.section>
 
       {/* Search & Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -323,8 +315,17 @@ export default function ClientCalls() {
 
       {/* Content */}
       {loading ? (
-        <div className="flex justify-center py-16" role="status" aria-label="Chargement">
-          <OrbsLoader size={40} fullscreen={false} />
+        <div role="status" aria-label="Chargement" aria-busy="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04]">
+              <div className="w-8 h-8 rounded-lg bg-white/[0.06] animate-pulse flex-shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3.5 w-40 rounded bg-white/[0.06] animate-pulse" />
+                <div className="h-3 w-24 rounded bg-white/[0.05] animate-pulse" />
+              </div>
+              <div className="h-5 w-16 rounded-full bg-white/[0.05] animate-pulse" />
+            </div>
+          ))}
         </div>
       ) : sortedCalls.length === 0 ? (
         <EmptyState
@@ -374,15 +375,15 @@ export default function ClientCalls() {
             <div aria-hidden="true" />
           </div>
 
-          <div className="space-y-1" role="list" aria-label="Liste des appels">
+          <div role="list" aria-label="Liste des appels">
             {sortedCalls.map((call, idx) => (
               <motion.div
                 key={call.id}
                 role="listitem"
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.02 }}
-                className="rounded-xl border border-white/[0.07] bg-white/[0.03] hover:border-white/[0.12] cursor-pointer transition-colors group"
+                transition={{ delay: Math.min(idx * 0.02, 0.3), ease: [0.16, 1, 0.3, 1] }}
+                className="border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] cursor-pointer transition-colors group rounded-lg"
                 onClick={() => setSelectedCall(call)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedCall(call); }}
                 tabIndex={0}
