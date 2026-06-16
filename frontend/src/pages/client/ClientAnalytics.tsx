@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import api from '../../services/api';
 import { formatDuration, formatShortDate } from '../../utils/format';
+import { SubPageHeader } from '../../components/dashboard/OverviewBlocks';
 
 const TOOLTIP_STYLE = {
   background: '#12121A',
@@ -116,8 +117,8 @@ export default function ClientAnalytics() {
     const isNoProfile = error === 'no-profile';
     return (
       <main className="flex flex-col items-center justify-center py-24 text-center px-6">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${isNoProfile ? 'bg-indigo-500/10' : 'bg-red-500/10'}`}>
-          <BarChart3 size={26} className={isNoProfile ? 'text-indigo-400' : 'text-red-400'} />
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${isNoProfile ? 'bg-[#493cbe]/10' : 'bg-red-500/10'}`}>
+          <BarChart3 size={26} className={isNoProfile ? 'text-[#5b4ed6]' : 'text-red-400'} />
         </div>
         <h2 className="text-lg font-semibold text-white/90 mb-1">
           {isNoProfile ? 'Compte en cours de configuration' : 'Impossible de charger les analytiques'}
@@ -127,13 +128,13 @@ export default function ClientAnalytics() {
         </p>
         <div className="flex gap-3">
           {isNoProfile && (
-            <a href="/dashboard/support" className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-500 rounded-xl hover:bg-indigo-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+            <a href="/dashboard/support" className="px-5 py-2.5 text-sm font-medium text-white bg-[#493cbe] rounded-xl hover:bg-[#5b4ed6] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5b4ed6]">
               Contacter le support
             </a>
           )}
           <button
             onClick={fetchData}
-            className="px-5 py-2.5 text-sm font-medium text-white/60 bg-white/[0.06] rounded-xl hover:bg-white/[0.10] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            className="px-5 py-2.5 text-sm font-medium text-white/60 bg-white/[0.06] rounded-xl hover:bg-white/[0.10] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5b4ed6]"
           >
             Réessayer
           </button>
@@ -194,31 +195,31 @@ export default function ClientAnalytics() {
   return (
     <main className="space-y-6">
       {/* Header */}
-      <section className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[22px] font-semibold text-white/90 tracking-tight">Analytiques</h1>
-          <p className="text-[12.5px] text-white/50 mt-0.5">Performances de votre réceptionniste IA</p>
-        </div>
-        <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.06] rounded-xl p-1">
-          {([7, 30, 90] as Period[]).map(d => (
-            <button
-              key={d}
-              onClick={() => setPeriod(d)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
-                period === d ? 'bg-indigo-500 text-white' : 'text-white/50 hover:text-white/80'
-              }`}
-            >
-              {d}j
-            </button>
-          ))}
-        </div>
-      </section>
+      <SubPageHeader
+        title="Analytiques"
+        subtitle="Performances de votre réceptionniste IA"
+        action={
+          <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.06] rounded-xl p-1">
+            {([7, 30, 90] as Period[]).map(d => (
+              <button
+                key={d}
+                onClick={() => setPeriod(d)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5b4ed6] ${
+                  period === d ? 'bg-[#493cbe] text-white' : 'text-white/50 hover:text-white/80'
+                }`}
+              >
+                {d}j
+              </button>
+            ))}
+          </div>
+        }
+      />
 
-      {/* KPI strip */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.04]">
+      {/* KPI strip — frameless figures split by hairlines */}
+      <div className="pb-6 border-b border-white/[0.06]">
         <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-white/[0.06]">
           {kpis.map((kpi, i) => (
-            <div key={i} className="px-6 py-5">
+            <div key={i} className="px-6 py-1 first:pl-0">
               <div className="flex items-center justify-between mb-2">
                 <kpi.icon size={14} className="text-white/30" />
                 {kpi.delta !== undefined && kpi.delta !== 0 && (
@@ -305,7 +306,7 @@ export default function ClientAnalytics() {
               {summary.satisfactionScore !== undefined && (
                 <div className="w-full pt-3 border-t border-white/[0.06]">
                   <p className="text-[10px] text-white/40 mb-0.5">Score satisfaction</p>
-                  <p className="text-xl font-bold text-indigo-400">{summary.satisfactionScore}%</p>
+                  <p className="text-xl font-bold text-[#5b4ed6]">{summary.satisfactionScore}%</p>
                 </div>
               )}
             </div>
@@ -377,9 +378,9 @@ export default function ClientAnalytics() {
       </section>
 
       {/* ROI calculator */}
-      <section className="rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.04] p-6">
+      <section className="rounded-2xl border border-[#493cbe]/20 bg-[#493cbe]/[0.04] p-6">
         <h3 className="text-sm font-semibold text-white/90 mb-4 flex items-center gap-2">
-          <Calculator size={15} className="text-indigo-400" />
+          <Calculator size={15} className="text-[#5b4ed6]" />
           Calculateur ROI
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -407,7 +408,7 @@ export default function ClientAnalytics() {
           <div className="space-y-3">
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
               <p className="text-[10px] text-white/40 mb-1">Leads captés (Qwillio)</p>
-              <p className="text-xl font-bold text-indigo-400">{totalLeads}</p>
+              <p className="text-xl font-bold text-[#5b4ed6]">{totalLeads}</p>
             </div>
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
               <p className="text-[10px] text-white/40 mb-1">Équivalent coût manuel</p>
