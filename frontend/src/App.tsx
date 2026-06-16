@@ -28,6 +28,7 @@ const AdminNotFound = lazy(() => import('./pages/admin/NotFound'));
 const ClientPortal = lazy(() => import('./pages/ClientPortal'));
 const OnboardingPage = lazy(() => import('./pages/Onboarding'));
 const SelfOnboard = lazy(() => import('./pages/SelfOnboard'));
+const OnboardSuccess = lazy(() => import('./pages/OnboardSuccess'));
 const ClientOverview = lazy(() => import('./pages/client/ClientOverview'));
 const ClientCalls = lazy(() => import('./pages/client/ClientCalls'));
 const ClientLeads = lazy(() => import('./pages/client/ClientLeads'));
@@ -234,6 +235,10 @@ export default function App() {
               <Suspense fallback={<Spinner />}><SelfOnboard /></Suspense>
             </OnboardRoute>
           }
+        />
+        <Route
+          path="/onboard/success"
+          element={<Suspense fallback={<Spinner />}><OnboardSuccess /></Suspense>}
         />
 
         {/* Client dashboard (JWT-protected, client role, nested layout) */}

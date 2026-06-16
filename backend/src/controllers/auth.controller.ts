@@ -291,18 +291,31 @@ export class AuthController {
 
   async onboard(req: any, res: Response) {
     try {
-      const { businessName, businessPhone, industry, website, planType } = req.body;
+      const {
+        businessName, businessPhone, industry, website,
+        selectedModules, bundle,
+      } = req.body as {
+        businessName?: string; businessPhone?: string; industry?: string;
+        website?: string; planType?: string;
+        selectedModules?: string[]; bundle?: boolean;
+      };
+
+      // Normalize legacy alias 'basic' → 'starter' (still mapped to same Stripe price
+      // in stripe.service.ts getMonthlyPriceId; keeping both accepted here so old
+      // clients hitting this endpoint don't fail before checkout).
+      let planType: string | undefined = req.body?.planType;
+      if (planType === 'basic') planType = 'starter';
 
       if (!businessName || !planType) {
         return res.status(400).json({ error: 'Business name and plan are required' });
       }
+      const VALID_PLANS = ['starter', 'pro', 'enterprise'] as const;
+      if (!VALID_PLANS.includes(planType as typeof VALID_PLANS[number])) {
+        return res.status(400).json({ error: 'invalid_plan', message: 'Unknown plan type.' });
+      }
 
-      const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number }> = {
-        starter: { setupFee: 0, monthlyFee: 497, callsQuota: 800 },
-        pro: { setupFee: 0, monthlyFee: 1297, callsQuota: 2000 },
-        enterprise: { setupFee: 0, monthlyFee: 2497, callsQuota: 4000 },
-      };
-
+      // Save form data on the user. Client record is created either by the
+      // Stripe webhook after payment OR inline below if test account bypass.
       const user = await prisma.user.update({
         where: { id: req.userId },
         data: {
@@ -311,24 +324,33 @@ export class AuthController {
           industry: industry || null,
           website: website || null,
           planType,
-          onboardingCompleted: true,
         },
       });
 
-      // Create or reuse Client record (idempotent — safe if user retries onboarding)
-      let clientId: string | null = null;
-      if (user.role === 'client') {
-        const existing = await prisma.client.findUnique({ where: { userId: user.id } });
-        if (existing) {
-          clientId = existing.id;
-          logger.info(`Client record already exists for ${user.email} — reusing clientId: ${existing.id}`);
-        } else {
-          const dashboardToken = crypto.randomBytes(32).toString('hex');
-          const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
-          const trialEnd = new Date();
-          trialEnd.setDate(trialEnd.getDate() + 30);
+      // Email confirmation gate (ceinture + bretelles avec le middleware route-level).
+      if (!user.emailConfirmed) {
+        return res.status(403).json({ error: 'email_not_confirmed', message: 'Confirm your email to continue.' });
+      }
 
-          const client = await prisma.client.create({
+      const { isTestAccount } = await import('../lib/test-account');
+      const { stripeService } = await import('../services/stripe.service');
+      const { onboardingService } = await import('../services/onboarding.service');
+
+      // ── TEST ACCOUNT BYPASS ──────────────────────────────────
+      // Owner-managed allowlist. Skips Stripe, activates everything for free,
+      // every feature stays fully functional as if paid.
+      if (isTestAccount(user.email)) {
+        const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number }> = {
+          starter: { setupFee: 0, monthlyFee: 497, callsQuota: 800 },
+          pro: { setupFee: 0, monthlyFee: 1297, callsQuota: 2000 },
+          enterprise: { setupFee: 0, monthlyFee: 2497, callsQuota: 4000 },
+        };
+        const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
+
+        let client = await prisma.client.findUnique({ where: { userId: user.id } });
+        if (!client) {
+          const dashboardToken = crypto.randomBytes(32).toString('hex');
+          client = await prisma.client.create({
             data: {
               userId: user.id,
               businessName,
@@ -344,35 +366,123 @@ export class AuthController {
               dashboardToken,
               onboardingStatus: 'completed',
               subscriptionStatus: 'active',
-              isTrial: true,
-              trialStartDate: new Date(),
-              trialEndDate: trialEnd,
+              isTrial: false,
+              trialStartDate: null,
+              trialEndDate: null,
               monthlyCallsQuota: pricing.callsQuota,
             },
           });
-          clientId = client.id;
-          logger.info(`Client record created for ${user.email} — clientId: ${client.id}`);
+          logger.info(`[test-account] Client created bypass-mode for ${user.email} — id: ${client.id}`);
+        } else {
+          // Sync persisted business + plan fields with the freshly submitted form
+          // so re-running onboarding for a test account refreshes the tenant.
+          client = await prisma.client.update({
+            where: { id: client.id },
+            data: {
+              businessName,
+              businessType: industry || client.businessType,
+              contactPhone: businessPhone ?? client.contactPhone,
+              planType,
+              setupFee: pricing.setupFee,
+              monthlyFee: pricing.monthlyFee,
+              monthlyCallsQuota: pricing.callsQuota,
+              onboardingStatus: 'completed',
+              subscriptionStatus: 'active',
+              isTrial: false,
+              trialEndDate: null,
+            },
+          });
         }
+
+        // Activate every module — full bundle, free.
+        await prisma.agentSubscription.upsert({
+          where: { clientId: client.id },
+          create: {
+            clientId: client.id, status: 'active', bundle: true,
+            emailAi: true, paymentsAi: true, accountingAi: true, inventoryAi: true,
+            marketingAi: true, reputationAi: true, schedulingAi: true, supportAi: true,
+            crmAi: true, documentAi: true, localSeoAi: true, leadGenAi: true, analyticsAi: true,
+          },
+          update: {
+            status: 'active', bundle: true,
+            emailAi: true, paymentsAi: true, accountingAi: true, inventoryAi: true,
+            marketingAi: true, reputationAi: true, schedulingAi: true, supportAi: true,
+            crmAi: true, documentAi: true, localSeoAi: true, leadGenAi: true, analyticsAi: true,
+          },
+        });
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { onboardingCompleted: true },
+        });
+
+        // Fire-and-forget VAPI setup. The 5-min cron retries on failure.
+        onboardingService.onboardClient(client.id).catch((err: Error) => {
+          logger.error(`[test-account] VAPI setup failed for ${client?.id}: ${err.message}`);
+        });
+
+        const freshToken = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
+          expiresIn: env.JWT_EXPIRES_IN,
+        });
+
+        return res.json({
+          ok: true,
+          bypass: true,
+          checkoutUrl: null,
+          message: 'Test account activated — all 13 modules unlocked free.',
+          token: freshToken,
+          user: {
+            id: user.id, email: user.email, name: user.name, role: user.role,
+            emailConfirmed: true, onboardingCompleted: true, clientId: client.id,
+          },
+        });
       }
 
-      logger.info(`Onboarding completed for user ${user.email} — plan: ${planType}`);
+      // ── NORMAL FLOW: Stripe Checkout (card + 30-day free trial) ──
+      let checkoutUrl: string | null = null;
+      try {
+        const session = await stripeService.createSelfOnboardCheckout({
+          userId: user.id,
+          email: user.email,
+          planType,
+          businessName,
+          businessPhone: businessPhone || undefined,
+          industry: industry || undefined,
+          selectedModules: Array.isArray(selectedModules) ? selectedModules : [],
+          bundle: bundle === true,
+        });
+        if (!session.url) {
+          logger.error(`[onboard] Stripe checkout session ${session.id} has no hosted URL for ${user.email}`);
+          return res.status(503).json({
+            error: 'stripe_unavailable',
+            message: 'Payment provider unavailable. Try again in a moment.',
+          });
+        }
+        checkoutUrl = session.url;
+      } catch (stripeErr: any) {
+        logger.error(`[onboard] Stripe checkout creation failed for ${user.email}:`, stripeErr);
+        return res.status(503).json({
+          error: 'stripe_unavailable',
+          message: stripeErr?.message ?? 'Payment provider unavailable. Try again in a moment.',
+        });
+      }
 
-      // Issue a fresh JWT with the correct role from DB
+      logger.info(`[onboard] Stripe checkout created for ${user.email} (plan: ${planType})`);
+
       const freshToken = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
         expiresIn: env.JWT_EXPIRES_IN,
       });
 
       res.json({
-        message: 'Onboarding completed',
+        ok: true,
+        bypass: false,
+        checkoutUrl,
         token: freshToken,
         user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
+          id: user.id, email: user.email, name: user.name, role: user.role,
           emailConfirmed: user.emailConfirmed,
-          onboardingCompleted: true,
-          clientId,
+          onboardingCompleted: false, // becomes true via webhook after payment
+          clientId: null,
         },
       });
     } catch (error: any) {
@@ -482,7 +592,7 @@ export class AuthController {
           createdAt: true,
           emailConfirmed: true,
           onboardingCompleted: true,
-          client: { select: { id: true } },
+          client: { select: { id: true, subscriptionStatus: true, isTrial: true } },
         },
       });
 
@@ -492,7 +602,13 @@ export class AuthController {
         expiresIn: env.JWT_EXPIRES_IN,
       });
       const { client, ...rest } = user;
-      res.json({ ...rest, clientId: client?.id || null, token: freshToken });
+      res.json({
+        ...rest,
+        clientId: client?.id || null,
+        client: client || null,
+        subscriptionStatus: client?.subscriptionStatus || null,
+        token: freshToken,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
