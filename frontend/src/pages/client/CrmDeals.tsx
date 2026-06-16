@@ -57,7 +57,7 @@ type NewDealTextField = 'contactName' | 'title' | 'value' | 'closeDate';
 
 const STAGES: { key: DealStage; label: string; color: string; bgLight: string; border: string }[] = [
   { key: 'new',         label: 'New',         color: '#3b82f6', bgLight: 'bg-blue-50',    border: 'border-blue-200' },
-  { key: 'qualified',   label: 'Qualified',   color: '#6366F1', bgLight: 'bg-violet-50',  border: 'border-violet-200' },
+  { key: 'qualified',   label: 'Qualified',   color: '#493cbe', bgLight: 'bg-violet-50',  border: 'border-violet-200' },
   { key: 'appointment', label: 'Appointment', color: '#f59e0b', bgLight: 'bg-amber-50',   border: 'border-amber-200' },
   { key: 'client',      label: 'Client',      color: '#10b981', bgLight: 'bg-emerald-50', border: 'border-emerald-200' },
   { key: 'inactive',    label: 'Inactive',    color: '#6b7280', bgLight: 'bg-gray-50',    border: 'border-gray-200' },
@@ -108,8 +108,8 @@ function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof 
           </div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1">
-              <DollarSign size={11} className="text-[#6366f1]" />
-              <span className="text-xs font-bold text-[#6366f1]">{fmt(deal.value)}</span>
+              <DollarSign size={11} className="text-[#493cbe]" />
+              <span className="text-xs font-bold text-[#493cbe]">{fmt(deal.value)}</span>
             </div>
             <div className="flex items-center gap-1">
               <TrendingUp size={11} className="text-[#a855f7]" />
@@ -163,7 +163,7 @@ function StageColumn({
       <SortableContext items={deals.map(d => d.id)} strategy={verticalListSortingStrategy}>
         <div
           className={`space-y-2 min-h-[120px] rounded-2xl p-2 transition-colors
-            ${isOver ? 'bg-[#6366f1]/[0.06] ring-1 ring-[#6366f1]/30' : 'bg-[#f5f5f7]/50'}`}
+            ${isOver ? 'bg-[#493cbe]/[0.06] ring-1 ring-[#493cbe]/30' : 'bg-[#f5f5f7]/50'}`}
           data-stage={stage.key}
         >
           {deals.map(deal => (
@@ -288,7 +288,7 @@ export default function CrmDeals() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="animate-spin text-[#6366f1]" size={32} />
+        <Loader2 className="animate-spin text-[#493cbe]" size={32} />
       </div>
     );
   }
@@ -306,7 +306,7 @@ export default function CrmDeals() {
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#6366f1] text-white text-sm font-medium rounded-xl hover:bg-[#4f46e5] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#493cbe] text-white text-sm font-medium rounded-xl hover:bg-[#4f46e5] transition-colors"
         >
           <Plus size={16} /> Add Deal
         </button>
@@ -315,7 +315,7 @@ export default function CrmDeals() {
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { label: 'Total Pipeline', value: `$${totalPipeline.toLocaleString()}`, sub: `${deals.filter(d => d.stage !== 'lost').length} active deals`, color: '#6366f1' },
+          { label: 'Total Pipeline', value: `$${totalPipeline.toLocaleString()}`, sub: `${deals.filter(d => d.stage !== 'lost').length} active deals`, color: '#493cbe' },
           { label: 'Won (Clients)',   value: `$${wonValue.toLocaleString()}`,       sub: `${stageDeals('client').length} closed`,                          color: '#10b981' },
           { label: 'Lost',           value: `$${stageTotal('lost').toLocaleString()}`, sub: `${stageDeals('lost').length} lost deals`,                    color: '#ef4444' },
         ].map((s, i) => (
@@ -383,7 +383,7 @@ export default function CrmDeals() {
                       placeholder={f.placeholder}
                       value={newDeal[f.key]}
                       onChange={e => setNewDeal(p => ({ ...p, [f.key]: e.target.value }))}
-                      className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 transition-colors"
+                      className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30 transition-colors"
                     />
                   </div>
                 ))}
@@ -395,7 +395,7 @@ export default function CrmDeals() {
                     max={100}
                     value={newDeal.probability}
                     onChange={e => setNewDeal(p => ({ ...p, probability: e.target.value }))}
-                    className="w-full accent-[#6366f1]"
+                    className="w-full accent-[#493cbe]"
                   />
                 </div>
                 <div>
@@ -403,7 +403,7 @@ export default function CrmDeals() {
                   <select
                     value={newDeal.stage}
                     onChange={e => setNewDeal(p => ({ ...p, stage: e.target.value as DealStage }))}
-                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 bg-white"
+                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30 bg-white"
                   >
                     {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                   </select>
@@ -420,7 +420,7 @@ export default function CrmDeals() {
                 <button
                   type="button"
                   onClick={handleAddDeal}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] transition-colors"
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#493cbe] rounded-xl hover:bg-[#4f46e5] transition-colors"
                 >
                   Add Deal
                 </button>

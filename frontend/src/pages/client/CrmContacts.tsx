@@ -185,7 +185,7 @@ export default function CrmContacts() {
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#6366f1] text-white text-sm font-medium rounded-xl hover:bg-[#4f46e5] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#493cbe] text-white text-sm font-medium rounded-xl hover:bg-[#4f46e5] transition-colors"
         >
           <Plus size={16} /> Add Contact
         </button>
@@ -195,14 +195,14 @@ export default function CrmContacts() {
       <div className="grid grid-cols-5 gap-2 mb-6">
         {(['', 'active', 'prospect', 'client', 'lost'] as const).map((s, i) => {
           const labels = ['All', 'Active', 'Prospect', 'Client', 'Lost'];
-          const colors = ['#1d1d1f', '#10b981', '#3b82f6', '#6366f1', '#ef4444'];
+          const colors = ['#1d1d1f', '#10b981', '#3b82f6', '#493cbe', '#ef4444'];
           return (
             <button
               key={i}
               type="button"
               onClick={() => { setStatusFilter(s); setPage(1); }}
               className={`rounded-xl p-3 text-center transition-colors border ${
-                statusFilter === s ? 'border-[#6366f1]/30 bg-[#6366f1]/5' : 'border-[#d2d2d7]/60 bg-white hover:bg-[#f5f5f7]'
+                statusFilter === s ? 'border-[#493cbe]/30 bg-[#493cbe]/5' : 'border-[#d2d2d7]/60 bg-white hover:bg-[#f5f5f7]'
               }`}
             >
               <p className="text-xl font-bold" style={{ color: colors[i] }}>
@@ -221,13 +221,13 @@ export default function CrmContacts() {
           <input
             type="text" placeholder="Search contacts..."
             value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30 transition-colors"
           />
         </div>
         <select
           value={statusFilter}
           onChange={e => { setStatusFilter(e.target.value as ContactStatus | ''); setPage(1); }}
-          className="px-3 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 text-[#1d1d1f]"
+          className="px-3 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30 text-[#1d1d1f]"
         >
           <option value="">All Statuses</option>
           {(['active','prospect','client','inactive','lost'] as ContactStatus[]).map(s => (
@@ -235,7 +235,7 @@ export default function CrmContacts() {
           ))}
         </select>
         <select value={tagFilter} onChange={e => { setTagFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 text-[#1d1d1f]">
+          className="px-3 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30 text-[#1d1d1f]">
           <option value="">All Tags</option>
           {ALL_TAGS.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
@@ -243,12 +243,12 @@ export default function CrmContacts() {
           <Filter size={14} className="text-[#86868b]" />
           <input type="number" placeholder="Min" min={1} max={10} value={minScore}
             onChange={e => { setMinScore(e.target.value); setPage(1); }}
-            className="w-20 px-2 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+            className="w-20 px-2 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30"
           />
           <span className="text-[#86868b] text-sm">-</span>
           <input type="number" placeholder="Max" min={1} max={10} value={maxScore}
             onChange={e => { setMaxScore(e.target.value); setPage(1); }}
-            className="w-20 px-2 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+            className="w-20 px-2 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30"
           />
         </div>
       </div>
@@ -256,8 +256,8 @@ export default function CrmContacts() {
       {/* Bulk actions */}
       {selected.size > 0 && (
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 mb-4 px-4 py-3 bg-[#6366f1]/5 border border-[#6366f1]/20 rounded-xl">
-          <span className="text-sm font-medium text-[#6366f1]">{selected.size} selected</span>
+          className="flex items-center gap-3 mb-4 px-4 py-3 bg-[#493cbe]/5 border border-[#493cbe]/20 rounded-xl">
+          <span className="text-sm font-medium text-[#493cbe]">{selected.size} selected</span>
           <button type="button" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">
             <Tag size={12} /> Tag
           </button>
@@ -277,9 +277,9 @@ export default function CrmContacts() {
       <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white overflow-hidden mb-4">
         {/* Table header */}
         <div className="grid grid-cols-[2rem_2fr_1.5fr_1.2fr_1fr_1.2fr_1.5fr_1fr_2rem] items-center gap-3 px-5 py-3 border-b border-[#f5f5f7] bg-[#fafafa]">
-          <button type="button" onClick={toggleAll} className="text-[#86868b] hover:text-[#6366f1]">
+          <button type="button" onClick={toggleAll} className="text-[#86868b] hover:text-[#493cbe]">
             {selected.size === filtered.length && filtered.length > 0
-              ? <CheckSquare size={15} className="text-[#6366f1]" />
+              ? <CheckSquare size={15} className="text-[#493cbe]" />
               : <Square size={15} />
             }
           </button>
@@ -291,7 +291,7 @@ export default function CrmContacts() {
         {/* Loading */}
         {loading ? (
           <div className="py-16 text-center">
-            <Loader2 size={24} className="mx-auto text-[#6366f1] animate-spin mb-3" />
+            <Loader2 size={24} className="mx-auto text-[#493cbe] animate-spin mb-3" />
             <p className="text-sm text-[#86868b]">Loading contacts...</p>
           </div>
         ) : filtered.length === 0 ? (
@@ -305,9 +305,9 @@ export default function CrmContacts() {
             return (
               <motion.div key={c.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}
                 className="grid grid-cols-[2rem_2fr_1.5fr_1.2fr_1fr_1.2fr_1.5fr_1fr_2rem] items-center gap-3 px-5 py-3.5 border-b border-[#f5f5f7] last:border-0 hover:bg-[#fafafa] transition-colors group">
-                <button type="button" onClick={() => toggleSelect(c.id)} className="text-[#86868b] hover:text-[#6366f1]">
+                <button type="button" onClick={() => toggleSelect(c.id)} className="text-[#86868b] hover:text-[#493cbe]">
                   {selected.has(c.id)
-                    ? <CheckSquare size={15} className="text-[#6366f1]" />
+                    ? <CheckSquare size={15} className="text-[#493cbe]" />
                     : <Square size={15} />
                   }
                 </button>
@@ -327,7 +327,7 @@ export default function CrmContacts() {
                   {c.status.toUpperCase()}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <Star size={12} className="text-[#6366f1]" />
+                  <Star size={12} className="text-[#493cbe]" />
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${scoreColor(c.leadScore)}`}>
                     {c.leadScore}/10
                   </span>
@@ -339,7 +339,7 @@ export default function CrmContacts() {
                   {(c.tags || []).length > 2 && <span className="text-[10px] text-[#86868b]">+{c.tags.length - 2}</span>}
                 </div>
                 <span className="text-[11px] text-[#86868b]">{c.lastActivity}</span>
-                <button type="button" className="opacity-0 group-hover:opacity-100 transition-opacity text-[#86868b] hover:text-[#6366f1]">
+                <button type="button" className="opacity-0 group-hover:opacity-100 transition-opacity text-[#86868b] hover:text-[#493cbe]">
                   <MoreHorizontal size={15} />
                 </button>
               </motion.div>
@@ -368,7 +368,7 @@ export default function CrmContacts() {
               type="button"
               onClick={() => setPage(p)}
               className={`w-8 h-8 rounded-lg text-xs font-medium border transition-colors ${
-                page === p ? 'bg-[#6366f1] text-white border-[#6366f1]' : 'border-[#d2d2d7]/60 bg-white hover:bg-[#f5f5f7] text-[#1d1d1f]'
+                page === p ? 'bg-[#493cbe] text-white border-[#493cbe]' : 'border-[#d2d2d7]/60 bg-white hover:bg-[#f5f5f7] text-[#1d1d1f]'
               }`}
             >{p}</button>
           ))}
@@ -412,7 +412,7 @@ export default function CrmContacts() {
                         placeholder={f.placeholder}
                         value={newContact[f.key]}
                         onChange={e => setNewContact(p => ({ ...p, [f.key]: e.target.value }))}
-                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 transition-colors"
+                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30 transition-colors"
                       />
                     </div>
                   ))}
@@ -421,7 +421,7 @@ export default function CrmContacts() {
                     <select
                       value={newContact.status}
                       onChange={e => setNewContact(p => ({ ...p, status: e.target.value as ContactStatus }))}
-                      className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 bg-white"
+                      className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30 bg-white"
                     >
                       {(['active','prospect','client','inactive','lost'] as ContactStatus[]).map(s => (
                         <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
@@ -440,7 +440,7 @@ export default function CrmContacts() {
                   <button
                     type="button"
                     onClick={handleAddContact}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] transition-colors"
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#493cbe] rounded-xl hover:bg-[#4f46e5] transition-colors"
                   >
                     Add Contact
                   </button>

@@ -175,7 +175,7 @@ export default function ClientAnalytics() {
   const roi = monthlyFee > 0 ? Math.round(((potentialRevenue - monthlyFee) / monthlyFee) * 100) : 0;
 
   const funnelData = [
-    { stage: 'Total appels', value: totalCalls, color: '#6366F1' },
+    { stage: 'Total appels', value: totalCalls, color: '#493cbe' },
     { stage: 'Leads captés', value: totalLeads, color: '#818cf8' },
     { stage: 'Conversions est.', value: Math.round(totalLeads * (conversionRate / 100)), color: '#34d399' },
   ];
@@ -245,8 +245,8 @@ export default function ClientAnalytics() {
               <AreaChart data={daily} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gCalls" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366F1" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#6366F1" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#493cbe" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#493cbe" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#A855F7" stopOpacity={0.25} />
@@ -263,7 +263,7 @@ export default function ClientAnalytics() {
                 />
                 <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} width={28} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }} />
-                <Area type="monotone" dataKey="calls" stroke="#6366F1" fill="url(#gCalls)" strokeWidth={2} name="Appels" />
+                <Area type="monotone" dataKey="calls" stroke="#493cbe" fill="url(#gCalls)" strokeWidth={2} name="Appels" />
                 <Area type="monotone" dataKey="leads" stroke="#A855F7" fill="url(#gLeads)" strokeWidth={2} name="Leads" />
               </AreaChart>
             </ResponsiveContainer>
@@ -326,7 +326,7 @@ export default function ClientAnalytics() {
                   <XAxis dataKey="hour" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                  <Bar dataKey="calls" fill="#6366F1" radius={[4, 4, 0, 0]} name="Appels" />
+                  <Bar dataKey="calls" fill="#493cbe" radius={[4, 4, 0, 0]} name="Appels" />
                 </BarChart>
               </ResponsiveContainer>
             ) : emptyChart}

@@ -51,7 +51,7 @@ type SortDir = 'asc' | 'desc';
 const inputCls = [
   'w-full px-4 py-2.5 text-sm rounded-xl outline-none transition-colors',
   'border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7]',
-  'placeholder-[#8B8BA7] focus:border-[#6366F1]/50',
+  'placeholder-[#8B8BA7] focus:border-[#493cbe]/50',
 ].join(' ');
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -154,8 +154,8 @@ export default function ClientCalls() {
   const SortIcon = ({ k }: { k: SortKey }) => {
     if (sortKey !== k) return <ArrowUpDown size={12} className="text-[#A1A1A8]" aria-hidden="true" />;
     return sortDir === 'asc'
-      ? <ArrowUp size={12} className="text-[#6366F1]" aria-hidden="true" />
-      : <ArrowDown size={12} className="text-[#6366F1]" aria-hidden="true" />;
+      ? <ArrowUp size={12} className="text-[#493cbe]" aria-hidden="true" />
+      : <ArrowDown size={12} className="text-[#493cbe]" aria-hidden="true" />;
   };
 
   const totalCalls = overview?.calls?.total ?? 0;
@@ -187,7 +187,7 @@ export default function ClientCalls() {
           onClick={handleExport}
           disabled={calls.length === 0}
           aria-label="Exporter les appels en CSV"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-[#6366F1] bg-[#6366F1]/10 hover:bg-[#6366F1]/20 rounded-xl transition-colors disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-[#493cbe] bg-[#493cbe]/10 hover:bg-[#493cbe]/20 rounded-xl transition-colors disabled:opacity-40"
         >
           <Download size={15} aria-hidden="true" />
           Exporter CSV
@@ -228,7 +228,7 @@ export default function ClientCalls() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Rechercher dans les appels"
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#6366F1]/50 transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#493cbe]/50 transition-colors"
           />
         </div>
         <button
@@ -238,7 +238,7 @@ export default function ClientCalls() {
           aria-label="Filtres avancés"
           className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium rounded-xl border transition-colors ${
             showFilters || hasActiveFilters
-              ? 'bg-[#6366F1]/10 border-[#6366F1]/30 text-[#6366F1]'
+              ? 'bg-[#493cbe]/10 border-[#493cbe]/30 text-[#493cbe]'
               : 'bg-white/[0.03] border-white/[0.07] text-[#A1A1A8] hover:text-[#F5F5F7]'
           }`}
         >
@@ -246,7 +246,7 @@ export default function ClientCalls() {
           Filtres
           {hasActiveFilters && (
             <span
-              className="w-5 h-5 rounded-full bg-[#6366F1] text-white text-[10px] flex items-center justify-center font-bold"
+              className="w-5 h-5 rounded-full bg-[#493cbe] text-white text-[10px] flex items-center justify-center font-bold"
               aria-label={`${[sentimentFilter, dateFrom, dateTo].filter(Boolean).length} filtre(s) actif(s)`}
             >
               {[sentimentFilter, dateFrom, dateTo].filter(Boolean).length}
@@ -277,7 +277,7 @@ export default function ClientCalls() {
                         aria-pressed={sentimentFilter === f}
                         className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                           sentimentFilter === f
-                            ? 'bg-[#6366F1] text-white'
+                            ? 'bg-[#493cbe] text-white'
                             : 'bg-white/[0.04] text-[#A1A1A8] hover:bg-white/[0.08]'
                         }`}
                       >
@@ -293,7 +293,7 @@ export default function ClientCalls() {
                     type="date"
                     value={dateFrom}
                     onChange={(e) => setDateFrom(e.target.value)}
-                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-[#6366F1]/50"
+                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-[#493cbe]/50"
                   />
                 </div>
                 <div>
@@ -303,7 +303,7 @@ export default function ClientCalls() {
                     type="date"
                     value={dateTo}
                     onChange={(e) => setDateTo(e.target.value)}
-                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-[#6366F1]/50"
+                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-[#493cbe]/50"
                   />
                 </div>
               </div>
@@ -311,7 +311,7 @@ export default function ClientCalls() {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="text-xs text-[#6366F1] hover:underline flex items-center gap-1"
+                  className="text-xs text-[#493cbe] hover:underline flex items-center gap-1"
                 >
                   <X size={12} aria-hidden="true" /> Effacer les filtres
                 </button>
@@ -393,13 +393,13 @@ export default function ClientCalls() {
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        call.isLead ? 'bg-amber-400/10' : 'bg-[#6366F1]/10'
+                        call.isLead ? 'bg-amber-400/10' : 'bg-[#493cbe]/10'
                       }`}
                       aria-hidden="true"
                     >
                       {call.isLead
                         ? <Users size={14} className="text-amber-400" />
-                        : <Phone size={14} className="text-[#6366F1]" />
+                        : <Phone size={14} className="text-[#493cbe]" />
                       }
                     </div>
                     <div className="min-w-0">
@@ -419,7 +419,7 @@ export default function ClientCalls() {
                   <span className="text-sm text-[#A1A1A8]">{formatDuration(call.durationSeconds)}</span>
                   <SentimentBadge sentiment={call.sentiment} />
                   <span className="text-xs text-[#A1A1A8]">{formatDateTime(call.createdAt)}</span>
-                  <ChevronRight size={14} className="text-white/20 group-hover:text-[#6366F1] transition-colors" aria-hidden="true" />
+                  <ChevronRight size={14} className="text-white/20 group-hover:text-[#493cbe] transition-colors" aria-hidden="true" />
                 </div>
 
                 {/* Mobile */}
@@ -427,13 +427,13 @@ export default function ClientCalls() {
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        call.isLead ? 'bg-amber-400/10' : 'bg-[#6366F1]/10'
+                        call.isLead ? 'bg-amber-400/10' : 'bg-[#493cbe]/10'
                       }`}
                       aria-hidden="true"
                     >
                       {call.isLead
                         ? <Users size={16} className="text-amber-400" />
-                        : <Phone size={16} className="text-[#6366F1]" />
+                        : <Phone size={16} className="text-[#493cbe]" />
                       }
                     </div>
                     <div className="flex-1 min-w-0">
@@ -504,13 +504,13 @@ export default function ClientCalls() {
                 <div className="flex items-center gap-4">
                   <div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      selectedCall.isLead ? 'bg-amber-400/10' : 'bg-[#6366F1]/10'
+                      selectedCall.isLead ? 'bg-amber-400/10' : 'bg-[#493cbe]/10'
                     }`}
                     aria-hidden="true"
                   >
                     {selectedCall.isLead
                       ? <Users size={22} className="text-amber-400" />
-                      : <Phone size={22} className="text-[#6366F1]" />
+                      : <Phone size={22} className="text-[#493cbe]" />
                     }
                   </div>
                   <div>
@@ -573,11 +573,11 @@ export default function ClientCalls() {
                         className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden"
                       >
                         <div
-                          className="h-full bg-[#6366F1] rounded-full"
+                          className="h-full bg-[#493cbe] rounded-full"
                           style={{ width: `${selectedCall.leadScore * 10}%` }}
                         />
                       </div>
-                      <span className="text-sm font-bold text-[#6366F1]">{selectedCall.leadScore}/10</span>
+                      <span className="text-sm font-bold text-[#493cbe]">{selectedCall.leadScore}/10</span>
                     </div>
                   </div>
                 )}
@@ -612,7 +612,7 @@ export default function ClientCalls() {
                       <button
                         type="button"
                         onClick={() => setPlayingId(playingId === selectedCall.id ? null : selectedCall.id)}
-                        className="inline-flex items-center gap-2 text-sm font-medium text-[#6366F1] hover:underline mb-2"
+                        className="inline-flex items-center gap-2 text-sm font-medium text-[#493cbe] hover:underline mb-2"
                       >
                         {playingId === selectedCall.id
                           ? <><Pause size={14} aria-hidden="true" /> Pause</>

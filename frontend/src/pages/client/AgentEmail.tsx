@@ -91,7 +91,7 @@ export default function AgentEmail() {
             className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
               gmailConnected
                 ? 'bg-[#f5f5f7] text-[#86868b] hover:bg-red-50 hover:text-red-600 border border-[#d2d2d7]/60'
-                : 'bg-[#6366f1] text-white hover:bg-[#4f46e5]'
+                : 'bg-[#493cbe] text-white hover:bg-[#4f46e5]'
             }`}
           >
             {gmailConnected ? 'Disconnect' : 'Connect Gmail'}
@@ -112,7 +112,7 @@ export default function AgentEmail() {
             className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
               outlookConnected
                 ? 'bg-[#f5f5f7] text-[#86868b] hover:bg-red-50 hover:text-red-600 border border-[#d2d2d7]/60'
-                : 'bg-[#6366f1] text-white hover:bg-[#4f46e5]'
+                : 'bg-[#493cbe] text-white hover:bg-[#4f46e5]'
             }`}
           >
             {outlookConnected ? 'Disconnect' : 'Connect Outlook'}
@@ -129,7 +129,7 @@ export default function AgentEmail() {
               <span className="text-xs text-[#86868b]">Auto-reply</span>
               <button onClick={() => setAutoReplyEnabled(v => !v)}>
                 {autoReplyEnabled
-                  ? <ToggleRight size={22} className="text-[#6366f1]" />
+                  ? <ToggleRight size={22} className="text-[#493cbe]" />
                   : <ToggleLeft size={22} className="text-[#86868b]" />
                 }
               </button>
@@ -176,7 +176,7 @@ export default function AgentEmail() {
                   onClick={() => setSelectedEmail(selectedEmail?.id === email.id ? null : email)}
                   className="flex items-start gap-3 p-3 rounded-xl hover:bg-[#f5f5f7] cursor-pointer transition-colors group"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[#6366f1]/10 flex items-center justify-center flex-shrink-0 text-[#6366f1] font-semibold text-sm">
+                  <div className="w-8 h-8 rounded-lg bg-[#493cbe]/10 flex items-center justify-center flex-shrink-0 text-[#493cbe] font-semibold text-sm">
                     {email.from[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -212,7 +212,7 @@ export default function AgentEmail() {
                 </div>
                 <p className="text-sm text-[#86868b] mb-3">{selectedEmail.preview}</p>
                 <div className="flex gap-2">
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#6366f1] text-white rounded-lg hover:bg-[#4f46e5] transition-colors">
+                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#493cbe] text-white rounded-lg hover:bg-[#4f46e5] transition-colors">
                     <Send size={11} /> Send Reply
                   </button>
                   <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-[#1d1d1f] rounded-lg border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">
@@ -240,7 +240,7 @@ export default function AgentEmail() {
                     </div>
                     <button onClick={() => toggleRule(tab.key)}>
                       {rules[tab.key]
-                        ? <ToggleRight size={20} className="text-[#6366f1]" />
+                        ? <ToggleRight size={20} className="text-[#493cbe]" />
                         : <ToggleLeft size={20} className="text-[#86868b]" />
                       }
                     </button>
@@ -256,7 +256,7 @@ export default function AgentEmail() {
               <h3 className="text-sm font-semibold">Daily Digest</h3>
               <button onClick={() => setDigestEnabled(v => !v)}>
                 {digestEnabled
-                  ? <ToggleRight size={20} className="text-[#6366f1]" />
+                  ? <ToggleRight size={20} className="text-[#493cbe]" />
                   : <ToggleLeft size={20} className="text-[#86868b]" />
                 }
               </button>
@@ -268,7 +268,7 @@ export default function AgentEmail() {
                 type="time"
                 value={digestTime}
                 onChange={e => setDigestTime(e.target.value)}
-                className="flex-1 text-sm border border-[#d2d2d7]/60 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+                className="flex-1 text-sm border border-[#d2d2d7]/60 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30"
               />
             </div>
           </div>
@@ -297,7 +297,7 @@ export default function AgentEmail() {
                 <p className="text-xs text-[#86868b] truncate">{email.from}</p>
               </div>
               <div className="flex gap-2">
-                <button className="px-3 py-1.5 text-xs font-medium bg-[#6366f1] text-white rounded-lg hover:bg-[#4f46e5] transition-colors">Reply</button>
+                <button className="px-3 py-1.5 text-xs font-medium bg-[#493cbe] text-white rounded-lg hover:bg-[#4f46e5] transition-colors">Reply</button>
                 <button className="px-3 py-1.5 text-xs font-medium bg-white text-[#86868b] rounded-lg border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">Dismiss</button>
               </div>
             </div>
@@ -319,8 +319,8 @@ export default function AgentEmail() {
         <div className="space-y-2">
           {TEMPLATES.map(tmpl => (
             <div key={tmpl.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-[#f5f5f7] transition-colors group">
-              <div className="w-8 h-8 rounded-lg bg-[#6366f1]/10 flex items-center justify-center flex-shrink-0">
-                <Edit3 size={14} className="text-[#6366f1]" />
+              <div className="w-8 h-8 rounded-lg bg-[#493cbe]/10 flex items-center justify-center flex-shrink-0">
+                <Edit3 size={14} className="text-[#493cbe]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">{tmpl.name}</p>
@@ -328,7 +328,7 @@ export default function AgentEmail() {
               </div>
               <button
                 onClick={() => setEditingTemplate(editingTemplate === tmpl.id ? null : tmpl.id)}
-                className="text-xs text-[#6366f1] font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+                className="text-xs text-[#493cbe] font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
               >
                 Edit
               </button>
@@ -345,12 +345,12 @@ export default function AgentEmail() {
             >
               <p className="text-xs font-medium mb-2">Editing: {TEMPLATES.find(t => t.id === editingTemplate)?.name}</p>
               <textarea
-                className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 resize-none bg-white"
+                className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30 resize-none bg-white"
                 rows={4}
                 defaultValue={TEMPLATES.find(t => t.id === editingTemplate)?.preview}
               />
               <div className="flex gap-2 mt-3">
-                <button className="px-4 py-2 text-xs font-medium bg-[#6366f1] text-white rounded-lg hover:bg-[#4f46e5] transition-colors">Save</button>
+                <button className="px-4 py-2 text-xs font-medium bg-[#493cbe] text-white rounded-lg hover:bg-[#4f46e5] transition-colors">Save</button>
                 <button onClick={() => setEditingTemplate(null)} className="px-4 py-2 text-xs font-medium bg-white text-[#86868b] rounded-lg border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">Cancel</button>
               </div>
             </motion.div>

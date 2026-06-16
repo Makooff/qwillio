@@ -117,7 +117,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 const STAGE_COLORS: Record<string, string> = {
-  new: '#3b82f6', qualified: '#6366F1', appointment: '#f59e0b', client: '#10b981', inactive: '#6b7280', lost: '#ef4444',
+  new: '#3b82f6', qualified: '#493cbe', appointment: '#f59e0b', client: '#10b981', inactive: '#6b7280', lost: '#ef4444',
 };
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -151,7 +151,7 @@ export default function CrmContactDetail() {
     <div>
       {/* Back link */}
       <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-5">
-        <Link to="/dashboard/crm" className="inline-flex items-center gap-1.5 text-sm text-[#86868b] hover:text-[#6366f1] transition-colors">
+        <Link to="/dashboard/crm" className="inline-flex items-center gap-1.5 text-sm text-[#86868b] hover:text-[#493cbe] transition-colors">
           <ArrowLeft size={14} /> Back to Contacts
         </Link>
       </motion.div>
@@ -161,7 +161,7 @@ export default function CrmContactDetail() {
         className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6 mb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#6366f1] to-[#6366F1] flex items-center justify-center flex-shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#493cbe] to-[#493cbe] flex items-center justify-center flex-shrink-0">
               <span className="text-white text-xl font-bold">{contact.name.charAt(0)}</span>
             </div>
             <div>
@@ -243,10 +243,10 @@ export default function CrmContactDetail() {
         {activeTab === 'overview' && (
           <div className="space-y-4">
             {/* Suggested next action */}
-            <div className="rounded-2xl border border-[#6366f1]/20 bg-[#6366f1]/5 p-5">
+            <div className="rounded-2xl border border-[#493cbe]/20 bg-[#493cbe]/5 p-5">
               <div className="flex items-center gap-2 mb-2">
-                <Zap size={16} className="text-[#6366f1]" />
-                <span className="text-sm font-semibold text-[#6366f1]">Suggested Next Action</span>
+                <Zap size={16} className="text-[#493cbe]" />
+                <span className="text-sm font-semibold text-[#493cbe]">Suggested Next Action</span>
               </div>
               <p className="text-sm text-[#1d1d1f] leading-relaxed">{contact.suggestedAction}</p>
             </div>
@@ -374,11 +374,11 @@ export default function CrmContactDetail() {
               onChange={e => setNotes(e.target.value)}
               placeholder="Add notes about this contact..."
               rows={6}
-              className="w-full px-4 py-3 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 resize-none"
+              className="w-full px-4 py-3 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30 resize-none"
             />
             <button
               type="submit"
-              className="mt-3 px-4 py-2 text-xs font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] transition-colors">
+              className="mt-3 px-4 py-2 text-xs font-medium text-white bg-[#493cbe] rounded-xl hover:bg-[#4f46e5] transition-colors">
               Save Notes
             </button>
           </div>

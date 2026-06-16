@@ -88,7 +88,7 @@ export default function AgentInventory() {
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#6366f1] text-white hover:bg-[#4f46e5] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#493cbe] text-white hover:bg-[#4f46e5] transition-colors"
           >
             <Plus size={15} /> Add Product
           </button>
@@ -145,7 +145,7 @@ export default function AgentInventory() {
                 {p.autoOrder ? (
                   <span className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Auto-order on</span>
                 ) : (
-                  <button className="text-xs font-medium text-[#6366f1] hover:underline">Order now</button>
+                  <button className="text-xs font-medium text-[#493cbe] hover:underline">Order now</button>
                 )}
               </div>
             ))}
@@ -200,7 +200,7 @@ export default function AgentInventory() {
                     <td className="py-3 text-center">
                       <button onClick={() => toggleAutoOrder(p.id)}>
                         {p.autoOrder
-                          ? <ToggleRight size={20} className="text-[#6366f1] mx-auto" />
+                          ? <ToggleRight size={20} className="text-[#493cbe] mx-auto" />
                           : <ToggleLeft size={20} className="text-[#86868b] mx-auto" />
                         }
                       </button>
@@ -209,7 +209,7 @@ export default function AgentInventory() {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => setQrProduct(qrProduct === p.id ? null : p.id)}
-                          className="text-[#86868b] hover:text-[#6366f1] transition-colors"
+                          className="text-[#86868b] hover:text-[#493cbe] transition-colors"
                           title="Generate QR Code"
                         >
                           <QrCode size={15} />
@@ -246,7 +246,7 @@ export default function AgentInventory() {
                 <p className="text-sm font-semibold mb-1">QR Code — {products.find(p => p.id === qrProduct)?.name}</p>
                 <p className="text-xs text-[#86868b] mb-3">Scan to log usage or trigger reorder</p>
                 <div className="flex gap-2">
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#6366f1] text-white rounded-lg hover:bg-[#4f46e5] transition-colors">
+                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#493cbe] text-white rounded-lg hover:bg-[#4f46e5] transition-colors">
                     <Download size={11} /> Download PNG
                   </button>
                   <button onClick={() => setQrProduct(null)} className="px-3 py-1.5 text-xs font-medium bg-white text-[#86868b] rounded-lg border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">
@@ -301,7 +301,7 @@ export default function AgentInventory() {
                   </div>
                   <div className="h-1.5 bg-[#f5f5f7] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#6366f1] rounded-full transition-[width] duration-500 ease-out"
+                      className="h-full bg-[#493cbe] rounded-full transition-[width] duration-500 ease-out"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -310,7 +310,7 @@ export default function AgentInventory() {
             })}
             <div className="pt-3 border-t border-[#d2d2d7]/40 flex items-center justify-between">
               <span className="text-sm font-semibold">Total on hand</span>
-              <span className="text-sm font-bold text-[#6366f1]">${totalStockCost.toFixed(2)}</span>
+              <span className="text-sm font-bold text-[#493cbe]">${totalStockCost.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -346,7 +346,7 @@ export default function AgentInventory() {
                     value={newProduct.name}
                     onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))}
                     placeholder="e.g. Massage Oil 500ml"
-                    className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+                    className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -357,7 +357,7 @@ export default function AgentInventory() {
                       value={newProduct.quantity}
                       onChange={e => setNewProduct(p => ({ ...p, quantity: Number(e.target.value) }))}
                       min={0}
-                      className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+                      className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30"
                     />
                   </div>
                   <div>
@@ -367,7 +367,7 @@ export default function AgentInventory() {
                       value={newProduct.unit}
                       onChange={e => setNewProduct(p => ({ ...p, unit: e.target.value }))}
                       placeholder="bottle, pack, unit..."
-                      className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+                      className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30"
                     />
                   </div>
                 </div>
@@ -379,7 +379,7 @@ export default function AgentInventory() {
                       value={newProduct.threshold}
                       onChange={e => setNewProduct(p => ({ ...p, threshold: Number(e.target.value) }))}
                       min={0}
-                      className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+                      className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30"
                     />
                   </div>
                   <div>
@@ -390,7 +390,7 @@ export default function AgentInventory() {
                       onChange={e => setNewProduct(p => ({ ...p, unitCost: Number(e.target.value) }))}
                       min={0}
                       step={0.01}
-                      className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+                      className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30"
                     />
                   </div>
                 </div>
@@ -401,7 +401,7 @@ export default function AgentInventory() {
                     value={newProduct.supplier}
                     onChange={e => setNewProduct(p => ({ ...p, supplier: e.target.value }))}
                     placeholder="Supplier name"
-                    className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+                    className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30"
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -411,7 +411,7 @@ export default function AgentInventory() {
                   </div>
                   <button onClick={() => setNewProduct(p => ({ ...p, autoOrder: !p.autoOrder }))}>
                     {newProduct.autoOrder
-                      ? <ToggleRight size={24} className="text-[#6366f1]" />
+                      ? <ToggleRight size={24} className="text-[#493cbe]" />
                       : <ToggleLeft size={24} className="text-[#86868b]" />
                     }
                   </button>
@@ -421,7 +421,7 @@ export default function AgentInventory() {
                 <button
                   onClick={addProduct}
                   disabled={!newProduct.name.trim()}
-                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-medium bg-[#6366f1] text-white rounded-xl hover:bg-[#4f46e5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-medium bg-[#493cbe] text-white rounded-xl hover:bg-[#4f46e5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Check size={15} /> Add Product
                 </button>
