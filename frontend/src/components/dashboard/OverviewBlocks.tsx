@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, ArrowDownRight, ChevronRight, type LucideIcon } from 'lucide-react';
 import {
@@ -14,6 +15,30 @@ import { pro, proShadow } from '../../styles/pro-theme';
  */
 
 export type Dir = 'up' | 'down' | 'flat';
+
+// ── Sub-page header — shared title row for dashboard sub-pages ─────────────────
+export function SubPageHeader({
+  title, subtitle, action,
+}: {
+  title: string;
+  subtitle?: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      className="flex items-start justify-between gap-4 mb-6"
+    >
+      <div className="min-w-0">
+        <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: pro.text }}>{title}</h1>
+        {subtitle && <p className="text-[12.5px] mt-0.5" style={{ color: pro.textSec }}>{subtitle}</p>}
+      </div>
+      {action && <div className="flex items-center gap-2 flex-shrink-0">{action}</div>}
+    </motion.div>
+  );
+}
 
 // ── Delta tag — the only place colour appears ─────────────────────────────────
 export function DeltaTag({ pct, dir, suffix }: { pct: number; dir: Dir; suffix?: string }) {

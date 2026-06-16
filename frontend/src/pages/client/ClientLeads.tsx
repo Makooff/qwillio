@@ -8,7 +8,7 @@ import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import { formatDateTime } from '../../utils/format';
-import OrbsLoader from "../../components/OrbsLoader";
+import { SubPageHeader } from '../../components/dashboard/OverviewBlocks';
 
 type ViewMode = 'table' | 'kanban';
 type LeadStatus = '' | 'new' | 'contacted' | 'converted' | 'lost';
@@ -129,48 +129,56 @@ export default function ClientLeads() {
 
   return (
     <div>
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-[22px] font-semibold text-[#F5F5F7] tracking-tight">Leads</h1>
-          <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">{pagination.total} leads qualifiés</p>
-        </div>
-        <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1">
-          <button onClick={() => setView('table')}
-            className={`px-3 py-1.5 rounded-lg transition-colors ${view === 'table' ? 'bg-[#493cbe] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
-          >
-            <List size={14} />
-          </button>
-          <button onClick={() => setView('kanban')}
-            className={`px-3 py-1.5 rounded-lg transition-colors ${view === 'kanban' ? 'bg-[#493cbe] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
-          >
-            <Columns3 size={14} />
-          </button>
-        </div>
-      </motion.div>
+      <SubPageHeader
+        title="Leads"
+        subtitle={`${pagination.total} leads qualifiés`}
+        action={
+          <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1">
+            <button onClick={() => setView('table')} aria-label="Vue liste"
+              className={`px-3 py-1.5 rounded-lg transition-colors ${view === 'table' ? 'bg-[#493cbe] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
+            >
+              <List size={14} />
+            </button>
+            <button onClick={() => setView('kanban')} aria-label="Vue kanban"
+              className={`px-3 py-1.5 rounded-lg transition-colors ${view === 'kanban' ? 'bg-[#493cbe] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
+            >
+              <Columns3 size={14} />
+            </button>
+          </div>
+        }
+      />
 
-      {/* Stats pipeline */}
-      <div className="grid grid-cols-5 gap-2 mb-6">
+      {/* Pipeline — frameless figures split by hairlines, click to filter */}
+      <motion.section
+        aria-label="Pipeline"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="grid grid-cols-5 divide-x divide-white/[0.06] pb-6 mb-6 border-b border-white/[0.06]"
+      >
         {[
-          { label: 'Total', value: statCounts.total, filter: '' as LeadStatus },
+          { label: 'Total', value: statCounts.total, filter: '' as LeadStatus, color: undefined as string | undefined },
           { label: 'Nouveau', value: statCounts.new, filter: 'new' as LeadStatus, color: '#60a5fa' },
           { label: 'Contacté', value: statCounts.contacted, filter: 'contacted' as LeadStatus, color: '#493cbe' },
           { label: 'Converti', value: statCounts.converted, filter: 'converted' as LeadStatus, color: '#34d399' },
           { label: 'Perdu', value: statCounts.lost, filter: 'lost' as LeadStatus, color: '#f87171' },
         ].map((s, i) => (
-          <button key={i} onClick={() => setStatusFilter(s.filter)}
-            className={`rounded-xl p-3 text-center transition-colors border ${
-              statusFilter === s.filter
-                ? 'border-[#493cbe]/30 bg-[#493cbe]/10'
-                : 'border-white/[0.07] bg-white/[0.03] hover:border-white/[0.10]'
-            }`}
+          <button
+            key={i}
+            onClick={() => setStatusFilter(s.filter)}
+            aria-pressed={statusFilter === s.filter}
+            className={`px-3 py-1 text-left first:pl-0 last:pr-0 transition-opacity ${statusFilter === s.filter ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
           >
-            <p className="text-xl font-bold text-[#F5F5F7]" style={s.color ? { color: s.color } : {}}>
+            <p className="text-[26px] font-semibold tabular-nums leading-none" style={{ color: s.color || '#F5F5F7' }}>
               {s.value}
             </p>
-            <p className="text-[10px] text-[#A1A1A8] font-medium">{s.label}</p>
+            <p className="text-[11px] text-[#A1A1A8] mt-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusFilter === s.filter ? (s.color || '#F5F5F7') : 'transparent', boxShadow: statusFilter === s.filter ? 'none' : `inset 0 0 0 1px ${s.color || '#3a3a3a'}` }} />
+              {s.label}
+            </p>
           </button>
         ))}
-      </div>
+      </motion.section>
 
       {/* Search */}
       <div className="relative mb-4">
@@ -185,20 +193,29 @@ export default function ClientLeads() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <OrbsLoader size={40} fullscreen={false} />
+        <div role="status" aria-label="Chargement" aria-busy="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04]">
+              <div className="w-9 h-9 rounded-lg bg-white/[0.06] animate-pulse flex-shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3.5 w-44 rounded bg-white/[0.06] animate-pulse" />
+                <div className="h-3 w-28 rounded bg-white/[0.05] animate-pulse" />
+              </div>
+              <div className="h-5 w-14 rounded-full bg-white/[0.05] animate-pulse" />
+            </div>
+          ))}
         </div>
       ) : filteredLeads.length === 0 ? (
         <EmptyState icon={Users} title="Aucun lead trouvé" description="Les leads apparaîtront une fois que votre IA qualifie les appelants" />
       ) : view === 'table' ? (
         <>
-          <div className="space-y-1.5">
+          <div>
             {filteredLeads.map((lead, idx) => {
               const status = getLeadStatus(lead);
               const sc = STATUS_STYLES[status] || STATUS_STYLES.new;
               return (
-                <motion.div key={lead.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.02 }}
-                  className="rounded-xl border border-white/[0.07] bg-white/[0.03] hover:border-white/[0.12] cursor-pointer group transition-colors"
+                <motion.div key={lead.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx * 0.02, 0.3), ease: [0.16, 1, 0.3, 1] }}
+                  className="border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] cursor-pointer group transition-colors rounded-lg"
                   onClick={() => { setSelectedLead(lead); setNoteText(lead.notes || ''); }}
                 >
                   <div className="flex items-center gap-3 px-5 py-3.5">
@@ -325,7 +342,7 @@ export default function ClientLeads() {
                     <p className="text-xs text-[#A1A1A8] mb-2">Score lead</p>
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-2.5 bg-white/[0.06] rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-[#493cbe] to-[#818cf8] rounded-full"
+                        <div className="h-full bg-[#493cbe] rounded-full"
                           style={{ width: `${selectedLead.leadScore * 10}%` }}
                         />
                       </div>

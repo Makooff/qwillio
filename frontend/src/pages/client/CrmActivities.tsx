@@ -26,7 +26,7 @@ interface RawActivity {
 
 const TYPE_CONFIG: Record<ActivityType, { label: string; icon: React.ElementType; bg: string; text: string; iconColor: string }> = {
   call:        { label: 'Call',        icon: Phone,         bg: 'bg-blue-50',    text: 'text-blue-700',    iconColor: 'text-blue-500' },
-  email:       { label: 'Email',       icon: Mail,          bg: 'bg-indigo-50',  text: 'text-indigo-700',  iconColor: 'text-indigo-500' },
+  email:       { label: 'Email',       icon: Mail,          bg: 'bg-indigo-50',  text: 'text-indigo-700',  iconColor: 'text-[#493cbe]' },
   note:        { label: 'Note',        icon: FileText,      bg: 'bg-amber-50',   text: 'text-amber-700',   iconColor: 'text-amber-500' },
   deal_update: { label: 'Deal Update', icon: TrendingUp,    bg: 'bg-emerald-50', text: 'text-emerald-700', iconColor: 'text-emerald-500' },
   sms:         { label: 'SMS',         icon: MessageSquare, bg: 'bg-violet-50',  text: 'text-violet-700',  iconColor: 'text-violet-500' },
