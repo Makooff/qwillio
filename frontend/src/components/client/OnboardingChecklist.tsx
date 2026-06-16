@@ -186,7 +186,7 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
             <button
               type="button"
               onClick={() => setShowDone(v => !v)}
-              className="w-full flex items-center gap-3 px-5 py-2.5 cursor-pointer"
+              className="no-press w-full flex items-center gap-3 px-5 py-2.5 cursor-pointer"
               style={{ borderTop: `1px solid ${pro.border}` }}
             >
               <div
