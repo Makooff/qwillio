@@ -185,6 +185,12 @@ a[role="button"]:active,
   transform: scale(0.97);
 }
 
+/* Opt-out: elements that must NOT shrink on press (e.g. full-width list toggles). */
+.no-press,
+.no-press:active {
+  transform: none !important;
+}
+
 /* ─── Auth — staggered entrance + glass inputs ─── */
 @keyframes authFadeSlideIn {
   from { opacity: 0; filter: blur(4px); transform: translateY(14px); }
