@@ -10,9 +10,9 @@ import {
 import api from '../../services/api';
 import OrbsLoader from "../../components/OrbsLoader";
 
-const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#6366F1]/50 transition-colors disabled:opacity-50';
-const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] focus:outline-none focus:border-[#6366F1]/50 transition-colors disabled:opacity-50';
-const compactInputCls = 'h-9 px-3 text-[13px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#6B6B75] focus:outline-none focus:border-[#6366F1]/50 transition-colors disabled:opacity-50';
+const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#493cbe]/50 transition-colors disabled:opacity-50';
+const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] focus:outline-none focus:border-[#493cbe]/50 transition-colors disabled:opacity-50';
+const compactInputCls = 'h-9 px-3 text-[13px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#6B6B75] focus:outline-none focus:border-[#493cbe]/50 transition-colors disabled:opacity-50';
 
 interface KbItem { id: string; category: string; name: string; price: string; }
 interface DayHours { open: boolean; from: string; to: string; }
@@ -224,7 +224,7 @@ export default function ClientReceptionist() {
     <div className="flex flex-col items-center justify-center py-20 text-center px-6">
       <AlertCircle className="w-10 h-10 text-[#EF4444] mb-3" />
       <p className="text-sm text-[#8B8BA7]">{error}</p>
-      <button onClick={load} className="mt-4 px-4 py-2 rounded-xl bg-[#6366F1] text-white text-sm">Réessayer</button>
+      <button onClick={load} className="mt-4 px-4 py-2 rounded-xl bg-[#493cbe] text-white text-sm">Réessayer</button>
     </div>
   );
 
@@ -359,7 +359,7 @@ export default function ClientReceptionist() {
       </div>
 
       {/* —— Agent identity —— */}
-      <Section title="Identité de l'agent" icon={Bot} color="#6366F1">
+      <Section title="Identité de l'agent" icon={Bot} color="#493cbe">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Nom de l'agent</label>
@@ -415,7 +415,7 @@ export default function ClientReceptionist() {
                   style={{
                     background: sel ? 'rgba(123,92,240,0.10)' : '#0A0A0C',
                     borderColor: sel ? 'rgba(123,92,240,0.55)' : 'rgba(255,255,255,0.08)',
-                    color: sel ? '#6366F1' : '#F2F2F2',
+                    color: sel ? '#493cbe' : '#F2F2F2',
                   }}
                 >
                   <p className="text-[13px] font-semibold">{p.l}</p>
@@ -442,7 +442,7 @@ export default function ClientReceptionist() {
       </Section>
 
       {/* —— Connaissances IA — items list + week schedule —— */}
-      <Section title="Base de connaissances" icon={BookOpen} color="#6366F1" defaultOpen={false}>
+      <Section title="Base de connaissances" icon={BookOpen} color="#493cbe" defaultOpen={false}>
         <p className="text-[12px] text-[#9A9AA5] mb-5 leading-relaxed">
           Ce que l'IA doit savoir pour répondre aux appelants : services, menu,
           tarifs, horaires, FAQ. Plus c'est précis, plus elle sera précise.
@@ -627,7 +627,7 @@ export default function ClientReceptionist() {
       </Section>
 
       {/* —— Intégrations —— */}
-      <Section title="Intégrations" icon={Calendar} color="#6366F1" defaultOpen={false}>
+      <Section title="Intégrations" icon={Calendar} color="#493cbe" defaultOpen={false}>
         <div className="space-y-4">
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Google Calendar ID</label>
@@ -644,7 +644,7 @@ export default function ClientReceptionist() {
 
       {/* —— Subscription info —— */}
       <Section title="Abonnement" icon={Shield} color="#22C55E" defaultOpen={false}>
-        <Row l="Plan" v={(client.planType || 'starter').charAt(0).toUpperCase() + (client.planType || 'starter').slice(1)} c="#6366F1" />
+        <Row l="Plan" v={(client.planType || 'starter').charAt(0).toUpperCase() + (client.planType || 'starter').slice(1)} c="#493cbe" />
         <Row l="Statut" v={
           status === 'active' ? 'Actif' : status === 'trialing' ? 'Essai' : status === 'paused' ? 'En pause' : status === 'cancelled' ? 'Annulé' : status
         } c={isActive ? '#22C55E' : isPaused ? '#F59E0B' : '#EF4444'} />
@@ -659,9 +659,9 @@ export default function ClientReceptionist() {
 
       {/* —— Info box —— */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-        className="rounded-xl border border-[#6366F1]/15 bg-[#6366F1]/[0.04] p-4">
+        className="rounded-xl border border-[#493cbe]/15 bg-[#493cbe]/[0.04] p-4">
         <p className="text-xs text-[#8B8BA7] leading-relaxed">
-          <span className="text-[#6366F1] font-medium">Besoin d'aide ?</span> — Pour modifier la voix, le script personnalisé, ou les paramètres VAPI avancés de votre IA, contactez notre équipe via le Support. Nous nous occupons de tout en moins de 24h.
+          <span className="text-[#493cbe] font-medium">Besoin d'aide ?</span> — Pour modifier la voix, le script personnalisé, ou les paramètres VAPI avancés de votre IA, contactez notre équipe via le Support. Nous nous occupons de tout en moins de 24h.
         </p>
       </motion.div>
     </div>

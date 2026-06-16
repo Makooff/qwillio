@@ -179,7 +179,7 @@ export default function ClientBilling() {
           className="flex items-start gap-3 rounded-xl border px-5 py-4"
           style={{ background: 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.25)' }}
         >
-          <Shield size={18} className="text-[#6366F1] mt-0.5 shrink-0" />
+          <Shield size={18} className="text-[#493cbe] mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-medium text-[#F5F5F7]">
               Période d'essai en cours
@@ -234,7 +234,7 @@ export default function ClientBilling() {
           <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <div
               className="h-full rounded-full transition-[width] duration-500 ease-out"
-              style={{ width: `${callsPct}%`, background: '#6366F1' }}
+              style={{ width: `${callsPct}%`, background: '#493cbe' }}
             />
           </div>
           {callsPct > 80 && (
@@ -260,7 +260,7 @@ export default function ClientBilling() {
                 transition={{ delay: 0.05 + i * 0.06 }}
                 className="relative rounded-xl border p-5 flex flex-col"
                 style={{
-                  borderColor: isCurrent ? '#6366F1' : 'rgba(255,255,255,0.07)',
+                  borderColor: isCurrent ? '#493cbe' : 'rgba(255,255,255,0.07)',
                   background: isCurrent
                     ? 'rgba(99,102,241,0.07)'
                     : 'rgba(255,255,255,0.025)',
@@ -278,7 +278,7 @@ export default function ClientBilling() {
                 {plan.popular && !isCurrent && (
                   <span
                     className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-0.5 rounded-full text-white whitespace-nowrap"
-                    style={{ background: '#6366F1' }}
+                    style={{ background: '#493cbe' }}
                   >
                     Recommandé
                   </span>
@@ -308,7 +308,7 @@ export default function ClientBilling() {
                   <button
                     onClick={() => handleUpgrade(plan.id)}
                     disabled={upgrading === plan.id}
-                    className="w-full py-2 text-sm font-medium rounded-lg border border-[#6366F1] text-[#6366F1] hover:bg-[#6366F1] hover:text-white transition-colors disabled:opacity-50"
+                    className="w-full py-2 text-sm font-medium rounded-lg border border-[#493cbe] text-[#493cbe] hover:bg-[#493cbe] hover:text-white transition-colors disabled:opacity-50"
                   >
                     {upgrading === plan.id ? 'Redirection…' : isHigher ? 'Upgrader' : 'Réduire'}
                   </button>
@@ -328,7 +328,7 @@ export default function ClientBilling() {
         style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.025)' }}
       >
         <h2 className="text-sm font-semibold text-[#F5F5F7] mb-4 flex items-center gap-2">
-          <FileText size={15} style={{ color: '#6366F1' }} />
+          <FileText size={15} style={{ color: '#493cbe' }} />
           Historique des paiements
         </h2>
 
@@ -374,7 +374,7 @@ export default function ClientBilling() {
                         target="_blank"
                         rel="noreferrer"
                         className="flex items-center gap-1 text-xs hover:underline"
-                        style={{ color: '#6366F1' }}
+                        style={{ color: '#493cbe' }}
                       >
                         <Download size={11} /> PDF
                       </a>

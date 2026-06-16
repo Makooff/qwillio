@@ -66,8 +66,8 @@ const BUSINESS_TYPES = [
   { v: 'other',         l: 'Autre' },
 ];
 
-const inputCls = 'w-full px-4 py-3 text-[15px] rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none focus:border-[#6366F1]/50 transition-colors';
-const compactInputCls = 'h-10 px-3 text-[14px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none focus:border-[#6366F1]/50 transition-colors disabled:opacity-30';
+const inputCls = 'w-full px-4 py-3 text-[15px] rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none focus:border-[#493cbe]/50 transition-colors';
+const compactInputCls = 'h-10 px-3 text-[14px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none focus:border-[#493cbe]/50 transition-colors disabled:opacity-30';
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 

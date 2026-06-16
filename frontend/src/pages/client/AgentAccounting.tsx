@@ -121,7 +121,7 @@ export default function AgentAccounting() {
             className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
               waveConnected
                 ? 'bg-[#f5f5f7] text-[#86868b] hover:bg-red-50 hover:text-red-600 border border-[#d2d2d7]/60'
-                : 'bg-[#6366f1] text-white hover:bg-[#4f46e5]'
+                : 'bg-[#493cbe] text-white hover:bg-[#4f46e5]'
             }`}
           >
             {waveConnected ? 'Disconnect' : 'Connect Wave'}
@@ -173,7 +173,7 @@ export default function AgentAccounting() {
                 formatter={(v: number) => [`$${v.toLocaleString()}`, '']}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="revenue" fill="#6366f1" radius={[4, 4, 0, 0]} name="Revenue" />
+              <Bar dataKey="revenue" fill="#493cbe" radius={[4, 4, 0, 0]} name="Revenue" />
               <Bar dataKey="expenses" fill="#f87171" radius={[4, 4, 0, 0]} name="Expenses" />
             </BarChart>
           </ResponsiveContainer>
@@ -191,7 +191,7 @@ export default function AgentAccounting() {
             <span className="text-xs text-[#86868b]">Auto-invoice</span>
             <button onClick={() => setAutoInvoice(v => !v)}>
               {autoInvoice
-                ? <ToggleRight size={22} className="text-[#6366f1]" />
+                ? <ToggleRight size={22} className="text-[#493cbe]" />
                 : <ToggleLeft size={22} className="text-[#86868b]" />
               }
             </button>
@@ -221,7 +221,7 @@ export default function AgentAccounting() {
                     transition={{ delay: i * 0.04 }}
                     className="border-b border-[#d2d2d7]/20 hover:bg-[#f5f5f7] transition-colors"
                   >
-                    <td className="py-3 font-medium text-[#6366f1] text-xs">{inv.id}</td>
+                    <td className="py-3 font-medium text-[#493cbe] text-xs">{inv.id}</td>
                     <td className="py-3 font-medium">{inv.client}</td>
                     <td className="py-3 text-right font-semibold">${inv.amount.toFixed(2)}</td>
                     <td className="py-3 pl-4">
@@ -234,7 +234,7 @@ export default function AgentAccounting() {
                     <td className={`py-3 text-xs ${inv.status === 'overdue' ? 'text-red-600 font-medium' : 'text-[#86868b]'}`}>{inv.dueDate}</td>
                     <td className="py-3">
                       {inv.status !== 'paid' && (
-                        <button className="text-xs text-[#6366f1] font-medium hover:underline">Send reminder</button>
+                        <button className="text-xs text-[#493cbe] font-medium hover:underline">Send reminder</button>
                       )}
                     </td>
                   </motion.tr>
@@ -260,14 +260,14 @@ export default function AgentAccounting() {
                 <p className="text-sm">{item.label}</p>
                 <button onClick={() => item.setter(v => !v)}>
                   {item.value
-                    ? <ToggleRight size={22} className="text-[#6366f1]" />
+                    ? <ToggleRight size={22} className="text-[#493cbe]" />
                     : <ToggleLeft size={22} className="text-[#86868b]" />
                   }
                 </button>
               </div>
             ))}
-            <div className="rounded-xl bg-[#6366f1]/5 border border-[#6366f1]/20 p-3 mt-2">
-              <p className="text-xs text-[#6366f1]">Reminders are sent via email and SMS to clients with outstanding invoices.</p>
+            <div className="rounded-xl bg-[#493cbe]/5 border border-[#493cbe]/20 p-3 mt-2">
+              <p className="text-xs text-[#493cbe]">Reminders are sent via email and SMS to clients with outstanding invoices.</p>
             </div>
           </div>
         </div>
@@ -292,15 +292,15 @@ export default function AgentAccounting() {
                 key={row.label}
                 className={`flex items-center justify-between py-2 px-3 rounded-xl ${
                   row.type === 'total'
-                    ? 'bg-[#6366f1]/5 border border-[#6366f1]/20'
+                    ? 'bg-[#493cbe]/5 border border-[#493cbe]/20'
                     : 'hover:bg-[#f5f5f7]'
                 } transition-colors`}
               >
-                <span className={`text-sm ${row.type === 'total' ? 'font-semibold text-[#6366f1]' : ''}`}>{row.label}</span>
+                <span className={`text-sm ${row.type === 'total' ? 'font-semibold text-[#493cbe]' : ''}`}>{row.label}</span>
                 <span className={`text-sm font-semibold ${
                   row.type === 'revenue' ? 'text-emerald-600' :
                   row.type === 'expense' ? 'text-red-500' :
-                  'text-[#6366f1]'
+                  'text-[#493cbe]'
                 }`}>
                   {row.value < 0 ? `-$${Math.abs(row.value).toLocaleString()}` : `$${row.value.toLocaleString()}`}
                 </span>

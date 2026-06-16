@@ -255,7 +255,7 @@ export default function Integrations() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="animate-spin text-[#6366f1]" size={32} />
+        <Loader2 className="animate-spin text-[#493cbe]" size={32} />
       </div>
     );
   }
@@ -279,7 +279,7 @@ export default function Integrations() {
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === f
-                ? 'bg-[#6366f1] text-white'
+                ? 'bg-[#493cbe] text-white'
                 : 'bg-white border border-[#d2d2d7]/60 text-[#1d1d1f] hover:bg-[#f5f5f7]'
             }`}
           >
@@ -363,7 +363,7 @@ export default function Integrations() {
                 className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${
                   integration.connected
                     ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                    : 'bg-[#6366f1] text-white hover:bg-[#5558e6]'
+                    : 'bg-[#493cbe] text-white hover:bg-[#5558e6]'
                 }`}
               >
                 {integration.connected ? <><Unlink size={14} /> Disconnect</> : <><Link2 size={14} /> Connect</>}
@@ -464,7 +464,7 @@ export default function Integrations() {
                   <button
                     type="button"
                     onClick={() => resolveConflict(conflict.id, 'local')}
-                    className="flex-1 py-2 rounded-xl text-sm font-medium bg-[#6366f1] text-white hover:bg-[#5558e6] transition-colors"
+                    className="flex-1 py-2 rounded-xl text-sm font-medium bg-[#493cbe] text-white hover:bg-[#5558e6] transition-colors"
                   >
                     Keep Qwillio
                   </button>

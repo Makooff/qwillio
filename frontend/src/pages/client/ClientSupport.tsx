@@ -56,7 +56,7 @@ const FAQ_ITEMS = [
   },
 ];
 
-const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#6366F1]/50 transition-colors';
+const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#493cbe]/50 transition-colors';
 
 export default function ClientSupport() {
   const [subject, setSubject] = useState('');
@@ -113,7 +113,7 @@ export default function ClientSupport() {
         <div className="lg:col-span-3">
           <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-6">
             <h2 className="text-sm font-semibold text-[#F5F5F7] mb-4 flex items-center gap-2">
-              <BookOpen size={16} className="text-[#6366F1]" />
+              <BookOpen size={16} className="text-[#493cbe]" />
               Questions fréquentes
             </h2>
 
@@ -124,7 +124,7 @@ export default function ClientSupport() {
                 placeholder="Rechercher dans la FAQ..."
                 value={faqSearch}
                 onChange={e => setFaqSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#6366F1]/50 transition-colors"
+                className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#493cbe]/50 transition-colors"
               />
             </div>
 
@@ -133,7 +133,7 @@ export default function ClientSupport() {
                 type="button"
                 onClick={() => setFaqCategory('all')}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
-                  faqCategory === 'all' ? 'bg-[#6366F1] text-white' : 'bg-white/[0.04] text-[#A1A1A8] hover:text-[#F5F5F7]'
+                  faqCategory === 'all' ? 'bg-[#493cbe] text-white' : 'bg-white/[0.04] text-[#A1A1A8] hover:text-[#F5F5F7]'
                 }`}
               >
                 Tous
@@ -144,7 +144,7 @@ export default function ClientSupport() {
                   type="button"
                   onClick={() => setFaqCategory(c.id)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1.5 ${
-                    faqCategory === c.id ? 'bg-[#6366F1] text-white' : 'bg-white/[0.04] text-[#A1A1A8] hover:text-[#F5F5F7]'
+                    faqCategory === c.id ? 'bg-[#493cbe] text-white' : 'bg-white/[0.04] text-[#A1A1A8] hover:text-[#F5F5F7]'
                   }`}
                 >
                   <c.icon size={11} />
@@ -189,7 +189,7 @@ export default function ClientSupport() {
         <div className="lg:col-span-2">
           <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-6 sticky top-20">
             <h2 className="text-sm font-semibold text-[#F5F5F7] mb-4 flex items-center gap-2">
-              <MessageCircle size={16} className="text-[#6366F1]" />
+              <MessageCircle size={16} className="text-[#493cbe]" />
               Contacter le support
             </h2>
 
@@ -200,7 +200,7 @@ export default function ClientSupport() {
                 </div>
                 <p className="text-base font-semibold text-[#F5F5F7] mb-1">Message envoyé !</p>
                 <p className="text-sm text-[#A1A1A8] mb-4">Nous vous répondrons dans les 24h</p>
-                <button type="button" onClick={() => setSent(false)} className="text-sm text-[#6366F1] hover:underline">
+                <button type="button" onClick={() => setSent(false)} className="text-sm text-[#493cbe] hover:underline">
                   Envoyer un autre message
                 </button>
               </motion.div>
@@ -213,7 +213,7 @@ export default function ClientSupport() {
                       <button key={c.id} type="button" onClick={() => setCategory(c.id)}
                         className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl border transition-colors ${
                           category === c.id
-                            ? 'border-[#6366F1] bg-[#6366F1]/10 text-[#6366F1]'
+                            ? 'border-[#493cbe] bg-[#493cbe]/10 text-[#493cbe]'
                             : 'border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.04]'
                         }`}
                       >
@@ -240,7 +240,7 @@ export default function ClientSupport() {
                 </div>
                 {error && <p className="text-sm text-red-400">{error}</p>}
                 <button type="submit" disabled={sending}
-                  className="w-full py-2.5 text-sm font-medium text-white bg-[#6366F1] rounded-xl hover:bg-[#6a4ee0] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-2.5 text-sm font-medium text-white bg-[#493cbe] rounded-xl hover:bg-[#6a4ee0] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                 >
                   <Send size={14} />
                   {sending ? 'Envoi...' : 'Envoyer le message'}

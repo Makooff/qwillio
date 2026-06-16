@@ -83,7 +83,7 @@ export default function AgentPayments() {
         </div>
         <div className="flex items-center gap-3">
           {stripeConnected && (
-            <a href="#" className="inline-flex items-center gap-1 text-xs text-[#6366f1] font-medium hover:underline">
+            <a href="#" className="inline-flex items-center gap-1 text-xs text-[#493cbe] font-medium hover:underline">
               Stripe Dashboard <ExternalLink size={11} />
             </a>
           )}
@@ -195,7 +195,7 @@ export default function AgentPayments() {
                   onChange={e => setDepositPercent(e.target.value)}
                   min={0}
                   max={100}
-                  className="w-24 text-sm border border-[#d2d2d7]/60 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+                  className="w-24 text-sm border border-[#d2d2d7]/60 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30"
                 />
                 <span className="text-sm text-[#86868b]">% of total</span>
               </div>
@@ -207,7 +207,7 @@ export default function AgentPayments() {
               </div>
               <button onClick={() => setAutoSendSMS(v => !v)}>
                 {autoSendSMS
-                  ? <ToggleRight size={24} className="text-[#6366f1]" />
+                  ? <ToggleRight size={24} className="text-[#493cbe]" />
                   : <ToggleLeft size={24} className="text-[#86868b]" />
                 }
               </button>
@@ -217,7 +217,7 @@ export default function AgentPayments() {
               <select
                 value={reminderTiming}
                 onChange={e => setReminderTiming(e.target.value)}
-                className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 bg-white"
+                className="w-full text-sm border border-[#d2d2d7]/60 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30 bg-white"
               >
                 <option value="1">1 hour before</option>
                 <option value="6">6 hours before</option>
@@ -239,7 +239,7 @@ export default function AgentPayments() {
               </div>
               <button onClick={() => setNoShowFeeEnabled(v => !v)}>
                 {noShowFeeEnabled
-                  ? <ToggleRight size={24} className="text-[#6366f1]" />
+                  ? <ToggleRight size={24} className="text-[#493cbe]" />
                   : <ToggleLeft size={24} className="text-[#86868b]" />
                 }
               </button>
@@ -253,7 +253,7 @@ export default function AgentPayments() {
                   value={noShowFee}
                   onChange={e => setNoShowFee(e.target.value)}
                   disabled={!noShowFeeEnabled}
-                  className="flex-1 text-sm border border-[#d2d2d7]/60 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex-1 text-sm border border-[#d2d2d7]/60 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#493cbe]/30 disabled:opacity-40 disabled:cursor-not-allowed"
                 />
               </div>
             </div>

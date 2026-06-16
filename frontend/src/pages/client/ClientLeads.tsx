@@ -15,14 +15,14 @@ type LeadStatus = '' | 'new' | 'contacted' | 'converted' | 'lost';
 
 const STATUS_STYLES: Record<string, { pill: string; border: string }> = {
   new:       { pill: 'bg-blue-400/10 text-blue-400',    border: 'border-blue-400/20' },
-  contacted: { pill: 'bg-[#6366F1]/10 text-[#6366F1]', border: 'border-[#6366F1]/20' },
+  contacted: { pill: 'bg-[#493cbe]/10 text-[#493cbe]', border: 'border-[#493cbe]/20' },
   converted: { pill: 'bg-emerald-400/10 text-emerald-400', border: 'border-emerald-400/20' },
   lost:      { pill: 'bg-red-400/10 text-red-400',      border: 'border-red-400/20' },
 };
 
 const KANBAN_COLS = [
   { key: 'new',       label: 'Nouveau',   color: '#60a5fa' },
-  { key: 'contacted', label: 'Contacté',  color: '#6366F1' },
+  { key: 'contacted', label: 'Contacté',  color: '#493cbe' },
   { key: 'converted', label: 'Converti',  color: '#34d399' },
   { key: 'lost',      label: 'Perdu',     color: '#f87171' },
 ];
@@ -136,12 +136,12 @@ export default function ClientLeads() {
         </div>
         <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1">
           <button onClick={() => setView('table')}
-            className={`px-3 py-1.5 rounded-lg transition-colors ${view === 'table' ? 'bg-[#6366F1] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
+            className={`px-3 py-1.5 rounded-lg transition-colors ${view === 'table' ? 'bg-[#493cbe] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
           >
             <List size={14} />
           </button>
           <button onClick={() => setView('kanban')}
-            className={`px-3 py-1.5 rounded-lg transition-colors ${view === 'kanban' ? 'bg-[#6366F1] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
+            className={`px-3 py-1.5 rounded-lg transition-colors ${view === 'kanban' ? 'bg-[#493cbe] text-white' : 'text-[#A1A1A8] hover:text-[#F5F5F7]'}`}
           >
             <Columns3 size={14} />
           </button>
@@ -153,14 +153,14 @@ export default function ClientLeads() {
         {[
           { label: 'Total', value: statCounts.total, filter: '' as LeadStatus },
           { label: 'Nouveau', value: statCounts.new, filter: 'new' as LeadStatus, color: '#60a5fa' },
-          { label: 'Contacté', value: statCounts.contacted, filter: 'contacted' as LeadStatus, color: '#6366F1' },
+          { label: 'Contacté', value: statCounts.contacted, filter: 'contacted' as LeadStatus, color: '#493cbe' },
           { label: 'Converti', value: statCounts.converted, filter: 'converted' as LeadStatus, color: '#34d399' },
           { label: 'Perdu', value: statCounts.lost, filter: 'lost' as LeadStatus, color: '#f87171' },
         ].map((s, i) => (
           <button key={i} onClick={() => setStatusFilter(s.filter)}
             className={`rounded-xl p-3 text-center transition-colors border ${
               statusFilter === s.filter
-                ? 'border-[#6366F1]/30 bg-[#6366F1]/10'
+                ? 'border-[#493cbe]/30 bg-[#493cbe]/10'
                 : 'border-white/[0.07] bg-white/[0.03] hover:border-white/[0.10]'
             }`}
           >
@@ -180,7 +180,7 @@ export default function ClientLeads() {
           placeholder="Rechercher des leads..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#6366F1]/50 transition-colors"
+          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#493cbe]/50 transition-colors"
         />
       </div>
 
@@ -218,13 +218,13 @@ export default function ClientLeads() {
                       </span>
                       {lead.leadScore != null && (
                         <div className="hidden sm:flex items-center gap-1">
-                          <Star size={12} className="text-[#6366F1]" />
-                          <span className="text-xs font-bold text-[#6366F1]">{lead.leadScore}/10</span>
+                          <Star size={12} className="text-[#493cbe]" />
+                          <span className="text-xs font-bold text-[#493cbe]">{lead.leadScore}/10</span>
                         </div>
                       )}
                       <SentimentBadge sentiment={lead.sentiment} />
                       <span className="text-[10px] text-[#A1A1A8] hidden lg:inline">{formatDateTime(lead.createdAt)}</span>
-                      <ChevronRight size={14} className="text-white/20 group-hover:text-[#6366F1] transition-colors" />
+                      <ChevronRight size={14} className="text-white/20 group-hover:text-[#493cbe] transition-colors" />
                     </div>
                   </div>
                 </motion.div>
@@ -260,7 +260,7 @@ export default function ClientLeads() {
                       <div className="flex items-center justify-between">
                         <SentimentBadge sentiment={lead.sentiment} />
                         {lead.leadScore != null && (
-                          <span className="text-[10px] font-bold text-[#6366F1]">{lead.leadScore}/10</span>
+                          <span className="text-[10px] font-bold text-[#493cbe]">{lead.leadScore}/10</span>
                         )}
                       </div>
                     </motion.div>
@@ -325,11 +325,11 @@ export default function ClientLeads() {
                     <p className="text-xs text-[#A1A1A8] mb-2">Score lead</p>
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-2.5 bg-white/[0.06] rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-[#6366F1] to-[#818cf8] rounded-full"
+                        <div className="h-full bg-gradient-to-r from-[#493cbe] to-[#818cf8] rounded-full"
                           style={{ width: `${selectedLead.leadScore * 10}%` }}
                         />
                       </div>
-                      <span className="text-lg font-bold text-[#6366F1]">{selectedLead.leadScore}/10</span>
+                      <span className="text-lg font-bold text-[#493cbe]">{selectedLead.leadScore}/10</span>
                     </div>
                   </div>
                 )}
@@ -378,12 +378,12 @@ export default function ClientLeads() {
                     onChange={e => setNoteText(e.target.value)}
                     placeholder="Ajouter des notes sur ce lead..."
                     rows={3}
-                    className="w-full px-4 py-3 text-sm rounded-xl border border-white/[0.07] bg-[#0A0A0F] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#6366F1]/50 resize-none transition-colors"
+                    className="w-full px-4 py-3 text-sm rounded-xl border border-white/[0.07] bg-[#0A0A0F] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#493cbe]/50 resize-none transition-colors"
                   />
                   <button
                     onClick={() => handleSaveNote(selectedLead.id)}
                     disabled={savingNote || !noteText.trim()}
-                    className="mt-2 px-4 py-2 text-xs font-medium text-white bg-[#6366F1] rounded-xl hover:bg-[#6a4ee0] disabled:opacity-40 transition-colors"
+                    className="mt-2 px-4 py-2 text-xs font-medium text-white bg-[#493cbe] rounded-xl hover:bg-[#6a4ee0] disabled:opacity-40 transition-colors"
                   >
                     {savingNote ? 'Enregistrement...' : 'Sauvegarder'}
                   </button>

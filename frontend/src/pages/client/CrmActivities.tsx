@@ -91,7 +91,7 @@ export default function CrmActivities() {
           type="button"
           onClick={() => setTypeFilter('')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
-            typeFilter === '' ? 'bg-[#6366f1] text-white border-[#6366f1]' : 'bg-white border-[#d2d2d7]/60 text-[#86868b] hover:bg-[#f5f5f7]'
+            typeFilter === '' ? 'bg-[#493cbe] text-white border-[#493cbe]' : 'bg-white border-[#d2d2d7]/60 text-[#86868b] hover:bg-[#f5f5f7]'
           }`}
         >
           All ({activities.length})
@@ -117,7 +117,7 @@ export default function CrmActivities() {
       {/* Loading */}
       {loading ? (
         <div className="py-16 text-center">
-          <Loader2 size={24} className="mx-auto text-[#6366f1] animate-spin mb-3" />
+          <Loader2 size={24} className="mx-auto text-[#493cbe] animate-spin mb-3" />
           <p className="text-sm text-[#86868b]">Loading activities...</p>
         </div>
       ) : Object.keys(grouped).length === 0 ? (
