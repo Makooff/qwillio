@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Check, AlertTriangle, Shield, Phone, FileText, Download } from 'lucide-react';
 import api from '../../services/api';
 import { formatDate } from '../../utils/format';
-import OrbsLoader from '../../components/OrbsLoader';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -150,8 +149,10 @@ export default function ClientBilling() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <OrbsLoader size={40} fullscreen={false} />
+      <div className="space-y-6" aria-busy="true">
+        <div className="space-y-2"><div className="h-7 w-44 rounded-lg bg-white/[0.06] animate-pulse" /><div className="h-4 w-60 rounded bg-white/[0.05] animate-pulse" /></div>
+        <div className="h-44 rounded-2xl bg-white/[0.04] animate-pulse" />
+        <div className="h-44 rounded-2xl bg-white/[0.04] animate-pulse" />
       </div>
     );
   }

@@ -8,7 +8,6 @@ import {
   Sparkles, Tag, Clock3, HelpCircle, MessageSquare, Plus, X,
 } from 'lucide-react';
 import api from '../../services/api';
-import OrbsLoader from '../../components/OrbsLoader';
 import { pro } from '../../styles/pro-theme';
 import { Card } from '../../components/pro/ProBlocks';
 
@@ -396,8 +395,9 @@ export default function ClientSetupCustomize() {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center py-32">
-      <OrbsLoader size={40} fullscreen={false} />
+    <div className="max-w-2xl space-y-4" aria-busy="true">
+      <div className="space-y-2"><div className="h-6 w-48 rounded-lg bg-white/[0.06] animate-pulse" /><div className="h-4 w-64 rounded bg-white/[0.05] animate-pulse" /></div>
+      <div className="h-44 rounded-2xl bg-white/[0.04] animate-pulse" />
     </div>
   );
 

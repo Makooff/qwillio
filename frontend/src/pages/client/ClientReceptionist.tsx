@@ -8,7 +8,6 @@ import {
   BookOpen, Tag, HelpCircle, Clock3, Plus, X,
 } from 'lucide-react';
 import api from '../../services/api';
-import OrbsLoader from "../../components/OrbsLoader";
 
 const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#493cbe]/50 transition-colors disabled:opacity-50';
 const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] focus:outline-none focus:border-[#493cbe]/50 transition-colors disabled:opacity-50';
@@ -215,8 +214,10 @@ export default function ClientReceptionist() {
   };
 
   if (loading) return (
-    <div className="flex justify-center py-16">
-      <OrbsLoader size={40} fullscreen={false} />
+    <div className="max-w-3xl space-y-4" aria-busy="true">
+      <div className="space-y-2"><div className="h-6 w-48 rounded-lg bg-white/[0.06] animate-pulse" /><div className="h-4 w-64 rounded bg-white/[0.05] animate-pulse" /></div>
+      <div className="h-40 rounded-2xl bg-white/[0.04] animate-pulse" />
+      <div className="h-40 rounded-2xl bg-white/[0.04] animate-pulse" />
     </div>
   );
 
