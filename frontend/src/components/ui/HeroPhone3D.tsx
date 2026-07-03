@@ -788,39 +788,39 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
     return () => { clearTimeout(t1); clearTimeout(t2); setRinging(false); };
   }, [scene, reduced]);
 
-  /* Pointer-reactive tilt */
+  /* Cursor-reactive tilt — tracks the pointer across the WHOLE page, gently.
+     The device itself stays put (no idle float): static transforms let the
+     browser re-rasterize the 3D layer at full resolution, keeping text crisp. */
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
-  const spring = { stiffness: 140, damping: 18, mass: 0.5 };
+  const spring = { stiffness: 110, damping: 20, mass: 0.6 };
   const smx = useSpring(mx, spring);
   const smy = useSpring(my, spring);
-  const rotateY = useTransform(smx, [-0.5, 0.5], [-24, 2]);
-  const rotateX = useTransform(smy, [-0.5, 0.5], [11, -5]);
-  const glareX = useTransform(smx, [-0.5, 0.5], ['30%', '75%']);
-  const glareY = useTransform(smy, [-0.5, 0.5], ['18%', '55%']);
+  const rotateY = useTransform(smx, [-0.5, 0.5], [-23, -7]);
+  const rotateX = useTransform(smy, [-0.5, 0.5], [7, -3]);
+  const glareX = useTransform(smx, [-0.5, 0.5], ['32%', '72%']);
+  const glareY = useTransform(smy, [-0.5, 0.5], ['20%', '52%']);
   const glareBg = useTransform([glareX, glareY], ([x, y]) =>
     `radial-gradient(120% 60% at ${x} ${y}, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.045) 32%, transparent 60%)`
   );
-  const shadowScale = useTransform(smx, [-0.5, 0.5], [1.06, 0.94]);
+  const shadowScale = useTransform(smx, [-0.5, 0.5], [1.04, 0.96]);
 
-  function onMove(e: React.MouseEvent<HTMLDivElement>) {
-    const r = e.currentTarget.getBoundingClientRect();
-    mx.set((e.clientX - r.left) / r.width - 0.5);
-    my.set((e.clientY - r.top) / r.height - 0.5);
-  }
-  function onLeave() {
-    mx.set(0);
-    my.set(0);
-  }
+  useEffect(() => {
+    if (reduced) return;
+    const onMove = (e: MouseEvent) => {
+      mx.set(e.clientX / window.innerWidth - 0.5);
+      my.set(e.clientY / window.innerHeight - 0.5);
+    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [reduced, mx, my]);
 
   const appScene = scene !== 'home';
 
   return (
     <div
       className="relative flex items-center justify-center py-6 lg:py-0"
-      style={{ perspective: 1400 }}
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
+      style={{ perspective: 1500 }}
       role="img"
       aria-label={isFr
         ? 'iPhone affichant iOS avec notifications Qwillio, puis la visite animée du dashboard client : vue d\'ensemble, appels, analytics'
@@ -834,19 +834,42 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
       />
 
       <div aria-hidden="true">
-        {/* Idle float */}
-        <motion.div
-          animate={reduced ? undefined : { y: [0, -11, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-        >
+        {/* Static stage — no idle float: the device is immobile, only the tilt follows the cursor */}
+        <div>
           {/* Reactive 3D body */}
           <motion.div
             className="relative"
-            style={{ rotateX: reduced ? 0 : rotateX, rotateY: reduced ? 0 : rotateY, transformStyle: 'preserve-3d' }}
+            style={{
+              rotateX: reduced ? 0 : rotateX,
+              rotateY: reduced ? 0 : rotateY,
+              transformStyle: 'preserve-3d',
+              willChange: 'transform',
+            }}
           >
-            {/* Titanium frame */}
+            {/* Real device depth — stacked titanium slices form the visible side wall */}
+            {Array.from({ length: 9 }, (_, i) => (
+              <div
+                key={i}
+                className="absolute inset-0 rounded-[52px]"
+                style={{
+                  transform: `translateZ(${-1.6 * (i + 1)}px)`,
+                  background: i === 8
+                    ? 'linear-gradient(155deg, #2e2e33 0%, #141417 55%, #303035 100%)'
+                    : `linear-gradient(180deg, #7a7a80 0%, #3f3f45 12%, #2a2a2f 50%, #3f3f45 88%, #6d6d73 100%)`,
+                  boxShadow: i === 8 ? 'inset 0 0 22px rgba(0,0,0,0.55)' : undefined,
+                }}
+              />
+            ))}
+
+            {/* Side buttons — sit on the metal edge, mid-depth, so they read in 3D */}
+            <span className="absolute -left-[3.5px] top-[112px] h-[28px] w-[5px] rounded-l-[3px]" style={{ transform: 'translateZ(-7px)', background: 'linear-gradient(90deg, #8a8a90, #3a3a40 45%, #232327)' }} />
+            <span className="absolute -left-[3.5px] top-[158px] h-[48px] w-[5px] rounded-l-[3px]" style={{ transform: 'translateZ(-7px)', background: 'linear-gradient(90deg, #8a8a90, #3a3a40 45%, #232327)' }} />
+            <span className="absolute -left-[3.5px] top-[216px] h-[48px] w-[5px] rounded-l-[3px]" style={{ transform: 'translateZ(-7px)', background: 'linear-gradient(90deg, #8a8a90, #3a3a40 45%, #232327)' }} />
+            <span className="absolute -right-[3.5px] top-[176px] h-[74px] w-[5px] rounded-r-[3px]" style={{ transform: 'translateZ(-7px)', background: 'linear-gradient(270deg, #8a8a90, #3a3a40 45%, #232327)' }} />
+
+            {/* Titanium frame — front face */}
             <div
-              className="relative w-[264px] rounded-[52px] p-[3px] sm:w-[288px]"
+              className="relative w-[290px] rounded-[52px] p-[3px] sm:w-[320px]"
               style={{
                 background: 'linear-gradient(155deg, #6b6b70 0%, #2c2c30 18%, #1a1a1d 45%, #3b3b40 78%, #757579 100%)',
                 boxShadow: [
@@ -855,6 +878,7 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
                   '0 30px 60px -18px rgba(20,16,50,0.45)',
                   '0 70px 110px -30px rgba(99,102,241,0.28)',
                 ].join(', '),
+                backfaceVisibility: 'hidden',
               }}
             >
               {/* Antenna lines */}
@@ -862,12 +886,6 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
               <span className="absolute right-[22%] top-0 h-[3px] w-[3px] rounded-full bg-black/50" />
               <span className="absolute bottom-0 left-[22%] h-[3px] w-[3px] rounded-full bg-black/50" />
               <span className="absolute bottom-0 right-[22%] h-[3px] w-[3px] rounded-full bg-black/50" />
-
-              {/* Side buttons */}
-              <span className="absolute -left-[2.5px] top-[104px] h-[26px] w-[3px] rounded-l-[2px]" style={{ background: 'linear-gradient(90deg, #57575c, #26262a)' }} />
-              <span className="absolute -left-[2.5px] top-[148px] h-[44px] w-[3px] rounded-l-[2px]" style={{ background: 'linear-gradient(90deg, #57575c, #26262a)' }} />
-              <span className="absolute -left-[2.5px] top-[202px] h-[44px] w-[3px] rounded-l-[2px]" style={{ background: 'linear-gradient(90deg, #57575c, #26262a)' }} />
-              <span className="absolute -right-[2.5px] top-[164px] h-[68px] w-[3px] rounded-r-[2px]" style={{ background: 'linear-gradient(270deg, #57575c, #26262a)' }} />
 
               {/* Black bezel */}
               <div className="rounded-[49px] bg-[#050506] p-[9px]">
@@ -1014,10 +1032,10 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
 
           {/* Floor shadow */}
           <motion.div
-            className="mx-auto mt-9 h-6 w-[190px] rounded-full blur-xl"
-            style={{ background: 'rgba(24,20,55,0.35)', scaleX: reduced ? 1 : shadowScale }}
+            className="mx-auto mt-9 h-6 w-[210px] rounded-full blur-xl"
+            style={{ background: 'rgba(24,20,55,0.38)', scaleX: reduced ? 1 : shadowScale }}
           />
-        </motion.div>
+        </div>
       </div>
     </div>
   );
