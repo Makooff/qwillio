@@ -175,8 +175,8 @@ export default function Register() {
 
                 <button
                   type="submit" disabled={loading}
-                  className="auth-in auth-d6 w-full rounded-2xl py-[15px] text-[15px] font-semibold border-none cursor-pointer flex items-center justify-center gap-2 transition-colors active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{ background: loading ? 'oklch(40% 0.02 265)' : D.accent, color: loading ? D.text2 : 'oklch(98% 0.004 265)' }}
+                  className="auth-in auth-d6 w-full rounded-full px-4 py-4 text-base font-medium border-none cursor-pointer flex items-center justify-center gap-2 transition-colors active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed bg-white text-[#1d1d1f] hover:bg-[#6366f1] hover:text-white"
+                  style={loading ? { background: 'oklch(40% 0.02 265)', color: D.text2 } : undefined}
                 >
                   {loading ? 'Création…' : 'Créer mon compte'}
                   {!loading && <ArrowRight size={16} />}

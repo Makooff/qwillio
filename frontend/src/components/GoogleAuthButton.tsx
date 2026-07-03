@@ -60,7 +60,7 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       type="button"
       onClick={() => !loading && googleSignIn()}
       disabled={disabled || loading}
-      className="w-full inline-flex items-center justify-center gap-2 bg-white text-[#1d1d1f] text-base font-medium px-6 py-3.5 rounded-full border border-[#d2d2d7] hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full inline-flex items-center justify-center gap-2 bg-white text-[#1d1d1f] text-base font-medium px-4 py-4 rounded-full border border-[#d2d2d7] hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <GoogleSVG />
       {loading ? '...' : label}
