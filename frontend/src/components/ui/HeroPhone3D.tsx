@@ -7,7 +7,7 @@ import {
   useTransform,
   useReducedMotion,
 } from 'framer-motion';
-import { Phone, ArrowUpRight, ChevronRight, Lock, BarChart3 } from 'lucide-react';
+import { Phone, ArrowUpRight, ChevronRight, BarChart3 } from 'lucide-react';
 import QwillioLogo from '../QwillioLogo';
 
 /*
@@ -113,20 +113,25 @@ function AppIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-/* ── Scene: iOS lock screen with Qwillio notifications ──────────────────────── */
+/* ── Scene: iOS lock screen + Centre de notifications (matches the reference
+      recording: glassy oversized clock, bold notification cards, torch/camera) ── */
 function SceneHome({ isFr }: { isFr: boolean }) {
   const now = new Date();
-  const dateLine = now.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+  const dateLine = isFr
+    ? now.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '.')
+    : now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const notifs = isFr
     ? [
-        { title: 'Nouveau lead qualifié', body: 'Marc · Rivera HVAC — devis chauffage envoyé', time: 'maintenant' },
-        { title: 'Rendez-vous confirmé', body: 'Sarah · Bright Dental — lundi 14h00', time: 'il y a 1 min' },
-        { title: 'Appel transféré', body: 'Urgence fuite redirigée vers Sophie', time: 'il y a 4 min' },
+        { title: 'Nouveau lead qualifié', body: 'Marc · Rivera HVAC', time: 'il y a 2 min' },
+        { title: 'Rendez-vous confirmé', body: 'Sarah · Bright Dental', time: '11:26 AM' },
+        { title: 'Appel transféré', body: 'Urgence vers Sophie', time: 'hier 11:53 PM' },
+        { title: 'Rappel programmé', body: 'Larsson Law — mardi', time: 'hier 7:09 PM' },
       ]
     : [
-        { title: 'New qualified lead', body: 'Marc · Rivera HVAC — heating quote sent', time: 'now' },
-        { title: 'Appointment confirmed', body: 'Sarah · Bright Dental — Monday 2:00 PM', time: '1 min ago' },
-        { title: 'Call transferred', body: 'Urgent leak routed to Sophie', time: '4 min ago' },
+        { title: 'New qualified lead', body: 'Marc · Rivera HVAC', time: '2 min ago' },
+        { title: 'Appointment confirmed', body: 'Sarah · Bright Dental', time: '11:26 AM' },
+        { title: 'Call transferred', body: 'Urgent case to Sophie', time: 'yest. 11:53 PM' },
+        { title: 'Callback scheduled', body: 'Larsson Law — Tuesday', time: 'yest. 7:09 PM' },
       ];
 
   return (
@@ -148,43 +153,73 @@ function SceneHome({ isFr }: { isFr: boolean }) {
         transition={{ duration: 8.5, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {/* Lock screen clock */}
-      <div className="absolute inset-x-0 top-[44px] flex flex-col items-center">
-        <Lock size={9} className="mb-1.5 text-white/70" aria-hidden="true" />
-        <p className="text-[8.5px] font-medium text-white/75">{dateLine}</p>
-        <p className="mt-0.5 text-[44px] font-semibold leading-none tracking-tight text-white/95" style={{ fontVariantNumeric: 'tabular-nums' }}>
-          9:41
+      {/* Carrier — top-left like the real lock screen */}
+      <span className="absolute left-5 top-[13px] text-[8px] font-semibold text-white/90">Proximus</span>
+
+      {/* Date + oversized liquid-glass clock */}
+      <div className="absolute inset-x-0 top-[34px] flex flex-col items-center">
+        <p className="text-[10px] font-semibold text-white/85">{dateLine}</p>
+        <p
+          className="mt-0 select-none text-[56px] font-bold leading-[1.05] tracking-[-0.02em]"
+          style={{
+            fontVariantNumeric: 'tabular-nums',
+            color: 'rgba(255,255,255,0.42)',
+            textShadow: '0 1px 0 rgba(255,255,255,0.45), 0 -1px 1px rgba(0,0,0,0.28), 0 10px 22px rgba(0,0,0,0.30)',
+          }}
+        >
+          6:28
         </p>
       </div>
 
-      {/* iOS notification stack */}
-      <ul className="absolute inset-x-3 top-[168px] space-y-1.5">
-        {notifs.map((n, i) => (
-          <motion.li
-            key={n.title}
-            initial={{ opacity: 0, y: 26, scale: 0.92 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 26, delay: 0.9 + i * 1.15 }}
-            className="rounded-[13px] px-2.5 py-2"
-            style={{ background: 'rgba(40,40,50,0.72)', backdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.06)' }}
+      {/* Centre de notifications */}
+      <div className="absolute inset-x-3 top-[142px]">
+        <motion.div
+          className="mb-2 flex items-center justify-between px-1"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 26, delay: 0.55 }}
+        >
+          <p className="text-[13px] font-bold tracking-tight text-white">
+            {isFr ? 'Centre de notifications' : 'Notification Center'}
+          </p>
+          <span
+            className="flex h-[18px] w-[18px] items-center justify-center rounded-full text-[9px] font-semibold text-white/85"
+            style={{ background: 'rgba(120,120,128,0.44)', backdropFilter: 'blur(8px)' }}
+            aria-hidden="true"
           >
-            <div className="flex items-center gap-1.5">
-              <AppIcon size={16} />
-              <span className="flex-1 text-[6.5px] font-medium uppercase tracking-wide text-white/55">Qwillio</span>
-              <span className="text-[6.5px] text-white/45">{n.time}</span>
-            </div>
-            <p className="mt-1 text-[8.5px] font-semibold leading-tight text-white">{n.title}</p>
-            <p className="text-[8px] leading-snug text-white/70">{n.body}</p>
-          </motion.li>
-        ))}
-      </ul>
+            ✕
+          </span>
+        </motion.div>
+
+        <ul className="space-y-[7px]">
+          {notifs.map((n, i) => (
+            <motion.li
+              key={n.title}
+              initial={{ opacity: 0, y: 30, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 27, delay: 0.75 + i * 0.55 }}
+              className="flex items-center gap-2.5 rounded-[15px] px-2.5 py-[9px]"
+              style={{ background: 'rgba(85,85,95,0.52)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <AppIcon size={26} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[10px] font-bold leading-tight text-white">{n.title}</span>
+                <span className="block truncate text-[9px] leading-snug text-white/85">{n.body}</span>
+              </span>
+              <span className="flex-shrink-0 self-start pt-[1px] text-[7.5px] text-white/70">{n.time}</span>
+            </motion.li>
+          ))}
+        </ul>
+      </div>
 
       {/* Flashlight / camera — lock screen corners */}
-      <div className="absolute bottom-7 left-6 flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }} aria-hidden="true">
-        <span className="block h-2.5 w-1.5 rounded-[2px] border border-white/80" />
+      <div className="absolute bottom-6 left-6 flex h-9 w-9 items-center justify-center rounded-full" style={{ background: 'rgba(120,120,128,0.40)', backdropFilter: 'blur(10px)' }} aria-hidden="true">
+        <span className="block h-3.5 w-2 rounded-[2px] border-[1.5px] border-white/90" />
       </div>
-      <div className="absolute bottom-7 right-6 flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }} aria-hidden="true">
-        <span className="block h-2 w-2.5 rounded-[2px] border border-white/80" />
+      <div className="absolute bottom-6 right-6 flex h-9 w-9 items-center justify-center rounded-full" style={{ background: 'rgba(120,120,128,0.40)', backdropFilter: 'blur(10px)' }} aria-hidden="true">
+        <span className="relative block h-2.5 w-3.5 rounded-[2px] border-[1.5px] border-white/90">
+          <span className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/90" />
+        </span>
       </div>
     </div>
   );
@@ -846,8 +881,8 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
                         className="absolute inset-0"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        exit={{ opacity: 0, scale: 1.12 }}
-                        transition={{ duration: 0.45, ease: EASE }}
+                        exit={{ opacity: 0, y: -170, scale: 1.04 }}
+                        transition={{ duration: 0.42, ease: EASE }}
                       >
                         <SceneHome isFr={isFr} />
                       </motion.div>
@@ -856,12 +891,12 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
                         key={scene}
                         className="absolute inset-0"
                         initial={scene === 'overview'
-                          ? { opacity: 0, scale: 0.62, borderRadius: 60 }
-                          : { opacity: 0, x: 30 }}
-                        animate={{ opacity: 1, scale: 1, x: 0, borderRadius: 0 }}
+                          ? { opacity: 0, scale: 1.32, filter: 'blur(14px)' }
+                          : { opacity: 0, x: 30, filter: 'blur(0px)' }}
+                        animate={{ opacity: 1, scale: 1, x: 0, filter: 'blur(0px)' }}
                         exit={{ opacity: 0, x: -26 }}
                         transition={scene === 'overview'
-                          ? { type: 'spring', stiffness: 260, damping: 26 }
+                          ? { type: 'spring', stiffness: 190, damping: 24 }
                           : { duration: 0.4, ease: EASE }}
                         style={{ overflow: 'hidden' }}
                       >
