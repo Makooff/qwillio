@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import IPhoneMockup from '../components/IPhoneMockup';
 import { useSEO } from '../hooks/useSEO';
 import { Link } from 'react-router-dom';
 import {
@@ -223,21 +224,31 @@ export default function Landing() {
           </div>
         </FadeIn>
 
-        {/* Stats */}
+        {/* Stats + iPhone mockup */}
         <FadeIn delay={400}>
-          <div className="mt-20 flex flex-row items-stretch justify-center divide-x divide-[#d2d2d7] w-full mx-auto">
-            {[
-              { value: 98,   suffix: '%', label: t('hero.stat1') },
-              { value: 2500, suffix: '+', label: t('hero.stat2') },
-              { value: 35,   suffix: '%', label: t('hero.stat3') },
-            ].map((s, i) => (
-              <div key={i} className="flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-2">
-                <p className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight whitespace-nowrap">
-                  <Counter value={s.value} suffix={s.suffix} />
-                </p>
-                <p className="text-[10px] sm:text-xs md:text-sm text-[#86868b] mt-1 text-center leading-tight">{s.label}</p>
-              </div>
-            ))}
+          <div className="mt-16 flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-20">
+
+            {/* Stats column */}
+            <div className="flex flex-row lg:flex-col items-stretch justify-center divide-x lg:divide-x-0 lg:divide-y divide-[#d2d2d7]/60 w-full lg:w-auto lg:max-w-[180px]">
+              {[
+                { value: 86,   suffix: '%', label: isFr ? 'Taux de décrochage' : 'Pickup rate' },
+                { value: 1,    suffix: 's',  label: isFr ? 'Temps de réponse'   : 'Response time', prefix: '<' },
+                { value: 24,   suffix: '/7', label: isFr ? 'Toujours disponible' : 'Always on' },
+              ].map((s, i) => (
+                <div key={i} className="flex-1 lg:flex-none flex flex-col items-center justify-center px-3 lg:px-0 py-3 lg:py-5">
+                  <p className="text-2xl sm:text-3xl font-semibold tracking-tight whitespace-nowrap bg-gradient-to-br from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">
+                    {s.prefix ?? ''}<Counter value={s.value} suffix={s.suffix} />
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-[#86868b] mt-1 text-center leading-tight">{s.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* iPhone */}
+            <div className="flex-shrink-0">
+              <IPhoneMockup />
+            </div>
+
           </div>
         </FadeIn>
       </section>
