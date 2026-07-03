@@ -796,8 +796,11 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
   const spring = { stiffness: 110, damping: 20, mass: 0.6 };
   const smx = useSpring(mx, spring);
   const smy = useSpring(my, spring);
-  const rotateY = useTransform(smx, [-0.5, 0.5], [-23, -7]);
-  const rotateX = useTransform(smy, [-0.5, 0.5], [7, -3]);
+  // Symmetric rotation on every axis, pivoting on the device's own center:
+  // the phone "looks at" the cursor wherever it goes on the page.
+  const rotateY = useTransform(smx, [-0.5, 0.5], [-20, 20]);
+  const rotateX = useTransform(smy, [-0.5, 0.5], [14, -14]);
+  const rotateZ = useTransform(smx, [-0.5, 0.5], [-2.5, 2.5]);
   const glareX = useTransform(smx, [-0.5, 0.5], ['32%', '72%']);
   const glareY = useTransform(smy, [-0.5, 0.5], ['20%', '52%']);
   const glareBg = useTransform([glareX, glareY], ([x, y]) =>
@@ -842,7 +845,9 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
             style={{
               rotateX: reduced ? 0 : rotateX,
               rotateY: reduced ? 0 : rotateY,
+              rotateZ: reduced ? 0 : rotateZ,
               transformStyle: 'preserve-3d',
+              transformOrigin: 'center center',
               willChange: 'transform',
             }}
           >
