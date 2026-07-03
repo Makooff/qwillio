@@ -13,13 +13,36 @@ interface AuthState {
   checkAuth: () => Promise<void>;
 }
 
+/**
+ * Auth POST resilient to Render/Neon cold starts: the first request after the
+ * backend slept can exceed the default 20s timeout. Retry only when no usable
+ * response arrived (timeout, network error, 502-504 from the platform) —
+ * these auth endpoints are idempotent so a replay is safe.
+ */
+async function postAuthWithWakeRetry(url: string, body: unknown) {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await api.post(url, body, { timeout: 35000 });
+    } catch (err) {
+      const e = err as { code?: string; response?: { status?: number } };
+      const status = e.response?.status;
+      const retriable = !e.response || e.code === 'ECONNABORTED' || (status !== undefined && status >= 502 && status <= 504);
+      lastErr = err;
+      if (!retriable || attempt === 2) throw err;
+      await new Promise((r) => setTimeout(r, 2500 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: localStorage.getItem('token'),
   isLoading: true,
 
   login: async (email: string, password: string) => {
-    const { data } = await api.post('/auth/login', { email, password });
+    const { data } = await postAuthWithWakeRetry('/auth/login', { email, password });
     localStorage.setItem('token', data.token);
     set({ user: data.user, token: data.token, isLoading: false });
   },
@@ -32,7 +55,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   googleLogin: async (token: string, type: 'credential' | 'token' = 'credential') => {
     const body = type === 'token' ? { access_token: token } : { credential: token };
-    const { data } = await api.post('/auth/google', body);
+    const { data } = await postAuthWithWakeRetry('/auth/google', body);
     localStorage.setItem('token', data.token);
     set({ user: data.user, token: data.token, isLoading: false });
   },
