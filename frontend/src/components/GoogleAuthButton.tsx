@@ -32,7 +32,12 @@ function GoogleButton({ mode, disabled, onError }: Props) {
         const { user } = useAuthStore.getState();
         navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
       } catch (err: any) {
-        onError(err?.response?.data?.error || `Google Sign-${mode === 'login' ? 'In' : 'Up'} failed`);
+        if (!err?.response) {
+          // No response at all: backend waking up (Render/Neon cold start) or offline
+          onError('Le serveur met du temps à répondre, il redémarre. Réessaie dans quelques secondes.');
+        } else {
+          onError(err?.response?.data?.error || `Google Sign-${mode === 'login' ? 'In' : 'Up'} failed`);
+        }
       } finally {
         setLoading(false);
       }
