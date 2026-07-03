@@ -1,5 +1,5 @@
-﻿import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+﻿import { useRef, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
 import { Phone, Bot, ArrowRight, Play, Clock, Mic, Calendar, MessageSquare } from 'lucide-react';
@@ -8,151 +8,7 @@ import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
 import Reveal from '../components/ui/Reveal';
 import Card3D from '../components/ui/Card3D';
-
-/* ── Decorative call ticker — live cycling rows + animated waveform ─────────── */
-const POOL_FR = [
-  { id: 'a', name: 'Sarah · Bright Dental',      detail: 'Rendez-vous lundi 14h confirmé',     tag: 'BOOKED'   },
-  { id: 'b', name: 'Marc · Rivera HVAC',          detail: 'Devis chauffage envoyé par email',   tag: 'LEAD'     },
-  { id: 'c', name: 'Inconnu · 06 12 34 56 78',   detail: 'Transféré à Sophie (urgence)',        tag: 'TRANSFER' },
-  { id: 'd', name: 'Larsson Law',                 detail: 'Demande de rappel mardi',             tag: 'CALLBACK' },
-  { id: 'e', name: 'Leroy · Plomberie Express',   detail: 'Urgence fuite — technicien envoyé',  tag: 'TRANSFER' },
-  { id: 'f', name: 'Cabinet Morel',               detail: 'Consultation vendredi 10h réservée', tag: 'BOOKED'   },
-  { id: 'g', name: 'Mme. Nguyen · Optique',       detail: 'Intéressée — devis demandé',         tag: 'LEAD'     },
-];
-const POOL_EN = [
-  { id: 'a', name: 'Sarah · Bright Dental',      detail: 'Monday 2pm appointment confirmed',   tag: 'BOOKED'   },
-  { id: 'b', name: 'Marc · Rivera HVAC',          detail: 'Heating quote emailed',              tag: 'LEAD'     },
-  { id: 'c', name: 'Unknown · +1 555 0102',       detail: 'Transferred to Sophie (urgent)',     tag: 'TRANSFER' },
-  { id: 'd', name: 'Larsson Law',                 detail: 'Tuesday callback requested',         tag: 'CALLBACK' },
-  { id: 'e', name: 'Plumbing Express',            detail: 'Urgent leak — tech dispatched',      tag: 'TRANSFER' },
-  { id: 'f', name: 'Morel & Associates',          detail: 'Friday 10am consultation booked',    tag: 'BOOKED'   },
-  { id: 'g', name: 'Nguyen Optical',              detail: 'Quote requested — warm lead',        tag: 'LEAD'     },
-];
-
-const TAG_STYLE: Record<string, { bg: string; fg: string }> = {
-  BOOKED:   { bg: 'rgba(99,102,241,0.18)',  fg: '#a5b4fc' },
-  LEAD:     { bg: 'rgba(168,85,247,0.18)',  fg: '#d8b4fe' },
-  TRANSFER: { bg: 'rgba(245,158,11,0.18)',  fg: '#fcd34d' },
-  CALLBACK: { bg: 'rgba(255,255,255,0.12)', fg: '#ffffff' },
-};
-
-const WAVE_HEIGHTS = Array.from({ length: 32 }, (_, i) =>
-  Math.max(4, 8 + Math.abs(Math.sin(i * 0.7) * 16) + (i % 3) * 4)
-);
-
-function CallTicker({ isFr }: { isFr: boolean }) {
-  const pool = isFr ? POOL_FR : POOL_EN;
-  const agoNew  = isFr ? 'À l\'instant' : 'Just now';
-  const ago     = isFr
-    ? ['À l\'instant', 'il y a 3 min', 'il y a 7 min', 'il y a 11 min']
-    : ['Just now', '3 min ago', '7 min ago', '11 min ago'];
-
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 3800);
-    return () => clearInterval(id);
-  }, []);
-
-  const visible = useMemo(() =>
-    Array.from({ length: 4 }, (_, i) => {
-      const idx = ((tick - i) % pool.length + pool.length) % pool.length;
-      return { ...pool[idx], instanceId: `${pool[idx].id}-${tick - i}`, ago: ago[i] };
-    }),
-    [tick, pool, ago]
-  );
-
-  return (
-    <div
-      className="relative rounded-3xl p-4 sm:p-6 overflow-hidden"
-      style={{
-        background: 'linear-gradient(155deg, #1d1d1f 0%, #2a234a 60%, #5b2f7a 110%)',
-        border: '1px solid rgba(255,255,255,0.06)',
-      }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4 sm:mb-5">
-        <div className="flex items-center gap-2">
-          <span
-            className="w-2.5 h-2.5 rounded-full status-pulse"
-            style={{ background: '#6366f1', boxShadow: '0 0 10px #6366f1' }}
-            aria-hidden="true"
-          />
-          <span className="text-[10px] sm:text-[11px] font-semibold tracking-[0.18em] uppercase text-white/55">
-            {isFr ? 'IA en ligne' : 'AI live'}
-          </span>
-        </div>
-        <span className="text-[10px] sm:text-[11px] text-white/35 tabular-nums">qwillio.ai</span>
-      </div>
-
-      {/* Cycling rows */}
-      <ul
-        className="space-y-3 overflow-hidden"
-        role="list"
-        aria-label={isFr ? 'Appels traités en direct' : 'Live handled calls'}
-        style={{ minHeight: 212 }}
-      >
-        <AnimatePresence initial={false} mode="popLayout">
-          {visible.map((row) => {
-            const tag = TAG_STYLE[row.tag];
-            const iconColor = row.tag === 'LEAD' ? '#a855f7' : '#6366f1';
-            return (
-              <motion.li
-                key={row.instanceId}
-                layout
-                initial={{ opacity: 0, y: -20, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0,   scale: 1    }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{
-                  duration: 0.38,
-                  ease: [0.16, 1, 0.3, 1],
-                  layout: { duration: 0.38, ease: [0.16, 1, 0.3, 1] },
-                }}
-                className="flex items-start gap-3 rounded-xl bg-white/[0.04] p-3.5 border border-white/[0.05]"
-              >
-                <div
-                  className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0"
-                  aria-hidden="true"
-                >
-                  <Phone size={14} style={{ color: iconColor }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                    <p className="text-[13px] font-semibold text-white truncate">{row.name}</p>
-                    <span className="text-[10px] text-white/35 flex-shrink-0">{row.ago}</span>
-                  </div>
-                  <p className="text-[12px] text-white/55 truncate">{row.detail}</p>
-                </div>
-                <span
-                  className="text-[9.5px] font-bold tracking-wider px-2 py-1 rounded-md flex-shrink-0"
-                  style={{ background: tag.bg, color: tag.fg }}
-                >
-                  {row.tag}
-                </span>
-              </motion.li>
-            );
-          })}
-        </AnimatePresence>
-      </ul>
-
-      {/* Animated waveform */}
-      <div className="mt-4 sm:mt-5 flex items-end gap-[2px] h-10" aria-hidden="true">
-        {WAVE_HEIGHTS.map((h, i) => (
-          <span
-            key={i}
-            className="wave-bar flex-1 rounded-full"
-            style={{
-              height: `${h}px`,
-              background: i % 2 === 0 ? 'rgba(99,102,241,0.6)' : 'rgba(168,85,247,0.5)',
-              animationDuration: `${0.75 + (i % 5) * 0.17}s`,
-              animationDelay: `-${(i * 0.13) % 1.4}s`,
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
+import HeroPhone3D from '../components/ui/HeroPhone3D';
 
 
 /* ── Page ─────────────────────────────────────────────────────────────────── */
@@ -280,9 +136,9 @@ export default function Home() {
             </div>
             </Reveal>
 
-            {/* Live ticker */}
+            {/* Live 3D device demo */}
             <Reveal delay={0.15}>
-              <CallTicker isFr={isFr} />
+              <HeroPhone3D isFr={isFr} />
             </Reveal>
           </div>
         </section>
