@@ -7,16 +7,17 @@ import {
   useTransform,
   useReducedMotion,
 } from 'framer-motion';
-import { Phone, ArrowUpRight, ChevronRight } from 'lucide-react';
+import { Phone, ArrowUpRight, ChevronRight, Lock, BarChart3 } from 'lucide-react';
+import QwillioLogo from '../QwillioLogo';
 
 /*
- * HeroPhone3D — ultra-real iPhone 17 Pro Max shell, reactive 3D, playing a live
- * replica of the REAL client dashboard (ClientOverview + OverviewBlocks, Signal
- * Dark monochrome register) animated by a stream of incoming-call events, the
- * way a very active account looks.
+ * HeroPhone3D — ultra-real iPhone shell, pointer-reactive 3D, playing a looping
+ * product film entirely in iOS: lock screen with real Qwillio notifications,
+ * app-open zoom, then an animated tour of the REAL client dashboard pages
+ * (Overview / Appels / Analytics — Signal Dark monochrome register).
  */
 
-/* ── Scripted call feed — the events the account receives on loop ───────────── */
+/* ── Scripted call feed ─────────────────────────────────────────────────────── */
 interface CallEvt { id: string; name: string; outcome: 'lead' | 'transfer' | 'booked' | 'callback'; dur: number }
 
 const POOL_FR: CallEvt[] = [
@@ -38,7 +39,6 @@ const POOL_EN: CallEvt[] = [
   { id: 'g', name: 'Nguyen Optical',            outcome: 'lead',     dur: 58 },
 ];
 
-/* Real outcome pills — outcomeLabel/outcomePill from ClientOverview */
 const OUTCOME_FR: Record<CallEvt['outcome'], string> = { lead: 'Lead', transfer: 'Transféré', booked: 'RDV pris', callback: 'Rappel' };
 const OUTCOME_EN: Record<CallEvt['outcome'], string> = { lead: 'Lead', transfer: 'Transferred', booked: 'Booked', callback: 'Callback' };
 const OUTCOME_PILL: Record<CallEvt['outcome'], string> = {
@@ -59,7 +59,7 @@ const PRO = {
   line: 'oklch(90% 0 0)',
 };
 
-/* Monochrome hero-trend series — same shape as OverviewBlocks buildDemoSeries */
+/* Monochrome trend series — same shape as OverviewBlocks buildDemoSeries */
 const TREND = [62, 58, 65, 71, 68, 74, 70, 78, 82, 80, 86, 92];
 const TW = 100, TH = 34;
 const trendPts = TREND.map((v, i) => ({
@@ -69,10 +69,16 @@ const trendPts = TREND.map((v, i) => ({
 const trendPath = trendPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
 const trendArea = `${trendPath} L${TW} ${TH} L0 ${TH} Z`;
 
+/* Hourly distribution bars for Analytics */
+const HOURS = [3, 5, 9, 14, 18, 22, 19, 24, 21, 15, 9, 5];
+
 const EASE = [0.16, 1, 0.3, 1] as const;
-const CYCLE_MS = 5200;  // one incoming call per cycle
-const RING_MS  = 2400;  // how long the Dynamic Island stays expanded
-const INTRO_MS = 4600;  // brand intro before the live dashboard takes over
+const RING_MS = 2300;
+
+/* Scene timeline — a looping product film */
+type Scene = 'home' | 'overview' | 'calls' | 'analytics';
+const ORDER: Scene[] = ['home', 'overview', 'calls', 'analytics'];
+const SCENE_MS: Record<Scene, number> = { home: 5600, overview: 10000, calls: 7200, analytics: 7000 };
 
 /* ── Animated counter — pops on change ──────────────────────────────────────── */
 function PopNumber({ value, format }: { value: number; format?: (n: number) => string }) {
@@ -94,106 +100,125 @@ function PopNumber({ value, format }: { value: number; format?: (n: number) => s
   );
 }
 
-/* ── Brand intro — plays on the screen like a presentation video ────────────── */
-function ScreenIntro({ isFr }: { isFr: boolean }) {
+/* ── Qwillio app icon — the real logo on an app tile ────────────────────────── */
+function AppIcon({ size = 18 }: { size?: number }) {
   return (
-    <div className="absolute inset-0 z-[5] overflow-hidden" style={{ background: 'oklch(9% 0.012 265)' }}>
-      {/* Animated aurora — always-on motion layer beneath the footage */}
-      <div
-        className="absolute inset-0"
-        style={{ background: 'radial-gradient(140% 90% at 50% 110%, rgba(99,102,241,0.35) 0%, rgba(168,85,247,0.18) 40%, transparent 75%)' }}
-      />
+    <span
+      className="flex flex-shrink-0 items-center justify-center overflow-hidden rounded-[27%] bg-white"
+      style={{ width: size, height: size, boxShadow: '0 1px 3px rgba(0,0,0,0.35)' }}
+      aria-hidden="true"
+    >
+      <QwillioLogo size={size * 0.72} />
+    </span>
+  );
+}
+
+/* ── Scene: iOS lock screen with Qwillio notifications ──────────────────────── */
+function SceneHome({ isFr }: { isFr: boolean }) {
+  const now = new Date();
+  const dateLine = now.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+  const notifs = isFr
+    ? [
+        { title: 'Nouveau lead qualifié', body: 'Marc · Rivera HVAC — devis chauffage envoyé', time: 'maintenant' },
+        { title: 'Rendez-vous confirmé', body: 'Sarah · Bright Dental — lundi 14h00', time: 'il y a 1 min' },
+        { title: 'Appel transféré', body: 'Urgence fuite redirigée vers Sophie', time: 'il y a 4 min' },
+      ]
+    : [
+        { title: 'New qualified lead', body: 'Marc · Rivera HVAC — heating quote sent', time: 'now' },
+        { title: 'Appointment confirmed', body: 'Sarah · Bright Dental — Monday 2:00 PM', time: '1 min ago' },
+        { title: 'Call transferred', body: 'Urgent leak routed to Sophie', time: '4 min ago' },
+      ];
+
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {/* Brand aurora wallpaper */}
+      <div className="absolute inset-0" style={{ background: 'oklch(9% 0.012 265)' }} />
       <motion.div
         aria-hidden="true"
-        className="absolute -left-16 bottom-[-30%] h-[70%] w-[130%] rounded-full blur-2xl"
-        style={{ background: 'radial-gradient(ellipse, rgba(99,102,241,0.5) 0%, transparent 65%)' }}
-        animate={{ x: [0, 26, 0], y: [0, -18, 0], scale: [1, 1.15, 1] }}
+        className="absolute -left-16 bottom-[-25%] h-[65%] w-[130%] rounded-full blur-2xl"
+        style={{ background: 'radial-gradient(ellipse, rgba(99,102,241,0.45) 0%, transparent 65%)' }}
+        animate={{ x: [0, 24, 0], y: [0, -16, 0], scale: [1, 1.12, 1] }}
         transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
         aria-hidden="true"
-        className="absolute -right-20 bottom-[-15%] h-[55%] w-[120%] rounded-full blur-2xl"
-        style={{ background: 'radial-gradient(ellipse, rgba(168,85,247,0.42) 0%, transparent 65%)' }}
-        animate={{ x: [0, -30, 0], y: [0, -24, 0], scale: [1.1, 0.95, 1.1] }}
+        className="absolute -right-20 top-[10%] h-[45%] w-[110%] rounded-full blur-2xl"
+        style={{ background: 'radial-gradient(ellipse, rgba(168,85,247,0.32) 0%, transparent 65%)' }}
+        animate={{ x: [0, -26, 0], y: [0, 20, 0] }}
         transition={{ duration: 8.5, repeat: Infinity, ease: 'easeInOut' }}
       />
-      {/* Generated brand footage (drop the mp4 in public/media/ — hides itself if absent) */}
-      <video
-        className="absolute inset-0 h-full w-full object-cover opacity-80"
-        src="/media/qwillio-intro.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = 'none'; }}
-      />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,5,10,0.55) 0%, rgba(5,5,10,0.1) 45%, rgba(5,5,10,0.6) 100%)' }} />
 
-      {/* Wordmark + tagline */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-        <motion.div
-          className="mb-3 flex items-end gap-[3px]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          aria-hidden="true"
-        >
-          {[8, 14, 20, 12, 7].map((h, i) => (
-            <span
-              key={i}
-              className="wave-bar w-[3px] rounded-full"
-              style={{
-                height: h,
-                background: i % 2 === 0 ? '#818cf8' : '#c084fc',
-                animationDuration: `${0.7 + i * 0.13}s`,
-              }}
-            />
-          ))}
-        </motion.div>
-        <motion.p
-          className="text-[22px] font-semibold tracking-[-0.02em] text-white"
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.35, ease: EASE }}
-        >
-          Qwillio
-        </motion.p>
-        <motion.p
-          className="mt-1.5 max-w-[180px] text-[10.5px] leading-snug text-white/65"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.55, ease: EASE }}
-        >
-          {isFr ? 'L\'IA qui répond à chaque appel.' : 'The AI that answers every call.'}
-        </motion.p>
-        <motion.p
-          className="absolute bottom-8 text-[8.5px] font-medium uppercase tracking-[0.2em] text-white/40"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 1, 1] }}
-          transition={{ duration: 1.2, delay: 1.4 }}
-        >
-          {isFr ? 'Démo en direct' : 'Live demo'}
-        </motion.p>
+      {/* Lock screen clock */}
+      <div className="absolute inset-x-0 top-[44px] flex flex-col items-center">
+        <Lock size={9} className="mb-1.5 text-white/70" aria-hidden="true" />
+        <p className="text-[8.5px] font-medium text-white/75">{dateLine}</p>
+        <p className="mt-0.5 text-[44px] font-semibold leading-none tracking-tight text-white/95" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          9:41
+        </p>
+      </div>
+
+      {/* iOS notification stack */}
+      <ul className="absolute inset-x-3 top-[168px] space-y-1.5">
+        {notifs.map((n, i) => (
+          <motion.li
+            key={n.title}
+            initial={{ opacity: 0, y: 26, scale: 0.92 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 26, delay: 0.9 + i * 1.15 }}
+            className="rounded-[13px] px-2.5 py-2"
+            style={{ background: 'rgba(40,40,50,0.72)', backdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <div className="flex items-center gap-1.5">
+              <AppIcon size={16} />
+              <span className="flex-1 text-[6.5px] font-medium uppercase tracking-wide text-white/55">Qwillio</span>
+              <span className="text-[6.5px] text-white/45">{n.time}</span>
+            </div>
+            <p className="mt-1 text-[8.5px] font-semibold leading-tight text-white">{n.title}</p>
+            <p className="text-[8px] leading-snug text-white/70">{n.body}</p>
+          </motion.li>
+        ))}
+      </ul>
+
+      {/* Flashlight / camera — lock screen corners */}
+      <div className="absolute bottom-7 left-6 flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }} aria-hidden="true">
+        <span className="block h-2.5 w-1.5 rounded-[2px] border border-white/80" />
+      </div>
+      <div className="absolute bottom-7 right-6 flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }} aria-hidden="true">
+        <span className="block h-2 w-2.5 rounded-[2px] border border-white/80" />
       </div>
     </div>
   );
 }
 
-/* ── Faithful mini ClientOverview — Signal Dark monochrome register ─────────── */
-function ScreenDashboard({ isFr, ringing, tick, callsMonth, leadsMonth, sentiment, incomingName }: {
+/* ── App chrome — real logo + page title, shared by dashboard scenes ────────── */
+function AppBar({ title, isFr }: { title: string; isFr: boolean }) {
+  return (
+    <div className="flex items-center gap-1.5 pb-2">
+      <QwillioLogo size={13} />
+      <span className="text-[8px] font-semibold tracking-tight text-white/90">Qwillio</span>
+      <span className="text-[7px] text-white/30">/ {title}</span>
+      <span
+        className="ml-auto flex h-[15px] w-[15px] items-center justify-center rounded-full text-[6px] font-bold text-white"
+        style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}
+      >
+        SC
+      </span>
+      <span className="sr-only">{isFr ? 'Navigation' : 'Navigation'}</span>
+    </div>
+  );
+}
+
+/* ── Scene: ClientOverview miniature (Signal Dark) ──────────────────────────── */
+function SceneOverview({ isFr, tick, callsMonth, leadsMonth, sentiment }: {
   isFr: boolean;
-  ringing: boolean;
   tick: number;
   callsMonth: number;
   leadsMonth: number;
   sentiment: number;
-  incomingName: string;
 }) {
   const pool = isFr ? POOL_FR : POOL_EN;
   const outcomeLabel = isFr ? OUTCOME_FR : OUTCOME_EN;
   const convRate = Math.round((leadsMonth / callsMonth) * 100);
-
   const now = new Date();
   const hour = now.getHours();
   const greeting = isFr
@@ -201,12 +226,10 @@ function ScreenDashboard({ isFr, ringing, tick, callsMonth, leadsMonth, sentimen
     : (hour < 12 ? 'Morning, Sarah' : hour < 18 ? 'Afternoon, Sarah' : 'Evening, Sarah');
   const dateLine = now.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  /* Quota usage — mirrors the real SegmentBar block */
   const quotaTotal = 600;
   const quotaPct = Math.min(100, Math.round((callsMonth / quotaTotal) * 100));
 
-  /* Rows: newest first, timestamps walking back from "now" */
-  const rows = Array.from({ length: 5 }, (_, i) => {
+  const rows = Array.from({ length: 4 }, (_, i) => {
     const idx = ((tick - i) % pool.length + pool.length) % pool.length;
     const t = new Date(now.getTime() - i * 7 * 60000 - 60000);
     return {
@@ -216,285 +239,459 @@ function ScreenDashboard({ isFr, ringing, tick, callsMonth, leadsMonth, sentimen
     };
   });
 
-  /* Tally meter — barcode bars, lit share = conversion rate */
-  const N_TALLY = 40;
-  const lit = Math.round((Math.min(100, convRate) / 100) * N_TALLY);
+  return (
+    <div className="flex h-full flex-col px-4 pt-10 pb-3">
+      <AppBar title={isFr ? 'Vue d\'ensemble' : 'Overview'} isFr={isFr} />
+
+      <div className="pb-2">
+        <p className="text-[12px] font-semibold tracking-tight text-white/90">{greeting}</p>
+        <p className="mt-0.5 text-[7.5px] text-white/50">
+          {dateLine}
+          <span className="mx-1 text-white/20">·</span>
+          <span className="text-emerald-400">{isFr ? 'Service actif' : 'Service active'}</span>
+        </p>
+      </div>
+
+      {/* KPI split row */}
+      <div className="grid grid-cols-3 divide-x divide-white/[0.06] border-y border-white/[0.06] py-2">
+        <div className="pr-2.5">
+          <p className="text-[7px]" style={{ color: PRO.textSec }}>{isFr ? 'Taux de conversion' : 'Conversion rate'}</p>
+          <p className="mt-1 text-[13px] font-semibold leading-none tabular-nums text-white">
+            <PopNumber value={convRate} format={(n) => `${n}%`} />
+          </p>
+        </div>
+        <div className="px-2.5">
+          <p className="text-[7px]" style={{ color: PRO.textSec }}>{isFr ? 'Appels traités' : 'Calls handled'}</p>
+          <div className="mt-1 flex items-baseline gap-1">
+            <p className="text-[13px] font-semibold leading-none tabular-nums text-white">
+              <PopNumber value={callsMonth} />
+            </p>
+            <span className="inline-flex items-center text-[6.5px] font-medium" style={{ color: PRO.ok }}>
+              <ArrowUpRight size={7} aria-hidden="true" />18%
+            </span>
+          </div>
+        </div>
+        <div className="pl-2.5">
+          <p className="text-[7px]" style={{ color: PRO.textSec }}>{isFr ? 'Score sentiment' : 'Sentiment score'}</p>
+          <p className="mt-1 text-[13px] font-semibold leading-none tabular-nums text-white">
+            <PopNumber value={sentiment} format={(n) => `${n}%`} />
+          </p>
+        </div>
+      </div>
+
+      {/* Hero trend */}
+      <div className="border-b border-white/[0.06] py-2">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-[17px] font-semibold leading-none tracking-tight tabular-nums text-white">
+              <PopNumber value={callsMonth} format={(n) => n.toLocaleString(isFr ? 'fr-FR' : 'en-US')} />
+            </p>
+            <p className="mt-1 text-[7px]" style={{ color: PRO.textSec }}>
+              {isFr ? 'Appels traités ce mois' : 'Calls handled this month'}
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-0.5 text-[7px] font-medium" style={{ color: PRO.ok }}>
+            <ArrowUpRight size={8} aria-hidden="true" />
+            12% <span className="font-normal" style={{ color: PRO.textTer }}>{isFr ? 'sur 24 h' : 'over 24h'}</span>
+          </span>
+        </div>
+        <svg viewBox={`0 0 ${TW} ${TH}`} className="mt-1 block h-10 w-full" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="hp3d-trend-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={PRO.line} stopOpacity="0.22" />
+              <stop offset="60%" stopColor={PRO.line} stopOpacity="0.06" />
+              <stop offset="100%" stopColor={PRO.line} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[0.25, 0.5, 0.75].map((f) => (
+            <line key={f} x1="0" x2={TW} y1={TH * f} y2={TH * f} stroke="rgba(255,255,255,0.05)" strokeWidth="0.4" strokeDasharray="1.5 1.5" />
+          ))}
+          <motion.path
+            d={trendArea}
+            fill="url(#hp3d-trend-fill)"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.9, delay: 0.5, ease: 'easeOut' }}
+          />
+          <motion.path
+            d={trendPath}
+            fill="none"
+            stroke={PRO.line}
+            strokeWidth="1.1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 1.2, delay: 0.3, ease: EASE }}
+          />
+          <motion.circle
+            cx={trendPts[trendPts.length - 1].x}
+            cy={trendPts[trendPts.length - 1].y}
+            r="1.8"
+            fill={PRO.line}
+            key={`dot-${tick}`}
+            initial={{ scale: 1.9, opacity: 0.4 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.7, ease: EASE }}
+            style={{ transformOrigin: `${trendPts[trendPts.length - 1].x}px ${trendPts[trendPts.length - 1].y}px` }}
+          />
+        </svg>
+      </div>
+
+      {/* Quota segment bar */}
+      <div className="border-b border-white/[0.06] py-1.5">
+        <div className="flex items-center justify-between">
+          <p className="text-[7px] font-semibold uppercase tracking-[0.08em]" style={{ color: PRO.textSec }}>
+            {isFr ? 'Utilisation du quota' : 'Quota usage'}
+          </p>
+          <span className="text-[6.5px] font-medium" style={{ color: PRO.textTer }}>
+            {isFr ? `sur ${quotaTotal} appels inclus` : `of ${quotaTotal} calls included`}
+          </span>
+        </div>
+        <div className="mt-1 flex items-center gap-1">
+          <motion.div
+            className="h-[4px] rounded-full"
+            animate={{ width: `${quotaPct}%` }}
+            transition={{ duration: 0.6, ease: EASE }}
+            style={{ background: PRO.line }}
+          />
+          <div className="h-[4px] flex-1 rounded-full" style={{ background: 'oklch(32% 0.01 265)' }} />
+        </div>
+      </div>
+
+      {/* Activité récente */}
+      <div className="min-h-0 flex-1 pt-1.5">
+        <div className="mb-0.5 flex items-center justify-between">
+          <p className="text-[7px] font-semibold uppercase tracking-[0.08em] text-white/40">
+            {isFr ? 'Activité récente' : 'Recent activity'}
+          </p>
+          <span className="flex items-center gap-0.5 text-[6.5px] font-medium text-white/40">
+            {isFr ? 'Tout voir' : 'View all'} <ChevronRight size={7} aria-hidden="true" />
+          </span>
+        </div>
+        <ul>
+          <AnimatePresence initial={false} mode="popLayout">
+            {rows.map((row) => (
+              <motion.li
+                key={row.instanceId}
+                layout
+                initial={{ opacity: 0, y: -14, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.4, ease: EASE, layout: { duration: 0.4, ease: EASE } }}
+                className="flex items-center gap-2 border-b border-white/[0.04] py-[4.5px] last:border-b-0"
+              >
+                <span className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-white/[0.05]" aria-hidden="true">
+                  <Phone size={7} className="text-white/40" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[8px] font-medium leading-tight text-white/90">{row.name}</span>
+                  <span className="block text-[6.5px] leading-tight text-white/30">{row.time} · {row.dur}s</span>
+                </span>
+                <span className={`flex-shrink-0 rounded-full px-1.5 py-[1.5px] text-[5.5px] font-medium uppercase tracking-wide ${OUTCOME_PILL[row.outcome]}`}>
+                  {outcomeLabel[row.outcome]}
+                </span>
+                <ChevronRight size={7} className="flex-shrink-0 text-white/20" aria-hidden="true" />
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </ul>
+      </div>
+
+      {/* Leads tally */}
+      <div className="border-t border-white/[0.06] pt-1.5">
+        <p className="text-[6.5px] uppercase tracking-[0.08em]" style={{ color: PRO.textTer }}>
+          {isFr ? 'Leads qualifiés ce mois' : 'Leads qualified this month'}
+        </p>
+        <div className="mt-0.5 flex items-end justify-between">
+          <p className="text-[13px] font-semibold leading-none tabular-nums text-white">
+            <PopNumber value={leadsMonth} />
+          </p>
+          <span className="text-[7px] font-medium tabular-nums" style={{ color: PRO.textSec }}>{convRate}%</span>
+        </div>
+        <div className="mt-1 flex items-end gap-[2px]" style={{ height: 13 }} aria-hidden="true">
+          {Array.from({ length: 40 }, (_, i) => (
+            <motion.span
+              key={i}
+              className="flex-1 rounded-full"
+              animate={{ background: i < Math.round((Math.min(100, convRate) / 100) * 40) ? PRO.line : PRO.tickOff }}
+              transition={{ duration: 0.4 }}
+              style={{ height: i % 4 === 0 ? '100%' : '64%' }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Scene: ClientCalls miniature — a live call lands and resolves ──────────── */
+function SceneCalls({ isFr, callsMonth }: { isFr: boolean; callsMonth: number }) {
+  const pool = isFr ? POOL_FR : POOL_EN;
+  const outcomeLabel = isFr ? OUTCOME_FR : OUTCOME_EN;
+  const [liveState, setLiveState] = useState<'none' | 'live' | 'done'>('none');
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setLiveState('live'), 1400);
+    const t2 = setTimeout(() => setLiveState('done'), 1400 + RING_MS);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  const base = new Date();
+  const list = [...pool, pool[0], pool[1]].map((c, i) => ({
+    ...c,
+    key: `${c.id}-${i}`,
+    time: new Date(base.getTime() - (i + 1) * 9 * 60000).toLocaleTimeString(isFr ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+  }));
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden" style={{ background: PRO.bg }}>
-      {/* Status bar */}
-      <div className="flex items-center justify-between px-6 pt-3.5 pb-1 text-white">
-        <span className="text-[11px] font-semibold tracking-tight tabular-nums">9:41</span>
-        <div className="flex items-center gap-1.5" aria-hidden="true">
-          <div className="flex items-end gap-[1.5px]">
-            {[3, 5, 7, 9].map((h) => (
-              <span key={h} className="w-[2.5px] rounded-[1px] bg-white" style={{ height: h }} />
-            ))}
-          </div>
-          <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
-            <path d="M6.5 9.5 L2 5 A6.4 6.4 0 0 1 11 5 Z" fill="white" />
-          </svg>
-          <div className="relative h-[10px] w-[19px] rounded-[3px] border border-white/40">
-            <span className="absolute inset-[1.5px] right-[4px] rounded-[1.5px] bg-white" />
-            <span className="absolute -right-[3px] top-[2.5px] h-[4px] w-[1.5px] rounded-r-[1px] bg-white/40" />
-          </div>
-        </div>
+    <div className="flex h-full flex-col px-4 pt-10 pb-3">
+      <AppBar title={isFr ? 'Appels' : 'Calls'} isFr={isFr} />
+
+      <div className="pb-2">
+        <p className="text-[12px] font-semibold tracking-tight text-white/90">{isFr ? 'Appels' : 'Calls'}</p>
+        <p className="mt-0.5 text-[7.5px] text-white/50">
+          <PopNumber value={callsMonth} /> {isFr ? 'appels au total' : 'calls in total'}
+        </p>
       </div>
 
-      {/* Dashboard body — frameless, hairline-divided like ClientOverview */}
-      <div className="flex flex-1 flex-col px-4 pt-4 pb-3">
-        {/* Header */}
-        <div className="pb-2.5">
-          <p className="text-[13px] font-semibold tracking-tight text-white/90">{greeting}</p>
-          <p className="mt-0.5 text-[8px] text-white/50">
-            {dateLine}
-            <span className="mx-1 text-white/20">·</span>
-            <span className="text-emerald-400">{isFr ? 'Service actif' : 'Service active'}</span>
-          </p>
-        </div>
-
-        {/* KPI split row — borderless figures divided by hairlines */}
-        <div className="grid grid-cols-3 divide-x divide-white/[0.06] border-y border-white/[0.06] py-2.5">
-          <div className="pr-2.5">
-            <p className="text-[7.5px]" style={{ color: PRO.textSec }}>{isFr ? 'Taux de conversion' : 'Conversion rate'}</p>
-            <p className="mt-1 text-[14px] font-semibold leading-none tabular-nums text-white">
-              <PopNumber value={convRate} format={(n) => `${n}%`} />
-            </p>
+      {/* KPI split — like ClientCalls */}
+      <div className="grid grid-cols-3 divide-x divide-white/[0.06] border-y border-white/[0.06] py-2">
+        {[
+          { label: isFr ? 'Aujourd\'hui' : 'Today', value: '31' },
+          { label: isFr ? 'Durée moy.' : 'Avg. duration', value: '1m 42s' },
+          { label: isFr ? 'Décrochés' : 'Answered', value: '98%' },
+        ].map((k, i) => (
+          <div key={k.label} className={i === 0 ? 'pr-2.5' : i === 1 ? 'px-2.5' : 'pl-2.5'}>
+            <p className="text-[7px]" style={{ color: PRO.textSec }}>{k.label}</p>
+            <p className="mt-1 text-[13px] font-semibold leading-none tabular-nums text-white">{k.value}</p>
           </div>
-          <div className="px-2.5">
-            <p className="text-[7.5px]" style={{ color: PRO.textSec }}>{isFr ? 'Appels traités' : 'Calls handled'}</p>
-            <div className="mt-1 flex items-baseline gap-1">
-              <p className="text-[14px] font-semibold leading-none tabular-nums text-white">
-                <PopNumber value={callsMonth} />
-              </p>
-              <span className="inline-flex items-center text-[7px] font-medium" style={{ color: PRO.ok }}>
-                <ArrowUpRight size={7} aria-hidden="true" />18%
-              </span>
-            </div>
-          </div>
-          <div className="pl-2.5">
-            <p className="text-[7.5px]" style={{ color: PRO.textSec }}>{isFr ? 'Score sentiment' : 'Sentiment score'}</p>
-            <p className="mt-1 text-[14px] font-semibold leading-none tabular-nums text-white">
-              <PopNumber value={sentiment} format={(n) => `${n}%`} />
-            </p>
-          </div>
-        </div>
-
-        {/* Hero trend panel — big figure + monochrome area chart */}
-        <div className="border-b border-white/[0.06] py-2.5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[19px] font-semibold leading-none tracking-tight tabular-nums text-white">
-                <PopNumber value={callsMonth} format={(n) => n.toLocaleString(isFr ? 'fr-FR' : 'en-US')} />
-              </p>
-              <p className="mt-1 text-[7.5px]" style={{ color: PRO.textSec }}>
-                {isFr ? 'Appels traités ce mois' : 'Calls handled this month'}
-              </p>
-            </div>
-            <span className="inline-flex items-center gap-0.5 text-[7.5px] font-medium" style={{ color: PRO.ok }}>
-              <ArrowUpRight size={8} aria-hidden="true" />
-              12% <span className="font-normal" style={{ color: PRO.textTer }}>{isFr ? 'sur 24 h' : 'over 24h'}</span>
-            </span>
-          </div>
-          <svg viewBox={`0 0 ${TW} ${TH}`} className="mt-1.5 block h-11 w-full" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="hp3d-trend-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={PRO.line} stopOpacity="0.22" />
-                <stop offset="60%" stopColor={PRO.line} stopOpacity="0.06" />
-                <stop offset="100%" stopColor={PRO.line} stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            {[0.25, 0.5, 0.75].map((f) => (
-              <line key={f} x1="0" x2={TW} y1={TH * f} y2={TH * f} stroke="rgba(255,255,255,0.05)" strokeWidth="0.4" strokeDasharray="1.5 1.5" />
-            ))}
-            <motion.path
-              d={trendArea}
-              fill="url(#hp3d-trend-fill)"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1.1, delay: 0.7, ease: 'easeOut' }}
-            />
-            <motion.path
-              d={trendPath}
-              fill="none"
-              stroke={PRO.line}
-              strokeWidth="1.1"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 1.4, delay: 0.4, ease: EASE }}
-            />
-            {/* Live endpoint — pulses with each handled call */}
-            <motion.circle
-              cx={trendPts[trendPts.length - 1].x}
-              cy={trendPts[trendPts.length - 1].y}
-              r="1.8"
-              fill={PRO.line}
-              key={`dot-${tick}`}
-              initial={{ scale: 1.9, opacity: 0.4 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.7, ease: EASE }}
-              style={{ transformOrigin: `${trendPts[trendPts.length - 1].x}px ${trendPts[trendPts.length - 1].y}px` }}
-            />
-          </svg>
-        </div>
-
-        {/* Segment bar — quota usage, fills as calls land */}
-        <div className="border-b border-white/[0.06] py-2">
-          <div className="flex items-center justify-between">
-            <p className="text-[7.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: PRO.textSec }}>
-              {isFr ? 'Utilisation du quota' : 'Quota usage'}
-            </p>
-            <span className="text-[7px] font-medium" style={{ color: PRO.textTer }}>
-              {isFr ? `sur ${quotaTotal} appels inclus` : `of ${quotaTotal} calls included`}
-            </span>
-          </div>
-          <div className="mt-1.5 flex items-center gap-1">
-            <motion.div
-              className="h-[5px] rounded-full"
-              animate={{ width: `${quotaPct}%` }}
-              transition={{ duration: 0.6, ease: EASE }}
-              style={{ background: PRO.line }}
-            />
-            <div className="h-[5px] flex-1 rounded-full" style={{ background: 'oklch(32% 0.01 265)' }} />
-          </div>
-        </div>
-
-        {/* Activité récente — frameless rows split by hairlines */}
-        <div className="min-h-0 flex-1 pt-2">
-          <div className="mb-1 flex items-center justify-between">
-            <p className="text-[7.5px] font-semibold uppercase tracking-[0.08em] text-white/40">
-              {isFr ? 'Activité récente' : 'Recent activity'}
-            </p>
-            <span className="flex items-center gap-0.5 text-[7px] font-medium text-white/40">
-              {isFr ? 'Tout voir' : 'View all'} <ChevronRight size={7} aria-hidden="true" />
-            </span>
-          </div>
-          <ul>
-            <AnimatePresence initial={false} mode="popLayout">
-              {rows.map((row) => (
-                <motion.li
-                  key={row.instanceId}
-                  layout
-                  initial={{ opacity: 0, y: -14, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
-                  transition={{ duration: 0.4, ease: EASE, layout: { duration: 0.4, ease: EASE } }}
-                  className="flex items-center gap-2 border-b border-white/[0.04] py-[5px] last:border-b-0"
-                >
-                  <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.05]" aria-hidden="true">
-                    <Phone size={8} className="text-white/40" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[8.5px] font-medium leading-tight text-white/90">{row.name}</span>
-                    <span className="block text-[7px] leading-tight text-white/30">{row.time} · {row.dur}s</span>
-                  </span>
-                  <span className={`flex-shrink-0 rounded-full px-1.5 py-[2px] text-[6px] font-medium uppercase tracking-wide ${OUTCOME_PILL[row.outcome]}`}>
-                    {outcomeLabel[row.outcome]}
-                  </span>
-                  <ChevronRight size={8} className="flex-shrink-0 text-white/20" aria-hidden="true" />
-                </motion.li>
-              ))}
-            </AnimatePresence>
-          </ul>
-        </div>
-
-        {/* Tally meter — leads qualified, barcode bars fill as leads land */}
-        <div className="border-t border-white/[0.06] pt-2">
-          <p className="text-[7px] uppercase tracking-[0.08em]" style={{ color: PRO.textTer }}>
-            {isFr ? 'Leads qualifiés ce mois' : 'Leads qualified this month'}
-          </p>
-          <div className="mt-0.5 flex items-end justify-between">
-            <p className="text-[14px] font-semibold leading-none tabular-nums text-white">
-              <PopNumber value={leadsMonth} />
-            </p>
-            <span className="text-[7.5px] font-medium tabular-nums" style={{ color: PRO.textSec }}>{convRate}%</span>
-          </div>
-          <div className="mt-1.5 flex items-end gap-[2px]" style={{ height: 16 }} aria-hidden="true">
-            {Array.from({ length: N_TALLY }, (_, i) => (
-              <motion.span
-                key={i}
-                className="flex-1 rounded-full"
-                animate={{ background: i < lit ? PRO.line : PRO.tickOff }}
-                transition={{ duration: 0.4 }}
-                style={{ height: i % 4 === 0 ? '100%' : '64%' }}
-              />
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Screen dims slightly while a call rings — like real iOS */}
-      <motion.div
-        className="pointer-events-none absolute inset-0 bg-black"
-        animate={{ opacity: ringing ? 0.28 : 0 }}
-        transition={{ duration: 0.35, ease: 'easeOut' }}
-        aria-hidden="true"
-      />
-
-      {/* Dynamic Island — expands on incoming call */}
-      <motion.div
-        className="absolute left-1/2 top-[9px] z-10 flex -translate-x-1/2 items-center overflow-hidden bg-black"
-        animate={ringing
-          ? { width: 196, height: 52, borderRadius: 26 }
-          : { width: 86,  height: 24, borderRadius: 13 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-        style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.6)' }}
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          {ringing ? (
-            <motion.div
-              key="call"
-              className="flex w-full items-center gap-2 px-3"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.22, ease: EASE }}
+      {/* Call list — live call lands on top, then resolves to Lead */}
+      <ul className="mt-1.5 min-h-0 flex-1">
+        <AnimatePresence initial={false}>
+          {liveState !== 'none' && (
+            <motion.li
+              key="live"
+              layout
+              initial={{ opacity: 0, y: -16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+              className="flex items-center gap-2 border-b border-white/[0.04] py-[5px]"
             >
-              <motion.span
-                className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
-                style={{ background: 'rgba(110,231,160,0.18)' }}
-                animate={{ scale: [1, 1.12, 1] }}
-                transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <Phone size={11} style={{ color: '#6ee7a0' }} aria-hidden="true" />
-              </motion.span>
+              <span className="relative flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-emerald-400/10" aria-hidden="true">
+                <Phone size={7} className="text-emerald-400" />
+                {liveState === 'live' && (
+                  <span
+                    className="absolute inset-0 rounded-full"
+                    style={{ border: '1px solid rgba(52,211,153,0.5)', animation: 'statusPulse 1.1s ease-in-out infinite' }}
+                  />
+                )}
+              </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[9px] font-semibold leading-tight text-white">{incomingName}</span>
-                <span className="block text-[7.5px] leading-tight" style={{ color: '#6ee7a0' }}>
-                  {isFr ? 'L\'IA décroche…' : 'AI answering…'}
+                <span className="block truncate text-[8px] font-medium leading-tight text-white/90">
+                  {isFr ? 'Inconnu · 07 44 21 90 12' : 'Unknown · +1 555 0176'}
+                </span>
+                <span className="block text-[6.5px] leading-tight text-white/30">
+                  {liveState === 'live' ? (isFr ? 'L\'IA est en ligne…' : 'AI on the line…') : (isFr ? 'À l\'instant · 41s' : 'Just now · 41s')}
                 </span>
               </span>
-              <span className="flex flex-shrink-0 items-end gap-[2px]" aria-hidden="true">
-                {[7, 11, 8, 12].map((h, i) => (
-                  <span
-                    key={i}
-                    className="wave-bar w-[2.5px] rounded-full"
-                    style={{ height: h, background: '#6ee7a0', animationDuration: `${0.5 + i * 0.12}s` }}
-                  />
-                ))}
-              </span>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="idle"
-              className="flex w-full items-center justify-end pr-2"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
-            >
-              {/* Front camera lens */}
-              <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ background: 'radial-gradient(circle at 35% 35%, #1e2a4a 0%, #0a0d18 60%)' }}
-                aria-hidden="true"
-              />
-            </motion.div>
+              {liveState === 'live' ? (
+                <span className="flex-shrink-0 rounded-full bg-amber-400/10 px-1.5 py-[1.5px] text-[5.5px] font-semibold uppercase tracking-wide text-amber-400">
+                  {isFr ? 'En cours' : 'Live'}
+                </span>
+              ) : (
+                <motion.span
+                  initial={{ scale: 1.35 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+                  className="flex-shrink-0 rounded-full bg-emerald-400/10 px-1.5 py-[1.5px] text-[5.5px] font-medium uppercase tracking-wide text-emerald-400"
+                >
+                  Lead
+                </motion.span>
+              )}
+              <ChevronRight size={7} className="flex-shrink-0 text-white/20" aria-hidden="true" />
+            </motion.li>
           )}
         </AnimatePresence>
-      </motion.div>
+        {list.map((row, i) => (
+          <motion.li
+            key={row.key}
+            initial={{ opacity: 0, x: 18 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, ease: EASE, delay: 0.15 + i * 0.08 }}
+            className="flex items-center gap-2 border-b border-white/[0.04] py-[5px] last:border-b-0"
+          >
+            <span className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-white/[0.05]" aria-hidden="true">
+              <Phone size={7} className="text-white/40" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[8px] font-medium leading-tight text-white/90">{row.name}</span>
+              <span className="block text-[6.5px] leading-tight text-white/30">{row.time} · {row.dur}s</span>
+            </span>
+            <span className={`flex-shrink-0 rounded-full px-1.5 py-[1.5px] text-[5.5px] font-medium uppercase tracking-wide ${OUTCOME_PILL[row.outcome]}`}>
+              {outcomeLabel[row.outcome]}
+            </span>
+            <ChevronRight size={7} className="flex-shrink-0 text-white/20" aria-hidden="true" />
+          </motion.li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/* ── Scene: ClientAnalytics miniature — charts + sentiment donut ────────────── */
+function SceneAnalytics({ isFr, callsMonth, sentiment }: { isFr: boolean; callsMonth: number; sentiment: number }) {
+  const C = 2 * Math.PI * 14; // donut circumference (r=14)
+  const segs = [
+    { label: isFr ? 'Positif' : 'Positive', pct: sentiment, color: 'oklch(72% 0.18 145)' },
+    { label: isFr ? 'Neutre' : 'Neutral', pct: 100 - sentiment - 4, color: 'rgba(255,255,255,0.28)' },
+    { label: isFr ? 'Négatif' : 'Negative', pct: 4, color: 'oklch(65% 0.22 25)' },
+  ];
+  let acc = 0;
+
+  return (
+    <div className="flex h-full flex-col px-4 pt-10 pb-3">
+      <AppBar title="Analytics" isFr={isFr} />
+
+      <div className="pb-2">
+        <p className="flex items-center gap-1 text-[12px] font-semibold tracking-tight text-white/90">
+          <BarChart3 size={10} className="text-white/50" aria-hidden="true" /> Analytics
+        </p>
+        <p className="mt-0.5 text-[7.5px] text-white/50">{isFr ? '30 derniers jours' : 'Last 30 days'}</p>
+      </div>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-3 divide-x divide-white/[0.06] border-y border-white/[0.06] py-2">
+        {[
+          { label: isFr ? 'Appels' : 'Calls', value: String(callsMonth) },
+          { label: isFr ? 'Leads' : 'Leads', value: '32%' },
+          { label: isFr ? 'Réponse' : 'Response', value: '<1s' },
+        ].map((k, i) => (
+          <div key={k.label} className={i === 0 ? 'pr-2.5' : i === 1 ? 'px-2.5' : 'pl-2.5'}>
+            <p className="text-[7px]" style={{ color: PRO.textSec }}>{k.label}</p>
+            <p className="mt-1 text-[13px] font-semibold leading-none tabular-nums text-white">{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Volume area chart */}
+      <div className="border-b border-white/[0.06] py-2">
+        <p className="text-[7px] font-semibold uppercase tracking-[0.08em] text-white/40">
+          {isFr ? 'Volume d\'appels' : 'Call volume'}
+        </p>
+        <svg viewBox={`0 0 ${TW} ${TH}`} className="mt-1 block h-10 w-full" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="hp3d-ana-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={PRO.line} stopOpacity="0.22" />
+              <stop offset="60%" stopColor={PRO.line} stopOpacity="0.06" />
+              <stop offset="100%" stopColor={PRO.line} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={trendArea} fill="url(#hp3d-ana-fill)" />
+          <motion.path
+            d={trendPath}
+            fill="none"
+            stroke={PRO.line}
+            strokeWidth="1.1"
+            strokeLinecap="round"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 1.2, delay: 0.25, ease: EASE }}
+          />
+        </svg>
+      </div>
+
+      {/* Sentiment donut + legend */}
+      <div className="grid grid-cols-[auto_1fr] items-center gap-3 border-b border-white/[0.06] py-2">
+        <svg viewBox="0 0 36 36" className="h-[58px] w-[58px] -rotate-90" aria-hidden="true">
+          {segs.map((s) => {
+            const dash = (s.pct / 100) * C;
+            const off = -(acc / 100) * C;
+            acc += s.pct;
+            return (
+              <motion.circle
+                key={s.label}
+                cx="18" cy="18" r="14"
+                fill="none"
+                stroke={s.color}
+                strokeWidth="3.4"
+                strokeDasharray={`${dash} ${C - dash}`}
+                initial={{ strokeDashoffset: off + dash }}
+                animate={{ strokeDashoffset: off }}
+                transition={{ duration: 0.9, delay: 0.4, ease: EASE }}
+              />
+            );
+          })}
+        </svg>
+        <div className="space-y-1">
+          {segs.map((s) => (
+            <div key={s.label} className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.color }} aria-hidden="true" />
+              <span className="flex-1 text-[7.5px] text-white/80">{s.label}</span>
+              <span className="text-[7.5px] font-semibold tabular-nums text-white/70">{s.pct}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hourly bars */}
+      <div className="min-h-0 flex-1 pt-2">
+        <p className="text-[7px] font-semibold uppercase tracking-[0.08em] text-white/40">
+          {isFr ? 'Répartition par heure' : 'By hour of day'}
+        </p>
+        <div className="mt-1.5 flex h-[52px] items-end gap-[3px]" aria-hidden="true">
+          {HOURS.map((h, i) => (
+            <motion.span
+              key={i}
+              className="flex-1 rounded-t-[2px]"
+              style={{ background: h >= 22 ? PRO.line : 'oklch(34% 0.01 265)' }}
+              initial={{ height: 0 }}
+              animate={{ height: `${(h / 24) * 100}%` }}
+              transition={{ duration: 0.5, delay: 0.5 + i * 0.05, ease: EASE }}
+            />
+          ))}
+        </div>
+        <div className="mt-1 flex justify-between text-[6px] text-white/25" aria-hidden="true">
+          <span>8h</span><span>12h</span><span>16h</span><span>20h</span>
+        </div>
+
+        {/* Conversion funnel — like the real Analytics page */}
+        <div className="mt-2.5 border-t border-white/[0.06] pt-2">
+          <p className="text-[7px] font-semibold uppercase tracking-[0.08em] text-white/40">
+            {isFr ? 'Funnel de conversion' : 'Conversion funnel'}
+          </p>
+          <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+            {[
+              { stage: isFr ? 'Appels reçus' : 'Calls received', v: String(callsMonth), pct: 100 },
+              { stage: isFr ? 'Leads qualifiés' : 'Qualified leads', v: '132', pct: 32 },
+              { stage: isFr ? 'RDV pris' : 'Booked', v: '87', pct: 21 },
+            ].map((f, i) => (
+              <motion.div
+                key={f.stage}
+                className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-1.5"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.9 + i * 0.12, ease: EASE }}
+              >
+                <p className="text-[11px] font-semibold leading-none tabular-nums text-white">{f.v}</p>
+                <p className="mt-0.5 text-[6px] leading-tight text-white/40">{f.stage}</p>
+                <div className="mt-1 h-[3px] overflow-hidden rounded-full" style={{ background: 'oklch(28% 0.01 265)' }}>
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ background: PRO.line }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${f.pct}%` }}
+                    transition={{ duration: 0.7, delay: 1.1 + i * 0.12, ease: EASE }}
+                  />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -504,39 +701,57 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
   const reduced = useReducedMotion();
   const pool = isFr ? POOL_FR : POOL_EN;
 
+  const [scene, setScene] = useState<Scene>(reduced ? 'overview' : 'home');
   const [tick, setTick] = useState(0);
   const [ringing, setRinging] = useState(false);
   const [callsMonth, setCallsMonth] = useState(412);
   const [leadsMonth, setLeadsMonth] = useState(132);
   const [sentiment, setSentiment] = useState(87);
-  const [introDone, setIntroDone] = useState(!!reduced);
   const tickRef = useRef(0);
 
   const incomingName = pool[(tickRef.current + 1) % pool.length].name;
 
+  /* Scene timeline — loops like a product film */
   useEffect(() => {
     if (reduced) return;
-    const id = setTimeout(() => setIntroDone(true), INTRO_MS);
-    return () => clearTimeout(id);
-  }, [reduced]);
+    const t = setTimeout(() => {
+      setScene((s) => ORDER[(ORDER.indexOf(s) + 1) % ORDER.length]);
+    }, SCENE_MS[scene]);
+    return () => clearTimeout(t);
+  }, [scene, reduced]);
 
+  /* Overview scene: two incoming calls ring the Dynamic Island and resolve */
   useEffect(() => {
-    if (reduced || !introDone) return;
-    let ringTimer: ReturnType<typeof setTimeout>;
-    const id = setInterval(() => {
-      setRinging(true);
-      ringTimer = setTimeout(() => {
-        setRinging(false);
-        tickRef.current += 1;
-        const evt = pool[tickRef.current % pool.length];
-        setTick(tickRef.current);
-        setCallsMonth((n) => n + 1);
-        if (evt.outcome === 'lead' || evt.outcome === 'booked') setLeadsMonth((n) => n + 1);
-        setSentiment((s) => Math.max(82, Math.min(94, s + (tickRef.current % 3 === 0 ? 1 : tickRef.current % 3 === 1 ? -1 : 0))));
-      }, RING_MS);
-    }, CYCLE_MS);
-    return () => { clearInterval(id); clearTimeout(ringTimer); };
-  }, [reduced, introDone, pool]);
+    if (reduced || scene !== 'overview') return;
+    const resolve = () => {
+      setRinging(false);
+      tickRef.current += 1;
+      const evt = pool[tickRef.current % pool.length];
+      setTick(tickRef.current);
+      setCallsMonth((n) => n + 1);
+      if (evt.outcome === 'lead' || evt.outcome === 'booked') setLeadsMonth((n) => n + 1);
+      setSentiment((s) => Math.max(82, Math.min(94, s + (tickRef.current % 3 === 0 ? 1 : tickRef.current % 3 === 1 ? -1 : 0))));
+    };
+    const timers = [
+      setTimeout(() => setRinging(true), 1800),
+      setTimeout(resolve, 1800 + RING_MS),
+      setTimeout(() => setRinging(true), 6400),
+      setTimeout(resolve, 6400 + RING_MS),
+    ];
+    return () => { timers.forEach(clearTimeout); setRinging(false); };
+  }, [scene, reduced, pool]);
+
+  /* Calls scene: the live call also rings the island */
+  useEffect(() => {
+    if (reduced || scene !== 'calls') return;
+    const t1 = setTimeout(() => setRinging(true), 1400);
+    const t2 = setTimeout(() => {
+      setRinging(false);
+      setCallsMonth((n) => n + 1);
+      setLeadsMonth((n) => n + 1);
+    }, 1400 + RING_MS);
+    return () => { clearTimeout(t1); clearTimeout(t2); setRinging(false); };
+  }, [scene, reduced]);
 
   /* Pointer-reactive tilt */
   const mx = useMotionValue(0);
@@ -544,7 +759,6 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
   const spring = { stiffness: 140, damping: 18, mass: 0.5 };
   const smx = useSpring(mx, spring);
   const smy = useSpring(my, spring);
-  // Resting pose is baked into the ranges: slight editorial 3/4 turn at center
   const rotateY = useTransform(smx, [-0.5, 0.5], [-24, 2]);
   const rotateX = useTransform(smy, [-0.5, 0.5], [11, -5]);
   const glareX = useTransform(smx, [-0.5, 0.5], ['30%', '75%']);
@@ -564,6 +778,8 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
     my.set(0);
   }
 
+  const appScene = scene !== 'home';
+
   return (
     <div
       className="relative flex items-center justify-center py-6 lg:py-0"
@@ -572,8 +788,8 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
       onMouseLeave={onLeave}
       role="img"
       aria-label={isFr
-        ? 'Dashboard client Qwillio en direct sur iPhone : l\'IA décroche les appels, les leads et rendez-vous s\'ajoutent en temps réel'
-        : 'Live Qwillio client dashboard on an iPhone: the AI answers calls while leads and bookings land in real time'}
+        ? 'iPhone affichant iOS avec notifications Qwillio, puis la visite animée du dashboard client : vue d\'ensemble, appels, analytics'
+        : 'iPhone showing iOS with Qwillio notifications, then an animated tour of the client dashboard: overview, calls, analytics'}
     >
       {/* Ambient brand glow behind the device */}
       <div
@@ -613,64 +829,149 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
               <span className="absolute bottom-0 right-[22%] h-[3px] w-[3px] rounded-full bg-black/50" />
 
               {/* Side buttons */}
-              <span
-                className="absolute -left-[2.5px] top-[104px] h-[26px] w-[3px] rounded-l-[2px]"
-                style={{ background: 'linear-gradient(90deg, #57575c, #26262a)' }}
-              />
-              <span
-                className="absolute -left-[2.5px] top-[148px] h-[44px] w-[3px] rounded-l-[2px]"
-                style={{ background: 'linear-gradient(90deg, #57575c, #26262a)' }}
-              />
-              <span
-                className="absolute -left-[2.5px] top-[202px] h-[44px] w-[3px] rounded-l-[2px]"
-                style={{ background: 'linear-gradient(90deg, #57575c, #26262a)' }}
-              />
-              <span
-                className="absolute -right-[2.5px] top-[164px] h-[68px] w-[3px] rounded-r-[2px]"
-                style={{ background: 'linear-gradient(270deg, #57575c, #26262a)' }}
-              />
+              <span className="absolute -left-[2.5px] top-[104px] h-[26px] w-[3px] rounded-l-[2px]" style={{ background: 'linear-gradient(90deg, #57575c, #26262a)' }} />
+              <span className="absolute -left-[2.5px] top-[148px] h-[44px] w-[3px] rounded-l-[2px]" style={{ background: 'linear-gradient(90deg, #57575c, #26262a)' }} />
+              <span className="absolute -left-[2.5px] top-[202px] h-[44px] w-[3px] rounded-l-[2px]" style={{ background: 'linear-gradient(90deg, #57575c, #26262a)' }} />
+              <span className="absolute -right-[2.5px] top-[164px] h-[68px] w-[3px] rounded-r-[2px]" style={{ background: 'linear-gradient(270deg, #57575c, #26262a)' }} />
 
               {/* Black bezel */}
               <div className="rounded-[49px] bg-[#050506] p-[9px]">
                 {/* Screen */}
-                <div className="relative aspect-[390/812] overflow-hidden rounded-[41px] bg-[#0a0a0a]">
-                  <ScreenDashboard
-                    isFr={isFr}
-                    ringing={ringing}
-                    tick={tick}
-                    callsMonth={callsMonth}
-                    leadsMonth={leadsMonth}
-                    sentiment={sentiment}
-                    incomingName={incomingName}
-                  />
-
-                  {/* Presentation intro — fades into the live dashboard */}
-                  <AnimatePresence>
-                    {!introDone && (
+                <div className="relative aspect-[390/812] overflow-hidden rounded-[41px]" style={{ background: PRO.bg }}>
+                  {/* Scenes — the looping product film */}
+                  <AnimatePresence mode="wait">
+                    {scene === 'home' ? (
                       <motion.div
-                        className="absolute inset-0 z-[5]"
-                        initial={{ opacity: 1 }}
-                        exit={{ opacity: 0, scale: 1.04 }}
-                        transition={{ duration: 0.8, ease: EASE }}
+                        key="home"
+                        className="absolute inset-0"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0, scale: 1.12 }}
+                        transition={{ duration: 0.45, ease: EASE }}
                       >
-                        <ScreenIntro isFr={isFr} />
+                        <SceneHome isFr={isFr} />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key={scene}
+                        className="absolute inset-0"
+                        initial={scene === 'overview'
+                          ? { opacity: 0, scale: 0.62, borderRadius: 60 }
+                          : { opacity: 0, x: 30 }}
+                        animate={{ opacity: 1, scale: 1, x: 0, borderRadius: 0 }}
+                        exit={{ opacity: 0, x: -26 }}
+                        transition={scene === 'overview'
+                          ? { type: 'spring', stiffness: 260, damping: 26 }
+                          : { duration: 0.4, ease: EASE }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        {scene === 'overview' && (
+                          <SceneOverview isFr={isFr} tick={tick} callsMonth={callsMonth} leadsMonth={leadsMonth} sentiment={sentiment} />
+                        )}
+                        {scene === 'calls' && <SceneCalls isFr={isFr} callsMonth={callsMonth} />}
+                        {scene === 'analytics' && <SceneAnalytics isFr={isFr} callsMonth={callsMonth} sentiment={sentiment} />}
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  {/* Glass glare — tracks the tilt */}
+                  {/* Status bar — above scenes */}
+                  <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-6 pt-3.5 text-white">
+                    <span className={`text-[11px] font-semibold tracking-tight tabular-nums ${scene === 'home' ? 'opacity-0' : ''}`}>9:41</span>
+                    <div className="flex items-center gap-1.5" aria-hidden="true">
+                      <div className="flex items-end gap-[1.5px]">
+                        {[3, 5, 7, 9].map((h) => (
+                          <span key={h} className="w-[2.5px] rounded-[1px] bg-white" style={{ height: h }} />
+                        ))}
+                      </div>
+                      <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+                        <path d="M6.5 9.5 L2 5 A6.4 6.4 0 0 1 11 5 Z" fill="white" />
+                      </svg>
+                      <div className="relative h-[10px] w-[19px] rounded-[3px] border border-white/40">
+                        <span className="absolute inset-[1.5px] right-[4px] rounded-[1.5px] bg-white" />
+                        <span className="absolute -right-[3px] top-[2.5px] h-[4px] w-[1.5px] rounded-r-[1px] bg-white/40" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Screen dims while a call rings — like real iOS */}
                   <motion.div
-                    className="pointer-events-none absolute inset-0 z-20"
-                    style={{ background: glareBg }}
+                    className="pointer-events-none absolute inset-0 z-10 bg-black"
+                    animate={{ opacity: ringing ? 0.28 : 0 }}
+                    transition={{ duration: 0.35, ease: 'easeOut' }}
+                    aria-hidden="true"
                   />
-                  {/* Static edge sheen on the glass */}
+
+                  {/* Dynamic Island — expands on incoming call */}
+                  <motion.div
+                    className="absolute left-1/2 top-[9px] z-20 flex -translate-x-1/2 items-center overflow-hidden bg-black"
+                    animate={ringing
+                      ? { width: 196, height: 52, borderRadius: 26 }
+                      : { width: 86,  height: 24, borderRadius: 13 }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.6)' }}
+                  >
+                    <AnimatePresence mode="wait" initial={false}>
+                      {ringing ? (
+                        <motion.div
+                          key="call"
+                          className="flex w-full items-center gap-2 px-3"
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{ duration: 0.22, ease: EASE }}
+                        >
+                          <motion.span
+                            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
+                            style={{ background: 'rgba(110,231,160,0.18)' }}
+                            animate={{ scale: [1, 1.12, 1] }}
+                            transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}
+                          >
+                            <Phone size={11} style={{ color: '#6ee7a0' }} aria-hidden="true" />
+                          </motion.span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[9px] font-semibold leading-tight text-white">{incomingName}</span>
+                            <span className="block text-[7.5px] leading-tight" style={{ color: '#6ee7a0' }}>
+                              {isFr ? 'L\'IA décroche…' : 'AI answering…'}
+                            </span>
+                          </span>
+                          <span className="flex flex-shrink-0 items-end gap-[2px]" aria-hidden="true">
+                            {[7, 11, 8, 12].map((h, i) => (
+                              <span
+                                key={i}
+                                className="wave-bar w-[2.5px] rounded-full"
+                                style={{ height: h, background: '#6ee7a0', animationDuration: `${0.5 + i * 0.12}s` }}
+                              />
+                            ))}
+                          </span>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="idle"
+                          className="flex w-full items-center justify-end pr-2"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.18 }}
+                        >
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ background: 'radial-gradient(circle at 35% 35%, #1e2a4a 0%, #0a0d18 60%)' }}
+                            aria-hidden="true"
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+
+                  {/* Glass glare — tracks the tilt */}
+                  <motion.div className="pointer-events-none absolute inset-0 z-30" style={{ background: glareBg }} />
                   <div
-                    className="pointer-events-none absolute inset-0 z-20 rounded-[41px]"
+                    className="pointer-events-none absolute inset-0 z-30 rounded-[41px]"
                     style={{ boxShadow: 'inset 0 0 14px rgba(255,255,255,0.045), inset 0 1px 0 rgba(255,255,255,0.07)' }}
                   />
 
                   {/* Home indicator */}
-                  <span className="absolute bottom-[7px] left-1/2 z-20 h-[4px] w-[100px] -translate-x-1/2 rounded-full bg-white/80" />
+                  <span className={`absolute bottom-[7px] left-1/2 z-30 h-[4px] w-[100px] -translate-x-1/2 rounded-full ${appScene ? 'bg-white/80' : 'bg-white/60'}`} />
                 </div>
               </div>
             </div>
