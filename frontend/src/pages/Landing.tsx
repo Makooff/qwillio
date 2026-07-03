@@ -176,7 +176,8 @@ function NichePair({
 }
 
 function NichesSection() {
-  const { t, isFr } = useLang();
+  const { t, lang } = useLang();
+  const isFr = lang === 'fr';
 
   const niches: { key: string; icon: React.ElementType; color: string }[] = [
     { key: 'dental',     icon: Stethoscope,    color: '#6366f1' },
