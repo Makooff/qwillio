@@ -16,20 +16,22 @@ const EASE = [0.16, 1, 0.3, 1] as const;
    POUR QUI ? — scroll-drawn brand stroke with industries appearing around it
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Industry chips placed around the stroke; `at` = scroll progress when they pop */
-const SECTOR_SPOTS = [
-  { at: 0.10, x: '14%', y: '18%' },
-  { at: 0.16, x: '70%', y: '13%' },
-  { at: 0.22, x: '8%',  y: '38%' },
-  { at: 0.28, x: '78%', y: '30%' },
-  { at: 0.34, x: '18%', y: '58%' },
-  { at: 0.40, x: '80%', y: '55%' },
-  { at: 0.46, x: '10%', y: '76%' },
-  { at: 0.52, x: '80%', y: '64%' },
-  { at: 0.58, x: '26%', y: '88%' },
-  { at: 0.64, x: '66%', y: '82%' },
-  { at: 0.70, x: '42%', y: '10%' },
-  { at: 0.76, x: '48%', y: '92%' },
+/* Industry chips: first hugging the stroke, then spreading out. `at` = scroll
+   progress when they pop. Side-anchored (left OR right offset) so a chip can
+   never overflow the viewport edge, with breathing room between neighbours. */
+const SECTOR_SPOTS: Array<{ at: number; side: 'left' | 'right'; off: string; y: string }> = [
+  { at: 0.08, side: 'left',  off: '22%', y: '12%' },   // along the stroke
+  { at: 0.14, side: 'right', off: '18%', y: '16%' },
+  { at: 0.20, side: 'left',  off: '34%', y: '34%' },   // hugging the curve
+  { at: 0.26, side: 'right', off: '30%', y: '64%' },
+  { at: 0.32, side: 'left',  off: '8%',  y: '28%' },   // then spreading wide
+  { at: 0.40, side: 'right', off: '7%',  y: '31%' },
+  { at: 0.46, side: 'left',  off: '6%',  y: '70%' },
+  { at: 0.52, side: 'right', off: '8%',  y: '78%' },
+  { at: 0.58, side: 'left',  off: '24%', y: '82%' },
+  { at: 0.64, side: 'right', off: '22%', y: '89%' },
+  { at: 0.70, side: 'right', off: '34%', y: '24%' },
+  { at: 0.76, side: 'left',  off: '10%', y: '90%' },
 ];
 
 function SectorChip({ name, spot, progress }: {
@@ -42,8 +44,15 @@ function SectorChip({ name, spot, progress }: {
   const y = useTransform(progress, [spot.at, spot.at + 0.07], [26, 0]);
   return (
     <motion.span
-      className="absolute rounded-full bg-white px-4 py-2 text-[13px] font-medium text-[#1d1d1f] shadow-[0_10px_30px_-12px_rgba(20,16,50,0.25)]"
-      style={{ left: spot.x, top: spot.y, opacity, scale, y, border: '1px solid rgba(29,29,31,0.12)' }}
+      className="absolute whitespace-nowrap rounded-full bg-white px-4 py-2 text-[13px] font-medium text-[#1d1d1f] shadow-[0_10px_30px_-12px_rgba(20,16,50,0.25)]"
+      style={{
+        [spot.side]: spot.off,
+        top: spot.y,
+        opacity,
+        scale,
+        y,
+        border: '1px solid rgba(29,29,31,0.12)',
+      }}
     >
       {name}
     </motion.span>
@@ -130,7 +139,6 @@ interface StepCard {
   desc: string;
   points: string[];
   icon: typeof PhoneCall;
-  bg: string;
   accent: string;
 }
 
@@ -141,14 +149,15 @@ function StackStep({ step, index, total }: { step: StepCard; index: number; tota
 
   return (
     <div ref={ref} className="sticky" style={{ top: `${92 + index * 22}px` }}>
+      {/* Paper cards — deliberately the opposite register of the dark product cards */}
       <motion.article
-        className="overflow-hidden rounded-[28px] p-8 text-white md:p-14"
-        style={{ scale, background: step.bg, boxShadow: '0 30px 80px rgba(20,16,50,0.35)' }}
+        className="overflow-hidden rounded-[28px] bg-white p-8 text-[#1d1d1f] md:p-14"
+        style={{ scale, border: '1px solid rgba(29,29,31,0.10)', boxShadow: '0 30px 80px rgba(20,16,50,0.14)' }}
       >
         <div className="flex min-h-[380px] flex-col justify-between md:min-h-[420px]">
           <div className="flex items-start justify-between gap-6">
             <div>
-              <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-white/50">
+              <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: step.accent }}>
                 {step.num}
               </p>
               <h3 className="max-w-[560px] text-[clamp(1.7rem,4vw,3rem)] font-semibold leading-[1.04] tracking-[-0.03em]">
@@ -157,7 +166,7 @@ function StackStep({ step, index, total }: { step: StepCard; index: number; tota
             </div>
             <span
               className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl"
-              style={{ background: 'rgba(255,255,255,0.12)' }}
+              style={{ background: `${step.accent}14`, color: step.accent, border: `1px solid ${step.accent}33` }}
               aria-hidden="true"
             >
               <step.icon size={24} />
@@ -165,15 +174,15 @@ function StackStep({ step, index, total }: { step: StepCard; index: number; tota
           </div>
 
           <div>
-            <p className="mb-8 max-w-[480px] text-base leading-relaxed text-white/70 md:text-lg">
+            <p className="mb-8 max-w-[480px] text-base leading-relaxed text-[#525257] md:text-lg">
               {step.desc}
             </p>
             <ul className="flex flex-wrap gap-2" role="list">
               {step.points.map((p) => (
                 <li
                   key={p}
-                  className="rounded-full px-3.5 py-1.5 text-[13px]"
-                  style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  className="rounded-full px-3.5 py-1.5 text-[13px] text-[#1d1d1f]"
+                  style={{ background: 'rgba(29,29,31,0.04)', border: '1px solid rgba(29,29,31,0.12)' }}
                 >
                   {p}
                 </li>
@@ -571,8 +580,7 @@ export default function Home() {
                     ? ['2 minutes', 'Sans carte bancaire', '1er mois offert']
                     : ['2 minutes', 'No credit card', '1st month free'],
                   icon: Zap,
-                  bg: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #6366f1 130%)',
-                  accent: '#a5b4fc',
+                  accent: '#6366f1',
                 },
                 {
                   num: isFr ? '02 / Configuration' : '02 / Configure',
@@ -584,8 +592,7 @@ export default function Home() {
                     ? ['Voix naturelle', 'Scripts par métier', 'Calendrier connecté']
                     : ['Natural voice', 'Industry scripts', 'Calendar sync'],
                   icon: Settings2,
-                  bg: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 55%, #a855f7 135%)',
-                  accent: '#d8b4fe',
+                  accent: '#a855f7',
                 },
                 {
                   num: isFr ? '03 / En ligne' : '03 / Go live',
@@ -597,8 +604,7 @@ export default function Home() {
                     ? ['Numéro conservé', 'IA en relais 24/7', 'Support 7j/7']
                     : ['Keep your number', 'AI on 24/7', 'Support 7 days'],
                   icon: PhoneCall,
-                  bg: 'linear-gradient(155deg, #17171a 0%, #23204a 60%, #4f46e5 140%)',
-                  accent: '#a5b4fc',
+                  accent: '#4f46e5',
                 },
               ] as StepCard[]).map((step, i, arr) => (
                 <StackStep key={step.num} step={step} index={i} total={arr.length} />
