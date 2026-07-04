@@ -1,8 +1,8 @@
 ﻿import { useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
-import { Phone, Bot, ArrowRight, Play, Clock, Mic, Calendar, MessageSquare } from 'lucide-react';
+import { Phone, Bot, ArrowRight, Play, Clock, Mic, Calendar, MessageSquare, PhoneCall, Settings2, Zap } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
@@ -10,6 +10,181 @@ import Reveal from '../components/ui/Reveal';
 import Card3D from '../components/ui/Card3D';
 import HeroPhone3D from '../components/ui/HeroPhone3D';
 
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   POUR QUI ? — scroll-drawn brand stroke with industries appearing around it
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Industry chips placed around the stroke; `at` = scroll progress when they pop */
+const SECTOR_SPOTS = [
+  { at: 0.10, x: '14%', y: '18%' },
+  { at: 0.16, x: '70%', y: '13%' },
+  { at: 0.22, x: '8%',  y: '38%' },
+  { at: 0.28, x: '78%', y: '30%' },
+  { at: 0.34, x: '18%', y: '58%' },
+  { at: 0.40, x: '80%', y: '55%' },
+  { at: 0.46, x: '10%', y: '76%' },
+  { at: 0.52, x: '80%', y: '64%' },
+  { at: 0.58, x: '26%', y: '88%' },
+  { at: 0.64, x: '66%', y: '82%' },
+  { at: 0.70, x: '42%', y: '10%' },
+  { at: 0.76, x: '48%', y: '92%' },
+];
+
+function SectorChip({ name, spot, progress }: {
+  name: string;
+  spot: (typeof SECTOR_SPOTS)[number];
+  progress: MotionValue<number>;
+}) {
+  const opacity = useTransform(progress, [spot.at, spot.at + 0.05], [0, 1]);
+  const scale = useTransform(progress, [spot.at, spot.at + 0.07], [0.6, 1]);
+  const y = useTransform(progress, [spot.at, spot.at + 0.07], [26, 0]);
+  return (
+    <motion.span
+      className="absolute rounded-full bg-white px-4 py-2 text-[13px] font-medium text-[#1d1d1f] shadow-[0_10px_30px_-12px_rgba(20,16,50,0.25)]"
+      style={{ left: spot.x, top: spot.y, opacity, scale, y, border: '1px solid rgba(29,29,31,0.12)' }}
+    >
+      {name}
+    </motion.span>
+  );
+}
+
+function IndustriesStroke({ isFr, industries }: { isFr: boolean; industries: string[] }) {
+  const container = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: container, offset: ['start start', 'end end'] });
+
+  const pathLength = useTransform(scrollYProgress, [0.02, 0.85], [0, 1]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.10, 0.88, 0.98], [0, 1, 1, 0]);
+  const textScale = useTransform(scrollYProgress, [0, 0.14], [0.92, 1]);
+
+  return (
+    <section
+      ref={container}
+      aria-labelledby="industries-heading"
+      className="relative h-[280vh] bg-[#fafaf8] border-y border-[#1d1d1f]/8"
+    >
+      <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden">
+        {/* Brand stroke, drawn by scroll */}
+        <svg
+          width="900"
+          height="2200"
+          viewBox="0 0 900 2200"
+          fill="none"
+          overflow="visible"
+          className="pointer-events-none absolute select-none"
+          style={{ top: '-12%', left: '50%', transform: 'translateX(-55%)', opacity: 0.9 }}
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id="qw-stroke-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#6366f1" />
+              <stop offset="100%" stopColor="#a855f7" />
+            </linearGradient>
+          </defs>
+          <motion.path
+            d="
+              M 450 0
+              C 750 180, 120 320, 380 520
+              C 640 720, 820 860, 500 1060
+              C 180 1260, 80 1400, 360 1580
+              C 640 1760, 880 1880, 580 2050
+              C 400 2130, 320 2180, 450 2200
+            "
+            stroke="url(#qw-stroke-grad)"
+            strokeWidth="13"
+            strokeLinecap="round"
+            fill="none"
+            style={{ pathLength }}
+          />
+        </svg>
+
+        {/* Sectors pop in around the stroke as it draws */}
+        <div className="absolute inset-0" aria-hidden="true">
+          {industries.map((name, i) => (
+            <SectorChip key={name} name={name} spot={SECTOR_SPOTS[i % SECTOR_SPOTS.length]} progress={scrollYProgress} />
+          ))}
+        </div>
+
+        {/* Centre title — just the question */}
+        <motion.h2
+          id="industries-heading"
+          className="relative z-10 px-6 text-center font-semibold tracking-[-0.04em] leading-none text-[#1d1d1f]"
+          style={{ fontSize: 'clamp(3rem, 9vw, 7.5rem)', opacity: textOpacity, scale: textScale }}
+        >
+          {isFr ? 'Pour qui ?' : 'For whom?'}
+        </motion.h2>
+        <span className="sr-only">{industries.join(', ')}</span>
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TROIS ÉTAPES — stacking cards (sticky, scale-under) à la Nova Method
+   ══════════════════════════════════════════════════════════════════════════ */
+
+interface StepCard {
+  num: string;
+  title: string;
+  desc: string;
+  points: string[];
+  icon: typeof PhoneCall;
+  bg: string;
+  accent: string;
+}
+
+function StackStep({ step, index, total }: { step: StepCard; index: number; total: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 120px', 'end 120px'] });
+  const scale = useTransform(scrollYProgress, [0, 1], [1, index < total - 1 ? 0.94 : 1]);
+
+  return (
+    <div ref={ref} className="sticky" style={{ top: `${92 + index * 22}px` }}>
+      <motion.article
+        className="overflow-hidden rounded-[28px] p-8 text-white md:p-14"
+        style={{ scale, background: step.bg, boxShadow: '0 30px 80px rgba(20,16,50,0.35)' }}
+      >
+        <div className="flex min-h-[380px] flex-col justify-between md:min-h-[420px]">
+          <div className="flex items-start justify-between gap-6">
+            <div>
+              <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-white/50">
+                {step.num}
+              </p>
+              <h3 className="max-w-[560px] text-[clamp(1.7rem,4vw,3rem)] font-semibold leading-[1.04] tracking-[-0.03em]">
+                {step.title}
+              </h3>
+            </div>
+            <span
+              className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl"
+              style={{ background: 'rgba(255,255,255,0.12)' }}
+              aria-hidden="true"
+            >
+              <step.icon size={24} />
+            </span>
+          </div>
+
+          <div>
+            <p className="mb-8 max-w-[480px] text-base leading-relaxed text-white/70 md:text-lg">
+              {step.desc}
+            </p>
+            <ul className="flex flex-wrap gap-2" role="list">
+              {step.points.map((p) => (
+                <li
+                  key={p}
+                  className="rounded-full px-3.5 py-1.5 text-[13px]"
+                  style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}
+                >
+                  {p}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </motion.article>
+    </div>
+  );
+}
 
 /* ── Page ─────────────────────────────────────────────────────────────────── */
 export default function Home() {
@@ -25,6 +200,9 @@ export default function Home() {
   });
 
   const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
+  const phoneParallax = useTransform(heroProgress, [0, 1], [0, 100]);
+  const heroTextParallax = useTransform(heroProgress, [0, 1], [0, 40]);
   const handleHeroMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
     const el = heroRef.current;
     if (!el) return;
@@ -67,7 +245,8 @@ export default function Home() {
           }}
         >
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-20 items-center">
-            {/* Editorial column */}
+            {/* Editorial column — drifts slower than the scroll */}
+            <motion.div style={{ y: heroTextParallax }}>
             <Reveal delay={0.05}>
             <div>
 
@@ -135,11 +314,14 @@ export default function Home() {
               </dl>
             </div>
             </Reveal>
+            </motion.div>
 
-            {/* Live 3D device demo */}
-            <Reveal delay={0.15}>
-              <HeroPhone3D isFr={isFr} />
-            </Reveal>
+            {/* Live 3D device demo — parallax drift on scroll */}
+            <motion.div style={{ y: phoneParallax }}>
+              <Reveal delay={0.15}>
+                <HeroPhone3D isFr={isFr} />
+              </Reveal>
+            </motion.div>
           </div>
         </section>
 
@@ -151,9 +333,13 @@ export default function Home() {
           className="px-6"
         >
           <div className="max-w-[1240px] mx-auto">
-            <figure
+            <motion.figure
               className="rounded-[2rem] px-8 md:px-16 py-12 sm:py-16 md:py-24"
               style={{ background: '#6366f1' }}
+              initial={{ opacity: 0, scale: 0.94, y: 60 }}
+              whileInView={{ opacity: 1, scale: 1, y: 0 }}
+              viewport={{ once: true, margin: '-15%' }}
+              transition={{ duration: 0.9, ease: EASE }}
             >
               <blockquote className="text-white text-[clamp(1.6rem,3.5vw,2.6rem)] font-semibold tracking-[-0.025em] leading-[1.18] max-w-[920px]">
                 <span
@@ -176,7 +362,7 @@ export default function Home() {
                   <span className="text-white/60"> — {testimonial.role}</span>
                 </span>
               </figcaption>
-            </figure>
+            </motion.figure>
           </div>
         </section>
 
@@ -191,19 +377,12 @@ export default function Home() {
               </span>
               <h2
                 id="products-heading"
-                className="text-[clamp(2rem,4.5vw,3.6rem)] font-semibold tracking-[-0.035em] leading-[1.02] max-w-[700px]"
+                className="text-[clamp(2rem,4.5vw,3.6rem)] font-semibold tracking-[-0.035em] leading-[1.08] max-w-[700px]"
               >
-                {isFr ? (
-                  <>
-                    Deux modules.{' '}
-                    <span className="font-serif italic" style={{ color: '#6366f1' }}>Un cerveau.</span>
-                  </>
-                ) : (
-                  <>
-                    Two modules.{' '}
-                    <span className="font-serif italic" style={{ color: '#6366f1' }}>One brain.</span>
-                  </>
-                )}
+                {isFr ? 'Deux modules.' : 'Two modules.'}
+                <span className="block font-normal text-[#86868b]">
+                  {isFr ? 'Un cerveau.' : 'One brain.'}
+                </span>
               </h2>
               <p className="text-[#86868b] text-base max-w-[520px] leading-relaxed mt-4">
                 {isFr
@@ -214,6 +393,12 @@ export default function Home() {
 
             <div className="grid lg:grid-cols-[1.7fr_1fr] gap-5">
               {/* PRIMARY — Receptionist (indigo) */}
+              <motion.div
+                initial={{ opacity: 0, y: 70, rotate: -1.2 }}
+                whileInView={{ opacity: 1, y: 0, rotate: 0 }}
+                viewport={{ once: true, margin: '-12%' }}
+                transition={{ duration: 0.85, ease: EASE }}
+              >
               <Card3D intensity={3}>
               <Link
                 to="/receptionist"
@@ -280,8 +465,15 @@ export default function Home() {
                 </div>
               </Link>
               </Card3D>
+              </motion.div>
 
               {/* SECONDARY — Agent (violet) */}
+              <motion.div
+                initial={{ opacity: 0, y: 70, rotate: 1.2 }}
+                whileInView={{ opacity: 1, y: 0, rotate: 0 }}
+                viewport={{ once: true, margin: '-12%' }}
+                transition={{ duration: 0.85, delay: 0.12, ease: EASE }}
+              >
               <Card3D intensity={3}>
               <Link
                 to="/agent"
@@ -342,16 +534,17 @@ export default function Home() {
                 </div>
               </Link>
               </Card3D>
+              </motion.div>
             </div>
           </div>
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
-            HOW IT WORKS — numbered editorial. Alternating accent colors.
+            HOW IT WORKS — stacking scroll cards (sticky, scale-under)
             ════════════════════════════════════════════════════════════════ */}
         <section
           aria-labelledby="how-heading"
-          className="py-14 sm:py-18 md:py-28 px-6 border-t border-[#1d1d1f]/8"
+          className="py-14 sm:py-18 md:py-28 px-5 sm:px-6 border-t border-[#1d1d1f]/8"
         >
           <div className="max-w-[1240px] mx-auto">
             <Reveal>
@@ -366,90 +559,58 @@ export default function Home() {
               </p>
             </Reveal>
 
-            <ol className="grid md:grid-cols-3 gap-8 md:gap-12" role="list">
-              {[
+            <div className="space-y-8 pb-10" role="list">
+              {([
                 {
-                  num: '01',
-                  accent: '#6366f1',
+                  num: isFr ? '01 / Inscription' : '01 / Sign up',
                   title: isFr ? 'Inscrivez-vous' : 'Sign up',
                   desc: isFr
                     ? 'Créez votre compte en 2 minutes. Sans carte. Premier mois offert.'
                     : 'Create your account in 2 minutes. No card. First month free.',
+                  points: isFr
+                    ? ['2 minutes', 'Sans carte bancaire', '1er mois offert']
+                    : ['2 minutes', 'No credit card', '1st month free'],
+                  icon: Zap,
+                  bg: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #6366f1 130%)',
+                  accent: '#a5b4fc',
                 },
                 {
-                  num: '02',
-                  accent: '#a855f7',
+                  num: isFr ? '02 / Configuration' : '02 / Configure',
                   title: isFr ? 'Configurez' : 'Configure',
                   desc: isFr
                     ? 'Voix, scripts, horaires, intégrations calendrier. Tout se règle dans le dashboard.'
                     : 'Voice, scripts, hours, calendar integrations. Everything from the dashboard.',
+                  points: isFr
+                    ? ['Voix naturelle', 'Scripts par métier', 'Calendrier connecté']
+                    : ['Natural voice', 'Industry scripts', 'Calendar sync'],
+                  icon: Settings2,
+                  bg: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 55%, #a855f7 135%)',
+                  accent: '#d8b4fe',
                 },
                 {
-                  num: '03',
-                  accent: '#6366f1',
+                  num: isFr ? '03 / En ligne' : '03 / Go live',
                   title: isFr ? 'Allumez la ligne' : 'Go live',
                   desc: isFr
                     ? 'Transférez votre numéro existant. L\'IA prend le relais. Support FR 7j/7.'
                     : 'Forward your existing number. The AI takes over. Support 7 days a week.',
+                  points: isFr
+                    ? ['Numéro conservé', 'IA en relais 24/7', 'Support 7j/7']
+                    : ['Keep your number', 'AI on 24/7', 'Support 7 days'],
+                  icon: PhoneCall,
+                  bg: 'linear-gradient(155deg, #17171a 0%, #23204a 60%, #4f46e5 140%)',
+                  accent: '#a5b4fc',
                 },
-              ].map((step) => (
-                <li key={step.num} className="border-t-2 pt-5" style={{ borderColor: step.accent }}>
-                  <p className="text-[11px] font-bold tracking-[0.2em] mb-3" style={{ color: step.accent }}>
-                    {step.num}
-                  </p>
-                  <h3 className="text-xl font-semibold mb-2 tracking-[-0.015em]">{step.title}</h3>
-                  <p className="text-[#525257] leading-relaxed text-[15px]">{step.desc}</p>
-                </li>
+              ] as StepCard[]).map((step, i, arr) => (
+                <StackStep key={step.num} step={step} index={i} total={arr.length} />
               ))}
-            </ol>
+            </div>
           </div>
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
-            INDUSTRIES — asymmetric chip-cloud with brand-color hover
+            POUR QUI ? — scroll-drawn brand stroke, sectors pop around it
             ════════════════════════════════════════════════════════════════ */}
-        <section
-          aria-labelledby="industries-heading"
-          className="py-14 sm:py-18 md:py-28 px-6 bg-[#fafaf8] border-y border-[#1d1d1f]/8"
-        >
-          <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1fr_1.8fr] gap-10 md:gap-16 items-start">
-            <Reveal className="lg:sticky lg:top-28">
-              <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3 text-[#86868b]">
-                {isFr ? 'Pour qui' : 'For whom'}
-              </span>
-              <h2
-                id="industries-heading"
-                className="text-[clamp(1.7rem,3.5vw,2.8rem)] font-semibold tracking-[-0.03em] leading-[1.08] mb-5"
-              >
-                {isFr
-                  ? <>Toute entreprise <span className="font-serif italic" style={{ color: '#6366f1' }}>qui répond au téléphone.</span></>
-                  : <>Any business <span className="font-serif italic" style={{ color: '#6366f1' }}>that answers the phone.</span></>}
-              </h2>
-              <p className="text-[#525257] text-[15px] leading-relaxed max-w-[360px]">
-                {isFr
-                  ? 'Si vous perdez un seul appel par jour, Qwillio se rentabilise dès la première semaine.'
-                  : 'If you miss one call a day, Qwillio pays for itself within the first week.'}
-              </p>
-            </Reveal>
-
-            <ul className="flex flex-wrap gap-2" role="list">
-              {industries.map((name, i) => (
-                <motion.li
-                  key={name}
-                  initial={{ opacity: 0, y: 12 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-40px' }}
-                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: i * 0.04 }}
-                  whileHover={{ y: -2 }}
-                >
-                  <span className="inline-block px-4 py-2 rounded text-[13px] font-medium text-[#1d1d1f] bg-white border border-[#1d1d1f]/12 hover:text-[#6366f1] hover:border-[#6366f1]/40 hover:bg-[#6366f1]/5 transition-colors duration-150 cursor-default select-none">
-                    {name}
-                  </span>
-                </motion.li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        <IndustriesStroke isFr={isFr} industries={industries} />
 
         {/* ════════════════════════════════════════════════════════════════
             CTA — editorial split with both brand colors in headline
