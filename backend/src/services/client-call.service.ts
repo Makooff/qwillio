@@ -94,6 +94,18 @@ export class ClientCallService {
             }
           }).catch(err => logger.error('Booking confirmation SMS failed:', err));
         }
+        // Auto-send payment SMS after booking
+        try {
+          const { agentPaymentsService } = await import('./agent-payments.service');
+          await agentPaymentsService.sendPaymentLinkAfterBooking(clientId, {
+            customerName: analysis.callerName || callerNumber || 'Customer',
+            customerPhone: callerNumber,
+            serviceType: analysis.bookingDetails || undefined,
+          });
+        } catch (err) {
+          logger.warn('Failed to send post-booking payment SMS:', err);
+        }
+
         // Sync to Google Calendar if client has connected their account (fire-and-forget)
         if (client.googleCalendarRefreshToken) {
           this.syncBookingToCalendar(booking.id, client.googleCalendarRefreshToken, client.googleCalendarId || 'primary')
@@ -142,7 +154,7 @@ export class ClientCallService {
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4-turbo',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',

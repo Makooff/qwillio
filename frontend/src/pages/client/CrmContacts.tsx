@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Search, Plus, X, Phone, Mail, Tag, Star, Trash2,
   Download, ChevronLeft, ChevronRight, Filter, CheckSquare,
-  Square, MoreHorizontal, Edit2
+  Square, MoreHorizontal, Edit2, Loader2
 } from 'lucide-react';
+import api from '../../services/api';
 
 type ContactStatus = 'active' | 'prospect' | 'client' | 'inactive' | 'lost';
 
@@ -34,18 +35,17 @@ function scoreColor(score: number) {
   return 'text-red-500 bg-red-50';
 }
 
-const DEMO_CONTACTS: Contact[] = [
-  { id: '1', name: 'Sarah Mitchell', email: 'sarah@brighthomerealty.com', phone: '+1 (555) 201-4892', status: 'client', leadScore: 9, tags: ['VIP', 'Real Estate'], lastActivity: '2 hours ago', company: 'Bright Home Realty' },
-  { id: '2', name: 'James Kowalski', email: 'james.k@automax.net', phone: '+1 (555) 384-7120', status: 'prospect', leadScore: 7, tags: ['Auto', 'Hot Lead'], lastActivity: '5 hours ago', company: 'AutoMax' },
-  { id: '3', name: 'Priya Nair', email: 'priya@zenithlaw.com', phone: '+1 (555) 910-3345', status: 'active', leadScore: 8, tags: ['Legal', 'Follow-up'], lastActivity: 'Yesterday', company: 'Zenith Law Group' },
-  { id: '4', name: 'Marcus Williams', email: 'mwilliams@plumbpro.co', phone: '+1 (555) 762-0088', status: 'prospect', leadScore: 5, tags: ['Plumbing', 'New'], lastActivity: '2 days ago', company: 'PlumbPro' },
-  { id: '5', name: 'Chloe Dubois', email: 'chloe@spaelite.fr', phone: '+1 (555) 448-5571', status: 'inactive', leadScore: 3, tags: ['Spa', 'Cold'], lastActivity: '1 week ago', company: 'Spa Elite' },
-  { id: '6', name: 'Derek Fontaine', email: 'derek@sunrisedental.com', phone: '+1 (555) 593-2214', status: 'client', leadScore: 10, tags: ['Dental', 'VIP'], lastActivity: '3 hours ago', company: 'Sunrise Dental' },
-  { id: '7', name: 'Amara Osei', email: 'amara@fitlifegym.io', phone: '+1 (555) 867-4430', status: 'active', leadScore: 6, tags: ['Fitness', 'Warm'], lastActivity: '4 days ago', company: 'FitLife Gym' },
-  { id: '8', name: 'Tom Harrington', email: 'tom@valleyinsurance.com', phone: '+1 (555) 321-9987', status: 'lost', leadScore: 2, tags: ['Insurance', 'Lost'], lastActivity: '2 weeks ago', company: 'Valley Insurance' },
-  { id: '9', name: 'Linda Park', email: 'linda@parkaccounting.com', phone: '+1 (555) 174-6603', status: 'prospect', leadScore: 7, tags: ['Accounting', 'Follow-up'], lastActivity: '1 day ago', company: 'Park Accounting' },
-  { id: '10', name: 'Ryan Castillo', email: 'ryan@rcroofing.com', phone: '+1 (555) 509-8832', status: 'active', leadScore: 8, tags: ['Roofing', 'Hot Lead'], lastActivity: '6 hours ago', company: 'RC Roofing' },
-];
+function timeAgo(date: string | Date | null | undefined): string {
+  if (!date) return 'Never';
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return `${Math.floor(days / 7)}w ago`;
+}
 
 const ALL_TAGS = ['VIP', 'Hot Lead', 'Follow-up', 'New', 'Cold', 'Warm', 'Lost', 'Real Estate', 'Legal', 'Dental', 'Fitness', 'Auto'];
 const PAGE_SIZE = 6;
@@ -59,23 +59,48 @@ export default function CrmContacts() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [contacts, setContacts] = useState<Contact[]>(DEMO_CONTACTS);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
   const [newContact, setNewContact] = useState({ name: '', email: '', phone: '', company: '', status: 'prospect' as ContactStatus });
 
-  const filtered = contacts.filter(c => {
-    if (search) {
-      const q = search.toLowerCase();
-      if (!c.name.toLowerCase().includes(q) && !c.email.toLowerCase().includes(q) && !c.phone.includes(q)) return false;
+  const fetchContacts = async () => {
+    try {
+      setLoading(true);
+      const params: Record<string, string> = { page: String(page), limit: String(PAGE_SIZE) };
+      if (search) params.search = search;
+      if (statusFilter) params.status = statusFilter;
+      if (tagFilter) params.tag = tagFilter;
+      const { data } = await api.get('/crm/contacts', { params });
+      const mapped = (data.contacts || []).map((c: any) => ({
+        id: c.id,
+        name: c.name || 'Unknown',
+        email: c.email || '',
+        phone: c.phone || '',
+        status: (c.status || 'prospect') as ContactStatus,
+        leadScore: c.leadScore ?? 0,
+        tags: c.tags || [],
+        lastActivity: timeAgo(c.updatedAt),
+        company: c.niche || '',
+      }));
+      setContacts(mapped);
+      setTotal(data.pagination?.total || mapped.length);
+    } catch {
+      // Fallback — keep existing contacts
+    } finally {
+      setLoading(false);
     }
-    if (statusFilter && c.status !== statusFilter) return false;
-    if (tagFilter && !c.tags.includes(tagFilter)) return false;
+  };
+
+  useEffect(() => { fetchContacts(); }, [page, search, statusFilter, tagFilter]);
+
+  const filtered = contacts.filter(c => {
     if (minScore && c.leadScore < parseInt(minScore)) return false;
     if (maxScore && c.leadScore > parseInt(maxScore)) return false;
     return true;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const toggleSelect = (id: string) => {
     setSelected(prev => {
@@ -86,34 +111,36 @@ export default function CrmContacts() {
   };
 
   const toggleAll = () => {
-    if (selected.size === paginated.length) {
+    if (selected.size === filtered.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(paginated.map(c => c.id)));
+      setSelected(new Set(filtered.map(c => c.id)));
     }
   };
 
-  const handleDelete = () => {
-    setContacts(prev => prev.filter(c => !selected.has(c.id)));
+  const handleDelete = async () => {
+    for (const id of selected) {
+      try { await api.delete(`/crm/contacts/${id}`); } catch {}
+    }
     setSelected(new Set());
+    fetchContacts();
   };
 
-  const handleAddContact = () => {
+  const handleAddContact = async () => {
     if (!newContact.name) return;
-    const c: Contact = {
-      id: Date.now().toString(),
-      name: newContact.name,
-      email: newContact.email,
-      phone: newContact.phone,
-      company: newContact.company,
-      status: newContact.status,
-      leadScore: 5,
-      tags: ['New'],
-      lastActivity: 'Just now',
-    };
-    setContacts(prev => [c, ...prev]);
-    setNewContact({ name: '', email: '', phone: '', company: '', status: 'prospect' });
-    setShowAddModal(false);
+    try {
+      await api.post('/crm/contacts', {
+        name: newContact.name,
+        email: newContact.email,
+        phone: newContact.phone,
+        niche: newContact.company,
+        status: newContact.status,
+        tags: ['New'],
+      });
+      setNewContact({ name: '', email: '', phone: '', company: '', status: 'prospect' });
+      setShowAddModal(false);
+      fetchContacts();
+    } catch {}
   };
 
   return (
@@ -122,7 +149,7 @@ export default function CrmContacts() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">CRM Contacts</h1>
-          <p className="text-sm text-[#86868b]">{contacts.length} contacts in your pipeline</p>
+          <p className="text-sm text-[#86868b]">{total} contacts in your pipeline</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
@@ -136,7 +163,6 @@ export default function CrmContacts() {
       <div className="grid grid-cols-5 gap-2 mb-6">
         {(['', 'active', 'prospect', 'client', 'lost'] as const).map((s, i) => {
           const labels = ['All', 'Active', 'Prospect', 'Client', 'Lost'];
-          const counts = [contacts.length, ...(['active','prospect','client','lost'] as ContactStatus[]).map(st => contacts.filter(c => c.status === st).length)];
           const colors = ['#1d1d1f', '#10b981', '#3b82f6', '#6366f1', '#ef4444'];
           return (
             <button key={i} onClick={() => { setStatusFilter(s); setPage(1); }}
@@ -144,7 +170,9 @@ export default function CrmContacts() {
                 statusFilter === s ? 'border-[#6366f1]/30 bg-[#6366f1]/5' : 'border-[#d2d2d7]/60 bg-white hover:bg-[#f5f5f7]'
               }`}
             >
-              <p className="text-xl font-bold" style={{ color: colors[i] }}>{counts[i]}</p>
+              <p className="text-xl font-bold" style={{ color: colors[i] }}>
+                {s === '' ? total : contacts.filter(c => c.status === s).length}
+              </p>
               <p className="text-[10px] text-[#86868b] font-medium">{labels[i]}</p>
             </button>
           );
@@ -175,12 +203,12 @@ export default function CrmContacts() {
         </select>
         <div className="flex items-center gap-1">
           <Filter size={14} className="text-[#86868b]" />
-          <input type="number" placeholder="Min score" min={1} max={10} value={minScore}
+          <input type="number" placeholder="Min" min={1} max={10} value={minScore}
             onChange={e => { setMinScore(e.target.value); setPage(1); }}
             className="w-20 px-2 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
           />
-          <span className="text-[#86868b] text-sm">–</span>
-          <input type="number" placeholder="Max score" min={1} max={10} value={maxScore}
+          <span className="text-[#86868b] text-sm">-</span>
+          <input type="number" placeholder="Max" min={1} max={10} value={maxScore}
             onChange={e => { setMaxScore(e.target.value); setPage(1); }}
             className="w-20 px-2 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
           />
@@ -212,7 +240,7 @@ export default function CrmContacts() {
         {/* Table header */}
         <div className="grid grid-cols-[2rem_2fr_1.5fr_1.2fr_1fr_1.2fr_1.5fr_1fr_2rem] items-center gap-3 px-5 py-3 border-b border-[#f5f5f7] bg-[#fafafa]">
           <button onClick={toggleAll} className="text-[#86868b] hover:text-[#6366f1]">
-            {selected.size === paginated.length && paginated.length > 0
+            {selected.size === filtered.length && filtered.length > 0
               ? <CheckSquare size={15} className="text-[#6366f1]" />
               : <Square size={15} />
             }
@@ -222,15 +250,20 @@ export default function CrmContacts() {
           ))}
         </div>
 
-        {/* Rows */}
-        {paginated.length === 0 ? (
+        {/* Loading */}
+        {loading ? (
+          <div className="py-16 text-center">
+            <Loader2 size={24} className="mx-auto text-[#6366f1] animate-spin mb-3" />
+            <p className="text-sm text-[#86868b]">Loading contacts...</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="py-16 text-center">
             <Users size={36} className="mx-auto text-[#d2d2d7] mb-3" />
             <p className="text-sm text-[#86868b]">No contacts match your filters</p>
           </div>
         ) : (
-          paginated.map((c, idx) => {
-            const sc = STATUS_COLORS[c.status];
+          filtered.map((c, idx) => {
+            const sc = STATUS_COLORS[c.status] || STATUS_COLORS.prospect;
             return (
               <motion.div key={c.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}
                 className="grid grid-cols-[2rem_2fr_1.5fr_1.2fr_1fr_1.2fr_1.5fr_1fr_2rem] items-center gap-3 px-5 py-3.5 border-b border-[#f5f5f7] last:border-0 hover:bg-[#fafafa] transition-colors group">
@@ -246,11 +279,11 @@ export default function CrmContacts() {
                 </div>
                 <div className="flex items-center gap-1.5 min-w-0">
                   <Mail size={12} className="text-[#86868b] flex-shrink-0" />
-                  <span className="text-[12px] text-[#1d1d1f] truncate">{c.email}</span>
+                  <span className="text-[12px] text-[#1d1d1f] truncate">{c.email || '-'}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Phone size={12} className="text-[#86868b] flex-shrink-0" />
-                  <span className="text-[12px] text-[#1d1d1f]">{c.phone}</span>
+                  <span className="text-[12px] text-[#1d1d1f]">{c.phone || '-'}</span>
                 </div>
                 <span className={`text-[10px] font-semibold px-2 py-1 rounded-full w-fit ${sc.bg} ${sc.text}`}>
                   {c.status.toUpperCase()}
@@ -262,10 +295,10 @@ export default function CrmContacts() {
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {c.tags.slice(0, 2).map(t => (
+                  {(c.tags || []).slice(0, 2).map(t => (
                     <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#f5f5f7] text-[#86868b] font-medium">{t}</span>
                   ))}
-                  {c.tags.length > 2 && <span className="text-[10px] text-[#86868b]">+{c.tags.length - 2}</span>}
+                  {(c.tags || []).length > 2 && <span className="text-[10px] text-[#86868b]">+{c.tags.length - 2}</span>}
                 </div>
                 <span className="text-[11px] text-[#86868b]">{c.lastActivity}</span>
                 <button className="opacity-0 group-hover:opacity-100 transition-opacity text-[#86868b] hover:text-[#6366f1]">
@@ -280,14 +313,14 @@ export default function CrmContacts() {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-[#86868b]">
-          Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} contacts
+          Page {page} of {totalPages} ({total} contacts)
         </p>
         <div className="flex items-center gap-1">
           <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
             className="w-8 h-8 rounded-lg flex items-center justify-center border border-[#d2d2d7]/60 bg-white disabled:opacity-40 hover:bg-[#f5f5f7] transition-colors">
             <ChevronLeft size={14} />
           </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+          {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(p => (
             <button key={p} onClick={() => setPage(p)}
               className={`w-8 h-8 rounded-lg text-xs font-medium border transition-colors ${
                 page === p ? 'bg-[#6366f1] text-white border-[#6366f1]' : 'border-[#d2d2d7]/60 bg-white hover:bg-[#f5f5f7] text-[#1d1d1f]'

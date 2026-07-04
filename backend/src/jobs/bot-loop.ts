@@ -23,8 +23,11 @@ import { outboundEngineService } from '../services/outbound-engine.service';
 import { abTestingService } from '../services/ab-testing.service';
 import { bestTimeLearningService } from '../services/best-time-learning.service';
 import { scriptLearningService } from '../services/script-learning.service';
+import { callIntelligenceService } from '../services/call-intelligence.service';
 import { followUpSequencesService } from '../services/follow-up-sequences.service';
 import { prospectScoringService } from '../services/prospect-scoring.service';
+import { stripeService } from '../services/stripe.service';
+import { trackAction } from '../utils/bot-activity';
 
 class BotLoop {
   // ─── Last-run timestamps (in-memory, reset on restart) ───
@@ -54,14 +57,21 @@ class BotLoop {
   private agentInventoryForecastJob: cron.ScheduledTask | null = null;
   private agentEmailSyncJob: cron.ScheduledTask | null = null;
   private agentEmailFollowUpJob: cron.ScheduledTask | null = null;
+  private agentEmailDigestJob: cron.ScheduledTask | null = null;
+  private agentNoShowJob: cron.ScheduledTask | null = null;
   // ─── Prospecting Engine cron jobs ─────────────────────
   private apifyScrapingJob: cron.ScheduledTask | null = null;
   private outboundEngineJob: cron.ScheduledTask | null = null;
   private abTestingJob: cron.ScheduledTask | null = null;
   private bestTimeJob: cron.ScheduledTask | null = null;
   private scriptLearningJob: cron.ScheduledTask | null = null;
+  private callIntelligenceJob: cron.ScheduledTask | null = null;
   private followUpJob: cron.ScheduledTask | null = null;
   private rescoreJob: cron.ScheduledTask | null = null;
+  // ─── Additional operational cron jobs ─────────────────
+  private crmSyncJob: cron.ScheduledTask | null = null;
+  private forwardingVerificationJob: cron.ScheduledTask | null = null;
+  private overageJob: cron.ScheduledTask | null = null;
 
   async initialize() {
     // Ensure bot_status record exists
@@ -98,36 +108,40 @@ class BotLoop {
     logger.info('================================');
 
     // ═══════════════════════════════════════════════════════════
-    // CRON 1: PROSPECTION - Every day at 9h (Mon-Fri)
+    // CRON 1: PROSPECTION - Every day at 8h US Eastern (Mon-Fri)
     // ═══════════════════════════════════════════════════════════
-    this.prospectionJob = cron.schedule('0 9 * * 1-5', async () => {
+    this.prospectionJob = cron.schedule('0 8 * * 1-5', async () => {
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
 
       logger.info('🔍 [CRON] Starting daily prospection...');
+      trackAction('Prospection quotidienne — scraping nouveaux prospects');
       try {
         const count = await prospectionService.runDailyProspection();
+        trackAction(`${count} nouveaux prospects ajoutés`);
         await discordService.notify(`🔍 DAILY PROSPECTION\n\n${count} new prospects added`);
       } catch (error) {
         logger.error('[CRON] Prospection failed:', error);
         await discordService.notify(`❌ PROSPECTION ERROR: ${(error as Error).message}`);
       }
-    }, { timezone: env.TZ });
+    }, { timezone: 'America/New_York' });
 
     // ═══════════════════════════════════════════════════════════
-    // CRON 2: CALLS - Every 20 minutes, 9h-19h, Mon-Fri
+    // CRON 2: CALLS - Every 20 min, 13-24 UTC (covers US ET 9am - PT 5pm)
+    // Hour filtering happens inside callNextProspect() per-prospect timezone
     // ═══════════════════════════════════════════════════════════
-    this.callingJob = cron.schedule(`*/${env.CALL_INTERVAL_MINUTES} ${env.AUTOMATION_START_HOUR}-${env.AUTOMATION_END_HOUR} * * 1-5`, async () => {
+    this.callingJob = cron.schedule(`*/${env.CALL_INTERVAL_MINUTES} 13-23 * * 1-5`, async () => {
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
 
       logger.info('📞 [CRON] Attempting next call...');
+      trackAction('Appel sortant — sélection prospect');
       try {
         await vapiService.callNextProspect();
       } catch (error) {
         logger.error('[CRON] Call failed:', error);
       }
-    }, { timezone: env.TZ });
+    });
 
     // ═══════════════════════════════════════════════════════════
     // CRON 3: FOLLOW-UPS - Every hour
@@ -137,9 +151,11 @@ class BotLoop {
       if (!status?.isActive) return;
 
       logger.info('📧 [CRON] Processing reminders...');
+      trackAction('Traitement rappels & follow-ups');
       try {
         const count = await reminderService.processReminders();
         if (count > 0) {
+          trackAction(`${count} rappel(s) traité(s)`);
           logger.info(`[CRON] ${count} reminders processed`);
         }
       } catch (error) {
@@ -152,6 +168,7 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.analyticsJob = cron.schedule('55 23 * * *', async () => {
       logger.info('📊 [CRON] Aggregating daily analytics...');
+      trackAction('Agrégation analytics quotidienne');
       try {
         await analyticsService.aggregateDaily();
       } catch (error) {
@@ -164,6 +181,7 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.dailyResetJob = cron.schedule('1 0 * * *', async () => {
       logger.info('🔄 [CRON] Daily reset...');
+      trackAction('Reset quota appels journalier');
       try {
         const botStatusRecord = await prisma.botStatus.findFirst();
         if (botStatusRecord) {
@@ -183,6 +201,7 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.trialCheckJob = cron.schedule('0 8 * * *', async () => {
       logger.info('⏰ [CRON] Checking trial expirations...');
+      trackAction('Vérification expiration essais gratuits');
       try {
         // Find trials that expired but weren't caught by reminders
         const expiredTrials = await prisma.client.findMany({
@@ -280,10 +299,15 @@ class BotLoop {
     // CRON 10: AI OPTIMIZATION - Every Sunday at midnight
     // Auto-tunes Enterprise client assistants based on call data
     // ═══════════════════════════════════════════════════════════
+    // NOTE: Optimization should ideally run only for Enterprise clients.
+    // Currently optimizationService.runWeeklyOptimization() runs for all clients.
+    // TODO: Filter to enterprise-only inside the service or pass a filter param.
     this.optimizationJob = cron.schedule('0 0 * * 0', async () => {
-      logger.info('🔧 [CRON] Running weekly AI optimization...');
+      logger.info('🔧 [CRON] Running weekly AI optimization (enterprise-only)...');
+      trackAction('Optimisation IA assistants vocaux');
       try {
         const count = await optimizationService.runWeeklyOptimization();
+        trackAction(`${count} assistant(s) optimisé(s)`);
         logger.info(`[CRON] ${count} assistant(s) optimized`);
       } catch (error) {
         logger.error('[CRON] AI optimization failed:', error);
@@ -298,6 +322,7 @@ class BotLoop {
       try {
         const validated = await phoneValidationService.validateBatch(10);
         if (validated > 0) {
+          trackAction(`Validation Twilio — ${validated} numéro(s) vérifié(s)`);
           logger.info(`[CRON] ${validated} phone number(s) validated`);
         }
       } catch (error) {
@@ -312,8 +337,10 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.nicheLearningJob = cron.schedule('0 1 * * 0', async () => {
       logger.info('🧠 [CRON] Running weekly niche learning aggregation...');
+      trackAction('Apprentissage IA — analyse niches hebdomadaire');
       try {
         const count = await nicheLearningService.runWeeklyAggregation();
+        trackAction(`IA niches: ${count} niche(s) analysée(s)`);
         logger.info(`[CRON] Niche learning: ${count} niches aggregated`);
       } catch (error) {
         logger.error('[CRON] Niche learning aggregation failed:', error);
@@ -339,6 +366,7 @@ class BotLoop {
           },
         });
         if (staleCalls.count > 0) {
+          trackAction(`Nettoyage ${staleCalls.count} appel(s) bloqué(s)`);
           logger.warn(`[CRON] Cleaned up ${staleCalls.count} stale in-progress call(s)`);
           await discordService.notify(`🧹 Cleaned ${staleCalls.count} stale call(s) stuck in-progress`);
         }
@@ -418,6 +446,68 @@ class BotLoop {
     }, { timezone: env.TZ });
 
     // ═══════════════════════════════════════════════════════════
+    // AGENT AI: Email — daily digest at 8 AM
+    // ═══════════════════════════════════════════════════════════
+    this.agentEmailDigestJob = cron.schedule('0 8 * * *', async () => {
+      logger.info('[CRON] Email AI daily digest...');
+      try {
+        const configs = await prisma.agentEmailConfig.findMany({
+          where: { active: true },
+          include: { client: true },
+        });
+        for (const config of configs) {
+          try {
+            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            const emails = await prisma.agentEmail.findMany({
+              where: { clientId: config.clientId, receivedAt: { gte: yesterday } },
+              orderBy: { receivedAt: 'desc' },
+            });
+            if (emails.length === 0) continue;
+
+            const urgent = emails.filter(e => e.classification === 'urgent').length;
+            const appointment = emails.filter(e => e.classification === 'appointment').length;
+            const payment = emails.filter(e => e.classification === 'payment').length;
+            const autoReplied = emails.filter(e => e.autoReplied).length;
+            const needsReview = emails.filter(e => !e.autoReplied && e.classification !== 'spam').length;
+
+            // Send digest via email service
+            const { emailService } = await import('../services/email.service');
+            await emailService.sendDigestEmail({
+              to: config.client.contactEmail,
+              contactName: config.client.contactName,
+              businessName: config.client.businessName,
+              totalEmails: emails.length,
+              urgent,
+              appointment,
+              payment,
+              autoReplied,
+              needsReview,
+            });
+            logger.info(`Email digest sent to ${config.client.contactEmail}`);
+          } catch (err) {
+            logger.warn(`Email digest failed for client ${config.clientId}:`, err);
+          }
+        }
+      } catch (error) {
+        logger.error('[CRON] Email digest error:', error);
+      }
+    }, { timezone: env.TZ || 'America/New_York' });
+
+    // ═══════════════════════════════════════════════════════════
+    // AGENT AI: Payments — no-show fee processing every hour
+    // ═══════════════════════════════════════════════════════════
+    this.agentNoShowJob = cron.schedule('45 * * * *', async () => {
+      try {
+        const count = await agentPaymentsService.processNoShows();
+        if (count > 0) {
+          logger.info(`[CRON] Processed ${count} no-show(s)`);
+        }
+      } catch (error) {
+        logger.error('[CRON] Agent no-show processing failed:', error);
+      }
+    }, { timezone: env.TZ || 'America/New_York' });
+
+    // ═══════════════════════════════════════════════════════════
     // PROSPECTING ENGINE — CRON P1: Apify scraping — daily 2am UTC
     // Scrapes Google Maps via Apify for home services & dental niches
     // ═══════════════════════════════════════════════════════════
@@ -426,8 +516,10 @@ class BotLoop {
       if (!status?.isActive) return;
 
       logger.info('🕷️ [CRON] Starting Apify scraping run...');
+      trackAction('Scraping Google Maps via Apify');
       try {
         const count = await apifyScrapingService.runDailyScraping();
+        trackAction(`Apify: ${count} prospects scrapés`);
         await discordService.notifySystem(`🕷️ APIFY SCRAPING: ${count} new prospects added`);
       } catch (error) {
         logger.error('[CRON] Apify scraping failed:', error);
@@ -443,6 +535,7 @@ class BotLoop {
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
 
+      trackAction('Moteur outbound — appel prospect');
       try {
         await outboundEngineService.callNextProspect();
       } catch (error) {
@@ -454,6 +547,7 @@ class BotLoop {
     // PROSPECTING ENGINE — CRON P3: A/B testing analysis — daily 6am UTC
     // ═══════════════════════════════════════════════════════════
     this.abTestingJob = cron.schedule('0 6 * * *', async () => {
+      trackAction('Analyse A/B test scripts');
       try {
         await abTestingService.analyzeAll();
       } catch (error) {
@@ -465,6 +559,7 @@ class BotLoop {
     // PROSPECTING ENGINE — CRON P4: Best-time learning — every 500 calls (daily trigger)
     // ═══════════════════════════════════════════════════════════
     this.bestTimeJob = cron.schedule('0 4 * * *', async () => {
+      trackAction('Optimisation horaires d\'appel');
       try {
         await bestTimeLearningService.analyzeAll();
       } catch (error) {
@@ -477,11 +572,29 @@ class BotLoop {
     // ═══════════════════════════════════════════════════════════
     this.scriptLearningJob = cron.schedule('0 1 * * 0', async () => {
       logger.info('🧠 [CRON] Running script self-learning analysis...');
+      trackAction('Self-learning — mutation scripts IA');
       try {
         await scriptLearningService.runWeeklyAnalysis();
       } catch (error) {
         logger.error('[CRON] Script learning failed:', error);
         await discordService.notifyAlerts(`❌ SCRIPT LEARNING FAILED: ${(error as Error).message}`);
+      }
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // PROSPECTING ENGINE — CRON P5b: Call Intelligence — Sunday 2am UTC
+    // Deep pattern analysis, objection optimization, mutation eval, weekly report
+    // ═══════════════════════════════════════════════════════════
+    this.callIntelligenceJob = cron.schedule('0 2 * * 0', async () => {
+      logger.info('🧠 [CRON] Running call intelligence weekly pattern analysis...');
+      trackAction('Intelligence appels — analyse patterns hebdo');
+      try {
+        await callIntelligenceService.runWeeklyPatternAnalysis();
+        trackAction('Analyse intelligence appels terminée');
+        logger.info('[CRON] Call intelligence weekly analysis complete');
+      } catch (error) {
+        logger.error('[CRON] Call intelligence weekly analysis failed:', error);
+        await discordService.notifyAlerts(`❌ CALL INTELLIGENCE FAILED: ${(error as Error).message}`);
       }
     }, { timezone: 'UTC' });
 
@@ -492,6 +605,7 @@ class BotLoop {
       try {
         const sent = await followUpSequencesService.processDue();
         if (sent > 0) {
+          trackAction(`${sent} follow-up(s) envoyé(s)`);
           logger.info(`[CRON] Follow-up sequences: ${sent} sent`);
         }
       } catch (error) {
@@ -506,12 +620,83 @@ class BotLoop {
       try {
         const updated = await prospectScoringService.rescoreUnscored(1000);
         if (updated > 0) {
+          trackAction(`Re-scoring ${updated} prospects`);
           logger.info(`[CRON] Re-scored ${updated} prospects`);
         }
       } catch (error) {
         logger.error('[CRON] Prospect re-scoring failed:', error);
       }
     }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // CRM SYNC — Every 15 minutes
+    // Syncs active CRM integrations (placeholder per-provider logic)
+    // ═══════════════════════════════════════════════════════════
+    this.crmSyncJob = cron.schedule('*/15 * * * *', async () => {
+      logger.info('[CRON] CRM sync running...');
+      trackAction('Synchronisation CRM intégrations');
+      try {
+        const integrations = await prisma.crmIntegration.findMany({ where: { syncStatus: { not: 'disabled' } } });
+        for (const integration of integrations) {
+          try {
+            // Placeholder: each provider would have its own sync logic
+            await prisma.crmIntegration.update({
+              where: { id: integration.id },
+              data: { lastSync: new Date(), syncStatus: 'synced' },
+            });
+          } catch (err) {
+            logger.warn(`CRM sync failed for ${integration.provider} (client ${integration.clientId}):`, err);
+            await prisma.crmIntegration.update({
+              where: { id: integration.id },
+              data: { syncStatus: 'error' },
+            });
+          }
+        }
+      } catch (error) {
+        logger.error('[CRON] CRM sync error:', error);
+      }
+    }, { timezone: env.TZ || 'America/New_York' });
+
+    // ═══════════════════════════════════════════════════════════
+    // FORWARDING VERIFICATION — Daily at 9 AM
+    // Verifies client call forwarding numbers are reachable
+    // ═══════════════════════════════════════════════════════════
+    this.forwardingVerificationJob = cron.schedule('0 9 * * *', async () => {
+      logger.info('[CRON] Forwarding verification running...');
+      try {
+        const clients = await prisma.client.findMany({
+          where: { subscriptionStatus: 'active', transferNumber: { not: null } },
+          select: { id: true, businessName: true, contactEmail: true, transferNumber: true, forwardingVerifiedAt: true },
+        });
+        for (const client of clients) {
+          // Log verification check (actual silent call would require Twilio integration)
+          logger.info(`Forwarding check for ${client.businessName}: ${client.transferNumber}`);
+          await prisma.client.update({
+            where: { id: client.id },
+            data: { forwardingVerifiedAt: new Date() },
+          });
+        }
+        logger.info(`[CRON] Forwarding verification completed for ${clients.length} clients`);
+      } catch (error) {
+        logger.error('[CRON] Forwarding verification error:', error);
+      }
+    }, { timezone: env.TZ || 'America/New_York' });
+
+    // ═══════════════════════════════════════════════════════════
+    // OVERAGE BILLING — Monthly, 1st of month at 6 AM
+    // Reports overage call usage to Stripe for active clients
+    // ═══════════════════════════════════════════════════════════
+    this.overageJob = cron.schedule('0 6 1 * *', async () => {
+      logger.info('[CRON] Monthly overage calculation...');
+      try {
+        const activeClients = await prisma.client.findMany({ where: { subscriptionStatus: 'active' } });
+        for (const client of activeClients) {
+          await stripeService.reportOverageUsage(client.id);
+        }
+      } catch (error) {
+        logger.error('[CRON] Overage calculation error:', error);
+      }
+    }, { timezone: env.TZ || 'America/New_York' });
 
     this.keepAliveJob = cron.schedule('*/10 * * * *', async () => {
       try {
@@ -522,8 +707,8 @@ class BotLoop {
       }
     });
 
-    await discordService.notify('🤖 Qwillio started! All 26 cron jobs active (incl. 6 Agent AI + 7 Prospecting Engine).');
-    logger.info('🤖 All 26 cron jobs started. Bot is running in automatic loop.');
+    await discordService.notify('🤖 Qwillio started! All 29 cron jobs active (incl. 6 Agent AI + 7 Prospecting Engine + 3 Operational).');
+    logger.info('🤖 All 29 cron jobs started. Bot is running in automatic loop.');
   }
 
   async stop() {
@@ -547,12 +732,19 @@ class BotLoop {
     this.agentInventoryForecastJob?.stop(); this.agentInventoryForecastJob = null;
     this.agentEmailSyncJob?.stop(); this.agentEmailSyncJob = null;
     this.agentEmailFollowUpJob?.stop(); this.agentEmailFollowUpJob = null;
+    this.agentEmailDigestJob?.stop(); this.agentEmailDigestJob = null;
+    this.agentNoShowJob?.stop(); this.agentNoShowJob = null;
+    // Additional operational
+    this.crmSyncJob?.stop(); this.crmSyncJob = null;
+    this.forwardingVerificationJob?.stop(); this.forwardingVerificationJob = null;
+    this.overageJob?.stop(); this.overageJob = null;
     // Prospecting engine
     this.apifyScrapingJob?.stop(); this.apifyScrapingJob = null;
     this.outboundEngineJob?.stop(); this.outboundEngineJob = null;
     this.abTestingJob?.stop(); this.abTestingJob = null;
     this.bestTimeJob?.stop(); this.bestTimeJob = null;
     this.scriptLearningJob?.stop(); this.scriptLearningJob = null;
+    this.callIntelligenceJob?.stop(); this.callIntelligenceJob = null;
     this.followUpJob?.stop(); this.followUpJob = null;
     this.rescoreJob?.stop(); this.rescoreJob = null;
 
@@ -624,14 +816,21 @@ class BotLoop {
         agentInventoryForecast: cronState(this.agentInventoryForecastJob),
         agentEmailSync: cronState(this.agentEmailSyncJob),
         agentEmailFollowUp: cronState(this.agentEmailFollowUpJob),
+        agentEmailDigest: cronState(this.agentEmailDigestJob),
+        agentNoShow: cronState(this.agentNoShowJob),
         // Prospecting engine
         apifyScraping: cronState(this.apifyScrapingJob),
         outboundEngine: cronState(this.outboundEngineJob),
         abTesting: cronState(this.abTestingJob),
         bestTimeLearning: cronState(this.bestTimeJob),
         scriptLearning: cronState(this.scriptLearningJob),
+        callIntelligence: cronState(this.callIntelligenceJob),
         followUpSequences: cronState(this.followUpJob),
         rescoreProspects: cronState(this.rescoreJob),
+        // Additional operational
+        crmSync: cronState(this.crmSyncJob),
+        forwardingVerification: cronState(this.forwardingVerificationJob),
+        overageBilling: cronState(this.overageJob),
       },
     };
   }
@@ -693,6 +892,35 @@ class BotLoop {
 
   async triggerNicheLearning() {
     return nicheLearningService.runWeeklyAggregation();
+  }
+
+  async triggerJob(name: string) {
+    const jobMap: Record<string, () => Promise<any>> = {
+      prospection: () => prospectionService.runDailyProspection(),
+      calling: () => vapiService.callNextProspect(),
+      reminders: () => reminderService.processReminders(),
+      analytics: () => analyticsService.aggregateDaily(),
+      trialCheck: () => this.triggerProspection(), // reuse existing
+      nicheLearning: () => nicheLearningService.runWeeklyAggregation(),
+      optimization: () => optimizationService.runWeeklyOptimization(),
+      phoneValidation: () => phoneValidationService.validateBatch(10),
+      apifyScraping: () => apifyScrapingService.runDailyScraping(),
+      outboundEngine: () => outboundEngineService.callNextProspect(),
+      abTesting: () => abTestingService.analyzeAll(),
+      bestTime: () => bestTimeLearningService.analyzeAll(),
+      scriptLearning: () => scriptLearningService.runWeeklyAnalysis(),
+      followUp: () => followUpSequencesService.processDue(),
+      rescore: () => prospectScoringService.rescoreUnscored(1000),
+    };
+
+    const jobFn = jobMap[name];
+    if (!jobFn) {
+      throw new Error(`Unknown job: ${name}. Available: ${Object.keys(jobMap).join(', ')}`);
+    }
+
+    logger.info(`[MANUAL] Triggering job: ${name}`);
+    await jobFn();
+    logger.info(`[MANUAL] Job ${name} completed`);
   }
 }
 

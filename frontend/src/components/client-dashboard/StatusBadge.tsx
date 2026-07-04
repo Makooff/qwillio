@@ -4,25 +4,25 @@ interface StatusBadgeProps {
 }
 
 const statusStyles: Record<string, string> = {
-  new: 'bg-blue-50 text-blue-600 border-blue-200',
-  contacted: 'bg-indigo-50 text-indigo-600 border-indigo-200',
-  qualified: 'bg-purple-50 text-purple-600 border-purple-200',
-  converted: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  lost: 'bg-red-50 text-red-600 border-red-200',
-  confirmed: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  cancelled: 'bg-red-50 text-red-600 border-red-200',
-  pending: 'bg-amber-50 text-amber-600 border-amber-200',
-  completed: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  missed: 'bg-red-50 text-red-600 border-red-200',
-  active: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  paused: 'bg-amber-50 text-amber-600 border-amber-200',
-  trialing: 'bg-blue-50 text-blue-600 border-blue-200',
-  'in-progress': 'bg-blue-50 text-blue-600 border-blue-200',
-  'no-answer': 'bg-gray-50 text-gray-600 border-gray-200',
+  new: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
+  contacted: 'bg-indigo-400/10 text-indigo-400 border-indigo-400/20',
+  qualified: 'bg-purple-400/10 text-purple-400 border-purple-400/20',
+  converted: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
+  lost: 'bg-red-400/10 text-red-400 border-red-400/20',
+  confirmed: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
+  cancelled: 'bg-red-400/10 text-red-400 border-red-400/20',
+  pending: 'bg-amber-400/10 text-amber-400 border-amber-400/20',
+  completed: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
+  missed: 'bg-red-400/10 text-red-400 border-red-400/20',
+  active: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
+  paused: 'bg-amber-400/10 text-amber-400 border-amber-400/20',
+  trialing: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
+  'in-progress': 'bg-blue-400/10 text-blue-400 border-blue-400/20',
+  'no-answer': 'bg-white/[0.06] text-[#8B8BA7] border-white/[0.08]',
 };
 
 export default function StatusBadge({ status, size = 'sm' }: StatusBadgeProps) {
-  const cls = statusStyles[status?.toLowerCase()] || 'bg-gray-50 text-gray-600 border-gray-200';
+  const cls = statusStyles[status?.toLowerCase()] || 'bg-white/[0.06] text-[#8B8BA7] border-white/[0.08]';
   const sizeClass = size === 'md' ? 'px-3 py-1 text-sm' : 'px-2.5 py-0.5 text-xs';
 
   return (

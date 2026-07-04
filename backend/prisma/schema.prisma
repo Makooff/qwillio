@@ -25,9 +25,11 @@ model User {
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
 
-  prospects Prospect[]
-  campaigns Campaign[]
-  client    Client?
+  prospects           Prospect[]
+  campaigns           Campaign[]
+  client              Client?
+  contractAcceptances ContractAcceptance[]
+  trialFingerprints   TrialFingerprint[]
 
   @@map("users")
 }
@@ -99,6 +101,8 @@ model Prospect {
   quotes             Quote[]
   campaignSends      CampaignSend[]
   followUpSequences  FollowUpSequence[]
+  smsLogs            SmsLog[]
+  clients            Client[]
 
   @@index([status])
   @@index([businessType])
@@ -148,6 +152,20 @@ model Call {
   niche                String?   @db.VarChar(100)
   language             String?   @db.VarChar(10)
   detectionResult      String?   @map("detection_result") @db.VarChar(50)
+  // ─── Deep transcript analysis fields ────────────────────
+  dropOffReason        String?   @map("drop_off_reason") @db.Text
+  prospectSentiment    String?   @map("prospect_sentiment") @db.VarChar(50)
+  sentimentShift       String?   @map("sentiment_shift") @db.VarChar(20)
+  keyObjection         String?   @map("key_objection") @db.Text
+  whatWorked           String?   @map("what_worked") @db.Text
+  whatFailed           String?   @map("what_failed") @db.Text
+  missedOpportunity    String?   @map("missed_opportunity") @db.Text
+  prospectPainLevel    Int?      @map("prospect_pain_level")
+  agentConfidenceScore Int?      @map("agent_confidence_score")
+  recommendedMicroFix  String?   @map("recommended_micro_fix") @db.Text
+  sentimentTimeline    Json?     @map("sentiment_timeline")
+  fillerWordsUsed      String[]  @default([]) @map("filler_words_used")
+  callQualityScore     Int?      @map("call_quality_score")
   createdAt            DateTime  @default(now()) @map("created_at")
   metadata             Json?
 
@@ -267,6 +285,13 @@ model Client {
   agentIncomes       AgentIncome[]
   agentFinancialReports AgentFinancialReport[]
   agentEmails        AgentEmail[]
+  smsLogs            SmsLog[]
+  syncLogs           SyncLog[]
+  syncConflicts      SyncConflict[]
+  agentInventoryLogs AgentInventoryLog[]
+  agentReorderRequests AgentReorderRequest[]
+  contractAcceptances ContractAcceptance[]
+  prospect           Prospect?  @relation(fields: [prospectId], references: [id], onDelete: SetNull)
 
   @@index([subscriptionStatus])
   @@index([planType])
@@ -400,6 +425,9 @@ model SmsLog {
   clientId    String?   @map("client_id") @db.Uuid
   createdAt   DateTime  @default(now()) @map("created_at")
 
+  prospect Prospect? @relation(fields: [prospectId], references: [id], onDelete: SetNull)
+  client   Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
   @@index([to])
   @@index([messageType])
   @@index([createdAt])
@@ -479,7 +507,10 @@ model ClientCall {
   metadata        Json?
   createdAt       DateTime  @default(now()) @map("created_at")
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientBookings ClientBooking[]
+  callTransfers  CallTransfer[]
+  activities     Activity[]
 
   @@index([clientId])
   @@index([status])
@@ -513,7 +544,8 @@ model ClientBooking {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientCall ClientCall? @relation(fields: [clientCallId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
   @@index([bookingDate])
@@ -572,7 +604,8 @@ model CallTransfer {
   timestamp          DateTime  @default(now())
   createdAt          DateTime  @default(now()) @map("created_at")
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientCall ClientCall? @relation(fields: [clientCallId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
   @@index([transferStatus])
@@ -624,6 +657,8 @@ model TrialFingerprint {
   deletedAt             DateTime? @map("deleted_at")
   createdAt             DateTime  @default(now()) @map("created_at")
 
+  account User? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
   @@index([emailHash])
   @@index([phoneHash])
   @@index([deviceFingerprintHash])
@@ -668,6 +703,9 @@ model ContractAcceptance {
   userAgent       String   @map("user_agent") @db.Text
   contractPdfUrl  String?  @map("contract_pdf_url") @db.VarChar(500)
   createdAt       DateTime @default(now()) @map("created_at")
+
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
   @@index([userId])
@@ -740,8 +778,9 @@ model Activity {
   callId      String?  @map("call_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at")
 
-  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contact    Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientCall ClientCall? @relation(fields: [callId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
   @@index([contactId])
@@ -783,6 +822,8 @@ model SyncLog {
   error      String?  @db.Text
   createdAt  DateTime @default(now()) @map("created_at")
 
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
   @@index([clientId])
   @@map("sync_logs")
 }
@@ -802,6 +843,7 @@ model SyncConflict {
   createdAt       DateTime @default(now()) @map("created_at")
 
   contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@map("sync_conflicts")
@@ -868,7 +910,9 @@ model AgentInventory {
   daysUntilEmpty Int?      @map("days_until_empty")
   lastUpdated   DateTime  @default(now()) @map("last_updated") @updatedAt
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client          Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  inventoryLogs   AgentInventoryLog[]
+  reorderRequests AgentReorderRequest[]
 
   @@index([clientId])
   @@map("agent_inventory")
@@ -1008,6 +1052,9 @@ model AgentInventoryLog {
   note            String?  @db.VarChar(500)
   createdAt       DateTime @default(now()) @map("created_at")
 
+  inventory AgentInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
   @@index([inventoryId])
   @@index([clientId])
   @@index([createdAt])
@@ -1027,6 +1074,9 @@ model AgentReorderRequest {
   status        String    @default("sent") @db.VarChar(50)
   sentAt        DateTime  @map("sent_at")
   createdAt     DateTime  @default(now()) @map("created_at")
+
+  inventory AgentInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@map("agent_reorder_requests")
@@ -1082,6 +1132,12 @@ model ScriptMutation {
   confidenceScore  Int?      @map("confidence_score")
   revertedAt       DateTime? @map("reverted_at")
   revertReason     String?   @map("revert_reason") @db.Text
+  revertForensics      String?   @map("revert_forensics") @db.Text
+  statisticalSignificance Float? @map("statistical_significance")
+  callsVariantA        Int       @default(0) @map("calls_variant_a")
+  callsVariantB        Int       @default(0) @map("calls_variant_b")
+  conversionVariantA   Float?    @map("conversion_variant_a")
+  conversionVariantB   Float?    @map("conversion_variant_b")
   createdAt        DateTime  @default(now()) @map("created_at")
 
   @@index([niche])
@@ -1129,6 +1185,69 @@ model ScriptAbTest {
 
   @@index([niche])
   @@map("script_ab_tests")
+}
+
+// ═══════════════════════════════════════════════════════════
+// OBJECTION HANDLERS — Live objection response database
+// ═══════════════════════════════════════════════════════════
+model ObjectionHandler {
+  id            String    @id @default(uuid()) @db.Uuid
+  niche         String    @db.VarChar(100)
+  language      String    @db.VarChar(10)
+  objectionText String    @map("objection_text") @db.Text
+  frequency     Int       @default(0)
+  handlerV1     String?   @map("handler_v1") @db.Text
+  handlerV2     String?   @map("handler_v2") @db.Text
+  winRateV1     Float     @default(0) @map("win_rate_v1")
+  winRateV2     Float     @default(0) @map("win_rate_v2")
+  activeHandler String    @default("v1") @map("active_handler") @db.VarChar(10)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  lastUpdated   DateTime  @default(now()) @updatedAt @map("last_updated")
+
+  @@index([niche])
+  @@index([language])
+  @@map("objection_handlers")
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCRIPT VERSIONS — Full version history for every script
+// ═══════════════════════════════════════════════════════════
+model ScriptVersion {
+  id               String    @id @default(uuid()) @db.Uuid
+  niche            String    @db.VarChar(100)
+  language         String    @db.VarChar(10)
+  version          Int
+  scriptText       String    @map("script_text") @db.Text
+  openingText      String?   @map("opening_text") @db.Text
+  conversionRate   Float?    @map("conversion_rate")
+  callsOnVersion   Int       @default(0) @map("calls_on_version")
+  avgInterestScore Float?    @map("avg_interest_score")
+  active           Boolean   @default(false)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  retiredAt        DateTime? @map("retired_at")
+
+  @@index([niche, language])
+  @@map("script_versions")
+}
+
+// ═══════════════════════════════════════════════════════════
+// OPENING VARIANTS — A/B/C testing for call openings
+// ═══════════════════════════════════════════════════════════
+model OpeningVariant {
+  id             String    @id @default(uuid()) @db.Uuid
+  niche          String    @db.VarChar(100)
+  language       String    @db.VarChar(10)
+  role           String    @db.VarChar(20)
+  openingText    String    @map("opening_text") @db.Text
+  callsCount     Int       @default(0) @map("calls_count")
+  connectionRate Float     @default(0) @map("connection_rate")
+  engagementRate Float     @default(0) @map("engagement_rate")
+  dropOffRate    Float     @default(0) @map("drop_off_rate")
+  promotedAt     DateTime? @map("promoted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([niche, language])
+  @@map("opening_variants")
 }
 
 // ═══════════════════════════════════════════════════════════

@@ -9,6 +9,13 @@ export interface AuthRequest extends Request {
 }
 
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+  // Bypass JWT check if valid X-Admin-Secret is present
+  const adminSecret = env.ADMIN_SECRET;
+  if (adminSecret && req.headers['x-admin-secret'] === adminSecret) {
+    req.userRole = 'admin';
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -31,6 +38,11 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
 }
 
 export function adminMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+  // Allow X-Admin-Secret header as alternative to JWT admin role
+  const adminSecret = env.ADMIN_SECRET;
+  if (adminSecret && req.headers['x-admin-secret'] === adminSecret) {
+    return next();
+  }
   if (req.userRole !== 'admin') {
     return res.status(403).json({ error: 'Accès refusé' });
   }
@@ -92,10 +104,32 @@ export async function clientMiddleware(req: AuthRequest, res: Response, next: Ne
   }
 
   try {
-    const client = await prisma.client.findUnique({
+    // Primary lookup: by userId
+    let client = await prisma.client.findUnique({
       where: { userId: req.userId },
       select: { id: true },
     });
+
+    // Fallback: match by contactEmail (for admin-created clients without userId set)
+    if (!client) {
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { email: true },
+      });
+      if (user?.email) {
+        client = await prisma.client.findFirst({
+          where: { contactEmail: user.email, userId: null },
+          select: { id: true },
+        });
+        // Auto-link userId so future lookups are instant
+        if (client) {
+          await prisma.client.update({
+            where: { id: client.id },
+            data: { userId: req.userId },
+          }).catch(() => {}); // non-blocking, best-effort
+        }
+      }
+    }
 
     if (!client) {
       return res.status(404).json({ error: 'No client profile found' });

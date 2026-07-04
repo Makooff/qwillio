@@ -4,11 +4,19 @@ import { Shield } from 'lucide-react';
 import QwillioLogo from '../../components/QwillioLogo';
 import LangToggle from '../../components/LangToggle';
 import { useLang } from '../../stores/langStore';
+import { useSEO } from '../../hooks/useSEO';
 
 export default function Gdpr() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
   const [scrolled, setScrolled] = useState(false);
+
+  useSEO({
+    title: 'GDPR Rights',
+    description: 'Your GDPR data rights with Qwillio — access, rectification, erasure, portability and more.',
+    canonical: 'https://qwillio.com/gdpr',
+    noindex: true,
+  });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);

@@ -8,6 +8,10 @@ export class NicheLearningService {
    */
   async extractFailureInsights(callId: string, analysis: any, niche: string): Promise<void> {
     try {
+      if (!analysis) {
+        logger.warn(`extractFailureInsights: no analysis for call ${callId}, skipping`);
+        return;
+      }
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -15,7 +19,7 @@ export class NicheLearningService {
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4-turbo',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
@@ -47,6 +51,10 @@ Only include genuinely useful insights — skip generic ones. Max 3 insights per
       });
 
       const data = await response.json() as any;
+      if (!data.choices?.[0]?.message?.content) {
+        logger.error('[NicheLearning] OpenAI returned no choices:', JSON.stringify(data.error || data).substring(0, 300));
+        return;
+      }
       const result = JSON.parse(data.choices[0].message.content);
 
       if (!result.insights || !Array.isArray(result.insights)) return;
@@ -175,7 +183,7 @@ Only include genuinely useful insights — skip generic ones. Max 3 insights per
             'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
           },
           body: JSON.stringify({
-            model: 'gpt-4-turbo',
+            model: 'gpt-4o',
             messages: [
               {
                 role: 'system',
@@ -197,6 +205,10 @@ Focus on patterns, not individual calls. Max 2 insights.`,
         });
 
         const data = await response.json() as any;
+        if (!data.choices?.[0]?.message?.content) {
+          logger.error(`[NicheLearning] Weekly aggregation: OpenAI returned no choices for ${niche}`);
+          continue;
+        }
         const result = JSON.parse(data.choices[0].message.content);
 
         for (const insight of result.insights || []) {

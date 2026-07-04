@@ -1,269 +1,48 @@
-import { useEffect, useState, useCallback } from 'react';
-import api from '../services/api';
-import { Users, ChevronLeft, ChevronRight, Download } from 'lucide-react';
-import StatusBadge from '../components/dashboard/StatusBadge';
-import SlideSheet from '../components/dashboard/SlideSheet';
-import SkeletonLoader from '../components/dashboard/SkeletonLoader';
-import EmptyState from '../components/dashboard/EmptyState';
-import { format } from 'date-fns';
-
-const PAGE_SIZE = 25;
-const PLAN_COLORS: Record<string, string> = {
-  starter: 'text-[#8B8BA7]', pro: 'text-[#7B5CF0]', enterprise: 'text-[#6EE7B7]',
+import React, { useEffect, useState } from 'react';
+const API = 'https://qwillio.onrender.com';
+const getH = (): Record<string,string> => { const t=localStorage.getItem('token'); return t?{Authorization:`Bearer ${t}`}:{}; };
+const fmt = (iso:string) => { if(!iso) return ''; return new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); };
+const PC: Record<string,string> = { starter:'rgba(255,255,255,0.3)', pro:'#8B5CF6', business:'#a78bfa', enterprise:'#c4b5fd' };
+interface Cl { id:string; businessName:string; contactName:string; email:string; plan:string; monthlyFee:number; city:string; createdAt:string; }
+const Clients: React.FC = () => {
+  const [items,setItems]=useState<Cl[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [q,setQ]=useState('');
+  useEffect(()=>{ fetch(`${API}/api/admin/clients`,{headers:getH()}).then(r=>r.json()).then(d=>setItems(Array.isArray(d)?d:d.clients||[])).catch(console.error).finally(()=>setLoading(false)); },[]);
+  const filtered=items.filter(c=>!q||c.businessName?.toLowerCase().includes(q.toLowerCase())||c.contactName?.toLowerCase().includes(q.toLowerCase()));
+  const mrr=filtered.reduce((s,c)=>s+(c.monthlyFee||0),0);
+  if(loading) return <div style={{minHeight:'100vh',background:'#0a0a0a',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{width:28,height:28,borderRadius:'50%',border:'2px solid #8B5CF6',borderTopColor:'transparent',animation:'spin .8s linear infinite'}}/><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>;
+  return (
+    <div style={{background:'#0a0a0a',minHeight:'100vh',color:'white'}}>
+      <div style={{padding:'56px 20px 16px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:16}}>
+          <h1 style={{fontSize:28,fontWeight:700,margin:0,letterSpacing:'-0.5px'}}>Clients</h1>
+          <div style={{textAlign:'right'}}><div style={{fontSize:11,color:'rgba(255,255,255,0.3)'}}>MRR</div><div style={{fontSize:20,fontWeight:700,color:'#c4b5fd'}}>{mrr.toFixed(0)}€</div></div>
+        </div>
+        <div style={{background:'#161616',borderRadius:14,padding:'10px 14px',display:'flex',alignItems:'center',gap:8,border:'1px solid rgba(255,255,255,0.06)'}}>
+          <span style={{color:'rgba(255,255,255,0.3)'}}>🔍</span>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder='Rechercher...' style={{background:'none',border:'none',outline:'none',color:'white',fontSize:14,width:'100%'}}/>
+        </div>
+      </div>
+      <div style={{padding:'0 16px'}}>
+        <div style={{background:'#161616',borderRadius:16,border:'1px solid rgba(255,255,255,0.06)',overflow:'hidden'}}>
+          {filtered.length===0&&<div style={{padding:'40px 20px',textAlign:'center',color:'rgba(255,255,255,0.2)',fontSize:14}}>Aucun client</div>}
+          {filtered.map((c,i)=>(
+            <div key={c.id} style={{display:'flex',alignItems:'center',gap:14,padding:'13px 16px',borderBottom:i<filtered.length-1?'1px solid rgba(255,255,255,0.05)':'none'}}>
+              <div style={{width:42,height:42,borderRadius:'50%',background:PC[c.plan?.toLowerCase()]+'18'||'rgba(255,255,255,0.08)',border:`1.5px solid ${PC[c.plan?.toLowerCase()]||'rgba(255,255,255,0.1)'}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:13,fontWeight:700,color:PC[c.plan?.toLowerCase()]||'rgba(255,255,255,0.4)'}}>{c.businessName?.charAt(0)||'?'}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:14,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.businessName}</div>
+                <div style={{fontSize:12,color:'rgba(255,255,255,0.3)',marginTop:2}}>{c.contactName||c.email||c.city||'—'}</div>
+              </div>
+              <div style={{textAlign:'right',flexShrink:0}}>
+                <div style={{fontSize:14,fontWeight:600,color:'#c4b5fd'}}>{(c.monthlyFee||0).toFixed(0)}€</div>
+                <div style={{fontSize:11,color:'rgba(255,255,255,0.3)',marginTop:2}}>{c.plan||'—'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 };
-
-function Avatar({ name }: { name: string }) {
-  const initials = name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?';
-  return (
-    <div className="w-8 h-8 rounded-full bg-[#7B5CF0]/20 flex items-center justify-center flex-shrink-0">
-      <span className="text-xs font-bold text-[#7B5CF0]">{initials}</span>
-    </div>
-  );
-}
-
-export default function Clients() {
-  const [clients, setClients] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<any>(null);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [filters, setFilters] = useState({ search: '', plan: '', status: '', sort: 'newest' });
-  const [actioning, setActioning] = useState<string | null>(null);
-
-  const fetchClients = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params: any = { page, limit: PAGE_SIZE };
-      if (filters.plan) params.plan = filters.plan;
-      if (filters.status) params.status = filters.status;
-      if (filters.search) params.search = filters.search;
-      params.sort = filters.sort;
-      const { data } = await api.get('/clients', { params });
-      setClients(Array.isArray(data?.clients) ? data.clients : Array.isArray(data) ? data : []);
-      setTotal(data?.total ?? 0);
-    } catch { setClients([]); }
-    finally { setLoading(false); }
-  }, [page, filters]);
-
-  useEffect(() => { fetchClients(); }, [fetchClients]);
-  useEffect(() => {
-    const h = () => fetchClients();
-    window.addEventListener('admin-refresh', h);
-    return () => window.removeEventListener('admin-refresh', h);
-  }, [fetchClients]);
-
-  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
-
-  const handleAction = async (clientId: string, action: 'pause' | 'resume' | 'cancel') => {
-    setActioning(clientId);
-    try {
-      if (action === 'pause') await api.post(`/clients/${clientId}/pause`);
-      else if (action === 'resume') await api.post(`/clients/${clientId}/resume`);
-      else if (action === 'cancel') await api.post(`/clients/${clientId}/cancel`);
-      fetchClients();
-      if (selected?.id === clientId) setSelected(null);
-    } catch { /* silent */ }
-    finally { setActioning(null); }
-  };
-
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-[#F8F8FF]">Clients</h1>
-          <p className="text-sm text-[#8B8BA7] mt-0.5">{total.toLocaleString()} total</p>
-        </div>
-        <button className="flex items-center gap-2 px-3 py-2 text-sm text-[#8B8BA7] hover:text-[#F8F8FF] bg-[#12121A] border border-white/[0.06] rounded-xl hover:border-[#7B5CF0]/30 transition-all">
-          <Download className="w-3.5 h-3.5" /> Export CSV
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <input
-          type="text"
-          placeholder="Search name / email..."
-          value={filters.search}
-          onChange={e => { setFilters(f => ({ ...f, search: e.target.value })); setPage(1); }}
-          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] placeholder-[#8B8BA7] outline-none focus:border-[#7B5CF0]/50 transition-colors w-52"
-        />
-        <select value={filters.plan} onChange={e => { setFilters(f => ({ ...f, plan: e.target.value })); setPage(1); }}
-          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] outline-none focus:border-[#7B5CF0]/50">
-          <option value="">All plans</option>
-          <option value="starter">Starter</option>
-          <option value="pro">Pro</option>
-          <option value="enterprise">Enterprise</option>
-        </select>
-        <select value={filters.status} onChange={e => { setFilters(f => ({ ...f, status: e.target.value })); setPage(1); }}
-          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] outline-none focus:border-[#7B5CF0]/50">
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="trial">Trial</option>
-          <option value="paused">Paused</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-        <select value={filters.sort} onChange={e => setFilters(f => ({ ...f, sort: e.target.value }))}
-          className="px-3 py-2 text-sm bg-[#12121A] border border-white/[0.08] rounded-xl text-[#F8F8FF] outline-none focus:border-[#7B5CF0]/50">
-          <option value="newest">Newest</option>
-          <option value="mrr">MRR ↓</option>
-          <option value="calls">Calls ↓</option>
-        </select>
-      </div>
-
-      {/* Table */}
-      <div className="rounded-2xl bg-[#12121A] border border-white/[0.06] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/[0.06]">
-                {['Client', 'Plan', 'MRR', 'Calls / Mo', 'Status', 'Next Billing', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-[10px] font-semibold tracking-[0.08em] uppercase text-[#8B8BA7]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            {loading ? (
-              <SkeletonLoader rows={10} cols={7} />
-            ) : clients.length === 0 ? (
-              <tbody><tr><td colSpan={7}>
-                <EmptyState icon={<Users className="w-6 h-6" />} title="No clients yet" description="Clients will appear here after they sign up and onboard." />
-              </td></tr></tbody>
-            ) : (
-              <tbody>
-                {clients.map((client: any, i: number) => {
-                  const callsPct = client.monthlyCallsQuota
-                    ? Math.min(100, Math.round((client.callsThisMonth ?? 0) / client.monthlyCallsQuota * 100))
-                    : 0;
-                  const trialDays = client.trialEndDate
-                    ? Math.max(0, Math.ceil((new Date(client.trialEndDate).getTime() - Date.now()) / 86400000))
-                    : null;
-                  return (
-                    <tr key={client.id ?? i} onClick={() => setSelected(client)}
-                      className="border-b border-white/[0.04] hover:bg-white/[0.02] cursor-pointer transition-colors group">
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <Avatar name={client.businessName ?? client.contactName ?? '?'} />
-                          <div>
-                            <p className="text-sm font-medium text-[#F8F8FF]">{client.businessName ?? '—'}</p>
-                            <p className="text-xs text-[#8B8BA7]">{client.contactEmail ?? ''}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`text-xs font-semibold capitalize ${PLAN_COLORS[client.planType ?? 'starter']}`}>
-                          {client.planType ?? '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-sm font-medium text-[#22C55E] tabular-nums">
-                        ${(client.monthlyFee ?? 0).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <p className="text-xs text-[#F8F8FF] tabular-nums">{client.callsThisMonth ?? 0}/{client.monthlyCallsQuota ?? '?'}</p>
-                        <div className="w-16 h-1 bg-white/[0.06] rounded-full mt-1.5 overflow-hidden">
-                          <div className="h-full bg-[#7B5CF0] rounded-full" style={{ width: `${callsPct}%` }} />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <StatusBadge status={client.isTrial ? 'trial' : (client.subscriptionStatus ?? client.status ?? 'active')} size="sm" />
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-[#8B8BA7]">
-                        {client.isTrial && trialDays !== null
-                          ? <span className={trialDays < 7 ? 'text-[#EF4444]' : ''}>{trialDays}d trial left</span>
-                          : client.nextBillingDate ? format(new Date(client.nextBillingDate), 'MMM d') : '—'}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                          {client.subscriptionStatus !== 'paused' ? (
-                            <button onClick={() => handleAction(client.id, 'pause')} disabled={actioning === client.id}
-                              className="px-2 py-1 text-[10px] font-medium text-[#F59E0B] border border-[#F59E0B]/30 rounded-lg hover:bg-[#F59E0B]/10 transition-all">
-                              Pause
-                            </button>
-                          ) : (
-                            <button onClick={() => handleAction(client.id, 'resume')} disabled={actioning === client.id}
-                              className="px-2 py-1 text-[10px] font-medium text-[#22C55E] border border-[#22C55E]/30 rounded-lg hover:bg-[#22C55E]/10 transition-all">
-                              Resume
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            )}
-          </table>
-        </div>
-
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.06]">
-            <p className="text-xs text-[#8B8BA7]">Page {page} of {totalPages}</p>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="p-1.5 rounded-lg text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] disabled:opacity-30 transition-all">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const p = page <= 3 ? i + 1 : page - 2 + i;
-                if (p < 1 || p > totalPages) return null;
-                return (
-                  <button key={p} onClick={() => setPage(p)}
-                    className={`w-7 h-7 rounded-lg text-xs font-medium transition-all ${p === page ? 'bg-[#7B5CF0] text-white' : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06]'}`}>
-                    {p}
-                  </button>
-                );
-              })}
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="p-1.5 rounded-lg text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] disabled:opacity-30 transition-all">
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Client detail sheet */}
-      <SlideSheet open={!!selected} onClose={() => setSelected(null)}
-        title={selected?.businessName ?? 'Client'} subtitle={selected?.contactEmail}>
-        {selected && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-3">
-              <Avatar name={selected.businessName ?? ''} />
-              <StatusBadge status={selected.isTrial ? 'trial' : (selected.subscriptionStatus ?? 'active')} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: 'Plan', value: selected.planType ?? '—' },
-                { label: 'MRR', value: `$${(selected.monthlyFee ?? 0).toLocaleString()}` },
-                { label: 'Contact', value: selected.contactName ?? '—' },
-                { label: 'Phone', value: selected.contactPhone ?? '—' },
-                { label: 'Industry', value: selected.businessType ?? '—' },
-                { label: 'Country', value: selected.country ?? '—' },
-              ].map(f => (
-                <div key={f.label} className="bg-[#0D0D15] rounded-xl p-3">
-                  <p className="text-[10px] text-[#8B8BA7] uppercase tracking-wide mb-1">{f.label}</p>
-                  <p className="text-sm text-[#F8F8FF] font-medium">{f.value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="space-y-2 pt-2 border-t border-white/[0.06]">
-              {selected.subscriptionStatus !== 'paused' ? (
-                <button onClick={() => handleAction(selected.id, 'pause')} disabled={actioning === selected.id}
-                  className="w-full px-4 py-2.5 text-sm font-medium text-[#F59E0B] border border-[#F59E0B]/30 rounded-xl hover:bg-[#F59E0B]/10 transition-all">
-                  Pause subscription
-                </button>
-              ) : (
-                <button onClick={() => handleAction(selected.id, 'resume')} disabled={actioning === selected.id}
-                  className="w-full px-4 py-2.5 text-sm font-medium text-[#22C55E] border border-[#22C55E]/30 rounded-xl hover:bg-[#22C55E]/10 transition-all">
-                  Resume subscription
-                </button>
-              )}
-              <button onClick={() => handleAction(selected.id, 'cancel')} disabled={actioning === selected.id}
-                className="w-full px-4 py-2.5 text-sm font-medium text-[#EF4444] border border-[#EF4444]/20 rounded-xl hover:bg-[#EF4444]/10 transition-all">
-                Cancel subscription
-              </button>
-            </div>
-          </div>
-        )}
-      </SlideSheet>
-    </div>
-  );
-}
+export default Clients;

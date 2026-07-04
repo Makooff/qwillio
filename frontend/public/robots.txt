@@ -1,6 +1,11 @@
 User-agent: *
 Allow: /
 
+# Block legal pages from indexing (prioritize product pages in sitelinks)
+Disallow: /privacy
+Disallow: /gdpr
+Disallow: /terms
+
 # Block authenticated/private routes
 Disallow: /dashboard
 Disallow: /dashboard/

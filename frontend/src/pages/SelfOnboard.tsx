@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import {
   ArrowRight, ArrowLeft, Check, ChevronRight,
@@ -13,9 +13,9 @@ import api from '../services/api';
 type Step = 1 | 2 | 3;
 
 const plans = [
-  { key: 'starter', name: 'Starter', price: 197, setup: 697, calls: 200 },
-  { key: 'pro', name: 'Pro', price: 347, setup: 997, calls: 500, popular: true },
-  { key: 'enterprise', name: 'Enterprise', price: 497, setup: 1497, calls: 1000 },
+  { key: 'starter', name: 'Starter', price: 197, setup: 697, calls: 200, trial: '1er mois gratuit' },
+  { key: 'pro', name: 'Pro', price: 347, setup: 997, calls: 500, popular: true, trial: '1er mois gratuit' },
+  { key: 'enterprise', name: 'Enterprise', price: 497, setup: 1497, calls: 1000, trial: '1er mois gratuit' },
 ];
 
 export default function SelfOnboard() {
@@ -30,6 +30,14 @@ export default function SelfOnboard() {
   const [selectedPlan, setSelectedPlan] = useState('pro');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('payment') === 'cancelled') {
+      setError('Paiement annulé. Vous pouvez réessayer quand vous êtes prêt.');
+      setStep(3); // Go back to plan selection step
+    }
+  }, [searchParams]);
 
   const handleFinish = async () => {
     setLoading(true);
@@ -49,6 +57,13 @@ export default function SelfOnboard() {
       if (data.user) {
         useAuthStore.setState({ user: data.user, token: data.token, isLoading: false });
       }
+
+      // Redirect to Stripe Checkout if available (1st month free, then monthly)
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
       navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err: any) {
       const errData = err.response?.data?.error;
@@ -254,6 +269,7 @@ export default function SelfOnboard() {
                       <span className="text-lg font-semibold">${plan.price}</span>
                       <span className="text-sm text-[#86868b]">{t('register.mo')}</span>
                       <p className="text-xs text-[#86868b]">+ ${plan.setup.toLocaleString()} {t('register.setupFee')}</p>
+                      {plan.trial && <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">{plan.trial}</p>}
                     </div>
                   </button>
                 ))}
@@ -287,9 +303,9 @@ export default function SelfOnboard() {
                 onClick={handleFinish}
               >
                 {loading ? (
-                  <><Loader2 size={18} className="animate-spin" /> {t('onboard.submitting')}</>
+                  <><Loader2 size={18} className="animate-spin" /> Redirection vers le paiement...</>
                 ) : (
-                  <><Sparkles size={18} /> {t('selfOnboard.launch')}</>
+                  <><CreditCard size={18} /> Continuer vers le paiement</>
                 )}
               </button>
             )}

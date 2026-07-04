@@ -3,56 +3,59 @@ import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, Users, Phone, Zap, Target, Brain, ListOrdered,
-  CreditCard, Server, Settings, LogOut, ChevronLeft, ChevronRight,
-  Bell, Search, RefreshCw, X, ExternalLink,
+  LayoutDashboard, Users, Phone, Zap, Target, Brain,
+  CreditCard, Settings, LogOut, ChevronLeft, ChevronRight,
+  Search, RefreshCw, X, Crosshair, ExternalLink, TrendingUp,
+  ScrollText,
 } from 'lucide-react';
 import QwillioLogo from '../QwillioLogo';
+import CommandPalette from '../ui/CommandPalette';
+import { t, glass } from '../../styles/admin-theme';
 
 const NAV_SECTIONS = [
   {
-    label: 'MAIN',
+    label: '',
     items: [
-      { path: '/admin', icon: LayoutDashboard, label: 'Overview', exact: true },
-      { path: '/admin/clients', icon: Users, label: 'Clients' },
-      { path: '/admin/calls', icon: Phone, label: 'Calls' },
-      { path: '/admin/leads', icon: Zap, label: 'Leads' },
+      { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
       { path: '/admin/prospects', icon: Target, label: 'Prospects' },
-    ],
-  },
-  {
-    label: 'AI',
-    items: [
-      { path: '/admin/ai-learning', icon: Brain, label: 'AI Learning' },
-      { path: '/admin/ai-decisions', icon: ListOrdered, label: 'AI Decisions' },
-    ],
-  },
-  {
-    label: 'BUSINESS',
-    items: [
-      { path: '/admin/billing', icon: CreditCard, label: 'Billing' },
-      { path: '/admin/system', icon: Server, label: 'System' },
+      { path: '/admin/calls', icon: Phone, label: 'Appels' },
+      { path: '/admin/leads', icon: Zap, label: 'Leads' },
+      { path: '/admin/clients', icon: Users, label: 'Clients' },
+      { path: '/admin/prospecting', icon: Crosshair, label: 'Prospection' },
+      { path: '/admin/ai-learning', icon: Brain, label: 'IA' },
+      { path: '/admin/logs', icon: ScrollText, label: 'Logs' },
+      { path: '/admin/billing', icon: CreditCard, label: 'Facturation' },
+      { path: '/admin/settings', icon: Settings, label: 'Paramètres' },
     ],
   },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
-  '/admin': 'Overview',
-  '/admin/clients': 'Clients',
-  '/admin/calls': 'Calls',
-  '/admin/leads': 'Leads',
+  '/admin': 'Dashboard',
   '/admin/prospects': 'Prospects',
-  '/admin/ai-learning': 'AI Learning',
-  '/admin/ai-decisions': 'AI Decisions',
-  '/admin/billing': 'Billing',
-  '/admin/system': 'System',
-  '/admin/settings': 'Settings',
+  '/admin/calls': 'Appels',
+  '/admin/leads': 'Leads',
+  '/admin/clients': 'Clients',
+  '/admin/prospecting': 'Prospection',
+  '/admin/ai-learning': 'IA',
+  '/admin/ai-decisions': 'IA — Décisions',
+  '/admin/billing': 'Facturation',
+  '/admin/settings': 'Paramètres',
+  '/admin/campaigns': 'Campagnes',
+  '/admin/followups': 'Suivis',
+  '/admin/costs': 'Coûts',
+  '/admin/retention': 'Rétention',
+  '/admin/phone-validation': 'Validation tél.',
+  '/admin/monitor': 'Moniteur live',
+  '/admin/logs': 'Logs',
+  '/admin/system': 'Système',
 };
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -66,14 +69,13 @@ export default function Layout() {
 
   const pageTitle = PAGE_TITLES[location.pathname] ?? 'Admin';
 
-  // cmd+K search
+  // cmd+K command palette
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setSearchOpen(true);
+        setCmdOpen(true);
       }
-      if (e.key === 'Escape') setSearchOpen(false);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -83,7 +85,7 @@ export default function Layout() {
   useEffect(() => {
     let lastKey = '';
     const handler = (e: KeyboardEvent) => {
-      if (searchOpen) return;
+      if (searchOpen || cmdOpen) return;
       if (e.key === 'g') { lastKey = 'g'; return; }
       if (lastKey === 'g') {
         const shortcuts: Record<string, string> = {
@@ -98,7 +100,7 @@ export default function Layout() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [navigate, searchOpen]);
+  }, [navigate, searchOpen, cmdOpen]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -118,18 +120,22 @@ export default function Layout() {
         className={`relative flex items-center gap-3 rounded-xl transition-all duration-150 group
           ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
           ${active
-            ? 'bg-[#7B5CF0]/15 text-[#7B5CF0]'
-            : 'text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.04]'
+            ? 'text-[#7B5CF0]'
+            : 'hover:bg-white/[0.04]'
           }`}
+        style={{ color: active ? t.brand : t.textSec }}
       >
         {active && (
-          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#7B5CF0] rounded-r-full" />
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ background: t.brand }} />
         )}
         <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
         {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
         {collapsed && (
-          <span className="absolute left-full ml-3 px-2 py-1 bg-[#1E1E2E] text-[#F8F8FF] text-xs rounded-lg
-            opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 border border-white/[0.08] shadow-xl">
+          <span
+            className="absolute left-full ml-3 px-2 py-1 text-xs rounded-lg
+              opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl backdrop-blur-xl"
+            style={{ background: t.panelSolid, color: t.text, border: `1px solid ${t.borderHi}` }}
+          >
             {item.label}
           </span>
         )}
@@ -138,47 +144,35 @@ export default function Layout() {
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Logo */}
-      <div className={`flex items-center gap-3 mb-8 ${collapsed ? 'justify-center px-0' : 'px-1'}`}>
+      <div className={`flex items-center gap-3 mb-6 flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'px-1'}`}>
         <QwillioLogo size={32} />
         {!collapsed && (
-          <span className="text-base font-bold text-[#F8F8FF] tracking-tight">Qwillio</span>
+          <span className="text-base font-bold tracking-tight" style={{ color: t.text }}>Qwillio <span style={{ color: t.brand }}>admin</span></span>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-6">
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.label}>
-            {!collapsed && (
-              <p className="px-3 mb-2 text-[10px] font-semibold tracking-[0.1em] text-[#8B8BA7]/60 uppercase">
-                {section.label}
-              </p>
-            )}
-            {collapsed && <div className="h-px bg-white/[0.06] mb-3" />}
-            <div className="space-y-0.5">
-              {section.items.map((item) => (
-                <SidebarLink key={item.path} item={item} exact={'exact' in item ? (item as any).exact : undefined} />
-              ))}
-            </div>
-          </div>
-        ))}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide min-h-0 pb-2">
+        <div className="space-y-0.5">
+          {NAV_SECTIONS[0].items.map((item) => (
+            <SidebarLink key={item.path} item={item} exact={'exact' in item ? (item as any).exact : undefined} />
+          ))}
+        </div>
       </nav>
 
-      {/* Bottom */}
-      <div className="space-y-1 mt-4 pt-4 border-t border-white/[0.06]">
-        <SidebarLink item={{ path: '/admin/settings', icon: Settings, label: 'Settings' }} />
-
+      {/* Bottom — user + logout (fixed, non scrollable) */}
+      <div className="flex-shrink-0 space-y-1 mt-3 pt-3" style={{ borderTop: `1px solid ${t.border}` }}>
         {/* User */}
-        <div className={`flex items-center gap-3 px-3 py-2.5 mt-1 rounded-xl ${collapsed ? 'justify-center' : ''}`}>
-          <div className="w-7 h-7 rounded-full bg-[#7B5CF0]/30 flex items-center justify-center flex-shrink-0">
-            <span className="text-[10px] font-bold text-[#7B5CF0]">{initials}</span>
+        <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${collapsed ? 'justify-center' : ''}`}>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${t.brand}30` }}>
+            <span className="text-[10px] font-bold" style={{ color: t.brand }}>{initials}</span>
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-[#F8F8FF] truncate">{user?.name ?? 'Admin'}</p>
-              <p className="text-[10px] text-[#8B8BA7] truncate">{user?.email}</p>
+              <p className="text-xs font-medium truncate" style={{ color: t.text }}>{user?.name ?? 'Admin'}</p>
+              <p className="text-[10px] truncate" style={{ color: t.textSec }}>{user?.email}</p>
             </div>
           )}
         </div>
@@ -186,8 +180,9 @@ export default function Layout() {
         <button
           onClick={logout}
           title={collapsed ? 'Logout' : undefined}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[#8B8BA7] hover:text-red-400 hover:bg-red-500/[0.08] transition-all text-sm
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:text-red-400 hover:bg-red-500/[0.08] transition-all text-sm
             ${collapsed ? 'justify-center' : ''}`}
+          style={{ color: t.textSec }}
         >
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
           {!collapsed && 'Sign out'}
@@ -197,21 +192,23 @@ export default function Layout() {
   );
 
   return (
-    <div className="min-h-screen flex bg-[#0A0A0F] text-[#F8F8FF]">
+    <div className="min-h-screen flex" style={{ background: t.bg, color: t.text }}>
 
       {/* Desktop Sidebar */}
       <aside
         className={`hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
-          bg-[#0D0D15] border-r border-white/[0.06] transition-all duration-300 ease-in-out
+          backdrop-blur-xl transition-all duration-300 ease-in-out
           ${collapsed ? 'w-[64px] px-2 py-5' : 'w-[220px] px-4 py-5'}`}
+        style={{ background: t.panel, borderRight: `1px solid ${t.border}` }}
       >
         <SidebarContent />
 
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-8 w-6 h-6 rounded-full bg-[#1E1E2E] border border-white/[0.08]
-            flex items-center justify-center text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-[#7B5CF0]/20 transition-all shadow-lg"
+          className="absolute -right-3 top-8 w-6 h-6 rounded-full
+            flex items-center justify-center hover:bg-white/[0.08] transition-all shadow-lg"
+          style={{ background: t.panelSolid, border: `1px solid ${t.borderHi}`, color: t.textSec }}
         >
           {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
         </button>
@@ -229,11 +226,13 @@ export default function Layout() {
             <motion.aside
               initial={{ x: -240 }} animate={{ x: 0 }} exit={{ x: -240 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] bg-[#0D0D15] border-r border-white/[0.06] px-4 py-5"
+              className="md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] px-4 py-5"
+              style={{ background: t.panelSolid, borderRight: `1px solid ${t.border}` }}
             >
               <button
                 onClick={() => setMobileOpen(false)}
-                className="absolute right-3 top-4 text-[#8B8BA7] hover:text-[#F8F8FF]"
+                className="absolute right-3 top-4"
+                style={{ color: t.textSec }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -246,28 +245,32 @@ export default function Layout() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* TopBar */}
-        <header className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6
-          bg-[#0A0A0F]/80 backdrop-blur-xl border-b border-white/[0.06]">
+        <header
+          className="sticky top-0 z-30 h-14 flex items-center gap-4 px-4 md:px-6 backdrop-blur-xl"
+          style={{ background: `${t.bg}CC`, borderBottom: `1px solid ${t.border}` }}
+        >
 
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden text-[#8B8BA7] hover:text-[#F8F8FF]"
+            className="md:hidden"
+            style={{ color: t.textSec }}
           >
             <LayoutDashboard className="w-5 h-5" />
           </button>
 
           {/* Page title */}
           <div className="hidden md:block">
-            <h1 className="text-sm font-semibold text-[#F8F8FF]">{pageTitle}</h1>
+            <h1 className="text-sm font-semibold" style={{ color: t.text }}>{pageTitle}</h1>
           </div>
 
           {/* Search */}
           <button
-            onClick={() => setSearchOpen(true)}
+            onClick={() => setCmdOpen(true)}
             className="flex items-center gap-2 flex-1 max-w-xs mx-auto md:mx-0 md:ml-4
               px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.06]
-              text-[#8B8BA7] text-sm hover:bg-white/[0.08] hover:border-[#7B5CF0]/30 transition-all"
+              text-sm hover:bg-white/[0.08] transition-all"
+            style={{ color: t.textSec }}
           >
             <Search className="w-3.5 h-3.5 flex-shrink-0" />
             <span className="hidden sm:block flex-1 text-left">Search...</span>
@@ -280,7 +283,8 @@ export default function Layout() {
             {/* Refresh */}
             <button
               onClick={handleRefresh}
-              className="p-2 rounded-xl text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] transition-all"
+              className="p-2 rounded-xl hover:bg-white/[0.06] transition-all"
+              style={{ color: t.textSec }}
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
@@ -290,77 +294,91 @@ export default function Layout() {
               href="/"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-xl text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.06] transition-all"
+              className="p-2 rounded-xl hover:bg-white/[0.06] transition-all"
+              style={{ color: t.textSec }}
               title="View site"
             >
               <ExternalLink className="w-4 h-4" />
             </a>
 
             {/* Avatar */}
-            <div className="w-8 h-8 rounded-full bg-[#7B5CF0]/30 flex items-center justify-center">
-              <span className="text-xs font-bold text-[#7B5CF0]">{initials}</span>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${t.brand}30` }}>
+              <span className="text-xs font-bold" style={{ color: t.brand }}>{initials}</span>
             </div>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main className="flex-1 p-4 md:p-6 pb-32 md:pb-6 overflow-auto">
           <Outlet />
         </main>
       </div>
 
-      {/* Search palette */}
-      <AnimatePresence>
-        {searchOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
-              onClick={() => setSearchOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: -10 }}
-              transition={{ duration: 0.15 }}
-              className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg
-                bg-[#12121A] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden"
-            >
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
-                <Search className="w-4 h-4 text-[#8B8BA7] flex-shrink-0" />
-                <input
-                  ref={searchRef}
-                  autoFocus
-                  placeholder="Search pages, clients, calls..."
-                  className="flex-1 bg-transparent text-[#F8F8FF] text-sm outline-none placeholder-[#8B8BA7]"
-                />
-                <kbd className="text-[10px] text-[#8B8BA7] bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08]">ESC</kbd>
-              </div>
-              <div className="p-2">
-                {NAV_SECTIONS.flatMap(s => s.items).map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setSearchOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.05] transition-all"
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span className="text-sm">{item.label}</span>
-                  </Link>
-                ))}
-                <Link
-                  to="/admin/settings"
-                  onClick={() => setSearchOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#8B8BA7] hover:text-[#F8F8FF] hover:bg-white/[0.05] transition-all"
-                >
-                  <Settings className="w-4 h-4" />
-                  <span className="text-sm">Settings</span>
-                </Link>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Command Palette */}
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+
+      {/* Mobile bottom nav — floating pill */}
+      <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
+        {/* Sign out — above the pill */}
+        <button
+          onClick={logout}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+          style={{ background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}
+        >
+          <LogOut className="w-3 h-3" />
+          Sign out
+        </button>
+
+        {/* Pill nav — background div is separate so items can overflow without clip */}
+        <div className="relative w-full flex items-center justify-around px-1 py-3">
+          {/* Background layer (rounded-full here, NOT on the flex row) */}
+          <div
+            className="absolute inset-0 rounded-full pointer-events-none"
+            style={{
+              background: 'rgba(18,18,28,0.78)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 8px 40px rgba(0,0,0,0.55)',
+            }}
+          />
+          {[
+            { icon: LayoutDashboard, label: 'Home',     path: '/admin',           exact: true },
+            { icon: Users,           label: 'Clients',  path: '/admin/clients' },
+            { icon: Phone,           label: 'Calls',    path: '/admin/calls' },
+            { icon: TrendingUp,      label: 'Prospects',path: '/admin/prospects' },
+            { icon: Settings,        label: 'Params',   path: '/admin/settings' },
+          ].map(item => {
+            const Icon = item.icon;
+            const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className="relative z-10 flex flex-col items-center gap-0.5 px-4 py-1 transition-all"
+                style={{ color: active ? t.brand : t.textSec }}
+              >
+                {/* Active bubble — extends beyond the nav bar via negative margins */}
+                {active && (
+                  <span
+                    className="absolute rounded-2xl transition-all"
+                    style={{
+                      inset: '-10px -8px',
+                      background: 'rgba(123,92,240,0.22)',
+                      backdropFilter: 'blur(16px)',
+                      WebkitBackdropFilter: 'blur(16px)',
+                      border: '1px solid rgba(123,92,240,0.3)',
+                      boxShadow: '0 0 20px rgba(123,92,240,0.15)',
+                    }}
+                  />
+                )}
+                <Icon className="relative z-10 w-[20px] h-[20px]" />
+                <span className="relative z-10 text-[9px] font-medium mt-0.5">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

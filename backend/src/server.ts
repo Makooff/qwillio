@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -8,6 +9,7 @@ import { logger } from './config/logger';
 import { prisma } from './config/database';
 import { errorMiddleware } from './middleware/error.middleware';
 import { botLoop } from './jobs/bot-loop';
+import { initSocket } from './config/socket';
 
 // ─── Sentry Error Monitoring ────────────────────────────
 if (env.SENTRY_DSN) {
@@ -30,7 +32,6 @@ import clientsRoutes from './routes/clients.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import botRoutes from './routes/bot.routes';
 import campaignsRoutes from './routes/campaigns.routes';
-import quotesRoutes from './routes/quotes.routes';
 import webhooksRoutes from './routes/webhooks.routes';
 import clientPortalRoutes from './routes/client-portal.routes';
 import onboardingRoutes from './routes/onboarding.routes';
@@ -43,6 +44,7 @@ import aiLearningRoutes from './routes/ai-learning.routes';
 import prospectingRoutes from './routes/prospecting.routes';
 import adminRoutes from './routes/admin.routes';
 import clientApiRoutes from './routes/client-api.routes';
+import autofixRoutes from './routes/autofix.routes';
 
 const app = express();
 
@@ -75,12 +77,27 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Stricter rate limit for auth routes (5 req/min)
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  message: { error: 'Too many attempts, please try again in a minute' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
 // ─── Body Parsing ────────────────────────────────────────
 // Stripe webhook needs raw body
 app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
 // Everything else uses JSON
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ─── Static assets (video ads, etc.) ─────────────────────
+import path from 'path';
+app.use('/public', express.static(path.join(__dirname, '../public')));
 
 // ─── Request Logging ─────────────────────────────────────
 app.use((req, _res, next) => {
@@ -97,7 +114,6 @@ app.use('/api/clients', clientsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/bot', botRoutes);
 app.use('/api/campaigns', campaignsRoutes);
-app.use('/api/quotes', quotesRoutes);
 app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/client-portal', clientPortalRoutes);
 app.use('/api/onboarding', onboardingRoutes);
@@ -110,6 +126,7 @@ app.use('/api/ai', aiLearningRoutes);
 app.use('/api/prospecting', prospectingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/client', clientApiRoutes);
+app.use('/api/autofix', autofixRoutes);
 
 // ─── Contact Form ─────────────────────────────────────
 app.post('/api/contact', async (req, res) => {
@@ -229,17 +246,65 @@ async function startServer() {
       logger.error('Admin seed failed (non-fatal):', seedErr);
     }
 
+    // ─── One-time cleanup: remove fake Belgian prospects + vivi pizza client ──
+    try {
+      const belgianCities = ['Liège', 'Bruxelles', 'Anvers', 'Gand', 'Brussels', 'Antwerp', 'Ghent', 'Liege'];
+      const belgianProspects = await prisma.prospect.findMany({
+        where: { OR: [{ country: 'BE' }, { country: 'Belgium' }, { city: { in: belgianCities } }] },
+        select: { id: true },
+      });
+      if (belgianProspects.length > 0) {
+        await prisma.prospect.deleteMany({ where: { id: { in: belgianProspects.map(p => p.id) } } });
+        logger.info(`[Startup] Cleaned ${belgianProspects.length} fake Belgian prospect(s)`);
+      }
+      const viviClients = await prisma.client.findMany({
+        where: { OR: [{ businessName: { contains: 'vivi', mode: 'insensitive' } }, { businessName: { contains: 'pizza', mode: 'insensitive' } }] },
+        select: { id: true, businessName: true, userId: true },
+      });
+      for (const c of viviClients) {
+        await prisma.client.delete({ where: { id: c.id } });
+        if (c.userId) await prisma.user.delete({ where: { id: c.userId } }).catch(() => {});
+        logger.info(`[Startup] Deleted fake client: ${c.businessName}`);
+      }
+    } catch (cleanupErr) {
+      logger.warn('[Startup] Fake data cleanup (non-fatal):', cleanupErr);
+    }
+
     // Initialize bot loop (creates bot_status record if needed)
     await botLoop.initialize();
     logger.info('Bot loop initialized');
 
-    app.listen(env.PORT, () => {
+    // Auto-start bot loop in production
+    if (env.NODE_ENV === 'production') {
+      try {
+        await botLoop.start();
+        logger.info('Bot loop auto-started in production ✅');
+      } catch (botErr) {
+        logger.error('Bot loop auto-start failed (non-fatal):', botErr);
+      }
+    }
+
+    const server = createServer(app);
+    initSocket(server);
+
+    server.listen(env.PORT, () => {
       logger.info('═══════════════════════════════════════');
       logger.info(`  🚀 Qwillio API running on port ${env.PORT}`);
       logger.info(`  📊 Dashboard: ${env.FRONTEND_URL}`);
       logger.info(`  🔗 API: ${env.API_BASE_URL}`);
       logger.info(`  📦 Environment: ${env.NODE_ENV}`);
       logger.info('═══════════════════════════════════════');
+
+      // Production warnings
+      if (env.NODE_ENV === 'production') {
+        if (env.RESEND_FROM_EMAIL.includes('resend.dev')) {
+          logger.warn('⚠️  RESEND_FROM_EMAIL uses resend.dev test domain — emails will only reach verified addresses!');
+        }
+        if (!env.ANTHROPIC_API_KEY) {
+          logger.warn('⚠️  ANTHROPIC_API_KEY missing — A/B challenger generation and script learning disabled');
+        }
+      }
+
       logger.info('');
       logger.info('  Endpoints:');
       logger.info('  POST /api/bot/start      → Start bot loop');

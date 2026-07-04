@@ -4,11 +4,18 @@ import { Mail, Send } from 'lucide-react';
 import QwillioLogo from '../../components/QwillioLogo';
 import LangToggle from '../../components/LangToggle';
 import { useLang } from '../../stores/langStore';
+import { useSEO } from '../../hooks/useSEO';
 
 export default function Contact() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
   const [scrolled, setScrolled] = useState(false);
+
+  useSEO({
+    title: 'Contact',
+    description: 'Contact Qwillio — get in touch with our team for questions about AI receptionist and business automation.',
+    canonical: 'https://qwillio.com/contact',
+  });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 

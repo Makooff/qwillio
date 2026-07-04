@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import crypto from 'crypto';
 import { prisma } from '../config/database';
 import { stripe } from '../config/stripe';
 import { env } from '../config/env';
@@ -10,8 +9,8 @@ import { clientCallService } from '../services/client-call.service';
 import { smsService } from '../services/sms.service';
 import { emailService } from '../services/email.service';
 import { discordService } from '../services/discord.service';
-import { docuSignService } from '../services/docusign.service';
 import { extractEmailFromText, isValidEmail, normalizeEmail } from '../utils/validators';
+import { storeError } from '../utils/error-store';
 
 export class WebhooksController {
   async stripeWebhook(req: Request, res: Response) {
@@ -46,6 +45,15 @@ export class WebhooksController {
         case 'invoice.payment_failed':
           await stripeService.handlePaymentFailed(event.data.object);
           break;
+        case 'customer.subscription.created':
+          await stripeService.handleSubscriptionCreated(event.data.object);
+          break;
+        case 'customer.subscription.updated':
+          await stripeService.handleSubscriptionUpdated(event.data.object);
+          break;
+        case 'customer.subscription.deleted':
+          await stripeService.handleSubscriptionDeleted(event.data.object);
+          break;
         default:
           logger.debug(`Unhandled Stripe event: ${event.type}`);
       }
@@ -56,6 +64,7 @@ export class WebhooksController {
       });
     } catch (error: any) {
       logger.error(`Error processing Stripe webhook: ${error.message}`);
+      storeError(error.message, error.stack || '', '/api/webhooks/stripe');
       await prisma.webhookLog.updateMany({
         where: { eventType: event.type, status: 'received' },
         data: { status: 'failed', errorMessage: error.message },
@@ -97,18 +106,83 @@ export class WebhooksController {
           const transcript = event.message?.transcript || event.transcript || '';
           const duration = event.message?.call?.duration || event.call?.duration || 0;
           const recordingUrl = event.message?.recordingUrl || event.recordingUrl;
+          const endedReason = event.message?.endedReason || event.endedReason || '';
+
+          // Voicemail detected by VAPI AMD — short-circuit, no need to analyze empty transcript
+          if (callId && (endedReason === 'voicemail' || endedReason === 'customer-did-not-answer' || endedReason === 'twilio-failed-to-connect-call')) {
+            logger.info(`📼 Call ${callId} ended: ${endedReason} — marking as voicemail/no-answer, will retry later`);
+            await prisma.call.updateMany({
+              where: { vapiCallId: callId },
+              data: {
+                status: 'completed',
+                endedAt: new Date(),
+                durationSeconds: duration,
+                outcome: endedReason === 'voicemail' ? 'voicemail' : 'no-answer',
+                recordingUrl: recordingUrl || undefined,
+              },
+            });
+            break;
+          }
 
           if (callId) {
             await vapiService.handleCallCompleted(callId, transcript, duration, recordingUrl);
           }
           break;
 
+        case 'call-started':
         case 'status-update':
-          logger.debug(`VAPI call status update: ${event.message?.status || event.status}`);
+          if (event.message?.status === 'in-progress' || messageType === 'call-started') {
+            const startCallId = event.message?.call?.id || event.call?.id;
+            const phoneNumber = event.message?.call?.customer?.number || event.call?.customer?.number || '';
+            if (startCallId) {
+              await prisma.call.upsert({
+                where: { vapiCallId: startCallId },
+                update: { status: 'in-progress', startedAt: new Date() },
+                create: {
+                  vapiCallId: startCallId,
+                  phoneNumber: phoneNumber,
+                  status: 'in-progress',
+                  startedAt: new Date(),
+                  direction: 'outbound',
+                },
+              });
+            }
+          } else {
+            logger.debug(`VAPI call status update: ${event.message?.status || event.status}`);
+          }
+          break;
+
+        case 'transcript':
+          const tCallId = event.message?.call?.id || event.call?.id;
+          const partialTranscript = event.message?.transcript || event.transcript || '';
+          if (tCallId && partialTranscript) {
+            await prisma.call.updateMany({
+              where: { vapiCallId: tCallId },
+              data: { transcript: partialTranscript },
+            });
+          }
           break;
 
         case 'function-call':
-          logger.debug('VAPI function call received');
+          const functionName = event.message?.functionCall?.name || event.functionCall?.name;
+          const functionParams = event.message?.functionCall?.parameters || event.functionCall?.parameters;
+          logger.info(`VAPI function call: ${functionName}`, functionParams);
+
+          if (functionName === 'captureLeadInfo' || functionName === 'capture_lead') {
+            const fCallId = event.message?.call?.id || event.call?.id;
+            if (fCallId && functionParams) {
+              await prisma.call.updateMany({
+                where: { vapiCallId: fCallId },
+                data: {
+                  emailCollected: functionParams.email || null,
+                  leadCaptured: true,
+                },
+              });
+            }
+          } else if (functionName === 'bookAppointment' || functionName === 'book_appointment') {
+            const bCallId = event.message?.call?.id || event.call?.id;
+            logger.info(`Booking request from call ${bCallId}`, functionParams);
+          }
           break;
 
         default:
@@ -116,6 +190,7 @@ export class WebhooksController {
       }
     } catch (error: any) {
       logger.error(`Error processing VAPI webhook: ${error.message}`);
+      storeError(error.message, error.stack || '', '/api/webhooks/vapi');
     }
 
     res.json({ received: true });
@@ -173,6 +248,39 @@ export class WebhooksController {
     }
 
     res.json({ received: true });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // TWILIO VOICE/CALL STATUS — CallStatus callback
+  // ═══════════════════════════════════════════════════════════
+  async twilioVoiceStatus(req: Request, res: Response) {
+    const { CallSid, CallStatus, CallDuration, To } = req.body;
+    logger.info(`Twilio CallStatus: ${CallSid} → ${CallStatus}`);
+
+    if (CallSid && CallStatus) {
+      const outcomeMap: Record<string, string> = {
+        completed: 'completed',
+        'no-answer': 'no_answer',
+        busy: 'busy',
+        failed: 'failed',
+        canceled: 'canceled',
+      };
+
+      // Update call record if exists
+      const call = await prisma.call.findFirst({ where: { phoneNumber: To } });
+      if (call) {
+        await prisma.call.update({
+          where: { id: call.id },
+          data: {
+            outcome: outcomeMap[CallStatus] || CallStatus,
+            durationSeconds: CallDuration ? parseInt(CallDuration) : undefined,
+            status: CallStatus === 'completed' ? 'completed' : CallStatus,
+          },
+        });
+      }
+    }
+
+    res.type('text/xml').send('<Response></Response>');
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -380,86 +488,6 @@ export class WebhooksController {
     res.json({ received: true });
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // DOCUSIGN CONNECT — Contract signed/declined
-  // ═══════════════════════════════════════════════════════════
-  async docusignWebhook(req: Request, res: Response) {
-    // Validate HMAC signature if secret is configured
-    if (env.DOCUSIGN_WEBHOOK_SECRET) {
-      const signature = req.headers['x-docusign-signature-1'] as string;
-      if (signature) {
-        const hmac = crypto.createHmac('sha256', env.DOCUSIGN_WEBHOOK_SECRET);
-        const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-        hmac.update(rawBody);
-        const expectedSig = hmac.digest('base64');
-        if (signature !== expectedSig) {
-          logger.warn('DocuSign webhook: HMAC signature mismatch');
-          return res.status(401).json({ error: 'Invalid webhook signature' });
-        }
-      }
-    }
-
-    const event = req.body;
-    const eventType = event.event || event.status;
-    const envelopeId = event.data?.envelopeId || event.envelopeId || event.data?.envelope?.envelopeId;
-
-    logger.info(`DocuSign webhook: ${eventType} for envelope ${envelopeId}`);
-
-    // Log webhook
-    await prisma.webhookLog.create({
-      data: {
-        source: 'docusign',
-        eventType: eventType || 'unknown',
-        payload: event,
-        status: 'received',
-      },
-    });
-
-    try {
-      switch (eventType) {
-        case 'envelope-completed':
-        case 'completed':
-          if (envelopeId) {
-            await docuSignService.handleEnvelopeCompleted(envelopeId);
-          }
-          break;
-
-        case 'recipient-declined':
-        case 'envelope-declined':
-        case 'declined':
-          if (envelopeId) {
-            await docuSignService.handleEnvelopeDeclined(envelopeId);
-          }
-          break;
-
-        case 'envelope-sent':
-        case 'sent':
-          logger.debug(`DocuSign envelope sent: ${envelopeId}`);
-          break;
-
-        case 'envelope-delivered':
-        case 'delivered':
-          logger.debug(`DocuSign envelope delivered: ${envelopeId}`);
-          break;
-
-        default:
-          logger.debug(`Unhandled DocuSign event: ${eventType}`);
-      }
-
-      await prisma.webhookLog.updateMany({
-        where: { source: 'docusign', eventType: eventType || 'unknown', status: 'received' },
-        data: { status: 'processed', processedAt: new Date() },
-      });
-    } catch (error: any) {
-      logger.error(`Error processing DocuSign webhook: ${error.message}`);
-      await prisma.webhookLog.updateMany({
-        where: { source: 'docusign', eventType: eventType || 'unknown', status: 'received' },
-        data: { status: 'failed', errorMessage: error.message },
-      });
-    }
-
-    res.json({ received: true });
-  }
 }
 
 export const webhooksController = new WebhooksController();

@@ -301,7 +301,7 @@ Return JSON: { "fix": "the micro-fix text", "confidence": number }`;
             'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
           },
           body: JSON.stringify({
-            model: 'gpt-4-turbo',
+            model: 'gpt-4o',
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.3,
             response_format: { type: 'json_object' },

@@ -29,8 +29,12 @@ export default function Login() {
       const { user } = useAuthStore.getState();
       navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
     } catch (err: any) {
-      const errData = err.response?.data?.error;
-      setError(typeof errData === 'string' ? errData : (errData?.message || err.message || 'Erreur de connexion'));
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        setError('Le serveur met du temps à répondre. Veuillez réessayer dans quelques secondes.');
+      } else {
+        const errData = err.response?.data?.error;
+        setError(typeof errData === 'string' ? errData : (errData?.message || err.message || 'Erreur de connexion'));
+      }
     } finally {
       setLoading(false);
     }

@@ -1,10 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Users, Phone, Mail, MessageSquare, UserCheck, UserX, Star,
-  List, Columns3, Search, X, ChevronRight, Plus, StickyNote
+  Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3, Search,
 } from 'lucide-react';
-import { useLang } from '../../stores/langStore';
 import api from '../../services/api';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
@@ -14,22 +12,21 @@ import { formatDateTime } from '../../utils/format';
 type ViewMode = 'table' | 'kanban';
 type LeadStatus = '' | 'new' | 'contacted' | 'converted' | 'lost';
 
-const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  new: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-  contacted: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
-  converted: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-  lost: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+const STATUS_STYLES: Record<string, { pill: string; border: string }> = {
+  new:       { pill: 'bg-blue-400/10 text-blue-400',    border: 'border-blue-400/20' },
+  contacted: { pill: 'bg-[#7B5CF0]/10 text-[#7B5CF0]', border: 'border-[#7B5CF0]/20' },
+  converted: { pill: 'bg-emerald-400/10 text-emerald-400', border: 'border-emerald-400/20' },
+  lost:      { pill: 'bg-red-400/10 text-red-400',      border: 'border-red-400/20' },
 };
 
-const KANBAN_COLS: { key: string; label: string; color: string }[] = [
-  { key: 'new', label: 'New', color: '#3b82f6' },
-  { key: 'contacted', label: 'Contacted', color: '#6366f1' },
-  { key: 'converted', label: 'Converted', color: '#10b981' },
-  { key: 'lost', label: 'Lost', color: '#ef4444' },
+const KANBAN_COLS = [
+  { key: 'new',       label: 'Nouveau',   color: '#60a5fa' },
+  { key: 'contacted', label: 'Contacté',  color: '#7B5CF0' },
+  { key: 'converted', label: 'Converti',  color: '#34d399' },
+  { key: 'lost',      label: 'Perdu',     color: '#f87171' },
 ];
 
 export default function ClientLeads() {
-  const { t } = useLang();
   const [leads, setLeads] = useState<any[]>([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 50, totalPages: 0 });
   const [loading, setLoading] = useState(true);
@@ -92,14 +89,12 @@ export default function ClientLeads() {
       const q = search.toLowerCase();
       if (!(l.callerName || '').toLowerCase().includes(q) &&
           !(l.callerNumber || '').toLowerCase().includes(q) &&
-          !(l.emailCollected || '').toLowerCase().includes(q))
-        return false;
+          !(l.emailCollected || '').toLowerCase().includes(q)) return false;
     }
     if (statusFilter && getLeadStatus(l) !== statusFilter) return false;
     return true;
   });
 
-  // Stats
   const statCounts = {
     total: leads.length,
     new: leads.filter(l => getLeadStatus(l) === 'new').length,
@@ -108,24 +103,21 @@ export default function ClientLeads() {
     lost: leads.filter(l => getLeadStatus(l) === 'lost').length,
   };
 
-  const kanbanLeads = (status: string) => filteredLeads.filter(l => getLeadStatus(l) === status);
-
   return (
     <div>
-      {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
-          <p className="text-sm text-[#86868b]">{pagination.total} qualified leads</p>
+          <h1 className="text-2xl font-bold text-[#F8F8FF] tracking-tight">Leads</h1>
+          <p className="text-sm text-[#8B8BA7]">{pagination.total} leads qualifiés</p>
         </div>
-        <div className="flex items-center gap-1 bg-[#f5f5f7] rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1">
           <button onClick={() => setView('table')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${view === 'table' ? 'bg-white shadow-sm text-[#1d1d1f]' : 'text-[#86868b]'}`}
+            className={`px-3 py-1.5 rounded-lg transition-all ${view === 'table' ? 'bg-[#7B5CF0] text-white' : 'text-[#8B8BA7] hover:text-[#F8F8FF]'}`}
           >
             <List size={14} />
           </button>
           <button onClick={() => setView('kanban')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${view === 'kanban' ? 'bg-white shadow-sm text-[#1d1d1f]' : 'text-[#86868b]'}`}
+            className={`px-3 py-1.5 rounded-lg transition-all ${view === 'kanban' ? 'bg-[#7B5CF0] text-white' : 'text-[#8B8BA7] hover:text-[#F8F8FF]'}`}
           >
             <Columns3 size={14} />
           </button>
@@ -135,79 +127,80 @@ export default function ClientLeads() {
       {/* Stats pipeline */}
       <div className="grid grid-cols-5 gap-2 mb-6">
         {[
-          { label: 'Total', value: statCounts.total, color: '#1d1d1f' },
-          { label: 'New', value: statCounts.new, color: '#3b82f6' },
-          { label: 'Contacted', value: statCounts.contacted, color: '#6366f1' },
-          { label: 'Converted', value: statCounts.converted, color: '#10b981' },
-          { label: 'Lost', value: statCounts.lost, color: '#ef4444' },
+          { label: 'Total', value: statCounts.total, filter: '' as LeadStatus },
+          { label: 'Nouveau', value: statCounts.new, filter: 'new' as LeadStatus, color: '#60a5fa' },
+          { label: 'Contacté', value: statCounts.contacted, filter: 'contacted' as LeadStatus, color: '#7B5CF0' },
+          { label: 'Converti', value: statCounts.converted, filter: 'converted' as LeadStatus, color: '#34d399' },
+          { label: 'Perdu', value: statCounts.lost, filter: 'lost' as LeadStatus, color: '#f87171' },
         ].map((s, i) => (
-          <button key={i} onClick={() => setStatusFilter(i === 0 ? '' : s.label.toLowerCase() as LeadStatus)}
+          <button key={i} onClick={() => setStatusFilter(s.filter)}
             className={`rounded-xl p-3 text-center transition-all border ${
-              (i === 0 && !statusFilter) || statusFilter === s.label.toLowerCase()
-                ? 'border-[#6366f1]/30 bg-[#6366f1]/5'
-                : 'border-[#d2d2d7]/60 bg-white hover:bg-[#f5f5f7]'
+              statusFilter === s.filter
+                ? 'border-[#7B5CF0]/30 bg-[#7B5CF0]/10'
+                : 'border-white/[0.06] bg-[#12121A] hover:border-white/[0.10]'
             }`}
           >
-            <p className="text-xl font-bold" style={{ color: s.color }}>{s.value}</p>
-            <p className="text-[10px] text-[#86868b] font-medium">{s.label}</p>
+            <p className="text-xl font-bold text-[#F8F8FF]" style={s.color ? { color: s.color } : {}}>
+              {s.value}
+            </p>
+            <p className="text-[10px] text-[#8B8BA7] font-medium">{s.label}</p>
           </button>
         ))}
       </div>
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8B8BA7]" />
         <input
           type="text"
-          placeholder="Search leads..."
+          placeholder="Rechercher des leads..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 transition-all"
+          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0D0D15] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 transition-all"
         />
       </div>
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-2 border-[#6366f1] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#7B5CF0] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filteredLeads.length === 0 ? (
-        <EmptyState icon={Users} title="No leads found" description="Leads will appear once your AI qualifies callers" />
+        <EmptyState icon={Users} title="Aucun lead trouvé" description="Les leads apparaîtront une fois que votre IA qualifie les appelants" />
       ) : view === 'table' ? (
-        /* ── TABLE VIEW ── */
         <>
           <div className="space-y-1.5">
             {filteredLeads.map((lead: any, idx: number) => {
               const status = getLeadStatus(lead);
-              const sc = STATUS_COLORS[status] || STATUS_COLORS.new;
+              const sc = STATUS_STYLES[status] || STATUS_STYLES.new;
               return (
-                <motion.div key={lead.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.02 }}
-                  className="rounded-2xl border border-[#d2d2d7]/60 bg-white overflow-hidden hover:shadow-sm hover:border-[#d2d2d7] transition-all cursor-pointer group"
+                <motion.div key={lead.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.02 }}
+                  className="rounded-xl border border-white/[0.06] bg-[#12121A] hover:border-white/[0.12] cursor-pointer group transition-all"
                   onClick={() => { setSelectedLead(lead); setNoteText(lead.notes || ''); }}
                 >
                   <div className="flex items-center gap-3 px-5 py-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-                      <Users size={18} className="text-amber-600" />
+                    <div className="w-9 h-9 rounded-lg bg-amber-400/10 flex items-center justify-center flex-shrink-0">
+                      <Users size={16} className="text-amber-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{lead.callerName || lead.nameCollected || 'Unknown'}</p>
-                      <p className="text-[11px] text-[#86868b]">
+                      <p className="text-sm font-semibold text-[#F8F8FF] truncate">{lead.callerName || lead.nameCollected || 'Inconnu'}</p>
+                      <p className="text-[11px] text-[#8B8BA7]">
                         {lead.callerNumber || lead.phoneCollected || ''}
                         {lead.emailCollected && ` · ${lead.emailCollected}`}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc.bg} ${sc.text}`}>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc.pill}`}>
                         {status.toUpperCase()}
                       </span>
                       {lead.leadScore != null && (
                         <div className="hidden sm:flex items-center gap-1">
-                          <Star size={12} className="text-[#6366f1]" />
-                          <span className="text-xs font-bold text-[#6366f1]">{lead.leadScore}/10</span>
+                          <Star size={12} className="text-[#7B5CF0]" />
+                          <span className="text-xs font-bold text-[#7B5CF0]">{lead.leadScore}/10</span>
                         </div>
                       )}
                       <SentimentBadge sentiment={lead.sentiment} />
-                      <span className="text-[10px] text-[#86868b] hidden lg:inline">{formatDateTime(lead.createdAt)}</span>
-                      <ChevronRight size={14} className="text-[#d2d2d7] group-hover:text-[#6366f1] transition-colors" />
+                      <span className="text-[10px] text-[#8B8BA7] hidden lg:inline">{formatDateTime(lead.createdAt)}</span>
+                      <ChevronRight size={14} className="text-white/20 group-hover:text-[#7B5CF0] transition-colors" />
                     </div>
                   </div>
                 </motion.div>
@@ -221,35 +214,35 @@ export default function ClientLeads() {
           </div>
         </>
       ) : (
-        /* ── KANBAN VIEW ── */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 overflow-x-auto">
+        /* Kanban */
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {KANBAN_COLS.map(col => {
-            const items = kanbanLeads(col.key);
+            const items = filteredLeads.filter(l => getLeadStatus(l) === col.key);
             return (
-              <div key={col.key} className="min-w-[250px]">
+              <div key={col.key}>
                 <div className="flex items-center gap-2 mb-3 px-1">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: col.color }} />
-                  <span className="text-sm font-semibold">{col.label}</span>
-                  <span className="text-xs text-[#86868b] bg-[#f5f5f7] px-2 py-0.5 rounded-full">{items.length}</span>
+                  <span className="text-sm font-semibold text-[#F8F8FF]">{col.label}</span>
+                  <span className="text-xs text-[#8B8BA7] bg-white/[0.06] px-2 py-0.5 rounded-full">{items.length}</span>
                 </div>
-                <div className="space-y-2 min-h-[200px] rounded-2xl bg-[#f5f5f7]/50 p-2">
+                <div className="space-y-2 min-h-[200px] rounded-xl bg-white/[0.02] border border-white/[0.04] p-2">
                   {items.map(lead => (
                     <motion.div key={lead.id} layout
-                      className="rounded-xl bg-white border border-[#d2d2d7]/60 p-3.5 cursor-pointer hover:shadow-sm transition-all"
+                      className="rounded-xl bg-[#12121A] border border-white/[0.06] p-3.5 cursor-pointer hover:border-white/[0.12] transition-all"
                       onClick={() => { setSelectedLead(lead); setNoteText(lead.notes || ''); }}
                     >
-                      <p className="text-sm font-semibold truncate mb-1">{lead.callerName || lead.nameCollected || 'Unknown'}</p>
-                      <p className="text-[11px] text-[#86868b] mb-2">{lead.callerNumber || ''}</p>
+                      <p className="text-sm font-semibold text-[#F8F8FF] truncate mb-1">{lead.callerName || lead.nameCollected || 'Inconnu'}</p>
+                      <p className="text-[11px] text-[#8B8BA7] mb-2">{lead.callerNumber || ''}</p>
                       <div className="flex items-center justify-between">
                         <SentimentBadge sentiment={lead.sentiment} />
                         {lead.leadScore != null && (
-                          <span className="text-[10px] font-bold text-[#6366f1]">{lead.leadScore}/10</span>
+                          <span className="text-[10px] font-bold text-[#7B5CF0]">{lead.leadScore}/10</span>
                         )}
                       </div>
                     </motion.div>
                   ))}
                   {items.length === 0 && (
-                    <p className="text-xs text-[#86868b] text-center py-8">No leads</p>
+                    <p className="text-xs text-[#8B8BA7] text-center py-8">Aucun lead</p>
                   )}
                 </div>
               </div>
@@ -258,83 +251,83 @@ export default function ClientLeads() {
         </div>
       )}
 
-      {/* ── Lead detail slide-over ── */}
+      {/* Lead detail slide-over */}
       <AnimatePresence>
         {selectedLead && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/20 z-50" onClick={() => setSelectedLead(null)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={() => setSelectedLead(null)}
             />
             <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-50 overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#0D0D15] border-l border-white/[0.06] shadow-2xl z-50 overflow-y-auto"
             >
-              <div className="sticky top-0 bg-white/80 backdrop-blur-xl border-b border-[#d2d2d7]/60 px-6 py-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Lead details</h2>
-                <button onClick={() => setSelectedLead(null)} className="w-8 h-8 rounded-lg bg-[#f5f5f7] flex items-center justify-center hover:bg-[#e8e8ed]">
+              <div className="sticky top-0 bg-[#0D0D15]/90 backdrop-blur-xl border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
+                <h2 className="text-base font-semibold text-[#F8F8FF]">Détails du lead</h2>
+                <button onClick={() => setSelectedLead(null)}
+                  className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.10] text-[#8B8BA7] hover:text-[#F8F8FF] transition-colors"
+                >
                   <X size={16} />
                 </button>
               </div>
-              <div className="p-6 space-y-6">
-                {/* Name & info */}
+              <div className="p-6 space-y-5">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
-                    <Users size={24} className="text-amber-600" />
+                  <div className="w-12 h-12 rounded-xl bg-amber-400/10 flex items-center justify-center">
+                    <Users size={22} className="text-amber-400" />
                   </div>
                   <div>
-                    <p className="text-lg font-semibold">{selectedLead.callerName || selectedLead.nameCollected || 'Unknown'}</p>
-                    <p className="text-sm text-[#86868b]">{formatDateTime(selectedLead.createdAt)}</p>
+                    <p className="text-base font-semibold text-[#F8F8FF]">{selectedLead.callerName || selectedLead.nameCollected || 'Inconnu'}</p>
+                    <p className="text-sm text-[#8B8BA7]">{formatDateTime(selectedLead.createdAt)}</p>
                   </div>
                 </div>
 
-                {/* Contact */}
                 <div className="space-y-2">
                   {(selectedLead.callerNumber || selectedLead.phoneCollected) && (
-                    <div className="flex items-center gap-3 rounded-xl bg-[#f5f5f7] px-4 py-3">
-                      <Phone size={14} className="text-[#86868b]" />
-                      <span className="text-sm">{selectedLead.callerNumber || selectedLead.phoneCollected}</span>
+                    <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/[0.06] px-4 py-3">
+                      <Phone size={14} className="text-[#8B8BA7]" />
+                      <span className="text-sm text-[#F8F8FF]">{selectedLead.callerNumber || selectedLead.phoneCollected}</span>
                     </div>
                   )}
                   {selectedLead.emailCollected && (
-                    <div className="flex items-center gap-3 rounded-xl bg-[#f5f5f7] px-4 py-3">
-                      <Mail size={14} className="text-[#86868b]" />
-                      <span className="text-sm">{selectedLead.emailCollected}</span>
+                    <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/[0.06] px-4 py-3">
+                      <Mail size={14} className="text-[#8B8BA7]" />
+                      <span className="text-sm text-[#F8F8FF]">{selectedLead.emailCollected}</span>
                     </div>
                   )}
                 </div>
 
-                {/* Lead score */}
                 {selectedLead.leadScore != null && (
                   <div>
-                    <p className="text-xs text-[#86868b] mb-1">Lead score</p>
+                    <p className="text-xs text-[#8B8BA7] mb-2">Score lead</p>
                     <div className="flex items-center gap-3">
-                      <div className="flex-1 h-3 bg-[#f5f5f7] rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] rounded-full transition-all"
+                      <div className="flex-1 h-2.5 bg-white/[0.06] rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-[#7B5CF0] to-[#a78bfa] rounded-full"
                           style={{ width: `${selectedLead.leadScore * 10}%` }}
                         />
                       </div>
-                      <span className="text-lg font-bold text-[#6366f1]">{selectedLead.leadScore}/10</span>
+                      <span className="text-lg font-bold text-[#7B5CF0]">{selectedLead.leadScore}/10</span>
                     </div>
                   </div>
                 )}
 
-                {/* Sentiment */}
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-[#86868b]">Sentiment:</span>
+                  <span className="text-xs text-[#8B8BA7]">Sentiment :</span>
                   <SentimentBadge sentiment={selectedLead.sentiment} />
                 </div>
 
-                {/* Status actions */}
+                {/* Pipeline status */}
                 <div>
-                  <p className="text-xs text-[#86868b] mb-2">Pipeline status</p>
+                  <p className="text-xs text-[#8B8BA7] mb-2">Statut pipeline</p>
                   <div className="grid grid-cols-2 gap-2">
                     {KANBAN_COLS.map(col => {
                       const isActive = getLeadStatus(selectedLead) === col.key;
-                      const sc = STATUS_COLORS[col.key];
+                      const sc = STATUS_STYLES[col.key];
                       return (
                         <button key={col.key} onClick={() => handleStatusChange(selectedLead.id, col.key)}
                           className={`px-3 py-2 text-xs font-medium rounded-xl border transition-all ${
-                            isActive ? `${sc.bg} ${sc.text} ${sc.border}` : 'bg-white border-[#d2d2d7]/60 text-[#86868b] hover:bg-[#f5f5f7]'
+                            isActive
+                              ? `${sc.pill} ${sc.border}`
+                              : 'bg-white/[0.04] border-white/[0.08] text-[#8B8BA7] hover:bg-white/[0.08]'
                           }`}
                         >
                           {col.label}
@@ -344,32 +337,31 @@ export default function ClientLeads() {
                   </div>
                 </div>
 
-                {/* Summary */}
                 {selectedLead.summary && (
                   <div>
-                    <p className="text-xs text-[#86868b] mb-1">Call summary</p>
-                    <p className="text-sm text-[#1d1d1f] leading-relaxed bg-[#f5f5f7] rounded-xl p-4">{selectedLead.summary}</p>
+                    <p className="text-xs text-[#8B8BA7] mb-2">Résumé de l'appel</p>
+                    <p className="text-sm text-[#F8F8FF] leading-relaxed bg-white/[0.04] rounded-xl p-4 border border-white/[0.06]">{selectedLead.summary}</p>
                   </div>
                 )}
 
                 {/* Notes */}
                 <div>
-                  <p className="text-xs text-[#86868b] mb-1 flex items-center gap-1">
+                  <p className="text-xs text-[#8B8BA7] mb-2 flex items-center gap-1">
                     <StickyNote size={12} /> Notes
                   </p>
                   <textarea
                     value={noteText}
                     onChange={e => setNoteText(e.target.value)}
-                    placeholder="Add notes about this lead..."
+                    placeholder="Ajouter des notes sur ce lead..."
                     rows={3}
-                    className="w-full px-4 py-3 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 resize-none"
+                    className="w-full px-4 py-3 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0F] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7B5CF0]/50 resize-none transition-all"
                   />
                   <button
                     onClick={() => handleSaveNote(selectedLead.id)}
                     disabled={savingNote || !noteText.trim()}
-                    className="mt-2 px-4 py-2 text-xs font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] disabled:opacity-40 transition-colors"
+                    className="mt-2 px-4 py-2 text-xs font-medium text-white bg-[#7B5CF0] rounded-xl hover:bg-[#6a4ee0] disabled:opacity-40 transition-colors"
                   >
-                    {savingNote ? 'Saving...' : 'Save note'}
+                    {savingNote ? 'Enregistrement...' : 'Sauvegarder'}
                   </button>
                 </div>
               </div>

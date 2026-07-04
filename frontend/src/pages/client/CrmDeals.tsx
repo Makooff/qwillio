@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, DollarSign, Calendar, TrendingUp, User } from 'lucide-react';
+import { Plus, X, DollarSign, Calendar, TrendingUp, User, Loader2 } from 'lucide-react';
+import api from '../../services/api';
 
 type DealStage = 'new' | 'qualified' | 'appointment' | 'client' | 'inactive' | 'lost';
 
@@ -24,54 +25,76 @@ const STAGES: { key: DealStage; label: string; color: string; bgLight: string; b
   { key: 'lost',        label: 'Lost',        color: '#ef4444', bgLight: 'bg-red-50',     border: 'border-red-200' },
 ];
 
-const DEMO_DEALS: Deal[] = [
-  { id: '1',  contactName: 'Sarah Mitchell',  title: 'Realty AI Assistant',    value: 4200,  probability: 90, closeDate: 'Mar 28',  stage: 'client',      company: 'Bright Home Realty' },
-  { id: '2',  contactName: 'Derek Fontaine',  title: 'Dental Front Desk Bot',  value: 3500,  probability: 85, closeDate: 'Mar 30',  stage: 'client',      company: 'Sunrise Dental' },
-  { id: '3',  contactName: 'James Kowalski',  title: 'Auto Dealership Agent',  value: 5100,  probability: 70, closeDate: 'Apr 5',   stage: 'appointment', company: 'AutoMax' },
-  { id: '4',  contactName: 'Priya Nair',      title: 'Legal Intake System',    value: 4800,  probability: 65, closeDate: 'Apr 10',  stage: 'appointment', company: 'Zenith Law' },
-  { id: '5',  contactName: 'Ryan Castillo',   title: 'Roofing Lead Qualifier', value: 2900,  probability: 75, closeDate: 'Apr 2',   stage: 'qualified',   company: 'RC Roofing' },
-  { id: '6',  contactName: 'Linda Park',      title: 'Accounting Scheduler',   value: 2400,  probability: 55, closeDate: 'Apr 15',  stage: 'qualified',   company: 'Park Accounting' },
-  { id: '7',  contactName: 'Marcus Williams', title: 'Plumbing Dispatcher AI', value: 1800,  probability: 40, closeDate: 'Apr 20',  stage: 'new',         company: 'PlumbPro' },
-  { id: '8',  contactName: 'Amara Osei',      title: 'Gym Membership Bot',     value: 1500,  probability: 30, closeDate: 'Apr 25',  stage: 'new',         company: 'FitLife Gym' },
-  { id: '9',  contactName: 'Chloe Dubois',    title: 'Spa Booking Assistant',  value: 2100,  probability: 20, closeDate: 'May 1',   stage: 'inactive',    company: 'Spa Elite' },
-  { id: '10', contactName: 'Tom Harrington',  title: 'Insurance Lead Gen',     value: 3300,  probability: 10, closeDate: 'N/A',     stage: 'lost',        company: 'Valley Ins.' },
-  { id: '11', contactName: 'Sandra Lee',      title: 'HVAC Appointment Setter',value: 2600,  probability: 60, closeDate: 'Apr 8',   stage: 'qualified',   company: 'Cool Air HVAC' },
-  { id: '12', contactName: 'Greg Torres',     title: 'Landscaping Scheduler',  value: 1900,  probability: 45, closeDate: 'Apr 18',  stage: 'new',         company: 'Green Thumb' },
-  { id: '13', contactName: 'Kim Nguyen',      title: 'Optometry AI Receptionist', value: 3100, probability: 80, closeDate: 'Apr 3', stage: 'appointment', company: 'Clear Vision' },
-  { id: '14', contactName: 'Bob Kaufman',     title: 'Car Wash Loyalty Bot',   value: 1200,  probability: 15, closeDate: 'N/A',     stage: 'lost',        company: 'Shine & Go' },
-  { id: '15', contactName: 'Eva Brennan',     title: 'Pet Clinic Scheduler',   value: 2800,  probability: 88, closeDate: 'Mar 31',  stage: 'client',      company: 'Happy Paws Vet' },
-];
-
 function fmt(n: number) {
   return n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n}`;
 }
 
 export default function CrmDeals() {
-  const [deals, setDeals] = useState<Deal[]>(DEMO_DEALS);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newDeal, setNewDeal] = useState({ contactName: '', title: '', value: '', probability: '50', closeDate: '', stage: 'new' as DealStage });
+
+  const fetchDeals = async () => {
+    try {
+      setLoading(true);
+      const { data } = await api.get('/crm/deals');
+      const mapped = (data.deals || []).map((d: any) => ({
+        id: d.id,
+        contactName: d.contact?.name || d.contactName || 'Unknown',
+        title: d.title || '',
+        value: Number(d.value) || 0,
+        probability: d.probability ?? 50,
+        closeDate: d.closeDate ? new Date(d.closeDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD',
+        stage: (d.stage || 'new') as DealStage,
+        company: d.contact?.niche || '',
+      }));
+      setDeals(mapped);
+    } catch {
+      // Keep existing state
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchDeals(); }, []);
 
   const stageDeals = (stage: DealStage) => deals.filter(d => d.stage === stage);
   const stageTotal = (stage: DealStage) => stageDeals(stage).reduce((s, d) => s + d.value, 0);
 
-  const handleAddDeal = () => {
+  const handleAddDeal = async () => {
     if (!newDeal.title || !newDeal.contactName) return;
-    const d: Deal = {
-      id: Date.now().toString(),
-      contactName: newDeal.contactName,
-      title: newDeal.title,
-      value: parseFloat(newDeal.value) || 0,
-      probability: parseInt(newDeal.probability) || 50,
-      closeDate: newDeal.closeDate || 'TBD',
-      stage: newDeal.stage,
-    };
-    setDeals(prev => [d, ...prev]);
-    setNewDeal({ contactName: '', title: '', value: '', probability: '50', closeDate: '', stage: 'new' });
-    setShowAddModal(false);
+    try {
+      await api.post('/crm/deals', {
+        title: newDeal.title,
+        stage: newDeal.stage,
+        value: parseFloat(newDeal.value) || 0,
+        probability: parseInt(newDeal.probability) || 50,
+        closeDate: newDeal.closeDate || null,
+      });
+      setNewDeal({ contactName: '', title: '', value: '', probability: '50', closeDate: '', stage: 'new' });
+      setShowAddModal(false);
+      fetchDeals();
+    } catch {}
+  };
+
+  const handleStageChange = async (dealId: string, newStage: DealStage) => {
+    try {
+      await api.put(`/crm/deals/${dealId}`, { stage: newStage });
+      setDeals(prev => prev.map(d => d.id === dealId ? { ...d, stage: newStage } : d));
+    } catch {}
   };
 
   const totalPipeline = deals.filter(d => d.stage !== 'lost').reduce((s, d) => s + d.value, 0);
   const wonValue = stageTotal('client');
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="animate-spin text-[#6366f1]" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div>

@@ -61,33 +61,64 @@ export class ApifyScrapingService {
       return [];
     }
 
-    try {
-      // Start actor run
-      const startRes = await fetch(
-        `${this.BASE_URL}/acts/${env.APIFY_ACTOR_ID}/runs?token=${env.APIFY_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...input, maxCrawledPlacesPerSearch: 20 }),
-        }
-      );
+    const actorId = env.APIFY_ACTOR_ID;
+    const keyPreview = env.APIFY_API_KEY.slice(0, 12) + '…';
 
-      if (!startRes.ok) {
-        const err = await startRes.text();
-        logger.error('[Apify] Failed to start actor:', err);
+    try {
+      // Start actor run — retry up to 3× on 5xx with exponential backoff
+      let startRes: Response | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) {
+          await new Promise(r => setTimeout(r, 2000 * attempt));
+          logger.info(`[Apify] Retry attempt ${attempt} for actor ${actorId}`);
+        }
+        try {
+          startRes = await fetch(
+            `${this.BASE_URL}/acts/${actorId}/runs?token=${env.APIFY_API_KEY}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${env.APIFY_API_KEY}`,
+              },
+              body: JSON.stringify({ ...input, maxCrawledPlacesPerSearch: 20 }),
+              signal: AbortSignal.timeout(30000),
+            }
+          );
+          if (startRes.status < 500) break; // don't retry 4xx or success
+          const body = await startRes.text();
+          logger.warn(`[Apify] HTTP ${startRes.status} on attempt ${attempt + 1}: ${body.slice(0, 200)}`);
+          startRes = null; // mark as failed so we retry
+        } catch (fetchErr) {
+          logger.warn(`[Apify] Fetch error on attempt ${attempt + 1}: ${(fetchErr as Error).message}`);
+          startRes = null;
+        }
+      }
+
+      if (!startRes || !startRes.ok) {
+        const body = startRes ? await startRes.text().catch(() => '') : '(no response)';
+        logger.error(`[Apify] Failed to start actor ${actorId} (key: ${keyPreview}): HTTP ${startRes?.status ?? 0} — ${body.slice(0, 300)}`);
+        // On 402 (billing), throw special error to abort entire batch — no point retrying
+        if (startRes?.status === 402) {
+          throw new Error('APIFY_BILLING_EXHAUSTED');
+        }
         return [];
       }
 
       const startData = await startRes.json() as any;
       const runId: string = startData.data?.id;
-      if (!runId) return [];
+      if (!runId) {
+        logger.error(`[Apify] No run ID returned from actor ${actorId}. Response: ${JSON.stringify(startData)}`);
+        return [];
+      }
 
       // Poll until SUCCEEDED (max 5 min)
       for (let i = 0; i < 60; i++) {
         await new Promise(r => setTimeout(r, 5000));
 
         const statusRes = await fetch(
-          `${this.BASE_URL}/actor-runs/${runId}?token=${env.APIFY_API_KEY}`
+          `${this.BASE_URL}/actor-runs/${runId}?token=${env.APIFY_API_KEY}`,
+          { headers: { 'Authorization': `Bearer ${env.APIFY_API_KEY}` } }
         );
         const statusData = await statusRes.json() as any;
         const status: string = statusData.data?.status;
@@ -95,7 +126,8 @@ export class ApifyScrapingService {
         if (status === 'SUCCEEDED') {
           const datasetId: string = statusData.data?.defaultDatasetId;
           const itemsRes = await fetch(
-            `${this.BASE_URL}/datasets/${datasetId}/items?token=${env.APIFY_API_KEY}&format=json`
+            `${this.BASE_URL}/datasets/${datasetId}/items?format=json`,
+            { headers: { 'Authorization': `Bearer ${env.APIFY_API_KEY}` } }
           );
           return (await itemsRes.json() as any) || [];
         }
@@ -109,14 +141,30 @@ export class ApifyScrapingService {
       logger.error(`[Apify] Actor run ${runId} timed out after 5 minutes`);
       return [];
     } catch (err) {
-      logger.error('[Apify] Actor run error:', err);
+      logger.error(`[Apify] Actor run exception (actor: ${actorId}, key: ${keyPreview}): ${(err as Error).message}`);
       return [];
     }
   }
 
-  /** Main daily scraping job */
+  /** Main daily scraping job — only runs if callable prospects are running low */
   async runDailyScraping(): Promise<number> {
-    logger.info('[Apify] Starting daily scraping run...');
+    // Check how many callable prospects remain before spending Apify credits
+    const callableCount = await prisma.prospect.count({
+      where: {
+        status: 'new',
+        phone: { not: null },
+        callAttempts: { lt: 3 },
+        NOT: { phoneValidated: false, phoneValidatedAt: { not: null } }, // exclude invalid phones
+      },
+    });
+
+    const MIN_CALLABLE = 50; // Only scrape when below this threshold
+    if (callableCount >= MIN_CALLABLE) {
+      logger.info(`[Apify] Skipping scrape — ${callableCount} callable prospects remaining (threshold: ${MIN_CALLABLE})`);
+      return 0;
+    }
+
+    logger.info(`[Apify] Only ${callableCount} callable prospects left (< ${MIN_CALLABLE}) — starting scrape...`);
     let totalAdded = 0;
 
     for (const { niche, queries, cities } of SCRAPE_QUERIES) {
@@ -129,7 +177,7 @@ export class ApifyScrapingService {
             const results = await this.runActor({
               searchStringsArray: [searchStr],
               language: 'en',
-              countryCode: 'US',
+              countryCode: 'us',
             });
 
             for (const item of results) {
@@ -180,7 +228,11 @@ export class ApifyScrapingService {
               });
               totalAdded++;
             }
-          } catch (err) {
+          } catch (err: any) {
+            if (err?.message === 'APIFY_BILLING_EXHAUSTED') {
+              logger.error('[Apify] Billing exhausted — aborting all scraping. Recharge at https://console.apify.com/billing');
+              return totalAdded;
+            }
             logger.error(`[Apify] Error scraping "${query} ${city}":`, err);
           }
         }
@@ -190,23 +242,43 @@ export class ApifyScrapingService {
     logger.info(`[Apify] Scraping complete: ${totalAdded} new prospects added`);
 
     // Validate phones for newly added prospects
-    try {
-      await phoneValidationService.validateBatch(Math.min(totalAdded, 50));
-    } catch (err) {
-      logger.warn('[Apify] Phone validation batch failed:', err);
+    if (totalAdded > 0) {
+      try {
+        await phoneValidationService.validateBatch(Math.min(totalAdded, 50));
+      } catch (err) {
+        logger.warn('[Apify] Phone validation batch failed:', err);
+      }
     }
 
+    // Discord notification (never throws)
     await discordService.notifySystem(
-      `🕷️ DAILY SCRAPING COMPLETE\n\nNew prospects: ${totalAdded}\nNiches: home_services, dental\nCities: ${SCRAPE_QUERIES.flatMap(n => n.cities).length} targeted`
+      `🕷️ SCRAPING COMPLETE\n\nNew prospects: ${totalAdded}\nNiches: home_services, dental\nCities: ${SCRAPE_QUERIES.flatMap(n => n.cities).length} targeted`
     );
 
-    // Update analytics
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    await prisma.analyticsDaily.upsert({
-      where: { date: today },
-      update: { prospectsAdded: { increment: totalAdded } },
-      create: { date: today, prospectsAdded: totalAdded },
-    });
+    // Update analytics (non-critical, don't fail scraping if this errors)
+    try {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      await prisma.analyticsDaily.upsert({
+        where: { date: today },
+        update: { prospectsAdded: { increment: totalAdded } },
+        create: { date: today, prospectsAdded: totalAdded },
+      });
+    } catch (err) {
+      logger.warn('[Apify] Analytics update failed (non-critical):', err);
+    }
+
+    // Update bot lastProspection timestamp
+    try {
+      const bot = await prisma.botStatus.findFirst({ select: { id: true } });
+      if (bot) {
+        await prisma.botStatus.update({
+          where: { id: bot.id },
+          data: { lastProspection: new Date() },
+        });
+      }
+    } catch (err) {
+      logger.warn('[Apify] BotStatus timestamp update failed:', err);
+    }
 
     return totalAdded;
   }

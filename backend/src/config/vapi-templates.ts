@@ -7,9 +7,10 @@ export const VOICE_CONFIG = {
   ashley: {
     name: 'Ashley',
     language: 'en',
+    assistantId: 'e583a22d-0b73-4bb1-95c8-8de334f06089',
     voiceId: '21m00Tcm4TlvDq8ikWAM', // ElevenLabs Rachel
     model: 'eleven_turbo_v2_5',
-    stability: 0.45,
+    stability: 0.42,
     similarityBoost: 0.82,
     style: 0.35,
     speakerBoost: true,
@@ -17,11 +18,12 @@ export const VOICE_CONFIG = {
     endpointing: 200,
     backgroundSound: 'office',
     fillerInjection: true,
-    targetLatencyMs: 800,
+    responseDelay: 0.1,
   },
   marie: {
     name: 'Marie',
     language: 'fr',
+    assistantId: '327fa4b1-e3b7-4de7-bd06-906d2d42d7dd',
     voiceId: 'pFZP5JQG7iQjIQuC4Bku', // ElevenLabs Amélie
     model: 'eleven_turbo_v2_5',
     stability: 0.38,
@@ -30,11 +32,9 @@ export const VOICE_CONFIG = {
     speakerBoost: true,
     latency: 4,
     endpointing: 150,
-    vadSensitivity: 'maximum',
-    streamingTts: true,
-    fillerInjection: true, // "Euh" / "Mmh" / "Ouais" / "Ah"
-    targetLatencyMs: 600,
     backgroundSound: 'office',
+    fillerInjection: true,
+    responseDelay: 0.1,
   },
 } as const;
 
@@ -80,13 +80,22 @@ export function getNicheFollowUpHour(niche: Niche): number {
 }
 
 // Formality rules for Marie (French)
-const FORMAL_NICHES: Niche[] = ['law', 'medical', 'hotel'];
+const FORMAL_NICHES: Niche[] = ['law', 'medical', 'dental', 'hotel'];
 const INFORMAL_NICHES: Niche[] = ['salon', 'restaurant', 'garage'];
 
 function getFrenchFormality(niche: Niche): 'tu' | 'vous' {
   if (FORMAL_NICHES.includes(niche)) return 'vous';
   if (INFORMAL_NICHES.includes(niche)) return 'tu';
   return 'vous'; // default formal
+}
+
+/**
+ * Public helper: determine tu/vous formality for Marie based on niche.
+ * 'auto' niches (salon, restaurant, garage) use "tu"; formal niches use "vous".
+ */
+export function getMarieFormality(niche: string): 'tu' | 'vous' {
+  const tuNiches = ['salon', 'restaurant', 'garage', 'auto'];
+  return tuNiches.includes(niche) ? 'tu' : 'vous';
 }
 
 // ═══════════════════════════════════════════
@@ -124,8 +133,8 @@ CALL HANDLING:
 TONE: Professional yet warm. Like a real receptionist who's been with the company for years.`;
 }
 
-function generateMarieSystemPrompt(niche: Niche, businessName: string, services: string[], faq: Record<string, string>): string {
-  const formality = getFrenchFormality(niche);
+function generateMarieSystemPrompt(niche: Niche | string, businessName: string, services: string[], faq: Record<string, string>): string {
+  const formality = getMarieFormality(niche);
   const pronoun = formality === 'tu' ? 'tu/toi' : 'vous';
 
   const faqBlock = Object.entries(faq)
@@ -184,7 +193,7 @@ export function buildVapiAssistantConfig(params: {
   return {
     name: `${agentName} — ${params.businessName}`,
     voice: {
-      provider: 'elevenlabs' as const,
+      provider: '11labs' as const,
       voiceId: voice.voiceId,
       model: voice.model,
       stability: voice.stability,
@@ -194,17 +203,21 @@ export function buildVapiAssistantConfig(params: {
     },
     model: {
       provider: 'openai' as const,
-      model: 'gpt-4-turbo' as const,
+      model: 'gpt-4o' as const,
       messages: [{ role: 'system' as const, content: systemPrompt }],
-      temperature: 0.7,
-      maxTokens: 150,
+      temperature: 0.75,
+      maxTokens: 200,
     },
-    silenceTimeoutSeconds: 30,
-    maxDurationSeconds: params.maxDuration || 300,
-    endCallAfterSilenceMs: 5000,
+    silenceTimeoutSeconds: 15,
+    maxDurationSeconds: params.maxDuration || 480,
+    responseDelaySeconds: 0.1,
+    numWordsToInterruptAssistant: 1,
     backgroundSound: voice.backgroundSound,
+    backgroundDenoisingEnabled: true,
     firstMessage: params.language === 'fr'
-      ? `${params.businessName}, bonjour ! C'est Marie, comment je peux vous aider ?`
+      ? (getMarieFormality(params.niche) === 'tu'
+        ? `${params.businessName}, salut ! C'est Marie, comment je peux t'aider ?`
+        : `${params.businessName}, bonjour ! C'est Marie, comment je peux vous aider ?`)
       : `Thank you for calling ${params.businessName}, this is Ashley. How can I help you today?`,
     endCallMessage: params.language === 'fr'
       ? 'Merci pour votre appel, bonne journée !'
@@ -217,6 +230,38 @@ export function buildVapiAssistantConfig(params: {
 
 // All 12 templates (6 niches × 2 languages)
 export const NICHES: Niche[] = ['dental', 'medical', 'law', 'salon', 'restaurant', 'garage', 'hotel'];
+
+// ═══════════════════════════════════════════
+// 12 NICHE TEMPLATES (6 niches × 2 languages)
+// Combines personality config with niche-specific script reference.
+// Actual system prompt is generated at deployment time via buildVapiAssistantConfig.
+// ═══════════════════════════════════════════
+
+const TEMPLATE_NICHES = ['dental', 'plumber_hvac', 'salon', 'restaurant', 'law_firm', 'garage'] as const;
+
+const NICHE_MAP: Record<string, Niche> = {
+  dental: 'dental',
+  plumber_hvac: 'dental', // maps to home_services niche, uses dental as closest Niche type
+  salon: 'salon',
+  restaurant: 'restaurant',
+  law_firm: 'law',
+  garage: 'garage',
+};
+
+export const NICHE_TEMPLATES: Record<string, { language: 'en' | 'fr'; niche: string; voiceConfig: typeof VOICE_CONFIG.ashley | typeof VOICE_CONFIG.marie; systemPromptTemplate: string }> = {
+  dental_en: { language: 'en', niche: 'dental', voiceConfig: VOICE_CONFIG.ashley, systemPromptTemplate: 'Ashley dental receptionist — English' },
+  dental_fr: { language: 'fr', niche: 'dental', voiceConfig: VOICE_CONFIG.marie, systemPromptTemplate: 'Marie dental receptionist — French (vous)' },
+  plumber_hvac_en: { language: 'en', niche: 'plumber_hvac', voiceConfig: VOICE_CONFIG.ashley, systemPromptTemplate: 'Ashley plumber/HVAC receptionist — English' },
+  plumber_hvac_fr: { language: 'fr', niche: 'plumber_hvac', voiceConfig: VOICE_CONFIG.marie, systemPromptTemplate: 'Marie plumber/HVAC receptionist — French (vous)' },
+  salon_en: { language: 'en', niche: 'salon', voiceConfig: VOICE_CONFIG.ashley, systemPromptTemplate: 'Ashley salon receptionist — English' },
+  salon_fr: { language: 'fr', niche: 'salon', voiceConfig: VOICE_CONFIG.marie, systemPromptTemplate: 'Marie salon receptionist — French (tu)' },
+  restaurant_en: { language: 'en', niche: 'restaurant', voiceConfig: VOICE_CONFIG.ashley, systemPromptTemplate: 'Ashley restaurant receptionist — English' },
+  restaurant_fr: { language: 'fr', niche: 'restaurant', voiceConfig: VOICE_CONFIG.marie, systemPromptTemplate: 'Marie restaurant receptionist — French (tu)' },
+  law_firm_en: { language: 'en', niche: 'law_firm', voiceConfig: VOICE_CONFIG.ashley, systemPromptTemplate: 'Ashley law firm receptionist — English' },
+  law_firm_fr: { language: 'fr', niche: 'law_firm', voiceConfig: VOICE_CONFIG.marie, systemPromptTemplate: 'Marie law firm receptionist — French (vous)' },
+  garage_en: { language: 'en', niche: 'garage', voiceConfig: VOICE_CONFIG.ashley, systemPromptTemplate: 'Ashley garage receptionist — English' },
+  garage_fr: { language: 'fr', niche: 'garage', voiceConfig: VOICE_CONFIG.marie, systemPromptTemplate: 'Marie garage receptionist — French (tu)' },
+};
 
 export function generateAllTemplates(businessName: string = 'Demo Business') {
   const templates: Array<{ niche: Niche; language: 'en' | 'fr'; config: ReturnType<typeof buildVapiAssistantConfig> }> = [];

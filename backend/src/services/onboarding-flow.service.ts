@@ -6,6 +6,8 @@ import { discordService } from './discord.service';
 import { onboardingService } from './onboarding.service';
 import { PACKAGES } from '../types';
 import crypto from 'crypto';
+import { resend } from '../config/resend';
+import { getWelcomeEmailHtml } from '../templates/welcome-email';
 
 // ═══════════════════════════════════════════════════════════
 // ONBOARDING FLOW SERVICE
@@ -288,6 +290,22 @@ export class OnboardingFlowService {
       await discordService.notify(
         `📝 ONBOARDING FORM COMPLETED!\n\nClient: ${client.businessName}\nPlan: ${client.planType.toUpperCase()}\nIndustry: ${client.businessType}\n\n✅ VAPI assistant enriched with business data\n📹 Loom video email sent`
       );
+
+      // Send welcome email with quick-start steps
+      try {
+        const welcomeHtml = getWelcomeEmailHtml(client.contactName, client.businessName);
+        await resend.emails.send({
+          from: env.RESEND_FROM_EMAIL,
+          to: client.contactEmail,
+          subject: `Bienvenue chez Qwillio, ${client.contactName} !`,
+          html: welcomeHtml,
+          replyTo: env.RESEND_REPLY_TO,
+          tags: [{ name: 'campaign', value: 'welcome-onboarding' }],
+        });
+        logger.info(`Welcome email sent to ${client.contactEmail} for ${client.businessName}`);
+      } catch (err) {
+        logger.error(`Failed to send welcome email to ${client.contactEmail}:`, err);
+      }
     }
 
     return { success: true, vapiUpdateFailed };

@@ -1086,6 +1086,79 @@ export class EmailService {
       return { success: false };
     }
   }
+  async sendDigestEmail(data: { to: string; contactName: string; businessName: string; totalEmails: number; urgent: number; appointment: number; payment: number; autoReplied: number; needsReview: number }) {
+    try {
+      await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL,
+        to: data.to,
+        subject: `\u{1F4EC} ${data.businessName} \u2014 Daily Email Digest`,
+        html: `
+          <h2>Bonjour ${data.contactName},</h2>
+          <p>Voici le r\u00E9sum\u00E9 de vos emails des derni\u00E8res 24h :</p>
+          <ul>
+            <li><strong>${data.totalEmails}</strong> emails re\u00E7us</li>
+            <li><strong>${data.urgent}</strong> urgents</li>
+            <li><strong>${data.appointment}</strong> rendez-vous</li>
+            <li><strong>${data.payment}</strong> paiements</li>
+            <li><strong>${data.autoReplied}</strong> trait\u00E9s automatiquement</li>
+            <li><strong>${data.needsReview}</strong> en attente de votre revue</li>
+          </ul>
+          <p><a href="${env.FRONTEND_URL?.split(',')[0]}/dashboard/agent/email">Voir dans votre dashboard \u2192</a></p>
+          <p>\u2014 Qwillio AI</p>
+        `,
+      });
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to send digest email:', error);
+      return { success: false };
+    }
+  }
+  async sendRegistrationInvite(data: { to: string; contactName: string; businessName: string; registrationUrl: string; recommendedPlan: string }) {
+    try {
+      const planNames: Record<string, string> = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
+      const planName = planNames[data.recommendedPlan] || 'Pro';
+
+      await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL,
+        to: data.to,
+        replyTo: env.RESEND_REPLY_TO,
+        subject: `${data.contactName}, your AI receptionist is ready — 30 days free`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <img src="https://qwillio.com/favicon.svg" alt="Qwillio" width="40" height="40" style="margin-bottom: 24px;" />
+            <h1 style="font-size: 24px; color: #1a1a2e; margin-bottom: 16px;">Hi ${data.contactName},</h1>
+            <p style="font-size: 16px; color: #4a4a6a; line-height: 1.6;">
+              Great speaking with you! As discussed, Qwillio can handle your incoming calls 24/7 —
+              answering questions, booking appointments, and qualifying leads while you focus on your business.
+            </p>
+            <p style="font-size: 16px; color: #4a4a6a; line-height: 1.6;">
+              We recommend the <strong>${planName}</strong> plan for ${data.businessName}.
+              Your <strong>first 30 days are completely free</strong> — no commitment, cancel anytime.
+            </p>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${data.registrationUrl}"
+                 style="display: inline-block; background: #7B5CF0; color: white; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-size: 16px; font-weight: 600;">
+                Start your free trial →
+              </a>
+            </div>
+            <p style="font-size: 14px; color: #8b8ba7; line-height: 1.6;">
+              Setup takes less than 5 minutes. No credit card required to start.
+            </p>
+            <hr style="border: none; border-top: 1px solid #e5e5ea; margin: 32px 0;" />
+            <p style="font-size: 13px; color: #8b8ba7;">
+              Questions? Reply to this email or call us anytime.<br />
+              — Ashley, Qwillio AI
+            </p>
+          </div>
+        `,
+      });
+      logger.info(`Registration invite sent to ${data.to}`);
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to send registration invite:', error);
+      return { success: false };
+    }
+  }
 }
 
 export const emailService = new EmailService();
