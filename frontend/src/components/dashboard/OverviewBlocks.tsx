@@ -70,13 +70,13 @@ export interface KpiCell {
 }
 
 export function KpiSplit({ items }: { items: KpiCell[] }) {
-  const cols = items.length === 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-3';
+  const cols = items.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3';
   return (
-    <div className={`grid grid-cols-1 ${cols} divide-y divide-white/[0.06] sm:divide-y-0 sm:divide-x sm:divide-white/[0.06]`}>
+    <div className={`grid ${cols} gap-y-4 divide-x divide-white/[0.06]`}>
       {items.map((k, i) => (
-        <div key={i} className="py-4 sm:py-1 sm:px-6 first:sm:pl-0 last:sm:pr-0">
-          <p className="text-[12px]" style={{ color: pro.textSec }}>{k.label}</p>
-          <p className="text-[26px] font-semibold tabular-nums leading-none mt-2" style={{ color: pro.text }}>
+        <div key={i} className="py-1 px-3 sm:px-6 first:pl-0 last:pr-0">
+          <p className="text-[11px] sm:text-[12px] leading-tight" style={{ color: pro.textSec }}>{k.label}</p>
+          <p className="text-[20px] sm:text-[26px] font-semibold tabular-nums leading-none mt-2" style={{ color: pro.text }}>
             {k.value}
           </p>
           {k.delta ? (

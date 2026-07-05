@@ -459,29 +459,46 @@ function MobileBottomNav({
   return (
     <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
       <div className="relative w-full flex items-center py-3">
+        {/* Morph-glass bar — fully translucent, heavy blur, glass edge highlights */}
         <div
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
-            background: 'oklch(11% 0 0 / 0.90)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid oklch(24% 0 0 / 0.5)',
+            background: 'linear-gradient(180deg, oklch(30% 0.01 265 / 0.20) 0%, oklch(16% 0.01 265 / 0.28) 100%)',
+            backdropFilter: 'blur(28px) saturate(1.6)',
+            WebkitBackdropFilter: 'blur(28px) saturate(1.6)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(0,0,0,0.25), 0 12px 32px rgba(0,0,0,0.35)',
           }}
         />
 
+        {/* Water-drop bubble — wobbly spring travel + continuous liquid morph */}
         {showBubble && (
           <motion.span
             key={scope}
-            className="absolute rounded-full pointer-events-none"
+            className="absolute pointer-events-none"
             initial={false}
-            animate={{ left: `${activeIdx * itemPct + itemPct / 2}%` }}
-            transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.8 }}
+            animate={{
+              left: `${activeIdx * itemPct + itemPct / 2}%`,
+              borderRadius: [
+                '46% 54% 52% 48% / 52% 46% 54% 48%',
+                '54% 46% 48% 52% / 48% 56% 44% 52%',
+                '48% 52% 55% 45% / 54% 48% 52% 46%',
+                '46% 54% 52% 48% / 52% 46% 54% 48%',
+              ],
+            }}
+            transition={{
+              left: { type: 'spring', stiffness: 300, damping: 16, mass: 0.9 },
+              borderRadius: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
+            }}
             style={{
-              width: 64, height: 64,
+              width: 60, height: 60,
               top: '50%',
               x: '-50%', y: '-50%',
-              background: 'oklch(56% 0.02 265 / 0.14)',
-              border: '1px solid oklch(56% 0.02 265 / 0.30)',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 60%, rgba(255,255,255,0.10) 100%)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
+              border: '1px solid rgba(255,255,255,0.22)',
+              boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.25), inset 0 -3px 6px rgba(0,0,0,0.20), 0 6px 18px rgba(0,0,0,0.25)',
             }}
           />
         )}
@@ -493,11 +510,15 @@ function MobileBottomNav({
               key={item.path}
               to={item.path}
               onClick={() => onTap?.()}
-              className="relative z-10 flex-1 flex flex-col items-center gap-0.5 py-0.5"
-              style={{ color: active ? '#fff' : 'rgba(255,255,255,0.38)' }}
+              aria-label={item.label}
+              className="relative z-10 flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-h-[52px]"
+              style={{ color: active ? '#fff' : 'rgba(255,255,255,0.40)' }}
             >
+              {/* Active item: just the icon, centred inside the water bubble */}
               <item.icon className="relative z-10 w-[22px] h-[22px]" />
-              <span className="relative z-10 text-[9px] font-medium mt-0.5">{item.label}</span>
+              {!active && (
+                <span className="relative z-10 text-[9px] font-medium mt-0.5">{item.label}</span>
+              )}
             </Link>
           );
         })}
