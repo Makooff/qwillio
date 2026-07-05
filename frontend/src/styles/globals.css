@@ -253,3 +253,23 @@ textarea:focus-visible,
     transition-duration: 0ms !important;
   }
 }
+
+/* ─── ScrollReelTestimonials — per-character rise + block exit ─── */
+.scroll-reel-char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(14px);
+  animation: scrollReelCharIn 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.scroll-reel-exit .scroll-reel-char {
+  animation: none;
+}
+.scroll-reel-exit {
+  animation: scrollReelExit 240ms ease forwards;
+}
+@keyframes scrollReelCharIn {
+  to { opacity: 1; transform: none; }
+}
+@keyframes scrollReelExit {
+  to { opacity: 0; transform: translateY(-10px); }
+}

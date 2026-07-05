@@ -9,8 +9,15 @@ import { useLang } from '../stores/langStore';
 import Reveal from '../components/ui/Reveal';
 import Card3D from '../components/ui/Card3D';
 import HeroPhone3D from '../components/ui/HeroPhone3D';
+import ScrollReelTestimonials from '../components/ui/ScrollReelTestimonials';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
+
+/* Local SVG portrait tile (initials on a brand gradient) — no external assets */
+function portraitTile(initials: string, from: string, to: string) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='${from}'/><stop offset='1' stop-color='${to}'/></linearGradient></defs><rect width='240' height='240' fill='url(#g)'/><text x='50%' y='55%' font-family='Outfit, system-ui, sans-serif' font-size='84' font-weight='600' fill='white' text-anchor='middle' dominant-baseline='middle'>${initials}</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    POUR QUI ? — scroll-drawn brand stroke with industries appearing around it
@@ -20,18 +27,19 @@ const EASE = [0.16, 1, 0.3, 1] as const;
    progress when they pop. Side-anchored (left OR right offset) so a chip can
    never overflow the viewport edge, with breathing room between neighbours. */
 const SECTOR_SPOTS: Array<{ at: number; side: 'left' | 'right'; off: string; y: string }> = [
-  { at: 0.08, side: 'left',  off: '22%', y: '12%' },   // along the stroke
-  { at: 0.14, side: 'right', off: '18%', y: '16%' },
-  { at: 0.20, side: 'left',  off: '34%', y: '34%' },   // hugging the curve
-  { at: 0.26, side: 'right', off: '30%', y: '64%' },
-  { at: 0.32, side: 'left',  off: '8%',  y: '28%' },   // then spreading wide
-  { at: 0.40, side: 'right', off: '7%',  y: '31%' },
-  { at: 0.46, side: 'left',  off: '6%',  y: '70%' },
-  { at: 0.52, side: 'right', off: '8%',  y: '78%' },
-  { at: 0.58, side: 'left',  off: '24%', y: '82%' },
-  { at: 0.64, side: 'right', off: '22%', y: '89%' },
-  { at: 0.70, side: 'right', off: '34%', y: '24%' },
-  { at: 0.76, side: 'left',  off: '10%', y: '90%' },
+  // Flanking the stroke on both sides, top to bottom, popping in sync with the draw
+  { at: 0.06, side: 'left',  off: '30%', y: '8%'  },
+  { at: 0.10, side: 'right', off: '26%', y: '14%' },
+  { at: 0.15, side: 'left',  off: '22%', y: '22%' },
+  { at: 0.20, side: 'right', off: '24%', y: '27%' },
+  { at: 0.25, side: 'left',  off: '12%', y: '33%' },
+  { at: 0.30, side: 'right', off: '16%', y: '38%' },
+  { at: 0.35, side: 'left',  off: '18%', y: '63%' },
+  { at: 0.40, side: 'right', off: '12%', y: '68%' },
+  { at: 0.44, side: 'left',  off: '26%', y: '75%' },
+  { at: 0.48, side: 'right', off: '20%', y: '80%' },
+  { at: 0.52, side: 'left',  off: '10%', y: '86%' },
+  { at: 0.56, side: 'right', off: '28%', y: '91%' },
 ];
 
 function SectorChip({ name, spot, progress }: {
@@ -224,17 +232,41 @@ export default function Home() {
     ? ['Santé', 'Juridique', 'Immobilier', 'Services à domicile', 'Restauration', 'Éducation', 'Automobile', 'Fitness', 'Beauté', 'Finance', 'Commerce', 'Startups']
     : ['Healthcare', 'Legal', 'Real Estate', 'Home Services', 'Restaurants', 'Education', 'Automotive', 'Fitness', 'Beauty', 'Finance', 'Retail', 'Startups'];
 
-  const testimonial = isFr
-    ? {
-        quote: 'Qwillio a transformé notre cabinet. On ne manque plus un seul appel et les rendez-vous se prennent tout seuls.',
-        name: 'Dr. Sarah Chen',
-        role: 'Directrice de clinique, Bright Dental',
-      }
-    : {
-        quote: 'Qwillio transformed our practice. We never miss a call and appointments book themselves.',
-        name: 'Dr. Sarah Chen',
-        role: 'Clinic Director, Bright Dental',
-      };
+  const testimonials = isFr
+    ? [
+        {
+          quote: 'Qwillio a transformé notre cabinet. On ne manque plus un seul appel et les rendez-vous se prennent tout seuls.',
+          author: 'Dr. Sarah Chen — Directrice de clinique, Bright Dental',
+          image: portraitTile('SC', '#6366f1', '#a855f7'),
+        },
+        {
+          quote: 'Chaque appel manqué était un chantier perdu. Depuis Qwillio, mon téléphone travaille même quand je suis sur un toit.',
+          author: 'Marc Rivera — Gérant, Rivera HVAC',
+          image: portraitTile('MR', '#4f46e5', '#6366f1'),
+        },
+        {
+          quote: 'Les rappels se planifient seuls et les urgences sont transférées immédiatement. Le cabinet ne rate plus rien.',
+          author: 'Me Elin Larsson — Associée, Larsson Law',
+          image: portraitTile('EL', '#a855f7', '#6366f1'),
+        },
+      ]
+    : [
+        {
+          quote: 'Qwillio transformed our practice. We never miss a call and appointments book themselves.',
+          author: 'Dr. Sarah Chen — Clinic Director, Bright Dental',
+          image: portraitTile('SC', '#6366f1', '#a855f7'),
+        },
+        {
+          quote: 'Every missed call used to be a lost job. Since Qwillio, my phone works even when I am on a roof.',
+          author: 'Marc Rivera — Owner, Rivera HVAC',
+          image: portraitTile('MR', '#4f46e5', '#6366f1'),
+        },
+        {
+          quote: 'Callbacks schedule themselves and urgent cases transfer instantly. The firm never misses a thing.',
+          author: 'Elin Larsson — Partner, Larsson Law',
+          image: portraitTile('EL', '#a855f7', '#6366f1'),
+        },
+      ];
 
   return (
     <div className="bg-white text-[#1d1d1f] min-h-screen">
@@ -333,48 +365,6 @@ export default function Home() {
             </motion.div>
           </div>
         </section>
-
-        {/* ════════════════════════════════════════════════════════════════
-            BIG QUOTE — drenched indigo (Receptionist brand)
-            ════════════════════════════════════════════════════════════════ */}
-        <section
-          aria-label={isFr ? 'Témoignage client' : 'Customer quote'}
-          className="px-6"
-        >
-          <div className="max-w-[1240px] mx-auto">
-            <motion.figure
-              className="rounded-[2rem] px-8 md:px-16 py-12 sm:py-16 md:py-24"
-              style={{ background: '#6366f1' }}
-              initial={{ opacity: 0, scale: 0.94, y: 60 }}
-              whileInView={{ opacity: 1, scale: 1, y: 0 }}
-              viewport={{ once: true, margin: '-15%' }}
-              transition={{ duration: 0.9, ease: EASE }}
-            >
-              <blockquote className="text-white text-[clamp(1.6rem,3.5vw,2.6rem)] font-semibold tracking-[-0.025em] leading-[1.18] max-w-[920px]">
-                <span
-                  className="font-serif italic text-white/40 text-[1.8em] leading-none mr-2 align-[-0.18em]"
-                  aria-hidden="true"
-                >
-                  "
-                </span>
-                {testimonial.quote}
-              </blockquote>
-              <figcaption className="mt-8 flex items-center gap-3 text-white/80 text-sm">
-                <span
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold text-white"
-                  style={{ background: 'rgba(255,255,255,0.15)' }}
-                >
-                  SC
-                </span>
-                <span>
-                  <span className="font-semibold text-white">{testimonial.name}</span>
-                  <span className="text-white/60"> — {testimonial.role}</span>
-                </span>
-              </figcaption>
-            </motion.figure>
-          </div>
-        </section>
-
         {/* ════════════════════════════════════════════════════════════════
             PRODUCTS — bento. Receptionist=indigo, Agent=violet
             ════════════════════════════════════════════════════════════════ */}
@@ -617,6 +607,26 @@ export default function Home() {
             POUR QUI ? — scroll-drawn brand stroke, sectors pop around it
             ════════════════════════════════════════════════════════════════ */}
         <IndustriesStroke isFr={isFr} industries={industries} />
+
+        {/* ════════════════════════════════════════════════════════════════
+            TESTIMONIALS — counter-rotating scroll reel (second-to-last)
+            ════════════════════════════════════════════════════════════════ */}
+        <section
+          aria-label={isFr ? 'Témoignages clients' : 'Customer testimonials'}
+          className="px-5 sm:px-6 py-14 sm:py-18 md:py-24"
+        >
+          <div className="max-w-[1240px] mx-auto flex justify-center">
+            <motion.div
+              className="w-full flex justify-center"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-12%' }}
+              transition={{ duration: 0.8, ease: EASE }}
+            >
+              <ScrollReelTestimonials testimonials={testimonials} />
+            </motion.div>
+          </div>
+        </section>
 
         {/* ════════════════════════════════════════════════════════════════
             CTA — editorial split with both brand colors in headline
