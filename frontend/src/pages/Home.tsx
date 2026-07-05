@@ -13,11 +13,6 @@ import ScrollReelTestimonials from '../components/ui/ScrollReelTestimonials';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-/* Local SVG portrait tile (initials on a brand gradient) — no external assets */
-function portraitTile(initials: string, from: string, to: string) {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='${from}'/><stop offset='1' stop-color='${to}'/></linearGradient></defs><rect width='240' height='240' fill='url(#g)'/><text x='50%' y='55%' font-family='Outfit, system-ui, sans-serif' font-size='84' font-weight='600' fill='white' text-anchor='middle' dominant-baseline='middle'>${initials}</text></svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
 
 /* ══════════════════════════════════════════════════════════════════════════
    POUR QUI ? — scroll-drawn brand stroke with industries appearing around it
@@ -237,34 +232,34 @@ export default function Home() {
         {
           quote: 'Qwillio a transformé notre cabinet. On ne manque plus un seul appel et les rendez-vous se prennent tout seuls.',
           author: 'Dr. Sarah Chen — Directrice de clinique, Bright Dental',
-          image: portraitTile('SC', '#6366f1', '#a855f7'),
+          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131120_3b6db5f5-3061-445f-b905-2506f5df0379_min.webp',
         },
         {
           quote: 'Chaque appel manqué était un chantier perdu. Depuis Qwillio, mon téléphone travaille même quand je suis sur un toit.',
           author: 'Marc Rivera — Gérant, Rivera HVAC',
-          image: portraitTile('MR', '#4f46e5', '#6366f1'),
+          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131137_f389f0cd-da49-459a-8a68-9f6e0386e465_min.webp',
         },
         {
           quote: 'Les rappels se planifient seuls et les urgences sont transférées immédiatement. Le cabinet ne rate plus rien.',
           author: 'Me Elin Larsson — Associée, Larsson Law',
-          image: portraitTile('EL', '#a855f7', '#6366f1'),
+          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131146_8edfa418-bcd8-44a9-8d9c-ad484a7912cb_min.webp',
         },
       ]
     : [
         {
           quote: 'Qwillio transformed our practice. We never miss a call and appointments book themselves.',
           author: 'Dr. Sarah Chen — Clinic Director, Bright Dental',
-          image: portraitTile('SC', '#6366f1', '#a855f7'),
+          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131120_3b6db5f5-3061-445f-b905-2506f5df0379_min.webp',
         },
         {
           quote: 'Every missed call used to be a lost job. Since Qwillio, my phone works even when I am on a roof.',
           author: 'Marc Rivera — Owner, Rivera HVAC',
-          image: portraitTile('MR', '#4f46e5', '#6366f1'),
+          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131137_f389f0cd-da49-459a-8a68-9f6e0386e465_min.webp',
         },
         {
           quote: 'Callbacks schedule themselves and urgent cases transfer instantly. The firm never misses a thing.',
           author: 'Elin Larsson — Partner, Larsson Law',
-          image: portraitTile('EL', '#a855f7', '#6366f1'),
+          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131146_8edfa418-bcd8-44a9-8d9c-ad484a7912cb_min.webp',
         },
       ];
 
