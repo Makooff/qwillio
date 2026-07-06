@@ -170,10 +170,11 @@ export default function ClientReceptionist() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
-    if (!code || params.get('state') !== 'qwillio-gcal') return;
+    const state = params.get('state');
+    if (!code || !state || !state.startsWith('qwillio-gcal')) return;
     window.history.replaceState({}, '', window.location.pathname);
     setGcalBusy(true);
-    api.post('/my-dashboard/integrations/google-calendar/callback', { code, state: 'qwillio-gcal' })
+    api.post('/my-dashboard/integrations/google-calendar/callback', { code, state })
       .then(() => load())
       .catch(() => setError('Échec de la connexion Google Calendar'))
       .finally(() => setGcalBusy(false));
@@ -195,6 +196,8 @@ export default function ClientReceptionist() {
     try {
       await api.delete('/my-dashboard/integrations/google-calendar');
       setGcal({ connected: false });
+    } catch {
+      setError('Échec de la déconnexion Google Calendar');
     } finally {
       setGcalBusy(false);
     }
@@ -707,7 +710,7 @@ export default function ClientReceptionist() {
 
             {gcal?.revoked && (
               <p className="mt-2 text-[11px] text-[#F59E0B]">
-                Accès révoqué côté Google — reconnectez votre calendrier.
+                Accès révoqué côté Google : reconnectez votre calendrier.
               </p>
             )}
 

@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   LogOut, X, ChevronDown,
   Settings as SettingsIcon, LayoutDashboard, RefreshCw,
@@ -455,6 +455,7 @@ function MobileBottomNav({
   );
   const itemPct = 100 / items.length;
   const showBubble = activeIdx >= 0;
+  const reduceMotion = useReducedMotion();
 
   return (
     <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
@@ -479,12 +480,14 @@ function MobileBottomNav({
             initial={false}
             animate={{
               left: `${activeIdx * itemPct + itemPct / 2}%`,
-              borderRadius: [
-                '46% 54% 52% 48% / 52% 46% 54% 48%',
-                '54% 46% 48% 52% / 48% 56% 44% 52%',
-                '48% 52% 55% 45% / 54% 48% 52% 46%',
-                '46% 54% 52% 48% / 52% 46% 54% 48%',
-              ],
+              borderRadius: reduceMotion
+                ? '50%'
+                : [
+                    '46% 54% 52% 48% / 52% 46% 54% 48%',
+                    '54% 46% 48% 52% / 48% 56% 44% 52%',
+                    '48% 52% 55% 45% / 54% 48% 52% 46%',
+                    '46% 54% 52% 48% / 52% 46% 54% 48%',
+                  ],
             }}
             transition={{
               left: { type: 'spring', stiffness: 300, damping: 16, mass: 0.9 },
@@ -511,7 +514,7 @@ function MobileBottomNav({
               to={item.path}
               onClick={() => onTap?.()}
               aria-label={item.label}
-              className="relative z-10 flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-h-[52px]"
+              className="relative z-10 flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-h-[52px] transition-transform active:scale-[0.97]"
               style={{ color: active ? '#fff' : 'rgba(255,255,255,0.40)' }}
             >
               {/* Active item: just the icon, centred inside the water bubble */}

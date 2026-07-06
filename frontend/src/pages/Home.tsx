@@ -231,34 +231,34 @@ export default function Home() {
     ? [
         {
           quote: 'Qwillio a transformé notre cabinet. On ne manque plus un seul appel et les rendez-vous se prennent tout seuls.',
-          author: 'Dr. Sarah Chen — Directrice de clinique, Bright Dental',
+          author: 'Dr. Sarah Chen, Directrice de clinique, Bright Dental',
           image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131120_3b6db5f5-3061-445f-b905-2506f5df0379_min.webp',
         },
         {
           quote: 'Chaque appel manqué était un chantier perdu. Depuis Qwillio, mon téléphone travaille même quand je suis sur un toit.',
-          author: 'Marc Rivera — Gérant, Rivera HVAC',
+          author: 'Marc Rivera, Gérant, Rivera HVAC',
           image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131137_f389f0cd-da49-459a-8a68-9f6e0386e465_min.webp',
         },
         {
           quote: 'Les rappels se planifient seuls et les urgences sont transférées immédiatement. Le cabinet ne rate plus rien.',
-          author: 'Me Elin Larsson — Associée, Larsson Law',
+          author: 'Me Elin Larsson, Associée, Larsson Law',
           image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131146_8edfa418-bcd8-44a9-8d9c-ad484a7912cb_min.webp',
         },
       ]
     : [
         {
           quote: 'Qwillio transformed our practice. We never miss a call and appointments book themselves.',
-          author: 'Dr. Sarah Chen — Clinic Director, Bright Dental',
+          author: 'Dr. Sarah Chen, Clinic Director, Bright Dental',
           image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131120_3b6db5f5-3061-445f-b905-2506f5df0379_min.webp',
         },
         {
           quote: 'Every missed call used to be a lost job. Since Qwillio, my phone works even when I am on a roof.',
-          author: 'Marc Rivera — Owner, Rivera HVAC',
+          author: 'Marc Rivera, Owner, Rivera HVAC',
           image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131137_f389f0cd-da49-459a-8a68-9f6e0386e465_min.webp',
         },
         {
           quote: 'Callbacks schedule themselves and urgent cases transfer instantly. The firm never misses a thing.',
-          author: 'Elin Larsson — Partner, Larsson Law',
+          author: 'Elin Larsson, Partner, Larsson Law',
           image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131146_8edfa418-bcd8-44a9-8d9c-ad484a7912cb_min.webp',
         },
       ];
@@ -618,7 +618,12 @@ export default function Home() {
               viewport={{ once: true, margin: '-12%' }}
               transition={{ duration: 0.8, ease: EASE }}
             >
-              <ScrollReelTestimonials testimonials={testimonials} />
+              <ScrollReelTestimonials
+                testimonials={testimonials}
+                regionLabel={isFr ? 'Témoignages' : 'Testimonials'}
+                prevLabel={isFr ? 'Témoignage précédent' : 'Previous testimonial'}
+                nextLabel={isFr ? 'Témoignage suivant' : 'Next testimonial'}
+              />
             </motion.div>
           </div>
         </section>

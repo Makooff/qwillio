@@ -70,7 +70,11 @@ export interface KpiCell {
 }
 
 export function KpiSplit({ items }: { items: KpiCell[] }) {
-  const cols = items.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3';
+  const cols = items.length === 4
+    // On mobile the 4-cell grid wraps 2x2: suppress the divider that DOM-order
+    // divide-x would paint on the first cell of the second row.
+    ? 'grid-cols-2 sm:grid-cols-4 [&>*:nth-child(2n+1)]:border-l-0 sm:[&>*:nth-child(2n+1)]:border-l'
+    : 'grid-cols-3';
   return (
     <div className={`grid ${cols} gap-y-4 divide-x divide-white/[0.06]`}>
       {items.map((k, i) => (

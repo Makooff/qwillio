@@ -17,6 +17,10 @@ export interface ScrollReelTestimonialsProps {
   testimonials: ScrollReelTestimonial[];
   charStaggerMs?: number;
   className?: string;
+  /** Localized accessibility labels */
+  regionLabel?: string;
+  prevLabel?: string;
+  nextLabel?: string;
 }
 
 /* Geometry — middle column pitch between portrait centers:
@@ -28,7 +32,7 @@ const STEP = 3 * (CELL + GAP);
 const EXIT_MS = 240;
 const SLIDE_MS = 800;
 
-const EASE_INOUT = 'cubic-bezier(0.65,0,0.35,1)';
+const EASE_INOUT = 'cubic-bezier(0.77, 0, 0.175, 1)'; // ease-in-out token
 
 const QUOTE_CLASSES =
   'm-0 text-lg font-medium leading-[1.3] tracking-[-0.02em] text-[#1d1d1f] sm:text-[22px]';
@@ -125,6 +129,9 @@ export function ScrollReelTestimonials({
   testimonials,
   charStaggerMs = 6,
   className,
+  regionLabel = 'Testimonials',
+  prevLabel = 'Previous testimonial',
+  nextLabel = 'Next testimonial',
 }: ScrollReelTestimonialsProps) {
   const [index, setIndex] = React.useState(0);
   const [displayIndex, setDisplayIndex] = React.useState(0);
@@ -136,10 +143,11 @@ export function ScrollReelTestimonials({
   const count = testimonials.length;
 
   React.useEffect(() => {
+    const timeoutIds = timeouts.current;
     const raf = requestAnimationFrame(() => requestAnimationFrame(() => setMounted(true)));
     return () => {
       cancelAnimationFrame(raf);
-      timeouts.current.forEach(clearTimeout);
+      timeoutIds.forEach(clearTimeout);
     };
   }, []);
 
@@ -208,7 +216,7 @@ export function ScrollReelTestimonials({
     <div
       role="region"
       aria-roledescription="carousel"
-      aria-label="Testimonials"
+      aria-label={regionLabel}
       tabIndex={0}
       onKeyDown={onKeyDown}
       className={cn(
@@ -304,8 +312,8 @@ export function ScrollReelTestimonials({
             type="button"
             onClick={() => paginate(-1)}
             disabled={index === 0}
-            aria-label="Previous testimonial"
-            className="grid h-6 w-6 cursor-pointer place-items-center rounded-full border border-[#1d1d1f]/15 bg-transparent p-0 text-[#1d1d1f] transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:enabled:scale-[1.08] active:enabled:scale-[0.94] disabled:cursor-default disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]"
+            aria-label={prevLabel}
+            className="grid h-6 w-6 cursor-pointer place-items-center rounded-full border border-[#1d1d1f]/15 bg-transparent p-0 text-[#1d1d1f] transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:enabled:scale-[1.08] active:enabled:scale-[0.97] disabled:cursor-default disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]"
           >
             <svg className="h-3 w-3 opacity-70" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M7.5 2.5 3.5 6l4 3.5" />
@@ -315,8 +323,8 @@ export function ScrollReelTestimonials({
             type="button"
             onClick={() => paginate(1)}
             disabled={index === count - 1}
-            aria-label="Next testimonial"
-            className="grid h-6 w-6 cursor-pointer place-items-center rounded-full border border-[#1d1d1f]/15 bg-transparent p-0 text-[#1d1d1f] transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:enabled:scale-[1.08] active:enabled:scale-[0.94] disabled:cursor-default disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]"
+            aria-label={nextLabel}
+            className="grid h-6 w-6 cursor-pointer place-items-center rounded-full border border-[#1d1d1f]/15 bg-transparent p-0 text-[#1d1d1f] transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:enabled:scale-[1.08] active:enabled:scale-[0.97] disabled:cursor-default disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]"
           >
             <svg className="h-3 w-3 opacity-70" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="m4.5 2.5 4 3.5-4 3.5" />
