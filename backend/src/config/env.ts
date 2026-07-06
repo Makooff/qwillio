@@ -82,6 +82,7 @@ export const env = {
 
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
+  GOOGLE_OAUTH_REDIRECT_URI: process.env.GOOGLE_OAUTH_REDIRECT_URI || 'https://qwillio.com/dashboard/receptionist',
   GOOGLE_PLACES_API_KEY: process.env.GOOGLE_PLACES_API_KEY || '',
 
   DISCORD_WEBHOOK_URL: process.env.DISCORD_WEBHOOK_URL || '',

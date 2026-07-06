@@ -30,6 +30,12 @@ router.get('/analytics', (req, res) => clientDashboardController.getMyAnalytics(
 router.put('/leads/:id/status', (req, res) => clientDashboardController.updateLeadStatus(req, res));
 router.put('/leads/:id/notes', (req, res) => clientDashboardController.updateLeadNotes(req, res));
 
+// ─── Integrations ───────────────────────────────────────
+router.get('/integrations/google-calendar/auth-url', (req, res) => clientDashboardController.getGoogleCalendarAuthUrl(req, res));
+router.post('/integrations/google-calendar/callback', (req, res) => clientDashboardController.connectGoogleCalendar(req, res));
+router.get('/integrations/google-calendar/status', (req, res) => clientDashboardController.googleCalendarStatus(req, res));
+router.delete('/integrations/google-calendar', (req, res) => clientDashboardController.disconnectGoogleCalendar(req, res));
+
 // ─── Receptionist settings ──────────────────────────────
 router.get('/settings', (req, res) => clientDashboardController.getMySettings(req, res));
 router.put('/settings', (req, res) => clientDashboardController.updateMySettings(req, res));

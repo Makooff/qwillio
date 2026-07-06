@@ -1,6 +1,13 @@
+import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../config/database';
+import { env } from '../config/env';
 import { logger } from '../config/logger';
 import { detectTimezone } from '../config/scheduling';
+
+const OAUTH_SCOPES = [
+  'https://www.googleapis.com/auth/calendar.events',
+  'https://www.googleapis.com/auth/calendar.readonly',
+];
 
 // ═══════════════════════════════════════════════════════════
 // GOOGLE CALENDAR SERVICE
@@ -204,6 +211,80 @@ export class GoogleCalendarService {
     } catch (error) {
       logger.error('Failed to get calendar availability:', error);
       throw error;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // OAUTH — connect a client's Google Calendar
+  // ═══════════════════════════════════════════════════════════
+  private getOAuthClient() {
+    return new OAuth2Client(
+      env.GOOGLE_CLIENT_ID,
+      env.GOOGLE_CLIENT_SECRET,
+      env.GOOGLE_OAUTH_REDIRECT_URI,
+    );
+  }
+
+  /** Consent URL the frontend redirects the client to. */
+  getConnectUrl(state: string) {
+    return this.getOAuthClient().generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: OAUTH_SCOPES,
+      include_granted_scopes: true,
+      state,
+    });
+  }
+
+  /** Exchange the redirect `code` for tokens; returns the refresh token. */
+  async exchangeCode(code: string): Promise<string> {
+    const { tokens } = await this.getOAuthClient().getToken(code);
+    if (!tokens.refresh_token) {
+      throw new Error('Google did not return a refresh token');
+    }
+    return tokens.refresh_token;
+  }
+
+  /** Short-lived access token from a stored refresh token. */
+  async getAccessTokenFromRefresh(refreshToken: string): Promise<string> {
+    const client = this.getOAuthClient();
+    client.setCredentials({ refresh_token: refreshToken });
+    const { token } = await client.getAccessToken();
+    if (!token) throw new Error('Failed to mint Google access token');
+    return token;
+  }
+
+  /** Next upcoming events — proves read access and feeds the UI preview. */
+  async listUpcomingEvents(refreshToken: string, calendarId = 'primary', maxResults = 3) {
+    const accessToken = await this.getAccessTokenFromRefresh(refreshToken);
+    const params = new URLSearchParams({
+      timeMin: new Date().toISOString(),
+      maxResults: String(maxResults),
+      singleEvents: 'true',
+      orderBy: 'startTime',
+    });
+    const response = await fetch(
+      `${this.baseUrl}/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    if (!response.ok) throw new Error(`Calendar events request failed: ${response.status}`);
+    const data = await response.json() as any;
+    return (data.items || []).map((ev: any) => ({
+      id: ev.id,
+      summary: ev.summary || '(sans titre)',
+      start: ev.start?.dateTime || ev.start?.date || null,
+    }));
+  }
+
+  /** Best-effort token revocation on disconnect. */
+  async revokeToken(refreshToken: string) {
+    try {
+      await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(refreshToken)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
+    } catch (error) {
+      logger.warn('Google token revocation failed (continuing):', error);
     }
   }
 }

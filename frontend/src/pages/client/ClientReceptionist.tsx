@@ -107,6 +107,9 @@ export default function ClientReceptionist() {
   const [postalCode, setPostalCode] = useState('');
   const [forwardingType, setForwardingType] = useState('');
   const [googleCalendarId, setGoogleCalendarId] = useState('');
+  // Google Calendar OAuth integration
+  const [gcal, setGcal] = useState<{ connected: boolean; revoked?: boolean; upcoming?: { id: string; summary: string; start: string | null }[] } | null>(null);
+  const [gcalBusy, setGcalBusy] = useState(false);
   // Knowledge base (stored inside vapiConfig JSON, exposed top-level)
   const [items, setItems] = useState<KbItem[]>([]);
   const [weekHours, setWeekHours] = useState<WeekHours>(DEFAULT_HOURS);
@@ -117,10 +120,12 @@ export default function ClientReceptionist() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [ov, st] = await Promise.all([
+      const [ov, st, gc] = await Promise.all([
         api.get('/my-dashboard/overview'),
         api.get('/my-dashboard/settings').catch(() => ({ data: null })),
+        api.get('/my-dashboard/integrations/google-calendar/status').catch(() => ({ data: { connected: false } })),
       ]);
+      setGcal(gc.data);
       setOverview(ov.data);
       const s = st.data;
       setSettings(s);
@@ -160,6 +165,43 @@ export default function ClientReceptionist() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Google OAuth redirect lands back here with ?code=&state= — finish the handshake
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    if (!code || !state || !state.startsWith('qwillio-gcal')) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    setGcalBusy(true);
+    api.post('/my-dashboard/integrations/google-calendar/callback', { code, state })
+      .then(() => load())
+      .catch(() => setError('Échec de la connexion Google Calendar'))
+      .finally(() => setGcalBusy(false));
+  }, [load]);
+
+  const connectGcal = async () => {
+    setGcalBusy(true);
+    try {
+      const { data } = await api.get('/my-dashboard/integrations/google-calendar/auth-url');
+      window.location.href = data.url;
+    } catch {
+      setError('OAuth Google non configuré côté serveur');
+      setGcalBusy(false);
+    }
+  };
+
+  const disconnectGcal = async () => {
+    setGcalBusy(true);
+    try {
+      await api.delete('/my-dashboard/integrations/google-calendar');
+      setGcal({ connected: false });
+    } catch {
+      setError('Échec de la déconnexion Google Calendar');
+    } finally {
+      setGcalBusy(false);
+    }
+  };
 
   // Scroll to #transfer (or any other section) when the URL includes a hash
   useEffect(() => {
@@ -629,15 +671,88 @@ export default function ClientReceptionist() {
 
       {/* —— Intégrations —— */}
       <Section title="Intégrations" icon={Calendar} color="#493cbe" defaultOpen={false}>
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Google Calendar ID</label>
-            <input type="text" value={googleCalendarId} onChange={e => setGoogleCalendarId(e.target.value)}
-              placeholder="example@group.calendar.google.com" className={inputCls} />
-            <p className="text-[10px] text-[#8B8BA7] mt-1">Connectez votre calendrier pour que l'IA puisse prendre des rendez-vous</p>
+        <div className="space-y-3">
+          {/* Google Calendar — real OAuth connect */}
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/[0.06]">
+                <Calendar size={16} className="text-white/70" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-[#F8F8FF]">Google Calendar</p>
+                <p className="text-[11px] text-[#8B8BA7] leading-snug">
+                  L'IA note les rendez-vous dans votre agenda et lit vos disponibilités
+                </p>
+              </div>
+              {gcal?.connected ? (
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1 text-[11px] font-medium text-[#22C55E]">
+                    <CheckCircle2 size={13} /> Connecté
+                  </span>
+                  <button
+                    onClick={disconnectGcal}
+                    disabled={gcalBusy}
+                    className="px-3 py-1.5 text-[11px] font-medium rounded-lg text-white/60 bg-white/[0.06] hover:bg-white/[0.10] transition-colors disabled:opacity-50"
+                  >
+                    Déconnecter
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={connectGcal}
+                  disabled={gcalBusy}
+                  className="px-3.5 py-2 text-[12px] font-medium rounded-lg text-white bg-[#493cbe] hover:bg-[#5b4ed6] transition-colors disabled:opacity-50"
+                >
+                  {gcalBusy ? 'Connexion…' : 'Connecter'}
+                </button>
+              )}
+            </div>
+
+            {gcal?.revoked && (
+              <p className="mt-2 text-[11px] text-[#F59E0B]">
+                Accès révoqué côté Google : reconnectez votre calendrier.
+              </p>
+            )}
+
+            {/* Read proof: next events from the connected calendar */}
+            {gcal?.connected && (gcal.upcoming?.length ?? 0) > 0 && (
+              <div className="mt-3 pt-3 border-t border-white/[0.04] space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-[#8B8BA7]">Prochains rendez-vous</p>
+                {gcal.upcoming!.map(ev => (
+                  <div key={ev.id} className="flex items-center justify-between gap-3 text-[12px]">
+                    <span className="truncate text-white/80">{ev.summary}</span>
+                    <span className="flex-shrink-0 tabular-nums text-white/40">
+                      {ev.start ? new Date(ev.start).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+
+          {/* Coming-soon integrations, same card format */}
+          {([
+            { icon: Clock3,     name: 'Calendly',            desc: 'Synchronisez vos liens de réservation' },
+            { icon: Globe,      name: 'Outlook / Microsoft 365', desc: 'Agenda et contacts Microsoft' },
+            { icon: Tag,        name: 'Stripe',              desc: 'Encaissements et factures liés aux appels' },
+            { icon: Activity,   name: 'Slack',               desc: 'Notification instantanée de chaque lead' },
+            { icon: Settings,   name: 'Zapier',              desc: 'Reliez Qwillio à 6000+ outils' },
+          ] as { icon: typeof Calendar; name: string; desc: string }[]).map(intg => (
+            <div key={intg.name} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 opacity-70">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/[0.06]">
+                <intg.icon size={16} className="text-white/60" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-[#F8F8FF]">{intg.name}</p>
+                <p className="text-[11px] text-[#8B8BA7] leading-snug">{intg.desc}</p>
+              </div>
+              <span className="flex-shrink-0 rounded-full bg-white/[0.06] px-2.5 py-1 text-[10px] font-medium text-white/50">
+                Bientôt
+              </span>
+            </div>
+          ))}
+
           <div className="pt-3 border-t border-white/[0.04]">
-            <Row l="Google Calendar" v={googleCalendarId ? 'Connecté' : 'Non connecté'} c={googleCalendarId ? '#22C55E' : '#8B8BA7'} />
             <Row l="VAPI Assistant" v={settings?.vapiAssistantId ? 'Configuré' : 'En attente'} c={settings?.vapiAssistantId ? '#22C55E' : '#F59E0B'} />
           </div>
         </div>

@@ -1,9 +1,15 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { clientDashboardService } from '../services/client-dashboard.service';
+import { googleCalendarService } from '../services/google-calendar.service';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
+
+// OAuth state: per-user, signed, short-lived — the callback verifies it was
+// minted for the same client that finishes the flow (CSRF protection).
+const GCAL_STATE_PREFIX = 'qwillio-gcal.';
 
 export class ClientDashboardController {
 
@@ -570,6 +576,111 @@ export class ClientDashboardController {
 
       res.json({ success: true });
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // ═══ Google Calendar integration (OAuth) ═══════════════════════════
+
+  // GET /api/my-dashboard/integrations/google-calendar/auth-url
+  async getGoogleCalendarAuthUrl(req: any, res: Response) {
+    try {
+      if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+        return res.status(503).json({ error: 'Google OAuth non configuré côté serveur' });
+      }
+      const state = GCAL_STATE_PREFIX + jwt.sign({ gcal: req.clientId }, env.JWT_SECRET, { expiresIn: '15m' });
+      const url = googleCalendarService.getConnectUrl(state);
+      res.json({ url });
+    } catch (error: any) {
+      logger.error('GCal auth-url error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // POST /api/my-dashboard/integrations/google-calendar/callback  { code, state }
+  async connectGoogleCalendar(req: any, res: Response) {
+    try {
+      const { code, state } = req.body as { code?: string; state?: string };
+      if (!code) return res.status(400).json({ error: 'Code OAuth manquant' });
+      if (!state || !state.startsWith(GCAL_STATE_PREFIX)) {
+        return res.status(400).json({ error: 'State OAuth invalide' });
+      }
+      let statePayload: any;
+      try {
+        statePayload = jwt.verify(state.slice(GCAL_STATE_PREFIX.length), env.JWT_SECRET);
+      } catch {
+        return res.status(400).json({ error: 'State OAuth invalide ou expiré' });
+      }
+      if (statePayload?.gcal !== req.clientId) {
+        return res.status(400).json({ error: 'State OAuth invalide' });
+      }
+
+      const refreshToken = await googleCalendarService.exchangeCode(code);
+      await prisma.client.update({
+        where: { id: req.clientId },
+        data: {
+          googleCalendarRefreshToken: refreshToken,
+          googleCalendarId: 'primary',
+        },
+      });
+      logger.info(`Google Calendar connected for client ${req.clientId}`);
+      res.json({ connected: true });
+    } catch (error: any) {
+      logger.error('GCal connect error:', error);
+      res.status(500).json({ error: 'Échec de la connexion Google Calendar' });
+    }
+  }
+
+  // GET /api/my-dashboard/integrations/google-calendar/status
+  async googleCalendarStatus(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { googleCalendarRefreshToken: true, googleCalendarId: true },
+      });
+      if (!client?.googleCalendarRefreshToken) {
+        return res.json({ connected: false });
+      }
+      try {
+        const upcoming = await googleCalendarService.listUpcomingEvents(
+          client.googleCalendarRefreshToken,
+          client.googleCalendarId || 'primary',
+          3,
+        );
+        res.json({ connected: true, calendarId: client.googleCalendarId || 'primary', upcoming });
+      } catch (err: any) {
+        // Only treat auth failures as revocation; transient errors keep the
+        // integration connected without the events preview.
+        const authFailure = /invalid_grant|invalid_rapt|unauthorized|\b40[13]\b/i.test(String(err?.message || ''));
+        if (authFailure) {
+          res.json({ connected: false, revoked: true });
+        } else {
+          res.json({ connected: true, calendarId: client.googleCalendarId || 'primary', upcoming: [], previewUnavailable: true });
+        }
+      }
+    } catch (error: any) {
+      logger.error('GCal status error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // DELETE /api/my-dashboard/integrations/google-calendar
+  async disconnectGoogleCalendar(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { googleCalendarRefreshToken: true },
+      });
+      if (client?.googleCalendarRefreshToken) {
+        await googleCalendarService.revokeToken(client.googleCalendarRefreshToken);
+      }
+      await prisma.client.update({
+        where: { id: req.clientId },
+        data: { googleCalendarRefreshToken: null, googleCalendarId: null },
+      });
+      res.json({ connected: false });
+    } catch (error: any) {
+      logger.error('GCal disconnect error:', error);
       res.status(500).json({ error: error.message });
     }
   }

@@ -217,9 +217,9 @@ export default function ClientAnalytics() {
 
       {/* KPI strip — frameless figures split by hairlines */}
       <div className="pb-6 border-b border-white/[0.06]">
-        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-white/[0.06]">
+        <div className="grid grid-cols-4 divide-x divide-white/[0.06]">
           {kpis.map((kpi, i) => (
-            <div key={i} className="px-6 py-1 first:pl-0">
+            <div key={i} className="px-3 sm:px-6 py-1 first:pl-0 last:pr-0">
               <div className="flex items-center justify-between mb-2">
                 <kpi.icon size={14} className="text-white/30" />
                 {kpi.delta !== undefined && kpi.delta !== 0 && (
@@ -229,8 +229,8 @@ export default function ClientAnalytics() {
                   </span>
                 )}
               </div>
-              <p className="text-[26px] font-bold tabular-nums text-white/90 leading-none">{kpi.value}</p>
-              <p className="text-[11px] text-white/40 mt-1.5">{kpi.label}</p>
+              <p className="text-[19px] sm:text-[26px] font-bold tabular-nums text-white/90 leading-none">{kpi.value}</p>
+              <p className="text-[10px] sm:text-[11px] text-white/40 mt-1.5 leading-tight">{kpi.label}</p>
             </div>
           ))}
         </div>
@@ -357,30 +357,33 @@ export default function ClientAnalytics() {
       {/* Conversion funnel */}
       <section className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-6">
         <h3 className="text-sm font-semibold text-white/90 mb-4">Entonnoir de conversion</h3>
-        <div className="flex items-stretch gap-3">
-          {funnelData.map((f, i) => (
-            <div key={i} className="flex-1 text-center">
-              <div
-                className="rounded-xl p-4 border"
-                style={{ background: `${f.color}12`, borderColor: `${f.color}25` }}
-              >
-                <p className="text-2xl font-bold" style={{ color: f.color }}>{f.value}</p>
-                <p className="text-[11px] text-white/40 mt-1">{f.stage}</p>
+        <div className="grid grid-cols-3 divide-x divide-white/[0.06]">
+          {funnelData.map((f, i) => {
+            const passPct = i < funnelData.length - 1 && f.value > 0
+              ? Math.round((funnelData[i + 1].value / f.value) * 100)
+              : null;
+            return (
+              <div key={i} className="px-3 sm:px-6 py-1 first:pl-0 last:pr-0">
+                <p className="text-[20px] sm:text-[26px] font-semibold tabular-nums text-white/90 leading-none">{f.value}</p>
+                <p className="text-[10px] sm:text-[11px] text-white/40 mt-1.5 leading-tight">{f.stage}</p>
+                {passPct !== null && (
+                  <div className="mt-3">
+                    <div className="h-[3px] rounded-full bg-white/[0.08] overflow-hidden">
+                      <div className="h-full rounded-full bg-white/70" style={{ width: `${Math.min(100, passPct)}%` }} />
+                    </div>
+                    <p className="text-[10px] text-white/30 mt-1 tabular-nums">{passPct}%</p>
+                  </div>
+                )}
               </div>
-              {i < funnelData.length - 1 && (
-                <p className="text-[10px] text-white/30 mt-1">
-                  {f.value > 0 ? `${Math.round((funnelData[i + 1].value / f.value) * 100)}%` : '0%'}
-                </p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
       {/* ROI calculator */}
-      <section className="rounded-2xl border border-[#493cbe]/20 bg-[#493cbe]/[0.04] p-6">
+      <section className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-6">
         <h3 className="text-sm font-semibold text-white/90 mb-4 flex items-center gap-2">
-          <Calculator size={15} className="text-[#5b4ed6]" />
+          <Calculator size={15} className="text-white/40" />
           Calculateur ROI
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -408,18 +411,18 @@ export default function ClientAnalytics() {
           <div className="space-y-3">
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
               <p className="text-[10px] text-white/40 mb-1">Leads captés (Qwillio)</p>
-              <p className="text-xl font-bold text-[#5b4ed6]">{totalLeads}</p>
+              <p className="text-xl font-bold tabular-nums text-white/90">{totalLeads}</p>
             </div>
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
               <p className="text-[10px] text-white/40 mb-1">Équivalent coût manuel</p>
-              <p className="text-xl font-bold text-amber-400">${leadsValue.toLocaleString()}</p>
+              <p className="text-xl font-bold tabular-nums text-white/90">${leadsValue.toLocaleString()}</p>
             </div>
           </div>
           {/* ROI result */}
           <div className="space-y-3">
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
               <p className="text-[10px] text-white/40 mb-1">Revenus potentiels</p>
-              <p className="text-xl font-bold text-emerald-400">${potentialRevenue.toLocaleString()}</p>
+              <p className="text-xl font-bold tabular-nums text-white/90">${potentialRevenue.toLocaleString()}</p>
             </div>
             <div className={`rounded-xl p-4 border ${roi >= 0 ? 'bg-emerald-400/[0.07] border-emerald-400/20' : 'bg-red-400/[0.07] border-red-400/20'}`}>
               <p className="text-[10px] text-white/40 mb-1">ROI estimé</p>
