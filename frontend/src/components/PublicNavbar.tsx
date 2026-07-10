@@ -14,6 +14,7 @@ interface MenuItem {
   icon: LucideIcon;
   label: string;
   desc: string;
+  comingSoon?: boolean;
 }
 
 function Dropdown({ label, items }: { label: string; items: MenuItem[] }) {
@@ -73,15 +74,29 @@ function Dropdown({ label, items }: { label: string; items: MenuItem[] }) {
           <div style={{ height: 2, background: '#6366f1' }} aria-hidden="true" />
           <div className="py-1.5">
             {items.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                role="menuitem"
-                onClick={() => setOpen(false)}
-                className="block px-5 py-2.5 text-[13.5px] font-medium text-[#1d1d1f] hover:text-[#6366f1] hover:bg-[#f5f5f7] focus:bg-[#f5f5f7] focus:text-[#6366f1] focus:outline-none transition-colors duration-100"
-              >
-                {item.label}
-              </Link>
+              item.comingSoon ? (
+                <span
+                  key={item.to}
+                  role="menuitem"
+                  aria-disabled="true"
+                  className="flex items-center justify-between gap-3 px-5 py-2.5 text-[13.5px] font-medium text-[#1d1d1f]/40 cursor-default select-none"
+                >
+                  {item.label}
+                  <span className="text-[9px] font-semibold uppercase tracking-wider text-[#6366f1] bg-[#6366f1]/10 rounded-full px-2 py-0.5">
+                    Bientôt
+                  </span>
+                </span>
+              ) : (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="block px-5 py-2.5 text-[13.5px] font-medium text-[#1d1d1f] hover:text-[#6366f1] hover:bg-[#f5f5f7] focus:bg-[#f5f5f7] focus:text-[#6366f1] focus:outline-none transition-colors duration-100"
+                >
+                  {item.label}
+                </Link>
+              )
             ))}
           </div>
         </div>
@@ -157,7 +172,7 @@ export default function PublicNavbar() {
 
   const productItems: MenuItem[] = [
     { to: '/receptionist', icon: Phone, label: 'Receptionist AI', desc: isFr ? 'Votre standardiste IA 24/7' : 'Your 24/7 AI receptionist' },
-    { to: '/agent', icon: Bot, label: 'Qwillio Agent', desc: isFr ? 'Modules IA avancés' : 'Advanced AI modules' },
+    { to: '/agent', icon: Bot, label: 'Qwillio Agent', desc: isFr ? 'Modules IA avancés' : 'Advanced AI modules', comingSoon: true },
   ];
   const companyItems: MenuItem[] = [
     { to: '/about', icon: Building2, label: isFr ? 'À propos' : 'About', desc: isFr ? 'Notre mission et notre vision' : 'Our mission and vision' },
@@ -169,7 +184,7 @@ export default function PublicNavbar() {
   const mobileLinks = [
     { to: '/',             label: isFr ? 'Accueil' : 'Home',                wave: '35%' },
     { to: '/receptionist', label: 'Receptionist AI',                         wave: '62%' },
-    { to: '/agent',        label: 'Qwillio Agent',                           wave: '48%' },
+    { to: '/agent',        label: 'Qwillio Agent',                           wave: '48%', comingSoon: true },
     { to: '/pricing',      label: isFr ? 'Tarifs' : 'Pricing',               wave: '28%' },
     { to: '/about',        label: isFr ? 'À propos' : 'About',               wave: '40%' },
     { to: '/blog',         label: 'Blog',                                    wave: '32%' },
@@ -368,20 +383,38 @@ export default function PublicNavbar() {
               <ul className="space-y-0" role="list">
                 {mobileLinks.map((item) => (
                   <li key={item.to}>
-                    <Link
-                      to={item.to}
-                      onClick={closeMenu}
-                      className="group block px-2 py-3.5 transition-colors duration-200"
-                    >
-                      <span className="text-lg font-normal tracking-tight text-[#1d1d1f] group-hover:text-[#6366f1] transition-colors">
-                        {item.label}
-                      </span>
-                      <div
-                        className="mt-1.5 h-[1px] bg-[#1d1d1f]/15 group-hover:bg-[#6366f1]/60 transition-colors duration-300"
-                        style={{ width: item.wave }}
-                        aria-hidden="true"
-                      />
-                    </Link>
+                    {item.comingSoon ? (
+                      <div className="block px-2 py-3.5 cursor-default select-none" aria-disabled="true">
+                        <span className="flex items-center gap-2.5">
+                          <span className="text-lg font-normal tracking-tight text-[#1d1d1f]/40">
+                            {item.label}
+                          </span>
+                          <span className="text-[9px] font-semibold uppercase tracking-wider text-[#6366f1] bg-[#6366f1]/10 rounded-full px-2 py-0.5">
+                            Bientôt
+                          </span>
+                        </span>
+                        <div
+                          className="mt-1.5 h-[1px] bg-[#1d1d1f]/10"
+                          style={{ width: item.wave }}
+                          aria-hidden="true"
+                        />
+                      </div>
+                    ) : (
+                      <Link
+                        to={item.to}
+                        onClick={closeMenu}
+                        className="group block px-2 py-3.5 transition-colors duration-200"
+                      >
+                        <span className="text-lg font-normal tracking-tight text-[#1d1d1f] group-hover:text-[#6366f1] transition-colors">
+                          {item.label}
+                        </span>
+                        <div
+                          className="mt-1.5 h-[1px] bg-[#1d1d1f]/15 group-hover:bg-[#6366f1]/60 transition-colors duration-300"
+                          style={{ width: item.wave }}
+                          aria-hidden="true"
+                        />
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
