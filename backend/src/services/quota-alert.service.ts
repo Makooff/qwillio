@@ -104,16 +104,23 @@ export class QuotaAlertService {
       }
 
       // Persist state only if something changed to avoid useless writes.
-      const currentCfg = (client.vapiConfig as any) || {};
-      const prevState = currentCfg.quotaAlert as QuotaAlertState | undefined;
+      // Re-read the latest vapiConfig immediately before writing so we do
+      // not clobber concurrent updates from other services touching the
+      // same JSON column between the initial select and this write.
+      const prevState = ((client.vapiConfig as any)?.quotaAlert) as QuotaAlertState | undefined;
       const changed =
         !prevState ||
         prevState.month !== state.month ||
         JSON.stringify(prevState.firedAt) !== JSON.stringify(state.firedAt);
       if (changed) {
+        const fresh = await prisma.client.findUnique({
+          where: { id: client.id },
+          select: { vapiConfig: true },
+        });
+        const freshCfg = (fresh?.vapiConfig as any) || {};
         await prisma.client.update({
           where: { id: client.id },
-          data: { vapiConfig: { ...currentCfg, quotaAlert: state } },
+          data: { vapiConfig: { ...freshCfg, quotaAlert: state } },
         });
       }
     }

@@ -63,9 +63,34 @@ async function uploadSnapshot(filePath: string): Promise<void> {
     method: 'PUT',
     headers: { 'Content-Type': 'application/gzip', 'Content-Length': String(body.length) },
     body,
+    // Bound the upload: if the endpoint is slow or unreachable the cron
+    // callback must not hang and overlap with the next scheduled run.
+    signal: AbortSignal.timeout(60_000),
   });
   if (!res.ok) {
     throw new Error(`backup upload failed for ${filename}: ${res.status} ${res.statusText}`);
+  }
+}
+
+// Delete local backup files older than the configured retention window,
+// so the disk does not fill up on a long-running server. Failures are
+// logged but never propagate: the backup itself is the important part.
+async function sweepRetention(outDir: string, now: Date): Promise<void> {
+  const retentionDays = Number(process.env.BACKUP_RETENTION_DAYS) || 7;
+  const cutoff = new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000);
+  try {
+    const files = await fs.readdir(outDir);
+    for (const f of files) {
+      if (!f.endsWith('.jsonl.gz')) continue;
+      const filePath = path.join(outDir, f);
+      const stat = await fs.stat(filePath);
+      if (stat.mtime < cutoff) {
+        await fs.unlink(filePath);
+        logger.info(`backup: pruned old snapshot ${f}`);
+      }
+    }
+  } catch (err) {
+    logger.warn('backup: retention cleanup failed', err);
   }
 }
 
@@ -109,13 +134,15 @@ export async function runCallBackup(now: Date = new Date()): Promise<SnapshotRes
     }
   }
 
+  await sweepRetention(outDir, now);
+
   const totalRows = results.reduce((acc, r) => acc + r.rowCount, 0);
   const totalBytes = results.reduce((acc, r) => acc + r.bytes, 0);
-  logger.info(`backup: ${isoDay} — ${totalRows} rows, ${(totalBytes / 1024).toFixed(1)} KB across ${results.length} tables`);
+  logger.info(`backup: ${isoDay}: ${totalRows} rows, ${(totalBytes / 1024).toFixed(1)} KB across ${results.length} tables`);
 
   try {
     await discordService.notify(
-      `💾 Backup ${isoDay} — ${totalRows} rows, ${(totalBytes / 1024).toFixed(1)} KB (${results.length} tables)`,
+      `💾 Backup ${isoDay}: ${totalRows} rows, ${(totalBytes / 1024).toFixed(1)} KB (${results.length} tables)`,
     );
   } catch {
     // Discord failures should never break the backup itself

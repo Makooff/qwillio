@@ -47,8 +47,8 @@ export class OnboardingService {
             type: 'number',
             number: client.transferNumber,
             message: isFrClient
-              ? 'Bien sûr — je vous mets en relation avec quelqu\'un de l\'équipe tout de suite. Un instant, s\'il vous plaît.'
-              : 'Of course — let me connect you with someone from the team right now. One moment please.',
+              ? 'Bien sûr, je vous mets en relation avec quelqu\'un de l\'équipe tout de suite. Un instant, s\'il vous plaît.'
+              : 'Of course, let me connect you with someone from the team right now. One moment please.',
           }],
         });
       }
@@ -298,11 +298,11 @@ export class OnboardingService {
   // PRIVATE: Generate client-specific system prompt
   // Uses industry-specific knowledge for each business type
   // ═══════════════════════════════════════════════════════════
-  // A client is treated as French-speaking if its language is 'fr' or its
+  // A client is treated as French-speaking if its agentLanguage is 'fr' or its
   // country is a francophone jurisdiction where GDPR consent phrasing must
   // be delivered in French to be legally meaningful.
   private isFrenchClient(client: any): boolean {
-    if (client?.language === 'fr') return true;
+    if (client?.agentLanguage === 'fr') return true;
     const country = (client?.country || '').toUpperCase();
     return ['FR', 'BE', 'LU', 'MC', 'CH'].includes(country);
   }
@@ -690,16 +690,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
         temperature: 0.7,
         messages: [{ role: 'system', content: systemPrompt }],
       },
-      firstMessage: (() => {
-        const cfg = (client.vapiConfig as any) || {};
-        const suppress = cfg.disableRecordingNotice === true;
-        if (client.agentLanguage === 'fr') {
-          const notice = suppress ? '' : ' Pour améliorer notre service, cet appel peut être enregistré.';
-          return `${client.businessName}, bonjour ! C'est ${client.agentName || 'Marie'}.${notice} Comment puis-je vous aider ?`;
-        }
-        const notice = suppress ? '' : ' This call may be recorded for quality and training purposes.';
-        return `Thank you for calling ${client.businessName}, this is ${client.agentName || 'Ashley'}.${notice} How can I help you today?`;
-      })(),
+      firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
       serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
     };
 

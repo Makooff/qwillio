@@ -178,8 +178,8 @@ export default function ComparisonPage() {
                   <Reveal key={i} y={16} delay={0.06}>
                     <aside
                       role="note"
-                      className="rounded-2xl p-5 my-4 border-l-4"
-                      style={{ background: bg, borderLeftColor: border }}
+                      className="rounded-2xl p-5 my-4 border"
+                      style={{ background: bg, borderColor: border }}
                     >
                       <p className="text-[13px] font-semibold uppercase tracking-[0.14em] mb-2" style={{ color: border }}>
                         {block.title}

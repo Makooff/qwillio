@@ -14,7 +14,7 @@ export default function About() {
     title: isFr ? 'À propos · Qwillio' : 'About · Qwillio',
     description: isFr
       ? 'La mission, la vision et l\'histoire de Qwillio, plateforme de réceptionniste IA basée à Bruxelles.'
-      : 'Qwillio mission, vision and story — AI receptionist platform headquartered in Brussels.',
+      : 'Qwillio mission, vision and story: AI receptionist platform headquartered in Brussels.',
     canonical: 'https://qwillio.com/about',
   });
 

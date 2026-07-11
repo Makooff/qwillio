@@ -28,12 +28,17 @@ export class EmailService {
   }
 
   /**
-   * Inject unsubscribe link into rendered HTML (before closing </body>)
+   * Inject unsubscribe link into rendered HTML.
+   * Injects before the closing body tag when present; otherwise appends,
+   * so fragment HTML (e.g. quota alert emails) still gets the footer.
    */
   private injectUnsubscribeLink(html: string, email: string): string {
     const url = this.getUnsubscribeUrl(email);
     const footer = `<div style="text-align:center;padding:10px 0;"><a href="${url}" style="color:#999;font-size:11px;text-decoration:underline;">Unsubscribe</a></div>`;
-    return html.replace('</body>', `${footer}</body>`);
+    if (html.includes('</body>')) {
+      return html.replace('</body>', `${footer}</body>`);
+    }
+    return `${html}${footer}`;
   }
 
   /**

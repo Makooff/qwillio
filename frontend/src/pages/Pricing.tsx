@@ -97,7 +97,7 @@ export default function Pricing() {
         { q: 'Quels moyens de paiement acceptez-vous ?', a: 'Carte bancaire (Visa, Mastercard, Amex), SEPA, virement pour les comptes Enterprise et annuels.' },
       ]
     : [
-        { q: 'Is there a commitment?', a: 'On monthly billing, none — cancel anytime from your dashboard. On annual, you commit for 12 months in exchange for a 20% discount. First month is free either way.' },
+        { q: 'Is there a commitment?', a: 'On monthly billing, none: cancel anytime from your dashboard. On annual, you commit for 12 months in exchange for a 20% discount. First month is free either way.' },
         { q: 'How does the 20% annual discount work?', a: 'Pick annual billing on the pricing page. You save 20% on the monthly price, charged upfront at signup. The math is simple: the annual amount shown equals 12 × (monthly price × 0.80).' },
         { q: 'What happens if I exceed my quota?', a: 'Extra calls are billed at the overage rate listed for your plan. You get an alert before hitting the limit.' },
         { q: 'Can I change my plan?', a: 'Yes, anytime. Changes are prorated on your next invoice.' },
@@ -163,7 +163,7 @@ export default function Pricing() {
                 type="button"
                 onClick={() => setBilling('monthly')}
                 aria-pressed={billing === 'monthly'}
-                className={`px-4 sm:px-5 py-2 rounded-full text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 ${
+                className={`px-4 sm:px-5 py-2 rounded-full text-[13px] font-medium transition-colors active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 ${
                   billing === 'monthly' ? 'bg-[#1d1d1f] text-white' : 'text-[#6e6e73] hover:text-[#1d1d1f]'
                 }`}
               >
@@ -233,7 +233,7 @@ export default function Pricing() {
                 <p className="text-xs" style={{ color: '#6366f1' }}>· {isFr ? '1er mois offert' : '1st month free'}</p>
                 <Link
                   to="/register"
-                  className="inline-flex items-center justify-center gap-2 text-sm font-medium pl-5 pr-6 py-3 rounded-full transition-colors bg-[#1d1d1f] text-white hover:bg-[#6366f1]"
+                  className="inline-flex items-center justify-center gap-2 text-sm font-medium pl-5 pr-6 py-3 rounded-full transition-colors active:scale-[0.97] bg-[#1d1d1f] text-white hover:bg-[#6366f1]"
                 >
                   {isFr ? 'Choisir Solo' : 'Choose Solo'}
                   <ArrowRight size={15} aria-hidden="true" />
@@ -365,7 +365,7 @@ export default function Pricing() {
                 <p className="mt-5 text-[15px] text-[#525257] leading-relaxed max-w-[440px]">
                   {isFr
                     ? "Une secrétaire à mi-temps en Belgique coûte environ 1 800 € brut par mois, soit 2 300 € tout compris, pour 20 h/semaine. Qwillio couvre 24 h/24, 7 j/7 pour une fraction."
-                    : 'A part-time receptionist in Belgium costs roughly 1,800 EUR gross per month — around 2,300 EUR loaded — for 20 hours a week. Qwillio covers 24/7 for a fraction.'}
+                    : 'A part-time receptionist in Belgium costs roughly 1,800 EUR gross per month (around 2,300 EUR loaded) for 20 hours a week. Qwillio covers 24/7 for a fraction.'}
                 </p>
               </div>
             </Reveal>

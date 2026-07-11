@@ -1047,6 +1047,8 @@ class BotLoop {
         crmSync: cronState(this.crmSyncJob),
         forwardingVerification: cronState(this.forwardingVerificationJob),
         overageBilling: cronState(this.overageJob),
+        quotaAlert: cronState(this.quotaAlertJob),
+        callBackup: cronState(this.backupJob),
         // LinkedIn Outreach
         linkedInConnections: cronState(this.linkedInConnectionsJob),
         linkedInFollowUps: cronState(this.linkedInFollowUpsJob),
