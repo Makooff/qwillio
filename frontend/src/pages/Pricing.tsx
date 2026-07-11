@@ -171,7 +171,7 @@ export default function Pricing() {
                 type="button"
                 onClick={() => setBilling('annual')}
                 aria-pressed={billing === 'annual'}
-                className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 ${
+                className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full text-[13px] font-medium transition-colors active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 ${
                   billing === 'annual' ? 'bg-[#1d1d1f] text-white' : 'text-[#6e6e73] hover:text-[#1d1d1f]'
                 }`}
               >
@@ -202,14 +202,14 @@ export default function Pricing() {
                 className="inline-flex md:absolute md:-top-3 md:left-6 text-[10px] font-bold tracking-[0.18em] uppercase px-3 py-1.5 rounded-full whitespace-nowrap self-start"
                 style={{ background: '#6366f1', color: '#fff' }}
               >
-                {isFr ? 'Nouveau — Belgique & France' : 'New — Belgium & France'}
+                {isFr ? 'Nouveau : Belgique & France' : 'New: Belgium & France'}
               </span>
               <div className="flex-1">
                 <h2 className="text-xl font-semibold tracking-[-0.02em] mb-1">Solo</h2>
                 <p className="text-sm text-[#6e6e73] mb-3">
                   {isFr
-                    ? 'PME, artisans, professions libérales — français, hébergement UE.'
-                    : 'Small businesses, tradespeople, liberal professions — French, EU hosting.'}
+                    ? 'PME, artisans, professions libérales (français, hébergement UE).'
+                    : 'Small businesses, tradespeople, liberal professions (French, EU hosting).'}
                 </p>
                 <ul role="list" className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-[#424245]">
                   <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> 300 {isFr ? 'appels / mois' : 'calls / month'}</li>
@@ -339,107 +339,78 @@ export default function Pricing() {
           </div>
         </section>
 
-        {/* ── ROI CALLOUT — cost of a human receptionist comparison ── */}
+        {/* ── ROI CALLOUT — narrative comparison, no hero-metric grids ── */}
         {(() => {
           // Fair comparison basis: a 20h/week human receptionist realistically
-          // takes ~400 to ~700 answered calls a month depending on business
-          // type and interruptions. We use the Qwillio Starter tier (800
-          // calls, 24/7, bilingual) as the honest volume-equivalent counterpart.
-          const humanMonthly = 2300;                       // EUR, loaded
-          const humanCalls = 500;                          // realistic answered calls
-          const qwillioMonthlyUsd = priceFor(497);         // Starter, honors annual toggle
-          const qwillioMonthlyEur = Math.round(qwillioMonthlyUsd * 0.93); // rough USD → EUR
+          // takes ~500 answered calls a month. Qwillio Starter (800 calls,
+          // 24/7, bilingual) is the honest volume-equivalent counterpart.
+          const humanMonthly = 2300;                       // EUR loaded
+          const qwillioMonthlyUsd = priceFor(497);         // honors annual toggle
+          const qwillioMonthlyEur = Math.round(qwillioMonthlyUsd * 0.93);
           const monthlySavings = humanMonthly - qwillioMonthlyEur;
           const yearlySavings = monthlySavings * 12;
           const savingsPct = Math.round((monthlySavings / humanMonthly) * 100);
+          const fmt = (n: number) => n.toLocaleString('fr-FR');
+
+          const humanRow = isFr
+            ? `Un mi-temps humain en Belgique : environ 2 300 € tout compris (brut, charges, chèques repas, backup absences, turnover), pour 20 h par semaine et environ 500 appels traités, dans une seule langue.`
+            : `A part-time human in Belgium: roughly 2,300 EUR loaded per month (gross, social charges, meal vouchers, absence backup, turnover), for 20 hours a week and about 500 answered calls, in a single language.`;
+
+          const qwillioRow = isFr
+            ? `Qwillio Starter : ${fmt(qwillioMonthlyEur)} € par mois (${priceFor(497).toLocaleString()} $), 800 appels inclus, français et anglais sur le même compte, 24 heures sur 24, 365 jours par an, sans arrêt et sans turnover.`
+            : `Qwillio Starter: ${fmt(qwillioMonthlyEur)} EUR a month ($${priceFor(497).toLocaleString()}), 800 calls included, French and English on the same account, 24 hours a day, 365 days a year, no downtime and no turnover.`;
+
           return (
             <section
               aria-labelledby="roi-heading"
               className="px-6 pb-16 md:pb-24 border-t border-[#1d1d1f]/8 pt-14 md:pt-20"
             >
-              <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1fr_1.1fr] gap-8 md:gap-12 items-start">
+              <div className="max-w-[820px] mx-auto">
                 <Reveal>
-                  <div>
-                    <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3" style={{ color: '#a855f7' }}>
-                      {isFr ? 'Retour sur investissement' : 'Return on investment'}
-                    </span>
-                    <h2
-                      id="roi-heading"
-                      className="text-[clamp(1.9rem,4vw,3.2rem)] font-semibold tracking-[-0.03em] leading-[1.05]"
-                    >
-                      {isFr ? (
-                        <>Une réceptionniste,<br /><span className="font-serif italic" style={{ color: '#6366f1' }}>{savingsPct} % moins chère.</span></>
-                      ) : (
-                        <>A receptionist,<br /><span className="font-serif italic" style={{ color: '#6366f1' }}>{savingsPct}% cheaper.</span></>
-                      )}
-                    </h2>
-                    <p className="mt-5 text-[15px] text-[#525257] leading-relaxed max-w-[440px]">
-                      {isFr
-                        ? "Une secrétaire à mi-temps en Belgique coûte environ 1 800 € brut par mois, soit 2 300 € tout compris (charges, chèques repas, turnover), pour 20 h/semaine et ~500 appels traités. Qwillio Starter couvre 24/7 et 800 appels bilingues pour une fraction."
-                        : 'A part-time receptionist in Belgium runs roughly 1,800 EUR gross a month, around 2,300 EUR loaded (social charges, meal vouchers, turnover) for 20 hours a week and about 500 answered calls. Qwillio Starter covers 24/7 and 800 bilingual calls for a fraction.'}
-                    </p>
-                  </div>
+                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3" style={{ color: '#a855f7' }}>
+                    {isFr ? 'Retour sur investissement' : 'Return on investment'}
+                  </span>
+                </Reveal>
+                <Reveal delay={0.06}>
+                  <h2
+                    id="roi-heading"
+                    className="text-[clamp(1.9rem,4vw,3.2rem)] font-semibold tracking-[-0.03em] leading-[1.05]"
+                  >
+                    {isFr ? (
+                      <>Une réceptionniste,{' '}<span className="font-serif italic" style={{ color: '#6366f1' }}>{savingsPct} % moins chère.</span></>
+                    ) : (
+                      <>A receptionist,{' '}<span className="font-serif italic" style={{ color: '#6366f1' }}>{savingsPct}% cheaper.</span></>
+                    )}
+                  </h2>
                 </Reveal>
 
-                <Reveal delay={0.1}>
-                  <div
-                    className="rounded-3xl p-6 sm:p-8 border border-[#1d1d1f]/10 bg-[#fafaf8]"
-                    aria-label={isFr ? 'Comparaison réceptionniste humaine vs Qwillio Starter' : 'Human receptionist vs Qwillio Starter comparison'}
-                  >
-                    <div className="grid grid-cols-2 gap-4 sm:gap-6">
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-2 text-[#6e6e73]">
-                          {isFr ? 'Mi-temps humain' : 'Part-time human'}
-                        </p>
-                        <p className="text-[clamp(1.8rem,3vw,2.4rem)] font-semibold tracking-[-0.03em] tabular-nums text-[#1d1d1f]">2 300&nbsp;€</p>
-                        <p className="text-xs text-[#6e6e73] mt-1">/{perLabel}</p>
-                        <ul role="list" className="mt-4 space-y-1.5 text-[12.5px] text-[#525257]">
-                          <li>· ~{humanCalls} {isFr ? 'appels traités / mois' : 'answered calls / mo'}</li>
-                          <li>· 20 h / {isFr ? 'sem, heures ouvrées' : 'wk, business hours'}</li>
-                          <li>· 1 {isFr ? 'langue' : 'language'}</li>
-                          <li>· {isFr ? 'Congés, arrêts, turnover' : 'PTO, sick leave, turnover'}</li>
-                        </ul>
-                      </div>
-                      <div
-                        className="rounded-2xl p-4 sm:p-5"
-                        style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 60%, #6366f1 120%)' }}
-                      >
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-2" style={{ color: '#a5b4fc' }}>
-                          Qwillio Starter
-                        </p>
-                        <p className="text-[clamp(1.8rem,3vw,2.4rem)] font-semibold tracking-[-0.03em] tabular-nums text-white">
-                          ${priceFor(497).toLocaleString()}
-                        </p>
-                        <p className="text-xs text-white/60 mt-1">/{perLabel} · ≈ {qwillioMonthlyEur}&nbsp;€</p>
-                        <ul role="list" className="mt-4 space-y-1.5 text-[12.5px] text-white/80">
-                          <li>· 800 {isFr ? 'appels / mois' : 'calls / mo'}</li>
-                          <li>· 24 / 7 · 365 {isFr ? 'jours' : 'days'}</li>
-                          <li>· EN + FR {isFr ? 'natif' : 'native'}</li>
-                          <li>· {isFr ? 'Sans arrêt, sans turnover' : 'Zero downtime, zero turnover'}</li>
-                        </ul>
-                      </div>
-                    </div>
-                    <div
-                      className="mt-6 pt-5 border-t border-[#1d1d1f]/10 flex items-center justify-between gap-4 flex-wrap"
-                    >
-                      <div>
-                        <p className="text-xs text-[#6e6e73] uppercase tracking-[0.14em] font-semibold">
-                          {isFr ? 'Économies' : 'Savings'}
-                        </p>
-                        <p className="text-[clamp(1.6rem,2.6vw,2rem)] font-semibold tabular-nums" style={{ color: '#6366f1' }}>
-                          {monthlySavings.toLocaleString('fr-FR')}&nbsp;€<span className="text-sm font-normal text-[#6e6e73]">/{perLabel}</span>
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-[#6e6e73] uppercase tracking-[0.14em] font-semibold">
-                          {isFr ? 'Sur 1 an' : 'Over 1 year'}
-                        </p>
-                        <p className="text-[clamp(1.6rem,2.6vw,2rem)] font-semibold tabular-nums" style={{ color: '#a855f7' }}>
-                          {yearlySavings.toLocaleString('fr-FR')}&nbsp;€
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                <Reveal delay={0.12}>
+                  <p className="mt-6 text-[17px] leading-[1.75] text-[#424245]">
+                    {humanRow}
+                  </p>
+                </Reveal>
+                <Reveal delay={0.16}>
+                  <p className="mt-4 text-[17px] leading-[1.75] text-[#424245]">
+                    {qwillioRow}
+                  </p>
+                </Reveal>
+
+                <Reveal delay={0.22}>
+                  <p className="mt-6 text-[17px] leading-[1.75]" style={{ color: '#1d1d1f' }}>
+                    {isFr ? (
+                      <>Le calcul se règle en une phrase : vous économisez{' '}<span className="font-semibold tabular-nums" style={{ color: '#6366f1' }}>{fmt(monthlySavings)} €</span>{' '}par mois, soit{' '}<span className="font-semibold tabular-nums" style={{ color: '#a855f7' }}>{fmt(yearlySavings)} €</span>{' '}sur la première année, en couvrant deux fois plus d'heures et deux fois plus de langues.</>
+                    ) : (
+                      <>The math lands in one line: you save{' '}<span className="font-semibold tabular-nums" style={{ color: '#6366f1' }}>{fmt(monthlySavings)} EUR</span>{' '}a month, or{' '}<span className="font-semibold tabular-nums" style={{ color: '#a855f7' }}>{fmt(yearlySavings)} EUR</span>{' '}over the first year, while covering twice the hours and twice the languages.</>
+                    )}
+                  </p>
+                </Reveal>
+
+                <Reveal delay={0.28}>
+                  <p className="mt-4 text-[13px] text-[#6e6e73]">
+                    {isFr
+                      ? 'Basé sur un mi-temps CP200 chargé (brut + ONSS 27 % + chèques repas + transport + backup + turnover) et le tier Qwillio Starter, mensuel ou annuel selon le sélecteur ci-dessus.'
+                      : 'Based on a CP200 loaded part-time (gross + 27% ONSS + meal vouchers + transport + backup + turnover) and the Qwillio Starter tier, monthly or annual depending on the toggle above.'}
+                  </p>
                 </Reveal>
               </div>
             </section>
