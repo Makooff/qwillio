@@ -30,12 +30,18 @@ export default function Pricing() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly');
+
+  const ANNUAL_DISCOUNT = 0.20;
+  const priceFor = (monthlyPrice: number): number =>
+    billing === 'annual' ? Math.round(monthlyPrice * (1 - ANNUAL_DISCOUNT)) : monthlyPrice;
+  const perLabel = isFr ? 'mois' : 'month';
 
   useSEO({
     title: isFr ? 'Tarifs Qwillio' : 'Qwillio Pricing',
     description: isFr
-      ? 'Tarifs simples et transparents. Premier mois offert. Sans engagement.'
-      : 'Simple transparent pricing. First month free. No commitment.',
+      ? 'Tarifs simples et transparents. Premier mois offert. Sans engagement. Économisez 20 % en annuel.'
+      : 'Simple transparent pricing. First month free. No commitment. Save 20% on annual billing.',
     canonical: 'https://qwillio.com/pricing',
   });
 
@@ -84,18 +90,20 @@ export default function Pricing() {
 
   const faqs = isFr
     ? [
-        { q: 'Y a-t-il un engagement ?', a: 'Non. Annulez en un clic depuis votre dashboard, à tout moment. Le premier mois est offert sur tous les plans.' },
+        { q: 'Y a-t-il un engagement ?', a: 'En mensuel, non. Annulez en un clic depuis votre dashboard, à tout moment. En annuel, vous vous engagez sur 12 mois en échange d\'une remise de 20 %. Le premier mois reste offert dans les deux cas.' },
+        { q: 'Comment fonctionne la remise de 20 % en annuel ?', a: 'Choisissez la facturation annuelle sur la page tarifs. Vous économisez 20 % sur le prix mensuel, prélevé en une fois à l\'inscription. Le calcul est simple : le montant annuel affiché correspond à 12 × (prix mensuel × 0,80).' },
         { q: 'Que se passe-t-il si je dépasse mon quota ?', a: 'Les appels supplémentaires sont facturés au tarif overage indiqué pour votre plan. Vous recevez une alerte avant d\'atteindre la limite.' },
         { q: 'Puis-je changer de plan ?', a: 'Oui, à tout moment. Les changements sont au prorata sur votre prochaine facture.' },
         { q: 'Combien de temps prend la mise en route ?', a: 'Compte créé en 2 minutes. Premiers appels traités le jour même. Configuration assistée si besoin.' },
-        { q: 'Quels moyens de paiement acceptez-vous ?', a: 'Carte bancaire (Visa, Mastercard, Amex), SEPA, virement pour les comptes Enterprise.' },
+        { q: 'Quels moyens de paiement acceptez-vous ?', a: 'Carte bancaire (Visa, Mastercard, Amex), SEPA, virement pour les comptes Enterprise et annuels.' },
       ]
     : [
-        { q: 'Is there a commitment?', a: 'No. Cancel anytime from your dashboard. First month is free on all plans.' },
+        { q: 'Is there a commitment?', a: 'On monthly billing, none — cancel anytime from your dashboard. On annual, you commit for 12 months in exchange for a 20% discount. First month is free either way.' },
+        { q: 'How does the 20% annual discount work?', a: 'Pick annual billing on the pricing page. You save 20% on the monthly price, charged upfront at signup. The math is simple: the annual amount shown equals 12 × (monthly price × 0.80).' },
         { q: 'What happens if I exceed my quota?', a: 'Extra calls are billed at the overage rate listed for your plan. You get an alert before hitting the limit.' },
         { q: 'Can I change my plan?', a: 'Yes, anytime. Changes are prorated on your next invoice.' },
         { q: 'How long does setup take?', a: 'Account created in 2 minutes. First calls handled the same day. Assisted setup if you need it.' },
-        { q: 'What payment methods do you accept?', a: 'Credit card (Visa, Mastercard, Amex), SEPA, wire transfer for Enterprise accounts.' },
+        { q: 'What payment methods do you accept?', a: 'Credit card (Visa, Mastercard, Amex), SEPA, wire transfer for Enterprise and annual accounts.' },
       ];
 
   return (
@@ -144,6 +152,47 @@ export default function Pricing() {
           </div>
         </section>
 
+        {/* ── BILLING TOGGLE — Monthly / Annual (−20%) ─────────────── */}
+        <section aria-label={isFr ? 'Choisir la fréquence de facturation' : 'Choose billing frequency'} className="px-6 pb-8 md:pb-10">
+          <div className="max-w-[1240px] mx-auto flex justify-center">
+            <div
+              role="group"
+              aria-label={isFr ? 'Fréquence de facturation' : 'Billing frequency'}
+              className="inline-flex items-center gap-1 p-1 rounded-full border border-[#1d1d1f]/10 bg-[#fafaf8]"
+            >
+              <button
+                type="button"
+                onClick={() => setBilling('monthly')}
+                aria-pressed={billing === 'monthly'}
+                className={`px-4 sm:px-5 py-2 rounded-full text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 ${
+                  billing === 'monthly' ? 'bg-[#1d1d1f] text-white' : 'text-[#6e6e73] hover:text-[#1d1d1f]'
+                }`}
+              >
+                {isFr ? 'Mensuel' : 'Monthly'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBilling('annual')}
+                aria-pressed={billing === 'annual'}
+                className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 ${
+                  billing === 'annual' ? 'bg-[#1d1d1f] text-white' : 'text-[#6e6e73] hover:text-[#1d1d1f]'
+                }`}
+              >
+                {isFr ? 'Annuel' : 'Annual'}
+                <span
+                  className="text-[10px] font-bold tracking-[0.08em] uppercase px-1.5 py-0.5 rounded-full"
+                  style={{
+                    background: billing === 'annual' ? '#a5b4fc' : 'rgba(99,102,241,0.10)',
+                    color: billing === 'annual' ? '#1d1d1f' : '#6366f1',
+                  }}
+                >
+                  −20 %
+                </span>
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* ── SOLO BANNER — Belgian / French SMB entry ─────────────── */}
         <section aria-label={isFr ? 'Plan Solo pour la Belgique et la France' : 'Solo plan for Belgium and France'} className="px-6 pb-6">
           <div className="max-w-[1240px] mx-auto">
@@ -174,9 +223,14 @@ export default function Pricing() {
               </div>
               <div className="flex flex-col md:items-end gap-2">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-semibold tracking-[-0.04em] tabular-nums">149&nbsp;€</span>
-                  <span className="text-sm text-[#6e6e73]">/{isFr ? 'mois' : 'month'}</span>
+                  <span className="text-4xl font-semibold tracking-[-0.04em] tabular-nums">{priceFor(149)}&nbsp;€</span>
+                  <span className="text-sm text-[#6e6e73]">/{perLabel}</span>
                 </div>
+                {billing === 'annual' && (
+                  <p className="text-[11px] text-[#6e6e73]">
+                    {isFr ? `Facturé ${priceFor(149) * 12} €/an` : `Billed ${priceFor(149) * 12} €/yr`}
+                  </p>
+                )}
                 <p className="text-xs" style={{ color: '#6366f1' }}>· {isFr ? '1er mois offert' : '1st month free'}</p>
                 <Link
                   to="/register"
@@ -231,12 +285,19 @@ export default function Pricing() {
                   <div className="mb-6">
                     <div className="flex items-baseline gap-1">
                       <span className={`text-[clamp(2.6rem,4vw,3.4rem)] font-semibold tracking-[-0.04em] tabular-nums ${isPro ? 'text-white' : 'text-[#1d1d1f]'}`}>
-                        ${tier.monthly.toLocaleString()}
+                        ${priceFor(tier.monthly).toLocaleString()}
                       </span>
                       <span className={`text-sm ${isPro ? 'text-white/60' : 'text-[#6e6e73]'}`}>
-                        /{isFr ? 'mois' : 'month'}
+                        /{perLabel}
                       </span>
                     </div>
+                    {billing === 'annual' && (
+                      <p className={`text-[11px] mt-1 ${isPro ? 'text-white/50' : 'text-[#6e6e73]'}`}>
+                        {isFr
+                          ? `Facturé $${(priceFor(tier.monthly) * 12).toLocaleString('fr-FR')}/an`
+                          : `Billed $${(priceFor(tier.monthly) * 12).toLocaleString()}/yr`}
+                      </p>
+                    )}
                     <p className={`text-xs mt-2 ${isPro ? 'text-[#a5b4fc]' : 'text-[#6366f1]'}`}>
                       · {isFr ? '1er mois offert' : '1st month free'}
                     </p>
@@ -278,6 +339,98 @@ export default function Pricing() {
                 </Reveal>
               );
             })}
+          </div>
+        </section>
+
+        {/* ── ROI CALLOUT — cost of a human receptionist comparison ── */}
+        <section
+          aria-labelledby="roi-heading"
+          className="px-6 pb-16 md:pb-24 border-t border-[#1d1d1f]/8 pt-14 md:pt-20"
+        >
+          <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1fr_1.1fr] gap-8 md:gap-12 items-start">
+            <Reveal>
+              <div>
+                <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3" style={{ color: '#a855f7' }}>
+                  {isFr ? 'Retour sur investissement' : 'Return on investment'}
+                </span>
+                <h2
+                  id="roi-heading"
+                  className="text-[clamp(1.9rem,4vw,3.2rem)] font-semibold tracking-[-0.03em] leading-[1.05]"
+                >
+                  {isFr ? (
+                    <>Une réceptionniste,<br /><span className="font-serif italic" style={{ color: '#6366f1' }}>90 % moins chère.</span></>
+                  ) : (
+                    <>A receptionist,<br /><span className="font-serif italic" style={{ color: '#6366f1' }}>90% cheaper.</span></>
+                  )}
+                </h2>
+                <p className="mt-5 text-[15px] text-[#525257] leading-relaxed max-w-[440px]">
+                  {isFr
+                    ? "Une secrétaire à mi-temps en Belgique coûte environ 1 800 € brut par mois, soit 2 300 € tout compris, pour 20 h/semaine. Qwillio couvre 24 h/24, 7 j/7 pour une fraction."
+                    : 'A part-time receptionist in Belgium costs roughly 1,800 EUR gross per month — around 2,300 EUR loaded — for 20 hours a week. Qwillio covers 24/7 for a fraction.'}
+                </p>
+              </div>
+            </Reveal>
+
+            <Reveal delay={0.1}>
+              <div
+                className="rounded-3xl p-6 sm:p-8 border border-[#1d1d1f]/10 bg-[#fafaf8]"
+                aria-label={isFr ? 'Comparaison réceptionniste humaine vs Qwillio' : 'Human receptionist vs Qwillio comparison'}
+              >
+                <div className="grid grid-cols-2 gap-4 sm:gap-6">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-2 text-[#6e6e73]">
+                      {isFr ? 'Mi-temps humain' : 'Part-time human'}
+                    </p>
+                    <p className="text-[clamp(1.8rem,3vw,2.4rem)] font-semibold tracking-[-0.03em] tabular-nums text-[#1d1d1f]">2 300&nbsp;€</p>
+                    <p className="text-xs text-[#6e6e73] mt-1">/{perLabel}</p>
+                    <ul role="list" className="mt-4 space-y-1.5 text-[12.5px] text-[#525257]">
+                      <li>· 20 h / {isFr ? 'sem' : 'wk'}</li>
+                      <li>· 1 {isFr ? 'langue' : 'language'}</li>
+                      <li>· {isFr ? 'Congés + arrêts maladie' : 'PTO + sick leave'}</li>
+                      <li>· {isFr ? 'Turnover' : 'Turnover'}</li>
+                    </ul>
+                  </div>
+                  <div
+                    className="rounded-2xl p-4 sm:p-5"
+                    style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 60%, #6366f1 120%)' }}
+                  >
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-2" style={{ color: '#a5b4fc' }}>
+                      {isFr ? 'Qwillio Solo' : 'Qwillio Solo'}
+                    </p>
+                    <p className="text-[clamp(1.8rem,3vw,2.4rem)] font-semibold tracking-[-0.03em] tabular-nums text-white">
+                      {priceFor(149)}&nbsp;€
+                    </p>
+                    <p className="text-xs text-white/60 mt-1">/{perLabel}</p>
+                    <ul role="list" className="mt-4 space-y-1.5 text-[12.5px] text-white/80">
+                      <li>· 24 / 7</li>
+                      <li>· FR {isFr ? 'natif' : 'native'}</li>
+                      <li>· {isFr ? 'Sans arrêt' : 'Zero downtime'}</li>
+                      <li>· {isFr ? 'Sans turnover' : 'Zero turnover'}</li>
+                    </ul>
+                  </div>
+                </div>
+                <div
+                  className="mt-6 pt-5 border-t border-[#1d1d1f]/10 flex items-center justify-between gap-4 flex-wrap"
+                >
+                  <div>
+                    <p className="text-xs text-[#6e6e73] uppercase tracking-[0.14em] font-semibold">
+                      {isFr ? 'Économies' : 'Savings'}
+                    </p>
+                    <p className="text-[clamp(1.6rem,2.6vw,2rem)] font-semibold tabular-nums" style={{ color: '#6366f1' }}>
+                      {(2300 - priceFor(149)).toLocaleString('fr-FR')}&nbsp;€<span className="text-sm font-normal text-[#6e6e73]">/{perLabel}</span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-[#6e6e73] uppercase tracking-[0.14em] font-semibold">
+                      {isFr ? 'Sur 1 an' : 'Over 1 year'}
+                    </p>
+                    <p className="text-[clamp(1.6rem,2.6vw,2rem)] font-semibold tabular-nums" style={{ color: '#a855f7' }}>
+                      {((2300 - priceFor(149)) * 12).toLocaleString('fr-FR')}&nbsp;€
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
           </div>
         </section>
 

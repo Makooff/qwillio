@@ -46,7 +46,7 @@ Key facts:
 - Pro — $1,297/month — up to 2,000 answered calls/month, bilingual (EN+FR), priority support, advanced analytics with sentiment, smart call routing, native CRM integrations.
 - Enterprise — $2,497/month — up to 4,000 calls/month, dedicated success manager, 99.5% uptime SLA, full API access, self-learning AI, multiple phone numbers, SSO.
 
-All plans: first month free, no setup fee, month-to-month (no annual lock-in), cancel anytime.
+Every plan can also be paid annually with a 20 % discount (equivalent to 2.4 months free per year). Monthly billing has no commitment and can be cancelled at any time. Annual billing commits for 12 months in exchange for the discount. Every plan gets the first month free with no setup fee and no credit card required to start.
 
 ## Who Qwillio is for
 
