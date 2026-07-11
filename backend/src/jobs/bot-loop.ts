@@ -76,6 +76,8 @@ class BotLoop {
   private crmSyncJob: cron.ScheduledTask | null = null;
   private forwardingVerificationJob: cron.ScheduledTask | null = null;
   private overageJob: cron.ScheduledTask | null = null;
+  private quotaAlertJob: cron.ScheduledTask | null = null;
+  private backupJob: cron.ScheduledTask | null = null;
   // ─── LinkedIn Outreach ─────────────────────────────────
   private linkedInConnectionsJob: cron.ScheduledTask | null = null;
   private linkedInFollowUpsJob: cron.ScheduledTask | null = null;
@@ -880,6 +882,30 @@ class BotLoop {
       await roiDigestService.sendAllDigests().catch(e => logger.error('[Cron] Monthly Report failed', e));
     }, { timezone: 'UTC' });
 
+    // ═══════════════════════════════════════════════════════════
+    // QUOTA ALERTS — Hourly, notifies clients at 80% / 95% / 100%
+    // of their monthly call quota. State is per-client, so the same
+    // threshold never fires twice in the same month.
+    // ═══════════════════════════════════════════════════════════
+    this.quotaAlertJob = cron.schedule('0 * * * *', async () => {
+      logger.info('[CRON] Quota alerts → running');
+      const { quotaAlertService } = await import('../services/quota-alert.service');
+      await quotaAlertService.runOnce()
+        .catch(e => logger.error('[CRON] Quota alerts failed', e));
+    }, { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
+    // CALL BACKUP — Nightly at 03:30 UTC, snapshots the last 48h
+    // of call + prospect activity to gzipped JSONL. Optional
+    // upload via BACKUP_UPLOAD_URL_TEMPLATE env var.
+    // ═══════════════════════════════════════════════════════════
+    this.backupJob = cron.schedule('30 3 * * *', async () => {
+      logger.info('[CRON] Call backup → running');
+      const { runCallBackup } = await import('./backup-calls');
+      await runCallBackup()
+        .catch(e => logger.error('[CRON] Call backup failed', e));
+    }, { timezone: 'UTC' });
+
     this.keepAliveJob = cron.schedule('*/10 * * * *', async () => {
       try {
         const url = env.API_BASE_URL || `http://localhost:${env.PORT}`;
@@ -889,8 +915,8 @@ class BotLoop {
       }
     });
 
-    await discordService.notifyAlerts('🤖 Qwillio started! All 31 cron jobs active (incl. 6 Agent AI + 7 Prospecting Engine + 3 Operational + 2 ROI Digest).');
-    logger.info('🤖 All 31 cron jobs started. Bot is running in automatic loop.');
+    await discordService.notifyAlerts('🤖 Qwillio started! All 33 cron jobs active (incl. 6 Agent AI + 7 Prospecting Engine + 3 Operational + 2 ROI Digest + Quota Alerts + Nightly Backup).');
+    logger.info('🤖 All 33 cron jobs started. Bot is running in automatic loop.');
     emitEvent('bot:status:changed', { isActive: true });
   }
 
@@ -921,6 +947,8 @@ class BotLoop {
     this.crmSyncJob?.stop(); this.crmSyncJob = null;
     this.forwardingVerificationJob?.stop(); this.forwardingVerificationJob = null;
     this.overageJob?.stop(); this.overageJob = null;
+    this.quotaAlertJob?.stop(); this.quotaAlertJob = null;
+    this.backupJob?.stop(); this.backupJob = null;
     // LinkedIn Outreach
     this.linkedInConnectionsJob?.stop(); this.linkedInConnectionsJob = null;
     this.linkedInFollowUpsJob?.stop(); this.linkedInFollowUpsJob = null;

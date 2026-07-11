@@ -63,6 +63,7 @@ const Terms = lazy(() => import('./pages/legal/Terms'));
 const About = lazy(() => import('./pages/legal/About'));
 const Contact = lazy(() => import('./pages/legal/Contact'));
 const Gdpr = lazy(() => import('./pages/legal/Gdpr'));
+const Sla = lazy(() => import('./pages/legal/Sla'));
 // Public pages (lazy loaded)
 const AgentPage = lazy(() => import('./pages/Agent'));
 const PricingPage = lazy(() => import('./pages/Pricing'));
@@ -216,10 +217,12 @@ export default function App() {
         <Route path="/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
         <Route path="/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
         <Route path="/gdpr" element={<Suspense fallback={<Spinner />}><Gdpr /></Suspense>} />
+        <Route path="/sla" element={<Suspense fallback={<Spinner />}><Sla /></Suspense>} />
         {/* French route aliases for legal pages */}
         <Route path="/fr/privacy" element={<Suspense fallback={<Spinner />}><Privacy /></Suspense>} />
         <Route path="/fr/terms" element={<Suspense fallback={<Spinner />}><Terms /></Suspense>} />
         <Route path="/fr/gdpr" element={<Suspense fallback={<Spinner />}><Gdpr /></Suspense>} />
+        <Route path="/fr/sla" element={<Suspense fallback={<Spinner />}><Sla /></Suspense>} />
         <Route path="/fr/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
         <Route path="/fr/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
         <Route path="/receptionist" element={<Suspense fallback={<Spinner />}><Landing /></Suspense>} />
