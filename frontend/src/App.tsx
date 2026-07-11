@@ -67,6 +67,7 @@ const Gdpr = lazy(() => import('./pages/legal/Gdpr'));
 const AgentPage = lazy(() => import('./pages/Agent'));
 const PricingPage = lazy(() => import('./pages/Pricing'));
 const BlogPage = lazy(() => import('./pages/Blog'));
+const BlogArticlePage = lazy(() => import('./pages/BlogArticle'));
 const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 
 // AI Agents admin pages (lazy loaded)
@@ -224,6 +225,7 @@ export default function App() {
         <Route path="/agent" element={<Suspense fallback={<Spinner />}><AgentPage /></Suspense>} />
         <Route path="/pricing" element={<Suspense fallback={<Spinner />}><PricingPage /></Suspense>} />
         <Route path="/blog" element={<Suspense fallback={<Spinner />}><BlogPage /></Suspense>} />
+        <Route path="/blog/:slug" element={<Suspense fallback={<Spinner />}><BlogArticlePage /></Suspense>} />
         <Route path="/affiliate" element={<Suspense fallback={<Spinner />}><AffiliatePage /></Suspense>} />
 
         {/* Self-service onboarding (requires auth, not yet onboarded) */}

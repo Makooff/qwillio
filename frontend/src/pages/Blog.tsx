@@ -1,71 +1,22 @@
 ﻿import { ArrowRight, Clock, BookOpen } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
+import { BLOG_ARTICLES } from '../content/blogArticles';
 
-interface Article {
-  slug: string;
-  title: string;
-  titleFr: string;
-  excerpt: string;
-  excerptFr: string;
-  date: string;
-  readTime: number;
-  tag: string;
-  tagFr: string;
-  ready: boolean;
-}
-
-const SEO_ARTICLES: Article[] = [
-  {
-    slug: 'ai-receptionist-plumber-2026',
-    title: 'Why Every Plumber Needs an AI Receptionist in 2026',
-    titleFr: 'Pourquoi chaque plombier a besoin d\'une réceptionniste IA en 2026',
-    excerpt: 'Plumbing businesses miss up to 35% of inbound calls during service hours. An AI receptionist captures every lead, books appointments 24/7, and pays for itself within the first month.',
-    excerptFr: 'Les entreprises de plomberie manquent jusqu\'à 35% des appels entrants pendant les heures de service. Une réceptionniste IA capture chaque prospect et prend les rendez-vous 24h/24.',
-    date: '2026-04-10',
-    readTime: 6,
-    tag: 'Home Services',
-    tagFr: 'Services à domicile',
-    ready: false,
-  },
-  {
-    slug: 'dental-offices-ai-no-shows',
-    title: 'How Dental Offices Are Cutting No-Shows by 40% with AI',
-    titleFr: 'Comment les cabinets dentaires réduisent les absences de 40% avec l\'IA',
-    excerpt: 'Automated confirmation calls, smart rescheduling, and personalized reminders are transforming dental practice management and reclaiming thousands in lost revenue.',
-    excerptFr: 'Les appels de confirmation automatisés, la replanification intelligente et les rappels personnalisés transforment la gestion des cabinets dentaires.',
-    date: '2026-04-05',
-    readTime: 5,
-    tag: 'Dental',
-    tagFr: 'Dentaire',
-    ready: false,
-  },
-  {
-    slug: 'hidden-cost-missed-calls',
-    title: 'The Hidden Cost of Missed Calls for Home Service Businesses',
-    titleFr: 'Le coût caché des appels manqués pour les entreprises de services',
-    excerpt: 'Each missed call costs a home service business an average of $1,200 in lost lifetime value. We break down the true numbers and show how to stop the leak.',
-    excerptFr: 'Chaque appel manqué coûte en moyenne 1 200 $ en valeur à vie perdue. Nous analysons les vrais chiffres et montrons comment colmater la fuite.',
-    date: '2026-03-28',
-    readTime: 7,
-    tag: 'Business Growth',
-    tagFr: 'Croissance',
-    ready: false,
-  },
-  {
-    slug: 'ai-vs-human-receptionist-cost',
-    title: 'AI vs Human Receptionist: A Real Cost Comparison',
-    titleFr: 'IA vs réceptionniste humaine : une vraie comparaison des coûts',
-    excerpt: 'A full-time receptionist costs $38K+/year. An AI receptionist handles unlimited calls for under $200/month with zero sick days, zero turnover, and 24/7 availability.',
-    excerptFr: 'Une réceptionniste à temps plein coûte 38 000 $+/an. Une réceptionniste IA gère des appels illimités pour moins de 200 $/mois, disponible 24h/24.',
-    date: '2026-03-20',
-    readTime: 8,
-    tag: 'Cost Analysis',
-    tagFr: 'Analyse des coûts',
-    ready: false,
-  },
-];
+const SEO_ARTICLES = BLOG_ARTICLES.map((a) => ({
+  slug: a.slug,
+  title: a.title.en,
+  titleFr: a.title.fr,
+  excerpt: a.excerpt.en,
+  excerptFr: a.excerpt.fr,
+  date: a.date,
+  readTime: a.readTime,
+  tag: a.tag.en,
+  tagFr: a.tag.fr,
+  ready: true,
+}));
 
 interface LegacyPost {
   title: string;
@@ -132,9 +83,11 @@ export default function Blog() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {SEO_ARTICLES.map((article, i) => (
-                <article
+                <Link
                   key={article.slug}
-                  className="relative rounded-2xl p-6 overflow-hidden transition-colors duration-300 hover:scale-[1.01] group"
+                  to={`/blog/${article.slug}`}
+                  aria-label={isFr ? article.titleFr : article.title}
+                  className="relative rounded-2xl p-6 overflow-hidden transition-transform duration-300 hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 block"
                   style={{
                     background: 'linear-gradient(135deg, #111113, #1a1a1f)',
                     border: '1px solid rgba(255,255,255,0.06)',
@@ -154,10 +107,10 @@ export default function Blog() {
                       >
                         {isFr ? article.tagFr : article.tag}
                       </span>
-                      <span className="flex items-center gap-1 text-[10px]" style={{ color: '#86868B' }}>
+                      <span className="flex items-center gap-1 text-[10px]" style={{ color: '#a1a1a6' }}>
                         <Clock size={10} aria-hidden="true" /> {formatDate(article.date)}
                       </span>
-                      <span className="flex items-center gap-1 text-[10px]" style={{ color: '#86868B' }}>
+                      <span className="flex items-center gap-1 text-[10px]" style={{ color: '#a1a1a6' }}>
                         <BookOpen size={10} aria-hidden="true" /> {article.readTime} min
                       </span>
                     </div>
@@ -166,25 +119,18 @@ export default function Blog() {
                       {isFr ? article.titleFr : article.title}
                     </h3>
 
-                    <p className="text-[13px] leading-relaxed mb-5" style={{ color: '#86868B' }}>
+                    <p className="text-[13px] leading-relaxed mb-5" style={{ color: '#a1a1a6' }}>
                       {isFr ? article.excerptFr : article.excerpt}
                     </p>
 
                     <span
                       className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-xl transition-colors"
-                      style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        color: '#818cf8',
-                        cursor: article.ready ? 'pointer' : 'default',
-                      }}
+                      style={{ background: 'rgba(255,255,255,0.06)', color: '#818cf8' }}
                     >
-                      {article.ready
-                        ? <>{isFr ? 'Lire' : 'Read'} <ArrowRight size={14} aria-hidden="true" /></>
-                        : <>{isFr ? 'Bientôt disponible' : 'Coming soon'}</>
-                      }
+                      {isFr ? 'Lire' : 'Read'} <ArrowRight size={14} aria-hidden="true" />
                     </span>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           </div>

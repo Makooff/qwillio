@@ -1,4 +1,5 @@
-﻿import { Link } from 'react-router-dom';
+﻿import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowRight, Heart, Compass, Zap } from 'lucide-react';
 import PublicNavbar from '../../components/PublicNavbar';
 import PublicFooter from '../../components/PublicFooter';
@@ -12,10 +13,49 @@ export default function About() {
   useSEO({
     title: isFr ? 'À propos · Qwillio' : 'About · Qwillio',
     description: isFr
-      ? 'La mission, la vision et l\'histoire de Qwillio.'
-      : 'Qwillio mission, vision and story.',
+      ? 'La mission, la vision et l\'histoire de Qwillio, plateforme de réceptionniste IA basée à Bruxelles.'
+      : 'Qwillio mission, vision and story — AI receptionist platform headquartered in Brussels.',
     canonical: 'https://qwillio.com/about',
   });
+
+  // JSON-LD Organization + Person schema (E-E-A-T)
+  useEffect(() => {
+    const id = 'qwillio-about-jsonld';
+    document.getElementById(id)?.remove();
+    const script = document.createElement('script');
+    script.id = id;
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'AboutPage',
+          '@id': 'https://qwillio.com/about#page',
+          url: 'https://qwillio.com/about',
+          name: 'About Qwillio',
+          description: 'Qwillio is an AI receptionist platform founded in 2025, headquartered in Brussels, Belgium. Serving small and medium businesses across Belgium, France, and North America.',
+          inLanguage: ['en', 'fr'],
+          isPartOf: { '@id': 'https://qwillio.com#website' },
+        },
+        {
+          '@type': 'Organization',
+          '@id': 'https://qwillio.com#organization',
+          name: 'Qwillio',
+          url: 'https://qwillio.com',
+          foundingDate: '2025',
+          foundingLocation: { '@type': 'Place', name: 'Brussels, Belgium' },
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: 'Brussels',
+            addressCountry: 'BE',
+          },
+          knowsLanguage: ['en', 'fr'],
+        },
+      ],
+    });
+    document.head.appendChild(script);
+    return () => script.remove();
+  }, []);
 
   const values = [
     {

@@ -144,6 +144,53 @@ export default function Pricing() {
           </div>
         </section>
 
+        {/* ── SOLO BANNER — Belgian / French SMB entry ─────────────── */}
+        <section aria-label={isFr ? 'Plan Solo pour la Belgique et la France' : 'Solo plan for Belgium and France'} className="px-6 pb-6">
+          <div className="max-w-[1240px] mx-auto">
+            <Reveal>
+            <article
+              aria-label="Solo"
+              className="relative rounded-3xl sm:rounded-[2rem] p-6 sm:p-8 flex flex-col md:flex-row md:items-center gap-6 border border-[#1d1d1f]/10 bg-[#fafaf8] text-[#1d1d1f]"
+            >
+              <span
+                className="inline-flex md:absolute md:-top-3 md:left-6 text-[10px] font-bold tracking-[0.18em] uppercase px-3 py-1.5 rounded-full whitespace-nowrap self-start"
+                style={{ background: '#6366f1', color: '#fff' }}
+              >
+                {isFr ? 'Nouveau — Belgique & France' : 'New — Belgium & France'}
+              </span>
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold tracking-[-0.02em] mb-1">Solo</h2>
+                <p className="text-sm text-[#6e6e73] mb-3">
+                  {isFr
+                    ? 'PME, artisans, professions libérales — français, hébergement UE.'
+                    : 'Small businesses, tradespeople, liberal professions — French, EU hosting.'}
+                </p>
+                <ul role="list" className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-[#424245]">
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> 300 {isFr ? 'appels / mois' : 'calls / month'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? '1 numéro FR inclus' : '1 FR number included'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'Agenda + CRM' : 'Calendar + CRM'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'RGPD, UE' : 'GDPR, EU'}</li>
+                </ul>
+              </div>
+              <div className="flex flex-col md:items-end gap-2">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-semibold tracking-[-0.04em] tabular-nums">149&nbsp;€</span>
+                  <span className="text-sm text-[#6e6e73]">/{isFr ? 'mois' : 'month'}</span>
+                </div>
+                <p className="text-xs" style={{ color: '#6366f1' }}>· {isFr ? '1er mois offert' : '1st month free'}</p>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center justify-center gap-2 text-sm font-medium pl-5 pr-6 py-3 rounded-full transition-colors bg-[#1d1d1f] text-white hover:bg-[#6366f1]"
+                >
+                  {isFr ? 'Choisir Solo' : 'Choose Solo'}
+                  <ArrowRight size={15} aria-hidden="true" />
+                </Link>
+              </div>
+            </article>
+            </Reveal>
+          </div>
+        </section>
+
         {/* ── PRICING BENTO 1fr 1.4fr 1fr — Pro dominant ─────────── */}
         <section aria-label={isFr ? 'Plans tarifaires' : 'Pricing plans'} className="px-6 pb-24 md:pb-32">
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1fr_1.4fr_1fr] gap-5 items-stretch">
@@ -176,7 +223,7 @@ export default function Pricing() {
                     <h2 className={`text-2xl font-semibold tracking-[-0.02em] mb-1 ${isPro ? 'text-white' : 'text-[#1d1d1f]'}`}>
                       {tier.name}
                     </h2>
-                    <p className={`text-sm ${isPro ? 'text-white/60' : 'text-[#86868b]'}`}>
+                    <p className={`text-sm ${isPro ? 'text-white/60' : 'text-[#6e6e73]'}`}>
                       {tier.description}
                     </p>
                   </header>
@@ -186,7 +233,7 @@ export default function Pricing() {
                       <span className={`text-[clamp(2.6rem,4vw,3.4rem)] font-semibold tracking-[-0.04em] tabular-nums ${isPro ? 'text-white' : 'text-[#1d1d1f]'}`}>
                         ${tier.monthly.toLocaleString()}
                       </span>
-                      <span className={`text-sm ${isPro ? 'text-white/60' : 'text-[#86868b]'}`}>
+                      <span className={`text-sm ${isPro ? 'text-white/60' : 'text-[#6e6e73]'}`}>
                         /{isFr ? 'mois' : 'month'}
                       </span>
                     </div>
@@ -209,7 +256,7 @@ export default function Pricing() {
                     ))}
                   </ul>
 
-                  <p className={`text-xs mb-4 ${isPro ? 'text-white/45' : 'text-[#86868b]'}`}>
+                  <p className={`text-xs mb-4 ${isPro ? 'text-white/45' : 'text-[#6e6e73]'}`}>
                     {isFr
                       ? `Overage : $${tier.overage}/appel au-delà des ${tier.calls.toLocaleString('fr-FR')} appels inclus`
                       : `Overage: $${tier.overage}/call beyond ${tier.calls.toLocaleString()} included calls`}
@@ -359,7 +406,7 @@ export default function Pricing() {
                       </div>
                       <p className="text-[12px] text-[#525257] mb-2 truncate">{m.tagline}</p>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[13px] font-semibold tabular-nums text-[#1d1d1f]">$197<span className="text-[11px] font-normal text-[#86868b]">/mo</span></span>
+                        <span className="text-[13px] font-semibold tabular-nums text-[#1d1d1f]">$197<span className="text-[11px] font-normal text-[#6e6e73]">/mo</span></span>
                         <Link
                           to="/agent"
                           className="text-[11.5px] font-semibold inline-flex items-center gap-1"
@@ -390,8 +437,8 @@ export default function Pricing() {
               className="text-[clamp(1.6rem,3vw,2.4rem)] font-semibold tracking-[-0.025em] mb-10 max-w-[640px]"
             >
               {isFr
-                ? <>Tout ce qui change. <span className="text-[#86868b] font-normal">Et tout ce qui reste pareil.</span></>
-                : <>What changes. <span className="text-[#86868b] font-normal">And what stays the same.</span></>}
+                ? <>Tout ce qui change. <span className="text-[#6e6e73] font-normal">Et tout ce qui reste pareil.</span></>
+                : <>What changes. <span className="text-[#6e6e73] font-normal">And what stays the same.</span></>}
             </h2>
             </Reveal>
 
@@ -428,7 +475,7 @@ export default function Pricing() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-[#1d1d1f]/15">
-                          <th className="text-left py-4 font-normal text-[#86868b] text-xs uppercase tracking-wider">
+                          <th className="text-left py-4 font-normal text-[#6e6e73] text-xs uppercase tracking-wider">
                             {isFr ? 'Fonction' : 'Feature'}
                           </th>
                           {tiers.map((t) => (
@@ -475,7 +522,7 @@ export default function Pricing() {
                           }`}
                         >
                           <span className="font-semibold text-base">{tier.name}</span>
-                          <span className="text-xs text-[#86868b]">
+                          <span className="text-xs text-[#6e6e73]">
                             {isFr ? 'Voir détails' : 'View details'}
                           </span>
                         </summary>
@@ -529,7 +576,7 @@ export default function Pricing() {
                       </span>
                       <ChevronDown
                         size={18}
-                        className={`flex-shrink-0 transition-transform duration-300 ${open ? 'rotate-180 text-[#6366f1]' : 'text-[#86868b]'}`}
+                        className={`flex-shrink-0 transition-transform duration-300 ${open ? 'rotate-180 text-[#6366f1]' : 'text-[#6e6e73]'}`}
                         aria-hidden="true"
                       />
                     </button>
