@@ -3,9 +3,8 @@ import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
 import {
   Check, ArrowRight, ChevronDown,
-  Users, Megaphone, Star, FileText, CalendarClock, MapPin,
-  Mail, Crosshair, LifeBuoy, CreditCard, LineChart, Calculator, Package,
-  Sparkles,
+  Sparkles, Users, Megaphone, Star, FileText, CalendarClock, MapPin, Mail,
+  Crosshair, LifeBuoy, CreditCard, LineChart, Calculator, Package,
 } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';

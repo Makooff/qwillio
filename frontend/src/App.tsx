@@ -65,7 +65,7 @@ const Contact = lazy(() => import('./pages/legal/Contact'));
 const Gdpr = lazy(() => import('./pages/legal/Gdpr'));
 const Sla = lazy(() => import('./pages/legal/Sla'));
 // Public pages (lazy loaded)
-const AgentPage = lazy(() => import('./pages/Agent'));
+// Qwillio Agent marketing page — hidden (coming soon), route redirects to home
 const PricingPage = lazy(() => import('./pages/Pricing'));
 const BlogPage = lazy(() => import('./pages/Blog'));
 const BlogArticlePage = lazy(() => import('./pages/BlogArticle'));
@@ -226,7 +226,8 @@ export default function App() {
         <Route path="/fr/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
         <Route path="/fr/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
         <Route path="/receptionist" element={<Suspense fallback={<Spinner />}><Landing /></Suspense>} />
-        <Route path="/agent" element={<Suspense fallback={<Spinner />}><AgentPage /></Suspense>} />
+        {/* Qwillio Agent — marketing page hidden (coming soon); redirect to home */}
+        <Route path="/agent" element={<Navigate to="/" replace />} />
         <Route path="/pricing" element={<Suspense fallback={<Spinner />}><PricingPage /></Suspense>} />
         <Route path="/blog" element={<Suspense fallback={<Spinner />}><BlogPage /></Suspense>} />
         <Route path="/blog/:slug" element={<Suspense fallback={<Spinner />}><BlogArticlePage /></Suspense>} />

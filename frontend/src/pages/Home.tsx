@@ -469,9 +469,9 @@ export default function Home() {
                 transition={{ duration: 0.85, delay: 0.12, ease: EASE }}
               >
               <Card3D intensity={3}>
-              <Link
-                to="/agent"
-                className="group relative rounded-[2rem] block p-8 md:p-10 min-h-[460px] h-full overflow-hidden text-white"
+              <div
+                aria-disabled="true"
+                className="group relative rounded-[2rem] block p-8 md:p-10 min-h-[460px] h-full overflow-hidden text-white cursor-default select-none"
                 style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 55%, #a855f7 115%)' }}
               >
                 <div
@@ -481,12 +481,17 @@ export default function Home() {
                 />
                 <div className="relative flex flex-col h-full justify-between">
                   <div>
-                    <span
-                      className="w-11 h-11 rounded-2xl text-white flex items-center justify-center mb-6"
-                      style={{ background: 'rgba(255,255,255,0.12)' }}
-                    >
-                      <Bot size={20} aria-hidden="true" />
-                    </span>
+                    <div className="flex items-center justify-between mb-6">
+                      <span
+                        className="w-11 h-11 rounded-2xl text-white flex items-center justify-center"
+                        style={{ background: 'rgba(255,255,255,0.12)' }}
+                      >
+                        <Bot size={20} aria-hidden="true" />
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.16em] rounded-full px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.14)', color: '#e9d5ff' }}>
+                        {isFr ? 'Bientôt' : 'Coming soon'}
+                      </span>
+                    </div>
                     <h3 className="text-[clamp(1.5rem,2.8vw,2rem)] font-semibold tracking-[-0.025em] leading-[1.1] mb-3">
                       Qwillio Agent
                     </h3>
@@ -521,12 +526,11 @@ export default function Home() {
                       <span className="text-white/55">/mois · {isFr ? 'par module' : 'per module'}</span>
                     </p>
                     <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: '#d8b4fe' }}>
-                      {isFr ? 'Voir' : 'View'}
-                      <ArrowRight size={15} aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1" />
+                      {isFr ? 'Bientôt disponible' : 'Coming soon'}
                     </span>
                   </div>
                 </div>
-              </Link>
+              </div>
               </Card3D>
               </motion.div>
             </div>
