@@ -47,4 +47,38 @@ test.describe('Public marketing surface — smoke', () => {
     await expect(page.locator('input[type="email"]').first()).toBeVisible();
     await expect(page.locator('input[type="password"]').first()).toBeVisible();
   });
+
+  test('comparison page vs Smith.ai renders body + CTA', async ({ page }) => {
+    await page.goto('/vs/smith-ai');
+    await expect(page.locator('h1')).toContainText(/Smith\.ai/);
+    await expect(page.locator('article h2').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Create account|Créer un compte/i })).toBeVisible();
+  });
+
+  test('comparison page vs Yelda renders body + CTA', async ({ page }) => {
+    await page.goto('/vs/yelda');
+    await expect(page.locator('h1')).toContainText(/Yelda/);
+    await expect(page.locator('article h2').first()).toBeVisible();
+  });
+
+  test('unknown comparison slug redirects to /pricing', async ({ page }) => {
+    await page.goto('/vs/does-not-exist');
+    await expect(page).toHaveURL(/\/pricing$/);
+  });
+
+  test('SLA page renders the plan commitments table', async ({ page }) => {
+    await page.goto('/sla');
+    await expect(page.locator('h1')).toContainText(/SLA|Service/);
+    await expect(page.getByRole('columnheader', { name: /Starter/ })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Pro/ })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Enterprise/ })).toBeVisible();
+  });
+
+  test('pricing toggle Monthly ↔ Annual updates displayed price', async ({ page }) => {
+    await page.goto('/pricing');
+    // Starter shows 497 in monthly; 398 in annual (497 * 0.80 rounded)
+    await expect(page.getByText('$497').first()).toBeVisible();
+    await page.getByRole('button', { name: /Annual|Annuel/ }).click();
+    await expect(page.getByText('$398').first()).toBeVisible();
+  });
 });

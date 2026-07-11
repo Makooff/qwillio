@@ -25,6 +25,9 @@ Key facts:
 - [Affiliate program](https://qwillio.com/affiliate): Recurring commission on every referred client.
 - [Contact](https://qwillio.com/contact): Sales and support channels.
 - [Blog](https://qwillio.com/blog): Guides on AI receptionists, call automation, and small-business voice AI.
+- [SLA](https://qwillio.com/sla): Uptime targets, service credits, incident classification and support response times by plan.
+- [Compare Qwillio vs Smith.ai](https://qwillio.com/vs/smith-ai): Head-to-head with the US market leader.
+- [Compare Qwillio vs Yelda.ai](https://qwillio.com/vs/yelda): Head-to-head with the French voice-AI reference.
 
 ## Features
 
