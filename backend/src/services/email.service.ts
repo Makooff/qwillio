@@ -28,12 +28,42 @@ export class EmailService {
   }
 
   /**
-   * Inject unsubscribe link into rendered HTML (before closing </body>)
+   * Inject unsubscribe link into rendered HTML.
+   * Injects before the closing body tag when present; otherwise appends,
+   * so fragment HTML (e.g. quota alert emails) still gets the footer.
    */
   private injectUnsubscribeLink(html: string, email: string): string {
     const url = this.getUnsubscribeUrl(email);
     const footer = `<div style="text-align:center;padding:10px 0;"><a href="${url}" style="color:#999;font-size:11px;text-decoration:underline;">Unsubscribe</a></div>`;
-    return html.replace('</body>', `${footer}</body>`);
+    if (html.includes('</body>')) {
+      return html.replace('</body>', `${footer}</body>`);
+    }
+    return `${html}${footer}`;
+  }
+
+  /**
+   * Send an ad-hoc transactional email. Use only for messages that do not
+   * have a dedicated typed helper below — quota alerts, one-off notifications,
+   * admin escalations. Wraps the raw HTML with the standard unsubscribe footer.
+   */
+  async send(data: { to: string; subject: string; html: string; replyTo?: string; tags?: { name: string; value: string }[] }) {
+    const html = this.injectUnsubscribeLink(data.html, data.to);
+    try {
+      const result = await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL,
+        to: data.to,
+        subject: data.subject,
+        html,
+        replyTo: data.replyTo ?? env.RESEND_REPLY_TO,
+        headers: { 'List-Unsubscribe': `<${this.getUnsubscribeUrl(data.to)}>` },
+        tags: data.tags,
+      });
+      logger.info(`ad-hoc email sent to ${data.to} (ID: ${result.data?.id})`);
+      return { ok: true, id: result.data?.id };
+    } catch (err) {
+      logger.error(`ad-hoc email to ${data.to} failed:`, err);
+      throw err;
+    }
   }
 
   async sendQuoteEmail(data: {

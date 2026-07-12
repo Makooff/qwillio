@@ -57,11 +57,19 @@ Typical Qwillio customer signals: misses more than 10 calls a week, wants 24/7 c
 
 ## 4. Pricing
 
-All plans are month-to-month, no annual commitment, no setup fee, first month free, cancel anytime. Prices in USD.
+All plans are billed monthly by default; annual billing is available on every plan with a 20 % discount (equivalent to 2.4 months free per year). No setup fee, first month free, cancel anytime on monthly.
+
+### Solo — 149 EUR/month (Belgium and France)
+- Up to 300 answered calls/month
+- French (native), 1 French number included
+- Native CRM (leads, bookings, call history)
+- Google Calendar or Cal.com booking
+- EU GDPR-friendly hosting
+- Email support
 
 ### Starter — $497/month
 - Up to 800 answered calls/month
-- 1 language (English OR French)
+- Bilingual (English + French)
 - Email support
 - Stripe billing and invoicing
 - Native CRM (leads, bookings, call history)
@@ -69,9 +77,9 @@ All plans are month-to-month, no annual commitment, no setup fee, first month fr
 - Custom greeting
 - Call recording and transcription
 
-### Pro — $997/month
-- Up to 2,500 answered calls/month
-- Bilingual (English + French simultaneously)
+### Pro — $1,297/month
+- Up to 2,000 answered calls/month
+- Bilingual (English + French simultaneously, on the same call)
 - Priority email and chat support (6h response)
 - Advanced CRM with sentiment scoring, AI next-best-action, lead-intent scoring
 - Full integration suite (Google Calendar, Calendly, Cal.com, Zapier, Make, n8n, HubSpot, Pipedrive)
@@ -80,9 +88,9 @@ All plans are month-to-month, no annual commitment, no setup fee, first month fr
 - Custom voice settings (pitch, speed, style)
 
 ### Enterprise — $2,497/month
-- Unlimited calls
+- Up to 4,000 answered calls/month
 - Dedicated customer success manager
-- Service-level agreement (99.95% uptime)
+- 99.5% uptime SLA with service credits (see https://qwillio.com/sla)
 - Custom voice cloning (use your own brand voice)
 - White-label (custom phone number, custom greeting, your logo in the dashboard)
 - Full API access
@@ -91,8 +99,11 @@ All plans are month-to-month, no annual commitment, no setup fee, first month fr
 - Salesforce and custom-CRM integration
 - On-call engineering support
 
+### Annual billing
+Every plan can be paid annually with a 20 % discount. Annual monthly-equivalent prices: Solo 119 EUR, Starter $398, Pro $1,038, Enterprise $1,998.
+
 ### Overage
-If call volume exceeds your plan allocation, overage calls are billed at a transparent per-call rate (typically $0.75–$1.50 depending on plan). Customers receive a notification before reaching the limit and can upgrade instantly without penalty.
+If call volume exceeds your plan allocation, overage calls are billed at a transparent per-call rate ($0.22 Starter, $0.18 Pro, $0.15 Enterprise). Customers receive a notification at 80 %, 95 % and 100 % of quota and can upgrade instantly without penalty.
 
 ### Free trial
 Every new account receives the first month free on any plan. No credit card required to start. Cancel before day 30 to pay nothing.
@@ -103,8 +114,8 @@ Every new account receives the first month free on any plan. No credit card requ
 
 **Setup (typical time: 15 minutes)**
 1. Sign up at https://qwillio.com/register
-2. Choose your plan (Starter / Pro / Enterprise)
-3. Pick your language (English, French, or both on Pro/Enterprise)
+2. Choose your plan (Solo / Starter / Pro / Enterprise) and billing frequency (monthly or annual -20%)
+3. Pick your language (French on Solo, English or French or both on Starter and above)
 4. Upload your FAQ (paste your website or answer a 10-question business profile)
 5. Connect your calendar (Google, Calendly, or Cal.com)
 6. Get your Qwillio phone number (or port your existing one)
@@ -146,7 +157,7 @@ Business owners see a live feed of every call, every lead, every booking, and ev
 | 24/7 coverage | Yes | Yes | Business hours | Yes | Yes | Yes |
 | AI-only (no human) | Yes | No (human) | No (human) | Yes | Yes | No (human) |
 | Bilingual EN+FR | Yes | EN only | EN only | EN only | EN only | EN only |
-| Starting price | $497/mo | $285/mo + per-call | $319/mo | $49/mo | $49/mo | $169/mo |
+| Starting price | 149 EUR/mo (Solo) | $285/mo + per-call | $319/mo | $49/mo | $49/mo | $169/mo |
 | Appointment booking | Native | Add-on | Yes | Yes | Yes | Yes |
 | CRM included | Yes | No | No | No | No | No |
 | Free month | Yes | No | No | Trial | Trial | Trial |
@@ -233,7 +244,7 @@ A: Most callers cannot tell they are speaking to an AI. Ashley and Marie have na
 A: Yes. Ashley handles American, British, Australian, Indian, and most common English accents. Marie handles European French (France, Belgium, Switzerland) and Quebec French.
 
 **Q: Is there a contract or long-term commitment?**
-A: No. All plans are month-to-month. You can cancel in one click from your dashboard at any time.
+A: Monthly plans have no commitment: cancel in one click from your dashboard at any time. Annual plans commit for 12 months in exchange for a 20% discount. The first month is free on both billing options.
 
 **Q: How do I get started?**
 A: Go to https://qwillio.com, click Start Free, and you will have a working AI receptionist in about 15 minutes. First month is free, no credit card required.

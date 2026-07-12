@@ -139,8 +139,22 @@
         "itemListElement": [
           {
             "@type": "Offer",
+            "name": "Solo",
+            "description": "Up to 300 calls/month in French, ideal for small businesses in Belgium and France. Native CRM, calendar booking, first month free.",
+            "price": "149",
+            "priceCurrency": "EUR",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "149",
+              "priceCurrency": "EUR",
+              "unitText": "MONTH"
+            },
+            "url": "https://qwillio.com/pricing"
+          },
+          {
+            "@type": "Offer",
             "name": "Starter",
-            "description": "Up to 800 answered calls/month, 1 language (EN or FR), email support, native CRM, calendar booking.",
+            "description": "Up to 800 answered calls/month, bilingual EN+FR, email support, native CRM, calendar booking.",
             "price": "497",
             "priceCurrency": "USD",
             "priceSpecification": {
@@ -154,12 +168,12 @@
           {
             "@type": "Offer",
             "name": "Pro",
-            "description": "Up to 2,500 calls/month, bilingual EN+FR, priority support, advanced CRM, full integration suite, SMS follow-ups.",
-            "price": "997",
+            "description": "Up to 2,000 calls/month, bilingual EN+FR, priority support, advanced CRM, sentiment analysis, smart routing.",
+            "price": "1297",
             "priceCurrency": "USD",
             "priceSpecification": {
               "@type": "UnitPriceSpecification",
-              "price": "997",
+              "price": "1297",
               "priceCurrency": "USD",
               "unitText": "MONTH"
             },
@@ -168,7 +182,7 @@
           {
             "@type": "Offer",
             "name": "Enterprise",
-            "description": "Unlimited calls, dedicated success manager, SLA, custom voice cloning, white-label, API access, SSO.",
+            "description": "Up to 4,000 calls/month, dedicated success manager, 99.5% SLA, full API access, self-learning AI.",
             "price": "2497",
             "priceCurrency": "USD",
             "priceSpecification": {
@@ -195,15 +209,12 @@
       "url": "https://qwillio.com",
       "description": "AI receptionist that answers calls, books appointments, manages CRM and billing automatically.",
       "offers": {
-        "@type": "Offer",
-        "price": "497",
+        "@type": "AggregateOffer",
+        "lowPrice": "497",
+        "highPrice": "2497",
         "priceCurrency": "USD",
-        "priceValidUntil": "2027-01-01"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "reviewCount": "128"
+        "offerCount": "3",
+        "url": "https://qwillio.com/pricing"
       }
     }
     </script>
@@ -227,7 +238,7 @@
           "name": "How much does Qwillio cost?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Plans start at $497/month for Starter (up to 800 calls). Pro is $997/month (up to 2,500 calls, bilingual). Enterprise is $2,497/month (unlimited, with custom voice, white-label, and SSO). Every plan gets the first month free with no setup fee and no credit card required."
+            "text": "Plans start at 149 EUR / month for Solo (up to 300 calls, French, ideal for Belgium and France small businesses). Starter is $497/month (up to 800 calls, bilingual EN+FR). Pro is $1,297/month (up to 2,000 calls with sentiment analysis and smart routing). Enterprise is $2,497/month (up to 4,000 calls, dedicated manager, 99.5% SLA, full API). Annual billing is available on every plan with a 20% discount. Every plan gets the first month free with no setup fee and no credit card required."
           }
         },
         {
@@ -351,7 +362,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" />
 
-    <!-- ═══ Schema.org JSON-LD – AggregateRating ═══ -->
+    <!-- ═══ Schema.org JSON-LD – Product ═══ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -360,13 +371,6 @@
       "image": "https://qwillio.com/qwillio-logo-512.svg",
       "description": "AI receptionist that answers every business call 24/7 in English and French, books appointments, captures leads, and automates CRM and follow-up SMS.",
       "brand": { "@type": "Brand", "name": "Qwillio" },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "bestRating": "5",
-        "worstRating": "1",
-        "reviewCount": "128"
-      },
       "offers": {
         "@type": "AggregateOffer",
         "priceCurrency": "USD",

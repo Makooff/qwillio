@@ -63,10 +63,13 @@ const Terms = lazy(() => import('./pages/legal/Terms'));
 const About = lazy(() => import('./pages/legal/About'));
 const Contact = lazy(() => import('./pages/legal/Contact'));
 const Gdpr = lazy(() => import('./pages/legal/Gdpr'));
+const Sla = lazy(() => import('./pages/legal/Sla'));
 // Public pages (lazy loaded)
 // Qwillio Agent marketing page — hidden (coming soon), route redirects to home
 const PricingPage = lazy(() => import('./pages/Pricing'));
 const BlogPage = lazy(() => import('./pages/Blog'));
+const BlogArticlePage = lazy(() => import('./pages/BlogArticle'));
+const ComparisonPage = lazy(() => import('./pages/ComparisonPage'));
 const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 
 // AI Agents admin pages (lazy loaded)
@@ -214,10 +217,12 @@ export default function App() {
         <Route path="/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
         <Route path="/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
         <Route path="/gdpr" element={<Suspense fallback={<Spinner />}><Gdpr /></Suspense>} />
+        <Route path="/sla" element={<Suspense fallback={<Spinner />}><Sla /></Suspense>} />
         {/* French route aliases for legal pages */}
         <Route path="/fr/privacy" element={<Suspense fallback={<Spinner />}><Privacy /></Suspense>} />
         <Route path="/fr/terms" element={<Suspense fallback={<Spinner />}><Terms /></Suspense>} />
         <Route path="/fr/gdpr" element={<Suspense fallback={<Spinner />}><Gdpr /></Suspense>} />
+        <Route path="/fr/sla" element={<Suspense fallback={<Spinner />}><Sla /></Suspense>} />
         <Route path="/fr/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
         <Route path="/fr/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
         <Route path="/receptionist" element={<Suspense fallback={<Spinner />}><Landing /></Suspense>} />
@@ -225,6 +230,8 @@ export default function App() {
         <Route path="/agent" element={<Navigate to="/" replace />} />
         <Route path="/pricing" element={<Suspense fallback={<Spinner />}><PricingPage /></Suspense>} />
         <Route path="/blog" element={<Suspense fallback={<Spinner />}><BlogPage /></Suspense>} />
+        <Route path="/blog/:slug" element={<Suspense fallback={<Spinner />}><BlogArticlePage /></Suspense>} />
+        <Route path="/vs/:slug" element={<Suspense fallback={<Spinner />}><ComparisonPage /></Suspense>} />
         <Route path="/affiliate" element={<Suspense fallback={<Spinner />}><AffiliatePage /></Suspense>} />
 
         {/* Self-service onboarding (requires auth, not yet onboarded) */}

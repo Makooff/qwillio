@@ -172,8 +172,13 @@ export default function AdminAbuse() {
                       <span className="text-xs truncate block">{item.blockReason || '\u2014'}</span>
                     </td>
                     <td className={cx.td}>
-                      <button className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-colors" style={{ color: t.textSec }}>
-                        <Eye size={14} />
+                      <button
+                        type="button"
+                        aria-label="Voir les détails du signalement"
+                        className="p-1.5 rounded-[8px] hover:bg-white/[0.08] transition-colors"
+                        style={{ color: t.textSec }}
+                      >
+                        <Eye size={14} aria-hidden="true" />
                       </button>
                     </td>
                   </tr>

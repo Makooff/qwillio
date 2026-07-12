@@ -1,0 +1,220 @@
+export type ComparisonBlock =
+  | { type: 'p'; text: string }
+  | { type: 'h2'; text: string }
+  | { type: 'ul'; items: string[] }
+  | { type: 'table'; head: string[]; rows: string[][]; caption?: string }
+  | { type: 'verdict'; tone: 'good' | 'bad' | 'neutral'; title: string; text: string };
+
+export interface Localized {
+  en: string;
+  fr: string;
+}
+
+export interface ComparisonPage {
+  slug: string;
+  competitor: string;
+  title: Localized;
+  subtitle: Localized;
+  updated: string;
+  content: { en: ComparisonBlock[]; fr: ComparisonBlock[] };
+}
+
+export const COMPARISON_PAGES: ComparisonPage[] = [
+  {
+    slug: 'smith-ai',
+    competitor: 'Smith.ai',
+    title: {
+      en: 'Qwillio vs Smith.ai: the honest 2026 comparison',
+      fr: 'Qwillio vs Smith.ai : le comparatif honnête 2026',
+    },
+    subtitle: {
+      en: 'Both cover business calls 24/7. One relies on human receptionists in the US; the other is pure AI, bilingual, GDPR-friendly. Here is where each wins.',
+      fr: 'Les deux couvrent les appels 24 h/24. L\'un s\'appuie sur des réceptionnistes humaines aux États-Unis ; l\'autre est une IA pure, bilingue, compatible RGPD. Voici où chacun l\'emporte.',
+    },
+    updated: '2026-07-11',
+    content: {
+      en: [
+        { type: 'p', text: "Smith.ai has been the reference US call-answering brand for a decade. Founded in 2015 in California, it built its reputation on hybrid human plus AI receptionists that handle inbound calls, qualify leads, and book meetings for small and mid-market US businesses. Its plans start at 95 $/month for the AI-only tier and 500 $/month for the Done-for-You human-hybrid tier." },
+        { type: 'p', text: "Qwillio is the newer generation. Founded in 2025 in Brussels, it runs pure conversational AI in both English and French from day one, targets Belgium and France as much as North America, and prices flat with no per-call human fee. Starter is $497/month, Pro is $1,297/month, Enterprise is $2,497/month, plus a Solo tier at 149 EUR/month for smaller Belgian and French businesses." },
+        { type: 'p', text: "The two products serve overlapping needs but from different angles. If you weight your decision on English-only US-based hybrid coverage with a strong brand, Smith.ai still wins. If you weight it on bilingual native French, EU hosting, and lower flat monthly cost, Qwillio wins clearly. This page walks through the material differences." },
+        { type: 'h2', text: 'Price comparison at similar volume' },
+        { type: 'table', head: ['Plan', 'Included volume', 'Price / month', 'Effective $/call'], rows: [
+          ['Smith.ai AI Starter', '~60 calls', '95 $', '≈ 1.58 $'],
+          ['Smith.ai DFY Basic', '~250 calls', '500 $', '≈ 2.00 $'],
+          ['Smith.ai DFY Pro', '~600 calls', '1 000 $', '≈ 1.67 $'],
+          ['Qwillio Solo (EUR)', '300 calls', '149 €', '≈ 0.50 €'],
+          ['Qwillio Starter', '800 calls', '497 $', '≈ 0.62 $'],
+          ['Qwillio Pro', '2 000 calls', '1 297 $', '≈ 0.65 $'],
+          ['Qwillio Enterprise', '4 000 calls', '2 497 $', '≈ 0.62 $'],
+        ]},
+        { type: 'p', text: "At 500 to 800 answered calls per month — the volume most home service and healthcare businesses hit — Qwillio Starter costs roughly half of Smith.ai Done-for-You Basic. Above 2 000 calls, the flat-rate Qwillio Pro is materially cheaper than either Smith.ai plan or any pay-per-call hybrid." },
+        { type: 'h2', text: 'Feature-by-feature comparison' },
+        { type: 'table', head: ['Feature', 'Smith.ai', 'Qwillio'], rows: [
+          ['24/7 answering', 'Yes', 'Yes'],
+          ['Human backup on tricky calls', 'Yes (US-based)', 'No (pure AI)'],
+          ['English native', 'Yes', 'Yes'],
+          ['Spanish native', 'Yes', 'No'],
+          ['French native', 'No', 'Yes'],
+          ['Bilingual on the same call (auto-switch)', 'No', 'Yes (EN + FR)'],
+          ['Calendar booking (Google, Cal.com)', 'Yes', 'Yes'],
+          ['CRM sync (HubSpot, Salesforce)', 'Yes', 'Yes'],
+          ['Native billing add-ons (Stripe)', 'No', 'Yes'],
+          ['GDPR-compliant hosting option', 'No (US)', 'Yes (EU)'],
+          ['Self-serve onboarding', 'Partial', 'Yes (15 min)'],
+          ['First month free', 'Case by case', 'Yes, no card'],
+        ]},
+        { type: 'h2', text: 'Where Smith.ai still wins' },
+        { type: 'p', text: "Smith.ai is not a legacy player. It has ten years of operational maturity, a brand US SMB owners already trust, and hybrid human coverage on calls where the AI would fall short. If your business is US-only, English-only, and you value having a real human as fallback on a case that turns emotional or high-stakes, Smith.ai remains defensible." },
+        { type: 'verdict', tone: 'good', title: 'Smith.ai is the better fit if', text: 'You are a US business, your clients speak English only, you already pay for a human receptionist and want to keep a human touch, and your inbound call volume is under 300 per month.' },
+        { type: 'h2', text: 'Where Qwillio wins' },
+        { type: 'p', text: "Qwillio was built for exactly the gaps Smith.ai never filled — bilingual French markets, EU data hosting for GDPR-sensitive clients, and a flat monthly rate that does not scale on a per-call variable. Every Qwillio subscription includes calendar, CRM, transcripts, transfers, and analytics without buying add-ons. The self-serve onboarding is fifteen minutes, and the trial is free with no card required — so a prospect can be live before they even hit Smith.ai's contact form." },
+        { type: 'verdict', tone: 'good', title: 'Qwillio is the better fit if', text: 'You serve Belgian, French, or bilingual clients, care about GDPR and EU data residency, run more than 200 calls per month, prefer flat monthly pricing, and want to be up and running the same day.' },
+        { type: 'h2', text: 'Migration path from Smith.ai' },
+        { type: 'p', text: "Businesses moving from Smith.ai to Qwillio in 2026 usually do so in three steps. First, they forward their Smith.ai-provided number to Qwillio for a two-week trial in parallel — no client-facing change. Second, they compare captured leads, missed-call rates, and transcript quality across both providers. Third, they port their business line to Qwillio and cancel the Smith.ai plan. The porting is free and takes five to ten business days." },
+        { type: 'h2', text: 'Bottom line' },
+        { type: 'p', text: "Smith.ai is not being replaced everywhere overnight. It remains a solid choice for US-only businesses that want a human hybrid. But if you need French, need EU hosting, or want a lower flat monthly cost with more included features, Qwillio is the honest recommendation in 2026." },
+      ],
+      fr: [
+        { type: 'p', text: "Smith.ai est la marque américaine de référence sur le décroché d'appels professionnels depuis dix ans. Fondée en 2015 en Californie, elle a bâti sa réputation sur un hybride « réceptionnistes humaines aux États-Unis plus IA » qui prend les appels entrants, qualifie les leads et pose les rendez-vous pour les PME et le mid-market américain. Ses plans démarrent à 95 $/mois pour le tier IA seule et à 500 $/mois pour le Done-for-You humain-hybride." },
+        { type: 'p', text: "Qwillio est de la génération suivante. Fondée en 2025 à Bruxelles, elle fait tourner une IA conversationnelle pure en anglais et en français dès le premier jour, cible la Belgique et la France autant que l'Amérique du Nord, et facture à plat sans coût variable humain à l'appel. Starter à $497/mois, Pro à $1 297/mois, Enterprise à $2 497/mois, plus un tier Solo à 149 €/mois pour les petites entreprises belges et françaises." },
+        { type: 'p', text: "Les deux produits couvrent des besoins qui se recoupent, mais depuis des angles différents. Si votre décision pèse sur la couverture hybride américaine anglophone avec une marque forte, Smith.ai reste devant. Si elle pèse sur le français natif, l'hébergement UE et le coût mensuel plat plus bas, Qwillio gagne nettement. Cette page fait le tour des différences matérielles." },
+        { type: 'h2', text: 'Comparaison des prix à volume comparable' },
+        { type: 'table', head: ['Plan', 'Volume inclus', 'Prix / mois', '$/appel effectif'], rows: [
+          ['Smith.ai AI Starter', '≈ 60 appels', '95 $', '≈ 1,58 $'],
+          ['Smith.ai DFY Basic', '≈ 250 appels', '500 $', '≈ 2,00 $'],
+          ['Smith.ai DFY Pro', '≈ 600 appels', '1 000 $', '≈ 1,67 $'],
+          ['Qwillio Solo (EUR)', '300 appels', '149 €', '≈ 0,50 €'],
+          ['Qwillio Starter', '800 appels', '497 $', '≈ 0,62 $'],
+          ['Qwillio Pro', '2 000 appels', '1 297 $', '≈ 0,65 $'],
+          ['Qwillio Enterprise', '4 000 appels', '2 497 $', '≈ 0,62 $'],
+        ]},
+        { type: 'p', text: "À 500-800 appels traités par mois — le volume que la plupart des services à domicile et des cabinets de santé atteignent — Qwillio Starter coûte environ la moitié de Smith.ai Done-for-You Basic. Au-dessus de 2 000 appels, le flat Qwillio Pro est nettement moins cher que n'importe quel plan Smith.ai ou hybride au coût variable." },
+        { type: 'h2', text: 'Comparaison fonctionnalité par fonctionnalité' },
+        { type: 'table', head: ['Fonctionnalité', 'Smith.ai', 'Qwillio'], rows: [
+          ['Décroché 24/7', 'Oui', 'Oui'],
+          ['Relais humain sur appel complexe', 'Oui (basé US)', 'Non (IA pure)'],
+          ['Anglais natif', 'Oui', 'Oui'],
+          ['Espagnol natif', 'Oui', 'Non'],
+          ['Français natif', 'Non', 'Oui'],
+          ['Bilingue sur un même appel (auto)', 'Non', 'Oui (EN + FR)'],
+          ['Réservation agenda (Google, Cal.com)', 'Oui', 'Oui'],
+          ['Sync CRM (HubSpot, Salesforce)', 'Oui', 'Oui'],
+          ['Add-ons facturation natifs (Stripe)', 'Non', 'Oui'],
+          ['Hébergement compatible RGPD', 'Non (US)', 'Oui (UE)'],
+          ['Onboarding self-serve', 'Partiel', 'Oui (15 min)'],
+          ['1er mois offert', 'Au cas par cas', 'Oui, sans carte'],
+        ]},
+        { type: 'h2', text: 'Là où Smith.ai reste devant' },
+        { type: 'p', text: "Smith.ai n'est pas un acteur dépassé. Dix ans de maturité opérationnelle, une marque que les patrons de PME américaines connaissent déjà, et un relais humain sur les appels que l'IA ne saurait pas gérer. Si votre entreprise est 100 % US, 100 % anglophone, et que vous tenez à avoir un humain comme filet sur un dossier émotionnel ou à fort enjeu, Smith.ai reste défendable." },
+        { type: 'verdict', tone: 'good', title: 'Smith.ai est le meilleur choix si', text: "Vous êtes une entreprise US, vos clients ne parlent qu'anglais, vous payez déjà une réceptionniste humaine et voulez garder ce contact humain, et votre volume d'appels entrants est sous 300 par mois." },
+        { type: 'h2', text: 'Là où Qwillio gagne' },
+        { type: 'p', text: "Qwillio a été bâtie exactement sur les trous que Smith.ai n'a jamais comblés — marchés francophones bilingues, hébergement UE pour les clients sensibles RGPD, et tarif mensuel plat sans variable à l'appel. Chaque abonnement Qwillio inclut agenda, CRM, transcriptions, transferts et analytics sans add-ons. L'onboarding self-serve prend quinze minutes, l'essai est gratuit sans carte — un prospect peut être en ligne avant même d'avoir rempli le formulaire de contact de Smith.ai." },
+        { type: 'verdict', tone: 'good', title: 'Qwillio est le meilleur choix si', text: "Vous servez une clientèle belge, française ou bilingue, vous tenez au RGPD et à la résidence des données en UE, vous traitez plus de 200 appels par mois, vous préférez un tarif mensuel plat, et vous voulez être en production le jour même." },
+        { type: 'h2', text: 'Chemin de migration depuis Smith.ai' },
+        { type: 'p', text: "Les entreprises qui migrent de Smith.ai vers Qwillio en 2026 le font en général en trois étapes. Un : renvoyer le numéro fourni par Smith.ai vers Qwillio pour deux semaines de trial en parallèle — aucun changement côté client. Deux : comparer les leads capturés, le taux d'appels manqués et la qualité des transcriptions entre les deux prestataires. Trois : porter le numéro professionnel vers Qwillio et résilier le plan Smith.ai. Le portage est gratuit et prend cinq à dix jours ouvrés." },
+        { type: 'h2', text: 'Verdict' },
+        { type: 'p', text: "Smith.ai ne disparaît pas du jour au lendemain. Il reste un choix solide pour les entreprises 100 % US qui veulent l'hybride humain. Mais si vous avez besoin du français, si vous tenez à l'hébergement UE, ou si vous voulez un mensuel plat plus bas avec plus de fonctionnalités incluses, Qwillio est la recommandation honnête en 2026." },
+      ],
+    },
+  },
+
+  {
+    slug: 'yelda',
+    competitor: 'Yelda.ai',
+    title: {
+      en: 'Qwillio vs Yelda.ai: the honest 2026 comparison',
+      fr: 'Qwillio vs Yelda.ai : le comparatif honnête 2026',
+    },
+    subtitle: {
+      en: 'Both are French-first voice AI for business calls. One is a French enterprise voicebot with setup fees; the other is a self-serve monthly SaaS. Here is where each wins.',
+      fr: "Les deux sont des IA vocales pensées français d'abord pour les appels professionnels. L'une est un voicebot enterprise français avec frais de setup ; l'autre est un SaaS mensuel self-serve. Voici où chacun l'emporte.",
+    },
+    updated: '2026-07-11',
+    content: {
+      en: [
+        { type: 'p', text: "Yelda.ai is the French voice-AI reference. Founded in 2019 in Paris, it built its reputation on custom-trained voice bots for local government, mid-market service companies, and a small number of large enterprises. Its typical engagement is a 3 000 to 8 000 EUR one-off setup plus a per-minute run rate around 0.15 EUR per minute. Above that, dedicated projects for large accounts scale into 30 000 EUR-plus annual budgets." },
+        { type: 'p', text: "Qwillio is the SaaS-first alternative. Founded in 2025 in Brussels, it runs the same category of conversational voice AI but sells as a monthly subscription, no setup fee, no professional services engagement required. The user creates an account, sets up in fifteen minutes, and the first month is free. Prices go from 149 EUR/month (Solo, French-only) up to 2 497 USD/month for Enterprise." },
+        { type: 'p', text: "The two products often look interchangeable in a demo. They are not. Yelda is a professional-services voice AI with a SaaS component. Qwillio is a self-serve SaaS voice AI. The choice is really between a project engagement and a subscription — and that changes everything about time-to-value, budget, and risk." },
+        { type: 'h2', text: 'Total cost of ownership over 12 months' },
+        { type: 'table', head: ['Scenario', 'Yelda.ai', 'Qwillio Solo', 'Qwillio Starter'], rows: [
+          ['Setup', '3 000 – 8 000 €', '0 €', '0 €'],
+          ['Monthly run rate at 300 calls', '≈ 200 €', '149 €', '470 € (over-provisioned)'],
+          ['Monthly run rate at 800 calls', '≈ 500 €', 'over quota', '470 €'],
+          ['12-month total at 300 calls', '5 400 – 10 400 €', '1 490 € (annual)*', '5 640 €'],
+          ['12-month total at 800 calls', '9 000 – 14 000 €', 'n/a', '5 640 €'],
+        ], caption: '* with 20% annual discount active' },
+        { type: 'p', text: "For a French plumber, dentist, or law firm handling 300 to 800 calls a month, Qwillio Solo or Starter beats a Yelda project on year-one cost by a factor of two to four. The gap grows if Yelda's setup lands at the higher end of its range." },
+        { type: 'h2', text: 'Feature-by-feature comparison' },
+        { type: 'table', head: ['Feature', 'Yelda.ai', 'Qwillio'], rows: [
+          ['French native voice', 'Yes (leader)', 'Yes'],
+          ['English on the same account', 'Add-on', 'Yes (native)'],
+          ['GDPR + EU hosting', 'Yes', 'Yes'],
+          ['Setup fee', '3 000 – 8 000 €+', 'None'],
+          ['Setup time', '4 to 8 weeks', '15 minutes'],
+          ['Self-serve onboarding', 'No', 'Yes'],
+          ['First month free', 'No', 'Yes'],
+          ['Cancel anytime (monthly)', 'Contract-based', 'Yes'],
+          ['Native CRM (HubSpot, Salesforce)', 'Custom integration', 'Yes'],
+          ['Native calendar booking', 'Custom', 'Yes'],
+          ['Analytics dashboard', 'Custom', 'Included'],
+          ['Sales cycle', 'Sales-led', 'Product-led'],
+          ['Custom voice cloning', 'Yes (premium)', 'Enterprise tier'],
+        ]},
+        { type: 'h2', text: 'Where Yelda still wins' },
+        { type: 'p', text: "Yelda has serious mid-market and enterprise credentials in France. It has taken calls for public administrations, large healthcare networks, and major utilities. If your project needs a bespoke voice, a custom integration into a legacy French PBX, dedicated professional services, and a signed contract with SLAs and a named account manager, Yelda is built for that lane. Qwillio is not — and admits it." },
+        { type: 'verdict', tone: 'good', title: 'Yelda is the better fit if', text: "You have a project budget of 20 000 EUR+, you need bespoke voice and workflow design, you have an existing legacy telephony stack that needs deep custom integration, or your procurement process requires signed contracts and named accounts." },
+        { type: 'h2', text: 'Where Qwillio wins' },
+        { type: 'p', text: "Qwillio was built for the 90 % of French and Belgian businesses that will never justify a Yelda project. A notary in Namur handling 200 calls a month, a bike repair shop in Lyon closing after seven, an accounting firm in Brussels missing the lunchtime rush — none of these can spend 5 000 EUR on setup and wait six weeks. Qwillio makes the value proposition available in an evening, on a credit card, with a free first month and monthly cancel-any-time." },
+        { type: 'verdict', tone: 'good', title: 'Qwillio is the better fit if', text: "You are a small or mid-size French or Belgian business, you want to test the value before committing to any budget, you do not want a sales cycle, and you can be up and running today rather than in two months." },
+        { type: 'h2', text: 'Migration path from a Yelda project' },
+        { type: 'p', text: "Businesses that scoped a Yelda project and paused before signing usually pilot Qwillio in parallel for four weeks. They keep the Yelda proposal on the desk, forward their inbound line to Qwillio, and compare captured leads and transcript quality in real time. The overwhelming majority of pilots that reach week four end the Yelda conversation — not because Yelda is bad, but because the Qwillio result at 149 to 497 EUR/month covered 100 % of what they scoped." },
+        { type: 'h2', text: 'Bottom line' },
+        { type: 'p', text: "Yelda is a strong French enterprise voice-AI provider. If you have the budget and the integration complexity to match, it earns its cost. But for the 90 % of French and Belgian businesses that just need to answer their calls in French, book appointments, and route emergencies — Qwillio is the honest recommendation in 2026, at a fraction of the total cost and a fraction of the wait." },
+      ],
+      fr: [
+        { type: 'p', text: "Yelda.ai est la référence française de l'IA vocale. Fondée en 2019 à Paris, elle a bâti sa réputation sur des voicebots sur-mesure pour les collectivités locales, les entreprises de service mid-market, et quelques grands comptes. L'engagement type est un setup ponctuel de 3 000 à 8 000 € plus un run à la minute autour de 0,15 €. Au-delà, les projets dédiés grands comptes tournent à 30 000 € et plus par an." },
+        { type: 'p', text: "Qwillio est l'alternative SaaS-first. Fondée en 2025 à Bruxelles, elle propose la même catégorie d'IA conversationnelle vocale mais se vend en abonnement mensuel, sans frais de setup, sans engagement de services professionnels. L'utilisateur crée son compte, configure en quinze minutes, et le premier mois est offert. Les prix vont de 149 €/mois (Solo, français seul) jusqu'à 2 497 $/mois pour Enterprise." },
+        { type: 'p', text: "Les deux produits ont souvent l'air interchangeables en démo. Ils ne le sont pas. Yelda est une IA vocale pilotée par du service, avec une brique SaaS. Qwillio est une IA vocale SaaS self-serve. Le choix se joue en réalité entre un engagement projet et un abonnement — et ça change tout, du time-to-value au budget au risque." },
+        { type: 'h2', text: 'Coût total de possession sur 12 mois' },
+        { type: 'table', head: ['Scénario', 'Yelda.ai', 'Qwillio Solo', 'Qwillio Starter'], rows: [
+          ['Setup', '3 000 – 8 000 €', '0 €', '0 €'],
+          ['Run mensuel à 300 appels', '≈ 200 €', '149 €', '470 € (surdimensionné)'],
+          ['Run mensuel à 800 appels', '≈ 500 €', 'quota dépassé', '470 €'],
+          ['Total 12 mois à 300 appels', '5 400 – 10 400 €', '1 490 € (annuel)*', '5 640 €'],
+          ['Total 12 mois à 800 appels', '9 000 – 14 000 €', 'n/a', '5 640 €'],
+        ], caption: '* avec la remise annuelle de 20 % active' },
+        { type: 'p', text: "Pour un plombier, un dentiste ou un cabinet juridique français qui traite 300 à 800 appels par mois, Qwillio Solo ou Starter bat un projet Yelda sur le coût de la première année par un facteur deux à quatre. L'écart grandit si le setup Yelda tombe dans le haut de sa fourchette." },
+        { type: 'h2', text: 'Comparaison fonctionnalité par fonctionnalité' },
+        { type: 'table', head: ['Fonctionnalité', 'Yelda.ai', 'Qwillio'], rows: [
+          ['Voix française native', 'Oui (leader)', 'Oui'],
+          ['Anglais sur le même compte', 'Add-on', 'Oui (natif)'],
+          ['RGPD + hébergement UE', 'Oui', 'Oui'],
+          ['Frais de setup', '3 000 – 8 000 €+', 'Aucun'],
+          ['Délai de mise en route', '4 à 8 semaines', '15 minutes'],
+          ['Onboarding self-serve', 'Non', 'Oui'],
+          ['1er mois offert', 'Non', 'Oui'],
+          ['Résiliable au mois', 'Contrat', 'Oui'],
+          ['CRM natif (HubSpot, Salesforce)', 'Intégration sur-mesure', 'Oui'],
+          ['Prise de RDV agenda native', 'Sur-mesure', 'Oui'],
+          ['Tableau analytics', 'Sur-mesure', 'Inclus'],
+          ['Cycle de vente', 'Sales-led', 'Product-led'],
+          ['Clonage voix personnalisée', 'Oui (premium)', 'Tier Enterprise'],
+        ]},
+        { type: 'h2', text: 'Là où Yelda reste devant' },
+        { type: 'p', text: "Yelda a des références mid-market et enterprise sérieuses en France. Elle a pris des appels pour des administrations publiques, de grands réseaux de santé, des utilities. Si votre projet demande une voix sur-mesure, une intégration profonde dans un PBX français legacy, des services professionnels dédiés, un contrat signé avec SLA et un chargé de compte nommé, Yelda est faite pour ce couloir. Qwillio ne l'est pas — et l'assume." },
+        { type: 'verdict', tone: 'good', title: 'Yelda est le meilleur choix si', text: "Vous avez un budget projet de 20 000 €+, il vous faut une voix et un workflow sur-mesure, vous avez un stack téléphonique legacy qui exige une intégration profonde, ou votre process achats impose un contrat signé et un chargé de compte." },
+        { type: 'h2', text: 'Là où Qwillio gagne' },
+        { type: 'p', text: "Qwillio a été conçu pour les 90 % de PME françaises et belges qui ne justifieront jamais un projet Yelda. Un notaire à Namur qui traite 200 appels par mois, un atelier vélo à Lyon qui ferme après 19 h, un cabinet comptable à Bruxelles qui rate la pointe de midi — aucun ne peut mettre 5 000 € en setup et attendre six semaines. Qwillio rend la proposition de valeur accessible en une soirée, à la carte bancaire, avec un premier mois offert et une résiliation au mois." },
+        { type: 'verdict', tone: 'good', title: 'Qwillio est le meilleur choix si', text: "Vous êtes une PME française ou belge, vous voulez tester la valeur avant de vous engager sur un budget, vous ne voulez pas de cycle de vente, et vous voulez être opérationnel aujourd'hui plutôt que dans deux mois." },
+        { type: 'h2', text: 'Chemin de migration depuis un projet Yelda' },
+        { type: 'p', text: "Les entreprises qui ont scopé un projet Yelda et hésitent à signer testent en général Qwillio en parallèle sur quatre semaines. Elles gardent la proposition Yelda sur le bureau, redirigent leur ligne entrante vers Qwillio et comparent en temps réel leads capturés et qualité des transcriptions. La majorité écrasante des pilotes qui atteignent la quatrième semaine mettent fin à la discussion Yelda — non pas parce que Yelda est mauvaise, mais parce que le résultat Qwillio à 149-497 €/mois couvre 100 % de ce qui avait été scopé." },
+        { type: 'h2', text: 'Verdict' },
+        { type: 'p', text: "Yelda est un fournisseur français solide d'IA vocale enterprise. Si vous avez le budget et la complexité d'intégration qui vont avec, il justifie son coût. Mais pour les 90 % de PME françaises et belges qui ont juste besoin de décrocher leurs appels en français, de poser des rendez-vous et de router les urgences — Qwillio est la recommandation honnête en 2026, à une fraction du coût total et une fraction de l'attente." },
+      ],
+    },
+  },
+];
+
+export function getComparisonBySlug(slug: string): ComparisonPage | undefined {
+  return COMPARISON_PAGES.find((c) => c.slug === slug);
+}

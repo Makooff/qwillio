@@ -4,7 +4,7 @@
 
   <url>
     <loc>https://qwillio.com/</loc>
-    <lastmod>2026-04-11</lastmod>
+    <lastmod>2026-07-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/"/>
@@ -13,63 +13,140 @@
 
   <url>
     <loc>https://qwillio.com/receptionist</loc>
-    <lastmod>2026-04-11</lastmod>
+    <lastmod>2026-07-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://qwillio.com/agent</loc>
-    <lastmod>2026-04-11</lastmod>
+    <lastmod>2026-07-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://qwillio.com/pricing</loc>
-    <lastmod>2026-04-11</lastmod>
+    <lastmod>2026-07-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://qwillio.com/about</loc>
-    <lastmod>2026-04-11</lastmod>
+    <lastmod>2026-07-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
     <loc>https://qwillio.com/affiliate</loc>
-    <lastmod>2026-04-11</lastmod>
+    <lastmod>2026-07-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
     <loc>https://qwillio.com/contact</loc>
-    <lastmod>2026-04-11</lastmod>
+    <lastmod>2026-07-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
 
   <url>
+    <loc>https://qwillio.com/gdpr</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/sla</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
     <loc>https://qwillio.com/blog</loc>
-    <lastmod>2026-04-11</lastmod>
+    <lastmod>2026-07-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
+    <loc>https://qwillio.com/blog/ai-receptionist-plumber-2026</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.65</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/blog/ai-receptionist-plumber-2026"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/blog/ai-receptionist-plumber-2026"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/blog/dental-offices-ai-no-shows</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.65</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/blog/dental-offices-ai-no-shows"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/blog/dental-offices-ai-no-shows"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/blog/hidden-cost-missed-calls</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.65</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/blog/hidden-cost-missed-calls"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/blog/hidden-cost-missed-calls"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/blog/ai-vs-human-receptionist-cost</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.65</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/blog/ai-vs-human-receptionist-cost"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/blog/ai-vs-human-receptionist-cost"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/blog/cout-secretaire-belgique-2026</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/blog/cout-secretaire-belgique-2026"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/blog/cout-secretaire-belgique-2026"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/vs/smith-ai</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/vs/smith-ai"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/vs/smith-ai"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/vs/yelda</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/vs/yelda"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/vs/yelda"/>
+  </url>
+
+  <url>
     <loc>https://qwillio.com/llms.txt</loc>
-    <lastmod>2026-04-20</lastmod>
+    <lastmod>2026-07-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
 
   <url>
     <loc>https://qwillio.com/llms-full.txt</loc>
-    <lastmod>2026-04-20</lastmod>
+    <lastmod>2026-07-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>

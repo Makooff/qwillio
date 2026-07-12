@@ -99,15 +99,16 @@ export default function CloserProspects() {
 
       <Card>
         <div className="flex items-center gap-2.5 px-4 h-11">
-          <Search className="w-4 h-4" style={{ color: pro.textTer }} />
+          <Search className="w-4 h-4" style={{ color: pro.textTer }} aria-hidden="true" />
           <input
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="Rechercher par nom, contact, téléphone, ville…"
+            aria-label="Rechercher un prospect par nom, contact, téléphone ou ville"
             className="flex-1 bg-transparent text-[13px] outline-none placeholder-[#6B6B75]"
             style={{ color: pro.text }}
           />
-          {q && <button onClick={() => setQ('')} className="text-[11px]" style={{ color: pro.textSec }}>Effacer</button>}
+          {q && <button type="button" aria-label="Effacer la recherche" onClick={() => setQ('')} className="text-[11px]" style={{ color: pro.textSec }}>Effacer</button>}
         </div>
       </Card>
 

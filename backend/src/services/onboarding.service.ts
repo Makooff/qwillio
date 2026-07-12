@@ -38,6 +38,7 @@ export class OnboardingService {
       const systemPrompt = this.generateClientSystemPrompt(client);
 
       // Build tools array — add transferCall if client has a transfer number
+      const isFrClient = this.isFrenchClient(client);
       const tools: any[] = [];
       if (client.transferNumber) {
         tools.push({
@@ -45,7 +46,9 @@ export class OnboardingService {
           destinations: [{
             type: 'number',
             number: client.transferNumber,
-            message: 'Of course — let me connect you with someone from the team right now. One moment please.',
+            message: isFrClient
+              ? 'Bien sûr, je vous mets en relation avec quelqu\'un de l\'équipe tout de suite. Un instant, s\'il vous plaît.'
+              : 'Of course, let me connect you with someone from the team right now. One moment please.',
           }],
         });
       }
@@ -74,7 +77,7 @@ export class OnboardingService {
             ],
           },
         },
-        firstMessage: `Hello, thank you for calling ${client.businessName}. How can I help you today?`,
+        firstMessage: this.generateFirstMessage(client, isFrClient),
         serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
         endCallFunctionEnabled: true,
         recordingEnabled: true,
@@ -144,7 +147,7 @@ export class OnboardingService {
         planType: client.planType,
         vapiPhoneNumber: sharedPhoneNumber,
         dashboardUrl: `${env.FRONTEND_URL}/client-dashboard/${client.id}`,
-        lang: (client as any).language === 'en' ? 'en' : 'fr',
+        lang: this.isFrenchClient(client) ? 'fr' : 'en',
       });
 
       // ── STEP 6: Discord notification ──
@@ -295,6 +298,39 @@ export class OnboardingService {
   // PRIVATE: Generate client-specific system prompt
   // Uses industry-specific knowledge for each business type
   // ═══════════════════════════════════════════════════════════
+  // A client is treated as French-speaking if its agentLanguage is 'fr' or its
+  // country is a francophone jurisdiction where GDPR consent phrasing must
+  // be delivered in French to be legally meaningful.
+  private isFrenchClient(client: any): boolean {
+    if (client?.agentLanguage === 'fr') return true;
+    const country = (client?.country || '').toUpperCase();
+    return ['FR', 'BE', 'LU', 'MC', 'CH'].includes(country);
+  }
+
+  // Assemble the assistant's opening line so that:
+  //  1. Callers hear a natural greeting in their language.
+  //  2. GDPR / consent notice on call recording is delivered at the start of
+  //     the call (mandatory in the EU, best-practice everywhere else).
+  //  3. The recording notice can be suppressed via vapiConfig.disableRecordingNotice
+  //     for jurisdictions where the client's own consent flow already covers it.
+  private generateFirstMessage(client: any, isFrClient: boolean): string {
+    const cfg = (client?.vapiConfig as any) || {};
+    const businessName = client?.businessName || (isFrClient ? 'notre entreprise' : 'our business');
+    const noticeSuppressed = cfg.disableRecordingNotice === true;
+    const noticeFr = 'Pour améliorer notre service, cet appel peut être enregistré.';
+    const noticeEn = 'This call may be recorded for quality and training purposes.';
+
+    if (isFrClient) {
+      const greeting = `Bonjour, merci d'appeler ${businessName}.`;
+      const notice = noticeSuppressed ? '' : ` ${noticeFr}`;
+      return `${greeting}${notice} Comment puis-je vous aider ?`;
+    }
+
+    const greeting = `Hello, thank you for calling ${businessName}.`;
+    const notice = noticeSuppressed ? '' : ` ${noticeEn}`;
+    return `${greeting}${notice} How can I help you today?`;
+  }
+
   private generateClientSystemPrompt(client: any): string {
     const multiLangSupport = client.planType === 'enterprise'
       ? '\n- You speak English, Spanish, French and Chinese. Adapt your language to match the caller.'
@@ -654,9 +690,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
         temperature: 0.7,
         messages: [{ role: 'system', content: systemPrompt }],
       },
-      firstMessage: (client.agentLanguage === 'fr')
-        ? `${client.businessName}, bonjour ! C'est ${client.agentName || 'Marie'}, comment je peux vous aider ?`
-        : `Thank you for calling ${client.businessName}, this is ${client.agentName || 'Ashley'}. How can I help you today?`,
+      firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
       serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
     };
 

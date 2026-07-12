@@ -1,5 +1,6 @@
 import { Component, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Sentry } from '../lib/sentry';
 
 interface Props {
   children: ReactNode;
@@ -32,6 +33,17 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: any) {
     console.error('ErrorBoundary caught:', error, errorInfo);
+    // Report to Sentry when configured; chunk-load errors are known noise from
+    // stale deploys and should not clutter the issue tracker.
+    if (!isChunkLoadError(error)) {
+      Sentry.withScope((scope) => {
+        scope.setTag('boundary', 'root');
+        if (errorInfo?.componentStack) {
+          scope.setExtra('componentStack', errorInfo.componentStack);
+        }
+        Sentry.captureException(error);
+      });
+    }
     // Stale-chunk after a deploy: hard-reload once to pull the fresh build.
     // sessionStorage guard prevents an infinite reload loop if it persists.
     if (isChunkLoadError(error)) {
