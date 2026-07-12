@@ -592,26 +592,27 @@ export default function Pricing() {
                       const no = <span className="inline-flex items-center gap-1 text-[#dc2626]"><X size={14} aria-hidden="true" /> {isFr ? 'Non' : 'No'}</span>;
                       const rows: Array<[string, React.ReactNode, React.ReactNode, React.ReactNode, React.ReactNode]> = [
                         [
-                          isFr ? 'Prix mensuel de départ' : 'Starting monthly price',
-                          '149 €',
-                          '49 $',
-                          '95 $',
-                          isFr ? '3 000 € setup + 0,15 €/min' : '€3,000 setup + €0.15/min',
+                          isFr ? 'Frais de setup' : 'Setup fees',
+                          isFr ? 'Aucun' : 'None',
+                          isFr ? 'Aucun' : 'None',
+                          isFr ? 'Aucun' : 'None',
+                          isFr ? '3 000 – 8 000 €' : '€3,000 – €8,000',
                         ],
                         [
-                          isFr ? 'Prix par appel (~800 appels/mois)' : 'Price per call (~800 calls/mo)',
-                          '0,62 $',
-                          '0,37 $',
-                          '2,00 $',
-                          '0,38 €',
+                          isFr ? 'Temps de mise en route' : 'Time to first call',
+                          '15 min',
+                          isFr ? '1 h' : '1 hour',
+                          isFr ? '1 jour' : '1 day',
+                          isFr ? '4 à 8 sem' : '4 to 8 weeks',
                         ],
                         [isFr ? 'Français natif' : 'French native', yes, no, no, yes],
-                        [isFr ? 'Anglais natif' : 'English native', yes, yes, yes, isFr ? 'Add-on' : 'Add-on'],
                         [isFr ? 'Bilingue sur un même appel' : 'Bilingual on the same call', yes, no, no, no],
                         [isFr ? 'Hébergement UE / RGPD' : 'EU hosting / GDPR', yes, no, no, yes],
                         [isFr ? 'CRM natif inclus' : 'Native CRM included', yes, isFr ? 'Zapier' : 'Zapier', yes, isFr ? 'Sur-mesure' : 'Custom'],
+                        [isFr ? 'Prise de RDV agenda native' : 'Native calendar booking', yes, isFr ? 'Tier sup.' : 'Higher tier', yes, isFr ? 'Sur-mesure' : 'Custom'],
                         [isFr ? 'Onboarding self-serve' : 'Self-serve onboarding', <>{yes} <span className="text-[11px] text-[#6e6e73]">15 min</span></>, yes, isFr ? 'Partiel' : 'Partial', no],
                         [isFr ? '1er mois offert, sans carte' : 'First month free, no card', yes, no, isFr ? 'Cas par cas' : 'Case by case', no],
+                        [isFr ? 'Résiliable au mois' : 'Cancel monthly', yes, yes, yes, isFr ? 'Contrat' : 'Contract'],
                       ];
                       return rows.map(([label, q, r, s, y], i) => (
                         <tr key={i} className="hover:bg-[#fafaf8] transition-colors">
