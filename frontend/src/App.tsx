@@ -71,6 +71,7 @@ const BlogPage = lazy(() => import('./pages/Blog'));
 const BlogArticlePage = lazy(() => import('./pages/BlogArticle'));
 const ComparisonPage = lazy(() => import('./pages/ComparisonPage'));
 const AffiliatePage = lazy(() => import('./pages/Affiliate'));
+const Partenaires = lazy(() => import('./pages/Partenaires'));
 
 // AI Agents admin pages (lazy loaded)
 const Agents = lazy(() => import('./pages/admin/Agents'));
@@ -233,6 +234,9 @@ export default function App() {
         <Route path="/blog/:slug" element={<Suspense fallback={<Spinner />}><BlogArticlePage /></Suspense>} />
         <Route path="/vs/:slug" element={<Suspense fallback={<Spinner />}><ComparisonPage /></Suspense>} />
         <Route path="/affiliate" element={<Suspense fallback={<Spinner />}><AffiliatePage /></Suspense>} />
+        <Route path="/partenaires-fiduciaires" element={<Suspense fallback={<Spinner />}><Partenaires /></Suspense>} />
+        <Route path="/fr/partenaires-fiduciaires" element={<Suspense fallback={<Spinner />}><Partenaires /></Suspense>} />
+        <Route path="/partenaires" element={<Navigate to="/partenaires-fiduciaires" replace />} />
 
         {/* Self-service onboarding (requires auth, not yet onboarded) */}
         <Route

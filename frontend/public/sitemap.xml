@@ -138,6 +138,24 @@
   </url>
 
   <url>
+    <loc>https://qwillio.com/vs/rosie</loc>
+    <lastmod>2026-07-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/vs/rosie"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/vs/rosie"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/partenaires-fiduciaires</loc>
+    <lastmod>2026-07-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/partenaires-fiduciaires"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/partenaires-fiduciaires"/>
+  </url>
+
+  <url>
     <loc>https://qwillio.com/llms.txt</loc>
     <lastmod>2026-07-11</lastmod>
     <changefreq>weekly</changefreq>
