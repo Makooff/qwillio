@@ -72,6 +72,11 @@ const BlogArticlePage = lazy(() => import('./pages/BlogArticle'));
 const ComparisonPage = lazy(() => import('./pages/ComparisonPage'));
 const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 const Partenaires = lazy(() => import('./pages/Partenaires'));
+const Vertical = lazy(() => import('./pages/Vertical'));
+
+function VerticalWrap({ secteur }: { secteur: string }) {
+  return <Vertical secteur={secteur} />;
+}
 
 // AI Agents admin pages (lazy loaded)
 const Agents = lazy(() => import('./pages/admin/Agents'));
@@ -237,6 +242,12 @@ export default function App() {
         <Route path="/partenaires-fiduciaires" element={<Suspense fallback={<Spinner />}><Partenaires /></Suspense>} />
         <Route path="/fr/partenaires-fiduciaires" element={<Suspense fallback={<Spinner />}><Partenaires /></Suspense>} />
         <Route path="/partenaires" element={<Navigate to="/partenaires-fiduciaires" replace />} />
+        <Route path="/plombier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="plombier" /></Suspense>} />
+        <Route path="/dentiste" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="dentiste" /></Suspense>} />
+        <Route path="/notaire" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="notaire" /></Suspense>} />
+        <Route path="/fr/plombier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="plombier" /></Suspense>} />
+        <Route path="/fr/dentiste" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="dentiste" /></Suspense>} />
+        <Route path="/fr/notaire" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="notaire" /></Suspense>} />
 
         {/* Self-service onboarding (requires auth, not yet onboarded) */}
         <Route

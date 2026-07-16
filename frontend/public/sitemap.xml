@@ -156,6 +156,33 @@
   </url>
 
   <url>
+    <loc>https://qwillio.com/plombier</loc>
+    <lastmod>2026-07-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/plombier"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/plombier"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/dentiste</loc>
+    <lastmod>2026-07-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/dentiste"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/dentiste"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/notaire</loc>
+    <lastmod>2026-07-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/notaire"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/notaire"/>
+  </url>
+
+  <url>
     <loc>https://qwillio.com/llms.txt</loc>
     <lastmod>2026-07-11</lastmod>
     <changefreq>weekly</changefreq>
