@@ -9,7 +9,6 @@ import { useLang } from '../stores/langStore';
 import Reveal from '../components/ui/Reveal';
 import Card3D from '../components/ui/Card3D';
 import HeroPhone3D from '../components/ui/HeroPhone3D';
-import ScrollReelTestimonials from '../components/ui/ScrollReelTestimonials';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -226,42 +225,6 @@ export default function Home() {
   const industries = isFr
     ? ['Santé', 'Juridique', 'Immobilier', 'Services à domicile', 'Restauration', 'Éducation', 'Automobile', 'Fitness', 'Beauté', 'Finance', 'Commerce', 'Startups']
     : ['Healthcare', 'Legal', 'Real Estate', 'Home Services', 'Restaurants', 'Education', 'Automotive', 'Fitness', 'Beauty', 'Finance', 'Retail', 'Startups'];
-
-  const testimonials = isFr
-    ? [
-        {
-          quote: 'Qwillio a transformé notre cabinet. On ne manque plus un seul appel et les rendez-vous se prennent tout seuls.',
-          author: 'Dr. Sarah Chen, Directrice de clinique, Bright Dental',
-          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131120_3b6db5f5-3061-445f-b905-2506f5df0379_min.webp',
-        },
-        {
-          quote: 'Chaque appel manqué était un chantier perdu. Depuis Qwillio, mon téléphone travaille même quand je suis sur un toit.',
-          author: 'Marc Rivera, Gérant, Rivera HVAC',
-          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131137_f389f0cd-da49-459a-8a68-9f6e0386e465_min.webp',
-        },
-        {
-          quote: 'Les rappels se planifient seuls et les urgences sont transférées immédiatement. Le cabinet ne rate plus rien.',
-          author: 'Me Elin Larsson, Associée, Larsson Law',
-          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131146_8edfa418-bcd8-44a9-8d9c-ad484a7912cb_min.webp',
-        },
-      ]
-    : [
-        {
-          quote: 'Qwillio transformed our practice. We never miss a call and appointments book themselves.',
-          author: 'Dr. Sarah Chen, Clinic Director, Bright Dental',
-          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131120_3b6db5f5-3061-445f-b905-2506f5df0379_min.webp',
-        },
-        {
-          quote: 'Every missed call used to be a lost job. Since Qwillio, my phone works even when I am on a roof.',
-          author: 'Marc Rivera, Owner, Rivera HVAC',
-          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131137_f389f0cd-da49-459a-8a68-9f6e0386e465_min.webp',
-        },
-        {
-          quote: 'Callbacks schedule themselves and urgent cases transfer instantly. The firm never misses a thing.',
-          author: 'Elin Larsson, Partner, Larsson Law',
-          image: 'https://d8j0ntlcm91z4.cloudfront.net/user_34IVVyjQO02HqRTO0G5IPrmdF3q/hf_20260705_131146_8edfa418-bcd8-44a9-8d9c-ad484a7912cb_min.webp',
-        },
-      ];
 
   return (
     <div className="bg-white text-[#1d1d1f] min-h-screen">
@@ -608,28 +571,36 @@ export default function Home() {
         <IndustriesStroke isFr={isFr} industries={industries} />
 
         {/* ════════════════════════════════════════════════════════════════
-            TESTIMONIALS — counter-rotating scroll reel (second-to-last)
+            FOUNDER NOTE — honest early-stage positioning, no fabricated
+            testimonials (pre-revenue). Replace with real ScrollReelTestimonials
+            once genuine client quotes exist.
             ════════════════════════════════════════════════════════════════ */}
         <section
-          aria-label={isFr ? 'Témoignages clients' : 'Customer testimonials'}
+          aria-label={isFr ? 'Note du fondateur' : 'Founder note'}
           className="px-5 sm:px-6 py-14 sm:py-18 md:py-24"
         >
-          <div className="max-w-[1240px] mx-auto flex justify-center">
-            <motion.div
-              className="w-full flex justify-center"
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-12%' }}
-              transition={{ duration: 0.8, ease: EASE }}
-            >
-              <ScrollReelTestimonials
-                testimonials={testimonials}
-                regionLabel={isFr ? 'Témoignages' : 'Testimonials'}
-                prevLabel={isFr ? 'Témoignage précédent' : 'Previous testimonial'}
-                nextLabel={isFr ? 'Témoignage suivant' : 'Next testimonial'}
+          <Reveal className="max-w-[1240px] mx-auto">
+            <div className="rounded-[2rem] px-8 md:px-16 py-16 md:py-20 relative overflow-hidden" style={{ background: '#6366f1' }}>
+              <div
+                aria-hidden="true"
+                className="absolute -right-32 -top-32 w-[440px] h-[440px] rounded-full opacity-30 blur-3xl"
+                style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }}
               />
-            </motion.div>
-          </div>
+              <p className="relative text-white/70 text-xs font-medium tracking-[0.14em] uppercase mb-6">
+                {isFr ? 'Lancement' : 'Launch'}
+              </p>
+              <blockquote className="relative text-white text-[clamp(1.5rem,3.2vw,2.3rem)] font-semibold tracking-[-0.025em] leading-[1.22] max-w-[820px]">
+                {isFr
+                  ? "Qwillio vient de démarrer, construit et opéré par un développeur solo à Bruxelles. Chaque premier client est onboardé personnellement, pas de ticket support impersonnel."
+                  : 'Qwillio just launched, built and run by a solo developer in Brussels. Every first customer is onboarded personally, no impersonal support ticket.'}
+              </blockquote>
+              <p className="relative mt-6 text-white/70 text-[15px] max-w-[640px]">
+                {isFr
+                  ? "On préfère être honnête plutôt qu'afficher de faux avis clients. Devenez l'un des premiers."
+                  : "We'd rather be upfront than show fake customer reviews. Become one of the first."}
+              </p>
+            </div>
+          </Reveal>
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
