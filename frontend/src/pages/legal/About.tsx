@@ -209,8 +209,8 @@ export default function About() {
             <div className="text-[#424245] text-lg leading-[1.7] space-y-5">
               <p>
                 {isFr
-                  ? 'On a démarré Qwillio à trois personnes dans un bureau de Bruxelles. Aujourd\'hui on est une petite équipe distribuée entre Bruxelles, Paris et Montréal qui partage la même obsession : que chaque appel téléphonique trouve toujours quelqu\'un au bout du fil.'
-                  : 'We started Qwillio with three people in a Brussels office. Today we are a small team distributed across Brussels, Paris and Montreal, sharing the same obsession: every phone call always finding someone on the other end.'}
+                  ? "J'ai démarré Qwillio seul, depuis Bruxelles, avec une obsession simple : que chaque appel téléphonique trouve toujours quelqu'un au bout du fil. On est en tout début de lancement, et j'accompagne personnellement chaque nouveau client, du premier appel jusqu'au support au quotidien."
+                  : "I started Qwillio alone, from Brussels, with one simple obsession: every phone call should always find someone on the other end. We are very early in launch, and I personally support every new customer, from the first call onward."}
               </p>
               <p>
                 {isFr

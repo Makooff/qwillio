@@ -115,16 +115,14 @@ export default function Landing() {
         },
       ];
 
-  const testimonial = isFr
+  const founderNote = isFr
     ? {
-        quote: "Marie décroche en moins d'une seconde, prend les rendez-vous, et nous transfère les vraies urgences. Nos patients pensent qu'elle fait partie de l'équipe.",
-        name: 'Dr. Sarah Chen',
-        role: 'Directrice de clinique, Bright Dental',
+        quote: "Qwillio vient de démarrer, construit et opéré par un développeur solo à Bruxelles. Chaque premier client est onboardé personnellement.",
+        sub: "On préfère être honnête plutôt qu'afficher de faux avis clients.",
       }
     : {
-        quote: 'Ashley picks up in under a second, books the appointments, and transfers the real urgencies. Our patients think she is on the staff.',
-        name: 'Dr. Sarah Chen',
-        role: 'Clinic Director, Bright Dental',
+        quote: 'Qwillio just launched, built and run by a solo developer in Brussels. Every first customer is onboarded personally.',
+        sub: "We'd rather be upfront than show fake customer reviews.",
       };
 
   return (
@@ -479,12 +477,12 @@ export default function Landing() {
             BIG QUOTE — drenched indigo editorial break
             ════════════════════════════════════════════════════════════════ */}
         <section
-          aria-label={isFr ? 'Témoignage client' : 'Customer quote'}
+          aria-label={isFr ? 'Note du fondateur' : 'Founder note'}
           className="px-6 py-8"
         >
           <div className="max-w-[1240px] mx-auto">
             <Reveal>
-              <figure
+              <div
                 className="rounded-[2rem] px-8 md:px-16 py-16 md:py-24 relative overflow-hidden"
                 style={{ background: '#6366f1' }}
               >
@@ -493,22 +491,18 @@ export default function Landing() {
                   className="absolute -right-32 -top-32 w-[440px] h-[440px] rounded-full opacity-30 blur-3xl"
                   style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }}
                 />
+                <p className="relative text-white/70 text-xs font-medium tracking-[0.14em] uppercase mb-6">
+                  {isFr ? 'Lancement' : 'Launch'}
+                </p>
                 <blockquote
                   className="relative text-white text-[clamp(1.6rem,3.5vw,2.6rem)] font-semibold tracking-[-0.025em] leading-[1.18] max-w-[920px]"
                 >
-                  <span className="font-serif italic text-white/40 text-[1.8em] leading-none mr-2 align-[-0.18em]">"</span>
-                  {testimonial.quote}
+                  {founderNote.quote}
                 </blockquote>
-                <figcaption className="relative mt-8 flex items-center gap-3 text-white/80 text-sm">
-                  <span className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-xs font-semibold text-white">
-                    SC
-                  </span>
-                  <span>
-                    <span className="font-semibold text-white">{testimonial.name}</span>
-                    <span className="text-white/60"> · {testimonial.role}</span>
-                  </span>
-                </figcaption>
-              </figure>
+                <p className="relative mt-6 text-white/70 text-[15px] max-w-[640px]">
+                  {founderNote.sub}
+                </p>
+              </div>
             </Reveal>
           </div>
         </section>
