@@ -544,7 +544,6 @@
     const VapiClass = VapiModule.default || VapiModule;
 
     const VAPI_PUBLIC_KEY = 'eaded992-3a0b-48a4-bdb3-09438c4e54a4';
-    const BACKEND_URL = 'http://localhost:3000';
 
     // ── i18n ──
     const translations = {
@@ -1036,93 +1035,24 @@ RULES:
         return;
       }
 
-      const transcript = conversationMessages
-        .map(m => `${m.role === 'assistant' ? 'Receptionist' : 'Customer'}: ${m.text}`)
-        .join('\n');
+      // The live voice demo is the proof itself. We wrap up with a call to
+      // action toward the real site — no backend call and no credentials live
+      // in this public file.
+      const isFr = currentLang === 'fr';
+      document.getElementById('status').textContent = t('statusEnded');
+      document.getElementById('statusDetail').textContent = t('statusEndedDetail');
 
-      document.getElementById('status').textContent = t('statusAnalyzing');
-      document.getElementById('statusDetail').textContent = t('statusAnalyzingDetail');
-
-      try {
-        const loginRes = await fetch(BACKEND_URL + '/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: 'admin@qwillio.com', password: 'admin123' }),
-        });
-        const loginData = await loginRes.json();
-
-        const res = await fetch(BACKEND_URL + '/api/bot/trigger/simulate-call', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + loginData.token,
-          },
-          body: JSON.stringify({
-            transcript,
-            businessName: document.getElementById('businessName').value || 'Downtown Dental',
-            businessType: document.getElementById('businessType').value || 'dental',
-            city: document.getElementById('city').value || 'New York',
-            durationSeconds: elapsed,
-          }),
-        });
-
-        const result = await res.json();
-        console.log('Simulation result:', result);
-        showResults(result, transcript, elapsed);
-      } catch (err) {
-        console.error('Simulation error:', err);
-        document.getElementById('status').textContent = t('statusBackendDown');
-        document.getElementById('statusDetail').textContent = t('statusBackendDownDetail');
-      }
-    }
-
-    function showResults(result, transcript, durationSec) {
       const panel = document.getElementById('resultPanel');
-      const a = result.analysis || {};
-      const interestLevel = a.interestLevel || '?';
-      let interestColor = '#ef4444';
-      if (interestLevel >= 7) interestColor = '#22c55e';
-      else if (interestLevel >= 4) interestColor = '#eab308';
-
-      const mins = Math.floor(durationSec / 60);
-      const secs = durationSec % 60;
-
-      panel.innerHTML = `
-        <h3>${t('resultTitle')}</h3>
-        <div class="result-grid">
-          <div class="result-item"><span class="result-label">${t('resultInterest')}</span><span class="result-value" style="color:${interestColor}">${interestLevel}/10</span></div>
-          <div class="result-item"><span class="result-label">${t('resultContact')}</span><span class="result-value">${a.contactName || t('resultNotCollected')}</span></div>
-          <div class="result-item"><span class="result-label">${t('resultEmail')}</span><span class="result-value">${a.email || t('resultNotCollected')}</span></div>
-          <div class="result-item"><span class="result-label">${t('resultPackage')}</span><span class="result-value">${(a.recommendedPackage || 'starter').toUpperCase()}</span></div>
-          <div class="result-item"><span class="result-label">${t('resultOutcome')}</span><span class="result-value">${a.outcome || 'N/A'}</span></div>
-          <div class="result-item"><span class="result-label">${t('resultDuration')}</span><span class="result-value">${mins}m ${secs}s</span></div>
-        </div>
-        ${a.summary ? `<div class="result-summary"><strong>${t('resultSummary')}</strong> ${a.summary}</div>` : ''}
-        ${a.painPoints?.length > 0 ? `<div class="result-summary"><strong>${t('resultPainPoints')}</strong> ${a.painPoints.join(', ')}</div>` : ''}
-        ${a.objections?.length > 0 ? `<div class="result-summary"><strong>${t('resultObjections')}</strong> ${a.objections.join(', ')}</div>` : ''}
-        ${result.trialStarted ? `
-          <div class="trial-started">
-            <strong>${t('resultTrialStarted')}</strong><br>
-            ${t('resultTrialEmails')} ${a.email}:<br>
-            &check; ${t('resultTrialWelcome')}<br>
-            &check; ${t('resultTrialOnboarding')}<br>
-            &check; ${t('resultTrialDashboard')}<br>
-            &check; ${t('resultTrialDiscord')}
-          </div>
-        ` : a.interestLevel >= 7 && !a.email ? `
-          <div class="trial-warning">${t('resultTrialWarning')}</div>
-        ` : `
-          <div class="result-summary"><strong>${t('resultNextStep')}</strong> ${a.nextAction || t('resultFollowUp')}</div>
-        `}
-        <details class="transcript-details">
-          <summary>${t('resultTranscript')} (${conversationMessages.length} ${t('resultMessages')})</summary>
-          <pre>${transcript}</pre>
-        </details>
-      `;
-      panel.style.display = 'block';
-
-      document.getElementById('status').textContent = result.trialStarted ? t('statusTrialStarted') : t('statusEnded');
-      document.getElementById('statusDetail').textContent = `${t('resultProspectStatus')} ${result.status || 'unknown'}`;
+      if (panel) {
+        panel.style.display = 'block';
+        panel.innerHTML = `
+          <h3>${isFr ? 'Merci d\'avoir testé Qwillio' : 'Thanks for trying Qwillio'}</h3>
+          <p style="color:var(--gray);margin:8px 0 18px;line-height:1.5;">${isFr
+            ? 'Vous venez de parler à la réceptionniste IA en direct. Créez un compte pour la brancher à votre propre numéro en 15 minutes, premier mois offert.'
+            : 'You just spoke with the AI receptionist live. Create an account to connect it to your own number in 15 minutes, first month free.'}</p>
+          <a href="https://qwillio.com/register" class="cta-btn" style="display:inline-flex;width:auto;text-decoration:none;">${isFr ? 'Créer un compte' : 'Create an account'}</a>
+        `;
+      }
     }
 
     function startTimer() {
