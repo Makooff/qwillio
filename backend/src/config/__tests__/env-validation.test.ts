@@ -11,6 +11,7 @@ function baseEnv(overrides: Record<string, unknown> = {}) {
     STRIPE_SECRET_KEY: 'sk_live_x',
     STRIPE_WEBHOOK_SECRET: 'whsec_x',
     VAPI_PRIVATE_KEY: 'vapi_x',
+    VAPI_WEBHOOK_SECRET: 'vapi_whsec_x',
     RESEND_API_KEY: 're_x',
     ...overrides,
   } as any;
@@ -47,5 +48,11 @@ describe('validateEnv — production secret guards', () => {
   it('does not enforce secret rules outside production', () => {
     const { errors } = validateEnv(baseEnv({ NODE_ENV: 'development', JWT_SECRET: 'change-me-in-production' }));
     expect(errors).toEqual([]);
+  });
+
+  it('warns (not errors) when VAPI_WEBHOOK_SECRET is empty in production', () => {
+    const { errors, warnings } = validateEnv(baseEnv({ VAPI_WEBHOOK_SECRET: '' }));
+    expect(errors).toEqual([]);
+    expect(warnings.some((w) => w.includes('VAPI_WEBHOOK_SECRET'))).toBe(true);
   });
 });

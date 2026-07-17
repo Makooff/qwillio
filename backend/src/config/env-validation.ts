@@ -13,6 +13,7 @@ interface EnvLike {
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
   VAPI_PRIVATE_KEY: string;
+  VAPI_WEBHOOK_SECRET: string;
   RESEND_API_KEY: string;
 }
 
@@ -45,6 +46,15 @@ export function validateEnv(e: EnvLike): { errors: string[]; warnings: string[] 
   ];
   for (const [key, value] of moneyCritical) {
     if (!value) warnings.push(`${key} is empty — the related feature will silently fail in production.`);
+  }
+
+  // Security — the VAPI webhook endpoints fail closed without this secret, so an
+  // unset value means inbound call events are rejected (401) in production.
+  if (!e.VAPI_WEBHOOK_SECRET) {
+    warnings.push(
+      'VAPI_WEBHOOK_SECRET is empty — /api/webhooks/vapi will reject all events (401) ' +
+        'in production. Set the same secret here and in the VAPI dashboard webhook settings.',
+    );
   }
 
   return { errors, warnings };

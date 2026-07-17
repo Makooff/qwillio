@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { stripe } from '../config/stripe';
@@ -13,6 +14,27 @@ import { extractEmailFromText, isValidEmail, normalizeEmail } from '../utils/val
 import { detectLanguage } from '../config/vapi-templates';
 import { storeError } from '../utils/error-store';
 import { closerAgentService } from '../services/closer-agent.service';
+
+/**
+ * Verify the shared secret on inbound VAPI webhooks.
+ *
+ * When VAPI_WEBHOOK_SECRET is set, the `x-vapi-secret` header must match it
+ * (constant-time compare, so the check does not leak the secret byte by byte).
+ * When it is NOT set we fail CLOSED in production: an unconfigured secret must
+ * never leave the endpoint open to spoofed call events. In development we stay
+ * permissive so local testing without the secret still works.
+ */
+function isVapiWebhookAuthorized(req: Request): boolean {
+  const expected = env.VAPI_WEBHOOK_SECRET;
+  if (!expected) {
+    return env.NODE_ENV !== 'production';
+  }
+  const provided = req.headers['x-vapi-secret'];
+  if (typeof provided !== 'string' || provided.length !== expected.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+}
 
 export class WebhooksController {
   async stripeWebhook(req: Request, res: Response) {
@@ -109,14 +131,9 @@ export class WebhooksController {
   }
 
   async vapiWebhook(req: Request, res: Response) {
-    // Verify VAPI webhook secret if configured
-    const vapiSecret = env.VAPI_WEBHOOK_SECRET;
-    if (vapiSecret) {
-      const headerSecret = req.headers['x-vapi-secret'] as string;
-      if (headerSecret !== vapiSecret) {
-        logger.warn('VAPI webhook: invalid secret header');
-        return res.status(401).json({ error: 'Invalid webhook secret' });
-      }
+    if (!isVapiWebhookAuthorized(req)) {
+      logger.warn('VAPI webhook: unauthorized (missing or invalid x-vapi-secret)');
+      return res.status(401).json({ error: 'Invalid webhook secret' });
     }
 
     const event = req.body;
@@ -234,13 +251,9 @@ export class WebhooksController {
   }
 
   async vapiClientWebhook(req: Request, res: Response) {
-    const vapiSecret = env.VAPI_WEBHOOK_SECRET;
-    if (vapiSecret) {
-      const headerSecret = req.headers['x-vapi-secret'] as string;
-      if (headerSecret !== vapiSecret) {
-        logger.warn('VAPI client webhook: invalid secret header');
-        return res.status(401).json({ error: 'Invalid webhook secret' });
-      }
+    if (!isVapiWebhookAuthorized(req)) {
+      logger.warn('VAPI client webhook: unauthorized (missing or invalid x-vapi-secret)');
+      return res.status(401).json({ error: 'Invalid webhook secret' });
     }
 
     const clientId = req.params.clientId as string;
