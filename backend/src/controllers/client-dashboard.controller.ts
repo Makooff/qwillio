@@ -35,6 +35,7 @@ export class ClientDashboardController {
         status: req.query.status as string | undefined,
         sentiment: req.query.sentiment as string | undefined,
         isLead: req.query.isLead === 'true' ? true : req.query.isLead === 'false' ? false : undefined,
+        isSpam: req.query.isSpam === 'true' ? true : undefined,
         startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
         endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
       };
@@ -100,6 +101,7 @@ export class ClientDashboardController {
         status: req.query.status as string | undefined,
         sentiment: req.query.sentiment as string | undefined,
         isLead: req.query.isLead === 'true' ? true : req.query.isLead === 'false' ? false : undefined,
+        isSpam: req.query.isSpam === 'true' ? true : undefined,
         startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
         endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
       };

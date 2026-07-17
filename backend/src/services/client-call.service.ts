@@ -84,10 +84,9 @@ export class ClientCallService {
           `🛡️ SPAM CALL — ${client.businessName}\nFrom: ${callerNumber || 'unknown'}\nScore: ${spam.score}/100\nReasons: ${spam.reasons.join(', ')}`,
         )
         .catch(() => {});
-      await prisma.client.update({
-        where: { id: clientId },
-        data: { totalCallsMade: { increment: 1 }, lastCallDate: new Date() },
-      });
+      // Spam is NOT counted as a real call: it does not touch totalCallsMade or
+      // lastCallDate, so it never eats into the client's quota. "Spam doesn't
+      // count against you" is a selling point of the shield.
       return clientCall;
     }
 

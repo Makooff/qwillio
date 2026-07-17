@@ -97,6 +97,8 @@ export default function ClientOverview() {
   const calls_ = (data as Record<string, unknown> & { calls?: Record<string, number> })?.calls ?? {};
   const sentiment_ = (data as Record<string, unknown> & { sentiment?: Record<string, number> })?.sentiment ?? {};
   const leads_ = (data as Record<string, unknown> & { leads?: Record<string, number> })?.leads ?? {};
+  const spam_ = (data as Record<string, unknown> & { spam?: Record<string, number> })?.spam ?? {};
+  const spamBlockedMonth = (spam_ as Record<string, number>).blockedThisMonth ?? 0;
 
   const callsToday = (calls_ as Record<string, number>).today ?? 0;
   const callsYesterday = (calls_ as Record<string, number>).yesterday ?? 0;
@@ -368,12 +370,17 @@ export default function ClientOverview() {
             caption={quotaTotal > 0 ? 'Quota d’appels' : 'Appels ce mois'}
             value={quotaTotal > 0 ? quotaUsed.toLocaleString('fr-FR') : callsMonth.toLocaleString('fr-FR')}
             fraction={quotaTotal > 0 ? quotaPct / 100 : Math.min(1, callsMonth / 200)}
-            legend={quotaTotal > 0
-              ? [
-                  { label: 'Utilisé', value: quotaUsed.toLocaleString('fr-FR'), bright: true },
-                  { label: 'Inclus', value: quotaTotal.toLocaleString('fr-FR') },
-                ]
-              : [{ label: 'Ce mois', value: callsMonth.toLocaleString('fr-FR'), bright: true }]}
+            legend={[
+              ...(quotaTotal > 0
+                ? [
+                    { label: 'Utilisé', value: quotaUsed.toLocaleString('fr-FR'), bright: true },
+                    { label: 'Inclus', value: quotaTotal.toLocaleString('fr-FR') },
+                  ]
+                : [{ label: 'Ce mois', value: callsMonth.toLocaleString('fr-FR'), bright: true }]),
+              ...(spamBlockedMonth > 0
+                ? [{ label: 'Spam bloqué', value: spamBlockedMonth.toLocaleString('fr-FR') }]
+                : []),
+            ]}
             action={{ label: 'Voir les appels', to: '/dashboard/calls' }}
           />
 
