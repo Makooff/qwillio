@@ -405,6 +405,20 @@ export default function ClientOverview() {
             action={{ label: 'Gérer la facturation', to: '/dashboard/billing' }}
           />
 
+          {Array.isArray((c as { planFeatures?: string[] }).planFeatures) && (c as { planFeatures?: string[] }).planFeatures!.length > 0 && (
+            <div className="py-5">
+              <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/40 mb-3">Ce que votre plan inclut</h3>
+              <ul className="space-y-2">
+                {(c as { planFeatures?: string[] }).planFeatures!.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-[13px] text-white/70">
+                    <span className="mt-[3px] text-[#a5b4fc]" aria-hidden="true">✓</span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <AttentionList title="À traiter" items={attn} empty="Tout est en ordre." />
         </div>
       </div>

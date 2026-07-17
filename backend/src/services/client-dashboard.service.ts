@@ -1,5 +1,6 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { planFeatures } from '../config/plan-features';
 
 export class ClientDashboardService {
 
@@ -98,6 +99,8 @@ export class ClientDashboardService {
         hasTestCall,
         forwardingStatus: client.forwardingStatus,
         forwardingVerifiedAt: client.forwardingVerifiedAt,
+        // What this plan includes (packaging labels for display)
+        planFeatures: planFeatures(client.planType),
       },
       calls: {
         total: totalCallsAllTime,
