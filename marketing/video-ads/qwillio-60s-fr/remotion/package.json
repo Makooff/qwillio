@@ -1,0 +1,21 @@
+{
+  "name": "qwillio-60s-fr-remotion",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Qwillio 60s FR ad, programmatic motion design (Remotion).",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render Qwillio60 out/qwillio-60s-fr-1080p.mp4 --concurrency=4",
+    "still": "remotion still Qwillio60 out/still.png --frame=450"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.6.0"
+  }
+}

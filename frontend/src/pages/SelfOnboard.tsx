@@ -3,20 +3,42 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import {
   ArrowRight, ArrowLeft, Check, ChevronRight,
-  Building2, Phone, CreditCard, Loader2, Sparkles, LogOut
+  Building2, Phone, CreditCard, Loader2, Sparkles, LogOut,
+  Users, Megaphone, Star, FileText, CalendarClock, MapPin,
+  Mail, Crosshair, LifeBuoy, LineChart, Calculator, Package,
+  type LucideIcon,
 } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
 import { useLang } from '../stores/langStore';
 import api from '../services/api';
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
 
 const plans = [
   { key: 'starter', name: 'Starter', price: 497, calls: 800, trial: '1er mois gratuit' },
   { key: 'pro', name: 'Pro', price: 1297, calls: 2000, popular: true, trial: '1er mois gratuit' },
   { key: 'enterprise', name: 'Enterprise', price: 2497, calls: 4000, trial: '1er mois gratuit' },
 ];
+
+// 13 modules ordered by demand (most-requested first). Synced with /agent and /pricing.
+const MODULES: Array<{ id: string; icon: LucideIcon; name: string; tagline: string }> = [
+  { id: 'crm',        icon: Users,        name: 'CRM AI',        tagline: 'Pipeline, forecast, relances' },
+  { id: 'marketing',  icon: Megaphone,    name: 'Marketing AI',  tagline: 'Posts, emails, ad copy' },
+  { id: 'reputation', icon: Star,         name: 'Reputation AI', tagline: 'Avis et réponses' },
+  { id: 'document',   icon: FileText,     name: 'Document AI',   tagline: 'Devis, contrats, signature' },
+  { id: 'scheduling', icon: CalendarClock,name: 'Scheduling AI', tagline: 'Créneaux et rappels' },
+  { id: 'local_seo',  icon: MapPin,       name: 'Local SEO AI',  tagline: 'GMB, keywords, audit' },
+  { id: 'email',      icon: Mail,         name: 'Email AI',      tagline: 'Triage et auto-reply' },
+  { id: 'lead_gen',   icon: Crosshair,    name: 'Lead Gen AI',   tagline: 'Prospection sortante' },
+  { id: 'support',    icon: LifeBuoy,     name: 'Support AI',    tagline: 'Tickets et escalade' },
+  { id: 'payments',   icon: CreditCard,   name: 'Payments AI',   tagline: 'Encaissements et acomptes' },
+  { id: 'analytics',  icon: LineChart,    name: 'Analytics AI',  tagline: 'Digest, anomalies, forecast' },
+  { id: 'accounting', icon: Calculator,   name: 'Accounting AI', tagline: 'Factures et P&L' },
+  { id: 'inventory',  icon: Package,      name: 'Inventory AI',  tagline: 'Stock et réassort' },
+];
+const MODULE_PRICE = 197;
+const BUNDLE_PRICE = 1497;
 
 export default function SelfOnboard() {
   const navigate = useNavigate();
@@ -28,16 +50,32 @@ export default function SelfOnboard() {
   const [website, setWebsite] = useState('');
   const [phone, setPhone] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('pro');
+  const [selectedModules, setSelectedModules] = useState<Set<string>>(new Set());
+  const [bundle, setBundle] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    if (searchParams.get('payment') === 'cancelled') {
+    if (searchParams.get('payment') === 'cancelled' || searchParams.get('canceled') === '1') {
       setError('Paiement annulé. Vous pouvez réessayer quand vous êtes prêt.');
-      setStep(3); // Go back to plan selection step
+      setStep(4);
     }
+    const requestedStep = parseInt(searchParams.get('step') || '0');
+    if ([1, 2, 3, 4].includes(requestedStep)) setStep(requestedStep as Step);
   }, [searchParams]);
+
+  const toggleModule = (id: string) => {
+    setSelectedModules(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const modulesTotal = bundle ? BUNDLE_PRICE : selectedModules.size * MODULE_PRICE;
+  const planPrice = plans.find(p => p.key === selectedPlan)?.price ?? 0;
+  const grandTotal = planPrice + modulesTotal;
 
   const handleFinish = async () => {
     setLoading(true);
@@ -49,6 +87,8 @@ export default function SelfOnboard() {
         industry: industry || null,
         website: website || null,
         planType: selectedPlan,
+        selectedModules: bundle ? [] : Array.from(selectedModules),
+        bundle,
       });
       // Save the fresh JWT and update store directly (no extra /auth/me round-trip)
       if (data.token) {
@@ -58,13 +98,21 @@ export default function SelfOnboard() {
         useAuthStore.setState({ user: data.user, token: data.token, isLoading: false });
       }
 
-      // Redirect to Stripe Checkout if available (1st month free, then monthly)
+      // Test account bypass — backend already activated everything for free.
+      if (data.bypass) {
+        navigate('/dashboard?welcome=test');
+        return;
+      }
+
+      // Normal flow → redirect to Stripe Checkout (card + 30-day free trial).
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
         return;
       }
 
-      navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard');
+      // Defensive fallback: should never hit. Surface a clear error instead of
+      // letting the UI crash on an unexpected response shape.
+      setError('Activation impossible. Veuillez réessayer ou contacter le support.');
     } catch (err: unknown) {
       const response = (err as { response?: { data?: { error?: string | { message?: string } } } })?.response;
       const errData = response?.data?.error;
@@ -74,7 +122,7 @@ export default function SelfOnboard() {
     }
   };
 
-  const progress = (step / 3) * 100;
+  const progress = (step / 4) * 100;
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
@@ -87,7 +135,7 @@ export default function SelfOnboard() {
             <span className="text-xl font-semibold tracking-tight">Qwillio</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[#86868b]">{t('onboard.step')} {step} / 3</span>
+            <span className="text-sm text-[#86868b]">{t('onboard.step')} {step} / 4</span>
             <LangToggle />
             <button
               onClick={() => { logout(); navigate('/'); }}
@@ -283,6 +331,101 @@ export default function SelfOnboard() {
             </>
           )}
 
+          {/* ═══ STEP 4: Modules selection + récap ═══ */}
+          {step === 4 && (
+            <>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-[#a855f7]/10 flex items-center justify-center">
+                  <Sparkles size={20} className="text-[#a855f7]" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-semibold tracking-tight">Modules IA (optionnel)</h2>
+                  <p className="text-sm text-[#86868b]">Premier mois offert. Annulable à tout moment.</p>
+                </div>
+              </div>
+
+              {/* Bundle toggle */}
+              <button
+                onClick={() => { setBundle(b => !b); if (!bundle) setSelectedModules(new Set()); }}
+                className={`w-full mb-4 p-4 sm:p-5 rounded-2xl border-2 transition-colors text-left ${
+                  bundle ? 'border-[#a855f7] bg-[#a855f7]/[0.04]' : 'border-[#d2d2d7] bg-white hover:border-[#86868b]'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${
+                    bundle ? 'border-[#a855f7] bg-[#a855f7]' : 'border-[#d2d2d7]'
+                  }`}>
+                    {bundle && <Check size={12} className="text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-base font-semibold">All Agents Bundle</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-[#a855f7] text-white px-2 py-0.5 rounded-full">
+                        Économie $1064
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#86868b] mt-0.5">Les 13 modules en un seul abonnement.</p>
+                  </div>
+                  <div className="flex-shrink-0 text-right whitespace-nowrap">
+                    <span className="text-lg font-semibold">${BUNDLE_PRICE}</span>
+                    <span className="text-sm text-[#86868b]">/mo</span>
+                  </div>
+                </div>
+              </button>
+
+              {/* 13 modules grid */}
+              <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 ${bundle ? 'opacity-40 pointer-events-none' : ''}`}>
+                {MODULES.map(m => {
+                  const Icon = m.icon;
+                  const checked = selectedModules.has(m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => toggleModule(m.id)}
+                      className={`flex items-start gap-3 p-3 rounded-xl border-2 transition-colors text-left ${
+                        checked ? 'border-[#6366f1] bg-[#6366f1]/[0.04]' : 'border-[#d2d2d7] bg-white hover:border-[#86868b]'
+                      }`}
+                    >
+                      <div className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                        checked ? 'border-[#6366f1] bg-[#6366f1]' : 'border-[#d2d2d7]'
+                      }`}>
+                        {checked && <Check size={10} className="text-white" />}
+                      </div>
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(99,102,241,0.10)' }}>
+                        <Icon size={14} className="text-[#6366f1]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold truncate">{m.name}</p>
+                        <p className="text-[11px] text-[#86868b] truncate">{m.tagline}</p>
+                      </div>
+                      <span className="text-[11px] font-semibold text-[#86868b] whitespace-nowrap flex-shrink-0">$197/mo</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Total */}
+              <div className="mt-6 p-4 rounded-2xl bg-[#fafaf8] border border-[#d2d2d7]/60">
+                <div className="flex items-center justify-between text-sm text-[#86868b] mb-1">
+                  <span>{plans.find(p => p.key === selectedPlan)?.name} (plan de base)</span>
+                  <span className="tabular-nums">${planPrice}/mo</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-[#86868b] mb-2">
+                  <span>{bundle ? 'Bundle 13 modules' : `${selectedModules.size} module(s) sélectionné(s)`}</span>
+                  <span className="tabular-nums">${modulesTotal}/mo</span>
+                </div>
+                <div className="border-t border-[#d2d2d7]/60 pt-2 flex items-center justify-between">
+                  <span className="text-base font-semibold">Total mensuel</span>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold tabular-nums">${grandTotal}/mo</div>
+                    <div className="text-[11px] text-emerald-600 font-semibold">1ᵉʳ mois gratuit</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* ── Navigation ── */}
           <div className="flex items-center justify-between gap-4 mt-10 pt-6 px-2 sm:px-4 border-t border-[#d2d2d7]/40">
             {step > 1 ? (
@@ -294,7 +437,7 @@ export default function SelfOnboard() {
               </button>
             ) : <div className="flex-shrink-0" />}
 
-            {step < 3 ? (
+            {step < 4 ? (
               <button
                 className="inline-flex items-center gap-1.5 bg-[#6366f1] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
                 disabled={step === 1 && !businessName.trim()}
@@ -311,7 +454,7 @@ export default function SelfOnboard() {
                 {loading ? (
                   <><Loader2 size={18} className="animate-spin flex-shrink-0" /> <span className="truncate">Redirection…</span></>
                 ) : (
-                  <><CreditCard size={18} className="flex-shrink-0" /> <span className="truncate">Continuer vers le paiement</span></>
+                  <><CreditCard size={18} className="flex-shrink-0" /> <span className="truncate">Activer mon compte</span></>
                 )}
               </button>
             )}

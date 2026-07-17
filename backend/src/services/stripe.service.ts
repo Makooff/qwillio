@@ -140,6 +140,37 @@ export class StripeService {
 
     logger.info(`Self-onboarding complete: Client created for ${user.email} — clientId: ${client.id}, plan: ${planType}`);
 
+    // Activate selected agent modules from metadata (set during checkout creation).
+    // Either `bundle=true` (all 13 modules unlocked) or comma-separated
+    // `modules=crm,marketing,...`. The bundle path expands to all field flags so
+    // module services that gate on `client.agentSubscriptions?.crmAi` etc. grant
+    // access to bundle buyers.
+    const isBundle = session.metadata?.bundle === 'true';
+    const moduleFlags = isBundle
+      ? Object.fromEntries(Object.values(MODULE_FIELD_MAP).map(field => [field, true]))
+      : parseModulesMetadata(session.metadata);
+    if (Object.keys(moduleFlags).length > 0 || isBundle) {
+      try {
+        await prisma.agentSubscription.upsert({
+          where: { clientId: client.id },
+          create: {
+            clientId: client.id,
+            status: 'active',
+            bundle: isBundle,
+            ...moduleFlags,
+          },
+          update: {
+            status: 'active',
+            bundle: isBundle,
+            ...moduleFlags,
+          },
+        });
+        logger.info(`Self-onboarding: ${Object.keys(moduleFlags).length} modules activated for ${client.id} (bundle=${isBundle})`);
+      } catch (err) {
+        logger.error(`Self-onboarding: failed to activate modules for ${client.id}:`, err);
+      }
+    }
+
     // Trigger VAPI assistant creation + welcome email asynchronously.
     // Fire-and-forget: the 5-min onboarding retry cron handles failures.
     onboardingService.onboardClient(client.id).catch((err: Error) => {
@@ -518,6 +549,136 @@ export class StripeService {
         throw new Error(`No Stripe price configured for plan: ${packageType}`);
     }
   }
+
+  // Stripe Checkout for the self-onboard flow.
+  // Includes base plan + selected agent modules (or All Agents bundle).
+  // `trial_period_days: 30` collects the card but charges nothing for 30 days.
+  // The metadata is parsed by handleSelfOnboardingCheckout when the webhook fires.
+  async createSelfOnboardCheckout(opts: {
+    userId: string;
+    email: string;
+    planType: string;
+    businessName?: string;
+    businessPhone?: string;
+    industry?: string;
+    selectedModules?: string[];
+    bundle?: boolean;
+  }): Promise<{ url: string | null; id: string }> {
+    const planPrice = this.getMonthlyPriceId(opts.planType);
+    if (!planPrice) throw new Error(`Missing Stripe price for plan: ${opts.planType}`);
+
+    const line_items: Array<{ price: string; quantity: number }> = [
+      { price: planPrice, quantity: 1 },
+    ];
+
+    // Track which modules will be activated post-payment, even if a price ID is missing.
+    // Storing in metadata so the webhook can activate them deterministically.
+    const moduleIds: string[] = [];
+    const missingPriceModules: string[] = [];
+
+    if (opts.bundle === true) {
+      const bundlePrice = env.STRIPE_PRICE_ALL_AGENTS_BUNDLE;
+      if (!bundlePrice) {
+        throw new Error('STRIPE_PRICE_ALL_AGENTS_BUNDLE is not configured');
+      }
+      line_items.push({ price: bundlePrice, quantity: 1 });
+    } else if (Array.isArray(opts.selectedModules) && opts.selectedModules.length > 0) {
+      for (const m of opts.selectedModules) {
+        const price = MODULE_PRICE_ID_MAP[m];
+        if (price && typeof price === 'string' && price.length > 0) {
+          line_items.push({ price, quantity: 1 });
+          moduleIds.push(m);
+        } else {
+          missingPriceModules.push(m);
+        }
+      }
+      if (missingPriceModules.length > 0) {
+        logger.warn(`[stripe] Missing price IDs for modules: ${missingPriceModules.join(', ')}`);
+      }
+    }
+
+    const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items,
+      success_url: `${frontendUrl}/onboard/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/onboard?step=5&canceled=1`,
+      client_reference_id: opts.userId,
+      subscription_data: {
+        trial_period_days: 30,
+        metadata: {
+          source: 'self-onboarding',
+          userId: opts.userId,
+          email: opts.email,
+          planType: opts.planType,
+          modules: moduleIds.join(','),
+          bundle: opts.bundle === true ? 'true' : 'false',
+        },
+      },
+      metadata: {
+        source: 'self-onboarding',
+        userId: opts.userId,
+        email: opts.email,
+        planType: opts.planType,
+        businessName: opts.businessName ?? '',
+        businessPhone: opts.businessPhone ?? '',
+        industry: opts.industry ?? 'other',
+        modules: moduleIds.join(','),
+        bundle: opts.bundle === true ? 'true' : 'false',
+      },
+    });
+
+    return { url: session.url, id: session.id };
+  }
+}
+
+// Map module id (as used in frontend + metadata) → env var holding the Stripe price.
+// Empty string means the module is not yet wired to a Stripe price; the line
+// item is skipped (but activation via metadata still happens post-payment).
+const MODULE_PRICE_ID_MAP: Record<string, string> = {
+  email:      env.STRIPE_PRICE_EMAIL_AI,
+  payments:   env.STRIPE_PRICE_PAYMENTS_AI,
+  accounting: env.STRIPE_PRICE_ACCOUNTING_AI,
+  inventory:  env.STRIPE_PRICE_INVENTORY_AI,
+  marketing:  env.STRIPE_PRICE_MARKETING_AI,
+  reputation: env.STRIPE_PRICE_REPUTATION_AI,
+  scheduling: env.STRIPE_PRICE_SCHEDULING_AI,
+  support:    env.STRIPE_PRICE_SUPPORT_AI,
+  crm:        env.STRIPE_PRICE_CRM_AI,
+  document:   env.STRIPE_PRICE_DOCUMENT_AI,
+  local_seo:  env.STRIPE_PRICE_LOCAL_SEO_AI,
+  lead_gen:   env.STRIPE_PRICE_LEAD_GEN_AI,
+  analytics:  env.STRIPE_PRICE_ANALYTICS_AI,
+};
+
+// Map module id → AgentSubscription boolean field name.
+const MODULE_FIELD_MAP: Record<string, string> = {
+  email:      'emailAi',
+  payments:   'paymentsAi',
+  accounting: 'accountingAi',
+  inventory:  'inventoryAi',
+  marketing:  'marketingAi',
+  reputation: 'reputationAi',
+  scheduling: 'schedulingAi',
+  support:    'supportAi',
+  crm:        'crmAi',
+  document:   'documentAi',
+  local_seo:  'localSeoAi',
+  lead_gen:   'leadGenAi',
+  analytics:  'analyticsAi',
+};
+
+function parseModulesMetadata(metadata: Record<string, string> | null | undefined): Record<string, boolean> {
+  if (!metadata) return {};
+  const raw = (metadata.modules || '').trim();
+  if (!raw) return {};
+  const ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const flags: Record<string, boolean> = {};
+  for (const id of ids) {
+    const field = MODULE_FIELD_MAP[id];
+    if (field) flags[field] = true;
+  }
+  return flags;
 }
 
 export const stripeService = new StripeService();
