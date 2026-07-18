@@ -51,8 +51,8 @@ export default function Pricing() {
       overage: 0.22,
       description: isFr ? 'Pour commencer' : 'To get started',
       features: isFr
-        ? ['800 appels par mois', 'Réceptionniste IA 24/7', 'Capture de leads', 'Analytiques', 'Support email', 'Transcription des appels']
-        : ['800 calls per month', 'AI Receptionist 24/7', 'Lead capture', 'Analytics', 'Email support', 'Call transcripts'],
+        ? ['800 appels par mois', 'IA 24/7 bilingue FR / EN', 'Prise de RDV + agenda', 'Transfert des urgences', 'Transcription + sentiment', 'Bouclier anti-spam inclus', 'Capture de leads', 'Support email']
+        : ['800 calls per month', '24/7 AI, bilingual FR / EN', 'Booking + calendar sync', 'Urgency transfer', 'Transcript + sentiment', 'Spam shield included', 'Lead capture', 'Email support'],
       cta: isFr ? 'Commencer' : 'Start',
       popular: false,
     },
@@ -65,8 +65,8 @@ export default function Pricing() {
       overage: 0.18,
       description: isFr ? 'Pour grandir' : 'To grow',
       features: isFr
-        ? ['2 000 appels par mois', 'Tout Starter inclus', 'Analytiques avancées + sentiments', 'Transfert d\'appel intelligent', 'Support prioritaire', 'Intégrations CRM natives']
-        : ['2,000 calls per month', 'Everything in Starter', 'Advanced analytics + sentiment', 'Smart call routing', 'Priority support', 'Native CRM integrations'],
+        ? ['2 000 appels par mois', 'Tout Starter inclus', 'Analytiques avancées', 'Intégrations CRM natives', 'Support prioritaire']
+        : ['2,000 calls per month', 'Everything in Starter', 'Advanced analytics', 'Native CRM integrations', 'Priority support'],
       cta: isFr ? 'Choisir Pro' : 'Choose Pro',
       popular: true,
     },
@@ -78,8 +78,8 @@ export default function Pricing() {
       overage: 0.15,
       description: isFr ? 'Pour scale' : 'To scale',
       features: isFr
-        ? ['4 000 appels par mois', 'Tout Pro inclus', 'Responsable dédié', 'SLA 99,5% uptime', 'Accès API complet', 'IA auto-apprenante']
-        : ['4,000 calls per month', 'Everything in Pro', 'Dedicated manager', '99.5% uptime SLA', 'Full API access', 'Self-learning AI'],
+        ? ['4 000 appels par mois', 'Tout Pro inclus', 'Multi-sites & numéros multiples', 'Responsable dédié', 'SLA 99,5% uptime', 'Accès API complet']
+        : ['4,000 calls per month', 'Everything in Pro', 'Multi-site & multiple numbers', 'Dedicated manager', '99.5% uptime SLA', 'Full API access'],
       cta: isFr ? 'Contacter' : 'Contact us',
       popular: false,
     },
@@ -213,8 +213,9 @@ export default function Pricing() {
                 </p>
                 <ul role="list" className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-[#424245]">
                   <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> 300 {isFr ? 'appels / mois' : 'calls / month'}</li>
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? '1 numéro FR inclus' : '1 FR number included'}</li>
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'Agenda + CRM' : 'Calendar + CRM'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'IA 24/7 bilingue FR / EN' : '24/7 AI, bilingual FR / EN'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'RDV + agenda + transfert urgences' : 'Booking + calendar + urgency transfer'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'Transcript + sentiment + anti-spam' : 'Transcript + sentiment + spam shield'}</li>
                   <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'RGPD, UE' : 'GDPR, EU'}</li>
                 </ul>
               </div>
@@ -439,9 +440,12 @@ export default function Pricing() {
                 ? [
                     ['Appels inclus', '800', '2 000', '4 000'],
                     ['Coût par appel supplémentaire', '$0,22', '$0,18', '$0,15'],
-                    ['Réceptionniste IA 24/7', '✓', '✓', '✓'],
-                    ['Transcription des appels', '✓', '✓', '✓'],
-                    ['Analyse de sentiment', '·', '✓', '✓'],
+                    ['IA 24/7 bilingue FR / EN', '✓', '✓', '✓'],
+                    ['Prise de RDV + agenda', '✓', '✓', '✓'],
+                    ['Transfert des urgences', '✓', '✓', '✓'],
+                    ['Transcription + sentiment', '✓', '✓', '✓'],
+                    ['Bouclier anti-spam', '✓', '✓', '✓'],
+                    ['Analytiques avancées', '·', '✓', '✓'],
                     ['Intégrations CRM natives', '·', '✓', '✓'],
                     ['Accès API complet', '·', '·', '✓'],
                     ['SLA 99,5% uptime', '·', '·', '✓'],
@@ -451,9 +455,12 @@ export default function Pricing() {
                 : [
                     ['Calls included', '800', '2,000', '4,000'],
                     ['Overage per call', '$0.22', '$0.18', '$0.15'],
-                    ['24/7 AI Receptionist', '✓', '✓', '✓'],
-                    ['Call transcripts', '✓', '✓', '✓'],
-                    ['Sentiment analysis', '·', '✓', '✓'],
+                    ['24/7 AI, bilingual FR / EN', '✓', '✓', '✓'],
+                    ['Booking + calendar', '✓', '✓', '✓'],
+                    ['Urgency transfer', '✓', '✓', '✓'],
+                    ['Transcript + sentiment', '✓', '✓', '✓'],
+                    ['Spam shield', '✓', '✓', '✓'],
+                    ['Advanced analytics', '·', '✓', '✓'],
                     ['Native CRM integrations', '·', '✓', '✓'],
                     ['Full API access', '·', '·', '✓'],
                     ['99.5% uptime SLA', '·', '·', '✓'],

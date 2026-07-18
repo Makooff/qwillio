@@ -75,6 +75,15 @@
   </url>
 
   <url>
+    <loc>https://qwillio.com/faq</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/faq"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/faq"/>
+  </url>
+
+  <url>
     <loc>https://qwillio.com/blog/ai-receptionist-plumber-2026</loc>
     <lastmod>2026-07-11</lastmod>
     <changefreq>monthly</changefreq>
@@ -117,6 +126,24 @@
     <priority>0.75</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/blog/cout-secretaire-belgique-2026"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/blog/cout-secretaire-belgique-2026"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/blog/receptionniste-ia-vs-repondeur</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.65</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/blog/receptionniste-ia-vs-repondeur"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/blog/receptionniste-ia-vs-repondeur"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/blog/rgpd-enregistrement-appels-belgique</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.65</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/blog/rgpd-enregistrement-appels-belgique"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/blog/rgpd-enregistrement-appels-belgique"/>
   </url>
 
   <url>
@@ -180,6 +207,96 @@
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/notaire"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/notaire"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/garagiste</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/garagiste"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/garagiste"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/kine</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/kine"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/kine"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/avocat</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/avocat"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/avocat"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/restaurant</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/restaurant"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/restaurant"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/immobilier</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/immobilier"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/immobilier"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/coiffeur</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/coiffeur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/coiffeur"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/ville/bruxelles</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/ville/bruxelles"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/ville/bruxelles"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/ville/namur</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/ville/namur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/ville/namur"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/ville/liege</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/ville/liege"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/ville/liege"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/ville/anvers</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/ville/anvers"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/ville/anvers"/>
   </url>
 
   <url>

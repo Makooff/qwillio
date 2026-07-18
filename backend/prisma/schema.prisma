@@ -324,6 +324,7 @@ model Client {
   clientAnalytics            ClientAnalyticsDaily[]
   clientBookings             ClientBooking[]
   clientCalls                ClientCall[]
+  spamNumbers                SpamNumber[]
   prospect                   Prospect?                 @relation(fields: [prospectId], references: [id])
   quote                      Quote?                    @relation(fields: [quoteId], references: [id])
   user                       User?                     @relation(fields: [userId], references: [id])
@@ -538,6 +539,9 @@ model ClientCall {
   bookingDetails   String?         @map("booking_details")
   isLead           Boolean         @default(false) @map("is_lead")
   leadScore        Int?            @map("lead_score")
+  isSpam           Boolean         @default(false) @map("is_spam")
+  spamScore        Int?            @map("spam_score")
+  spamReasons      String[]        @default([]) @map("spam_reasons")
   tags             String[]        @default([])
   metadata         Json?
   createdAt        DateTime        @default(now()) @map("created_at")
@@ -551,6 +555,26 @@ model ClientCall {
   @@index([createdAt])
   @@index([clientId, createdAt])
   @@map("client_calls")
+}
+
+// Per-client spam blocklist. Numbers land here automatically once the spam
+// detector sees a caller cross the repeat-offender threshold, or manually when
+// a client blocks a number. The real-time block at call start (Pro/Enterprise)
+// reads this list to hang up before the AI engages, saving call minutes.
+model SpamNumber {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @map("client_id") @db.Uuid
+  phoneNumber String   @map("phone_number") @db.VarChar(50)
+  reason      String?  @db.VarChar(255)
+  source      String   @default("auto") @db.VarChar(20) // auto | manual
+  hitCount    Int      @default(1) @map("hit_count")
+  lastHitAt   DateTime @default(now()) @map("last_hit_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, phoneNumber])
+  @@index([clientId])
+  @@map("spam_numbers")
 }
 
 model ClientBooking {

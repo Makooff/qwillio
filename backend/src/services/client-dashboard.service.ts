@@ -1,5 +1,6 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { planFeatures } from '../config/plan-features';
 
 export class ClientDashboardService {
 
@@ -29,24 +30,30 @@ export class ClientDashboardService {
       leadsThisMonth,
       avgCallDuration,
       sentimentBreakdown,
+      spamBlockedThisMonth,
+      spamBlockedTotal,
     ] = await Promise.all([
-      prisma.clientCall.count({ where: { clientId } }),
-      prisma.clientCall.count({ where: { clientId, createdAt: { gte: startOfMonth } } }),
-      prisma.clientCall.count({ where: { clientId, createdAt: { gte: today } } }),
-      prisma.clientCall.count({ where: { clientId, createdAt: { gte: startOfWeek } } }),
+      // Real-call metrics exclude spam so the client's numbers (and quota) only
+      // reflect genuine calls. Spam is surfaced separately below.
+      prisma.clientCall.count({ where: { clientId, isSpam: false } }),
+      prisma.clientCall.count({ where: { clientId, isSpam: false, createdAt: { gte: startOfMonth } } }),
+      prisma.clientCall.count({ where: { clientId, isSpam: false, createdAt: { gte: today } } }),
+      prisma.clientCall.count({ where: { clientId, isSpam: false, createdAt: { gte: startOfWeek } } }),
       prisma.clientBooking.count({ where: { clientId } }),
       prisma.clientBooking.count({ where: { clientId, createdAt: { gte: startOfMonth } } }),
       prisma.clientBooking.count({ where: { clientId, bookingDate: { gte: now }, status: 'confirmed' } }),
-      prisma.clientCall.count({ where: { clientId, isLead: true, createdAt: { gte: startOfMonth } } }),
+      prisma.clientCall.count({ where: { clientId, isLead: true, isSpam: false, createdAt: { gte: startOfMonth } } }),
       prisma.clientCall.aggregate({
-        where: { clientId, durationSeconds: { not: null } },
+        where: { clientId, isSpam: false, durationSeconds: { not: null } },
         _avg: { durationSeconds: true },
       }),
       prisma.clientCall.groupBy({
         by: ['sentiment'],
-        where: { clientId, sentiment: { not: null } },
+        where: { clientId, isSpam: false, sentiment: { not: null } },
         _count: { id: true },
       }),
+      prisma.clientCall.count({ where: { clientId, isSpam: true, createdAt: { gte: startOfMonth } } }),
+      prisma.clientCall.count({ where: { clientId, isSpam: true } }),
     ]);
 
     const sentimentMap: Record<string, number> = {};
@@ -92,6 +99,8 @@ export class ClientDashboardService {
         hasTestCall,
         forwardingStatus: client.forwardingStatus,
         forwardingVerifiedAt: client.forwardingVerifiedAt,
+        // What this plan includes (packaging labels for display)
+        planFeatures: planFeatures(client.planType),
       },
       calls: {
         total: totalCallsAllTime,
@@ -113,6 +122,10 @@ export class ClientDashboardService {
       leads: {
         thisMonth: leadsThisMonth,
       },
+      spam: {
+        blockedThisMonth: spamBlockedThisMonth,
+        blockedTotal: spamBlockedTotal,
+      },
       sentiment: sentimentMap,
     };
   }
@@ -124,6 +137,7 @@ export class ClientDashboardService {
     status?: string;
     sentiment?: string;
     isLead?: boolean;
+    isSpam?: boolean;
     startDate?: Date;
     endDate?: Date;
   }) {
@@ -131,6 +145,8 @@ export class ClientDashboardService {
     if (filters?.status) where.status = filters.status;
     if (filters?.sentiment) where.sentiment = filters.sentiment;
     if (filters?.isLead !== undefined) where.isLead = filters.isLead;
+    // Default view hides spam; pass isSpam=true to see the spam-only list.
+    where.isSpam = filters?.isSpam === true;
     if (filters?.startDate || filters?.endDate) {
       where.createdAt = {};
       if (filters.startDate) where.createdAt.gte = filters.startDate;

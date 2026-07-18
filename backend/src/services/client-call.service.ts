@@ -3,6 +3,7 @@ import { logger } from '../config/logger';
 import { discordService } from './discord.service';
 import { smsService } from './sms.service';
 import { googleCalendarService } from './google-calendar.service';
+import { spamDetectionService } from './spam-detection.service';
 
 export class ClientCallService {
 
@@ -24,8 +25,20 @@ export class ClientCallService {
       return;
     }
 
-    // Analyze the call transcript with GPT-4
-    const analysis = await this.analyzeClientCallTranscript(transcript, client);
+    // Spam shield (all plans): score the call before we spend anything else on
+    // it. Runs before the insert so repeat-frequency counts only prior calls.
+    const spam = await spamDetectionService.classifyInboundCall({
+      clientId,
+      callerNumber,
+      transcript,
+      durationSeconds: duration,
+    });
+
+    // A spam call skips the GPT-4 transcript analysis entirely (cost saver).
+    // A real call gets the full treatment as before.
+    const analysis = spam.isSpam
+      ? this.emptyAnalysis()
+      : await this.analyzeClientCallTranscript(transcript, client);
 
     // Create client call record
     const clientCall = await prisma.clientCall.create({
@@ -42,7 +55,7 @@ export class ClientCallService {
         transcript,
         summary: analysis.summary,
         sentiment: analysis.sentiment,
-        outcome: analysis.outcome,
+        outcome: spam.isSpam ? 'spam' : analysis.outcome,
         recordingUrl,
         emailCollected: analysis.emailCollected || null,
         nameCollected: analysis.callerName || null,
@@ -52,9 +65,30 @@ export class ClientCallService {
         bookingDetails: analysis.bookingDetails || null,
         isLead: analysis.isLead,
         leadScore: analysis.leadScore,
-        tags: analysis.tags || [],
+        isSpam: spam.isSpam,
+        spamScore: spam.score,
+        spamReasons: spam.reasons,
+        tags: spam.isSpam ? ['spam', ...spam.reasons] : (analysis.tags || []),
       },
     });
+
+    // Spam call: no booking, no SMS, no lead follow-up. Record the hit so the
+    // number can be auto-blocklisted, notify, and stop here.
+    if (spam.isSpam) {
+      await spamDetectionService.registerSpamHit(clientId, callerNumber, spam.reasons);
+      logger.info(
+        `🛡️ Spam call blocked for ${client.businessName}: ${callerNumber || 'unknown'} (score ${spam.score}, ${spam.reasons.join(',')})`,
+      );
+      discordService
+        .notify(
+          `🛡️ SPAM CALL — ${client.businessName}\nFrom: ${callerNumber || 'unknown'}\nScore: ${spam.score}/100\nReasons: ${spam.reasons.join(', ')}`,
+        )
+        .catch(() => {});
+      // Spam is NOT counted as a real call: it does not touch totalCallsMade or
+      // lastCallDate, so it never eats into the client's quota. "Spam doesn't
+      // count against you" is a selling point of the shield.
+      return clientCall;
+    }
 
     // If booking was made, create booking record
     if (analysis.bookingRequested && analysis.bookingDate) {
@@ -140,6 +174,27 @@ export class ClientCallService {
     }
 
     logger.info(`Client call processed: ${client.businessName} | ${analysis.sentiment} | Lead: ${analysis.isLead} | Booking: ${analysis.bookingRequested}`);
+  }
+
+  // Neutral analysis used for spam calls, which skip the GPT-4 pass entirely.
+  private emptyAnalysis(): ClientCallAnalysis {
+    return {
+      callerName: null,
+      emailCollected: null,
+      sentiment: 'neutral',
+      outcome: 'spam',
+      summary: 'Call flagged as spam by the inbound shield; analysis skipped.',
+      bookingRequested: false,
+      bookingDate: null,
+      bookingTime: null,
+      bookingDetails: null,
+      serviceType: null,
+      partySize: null,
+      specialRequests: null,
+      isLead: false,
+      leadScore: 0,
+      tags: [],
+    };
   }
 
   // ═══════════════════════════════════════════════════════════
