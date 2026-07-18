@@ -308,6 +308,100 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
       ],
     },
   },
+  {
+    slug: 'ruby',
+    competitor: 'Ruby',
+    title: {
+      en: 'Qwillio vs Ruby Receptionists: AI vs human answering in 2026',
+      fr: 'Qwillio vs Ruby Receptionists : IA contre réception humaine en 2026',
+    },
+    subtitle: {
+      en: 'Ruby is a premium US human virtual receptionist service. Qwillio is bilingual AI, EU-hosted, flat-priced. Here is where each one wins.',
+      fr: "Ruby est un service premium de réceptionnistes humaines aux États-Unis. Qwillio est une IA bilingue, hébergée en UE, à prix fixe. Voici où chacun l'emporte.",
+    },
+    updated: '2026-07-18',
+    content: {
+      en: [
+        { type: 'p', text: 'Ruby (formerly Ruby Receptionists) is one of the most established virtual receptionist brands in the United States. It uses trained human receptionists to answer calls, take messages and route callers for small US businesses, with a strong reputation for warmth and brand voice. Pricing is premium and built around monthly receptionist-minute allowances that scale up quickly with volume.' },
+        { type: 'p', text: 'Qwillio takes a different route: pure conversational AI that answers every call itself, in French and English, books appointments, and runs on European hosting. Pricing is flat monthly with no per-minute human meter, from a 149 EUR Solo tier up to Enterprise.' },
+        { type: 'h2', text: 'The core trade-off' },
+        { type: 'p', text: 'Ruby sells a human on the line. That is a genuine strength for businesses whose brand depends on a warm human voice and who are happy to pay for it. The cost is that human minutes are metered and expensive, and Ruby operates in English for a US market. Qwillio sells always-on capacity at a flat price, in two languages, with EU data residency, at the cost of being AI rather than a person.' },
+        { type: 'table', head: ['Dimension', 'Ruby', 'Qwillio'], rows: [
+          ['Who answers', 'Human receptionists (US)', 'Conversational AI'],
+          ['Languages', 'English', 'French + English (native)'],
+          ['Pricing model', 'Metered receptionist minutes', 'Flat monthly, no per-minute meter'],
+          ['Data residency', 'United States', 'European Union (EEA)'],
+          ['Books into your calendar', 'Limited / add-on', 'Yes, native'],
+          ['Free trial without card', 'No', 'Yes'],
+        ] },
+        { type: 'verdict', tone: 'good', title: 'Ruby is the better fit if', text: 'You are a US business whose brand depends on a warm human voice, your callers speak English, and you are comfortable paying a premium metered rate for that human touch.' },
+        { type: 'verdict', tone: 'good', title: 'Qwillio is the better fit if', text: 'You serve French or bilingual clients, you want predictable flat pricing without a per-minute meter, you need EU data residency and GDPR alignment, and you want appointments booked into your calendar automatically.' },
+      ],
+      fr: [
+        { type: 'p', text: "Ruby (anciennement Ruby Receptionists) est l'une des marques de réception virtuelle les plus établies aux États-Unis. Elle utilise des réceptionnistes humaines formées pour répondre aux appels, prendre les messages et router les appelants des petites entreprises américaines, avec une réputation de chaleur et de voix de marque. La tarification est premium et construite autour d'allocations mensuelles de minutes de réceptionniste qui montent vite avec le volume." },
+        { type: 'p', text: "Qwillio prend une autre voie : une IA conversationnelle pure qui répond elle-même à chaque appel, en français et en anglais, pose les rendez-vous et tourne sur un hébergement européen. La tarification est fixe au mois, sans compteur de minutes humaines, d'un plan Solo à 149 € jusqu'à Enterprise." },
+        { type: 'h2', text: "Le compromis central" },
+        { type: 'p', text: "Ruby vend un humain au bout du fil. C'est une vraie force pour les entreprises dont la marque dépend d'une voix humaine chaleureuse et qui acceptent de payer pour. Le coût : les minutes humaines sont comptées et chères, et Ruby opère en anglais pour un marché américain. Qwillio vend une capacité always-on à prix fixe, en deux langues, avec résidence des données en UE, au prix d'être une IA plutôt qu'une personne." },
+        { type: 'table', head: ['Dimension', 'Ruby', 'Qwillio'], rows: [
+          ['Qui répond', 'Réceptionnistes humaines (US)', 'IA conversationnelle'],
+          ['Langues', 'Anglais', 'Français + anglais (natif)'],
+          ['Modèle de prix', 'Minutes de réceptionniste comptées', 'Fixe au mois, sans compteur'],
+          ['Résidence des données', 'États-Unis', 'Union européenne (EEE)'],
+          ['Pose les RDV dans votre agenda', 'Limité / option', 'Oui, natif'],
+          ['Essai gratuit sans carte', 'Non', 'Oui'],
+        ] },
+        { type: 'verdict', tone: 'good', title: 'Ruby est le meilleur choix si', text: "Vous êtes une entreprise américaine dont la marque repose sur une voix humaine chaleureuse, vos appelants parlent anglais, et vous acceptez de payer un tarif premium compté pour ce contact humain." },
+        { type: 'verdict', tone: 'good', title: 'Qwillio est le meilleur choix si', text: "Vous servez une clientèle française ou bilingue, vous voulez un prix fixe prévisible sans compteur de minutes, vous avez besoin de la résidence des données en UE et de la conformité RGPD, et vous voulez des rendez-vous posés automatiquement dans votre agenda." },
+      ],
+    },
+  },
+  {
+    slug: 'answering-legal',
+    competitor: 'Answering Legal',
+    title: {
+      en: 'Qwillio vs Answering Legal: law-firm call handling in 2026',
+      fr: "Qwillio vs Answering Legal : la gestion d'appels pour cabinets d'avocats en 2026",
+    },
+    subtitle: {
+      en: 'Answering Legal is a US human answering service built for law firms. Qwillio is bilingual AI that qualifies and books. Here is the honest comparison.',
+      fr: "Answering Legal est un service de réception humain américain conçu pour les cabinets d'avocats. Qwillio est une IA bilingue qui qualifie et prend les RDV. Voici le comparatif honnête.",
+    },
+    updated: '2026-07-18',
+    content: {
+      en: [
+        { type: 'p', text: 'Answering Legal is a US answering service specialised for law firms. Human agents answer calls around the clock, take intake details and relay messages, with scripts tuned to legal reception. It is a niche, human-first service priced on a per-minute or per-plan basis typical of US answering services.' },
+        { type: 'p', text: 'Qwillio is a general-purpose bilingual AI receptionist that also handles legal intake well: it answers every call, qualifies the matter (field, urgency, opposing party), screens obvious spam, books the consultation and emails a structured recap before you call back. It runs on EU hosting with GDPR alignment.' },
+        { type: 'h2', text: 'Human legal intake vs AI qualification' },
+        { type: 'p', text: 'Answering Legal wins if your firm specifically wants trained humans handling US-English legal calls and you are comfortable with metered per-minute pricing. Qwillio wins if you want structured qualification and booking without per-minute costs, in French or English, with your data in Europe. For a Belgian or French practice, the language and data-residency gap is decisive.' },
+        { type: 'table', head: ['Dimension', 'Answering Legal', 'Qwillio'], rows: [
+          ['Who answers', 'Human agents (US)', 'Conversational AI'],
+          ['Languages', 'English', 'French + English (native)'],
+          ['Legal intake qualification', 'Yes, human', 'Yes, structured + emailed recap'],
+          ['Pricing model', 'Per-minute / plan', 'Flat monthly'],
+          ['Data residency', 'United States', 'European Union (EEA)'],
+          ['Books the consultation', 'Message relay', 'Yes, into your calendar'],
+        ] },
+        { type: 'verdict', tone: 'good', title: 'Answering Legal is the better fit if', text: 'You are a US law firm that wants trained human agents on English-language calls and you accept per-minute answering-service pricing.' },
+        { type: 'verdict', tone: 'good', title: 'Qwillio is the better fit if', text: 'You are a French or Belgian practice (or bilingual), you want structured matter qualification and booking without per-minute fees, and you need EU data residency and GDPR alignment.' },
+      ],
+      fr: [
+        { type: 'p', text: "Answering Legal est un service de réception américain spécialisé pour les cabinets d'avocats. Des agents humains répondent aux appels 24 h/24, prennent les éléments d'intake et relaient les messages, avec des scripts calés sur la réception juridique. C'est un service de niche, humain d'abord, facturé à la minute ou au forfait comme les answering services américains." },
+        { type: 'p', text: "Qwillio est une réceptionniste IA bilingue généraliste qui gère aussi très bien l'intake juridique : elle répond à chaque appel, qualifie le dossier (domaine, urgence, partie adverse), écarte le spam évident, pose la consultation et envoie un récap structuré par email avant que vous ne rappeliez. Elle tourne sur un hébergement UE, conforme RGPD." },
+        { type: 'h2', text: "Intake juridique humain contre qualification IA" },
+        { type: 'p', text: "Answering Legal l'emporte si votre cabinet veut spécifiquement des humains formés sur des appels juridiques en anglais américain et accepte une tarification comptée à la minute. Qwillio l'emporte si vous voulez une qualification et une prise de RDV structurées sans coût à la minute, en français ou en anglais, avec vos données en Europe. Pour un cabinet belge ou français, l'écart de langue et de résidence des données est décisif." },
+        { type: 'table', head: ['Dimension', 'Answering Legal', 'Qwillio'], rows: [
+          ['Qui répond', 'Agents humains (US)', 'IA conversationnelle'],
+          ['Langues', 'Anglais', 'Français + anglais (natif)'],
+          ['Qualification intake juridique', 'Oui, humain', 'Oui, structuré + récap email'],
+          ['Modèle de prix', 'À la minute / forfait', 'Fixe au mois'],
+          ['Résidence des données', 'États-Unis', 'Union européenne (EEE)'],
+          ['Pose la consultation', 'Relais de message', 'Oui, dans votre agenda'],
+        ] },
+        { type: 'verdict', tone: 'good', title: 'Answering Legal est le meilleur choix si', text: "Vous êtes un cabinet américain qui veut des agents humains formés sur des appels en anglais et vous acceptez une tarification d'answering service à la minute." },
+        { type: 'verdict', tone: 'good', title: 'Qwillio est le meilleur choix si', text: "Vous êtes un cabinet français ou belge (ou bilingue), vous voulez une qualification de dossier et une prise de RDV structurées sans frais à la minute, et vous avez besoin de la résidence des données en UE et de la conformité RGPD." },
+      ],
+    },
+  },
 ];
 
 export function getComparisonBySlug(slug: string): ComparisonPage | undefined {
