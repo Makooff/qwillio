@@ -19,11 +19,11 @@ test.describe('Public marketing surface — smoke', () => {
     await expect(page.getByText(/149\s*€/)).toBeVisible();
   });
 
-  test('blog page lists the 4 published articles as links', async ({ page }) => {
+  test('blog page lists the published articles as links', async ({ page }) => {
     await page.goto('/blog');
     await expect(page).toHaveTitle(/Blog|Qwillio/i);
     const articleLinks = page.locator('a[href^="/blog/"]');
-    await expect(articleLinks).toHaveCount(5);
+    await expect(articleLinks).toHaveCount(7);
   });
 
   test('a blog article page renders body content', async ({ page }) => {
