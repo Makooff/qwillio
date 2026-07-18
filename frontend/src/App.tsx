@@ -74,6 +74,7 @@ const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 const Partenaires = lazy(() => import('./pages/Partenaires'));
 const Vertical = lazy(() => import('./pages/Vertical'));
 const Faq = lazy(() => import('./pages/Faq'));
+const City = lazy(() => import('./pages/City'));
 
 function VerticalWrap({ secteur }: { secteur: string }) {
   return <Vertical secteur={secteur} />;
@@ -242,6 +243,8 @@ export default function App() {
         <Route path="/affiliate" element={<Suspense fallback={<Spinner />}><AffiliatePage /></Suspense>} />
         <Route path="/faq" element={<Suspense fallback={<Spinner />}><Faq /></Suspense>} />
         <Route path="/fr/faq" element={<Suspense fallback={<Spinner />}><Faq /></Suspense>} />
+        <Route path="/ville/:ville" element={<Suspense fallback={<Spinner />}><City /></Suspense>} />
+        <Route path="/fr/ville/:ville" element={<Suspense fallback={<Spinner />}><City /></Suspense>} />
         <Route path="/partenaires-fiduciaires" element={<Suspense fallback={<Spinner />}><Partenaires /></Suspense>} />
         <Route path="/fr/partenaires-fiduciaires" element={<Suspense fallback={<Spinner />}><Partenaires /></Suspense>} />
         <Route path="/partenaires" element={<Navigate to="/partenaires-fiduciaires" replace />} />

@@ -246,6 +246,42 @@
   </url>
 
   <url>
+    <loc>https://qwillio.com/ville/bruxelles</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/ville/bruxelles"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/ville/bruxelles"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/ville/namur</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/ville/namur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/ville/namur"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/ville/liege</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/ville/liege"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/ville/liege"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/ville/anvers</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/ville/anvers"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/ville/anvers"/>
+  </url>
+
+  <url>
     <loc>https://qwillio.com/llms.txt</loc>
     <lastmod>2026-07-11</lastmod>
     <changefreq>weekly</changefreq>
