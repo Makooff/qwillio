@@ -131,6 +131,222 @@ const SECTORS: Record<string, Sector> = {
     ],
     plan: 'pro',
   },
+  garagiste: {
+    slug: 'garagiste',
+    metierFr: 'garagiste',
+    metierEn: 'auto garage',
+    headlineFr: 'La réceptionniste IA qui prend les RDV atelier pendant que vous réparez',
+    headlineEn: 'The AI receptionist that books workshop slots while you are under a car',
+    painFr:
+      "Vous êtes sous un capot, le téléphone sonne, personne ne décroche. Le client appelle le garage d'à côté. 4 appels ratés par semaine, c'est des dizaines de milliers d'euros de révisions et pneus perdus par an.",
+    painEn:
+      'You are under a hood, the phone rings, no one answers. The customer calls the garage next door. 4 missed calls a week is tens of thousands in lost services and tyres a year.',
+    scenarioFr:
+      "Un client veut un devis freins. Qwillio prend la marque, le modèle, le kilométrage, propose un créneau atelier, envoie la confirmation par SMS et pose le RDV dans votre planning.",
+    scenarioEn:
+      'A customer wants a brake quote. Qwillio takes the make, model, mileage, offers a workshop slot, texts the confirmation and books it into your schedule.',
+    wins: [
+      {
+        titleFr: 'RDV atelier',
+        titleEn: 'Workshop booking',
+        bodyFr: 'Prend marque, modèle, prestation et pose le créneau dans votre planning.',
+        bodyEn: 'Takes make, model, service and books the slot into your schedule.',
+      },
+      {
+        titleFr: 'Devis rapide',
+        titleEn: 'Fast quote intake',
+        bodyFr: 'Qualifie la demande (révision, pneus, carrosserie) et vous transmet le récap.',
+        bodyEn: 'Qualifies the request (service, tyres, bodywork) and sends you the recap.',
+      },
+      {
+        titleFr: 'Zéro appel perdu',
+        titleEn: 'No missed call',
+        bodyFr: 'Décroche pendant que vous êtes à l\'atelier, 24/7, sans embaucher.',
+        bodyEn: 'Answers while you are in the workshop, 24/7, without hiring.',
+      },
+    ],
+    plan: 'solo',
+  },
+  kine: {
+    slug: 'kine',
+    metierFr: 'kinésithérapeute',
+    metierEn: 'physiotherapist',
+    headlineFr: 'La réceptionniste IA qui remplit votre agenda pendant vos séances',
+    headlineEn: 'The AI receptionist that fills your calendar during your sessions',
+    painFr:
+      "En séance, vous ne pouvez pas décrocher. Chaque patient qui tombe sur la messagerie et raccroche, c'est un créneau vide et 40 € de perdu. Sur un mois, ça chiffre vite.",
+    painEn:
+      'During a session you cannot pick up. Every patient who hits voicemail and hangs up is an empty slot and €40 gone. Over a month it adds up fast.',
+    scenarioFr:
+      "Un patient appelle pour une séance de rééducation. Qwillio propose deux créneaux, réserve, envoie un SMS de rappel la veille et libère automatiquement le créneau si le patient annule.",
+    scenarioEn:
+      'A patient calls for a rehab session. Qwillio offers two slots, books, sends a reminder SMS the day before and frees the slot automatically on cancellation.',
+    wins: [
+      {
+        titleFr: 'Agenda plein',
+        titleEn: 'Full calendar',
+        bodyFr: 'Prend les RDV pendant vos séances, sync direct dans votre agenda.',
+        bodyEn: 'Books during your sessions, synced straight into your calendar.',
+      },
+      {
+        titleFr: 'Anti no-show',
+        titleEn: 'Anti no-show',
+        bodyFr: 'Rappel SMS la veille, reprogrammation en 60 s si le patient annule.',
+        bodyEn: 'SMS reminder the day before, rebooks in 60 seconds on cancellation.',
+      },
+      {
+        titleFr: 'Bilingue',
+        titleEn: 'Bilingual',
+        bodyFr: 'Répond en français ou en anglais selon le patient, sans transfert.',
+        bodyEn: 'Answers in French or English depending on the patient, no transfer.',
+      },
+    ],
+    plan: 'solo',
+  },
+  avocat: {
+    slug: 'avocat',
+    metierFr: 'avocat',
+    metierEn: 'lawyer',
+    headlineFr: 'La réceptionniste IA qui qualifie vos dossiers avant le premier rendez-vous',
+    headlineEn: 'The AI receptionist that qualifies matters before the first meeting',
+    painFr:
+      "Un prospect qui tombe sur la messagerie appelle le cabinet suivant. Et sans qualification, vous passez du temps sur des dossiers hors de votre domaine. Chaque bon dossier manqué se chiffre en milliers d'euros.",
+    painEn:
+      'A prospect who hits voicemail calls the next firm. And without qualification you waste time on matters outside your field. Each good matter missed is worth thousands.',
+    scenarioFr:
+      "Un prospect appelle pour un litige commercial. Qwillio qualifie le domaine, l'urgence, la partie adverse, filtre les conflits d'intérêts évidents et envoie un email récap avant que vous ne rappeliez.",
+    scenarioEn:
+      'A prospect calls about a commercial dispute. Qwillio qualifies the field, urgency, opposing party, screens obvious conflicts and emails a recap before you call back.',
+    wins: [
+      {
+        titleFr: 'Pré-qualification',
+        titleEn: 'Pre-qualification',
+        bodyFr: 'Domaine, urgence, partie adverse, contexte livrés en email avant le RDV.',
+        bodyEn: 'Field, urgency, opposing party, context delivered by email before the meeting.',
+      },
+      {
+        titleFr: 'Confidentiel',
+        titleEn: 'Confidential',
+        bodyFr: 'Hébergement européen, RGPD, consentement demandé à chaque appel.',
+        bodyEn: 'European hosting, GDPR, consent asked on every call.',
+      },
+      {
+        titleFr: 'Filtrage',
+        titleEn: 'Filtering',
+        bodyFr: 'Écarte spam et démarchage, route les vrais prospects vers vous.',
+        bodyEn: 'Screens spam and cold sales, routes real prospects to you.',
+      },
+    ],
+    plan: 'pro',
+  },
+  restaurant: {
+    slug: 'restaurant',
+    metierFr: 'restaurant',
+    metierEn: 'restaurant',
+    headlineFr: 'La réceptionniste IA qui prend les réservations en plein coup de feu',
+    headlineEn: 'The AI receptionist that takes bookings during the dinner rush',
+    painFr:
+      "À 20 h, personne n'a le temps de décrocher. Chaque appel manqué, c'est une table vide ou un client parti chez le concurrent. Un service raté par soir, ça pèse lourd sur le mois.",
+    painEn:
+      'At 8pm no one has time to pick up. Every missed call is an empty table or a customer gone to a competitor. One missed seating a night weighs heavy over the month.',
+    scenarioFr:
+      "Un client appelle pour réserver une table de 4 samedi soir. Qwillio vérifie la disponibilité, prend le nom, propose une alternative si complet, confirme par SMS et note les allergies éventuelles.",
+    scenarioEn:
+      'A guest calls to book a table for 4 on Saturday night. Qwillio checks availability, takes the name, offers an alternative if full, confirms by SMS and notes any allergies.',
+    wins: [
+      {
+        titleFr: 'Réservations 24/7',
+        titleEn: '24/7 bookings',
+        bodyFr: 'Prend les tables même en plein service, sans mobiliser un serveur.',
+        bodyEn: 'Takes tables even mid-service, without tying up a waiter.',
+      },
+      {
+        titleFr: 'Gestion complet',
+        titleEn: 'Full handling',
+        bodyFr: 'Taille de groupe, horaire, allergies, alternative si complet.',
+        bodyEn: 'Party size, time, allergies, alternative if full.',
+      },
+      {
+        titleFr: 'Confirmation SMS',
+        titleEn: 'SMS confirmation',
+        bodyFr: 'Le client reçoit sa confirmation, vous réduisez les no-shows.',
+        bodyEn: 'The guest gets their confirmation, you cut no-shows.',
+      },
+    ],
+    plan: 'starter',
+  },
+  immobilier: {
+    slug: 'immobilier',
+    metierFr: 'agence immobilière',
+    metierEn: 'real estate agency',
+    headlineFr: 'La réceptionniste IA qui qualifie acheteurs et vendeurs avant vous',
+    headlineEn: 'The AI receptionist that qualifies buyers and sellers before you do',
+    painFr:
+      "En visite, vous ne décrochez pas. Un acheteur chaud qui tombe sur la messagerie appelle l'agence suivante. Chaque mandat ou compromis perdu, c'est des milliers d'euros de commission.",
+    painEn:
+      'On a viewing you cannot answer. A hot buyer who hits voicemail calls the next agency. Each lost mandate or sale is thousands in commission.',
+    scenarioFr:
+      "Un prospect appelle pour un bien. Qwillio qualifie : budget, financement, type de bien, délai, prend ses coordonnées, pose une visite et vous envoie le lead qualifié par email.",
+    scenarioEn:
+      'A prospect calls about a listing. Qwillio qualifies: budget, financing, property type, timeline, takes their details, books a viewing and emails you the qualified lead.',
+    wins: [
+      {
+        titleFr: 'Leads qualifiés',
+        titleEn: 'Qualified leads',
+        bodyFr: 'Budget, financement, délai, type de bien capturés à chaque appel.',
+        bodyEn: 'Budget, financing, timeline, property type captured on every call.',
+      },
+      {
+        titleFr: 'Prise de visite',
+        titleEn: 'Viewing booking',
+        bodyFr: 'Pose la visite dans votre agenda et confirme au prospect par SMS.',
+        bodyEn: 'Books the viewing into your calendar and confirms by SMS.',
+      },
+      {
+        titleFr: 'Vendeurs & acheteurs',
+        titleEn: 'Sellers & buyers',
+        bodyFr: 'Route les mandats potentiels vers vous, filtre les curieux.',
+        bodyEn: 'Routes potential mandates to you, filters out tyre-kickers.',
+      },
+    ],
+    plan: 'starter',
+  },
+  coiffeur: {
+    slug: 'coiffeur',
+    metierFr: 'coiffeur',
+    metierEn: 'hair salon',
+    headlineFr: 'La réceptionniste IA qui remplit les fauteuils pendant que vous coiffez',
+    headlineEn: 'The AI receptionist that fills the chairs while you are styling',
+    painFr:
+      "Les mains dans les cheveux, vous ne pouvez pas décrocher. Chaque client qui tombe sur la messagerie réserve ailleurs. Un fauteuil vide par jour, c'est des centaines d'euros perdus par mois.",
+    painEn:
+      'Hands in someone\'s hair, you cannot pick up. Every client who hits voicemail books elsewhere. One empty chair a day is hundreds lost a month.',
+    scenarioFr:
+      "Une cliente appelle pour une coupe couleur samedi. Qwillio propose un créneau selon la prestation et sa durée, réserve, envoie un rappel la veille et libère le créneau si elle annule.",
+    scenarioEn:
+      'A client calls for a cut and colour on Saturday. Qwillio offers a slot matching the service length, books, sends a reminder the day before and frees the slot on cancellation.',
+    wins: [
+      {
+        titleFr: 'Réservation par prestation',
+        titleEn: 'Service-aware booking',
+        bodyFr: 'Ajuste la durée du créneau selon coupe, couleur ou brushing.',
+        bodyEn: 'Adjusts the slot length for cut, colour or blow-dry.',
+      },
+      {
+        titleFr: 'Anti no-show',
+        titleEn: 'Anti no-show',
+        bodyFr: 'Rappel SMS la veille, reprogrammation immédiate en cas d\'annulation.',
+        bodyEn: 'SMS reminder the day before, instant rebooking on cancellation.',
+      },
+      {
+        titleFr: 'Zéro fauteuil vide',
+        titleEn: 'No empty chair',
+        bodyFr: 'Décroche pendant que vous coiffez, 24/7, week-end inclus.',
+        bodyEn: 'Answers while you style, 24/7, weekends included.',
+      },
+    ],
+    plan: 'solo',
+  },
 };
 
 const PLAN_PRICES: Record<Sector['plan'], { eur: number; usd?: number; labelFr: string; labelEn: string }> = {

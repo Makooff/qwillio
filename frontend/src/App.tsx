@@ -73,6 +73,7 @@ const ComparisonPage = lazy(() => import('./pages/ComparisonPage'));
 const AffiliatePage = lazy(() => import('./pages/Affiliate'));
 const Partenaires = lazy(() => import('./pages/Partenaires'));
 const Vertical = lazy(() => import('./pages/Vertical'));
+const Faq = lazy(() => import('./pages/Faq'));
 
 function VerticalWrap({ secteur }: { secteur: string }) {
   return <Vertical secteur={secteur} />;
@@ -239,15 +240,29 @@ export default function App() {
         <Route path="/blog/:slug" element={<Suspense fallback={<Spinner />}><BlogArticlePage /></Suspense>} />
         <Route path="/vs/:slug" element={<Suspense fallback={<Spinner />}><ComparisonPage /></Suspense>} />
         <Route path="/affiliate" element={<Suspense fallback={<Spinner />}><AffiliatePage /></Suspense>} />
+        <Route path="/faq" element={<Suspense fallback={<Spinner />}><Faq /></Suspense>} />
+        <Route path="/fr/faq" element={<Suspense fallback={<Spinner />}><Faq /></Suspense>} />
         <Route path="/partenaires-fiduciaires" element={<Suspense fallback={<Spinner />}><Partenaires /></Suspense>} />
         <Route path="/fr/partenaires-fiduciaires" element={<Suspense fallback={<Spinner />}><Partenaires /></Suspense>} />
         <Route path="/partenaires" element={<Navigate to="/partenaires-fiduciaires" replace />} />
         <Route path="/plombier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="plombier" /></Suspense>} />
         <Route path="/dentiste" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="dentiste" /></Suspense>} />
         <Route path="/notaire" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="notaire" /></Suspense>} />
+        <Route path="/garagiste" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="garagiste" /></Suspense>} />
+        <Route path="/kine" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="kine" /></Suspense>} />
+        <Route path="/avocat" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="avocat" /></Suspense>} />
+        <Route path="/restaurant" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="restaurant" /></Suspense>} />
+        <Route path="/immobilier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="immobilier" /></Suspense>} />
+        <Route path="/coiffeur" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="coiffeur" /></Suspense>} />
         <Route path="/fr/plombier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="plombier" /></Suspense>} />
         <Route path="/fr/dentiste" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="dentiste" /></Suspense>} />
         <Route path="/fr/notaire" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="notaire" /></Suspense>} />
+        <Route path="/fr/garagiste" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="garagiste" /></Suspense>} />
+        <Route path="/fr/kine" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="kine" /></Suspense>} />
+        <Route path="/fr/avocat" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="avocat" /></Suspense>} />
+        <Route path="/fr/restaurant" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="restaurant" /></Suspense>} />
+        <Route path="/fr/immobilier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="immobilier" /></Suspense>} />
+        <Route path="/fr/coiffeur" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="coiffeur" /></Suspense>} />
 
         {/* Self-service onboarding (requires auth, not yet onboarded) */}
         <Route

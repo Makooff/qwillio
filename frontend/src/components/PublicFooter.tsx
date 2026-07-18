@@ -27,6 +27,7 @@ export default function PublicFooter() {
       links: [
         { to: '/about',     label: isFr ? 'À propos' : 'About' },
         { to: '/blog',      label: 'Blog' },
+        { to: '/faq',       label: 'FAQ' },
         { to: '/contact',   label: 'Contact' },
         { to: '/affiliate', label: isFr ? 'Affiliation' : 'Affiliate' },
       ],

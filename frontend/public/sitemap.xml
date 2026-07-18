@@ -75,6 +75,15 @@
   </url>
 
   <url>
+    <loc>https://qwillio.com/faq</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/faq"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/faq"/>
+  </url>
+
+  <url>
     <loc>https://qwillio.com/blog/ai-receptionist-plumber-2026</loc>
     <lastmod>2026-07-11</lastmod>
     <changefreq>monthly</changefreq>
@@ -180,6 +189,60 @@
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/notaire"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/notaire"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/garagiste</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/garagiste"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/garagiste"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/kine</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/kine"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/kine"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/avocat</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/avocat"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/avocat"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/restaurant</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/restaurant"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/restaurant"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/immobilier</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/immobilier"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/immobilier"/>
+  </url>
+
+  <url>
+    <loc>https://qwillio.com/coiffeur</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/coiffeur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/coiffeur"/>
   </url>
 
   <url>
