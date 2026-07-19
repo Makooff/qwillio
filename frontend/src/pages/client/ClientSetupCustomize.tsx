@@ -8,6 +8,7 @@ import {
   Sparkles, Tag, Clock3, HelpCircle, MessageSquare, Plus, X,
 } from 'lucide-react';
 import api from '../../services/api';
+import CharacterPicker, { type Character } from '../../components/client/CharacterPicker';
 import { pro } from '../../styles/pro-theme';
 import { Card } from '../../components/pro/ProBlocks';
 
@@ -84,6 +85,8 @@ export default function ClientSetupCustomize() {
   const [businessType, setBusinessType] = useState('');
   const [personalityPreset, setPersonalityPreset] = useState('warm');
   const [personalityNotes, setPersonalityNotes] = useState('');
+  const [characterId, setCharacterId] = useState('marie');
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [items, setItems] = useState<KbItem[]>([]);
   const [weekHours, setWeekHours] = useState<WeekHours>(DEFAULT_HOURS);
   const [faq, setFaq] = useState('');
@@ -91,7 +94,11 @@ export default function ClientSetupCustomize() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get('/my-dashboard/settings');
+        const [res, ch] = await Promise.all([
+          api.get('/my-dashboard/settings'),
+          api.get('/my-dashboard/characters').catch(() => ({ data: { characters: [] } })),
+        ]);
+        setCharacters(Array.isArray(ch.data?.characters) ? ch.data.characters : []);
         const s = res.data;
         if (s) {
           setAgentName(s.agentName || 'Ashley');
@@ -100,6 +107,7 @@ export default function ClientSetupCustomize() {
           setBusinessType(s.businessType || '');
           setPersonalityPreset(s.personalityPreset || 'warm');
           setPersonalityNotes(s.personalityNotes || '');
+          setCharacterId(s.characterId || 'marie');
           const rawItems = Array.isArray(s.items) ? s.items : [];
           setItems(rawItems.map((it: any) => ({
             id: it.id || newId(),
@@ -206,9 +214,28 @@ export default function ClientSetupCustomize() {
       ),
     },
     {
+      key: 'character',
+      icon: Sparkles,
+      title: 'Voix et personnage',
+      hint: 'Choisissez qui répond à vos appels',
+      isValid: () => !!characterId,
+      render: () => (
+        characters.length > 0 ? (
+          <CharacterPicker
+            characters={characters}
+            value={characterId}
+            onChange={setCharacterId}
+            isFr={agentLanguage !== 'en'}
+          />
+        ) : (
+          <p className="text-[13px]" style={{ color: pro.textTer }}>Chargement des voix…</p>
+        )
+      ),
+    },
+    {
       key: 'personality',
       icon: Sparkles,
-      title: 'Ton et personnalité',
+      title: 'Ton (affinage optionnel)',
       hint: 'Comment votre IA doit parler aux appelants',
       isValid: () => !!personalityPreset,
       render: () => (
@@ -371,6 +398,7 @@ export default function ClientSetupCustomize() {
         faq,
         personalityPreset,
         personalityNotes,
+        characterId,
       });
       // mark customization done by setting hasCustomConfig flag (server reads
       // it from a few signals: agentName + items + hours)

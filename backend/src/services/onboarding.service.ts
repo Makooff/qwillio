@@ -4,6 +4,8 @@ import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { emailService } from './email.service';
 import { discordService } from './discord.service';
+import { resolveCharacter } from '../config/voice-characters';
+import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2000; // 2s, 4s, 8s exponential backoff
@@ -36,6 +38,12 @@ export class OnboardingService {
 
       // ── STEP 1: Create VAPI assistant with retry ──
       const systemPrompt = this.generateClientSystemPrompt(client);
+      const cfg = (client.vapiConfig as any) || {};
+      const character = resolveCharacter({
+        characterId: cfg.characterId,
+        isFrench: this.isFrenchClient(client),
+        country: client.country,
+      });
 
       // Build tools array — add transferCall if client has a transfer number
       const isFrClient = this.isFrenchClient(client);
@@ -63,11 +71,14 @@ export class OnboardingService {
         },
         voice: {
           provider: '11labs',
-          voiceId: env.VAPI_VOICE_ID,
-          model: 'eleven_turbo_v2_5',
-          stability: env.VAPI_STABILITY,
-          similarityBoost: env.VAPI_SIMILARITY_BOOST,
-          style: env.VAPI_STYLE,
+          // Selected character's voice: matches the caller's language and the
+          // chosen personality (French clients get a French voice, not the
+          // English default). Character is env-overridable per id.
+          voiceId: character.voiceId,
+          model: character.model,
+          stability: character.stability,
+          similarityBoost: character.similarityBoost,
+          style: character.style,
           useSpeakerBoost: true,
           optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
           fallbackPlan: {
@@ -397,16 +408,18 @@ export class OnboardingService {
       ? '\n' + clientKnowledgeBlocks.join('\n\n') + '\n'
       : '';
 
-    // Personality (preset + free-text refinement) — affects voice style
-    const PERSONALITY_PROMPTS: Record<string, string> = {
-      warm:         'Warm, welcoming, empathetic — smile in your voice. Use friendly phrasing and acknowledge feelings.',
-      professional: 'Professional, direct, precise. Keep things crisp; minimal small talk.',
-      casual:       'Casual and conversational, like a relaxed colleague. Contractions are fine. Stay natural.',
-      energetic:    'Energetic, enthusiastic, upbeat. Sound excited to help.',
-      luxury:       'Polished, refined, articulate. Use elevated vocabulary; project a premium brand feel.',
-      caring:       'Soft, reassuring, attentive — ideal for health/medical contexts. Speak slowly and patiently.',
-    };
-    const personaPreset = (cfg.personalityPreset && PERSONALITY_PROMPTS[cfg.personalityPreset]) || PERSONALITY_PROMPTS.warm;
+    // Personality (character/preset + free-text refinement) — affects voice style.
+    // Precedence: explicit personalityPreset override, else the selected
+    // character's persona, else warm. Tone presets live in config/personalities.
+    const character = resolveCharacter({
+      characterId: cfg.characterId,
+      isFrench: this.isFrenchClient(client),
+      country: client.country,
+    });
+    const personaKey = (cfg.personalityPreset && PERSONALITY_PROMPTS[cfg.personalityPreset as keyof typeof PERSONALITY_PROMPTS])
+      ? cfg.personalityPreset
+      : character.personaKey;
+    const personaPreset = getPersonaPrompt(personaKey);
     const personaNotes = cfg.personalityNotes || cfg.specialNotes || '';
     const personaBlock =
       `PERSONALITY AND TONE:\n- ${personaPreset}` +
@@ -681,6 +694,12 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
 
     const systemPrompt = this.generateClientSystemPrompt(client);
+    const cfg = (client.vapiConfig as any) || {};
+    const character = resolveCharacter({
+      characterId: cfg.characterId,
+      isFrench: this.isFrenchClient(client),
+      country: client.country,
+    });
 
     const updatedConfig: any = {
       name: `${client.agentName || 'Receptionist'} — ${client.businessName}`,
@@ -689,6 +708,16 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
         model: env.VAPI_MODEL,
         temperature: 0.7,
         messages: [{ role: 'system', content: systemPrompt }],
+      },
+      // Keep the voice in sync when the client switches character.
+      voice: {
+        provider: '11labs',
+        voiceId: character.voiceId,
+        model: character.model,
+        stability: character.stability,
+        similarityBoost: character.similarityBoost,
+        style: character.style,
+        useSpeakerBoost: true,
       },
       firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
       serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,

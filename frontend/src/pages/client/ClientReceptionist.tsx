@@ -8,6 +8,8 @@ import {
   BookOpen, Tag, HelpCircle, Clock3, Plus, X,
 } from 'lucide-react';
 import api from '../../services/api';
+import CharacterPicker, { type Character } from '../../components/client/CharacterPicker';
+import AssistantChat from '../../components/client/AssistantChat';
 
 const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#493cbe]/50 transition-colors disabled:opacity-50';
 const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] focus:outline-none focus:border-[#493cbe]/50 transition-colors disabled:opacity-50';
@@ -116,15 +118,19 @@ export default function ClientReceptionist() {
   const [faq, setFaq] = useState('');
   const [personalityPreset, setPersonalityPreset] = useState<string>('warm');
   const [personalityNotes, setPersonalityNotes] = useState('');
+  const [characterId, setCharacterId] = useState<string>('marie');
+  const [characters, setCharacters] = useState<Character[]>([]);
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [ov, st, gc] = await Promise.all([
+      const [ov, st, gc, ch] = await Promise.all([
         api.get('/my-dashboard/overview'),
         api.get('/my-dashboard/settings').catch(() => ({ data: null })),
         api.get('/my-dashboard/integrations/google-calendar/status').catch(() => ({ data: { connected: false } })),
+        api.get('/my-dashboard/characters').catch(() => ({ data: { characters: [] } })),
       ]);
+      setCharacters(Array.isArray(ch.data?.characters) ? ch.data.characters : []);
       setGcal(gc.data);
       setOverview(ov.data);
       const s = st.data;
@@ -157,6 +163,7 @@ export default function ClientReceptionist() {
       setFaq(s?.faq || '');
       setPersonalityPreset(s?.personalityPreset || 'warm');
       setPersonalityNotes(s?.personalityNotes || '');
+      setCharacterId(s?.characterId || 'marie');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Erreur de chargement');
     } finally {
@@ -227,6 +234,7 @@ export default function ClientReceptionist() {
         faq,
         personalityPreset,
         personalityNotes,
+        characterId,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -297,6 +305,9 @@ export default function ClientReceptionist() {
           {saving ? 'Sauvegarde…' : saved ? 'Sauvegardé' : 'Sauvegarder'}
         </button>
       </div>
+
+      {/* —— Assistant conversationnel : parler pour configurer/onboarder —— */}
+      <AssistantChat isFr={agentLanguage !== 'en'} onConfigChanged={load} />
 
       {/* —— Status card —— neutral surface, single colour dot only */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -442,10 +453,28 @@ export default function ClientReceptionist() {
           </div>
         </div>
 
-        {/* —— Personnalité (preset + personnalisation libre) —— */}
+        {/* —— Personnage (voix + personnalité) —— */}
+        {characters.length > 0 && (
+          <div className="mt-2">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-3">
+              Personnage de la réceptionniste
+            </label>
+            <p className="text-[12px] text-[#8B8BA7] mb-3 leading-relaxed">
+              Choisissez la voix et le caractère qui répond à vos appels. Cliquez sur ▶ pour un aperçu.
+            </p>
+            <CharacterPicker
+              characters={characters}
+              value={characterId}
+              onChange={setCharacterId}
+              isFr={agentLanguage !== 'en'}
+            />
+          </div>
+        )}
+
+        {/* —— Ton (affinage optionnel) + personnalisation libre —— */}
         <div className="mt-6">
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-3">
-            Ton et personnalité
+            Ton (affinage optionnel)
           </label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {PERSONALITY_PRESETS.map(p => {
