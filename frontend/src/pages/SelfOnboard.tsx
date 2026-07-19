@@ -13,9 +13,10 @@ import api from '../services/api';
 type Step = 1 | 2 | 3;
 
 const plans = [
-  { key: 'starter', name: 'Starter', price: 497, calls: 800, trial: '1er mois gratuit' },
-  { key: 'pro', name: 'Pro', price: 1297, calls: 2000, popular: true, trial: '1er mois gratuit' },
-  { key: 'enterprise', name: 'Enterprise', price: 2497, calls: 4000, trial: '1er mois gratuit' },
+  { key: 'solo', name: 'Solo', price: 99, minutes: 250, trial: 'Essai gratuit' },
+  { key: 'starter', name: 'Starter', price: 249, minutes: 750, trial: 'Essai gratuit' },
+  { key: 'pro', name: 'Pro', price: 599, minutes: 2000, popular: true, trial: 'Essai gratuit' },
+  { key: 'enterprise', name: 'Enterprise', price: 1290, minutes: 5000, trial: 'Essai gratuit' },
 ];
 
 export default function SelfOnboard() {
@@ -264,7 +265,7 @@ export default function SelfOnboard() {
                         )}
                       </div>
                       <p className="text-sm text-[#86868b] mt-0.5">
-                        {plan.calls.toLocaleString()} {t('register.callsIncluded')}
+                        {plan.minutes.toLocaleString()} {t('register.callsIncluded')}
                       </p>
                       {plan.trial && (
                         <p className="text-[11px] font-semibold text-emerald-600 mt-1.5">{plan.trial}</p>
@@ -273,7 +274,7 @@ export default function SelfOnboard() {
 
                     <div className="flex-shrink-0 text-right leading-tight whitespace-nowrap">
                       <div>
-                        <span className="text-lg font-semibold">${plan.price}</span>
+                        <span className="text-lg font-semibold">{plan.price}&nbsp;€</span>
                         <span className="text-sm text-[#86868b]">{t('register.mo')}</span>
                       </div>
                     </div>

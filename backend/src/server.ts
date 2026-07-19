@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import path from 'path';
 import rateLimit from 'express-rate-limit';
 import { env } from './config/env';
+import { getPlan } from './config/plans';
 import { logger } from './config/logger';
 import { prisma, basePrisma } from './config/database';
 import { errorMiddleware } from './middleware/error.middleware';
@@ -292,15 +293,10 @@ async function runBootstrap() {
     // env vars can trigger it.
     const bootstrapEmail = (process.env.BOOTSTRAP_ACTIVATE_EMAIL || '').trim().toLowerCase();
     const bootstrapPlan  = (process.env.BOOTSTRAP_ACTIVATE_PLAN  || 'pro').toLowerCase();
-    const BOOTSTRAP_PLANS: Record<string, { monthly: number; calls: number }> = {
-      starter:    { monthly: 497,  calls: 800 },
-      pro:        { monthly: 1297, calls: 2000 },
-      enterprise: { monthly: 2497, calls: 4000 },
-    };
     if (bootstrapEmail) {
       try {
         const crypto = await import('crypto');
-        const spec   = BOOTSTRAP_PLANS[bootstrapPlan] || BOOTSTRAP_PLANS.pro;
+        const spec   = getPlan(bootstrapPlan);
         const user   = await prisma.user.findUnique({ where: { email: bootstrapEmail } });
         if (!user) {
           logger.warn(`[bootstrap] No user with email ${bootstrapEmail} — skipping test-activation`);
@@ -337,9 +333,9 @@ async function runBootstrap() {
               contactPhone:          user.businessPhone ?? null,
               planType:              bootstrapPlan,
               setupFee:              0,
-              monthlyFee:            spec.monthly,
-              monthlyCallsQuota:     spec.calls,
-              currency:              'USD',
+              monthlyFee:            spec.monthlyPriceEur,
+              monthlyMinutesQuota:   spec.includedMinutes,
+              currency:              'EUR',
               subscriptionStatus:    'active',
               onboardingStatus:      'completed',
               onboardingCompletedAt: now,
@@ -364,8 +360,8 @@ async function runBootstrap() {
             },
             update: {
               planType:              bootstrapPlan,
-              monthlyFee:            spec.monthly,
-              monthlyCallsQuota:     spec.calls,
+              monthlyFee:            spec.monthlyPriceEur,
+              monthlyMinutesQuota:   spec.includedMinutes,
               subscriptionStatus:    'active',
               onboardingStatus:      'completed',
               onboardingCompletedAt: now,

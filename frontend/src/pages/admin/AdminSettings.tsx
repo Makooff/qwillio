@@ -709,20 +709,21 @@ export default function AdminSettings() {
         <Section title="Grille tarifaire" icon={DollarSign}>
           <div className="space-y-2">
             {[
-              { plan: 'Starter',    monthly: '$197', setup: '$697',   calls: '200',  overage: '$0.22', color: pro.info },
-              { plan: 'Pro',        monthly: '$347', setup: '$997',   calls: '500',  overage: '$0.18', color: pro.textSec },
-              { plan: 'Enterprise', monthly: '$497', setup: '$1,497', calls: '1000', overage: '$0.15', color: pro.warn },
+              { plan: 'Solo',       monthly: '99 €',    minutes: '250',   overage: '0,45 €', color: pro.info },
+              { plan: 'Starter',    monthly: '249 €',   minutes: '750',   overage: '0,39 €', color: pro.info },
+              { plan: 'Pro',        monthly: '599 €',   minutes: '2 000', overage: '0,35 €', color: pro.textSec },
+              { plan: 'Enterprise', monthly: '1 290 €', minutes: '5 000', overage: '0,30 €', color: pro.warn },
             ].map(p => (
               <div key={p.plan} className="flex items-center gap-3 p-3 rounded-xl"
                 style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(255,255,255,0.04)` }}>
                 <div className="w-1.5 h-10 rounded-full" style={{ background: p.color }} />
                 <div className="flex-1">
                   <p className="text-sm font-semibold" style={{ color: pro.text }}>{p.plan}</p>
-                  <p className="text-[10px]" style={{ color: pro.textSec }}>{p.calls} appels/mois · Surplus: {p.overage}/appel</p>
+                  <p className="text-[10px]" style={{ color: pro.textSec }}>{p.minutes} min/mois · Dépassement: {p.overage}/min</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold" style={{ color: pro.text }}>{p.monthly}/mo</p>
-                  <p className="text-[10px]" style={{ color: pro.textSec }}>+ {p.setup} setup</p>
+                  <p className="text-[10px]" style={{ color: pro.textSec }}>sans frais d'installation</p>
                 </div>
               </div>
             ))}

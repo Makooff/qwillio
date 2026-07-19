@@ -8,6 +8,7 @@ import { env } from '../config/env';
 import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from '../utils/validators';
 import { emailService } from '../services/email.service';
 import { logger } from '../config/logger';
+import { getPlan } from '../config/plans';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
@@ -297,12 +298,6 @@ export class AuthController {
         return res.status(400).json({ error: 'Business name and plan are required' });
       }
 
-      const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number }> = {
-        starter: { setupFee: 0, monthlyFee: 497, callsQuota: 800 },
-        pro: { setupFee: 0, monthlyFee: 1297, callsQuota: 2000 },
-        enterprise: { setupFee: 0, monthlyFee: 2497, callsQuota: 4000 },
-      };
-
       const user = await prisma.user.update({
         where: { id: req.userId },
         data: {
@@ -324,9 +319,9 @@ export class AuthController {
           logger.info(`Client record already exists for ${user.email} — reusing clientId: ${existing.id}`);
         } else {
           const dashboardToken = crypto.randomBytes(32).toString('hex');
-          const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
+          const plan = getPlan(planType);
           const trialEnd = new Date();
-          trialEnd.setDate(trialEnd.getDate() + 30);
+          trialEnd.setDate(trialEnd.getDate() + plan.trialDays);
 
           const client = await prisma.client.create({
             data: {
@@ -336,18 +331,18 @@ export class AuthController {
               contactName: user.name,
               contactEmail: user.email,
               contactPhone: businessPhone || null,
-              country: 'US',
+              country: 'BE',
               planType,
-              setupFee: pricing.setupFee,
-              monthlyFee: pricing.monthlyFee,
-              currency: 'USD',
+              setupFee: 0,
+              monthlyFee: plan.monthlyPriceEur,
+              currency: 'EUR',
               dashboardToken,
               onboardingStatus: 'completed',
               subscriptionStatus: 'active',
               isTrial: true,
               trialStartDate: new Date(),
               trialEndDate: trialEnd,
-              monthlyCallsQuota: pricing.callsQuota,
+              monthlyMinutesQuota: plan.includedMinutes,
             },
           });
           clientId = client.id;

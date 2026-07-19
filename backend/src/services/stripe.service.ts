@@ -3,7 +3,7 @@ import { prisma } from '../config/database';
 import { stripe } from '../config/stripe';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
-import { PACKAGES } from '../types';
+import { getPlan } from '../config/plans';
 import { discordService } from './discord.service';
 import { emailService } from './email.service';
 import { onboardingService } from './onboarding.service';
@@ -82,13 +82,7 @@ export class StripeService {
     const businessPhone = session.metadata?.businessPhone || user.businessPhone || null;
     const industry = session.metadata?.industry || user.industry || 'other';
 
-    const PLAN_PRICING: Record<string, { setupFee: number; monthlyFee: number; callsQuota: number }> = {
-      starter:    { setupFee: 0, monthlyFee: 497,  callsQuota: 800 },
-      pro:        { setupFee: 0, monthlyFee: 1297, callsQuota: 2000 },
-      enterprise: { setupFee: 0, monthlyFee: 2497, callsQuota: 4000 },
-    };
-
-    const pricing = PLAN_PRICING[planType] || PLAN_PRICING.pro;
+    const plan = getPlan(planType);
     const dashboardToken = crypto.randomBytes(32).toString('hex');
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 30);
@@ -104,16 +98,16 @@ export class StripeService {
         contactPhone: businessPhone,
         country: 'US',
         planType,
-        setupFee: pricing.setupFee,
-        monthlyFee: pricing.monthlyFee,
-        currency: 'USD',
+        setupFee: 0,
+        monthlyFee: plan.monthlyPriceEur,
+        currency: 'EUR',
         dashboardToken,
         onboardingStatus: 'pending',
         subscriptionStatus: 'active',
         isTrial: true,
         trialStartDate: new Date(),
         trialEndDate: trialEnd,
-        monthlyCallsQuota: pricing.callsQuota,
+        monthlyMinutesQuota: plan.includedMinutes,
         stripeCustomerId: session.customer || null,
         stripeSubscriptionId: session.subscription || null,
       },
@@ -150,7 +144,7 @@ export class StripeService {
   private async handleTrialConversion(client: any, session: any) {
     logger.info(`Trial conversion for ${client.businessName}`);
 
-    const pkg = PACKAGES[client.planType] || PACKAGES.basic;
+    const plan = getPlan(client.planType);
 
     // Update client to active paid subscription
     await prisma.client.update({
@@ -160,8 +154,8 @@ export class StripeService {
         subscriptionStatus: 'active',
         trialConvertedAt: new Date(),
         stripeCustomerId: session.customer || null,
-        setupFee: pkg.setupFee,
-        monthlyCallsQuota: pkg.callsQuota,
+        setupFee: 0,
+        monthlyMinutesQuota: plan.includedMinutes,
       },
     });
 
@@ -203,35 +197,26 @@ export class StripeService {
       }
     }
 
-    // Record setup fee payment
-    await prisma.payment.create({
-      data: {
-        clientId: client.id,
-        stripePaymentIntentId: session.payment_intent,
-        amount: pkg.setupFee,
-        paymentType: 'setup_fee',
-        status: 'succeeded',
-        paidAt: new Date(),
-        description: `Setup fee (trial conversion) - Package ${client.planType.toUpperCase()}`,
-      },
-    });
-
-    // Update analytics
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    await prisma.analyticsDaily.upsert({
-      where: { date: today },
-      update: {
-        revenueSetupFees: { increment: pkg.setupFee },
-      },
-      create: {
-        date: today,
-        revenueSetupFees: pkg.setupFee,
-      },
-    });
+    // No setup fee in the per-minute model — record the plan activation
+    // only if a setup fee is ever configured (kept 0 during transition).
+    if (plan.monthlyPriceEur > 0) {
+      // Update analytics with the first monthly charge as recurring revenue.
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      await prisma.analyticsDaily.upsert({
+        where: { date: today },
+        update: {
+          revenueSubscriptions: { increment: plan.monthlyPriceEur },
+        },
+        create: {
+          date: today,
+          revenueSubscriptions: plan.monthlyPriceEur,
+        },
+      });
+    }
 
     await discordService.notify(
-      `💰 TRIAL CONVERTED TO PAID!\n\nClient: ${client.businessName}\nPackage: ${client.planType.toUpperCase()}\nSetup: $${pkg.setupFee}\nMonthly: $${pkg.monthlyFee}/mo`
+      `💰 TRIAL CONVERTED TO PAID!\n\nClient: ${client.businessName}\nPlan: ${plan.name}\nMonthly: ${plan.monthlyPriceEur} €/mo · ${plan.includedMinutes} min incluses`
     );
 
     logger.info(`Trial converted to paid: ${client.businessName} (${client.planType})`);
@@ -368,32 +353,38 @@ export class StripeService {
   // ═══════════════════════════════════════════════════════════
   async reportOverageUsage(clientId: string) {
     const client = await prisma.client.findUnique({ where: { id: clientId } });
-    if (!client || !client.stripeSubscriptionId || !client.monthlyCallsQuota) return;
+    if (!client || !client.stripeSubscriptionId) return;
+
+    const plan = getPlan(client.planType);
+    const includedMinutes = client.monthlyMinutesQuota ?? plan.includedMinutes;
+    if (!includedMinutes) return;
 
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
 
-    const callCount = await prisma.clientCall.count({
-      where: { clientId, createdAt: { gte: monthStart } },
+    // Sum real call minutes this month (spam excluded — it never counts against
+    // the client). Duration is stored in seconds on ClientCall.
+    const agg = await prisma.clientCall.aggregate({
+      where: { clientId, isSpam: false, createdAt: { gte: monthStart } },
+      _sum: { durationSeconds: true },
     });
+    const minutesUsed = Math.round((agg._sum.durationSeconds ?? 0) / 60);
 
-    const overage = callCount - client.monthlyCallsQuota;
+    const overage = minutesUsed - includedMinutes;
     if (overage <= 0) return;
 
-    const overageRates: Record<string, number> = { starter: 0.22, pro: 0.18, enterprise: 0.15 };
-    const rate = overageRates[client.planType] || 0.22;
+    const rate = plan.overagePerMinuteEur;
+    logger.info(`Overage for ${client.businessName}: ${overage} min x €${rate} = €${(overage * rate).toFixed(2)}`);
 
-    logger.info(`Overage for ${client.businessName}: ${overage} calls x $${rate} = $${(overage * rate).toFixed(2)}`);
-
-    // Create a one-time invoice item for overage
+    // Create a one-time invoice item for the overage minutes.
     if (client.stripeCustomerId) {
       try {
         await stripe.invoiceItems.create({
           customer: client.stripeCustomerId,
           amount: Math.round(overage * rate * 100), // cents
-          currency: 'usd',
-          description: `Overage: ${overage} additional calls x $${rate}/call`,
+          currency: 'eur',
+          description: `Dépassement : ${overage} minutes x €${rate}/min`,
         });
         logger.info(`Overage invoice item created for ${client.businessName}`);
       } catch (err) {
@@ -413,13 +404,12 @@ export class StripeService {
       return;
     }
 
-    const VALID_PLANS = ['starter', 'pro', 'enterprise'] as const;
+    const VALID_PLANS = ['solo', 'starter', 'pro', 'enterprise'] as const;
     if (!(VALID_PLANS as readonly string[]).includes(planType)) {
       logger.error(`Plan upgrade: invalid planType "${planType}" in metadata — aborting to prevent DB corruption`);
       return;
     }
 
-    const PLAN_QUOTAS: Record<string, number> = { starter: 800, pro: 2000, enterprise: 4000 };
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client) {
       logger.error(`Plan upgrade: client ${clientId} not found`);
@@ -430,7 +420,7 @@ export class StripeService {
       where: { id: clientId },
       data: {
         planType,
-        monthlyCallsQuota: PLAN_QUOTAS[planType] ?? 2000,
+        monthlyMinutesQuota: getPlan(planType).includedMinutes,
         isTrial: false,
         subscriptionStatus: 'active',
         trialConvertedAt: new Date(),
@@ -457,7 +447,6 @@ export class StripeService {
   // returns Stripe Checkout URL for trial clients.
   // ═══════════════════════════════════════════════════════════════
   async createUpgradeCheckout(client: any, planType: string): Promise<string | null> {
-    const PLAN_QUOTAS: Record<string, number> = { starter: 800, pro: 2000, enterprise: 4000 };
     const priceId = this.getMonthlyPriceId(planType);
     if (!priceId) throw new Error(`No Stripe price configured for plan: ${planType}`);
 
@@ -477,7 +466,7 @@ export class StripeService {
       }
       await prisma.client.update({
         where: { id: client.id },
-        data: { planType, monthlyCallsQuota: PLAN_QUOTAS[planType] ?? 2000 },
+        data: { planType, monthlyMinutesQuota: getPlan(planType).includedMinutes },
       });
       await discordService.notify(
         `🔄 PLAN UPGRADED (inline)\n\nClient: ${client.businessName}\nNew plan: ${planType.toUpperCase()}\nPrev plan: ${client.planType.toUpperCase()}`
@@ -507,6 +496,8 @@ export class StripeService {
 
   private getMonthlyPriceId(packageType: string): string {
     switch (packageType) {
+      case 'solo':
+        return env.STRIPE_PRICE_SOLO_MONTHLY;
       case 'starter':
       case 'basic':
         return env.STRIPE_PRICE_BASIC_MONTHLY;

@@ -35,7 +35,7 @@ describe('renderQuoteTemplate', () => {
     });
     expect(html).toContain('Acme Dental');
     expect(html).toContain('PRO package');
-    expect(html).toContain('$1297/mo');
+    expect(html).toContain('€1297/mo');
     expect(html).toContain('24/7 receptionist');
     expect(html).toContain('Auto booking');
     expect(html).toContain('https://pay.qwillio.com/abc');
@@ -58,18 +58,18 @@ describe('renderQuoteTemplate', () => {
     });
     expect(html).toContain('Votre devis personnalisé');
     expect(html).toContain('Forfait PRO');
-    expect(html).toContain('1297 $/mois');
+    expect(html).toContain('1297 €/mois');
   });
 });
 
 describe('renderTrialWelcomeTemplate', () => {
-  it('includes the calls quota', () => {
+  it('includes the trial minutes', () => {
     const html = renderTrialWelcomeTemplate({
       contactName: 'Mia', businessName: 'Bloom Spa', packageType: 'pro',
-      trialEndDate: new Date('2026-07-01'), trialCallsQuota: 800, lang: 'en',
+      trialEndDate: new Date('2026-07-01'), trialMinutes: 250, lang: 'en',
     });
     expect(html).toContain('Bloom Spa');
-    expect(html).toContain('800 calls during the trial period');
+    expect(html).toContain('250 call minutes during the trial period');
   });
 });
 

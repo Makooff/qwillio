@@ -159,17 +159,21 @@ export class ClientCallService {
       },
     });
 
-    // Check call quota
+    // Check minute quota (per-minute billing). Spam is excluded — it never
+    // counts against the quota. The quota-alert cron owns the deduped 80/95/100
+    // customer emails; this is only an internal Discord heads-up at 90%.
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-    const monthlyCallCount = await prisma.clientCall.count({
-      where: { clientId, createdAt: { gte: startOfMonth } },
+    const usageAgg = await prisma.clientCall.aggregate({
+      where: { clientId, isSpam: false, startedAt: { gte: startOfMonth } },
+      _sum: { durationSeconds: true },
     });
+    const minutesUsed = Math.round((usageAgg._sum.durationSeconds ?? 0) / 60);
 
-    if (client.monthlyCallsQuota && monthlyCallCount >= client.monthlyCallsQuota * 0.9) {
+    if (client.monthlyMinutesQuota && minutesUsed >= client.monthlyMinutesQuota * 0.9) {
       await discordService.notify(
-        `⚠️ QUOTA WARNING\n\nClient: ${client.businessName}\nCalls this month: ${monthlyCallCount}/${client.monthlyCallsQuota}\n${monthlyCallCount >= client.monthlyCallsQuota ? '🔴 QUOTA REACHED!' : '🟡 90% of quota used'}`
+        `⚠️ QUOTA WARNING\n\nClient: ${client.businessName}\nMinutes this month: ${minutesUsed}/${client.monthlyMinutesQuota}\n${minutesUsed >= client.monthlyMinutesQuota ? '🔴 QUOTA REACHED!' : '🟡 90% of quota used'}`
       );
     }
 

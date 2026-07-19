@@ -350,9 +350,9 @@ const SECTORS: Record<string, Sector> = {
 };
 
 const PLAN_PRICES: Record<Sector['plan'], { eur: number; usd?: number; labelFr: string; labelEn: string }> = {
-  solo: { eur: 149, labelFr: 'Solo', labelEn: 'Solo' },
-  starter: { eur: 470, usd: 497, labelFr: 'Starter', labelEn: 'Starter' },
-  pro: { eur: 1180, usd: 1297, labelFr: 'Pro', labelEn: 'Pro' },
+  solo: { eur: 99, labelFr: 'Solo', labelEn: 'Solo' },
+  starter: { eur: 249, labelFr: 'Starter', labelEn: 'Starter' },
+  pro: { eur: 599, labelFr: 'Pro', labelEn: 'Pro' },
 };
 
 export default function Vertical({ secteur: secteurProp }: { secteur?: string } = {}) {

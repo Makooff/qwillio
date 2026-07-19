@@ -225,7 +225,7 @@ export class ClientDashboardController {
           forwardingStatus: true,
           forwardingType: true,
           forwardingVerifiedAt: true,
-          monthlyCallsQuota: true,
+          monthlyMinutesQuota: true,
           totalCallsMade: true,
           lastCallDate: true,
           activationDate: true,
@@ -473,7 +473,7 @@ export class ClientDashboardController {
   async upgradeSubscription(req: any, res: Response) {
     try {
       const { planType } = req.body;
-      const validPlans = ['starter', 'pro', 'enterprise'];
+      const validPlans = ['solo', 'starter', 'pro', 'enterprise'];
       if (!validPlans.includes(planType)) return res.status(400).json({ error: 'Invalid plan' });
 
       const client = await prisma.client.findUnique({ where: { id: req.clientId } });

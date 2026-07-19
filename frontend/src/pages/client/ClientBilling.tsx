@@ -10,8 +10,8 @@ interface BillingOverview {
   plan: string;
   status: string;
   renewalDate: string;
-  callsUsed: number;
-  callsLimit: number;
+  minutesUsed: number;
+  minutesLimit: number;
   trialEndsAt: string | null;
   isTrial: boolean;
 }
@@ -29,46 +29,60 @@ interface Payment {
 
 const PLANS = [
   {
-    id: 'starter',
-    name: 'Starter',
-    monthly: 497,
-    calls: 800,
-    overage: 0.22,
+    id: 'solo',
+    name: 'Solo',
+    monthly: 99,
+    minutes: 250,
+    overage: 0.45,
     popular: false,
     features: [
-      '800 appels/mois',
+      '250 minutes/mois incluses',
       'Réceptionniste IA 24/7',
-      'Capture de leads',
+      'Prise de RDV + agenda',
       'Analytiques',
       'Support email',
       'Transcription des appels',
     ],
   },
   {
+    id: 'starter',
+    name: 'Starter',
+    monthly: 249,
+    minutes: 750,
+    overage: 0.39,
+    popular: false,
+    features: [
+      '750 minutes/mois incluses',
+      'Tout Solo inclus',
+      'Capture de leads',
+      'Intégrations CRM natives',
+      'Support prioritaire',
+    ],
+  },
+  {
     id: 'pro',
     name: 'Pro',
-    monthly: 1297,
-    calls: 2000,
-    overage: 0.18,
+    monthly: 599,
+    minutes: 2000,
+    overage: 0.35,
     popular: true,
     features: [
-      '2 000 appels/mois',
+      '2 000 minutes/mois incluses',
       'Tout Starter inclus',
       'Analytiques avancées + sentiments',
       "Transfert d'appel intelligent",
       'Support prioritaire',
-      'Intégrations CRM natives',
     ],
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    monthly: 2497,
-    calls: 4000,
-    overage: 0.15,
+    monthly: 1290,
+    minutes: 5000,
+    overage: 0.30,
     popular: false,
     features: [
-      '4 000 appels/mois',
+      '5 000 minutes/mois incluses',
       'Tout Pro inclus',
       'Responsable dédié',
       'SLA 99.5% uptime',
@@ -159,9 +173,9 @@ export default function ClientBilling() {
 
   const currentPlanId = (overview?.plan ?? 'starter') as PlanId;
   const currentPlan = PLANS.find(p => p.id === currentPlanId) ?? PLANS[0];
-  const callsUsed = overview?.callsUsed ?? 0;
-  const callsLimit = overview?.callsLimit ?? currentPlan.calls;
-  const callsPct = callsLimit > 0 ? Math.min(Math.round((callsUsed / callsLimit) * 100), 100) : 0;
+  const minutesUsed = overview?.minutesUsed ?? 0;
+  const minutesLimit = overview?.minutesLimit ?? currentPlan.minutes;
+  const minutesPct = minutesLimit > 0 ? Math.min(Math.round((minutesUsed / minutesLimit) * 100), 100) : 0;
   const isCancelled = overview?.status === 'cancelled';
 
   return (
@@ -221,26 +235,26 @@ export default function ClientBilling() {
           </div>
         </div>
 
-        {/* Call usage progress */}
+        {/* Minute usage progress */}
         <div className="mb-2">
           <div className="flex items-center justify-between mb-2">
             <span className="flex items-center gap-1.5 text-xs text-[#A1A1A8]">
               <Phone size={12} />
-              Appels utilisés ce mois
+              Minutes utilisées ce mois
             </span>
             <span className="text-xs font-medium text-[#F5F5F7]">
-              {callsUsed.toLocaleString()} / {callsLimit.toLocaleString()}
+              {minutesUsed.toLocaleString()} / {minutesLimit.toLocaleString()} min
             </span>
           </div>
           <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <div
               className="h-full rounded-full transition-[width] duration-500 ease-out"
-              style={{ width: `${callsPct}%`, background: '#493cbe' }}
+              style={{ width: `${minutesPct}%`, background: '#493cbe' }}
             />
           </div>
-          {callsPct > 80 && (
+          {minutesPct > 80 && (
             <p className="text-[11px] mt-1.5" style={{ color: '#fbbf24' }}>
-              ⚠ {callsPct}% du quota mensuel utilisé — envisagez un upgrade
+              ⚠ {minutesPct}% du quota mensuel utilisé — envisagez un upgrade
             </p>
           )}
         </div>
@@ -292,7 +306,7 @@ export default function ClientBilling() {
                     <span className="text-xs text-[#A1A1A8]">/mois</span>
                   </div>
                   <p className="text-[11px] text-[#A1A1A8] mt-1">
-                    {plan.calls.toLocaleString()} appels · {plan.overage}€/appel supp.
+                    {plan.minutes.toLocaleString()} min · {plan.overage.toFixed(2).replace('.', ',')} €/min supp.
                   </p>
                 </div>
 

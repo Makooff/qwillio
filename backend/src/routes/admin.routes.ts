@@ -8,6 +8,7 @@ import { getLogsFromDb, getLastIdFromDb, clearLogsInDb, isDbLogStoreReady } from
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 import { env } from '../config/env';
 import { getErrors, markResolved } from '../utils/error-store';
+import { getPlan } from '../config/plans';
 import { emailService } from '../services/email.service';
 import { smsService } from '../services/sms.service';
 import { smsTemplates } from '../services/sms-templates';
@@ -89,7 +90,7 @@ router.post('/test-email', async (req: Request, res: Response) => {
           ...sample,
           packageType: 'pro',
           trialEndDate: new Date(Date.now() + 30 * 86_400_000),
-          trialCallsQuota: 100,
+          trialMinutes: 250,
         });
         break;
       case 'loom':
@@ -818,13 +819,8 @@ router.post('/create-client', async (req: Request, res: Response) => {
     if (existing) return res.json({ message: 'Client already exists', clientId: existing.id });
 
     const plan = planType || 'starter';
-    const pricing: Record<string, { setup: number; monthly: number; quota: number }> = {
-      starter: { setup: 697, monthly: 197, quota: 200 },
-      pro: { setup: 997, monthly: 347, quota: 500 },
-      enterprise: { setup: 1497, monthly: 497, quota: 1000 },
-    };
-    const p = pricing[plan] || pricing.starter;
-    const trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 30);
+    const planCfg = getPlan(plan);
+    const trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + planCfg.trialDays);
 
     const client = await prisma.client.create({
       data: {
@@ -834,18 +830,18 @@ router.post('/create-client', async (req: Request, res: Response) => {
         contactName: user.name,
         contactEmail: user.email,
         contactPhone: user.businessPhone || null,
-        country: 'US',
+        country: 'BE',
         planType: plan,
-        setupFee: p.setup,
-        monthlyFee: p.monthly,
-        currency: 'USD',
+        setupFee: 0,
+        monthlyFee: planCfg.monthlyPriceEur,
+        currency: 'EUR',
         dashboardToken: require('crypto').randomBytes(32).toString('hex'),
         onboardingStatus: 'completed',
         subscriptionStatus: 'active',
         isTrial: true,
         trialStartDate: new Date(),
         trialEndDate: trialEnd,
-        monthlyCallsQuota: p.quota,
+        monthlyMinutesQuota: planCfg.includedMinutes,
         activationDate: new Date(),
       },
     });
@@ -892,19 +888,15 @@ router.post('/errors/:id/resolve', (req: Request, res: Response) => {
 // Flips the target account to a fully-paid, fully-onboarded Client so the
 // client dashboard can be exercised end-to-end without going through
 // Stripe. Admin only.
-const PLAN_PRICES: Record<string, { monthly: number; calls: number }> = {
-  starter:    { monthly: 497,  calls: 800 },
-  pro:        { monthly: 1297, calls: 2000 },
-  enterprise: { monthly: 2497, calls: 4000 },
-};
+const VALID_PLANS = ['solo', 'starter', 'pro', 'enterprise'] as const;
 
 router.post('/test-activate-client', async (req: Request, res: Response) => {
   const email = String(req.body?.email ?? '').trim().toLowerCase();
   const plan  = String(req.body?.plan  ?? 'pro').toLowerCase();
 
   if (!email) return res.status(400).json({ error: 'email is required' });
-  const priceSpec = PLAN_PRICES[plan];
-  if (!priceSpec) return res.status(400).json({ error: `Unknown plan: ${plan}. Options: ${Object.keys(PLAN_PRICES).join(', ')}` });
+  if (!VALID_PLANS.includes(plan as any)) return res.status(400).json({ error: `Unknown plan: ${plan}. Options: ${VALID_PLANS.join(', ')}` });
+  const priceSpec = getPlan(plan);
 
   try {
     const user = await prisma.user.findUnique({ where: { email } });
@@ -934,9 +926,9 @@ router.post('/test-activate-client', async (req: Request, res: Response) => {
         contactPhone:         user.businessPhone ?? null,
         planType:             plan,
         setupFee:             0,
-        monthlyFee:           priceSpec.monthly,
-        monthlyCallsQuota:    priceSpec.calls,
-        currency:             'USD',
+        monthlyFee:           priceSpec.monthlyPriceEur,
+        monthlyMinutesQuota:  priceSpec.includedMinutes,
+        currency:             'EUR',
         subscriptionStatus:   'active',
         onboardingStatus:     'completed',
         onboardingCompletedAt: now,
@@ -948,8 +940,8 @@ router.post('/test-activate-client', async (req: Request, res: Response) => {
       },
       update: {
         planType:             plan,
-        monthlyFee:           priceSpec.monthly,
-        monthlyCallsQuota:    priceSpec.calls,
+        monthlyFee:           priceSpec.monthlyPriceEur,
+        monthlyMinutesQuota:  priceSpec.includedMinutes,
         subscriptionStatus:   'active',
         onboardingStatus:     'completed',
         onboardingCompletedAt: now,

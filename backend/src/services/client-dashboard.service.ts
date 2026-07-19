@@ -32,6 +32,7 @@ export class ClientDashboardService {
       sentimentBreakdown,
       spamBlockedThisMonth,
       spamBlockedTotal,
+      minutesThisMonthAgg,
     ] = await Promise.all([
       // Real-call metrics exclude spam so the client's numbers (and quota) only
       // reflect genuine calls. Spam is surfaced separately below.
@@ -54,7 +55,14 @@ export class ClientDashboardService {
       }),
       prisma.clientCall.count({ where: { clientId, isSpam: true, createdAt: { gte: startOfMonth } } }),
       prisma.clientCall.count({ where: { clientId, isSpam: true } }),
+      // Per-minute billing: minutes used this month = sum of real-call duration.
+      prisma.clientCall.aggregate({
+        where: { clientId, isSpam: false, startedAt: { gte: startOfMonth } },
+        _sum: { durationSeconds: true },
+      }),
     ]);
+
+    const minutesUsedThisMonth = Math.round((minutesThisMonthAgg._sum.durationSeconds ?? 0) / 60);
 
     const sentimentMap: Record<string, number> = {};
     sentimentBreakdown.forEach(s => {
@@ -82,7 +90,7 @@ export class ClientDashboardService {
         vapiPhoneNumber: client.vapiPhoneNumber,
         isTrial: client.isTrial,
         trialEndDate: client.trialEndDate,
-        monthlyCallsQuota: client.monthlyCallsQuota,
+        monthlyMinutesQuota: client.monthlyMinutesQuota,
         totalCallsMade: client.totalCallsMade,
         monthlyFee: Number(client.monthlyFee || 0),
         setupFee: Number(client.setupFee || 0),
@@ -108,10 +116,13 @@ export class ClientDashboardService {
         thisWeek: callsThisWeek,
         today: callsToday,
         avgDuration: Math.round(avgCallDuration._avg.durationSeconds || 0),
-        quota: client.monthlyCallsQuota || 0,
-        quotaUsed: callsThisMonth,
-        quotaPercent: client.monthlyCallsQuota
-          ? Math.round((callsThisMonth / client.monthlyCallsQuota) * 100)
+      },
+      // Per-minute billing: quota is expressed and tracked in minutes.
+      minutes: {
+        quota: client.monthlyMinutesQuota || 0,
+        used: minutesUsedThisMonth,
+        percent: client.monthlyMinutesQuota
+          ? Math.round((minutesUsedThisMonth / client.monthlyMinutesQuota) * 100)
           : 0,
       },
       bookings: {

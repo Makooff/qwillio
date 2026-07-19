@@ -278,8 +278,9 @@ export default function ClientReceptionist() {
   const phone = client.vapiPhoneNumber || settings?.vapiPhoneNumber;
   const fwdStatus = settings?.forwardingStatus;
   const fwdVerified = settings?.forwardingVerifiedAt;
-  const quota = overview?.calls?.quota || settings?.monthlyCallsQuota || 0;
-  const used = overview?.calls?.quotaUsed || 0;
+  // Per-minute billing: quota gauge tracks included minutes.
+  const quota = overview?.minutes?.quota || settings?.monthlyMinutesQuota || 0;
+  const used = overview?.minutes?.used || 0;
   const quotaPct = quota > 0 ? Math.round((used / quota) * 100) : 0;
 
   return (
@@ -388,8 +389,8 @@ export default function ClientReceptionist() {
           {/* Quota bar */}
           <div>
             <div className="flex justify-between text-[10px] text-[#9A9AA5] mb-1">
-              <span>Quota mensuel</span>
-              <span className="tabular-nums">{used} / {quota} ({quotaPct}%)</span>
+              <span>Minutes ce mois</span>
+              <span className="tabular-nums">{used} / {quota} min ({quotaPct}%)</span>
             </div>
             <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
               <div className="h-full rounded-full transition-[width] duration-500 ease-out" style={{
