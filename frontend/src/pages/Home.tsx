@@ -12,6 +12,27 @@ import HeroPhone3D from '../components/ui/HeroPhone3D';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
+// Motion-enabled react-router Link so an animated chip can also be a navigation link.
+const MotionLink = motion(Link);
+
+// Home niches → best-fit destination, aligned by index with the `industries`
+// arrays below (same order in FR and EN). A vertical sector page beats a blog
+// article for conversion; null = no dedicated page yet (chip stays non-clickable).
+const INDUSTRY_HREFS: (string | null)[] = [
+  '/dentiste',                 // Santé / Healthcare
+  '/avocat',                   // Juridique / Legal
+  '/immobilier',               // Immobilier / Real Estate
+  '/plombier',                 // Services à domicile / Home Services
+  '/restaurant',               // Restauration / Restaurants
+  null,                        // Éducation / Education
+  '/garagiste',                // Automobile / Automotive
+  null,                        // Fitness
+  '/coiffeur',                 // Beauté / Beauty
+  '/partenaires-fiduciaires',  // Finance
+  null,                        // Commerce / Retail
+  null,                        // Startups
+];
+
 
 /* ══════════════════════════════════════════════════════════════════════════
    POUR QUI ? — scroll-drawn brand stroke with industries appearing around it
@@ -36,26 +57,40 @@ const SECTOR_SPOTS: Array<{ at: number; side: 'left' | 'right'; off: string; y: 
   { at: 0.56, side: 'right', off: '28%', y: '91%' },
 ];
 
-function SectorChip({ name, spot, progress }: {
+function SectorChip({ name, href, spot, progress }: {
   name: string;
+  href?: string | null;
   spot: (typeof SECTOR_SPOTS)[number];
   progress: MotionValue<number>;
 }) {
   const opacity = useTransform(progress, [spot.at, spot.at + 0.05], [0, 1]);
   const scale = useTransform(progress, [spot.at, spot.at + 0.07], [0.6, 1]);
   const y = useTransform(progress, [spot.at, spot.at + 0.07], [26, 0]);
+  const baseClass =
+    'absolute whitespace-nowrap rounded-full bg-white px-4 py-2 text-[13px] font-medium text-[#1d1d1f] shadow-[0_10px_30px_-12px_rgba(20,16,50,0.25)]';
+  const style = {
+    [spot.side]: spot.off,
+    top: spot.y,
+    opacity,
+    scale,
+    y,
+    border: '1px solid rgba(29,29,31,0.12)',
+  } as const;
+
+  if (href) {
+    return (
+      <MotionLink
+        to={href}
+        className={`${baseClass} transition-colors hover:border-[#6366f1] hover:text-[#6366f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] active:scale-[0.97]`}
+        style={style}
+      >
+        {name}
+      </MotionLink>
+    );
+  }
+
   return (
-    <motion.span
-      className="absolute whitespace-nowrap rounded-full bg-white px-4 py-2 text-[13px] font-medium text-[#1d1d1f] shadow-[0_10px_30px_-12px_rgba(20,16,50,0.25)]"
-      style={{
-        [spot.side]: spot.off,
-        top: spot.y,
-        opacity,
-        scale,
-        y,
-        border: '1px solid rgba(29,29,31,0.12)',
-      }}
-    >
+    <motion.span className={baseClass} style={style}>
       {name}
     </motion.span>
   );
@@ -110,12 +145,13 @@ function IndustriesStroke({ isFr, industries }: { isFr: boolean; industries: str
           />
         </svg>
 
-        {/* Sectors pop in around the stroke as it draws */}
-        <div className="absolute inset-0" aria-hidden="true">
+        {/* Sectors pop in around the stroke as it draws. Each chip that maps to
+            a sector/partner page is a real navigation link (not aria-hidden). */}
+        <nav className="absolute inset-0" aria-label={isFr ? 'Secteurs' : 'Industries'}>
           {industries.map((name, i) => (
-            <SectorChip key={name} name={name} spot={SECTOR_SPOTS[i % SECTOR_SPOTS.length]} progress={scrollYProgress} />
+            <SectorChip key={name} name={name} href={INDUSTRY_HREFS[i]} spot={SECTOR_SPOTS[i % SECTOR_SPOTS.length]} progress={scrollYProgress} />
           ))}
-        </div>
+        </nav>
 
         {/* Centre title — just the question */}
         <motion.h2
@@ -125,7 +161,6 @@ function IndustriesStroke({ isFr, industries }: { isFr: boolean; industries: str
         >
           {isFr ? 'Pour qui ?' : 'For whom?'}
         </motion.h2>
-        <span className="sr-only">{industries.join(', ')}</span>
       </div>
     </section>
   );
@@ -203,10 +238,12 @@ export default function Home() {
   const isFr = lang === 'fr';
 
   useSEO({
-    title: 'Qwillio',
+    title: isFr
+      ? 'Meilleur réceptionniste IA en Belgique et en France'
+      : 'AI Receptionist for Businesses',
     description: isFr
-      ? 'Qwillio est votre réceptionniste IA qui répond à chaque appel, prend les rendez-vous et ne dort jamais.'
-      : 'Qwillio is your AI receptionist that answers every call, books appointments, and never sleeps.',
+      ? 'Qwillio, le réceptionniste IA francophone n°1 pour la Belgique et la France : répond à chaque appel 24/7, prend les rendez-vous, hébergement UE et conforme RGPD. Sans engagement, premier mois offert.'
+      : 'Qwillio is your AI receptionist that answers every call 24/7, books appointments, and never sleeps. Bilingual French / English, EU-hosted, GDPR-friendly.',
     canonical: 'https://qwillio.com/',
   });
 
