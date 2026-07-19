@@ -211,8 +211,16 @@ export class VapiService {
       // Pick Ashley (EN) or Marie (FR) assistant based on prospect language
       const isFrench = prospect.country === 'FR' || prospect.country === 'BE' || prospect.country === 'CA';
       const assistantId = isFrench && env.VAPI_ASSISTANT_ID_FR ? env.VAPI_ASSISTANT_ID_FR : env.VAPI_ASSISTANT_ID;
+      // Belgian prospects get a Belgian-accent voice when one is configured,
+      // otherwise the standard French voice. NOTE: the inbound receptionist uses a
+      // separate French voice (VOICE_CONFIG.marie in vapi-templates.ts) — to unify
+      // both under one voice, set VAPI_VOICE_ID_FR and align that constant.
+      const frenchVoiceId =
+        prospect.country === 'BE' && env.VAPI_VOICE_ID_BE
+          ? env.VAPI_VOICE_ID_BE
+          : (env.VAPI_VOICE_ID_FR || 'pMsXgVXv3BLzUgSXRplE');
       const voiceId = isFrench
-        ? (env.VAPI_VOICE_ID_FR || 'pMsXgVXv3BLzUgSXRplE')
+        ? frenchVoiceId
         : (env.VAPI_VOICE_ID || 'cgSgspJ2msm6clMCkdW9');
       const systemPrompt = isFrench
         ? await this.generateSalesPromptFR(prospect)
