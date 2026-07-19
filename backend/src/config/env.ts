@@ -38,6 +38,8 @@ export const env = {
   VAPI_MODEL: process.env.VAPI_MODEL || 'gpt-4o',
   VAPI_VOICE_ID: process.env.VAPI_VOICE_ID || '21m00Tcm4TlvDq8ikWAM', // Rachel (ElevenLabs)
   VAPI_VOICE_ID_FR: process.env.VAPI_VOICE_ID_FR || 'pMsXgVXv3BLzUgSXRplE', // Amélie — French ElevenLabs voice
+  // Optional Belgian-accent voice for BE prospects. Empty = fall back to the FR voice.
+  VAPI_VOICE_ID_BE: process.env.VAPI_VOICE_ID_BE || '',
   VAPI_VOICE_FALLBACK_1: process.env.VAPI_VOICE_FALLBACK_1 || 'MF3mGyEYCl7XYWbV9V6O', // Elli
   VAPI_VOICE_FALLBACK_2: process.env.VAPI_VOICE_FALLBACK_2 || 'EXAVITQu4vr4xnSDxMaL', // Bella
   VAPI_STABILITY: parseFloat(process.env.VAPI_STABILITY || '0.45'),
