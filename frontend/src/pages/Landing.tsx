@@ -57,60 +57,60 @@ export default function Landing() {
     ? [
         {
           name: 'Solo',
-          price: '297',
+          price: '99',
           desc: 'Pour les indépendants et les petites équipes qui démarrent.',
-          highlights: ['Jusqu\'à 200 appels / mois', '1 numéro dédié', 'Voix française naturelle', 'Calendrier Google ou Outlook'],
+          highlights: ['250 minutes / mois incluses', '1 numéro dédié', 'Voix française naturelle', 'Calendrier Google ou Outlook'],
           cta: 'Démarrer',
         },
         {
           name: 'Cabinet',
-          price: '497',
+          price: '249',
           desc: 'Le forfait le plus choisi par les cabinets et les agences.',
           highlights: [
-            '600 appels / mois',
+            '750 minutes / mois incluses',
             'CRM intégré + SMS de suivi',
             'Transferts urgences',
             'Multilingue (FR, EN, ES, IT)',
             'Support 7j/7 prioritaire',
           ],
-          cta: 'Premier mois offert',
+          cta: 'Essai gratuit',
           highlighted: true,
         },
         {
           name: 'Volume',
-          price: '997',
+          price: '599',
           desc: "Pour les multi-sites, franchises et opérations à grand volume.",
-          highlights: ['Appels illimités', 'API complète + webhooks', 'White-label'],
+          highlights: ['2 000 minutes / mois incluses', 'API complète + webhooks', 'White-label'],
           cta: 'Nous contacter',
         },
       ]
     : [
         {
           name: 'Solo',
-          price: '297',
+          price: '99',
           desc: 'For independents and small teams getting started.',
-          highlights: ['Up to 200 calls / month', '1 dedicated number', 'Natural English voice', 'Google or Outlook calendar'],
+          highlights: ['250 minutes / month included', '1 dedicated number', 'Natural English voice', 'Google or Outlook calendar'],
           cta: 'Get started',
         },
         {
           name: 'Practice',
-          price: '497',
+          price: '249',
           desc: 'The most chosen plan by practices and agencies.',
           highlights: [
-            '600 calls / month',
+            '750 minutes / month included',
             'Built-in CRM + SMS follow-up',
             'Urgency transfers',
             'Multilingual (EN, FR, ES, IT)',
             'Priority support, 7 days a week',
           ],
-          cta: 'First month free',
+          cta: 'Free trial',
           highlighted: true,
         },
         {
           name: 'Volume',
-          price: '997',
+          price: '599',
           desc: 'For multi-site, franchises, and high-volume operations.',
-          highlights: ['Unlimited calls', 'Full API + webhooks', 'White-label'],
+          highlights: ['2,000 minutes / month included', 'Full API + webhooks', 'White-label'],
           cta: 'Contact us',
         },
       ];
@@ -591,7 +591,7 @@ export default function Landing() {
                               isHi ? 'text-white' : 'text-[#1d1d1f]'
                             }`}
                           >
-                            ${tier.price}
+                            {tier.price}&nbsp;€
                           </span>
                           <span className={`text-sm ${isHi ? 'text-white/60' : 'text-[#86868b]'}`}>
                             /{isFr ? 'mois' : 'mo'}

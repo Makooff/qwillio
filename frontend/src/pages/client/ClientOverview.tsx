@@ -115,9 +115,12 @@ export default function ClientOverview() {
     : 0;
   const callsTodayDir: Dir = callsToday > callsYesterday ? 'up' : callsToday < callsYesterday ? 'down' : 'flat';
 
-  const quotaUsed = (calls_ as Record<string, number>).quotaUsed ?? callsMonth;
-  const quotaTotal = (c.monthlyCallsQuota as number) ?? (calls_ as Record<string, number>).quota ?? 0;
-  const quotaPct = quotaTotal > 0 ? Math.min(100, Math.round((quotaUsed / quotaTotal) * 100)) : 0;
+  // Per-minute billing: the quota gauge tracks INCLUDED MINUTES, not calls.
+  const minutes_ = (data as Record<string, unknown> & { minutes?: Record<string, number> })?.minutes ?? {};
+  const quotaUsed = (minutes_ as Record<string, number>).used ?? 0;
+  const quotaTotal = (c.monthlyMinutesQuota as number) ?? (minutes_ as Record<string, number>).quota ?? 0;
+  const quotaPct = (minutes_ as Record<string, number>).percent
+    ?? (quotaTotal > 0 ? Math.min(100, Math.round((quotaUsed / quotaTotal) * 100)) : 0);
 
   const planLabel = c.planType
     ? `${(c.planType as string).charAt(0).toUpperCase()}${(c.planType as string).slice(1)}`
@@ -294,15 +297,15 @@ export default function ClientOverview() {
             </div>
             <div className="md:pl-6">
               <SegmentBar
-                title="Utilisation du quota"
-                value={quotaTotal > 0 ? `${quotaUsed.toLocaleString('fr-FR')}` : callsMonth.toLocaleString('fr-FR')}
-                hint={quotaTotal > 0 ? `sur ${quotaTotal.toLocaleString('fr-FR')} appels inclus` : 'Aucun quota plafonné'}
+                title="Minutes consommées"
+                value={quotaTotal > 0 ? `${quotaUsed.toLocaleString('fr-FR')}` : quotaUsed.toLocaleString('fr-FR')}
+                hint={quotaTotal > 0 ? `sur ${quotaTotal.toLocaleString('fr-FR')} minutes incluses` : 'Aucun quota plafonné'}
                 segments={quotaTotal > 0
                   ? [
                       { label: 'Utilisé', pct: quotaPct, bright: true },
                       { label: 'Restant', pct: 100 - quotaPct },
                     ]
-                  : [{ label: 'Appels traités', pct: 100, bright: true }]}
+                  : [{ label: 'Minutes', pct: 100, bright: true }]}
                 action={{ label: 'Gérer', to: '/dashboard/billing' }}
               />
             </div>
@@ -367,14 +370,14 @@ export default function ClientOverview() {
         {/* Right rail — flat, divided by hairlines */}
         <div className="divide-y divide-white/[0.06] border-t border-white/[0.06] xl:border-t-0 xl:pl-6">
           <RadialGauge
-            caption={quotaTotal > 0 ? 'Quota d’appels' : 'Appels ce mois'}
+            caption={quotaTotal > 0 ? 'Minutes ce mois' : 'Appels ce mois'}
             value={quotaTotal > 0 ? quotaUsed.toLocaleString('fr-FR') : callsMonth.toLocaleString('fr-FR')}
             fraction={quotaTotal > 0 ? quotaPct / 100 : Math.min(1, callsMonth / 200)}
             legend={[
               ...(quotaTotal > 0
                 ? [
-                    { label: 'Utilisé', value: quotaUsed.toLocaleString('fr-FR'), bright: true },
-                    { label: 'Inclus', value: quotaTotal.toLocaleString('fr-FR') },
+                    { label: 'Utilisé (min)', value: quotaUsed.toLocaleString('fr-FR'), bright: true },
+                    { label: 'Inclus (min)', value: quotaTotal.toLocaleString('fr-FR') },
                   ]
                 : [{ label: 'Ce mois', value: callsMonth.toLocaleString('fr-FR'), bright: true }]),
               ...(spamBlockedMonth > 0

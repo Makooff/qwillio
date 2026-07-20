@@ -2,11 +2,11 @@ import { prisma } from '../config/database';
 import { vapiClient } from '../config/vapi';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
-import { CallAnalysis, PACKAGES } from '../types';
+import { CallAnalysis } from '../types';
 import { recommendPackage, NICHE_PRIORITY_ORDER } from '../utils/helpers';
 import { discordService } from './discord.service';
 import { smsService } from './sms.service';
-import { NICHE_SCRIPTS, DEFAULT_SCRIPT, NICHE_SCRIPTS_FR, DEFAULT_SCRIPT_FR, getInstallmentAmount } from '../config/niche-scripts';
+import { NICHE_SCRIPTS, DEFAULT_SCRIPT, NICHE_SCRIPTS_FR, DEFAULT_SCRIPT_FR } from '../config/niche-scripts';
 import { detectLanguage } from '../config/vapi-templates';
 import { isHoliday, isWithinCallWindow, isPriorityDay, isBlackoutPeriod, getDayHourBonus, CALL_RATE_LIMIT_MS, MAX_CALL_ATTEMPTS } from '../config/scheduling';
 import { INTERESTED_FOLLOWUP_SEQUENCE, CALLBACK_RETRY_DELAYS } from '../config/followup-sequence';
@@ -849,7 +849,6 @@ Return a JSON with:
 
   private async generateSalesPromptFR(prospect: any): Promise<string> {
     const nicheScript = NICHE_SCRIPTS_FR[prospect.businessType] || DEFAULT_SCRIPT_FR;
-    const installmentAmount = Math.ceil(497 / 3); // ~166€/mois pour étaler le setup
 
     let nicheLearnings = '';
     try {
@@ -1003,16 +1002,15 @@ Quand ils donnent leur email :
 3. Attends leur confirmation avant de conclure.
 
 ━━━ TARIFS (uniquement si demandé) ━━━
-- Starter : 197€/mois — 800 appels
-- Pro : 497€/mois — 2 000 appels ← c'est ce que la plupart choisissent
-- Enterprise : 997€/mois — 4 000 appels
-- Premier mois offert, sans engagement${nicheLearnings}`;
+- Solo : 99€/mois — 250 minutes incluses
+- Starter : 249€/mois — 750 minutes incluses
+- Pro : 599€/mois — 2 000 minutes incluses ← c'est ce que la plupart choisissent
+- Enterprise : 1 290€/mois — 5 000 minutes incluses
+- Essai gratuit, sans frais d'installation, sans engagement${nicheLearnings}`;
   }
 
   private async generateSalesPrompt(prospect: any): Promise<string> {
     const nicheScript = NICHE_SCRIPTS[prospect.businessType] || DEFAULT_SCRIPT;
-    const pkg = PACKAGES.pro;
-    const installmentAmount = getInstallmentAmount(pkg.setupFee, 3);
 
     // Fetch niche-specific learnings from past calls
     let nicheLearnings = '';
@@ -1167,10 +1165,11 @@ When they give you an email:
 3. Wait for them to confirm before wrapping up.
 
 ━━━ PRICING (only if they ask) ━━━
-- Starter: $497/mo — 800 calls
-- Pro: $1,297/mo — 2,000 calls ← this is the one most people go with
-- Enterprise: $2,497/mo — 4,000 calls
-- First month free, cancel anytime${nicheLearnings}`;
+- Solo: €99/mo — 250 minutes included
+- Starter: €249/mo — 750 minutes included
+- Pro: €599/mo — 2,000 minutes included ← this is the one most people go with
+- Enterprise: €1,290/mo — 5,000 minutes included
+- Free trial, no setup fee, cancel anytime${nicheLearnings}`;
   }
 }
 

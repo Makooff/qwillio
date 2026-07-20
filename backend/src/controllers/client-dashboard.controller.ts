@@ -6,6 +6,8 @@ import { googleCalendarService } from '../services/google-calendar.service';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
+import { listCharacters, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN } from '../config/voice-characters';
+import { buildVapiConfigPatch } from '../services/client-config.service';
 
 // OAuth state: per-user, signed, short-lived — the callback verifies it was
 // minted for the same client that finishes the flow (CSRF protection).
@@ -225,7 +227,7 @@ export class ClientDashboardController {
           forwardingStatus: true,
           forwardingType: true,
           forwardingVerifiedAt: true,
-          monthlyCallsQuota: true,
+          monthlyMinutesQuota: true,
           totalCallsMade: true,
           lastCallDate: true,
           activationDate: true,
@@ -237,6 +239,8 @@ export class ClientDashboardController {
       // Surface JSON-held knowledge fields at top level so the UI can bind
       // directly (items, hours, faq, personalityPreset, personalityNotes).
       const cfg = (client.vapiConfig as any) || {};
+      const isFrench = (client as any).agentLanguage === 'fr'
+        || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String((client as any).country || '').toUpperCase());
       res.json({
         ...client,
         items:             Array.isArray(cfg.items) ? cfg.items : [],
@@ -244,6 +248,7 @@ export class ClientDashboardController {
         faq:               cfg.faq               ?? '',
         personalityPreset: cfg.personalityPreset ?? 'warm',
         personalityNotes:  cfg.personalityNotes  ?? cfg.specialNotes ?? '',
+        characterId:       cfg.characterId ?? (isFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN),
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -288,46 +293,22 @@ export class ClientDashboardController {
         body.hours !== undefined ||
         body.faq !== undefined ||
         body.personalityPreset !== undefined ||
-        body.personalityNotes !== undefined;
+        body.personalityNotes !== undefined ||
+        body.characterId !== undefined;
       if (hasKnowledgeUpdate) {
         const existing = await prisma.client.findUnique({
           where: { id: req.clientId },
           select: { vapiConfig: true },
         });
         const prev = (existing?.vapiConfig as any) || {};
-        const next: any = { ...prev };
-        // Drop legacy free-text keys that the new structured UI replaces.
-        delete next.priceList;
-        delete next.services;
-        if (body.items !== undefined) {
-          const arr = Array.isArray(body.items) ? body.items : [];
-          next.items = arr.slice(0, 200).map((it: any) => ({
-            id:       String(it?.id || Math.random().toString(36).slice(2, 10)),
-            category: String(it?.category || 'service').slice(0, 40),
-            name:     String(it?.name || '').slice(0, 200),
-            price:    String(it?.price || '').slice(0, 80),
-          }));
-        }
-        if (body.hours !== undefined) {
-          if (body.hours && typeof body.hours === 'object' && !Array.isArray(body.hours)) {
-            next.hours = body.hours;
-          } else {
-            next.hours = null;
-          }
-        }
-        if (body.faq !== undefined) {
-          next.faq = typeof body.faq === 'string' ? body.faq.slice(0, 8000) : '';
-        }
-        if (body.personalityPreset !== undefined) {
-          const allowed = new Set(['warm','professional','casual','energetic','luxury','caring']);
-          const v = String(body.personalityPreset || '');
-          next.personalityPreset = allowed.has(v) ? v : 'warm';
-        }
-        if (body.personalityNotes !== undefined) {
-          next.personalityNotes = typeof body.personalityNotes === 'string' ? body.personalityNotes.slice(0, 4000) : '';
-          delete next.specialNotes;  // legacy key superseded
-        }
-        updateData.vapiConfig = next;
+        updateData.vapiConfig = buildVapiConfigPatch(prev, {
+          items:             body.items,
+          hours:             body.hours,
+          faq:               body.faq,
+          personalityPreset: body.personalityPreset,
+          personalityNotes:  body.personalityNotes,
+          characterId:       body.characterId,
+        });
       }
 
       const client = await prisma.client.update({
@@ -348,6 +329,34 @@ export class ClientDashboardController {
 
       res.json({ success: true });
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // GET /my-dashboard/characters — receptionist character catalog for the picker
+  async getCharacters(_req: any, res: Response) {
+    try {
+      res.json({ characters: listCharacters() });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // POST /my-dashboard/assistant/chat — conversational config/onboarding assistant
+  async assistantChat(req: any, res: Response) {
+    try {
+      const raw = Array.isArray(req.body?.messages) ? req.body.messages : [];
+      const messages = raw
+        .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+        .slice(-20)
+        .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 4000) }));
+      if (!messages.length) return res.status(400).json({ error: 'messages required' });
+
+      const { assistantChatService } = await import('../services/assistant-chat.service');
+      const result = await assistantChatService.chat(req.clientId, messages);
+      res.json(result);
+    } catch (error: any) {
+      logger.error('assistantChat failed:', error);
       res.status(500).json({ error: error.message });
     }
   }
@@ -473,7 +482,7 @@ export class ClientDashboardController {
   async upgradeSubscription(req: any, res: Response) {
     try {
       const { planType } = req.body;
-      const validPlans = ['starter', 'pro', 'enterprise'];
+      const validPlans = ['solo', 'starter', 'pro', 'enterprise'];
       if (!validPlans.includes(planType)) return res.status(400).json({ error: 'Invalid plan' });
 
       const client = await prisma.client.findUnique({ where: { id: req.clientId } });

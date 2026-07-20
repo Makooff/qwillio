@@ -1,66 +1,75 @@
+import { PLANS, type PlanId } from '../config/plans';
+
 export interface PackageConfig {
   name: string;
   setupFee: number;
-  monthlyFee: number;
-  callsQuota: number;
+  monthlyFee: number;         // EUR/month
+  includedMinutes: number;    // minutes included per month
+  overagePerMinuteEur: number;
   features: string[];
   trialDays: number;
-  trialCallsQuota: number;
+  trialMinutes: number;
+}
+
+// Feature copy per plan, layered on top of the shared PLANS pricing so prices
+// live in exactly one place (config/plans.ts). Minutes/overage strings are
+// derived from PLANS so they can never drift from what Stripe actually bills.
+const PACKAGE_FEATURES: Record<PlanId, string[]> = {
+  solo: [
+    'Marie (FR) or Ashley (EN) dedicated AI voice',
+    'Appointment booking + calendar sync',
+    'Analytics dashboard',
+    'Email support',
+    'Call recording & transcripts',
+  ],
+  starter: [
+    'Everything in Solo, plus:',
+    'Lead qualification',
+    'Priority email support',
+    'Native CRM integrations',
+  ],
+  pro: [
+    'Everything in Starter, plus:',
+    'Advanced analytics + sentiment analysis',
+    'Smart call transfer',
+    'Priority support (phone + email)',
+  ],
+  enterprise: [
+    'Everything in Pro, plus:',
+    'Bilingual agent EN/FR',
+    'Dedicated account manager',
+    '99.5% SLA guaranteed',
+    'Self-learning AI optimization',
+    'API access',
+  ],
+};
+
+function toPackage(id: PlanId): PackageConfig {
+  const p = PLANS[id];
+  const overage = p.overagePerMinuteEur.toFixed(2).replace('.', ',');
+  return {
+    name: p.name.toUpperCase(),
+    setupFee: 0,
+    monthlyFee: p.monthlyPriceEur,
+    includedMinutes: p.includedMinutes,
+    overagePerMinuteEur: p.overagePerMinuteEur,
+    trialDays: p.trialDays,
+    trialMinutes: p.trialMinutes,
+    features: [
+      `${p.includedMinutes} minutes incluses / mois`,
+      ...PACKAGE_FEATURES[id],
+      `Dépassement : ${overage} €/min`,
+    ],
+  };
 }
 
 export const PACKAGES: Record<string, PackageConfig> = {
-  starter: {
-    name: 'STARTER',
-    setupFee: 0,
-    monthlyFee: 497,
-    callsQuota: 800,
-    trialDays: 30,
-    trialCallsQuota: 100,
-    features: [
-      'Ashley (EN) or Marie (FR) dedicated AI voice',
-      '800 calls/month included',
-      'Appointment booking + calendar sync',
-      'Analytics dashboard',
-      'Email support',
-      'Call recording & transcripts',
-      'Lead qualification',
-      'Overage: $0.22/call',
-    ],
-  },
-  pro: {
-    name: 'PRO',
-    setupFee: 0,
-    monthlyFee: 1297,
-    callsQuota: 2000,
-    trialDays: 30,
-    trialCallsQuota: 200,
-    features: [
-      'Everything in Starter, plus:',
-      '2,000 calls/month included',
-      'Advanced analytics + sentiment analysis',
-      'Smart call transfer',
-      'Priority support (phone + email)',
-      'Native CRM integrations',
-      'Overage: $0.18/call',
-    ],
-  },
-  enterprise: {
-    name: 'ENTERPRISE',
-    setupFee: 0,
-    monthlyFee: 2497,
-    callsQuota: 4000,
-    trialDays: 30,
-    trialCallsQuota: 400,
-    features: [
-      'Everything in Pro, plus:',
-      '4,000 calls/month included',
-      'Bilingual agent EN/FR',
-      'Dedicated account manager',
-      '99.5% SLA guaranteed',
-      'Self-learning AI optimization',
-      'Overage: $0.15/call',
-    ],
-  },
+  solo: toPackage('solo'),
+  starter: toPackage('starter'),
+  pro: toPackage('pro'),
+  enterprise: toPackage('enterprise'),
+  // `basic` is a legacy alias used as a fallback in several services.
+  basic: toPackage('starter'),
 };
 
 export interface ProspectScoreFactors {

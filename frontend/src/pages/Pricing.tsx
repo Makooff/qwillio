@@ -14,9 +14,9 @@ interface Tier {
   id: string;
   name: string;
   badge?: string;
-  monthly: number;
-  calls: number;
-  overage: number;
+  monthly: number;        // EUR/month
+  minutes: number;        // included minutes/month
+  overage: number;        // EUR per overage minute
   description: string;
   features: string[];
   cta: string;
@@ -37,8 +37,8 @@ export default function Pricing() {
   useSEO({
     title: isFr ? 'Tarifs Qwillio' : 'Qwillio Pricing',
     description: isFr
-      ? 'Tarifs simples et transparents. Premier mois offert. Sans engagement. Économisez 20 % en annuel.'
-      : 'Simple transparent pricing. First month free. No commitment. Save 20% on annual billing.',
+      ? 'Tarifs par minute, simples et transparents. Facturation à la minute, minutes incluses par plan. Essai gratuit, sans engagement. Économisez 20 % en annuel.'
+      : 'Simple transparent per-minute pricing. Billed by the minute, minutes included per plan. Free trial, no commitment. Save 20% on annual billing.',
     canonical: 'https://qwillio.com/pricing',
   });
 
@@ -46,13 +46,13 @@ export default function Pricing() {
     {
       id: 'starter',
       name: 'Starter',
-      monthly: 497,
-      calls: 800,
-      overage: 0.22,
+      monthly: 249,
+      minutes: 750,
+      overage: 0.39,
       description: isFr ? 'Pour commencer' : 'To get started',
       features: isFr
-        ? ['800 appels par mois', 'IA 24/7 bilingue FR / EN', 'Prise de RDV + agenda', 'Transfert des urgences', 'Transcription + sentiment', 'Bouclier anti-spam inclus', 'Capture de leads', 'Support email']
-        : ['800 calls per month', '24/7 AI, bilingual FR / EN', 'Booking + calendar sync', 'Urgency transfer', 'Transcript + sentiment', 'Spam shield included', 'Lead capture', 'Email support'],
+        ? ['750 minutes incluses par mois', 'IA 24/7 bilingue FR / EN', 'Prise de RDV + agenda', 'Transfert des urgences', 'Transcription + sentiment', 'Bouclier anti-spam inclus', 'Capture de leads', 'Support email']
+        : ['750 minutes included per month', '24/7 AI, bilingual FR / EN', 'Booking + calendar sync', 'Urgency transfer', 'Transcript + sentiment', 'Spam shield included', 'Lead capture', 'Email support'],
       cta: isFr ? 'Commencer' : 'Start',
       popular: false,
     },
@@ -60,26 +60,26 @@ export default function Pricing() {
       id: 'pro',
       name: 'Pro',
       badge: isFr ? 'Le plus populaire' : 'Most popular',
-      monthly: 1297,
-      calls: 2000,
-      overage: 0.18,
+      monthly: 599,
+      minutes: 2000,
+      overage: 0.35,
       description: isFr ? 'Pour grandir' : 'To grow',
       features: isFr
-        ? ['2 000 appels par mois', 'Tout Starter inclus', 'Analytiques avancées', 'Intégrations CRM natives', 'Support prioritaire']
-        : ['2,000 calls per month', 'Everything in Starter', 'Advanced analytics', 'Native CRM integrations', 'Priority support'],
+        ? ['2 000 minutes incluses par mois', 'Tout Starter inclus', 'Analytiques avancées', 'Intégrations CRM natives', 'Support prioritaire']
+        : ['2,000 minutes included per month', 'Everything in Starter', 'Advanced analytics', 'Native CRM integrations', 'Priority support'],
       cta: isFr ? 'Choisir Pro' : 'Choose Pro',
       popular: true,
     },
     {
       id: 'enterprise',
       name: 'Enterprise',
-      monthly: 2497,
-      calls: 4000,
-      overage: 0.15,
+      monthly: 1290,
+      minutes: 5000,
+      overage: 0.30,
       description: isFr ? 'Pour scale' : 'To scale',
       features: isFr
-        ? ['4 000 appels par mois', 'Tout Pro inclus', 'Multi-sites & numéros multiples', 'Responsable dédié', 'SLA 99,5% uptime', 'Accès API complet']
-        : ['4,000 calls per month', 'Everything in Pro', 'Multi-site & multiple numbers', 'Dedicated manager', '99.5% uptime SLA', 'Full API access'],
+        ? ['5 000 minutes incluses par mois', 'Tout Pro inclus', 'Multi-sites & numéros multiples', 'Responsable dédié', 'SLA 99,5% uptime', 'Accès API complet']
+        : ['5,000 minutes included per month', 'Everything in Pro', 'Multi-site & multiple numbers', 'Dedicated manager', '99.5% uptime SLA', 'Full API access'],
       cta: isFr ? 'Contacter' : 'Contact us',
       popular: false,
     },
@@ -89,7 +89,7 @@ export default function Pricing() {
     ? [
         { q: 'Y a-t-il un engagement ?', a: 'En mensuel, non. Annulez en un clic depuis votre dashboard, à tout moment. En annuel, vous vous engagez sur 12 mois en échange d\'une remise de 20 %. Le premier mois reste offert dans les deux cas.' },
         { q: 'Comment fonctionne la remise de 20 % en annuel ?', a: 'Choisissez la facturation annuelle sur la page tarifs. Vous économisez 20 % sur le prix mensuel, prélevé en une fois à l\'inscription. Le calcul est simple : le montant annuel affiché correspond à 12 × (prix mensuel × 0,80).' },
-        { q: 'Que se passe-t-il si je dépasse mon quota ?', a: 'Les appels supplémentaires sont facturés au tarif overage indiqué pour votre plan. Vous recevez une alerte avant d\'atteindre la limite.' },
+        { q: 'Comment fonctionne la facturation à la minute ?', a: 'Chaque plan inclut un volume de minutes par mois. Au-delà, les minutes supplémentaires sont facturées au tarif de dépassement de votre plan (par exemple 0,39 €/min en Starter). Seuls les appels réels comptent : le spam bloqué n\'est jamais facturé. Vous recevez une alerte à 80, 95 et 100 % de votre quota.' },
         { q: 'Puis-je changer de plan ?', a: 'Oui, à tout moment. Les changements sont au prorata sur votre prochaine facture.' },
         { q: 'Combien de temps prend la mise en route ?', a: 'Compte créé en 2 minutes. Premiers appels traités le jour même. Configuration assistée si besoin.' },
         { q: 'Quels moyens de paiement acceptez-vous ?', a: 'Carte bancaire (Visa, Mastercard, Amex), SEPA, virement pour les comptes Enterprise et annuels.' },
@@ -97,7 +97,7 @@ export default function Pricing() {
     : [
         { q: 'Is there a commitment?', a: 'On monthly billing, none: cancel anytime from your dashboard. On annual, you commit for 12 months in exchange for a 20% discount. First month is free either way.' },
         { q: 'How does the 20% annual discount work?', a: 'Pick annual billing on the pricing page. You save 20% on the monthly price, charged upfront at signup. The math is simple: the annual amount shown equals 12 × (monthly price × 0.80).' },
-        { q: 'What happens if I exceed my quota?', a: 'Extra calls are billed at the overage rate listed for your plan. You get an alert before hitting the limit.' },
+        { q: 'How does per-minute billing work?', a: 'Each plan includes a monthly minute allowance. Beyond that, extra minutes are billed at your plan\'s overage rate (for example €0.39/min on Starter). Only real calls count: blocked spam is never billed. You get an alert at 80%, 95% and 100% of your quota.' },
         { q: 'Can I change my plan?', a: 'Yes, anytime. Changes are prorated on your next invoice.' },
         { q: 'How long does setup take?', a: 'Account created in 2 minutes. First calls handled the same day. Assisted setup if you need it.' },
         { q: 'What payment methods do you accept?', a: 'Credit card (Visa, Mastercard, Amex), SEPA, wire transfer for Enterprise and annual accounts.' },
@@ -212,7 +212,7 @@ export default function Pricing() {
                     : 'Small businesses, tradespeople, liberal professions (French, EU hosting).'}
                 </p>
                 <ul role="list" className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-[#424245]">
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> 300 {isFr ? 'appels / mois' : 'calls / month'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> 250 {isFr ? 'minutes / mois' : 'minutes / month'}</li>
                   <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'IA 24/7 bilingue FR / EN' : '24/7 AI, bilingual FR / EN'}</li>
                   <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'RDV + agenda + transfert urgences' : 'Booking + calendar + urgency transfer'}</li>
                   <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'Transcript + sentiment + anti-spam' : 'Transcript + sentiment + spam shield'}</li>
@@ -221,15 +221,16 @@ export default function Pricing() {
               </div>
               <div className="flex flex-col md:items-end gap-2">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-semibold tracking-[-0.04em] tabular-nums">{priceFor(149)}&nbsp;€</span>
+                  <span className="text-4xl font-semibold tracking-[-0.04em] tabular-nums">{priceFor(99)}&nbsp;€</span>
                   <span className="text-sm text-[#6e6e73]">/{perLabel}</span>
                 </div>
                 {billing === 'annual' && (
                   <p className="text-[11px] text-[#6e6e73]">
-                    {isFr ? `Facturé ${priceFor(149) * 12} €/an` : `Billed ${priceFor(149) * 12} €/yr`}
+                    {isFr ? `Facturé ${priceFor(99) * 12} €/an` : `Billed ${priceFor(99) * 12} €/yr`}
                   </p>
                 )}
-                <p className="text-xs" style={{ color: '#6366f1' }}>· {isFr ? '1er mois offert' : '1st month free'}</p>
+                <p className="text-[11px] text-[#6e6e73]">{isFr ? 'Dépassement : 0,45 €/min' : 'Overage: €0.45/min'}</p>
+                <p className="text-xs" style={{ color: '#6366f1' }}>· {isFr ? 'Essai gratuit' : 'Free trial'}</p>
                 <Link
                   to="/register"
                   className="inline-flex items-center justify-center gap-2 text-sm font-medium pl-5 pr-6 py-3 rounded-full transition-colors active:scale-[0.97] bg-[#1d1d1f] text-white hover:bg-[#6366f1]"
@@ -283,7 +284,7 @@ export default function Pricing() {
                   <div className="mb-6">
                     <div className="flex items-baseline gap-1">
                       <span className={`text-[clamp(2.6rem,4vw,3.4rem)] font-semibold tracking-[-0.04em] tabular-nums ${isPro ? 'text-white' : 'text-[#1d1d1f]'}`}>
-                        ${priceFor(tier.monthly).toLocaleString()}
+                        {priceFor(tier.monthly).toLocaleString('fr-FR')}&nbsp;€
                       </span>
                       <span className={`text-sm ${isPro ? 'text-white/60' : 'text-[#6e6e73]'}`}>
                         /{perLabel}
@@ -292,12 +293,12 @@ export default function Pricing() {
                     {billing === 'annual' && (
                       <p className={`text-[11px] mt-1 ${isPro ? 'text-white/50' : 'text-[#6e6e73]'}`}>
                         {isFr
-                          ? `Facturé $${(priceFor(tier.monthly) * 12).toLocaleString('fr-FR')}/an`
-                          : `Billed $${(priceFor(tier.monthly) * 12).toLocaleString()}/yr`}
+                          ? `Facturé ${(priceFor(tier.monthly) * 12).toLocaleString('fr-FR')} €/an`
+                          : `Billed ${(priceFor(tier.monthly) * 12).toLocaleString('fr-FR')} €/yr`}
                       </p>
                     )}
                     <p className={`text-xs mt-2 ${isPro ? 'text-[#a5b4fc]' : 'text-[#6366f1]'}`}>
-                      · {isFr ? '1er mois offert' : '1st month free'}
+                      · {isFr ? 'Essai gratuit, sans frais d\'installation' : 'Free trial, no setup fee'}
                     </p>
                   </div>
 
@@ -317,8 +318,8 @@ export default function Pricing() {
 
                   <p className={`text-xs mb-4 ${isPro ? 'text-white/45' : 'text-[#6e6e73]'}`}>
                     {isFr
-                      ? `Overage : $${tier.overage}/appel au-delà des ${tier.calls.toLocaleString('fr-FR')} appels inclus`
-                      : `Overage: $${tier.overage}/call beyond ${tier.calls.toLocaleString()} included calls`}
+                      ? `Dépassement : ${tier.overage.toFixed(2).replace('.', ',')} €/min au-delà des ${tier.minutes.toLocaleString('fr-FR')} minutes incluses`
+                      : `Overage: €${tier.overage.toFixed(2)}/min beyond ${tier.minutes.toLocaleString('fr-FR')} included minutes`}
                   </p>
 
                   <Link
@@ -342,24 +343,23 @@ export default function Pricing() {
 
         {/* ── ROI CALLOUT — narrative comparison, no hero-metric grids ── */}
         {(() => {
-          // Fair comparison basis: a 20h/week human receptionist realistically
-          // takes ~500 answered calls a month. Qwillio Starter (800 calls,
-          // 24/7, bilingual) is the honest volume-equivalent counterpart.
+          // Fair comparison basis: a 20h/week human receptionist in Belgium
+          // costs ~2,300 EUR loaded. Qwillio Starter (750 included minutes,
+          // 24/7, bilingual) is the honest counterpart at a fraction of the cost.
           const humanMonthly = 2300;                       // EUR loaded
-          const qwillioMonthlyUsd = priceFor(497);         // honors annual toggle
-          const qwillioMonthlyEur = Math.round(qwillioMonthlyUsd * 0.93);
+          const qwillioMonthlyEur = priceFor(249);         // Starter, honors annual toggle
           const monthlySavings = humanMonthly - qwillioMonthlyEur;
           const yearlySavings = monthlySavings * 12;
           const savingsPct = Math.round((monthlySavings / humanMonthly) * 100);
           const fmt = (n: number) => n.toLocaleString('fr-FR');
 
           const humanRow = isFr
-            ? `Un mi-temps humain en Belgique : environ 2 300 € tout compris (brut, charges, chèques repas, backup absences, turnover), pour 20 h par semaine et environ 500 appels traités, dans une seule langue.`
-            : `A part-time human in Belgium: roughly 2,300 EUR loaded per month (gross, social charges, meal vouchers, absence backup, turnover), for 20 hours a week and about 500 answered calls, in a single language.`;
+            ? `Un mi-temps humain en Belgique : environ 2 300 € tout compris (brut, charges, chèques repas, backup absences, turnover), pour 20 h par semaine, dans une seule langue.`
+            : `A part-time human in Belgium: roughly 2,300 EUR loaded per month (gross, social charges, meal vouchers, absence backup, turnover), for 20 hours a week, in a single language.`;
 
           const qwillioRow = isFr
-            ? `Qwillio Starter : ${fmt(qwillioMonthlyEur)} € par mois (${priceFor(497).toLocaleString()} $), 800 appels inclus, français et anglais sur le même compte, 24 heures sur 24, 365 jours par an, sans arrêt et sans turnover.`
-            : `Qwillio Starter: ${fmt(qwillioMonthlyEur)} EUR a month ($${priceFor(497).toLocaleString()}), 800 calls included, French and English on the same account, 24 hours a day, 365 days a year, no downtime and no turnover.`;
+            ? `Qwillio Starter : ${fmt(qwillioMonthlyEur)} € par mois, 750 minutes incluses, facturation à la minute au-delà, français et anglais sur le même compte, 24 heures sur 24, 365 jours par an, sans arrêt et sans turnover.`
+            : `Qwillio Starter: ${fmt(qwillioMonthlyEur)} EUR a month, 750 included minutes, billed by the minute beyond that, French and English on the same account, 24 hours a day, 365 days a year, no downtime and no turnover.`;
 
           return (
             <section
@@ -409,8 +409,8 @@ export default function Pricing() {
                 <Reveal delay={0.28}>
                   <p className="mt-4 text-[13px] text-[#6e6e73]">
                     {isFr
-                      ? 'Basé sur un mi-temps CP200 chargé (brut + ONSS 27 % + chèques repas + transport + backup + turnover) et le tier Qwillio Starter, mensuel ou annuel selon le sélecteur ci-dessus.'
-                      : 'Based on a CP200 loaded part-time (gross + 27% ONSS + meal vouchers + transport + backup + turnover) and the Qwillio Starter tier, monthly or annual depending on the toggle above.'}
+                      ? 'Basé sur un mi-temps CP200 chargé (brut + ONSS 27 % + chèques repas + transport + backup + turnover) et le tier Qwillio Starter (750 minutes incluses), mensuel ou annuel selon le sélecteur ci-dessus. Prix de lancement.'
+                      : 'Based on a CP200 loaded part-time (gross + 27% ONSS + meal vouchers + transport + backup + turnover) and the Qwillio Starter tier (750 included minutes), monthly or annual depending on the toggle above. Launch pricing.'}
                   </p>
                 </Reveal>
               </div>
@@ -438,8 +438,9 @@ export default function Pricing() {
             {(() => {
               const rows = isFr
                 ? [
-                    ['Appels inclus', '800', '2 000', '4 000'],
-                    ['Coût par appel supplémentaire', '$0,22', '$0,18', '$0,15'],
+                    ['Minutes incluses', '750', '2 000', '5 000'],
+                    ['Prix / mois', '249 €', '599 €', '1 290 €'],
+                    ['Dépassement / minute', '0,39 €', '0,35 €', '0,30 €'],
                     ['IA 24/7 bilingue FR / EN', '✓', '✓', '✓'],
                     ['Prise de RDV + agenda', '✓', '✓', '✓'],
                     ['Transfert des urgences', '✓', '✓', '✓'],
@@ -453,8 +454,9 @@ export default function Pricing() {
                     ['Support', 'Email', 'Prioritaire', 'Dédié'],
                   ]
                 : [
-                    ['Calls included', '800', '2,000', '4,000'],
-                    ['Overage per call', '$0.22', '$0.18', '$0.15'],
+                    ['Minutes included', '750', '2,000', '5,000'],
+                    ['Price / month', '€249', '€599', '€1,290'],
+                    ['Overage per minute', '€0.39', '€0.35', '€0.30'],
                     ['24/7 AI, bilingual FR / EN', '✓', '✓', '✓'],
                     ['Booking + calendar', '✓', '✓', '✓'],
                     ['Urgency transfer', '✓', '✓', '✓'],

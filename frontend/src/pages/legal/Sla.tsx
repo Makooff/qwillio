@@ -104,8 +104,8 @@ export default function Sla() {
               </div>
               <p className="mt-3 text-xs text-[#6e6e73]">
                 {isFr
-                  ? "Solo (149 €/mois) suit les mêmes engagements que Starter. Enterprise permet des SLA sur-mesure au-delà du barème ci-dessus."
-                  : 'Solo (€149/month) follows the same commitments as Starter. Enterprise supports custom SLAs beyond the table above.'}
+                  ? "Solo (99 €/mois) suit les mêmes engagements que Starter. Enterprise permet des SLA sur-mesure au-delà du barème ci-dessus."
+                  : 'Solo (€99/month) follows the same commitments as Starter. Enterprise supports custom SLAs beyond the table above.'}
               </p>
             </section>
           </Reveal>

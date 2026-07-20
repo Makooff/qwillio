@@ -189,7 +189,7 @@ export class EmailService {
     businessName: string;
     packageType: string;
     trialEndDate: Date;
-    trialCallsQuota: number;
+    trialMinutes: number;
     lang?: Lang;
   }) {
     const lang = L(data.lang);

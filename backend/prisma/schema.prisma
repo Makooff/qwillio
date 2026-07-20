@@ -265,6 +265,7 @@ model Client {
   cancellationDate           DateTime?                 @map("cancellation_date")
   totalCallsMade             Int                       @default(0) @map("total_calls_made")
   monthlyCallsQuota          Int?                      @map("monthly_calls_quota")
+  monthlyMinutesQuota        Int?                      @map("monthly_minutes_quota")
   lastCallDate               DateTime?                 @map("last_call_date")
   notes                      String?
   createdAt                  DateTime                  @default(now()) @map("created_at")

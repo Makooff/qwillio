@@ -446,9 +446,9 @@ export default function Home() {
                   <div className="mt-10 flex items-baseline justify-between gap-4 flex-wrap">
                     <p className="text-white/55 text-sm">
                       {isFr ? 'À partir de ' : 'From '}
-                      <span className="text-white font-semibold">$497<span className="text-white/55">/mois</span></span>
+                      <span className="text-white font-semibold">99&nbsp;€<span className="text-white/55">/{isFr ? 'mois' : 'mo'}</span></span>
                       <span className="ml-2 text-xs font-medium" style={{ color: '#a5b4fc' }}>
-                        · {isFr ? '1er mois offert' : '1st month free'}
+                        · {isFr ? 'Essai gratuit' : 'Free trial'}
                       </span>
                     </p>
                     <span className="inline-flex items-center gap-1.5 text-sm font-medium text-white">

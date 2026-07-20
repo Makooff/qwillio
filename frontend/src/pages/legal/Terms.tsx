@@ -260,7 +260,7 @@ export default function Terms() {
                           {isFr ? 'Prix mensuel' : 'Monthly price'}
                         </th>
                         <th className="px-4 py-3 font-semibold text-[#1d1d1f]">
-                          {isFr ? 'Appels inclus' : 'Included calls'}
+                          {isFr ? 'Minutes incluses' : 'Included minutes'}
                         </th>
                         <th className="px-4 py-3 font-semibold text-[#1d1d1f]">
                           {isFr ? 'Dépassement' : 'Overage'}
@@ -269,22 +269,28 @@ export default function Terms() {
                     </thead>
                     <tbody className="divide-y divide-[#1d1d1f]/8">
                       <tr>
+                        <td className="px-4 py-3 font-medium">Solo</td>
+                        <td className="px-4 py-3 tabular-nums">99 €/mo</td>
+                        <td className="px-4 py-3 tabular-nums">250</td>
+                        <td className="px-4 py-3 tabular-nums">0,45 € / min</td>
+                      </tr>
+                      <tr>
                         <td className="px-4 py-3 font-medium">Starter</td>
-                        <td className="px-4 py-3 tabular-nums">$497/mo</td>
-                        <td className="px-4 py-3 tabular-nums">800</td>
-                        <td className="px-4 py-3 tabular-nums">$0.22 / {isFr ? 'appel' : 'call'}</td>
+                        <td className="px-4 py-3 tabular-nums">249 €/mo</td>
+                        <td className="px-4 py-3 tabular-nums">750</td>
+                        <td className="px-4 py-3 tabular-nums">0,39 € / min</td>
                       </tr>
                       <tr>
                         <td className="px-4 py-3 font-medium">Pro</td>
-                        <td className="px-4 py-3 tabular-nums">$1,297/mo</td>
+                        <td className="px-4 py-3 tabular-nums">599 €/mo</td>
                         <td className="px-4 py-3 tabular-nums">2,000</td>
-                        <td className="px-4 py-3 tabular-nums">$0.18 / {isFr ? 'appel' : 'call'}</td>
+                        <td className="px-4 py-3 tabular-nums">0,35 € / min</td>
                       </tr>
                       <tr>
                         <td className="px-4 py-3 font-medium">Enterprise</td>
-                        <td className="px-4 py-3 tabular-nums">$2,497/mo</td>
-                        <td className="px-4 py-3 tabular-nums">4,000</td>
-                        <td className="px-4 py-3 tabular-nums">$0.15 / {isFr ? 'appel' : 'call'}</td>
+                        <td className="px-4 py-3 tabular-nums">1,290 €/mo</td>
+                        <td className="px-4 py-3 tabular-nums">5,000</td>
+                        <td className="px-4 py-3 tabular-nums">0,30 € / min</td>
                       </tr>
                     </tbody>
                   </table>

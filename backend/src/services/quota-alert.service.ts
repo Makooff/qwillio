@@ -1,17 +1,8 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { getPlan } from '../config/plans';
 import { emailService } from './email.service';
 import { discordService } from './discord.service';
-
-// Monthly call quota per plan, matching the sticker tiers on /pricing.
-// Kept in this file (not schema) because it changes at pricing-strategy
-// tempo (quarters), not schema-migration tempo.
-const PLAN_QUOTAS: Record<string, number> = {
-  solo:       300,
-  starter:    800,
-  pro:      2_000,
-  enterprise: 4_000,
-};
 
 // Notify at these usage thresholds. Values are exclusive lower bounds:
 // a client at 80.5 % triggers the 80 % notice once, then 95 % once, then
@@ -61,7 +52,7 @@ export class QuotaAlertService {
         planType: true,
         agentLanguage: true,
         country: true,
-        monthlyCallsQuota: true,
+        monthlyMinutesQuota: true,
         vapiConfig: true,
       },
     });
@@ -69,16 +60,20 @@ export class QuotaAlertService {
     let notified = 0;
 
     for (const client of clients) {
-      const plan = (client.planType || '').toLowerCase();
-      const quota = client.monthlyCallsQuota ?? PLAN_QUOTAS[plan];
+      const plan = getPlan(client.planType);
+      const quota = client.monthlyMinutesQuota ?? plan.includedMinutes;
       if (!quota) continue;
 
-      const used = await prisma.clientCall.count({
+      // Usage is measured in minutes now (spam excluded — never counts).
+      const agg = await prisma.clientCall.aggregate({
         where: {
           clientId: client.id,
+          isSpam: false,
           startedAt: { gte: monthStart },
         },
+        _sum: { durationSeconds: true },
       });
+      const used = Math.round((agg._sum.durationSeconds ?? 0) / 60);
 
       const pct = Math.floor((used / quota) * 100);
       const state = loadState(client, key);
@@ -93,7 +88,7 @@ export class QuotaAlertService {
           contactEmail: client.contactEmail,
           contactName: client.contactName || 'there',
           language: this.clientLanguage(client),
-          plan,
+          plan: plan.name,
           quota,
           used,
           threshold: t,
@@ -157,11 +152,11 @@ export class QuotaAlertService {
     const isFr = language === 'fr';
     const subject = isFr
       ? threshold === 100
-        ? `Quota d'appels atteint pour ${businessName}`
-        : `${threshold}% de votre quota d'appels utilisé`
+        ? `Quota de minutes atteint pour ${businessName}`
+        : `${threshold}% de votre quota de minutes utilisé`
       : threshold === 100
-        ? `Call quota reached for ${businessName}`
-        : `${threshold}% of your call quota used`;
+        ? `Minute quota reached for ${businessName}`
+        : `${threshold}% of your minute quota used`;
 
     const body = isFr
       ? this.emailBodyFr({ contactName, plan, quota, used, threshold, upgradeUrl, dashboardUrl })
@@ -179,7 +174,7 @@ export class QuotaAlertService {
 
     try {
       await discordService.notify(
-        `📊 Quota ${threshold}% — ${businessName} (${plan}) — ${used}/${quota} calls`,
+        `📊 Quota ${threshold}% — ${businessName} (${plan}) — ${used}/${quota} min`,
       );
     } catch (err) {
       logger.warn(`quota-alert: discord notify failed for ${businessName}`, err);
@@ -197,15 +192,15 @@ export class QuotaAlertService {
   }): string {
     const { contactName, plan, quota, used, threshold, upgradeUrl, dashboardUrl } = p;
     const intro = threshold === 100
-      ? `Vous avez atteint votre quota mensuel d'appels sur le plan <strong>${plan}</strong>.`
-      : `Vous êtes à <strong>${threshold}%</strong> de votre quota mensuel d'appels sur le plan <strong>${plan}</strong>.`;
+      ? `Vous avez atteint votre quota mensuel de minutes sur le plan <strong>${plan}</strong>.`
+      : `Vous êtes à <strong>${threshold}%</strong> de votre quota mensuel de minutes sur le plan <strong>${plan}</strong>.`;
     const overage = threshold === 100
-      ? `Les appels supplémentaires sont désormais facturés au tarif overage indiqué dans votre pricing.`
-      : `Il vous reste ${quota - used} appels avant d'atteindre la limite.`;
+      ? `Les minutes supplémentaires sont désormais facturées au tarif de dépassement indiqué dans votre pricing.`
+      : `Il vous reste ${quota - used} minutes avant d'atteindre la limite.`;
     return `
       <p>Bonjour ${contactName},</p>
       <p>${intro}</p>
-      <p>Consommation ce mois : ${used} appels sur ${quota}.</p>
+      <p>Consommation ce mois : ${used} minutes sur ${quota}.</p>
       <p>${overage}</p>
       <p>
         <a href="${dashboardUrl}">Voir votre tableau de bord</a> ·
@@ -226,15 +221,15 @@ export class QuotaAlertService {
   }): string {
     const { contactName, plan, quota, used, threshold, upgradeUrl, dashboardUrl } = p;
     const intro = threshold === 100
-      ? `You have reached your monthly call quota on the <strong>${plan}</strong> plan.`
-      : `You are at <strong>${threshold}%</strong> of your monthly call quota on the <strong>${plan}</strong> plan.`;
+      ? `You have reached your monthly minute quota on the <strong>${plan}</strong> plan.`
+      : `You are at <strong>${threshold}%</strong> of your monthly minute quota on the <strong>${plan}</strong> plan.`;
     const overage = threshold === 100
-      ? `Additional calls will now be billed at the overage rate shown on your pricing page.`
-      : `You have ${quota - used} calls left before hitting the limit.`;
+      ? `Additional minutes will now be billed at the overage rate shown on your pricing page.`
+      : `You have ${quota - used} minutes left before hitting the limit.`;
     return `
       <p>Hi ${contactName},</p>
       <p>${intro}</p>
-      <p>Usage this month: ${used} of ${quota} calls.</p>
+      <p>Usage this month: ${used} of ${quota} minutes.</p>
       <p>${overage}</p>
       <p>
         <a href="${dashboardUrl}">View your dashboard</a> ·

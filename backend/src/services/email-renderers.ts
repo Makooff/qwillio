@@ -38,8 +38,8 @@ export function renderQuoteTemplate(data: {
       body: [
         brandTitle('Votre devis personnalisé'),
         brandText(`Bonjour ${name}, suite à notre échange, voici votre devis pour <strong>${data.businessName}</strong>.`),
-        brandHighlight(`Forfait ${data.packageType.toUpperCase()}`, `${data.monthlyPrice} $/mois`, 28),
-        brandText(`Frais d'installation unique : <strong>${data.setupPrice} $</strong>`),
+        brandHighlight(`Forfait ${data.packageType.toUpperCase()}`, `${data.monthlyPrice} €/mois`, 28),
+        brandText(`<strong>Sans frais d'installation.</strong> Sans engagement.`),
         brandText('Ce qui est inclus :'),
         brandList(data.features),
         brandHighlight('Offre valable jusqu\'au', formatDate(data.validUntil, 'fr'), 18),
@@ -54,8 +54,8 @@ export function renderQuoteTemplate(data: {
     body: [
       brandTitle('Your personalized quote'),
       brandText(`Hi ${name}, following our conversation, here is your quote for <strong>${data.businessName}</strong>.`),
-      brandHighlight(`${data.packageType.toUpperCase()} package`, `$${data.monthlyPrice}/mo`, 28),
-      brandText(`One-time setup fee: <strong>$${data.setupPrice}</strong>`),
+      brandHighlight(`${data.packageType.toUpperCase()} package`, `€${data.monthlyPrice}/mo`, 28),
+      brandText(`<strong>No setup fee.</strong> No commitment.`),
       brandText("What's included:"),
       brandList(data.features),
       brandHighlight('Offer valid until', formatDate(data.validUntil, 'en'), 18),
@@ -85,8 +85,8 @@ export function renderFollowUpTemplate(data: {
         body: [
           brandTitle('Toujours là pour vous'),
           brandText(`Bonjour ${data.contactName}, je voulais m'assurer que vous aviez bien vu notre proposition pour <strong>${data.businessName}</strong>.`),
-          brandHighlight(`Forfait ${data.packageName}`, `${data.monthlyPrice} $/mois`, 28),
-          brandText(`Installation unique : ${data.setupPrice} $. Notre IA fait en sorte que vous ne manquiez plus jamais un appel client.`),
+          brandHighlight(`Forfait ${data.packageName}`, `${data.monthlyPrice} €/mois`, 28),
+          brandText(`Sans frais d'installation, sans engagement. Notre IA fait en sorte que vous ne manquiez plus jamais un appel client.`),
           brandButton('Voir mon offre', data.paymentLink),
           brandSmall('— Marie, Qwillio'),
         ].join(''),
@@ -117,8 +117,8 @@ export function renderFollowUpTemplate(data: {
         brandTitle('Dernière chance'),
         brandText(`Bonjour ${data.contactName}, c'est aujourd'hui le dernier jour pour profiter de votre offre personnalisée pour <strong>${data.businessName}</strong>.`),
         brandText('Nos clients constatent une hausse moyenne de <strong>25 % des réservations</strong> avec notre réceptionniste IA.'),
-        brandHighlight(`Forfait ${data.packageName}`, `${data.monthlyPrice} $/mois`, 28),
-        brandText(`Installation unique : ${data.setupPrice} $.`),
+        brandHighlight(`Forfait ${data.packageName}`, `${data.monthlyPrice} €/mois`, 28),
+        brandText(`Sans frais d'installation, sans engagement.`),
         brandButton('Profiter de mon offre', data.paymentLink),
         brandSmall("Cette offre ne sera plus disponible après aujourd'hui. — Marie, Qwillio"),
       ].join(''),
@@ -132,8 +132,8 @@ export function renderFollowUpTemplate(data: {
       body: [
         brandTitle('Still here for you'),
         brandText(`Hi ${data.contactName}, just making sure you saw our proposal for <strong>${data.businessName}</strong>.`),
-        brandHighlight(`${data.packageName} package`, `$${data.monthlyPrice}/mo`, 28),
-        brandText(`One-time setup: $${data.setupPrice}. Our AI ensures you never miss a customer call again.`),
+        brandHighlight(`${data.packageName} package`, `€${data.monthlyPrice}/mo`, 28),
+        brandText(`No setup fee, no commitment. Our AI ensures you never miss a customer call again.`),
         brandButton('View my offer', data.paymentLink),
         brandSmall('— Ashley, Qwillio'),
       ].join(''),
@@ -166,8 +166,8 @@ export function renderFollowUpTemplate(data: {
       brandTitle('Last chance'),
       brandText(`Hi ${data.contactName}, today is the final day to claim your personalized offer for <strong>${data.businessName}</strong>.`),
       brandText('Our clients see an average <strong>25% increase in bookings</strong> with our AI receptionist.'),
-      brandHighlight(`${data.packageName} package`, `$${data.monthlyPrice}/mo`, 28),
-      brandText(`One-time setup: $${data.setupPrice}.`),
+      brandHighlight(`${data.packageName} package`, `€${data.monthlyPrice}/mo`, 28),
+      brandText(`No setup fee, no commitment.`),
       brandButton('Claim my offer now', data.paymentLink),
       brandSmall('This offer will no longer be available after today. — Ashley, Qwillio'),
     ].join(''),
@@ -226,7 +226,7 @@ export function renderTrialWelcomeTemplate(data: {
   businessName: string;
   packageType: string;
   trialEndDate: Date;
-  trialCallsQuota: number;
+  trialMinutes: number;
   lang?: Lang;
 }): string {
   const lang = L(data.lang);
@@ -240,7 +240,7 @@ export function renderTrialWelcomeTemplate(data: {
         brandText('Ce qui est inclus dans votre essai :'),
         brandList([
           'Réceptionniste IA disponible 24 h/24',
-          `${data.trialCallsQuota} appels durant la période d'essai`,
+          `${data.trialMinutes} minutes d'appel durant la période d'essai`,
           'Réservations et rendez-vous automatiques',
           'Tableau de bord de suivi en temps réel',
           'Support technique par courriel',
@@ -260,7 +260,7 @@ export function renderTrialWelcomeTemplate(data: {
       brandText("What's included in your trial:"),
       brandList([
         'AI receptionist available 24/7',
-        `${data.trialCallsQuota} calls during the trial period`,
+        `${data.trialMinutes} call minutes during the trial period`,
         'Automatic booking & reservations',
         'Real-time tracking dashboard',
         'Email technical support',
@@ -292,7 +292,7 @@ export function renderTrialEndingTemplate(data: {
         brandTitle(`Plus que ${data.daysLeft} ${dayWord}`),
         brandText(`Bonjour ${data.contactName}, votre essai gratuit pour <strong>${data.businessName}</strong> se termine le <strong>${formatDate(data.trialEndDate, 'fr')}</strong>.`),
         brandText('Votre réceptionniste IA travaille déjà pour vous. Gardez-la active après l\'essai :'),
-        brandHighlight(`Forfait ${data.packageType.toUpperCase()}`, `${data.monthlyPrice} $/mois`, 28),
+        brandHighlight(`Forfait ${data.packageType.toUpperCase()}`, `${data.monthlyPrice} €/mois`, 28),
         brandText('Sans engagement. Annulable à tout moment.'),
         brandButton('Continuer avec Qwillio', data.paymentLink),
         brandSmall("Sans abonnement, votre réceptionniste IA sera désactivée à la fin de l'essai. — Marie, Qwillio"),
@@ -307,7 +307,7 @@ export function renderTrialEndingTemplate(data: {
       brandTitle(`Only ${data.daysLeft} ${dayWord} left`),
       brandText(`Hi ${data.contactName}, your free trial for <strong>${data.businessName}</strong> ends on <strong>${formatDate(data.trialEndDate, 'en')}</strong>.`),
       brandText('Your AI receptionist has already been working for you. Keep it on after the trial:'),
-      brandHighlight(`${data.packageType.toUpperCase()} package`, `$${data.monthlyPrice}/mo`, 28),
+      brandHighlight(`${data.packageType.toUpperCase()} package`, `€${data.monthlyPrice}/mo`, 28),
       brandText('No commitment. Cancel anytime.'),
       brandButton('Continue with Qwillio', data.paymentLink),
       brandSmall("Without a subscription, your AI receptionist will be deactivated at the end of the trial. — Ashley, Qwillio"),
@@ -332,7 +332,7 @@ export function renderTrialExpiredTemplate(data: {
         brandTitle('Votre essai est terminé'),
         brandText(`Bonjour ${data.contactName}, votre essai gratuit pour <strong>${data.businessName}</strong> vient de se terminer. Votre réceptionniste IA est maintenant en pause — les appels entrants ne sont plus traités.`),
         brandText('Abonnez-vous pour la réactiver en deux minutes :'),
-        brandHighlight(`Forfait ${data.packageType.toUpperCase()}`, `${data.monthlyPrice} $/mois`, 28),
+        brandHighlight(`Forfait ${data.packageType.toUpperCase()}`, `${data.monthlyPrice} €/mois`, 28),
         brandButton('Réactiver mon assistant IA', data.paymentLink),
         brandSmall('Votre configuration est conservée 30 jours, puis supprimée définitivement. — Marie, Qwillio'),
       ].join(''),
@@ -345,7 +345,7 @@ export function renderTrialExpiredTemplate(data: {
       brandTitle('Your trial has ended'),
       brandText(`Hi ${data.contactName}, your free trial for <strong>${data.businessName}</strong> has just ended. Your AI receptionist is now paused — incoming calls are no longer handled.`),
       brandText('Subscribe to bring it back in two minutes:'),
-      brandHighlight(`${data.packageType.toUpperCase()} package`, `$${data.monthlyPrice}/mo`, 28),
+      brandHighlight(`${data.packageType.toUpperCase()} package`, `€${data.monthlyPrice}/mo`, 28),
       brandButton('Reactivate my AI assistant', data.paymentLink),
       brandSmall('Your configuration is saved for 30 days, then permanently deleted. — Ashley, Qwillio'),
     ].join(''),

@@ -380,7 +380,7 @@ function SceneOverview({ isFr, tick, callsMonth, leadsMonth, sentiment }: {
             {isFr ? 'Utilisation du quota' : 'Quota usage'}
           </p>
           <span className="text-[6.5px] font-medium" style={{ color: PRO.textTer }}>
-            {isFr ? `sur ${quotaTotal} appels inclus` : `of ${quotaTotal} calls included`}
+            {isFr ? `sur ${quotaTotal} minutes incluses` : `of ${quotaTotal} minutes included`}
           </span>
         </div>
         <div className="mt-1 flex items-center gap-1">
