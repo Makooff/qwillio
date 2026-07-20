@@ -168,7 +168,7 @@ export class StripeService {
     // Create Stripe subscription for monthly payments
     if (session.customer) {
       try {
-        const priceId = this.getMonthlyPriceId(client.planType);
+        const priceId = await this.resolveMonthlyPriceId(client.planType);
         if (priceId) {
           const subscription = await stripe.subscriptions.create({
             customer: session.customer,
@@ -447,7 +447,7 @@ export class StripeService {
   // returns Stripe Checkout URL for trial clients.
   // ═══════════════════════════════════════════════════════════════
   async createUpgradeCheckout(client: any, planType: string): Promise<string | null> {
-    const priceId = this.getMonthlyPriceId(planType);
+    const priceId = await this.resolveMonthlyPriceId(planType);
     if (!priceId) throw new Error(`No Stripe price configured for plan: ${planType}`);
 
     // Paid client with active subscription → update subscription directly, no checkout
@@ -494,20 +494,59 @@ export class StripeService {
     return session.url;
   }
 
-  private getMonthlyPriceId(packageType: string): string {
-    switch (packageType) {
-      case 'solo':
-        return env.STRIPE_PRICE_SOLO_MONTHLY;
-      case 'starter':
-      case 'basic':
-        return env.STRIPE_PRICE_BASIC_MONTHLY;
-      case 'pro':
-        return env.STRIPE_PRICE_PRO_MONTHLY;
-      case 'enterprise':
-        return env.STRIPE_PRICE_ENTERPRISE_MONTHLY;
-      default:
-        throw new Error(`No Stripe price configured for plan: ${packageType}`);
+  // Optional manual override per plan (kept for backward compat). When set, it
+  // wins over auto-provisioning so the founder can still pin a specific Price.
+  private envPriceOverride(planId: string): string {
+    switch (planId) {
+      case 'solo':                 return env.STRIPE_PRICE_SOLO_MONTHLY;
+      case 'starter': case 'basic': return env.STRIPE_PRICE_BASIC_MONTHLY;
+      case 'pro':                  return env.STRIPE_PRICE_PRO_MONTHLY;
+      case 'enterprise':           return env.STRIPE_PRICE_ENTERPRISE_MONTHLY;
+      default:                     return '';
     }
+  }
+
+  // In-process cache so we hit Stripe at most once per plan per boot.
+  private priceIdCache = new Map<string, string>();
+
+  /**
+   * Resolve the recurring monthly Stripe Price id for a plan, creating it in
+   * EUR from config/plans.ts if it does not exist yet. Idempotent via a stable
+   * lookup_key, so no manual Stripe dashboard setup is required — only
+   * STRIPE_SECRET_KEY (already needed for all billing). An explicit
+   * STRIPE_PRICE_<PLAN>_MONTHLY env var, if set, overrides this.
+   */
+  private async resolveMonthlyPriceId(planType: string): Promise<string> {
+    const plan = getPlan(planType);
+    const planId = plan.id;
+
+    const override = this.envPriceOverride(planId);
+    if (override) return override;
+
+    const cached = this.priceIdCache.get(planId);
+    if (cached) return cached;
+
+    const lookupKey = `qwillio_${planId}_monthly_eur`;
+
+    // 1. Reuse an existing Price with our lookup key (created on a prior boot).
+    const existing = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
+    if (existing.data[0]?.id) {
+      this.priceIdCache.set(planId, existing.data[0].id);
+      return existing.data[0].id;
+    }
+
+    // 2. Otherwise create it from the plan definition (EUR, monthly recurring).
+    const price = await stripe.prices.create({
+      currency: 'eur',
+      unit_amount: Math.round(plan.monthlyPriceEur * 100),
+      recurring: { interval: 'month' },
+      lookup_key: lookupKey,
+      transfer_lookup_key: true,
+      product_data: { name: `Qwillio ${plan.name}` },
+    });
+    this.priceIdCache.set(planId, price.id);
+    logger.info(`Auto-created Stripe Price ${price.id} for plan ${planId} (${plan.monthlyPriceEur}€/mo)`);
+    return price.id;
   }
 }
 
