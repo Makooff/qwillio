@@ -352,8 +352,11 @@ export class ClientDashboardController {
         .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 4000) }));
       if (!messages.length) return res.status(400).json({ error: 'messages required' });
 
+      const allowedModes = ['config', 'onboarding', 'receptionist'] as const;
+      const mode = allowedModes.includes(req.body?.mode) ? req.body.mode : 'config';
+
       const { assistantChatService } = await import('../services/assistant-chat.service');
-      const result = await assistantChatService.chat(req.clientId, messages);
+      const result = await assistantChatService.chat(req.clientId, messages, mode);
       res.json(result);
     } catch (error: any) {
       logger.error('assistantChat failed:', error);
