@@ -2,7 +2,7 @@
 import api from '../../services/api';
 import {
   RefreshCw, Zap, Activity, TrendingUp, Search, Phone, Clock, CheckCircle,
-  Target, Sparkles, Plus, X, Globe, MapPin,
+  Target, Sparkles, Plus, X, Globe, MapPin, Download,
 } from 'lucide-react';
 import OrbsLoader from '../../components/OrbsLoader';
 import { useToast } from '../../hooks/useToast';
@@ -114,6 +114,29 @@ export default function AdminProspecting() {
     } catch (e: any) {
       toast(e?.response?.data?.error ?? 'Erreur scraping', 'error');
     } finally { setCbBusy(false); }
+  };
+
+  // Download the scraped prospects as a CSV table (name, phone, city, rating…).
+  // Filters by the campaign's selected niches if any; otherwise exports all
+  // callable prospects, sorted best-to-call.
+  const [exporting, setExporting] = useState(false);
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (cbNiches.length === 1) params.set('niche', cbNiches[0]);
+      const { data } = await api.get(`/prospects/export?${params}`, { responseType: 'blob' });
+      const url = URL.createObjectURL(data as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prospects-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast(e?.response?.data?.error ?? 'Erreur export CSV', 'error');
+    } finally { setExporting(false); }
   };
 
   const load = async () => {
@@ -367,6 +390,9 @@ export default function AdminProspecting() {
                   disabled={cbBusy}
                 >
                   <X size={11} /> Reset
+                </GhostBtn>
+                <GhostBtn size="sm" onClick={exportCsv} disabled={exporting}>
+                  <Download size={11} /> {exporting ? '…' : 'Exporter CSV'}
                 </GhostBtn>
                 <PrimaryBtn size="sm" onClick={runCampaign} disabled={cbBusy || !cbNiches.length || !cbCities.length}>
                   {cbBusy ? '…' : (<><Plus size={12} /> Lancer le scraping</>)}
