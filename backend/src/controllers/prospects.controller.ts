@@ -13,6 +13,7 @@ export class ProspectsController {
       if (query.businessType) where.businessType = query.businessType;
       if (query.niche) where.niche = query.niche;
       if (query.city) where.city = query.city;
+      if (query.favorite === 'true') where.isFavorite = true;
       if (query.minScore !== undefined) where.score = { ...((where.score as any) || {}), gte: query.minScore };
       if (query.maxScore !== undefined) where.score = { ...((where.score as any) || {}), lte: query.maxScore };
       if (query.search) {
@@ -70,6 +71,21 @@ export class ProspectsController {
       const prospect = await prisma.prospect.update({
         where: { id: req.params.id as string },
         data: req.body,
+      });
+      res.json(prospect);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // PATCH /api/prospects/:id/favorite — toggle/set the bookmark flag only.
+  async setFavorite(req: Request, res: Response) {
+    try {
+      const favorite = req.body?.favorite === true || req.body?.favorite === 'true';
+      const prospect = await prisma.prospect.update({
+        where: { id: req.params.id as string },
+        data: { isFavorite: favorite },
+        select: { id: true, isFavorite: true },
       });
       res.json(prospect);
     } catch (error: any) {

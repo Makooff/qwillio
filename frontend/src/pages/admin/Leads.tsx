@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Search, Phone, X, Zap, MapPin, Mail } from 'lucide-react';
+import { RefreshCw, Search, Phone, X, Zap, MapPin, Mail, Star } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import api from '../../services/api';
@@ -33,6 +33,7 @@ interface Lead {
   callAttempts: number;
   createdAt: string;
   lastCallDate?: string;
+  isFavorite?: boolean;
 }
 
 interface LeadsResponse {
@@ -51,6 +52,25 @@ const NICHES = [
   'Restaurant', 'Plomberie', 'Électricité', 'Coiffure', 'Auto', 'Santé',
   'Immobilier', 'Comptabilité', 'Nettoyage', 'Sport', 'Mode', 'Informatique',
 ];
+
+// Backend niche keys used to launch a live scrape (map to Google Maps queries).
+const SCRAPE_SECTORS: { value: string; label: string }[] = [
+  { value: 'financial',     label: '💼 Comptable / Fiduciaire / Assurance' },
+  { value: 'home_services', label: '🔧 Services à domicile' },
+  { value: 'dental',        label: '🦷 Dentaire' },
+  { value: 'medical',       label: '⚕️ Médical / Para-médical' },
+  { value: 'law',           label: '⚖️ Avocat / Notaire' },
+  { value: 'auto',          label: '🚗 Garage auto' },
+  { value: 'salon',         label: '💇 Coiffure / Beauté' },
+  { value: 'real_estate',   label: '🏠 Immobilier' },
+  { value: 'restaurant',    label: '🍽️ Restaurant' },
+  { value: 'veterinary',    label: '🐾 Vétérinaire' },
+];
+
+const SCRAPE_CITIES: Record<string, string[]> = {
+  BE: ['Bruxelles', 'Anvers', 'Gand', 'Liège', 'Namur', 'Charleroi', 'Bruges'],
+  FR: ['Paris', 'Lyon', 'Marseille', 'Lille', 'Toulouse', 'Bordeaux', 'Nantes'],
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -132,6 +152,12 @@ export default function AdminLeads() {
   const [selected, setSelected] = useState<Lead | null>(null);
   const [callingId, setCallingId] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
+  // Search-scrape + favorites
+  const [country, setCountry] = useState<'BE' | 'FR'>('BE');
+  const [sector, setSector] = useState('financial');
+  const [favOnly, setFavOnly] = useState(false);
+  const [scraping, setScraping] = useState(false);
+  const [favBusy, setFavBusy] = useState<string | null>(null);
   const { toasts, add: toast, remove } = useToast();
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
@@ -140,12 +166,13 @@ export default function AdminLeads() {
     setRefreshing(true);
     try {
       const params = new URLSearchParams({
-        status: 'qualified',
         page: String(page),
         limit: String(LIMIT),
         ...(search && { search }),
         ...(niche && { niche }),
         ...(minScore !== 'all' && { minScore }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+        ...(favOnly && { favorite: 'true' }),
       });
       const { data: res } = await api.get<LeadsResponse>(`/prospects?${params}`);
       const list = res.leads ?? res.data ?? res.prospects ?? [];
@@ -157,10 +184,45 @@ export default function AdminLeads() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, search, niche, minScore, toast]);
+  }, [page, search, niche, minScore, statusFilter, favOnly, toast]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { setPage(1); }, [search, niche, minScore, statusFilter]);
+  useEffect(() => { setPage(1); }, [search, niche, minScore, statusFilter, favOnly]);
+
+  // ── Search → live scrape (Apify) ───────────────────────────────────────────
+  const runSearchScrape = useCallback(async () => {
+    setScraping(true);
+    try {
+      await api.post('/prospecting/trigger/custom-scrape', {
+        niches: [sector],
+        cities: SCRAPE_CITIES[country],
+        extraQueries: search.trim() ? [search.trim()] : [],
+      });
+      toast(`Scraping lancé — ${country} · ${SCRAPE_CITIES[country].length} villes`, 'success');
+      // Results arrive in the background; refresh a few times.
+      setTimeout(() => void load(), 4000);
+      setTimeout(() => void load(), 12000);
+    } catch (e: any) {
+      toast(e?.response?.data?.error ?? 'Erreur scraping (clé Apify ?)', 'error');
+    } finally {
+      setScraping(false);
+    }
+  }, [sector, country, search, load, toast]);
+
+  // ── Toggle favorite ─────────────────────────────────────────────────────────
+  const toggleFavorite = useCallback(async (lead: Lead) => {
+    setFavBusy(lead.id);
+    const next = !lead.isFavorite;
+    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, isFavorite: next } : l));
+    try {
+      await api.patch(`/prospects/${lead.id}/favorite`, { favorite: next });
+    } catch {
+      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, isFavorite: !next } : l));
+      toast('Erreur favori', 'error');
+    } finally {
+      setFavBusy(null);
+    }
+  }, [toast]);
 
   // ── Client-side status filter (applied after fetch) ───────────────────────
 
@@ -237,13 +299,14 @@ export default function AdminLeads() {
 
       {/* Filters */}
       <Card>
-        {/* Search */}
-        <div className="flex items-center gap-2.5 px-4 h-11">
+        {/* Search + scrape */}
+        <div className="flex items-center gap-2.5 px-4 h-12">
           <Search className="w-4 h-4 flex-shrink-0" style={{ color: pro.textTer }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher par nom, téléphone, email…"
+            onKeyDown={e => { if (e.key === 'Enter') void runSearchScrape(); }}
+            placeholder="Mot-clé à scraper (ex. fiduciaire) ou filtrer nom/téléphone…"
             className="flex-1 bg-transparent text-[13px] outline-none"
             style={{ color: pro.text }}
           />
@@ -252,14 +315,45 @@ export default function AdminLeads() {
               <X className="w-3.5 h-3.5" />
             </button>
           )}
+          <PrimaryBtn size="sm" onClick={() => void runSearchScrape()} disabled={scraping}>
+            {scraping ? '…' : (<><Search className="w-3.5 h-3.5" /> Rechercher &amp; scraper</>)}
+          </PrimaryBtn>
         </div>
 
-        {/* Niche + score + status filters */}
+        {/* Scrape target + list filters */}
         <div
           className="flex flex-wrap items-center gap-3 px-4 py-3"
           style={{ borderTop: `1px solid ${pro.border}` }}
         >
-          {/* Niche select */}
+          {/* Country for the scrape */}
+          <select
+            value={country}
+            onChange={e => setCountry(e.target.value as 'BE' | 'FR')}
+            className="h-8 px-3 text-[12px] rounded-xl outline-none cursor-pointer"
+            style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.text }}
+          >
+            <option value="BE">🇧🇪 Belgique</option>
+            <option value="FR">🇫🇷 France</option>
+          </select>
+
+          {/* Sector for the scrape */}
+          <select
+            value={sector}
+            onChange={e => setSector(e.target.value)}
+            className="h-8 px-3 text-[12px] rounded-xl outline-none cursor-pointer"
+            style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.text }}
+          >
+            {SCRAPE_SECTORS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+
+          <span className="w-px h-6" style={{ background: pro.border }} />
+
+          {/* Favorites */}
+          <Chip active={favOnly} onClick={() => setFavOnly(v => !v)}>
+            ⭐ Favoris
+          </Chip>
+
+          {/* Niche list filter */}
           <select
             value={niche}
             onChange={e => setNiche(e.target.value)}
@@ -406,6 +500,21 @@ export default function AdminLeads() {
                   className="flex items-center gap-1.5 justify-end flex-shrink-0"
                   onClick={e => e.stopPropagation()}
                 >
+                  <button
+                    type="button"
+                    onClick={() => void toggleFavorite(lead)}
+                    disabled={favBusy === lead.id}
+                    aria-label={lead.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                    aria-pressed={!!lead.isFavorite}
+                    className="w-7 h-7 grid place-items-center rounded-lg transition-colors hover:bg-white/[0.06]"
+                    title={lead.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                  >
+                    <Star
+                      className="w-4 h-4"
+                      style={{ color: lead.isFavorite ? '#f5b301' : pro.textTer }}
+                      fill={lead.isFavorite ? '#f5b301' : 'none'}
+                    />
+                  </button>
                   <GhostBtn
                     size="sm"
                     onClick={() => callLead(lead)}

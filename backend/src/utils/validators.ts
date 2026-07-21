@@ -33,6 +33,7 @@ export const prospectQuerySchema = z.object({
   minScore: z.coerce.number().optional(),
   maxScore: z.coerce.number().optional(),
   search: z.string().optional(),
+  favorite: z.enum(['true', 'false']).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   sortBy: z.string().default('createdAt'),
