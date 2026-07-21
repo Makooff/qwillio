@@ -124,6 +124,7 @@ model Prospect {
   priorityScore         Int                   @default(0) @map("priority_score")
   scriptVariantUsed     String?               @map("script_variant_used") @db.VarChar(10)
   state                 String?               @db.VarChar(50)
+  isFavorite            Boolean               @default(false) @map("is_favorite")
   calls                 Call[]
   campaignSends         CampaignSend[]
   clients               Client[]
