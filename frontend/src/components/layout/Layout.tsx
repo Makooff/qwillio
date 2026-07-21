@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Phone, Zap, Bot, Settings, ExternalLink, Building2,
+  LayoutDashboard, Users, Phone, Zap, Settings, ExternalLink,
 } from 'lucide-react';
 import { t } from '../../styles/admin-theme';
 import CommandPalette from '../ui/CommandPalette';
@@ -11,9 +11,7 @@ const PRIMARY_NAV: NavItem[] = [
   { path: '/admin',          icon: LayoutDashboard, label: 'Dashboard', exact: true },
   { path: '/admin/leads',    icon: Zap,             label: 'Leads' },
   { path: '/admin/calls',    icon: Phone,           label: 'Appels' },
-  { path: '/admin/agents',   icon: Bot,             label: 'Agents IA' },
   { path: '/admin/clients',  icon: Users,           label: 'Clients' },
-  { path: '/admin/agency',   icon: Building2,       label: 'Agences' },
   { path: '/admin/settings', icon: Settings,        label: 'Paramètres' },
 ];
 
@@ -21,7 +19,7 @@ const MOBILE_NAV: NavItem[] = [
   { icon: LayoutDashboard, label: 'Home',       path: '/admin',          exact: true },
   { icon: Zap,             label: 'Leads',      path: '/admin/leads' },
   { icon: Phone,           label: 'Appels',     path: '/admin/calls' },
-  { icon: Bot,             label: 'Agents',     path: '/admin/agents' },
+  { icon: Users,           label: 'Clients',    path: '/admin/clients' },
   { icon: Settings,        label: 'Paramètres', path: '/admin/settings' },
 ];
 
@@ -29,9 +27,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin':          'Dashboard',
   '/admin/leads':    'Leads',
   '/admin/calls':    'Appels',
-  '/admin/agents':   'Agents IA',
   '/admin/clients':  'Clients',
-  '/admin/agency':   'Agences & API',
   '/admin/settings': 'Paramètres',
   // sub-routes that still exist
   '/admin/billing':  'Facturation',
@@ -90,6 +86,7 @@ export default function Layout() {
       pageTitles={PAGE_TITLES}
       pageTitleFallback="Admin"
       mobileNav={MOBILE_NAV}
+      showHelp={false}
       userFallbackName="Admin"
       userFallbackInitials="AD"
       topBarExtras={

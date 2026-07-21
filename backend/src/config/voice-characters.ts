@@ -45,7 +45,12 @@ const EL = {
   rachel: '21m00Tcm4TlvDq8ikWAM', // EN female, calm
   bella: 'EXAVITQu4vr4xnSDxMaL',  // EN female, soft
   antoni: 'ErXwobaYiN019PkySvjV', // male, warm
-  amelie: 'pFZP5JQG7iQjIQuC4Bku', // FR female (Amélie)
+  // Founder-selected French voices (ElevenLabs).
+  frMarie:   'BilXxxvRLrA8YTteM2sl',
+  frCamille: 'd3AXX0BlgJHYFCuH9X88',
+  frLea:     'CYR0HqHoZAUmoZsLWPob',
+  frLucas:   'NEjemlRxgWmL5ZGJetsB',
+  frSofia:   'FvmvwvObRqIHojkEGh5N',
 } as const;
 
 export const CHARACTERS: Record<string, Character> = {
@@ -56,7 +61,7 @@ export const CHARACTERS: Record<string, Character> = {
     accent: 'FR',
     gender: 'f',
     // Default to the configured French voice so existing env keeps working.
-    voiceId: voice('marie', env.VAPI_VOICE_ID_FR || EL.amelie),
+    voiceId: voice('marie', env.VAPI_VOICE_ID_FR || EL.frMarie),
     model: MODEL,
     stability: 0.38,
     similarityBoost: 0.78,
@@ -73,7 +78,7 @@ export const CHARACTERS: Record<string, Character> = {
     language: 'fr',
     accent: 'FR',
     gender: 'f',
-    voiceId: voice('camille', EL.amelie),
+    voiceId: voice('camille', EL.frCamille),
     model: MODEL,
     stability: 0.5,
     similarityBoost: 0.8,
@@ -90,7 +95,7 @@ export const CHARACTERS: Record<string, Character> = {
     language: 'fr',
     accent: 'FR',
     gender: 'f',
-    voiceId: voice('lea', EL.amelie),
+    voiceId: voice('lea', EL.frLea),
     model: MODEL,
     stability: 0.3,
     similarityBoost: 0.75,
@@ -107,7 +112,7 @@ export const CHARACTERS: Record<string, Character> = {
     language: 'fr',
     accent: 'FR',
     gender: 'm',
-    voiceId: voice('lucas', EL.antoni),
+    voiceId: voice('lucas', EL.frLucas),
     model: MODEL,
     stability: 0.45,
     similarityBoost: 0.8,
@@ -117,6 +122,23 @@ export const CHARACTERS: Record<string, Character> = {
     taglineEn: 'Composed and professional, direct and reassuring.',
     previewFr: 'Bonjour, vous êtes bien au secrétariat. Que puis-je faire pour vous ?',
     previewEn: 'Hello, you’ve reached the front desk. What can I do for you?',
+  },
+  sofia: {
+    id: 'sofia',
+    name: 'Sofia',
+    language: 'fr',
+    accent: 'FR',
+    gender: 'f',
+    voiceId: voice('sofia', EL.frSofia),
+    model: MODEL,
+    stability: 0.4,
+    similarityBoost: 0.78,
+    style: 0.5,
+    personaKey: 'casual',
+    taglineFr: 'Naturelle et décontractée, ton conversationnel.',
+    taglineEn: 'Natural and easy-going, conversational tone.',
+    previewFr: 'Bonjour, ravie de vous entendre. Comment puis-je vous aider ?',
+    previewEn: 'Hi, lovely to hear from you. How can I help?',
   },
   ashley: {
     id: 'ashley',
