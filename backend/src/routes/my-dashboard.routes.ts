@@ -40,7 +40,9 @@ router.delete('/integrations/google-calendar', (req, res) => clientDashboardCont
 router.get('/settings', (req, res) => clientDashboardController.getMySettings(req, res));
 router.put('/settings', (req, res) => clientDashboardController.updateMySettings(req, res));
 router.get('/characters', (req, res) => clientDashboardController.getCharacters(req, res));
+router.get('/characters/:id/preview', (req, res) => clientDashboardController.characterPreview(req, res));
 router.post('/assistant/chat', (req, res) => clientDashboardController.assistantChat(req, res));
+router.get('/voice/live-config', (req, res) => clientDashboardController.voiceLiveConfig(req, res));
 router.post('/pause', (req, res) => clientDashboardController.pauseAgent(req, res));
 router.post('/resume', (req, res) => clientDashboardController.resumeAgent(req, res));
 

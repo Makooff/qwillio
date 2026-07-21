@@ -40,6 +40,9 @@ export const env = {
   VAPI_VOICE_ID_FR: process.env.VAPI_VOICE_ID_FR || 'pMsXgVXv3BLzUgSXRplE', // Amélie — French ElevenLabs voice
   // Optional Belgian-accent voice for BE prospects. Empty = fall back to the FR voice.
   VAPI_VOICE_ID_BE: process.env.VAPI_VOICE_ID_BE || '',
+  // Optional: direct ElevenLabs key for in-dashboard voice previews (real voice
+  // instead of the browser's robotic TTS). Empty = frontend falls back to TTS.
+  ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY || '',
   VAPI_VOICE_FALLBACK_1: process.env.VAPI_VOICE_FALLBACK_1 || 'MF3mGyEYCl7XYWbV9V6O', // Elli
   VAPI_VOICE_FALLBACK_2: process.env.VAPI_VOICE_FALLBACK_2 || 'EXAVITQu4vr4xnSDxMaL', // Bella
   VAPI_STABILITY: parseFloat(process.env.VAPI_STABILITY || '0.45'),

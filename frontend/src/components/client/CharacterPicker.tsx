@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Play, Square } from 'lucide-react';
+import api from '../../services/api';
 
 export interface Character {
   id: string;
@@ -39,15 +40,31 @@ export default function CharacterPicker({
   isFr?: boolean;
 }) {
   const [playing, setPlaying] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const preview = (c: Character) => {
-    if (playing === c.id) {
-      window.speechSynthesis?.cancel();
-      setPlaying(null);
-      return;
-    }
+  const stopAll = () => {
+    window.speechSynthesis?.cancel();
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+  };
+
+  // Try the real ElevenLabs voice first; fall back to browser TTS if the
+  // backend has no ElevenLabs key (503) or the request fails.
+  const preview = async (c: Character) => {
+    if (playing === c.id) { stopAll(); setPlaying(null); return; }
+    stopAll();
     setPlaying(c.id);
-    speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
+    try {
+      const { data } = await api.get(`/my-dashboard/characters/${c.id}/preview`, { responseType: 'blob' });
+      const url = URL.createObjectURL(data as Blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => { setPlaying(null); URL.revokeObjectURL(url); };
+      audio.onerror = () => { setPlaying(null); URL.revokeObjectURL(url); };
+      await audio.play();
+    } catch {
+      // No real voice available → robotic browser TTS as a last resort.
+      speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
+    }
   };
 
   return (
