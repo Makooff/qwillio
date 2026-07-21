@@ -42,6 +42,8 @@ export interface DashboardShellProps {
   mobileNav: NavItem[];
   /** e.g. "admin", "closeuse" — shown next to the Qwillio wordmark. */
   brandSuffix?: string;
+  /** Show the Help + Documentation links above the user footer (default true). */
+  showHelp?: boolean;
   /** Unique id — used so each dashboard has its own motion scope. */
   scope: string;
   /** Fallback label if user.name is empty. */
@@ -63,7 +65,7 @@ export default function DashboardShell(props: DashboardShellProps) {
     pageTitles, pageTitleFallback = 'Qwillio',
     mobileNav, brandSuffix, scope,
     userFallbackName, userFallbackInitials,
-    topBarExtras, overlay,
+    topBarExtras, overlay, showHelp = true,
   } = props;
 
   const { user, logout } = useAuthStore();
@@ -266,7 +268,7 @@ export default function DashboardShell(props: DashboardShellProps) {
       </nav>
 
       {/* Help + Docs */}
-      {!collapsed && (
+      {showHelp && !collapsed && (
         <div className="flex-shrink-0 space-y-0.5 mb-1">
           <a
             href="mailto:contact@qwillio.com"
@@ -494,7 +496,7 @@ function MobileBottomNav({
               borderRadius: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
             }}
             style={{
-              width: 60, height: 60,
+              width: 62, height: 62,
               top: '50%',
               x: '-50%', y: '-50%',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 60%, rgba(255,255,255,0.10) 100%)',
