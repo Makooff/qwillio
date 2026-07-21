@@ -133,7 +133,9 @@ export default function AdminProspecting() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      // Revoke after the browser has initialized the download — revoking
+      // synchronously cancels the download on Safari (macOS/iOS).
+      setTimeout(() => URL.revokeObjectURL(url), 100);
     } catch (e: any) {
       toast(e?.response?.data?.error ?? 'Erreur export CSV', 'error');
     } finally { setExporting(false); }
