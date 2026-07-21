@@ -461,7 +461,7 @@ function MobileBottomNav({
 
   return (
     <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
-      <div className="relative w-full flex items-center py-3">
+      <div className="relative w-full flex items-center py-1.5">
         {/* Morph-glass bar — fully translucent, heavy blur, glass edge highlights */}
         <div
           className="absolute inset-0 rounded-full pointer-events-none"
@@ -492,11 +492,12 @@ function MobileBottomNav({
                   ],
             }}
             transition={{
-              left: { type: 'spring', stiffness: 300, damping: 16, mass: 0.9 },
+              // Near-critically damped so long jumps (first ↔ last) don't overshoot.
+              left: { type: 'spring', stiffness: 280, damping: 30, mass: 0.8 },
               borderRadius: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
             }}
             style={{
-              width: 62, height: 62,
+              width: 64, height: 64,
               top: '50%',
               x: '-50%', y: '-50%',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 60%, rgba(255,255,255,0.10) 100%)',
@@ -516,7 +517,7 @@ function MobileBottomNav({
               to={item.path}
               onClick={() => onTap?.()}
               aria-label={item.label}
-              className="relative z-10 flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-h-[52px] transition-transform active:scale-[0.97]"
+              className="relative z-10 flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-h-[40px] transition-transform active:scale-[0.97]"
               style={{ color: active ? '#fff' : 'rgba(255,255,255,0.40)' }}
             >
               {/* Active item: just the icon, centred inside the water bubble */}
