@@ -5,6 +5,7 @@ import {
   Volume2, VolumeX, Loader2,
 } from 'lucide-react';
 import api from '../../services/api';
+import VapiLiveCall from './VapiLiveCall';
 
 const cn = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
@@ -183,6 +184,13 @@ export default function AssistantChat({
           {speak ? <Volume2 size={14} /> : <VolumeX size={14} />}
         </button>
       </div>
+
+      {/* Receptionist mode: live voice call with the real agent */}
+      {mode === 'receptionist' && (
+        <div className="px-3 pt-3">
+          <VapiLiveCall isFr={isFr} />
+        </div>
+      )}
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">

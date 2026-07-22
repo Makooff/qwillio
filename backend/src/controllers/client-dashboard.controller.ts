@@ -6,7 +6,7 @@ import { googleCalendarService } from '../services/google-calendar.service';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
-import { listCharacters, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN } from '../config/voice-characters';
+import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN } from '../config/voice-characters';
 import { buildVapiConfigPatch } from '../services/client-config.service';
 
 // OAuth state: per-user, signed, short-lived — the callback verifies it was
@@ -360,6 +360,100 @@ export class ClientDashboardController {
       res.json(result);
     } catch (error: any) {
       logger.error('assistantChat failed:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // GET /my-dashboard/voice/live-config — config to start an in-browser Vapi
+  // call with THIS client's receptionist (real voice + their config), like the
+  // public demo but personalized. Returns the Vapi public key + assistant.
+  async voiceLiveConfig(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: {
+          businessName: true, businessType: true, agentLanguage: true, country: true,
+          transferNumber: true, vapiConfig: true, agentName: true,
+        },
+      });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+      if (!env.VAPI_PUBLIC_KEY) return res.status(503).json({ error: 'Vapi public key not configured' });
+
+      const cfg = (client.vapiConfig as any) || {};
+      const isFr = (client as any).agentLanguage === 'fr'
+        || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String((client as any).country || '').toUpperCase());
+      const character = resolveCharacter({ characterId: cfg.characterId, isFrench: isFr, country: client.country });
+
+      const items = Array.isArray(cfg.items)
+        ? cfg.items.slice(0, 40).map((i: any) => `- ${i.name}${i.price ? ` (${i.price})` : ''}`).join('\n')
+        : '';
+      const systemPrompt = [
+        `You are ${character.name}, the AI phone receptionist for "${client.businessName}" (${client.businessType || 'business'}).`,
+        `Answer callers in ${isFr ? 'French' : 'English'}, warm and natural, one short turn at a time. This is a live test call.`,
+        cfg.faq ? `Business knowledge:\n${String(cfg.faq).slice(0, 2000)}` : '',
+        items ? `Services / prices:\n${items}` : '',
+        cfg.personalityNotes ? `Tone: ${String(cfg.personalityNotes).slice(0, 500)}` : '',
+        `Never invent prices or facts you don't have — offer to take a message. Book appointments when asked (collect name, phone, reason, preferred time).`,
+      ].filter(Boolean).join('\n');
+
+      const greeting = isFr
+        ? `${client.businessName}, bonjour ! Comment puis-je vous aider ?`
+        : `Hello, thanks for calling ${client.businessName}! How can I help you?`;
+
+      res.json({
+        publicKey: env.VAPI_PUBLIC_KEY,
+        assistant: {
+          model: { provider: 'openai', model: 'gpt-4o-mini', temperature: 0.7, maxTokens: 120,
+            messages: [{ role: 'system', content: systemPrompt }] },
+          voice: {
+            provider: '11labs', voiceId: character.voiceId, model: 'eleven_multilingual_v2',
+            stability: character.stability, similarityBoost: character.similarityBoost,
+            style: character.style, useSpeakerBoost: true, optimizeStreamingLatency: 3,
+          },
+          transcriber: isFr ? { provider: 'deepgram', language: 'fr' } : { provider: 'deepgram', language: 'en' },
+          firstMessage: greeting,
+          name: `${character.name} — ${client.businessName}`,
+          backgroundSound: 'office',
+          silenceTimeoutSeconds: 30,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // GET /my-dashboard/characters/:id/preview — real ElevenLabs voice sample
+  // (mp3). Falls back with 503 when no ELEVENLABS_API_KEY so the UI can use TTS.
+  async characterPreview(req: any, res: Response) {
+    try {
+      const id = String(req.params.id || '');
+      if (!isValidCharacterId(id)) return res.status(404).json({ error: 'Unknown character' });
+      if (!env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'No ElevenLabs key' });
+
+      const character = CHARACTERS[id];
+      const text = character.language === 'fr' ? character.previewFr : character.previewEn;
+      const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${character.voiceId}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': env.ELEVENLABS_API_KEY,
+          'Content-Type': 'application/json',
+          Accept: 'audio/mpeg',
+        },
+        body: JSON.stringify({
+          text,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: { stability: character.stability, similarity_boost: character.similarityBoost, style: character.style },
+        }),
+      });
+      if (!r.ok) {
+        logger.warn(`ElevenLabs preview ${r.status} for ${id}`);
+        return res.status(502).json({ error: 'TTS failed' });
+      }
+      const buf = Buffer.from(await r.arrayBuffer());
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.send(buf);
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   }
