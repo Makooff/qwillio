@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Bot, Phone, PhoneForwarded, Pause, Play, Check, AlertCircle,
@@ -93,6 +93,8 @@ export default function ClientReceptionist() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const hydrated = useRef(false);
+  const skipAutosave = useRef(false);
   const [toggling, setToggling] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -164,6 +166,9 @@ export default function ClientReceptionist() {
       setPersonalityPreset(s?.personalityPreset || 'warm');
       setPersonalityNotes(s?.personalityNotes || '');
       setCharacterId(s?.characterId || 'marie');
+      // Values below come from the server → don't trigger an auto-save.
+      hydrated.current = true;
+      skipAutosave.current = true;
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Erreur de chargement');
     } finally {
@@ -222,7 +227,7 @@ export default function ClientReceptionist() {
     });
   }, [loading]);
 
-  const handleSave = async () => {
+  const autoSave = useCallback(async () => {
     setSaving(true);
     try {
       await api.put('/my-dashboard/settings', {
@@ -237,10 +242,21 @@ export default function ClientReceptionist() {
         characterId,
       });
       setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      setTimeout(() => setSaved(false), 2000);
     } catch { /* silent */ }
     finally { setSaving(false); }
-  };
+  }, [businessName, businessType, transferNumber, agentName, agentLanguage,
+      contactPhone, address, city, postalCode, forwardingType, googleCalendarId,
+      items, weekHours, faq, personalityPreset, personalityNotes, characterId]);
+
+  // Auto-save: debounce after any edit. Skips the initial hydration from load()
+  // so we never fire a redundant save on mount.
+  useEffect(() => {
+    if (!hydrated.current) return;
+    if (skipAutosave.current) { skipAutosave.current = false; return; }
+    const t = setTimeout(() => { void autoSave(); }, 900);
+    return () => clearTimeout(t);
+  }, [autoSave]);
 
   const handleToggle = async () => {
     const status = overview?.client?.subscriptionStatus;
@@ -299,11 +315,14 @@ export default function ClientReceptionist() {
           <h1 className="text-[20px] font-semibold text-[#F2F2F2] tracking-tight">Réceptionniste IA</h1>
           <p className="text-[12.5px] text-[#9A9AA5]">Gérez votre agent IA et tous ses paramètres</p>
         </div>
-        <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-[#0B0B0D] bg-[#F2F2F2] rounded-xl hover:bg-white disabled:opacity-50 transition-colors">
-          {saving ? <div className="w-3.5 h-3.5 border-2 border-[#0B0B0D] border-t-transparent rounded-full animate-spin" /> : <Save size={13} />}
-          {saving ? 'Sauvegarde…' : saved ? 'Sauvegardé' : 'Sauvegarder'}
-        </button>
+        {/* Auto-save status — no manual save button; changes persist on their own */}
+        <span className="flex items-center gap-2 text-[12.5px]" style={{ color: saving ? '#9A9AA5' : saved ? '#22c55e' : '#6b6b76' }}>
+          {saving
+            ? (<><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> Enregistrement…</>)
+            : saved
+              ? (<><Check size={13} /> Enregistré</>)
+              : (<><Save size={13} /> Enregistrement auto</>)}
+        </span>
       </div>
 
       {/* —— Assistant conversationnel : parler pour configurer/onboarder —— */}

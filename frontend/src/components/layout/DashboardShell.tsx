@@ -517,7 +517,7 @@ function MobileBottomNav({
               to={item.path}
               onClick={() => onTap?.()}
               aria-label={item.label}
-              className="relative z-10 flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-h-[40px] transition-transform active:scale-[0.97]"
+              className="relative z-10 flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-h-[52px] transition-transform active:scale-[0.97]"
               style={{ color: active ? '#fff' : 'rgba(255,255,255,0.40)' }}
             >
               {/* Active item: just the icon, centred inside the water bubble */}
