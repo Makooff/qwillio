@@ -37,30 +37,16 @@ export default function QwillioLoader({
         role="img"
       >
         <defs>
-          <linearGradient id="qwlA" x1="30%" y1="0%" x2="70%" y2="100%">
-            <stop offset="0%" stopColor="#9A86FF" />
-            <stop offset="55%" stopColor="#7A5FFF" />
-            <stop offset="100%" stopColor="#7349FE" />
-          </linearGradient>
-          <linearGradient id="qwlB" x1="30%" y1="0%" x2="70%" y2="100%">
-            <stop offset="0%" stopColor="#DD93FC" />
-            <stop offset="55%" stopColor="#CD6AFB" />
-            <stop offset="100%" stopColor="#B845F0" />
-          </linearGradient>
-          {/* Soft aura gradients — lighter at the core, fade to transparent */}
+          {/* Aura only — the bubbles themselves are flat, like the static mark */}
           <radialGradient id="qwlAuraA" cx="50%" cy="50%" r="55%">
-            <stop offset="0%" stopColor="#A5A4FF" />
+            <stop offset="0%" stopColor="#7A5FFF" />
             <stop offset="55%" stopColor="#7A5FFF" stopOpacity="0.8" />
             <stop offset="100%" stopColor="#7349FE" stopOpacity="0" />
           </radialGradient>
           <radialGradient id="qwlAuraB" cx="50%" cy="50%" r="55%">
-            <stop offset="0%" stopColor="#DDB0FF" />
+            <stop offset="0%" stopColor="#CD6AFB" />
             <stop offset="55%" stopColor="#CD6AFB" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#B845F0" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="qwlHi" cx="35%" cy="25%" r="60%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.2" />
-            <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
+            <stop offset="100%" stopColor="#CD6AFB" stopOpacity="0" />
           </radialGradient>
           <clipPath id="qwlClip">
             <circle cx="196" cy="256" r="176" />
@@ -76,34 +62,32 @@ export default function QwillioLoader({
             <circle cx="316" cy="256" r="176" fill="url(#qwlAuraB)" filter="url(#qwlAuraBlur)" />
           </g>
           <g className="qw-orb__body">
-            <circle cx="316" cy="256" r="176" fill="url(#qwlB)" opacity="0.92" />
-            <circle cx="316" cy="256" r="176" fill="url(#qwlHi)" />
+            <circle cx="316" cy="256" r="176" fill="#CD6AFB" />
           </g>
         </g>
 
-        {/* ══════ LEFT bubble (blue) — on top of violet ══════ */}
+        {/* ══════ LEFT bubble (indigo) — on top of violet ══════ */}
         <g className="qw-orb qw-orb--left">
           <g className="qw-orb__aura">
             <circle cx="196" cy="256" r="176" fill="url(#qwlAuraA)" filter="url(#qwlAuraBlur)" />
           </g>
           <g className="qw-orb__body">
-            <circle cx="196" cy="256" r="176" fill="url(#qwlA)" opacity="0.92" />
-            <circle cx="196" cy="256" r="176" fill="url(#qwlHi)" />
+            <circle cx="196" cy="256" r="176" fill="#7A5FFF" />
           </g>
         </g>
 
         {/* Overlap deepening — fades in once the bubbles have settled */}
         <g className="qw-loader__overlap">
-          <circle cx="316" cy="256" r="176" fill="#5B2EE0" opacity="0.58" clipPath="url(#qwlClip)" />
+          <circle cx="316" cy="256" r="176" fill="#7349FE" clipPath="url(#qwlClip)" />
         </g>
 
         {/* Letters — pure fade-in after the logo has formed */}
         <g className="qw-loader__letters">
           <g transform="translate(196 256) scale(0.685)">
-            <path fill="#ffffff" d={Q_PATH} />
+            <path fill="#E8EDFB" d={Q_PATH} />
           </g>
           <g transform="translate(316 256) scale(0.685)">
-            <path fill="#ffffff" d={W_PATH} />
+            <path fill="#E8EDFB" d={W_PATH} />
           </g>
         </g>
       </svg>

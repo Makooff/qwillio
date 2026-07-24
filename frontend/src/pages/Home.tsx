@@ -1,8 +1,5 @@
-﻿import { useRef, useCallback, useEffect } from 'react';
-import {
-  motion, useScroll, useTransform, useMotionValue, useSpring, useMotionValueEvent,
-  type MotionValue,
-} from 'framer-motion';
+﻿import { useRef, useCallback } from 'react';
+import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
 import {
@@ -45,129 +42,60 @@ const INDUSTRY_HREFS: (string | null)[] = [
    POUR QUI ? — scroll-drawn brand stroke with industries appearing around it
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Niche bubbles floating around the band. `at` = scroll progress when the bubble
-   surfaces; x/y are centre positions kept clear of the middle where the title
-   sits; `m` scales the bubble so the cluster does not read as a uniform grid. */
-const NICHE_SPOTS: Array<{ at: number; x: string; y: string; m: number }> = [
-  { at: 0.04, x: '14%', y: '20%', m: 1.10 },
-  { at: 0.07, x: '34%', y: '12%', m: 0.86 },
-  { at: 0.10, x: '66%', y: '12%', m: 1.00 },
-  { at: 0.13, x: '86%', y: '21%', m: 0.90 },
-  { at: 0.16, x: '10%', y: '45%', m: 0.95 },
-  { at: 0.19, x: '90%', y: '46%', m: 1.08 },
-  { at: 0.22, x: '13%', y: '70%', m: 1.00 },
-  { at: 0.25, x: '87%', y: '71%', m: 0.88 },
-  { at: 0.28, x: '29%', y: '76%', m: 1.06 },
-  { at: 0.31, x: '50%', y: '80%', m: 0.92 },
-  { at: 0.34, x: '71%', y: '76%', m: 0.84 },
-  { at: 0.37, x: '48%', y: '17%', m: 1.02 },
+/* Industry chips: side-anchored (left OR right offset) so a chip can never
+   overflow the viewport edge, with breathing room between neighbours.
+   `at` = scroll progress when they pop, in sync with the band being drawn. */
+const SECTOR_SPOTS: Array<{ at: number; side: 'left' | 'right'; off: string; y: string }> = [
+  { at: 0.06, side: 'left',  off: '30%', y: '8%'  },
+  { at: 0.10, side: 'right', off: '26%', y: '14%' },
+  { at: 0.15, side: 'left',  off: '22%', y: '22%' },
+  { at: 0.20, side: 'right', off: '24%', y: '27%' },
+  { at: 0.25, side: 'left',  off: '12%', y: '33%' },
+  { at: 0.30, side: 'right', off: '16%', y: '38%' },
+  { at: 0.35, side: 'left',  off: '18%', y: '63%' },
+  { at: 0.40, side: 'right', off: '12%', y: '68%' },
+  { at: 0.44, side: 'left',  off: '26%', y: '75%' },
+  { at: 0.48, side: 'right', off: '20%', y: '80%' },
+  { at: 0.52, side: 'left',  off: '10%', y: '86%' },
+  { at: 0.56, side: 'right', off: '28%', y: '91%' },
 ];
 
-const BUBBLE_SPRING = { stiffness: 170, damping: 20, mass: 0.7 } as const;
-
-/* A niche as a levitating water bubble: mauve body, white type, and a specular
-   highlight. It drifts away from the cursor as it approaches, swells on hover,
-   and (when the niche has a page) reveals its call to action. */
-function NicheBubble({ name, href, spot, progress, pointer, isFr, index }: {
+function SectorChip({ name, href, spot, progress }: {
   name: string;
   href?: string | null;
-  spot: (typeof NICHE_SPOTS)[number];
+  spot: (typeof SECTOR_SPOTS)[number];
   progress: MotionValue<number>;
-  pointer: { x: MotionValue<number>; y: MotionValue<number> };
-  isFr: boolean;
-  index: number;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const frame = useRef(0);
-
   const opacity = useTransform(progress, [spot.at, spot.at + 0.05], [0, 1]);
-  const rise = useTransform(progress, [spot.at, spot.at + 0.08], [40, 0]);
-  const pop = useTransform(progress, [spot.at, spot.at + 0.08], [0.5, 1]);
+  const scale = useTransform(progress, [spot.at, spot.at + 0.07], [0.6, 1]);
+  const y = useTransform(progress, [spot.at, spot.at + 0.07], [26, 0]);
+  const baseClass =
+    'absolute whitespace-nowrap rounded-full bg-white px-4 py-2 text-[13px] font-medium text-[#1d1d1f] shadow-[0_10px_30px_-12px_rgba(20,16,50,0.25)]';
+  const style = {
+    [spot.side]: spot.off,
+    top: spot.y,
+    opacity,
+    scale,
+    y,
+    border: '1px solid rgba(29,29,31,0.12)',
+  } as const;
 
-  // Cursor repulsion + proximity swell, both spring-smoothed so the bubble
-  // never snaps. Rect is read inside a rAF so a fast mouse cannot thrash layout.
-  const driftX = useSpring(0, BUBBLE_SPRING);
-  const driftY = useSpring(0, BUBBLE_SPRING);
-  const near = useSpring(1, BUBBLE_SPRING);
-
-  useMotionValueEvent(pointer.x, 'change', () => {
-    if (frame.current) return;
-    frame.current = requestAnimationFrame(() => {
-      frame.current = 0;
-      const el = ref.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const dx = r.left + r.width / 2 - pointer.x.get();
-      const dy = r.top + r.height / 2 - pointer.y.get();
-      const dist = Math.hypot(dx, dy);
-      const REACH = 200;
-      if (!dist || dist > REACH) {
-        driftX.set(0); driftY.set(0); near.set(1);
-        return;
-      }
-      const force = 1 - dist / REACH;
-      driftX.set((dx / dist) * force * 26);
-      driftY.set((dy / dist) * force * 26);
-      near.set(1 + force * 0.08);
-    });
-  });
-
-  useEffect(() => () => { if (frame.current) cancelAnimationFrame(frame.current); }, []);
-
-  const size = `calc(clamp(88px, 11.5vw, 152px) * ${spot.m})`;
-  const Wrapper = href ? MotionLink : motion.div;
+  if (href) {
+    return (
+      <MotionLink
+        to={href}
+        className={`${baseClass} transition-colors hover:border-[#7a5fff] hover:text-[#7a5fff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff] active:scale-[0.97]`}
+        style={style}
+      >
+        {name}
+      </MotionLink>
+    );
+  }
 
   return (
-    <motion.div
-      className="absolute -translate-x-1/2 -translate-y-1/2"
-      style={{ left: spot.x, top: spot.y, opacity, y: rise, scale: pop }}
-    >
-      {/* Idle levitation, decoupled from the cursor drift below it */}
-      <motion.div
-        animate={{ y: [0, -11, 0] }}
-        transition={{ duration: 5.4 + index * 0.37, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <motion.div ref={ref} style={{ x: driftX, y: driftY, scale: near }}>
-          <Wrapper
-            {...(href ? { to: href } : {})}
-            className="group relative grid place-items-center rounded-full text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7349fe] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fafaf8]"
-            style={{
-              width: size,
-              height: size,
-              // Highlight stays tight to the top-left so the body reads as
-              // saturated mauve and the white label keeps its contrast.
-              background:
-                'radial-gradient(circle at 30% 24%, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.20) 9%, rgba(205,106,251,0.92) 32%, rgba(115,73,254,0.97) 100%)',
-              border: '1px solid rgba(255,255,255,0.40)',
-              boxShadow:
-                'inset 0 -16px 28px rgba(74,36,168,0.50), inset 0 10px 20px rgba(255,255,255,0.28), 0 22px 46px -14px rgba(122,95,255,0.55)',
-              backdropFilter: 'blur(2px)',
-            }}
-            whileHover={{ scale: 1.14 }}
-            whileTap={href ? { scale: 1.05 } : undefined}
-            transition={{ type: 'spring', ...BUBBLE_SPRING }}
-          >
-            {/* Specular glint — what sells it as water rather than a flat disc */}
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute left-[19%] top-[13%] h-[13%] w-[21%] rounded-full blur-[2px]"
-              style={{ background: 'rgba(255,255,255,0.75)' }}
-            />
-            <span
-              className="relative px-3 text-[clamp(11px,1.05vw,13px)] font-semibold leading-[1.15] text-white"
-              style={{ textShadow: '0 1px 8px rgba(52,18,110,0.55)' }}
-            >
-              {name}
-            </span>
-            {href && (
-              <span className="pointer-events-none absolute bottom-[17%] text-[10px] font-medium text-white/0 opacity-0 transition-opacity duration-200 group-hover:text-white/85 group-hover:opacity-100">
-                {isFr ? 'En savoir plus' : 'Learn more'}
-              </span>
-            )}
-          </Wrapper>
-        </motion.div>
-      </motion.div>
-    </motion.div>
+    <motion.span className={baseClass} style={style}>
+      {name}
+    </motion.span>
   );
 }
 
@@ -179,21 +107,13 @@ function IndustriesStroke({ isFr, industries }: { isFr: boolean; industries: str
   const textOpacity = useTransform(scrollYProgress, [0, 0.10, 0.88, 0.98], [0, 1, 1, 0]);
   const textScale = useTransform(scrollYProgress, [0, 0.14], [0.92, 1]);
 
-  const pointerX = useMotionValue(-9999);
-  const pointerY = useMotionValue(-9999);
-  const pointer = { x: pointerX, y: pointerY };
-
   return (
     <section
       ref={container}
       aria-labelledby="industries-heading"
       className="relative h-[280vh] bg-[#fafaf8] border-y border-[#1d1d1f]/8"
     >
-      <div
-        className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden"
-        onPointerMove={(e) => { pointerX.set(e.clientX); pointerY.set(e.clientY); }}
-        onPointerLeave={() => { pointerX.set(-9999); pointerY.set(-9999); }}
-      >
+      <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden">
         {/* Brand band, drawn by scroll */}
         <svg
           width="1500"
@@ -228,19 +148,16 @@ function IndustriesStroke({ isFr, industries }: { isFr: boolean; industries: str
           />
         </svg>
 
-        {/* Niches surface as the band is drawn. Each bubble that maps to a
-            sector/partner page is a real navigation link (not aria-hidden). */}
+        {/* Sectors pop in around the band as it draws. Each chip that maps to
+            a sector/partner page is a real navigation link (not aria-hidden). */}
         <nav className="absolute inset-0 z-20" aria-label={isFr ? 'Secteurs' : 'Industries'}>
           {industries.map((name, i) => (
-            <NicheBubble
+            <SectorChip
               key={name}
               name={name}
               href={INDUSTRY_HREFS[i]}
-              spot={NICHE_SPOTS[i % NICHE_SPOTS.length]}
+              spot={SECTOR_SPOTS[i % SECTOR_SPOTS.length]}
               progress={scrollYProgress}
-              pointer={pointer}
-              isFr={isFr}
-              index={i}
             />
           ))}
         </nav>

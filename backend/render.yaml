@@ -26,6 +26,10 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      # Required for the real voice previews in the client dashboard. Without it
+      # the preview endpoint returns 503 and the UI falls back to browser TTS.
+      - key: ELEVENLABS_API_KEY
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: TWILIO_ACCOUNT_SID

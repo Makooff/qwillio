@@ -47,7 +47,7 @@
       color: #fff; transition: opacity 0.4s, visibility 0.4s;
     }
     #loading-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-    .loader-logo { font-size: 48px; margin-bottom: 24px; animation: pulse-logo 1.5s ease-in-out infinite; }
+    .loader-logo { font-size: 0; margin-bottom: 24px; animation: pulse-logo 1.5s ease-in-out infinite; }
     @keyframes pulse-logo { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } }
     .loader-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
     .loader-bar-inner { width: 40%; height: 100%; background: #fff; border-radius: 2px; animation: loader-slide 1.2s ease-in-out infinite; }
@@ -464,7 +464,7 @@
 
   <!-- Loading Screen -->
   <div id="loading-screen">
-    <div class="loader-logo">&#x26A1;</div>
+    <div class="loader-logo"><img src="/favicon.svg" alt="Qwillio" width="56" height="56"></div>
     <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Qwillio</div>
     <div style="font-size: 14px; opacity: 0.7; margin-bottom: 20px;">Loading your dashboard...</div>
     <div class="loader-bar"><div class="loader-bar-inner"></div></div>

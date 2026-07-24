@@ -40,6 +40,7 @@ export default function CharacterPicker({
   isFr?: boolean;
 }) {
   const [playing, setPlaying] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const stopAll = () => {
@@ -48,7 +49,9 @@ export default function CharacterPicker({
   };
 
   // Try the real ElevenLabs voice first; fall back to browser TTS if the
-  // backend has no ElevenLabs key (503) or the request fails.
+  // backend has no ElevenLabs key (503) or the request fails. The fallback is
+  // announced — silently playing a robotic voice makes a misconfigured server
+  // look like a bad voice.
   const preview = async (c: Character) => {
     if (playing === c.id) { stopAll(); setPlaying(null); return; }
     stopAll();
@@ -60,14 +63,34 @@ export default function CharacterPicker({
       audioRef.current = audio;
       audio.onended = () => { setPlaying(null); URL.revokeObjectURL(url); };
       audio.onerror = () => { setPlaying(null); URL.revokeObjectURL(url); };
+      setNotice(null);
       await audio.play();
-    } catch {
-      // No real voice available → robotic browser TTS as a last resort.
+    } catch (err) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      setNotice(
+        status === 503
+          ? (isFr
+            ? 'Voix réelles indisponibles : la clé ElevenLabs n\'est pas configurée sur le serveur. Aperçu joué avec la voix du navigateur.'
+            : 'Real voices unavailable: the ElevenLabs key is not configured on the server. Playing the browser voice instead.')
+          : (isFr
+            ? 'Aperçu ElevenLabs indisponible pour le moment. Aperçu joué avec la voix du navigateur.'
+            : 'ElevenLabs preview unavailable right now. Playing the browser voice instead.'),
+      );
       speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
     }
   };
 
   return (
+    <>
+    {notice && (
+      <p
+        role="status"
+        className="mb-2 rounded-lg px-3 py-2 text-[11px] leading-snug"
+        style={{ background: 'rgba(221,147,252,0.10)', border: '1px solid rgba(221,147,252,0.30)', color: '#e7bafd' }}
+      >
+        {notice}
+      </p>
+    )}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {characters.map(c => {
         const sel = value === c.id;
@@ -108,5 +131,6 @@ export default function CharacterPicker({
         );
       })}
     </div>
+    </>
   );
 }

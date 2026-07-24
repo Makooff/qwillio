@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { ArrowRight, Mail, Check, Eye, EyeOff, Phone, BarChart2, Clock } from 'lucide-react';
+import { ArrowRight, Mail, Check, Eye, EyeOff } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 import { useSEO } from '../hooks/useSEO';
@@ -241,37 +241,19 @@ export default function Register() {
       {/* ── RIGHT — Qwillio brand panel (desktop) ── */}
       <section className="hidden lg:block flex-1 relative p-4">
         <div
-          className="auth-slide-right auth-d2 absolute inset-4 rounded-3xl overflow-hidden border flex flex-col justify-between p-12"
-          style={{ background: 'linear-gradient(160deg, oklch(13% 0.02 265) 0%, oklch(9% 0.012 265) 100%)', borderColor: D.border }}
+          className="auth-slide-right auth-d2 absolute inset-4 rounded-3xl overflow-hidden border flex flex-col justify-center p-12"
+          style={{ background: 'linear-gradient(150deg, #7349fe 0%, #7a5fff 45%, #cd6afb 100%)', borderColor: 'rgba(255,255,255,0.14)' }}
         >
-          <div className="absolute pointer-events-none" style={{ inset: 0, background: 'radial-gradient(ellipse 460px 360px at 85% 8%, oklch(56% 0.02 265 / 0.10) 0%, transparent 70%)' }} />
-
-          <span className="relative inline-block w-fit text-[11px] font-semibold uppercase tracking-[0.1em] px-3 py-1.5 rounded-full" style={{ background: D.accentDim, color: D.accentHi, border: `1px solid ${D.accentBrd}` }}>
-            Essai sans engagement
-          </span>
+          {/* Soft light source, top-right, to keep the flat gradient from reading as a swatch */}
+          <div className="absolute pointer-events-none" style={{ inset: 0, background: 'radial-gradient(ellipse 520px 400px at 82% 6%, rgba(255,255,255,0.22) 0%, transparent 70%)' }} />
 
           <div className="relative">
-            <h2 className="font-semibold tracking-[-0.035em] leading-[1.1]" style={{ fontSize: 'clamp(1.9rem, 2.6vw, 2.7rem)', color: D.text }}>
-              Lancez votre <span style={{ color: D.accentHi }}>réceptionniste IA</span> en quelques minutes.
+            <h2 className="font-semibold tracking-[-0.035em] leading-[1.1]" style={{ fontSize: 'clamp(1.9rem, 2.6vw, 2.7rem)', color: 'rgba(255,255,255,0.72)' }}>
+              Lancez votre <span className="text-white">réceptionniste IA</span> en quelques minutes.
             </h2>
-            <p className="mt-4 text-[15px] leading-[1.65] max-w-[380px]" style={{ color: D.text2 }}>
+            <p className="mt-4 text-[15px] leading-[1.65] max-w-[380px]" style={{ color: 'rgba(255,255,255,0.76)' }}>
               Configurez, testez, mettez en ligne. Vos appels répondus 24h/24 dès aujourd'hui.
             </p>
-          </div>
-
-          <div className="relative flex flex-col gap-3.5">
-            {[
-              { icon: <Clock size={15} />, text: 'Premiers appels en 10 minutes' },
-              { icon: <Phone size={15} />, text: 'Sans engagement annuel' },
-              { icon: <BarChart2 size={15} />, text: 'Support FR 7j/7' },
-            ].map((f, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="w-8 h-8 rounded-[9px] flex items-center justify-center shrink-0" style={{ background: D.accentDim, border: `1px solid ${D.accentBrd}`, color: D.accentHi }}>
-                  {f.icon}
-                </span>
-                <span className="text-[14px] font-medium" style={{ color: D.text2 }}>{f.text}</span>
-              </div>
-            ))}
           </div>
         </div>
       </section>

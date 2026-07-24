@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { ArrowRight, Eye, EyeOff, Phone, BarChart2, Clock } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 import { useSEO } from '../hooks/useSEO';
@@ -205,50 +205,28 @@ export default function Login() {
       {/* ── RIGHT — Qwillio brand panel (desktop) ── */}
       <section className="hidden lg:block flex-1 relative p-4">
         <div
-          className="auth-slide-right auth-d2 absolute inset-4 rounded-3xl overflow-hidden border flex flex-col justify-between p-12"
+          className="auth-slide-right auth-d2 absolute inset-4 rounded-3xl overflow-hidden border flex flex-col justify-center p-12"
           style={{
-            background: 'linear-gradient(160deg, oklch(13% 0.02 265) 0%, oklch(9% 0.012 265) 100%)',
-            borderColor: D.border,
+            background: 'linear-gradient(150deg, #7349fe 0%, #7a5fff 45%, #cd6afb 100%)',
+            borderColor: 'rgba(255,255,255,0.14)',
           }}
         >
-          {/* restrained indigo wash — single, soft, top-right */}
+          {/* Soft light source, top-right, to keep the flat gradient from reading as a swatch */}
           <div
             className="absolute pointer-events-none"
-            style={{ inset: 0, background: 'radial-gradient(ellipse 460px 360px at 85% 8%, oklch(56% 0.02 265 / 0.10) 0%, transparent 70%)' }}
+            style={{ inset: 0, background: 'radial-gradient(ellipse 520px 400px at 82% 6%, rgba(255,255,255,0.22) 0%, transparent 70%)' }}
           />
 
-          <span
-            className="relative inline-block w-fit text-[11px] font-semibold uppercase tracking-[0.1em] px-3 py-1.5 rounded-full"
-            style={{ background: D.accentDim, color: D.accentHi, border: `1px solid ${D.accentBrd}` }}
-          >
-            Plateforme IA vocale
-          </span>
-
           <div className="relative">
-            <h2 className="font-semibold tracking-[-0.035em] leading-[1.1]" style={{ fontSize: 'clamp(1.9rem, 2.6vw, 2.7rem)', color: D.text }}>
-              Vos prospects <span style={{ color: D.accentHi }}>appelés</span>. Vos rendez-vous pris.
+            <h2
+              className="font-semibold tracking-[-0.035em] leading-[1.1]"
+              style={{ fontSize: 'clamp(1.9rem, 2.6vw, 2.7rem)', color: 'rgba(255,255,255,0.72)' }}
+            >
+              Vos prospects <span className="text-white">appelés</span>. Vos rendez-vous pris.
             </h2>
-            <p className="mt-4 text-[15px] leading-[1.65] max-w-[380px]" style={{ color: D.text2 }}>
+            <p className="mt-4 text-[15px] leading-[1.65] max-w-[380px]" style={{ color: 'rgba(255,255,255,0.76)' }}>
               L'IA vocale B2B qui prospecte et décroche pendant que votre équipe se concentre sur la fermeture.
             </p>
-          </div>
-
-          <div className="relative flex flex-col gap-3.5">
-            {[
-              { icon: <Phone size={15} />, text: "Appels IA indiscernables d'un humain" },
-              { icon: <BarChart2 size={15} />, text: 'Qualification automatique des leads' },
-              { icon: <Clock size={15} />, text: 'Premiers rendez-vous le jour même' },
-            ].map((f, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span
-                  className="w-8 h-8 rounded-[9px] flex items-center justify-center shrink-0"
-                  style={{ background: D.accentDim, border: `1px solid ${D.accentBrd}`, color: D.accentHi }}
-                >
-                  {f.icon}
-                </span>
-                <span className="text-[14px] font-medium" style={{ color: D.text2 }}>{f.text}</span>
-              </div>
-            ))}
           </div>
         </div>
       </section>
