@@ -2,7 +2,11 @@
 import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
-import { Phone, Bot, ArrowRight, Play, Clock, Mic, Calendar, MessageSquare, PhoneCall, Settings2, Zap } from 'lucide-react';
+import {
+  Phone, Bot, ArrowRight, Play, Clock, Mic, Calendar, MessageSquare,
+  Users, Mail, Receipt, Package, Wallet, CreditCard, Gift, FileText, Headphones,
+  type LucideIcon,
+} from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
@@ -174,8 +178,7 @@ interface StepCard {
   num: string;
   title: string;
   desc: string;
-  points: string[];
-  icon: typeof PhoneCall;
+  points: { icon: LucideIcon; label: string }[];
   accent: string;
 }
 
@@ -192,36 +195,28 @@ function StackStep({ step, index, total }: { step: StepCard; index: number; tota
         style={{ scale, border: '1px solid rgba(29,29,31,0.10)', boxShadow: '0 30px 80px rgba(20,16,50,0.14)' }}
       >
         <div className="flex min-h-[380px] flex-col justify-between md:min-h-[420px]">
-          <div className="flex items-start justify-between gap-6">
-            <div>
-              <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: step.accent }}>
-                {step.num}
-              </p>
-              <h3 className="max-w-[560px] text-[clamp(1.7rem,4vw,3rem)] font-semibold leading-[1.04] tracking-[-0.03em]">
-                {step.title}
-              </h3>
-            </div>
-            <span
-              className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl"
-              style={{ background: `${step.accent}14`, color: step.accent, border: `1px solid ${step.accent}33` }}
-              aria-hidden="true"
-            >
-              <step.icon size={24} />
-            </span>
+          <div>
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: step.accent }}>
+              {step.num}
+            </p>
+            <h3 className="max-w-[560px] text-[clamp(1.7rem,4vw,3rem)] font-semibold leading-[1.04] tracking-[-0.03em]">
+              {step.title}
+            </h3>
           </div>
 
           <div>
             <p className="mb-8 max-w-[480px] text-base leading-relaxed text-[#525257] md:text-lg">
               {step.desc}
             </p>
-            <ul className="flex flex-wrap gap-2" role="list">
+            <ul className="grid gap-2.5 sm:grid-cols-3" role="list">
               {step.points.map((p) => (
                 <li
-                  key={p}
-                  className="rounded-full px-3.5 py-1.5 text-[13px] text-[#1d1d1f]"
-                  style={{ background: 'rgba(29,29,31,0.04)', border: '1px solid rgba(29,29,31,0.12)' }}
+                  key={p.label}
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-medium text-[#1d1d1f]"
+                  style={{ background: 'rgba(29,29,31,0.04)', border: '1px solid rgba(29,29,31,0.10)' }}
                 >
-                  {p}
+                  <p.icon size={14} className="flex-shrink-0" style={{ color: step.accent }} aria-hidden="true" />
+                  {p.label}
                 </li>
               ))}
             </ul>
@@ -428,20 +423,23 @@ export default function Home() {
                     </p>
                   </div>
 
-                  <div className="mt-10 flex flex-wrap gap-2">
-                    {(isFr
-                      ? ['Voix française naturelle', 'Calendrier auto', 'CRM intégré', 'SMS de suivi']
-                      : ['Natural voice', 'Auto-calendar', 'CRM sync', 'SMS follow-up']
-                    ).map((f) => (
-                      <span
-                        key={f}
-                        className="text-xs px-3 py-1.5 rounded-full"
-                        style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  <ul className="mt-10 grid grid-cols-2 gap-2.5" role="list">
+                    {[
+                      { icon: Mic,           label: isFr ? 'Voix française naturelle' : 'Natural voice' },
+                      { icon: Calendar,      label: isFr ? 'Calendrier auto' : 'Auto-calendar' },
+                      { icon: Users,         label: isFr ? 'CRM intégré' : 'CRM sync' },
+                      { icon: MessageSquare, label: isFr ? 'SMS de suivi' : 'SMS follow-up' },
+                    ].map((f) => (
+                      <li
+                        key={f.label}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
+                        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}
                       >
-                        {f}
-                      </span>
+                        <f.icon size={14} className="flex-shrink-0" style={{ color: '#a5b4fc' }} aria-hidden="true" />
+                        <span className="text-xs font-medium text-white">{f.label}</span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
 
                   <div className="mt-10 flex items-baseline justify-between gap-4 flex-wrap">
                     <p className="text-white/55 text-sm">
@@ -504,17 +502,17 @@ export default function Home() {
 
                   <ul className="mt-10 grid grid-cols-2 gap-2.5" role="list">
                     {[
-                      { icon: MessageSquare, label: 'Email' },
-                      { icon: Calendar,      label: isFr ? 'Facturation' : 'Billing' },
-                      { icon: Mic,           label: isFr ? 'Inventaire' : 'Inventory' },
-                      { icon: Clock,         label: isFr ? 'Paiements' : 'Payments' },
+                      { icon: Mail,    label: 'Email' },
+                      { icon: Receipt, label: isFr ? 'Facturation' : 'Billing' },
+                      { icon: Package, label: isFr ? 'Inventaire' : 'Inventory' },
+                      { icon: Wallet,  label: isFr ? 'Paiements' : 'Payments' },
                     ].map((m) => (
                       <li
                         key={m.label}
                         className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
                         style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}
                       >
-                        <m.icon size={14} style={{ color: '#d8b4fe' }} aria-hidden="true" />
+                        <m.icon size={14} className="flex-shrink-0" style={{ color: '#d8b4fe' }} aria-hidden="true" />
                         <span className="text-xs font-medium text-white">{m.label}</span>
                       </li>
                     ))}
@@ -565,10 +563,11 @@ export default function Home() {
                   desc: isFr
                     ? 'Créez votre compte en 2 minutes. Sans carte. Premier mois offert.'
                     : 'Create your account in 2 minutes. No card. First month free.',
-                  points: isFr
-                    ? ['2 minutes', 'Sans carte bancaire', '1er mois offert']
-                    : ['2 minutes', 'No credit card', '1st month free'],
-                  icon: Zap,
+                  points: [
+                    { icon: Clock,      label: '2 minutes' },
+                    { icon: CreditCard, label: isFr ? 'Sans carte bancaire' : 'No credit card' },
+                    { icon: Gift,       label: isFr ? '1er mois offert' : '1st month free' },
+                  ],
                   accent: '#6366f1',
                 },
                 {
@@ -577,10 +576,11 @@ export default function Home() {
                   desc: isFr
                     ? 'Voix, scripts, horaires, intégrations calendrier. Tout se règle dans le dashboard.'
                     : 'Voice, scripts, hours, calendar integrations. Everything from the dashboard.',
-                  points: isFr
-                    ? ['Voix naturelle', 'Scripts par métier', 'Calendrier connecté']
-                    : ['Natural voice', 'Industry scripts', 'Calendar sync'],
-                  icon: Settings2,
+                  points: [
+                    { icon: Mic,      label: isFr ? 'Voix naturelle' : 'Natural voice' },
+                    { icon: FileText, label: isFr ? 'Scripts par métier' : 'Industry scripts' },
+                    { icon: Calendar, label: isFr ? 'Calendrier connecté' : 'Calendar sync' },
+                  ],
                   accent: '#a855f7',
                 },
                 {
@@ -589,10 +589,11 @@ export default function Home() {
                   desc: isFr
                     ? 'Transférez votre numéro existant. L\'IA prend le relais. Support FR 7j/7.'
                     : 'Forward your existing number. The AI takes over. Support 7 days a week.',
-                  points: isFr
-                    ? ['Numéro conservé', 'IA en relais 24/7', 'Support 7j/7']
-                    : ['Keep your number', 'AI on 24/7', 'Support 7 days'],
-                  icon: PhoneCall,
+                  points: [
+                    { icon: Phone,      label: isFr ? 'Numéro conservé' : 'Keep your number' },
+                    { icon: Bot,        label: isFr ? 'IA en relais 24/7' : 'AI on 24/7' },
+                    { icon: Headphones, label: isFr ? 'Support 7j/7' : 'Support 7 days' },
+                  ],
                   accent: '#4f46e5',
                 },
               ] as StepCard[]).map((step, i, arr) => (
