@@ -77,8 +77,8 @@ export default function CharacterPicker({
             key={c.id}
             className="text-left p-3 rounded-xl border transition-colors flex items-start gap-3"
             style={{
-              background: sel ? 'rgba(123,92,240,0.10)' : '#0A0A0C',
-              borderColor: sel ? 'rgba(123,92,240,0.55)' : 'rgba(255,255,255,0.08)',
+              background: sel ? 'rgba(122,95,255,0.10)' : '#0A0A0C',
+              borderColor: sel ? 'rgba(122,95,255,0.55)' : 'rgba(255,255,255,0.08)',
             }}
           >
             <button
@@ -88,19 +88,19 @@ export default function CharacterPicker({
               aria-pressed={sel}
             >
               <div className="flex items-center gap-2">
-                <p className="text-[13px] font-semibold" style={{ color: sel ? '#493cbe' : '#F2F2F2' }}>{c.name}</p>
+                <p className="text-[13px] font-semibold" style={{ color: sel ? '#7349fe' : '#F2F2F2' }}>{c.name}</p>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', color: '#9A9AA5' }}>
                   {ACCENT_LABEL[c.accent] || c.accent} · {c.gender === 'f' ? (isFr ? 'F' : 'F') : (isFr ? 'H' : 'M')}
                 </span>
               </div>
-              <p className="text-[11px] mt-0.5" style={{ color: sel ? 'rgba(123,92,240,0.85)' : '#8B8BA7' }}>{tagline}</p>
+              <p className="text-[11px] mt-0.5" style={{ color: sel ? 'rgba(122,95,255,0.85)' : '#8B8BA7' }}>{tagline}</p>
             </button>
             <button
               type="button"
               onClick={() => preview(c)}
               aria-label={isFr ? `Écouter ${c.name}` : `Preview ${c.name}`}
               className="flex-shrink-0 w-8 h-8 rounded-full grid place-items-center transition-colors"
-              style={{ background: 'rgba(123,92,240,0.14)', color: '#a5b4fc' }}
+              style={{ background: 'rgba(122,95,255,0.14)', color: '#b9a8ff' }}
             >
               {playing === c.id ? <Square size={13} /> : <Play size={13} />}
             </button>

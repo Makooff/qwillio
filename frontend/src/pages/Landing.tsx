@@ -33,8 +33,8 @@ export default function Landing() {
       vibe: isFr
         ? 'Chaleureuse, naturelle. Ventes sortantes et accueil entrant.'
         : 'Warm, natural. Built for outbound sales and inbound reception.',
-      swatch: '#6366f1',
-      ring: 'rgba(99,102,241,0.45)',
+      swatch: '#7a5fff',
+      ring: 'rgba(122,95,255,0.45)',
       initials: 'AS',
       lang: 'en-US',
       sample: "Hey, Bright Dental, this is Ashley. How can I help you today?",
@@ -45,8 +45,8 @@ export default function Landing() {
       vibe: isFr
         ? 'Chaleureuse, conversationnelle. Conçue pour le marché francophone.'
         : 'Warm, conversational. Built for French and Quebec markets.',
-      swatch: '#a855f7',
-      ring: 'rgba(168,85,247,0.45)',
+      swatch: '#cd6afb',
+      ring: 'rgba(205,106,251,0.45)',
       initials: 'MA',
       lang: 'fr-FR',
       sample: "Bonjour, cabinet Bright Dental, c'est Marie. Comment puis-je vous aider ?",
@@ -140,8 +140,8 @@ export default function Landing() {
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-20 items-center">
             <div>
               <Reveal>
-                <span className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#6366f1] mb-6">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#6366f1] animate-pulse" />
+                <span className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#7a5fff] mb-6">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7a5fff] animate-pulse" />
                   {isFr ? 'Réceptionniste IA · Live 24/7' : 'AI Receptionist · Live 24/7'}
                 </span>
               </Reveal>
@@ -154,16 +154,16 @@ export default function Landing() {
                   {isFr ? (
                     <>
                       Elle décroche<br />
-                      <span className="italic font-serif text-[#6366f1]">avant la deuxième</span><br />
+                      <span className="italic font-serif text-[#7a5fff]">avant la deuxième</span><br />
                       sonnerie.<br />
-                      <span className="italic font-serif text-[#6366f1]">Toujours.</span>
+                      <span className="italic font-serif text-[#7a5fff]">Toujours.</span>
                     </>
                   ) : (
                     <>
                       She picks up<br />
-                      <span className="italic font-serif text-[#6366f1]">before the second</span><br />
+                      <span className="italic font-serif text-[#7a5fff]">before the second</span><br />
                       ring.<br />
-                      <span className="italic font-serif text-[#6366f1]">Every time.</span>
+                      <span className="italic font-serif text-[#7a5fff]">Every time.</span>
                     </>
                   )}
                 </h1>
@@ -181,14 +181,14 @@ export default function Landing() {
                 <div className="flex flex-wrap items-center gap-3 mb-10">
                   <a
                     href="/demo.html"
-                    className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#6366f1] transition-colors duration-300"
+                    className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#7a5fff] transition-colors duration-300"
                   >
                     <Play size={14} fill="currentColor" aria-hidden="true" />
                     {isFr ? `Écouter ${voiceName} parler` : `Hear ${voiceName} speak`}
                   </a>
                   <Link
                     to="/register"
-                    className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#1d1d1f] px-2 py-2 underline decoration-[#6366f1]/30 decoration-2 underline-offset-8 hover:decoration-[#6366f1] transition-colors"
+                    className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#1d1d1f] px-2 py-2 underline decoration-[#7a5fff]/30 decoration-2 underline-offset-8 hover:decoration-[#7a5fff] transition-colors"
                   >
                     {isFr ? 'Essayer gratuitement' : 'Try free'}
                     <ArrowRight size={15} aria-hidden="true" />
@@ -240,7 +240,7 @@ export default function Landing() {
             <div className="grid lg:grid-cols-[1fr_1.6fr] gap-10 md:gap-16 lg:gap-24 items-start">
               <div className="lg:sticky lg:top-28">
                 <Reveal>
-                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#6366f1] block mb-3">
+                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#7a5fff] block mb-3">
                     {isFr ? 'Ce qu\'elle fait' : 'What she does'}
                   </span>
                   <h2
@@ -248,9 +248,9 @@ export default function Landing() {
                     className="text-[clamp(1.9rem,4vw,3.2rem)] font-semibold tracking-[-0.035em] leading-[1.05] mb-5"
                   >
                     {isFr ? (
-                      <>Pas un menu vocal.<br /><span className="font-serif italic text-[#6366f1]">Une vraie conversation.</span></>
+                      <>Pas un menu vocal.<br /><span className="font-serif italic text-[#7a5fff]">Une vraie conversation.</span></>
                     ) : (
-                      <>Not a phone menu.<br /><span className="font-serif italic text-[#6366f1]">A real conversation.</span></>
+                      <>Not a phone menu.<br /><span className="font-serif italic text-[#7a5fff]">A real conversation.</span></>
                     )}
                   </h2>
                   <p className="text-[#525257] text-[15px] leading-relaxed max-w-[360px] mb-8">
@@ -260,7 +260,7 @@ export default function Landing() {
                   </p>
                   <Link
                     to="/pricing"
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-8 hover:decoration-[#6366f1] transition-colors"
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-8 hover:decoration-[#7a5fff] transition-colors"
                   >
                     {isFr ? 'Voir les tarifs' : 'See pricing'}
                     <ArrowRight size={14} aria-hidden="true" />
@@ -279,7 +279,7 @@ export default function Landing() {
                     tall: true,
                     bg: '#1d1d1f',
                     fg: 'white',
-                    accent: '#a5b4fc',
+                    accent: '#b9a8ff',
                   },
                   {
                     icon: Calendar,
@@ -289,7 +289,7 @@ export default function Landing() {
                       : `Google, Outlook, Calendly. ${voiceName} checks availability and books straight in.`,
                     bg: '#fafaf8',
                     fg: '#1d1d1f',
-                    accent: '#6366f1',
+                    accent: '#7a5fff',
                   },
                   {
                     icon: MessageSquare,
@@ -299,7 +299,7 @@ export default function Landing() {
                       : 'Confirmations sent within a minute. Reminders the day before. Answers to common questions.',
                     bg: '#fafaf8',
                     fg: '#1d1d1f',
-                    accent: '#a855f7',
+                    accent: '#cd6afb',
                   },
                   {
                     icon: Headphones,
@@ -308,7 +308,7 @@ export default function Landing() {
                       ? `Quand un appel devient urgent, ${voiceName} identifie qui doit décrocher et transfère sans faire patienter.`
                       : `When a call turns urgent, ${voiceName} identifies who should take it and transfers without making the caller wait.`,
                     tall: true,
-                    bg: '#6366f1',
+                    bg: '#7a5fff',
                     fg: 'white',
                     accent: 'rgba(255,255,255,0.6)',
                   },
@@ -321,7 +321,7 @@ export default function Landing() {
                       <div>
                         <span
                           className="w-11 h-11 rounded-2xl flex items-center justify-center mb-5"
-                          style={{ background: feat.fg === 'white' ? 'rgba(255,255,255,0.10)' : 'rgba(99,102,241,0.10)' }}
+                          style={{ background: feat.fg === 'white' ? 'rgba(255,255,255,0.10)' : 'rgba(122,95,255,0.10)' }}
                         >
                           <feat.icon size={18} style={{ color: feat.accent }} aria-hidden="true" />
                         </span>
@@ -354,7 +354,7 @@ export default function Landing() {
             <Reveal>
               <div className="flex items-end justify-between gap-8 mb-12 md:mb-16 flex-wrap">
                 <div>
-                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#6366f1] block mb-3">
+                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#7a5fff] block mb-3">
                     {isFr ? 'Voix et langues' : 'Voices and languages'}
                   </span>
                   <h2
@@ -362,9 +362,9 @@ export default function Landing() {
                     className="text-[clamp(1.9rem,4vw,3.2rem)] font-semibold tracking-[-0.035em] leading-[1.05] max-w-[680px]"
                   >
                     {isFr ? (
-                      <>Choisissez la voix <span className="font-serif italic text-[#6366f1]">qui sonne comme votre marque.</span></>
+                      <>Choisissez la voix <span className="font-serif italic text-[#7a5fff]">qui sonne comme votre marque.</span></>
                     ) : (
-                      <>Pick the voice <span className="font-serif italic text-[#6366f1]">that sounds like your brand.</span></>
+                      <>Pick the voice <span className="font-serif italic text-[#7a5fff]">that sounds like your brand.</span></>
                     )}
                   </h2>
                 </div>
@@ -407,7 +407,7 @@ export default function Landing() {
                     isFr ? 'Coréen' : 'Korean',
                   ].map((lng) => (
                     <li key={lng}>
-                      <span className="inline-flex items-center text-xs px-3.5 py-2 rounded-full bg-white border border-[#1d1d1f]/10 text-[#1d1d1f] font-medium hover:border-[#6366f1] hover:text-[#6366f1] transition-colors cursor-default">
+                      <span className="inline-flex items-center text-xs px-3.5 py-2 rounded-full bg-white border border-[#1d1d1f]/10 text-[#1d1d1f] font-medium hover:border-[#7a5fff] hover:text-[#7a5fff] transition-colors cursor-default">
                         {lng}
                       </span>
                     </li>
@@ -463,7 +463,7 @@ export default function Landing() {
               ].map((step, i) => (
                 <Reveal key={step.num} delay={i * 0.1} as="li">
                   <div className="border-t-2 border-[#1d1d1f] pt-5">
-                    <p className="text-[11px] font-bold tracking-[0.2em] text-[#6366f1] mb-3">{step.num}</p>
+                    <p className="text-[11px] font-bold tracking-[0.2em] text-[#7a5fff] mb-3">{step.num}</p>
                     <h3 className="text-xl font-semibold mb-2 tracking-[-0.015em]">{step.title}</h3>
                     <p className="text-[#525257] leading-relaxed text-[15px]">{step.desc}</p>
                   </div>
@@ -484,12 +484,12 @@ export default function Landing() {
             <Reveal>
               <div
                 className="rounded-[2rem] px-8 md:px-16 py-16 md:py-24 relative overflow-hidden"
-                style={{ background: '#6366f1' }}
+                style={{ background: '#7a5fff' }}
               >
                 <div
                   aria-hidden="true"
                   className="absolute -right-32 -top-32 w-[440px] h-[440px] rounded-full opacity-30 blur-3xl"
-                  style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }}
+                  style={{ background: 'radial-gradient(circle, #cd6afb 0%, transparent 70%)' }}
                 />
                 <p className="relative text-white/70 text-xs font-medium tracking-[0.14em] uppercase mb-6">
                   {isFr ? 'Lancement' : 'Launch'}
@@ -518,7 +518,7 @@ export default function Landing() {
             <Reveal>
               <div className="flex items-end justify-between gap-8 mb-12 md:mb-16 flex-wrap">
                 <div>
-                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#6366f1] block mb-3">
+                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#7a5fff] block mb-3">
                     {isFr ? 'Tarifs' : 'Pricing'}
                   </span>
                   <h2
@@ -526,9 +526,9 @@ export default function Landing() {
                     className="text-[clamp(1.9rem,4vw,3.2rem)] font-semibold tracking-[-0.035em] leading-[1.05] max-w-[640px]"
                   >
                     {isFr ? (
-                      <>Trois forfaits. <span className="font-serif italic text-[#6366f1]">Premier mois offert.</span></>
+                      <>Trois forfaits. <span className="font-serif italic text-[#7a5fff]">Premier mois offert.</span></>
                     ) : (
-                      <>Three plans. <span className="font-serif italic text-[#6366f1]">First month free.</span></>
+                      <>Three plans. <span className="font-serif italic text-[#7a5fff]">First month free.</span></>
                     )}
                   </h2>
                 </div>
@@ -557,14 +557,14 @@ export default function Landing() {
                         isHi
                           ? {
                               background:
-                                'linear-gradient(160deg, #1d1d1f 0%, #2d2d40 55%, #6366f1 115%)',
+                                'linear-gradient(160deg, #1d1d1f 0%, #2d2d40 55%, #7a5fff 115%)',
                               minHeight: 560,
                             }
                           : { minHeight: 480 }
                       }
                     >
                       {isHi && (
-                        <span className="absolute top-5 right-5 text-[10px] font-bold tracking-[0.2em] uppercase text-[#a5b4fc]">
+                        <span className="absolute top-5 right-5 text-[10px] font-bold tracking-[0.2em] uppercase text-[#b9a8ff]">
                           {isFr ? 'Le plus choisi' : 'Most chosen'}
                         </span>
                       )}
@@ -597,7 +597,7 @@ export default function Landing() {
                             /{isFr ? 'mois' : 'mo'}
                           </span>
                         </div>
-                        <p className={`text-xs mb-8 ${isHi ? 'text-[#a5b4fc]' : 'text-[#6366f1]'}`}>
+                        <p className={`text-xs mb-8 ${isHi ? 'text-[#b9a8ff]' : 'text-[#7a5fff]'}`}>
                           {isFr ? 'Premier mois offert' : 'First month free'}
                         </p>
 
@@ -612,7 +612,7 @@ export default function Landing() {
                               <Check
                                 size={14}
                                 className="mt-1 flex-shrink-0"
-                                style={{ color: isHi ? '#a5b4fc' : '#6366f1' }}
+                                style={{ color: isHi ? '#b9a8ff' : '#7a5fff' }}
                                 aria-hidden="true"
                               />
                               <span>{h}</span>
@@ -625,8 +625,8 @@ export default function Landing() {
                         to="/register"
                         className={`inline-flex items-center justify-center gap-2 text-[15px] font-medium px-6 py-3.5 rounded-full transition-colors ${
                           isHi
-                            ? 'bg-white text-[#1d1d1f] hover:bg-[#a5b4fc] hover:text-white'
-                            : 'bg-[#1d1d1f] text-white hover:bg-[#6366f1]'
+                            ? 'bg-white text-[#1d1d1f] hover:bg-[#b9a8ff] hover:text-white'
+                            : 'bg-[#1d1d1f] text-white hover:bg-[#7a5fff]'
                         }`}
                       >
                         {tier.cta}
@@ -660,7 +660,7 @@ export default function Landing() {
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1fr_1.8fr] gap-10 md:gap-16 items-start">
             <Reveal>
               <div className="lg:sticky lg:top-28">
-                <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#6366f1] block mb-3">
+                <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#7a5fff] block mb-3">
                   {isFr ? 'Les questions courantes' : 'Common questions'}
                 </span>
                 <h2
@@ -668,9 +668,9 @@ export default function Landing() {
                   className="text-[clamp(1.6rem,3vw,2.4rem)] font-semibold tracking-[-0.03em] leading-[1.08] mb-5"
                 >
                   {isFr ? (
-                    <>Trois objections. <span className="font-serif italic text-[#6366f1]">Trois réponses honnêtes.</span></>
+                    <>Trois objections. <span className="font-serif italic text-[#7a5fff]">Trois réponses honnêtes.</span></>
                   ) : (
-                    <>Three concerns. <span className="font-serif italic text-[#6366f1]">Three honest answers.</span></>
+                    <>Three concerns. <span className="font-serif italic text-[#7a5fff]">Three honest answers.</span></>
                   )}
                 </h2>
               </div>
@@ -703,8 +703,8 @@ export default function Landing() {
                 <Reveal key={item.q} delay={i * 0.1} as="li">
                   <article className="bg-white rounded-3xl p-7 md:p-8 border border-[#1d1d1f]/8">
                     <div className="flex items-start gap-4">
-                      <span className="w-11 h-11 rounded-2xl bg-[#6366f1]/10 flex items-center justify-center flex-shrink-0">
-                        <item.icon size={18} className="text-[#6366f1]" aria-hidden="true" />
+                      <span className="w-11 h-11 rounded-2xl bg-[#7a5fff]/10 flex items-center justify-center flex-shrink-0">
+                        <item.icon size={18} className="text-[#7a5fff]" aria-hidden="true" />
                       </span>
                       <div>
                         <h3 className="text-[1.05rem] font-semibold tracking-[-0.015em] mb-2 text-[#1d1d1f]">
@@ -737,13 +737,13 @@ export default function Landing() {
                     <>
                       Le prochain appel<br />
                       arrive dans une heure.<br />
-                      <span className="font-serif italic text-[#6366f1]">Soyez prêt.</span>
+                      <span className="font-serif italic text-[#7a5fff]">Soyez prêt.</span>
                     </>
                   ) : (
                     <>
                       The next call<br />
                       lands in an hour.<br />
-                      <span className="font-serif italic text-[#6366f1]">Be ready.</span>
+                      <span className="font-serif italic text-[#7a5fff]">Be ready.</span>
                     </>
                   )}
                 </h2>
@@ -756,14 +756,14 @@ export default function Landing() {
                   <div className="flex flex-wrap gap-3 lg:justify-end">
                     <Link
                       to="/register"
-                      className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#6366f1] transition-colors"
+                      className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#7a5fff] transition-colors"
                     >
                       {isFr ? 'Créer un compte' : 'Create account'}
                       <ArrowRight size={16} aria-hidden="true" />
                     </Link>
                     <a
                       href="/demo.html"
-                      className="inline-flex items-center gap-2 text-base font-medium text-[#1d1d1f] pl-5 pr-2 py-4 underline decoration-[#6366f1]/30 decoration-2 underline-offset-8 hover:decoration-[#6366f1] transition-colors"
+                      className="inline-flex items-center gap-2 text-base font-medium text-[#1d1d1f] pl-5 pr-2 py-4 underline decoration-[#7a5fff]/30 decoration-2 underline-offset-8 hover:decoration-[#7a5fff] transition-colors"
                     >
                       <Phone size={14} aria-hidden="true" />
                       {isFr ? 'Appeler la démo' : 'Call the demo'}

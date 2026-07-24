@@ -467,7 +467,7 @@ export default function LiveMonitor() {
               >
                 <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center"
-                  style={{ background: 'rgba(123,92,240,0.15)' }}
+                  style={{ background: 'rgba(122,95,255,0.15)' }}
                 >
                   {isLoading
                     ? <RefreshCw size={16} style={{ color: pro.accent }} className="animate-spin" />

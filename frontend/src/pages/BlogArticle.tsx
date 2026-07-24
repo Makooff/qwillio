@@ -40,7 +40,7 @@ export default function BlogArticle() {
             <Reveal y={12}>
               <Link
                 to="/blog"
-                className="inline-flex items-center gap-1.5 text-sm text-[#6e6e73] hover:text-[#6366f1] mb-8 transition-colors active:scale-[0.97]"
+                className="inline-flex items-center gap-1.5 text-sm text-[#6e6e73] hover:text-[#7a5fff] mb-8 transition-colors active:scale-[0.97]"
               >
                 <ArrowLeft size={14} aria-hidden="true" />
                 {isFr ? 'Retour au blog' : 'Back to blog'}
@@ -51,7 +51,7 @@ export default function BlogArticle() {
               <div className="flex items-center gap-3 mb-6 flex-wrap">
                 <span
                   className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
-                  style={{ background: 'rgba(99,102,241,0.10)', color: '#6366f1' }}
+                  style={{ background: 'rgba(122,95,255,0.10)', color: '#7a5fff' }}
                 >
                   {isFr ? article.tag.fr : article.tag.en}
                 </span>
@@ -122,12 +122,12 @@ export default function BlogArticle() {
               <Card3D intensity={3}>
                 <div
                   className="rounded-3xl p-8 md:p-10 text-white overflow-hidden relative"
-                  style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #6366f1 115%)' }}
+                  style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #7a5fff 115%)' }}
                 >
                   <div
                     aria-hidden="true"
                     className="absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-30 blur-3xl"
-                    style={{ background: '#a855f7' }}
+                    style={{ background: '#cd6afb' }}
                   />
                   <h3 className="relative text-[clamp(1.4rem,2.4vw,2rem)] font-semibold tracking-[-0.02em] mb-3">
                     {isFr ? 'Prêt à ne plus manquer un appel ?' : 'Ready to stop missing calls?'}
@@ -139,7 +139,7 @@ export default function BlogArticle() {
                   </p>
                   <Link
                     to="/register"
-                    className="relative inline-flex items-center gap-2 bg-white text-[#1d1d1f] text-sm font-medium px-5 py-3 rounded-full hover:bg-[#a5b4fc] transition-colors active:scale-[0.97]"
+                    className="relative inline-flex items-center gap-2 bg-white text-[#1d1d1f] text-sm font-medium px-5 py-3 rounded-full hover:bg-[#b9a8ff] transition-colors active:scale-[0.97]"
                   >
                     {isFr ? 'Créer un compte' : 'Create account'}
                     <ArrowRight size={15} aria-hidden="true" />

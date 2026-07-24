@@ -59,7 +59,7 @@ export default function ConfirmEmail() {
 
         {status === 'loading' && (
           <>
-            <Loader2 size={48} className="mx-auto text-[#6366f1] animate-spin mb-6" />
+            <Loader2 size={48} className="mx-auto text-[#7a5fff] animate-spin mb-6" />
             <h1 className="text-2xl font-semibold tracking-tight mb-2">{t('confirm.loading')}</h1>
             <p className="text-[#86868b]">{t('confirm.wait')}</p>
           </>
@@ -84,7 +84,7 @@ export default function ConfirmEmail() {
             <p className="text-[#86868b] mb-6">{error}</p>
             <Link
               to="/login"
-              className="inline-flex items-center justify-center gap-2 bg-[#6366f1] text-white text-base font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-[#7a5fff] text-white text-base font-medium px-6 py-3 rounded-full hover:bg-[#7349fe] transition-colors"
             >
               {t('confirm.goLogin')}
             </Link>

@@ -414,7 +414,7 @@ export default function ClientOverview() {
               <ul className="space-y-2">
                 {(c as { planFeatures?: string[] }).planFeatures!.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-[13px] text-white/70">
-                    <span className="mt-[3px] text-[#a5b4fc]" aria-hidden="true">✓</span>
+                    <span className="mt-[3px] text-[#b9a8ff]" aria-hidden="true">✓</span>
                     <span>{f}</span>
                   </li>
                 ))}

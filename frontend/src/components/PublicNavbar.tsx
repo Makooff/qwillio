@@ -71,7 +71,7 @@ function Dropdown({ label, items }: { label: string; items: MenuItem[] }) {
             boxShadow: '0 4px 24px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.06)',
           }}
         >
-          <div style={{ height: 2, background: '#6366f1' }} aria-hidden="true" />
+          <div style={{ height: 2, background: '#7a5fff' }} aria-hidden="true" />
           <div className="py-1.5">
             {items.map((item) => (
               item.comingSoon ? (
@@ -82,7 +82,7 @@ function Dropdown({ label, items }: { label: string; items: MenuItem[] }) {
                   className="flex items-center justify-between gap-3 px-5 py-2.5 text-[13.5px] font-medium text-[#1d1d1f]/40 cursor-default select-none"
                 >
                   {item.label}
-                  <span className="text-[9px] font-semibold uppercase tracking-wider text-[#6366f1] bg-[#6366f1]/10 rounded-full px-2 py-0.5">
+                  <span className="text-[9px] font-semibold uppercase tracking-wider text-[#7a5fff] bg-[#7a5fff]/10 rounded-full px-2 py-0.5">
                     Bientôt
                   </span>
                 </span>
@@ -92,7 +92,7 @@ function Dropdown({ label, items }: { label: string; items: MenuItem[] }) {
                   to={item.to}
                   role="menuitem"
                   onClick={() => setOpen(false)}
-                  className="block px-5 py-2.5 text-[13.5px] font-medium text-[#1d1d1f] hover:text-[#6366f1] hover:bg-[#f5f5f7] focus:bg-[#f5f5f7] focus:text-[#6366f1] focus:outline-none transition-colors duration-100"
+                  className="block px-5 py-2.5 text-[13.5px] font-medium text-[#1d1d1f] hover:text-[#7a5fff] hover:bg-[#f5f5f7] focus:bg-[#f5f5f7] focus:text-[#7a5fff] focus:outline-none transition-colors duration-100"
                 >
                   {item.label}
                 </Link>
@@ -213,7 +213,7 @@ export default function PublicNavbar() {
           }`}
         />
         <div className="max-w-[1240px] mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 focus-visible:ring-offset-2 rounded-md">
+          <Link to="/" className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff]/40 focus-visible:ring-offset-2 rounded-md">
             <QwillioLogo size={28} />
             <span className="text-xl font-semibold tracking-tight text-[#1d1d1f]">Qwillio</span>
           </Link>
@@ -243,7 +243,7 @@ export default function PublicNavbar() {
             </Link>
             <a
               href="/demo.html"
-              className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-sm font-medium pl-4 pr-5 py-2 rounded-full hover:bg-[#6366f1] transition-colors"
+              className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-sm font-medium pl-4 pr-5 py-2 rounded-full hover:bg-[#7a5fff] transition-colors"
             >
               <Play size={13} fill="currentColor" aria-hidden="true" />
               {isFr ? 'Essayer' : 'Try it'}
@@ -389,7 +389,7 @@ export default function PublicNavbar() {
                           <span className="text-lg font-normal tracking-tight text-[#1d1d1f]/40">
                             {item.label}
                           </span>
-                          <span className="text-[9px] font-semibold uppercase tracking-wider text-[#6366f1] bg-[#6366f1]/10 rounded-full px-2 py-0.5">
+                          <span className="text-[9px] font-semibold uppercase tracking-wider text-[#7a5fff] bg-[#7a5fff]/10 rounded-full px-2 py-0.5">
                             Bientôt
                           </span>
                         </span>
@@ -405,11 +405,11 @@ export default function PublicNavbar() {
                         onClick={closeMenu}
                         className="group block px-2 py-3.5 transition-colors duration-200"
                       >
-                        <span className="text-lg font-normal tracking-tight text-[#1d1d1f] group-hover:text-[#6366f1] transition-colors">
+                        <span className="text-lg font-normal tracking-tight text-[#1d1d1f] group-hover:text-[#7a5fff] transition-colors">
                           {item.label}
                         </span>
                         <div
-                          className="mt-1.5 h-[1px] bg-[#1d1d1f]/15 group-hover:bg-[#6366f1]/60 transition-colors duration-300"
+                          className="mt-1.5 h-[1px] bg-[#1d1d1f]/15 group-hover:bg-[#7a5fff]/60 transition-colors duration-300"
                           style={{ width: item.wave }}
                           aria-hidden="true"
                         />
@@ -426,7 +426,7 @@ export default function PublicNavbar() {
               <Link
                 to="/register"
                 onClick={closeMenu}
-                className="flex items-center justify-center w-full bg-[#1d1d1f] text-white text-base font-medium px-4 py-4 rounded-full hover:bg-[#6366f1] transition-colors mb-3"
+                className="flex items-center justify-center w-full bg-[#1d1d1f] text-white text-base font-medium px-4 py-4 rounded-full hover:bg-[#7a5fff] transition-colors mb-3"
               >
                 {isFr ? "S'inscrire" : 'Sign up'}
               </Link>

@@ -8,9 +8,9 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --primary: #6366f1;
-      --primary-dark: #4f46e5;
-      --primary-light: #818cf8;
+      --primary: #7a5fff;
+      --primary-dark: #7349fe;
+      --primary-light: #9d8bff;
       --accent: #22c55e;
       --accent-dark: #16a34a;
       --bg: #f8fafc;
@@ -19,7 +19,7 @@
       --text-secondary: #64748b;
       --text-muted: #94a3b8;
       --border: #e2e8f0;
-      --border-focus: #6366f1;
+      --border-focus: #7a5fff;
       --error: #ef4444;
       --error-bg: #fef2f2;
       --warning: #f59e0b;
@@ -42,7 +42,7 @@
 
     /* ── Header ──────────────────────────────────── */
     .header {
-      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 40%, #7c3aed 100%);
+      background: linear-gradient(135deg, #7a5fff 0%, #7349fe 40%, #b13ff0 100%);
       padding: 40px 24px 48px;
       text-align: center;
       position: relative;
@@ -189,7 +189,7 @@
       white-space: nowrap;
     }
     .progress-dot.active {
-      background: rgba(99,102,241,0.1);
+      background: rgba(122,95,255,0.1);
       color: var(--primary);
       font-weight: 600;
     }
@@ -284,7 +284,7 @@
     textarea:focus,
     select:focus {
       border-color: var(--border-focus);
-      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+      box-shadow: 0 0 0 3px rgba(122,95,255,0.12);
     }
     input::placeholder,
     textarea::placeholder {
@@ -332,7 +332,7 @@
     }
     .multiselect-option.selected {
       border-color: var(--primary);
-      background: rgba(99,102,241,0.06);
+      background: rgba(122,95,255,0.06);
       color: var(--primary-dark);
       font-weight: 500;
     }
@@ -380,12 +380,12 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+      box-shadow: 0 4px 14px rgba(122,95,255,0.35);
       letter-spacing: -0.2px;
     }
     .submit-btn:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(99,102,241,0.45);
+      box-shadow: 0 6px 20px rgba(122,95,255,0.45);
     }
     .submit-btn:active:not(:disabled) {
       transform: translateY(0);
@@ -1542,7 +1542,7 @@
   // ── Confetti Animation ─────────────────────────────
   function launchConfetti() {
     var container = document.getElementById('confettiContainer');
-    var colors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
+    var colors = ['#7a5fff', '#22c55e', '#f59e0b', '#ef4444', '#b061fc', '#06b6d4', '#ec4899', '#14b8a6'];
     var totalPieces = 80;
 
     for (var i = 0; i < totalPieces; i++) {

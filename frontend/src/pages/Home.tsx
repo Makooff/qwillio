@@ -1,5 +1,8 @@
-﻿import { useRef, useCallback } from 'react';
-import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion';
+﻿import { useRef, useCallback, useEffect } from 'react';
+import {
+  motion, useScroll, useTransform, useMotionValue, useSpring, useMotionValueEvent,
+  type MotionValue,
+} from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
 import {
@@ -42,61 +45,129 @@ const INDUSTRY_HREFS: (string | null)[] = [
    POUR QUI ? — scroll-drawn brand stroke with industries appearing around it
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Industry chips: first hugging the stroke, then spreading out. `at` = scroll
-   progress when they pop. Side-anchored (left OR right offset) so a chip can
-   never overflow the viewport edge, with breathing room between neighbours. */
-const SECTOR_SPOTS: Array<{ at: number; side: 'left' | 'right'; off: string; y: string }> = [
-  // Flanking the stroke on both sides, top to bottom, popping in sync with the draw
-  { at: 0.06, side: 'left',  off: '30%', y: '8%'  },
-  { at: 0.10, side: 'right', off: '26%', y: '14%' },
-  { at: 0.15, side: 'left',  off: '22%', y: '22%' },
-  { at: 0.20, side: 'right', off: '24%', y: '27%' },
-  { at: 0.25, side: 'left',  off: '12%', y: '33%' },
-  { at: 0.30, side: 'right', off: '16%', y: '38%' },
-  { at: 0.35, side: 'left',  off: '18%', y: '63%' },
-  { at: 0.40, side: 'right', off: '12%', y: '68%' },
-  { at: 0.44, side: 'left',  off: '26%', y: '75%' },
-  { at: 0.48, side: 'right', off: '20%', y: '80%' },
-  { at: 0.52, side: 'left',  off: '10%', y: '86%' },
-  { at: 0.56, side: 'right', off: '28%', y: '91%' },
+/* Niche bubbles floating around the band. `at` = scroll progress when the bubble
+   surfaces; x/y are centre positions kept clear of the middle where the title
+   sits; `m` scales the bubble so the cluster does not read as a uniform grid. */
+const NICHE_SPOTS: Array<{ at: number; x: string; y: string; m: number }> = [
+  { at: 0.04, x: '14%', y: '20%', m: 1.10 },
+  { at: 0.07, x: '34%', y: '12%', m: 0.86 },
+  { at: 0.10, x: '66%', y: '12%', m: 1.00 },
+  { at: 0.13, x: '86%', y: '21%', m: 0.90 },
+  { at: 0.16, x: '10%', y: '45%', m: 0.95 },
+  { at: 0.19, x: '90%', y: '46%', m: 1.08 },
+  { at: 0.22, x: '13%', y: '70%', m: 1.00 },
+  { at: 0.25, x: '87%', y: '71%', m: 0.88 },
+  { at: 0.28, x: '29%', y: '76%', m: 1.06 },
+  { at: 0.31, x: '50%', y: '80%', m: 0.92 },
+  { at: 0.34, x: '71%', y: '76%', m: 0.84 },
+  { at: 0.37, x: '48%', y: '17%', m: 1.02 },
 ];
 
-function SectorChip({ name, href, spot, progress }: {
+const BUBBLE_SPRING = { stiffness: 170, damping: 20, mass: 0.7 } as const;
+
+/* A niche as a levitating water bubble: mauve body, white type, and a specular
+   highlight. It drifts away from the cursor as it approaches, swells on hover,
+   and (when the niche has a page) reveals its call to action. */
+function NicheBubble({ name, href, spot, progress, pointer, isFr, index }: {
   name: string;
   href?: string | null;
-  spot: (typeof SECTOR_SPOTS)[number];
+  spot: (typeof NICHE_SPOTS)[number];
   progress: MotionValue<number>;
+  pointer: { x: MotionValue<number>; y: MotionValue<number> };
+  isFr: boolean;
+  index: number;
 }) {
-  const opacity = useTransform(progress, [spot.at, spot.at + 0.05], [0, 1]);
-  const scale = useTransform(progress, [spot.at, spot.at + 0.07], [0.6, 1]);
-  const y = useTransform(progress, [spot.at, spot.at + 0.07], [26, 0]);
-  const baseClass =
-    'absolute whitespace-nowrap rounded-full bg-white px-4 py-2 text-[13px] font-medium text-[#1d1d1f] shadow-[0_10px_30px_-12px_rgba(20,16,50,0.25)]';
-  const style = {
-    [spot.side]: spot.off,
-    top: spot.y,
-    opacity,
-    scale,
-    y,
-    border: '1px solid rgba(29,29,31,0.12)',
-  } as const;
+  const ref = useRef<HTMLDivElement>(null);
+  const frame = useRef(0);
 
-  if (href) {
-    return (
-      <MotionLink
-        to={href}
-        className={`${baseClass} transition-colors hover:border-[#6366f1] hover:text-[#6366f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] active:scale-[0.97]`}
-        style={style}
-      >
-        {name}
-      </MotionLink>
-    );
-  }
+  const opacity = useTransform(progress, [spot.at, spot.at + 0.05], [0, 1]);
+  const rise = useTransform(progress, [spot.at, spot.at + 0.08], [40, 0]);
+  const pop = useTransform(progress, [spot.at, spot.at + 0.08], [0.5, 1]);
+
+  // Cursor repulsion + proximity swell, both spring-smoothed so the bubble
+  // never snaps. Rect is read inside a rAF so a fast mouse cannot thrash layout.
+  const driftX = useSpring(0, BUBBLE_SPRING);
+  const driftY = useSpring(0, BUBBLE_SPRING);
+  const near = useSpring(1, BUBBLE_SPRING);
+
+  useMotionValueEvent(pointer.x, 'change', () => {
+    if (frame.current) return;
+    frame.current = requestAnimationFrame(() => {
+      frame.current = 0;
+      const el = ref.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const dx = r.left + r.width / 2 - pointer.x.get();
+      const dy = r.top + r.height / 2 - pointer.y.get();
+      const dist = Math.hypot(dx, dy);
+      const REACH = 200;
+      if (!dist || dist > REACH) {
+        driftX.set(0); driftY.set(0); near.set(1);
+        return;
+      }
+      const force = 1 - dist / REACH;
+      driftX.set((dx / dist) * force * 26);
+      driftY.set((dy / dist) * force * 26);
+      near.set(1 + force * 0.08);
+    });
+  });
+
+  useEffect(() => () => { if (frame.current) cancelAnimationFrame(frame.current); }, []);
+
+  const size = `calc(clamp(88px, 11.5vw, 152px) * ${spot.m})`;
+  const Wrapper = href ? MotionLink : motion.div;
 
   return (
-    <motion.span className={baseClass} style={style}>
-      {name}
-    </motion.span>
+    <motion.div
+      className="absolute -translate-x-1/2 -translate-y-1/2"
+      style={{ left: spot.x, top: spot.y, opacity, y: rise, scale: pop }}
+    >
+      {/* Idle levitation, decoupled from the cursor drift below it */}
+      <motion.div
+        animate={{ y: [0, -11, 0] }}
+        transition={{ duration: 5.4 + index * 0.37, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <motion.div ref={ref} style={{ x: driftX, y: driftY, scale: near }}>
+          <Wrapper
+            {...(href ? { to: href } : {})}
+            className="group relative grid place-items-center rounded-full text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7349fe] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fafaf8]"
+            style={{
+              width: size,
+              height: size,
+              // Highlight stays tight to the top-left so the body reads as
+              // saturated mauve and the white label keeps its contrast.
+              background:
+                'radial-gradient(circle at 30% 24%, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.20) 9%, rgba(205,106,251,0.92) 32%, rgba(115,73,254,0.97) 100%)',
+              border: '1px solid rgba(255,255,255,0.40)',
+              boxShadow:
+                'inset 0 -16px 28px rgba(74,36,168,0.50), inset 0 10px 20px rgba(255,255,255,0.28), 0 22px 46px -14px rgba(122,95,255,0.55)',
+              backdropFilter: 'blur(2px)',
+            }}
+            whileHover={{ scale: 1.14 }}
+            whileTap={href ? { scale: 1.05 } : undefined}
+            transition={{ type: 'spring', ...BUBBLE_SPRING }}
+          >
+            {/* Specular glint — what sells it as water rather than a flat disc */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-[19%] top-[13%] h-[13%] w-[21%] rounded-full blur-[2px]"
+              style={{ background: 'rgba(255,255,255,0.75)' }}
+            />
+            <span
+              className="relative px-3 text-[clamp(11px,1.05vw,13px)] font-semibold leading-[1.15] text-white"
+              style={{ textShadow: '0 1px 8px rgba(52,18,110,0.55)' }}
+            >
+              {name}
+            </span>
+            {href && (
+              <span className="pointer-events-none absolute bottom-[17%] text-[10px] font-medium text-white/0 opacity-0 transition-opacity duration-200 group-hover:text-white/85 group-hover:opacity-100">
+                {isFr ? 'En savoir plus' : 'Learn more'}
+              </span>
+            )}
+          </Wrapper>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -108,52 +179,69 @@ function IndustriesStroke({ isFr, industries }: { isFr: boolean; industries: str
   const textOpacity = useTransform(scrollYProgress, [0, 0.10, 0.88, 0.98], [0, 1, 1, 0]);
   const textScale = useTransform(scrollYProgress, [0, 0.14], [0.92, 1]);
 
+  const pointerX = useMotionValue(-9999);
+  const pointerY = useMotionValue(-9999);
+  const pointer = { x: pointerX, y: pointerY };
+
   return (
     <section
       ref={container}
       aria-labelledby="industries-heading"
       className="relative h-[280vh] bg-[#fafaf8] border-y border-[#1d1d1f]/8"
     >
-      <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden">
-        {/* Brand stroke, drawn by scroll */}
+      <div
+        className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden"
+        onPointerMove={(e) => { pointerX.set(e.clientX); pointerY.set(e.clientY); }}
+        onPointerLeave={() => { pointerX.set(-9999); pointerY.set(-9999); }}
+      >
+        {/* Brand band, drawn by scroll */}
         <svg
-          width="900"
-          height="2200"
-          viewBox="0 0 900 2200"
+          width="1500"
+          height="2300"
+          viewBox="0 0 1500 2300"
           fill="none"
           overflow="visible"
           className="pointer-events-none absolute select-none"
-          style={{ top: '-12%', left: '50%', transform: 'translateX(-55%)', opacity: 0.9 }}
+          style={{ top: '-14%', left: '50%', transform: 'translateX(-50%)', opacity: 0.92 }}
           aria-hidden="true"
         >
           <defs>
-            <linearGradient id="qw-stroke-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#6366f1" />
-              <stop offset="100%" stopColor="#a855f7" />
+            <linearGradient id="qw-stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#7a5fff" />
+              <stop offset="55%" stopColor="#7349fe" />
+              <stop offset="100%" stopColor="#cd6afb" />
             </linearGradient>
           </defs>
           <motion.path
             d="
-              M 450 0
-              C 750 180, 120 320, 380 520
-              C 640 720, 820 860, 500 1060
-              C 180 1260, 80 1400, 360 1580
-              C 640 1760, 880 1880, 580 2050
-              C 400 2130, 320 2180, 450 2200
+              M 750 0
+              C 1180 240, 260 420, 560 700
+              C 860 980, 1320 1080, 780 1330
+              C 240 1580, 300 1760, 700 1930
+              C 1000 2060, 820 2200, 750 2300
             "
             stroke="url(#qw-stroke-grad)"
-            strokeWidth="13"
+            strokeWidth="76"
             strokeLinecap="round"
             fill="none"
             style={{ pathLength }}
           />
         </svg>
 
-        {/* Sectors pop in around the stroke as it draws. Each chip that maps to
-            a sector/partner page is a real navigation link (not aria-hidden). */}
-        <nav className="absolute inset-0" aria-label={isFr ? 'Secteurs' : 'Industries'}>
+        {/* Niches surface as the band is drawn. Each bubble that maps to a
+            sector/partner page is a real navigation link (not aria-hidden). */}
+        <nav className="absolute inset-0 z-20" aria-label={isFr ? 'Secteurs' : 'Industries'}>
           {industries.map((name, i) => (
-            <SectorChip key={name} name={name} href={INDUSTRY_HREFS[i]} spot={SECTOR_SPOTS[i % SECTOR_SPOTS.length]} progress={scrollYProgress} />
+            <NicheBubble
+              key={name}
+              name={name}
+              href={INDUSTRY_HREFS[i]}
+              spot={NICHE_SPOTS[i % NICHE_SPOTS.length]}
+              progress={scrollYProgress}
+              pointer={pointer}
+              isFr={isFr}
+              index={i}
+            />
           ))}
         </nav>
 
@@ -272,7 +360,7 @@ export default function Home() {
           className="relative pt-24 sm:pt-28 md:pt-36 pb-16 md:pb-28 px-5 sm:px-6 overflow-hidden"
           onMouseMove={handleHeroMouseMove}
           style={{
-            background: 'radial-gradient(700px circle at var(--mx,50%) var(--my,30%), rgba(99,102,241,0.07), transparent 65%)',
+            background: 'radial-gradient(700px circle at var(--mx,50%) var(--my,30%), rgba(122,95,255,0.07), transparent 65%)',
           }}
         >
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-20 items-center">
@@ -288,16 +376,16 @@ export default function Home() {
                 {isFr ? (
                   <>
                     Chaque appel<br />
-                    <span className="italic font-serif" style={{ color: '#6366f1' }}>répondu.</span><br />
+                    <span className="italic font-serif" style={{ color: '#7a5fff' }}>répondu.</span><br />
                     Chaque lead<br />
-                    <span className="italic font-serif" style={{ color: '#a855f7' }}>capturé.</span>
+                    <span className="italic font-serif" style={{ color: '#cd6afb' }}>capturé.</span>
                   </>
                 ) : (
                   <>
                     Every call<br />
-                    <span className="italic font-serif" style={{ color: '#6366f1' }}>answered.</span><br />
+                    <span className="italic font-serif" style={{ color: '#7a5fff' }}>answered.</span><br />
                     Every lead<br />
-                    <span className="italic font-serif" style={{ color: '#a855f7' }}>captured.</span>
+                    <span className="italic font-serif" style={{ color: '#cd6afb' }}>captured.</span>
                   </>
                 )}
               </h1>
@@ -311,14 +399,14 @@ export default function Home() {
               <div className="flex flex-wrap items-center gap-3 mb-10">
                 <a
                   href="/demo.html"
-                  className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#6366f1] transition-colors"
+                  className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#7a5fff] transition-colors"
                 >
                   <Play size={14} fill="currentColor" aria-hidden="true" />
                   {isFr ? 'Écouter une démo' : 'Hear the demo'}
                 </a>
                 <Link
                   to="/pricing"
-                  className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#1d1d1f] px-2 py-2 underline decoration-[#6366f1]/30 decoration-2 underline-offset-8 hover:decoration-[#6366f1] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#1d1d1f] px-2 py-2 underline decoration-[#7a5fff]/30 decoration-2 underline-offset-8 hover:decoration-[#7a5fff] transition-colors"
                 >
                   {isFr ? 'Voir les tarifs' : 'See pricing'}
                   <ArrowRight size={15} aria-hidden="true" />
@@ -392,12 +480,12 @@ export default function Home() {
               <Link
                 to="/receptionist"
                 className="group relative rounded-[2rem] overflow-hidden block p-8 md:p-12 min-h-[460px] h-full text-white"
-                style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #6366f1 110%)' }}
+                style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #7a5fff 110%)' }}
               >
                 <div
                   aria-hidden="true"
                   className="absolute -right-32 -top-32 w-[440px] h-[440px] rounded-full opacity-30 blur-3xl"
-                  style={{ background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)' }}
+                  style={{ background: 'radial-gradient(circle, #7a5fff 0%, transparent 70%)' }}
                 />
 
                 <div className="relative flex flex-col h-full justify-between">
@@ -435,7 +523,7 @@ export default function Home() {
                         className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
                         style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}
                       >
-                        <f.icon size={14} className="flex-shrink-0" style={{ color: '#a5b4fc' }} aria-hidden="true" />
+                        <f.icon size={14} className="flex-shrink-0" style={{ color: '#b9a8ff' }} aria-hidden="true" />
                         <span className="text-xs font-medium text-white">{f.label}</span>
                       </li>
                     ))}
@@ -445,7 +533,7 @@ export default function Home() {
                     <p className="text-white/55 text-sm">
                       {isFr ? 'À partir de ' : 'From '}
                       <span className="text-white font-semibold">99&nbsp;€<span className="text-white/55">/{isFr ? 'mois' : 'mo'}</span></span>
-                      <span className="ml-2 text-xs font-medium" style={{ color: '#a5b4fc' }}>
+                      <span className="ml-2 text-xs font-medium" style={{ color: '#b9a8ff' }}>
                         · {isFr ? 'Essai gratuit' : 'Free trial'}
                       </span>
                     </p>
@@ -470,12 +558,12 @@ export default function Home() {
               <div
                 aria-disabled="true"
                 className="group relative rounded-[2rem] block p-8 md:p-10 min-h-[460px] h-full overflow-hidden text-white cursor-default select-none"
-                style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 55%, #a855f7 115%)' }}
+                style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 55%, #cd6afb 115%)' }}
               >
                 <div
                   aria-hidden="true"
                   className="absolute -right-24 -top-24 w-[340px] h-[340px] rounded-full opacity-30 blur-3xl"
-                  style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }}
+                  style={{ background: 'radial-gradient(circle, #cd6afb 0%, transparent 70%)' }}
                 />
                 <div className="relative flex flex-col h-full justify-between">
                   <div>
@@ -486,7 +574,7 @@ export default function Home() {
                       >
                         <Bot size={20} aria-hidden="true" />
                       </span>
-                      <span className="text-[10px] font-bold uppercase tracking-[0.16em] rounded-full px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.14)', color: '#e9d5ff' }}>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.16em] rounded-full px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.14)', color: '#f3ddff' }}>
                         {isFr ? 'Bientôt' : 'Coming soon'}
                       </span>
                     </div>
@@ -512,7 +600,7 @@ export default function Home() {
                         className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
                         style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}
                       >
-                        <m.icon size={14} className="flex-shrink-0" style={{ color: '#d8b4fe' }} aria-hidden="true" />
+                        <m.icon size={14} className="flex-shrink-0" style={{ color: '#e7bafd' }} aria-hidden="true" />
                         <span className="text-xs font-medium text-white">{m.label}</span>
                       </li>
                     ))}
@@ -523,7 +611,7 @@ export default function Home() {
                       <span className="text-white font-semibold">+$197</span>
                       <span className="text-white/55">/mois · {isFr ? 'par module' : 'per module'}</span>
                     </p>
-                    <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: '#d8b4fe' }}>
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: '#e7bafd' }}>
                       {isFr ? 'Bientôt disponible' : 'Coming soon'}
                     </span>
                   </div>
@@ -568,7 +656,7 @@ export default function Home() {
                     { icon: CreditCard, label: isFr ? 'Sans carte bancaire' : 'No credit card' },
                     { icon: Gift,       label: isFr ? '1er mois offert' : '1st month free' },
                   ],
-                  accent: '#6366f1',
+                  accent: '#7a5fff',
                 },
                 {
                   num: isFr ? '02 / Configuration' : '02 / Configure',
@@ -581,7 +669,7 @@ export default function Home() {
                     { icon: FileText, label: isFr ? 'Scripts par métier' : 'Industry scripts' },
                     { icon: Calendar, label: isFr ? 'Calendrier connecté' : 'Calendar sync' },
                   ],
-                  accent: '#a855f7',
+                  accent: '#cd6afb',
                 },
                 {
                   num: isFr ? '03 / En ligne' : '03 / Go live',
@@ -594,7 +682,7 @@ export default function Home() {
                     { icon: Bot,        label: isFr ? 'IA en relais 24/7' : 'AI on 24/7' },
                     { icon: Headphones, label: isFr ? 'Support 7j/7' : 'Support 7 days' },
                   ],
-                  accent: '#4f46e5',
+                  accent: '#7349fe',
                 },
               ] as StepCard[]).map((step, i, arr) => (
                 <StackStep key={step.num} step={step} index={i} total={arr.length} />
@@ -618,11 +706,11 @@ export default function Home() {
           className="px-5 sm:px-6 py-14 sm:py-18 md:py-24"
         >
           <Reveal className="max-w-[1240px] mx-auto">
-            <div className="rounded-[2rem] px-8 md:px-16 py-16 md:py-20 relative overflow-hidden" style={{ background: '#6366f1' }}>
+            <div className="rounded-[2rem] px-8 md:px-16 py-16 md:py-20 relative overflow-hidden" style={{ background: '#7a5fff' }}>
               <div
                 aria-hidden="true"
                 className="absolute -right-32 -top-32 w-[440px] h-[440px] rounded-full opacity-30 blur-3xl"
-                style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }}
+                style={{ background: 'radial-gradient(circle, #cd6afb 0%, transparent 70%)' }}
               />
               <p className="relative text-white/70 text-xs font-medium tracking-[0.14em] uppercase mb-6">
                 {isFr ? 'Lancement' : 'Launch'}
@@ -654,13 +742,13 @@ export default function Home() {
                 <>
                   Arrêtez de perdre<br />
                   des appels.<br />
-                  <span className="font-serif italic" style={{ color: '#6366f1' }}>Commencez aujourd'hui.</span>
+                  <span className="font-serif italic" style={{ color: '#7a5fff' }}>Commencez aujourd'hui.</span>
                 </>
               ) : (
                 <>
                   Stop losing<br />
                   calls.<br />
-                  <span className="font-serif italic" style={{ color: '#6366f1' }}>Start today.</span>
+                  <span className="font-serif italic" style={{ color: '#7a5fff' }}>Start today.</span>
                 </>
               )}
             </h2>
@@ -672,7 +760,7 @@ export default function Home() {
               </p>
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#6366f1] transition-colors"
+                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#7a5fff] transition-colors"
               >
                 {isFr ? 'Créer un compte' : 'Create account'}
                 <ArrowRight size={16} aria-hidden="true" />

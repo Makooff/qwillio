@@ -136,7 +136,7 @@ function TabApercu({ data, evolving, onEvolve }: {
           <Card>
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(123,92,240,0.12)' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(122,95,255,0.12)' }}>
                   <AlertTriangle size={14} style={{ color: pro.accent }} />
                 </div>
                 <div>

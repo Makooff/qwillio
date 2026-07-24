@@ -171,7 +171,7 @@ export default function Faq() {
             <div className="mt-5 flex flex-wrap gap-3">
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 rounded-full bg-[#1d1d1f] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#6366f1] active:scale-[0.97]"
+                className="inline-flex items-center gap-2 rounded-full bg-[#1d1d1f] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#7a5fff] active:scale-[0.97]"
               >
                 {isFr ? 'Créer un compte' : 'Create an account'}
                 <ArrowRight size={15} aria-hidden="true" />

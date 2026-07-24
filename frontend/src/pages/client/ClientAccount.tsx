@@ -19,7 +19,7 @@ const C = {
   text:     '#F5F5F7',
   textSec:  '#A1A1A8',
   textTer:  '#6B6B75',
-  accent:   '#493cbe',
+  accent:   '#7349fe',
   ok:       '#22C55E',
   bad:      '#EF4444',
 };

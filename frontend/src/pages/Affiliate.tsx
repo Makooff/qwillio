@@ -22,7 +22,7 @@ export default function Affiliate() {
   const steps = [
     {
       num: '01',
-      accent: '#6366f1',
+      accent: '#7a5fff',
       icon: UserPlus,
       title: isFr ? 'Inscrivez-vous' : 'Sign up',
       desc: isFr
@@ -31,7 +31,7 @@ export default function Affiliate() {
     },
     {
       num: '02',
-      accent: '#a855f7',
+      accent: '#cd6afb',
       icon: Share2,
       title: isFr ? 'Partagez' : 'Share',
       desc: isFr
@@ -40,7 +40,7 @@ export default function Affiliate() {
     },
     {
       num: '03',
-      accent: '#6366f1',
+      accent: '#7a5fff',
       icon: Wallet,
       title: isFr ? 'Encaissez' : 'Cash in',
       desc: isFr
@@ -96,7 +96,7 @@ export default function Affiliate() {
         >
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.4fr_1fr] gap-12 items-end">
             <div>
-              <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4" style={{ color: '#a855f7' }}>
+              <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4" style={{ color: '#cd6afb' }}>
                 {isFr ? 'Programme d\'affiliation' : 'Affiliate program'}
               </span>
               <h1
@@ -105,13 +105,13 @@ export default function Affiliate() {
               >
                 {isFr ? (
                   <>
-                    <span className="font-serif italic" style={{ color: '#6366f1' }}>30% de commission.</span><br />
-                    <span className="font-serif italic" style={{ color: '#a855f7' }}>À vie.</span>
+                    <span className="font-serif italic" style={{ color: '#7a5fff' }}>30% de commission.</span><br />
+                    <span className="font-serif italic" style={{ color: '#cd6afb' }}>À vie.</span>
                   </>
                 ) : (
                   <>
-                    <span className="font-serif italic" style={{ color: '#6366f1' }}>30% commission.</span><br />
-                    <span className="font-serif italic" style={{ color: '#a855f7' }}>For life.</span>
+                    <span className="font-serif italic" style={{ color: '#7a5fff' }}>30% commission.</span><br />
+                    <span className="font-serif italic" style={{ color: '#cd6afb' }}>For life.</span>
                   </>
                 )}
               </h1>
@@ -164,8 +164,8 @@ export default function Affiliate() {
               className="text-[clamp(1.6rem,3vw,2.4rem)] font-semibold tracking-[-0.025em] mb-10 max-w-[600px]"
             >
               {isFr
-                ? <>Plus vous recommandez, <span className="font-serif italic" style={{ color: '#a855f7' }}>plus vous touchez.</span></>
-                : <>The more you refer, <span className="font-serif italic" style={{ color: '#a855f7' }}>the more you earn.</span></>}
+                ? <>Plus vous recommandez, <span className="font-serif italic" style={{ color: '#cd6afb' }}>plus vous touchez.</span></>
+                : <>The more you refer, <span className="font-serif italic" style={{ color: '#cd6afb' }}>the more you earn.</span></>}
             </h2>
 
             <div className="grid lg:grid-cols-[1fr_1.4fr_1fr] gap-5">
@@ -179,7 +179,7 @@ export default function Affiliate() {
                     }`}
                     style={
                       isGold
-                        ? { background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 60%, #a855f7 115%)' }
+                        ? { background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 60%, #cd6afb 115%)' }
                         : undefined
                     }
                   >
@@ -204,7 +204,7 @@ export default function Affiliate() {
           <div className="max-w-[1240px] mx-auto">
             <figure
               className="rounded-[2rem] px-8 md:px-16 py-14 md:py-20"
-              style={{ background: '#a855f7' }}
+              style={{ background: '#cd6afb' }}
             >
               <blockquote className="text-white text-[clamp(1.4rem,3vw,2.2rem)] font-semibold tracking-[-0.025em] leading-[1.25] max-w-[820px]">
                 <span className="font-serif italic text-white/40 text-[1.8em] leading-none mr-2 align-[-0.18em]" aria-hidden="true">"</span>
@@ -243,12 +243,12 @@ export default function Affiliate() {
                       aria-expanded={open}
                       className="w-full text-left py-5 flex items-center justify-between gap-4 group"
                     >
-                      <span className="text-base md:text-lg font-medium text-[#1d1d1f] group-hover:text-[#a855f7] transition-colors">
+                      <span className="text-base md:text-lg font-medium text-[#1d1d1f] group-hover:text-[#cd6afb] transition-colors">
                         {f.q}
                       </span>
                       <ChevronDown
                         size={18}
-                        className={`flex-shrink-0 transition-transform duration-300 ${open ? 'rotate-180 text-[#a855f7]' : 'text-[#86868b]'}`}
+                        className={`flex-shrink-0 transition-transform duration-300 ${open ? 'rotate-180 text-[#cd6afb]' : 'text-[#86868b]'}`}
                         aria-hidden="true"
                       />
                     </button>
@@ -269,12 +269,12 @@ export default function Affiliate() {
               {isFr ? (
                 <>
                   Prêt à toucher<br />
-                  <span className="font-serif italic" style={{ color: '#a855f7' }}>chaque mois ?</span>
+                  <span className="font-serif italic" style={{ color: '#cd6afb' }}>chaque mois ?</span>
                 </>
               ) : (
                 <>
                   Ready to get paid<br />
-                  <span className="font-serif italic" style={{ color: '#a855f7' }}>every month?</span>
+                  <span className="font-serif italic" style={{ color: '#cd6afb' }}>every month?</span>
                 </>
               )}
             </h2>
@@ -284,7 +284,7 @@ export default function Affiliate() {
               </p>
               <Link
                 to="/register?role=affiliate"
-                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#a855f7] transition-colors"
+                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#cd6afb] transition-colors"
               >
                 {isFr ? 'Devenir affilié' : 'Become an affiliate'}
                 <ArrowRight size={16} aria-hidden="true" />

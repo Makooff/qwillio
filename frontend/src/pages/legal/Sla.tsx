@@ -52,7 +52,7 @@ export default function Sla() {
           <Reveal y={14}>
             <span
               className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full inline-block mb-4"
-              style={{ background: 'rgba(99,102,241,0.10)', color: '#6366f1' }}
+              style={{ background: 'rgba(122,95,255,0.10)', color: '#7a5fff' }}
             >
               {isFr ? 'Engagement' : 'Commitment'}
             </span>
@@ -86,7 +86,7 @@ export default function Sla() {
                         {isFr ? 'Engagement' : 'Commitment'}
                       </th>
                       <th scope="col" className="text-left px-4 py-3 font-semibold text-[#1d1d1f] border-b border-[#1d1d1f]/10">Starter</th>
-                      <th scope="col" className="text-left px-4 py-3 font-semibold text-[#6366f1] border-b border-[#1d1d1f]/10">Pro</th>
+                      <th scope="col" className="text-left px-4 py-3 font-semibold text-[#7a5fff] border-b border-[#1d1d1f]/10">Pro</th>
                       <th scope="col" className="text-left px-4 py-3 font-semibold text-[#1d1d1f] border-b border-[#1d1d1f]/10">Enterprise</th>
                     </tr>
                   </thead>
@@ -95,7 +95,7 @@ export default function Sla() {
                       <tr key={r.label} className="hover:bg-[#fafaf8] transition-colors">
                         <td className="px-4 py-2.5 font-medium text-[#1d1d1f] align-top">{r.label}</td>
                         <td className="px-4 py-2.5 text-[#424245] align-top">{r.starter}</td>
-                        <td className="px-4 py-2.5 text-[#424245] align-top bg-[rgba(99,102,241,0.04)]">{r.pro}</td>
+                        <td className="px-4 py-2.5 text-[#424245] align-top bg-[rgba(122,95,255,0.04)]">{r.pro}</td>
                         <td className="px-4 py-2.5 text-[#424245] align-top">{r.enterprise}</td>
                       </tr>
                     ))}
@@ -177,7 +177,7 @@ export default function Sla() {
                 {isFr
                   ? 'Pour demander un crédit de service, signaler un incident, ou discuter d\'un SLA sur-mesure Enterprise : '
                   : 'To request a service credit, report an incident, or discuss a custom Enterprise SLA: '}
-                <a href="mailto:sla@qwillio.com" className="text-[#6366f1] hover:underline">sla@qwillio.com</a>.
+                <a href="mailto:sla@qwillio.com" className="text-[#7a5fff] hover:underline">sla@qwillio.com</a>.
               </p>
             </section>
           </Reveal>

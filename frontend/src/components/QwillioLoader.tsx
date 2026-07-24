@@ -38,25 +38,25 @@ export default function QwillioLoader({
       >
         <defs>
           <linearGradient id="qwlA" x1="30%" y1="0%" x2="70%" y2="100%">
-            <stop offset="0%" stopColor="#7D7CFB" />
-            <stop offset="55%" stopColor="#6366F1" />
-            <stop offset="100%" stopColor="#4F46E5" />
+            <stop offset="0%" stopColor="#9A86FF" />
+            <stop offset="55%" stopColor="#7A5FFF" />
+            <stop offset="100%" stopColor="#7349FE" />
           </linearGradient>
           <linearGradient id="qwlB" x1="30%" y1="0%" x2="70%" y2="100%">
-            <stop offset="0%" stopColor="#C286FA" />
-            <stop offset="55%" stopColor="#A855F7" />
-            <stop offset="100%" stopColor="#9333EA" />
+            <stop offset="0%" stopColor="#DD93FC" />
+            <stop offset="55%" stopColor="#CD6AFB" />
+            <stop offset="100%" stopColor="#B845F0" />
           </linearGradient>
           {/* Soft aura gradients — lighter at the core, fade to transparent */}
           <radialGradient id="qwlAuraA" cx="50%" cy="50%" r="55%">
             <stop offset="0%" stopColor="#A5A4FF" />
-            <stop offset="55%" stopColor="#6366F1" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#4F46E5" stopOpacity="0" />
+            <stop offset="55%" stopColor="#7A5FFF" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#7349FE" stopOpacity="0" />
           </radialGradient>
           <radialGradient id="qwlAuraB" cx="50%" cy="50%" r="55%">
             <stop offset="0%" stopColor="#DDB0FF" />
-            <stop offset="55%" stopColor="#A855F7" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#9333EA" stopOpacity="0" />
+            <stop offset="55%" stopColor="#CD6AFB" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#B845F0" stopOpacity="0" />
           </radialGradient>
           <radialGradient id="qwlHi" cx="35%" cy="25%" r="60%">
             <stop offset="0%" stopColor="#ffffff" stopOpacity="0.2" />
@@ -94,7 +94,7 @@ export default function QwillioLoader({
 
         {/* Overlap deepening — fades in once the bubbles have settled */}
         <g className="qw-loader__overlap">
-          <circle cx="316" cy="256" r="176" fill="#3D2F9E" opacity="0.58" clipPath="url(#qwlClip)" />
+          <circle cx="316" cy="256" r="176" fill="#5B2EE0" opacity="0.58" clipPath="url(#qwlClip)" />
         </g>
 
         {/* Letters — pure fade-in after the logo has formed */}

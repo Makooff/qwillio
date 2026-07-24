@@ -93,19 +93,19 @@ export default function Terms() {
         <div className="max-w-[1240px] mx-auto">
           {/* ── Editorial heading ─────────────────────────────────────── */}
           <header className="mb-14 md:mb-20 max-w-[860px]">
-            <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-[#6366f1] mb-6">
+            <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-[#7a5fff] mb-6">
               {isFr ? 'Document juridique' : 'Legal document'}
             </p>
             <h1 className="text-[clamp(2.4rem,6vw,5rem)] font-semibold tracking-[-0.035em] leading-[0.98] mb-6">
               {isFr ? (
                 <>
                   Conditions{' '}
-                  <span className="font-serif italic text-[#6366f1]">générales</span>{' '}
+                  <span className="font-serif italic text-[#7a5fff]">générales</span>{' '}
                   d'utilisation.
                 </>
               ) : (
                 <>
-                  Terms of <span className="font-serif italic text-[#6366f1]">service.</span>
+                  Terms of <span className="font-serif italic text-[#7a5fff]">service.</span>
                 </>
               )}
             </h1>
@@ -144,7 +144,7 @@ export default function Terms() {
                           onClick={(event) => handleAnchorClick(event, section.id)}
                           className={`block pl-4 -ml-px py-1.5 text-[13px] leading-snug border-l transition-colors ${
                             isActive
-                              ? 'border-[#6366f1] text-[#6366f1] font-medium'
+                              ? 'border-[#7a5fff] text-[#7a5fff] font-medium'
                               : 'border-transparent text-[#525257] hover:text-[#1d1d1f]'
                           }`}
                           aria-current={isActive ? 'true' : undefined}
@@ -223,7 +223,7 @@ export default function Terms() {
                       ]
                   ).map((item, i) => (
                     <li key={i} className="flex gap-3">
-                      <span className="text-[#6366f1] font-serif italic select-none" aria-hidden="true">
+                      <span className="text-[#7a5fff] font-serif italic select-none" aria-hidden="true">
                         ¶
                       </span>
                       <span>{item}</span>
@@ -361,7 +361,7 @@ export default function Terms() {
                       ]
                   ).map((item, i) => (
                     <li key={i} className="flex gap-3">
-                      <span className="text-[#6366f1] font-serif italic select-none" aria-hidden="true">
+                      <span className="text-[#7a5fff] font-serif italic select-none" aria-hidden="true">
                         ¶
                       </span>
                       <span>{item}</span>
@@ -398,7 +398,7 @@ export default function Terms() {
                       ]
                   ).map((item, i) => (
                     <li key={i} className="flex gap-3">
-                      <span className="text-[#6366f1] font-serif italic select-none" aria-hidden="true">
+                      <span className="text-[#7a5fff] font-serif italic select-none" aria-hidden="true">
                         ¶
                       </span>
                       <span>{item}</span>
@@ -455,7 +455,7 @@ export default function Terms() {
                       ]
                   ).map((item, i) => (
                     <li key={i} className="flex gap-3">
-                      <span className="text-[#6366f1] font-serif italic select-none" aria-hidden="true">
+                      <span className="text-[#7a5fff] font-serif italic select-none" aria-hidden="true">
                         ¶
                       </span>
                       <span>{item}</span>
@@ -531,7 +531,7 @@ export default function Terms() {
                     {isFr ? 'E-mail : ' : 'Email: '}
                     <a
                       href="mailto:hello@qwillio.com"
-                      className="text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1] transition-colors"
+                      className="text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff] transition-colors"
                     >
                       hello@qwillio.com
                     </a>
@@ -548,7 +548,7 @@ export default function Terms() {
                   {isFr ? 'Des questions ? Écrivez-nous à ' : 'Questions? Write to '}
                   <a
                     href="mailto:hello@qwillio.com"
-                    className="text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1]"
+                    className="text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff]"
                   >
                     hello@qwillio.com
                   </a>

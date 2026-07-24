@@ -78,7 +78,7 @@ function Featured({ src, alt }: { src: string; alt?: string }) {
         className="pointer-events-none absolute inset-0 z-[3] blur-[6px] mix-blend-overlay"
         style={{
           background:
-            'linear-gradient(220.99deg, rgba(99,102,241,0) 32%, rgb(99,102,241) 41%, rgb(173,177,255) 47%, rgba(168,85,247,0.57) 54%, rgba(168,85,247,0) 65%)',
+            'linear-gradient(220.99deg, rgba(122,95,255,0) 32%, rgb(122,95,255) 41%, rgb(173,177,255) 47%, rgba(205,106,251,0.57) 54%, rgba(205,106,251,0) 65%)',
         }}
       />
     </div>
@@ -220,7 +220,7 @@ export function ScrollReelTestimonials({
       tabIndex={0}
       onKeyDown={onKeyDown}
       className={cn(
-        'relative flex w-full max-w-[1060px] flex-col items-stretch gap-2.5 overflow-hidden rounded-xl border border-[#1d1d1f]/10 bg-[#f5f5f7] shadow-[inset_0_2px_0_rgba(255,255,255,1)] outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] md:min-h-[320px] md:flex-row',
+        'relative flex w-full max-w-[1060px] flex-col items-stretch gap-2.5 overflow-hidden rounded-xl border border-[#1d1d1f]/10 bg-[#f5f5f7] shadow-[inset_0_2px_0_rgba(255,255,255,1)] outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff] md:min-h-[320px] md:flex-row',
         className
       )}
     >
@@ -313,7 +313,7 @@ export function ScrollReelTestimonials({
             onClick={() => paginate(-1)}
             disabled={index === 0}
             aria-label={prevLabel}
-            className="grid h-6 w-6 cursor-pointer place-items-center rounded-full border border-[#1d1d1f]/15 bg-transparent p-0 text-[#1d1d1f] transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:enabled:scale-[1.08] active:enabled:scale-[0.97] disabled:cursor-default disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]"
+            className="grid h-6 w-6 cursor-pointer place-items-center rounded-full border border-[#1d1d1f]/15 bg-transparent p-0 text-[#1d1d1f] transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:enabled:scale-[1.08] active:enabled:scale-[0.97] disabled:cursor-default disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff]"
           >
             <svg className="h-3 w-3 opacity-70" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M7.5 2.5 3.5 6l4 3.5" />
@@ -324,7 +324,7 @@ export function ScrollReelTestimonials({
             onClick={() => paginate(1)}
             disabled={index === count - 1}
             aria-label={nextLabel}
-            className="grid h-6 w-6 cursor-pointer place-items-center rounded-full border border-[#1d1d1f]/15 bg-transparent p-0 text-[#1d1d1f] transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:enabled:scale-[1.08] active:enabled:scale-[0.97] disabled:cursor-default disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]"
+            className="grid h-6 w-6 cursor-pointer place-items-center rounded-full border border-[#1d1d1f]/15 bg-transparent p-0 text-[#1d1d1f] transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:enabled:scale-[1.08] active:enabled:scale-[0.97] disabled:cursor-default disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff]"
           >
             <svg className="h-3 w-3 opacity-70" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="m4.5 2.5 4 3.5-4 3.5" />

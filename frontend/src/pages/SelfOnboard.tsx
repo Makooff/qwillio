@@ -101,7 +101,7 @@ export default function SelfOnboard() {
         </div>
         <div className="h-1 bg-[#d2d2d7]/30">
           <div
-            className="h-full bg-[#6366f1] transition-colors duration-500 ease-out"
+            className="h-full bg-[#7a5fff] transition-colors duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -114,9 +114,9 @@ export default function SelfOnboard() {
             key={s}
             className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
               s < step
-                ? 'bg-[#6366f1] text-white'
+                ? 'bg-[#7a5fff] text-white'
                 : s === step
-                ? 'bg-[#6366f1]/10 text-[#6366f1] border-2 border-[#6366f1]'
+                ? 'bg-[#7a5fff]/10 text-[#7a5fff] border-2 border-[#7a5fff]'
                 : 'bg-[#f5f5f7] text-[#86868b]'
             }`}
           >
@@ -139,8 +139,8 @@ export default function SelfOnboard() {
           {step === 1 && (
             <>
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-[#6366f1]/10 flex items-center justify-center">
-                  <Building2 size={20} className="text-[#6366f1]" />
+                <div className="w-10 h-10 rounded-xl bg-[#7a5fff]/10 flex items-center justify-center">
+                  <Building2 size={20} className="text-[#7a5fff]" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold tracking-tight">{t('selfOnboard.step1.title')}</h2>
@@ -157,7 +157,7 @@ export default function SelfOnboard() {
                     type="text"
                     value={businessName}
                     onChange={e => setBusinessName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
                     placeholder="Acme Inc."
                     required
                   />
@@ -167,7 +167,7 @@ export default function SelfOnboard() {
                   <select
                     value={industry}
                     onChange={e => setIndustry(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
                   >
                     <option value="">{t('selfOnboard.selectIndustry')}</option>
                     <option value="restaurant">Restaurant / Food</option>
@@ -188,7 +188,7 @@ export default function SelfOnboard() {
                     type="url"
                     value={website}
                     onChange={e => setWebsite(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
                     placeholder="https://mywebsite.com"
                   />
                 </div>
@@ -200,8 +200,8 @@ export default function SelfOnboard() {
           {step === 2 && (
             <>
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-[#6366f1]/10 flex items-center justify-center">
-                  <Phone size={20} className="text-[#6366f1]" />
+                <div className="w-10 h-10 rounded-xl bg-[#7a5fff]/10 flex items-center justify-center">
+                  <Phone size={20} className="text-[#7a5fff]" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold tracking-tight">{t('selfOnboard.step2.title')}</h2>
@@ -216,7 +216,7 @@ export default function SelfOnboard() {
                     type="tel"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
                     placeholder="+1 (555) 123-4567"
                   />
                   <p className="text-xs text-[#86868b] mt-2">{t('selfOnboard.phoneHint')}</p>
@@ -229,8 +229,8 @@ export default function SelfOnboard() {
           {step === 3 && (
             <>
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-[#6366f1]/10 flex items-center justify-center">
-                  <CreditCard size={20} className="text-[#6366f1]" />
+                <div className="w-10 h-10 rounded-xl bg-[#7a5fff]/10 flex items-center justify-center">
+                  <CreditCard size={20} className="text-[#7a5fff]" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold tracking-tight">{t('register.selectPlan')}</h2>
@@ -245,12 +245,12 @@ export default function SelfOnboard() {
                     onClick={() => setSelectedPlan(plan.key)}
                     className={`w-full flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl border-2 transition-colors text-left ${
                       selectedPlan === plan.key
-                        ? 'border-[#6366f1] bg-white'
+                        ? 'border-[#7a5fff] bg-white'
                         : 'border-[#d2d2d7] bg-white hover:border-[#86868b]'
                     }`}
                   >
                     <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      selectedPlan === plan.key ? 'border-[#6366f1] bg-[#6366f1]' : 'border-[#d2d2d7]'
+                      selectedPlan === plan.key ? 'border-[#7a5fff] bg-[#7a5fff]' : 'border-[#d2d2d7]'
                     }`}>
                       {selectedPlan === plan.key && <Check size={12} className="text-white" />}
                     </div>
@@ -259,7 +259,7 @@ export default function SelfOnboard() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-base font-semibold">{plan.name}</span>
                         {plan.popular && (
-                          <span className="text-[10px] font-semibold uppercase tracking-wider bg-[#6366f1] text-white px-2 py-0.5 rounded-full">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider bg-[#7a5fff] text-white px-2 py-0.5 rounded-full">
                             {t('price.popular')}
                           </span>
                         )}
@@ -297,7 +297,7 @@ export default function SelfOnboard() {
 
             {step < 3 ? (
               <button
-                className="inline-flex items-center gap-1.5 bg-[#6366f1] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                className="inline-flex items-center gap-1.5 bg-[#7a5fff] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#7349fe] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
                 disabled={step === 1 && !businessName.trim()}
                 onClick={() => setStep((step + 1) as Step)}
               >

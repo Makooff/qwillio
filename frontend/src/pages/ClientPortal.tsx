@@ -128,7 +128,7 @@ export default function ClientPortal() {
             </div>
             <button
               onClick={fetchData}
-              className="inline-flex items-center gap-1.5 text-sm text-[#6366f1] hover:text-[#4f46e5] transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm text-[#7a5fff] hover:text-[#7349fe] transition-colors"
             >
               <RefreshCw size={16} /> {t('portal.refresh')}
             </button>
@@ -146,7 +146,7 @@ export default function ClientPortal() {
               onClick={() => setTab(tb.key)}
               className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 ${
                 tab === tb.key
-                  ? 'border-[#6366f1] text-[#6366f1]'
+                  ? 'border-[#7a5fff] text-[#7a5fff]'
                   : 'border-transparent text-[#86868b] hover:text-[#1d1d1f]'
               }`}
             >
@@ -173,10 +173,10 @@ export default function ClientPortal() {
             </div>
 
             {ov.isTrial && (
-              <div className="flex items-center gap-3 bg-[#6366f1]/5 border border-[#6366f1]/20 rounded-2xl px-6 py-4">
-                <AlertCircle size={20} className="text-[#6366f1] flex-shrink-0" />
+              <div className="flex items-center gap-3 bg-[#7a5fff]/5 border border-[#7a5fff]/20 rounded-2xl px-6 py-4">
+                <AlertCircle size={20} className="text-[#7a5fff] flex-shrink-0" />
                 <span className="text-sm text-[#1d1d1f]">{t('portal.trial.text')} <strong>{ov.trialDaysLeft || 0} {t('portal.trial.days')}</strong></span>
-                <a href="/dashboard/billing" className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-[#6366f1] hover:underline">
+                <a href="/dashboard/billing" className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-[#7a5fff] hover:underline">
                   {t('portal.trial.upgrade')} <ArrowRight size={14} />
                 </a>
               </div>
@@ -238,9 +238,9 @@ export default function ClientPortal() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {(data.bookings?.data || data.bookings || []).map((b: any) => (
                 <div key={b.id} className="rounded-2xl border border-[#d2d2d7]/60 bg-[#f5f5f7] p-6 flex items-start gap-4">
-                  <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-[#6366f1]/10 flex flex-col items-center justify-center">
-                    <span className="text-lg font-bold text-[#6366f1] leading-none">{new Date(b.bookingDate).toLocaleDateString('fr-FR', { day: '2-digit' })}</span>
-                    <span className="text-[10px] text-[#6366f1] uppercase font-medium">{new Date(b.bookingDate).toLocaleDateString('fr-FR', { month: 'short' })}</span>
+                  <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-[#7a5fff]/10 flex flex-col items-center justify-center">
+                    <span className="text-lg font-bold text-[#7a5fff] leading-none">{new Date(b.bookingDate).toLocaleDateString('fr-FR', { day: '2-digit' })}</span>
+                    <span className="text-[10px] text-[#7a5fff] uppercase font-medium">{new Date(b.bookingDate).toLocaleDateString('fr-FR', { month: 'short' })}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{b.customerName || t('portal.bookings.client')}</p>
@@ -286,11 +286,11 @@ export default function ClientPortal() {
                       <span className="text-xs text-[#86868b]">{t('portal.leads.score')}</span>
                       <div className="flex-1 h-2 bg-[#d2d2d7]/40 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-[#6366f1] rounded-full transition-[width] duration-500 ease-out"
+                          className="h-full bg-[#7a5fff] rounded-full transition-[width] duration-500 ease-out"
                           style={{ width: `${Math.min(lead.score * 10, 100)}%` }}
                         />
                       </div>
-                      <span className="text-xs font-semibold text-[#6366f1]">{lead.score}/10</span>
+                      <span className="text-xs font-semibold text-[#7a5fff]">{lead.score}/10</span>
                     </div>
                   )}
                   {lead.summary && <p className="text-sm text-[#86868b] leading-relaxed">{lead.summary}</p>}
@@ -316,8 +316,8 @@ export default function ClientPortal() {
                     <AreaChart data={data.analytics.dailyTrends}>
                       <defs>
                         <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#7a5fff" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#7a5fff" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#d2d2d7" strokeOpacity={0.4} />
@@ -336,7 +336,7 @@ export default function ClientPortal() {
                           boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                         }}
                       />
-                      <Area type="monotone" dataKey="totalCalls" stroke="#6366f1" fill="url(#blueGrad)" strokeWidth={2} name={t('portal.analytics.calls')} />
+                      <Area type="monotone" dataKey="totalCalls" stroke="#7a5fff" fill="url(#blueGrad)" strokeWidth={2} name={t('portal.analytics.calls')} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>

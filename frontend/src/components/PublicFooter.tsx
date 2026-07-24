@@ -54,7 +54,7 @@ export default function PublicFooter() {
           <div>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 mb-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 focus-visible:ring-offset-2 rounded-md"
+              className="inline-flex items-center gap-2 mb-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff]/40 focus-visible:ring-offset-2 rounded-md"
             >
               <QwillioLogo size={26} />
               <span className="text-lg font-semibold tracking-tight text-[#1d1d1f]">Qwillio</span>
@@ -85,14 +85,14 @@ export default function PublicFooter() {
                       {link.external ? (
                         <a
                           href={link.to}
-                          className="text-sm text-[#1d1d1f] hover:text-[#6366f1] transition-colors"
+                          className="text-sm text-[#1d1d1f] hover:text-[#7a5fff] transition-colors"
                         >
                           {link.label}
                         </a>
                       ) : (
                         <Link
                           to={link.to}
-                          className="text-sm text-[#1d1d1f] hover:text-[#6366f1] transition-colors"
+                          className="text-sm text-[#1d1d1f] hover:text-[#7a5fff] transition-colors"
                         >
                           {link.label}
                         </Link>

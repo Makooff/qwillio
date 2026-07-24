@@ -141,14 +141,14 @@ function SceneHome({ isFr }: { isFr: boolean }) {
       <motion.div
         aria-hidden="true"
         className="absolute -left-16 bottom-[-25%] h-[65%] w-[130%] rounded-full blur-2xl"
-        style={{ background: 'radial-gradient(ellipse, rgba(99,102,241,0.45) 0%, transparent 65%)' }}
+        style={{ background: 'radial-gradient(ellipse, rgba(122,95,255,0.45) 0%, transparent 65%)' }}
         animate={{ x: [0, 24, 0], y: [0, -16, 0], scale: [1, 1.12, 1] }}
         transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
         aria-hidden="true"
         className="absolute -right-20 top-[10%] h-[45%] w-[110%] rounded-full blur-2xl"
-        style={{ background: 'radial-gradient(ellipse, rgba(168,85,247,0.32) 0%, transparent 65%)' }}
+        style={{ background: 'radial-gradient(ellipse, rgba(205,106,251,0.32) 0%, transparent 65%)' }}
         animate={{ x: [0, -26, 0], y: [0, 20, 0] }}
         transition={{ duration: 8.5, repeat: Infinity, ease: 'easeInOut' }}
       />
@@ -234,7 +234,7 @@ function AppBar({ title, isFr }: { title: string; isFr: boolean }) {
       <span className="text-[7px] text-white/30">/ {title}</span>
       <span
         className="ml-auto flex h-[15px] w-[15px] items-center justify-center rounded-full text-[6px] font-bold text-white"
-        style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}
+        style={{ background: 'linear-gradient(135deg, #7a5fff, #cd6afb)' }}
       >
         SC
       </span>
@@ -833,7 +833,7 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
       <div
         aria-hidden="true"
         className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-60 blur-3xl"
-        style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.22) 0%, rgba(168,85,247,0.12) 45%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, rgba(122,95,255,0.22) 0%, rgba(205,106,251,0.12) 45%, transparent 70%)' }}
       />
 
       <div aria-hidden="true">
@@ -881,7 +881,7 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
                   'inset 0 1px 1px rgba(255,255,255,0.28)',
                   'inset 0 -1px 1px rgba(0,0,0,0.55)',
                   '0 30px 60px -18px rgba(20,16,50,0.45)',
-                  '0 70px 110px -30px rgba(99,102,241,0.28)',
+                  '0 70px 110px -30px rgba(122,95,255,0.28)',
                 ].join(', '),
                 backfaceVisibility: 'hidden',
               }}

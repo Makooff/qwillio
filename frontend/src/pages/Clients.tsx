@@ -46,8 +46,8 @@ const STATUS_META: Record<ClientStatus, { label: string; bg: string; fg: string 
 };
 
 const AVATAR_COLORS = [
-  ['rgba(99,102,241,0.25)',  '#818CF8'],
-  ['rgba(168,85,247,0.20)',  '#C084FC'],
+  ['rgba(122,95,255,0.25)',  '#9D8BFF'],
+  ['rgba(205,106,251,0.20)',  '#DD93FC'],
   ['rgba(59,130,246,0.20)',  '#60A5FA'],
   ['rgba(16,185,129,0.18)',  '#34D399'],
   ['rgba(245,158,11,0.18)',  '#FCD34D'],

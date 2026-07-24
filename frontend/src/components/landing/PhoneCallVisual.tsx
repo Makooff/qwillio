@@ -73,13 +73,13 @@ export default function PhoneCallVisual({ isFr }: { isFr: boolean }) {
             <div
               className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-[12.5px] leading-snug ${
                 line.who === 'ai'
-                  ? 'bg-[#6366f1]/15 border border-[#6366f1]/25 text-white rounded-bl-md'
+                  ? 'bg-[#7a5fff]/15 border border-[#7a5fff]/25 text-white rounded-bl-md'
                   : 'bg-white/[0.06] border border-white/[0.08] text-white/90 rounded-br-md'
               }`}
             >
               <span
                 className={`block text-[9px] font-bold tracking-[0.16em] uppercase mb-1 ${
-                  line.who === 'ai' ? 'text-[#a5b4fc]' : 'text-white/40'
+                  line.who === 'ai' ? 'text-[#b9a8ff]' : 'text-white/40'
                 }`}
               >
                 {line.who === 'ai' ? aiName : isFr ? 'Appelant' : 'Caller'}
@@ -90,11 +90,11 @@ export default function PhoneCallVisual({ isFr }: { isFr: boolean }) {
         ))}
         {revealed < lines.length && (
           <li className="flex justify-start" aria-hidden="true">
-            <span className="inline-flex items-center gap-1.5 rounded-2xl bg-[#6366f1]/15 border border-[#6366f1]/25 px-3.5 py-3 rounded-bl-md">
+            <span className="inline-flex items-center gap-1.5 rounded-2xl bg-[#7a5fff]/15 border border-[#7a5fff]/25 px-3.5 py-3 rounded-bl-md">
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-[#a5b4fc]"
+                  className="w-1.5 h-1.5 rounded-full bg-[#b9a8ff]"
                   style={{ animation: `dot 1.1s ${i * 140}ms ease-in-out infinite` }}
                 />
               ))}
@@ -105,7 +105,7 @@ export default function PhoneCallVisual({ isFr }: { isFr: boolean }) {
 
       {/* Bottom action bar */}
       <div className="mt-5 flex items-center gap-3 pt-4 border-t border-white/[0.06]">
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] uppercase text-[#6366f1]">
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] uppercase text-[#7a5fff]">
           <Calendar size={11} aria-hidden="true" />
           {isFr ? 'RDV pris' : 'Booked'}
         </span>
@@ -126,7 +126,7 @@ export default function PhoneCallVisual({ isFr }: { isFr: boolean }) {
           return (
             <span
               key={i}
-              className="flex-1 rounded-full bg-[#6366f1]/40"
+              className="flex-1 rounded-full bg-[#7a5fff]/40"
               style={{
                 height: `${h}px`,
                 animation: `wave 1.4s ${i * 28}ms ease-in-out infinite`,

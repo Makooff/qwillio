@@ -60,7 +60,7 @@ export default function About() {
   const values = [
     {
       num: '01',
-      accent: '#6366f1',
+      accent: '#7a5fff',
       icon: Heart,
       title: isFr ? 'Humain d\'abord' : 'Human first',
       desc: isFr
@@ -69,7 +69,7 @@ export default function About() {
     },
     {
       num: '02',
-      accent: '#a855f7',
+      accent: '#cd6afb',
       icon: Compass,
       title: isFr ? 'Honnêteté radicale' : 'Radical honesty',
       desc: isFr
@@ -78,7 +78,7 @@ export default function About() {
     },
     {
       num: '03',
-      accent: '#6366f1',
+      accent: '#7a5fff',
       icon: Zap,
       title: isFr ? 'Construit pour scale' : 'Built to scale',
       desc: isFr
@@ -98,7 +98,7 @@ export default function About() {
           className="pt-24 sm:pt-28 md:pt-36 pb-16 md:pb-24 px-5 sm:px-6"
         >
           <div className="max-w-[1240px] mx-auto">
-            <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4" style={{ color: '#6366f1' }}>
+            <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4" style={{ color: '#7a5fff' }}>
               {isFr ? 'À propos' : 'About'}
             </span>
             <h1
@@ -108,14 +108,14 @@ export default function About() {
               {isFr ? (
                 <>
                   Nous bâtissons{' '}
-                  <span className="font-serif italic" style={{ color: '#6366f1' }}>l'IA</span>{' '}
-                  <span className="font-serif italic" style={{ color: '#a855f7' }}>qui décroche.</span>
+                  <span className="font-serif italic" style={{ color: '#7a5fff' }}>l'IA</span>{' '}
+                  <span className="font-serif italic" style={{ color: '#cd6afb' }}>qui décroche.</span>
                 </>
               ) : (
                 <>
                   Building the{' '}
-                  <span className="font-serif italic" style={{ color: '#6366f1' }}>AI</span>{' '}
-                  <span className="font-serif italic" style={{ color: '#a855f7' }}>that picks up.</span>
+                  <span className="font-serif italic" style={{ color: '#7a5fff' }}>AI</span>{' '}
+                  <span className="font-serif italic" style={{ color: '#cd6afb' }}>that picks up.</span>
                 </>
               )}
             </h1>
@@ -144,12 +144,12 @@ export default function About() {
               </p>
               <blockquote
                 className="border-l-0 pl-0 my-10"
-                style={{ borderTop: '2px solid #6366f1', paddingTop: '1.5rem' }}
+                style={{ borderTop: '2px solid #7a5fff', paddingTop: '1.5rem' }}
               >
                 <p className="text-[clamp(1.4rem,2.8vw,2rem)] font-semibold tracking-[-0.025em] leading-[1.25] text-[#1d1d1f]">
                   {isFr
-                    ? <>« Si un humain peut le faire au téléphone, <span className="font-serif italic" style={{ color: '#6366f1' }}>l'IA le fera mieux, plus vite, et 24/7.</span> »</>
-                    : <>"If a human can do it on the phone, <span className="font-serif italic" style={{ color: '#6366f1' }}>AI will do it better, faster, and 24/7.</span>"</>}
+                    ? <>« Si un humain peut le faire au téléphone, <span className="font-serif italic" style={{ color: '#7a5fff' }}>l'IA le fera mieux, plus vite, et 24/7.</span> »</>
+                    : <>"If a human can do it on the phone, <span className="font-serif italic" style={{ color: '#7a5fff' }}>AI will do it better, faster, and 24/7.</span>"</>}
                 </p>
               </blockquote>
               <p>
@@ -202,7 +202,7 @@ export default function About() {
             <h2
               id="founder-heading"
               className="text-[11px] font-semibold tracking-[0.18em] uppercase mb-6"
-              style={{ color: '#a855f7' }}
+              style={{ color: '#cd6afb' }}
             >
               {isFr ? 'Mot du fondateur' : 'Founder note'}
             </h2>
@@ -229,15 +229,15 @@ export default function About() {
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.5fr_1fr] gap-10 items-end border-t-2 border-[#1d1d1f] pt-12 md:pt-16">
             <h2 className="text-[clamp(2rem,4.5vw,3.6rem)] font-semibold tracking-[-0.035em] leading-[1.02]">
               {isFr ? (
-                <>Une question ? <span className="font-serif italic" style={{ color: '#6366f1' }}>Parlons.</span></>
+                <>Une question ? <span className="font-serif italic" style={{ color: '#7a5fff' }}>Parlons.</span></>
               ) : (
-                <>A question? <span className="font-serif italic" style={{ color: '#6366f1' }}>Let's talk.</span></>
+                <>A question? <span className="font-serif italic" style={{ color: '#7a5fff' }}>Let's talk.</span></>
               )}
             </h2>
             <div className="flex flex-col items-start gap-3 lg:items-end pb-4">
               <Link
                 to="/contact"
-                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#6366f1] transition-colors"
+                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#7a5fff] transition-colors"
               >
                 {isFr ? 'Nous contacter' : 'Contact us'}
                 <ArrowRight size={16} aria-hidden="true" />

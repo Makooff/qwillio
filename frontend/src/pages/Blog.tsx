@@ -66,7 +66,7 @@ export default function Blog() {
 
       <main aria-label={isFr ? 'Blog Qwillio' : 'Qwillio Blog'}>
         <header className="pt-32 pb-16 md:pt-44 md:pb-20 text-center px-6">
-          <p className="text-sm font-medium text-[#6366f1] tracking-wide uppercase mb-4">Blog</p>
+          <p className="text-sm font-medium text-[#7a5fff] tracking-wide uppercase mb-4">Blog</p>
           <h1 className="text-5xl md:text-6xl font-semibold tracking-tight">
             {isFr ? 'Actualités & ressources' : 'News & resources'}
           </h1>
@@ -87,7 +87,7 @@ export default function Blog() {
                   key={article.slug}
                   to={`/blog/${article.slug}`}
                   aria-label={isFr ? article.titleFr : article.title}
-                  className="relative rounded-2xl p-6 overflow-hidden transition-transform duration-300 hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 block"
+                  className="relative rounded-2xl p-6 overflow-hidden transition-transform duration-300 hover:scale-[1.01] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff]/40 block"
                   style={{
                     background: 'linear-gradient(135deg, #111113, #1a1a1f)',
                     border: '1px solid rgba(255,255,255,0.06)',
@@ -96,14 +96,14 @@ export default function Blog() {
                   <div
                     aria-hidden="true"
                     className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-20 blur-3xl"
-                    style={{ background: i % 2 === 0 ? '#6366F1' : '#3B82F6' }}
+                    style={{ background: i % 2 === 0 ? '#7A5FFF' : '#3B82F6' }}
                   />
 
                   <div className="relative">
                     <div className="flex items-center gap-3 mb-4 flex-wrap">
                       <span
                         className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
-                        style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}
+                        style={{ background: 'rgba(122,95,255,0.15)', color: '#9d8bff' }}
                       >
                         {isFr ? article.tagFr : article.tag}
                       </span>
@@ -125,7 +125,7 @@ export default function Blog() {
 
                     <span
                       className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-xl transition-colors"
-                      style={{ background: 'rgba(255,255,255,0.06)', color: '#818cf8' }}
+                      style={{ background: 'rgba(255,255,255,0.06)', color: '#9d8bff' }}
                     >
                       {isFr ? 'Lire' : 'Read'} <ArrowRight size={14} aria-hidden="true" />
                     </span>
@@ -143,14 +143,14 @@ export default function Blog() {
               {isFr ? 'Tous les articles' : 'All articles'}
             </h2>
             {legacyPosts.map((post) => (
-              <article key={post.title} className="rounded-2xl border border-[#d2d2d7] p-8 hover:border-[#6366f1]/40 transition-colors">
+              <article key={post.title} className="rounded-2xl border border-[#d2d2d7] p-8 hover:border-[#7a5fff]/40 transition-colors">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-xs font-medium text-[#6366f1] bg-[#6366f1]/10 px-3 py-1 rounded-full">{post.tag}</span>
+                  <span className="text-xs font-medium text-[#7a5fff] bg-[#7a5fff]/10 px-3 py-1 rounded-full">{post.tag}</span>
                   <span className="flex items-center gap-1 text-xs text-[#86868b]"><Clock size={12} aria-hidden="true" /> {post.date}</span>
                 </div>
                 <h3 className="text-xl font-semibold mb-2">{post.title}</h3>
                 <p className="text-sm text-[#86868b] leading-relaxed mb-4">{post.excerpt}</p>
-                <span className="inline-flex items-center gap-1 text-sm text-[#6366f1] font-medium hover:underline cursor-pointer">
+                <span className="inline-flex items-center gap-1 text-sm text-[#7a5fff] font-medium hover:underline cursor-pointer">
                   {isFr ? 'Lire la suite' : 'Read more'} <ArrowRight size={14} aria-hidden="true" />
                 </span>
               </article>

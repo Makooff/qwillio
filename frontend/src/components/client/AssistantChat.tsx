@@ -13,8 +13,8 @@ type Mode = 'config' | 'onboarding' | 'receptionist';
 interface Msg { role: 'user' | 'assistant'; content: string }
 
 const MODES: { id: Mode; label: string; labelEn: string; icon: typeof Settings; color: string }[] = [
-  { id: 'config',       label: 'Config',        labelEn: 'Config',       icon: Settings,    color: '#7B5CF0' },
-  { id: 'onboarding',   label: 'Onboarding',    labelEn: 'Onboarding',   icon: Rocket,      color: '#a855f7' },
+  { id: 'config',       label: 'Config',        labelEn: 'Config',       icon: Settings,    color: '#7A5FFF' },
+  { id: 'onboarding',   label: 'Onboarding',    labelEn: 'Onboarding',   icon: Rocket,      color: '#cd6afb' },
   { id: 'receptionist', label: 'Réceptionniste', labelEn: 'Reception',   icon: Headphones,  color: '#14b8a6' },
 ];
 
@@ -179,7 +179,7 @@ export default function AssistantChat({
           aria-pressed={speak}
           aria-label={isFr ? 'Lecture vocale' : 'Speak replies'}
           className="w-8 h-8 rounded-full grid place-items-center transition-colors"
-          style={{ background: speak ? 'rgba(123,92,240,0.16)' : 'rgba(255,255,255,0.04)', color: speak ? '#a5b4fc' : '#8B8BA7' }}
+          style={{ background: speak ? 'rgba(122,95,255,0.16)' : 'rgba(255,255,255,0.04)', color: speak ? '#b9a8ff' : '#8B8BA7' }}
         >
           {speak ? <Volume2 size={14} /> : <VolumeX size={14} />}
         </button>

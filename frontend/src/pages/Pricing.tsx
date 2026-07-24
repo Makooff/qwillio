@@ -116,7 +116,7 @@ export default function Pricing() {
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.5fr_1fr] gap-12 items-end">
             <Reveal>
             <div>
-              <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4" style={{ color: '#6366f1' }}>
+              <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4" style={{ color: '#7a5fff' }}>
                 {isFr ? 'Tarifs' : 'Pricing'}
               </span>
               <h1
@@ -126,14 +126,14 @@ export default function Pricing() {
                 {isFr ? (
                   <>
                     Un prix.<br />
-                    <span className="font-serif italic" style={{ color: '#6366f1' }}>Tout</span>{' '}
-                    <span className="font-serif italic" style={{ color: '#a855f7' }}>compris.</span>
+                    <span className="font-serif italic" style={{ color: '#7a5fff' }}>Tout</span>{' '}
+                    <span className="font-serif italic" style={{ color: '#cd6afb' }}>compris.</span>
                   </>
                 ) : (
                   <>
                     One price.<br />
-                    <span className="font-serif italic" style={{ color: '#6366f1' }}>Everything</span>{' '}
-                    <span className="font-serif italic" style={{ color: '#a855f7' }}>included.</span>
+                    <span className="font-serif italic" style={{ color: '#7a5fff' }}>Everything</span>{' '}
+                    <span className="font-serif italic" style={{ color: '#cd6afb' }}>included.</span>
                   </>
                 )}
               </h1>
@@ -161,7 +161,7 @@ export default function Pricing() {
                 type="button"
                 onClick={() => setBilling('monthly')}
                 aria-pressed={billing === 'monthly'}
-                className={`px-4 sm:px-5 py-2 rounded-full text-[13px] font-medium transition-colors active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 ${
+                className={`px-4 sm:px-5 py-2 rounded-full text-[13px] font-medium transition-colors active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff]/40 ${
                   billing === 'monthly' ? 'bg-[#1d1d1f] text-white' : 'text-[#6e6e73] hover:text-[#1d1d1f]'
                 }`}
               >
@@ -171,7 +171,7 @@ export default function Pricing() {
                 type="button"
                 onClick={() => setBilling('annual')}
                 aria-pressed={billing === 'annual'}
-                className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full text-[13px] font-medium transition-colors active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/40 ${
+                className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full text-[13px] font-medium transition-colors active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff]/40 ${
                   billing === 'annual' ? 'bg-[#1d1d1f] text-white' : 'text-[#6e6e73] hover:text-[#1d1d1f]'
                 }`}
               >
@@ -179,8 +179,8 @@ export default function Pricing() {
                 <span
                   className="text-[10px] font-bold tracking-[0.08em] uppercase px-1.5 py-0.5 rounded-full"
                   style={{
-                    background: billing === 'annual' ? '#a5b4fc' : 'rgba(99,102,241,0.10)',
-                    color: billing === 'annual' ? '#1d1d1f' : '#6366f1',
+                    background: billing === 'annual' ? '#b9a8ff' : 'rgba(122,95,255,0.10)',
+                    color: billing === 'annual' ? '#1d1d1f' : '#7a5fff',
                   }}
                 >
                   −20 %
@@ -200,7 +200,7 @@ export default function Pricing() {
             >
               <span
                 className="inline-flex md:absolute md:-top-3 md:left-6 text-[10px] font-bold tracking-[0.18em] uppercase px-3 py-1.5 rounded-full whitespace-nowrap self-start"
-                style={{ background: '#6366f1', color: '#fff' }}
+                style={{ background: '#7a5fff', color: '#fff' }}
               >
                 {isFr ? 'Nouveau : Belgique & France' : 'New: Belgium & France'}
               </span>
@@ -212,11 +212,11 @@ export default function Pricing() {
                     : 'Small businesses, tradespeople, liberal professions (French, EU hosting).'}
                 </p>
                 <ul role="list" className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-[#424245]">
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> 250 {isFr ? 'minutes / mois' : 'minutes / month'}</li>
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'IA 24/7 bilingue FR / EN' : '24/7 AI, bilingual FR / EN'}</li>
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'RDV + agenda + transfert urgences' : 'Booking + calendar + urgency transfer'}</li>
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'Transcript + sentiment + anti-spam' : 'Transcript + sentiment + spam shield'}</li>
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#6366f1' }} aria-hidden="true" /> {isFr ? 'RGPD, UE' : 'GDPR, EU'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#7a5fff' }} aria-hidden="true" /> 250 {isFr ? 'minutes / mois' : 'minutes / month'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#7a5fff' }} aria-hidden="true" /> {isFr ? 'IA 24/7 bilingue FR / EN' : '24/7 AI, bilingual FR / EN'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#7a5fff' }} aria-hidden="true" /> {isFr ? 'RDV + agenda + transfert urgences' : 'Booking + calendar + urgency transfer'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#7a5fff' }} aria-hidden="true" /> {isFr ? 'Transcript + sentiment + anti-spam' : 'Transcript + sentiment + spam shield'}</li>
+                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#7a5fff' }} aria-hidden="true" /> {isFr ? 'RGPD, UE' : 'GDPR, EU'}</li>
                 </ul>
               </div>
               <div className="flex flex-col md:items-end gap-2">
@@ -230,10 +230,10 @@ export default function Pricing() {
                   </p>
                 )}
                 <p className="text-[11px] text-[#6e6e73]">{isFr ? 'Dépassement : 0,45 €/min' : 'Overage: €0.45/min'}</p>
-                <p className="text-xs" style={{ color: '#6366f1' }}>· {isFr ? 'Essai gratuit' : 'Free trial'}</p>
+                <p className="text-xs" style={{ color: '#7a5fff' }}>· {isFr ? 'Essai gratuit' : 'Free trial'}</p>
                 <Link
                   to="/register"
-                  className="inline-flex items-center justify-center gap-2 text-sm font-medium pl-5 pr-6 py-3 rounded-full transition-colors active:scale-[0.97] bg-[#1d1d1f] text-white hover:bg-[#6366f1]"
+                  className="inline-flex items-center justify-center gap-2 text-sm font-medium pl-5 pr-6 py-3 rounded-full transition-colors active:scale-[0.97] bg-[#1d1d1f] text-white hover:bg-[#7a5fff]"
                 >
                   {isFr ? 'Choisir Solo' : 'Choose Solo'}
                   <ArrowRight size={15} aria-hidden="true" />
@@ -259,14 +259,14 @@ export default function Pricing() {
                   }`}
                   style={
                     isPro
-                      ? { background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #6366f1 115%)' }
+                      ? { background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #7a5fff 115%)' }
                       : undefined
                   }
                 >
                   {tier.badge && (
                     <span
                       className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold tracking-[0.18em] uppercase px-3 py-1.5 rounded-full whitespace-nowrap"
-                      style={{ background: '#a855f7', color: '#fff' }}
+                      style={{ background: '#cd6afb', color: '#fff' }}
                     >
                       {tier.badge}
                     </span>
@@ -297,7 +297,7 @@ export default function Pricing() {
                           : `Billed ${(priceFor(tier.monthly) * 12).toLocaleString('fr-FR')} €/yr`}
                       </p>
                     )}
-                    <p className={`text-xs mt-2 ${isPro ? 'text-[#a5b4fc]' : 'text-[#6366f1]'}`}>
+                    <p className={`text-xs mt-2 ${isPro ? 'text-[#b9a8ff]' : 'text-[#7a5fff]'}`}>
                       · {isFr ? 'Essai gratuit, sans frais d\'installation' : 'Free trial, no setup fee'}
                     </p>
                   </div>
@@ -308,7 +308,7 @@ export default function Pricing() {
                         <Check
                           size={16}
                           className="flex-shrink-0 mt-0.5"
-                          style={{ color: isPro ? '#a5b4fc' : '#6366f1' }}
+                          style={{ color: isPro ? '#b9a8ff' : '#7a5fff' }}
                           aria-hidden="true"
                         />
                         {f}
@@ -326,8 +326,8 @@ export default function Pricing() {
                     to="/register"
                     className={`inline-flex items-center justify-center gap-2 text-sm font-medium pl-5 pr-6 py-3.5 rounded-full transition-colors ${
                       isPro
-                        ? 'bg-white text-[#1d1d1f] hover:bg-[#a5b4fc]'
-                        : 'bg-[#1d1d1f] text-white hover:bg-[#6366f1]'
+                        ? 'bg-white text-[#1d1d1f] hover:bg-[#b9a8ff]'
+                        : 'bg-[#1d1d1f] text-white hover:bg-[#7a5fff]'
                     }`}
                   >
                     {tier.cta}
@@ -368,7 +368,7 @@ export default function Pricing() {
             >
               <div className="max-w-[820px] mx-auto">
                 <Reveal>
-                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3" style={{ color: '#a855f7' }}>
+                  <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3" style={{ color: '#cd6afb' }}>
                     {isFr ? 'Retour sur investissement' : 'Return on investment'}
                   </span>
                 </Reveal>
@@ -378,9 +378,9 @@ export default function Pricing() {
                     className="text-[clamp(1.9rem,4vw,3.2rem)] font-semibold tracking-[-0.03em] leading-[1.05]"
                   >
                     {isFr ? (
-                      <>Une réceptionniste,{' '}<span className="font-serif italic" style={{ color: '#6366f1' }}>{savingsPct} % moins chère.</span></>
+                      <>Une réceptionniste,{' '}<span className="font-serif italic" style={{ color: '#7a5fff' }}>{savingsPct} % moins chère.</span></>
                     ) : (
-                      <>A receptionist,{' '}<span className="font-serif italic" style={{ color: '#6366f1' }}>{savingsPct}% cheaper.</span></>
+                      <>A receptionist,{' '}<span className="font-serif italic" style={{ color: '#7a5fff' }}>{savingsPct}% cheaper.</span></>
                     )}
                   </h2>
                 </Reveal>
@@ -399,9 +399,9 @@ export default function Pricing() {
                 <Reveal delay={0.22}>
                   <p className="mt-6 text-[17px] leading-[1.75]" style={{ color: '#1d1d1f' }}>
                     {isFr ? (
-                      <>Le calcul se règle en une phrase : vous économisez{' '}<span className="font-semibold tabular-nums" style={{ color: '#6366f1' }}>{fmt(monthlySavings)} €</span>{' '}par mois, soit{' '}<span className="font-semibold tabular-nums" style={{ color: '#a855f7' }}>{fmt(yearlySavings)} €</span>{' '}sur la première année, en couvrant deux fois plus d'heures et deux fois plus de langues.</>
+                      <>Le calcul se règle en une phrase : vous économisez{' '}<span className="font-semibold tabular-nums" style={{ color: '#7a5fff' }}>{fmt(monthlySavings)} €</span>{' '}par mois, soit{' '}<span className="font-semibold tabular-nums" style={{ color: '#cd6afb' }}>{fmt(yearlySavings)} €</span>{' '}sur la première année, en couvrant deux fois plus d'heures et deux fois plus de langues.</>
                     ) : (
-                      <>The math lands in one line: you save{' '}<span className="font-semibold tabular-nums" style={{ color: '#6366f1' }}>{fmt(monthlySavings)} EUR</span>{' '}a month, or{' '}<span className="font-semibold tabular-nums" style={{ color: '#a855f7' }}>{fmt(yearlySavings)} EUR</span>{' '}over the first year, while covering twice the hours and twice the languages.</>
+                      <>The math lands in one line: you save{' '}<span className="font-semibold tabular-nums" style={{ color: '#7a5fff' }}>{fmt(monthlySavings)} EUR</span>{' '}a month, or{' '}<span className="font-semibold tabular-nums" style={{ color: '#cd6afb' }}>{fmt(yearlySavings)} EUR</span>{' '}over the first year, while covering twice the hours and twice the languages.</>
                     )}
                   </p>
                 </Reveal>
@@ -483,7 +483,7 @@ export default function Pricing() {
                             <th
                               key={t.id}
                               className={`text-center py-4 font-semibold text-sm ${
-                                t.popular ? 'text-[#6366f1]' : 'text-[#1d1d1f]'
+                                t.popular ? 'text-[#7a5fff]' : 'text-[#1d1d1f]'
                               }`}
                             >
                               {t.name}
@@ -498,7 +498,7 @@ export default function Pricing() {
                             <td className="py-3.5 text-center text-[#525257]">{row[1]}</td>
                             <td
                               className="py-3.5 text-center font-semibold"
-                              style={{ background: 'rgba(99,102,241,0.04)', color: '#6366f1' }}
+                              style={{ background: 'rgba(122,95,255,0.04)', color: '#7a5fff' }}
                             >
                               {row[2]}
                             </td>
@@ -519,7 +519,7 @@ export default function Pricing() {
                       >
                         <summary
                           className={`flex items-center justify-between px-5 py-4 cursor-pointer list-none ${
-                            tier.popular ? 'text-[#6366f1]' : 'text-[#1d1d1f]'
+                            tier.popular ? 'text-[#7a5fff]' : 'text-[#1d1d1f]'
                           }`}
                         >
                           <span className="font-semibold text-base">{tier.name}</span>
@@ -531,7 +531,7 @@ export default function Pricing() {
                           {rows.map((row) => (
                             <div key={row[0]} className="flex items-center justify-between px-5 py-3 gap-4">
                               <dt className="text-[#525257]">{row[0]}</dt>
-                              <dd className={`font-semibold text-right ${tier.popular ? 'text-[#6366f1]' : 'text-[#1d1d1f]'}`}>
+                              <dd className={`font-semibold text-right ${tier.popular ? 'text-[#7a5fff]' : 'text-[#1d1d1f]'}`}>
                                 {row[tierIdx + 1]}
                               </dd>
                             </div>
@@ -554,7 +554,7 @@ export default function Pricing() {
           <div className="max-w-[1240px] mx-auto">
             <Reveal>
               <div className="mb-8 md:mb-12 max-w-[720px]">
-                <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3" style={{ color: '#a855f7' }}>
+                <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3" style={{ color: '#cd6afb' }}>
                   {isFr ? 'Face à la concurrence' : 'Head to head'}
                 </span>
                 <h2
@@ -588,7 +588,7 @@ export default function Pricing() {
                         <th
                           key={i}
                           scope="col"
-                          className={`text-left px-4 py-3 font-semibold border-b border-[#1d1d1f]/10 whitespace-nowrap ${h.accent ? 'text-[#6366f1]' : 'text-[#1d1d1f]'}`}
+                          className={`text-left px-4 py-3 font-semibold border-b border-[#1d1d1f]/10 whitespace-nowrap ${h.accent ? 'text-[#7a5fff]' : 'text-[#1d1d1f]'}`}
                         >
                           {h.label}
                         </th>
@@ -626,7 +626,7 @@ export default function Pricing() {
                       return rows.map(([label, q, r, s, y], i) => (
                         <tr key={i} className="hover:bg-[#fafaf8] transition-colors">
                           <td className="px-4 py-2.5 font-medium text-[#1d1d1f] align-top">{label}</td>
-                          <td className="px-4 py-2.5 align-top bg-[rgba(99,102,241,0.05)] text-[#1d1d1f] font-semibold">{q}</td>
+                          <td className="px-4 py-2.5 align-top bg-[rgba(122,95,255,0.05)] text-[#1d1d1f] font-semibold">{q}</td>
                           <td className="px-4 py-2.5 align-top text-[#424245]">{r}</td>
                           <td className="px-4 py-2.5 align-top text-[#424245]">{s}</td>
                           <td className="px-4 py-2.5 align-top text-[#424245]">{y}</td>
@@ -642,14 +642,14 @@ export default function Pricing() {
               <div className="mt-6 flex flex-wrap items-center gap-3 text-[13px]">
                 <Link
                   to="/vs/smith-ai"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-medium bg-[#1d1d1f] text-white hover:bg-[#6366f1] transition-colors active:scale-[0.97]"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-medium bg-[#1d1d1f] text-white hover:bg-[#7a5fff] transition-colors active:scale-[0.97]"
                 >
                   {isFr ? 'Détail vs Smith.ai' : 'Full vs Smith.ai'}
                   <ArrowRight size={13} aria-hidden="true" />
                 </Link>
                 <Link
                   to="/vs/yelda"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-medium bg-[#1d1d1f] text-white hover:bg-[#6366f1] transition-colors active:scale-[0.97]"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-medium bg-[#1d1d1f] text-white hover:bg-[#7a5fff] transition-colors active:scale-[0.97]"
                 >
                   {isFr ? 'Détail vs Yelda' : 'Full vs Yelda'}
                   <ArrowRight size={13} aria-hidden="true" />
@@ -690,12 +690,12 @@ export default function Pricing() {
                       aria-expanded={open}
                       className="w-full text-left py-5 flex items-center justify-between gap-4 group"
                     >
-                      <span className="text-base md:text-lg font-medium text-[#1d1d1f] group-hover:text-[#6366f1] transition-colors">
+                      <span className="text-base md:text-lg font-medium text-[#1d1d1f] group-hover:text-[#7a5fff] transition-colors">
                         {f.q}
                       </span>
                       <ChevronDown
                         size={18}
-                        className={`flex-shrink-0 transition-transform duration-300 ${open ? 'rotate-180 text-[#6366f1]' : 'text-[#6e6e73]'}`}
+                        className={`flex-shrink-0 transition-transform duration-300 ${open ? 'rotate-180 text-[#7a5fff]' : 'text-[#6e6e73]'}`}
                         aria-hidden="true"
                       />
                     </button>
@@ -719,14 +719,14 @@ export default function Pricing() {
               {isFr ? (
                 <>
                   Prêt à<br />
-                  <span className="font-serif italic" style={{ color: '#6366f1' }}>économiser</span>{' '}
-                  <span className="font-serif italic" style={{ color: '#a855f7' }}>du temps ?</span>
+                  <span className="font-serif italic" style={{ color: '#7a5fff' }}>économiser</span>{' '}
+                  <span className="font-serif italic" style={{ color: '#cd6afb' }}>du temps ?</span>
                 </>
               ) : (
                 <>
                   Ready to<br />
-                  <span className="font-serif italic" style={{ color: '#6366f1' }}>save</span>{' '}
-                  <span className="font-serif italic" style={{ color: '#a855f7' }}>time?</span>
+                  <span className="font-serif italic" style={{ color: '#7a5fff' }}>save</span>{' '}
+                  <span className="font-serif italic" style={{ color: '#cd6afb' }}>time?</span>
                 </>
               )}
             </h2>
@@ -740,7 +740,7 @@ export default function Pricing() {
               </p>
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#6366f1] transition-colors"
+                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#7a5fff] transition-colors"
               >
                 {isFr ? 'Créer un compte' : 'Create account'}
                 <ArrowRight size={16} aria-hidden="true" />
