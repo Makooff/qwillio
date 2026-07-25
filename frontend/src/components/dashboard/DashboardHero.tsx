@@ -76,7 +76,7 @@ export function DashboardHero({ status, busy, onToggle }: Props) {
               aria-valuenow={pct}
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-label="Quota d'appels"
+              aria-label="Minutes incluses consommées"
             >
               <div
                 className="h-full rounded-full transition-[width] duration-700 ease-out"

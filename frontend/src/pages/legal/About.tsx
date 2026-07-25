@@ -154,8 +154,8 @@ export default function About() {
               </blockquote>
               <p>
                 {isFr
-                  ? 'Aujourd\'hui Qwillio traite des millions d\'appels par mois pour des cliniques, garages, salons, restaurants et cabinets d\'avocats. Notre engagement reste le même : un outil qui marche, sans engagement, sans surprise.'
-                  : 'Today Qwillio handles millions of calls per month for clinics, garages, salons, restaurants and law firms. Our commitment stays the same: a tool that works, no lock-in, no surprises.'}
+                  ? 'Qwillio répond aujourd\'hui aux appels de cliniques, garages, salons, restaurants et cabinets d\'avocats. Notre engagement reste le même : un outil qui marche, sans engagement, sans surprise.'
+                  : 'Qwillio answers calls today for clinics, garages, salons, restaurants and law firms. Our commitment stays the same: a tool that works, no lock-in, no surprises.'}
               </p>
             </div>
           </div>

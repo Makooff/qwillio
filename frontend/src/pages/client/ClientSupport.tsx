@@ -27,7 +27,7 @@ const FAQ_ITEMS = [
   {
     category: 'billing',
     q: 'Comment fonctionne la facturation ?',
-    a: "Vous payez des frais de setup uniques + un abonnement mensuel. Chaque plan inclut un quota d'appels mensuel. Vous pouvez upgrader ou downgrader depuis la page Facturation.",
+    a: "Vous payez un abonnement mensuel, sans frais de setup. Chaque plan inclut un nombre de minutes par mois ; au-delà, les minutes supplémentaires sont facturées à l'usage. Vous pouvez upgrader ou downgrader depuis la page Facturation.",
   },
   {
     category: 'billing',

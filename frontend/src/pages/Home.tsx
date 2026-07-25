@@ -331,21 +331,23 @@ export default function Home() {
               </div>
 
               {/* Inline credibility strip — not centered hero-metric template */}
-              <dl className="flex flex-wrap gap-x-9 gap-y-3 text-sm text-[#86868b] border-t border-[#1d1d1f]/10 pt-6 max-w-[520px]">
-                <div className="flex items-baseline gap-2">
+              {/* One line at every width: no wrapping, sizes track the viewport
+                  so the three figures stay side by side down to small phones. */}
+              <dl className="flex flex-nowrap items-baseline justify-between gap-x-2 sm:justify-start sm:gap-x-9 text-[#86868b] border-t border-[#1d1d1f]/10 pt-6 max-w-[520px]">
+                <div className="flex items-baseline gap-1 sm:gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Taux de réponse' : 'Answer rate'}</dt>
-                  <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">98%</dd>
-                  <span>{isFr ? 'décrochage' : 'pickup'}</span>
+                  <dd className="text-[clamp(1rem,4.4vw,1.5rem)] font-semibold text-[#1d1d1f] tabular-nums">98%</dd>
+                  <span className="text-[clamp(10px,2.7vw,14px)]">{isFr ? 'décrochage' : 'pickup'}</span>
                 </div>
-                <div className="flex items-baseline gap-2">
+                <div className="flex items-baseline gap-1 sm:gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Temps de réponse' : 'Response time'}</dt>
-                  <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">&lt;1s</dd>
-                  <span>{isFr ? 'temps réponse' : 'response'}</span>
+                  <dd className="text-[clamp(1rem,4.4vw,1.5rem)] font-semibold text-[#1d1d1f] tabular-nums">&lt;1s</dd>
+                  <span className="text-[clamp(10px,2.7vw,14px)]">{isFr ? 'réponse' : 'response'}</span>
                 </div>
-                <div className="flex items-baseline gap-2">
+                <div className="flex items-baseline gap-1 sm:gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Disponibilité' : 'Uptime'}</dt>
-                  <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">24/7</dd>
-                  <span>{isFr ? 'jamais fermé' : 'always on'}</span>
+                  <dd className="text-[clamp(1rem,4.4vw,1.5rem)] font-semibold text-[#1d1d1f] tabular-nums">24/7</dd>
+                  <span className="text-[clamp(10px,2.7vw,14px)]">{isFr ? 'non-stop' : 'always on'}</span>
                 </div>
               </dl>
             </div>
@@ -525,7 +527,7 @@ export default function Home() {
 
                   <div className="mt-8 flex items-center justify-between">
                     <p className="text-white/55 text-sm">
-                      <span className="text-white font-semibold">+$197</span>
+                      <span className="text-white font-semibold">+197 €</span>
                       <span className="text-white/55">/mois · {isFr ? 'par module' : 'per module'}</span>
                     </p>
                     <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: '#e7bafd' }}>

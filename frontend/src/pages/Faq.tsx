@@ -40,7 +40,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Qwillio bloque-t-elle les appels spam ?',
-    a: "Oui, sur tous les plans. Le bouclier anti-spam détecte les robocalls, les appels silencieux et les numéros qui inondent la ligne, les écarte de vos rendez-vous et de vos leads, et ne les compte pas dans votre quota d'appels.",
+    a: "Oui, sur tous les plans. Le bouclier anti-spam détecte les robocalls, les appels silencieux et les numéros qui inondent la ligne, les écarte de vos rendez-vous et de vos leads, et ne les décompte pas de vos minutes incluses.",
   },
   {
     q: 'Puis-je résilier facilement ?',
