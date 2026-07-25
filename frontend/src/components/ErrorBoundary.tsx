@@ -72,7 +72,7 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-screen flex items-center justify-center bg-white px-6">
           <div className="text-center max-w-sm">
             <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
-              {chunkError ? <RefreshCw size={28} className="text-[#6366f1] animate-spin" /> : <AlertTriangle size={28} className="text-red-500" />}
+              {chunkError ? <RefreshCw size={28} className="text-[#7a5fff] animate-spin" /> : <AlertTriangle size={28} className="text-red-500" />}
             </div>
             <h2 className="text-xl font-semibold mb-2">
               {chunkError ? 'Nouvelle version disponible' : 'Something went wrong'}
@@ -85,7 +85,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={this.handleRetry}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#6366f1] rounded-xl hover:bg-[#4f46e5] transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#7a5fff] rounded-xl hover:bg-[#7349fe] transition-colors"
               >
                 <RefreshCw size={14} />
                 Try again

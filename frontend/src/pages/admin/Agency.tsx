@@ -384,7 +384,7 @@ function NewKeyForm({ onCreated }: { onCreated: (keys: ApiKey[]) => void }) {
                 onClick={() => togglePermission(p)}
                 className="px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-colors"
                 style={{
-                  background: active ? 'rgba(123,92,240,0.15)' : 'rgba(255,255,255,0.04)',
+                  background: active ? 'rgba(122,95,255,0.15)' : 'rgba(255,255,255,0.04)',
                   color: active ? pro.accent : pro.textSec,
                   border: `1px solid ${active ? pro.accent : pro.border}`,
                 }}

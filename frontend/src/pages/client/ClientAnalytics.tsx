@@ -117,8 +117,8 @@ export default function ClientAnalytics() {
     const isNoProfile = error === 'no-profile';
     return (
       <main className="flex flex-col items-center justify-center py-24 text-center px-6">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${isNoProfile ? 'bg-[#493cbe]/10' : 'bg-red-500/10'}`}>
-          <BarChart3 size={26} className={isNoProfile ? 'text-[#5b4ed6]' : 'text-red-400'} />
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${isNoProfile ? 'bg-[#7349fe]/10' : 'bg-red-500/10'}`}>
+          <BarChart3 size={26} className={isNoProfile ? 'text-[#8a6fff]' : 'text-red-400'} />
         </div>
         <h2 className="text-lg font-semibold text-white/90 mb-1">
           {isNoProfile ? 'Compte en cours de configuration' : 'Impossible de charger les analytiques'}
@@ -128,13 +128,13 @@ export default function ClientAnalytics() {
         </p>
         <div className="flex gap-3">
           {isNoProfile && (
-            <a href="/dashboard/support" className="px-5 py-2.5 text-sm font-medium text-white bg-[#493cbe] rounded-xl hover:bg-[#5b4ed6] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5b4ed6]">
+            <a href="/dashboard/support" className="px-5 py-2.5 text-sm font-medium text-white bg-[#7349fe] rounded-xl hover:bg-[#8a6fff] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6fff]">
               Contacter le support
             </a>
           )}
           <button
             onClick={fetchData}
-            className="px-5 py-2.5 text-sm font-medium text-white/60 bg-white/[0.06] rounded-xl hover:bg-white/[0.10] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5b4ed6]"
+            className="px-5 py-2.5 text-sm font-medium text-white/60 bg-white/[0.06] rounded-xl hover:bg-white/[0.10] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6fff]"
           >
             Réessayer
           </button>
@@ -176,8 +176,8 @@ export default function ClientAnalytics() {
   const roi = monthlyFee > 0 ? Math.round(((potentialRevenue - monthlyFee) / monthlyFee) * 100) : 0;
 
   const funnelData = [
-    { stage: 'Total appels', value: totalCalls, color: '#493cbe' },
-    { stage: 'Leads captés', value: totalLeads, color: '#818cf8' },
+    { stage: 'Total appels', value: totalCalls, color: '#7349fe' },
+    { stage: 'Leads captés', value: totalLeads, color: '#9d8bff' },
     { stage: 'Conversions est.', value: Math.round(totalLeads * (conversionRate / 100)), color: '#34d399' },
   ];
 
@@ -204,8 +204,8 @@ export default function ClientAnalytics() {
               <button
                 key={d}
                 onClick={() => setPeriod(d)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5b4ed6] ${
-                  period === d ? 'bg-[#493cbe] text-white' : 'text-white/50 hover:text-white/80'
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6fff] ${
+                  period === d ? 'bg-[#7349fe] text-white' : 'text-white/50 hover:text-white/80'
                 }`}
               >
                 {d}j
@@ -246,12 +246,12 @@ export default function ClientAnalytics() {
               <AreaChart data={daily} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gCalls" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#493cbe" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#493cbe" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#7349fe" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#7349fe" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#A855F7" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#A855F7" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#CD6AFB" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#CD6AFB" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -264,8 +264,8 @@ export default function ClientAnalytics() {
                 />
                 <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} width={28} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }} />
-                <Area type="monotone" dataKey="calls" stroke="#493cbe" fill="url(#gCalls)" strokeWidth={2} name="Appels" />
-                <Area type="monotone" dataKey="leads" stroke="#A855F7" fill="url(#gLeads)" strokeWidth={2} name="Leads" />
+                <Area type="monotone" dataKey="calls" stroke="#7349fe" fill="url(#gCalls)" strokeWidth={2} name="Appels" />
+                <Area type="monotone" dataKey="leads" stroke="#CD6AFB" fill="url(#gLeads)" strokeWidth={2} name="Leads" />
               </AreaChart>
             </ResponsiveContainer>
           ) : emptyChart}
@@ -306,7 +306,7 @@ export default function ClientAnalytics() {
               {summary.satisfactionScore !== undefined && (
                 <div className="w-full pt-3 border-t border-white/[0.06]">
                   <p className="text-[10px] text-white/40 mb-0.5">Score satisfaction</p>
-                  <p className="text-xl font-bold text-[#5b4ed6]">{summary.satisfactionScore}%</p>
+                  <p className="text-xl font-bold text-[#8a6fff]">{summary.satisfactionScore}%</p>
                 </div>
               )}
             </div>
@@ -327,7 +327,7 @@ export default function ClientAnalytics() {
                   <XAxis dataKey="hour" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                  <Bar dataKey="calls" fill="#493cbe" radius={[4, 4, 0, 0]} name="Appels" />
+                  <Bar dataKey="calls" fill="#7349fe" radius={[4, 4, 0, 0]} name="Appels" />
                 </BarChart>
               </ResponsiveContainer>
             ) : emptyChart}
@@ -346,7 +346,7 @@ export default function ClientAnalytics() {
                   <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                  <Bar dataKey="calls" fill="#818cf8" radius={[4, 4, 0, 0]} name="Appels" />
+                  <Bar dataKey="calls" fill="#9d8bff" radius={[4, 4, 0, 0]} name="Appels" />
                 </BarChart>
               </ResponsiveContainer>
             ) : emptyChart}

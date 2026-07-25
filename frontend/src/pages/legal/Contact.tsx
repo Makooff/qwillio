@@ -46,21 +46,21 @@ export default function Contact() {
   const contactMethods = [
     {
       icon: Mail,
-      accent: '#6366f1',
+      accent: '#7a5fff',
       label: 'Email',
       value: 'hello@qwillio.com',
       href: 'mailto:hello@qwillio.com',
     },
     {
       icon: Phone,
-      accent: '#a855f7',
+      accent: '#cd6afb',
       label: isFr ? 'Téléphone' : 'Phone',
       value: '+32 2 808 80 80',
       href: 'tel:+3228088080',
     },
     {
       icon: MapPin,
-      accent: '#6366f1',
+      accent: '#7a5fff',
       label: isFr ? 'Bureau' : 'Office',
       value: 'Brussels, Belgium',
       href: null,
@@ -68,7 +68,7 @@ export default function Contact() {
   ];
 
   const inputCls =
-    'w-full px-4 py-3.5 rounded-2xl border border-[#1d1d1f]/12 bg-white text-[15px] text-[#1d1d1f] placeholder-[#86868b] outline-none transition-colors focus:border-[#6366f1]';
+    'w-full px-4 py-3.5 rounded-2xl border border-[#1d1d1f]/12 bg-white text-[15px] text-[#1d1d1f] placeholder-[#86868b] outline-none transition-colors focus:border-[#7a5fff]';
 
   return (
     <div className="bg-white text-[#1d1d1f] min-h-screen">
@@ -81,7 +81,7 @@ export default function Contact() {
           className="pt-24 sm:pt-28 md:pt-36 pb-12 md:pb-20 px-5 sm:px-6"
         >
           <div className="max-w-[1240px] mx-auto">
-            <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4" style={{ color: '#6366f1' }}>
+            <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4" style={{ color: '#7a5fff' }}>
               Contact
             </span>
             <h1
@@ -89,9 +89,9 @@ export default function Contact() {
               className="text-[clamp(2.6rem,6.5vw,5.6rem)] font-semibold tracking-[-0.04em] leading-[0.95] max-w-[1000px]"
             >
               {isFr ? (
-                <><span className="font-serif italic" style={{ color: '#6366f1' }}>Parlons.</span> Aux humains, pas aux bots.</>
+                <><span className="font-serif italic" style={{ color: '#7a5fff' }}>Parlons.</span> Aux humains, pas aux bots.</>
               ) : (
-                <><span className="font-serif italic" style={{ color: '#6366f1' }}>Let's talk.</span> Humans, not bots.</>
+                <><span className="font-serif italic" style={{ color: '#7a5fff' }}>Let's talk.</span> Humans, not bots.</>
               )}
             </h1>
           </div>
@@ -120,7 +120,7 @@ export default function Contact() {
                     {m.href ? (
                       <a
                         href={m.href}
-                        className="text-lg font-medium text-[#1d1d1f] hover:text-[#6366f1] transition-colors"
+                        className="text-lg font-medium text-[#1d1d1f] hover:text-[#7a5fff] transition-colors"
                       >
                         {m.value}
                       </a>
@@ -132,7 +132,7 @@ export default function Contact() {
               </ul>
 
               <div className="mt-12 p-6 rounded-2xl bg-[#fafaf8] border border-[#1d1d1f]/8">
-                <p className="text-[11px] font-bold tracking-[0.16em] uppercase mb-2" style={{ color: '#a855f7' }}>
+                <p className="text-[11px] font-bold tracking-[0.16em] uppercase mb-2" style={{ color: '#cd6afb' }}>
                   {isFr ? 'Temps de réponse' : 'Response time'}
                 </p>
                 <p className="text-[#424245] text-sm leading-relaxed">
@@ -153,9 +153,9 @@ export default function Contact() {
                 <div className="text-center py-8">
                   <div
                     className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
-                    style={{ background: 'rgba(99,102,241,0.12)' }}
+                    style={{ background: 'rgba(122,95,255,0.12)' }}
                   >
-                    <CheckCircle2 size={24} style={{ color: '#6366f1' }} aria-hidden="true" />
+                    <CheckCircle2 size={24} style={{ color: '#7a5fff' }} aria-hidden="true" />
                   </div>
                   <h2 className="text-2xl font-semibold tracking-[-0.02em] mb-2">
                     {isFr ? 'Message envoyé.' : 'Message sent.'}
@@ -237,7 +237,7 @@ export default function Contact() {
                     <button
                       type="submit"
                       disabled={sending}
-                      className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-sm font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#6366f1] transition-colors disabled:opacity-60"
+                      className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-sm font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#7a5fff] transition-colors disabled:opacity-60"
                     >
                       <Send size={14} aria-hidden="true" />
                       {sending ? (isFr ? 'Envoi…' : 'Sending…') : (isFr ? 'Envoyer' : 'Send')}

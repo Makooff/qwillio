@@ -114,9 +114,9 @@ const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 function heatColor(rate: number): string {
   if (rate <= 0) return 'transparent';
-  if (rate < 30) return 'rgba(123,92,240,0.1)';
-  if (rate < 60) return 'rgba(123,92,240,0.4)';
-  return 'rgba(123,92,240,0.9)';
+  if (rate < 30) return 'rgba(122,95,255,0.1)';
+  if (rate < 60) return 'rgba(122,95,255,0.4)';
+  return 'rgba(122,95,255,0.9)';
 }
 
 function Heatmap({ data }: { data: BestTime[] }) {
@@ -207,7 +207,7 @@ function Heatmap({ data }: { data: BestTime[] }) {
             <div
               key={i}
               className="w-4 h-4 rounded-sm"
-              style={{ background: `rgba(123,92,240,${v})` }}
+              style={{ background: `rgba(122,95,255,${v})` }}
             />
           ))}
           <span className="text-[10px]" style={{ color: pro.textTer }}>Plus</span>
@@ -528,7 +528,7 @@ export default function AiLearning() {
                                 minWidth: rA > 0 ? 24 : 0,
                                 background: isWinnerA && !ab.active
                                   ? 'rgba(34,197,94,0.3)'
-                                  : 'rgba(123,92,240,0.3)',
+                                  : 'rgba(122,95,255,0.3)',
                               }}
                             >
                               <span className="text-[10px]" style={{ color: pro.textSec }}>

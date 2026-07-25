@@ -8,9 +8,9 @@
     /* ─── Reset & Base ──────────────────────────────────── */
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --primary: #6366f1;
-      --primary-dark: #4f46e5;
-      --primary-light: #a5b4fc;
+      --primary: #7a5fff;
+      --primary-dark: #7349fe;
+      --primary-light: #b9a8ff;
       --accent: #22c55e;
       --accent-dark: #16a34a;
       --warning: #f59e0b;
@@ -42,12 +42,12 @@
     /* ─── Loading Screen ────────────────────────────────── */
     #loading-screen {
       position: fixed; inset: 0; z-index: 9999;
-      background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+      background: linear-gradient(135deg, var(--primary) 0%, #b13ff0 100%);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       color: #fff; transition: opacity 0.4s, visibility 0.4s;
     }
     #loading-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-    .loader-logo { font-size: 48px; margin-bottom: 24px; animation: pulse-logo 1.5s ease-in-out infinite; }
+    .loader-logo { font-size: 0; margin-bottom: 24px; animation: pulse-logo 1.5s ease-in-out infinite; }
     @keyframes pulse-logo { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } }
     .loader-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
     .loader-bar-inner { width: 40%; height: 100%; background: #fff; border-radius: 2px; animation: loader-slide 1.2s ease-in-out infinite; }
@@ -101,7 +101,7 @@
     }
     .sidebar-brand-icon {
       width: 36px; height: 36px; border-radius: 10px;
-      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      background: linear-gradient(135deg, var(--primary), #b13ff0);
       display: flex; align-items: center; justify-content: center;
       color: #fff; font-size: 18px;
     }
@@ -117,7 +117,7 @@
       text-transform: uppercase; margin-top: 6px;
     }
     .plan-badge.starter { background: #dbeafe; color: #2563eb; }
-    .plan-badge.pro { background: #ede9fe; color: #7c3aed; }
+    .plan-badge.pro { background: #f4e9fe; color: #b13ff0; }
     .plan-badge.enterprise { background: #fef3c7; color: #d97706; }
 
     .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
@@ -129,7 +129,7 @@
       text-align: left;
     }
     .nav-item:hover { background: #f1f5f9; color: var(--text); }
-    .nav-item.active { background: #eef2ff; color: var(--primary); font-weight: 600; }
+    .nav-item.active { background: #f4f0ff; color: var(--primary); font-weight: 600; }
     .nav-item .nav-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
     .nav-item .nav-badge {
       margin-left: auto; padding: 2px 8px; border-radius: 10px;
@@ -258,7 +258,7 @@
     .badge-positive { background: #dcfce7; color: #16a34a; }
     .badge-neutral { background: #fef3c7; color: #d97706; }
     .badge-negative { background: #fee2e2; color: #dc2626; }
-    .badge-lead { background: #ede9fe; color: #7c3aed; }
+    .badge-lead { background: #f4e9fe; color: #b13ff0; }
     .badge-confirmed { background: #dcfce7; color: #16a34a; }
     .badge-pending { background: #fef3c7; color: #d97706; }
     .badge-cancelled { background: #fee2e2; color: #dc2626; }
@@ -326,7 +326,7 @@
     .booking-card:hover { box-shadow: var(--shadow-md); }
     .booking-date-block {
       width: 56px; height: 56px; border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      background: linear-gradient(135deg, var(--primary), #b13ff0);
       color: #fff; display: flex; flex-direction: column;
       align-items: center; justify-content: center; flex-shrink: 0;
     }
@@ -464,7 +464,7 @@
 
   <!-- Loading Screen -->
   <div id="loading-screen">
-    <div class="loader-logo">&#x26A1;</div>
+    <div class="loader-logo"><img src="/favicon.svg" alt="Qwillio" width="56" height="56"></div>
     <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Qwillio</div>
     <div style="font-size: 14px; opacity: 0.7; margin-bottom: 20px;">Loading your dashboard...</div>
     <div class="loader-bar"><div class="loader-bar-inner"></div></div>
@@ -517,7 +517,7 @@
       </button>
       <button class="nav-item" data-tab="leads" onclick="switchTab('leads', this)">
         <span class="nav-icon">&#x1F465;</span> Leads
-        <span class="nav-badge" id="nav-leads-count" style="background: #7c3aed">0</span>
+        <span class="nav-badge" id="nav-leads-count" style="background: #b13ff0">0</span>
       </button>
       <button class="nav-item" data-tab="analytics" onclick="switchTab('analytics', this)">
         <span class="nav-icon">&#x1F4C8;</span> Analytics
@@ -1077,7 +1077,7 @@ function renderHeatmap(peakHours) {
     '<div class="heatmap-grid">';
   for (let i = 0; i < 12; i++) {
     const intensity = hours[i] / max;
-    const bg = intensity === 0 ? '#f1f5f9' : 'rgba(99,102,241,' + (0.15 + intensity * 0.85).toFixed(2) + ')';
+    const bg = intensity === 0 ? '#f1f5f9' : 'rgba(122,95,255,' + (0.15 + intensity * 0.85).toFixed(2) + ')';
     const color = intensity > 0.5 ? '#fff' : 'var(--text-muted)';
     html += '<div class="heat-cell" style="background:' + bg + '; color:' + color + ';">' +
       hours[i] +
@@ -1093,7 +1093,7 @@ function renderHeatmap(peakHours) {
     '<div class="heatmap-grid">';
   for (let i = 12; i < 24; i++) {
     const intensity = hours[i] / max;
-    const bg = intensity === 0 ? '#f1f5f9' : 'rgba(99,102,241,' + (0.15 + intensity * 0.85).toFixed(2) + ')';
+    const bg = intensity === 0 ? '#f1f5f9' : 'rgba(122,95,255,' + (0.15 + intensity * 0.85).toFixed(2) + ')';
     const color = intensity > 0.5 ? '#fff' : 'var(--text-muted)';
     html += '<div class="heat-cell" style="background:' + bg + '; color:' + color + ';">' +
       hours[i] +

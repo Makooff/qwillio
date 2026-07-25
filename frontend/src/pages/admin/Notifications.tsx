@@ -110,7 +110,7 @@ function HotLeadIcon() {
 }
 
 function EvolutionIcon() {
-  const purple = '#6366F1';
+  const purple = '#7A5FFF';
   return (
     <div
       className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"

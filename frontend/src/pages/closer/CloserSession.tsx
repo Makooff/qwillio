@@ -605,8 +605,8 @@ function CallingStep({
                  style={{
                    top: -8,
                    width: 22, height: 22, borderRadius: '50%',
-                   background: 'radial-gradient(circle at 35% 30%, #DDB0FF 0%, #A855F7 55%, #9333EA 100%)',
-                   boxShadow: '0 0 22px rgba(168,85,247,0.55), inset 0 1px 0 rgba(255,255,255,0.2)',
+                   background: 'radial-gradient(circle at 35% 30%, #DDB0FF 0%, #CD6AFB 55%, #B845F0 100%)',
+                   boxShadow: '0 0 22px rgba(205,106,251,0.55), inset 0 1px 0 rgba(255,255,255,0.2)',
                  }} />
           </motion.div>
 
@@ -621,8 +621,8 @@ function CallingStep({
                  style={{
                    top: -7,
                    width: 18, height: 18, borderRadius: '50%',
-                   background: 'radial-gradient(circle at 35% 30%, #A5A4FF 0%, #6366F1 55%, #4F46E5 100%)',
-                   boxShadow: '0 0 18px rgba(99,102,241,0.55), inset 0 1px 0 rgba(255,255,255,0.2)',
+                   background: 'radial-gradient(circle at 35% 30%, #A5A4FF 0%, #7A5FFF 55%, #7349FE 100%)',
+                   boxShadow: '0 0 18px rgba(122,95,255,0.55), inset 0 1px 0 rgba(255,255,255,0.2)',
                  }} />
           </motion.div>
 

@@ -428,7 +428,7 @@ export class ClientDashboardController {
     try {
       const id = String(req.params.id || '');
       if (!isValidCharacterId(id)) return res.status(404).json({ error: 'Unknown character' });
-      if (!env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'No ElevenLabs key' });
+      if (!env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'elevenlabs_key_missing' });
 
       const character = CHARACTERS[id];
       const text = character.language === 'fr' ? character.previewFr : character.previewEn;
@@ -446,8 +446,11 @@ export class ClientDashboardController {
         }),
       });
       if (!r.ok) {
-        logger.warn(`ElevenLabs preview ${r.status} for ${id}`);
-        return res.status(502).json({ error: 'TTS failed' });
+        // Log the upstream body: ElevenLabs explains *why* (bad key, unknown
+        // voice id, quota exhausted) and without it this is undiagnosable.
+        const detail = await r.text().catch(() => '');
+        logger.warn(`ElevenLabs preview ${r.status} for ${id} (voice ${character.voiceId}): ${detail.slice(0, 300)}`);
+        return res.status(502).json({ error: 'elevenlabs_request_failed', status: r.status });
       }
       const buf = Buffer.from(await r.arrayBuffer());
       res.setHeader('Content-Type', 'audio/mpeg');

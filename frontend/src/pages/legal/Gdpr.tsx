@@ -250,19 +250,19 @@ export default function Gdpr() {
         <div className="max-w-[1240px] mx-auto">
           {/* ── Editorial heading ─────────────────────────────────────── */}
           <header className="mb-14 md:mb-20 max-w-[860px]">
-            <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-[#6366f1] mb-6">
+            <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-[#7a5fff] mb-6">
               {isFr ? 'Règlement RGPD' : 'GDPR regulation'}
             </p>
             <h1 className="text-[clamp(2.4rem,6vw,5rem)] font-semibold tracking-[-0.035em] leading-[0.98] mb-6">
               {isFr ? (
                 <>
                   Vos droits{' '}
-                  <span className="font-serif italic text-[#6366f1]">RGPD,</span> en clair.
+                  <span className="font-serif italic text-[#7a5fff]">RGPD,</span> en clair.
                 </>
               ) : (
                 <>
                   Your GDPR{' '}
-                  <span className="font-serif italic text-[#6366f1]">rights,</span> plainly.
+                  <span className="font-serif italic text-[#7a5fff]">rights,</span> plainly.
                 </>
               )}
             </h1>
@@ -306,7 +306,7 @@ export default function Gdpr() {
                           onClick={(event) => handleAnchorClick(event, section.id)}
                           className={`block pl-4 -ml-px py-1.5 text-[13px] leading-snug border-l transition-colors ${
                             isActive
-                              ? 'border-[#6366f1] text-[#6366f1] font-medium'
+                              ? 'border-[#7a5fff] text-[#7a5fff] font-medium'
                               : 'border-transparent text-[#525257] hover:text-[#1d1d1f]'
                           }`}
                           aria-current={isActive ? 'true' : undefined}
@@ -325,7 +325,7 @@ export default function Gdpr() {
                 </p>
                 <a
                   href="mailto:hello@qwillio.com?subject=GDPR%20Request"
-                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#1d1d1f] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1]"
+                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#1d1d1f] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff]"
                 >
                   {isFr ? 'Envoyer une demande →' : 'Send a request →'}
                 </a>
@@ -372,7 +372,7 @@ export default function Gdpr() {
                 <ol className="space-y-7 list-none pl-0">
                   {rights.map((right, i) => (
                     <li key={right.article} className="grid grid-cols-[36px_1fr] gap-5">
-                      <span className="font-serif italic text-[#6366f1] text-2xl leading-none pt-1 tabular-nums">
+                      <span className="font-serif italic text-[#7a5fff] text-2xl leading-none pt-1 tabular-nums">
                         {String(i + 1).padStart(2, '0')}
                       </span>
                       <div>
@@ -405,14 +405,14 @@ export default function Gdpr() {
                   {isFr ? "Envoyez un e-mail à " : 'Send an email to '}
                   <a
                     href="mailto:hello@qwillio.com"
-                    className="text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1] transition-colors font-medium"
+                    className="text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff] transition-colors font-medium"
                   >
                     hello@qwillio.com
                   </a>
                   {isFr ? " avec l'objet suivant :" : ' with the following subject:'}
                 </p>
-                <div className="border-l-2 border-[#6366f1] pl-5 py-4 bg-[#6366f1]/4 rounded-r-md mb-5">
-                  <p className="text-[11px] font-bold tracking-[0.18em] uppercase text-[#6366f1] mb-2">
+                <div className="border-l-2 border-[#7a5fff] pl-5 py-4 bg-[#7a5fff]/4 rounded-r-md mb-5">
+                  <p className="text-[11px] font-bold tracking-[0.18em] uppercase text-[#7a5fff] mb-2">
                     {isFr ? 'Modèle' : 'Template'}
                   </p>
                   <code className="font-mono text-[14px] text-[#1d1d1f] block">
@@ -538,14 +538,14 @@ export default function Gdpr() {
                   {isFr ? 'Pour plus de détails, consultez notre ' : 'For more details, see our '}
                   <Link
                     to="/privacy"
-                    className="text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1] transition-colors font-medium"
+                    className="text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff] transition-colors font-medium"
                   >
                     {isFr ? 'politique de confidentialité complète' : 'full privacy policy'}
                   </Link>
                   {isFr ? ' ou nos ' : ' or our '}
                   <Link
                     to="/terms"
-                    className="text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1] transition-colors font-medium"
+                    className="text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff] transition-colors font-medium"
                   >
                     {isFr ? "conditions d'utilisation" : 'terms of service'}
                   </Link>
@@ -562,7 +562,7 @@ export default function Gdpr() {
                   {isFr ? 'Une demande à formuler ? Écrivez-nous à ' : 'Need to submit a request? Write to '}
                   <a
                     href="mailto:hello@qwillio.com"
-                    className="text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1]"
+                    className="text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff]"
                   >
                     hello@qwillio.com
                   </a>

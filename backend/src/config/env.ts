@@ -105,6 +105,11 @@ export const env = {
   // until the public callback URL is confirmed, then set to 'true' on Render.
   TWILIO_VALIDATE_WEBHOOKS: process.env.TWILIO_VALIDATE_WEBHOOKS === 'true',
 
+  // Master switch for the outbound prospection machinery (Google Places / Apify /
+  // LinkedIn scraping, Twilio phone validation, outbound calling). Off by default
+  // so a paused/unbilled account never hammers those paid APIs. Set 'true' in
+  // Render to resume prospection.
+  PROSPECTION_ENABLED: process.env.PROSPECTION_ENABLED === 'true',
   CALLS_PER_DAY: parseInt(process.env.CALLS_PER_DAY || '50', 10),
   AUTOMATION_START_HOUR: parseInt(process.env.AUTOMATION_START_HOUR || '9', 10),
   AUTOMATION_END_HOUR: parseInt(process.env.AUTOMATION_END_HOUR || '19', 10),

@@ -33,9 +33,9 @@ interface Lead {
 type StatusKey = 'new' | 'contacted' | 'interested' | 'qualified' | 'converted' | 'lost';
 
 const STATUS_META: Record<StatusKey, { label: string; bg: string; fg: string; dot: string }> = {
-  new:        { label: 'Nouveau',   bg: 'rgba(99,102,241,0.15)',  fg: '#818CF8', dot: '#6366F1' },
+  new:        { label: 'Nouveau',   bg: 'rgba(122,95,255,0.15)',  fg: '#9D8BFF', dot: '#7A5FFF' },
   contacted:  { label: 'Contacté',  bg: 'rgba(234,179,8,0.12)',   fg: '#FDE047', dot: '#EAB308' },
-  interested: { label: 'Intéressé', bg: 'rgba(168,85,247,0.14)',  fg: '#C084FC', dot: '#A855F7' },
+  interested: { label: 'Intéressé', bg: 'rgba(205,106,251,0.14)',  fg: '#DD93FC', dot: '#CD6AFB' },
   qualified:  { label: 'Qualifié',  bg: 'rgba(34,197,94,0.12)',   fg: '#4ADE80', dot: '#22C55E' },
   converted:  { label: 'Converti',  bg: 'rgba(16,185,129,0.12)',  fg: '#34D399', dot: '#10B981' },
   lost:       { label: 'Perdu',     bg: 'rgba(239,68,68,0.10)',   fg: '#F87171', dot: '#EF4444' },

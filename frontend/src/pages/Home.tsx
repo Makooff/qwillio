@@ -2,7 +2,11 @@
 import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
-import { Phone, Bot, ArrowRight, Play, Clock, Mic, Calendar, MessageSquare, PhoneCall, Settings2, Zap } from 'lucide-react';
+import {
+  Phone, Bot, ArrowRight, Play, Clock, Mic, Calendar, MessageSquare,
+  Users, Mail, Receipt, Package, Wallet, CreditCard, Gift, FileText, Headphones,
+  type LucideIcon,
+} from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
@@ -38,11 +42,10 @@ const INDUSTRY_HREFS: (string | null)[] = [
    POUR QUI ? — scroll-drawn brand stroke with industries appearing around it
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Industry chips: first hugging the stroke, then spreading out. `at` = scroll
-   progress when they pop. Side-anchored (left OR right offset) so a chip can
-   never overflow the viewport edge, with breathing room between neighbours. */
+/* Industry chips: side-anchored (left OR right offset) so a chip can never
+   overflow the viewport edge, with breathing room between neighbours.
+   `at` = scroll progress when they pop, in sync with the band being drawn. */
 const SECTOR_SPOTS: Array<{ at: number; side: 'left' | 'right'; off: string; y: string }> = [
-  // Flanking the stroke on both sides, top to bottom, popping in sync with the draw
   { at: 0.06, side: 'left',  off: '30%', y: '8%'  },
   { at: 0.10, side: 'right', off: '26%', y: '14%' },
   { at: 0.15, side: 'left',  off: '22%', y: '22%' },
@@ -81,7 +84,7 @@ function SectorChip({ name, href, spot, progress }: {
     return (
       <MotionLink
         to={href}
-        className={`${baseClass} transition-colors hover:border-[#6366f1] hover:text-[#6366f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] active:scale-[0.97]`}
+        className={`${baseClass} transition-colors hover:border-[#7a5fff] hover:text-[#7a5fff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff] active:scale-[0.97]`}
         style={style}
       >
         {name}
@@ -111,45 +114,51 @@ function IndustriesStroke({ isFr, industries }: { isFr: boolean; industries: str
       className="relative h-[280vh] bg-[#fafaf8] border-y border-[#1d1d1f]/8"
     >
       <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden">
-        {/* Brand stroke, drawn by scroll */}
+        {/* Brand band, drawn by scroll */}
         <svg
-          width="900"
-          height="2200"
-          viewBox="0 0 900 2200"
+          width="1500"
+          height="2300"
+          viewBox="0 0 1500 2300"
           fill="none"
           overflow="visible"
           className="pointer-events-none absolute select-none"
-          style={{ top: '-12%', left: '50%', transform: 'translateX(-55%)', opacity: 0.9 }}
+          style={{ top: '-14%', left: '50%', transform: 'translateX(-50%)', opacity: 0.92 }}
           aria-hidden="true"
         >
           <defs>
-            <linearGradient id="qw-stroke-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#6366f1" />
-              <stop offset="100%" stopColor="#a855f7" />
+            <linearGradient id="qw-stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#7a5fff" />
+              <stop offset="55%" stopColor="#7349fe" />
+              <stop offset="100%" stopColor="#cd6afb" />
             </linearGradient>
           </defs>
           <motion.path
             d="
-              M 450 0
-              C 750 180, 120 320, 380 520
-              C 640 720, 820 860, 500 1060
-              C 180 1260, 80 1400, 360 1580
-              C 640 1760, 880 1880, 580 2050
-              C 400 2130, 320 2180, 450 2200
+              M 750 0
+              C 1180 240, 260 420, 560 700
+              C 860 980, 1320 1080, 780 1330
+              C 240 1580, 300 1760, 700 1930
+              C 1000 2060, 820 2200, 750 2300
             "
             stroke="url(#qw-stroke-grad)"
-            strokeWidth="13"
+            strokeWidth="76"
             strokeLinecap="round"
             fill="none"
             style={{ pathLength }}
           />
         </svg>
 
-        {/* Sectors pop in around the stroke as it draws. Each chip that maps to
+        {/* Sectors pop in around the band as it draws. Each chip that maps to
             a sector/partner page is a real navigation link (not aria-hidden). */}
-        <nav className="absolute inset-0" aria-label={isFr ? 'Secteurs' : 'Industries'}>
+        <nav className="absolute inset-0 z-20" aria-label={isFr ? 'Secteurs' : 'Industries'}>
           {industries.map((name, i) => (
-            <SectorChip key={name} name={name} href={INDUSTRY_HREFS[i]} spot={SECTOR_SPOTS[i % SECTOR_SPOTS.length]} progress={scrollYProgress} />
+            <SectorChip
+              key={name}
+              name={name}
+              href={INDUSTRY_HREFS[i]}
+              spot={SECTOR_SPOTS[i % SECTOR_SPOTS.length]}
+              progress={scrollYProgress}
+            />
           ))}
         </nav>
 
@@ -174,8 +183,7 @@ interface StepCard {
   num: string;
   title: string;
   desc: string;
-  points: string[];
-  icon: typeof PhoneCall;
+  points: { icon: LucideIcon; label: string }[];
   accent: string;
 }
 
@@ -192,36 +200,28 @@ function StackStep({ step, index, total }: { step: StepCard; index: number; tota
         style={{ scale, border: '1px solid rgba(29,29,31,0.10)', boxShadow: '0 30px 80px rgba(20,16,50,0.14)' }}
       >
         <div className="flex min-h-[380px] flex-col justify-between md:min-h-[420px]">
-          <div className="flex items-start justify-between gap-6">
-            <div>
-              <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: step.accent }}>
-                {step.num}
-              </p>
-              <h3 className="max-w-[560px] text-[clamp(1.7rem,4vw,3rem)] font-semibold leading-[1.04] tracking-[-0.03em]">
-                {step.title}
-              </h3>
-            </div>
-            <span
-              className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl"
-              style={{ background: `${step.accent}14`, color: step.accent, border: `1px solid ${step.accent}33` }}
-              aria-hidden="true"
-            >
-              <step.icon size={24} />
-            </span>
+          <div>
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: step.accent }}>
+              {step.num}
+            </p>
+            <h3 className="max-w-[560px] text-[clamp(1.7rem,4vw,3rem)] font-semibold leading-[1.04] tracking-[-0.03em]">
+              {step.title}
+            </h3>
           </div>
 
           <div>
             <p className="mb-8 max-w-[480px] text-base leading-relaxed text-[#525257] md:text-lg">
               {step.desc}
             </p>
-            <ul className="flex flex-wrap gap-2" role="list">
+            <ul className="grid gap-2.5 sm:grid-cols-3" role="list">
               {step.points.map((p) => (
                 <li
-                  key={p}
-                  className="rounded-full px-3.5 py-1.5 text-[13px] text-[#1d1d1f]"
-                  style={{ background: 'rgba(29,29,31,0.04)', border: '1px solid rgba(29,29,31,0.12)' }}
+                  key={p.label}
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-medium text-[#1d1d1f]"
+                  style={{ background: 'rgba(29,29,31,0.04)', border: '1px solid rgba(29,29,31,0.10)' }}
                 >
-                  {p}
+                  <p.icon size={14} className="flex-shrink-0" style={{ color: step.accent }} aria-hidden="true" />
+                  {p.label}
                 </li>
               ))}
             </ul>
@@ -277,7 +277,7 @@ export default function Home() {
           className="relative pt-24 sm:pt-28 md:pt-36 pb-16 md:pb-28 px-5 sm:px-6 overflow-hidden"
           onMouseMove={handleHeroMouseMove}
           style={{
-            background: 'radial-gradient(700px circle at var(--mx,50%) var(--my,30%), rgba(99,102,241,0.07), transparent 65%)',
+            background: 'radial-gradient(700px circle at var(--mx,50%) var(--my,30%), rgba(122,95,255,0.07), transparent 65%)',
           }}
         >
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-20 items-center">
@@ -293,16 +293,16 @@ export default function Home() {
                 {isFr ? (
                   <>
                     Chaque appel<br />
-                    <span className="italic font-serif" style={{ color: '#6366f1' }}>répondu.</span><br />
+                    <span className="italic font-serif" style={{ color: '#7a5fff' }}>répondu.</span><br />
                     Chaque lead<br />
-                    <span className="italic font-serif" style={{ color: '#a855f7' }}>capturé.</span>
+                    <span className="italic font-serif" style={{ color: '#cd6afb' }}>capturé.</span>
                   </>
                 ) : (
                   <>
                     Every call<br />
-                    <span className="italic font-serif" style={{ color: '#6366f1' }}>answered.</span><br />
+                    <span className="italic font-serif" style={{ color: '#7a5fff' }}>answered.</span><br />
                     Every lead<br />
-                    <span className="italic font-serif" style={{ color: '#a855f7' }}>captured.</span>
+                    <span className="italic font-serif" style={{ color: '#cd6afb' }}>captured.</span>
                   </>
                 )}
               </h1>
@@ -316,14 +316,14 @@ export default function Home() {
               <div className="flex flex-wrap items-center gap-3 mb-10">
                 <a
                   href="/demo.html"
-                  className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#6366f1] transition-colors"
+                  className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#7a5fff] transition-colors"
                 >
                   <Play size={14} fill="currentColor" aria-hidden="true" />
                   {isFr ? 'Écouter une démo' : 'Hear the demo'}
                 </a>
                 <Link
                   to="/pricing"
-                  className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#1d1d1f] px-2 py-2 underline decoration-[#6366f1]/30 decoration-2 underline-offset-8 hover:decoration-[#6366f1] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#1d1d1f] px-2 py-2 underline decoration-[#7a5fff]/30 decoration-2 underline-offset-8 hover:decoration-[#7a5fff] transition-colors"
                 >
                   {isFr ? 'Voir les tarifs' : 'See pricing'}
                   <ArrowRight size={15} aria-hidden="true" />
@@ -397,12 +397,12 @@ export default function Home() {
               <Link
                 to="/receptionist"
                 className="group relative rounded-[2rem] overflow-hidden block p-8 md:p-12 min-h-[460px] h-full text-white"
-                style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #6366f1 110%)' }}
+                style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #7a5fff 110%)' }}
               >
                 <div
                   aria-hidden="true"
                   className="absolute -right-32 -top-32 w-[440px] h-[440px] rounded-full opacity-30 blur-3xl"
-                  style={{ background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)' }}
+                  style={{ background: 'radial-gradient(circle, #7a5fff 0%, transparent 70%)' }}
                 />
 
                 <div className="relative flex flex-col h-full justify-between">
@@ -428,26 +428,29 @@ export default function Home() {
                     </p>
                   </div>
 
-                  <div className="mt-10 flex flex-wrap gap-2">
-                    {(isFr
-                      ? ['Voix française naturelle', 'Calendrier auto', 'CRM intégré', 'SMS de suivi']
-                      : ['Natural voice', 'Auto-calendar', 'CRM sync', 'SMS follow-up']
-                    ).map((f) => (
-                      <span
-                        key={f}
-                        className="text-xs px-3 py-1.5 rounded-full"
-                        style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}
+                  <ul className="mt-10 grid grid-cols-2 gap-2.5" role="list">
+                    {[
+                      { icon: Mic,           label: isFr ? 'Voix française naturelle' : 'Natural voice' },
+                      { icon: Calendar,      label: isFr ? 'Calendrier auto' : 'Auto-calendar' },
+                      { icon: Users,         label: isFr ? 'CRM intégré' : 'CRM sync' },
+                      { icon: MessageSquare, label: isFr ? 'SMS de suivi' : 'SMS follow-up' },
+                    ].map((f) => (
+                      <li
+                        key={f.label}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
+                        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}
                       >
-                        {f}
-                      </span>
+                        <f.icon size={14} className="flex-shrink-0" style={{ color: '#b9a8ff' }} aria-hidden="true" />
+                        <span className="text-xs font-medium text-white">{f.label}</span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
 
                   <div className="mt-10 flex items-baseline justify-between gap-4 flex-wrap">
                     <p className="text-white/55 text-sm">
                       {isFr ? 'À partir de ' : 'From '}
                       <span className="text-white font-semibold">99&nbsp;€<span className="text-white/55">/{isFr ? 'mois' : 'mo'}</span></span>
-                      <span className="ml-2 text-xs font-medium" style={{ color: '#a5b4fc' }}>
+                      <span className="ml-2 text-xs font-medium" style={{ color: '#b9a8ff' }}>
                         · {isFr ? 'Essai gratuit' : 'Free trial'}
                       </span>
                     </p>
@@ -472,12 +475,12 @@ export default function Home() {
               <div
                 aria-disabled="true"
                 className="group relative rounded-[2rem] block p-8 md:p-10 min-h-[460px] h-full overflow-hidden text-white cursor-default select-none"
-                style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 55%, #a855f7 115%)' }}
+                style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 55%, #cd6afb 115%)' }}
               >
                 <div
                   aria-hidden="true"
                   className="absolute -right-24 -top-24 w-[340px] h-[340px] rounded-full opacity-30 blur-3xl"
-                  style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }}
+                  style={{ background: 'radial-gradient(circle, #cd6afb 0%, transparent 70%)' }}
                 />
                 <div className="relative flex flex-col h-full justify-between">
                   <div>
@@ -488,7 +491,7 @@ export default function Home() {
                       >
                         <Bot size={20} aria-hidden="true" />
                       </span>
-                      <span className="text-[10px] font-bold uppercase tracking-[0.16em] rounded-full px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.14)', color: '#e9d5ff' }}>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.16em] rounded-full px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.14)', color: '#f3ddff' }}>
                         {isFr ? 'Bientôt' : 'Coming soon'}
                       </span>
                     </div>
@@ -504,17 +507,17 @@ export default function Home() {
 
                   <ul className="mt-10 grid grid-cols-2 gap-2.5" role="list">
                     {[
-                      { icon: MessageSquare, label: 'Email' },
-                      { icon: Calendar,      label: isFr ? 'Facturation' : 'Billing' },
-                      { icon: Mic,           label: isFr ? 'Inventaire' : 'Inventory' },
-                      { icon: Clock,         label: isFr ? 'Paiements' : 'Payments' },
+                      { icon: Mail,    label: 'Email' },
+                      { icon: Receipt, label: isFr ? 'Facturation' : 'Billing' },
+                      { icon: Package, label: isFr ? 'Inventaire' : 'Inventory' },
+                      { icon: Wallet,  label: isFr ? 'Paiements' : 'Payments' },
                     ].map((m) => (
                       <li
                         key={m.label}
                         className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
                         style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}
                       >
-                        <m.icon size={14} style={{ color: '#d8b4fe' }} aria-hidden="true" />
+                        <m.icon size={14} className="flex-shrink-0" style={{ color: '#e7bafd' }} aria-hidden="true" />
                         <span className="text-xs font-medium text-white">{m.label}</span>
                       </li>
                     ))}
@@ -525,7 +528,7 @@ export default function Home() {
                       <span className="text-white font-semibold">+$197</span>
                       <span className="text-white/55">/mois · {isFr ? 'par module' : 'per module'}</span>
                     </p>
-                    <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: '#d8b4fe' }}>
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: '#e7bafd' }}>
                       {isFr ? 'Bientôt disponible' : 'Coming soon'}
                     </span>
                   </div>
@@ -565,11 +568,12 @@ export default function Home() {
                   desc: isFr
                     ? 'Créez votre compte en 2 minutes. Sans carte. Premier mois offert.'
                     : 'Create your account in 2 minutes. No card. First month free.',
-                  points: isFr
-                    ? ['2 minutes', 'Sans carte bancaire', '1er mois offert']
-                    : ['2 minutes', 'No credit card', '1st month free'],
-                  icon: Zap,
-                  accent: '#6366f1',
+                  points: [
+                    { icon: Clock,      label: '2 minutes' },
+                    { icon: CreditCard, label: isFr ? 'Sans carte bancaire' : 'No credit card' },
+                    { icon: Gift,       label: isFr ? '1er mois offert' : '1st month free' },
+                  ],
+                  accent: '#7a5fff',
                 },
                 {
                   num: isFr ? '02 / Configuration' : '02 / Configure',
@@ -577,11 +581,12 @@ export default function Home() {
                   desc: isFr
                     ? 'Voix, scripts, horaires, intégrations calendrier. Tout se règle dans le dashboard.'
                     : 'Voice, scripts, hours, calendar integrations. Everything from the dashboard.',
-                  points: isFr
-                    ? ['Voix naturelle', 'Scripts par métier', 'Calendrier connecté']
-                    : ['Natural voice', 'Industry scripts', 'Calendar sync'],
-                  icon: Settings2,
-                  accent: '#a855f7',
+                  points: [
+                    { icon: Mic,      label: isFr ? 'Voix naturelle' : 'Natural voice' },
+                    { icon: FileText, label: isFr ? 'Scripts par métier' : 'Industry scripts' },
+                    { icon: Calendar, label: isFr ? 'Calendrier connecté' : 'Calendar sync' },
+                  ],
+                  accent: '#cd6afb',
                 },
                 {
                   num: isFr ? '03 / En ligne' : '03 / Go live',
@@ -589,11 +594,12 @@ export default function Home() {
                   desc: isFr
                     ? 'Transférez votre numéro existant. L\'IA prend le relais. Support FR 7j/7.'
                     : 'Forward your existing number. The AI takes over. Support 7 days a week.',
-                  points: isFr
-                    ? ['Numéro conservé', 'IA en relais 24/7', 'Support 7j/7']
-                    : ['Keep your number', 'AI on 24/7', 'Support 7 days'],
-                  icon: PhoneCall,
-                  accent: '#4f46e5',
+                  points: [
+                    { icon: Phone,      label: isFr ? 'Numéro conservé' : 'Keep your number' },
+                    { icon: Bot,        label: isFr ? 'IA en relais 24/7' : 'AI on 24/7' },
+                    { icon: Headphones, label: isFr ? 'Support 7j/7' : 'Support 7 days' },
+                  ],
+                  accent: '#7349fe',
                 },
               ] as StepCard[]).map((step, i, arr) => (
                 <StackStep key={step.num} step={step} index={i} total={arr.length} />
@@ -617,11 +623,11 @@ export default function Home() {
           className="px-5 sm:px-6 py-14 sm:py-18 md:py-24"
         >
           <Reveal className="max-w-[1240px] mx-auto">
-            <div className="rounded-[2rem] px-8 md:px-16 py-16 md:py-20 relative overflow-hidden" style={{ background: '#6366f1' }}>
+            <div className="rounded-[2rem] px-8 md:px-16 py-16 md:py-20 relative overflow-hidden" style={{ background: '#7a5fff' }}>
               <div
                 aria-hidden="true"
                 className="absolute -right-32 -top-32 w-[440px] h-[440px] rounded-full opacity-30 blur-3xl"
-                style={{ background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)' }}
+                style={{ background: 'radial-gradient(circle, #cd6afb 0%, transparent 70%)' }}
               />
               <p className="relative text-white/70 text-xs font-medium tracking-[0.14em] uppercase mb-6">
                 {isFr ? 'Lancement' : 'Launch'}
@@ -653,13 +659,13 @@ export default function Home() {
                 <>
                   Arrêtez de perdre<br />
                   des appels.<br />
-                  <span className="font-serif italic" style={{ color: '#6366f1' }}>Commencez aujourd'hui.</span>
+                  <span className="font-serif italic" style={{ color: '#7a5fff' }}>Commencez aujourd'hui.</span>
                 </>
               ) : (
                 <>
                   Stop losing<br />
                   calls.<br />
-                  <span className="font-serif italic" style={{ color: '#6366f1' }}>Start today.</span>
+                  <span className="font-serif italic" style={{ color: '#7a5fff' }}>Start today.</span>
                 </>
               )}
             </h2>
@@ -671,7 +677,7 @@ export default function Home() {
               </p>
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#6366f1] transition-colors"
+                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#7a5fff] transition-colors"
               >
                 {isFr ? 'Créer un compte' : 'Create account'}
                 <ArrowRight size={16} aria-hidden="true" />

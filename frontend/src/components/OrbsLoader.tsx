@@ -26,8 +26,8 @@ export default function OrbsLoader({
       <svg viewBox="0 0 100 100" aria-label="Chargement" role="img">
         <defs>
           <linearGradient id="qwLoaderArc" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%"   stopColor="#7D7CFB" />
-            <stop offset="100%" stopColor="#A855F7" />
+            <stop offset="0%"   stopColor="#9A86FF" />
+            <stop offset="100%" stopColor="#CD6AFB" />
           </linearGradient>
         </defs>
         <circle

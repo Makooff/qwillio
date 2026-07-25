@@ -105,7 +105,7 @@ export default function Partenaires() {
               <div>
                 <span
                   className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4"
-                  style={{ color: '#6366f1' }}
+                  style={{ color: '#7a5fff' }}
                 >
                   {isFr ? 'Programme partenaire fiduciaire' : 'Accountancy partner program'}
                 </span>
@@ -116,12 +116,12 @@ export default function Partenaires() {
                   {isFr ? (
                     <>
                       15 % récurrent.<br />
-                      <span className="font-serif italic" style={{ color: '#6366f1' }}>À vie du client.</span>
+                      <span className="font-serif italic" style={{ color: '#7a5fff' }}>À vie du client.</span>
                     </>
                   ) : (
                     <>
                       15% recurring.<br />
-                      <span className="font-serif italic" style={{ color: '#6366f1' }}>For the customer's lifetime.</span>
+                      <span className="font-serif italic" style={{ color: '#7a5fff' }}>For the customer's lifetime.</span>
                     </>
                   )}
                 </h1>
@@ -157,7 +157,7 @@ export default function Partenaires() {
               {benefits.map((b, i) => (
                 <Reveal key={i} delay={0.04 * i}>
                   <li className="flex items-start gap-3 rounded-2xl p-4 border border-[#1d1d1f]/10 bg-[#fafaf8]">
-                    <Check size={18} className="flex-shrink-0 mt-0.5" style={{ color: '#6366f1' }} aria-hidden="true" />
+                    <Check size={18} className="flex-shrink-0 mt-0.5" style={{ color: '#7a5fff' }} aria-hidden="true" />
                     <span className="text-[15px] text-[#1d1d1f] leading-relaxed">{b}</span>
                   </li>
                 </Reveal>
@@ -188,7 +188,7 @@ export default function Partenaires() {
                   <article className="rounded-3xl p-6 border border-[#1d1d1f]/10 bg-[#fafaf8] h-full">
                     <p
                       className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-3"
-                      style={{ color: '#a855f7' }}
+                      style={{ color: '#cd6afb' }}
                     >
                       {s.title}
                     </p>
@@ -230,7 +230,7 @@ export default function Partenaires() {
                   <li className="flex items-start gap-4 rounded-2xl p-5 border border-[#1d1d1f]/10 bg-white">
                     <span
                       className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-semibold tabular-nums"
-                      style={{ background: 'rgba(99,102,241,0.10)', color: '#6366f1' }}
+                      style={{ background: 'rgba(122,95,255,0.10)', color: '#7a5fff' }}
                     >
                       {num}
                     </span>
@@ -252,12 +252,12 @@ export default function Partenaires() {
               <Card3D intensity={3}>
                 <div
                   className="rounded-3xl p-8 md:p-12 text-white overflow-hidden relative"
-                  style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #6366f1 115%)' }}
+                  style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #7a5fff 115%)' }}
                 >
                   <div
                     aria-hidden="true"
                     className="absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-30 blur-3xl"
-                    style={{ background: '#a855f7' }}
+                    style={{ background: '#cd6afb' }}
                   />
                   <h3 className="relative text-[clamp(1.6rem,3vw,2.4rem)] font-semibold tracking-[-0.025em] mb-4 max-w-[560px]">
                     {isFr
@@ -272,7 +272,7 @@ export default function Partenaires() {
                   <div className="relative flex flex-wrap items-center gap-3">
                     <a
                       href="mailto:partenaires@qwillio.com?subject=OK%20partenaire"
-                      className="inline-flex items-center gap-2 bg-white text-[#1d1d1f] text-sm font-medium px-5 py-3 rounded-full hover:bg-[#a5b4fc] transition-colors active:scale-[0.97]"
+                      className="inline-flex items-center gap-2 bg-white text-[#1d1d1f] text-sm font-medium px-5 py-3 rounded-full hover:bg-[#b9a8ff] transition-colors active:scale-[0.97]"
                     >
                       {isFr ? 'Envoyer un email' : 'Send an email'}
                       <ArrowRight size={15} aria-hidden="true" />

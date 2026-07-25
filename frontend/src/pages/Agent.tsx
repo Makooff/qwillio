@@ -207,8 +207,8 @@ export default function Agent() {
             <Reveal>
             <div>
               <span className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.18em] uppercase mb-6">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#a855f7' }} aria-hidden="true" />
-                <span style={{ color: '#a855f7' }}>Qwillio Agent</span>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#cd6afb' }} aria-hidden="true" />
+                <span style={{ color: '#cd6afb' }}>Qwillio Agent</span>
                 <span className="text-[#86868b]">·</span>
                 <span className="text-[#1d1d1f]">{isFr ? 'Modules IA' : 'AI Modules'}</span>
               </span>
@@ -220,12 +220,12 @@ export default function Agent() {
                 {isFr ? (
                   <>
                     Treize modules.<br />
-                    <span className="italic font-serif" style={{ color: '#a855f7' }}>Un seul agent.</span>
+                    <span className="italic font-serif" style={{ color: '#cd6afb' }}>Un seul agent.</span>
                   </>
                 ) : (
                   <>
                     Thirteen modules.<br />
-                    <span className="italic font-serif" style={{ color: '#a855f7' }}>One agent.</span>
+                    <span className="italic font-serif" style={{ color: '#cd6afb' }}>One agent.</span>
                   </>
                 )}
               </h1>
@@ -239,14 +239,14 @@ export default function Agent() {
               <div className="flex flex-wrap items-center gap-3 mb-10">
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#a855f7] transition-colors"
+                  className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#cd6afb] transition-colors"
                 >
                   {isFr ? 'Démarrer' : 'Get started'}
                   <ArrowRight size={15} aria-hidden="true" />
                 </Link>
                 <Link
                   to="/pricing"
-                  className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#1d1d1f] px-2 py-2 underline decoration-[#a855f7]/30 decoration-2 underline-offset-8 hover:decoration-[#a855f7] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#1d1d1f] px-2 py-2 underline decoration-[#cd6afb]/30 decoration-2 underline-offset-8 hover:decoration-[#cd6afb] transition-colors"
                 >
                   {isFr ? 'Voir les tarifs' : 'See pricing'}
                   <ArrowRight size={15} aria-hidden="true" />
@@ -275,7 +275,7 @@ export default function Agent() {
             <div
               className="relative rounded-3xl p-6 overflow-hidden text-white"
               style={{
-                background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 60%, #a855f7 115%)',
+                background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 60%, #cd6afb 115%)',
                 border: '1px solid rgba(255,255,255,0.06)',
               }}
             >
@@ -283,7 +283,7 @@ export default function Agent() {
                 <div className="flex items-center gap-2">
                   <span
                     className="w-2.5 h-2.5 rounded-full"
-                    style={{ background: '#a855f7', boxShadow: '0 0 8px #a855f7' }}
+                    style={{ background: '#cd6afb', boxShadow: '0 0 8px #cd6afb' }}
                     aria-hidden="true"
                   />
                   <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-white/55">
@@ -302,10 +302,10 @@ export default function Agent() {
                   >
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
-                      style={{ background: 'rgba(168,85,247,0.18)' }}
+                      style={{ background: 'rgba(205,106,251,0.18)' }}
                       aria-hidden="true"
                     >
-                      <m.icon size={16} style={{ color: '#d8b4fe' }} />
+                      <m.icon size={16} style={{ color: '#e7bafd' }} />
                     </div>
                     <p className="text-sm font-semibold text-white mb-1">{m.name}</p>
                     <p className="text-[11px] text-white/55 leading-relaxed">{m.tagline}</p>
@@ -317,7 +317,7 @@ export default function Agent() {
                 <span className="text-white/55">
                   {isFr ? '4 modules actifs' : '4 modules active'}
                 </span>
-                <span style={{ color: '#d8b4fe' }} className="font-semibold">
+                <span style={{ color: '#e7bafd' }} className="font-semibold">
                   +$788/{isFr ? 'mois' : 'month'}
                 </span>
               </div>
@@ -347,7 +347,7 @@ export default function Agent() {
             <div className="space-y-16 md:space-y-24">
               {modules.map((m, i) => {
                 const flip = i % 2 === 1;
-                const accent = i % 2 === 0 ? '#a855f7' : '#6366f1';
+                const accent = i % 2 === 0 ? '#cd6afb' : '#7a5fff';
                 return (
                   <Reveal key={m.id} delay={0.05}>
                   <article
@@ -392,8 +392,8 @@ export default function Agent() {
                       className="rounded-[2rem] aspect-[5/4] flex items-center justify-center relative overflow-hidden"
                       style={{
                         background: i % 2 === 0
-                          ? 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 60%, #a855f7 115%)'
-                          : 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #6366f1 115%)',
+                          ? 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 60%, #cd6afb 115%)'
+                          : 'linear-gradient(155deg, #1d1d1f 0%, #2a2356 55%, #7a5fff 115%)',
                       }}
                     >
                       <div
@@ -419,7 +419,7 @@ export default function Agent() {
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.2fr_1fr] gap-10 items-center">
             <Reveal>
             <div>
-              <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3" style={{ color: '#a855f7' }}>
+              <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-3" style={{ color: '#cd6afb' }}>
                 {isFr ? 'Tarif' : 'Pricing'}
               </span>
               <h2
@@ -427,9 +427,9 @@ export default function Agent() {
                 className="text-[clamp(2rem,4vw,3.2rem)] font-semibold tracking-[-0.03em] leading-[1.05] mb-5"
               >
                 {isFr ? (
-                  <><span className="font-serif italic" style={{ color: '#a855f7' }}>$197</span> par module, par mois.</>
+                  <><span className="font-serif italic" style={{ color: '#cd6afb' }}>$197</span> par module, par mois.</>
                 ) : (
-                  <><span className="font-serif italic" style={{ color: '#a855f7' }}>$197</span> per module, per month.</>
+                  <><span className="font-serif italic" style={{ color: '#cd6afb' }}>$197</span> per module, per month.</>
                 )}
               </h2>
               <p className="text-[#525257] text-[15px] leading-relaxed max-w-[440px]">
@@ -444,7 +444,7 @@ export default function Agent() {
             <Card3D intensity={4}>
             <div
               className="rounded-[2rem] p-8 text-white"
-              style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 60%, #a855f7 115%)' }}
+              style={{ background: 'linear-gradient(155deg, #1d1d1f 0%, #3a1f4a 60%, #cd6afb 115%)' }}
             >
               <p className="text-[11px] font-bold tracking-[0.18em] uppercase text-white/55 mb-3">
                 {isFr ? 'Suite complète' : 'Complete suite'}
@@ -453,12 +453,12 @@ export default function Agent() {
                 <span className="text-5xl font-semibold tracking-[-0.03em] tabular-nums">$788</span>
                 <span className="text-sm text-white/60">/{isFr ? 'mois' : 'month'}</span>
               </div>
-              <p className="text-xs mb-6" style={{ color: '#d8b4fe' }}>
+              <p className="text-xs mb-6" style={{ color: '#e7bafd' }}>
                 {isFr ? 'Les 4 modules · Premier mois offert' : 'All 4 modules · 1st month free'}
               </p>
               <Link
                 to="/register"
-                className="inline-flex items-center justify-center w-full gap-2 bg-white text-[#1d1d1f] text-sm font-semibold pl-5 pr-6 py-3.5 rounded-full hover:bg-[#d8b4fe] transition-colors"
+                className="inline-flex items-center justify-center w-full gap-2 bg-white text-[#1d1d1f] text-sm font-semibold pl-5 pr-6 py-3.5 rounded-full hover:bg-[#e7bafd] transition-colors"
               >
                 {isFr ? 'Activer' : 'Activate'}
                 <ArrowRight size={15} aria-hidden="true" />
@@ -477,14 +477,14 @@ export default function Agent() {
               {isFr ? (
                 <>
                   Confiez votre business<br />
-                  <span className="font-serif italic" style={{ color: '#6366f1' }}>à un</span>{' '}
-                  <span className="font-serif italic" style={{ color: '#a855f7' }}>seul agent.</span>
+                  <span className="font-serif italic" style={{ color: '#7a5fff' }}>à un</span>{' '}
+                  <span className="font-serif italic" style={{ color: '#cd6afb' }}>seul agent.</span>
                 </>
               ) : (
                 <>
                   Hand your business<br />
-                  <span className="font-serif italic" style={{ color: '#6366f1' }}>to one</span>{' '}
-                  <span className="font-serif italic" style={{ color: '#a855f7' }}>agent.</span>
+                  <span className="font-serif italic" style={{ color: '#7a5fff' }}>to one</span>{' '}
+                  <span className="font-serif italic" style={{ color: '#cd6afb' }}>agent.</span>
                 </>
               )}
             </h2>
@@ -498,7 +498,7 @@ export default function Agent() {
               </p>
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#a855f7] transition-colors"
+                className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#cd6afb] transition-colors"
               >
                 {isFr ? 'Créer un compte' : 'Create account'}
                 <ArrowRight size={16} aria-hidden="true" />

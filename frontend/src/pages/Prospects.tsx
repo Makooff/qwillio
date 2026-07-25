@@ -28,10 +28,10 @@ const STATUS_MAP: Record<string, StatusTab> = {
 };
 
 const STATUS_STYLE: Record<string, { bg: string; fg: string }> = {
-  new:            { bg: 'rgba(99,102,241,0.14)',  fg: '#818CF8' },
-  nouveau:        { bg: 'rgba(99,102,241,0.14)',  fg: '#818CF8' },
-  called:         { bg: 'rgba(168,85,247,0.14)',  fg: '#C084FC' },
-  appelé:         { bg: 'rgba(168,85,247,0.14)',  fg: '#C084FC' },
+  new:            { bg: 'rgba(122,95,255,0.14)',  fg: '#9D8BFF' },
+  nouveau:        { bg: 'rgba(122,95,255,0.14)',  fg: '#9D8BFF' },
+  called:         { bg: 'rgba(205,106,251,0.14)',  fg: '#DD93FC' },
+  appelé:         { bg: 'rgba(205,106,251,0.14)',  fg: '#DD93FC' },
   interested:     { bg: 'rgba(34,197,94,0.12)',   fg: '#4ADE80' },
   intéressé:      { bg: 'rgba(34,197,94,0.12)',   fg: '#4ADE80' },
   not_interested: { bg: 'rgba(239,68,68,0.10)',   fg: '#F87171' },

@@ -135,18 +135,18 @@ export default function Privacy() {
         <div className="max-w-[1240px] mx-auto">
           {/* ── Editorial heading ─────────────────────────────────────── */}
           <header className="mb-14 md:mb-20 max-w-[860px]">
-            <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-[#6366f1] mb-6">
+            <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-[#7a5fff] mb-6">
               {isFr ? 'Politique' : 'Policy'}
             </p>
             <h1 className="text-[clamp(2.4rem,6vw,5rem)] font-semibold tracking-[-0.035em] leading-[0.98] mb-6">
               {isFr ? (
                 <>
                   Politique de{' '}
-                  <span className="font-serif italic text-[#6366f1]">confidentialité.</span>
+                  <span className="font-serif italic text-[#7a5fff]">confidentialité.</span>
                 </>
               ) : (
                 <>
-                  Privacy <span className="font-serif italic text-[#6366f1]">policy.</span>
+                  Privacy <span className="font-serif italic text-[#7a5fff]">policy.</span>
                 </>
               )}
             </h1>
@@ -190,7 +190,7 @@ export default function Privacy() {
                           onClick={(event) => handleAnchorClick(event, section.id)}
                           className={`block pl-4 -ml-px py-1.5 text-[13px] leading-snug border-l transition-colors ${
                             isActive
-                              ? 'border-[#6366f1] text-[#6366f1] font-medium'
+                              ? 'border-[#7a5fff] text-[#7a5fff] font-medium'
                               : 'border-transparent text-[#525257] hover:text-[#1d1d1f]'
                           }`}
                           aria-current={isActive ? 'true' : undefined}
@@ -209,13 +209,13 @@ export default function Privacy() {
                 </p>
                 <Link
                   to="/gdpr"
-                  className="block text-[13px] text-[#1d1d1f] hover:text-[#6366f1] transition-colors"
+                  className="block text-[13px] text-[#1d1d1f] hover:text-[#7a5fff] transition-colors"
                 >
                   {isFr ? 'Vos droits RGPD →' : 'Your GDPR rights →'}
                 </Link>
                 <Link
                   to="/terms"
-                  className="block text-[13px] text-[#1d1d1f] hover:text-[#6366f1] transition-colors mt-1.5"
+                  className="block text-[13px] text-[#1d1d1f] hover:text-[#7a5fff] transition-colors mt-1.5"
                 >
                   {isFr ? "Conditions d'utilisation →" : 'Terms of service →'}
                 </Link>
@@ -248,7 +248,7 @@ export default function Privacy() {
                   {isFr ? 'Contact : ' : 'Contact: '}
                   <a
                     href="mailto:hello@qwillio.com"
-                    className="text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1] transition-colors"
+                    className="text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff] transition-colors"
                   >
                     hello@qwillio.com
                   </a>
@@ -285,7 +285,7 @@ export default function Privacy() {
                       ]
                   ).map((item, i) => (
                     <li key={i} className="flex gap-3">
-                      <span className="text-[#6366f1] font-serif italic select-none" aria-hidden="true">
+                      <span className="text-[#7a5fff] font-serif italic select-none" aria-hidden="true">
                         ¶
                       </span>
                       <span>{item}</span>
@@ -324,7 +324,7 @@ export default function Privacy() {
                       ]
                   ).map((item, i) => (
                     <li key={i} className="flex gap-3">
-                      <span className="text-[#6366f1] font-serif italic select-none" aria-hidden="true">
+                      <span className="text-[#7a5fff] font-serif italic select-none" aria-hidden="true">
                         ¶
                       </span>
                       <span>{item}</span>
@@ -402,7 +402,7 @@ export default function Privacy() {
                       ]
                   ).map((item, i) => (
                     <li key={i} className="flex gap-3">
-                      <span className="text-[#6366f1] font-serif italic select-none" aria-hidden="true">
+                      <span className="text-[#7a5fff] font-serif italic select-none" aria-hidden="true">
                         ¶
                       </span>
                       <span>{item}</span>
@@ -477,14 +477,14 @@ export default function Privacy() {
                   {isFr ? 'Pour exercer vos droits, contactez-nous à ' : 'To exercise your rights, contact us at '}
                   <a
                     href="mailto:hello@qwillio.com"
-                    className="text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1] transition-colors"
+                    className="text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff] transition-colors"
                   >
                     hello@qwillio.com
                   </a>
                   . {isFr ? 'Voir aussi notre page ' : 'See also our '}
                   <Link
                     to="/gdpr"
-                    className="text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1] transition-colors"
+                    className="text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff] transition-colors"
                   >
                     {isFr ? 'Droits RGPD' : 'GDPR Rights'}
                   </Link>
@@ -536,7 +536,7 @@ export default function Privacy() {
                     {isFr ? 'E-mail : ' : 'Email: '}
                     <a
                       href="mailto:hello@qwillio.com"
-                      className="text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1] transition-colors"
+                      className="text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff] transition-colors"
                     >
                       hello@qwillio.com
                     </a>
@@ -553,7 +553,7 @@ export default function Privacy() {
                   {isFr ? 'Des questions ? Écrivez-nous à ' : 'Questions? Write to '}
                   <a
                     href="mailto:hello@qwillio.com"
-                    className="text-[#6366f1] underline decoration-[#6366f1]/30 decoration-2 underline-offset-4 hover:decoration-[#6366f1]"
+                    className="text-[#7a5fff] underline decoration-[#7a5fff]/30 decoration-2 underline-offset-4 hover:decoration-[#7a5fff]"
                   >
                     hello@qwillio.com
                   </a>

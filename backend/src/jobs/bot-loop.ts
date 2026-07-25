@@ -153,6 +153,7 @@ class BotLoop {
     const cityMiss  = env.PROSPECTION_CITIES.filter(c => !US_CITIES.has(c));
     logger.info('🤖 QWILLIO STARTING...');
     logger.info('=================================================================');
+    logger.info(`PROSPECT · ${env.PROSPECTION_ENABLED ? 'ENABLED' : 'PAUSED (set PROSPECTION_ENABLED=true to resume scraping / validation / outbound calls)'}`);
     logger.info(`SCRAPE   · target ${env.PROSPECTION_DAILY_QUOTA}/day · cities OK=[${cityMatch.join(', ')}]${cityMiss.length ? ` · IGNORED=[${cityMiss.join(', ')}]` : ''}`);
     logger.info(`VALIDATE · Twilio Lookup batch 10 every 10 min (~1 440/day capacity)`);
     logger.info(`CALL     · target ${env.CALLS_PER_DAY}/day · tick every ${env.CALL_INTERVAL_MINUTES} min · prospect-local 9-12 / 13-17 (Mon-Thu) and 9-12 / 13-14 (Fri)`);
@@ -169,6 +170,7 @@ class BotLoop {
     // CRON 1: PROSPECTION - Every day at 8h US Eastern (Mon-Fri)
     // ═══════════════════════════════════════════════════════════
     this.prospectionJob = cron.schedule('0 8 * * 1-5', () => jobGuard.run('prospection', async () => {
+      if (!env.PROSPECTION_ENABLED) return; // outbound prospection paused
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
 
@@ -387,6 +389,7 @@ class BotLoop {
     // Validates unvalidated prospect phone numbers via Twilio Lookup
     // ═══════════════════════════════════════════════════════════
     this.phoneValidationJob = cron.schedule('*/10 * * * *', async () => {
+      if (!env.PROSPECTION_ENABLED) return; // outbound prospection paused
       try {
         const validated = await phoneValidationService.validateBatch(10);
         if (validated > 0) {
@@ -600,6 +603,7 @@ class BotLoop {
     // Scrapes Google Maps via Apify for home services & dental niches
     // ═══════════════════════════════════════════════════════════
     this.apifyScrapingJob = cron.schedule('0 2 * * *', async () => {
+      if (!env.PROSPECTION_ENABLED) return; // outbound prospection paused
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
 
@@ -619,6 +623,7 @@ class BotLoop {
     // LINKEDIN B2B SCRAPING — Tuesday + Thursday 3 AM UTC
     // ═══════════════════════════════════════════════════════════
     this.linkedInScrapingJob = cron.schedule('0 3 * * 2,4', async () => {
+      if (!env.PROSPECTION_ENABLED) return; // outbound prospection paused
       const botStatus = await prisma.botStatus.findFirst();
       if (!botStatus?.isActive) return;
       logger.info('[Cron] LinkedIn scraping → running');
@@ -634,6 +639,7 @@ class BotLoop {
     // local 9-12 / 13-17 schedule.
     // ═══════════════════════════════════════════════════════════
     this.outboundEngineJob = cron.schedule('*/5 6-22 * * 1-5', () => jobGuard.run('outbound-engine', async () => {
+      if (!env.PROSPECTION_ENABLED) return; // outbound prospection paused
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
 
@@ -840,6 +846,7 @@ class BotLoop {
     // LINKEDIN OUTREACH — Connection requests — weekdays 9am CET (8am UTC)
     // ═══════════════════════════════════════════════════════════
     this.linkedInConnectionsJob = cron.schedule('0 8 * * 1-5', async () => {
+      if (!env.PROSPECTION_ENABLED) return; // outbound prospection paused
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
       logger.info('[Cron] LinkedIn connections → running');
@@ -852,6 +859,7 @@ class BotLoop {
     // LINKEDIN OUTREACH — Follow-ups — weekdays 2pm CET (1pm UTC)
     // ═══════════════════════════════════════════════════════════
     this.linkedInFollowUpsJob = cron.schedule('0 13 * * 1-5', async () => {
+      if (!env.PROSPECTION_ENABLED) return; // outbound prospection paused
       const status = await prisma.botStatus.findFirst();
       if (!status?.isActive) return;
       logger.info('[Cron] LinkedIn follow-ups → running');

@@ -215,7 +215,7 @@ export default function BrandingAgent() {
                       background: analysis.brandTone === 'professional' ? 'rgba(96,165,250,0.15)'
                         : analysis.brandTone === 'friendly' ? 'rgba(34,197,94,0.15)'
                         : analysis.brandTone === 'urgent' ? 'rgba(239,68,68,0.15)'
-                        : analysis.brandTone === 'luxury' ? 'rgba(123,92,240,0.15)'
+                        : analysis.brandTone === 'luxury' ? 'rgba(122,95,255,0.15)'
                         : 'rgba(255,255,255,0.06)',
                       color: analysis.brandTone === 'professional' ? pro.info
                         : analysis.brandTone === 'friendly' ? pro.ok
@@ -277,7 +277,7 @@ export default function BrandingAgent() {
               </div>
             </Card>
             <Card>
-              <div className="p-4" style={{ background: 'rgba(123,92,240,0.06)' }}>
+              <div className="p-4" style={{ background: 'rgba(122,95,255,0.06)' }}>
                 <p className="text-[10.5px] uppercase tracking-wider font-semibold mb-2" style={{ color: pro.accent }}>Angle de pitch</p>
                 <p className="text-[13px]" style={{ color: pro.text }}>{analysis.pitchAngle}</p>
               </div>

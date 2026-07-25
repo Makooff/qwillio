@@ -5,7 +5,7 @@ interface StatusBadgeProps {
 
 const statusStyles: Record<string, string> = {
   new: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
-  contacted: 'bg-[#5b4ed6]/10 text-[#5b4ed6] border-[#5b4ed6]/20',
+  contacted: 'bg-[#8a6fff]/10 text-[#8a6fff] border-[#8a6fff]/20',
   qualified: 'bg-purple-400/10 text-purple-400 border-purple-400/20',
   converted: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
   lost: 'bg-red-400/10 text-red-400 border-red-400/20',

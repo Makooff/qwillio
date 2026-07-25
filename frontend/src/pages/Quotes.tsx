@@ -80,7 +80,7 @@ export default function Quotes() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8B8BA7]" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nom du prospect..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#6366F1]/50" />
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7A5FFF]/50" />
         </div>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
           className="px-3 py-2.5 rounded-xl bg-[#12121A] border border-white/[0.06] text-sm text-[#F8F8FF] focus:outline-none">
@@ -129,7 +129,7 @@ export default function Quotes() {
                           className="p-1.5 rounded-lg hover:bg-white/[0.08] text-[#8B8BA7] hover:text-white transition-colors"><Eye className="w-3.5 h-3.5" /></button>
                         {q.status === 'draft' && (
                           <button onClick={() => sendQuote(q.id)} disabled={sending === q.id}
-                            className="p-1.5 rounded-lg hover:bg-[#6366F1]/10 text-[#8B8BA7] hover:text-[#6366F1] transition-colors disabled:opacity-40"><Send className="w-3.5 h-3.5" /></button>
+                            className="p-1.5 rounded-lg hover:bg-[#7A5FFF]/10 text-[#8B8BA7] hover:text-[#7A5FFF] transition-colors disabled:opacity-40"><Send className="w-3.5 h-3.5" /></button>
                         )}
                         {(q.status === 'sent' || q.status === 'accepted') && (
                           <button onClick={() => resendContract(q.id)} disabled={resending === q.id}
@@ -183,13 +183,13 @@ export default function Quotes() {
             </div>
             {selected.stripePaymentLink && (
               <a href={selected.stripePaymentLink} target="_blank" rel="noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20 hover:bg-[#6366F1]/20 text-sm font-medium transition-colors">
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#7A5FFF]/10 text-[#7A5FFF] border border-[#7A5FFF]/20 hover:bg-[#7A5FFF]/20 text-sm font-medium transition-colors">
                 <ExternalLink className="w-4 h-4" />Lien paiement Stripe
               </a>
             )}
             {selected.status === 'draft' && (
               <button onClick={() => { sendQuote(selected.id); setSelected(null); }} disabled={sending === selected.id}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#6366F1] text-white text-sm font-medium hover:bg-[#6D4FE0] transition-colors disabled:opacity-50">
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#7A5FFF] text-white text-sm font-medium hover:bg-[#6D4FE0] transition-colors disabled:opacity-50">
                 <Send className="w-4 h-4" />Envoyer le devis
               </button>
             )}

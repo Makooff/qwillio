@@ -313,9 +313,9 @@ export default function AdminProspecting() {
                       onClick={() => toggleNiche(n.value)}
                       className="px-2.5 py-1 rounded-lg text-[11.5px] transition-colors"
                       style={{
-                        background: sel ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)',
-                        color: sel ? '#a5b4fc' : pro.textSec,
-                        border: `1px solid ${sel ? 'rgba(99,102,241,0.5)' : pro.border}`,
+                        background: sel ? 'rgba(122,95,255,0.2)' : 'rgba(255,255,255,0.04)',
+                        color: sel ? '#b9a8ff' : pro.textSec,
+                        border: `1px solid ${sel ? 'rgba(122,95,255,0.5)' : pro.border}`,
                       }}
                     >
                       {n.label}

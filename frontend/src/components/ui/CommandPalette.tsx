@@ -68,7 +68,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
             return (
               <button
                 key={cmd.path}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${i === selectedIndex ? 'bg-[#6366F1]/20 text-white' : 'text-[#C0C0D0] hover:bg-white/5'}`}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${i === selectedIndex ? 'bg-[#7A5FFF]/20 text-white' : 'text-[#C0C0D0] hover:bg-white/5'}`}
                 onClick={() => { navigate(cmd.path); onClose(); }}
                 onMouseEnter={() => setSelectedIndex(i)}
               >

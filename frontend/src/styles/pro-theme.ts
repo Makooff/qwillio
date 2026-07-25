@@ -1,8 +1,8 @@
 /**
  * Qwillio Design Tokens — Signal Dark v3
  * OKLCH. Indigo-tinted dark base — logo Q-circle primary.
- * Primary: oklch(56% 0.02 265)  ≈ #6366F1 (logo indigo)
- * Violet:  oklch(67% 0.03 265)  ≈ #A855F7 (logo violet)
+ * Primary: oklch(56% 0.02 265)  ≈ #7A5FFF (logo indigo)
+ * Violet:  oklch(67% 0.03 265)  ≈ #CD6AFB (logo violet)
  * Skills: taste-skill, emil-design-eng, impeccable
  */
 
@@ -21,14 +21,14 @@ export const pro = {
   textSec: 'oklch(65% 0 0)',
   textTer: 'oklch(42% 0 0)',
 
-  // ── Accent — mauve #493cbe (PRIMARY) ──────────────────────────────────────
-  accent:     '#493cbe',
-  accentHi:   '#5b4ed6',
-  accentDim:  'rgba(73,60,190,0.14)',
-  accentGlow: 'rgba(73,60,190,0.18)',
-  accentGrad: '#493cbe',
-  accentMid:  'rgba(73,60,190,0.12)',
-  accentBrd:  'rgba(73,60,190,0.42)',
+  // ── Accent — mauve #7349fe (PRIMARY) ──────────────────────────────────────
+  accent:     '#7349fe',
+  accentHi:   '#8a6fff',
+  accentDim:  'rgba(115,73,254,0.14)',
+  accentGlow: 'rgba(115,73,254,0.18)',
+  accentGrad: '#7349fe',
+  accentMid:  'rgba(115,73,254,0.12)',
+  accentBrd:  'rgba(115,73,254,0.42)',
 
   // ── Violet — logo W-circle (secondary) ───────────────────────────────────
   violet:     'oklch(67% 0.03 265)',
@@ -51,7 +51,7 @@ export const pro = {
 export const proShadow = {
   card:  '0 1px 2px oklch(0% 0 0 / 0.40), 0 0 0 1px oklch(100% 0 0 / 0.03)',
   float: '0 12px 32px oklch(0% 0 0 / 0.55), 0 0 0 1px oklch(100% 0 0 / 0.05)',
-  glow:  '0 0 0 1px rgba(73,60,190,0.30)',
+  glow:  '0 0 0 1px rgba(115,73,254,0.30)',
   btn:   'none',
 } as const;
 

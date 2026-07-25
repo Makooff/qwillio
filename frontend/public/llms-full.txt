@@ -266,7 +266,7 @@ A: Yes. First month is completely free, no credit card required, full feature ac
 ## 12. Brand assets
 
 - Logo mark: two overlapping gradient circles (indigo + violet) with a white "QW" monogram centered
-- Primary colors: indigo `#6366F1`, violet `#A855F7`, deep-purple overlap `#3B1976`, near-black background `#0A0A0F`
+- Primary colors: indigo `#7A5FFF`, violet `#CD6AFB`, deep-purple overlap `#3B1976`, near-black background `#0A0A0F`
 - Typography: Inter / Inter Display (Black weight for the QW monogram, Regular / Medium for body)
 - Downloadable: https://qwillio.com/qwillio-logo-512.svg
 

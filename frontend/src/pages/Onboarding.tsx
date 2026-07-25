@@ -111,7 +111,7 @@ export default function OnboardingPage() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const colors = ['#6366f1', '#6366f1', '#a855f7', '#f59e0b', '#ec4899', '#22d3ee'];
+    const colors = ['#7a5fff', '#7a5fff', '#cd6afb', '#f59e0b', '#ec4899', '#22d3ee'];
     const particles: { x: number; y: number; vx: number; vy: number; w: number; h: number; color: string; rotation: number; rv: number }[] = [];
 
     for (let i = 0; i < 150; i++) {
@@ -173,7 +173,7 @@ export default function OnboardingPage() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <LangToggle className="fixed top-4 right-4 z-50" />
         <div className="text-center">
-          <Loader2 size={40} className="mx-auto text-[#6366f1] animate-spin mb-4" />
+          <Loader2 size={40} className="mx-auto text-[#7a5fff] animate-spin mb-4" />
           <p className="text-[#86868b]">{t('onboard.loading')}</p>
         </div>
       </div>
@@ -187,12 +187,12 @@ export default function OnboardingPage() {
         <LangToggle className="fixed top-4 right-4 z-50" />
         <canvas ref={confettiRef} className="fixed inset-0 pointer-events-none z-50" />
         <div className="text-center max-w-md">
-          <div className="w-20 h-20 rounded-full bg-[#6366f1]/10 flex items-center justify-center mx-auto mb-6">
-            <PartyPopper size={40} className="text-[#6366f1]" />
+          <div className="w-20 h-20 rounded-full bg-[#7a5fff]/10 flex items-center justify-center mx-auto mb-6">
+            <PartyPopper size={40} className="text-[#7a5fff]" />
           </div>
           <h2 className="text-3xl font-semibold tracking-tight text-[#1d1d1f] mb-3">{t('onboard.done.title')}</h2>
           <p className="text-[#86868b] leading-relaxed mb-6">{t('onboard.done.text')}</p>
-          <div className="inline-flex items-center gap-2 text-sm text-[#6366f1] font-medium">
+          <div className="inline-flex items-center gap-2 text-sm text-[#7a5fff] font-medium">
             <Sparkles size={16} />
             <span>{t('onboard.done.agent')}</span>
           </div>
@@ -222,7 +222,7 @@ export default function OnboardingPage() {
         {/* Progress bar */}
         <div className="h-1 bg-[#d2d2d7]/30">
           <div
-            className="h-full bg-[#6366f1] transition-colors duration-500 ease-out"
+            className="h-full bg-[#7a5fff] transition-colors duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -235,9 +235,9 @@ export default function OnboardingPage() {
             key={i}
             className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
               i < currentSection
-                ? 'bg-[#6366f1] text-white'
+                ? 'bg-[#7a5fff] text-white'
                 : i === currentSection
-                ? 'bg-[#6366f1]/10 text-[#6366f1] border-2 border-[#6366f1]'
+                ? 'bg-[#7a5fff]/10 text-[#7a5fff] border-2 border-[#7a5fff]'
                 : 'bg-[#f5f5f7] text-[#86868b]'
             }`}
           >
@@ -264,7 +264,7 @@ export default function OnboardingPage() {
 
                 {field.type === 'textarea' ? (
                   <textarea
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors resize-none"
                     placeholder={field.placeholder}
                     value={(formData[field.name] as string | undefined) || ''}
                     onChange={e => handleChange(field.name, e.target.value)}
@@ -272,7 +272,7 @@ export default function OnboardingPage() {
                   />
                 ) : field.type === 'select' ? (
                   <select
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
                     value={(formData[field.name] as string | undefined) || ''}
                     onChange={e => handleChange(field.name, e.target.value)}
                   >
@@ -291,8 +291,8 @@ export default function OnboardingPage() {
                           key={opt}
                           className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-colors ${
                             selected
-                              ? 'bg-[#6366f1] text-white'
-                              : 'bg-white border border-[#d2d2d7] text-[#1d1d1f] hover:border-[#6366f1]'
+                              ? 'bg-[#7a5fff] text-white'
+                              : 'bg-white border border-[#d2d2d7] text-[#1d1d1f] hover:border-[#7a5fff]'
                           }`}
                         >
                           <input
@@ -310,7 +310,7 @@ export default function OnboardingPage() {
                 ) : (
                   <input
                     type={field.type}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
                     placeholder={field.placeholder}
                     value={(formData[field.name] as string | undefined) || ''}
                     onChange={e => handleChange(field.name, e.target.value)}
@@ -333,7 +333,7 @@ export default function OnboardingPage() {
 
             {currentSection < sections.length - 1 ? (
               <button
-                className="inline-flex items-center gap-1.5 bg-[#6366f1] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#4f46e5] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 bg-[#7a5fff] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#7349fe] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 disabled={!canAdvance()}
                 onClick={() => setCurrentSection(prev => prev + 1)}
               >

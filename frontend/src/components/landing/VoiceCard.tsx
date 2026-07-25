@@ -54,7 +54,7 @@ export default function VoiceCard({ v, large = false }: { v: VoiceData; large?: 
     <figure
       className={`relative rounded-3xl border border-[#1d1d1f]/10 bg-white p-6 h-full ${
         large ? 'md:p-8' : ''
-      } hover:border-[#6366f1]/40 transition-colors duration-300 group`}
+      } hover:border-[#7a5fff]/40 transition-colors duration-300 group`}
     >
       <div className="flex items-start gap-4">
         <span
