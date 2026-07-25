@@ -222,10 +222,11 @@ export default function Login() {
               className="font-semibold tracking-[-0.035em] leading-[1.1]"
               style={{ fontSize: 'clamp(1.9rem, 2.6vw, 2.7rem)', color: 'rgba(255,255,255,0.72)' }}
             >
-              Vos prospects <span className="text-white">appelés</span>. Vos rendez-vous pris.
+              Vos prospects <span className="text-white">appelés</span>.
+              <span className="block">Vos <span className="font-bold text-white">rendez-vous</span> pris.</span>
             </h2>
             <p className="mt-4 text-[15px] leading-[1.65] max-w-[380px]" style={{ color: 'rgba(255,255,255,0.76)' }}>
-              L'IA vocale B2B qui prospecte et décroche pendant que votre équipe se concentre sur la fermeture.
+              Votre réceptionniste IA décroche en moins d'une seconde, qualifie chaque appel et remplit votre agenda, 24h/24.
             </p>
           </div>
         </div>
