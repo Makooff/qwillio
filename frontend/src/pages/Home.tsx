@@ -333,21 +333,25 @@ export default function Home() {
               {/* Inline credibility strip — not centered hero-metric template */}
               {/* One line at every width: no wrapping, sizes track the viewport
                   so the three figures stay side by side down to small phones. */}
-              <dl className="flex flex-nowrap items-baseline justify-between gap-x-2 sm:justify-start sm:gap-x-9 text-[#86868b] border-t border-[#1d1d1f]/10 pt-6 max-w-[520px]">
-                <div className="flex items-baseline gap-1 sm:gap-2 whitespace-nowrap">
+              {/* Type sizes are untouched (24px figure, 14px label). At those
+                  sizes the three full French labels measure 480px, so they are
+                  shortened rather than scaled — the row fits one line on a phone
+                  without the typography changing. */}
+              <dl className="flex flex-nowrap items-baseline justify-between gap-x-1 sm:justify-start sm:gap-x-9 text-sm text-[#86868b] border-t border-[#1d1d1f]/10 pt-6 max-w-[520px]">
+                <div className="flex items-baseline gap-1.5 sm:gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Taux de réponse' : 'Answer rate'}</dt>
-                  <dd className="text-[clamp(1rem,4.4vw,1.5rem)] font-semibold text-[#1d1d1f] tabular-nums">98%</dd>
-                  <span className="text-[clamp(10px,2.7vw,14px)]">{isFr ? 'décrochage' : 'pickup'}</span>
+                  <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">98%</dd>
+                  <span>{isFr ? 'décroché' : 'pickup'}</span>
                 </div>
-                <div className="flex items-baseline gap-1 sm:gap-2 whitespace-nowrap">
+                <div className="flex items-baseline gap-1.5 sm:gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Temps de réponse' : 'Response time'}</dt>
-                  <dd className="text-[clamp(1rem,4.4vw,1.5rem)] font-semibold text-[#1d1d1f] tabular-nums">&lt;1s</dd>
-                  <span className="text-[clamp(10px,2.7vw,14px)]">{isFr ? 'réponse' : 'response'}</span>
+                  <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">&lt;1s</dd>
+                  <span>{isFr ? 'réponse' : 'response'}</span>
                 </div>
-                <div className="flex items-baseline gap-1 sm:gap-2 whitespace-nowrap">
+                <div className="flex items-baseline gap-1.5 sm:gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Disponibilité' : 'Uptime'}</dt>
-                  <dd className="text-[clamp(1rem,4.4vw,1.5rem)] font-semibold text-[#1d1d1f] tabular-nums">24/7</dd>
-                  <span className="text-[clamp(10px,2.7vw,14px)]">{isFr ? 'non-stop' : 'always on'}</span>
+                  <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">24/7</dd>
+                  <span>{isFr ? 'non-stop' : 'always on'}</span>
                 </div>
               </dl>
             </div>
