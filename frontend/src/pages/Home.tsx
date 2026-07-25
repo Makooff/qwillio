@@ -330,22 +330,26 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* Inline credibility strip — not centered hero-metric template */}
-              <dl className="flex flex-wrap gap-x-9 gap-y-3 text-sm text-[#86868b] border-t border-[#1d1d1f]/10 pt-6 max-w-[520px]">
-                <div className="flex items-baseline gap-2">
+              {/* Inline credibility strip — not centered hero-metric template.
+                  Type is untouched (text-2xl figures, text-sm labels); the row
+                  is held on one line by closing the gaps on phones, and the
+                  French labels are the short forms because the full ones cannot
+                  share a line at this size. */}
+              <dl className="flex flex-nowrap items-baseline justify-between gap-x-1 sm:justify-start sm:gap-x-9 text-sm text-[#86868b] border-t border-[#1d1d1f]/10 pt-6 max-w-[520px]">
+                <div className="flex items-baseline gap-1 sm:gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Taux de réponse' : 'Answer rate'}</dt>
                   <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">98%</dd>
-                  <span>{isFr ? 'décrochage' : 'pickup'}</span>
+                  <span>{isFr ? 'décroché' : 'pickup'}</span>
                 </div>
-                <div className="flex items-baseline gap-2">
+                <div className="flex items-baseline gap-1 sm:gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Temps de réponse' : 'Response time'}</dt>
                   <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">&lt;1s</dd>
-                  <span>{isFr ? 'temps réponse' : 'response'}</span>
+                  <span>{isFr ? 'réponse' : 'response'}</span>
                 </div>
-                <div className="flex items-baseline gap-2">
+                <div className="flex items-baseline gap-1 sm:gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Disponibilité' : 'Uptime'}</dt>
                   <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">24/7</dd>
-                  <span>{isFr ? 'jamais fermé' : 'always on'}</span>
+                  <span className="hidden sm:inline">{isFr ? 'jamais fermé' : 'always on'}</span>
                 </div>
               </dl>
             </div>
