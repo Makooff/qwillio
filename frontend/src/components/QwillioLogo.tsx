@@ -22,18 +22,20 @@ export default function QwillioLogo({ size = 32, className = '' }: { size?: numb
     >
       <defs>
         <clipPath id="qwIntersect">
-          <circle cx="196" cy="256" r="176" />
+          <circle cx="167" cy="256" r="146" />
         </clipPath>
       </defs>
       {/* Flat overlapping bubbles: indigo left, violet right, deep indigo where
-          they cross. The Qw sits in near-white so it reads on all three. */}
-      <circle cx="316" cy="256" r="176" fill="#CD6AFB" />
-      <circle cx="196" cy="256" r="176" fill="#7A5FFF" />
-      <circle cx="316" cy="256" r="176" fill="#7349FE" clipPath="url(#qwIntersect)" />
-      <g transform="translate(196 256) scale(0.685)">
+          they cross. Centre spacing is 1.22r, which is what gives the mark its
+          wide stance and the narrow lens in the middle. Qw in near-white so it
+          reads on all three fills. */}
+      <circle cx="345" cy="256" r="146" fill="#CD6AFB" />
+      <circle cx="167" cy="256" r="146" fill="#7A5FFF" />
+      <circle cx="345" cy="256" r="146" fill="#7349FE" clipPath="url(#qwIntersect)" />
+      <g transform="translate(167 256) scale(0.80)">
         <path fill="#E8EDFB" d={Q_PATH} />
       </g>
-      <g transform="translate(316 256) scale(0.685)">
+      <g transform="translate(345 256) scale(0.80)">
         <path fill="#E8EDFB" d={W_PATH} />
       </g>
     </svg>

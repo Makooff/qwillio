@@ -49,7 +49,7 @@ export default function QwillioLoader({
             <stop offset="100%" stopColor="#CD6AFB" stopOpacity="0" />
           </radialGradient>
           <clipPath id="qwlClip">
-            <circle cx="196" cy="256" r="176" />
+            <circle cx="167" cy="256" r="146" />
           </clipPath>
           <filter id="qwlAuraBlur" x="-60%" y="-60%" width="220%" height="220%">
             <feGaussianBlur stdDeviation="22" />
@@ -59,34 +59,34 @@ export default function QwillioLoader({
         {/* ══════ RIGHT bubble (violet) — underneath ══════ */}
         <g className="qw-orb qw-orb--right">
           <g className="qw-orb__aura">
-            <circle cx="316" cy="256" r="176" fill="url(#qwlAuraB)" filter="url(#qwlAuraBlur)" />
+            <circle cx="345" cy="256" r="146" fill="url(#qwlAuraB)" filter="url(#qwlAuraBlur)" />
           </g>
           <g className="qw-orb__body">
-            <circle cx="316" cy="256" r="176" fill="#CD6AFB" />
+            <circle cx="345" cy="256" r="146" fill="#CD6AFB" />
           </g>
         </g>
 
         {/* ══════ LEFT bubble (indigo) — on top of violet ══════ */}
         <g className="qw-orb qw-orb--left">
           <g className="qw-orb__aura">
-            <circle cx="196" cy="256" r="176" fill="url(#qwlAuraA)" filter="url(#qwlAuraBlur)" />
+            <circle cx="167" cy="256" r="146" fill="url(#qwlAuraA)" filter="url(#qwlAuraBlur)" />
           </g>
           <g className="qw-orb__body">
-            <circle cx="196" cy="256" r="176" fill="#7A5FFF" />
+            <circle cx="167" cy="256" r="146" fill="#7A5FFF" />
           </g>
         </g>
 
         {/* Overlap deepening — fades in once the bubbles have settled */}
         <g className="qw-loader__overlap">
-          <circle cx="316" cy="256" r="176" fill="#7349FE" clipPath="url(#qwlClip)" />
+          <circle cx="345" cy="256" r="146" fill="#7349FE" clipPath="url(#qwlClip)" />
         </g>
 
         {/* Letters — pure fade-in after the logo has formed */}
         <g className="qw-loader__letters">
-          <g transform="translate(196 256) scale(0.685)">
+          <g transform="translate(167 256) scale(0.80)">
             <path fill="#E8EDFB" d={Q_PATH} />
           </g>
-          <g transform="translate(316 256) scale(0.685)">
+          <g transform="translate(345 256) scale(0.80)">
             <path fill="#E8EDFB" d={W_PATH} />
           </g>
         </g>
