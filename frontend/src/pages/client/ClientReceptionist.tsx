@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Bot, Phone, PhoneForwarded, Pause, Play, Check, AlertCircle,
+  Bot, Phone, PhoneForwarded, Check, AlertCircle,
   Activity, Power, Globe, User, Clock, Shield, Calendar,
   Volume2, Languages, Building2, MapPin, Settings,
   ChevronDown, ChevronRight, Copy, CheckCircle2, XCircle,
@@ -93,7 +93,6 @@ export default function ClientReceptionist() {
   const [loading, setLoading] = useState(true);
   const hydrated = useRef(false);
   const skipAutosave = useRef(false);
-  const [toggling, setToggling] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -252,22 +251,6 @@ export default function ClientReceptionist() {
     return () => clearTimeout(t);
   }, [autoSave]);
 
-  const handleToggle = async () => {
-    const status = overview?.client?.subscriptionStatus;
-    if (!status) return;
-    setToggling(true);
-    try {
-      if (status === 'paused') {
-        await api.post('/my-dashboard/resume');
-        setOverview((p: any) => ({ ...p, client: { ...p.client, subscriptionStatus: p.client.isTrial ? 'trialing' : 'active' } }));
-      } else {
-        await api.post('/my-dashboard/pause');
-        setOverview((p: any) => ({ ...p, client: { ...p.client, subscriptionStatus: 'paused' } }));
-      }
-    } catch { /* silent */ }
-    finally { setToggling(false); }
-  };
-
   const copyPhone = () => {
     const phone = overview?.client?.vapiPhoneNumber || settings?.vapiPhoneNumber;
     if (phone) { navigator.clipboard.writeText(phone); setCopied(true); setTimeout(() => setCopied(false), 2000); }
@@ -307,30 +290,20 @@ export default function ClientReceptionist() {
           agent's live state were two stacked sections saying the same thing. */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                 style={{ background: 'rgba(255,255,255,0.05)' }}>
-              <Bot size={18} className="text-[#E5E5EA]" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-[17px] font-semibold text-[#F2F2F2] tracking-tight truncate">Réceptionniste IA</h1>
-              <p className="flex items-center gap-1.5 text-[11.5px] text-[#9A9AA5] truncate">
-                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isActive ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                {isActive ? 'IA active' : 'IA en pause'}
-                <span className="text-[#6b6b76]">·</span>
-                {client.businessName || businessName || 'Votre entreprise'}
-                <span className="text-[#6b6b76]">·</span>
-                Plan {client.planType || 'starter'}
-                {client.isTrial && <span className="text-amber-400">(essai)</span>}
-              </p>
-            </div>
+        {/* State and the pause control live in the top bar (AiStatusPill), so
+            they are deliberately not repeated here. */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+               style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <Bot size={18} className="text-[#E5E5EA]" />
           </div>
-          <button onClick={handleToggle} disabled={toggling || status === 'cancelled'}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-full border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-[#E5E5EA] transition-colors disabled:opacity-40 flex-shrink-0">
-            {toggling ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              : isPaused ? <><Play size={12} /> Activer</> : <><Pause size={12} /> Mettre en pause</>}
-          </button>
+          <div className="min-w-0">
+            <h1 className="text-[17px] font-semibold text-[#F2F2F2] tracking-tight truncate">Réceptionniste IA</h1>
+            <p className="text-[11.5px] text-[#9A9AA5] truncate">
+              {client.businessName || businessName || 'Votre entreprise'} · Plan {client.planType || 'starter'}
+              {client.isTrial && <span className="ml-1 text-amber-400">(essai)</span>}
+            </p>
+          </div>
         </div>
       </motion.div>
 

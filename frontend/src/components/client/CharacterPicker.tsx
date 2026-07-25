@@ -83,15 +83,21 @@ export default function CharacterPicker({
         await audio.play();
       } catch (err) {
         if (audioRef.current !== audio) return;
-        const status = (err as { response?: { status?: number } }).response?.status;
+        const res = (err as { response?: { status?: number; data?: unknown } }).response;
+        // The request asks for a Blob, so an error body arrives as one too and
+        // has to be decoded before the upstream status is readable.
+        let upstream: number | undefined;
+        if (res?.data instanceof Blob) {
+          try { upstream = JSON.parse(await res.data.text())?.status; } catch { /* not JSON */ }
+        }
         setNotice(
-          status === 503
+          res?.status === 503
             ? (isFr
               ? 'Voix réelles indisponibles : la clé ElevenLabs n\'est pas configurée sur le serveur. Aperçu joué avec la voix du navigateur.'
               : 'Real voices unavailable: the ElevenLabs key is not configured on the server. Playing the browser voice instead.')
             : (isFr
-              ? 'Aperçu ElevenLabs indisponible pour le moment. Aperçu joué avec la voix du navigateur.'
-              : 'ElevenLabs preview unavailable right now. Playing the browser voice instead.'),
+              ? `Aperçu ElevenLabs indisponible (ElevenLabs a répondu ${upstream ?? '?'}). Aperçu joué avec la voix du navigateur.`
+              : `ElevenLabs preview unavailable (ElevenLabs replied ${upstream ?? '?'}). Playing the browser voice instead.`),
         );
         speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
       }
