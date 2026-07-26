@@ -121,7 +121,7 @@ export default function About() {
               )}
             </h1>
             </div>
-            <p className="text-[#525257] text-base md:text-lg leading-[1.65] max-w-[420px] lg:pb-3">
+            <p className="text-lg md:text-xl text-[#424245] max-w-[460px] leading-[1.55] lg:pb-3">
               {isFr
                 ? "Construit et opéré depuis Bruxelles. Un outil qui répond vraiment au téléphone, pas une démo."
                 : 'Built and run from Brussels. A tool that actually answers the phone, not a demo.'}

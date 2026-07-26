@@ -101,22 +101,22 @@ export default function Affiliate() {
               </span>
               <h1
                 id="aff-heading"
-                className="text-[clamp(2.6rem,6vw,5rem)] font-semibold tracking-[-0.04em] leading-[0.98]"
+                className="text-[clamp(2.6rem,6.5vw,5.6rem)] font-semibold tracking-[-0.04em] leading-[0.95]"
               >
                 {isFr ? (
                   <>
-                    <span className="font-serif italic" style={{ color: '#7a5fff' }}>30% de commission.</span><br />
+                    30 % de commission.<br />
                     <span className="font-serif italic" style={{ color: '#cd6afb' }}>À vie.</span>
                   </>
                 ) : (
                   <>
-                    <span className="font-serif italic" style={{ color: '#7a5fff' }}>30% commission.</span><br />
+                    30% commission.<br />
                     <span className="font-serif italic" style={{ color: '#cd6afb' }}>For life.</span>
                   </>
                 )}
               </h1>
             </div>
-            <p className="text-[#525257] text-[15px] leading-relaxed max-w-[400px] pb-3">
+            <p className="text-lg md:text-xl text-[#424245] max-w-[460px] leading-[1.55] pb-3">
               {isFr
                 ? 'Pas de plafond. Pas de dégressivité. Pas de minimum mensuel. Recommandez Qwillio, encaissez chaque mois.'
                 : 'No cap. No decay. No monthly minimum. Recommend Qwillio, get paid every month.'}
