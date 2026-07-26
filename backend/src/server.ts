@@ -4,6 +4,8 @@ import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import rateLimit from 'express-rate-limit';
 import { env } from './config/env';
 import { getPlan } from './config/plans';
@@ -234,6 +236,39 @@ if (env.SENTRY_DSN) {
 app.use(errorMiddleware);
 
 // ─── Start Server ────────────────────────────────────────
+
+/**
+ * Applies any migration the database has not seen yet.
+ *
+ * `render.yaml` declares this as a preDeployCommand, but pre-deploy commands
+ * only run on paid instance types — on the free plan a deploy can ship code
+ * that expects tables the database does not have. Doing it here means a deploy
+ * is enough on its own, with no manual step.
+ *
+ * `migrate deploy` never generates or resets anything: it replays the
+ * committed migration files that are missing, and takes a Postgres advisory
+ * lock, so repeated boots and parallel instances are both safe. A failure is
+ * logged and swallowed — the previous schema is still serving traffic and
+ * taking the API down would not fix the schema.
+ */
+async function applyPendingMigrations() {
+  if (env.NODE_ENV !== 'production' || process.env.AUTO_MIGRATE === 'false') return;
+
+  const execFileAsync = promisify(execFile);
+  // `prisma` is a runtime dependency, so its bin is present in the deployed
+  // node_modules — no npx, no network fetch.
+  const prismaBin = path.join(process.cwd(), 'node_modules', '.bin', 'prisma');
+  try {
+    const { stdout } = await execFileAsync(prismaBin, ['migrate', 'deploy'], { timeout: 120_000 });
+    logger.info(`[bootstrap] Migrations up to date\n${stdout.trim()}`);
+  } catch (err: any) {
+    logger.error(
+      '[bootstrap] prisma migrate deploy failed (non-fatal):',
+      (err?.stdout || err?.stderr || err?.message || '').toString().trim(),
+    );
+  }
+}
+
 async function runBootstrap() {
   // Wait for Neon to wake — probes every 5s, max 3 min.
   // Uses basePrisma (no retry middleware) so each probe fails fast.
@@ -258,6 +293,9 @@ async function runBootstrap() {
     logger.warn('[bootstrap] DB still unreachable after 3 min — skipping all bootstrap tasks');
     return;
   }
+
+  // Bring the schema up to date before anything reads or writes through it.
+  await applyPendingMigrations();
 
   // DB log persistence is currently disabled (see logger.ts comment).
   // The in-memory 500-entry ring buffer is what /admin/logs reads.
