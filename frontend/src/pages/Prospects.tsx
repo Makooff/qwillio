@@ -186,7 +186,7 @@ export default function Prospects() {
               onChange={e => setQ(e.target.value)}
               placeholder="Rechercher…"
               className="pl-8 pr-3 h-8 rounded-lg bg-white/[0.05] border border-white/[0.08] text-[12.5px] text-white
-                         placeholder-white/25 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 w-44"
+                         placeholder-white/25 outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 w-44"
             />
           </div>
           <button
@@ -194,7 +194,7 @@ export default function Prospects() {
             aria-label="Rafraîchir les prospects"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04]
                        text-[12px] text-white/60 hover:text-white hover:bg-white/[0.07] transition-colors
-                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             Actualiser
@@ -216,14 +216,14 @@ export default function Prospects() {
                   onClick={() => setActiveTab(tab)}
                   className={[
                     'px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50',
                     active
-                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                      ? 'bg-primary-500/20 text-primary-300 border border-primary-500/30'
                       : 'border border-transparent text-white/40 hover:text-white/70',
                   ].join(' ')}
                 >
                   {tab}
-                  <span className={`ml-1.5 text-[10px] ${active ? 'text-indigo-400' : 'text-white/25'}`}>
+                  <span className={`ml-1.5 text-[10px] ${active ? 'text-primary-400' : 'text-white/25'}`}>
                     {cnt}
                   </span>
                 </button>

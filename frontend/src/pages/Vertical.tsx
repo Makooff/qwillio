@@ -390,7 +390,7 @@ export default function Vertical({ secteur: secteurProp }: { secteur?: string } 
 
       <section className="mx-auto max-w-5xl px-6 pb-16 pt-24 sm:pt-32">
         <Reveal>
-          <span className="inline-block rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium tracking-wide text-indigo-700">
+          <span className="inline-block rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-medium tracking-wide text-primary-700">
             {isFr ? `Pour les ${sector.metierFr}s` : `For ${sector.metierEn}s`}
           </span>
         </Reveal>
@@ -448,7 +448,7 @@ export default function Vertical({ secteur: secteurProp }: { secteur?: string } 
             <Reveal key={w.titleFr} delay={0.05 + i * 0.05}>
               <Card3D>
                 <div className="h-full rounded-2xl border border-neutral-200 bg-white p-6">
-                  <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                  <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
                     {i === 0 ? <Phone className="h-4 w-4" /> : i === 1 ? <MessageSquare className="h-4 w-4" /> : <CalendarDays className="h-4 w-4" />}
                   </div>
                   <h3 className="font-outfit text-lg font-semibold">
@@ -494,7 +494,7 @@ export default function Vertical({ secteur: secteurProp }: { secteur?: string } 
               ]
           ).map((line) => (
             <li key={line} className="flex items-start gap-2 text-sm text-neutral-700">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" />
               <span>{line}</span>
             </li>
           ))}
@@ -504,7 +504,7 @@ export default function Vertical({ secteur: secteurProp }: { secteur?: string } 
       <section className="mx-auto max-w-5xl px-6 pb-24 pt-16">
         <Reveal>
           <div className="rounded-3xl border border-neutral-200 bg-neutral-50 p-8 sm:p-12">
-            <div className="flex items-center gap-2 text-sm font-medium text-indigo-700">
+            <div className="flex items-center gap-2 text-sm font-medium text-primary-700">
               <Sparkles className="h-4 w-4" />
               {isFr ? 'Premier mois offert, sans carte' : 'First month free, no card required'}
             </div>

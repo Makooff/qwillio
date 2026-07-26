@@ -9,7 +9,7 @@ import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
 import Reveal from '../components/ui/Reveal';
 import Card3D from '../components/ui/Card3D';
-import PhoneCallVisual from '../components/landing/PhoneCallVisual';
+import HeroPhone3D from '../components/ui/HeroPhone3D';
 import VoiceCard, { type VoiceData } from '../components/landing/VoiceCard';
 
 /* ── Page ─────────────────────────────────────────────────────────────────── */
@@ -139,13 +139,6 @@ export default function Landing() {
         >
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-20 items-center">
             <div>
-              <Reveal>
-                <span className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.18em] uppercase text-[#7a5fff] mb-6">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#7a5fff] animate-pulse" />
-                  {isFr ? 'Réceptionniste IA · Live 24/7' : 'AI Receptionist · Live 24/7'}
-                </span>
-              </Reveal>
-
               <Reveal delay={0.08}>
                 <h1
                   id="hero-heading"
@@ -223,7 +216,7 @@ export default function Landing() {
             </div>
 
             <Reveal delay={0.12}>
-              <PhoneCallVisual isFr={isFr} />
+              <HeroPhone3D isFr={isFr} />
             </Reveal>
           </div>
         </section>

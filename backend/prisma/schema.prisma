@@ -33,6 +33,7 @@ model User {
   trialFingerprints   TrialFingerprint[]
   agency              Agency?
   apiKeys             ApiKey[]
+  affiliate           Affiliate?
 
   @@map("users")
 }
@@ -339,7 +340,9 @@ model Client {
   syncConflicts              SyncConflict[]
   syncLogs                   SyncLog[]
 
-  agencyClients AgencyClient[]
+  agencyClients        AgencyClient[]
+  referral             Referral?
+  affiliateCommissions AffiliateCommission[]
 
   @@index([subscriptionStatus])
   @@index([planType])
@@ -1755,4 +1758,57 @@ model ApiKey {
   createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("api_keys")
+}
+
+/// Referral programme. An affiliate is a User with role "affiliate"; the whole
+/// auth stack is reused rather than duplicated. Commissions are only ever
+/// RECORDED here — no payout is automated.
+model Affiliate {
+  id            String   @id @default(cuid())
+  userId        String   @unique @map("user_id") @db.Uuid
+  user          User     @relation(fields: [userId], references: [id])
+  code          String   @unique @db.VarChar(32)
+  commissionPct Float    @default(0.30) @map("commission_pct")
+  status        String   @default("active") @db.VarChar(20)
+  payoutEmail   String?  @map("payout_email") @db.VarChar(255)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  referrals   Referral[]
+  commissions AffiliateCommission[]
+
+  @@map("affiliates")
+}
+
+/// Attribution. clientId is unique: a customer belongs to at most one affiliate,
+/// decided at sign-up, so a later link can never steal an existing customer.
+model Referral {
+  id          String    @id @default(cuid())
+  affiliateId String    @map("affiliate_id")
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id])
+  clientId    String    @unique @map("client_id") @db.Uuid
+  client      Client    @relation(fields: [clientId], references: [id])
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([affiliateId])
+  @@map("referrals")
+}
+
+/// One row per paid invoice of a referred customer. stripeInvoiceId is unique so
+/// a retried webhook can never credit the same invoice twice.
+model AffiliateCommission {
+  id               String    @id @default(cuid())
+  affiliateId      String    @map("affiliate_id")
+  affiliate        Affiliate @relation(fields: [affiliateId], references: [id])
+  clientId         String    @map("client_id") @db.Uuid
+  client           Client    @relation(fields: [clientId], references: [id])
+  stripeInvoiceId  String    @unique @map("stripe_invoice_id") @db.VarChar(255)
+  invoiceAmountEur Decimal   @map("invoice_amount_eur") @db.Decimal(10, 2)
+  amountEur        Decimal   @map("amount_eur") @db.Decimal(10, 2)
+  status           String    @default("pending") @db.VarChar(20)
+  paidAt           DateTime? @map("paid_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([affiliateId, status])
+  @@map("affiliate_commissions")
 }

@@ -194,21 +194,43 @@ export default function AssistantChat({
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {messages.map((m, i) => (
-          <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-            <div
-              className="max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap"
-              style={m.role === 'user'
-                ? { background: activeColor, color: '#fff', borderBottomRightRadius: 6 }
-                : { background: 'rgba(255,255,255,0.05)', color: '#E5E5EA', borderBottomLeftRadius: 6 }}
-            >
-              {m.content}
+        {/* iMessage bubbles: full 18px radius with a tail on the last of a run,
+            no timestamps and no sender labels — exactly the iOS treatment. */}
+        {messages.map((m, i) => {
+          const mine = m.role === 'user';
+          const endsRun = messages[i + 1]?.role !== m.role;
+          return (
+            <div key={i} className={cn('flex', mine ? 'justify-end' : 'justify-start', !endsRun && '-mb-1.5')}>
+              <div
+                className="relative max-w-[78%] px-3.5 py-2 text-[15px] leading-[1.32] whitespace-pre-wrap"
+                style={{
+                  borderRadius: 18,
+                  background: mine ? activeColor : '#26262A',
+                  color: mine ? '#fff' : '#F2F2F2',
+                }}
+              >
+                {m.content}
+                {endsRun && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute bottom-0 h-[15px] w-[18px]"
+                    style={{
+                      [mine ? 'right' : 'left']: -6,
+                      background: mine ? activeColor : '#26262A',
+                      WebkitMaskImage: `radial-gradient(circle at ${mine ? '100%' : '0%'} 0, transparent 15px, black 15.5px)`,
+                      maskImage: `radial-gradient(circle at ${mine ? '100%' : '0%'} 0, transparent 15px, black 15.5px)`,
+                      borderBottomLeftRadius: mine ? 0 : 4,
+                      borderBottomRightRadius: mine ? 4 : 0,
+                    }}
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {sending && (
           <div className="flex justify-start">
-            <div className="px-3.5 py-2.5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <div className="px-3.5 py-2.5" style={{ background: '#26262A', borderRadius: 18 }}>
               <Loader2 size={14} className="animate-spin" style={{ color: '#8B8BA7' }} />
             </div>
           </div>

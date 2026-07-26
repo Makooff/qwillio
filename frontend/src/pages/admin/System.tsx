@@ -479,14 +479,14 @@ function TestSmsCard() {
               onChange={e => setTo(e.target.value)}
               placeholder="+14155552671"
               aria-label="Numéro de téléphone destinataire (format E.164)"
-              className="h-10 px-3 text-[13px] rounded-lg outline-none tabular-nums focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+              className="h-10 px-3 text-[13px] rounded-lg outline-none tabular-nums focus-visible:ring-2 focus-visible:ring-primary-500/40"
               style={inputStyle}
             />
             <select
               value={type}
               onChange={e => setType(e.target.value)}
               aria-label="Modèle de SMS à tester"
-              className="md:col-span-2 h-10 px-3 text-[13px] rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+              className="md:col-span-2 h-10 px-3 text-[13px] rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
               style={inputStyle}
             >
               {SMS_TEMPLATES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
@@ -501,7 +501,7 @@ function TestSmsCard() {
               maxLength={1600}
               placeholder="Tapez votre message SMS…"
               aria-label="Corps du SMS personnalisé"
-              className="w-full px-3 py-2 text-[13px] rounded-lg outline-none resize-y focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+              className="w-full px-3 py-2 text-[13px] rounded-lg outline-none resize-y focus-visible:ring-2 focus-visible:ring-primary-500/40"
               style={{ ...inputStyle, minHeight: 70 }}
             />
           )}
@@ -659,14 +659,14 @@ function TestEmailCard() {
               onChange={e => setTo(e.target.value)}
               placeholder="destinataire@email.com"
               aria-label="Adresse email destinataire"
-              className="md:col-span-2 h-10 px-3 text-[13px] rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+              className="md:col-span-2 h-10 px-3 text-[13px] rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
               style={inputStyle}
             />
             <select
               value={type}
               onChange={e => setType(e.target.value)}
               aria-label="Modèle d'email à tester"
-              className="h-10 px-3 text-[13px] rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+              className="h-10 px-3 text-[13px] rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
               style={inputStyle}
             >
               {EMAIL_TEMPLATES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}

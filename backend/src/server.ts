@@ -51,6 +51,7 @@ import autofixRoutes from './routes/autofix.routes';
 import closerRoutes from './routes/closer.routes';
 import aiAgentsRoutes from './routes/ai-agents.routes';
 import agencyRoutes from './routes/agency.routes';
+import affiliateRoutes from './routes/affiliate.routes';
 
 const app = express();
 
@@ -150,6 +151,7 @@ app.use('/api/autofix', autofixRoutes);
 app.use('/api/closer', closerRoutes);
 app.use('/api/ai-agents', aiAgentsRoutes);
 app.use('/api/agency', agencyRoutes);
+app.use('/api/affiliate', affiliateRoutes);
 
 // ─── Contact Form ─────────────────────────────────────
 app.post('/api/contact', contactLimiter, async (req, res) => {

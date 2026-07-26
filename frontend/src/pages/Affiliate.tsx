@@ -44,7 +44,7 @@ export default function Affiliate() {
       icon: Wallet,
       title: isFr ? 'Encaissez' : 'Cash in',
       desc: isFr
-        ? 'Virement mensuel. 30% du MRR de chaque client recommandé, à vie.'
+        ? '30 % de chaque facture payée par vos filleuls, à vie, comptabilisé automatiquement.'
         : 'Monthly payout. 30% of recurring revenue from every referred customer, for life.',
     },
   ];
@@ -52,13 +52,13 @@ export default function Affiliate() {
   const faqs = isFr
     ? [
         { q: 'Quel est le taux de commission ?', a: '30% du MRR de chaque client recommandé, versé chaque mois tant que le client reste actif. Pas de plafond, pas de dégressivité.' },
-        { q: 'Comment suis-je payé ?', a: 'Virement bancaire automatique le 5 de chaque mois. Seuil minimum de $50. Reporting transparent dans votre dashboard affilié.' },
+        { q: 'Comment suis-je payé ?', a: 'Vos commissions s\'accumulent automatiquement dès qu\'un filleul paie une facture, et sont visibles en temps réel dans votre espace affilié. Le versement se fait par virement, sur demande.' },
         { q: 'Y a-t-il un cookie de tracking ?', a: 'Oui, 90 jours. Si un prospect clique sur votre lien puis souscrit dans les 90 jours, la commission vous revient.' },
         { q: 'Puis-je faire de l\'affiliation et être client ?', a: 'Bien sûr. Beaucoup de nos meilleurs affiliés sont des clients qui recommandent l\'outil qu\'ils utilisent eux-mêmes.' },
       ]
     : [
         { q: 'What is the commission rate?', a: '30% of recurring revenue from each referred customer, paid monthly for as long as they stay active. No cap, no decay.' },
-        { q: 'How am I paid?', a: 'Automatic bank transfer on the 5th of each month. Minimum threshold $50. Transparent reporting in your affiliate dashboard.' },
+        { q: 'How am I paid?', a: 'Commissions accrue automatically as soon as a referral pays an invoice, and show live in your affiliate dashboard. Payout is by bank transfer, on request.' },
         { q: 'Is there a tracking cookie?', a: 'Yes, 90 days. If a prospect clicks your link and subscribes within 90 days, the commission goes to you.' },
         { q: 'Can I be both an affiliate and a customer?', a: 'Of course. Many of our best affiliates are customers who recommend the tool they use themselves.' },
       ];
@@ -92,7 +92,7 @@ export default function Affiliate() {
         {/* ── HERO ──────────────────────────────────────────── */}
         <section
           aria-labelledby="aff-heading"
-          className="pt-24 sm:pt-28 md:pt-36 pb-12 md:pb-20 px-5 sm:px-6"
+          className="pt-24 sm:pt-28 md:pt-36 pb-10 md:pb-14 px-5 sm:px-6"
         >
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.4fr_1fr] gap-12 items-end">
             <div>
@@ -101,22 +101,22 @@ export default function Affiliate() {
               </span>
               <h1
                 id="aff-heading"
-                className="text-[clamp(2.6rem,6vw,5rem)] font-semibold tracking-[-0.04em] leading-[0.98]"
+                className="text-[clamp(2.6rem,6.5vw,5.6rem)] font-semibold tracking-[-0.04em] leading-[0.95]"
               >
                 {isFr ? (
                   <>
-                    <span className="font-serif italic" style={{ color: '#7a5fff' }}>30% de commission.</span><br />
+                    30 % de commission.<br />
                     <span className="font-serif italic" style={{ color: '#cd6afb' }}>À vie.</span>
                   </>
                 ) : (
                   <>
-                    <span className="font-serif italic" style={{ color: '#7a5fff' }}>30% commission.</span><br />
+                    30% commission.<br />
                     <span className="font-serif italic" style={{ color: '#cd6afb' }}>For life.</span>
                   </>
                 )}
               </h1>
             </div>
-            <p className="text-[#525257] text-[15px] leading-relaxed max-w-[400px] pb-3">
+            <p className="text-lg md:text-xl text-[#424245] max-w-[460px] leading-[1.55] pb-3">
               {isFr
                 ? 'Pas de plafond. Pas de dégressivité. Pas de minimum mensuel. Recommandez Qwillio, encaissez chaque mois.'
                 : 'No cap. No decay. No monthly minimum. Recommend Qwillio, get paid every month.'}
@@ -134,8 +134,8 @@ export default function Affiliate() {
               id="how-heading"
               className="text-[clamp(1.6rem,3vw,2.4rem)] font-semibold tracking-[-0.025em] mb-12 max-w-[640px]"
             >
-              {isFr ? <>Trois étapes. <span className="text-[#86868b] font-normal">Premier virement sous 30 jours.</span></>
-                : <>Three steps. <span className="text-[#86868b] font-normal">First payout within 30 days.</span></>}
+              {isFr ? <>Trois étapes. <span className="text-[#86868b] font-normal">Vos gains comptabilisés en direct.</span></>
+                : <>Three steps. <span className="text-[#86868b] font-normal">Your earnings tallied live.</span></>}
             </h2>
 
             <ol className="grid md:grid-cols-3 gap-8 md:gap-12" role="list">
@@ -196,27 +196,6 @@ export default function Affiliate() {
                 );
               })}
             </div>
-          </div>
-        </section>
-
-        {/* ── TESTIMONIAL ─────────────────────────────────── */}
-        <section className="py-12 sm:py-16 md:py-24 px-6">
-          <div className="max-w-[1240px] mx-auto">
-            <figure
-              className="rounded-[2rem] px-8 md:px-16 py-14 md:py-20"
-              style={{ background: '#cd6afb' }}
-            >
-              <blockquote className="text-white text-[clamp(1.4rem,3vw,2.2rem)] font-semibold tracking-[-0.025em] leading-[1.25] max-w-[820px]">
-                <span className="font-serif italic text-white/40 text-[1.8em] leading-none mr-2 align-[-0.18em]" aria-hidden="true">"</span>
-                {isFr
-                  ? 'Je touche $4 800 par mois sans rien faire. Trois clients recommandés il y a 18 mois, toujours actifs aujourd\'hui.'
-                  : 'I make $4,800 a month doing nothing. Three customers I referred 18 months ago, still active today.'}
-              </blockquote>
-              <figcaption className="mt-6 text-white/80 text-sm">
-                <span className="font-semibold text-white">Thomas K.</span>
-                <span className="text-white/60"> — {isFr ? 'Consultant indépendant' : 'Independent consultant'}</span>
-              </figcaption>
-            </figure>
           </div>
         </section>
 
@@ -283,7 +262,7 @@ export default function Affiliate() {
                 {isFr ? 'Compte créé en 30 secondes. Lien unique immédiat.' : 'Account in 30 seconds. Unique link instantly.'}
               </p>
               <Link
-                to="/register?role=affiliate"
+                to="/affiliate/dashboard"
                 className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#cd6afb] transition-colors"
               >
                 {isFr ? 'Devenir affilié' : 'Become an affiliate'}

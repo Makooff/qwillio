@@ -1,8 +1,8 @@
 ﻿import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Bot, Phone, PhoneForwarded, Pause, Play, Check, AlertCircle,
-  Activity, Save, Power, Globe, User, Clock, Shield, Calendar,
+  Bot, Phone, PhoneForwarded, Check, AlertCircle,
+  Activity, Power, Globe, User, Clock, Shield, Calendar,
   Volume2, Languages, Building2, MapPin, Settings,
   ChevronDown, ChevronRight, Copy, CheckCircle2, XCircle,
   BookOpen, Tag, HelpCircle, Clock3, Plus, X,
@@ -91,11 +91,8 @@ export default function ClientReceptionist() {
   const [overview, setOverview] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const hydrated = useRef(false);
   const skipAutosave = useRef(false);
-  const [toggling, setToggling] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -228,7 +225,6 @@ export default function ClientReceptionist() {
   }, [loading]);
 
   const autoSave = useCallback(async () => {
-    setSaving(true);
     try {
       await api.put('/my-dashboard/settings', {
         businessName, businessType, transferNumber, agentName,
@@ -241,10 +237,7 @@ export default function ClientReceptionist() {
         personalityNotes,
         characterId,
       });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch { /* silent */ }
-    finally { setSaving(false); }
+    } catch { /* silent — the next edit retries */ }
   }, [businessName, businessType, transferNumber, agentName, agentLanguage,
       contactPhone, address, city, postalCode, forwardingType, googleCalendarId,
       items, weekHours, faq, personalityPreset, personalityNotes, characterId]);
@@ -257,22 +250,6 @@ export default function ClientReceptionist() {
     const t = setTimeout(() => { void autoSave(); }, 900);
     return () => clearTimeout(t);
   }, [autoSave]);
-
-  const handleToggle = async () => {
-    const status = overview?.client?.subscriptionStatus;
-    if (!status) return;
-    setToggling(true);
-    try {
-      if (status === 'paused') {
-        await api.post('/my-dashboard/resume');
-        setOverview((p: any) => ({ ...p, client: { ...p.client, subscriptionStatus: p.client.isTrial ? 'trialing' : 'active' } }));
-      } else {
-        await api.post('/my-dashboard/pause');
-        setOverview((p: any) => ({ ...p, client: { ...p.client, subscriptionStatus: 'paused' } }));
-      }
-    } catch { /* silent */ }
-    finally { setToggling(false); }
-  };
 
   const copyPhone = () => {
     const phone = overview?.client?.vapiPhoneNumber || settings?.vapiPhoneNumber;
@@ -309,54 +286,29 @@ export default function ClientReceptionist() {
 
   return (
     <div className="max-w-3xl space-y-4">
-      {/* Header — neutral, less ornamentation */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[20px] font-semibold text-[#F2F2F2] tracking-tight">Réceptionniste IA</h1>
-          <p className="text-[12.5px] text-[#9A9AA5]">Gérez votre agent IA et tous ses paramètres</p>
+      {/* —— Header + status, merged into one block —— the page title and the
+          agent's live state were two stacked sections saying the same thing. */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+        {/* State and the pause control live in the top bar (AiStatusPill), so
+            they are deliberately not repeated here. */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+               style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <Bot size={18} className="text-[#E5E5EA]" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-[17px] font-semibold text-[#F2F2F2] tracking-tight truncate">Réceptionniste IA</h1>
+            <p className="text-[11.5px] text-[#9A9AA5] truncate">
+              {client.businessName || businessName || 'Votre entreprise'} · Plan {client.planType || 'starter'}
+              {client.isTrial && <span className="ml-1 text-amber-400">(essai)</span>}
+            </p>
+          </div>
         </div>
-        {/* Auto-save status — no manual save button; changes persist on their own */}
-        <span className="flex items-center gap-2 text-[12.5px]" style={{ color: saving ? '#9A9AA5' : saved ? '#22c55e' : '#6b6b76' }}>
-          {saving
-            ? (<><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> Enregistrement…</>)
-            : saved
-              ? (<><Check size={13} /> Enregistré</>)
-              : (<><Save size={13} /> Enregistrement auto</>)}
-        </span>
-      </div>
+      </motion.div>
 
       {/* —— Assistant conversationnel : parler pour configurer/onboarder —— */}
       <AssistantChat isFr={agentLanguage !== 'en'} onConfigChanged={load} />
-
-      {/* —— Status card —— neutral surface, single colour dot only */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                 style={{ background: 'rgba(255,255,255,0.05)' }}>
-              <Bot size={18} className="text-[#E5E5EA]" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                <span className="text-[13px] font-semibold text-[#F2F2F2] truncate">
-                  {isActive ? 'IA active' : 'IA en pause'}
-                </span>
-              </div>
-              <p className="text-[11.5px] text-[#9A9AA5] truncate">
-                {client.businessName || businessName || 'Votre entreprise'} · Plan {client.planType || 'starter'}
-                {client.isTrial && <span className="ml-1 text-amber-400">(essai)</span>}
-              </p>
-            </div>
-          </div>
-          <button onClick={handleToggle} disabled={toggling || status === 'cancelled'}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-full border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-[#E5E5EA] transition-colors disabled:opacity-40 flex-shrink-0">
-            {toggling ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              : isPaused ? <><Play size={12} /> Activer</> : <><Pause size={12} /> Mettre en pause</>}
-          </button>
-        </div>
-      </motion.div>
 
       {/* —— Phone + Stats row — flat neutral surfaces —— */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

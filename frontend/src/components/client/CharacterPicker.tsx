@@ -52,32 +52,56 @@ export default function CharacterPicker({
   // backend has no ElevenLabs key (503) or the request fails. The fallback is
   // announced — silently playing a robotic voice makes a misconfigured server
   // look like a bad voice.
-  const preview = async (c: Character) => {
+  //
+  // iOS Safari only lets audio start from inside a user gesture, and an `await`
+  // ends that window. So the element is created and unlocked synchronously on
+  // the click, and the fetched clip is swapped into that already-unlocked
+  // element afterwards. Without this nothing plays at all on iPhone/iPad —
+  // not even the fallback voice.
+  const preview = (c: Character) => {
     if (playing === c.id) { stopAll(); setPlaying(null); return; }
     stopAll();
     setPlaying(c.id);
-    try {
-      const { data } = await api.get(`/my-dashboard/characters/${c.id}/preview`, { responseType: 'blob' });
-      const url = URL.createObjectURL(data as Blob);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => { setPlaying(null); URL.revokeObjectURL(url); };
-      audio.onerror = () => { setPlaying(null); URL.revokeObjectURL(url); };
-      setNotice(null);
-      await audio.play();
-    } catch (err) {
-      const status = (err as { response?: { status?: number } }).response?.status;
-      setNotice(
-        status === 503
-          ? (isFr
-            ? 'Voix réelles indisponibles : la clé ElevenLabs n\'est pas configurée sur le serveur. Aperçu joué avec la voix du navigateur.'
-            : 'Real voices unavailable: the ElevenLabs key is not configured on the server. Playing the browser voice instead.')
-          : (isFr
-            ? 'Aperçu ElevenLabs indisponible pour le moment. Aperçu joué avec la voix du navigateur.'
-            : 'ElevenLabs preview unavailable right now. Playing the browser voice instead.'),
-      );
-      speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
-    }
+
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audioRef.current = audio;
+    // Silent 1-sample WAV: playing it inside the gesture unlocks the element.
+    audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgLsAAAB3AQACABAAZGF0YQAAAAA=';
+    const unlocked = audio.play().catch(() => undefined);
+
+    void (async () => {
+      try {
+        const { data } = await api.get(`/my-dashboard/characters/${c.id}/preview`, { responseType: 'blob' });
+        await unlocked;
+        if (audioRef.current !== audio) return; // superseded by another click
+        const url = URL.createObjectURL(data as Blob);
+        audio.onended = () => { setPlaying(null); URL.revokeObjectURL(url); };
+        audio.onerror = () => { setPlaying(null); URL.revokeObjectURL(url); };
+        audio.src = url;
+        setNotice(null);
+        await audio.play();
+      } catch (err) {
+        if (audioRef.current !== audio) return;
+        const res = (err as { response?: { status?: number; data?: unknown } }).response;
+        // The request asks for a Blob, so an error body arrives as one too and
+        // has to be decoded before the upstream status is readable.
+        let upstream: number | undefined;
+        if (res?.data instanceof Blob) {
+          try { upstream = JSON.parse(await res.data.text())?.status; } catch { /* not JSON */ }
+        }
+        setNotice(
+          res?.status === 503
+            ? (isFr
+              ? 'Voix réelles indisponibles : la clé ElevenLabs n\'est pas configurée sur le serveur. Aperçu joué avec la voix du navigateur.'
+              : 'Real voices unavailable: the ElevenLabs key is not configured on the server. Playing the browser voice instead.')
+            : (isFr
+              ? `Aperçu ElevenLabs indisponible (ElevenLabs a répondu ${upstream ?? '?'}). Aperçu joué avec la voix du navigateur.`
+              : `ElevenLabs preview unavailable (ElevenLabs replied ${upstream ?? '?'}). Playing the browser voice instead.`),
+        );
+        speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
+      }
+    })();
   };
 
   return (
@@ -120,7 +144,7 @@ export default function CharacterPicker({
             </button>
             <button
               type="button"
-              onClick={() => preview(c)}
+              onClick={() => { preview(c); }}
               aria-label={isFr ? `Écouter ${c.name}` : `Preview ${c.name}`}
               className="flex-shrink-0 w-8 h-8 rounded-full grid place-items-center transition-colors"
               style={{ background: 'rgba(122,95,255,0.14)', color: '#b9a8ff' }}

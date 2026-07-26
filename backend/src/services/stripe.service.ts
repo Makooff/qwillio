@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { prisma } from '../config/database';
 import { stripe } from '../config/stripe';
 import { logger } from '../config/logger';
+import { affiliateService } from './affiliate.service';
 import { env } from '../config/env';
 import { getPlan } from '../config/plans';
 import { discordService } from './discord.service';
@@ -262,6 +263,11 @@ export class StripeService {
       update: { revenueSubscriptions: { increment: invoice.amount_paid / 100 } },
       create: { date: today, revenueSubscriptions: invoice.amount_paid / 100 },
     });
+
+    // Referral commission, if this customer came through an affiliate. Keyed on
+    // the invoice id, so a retried webhook cannot credit it twice. Recorded
+    // only — no payout is automated.
+    await affiliateService.recordCommission(client.id, invoice.id, invoice.amount_paid / 100);
 
     logger.info(`Invoice paid for ${client.businessName}: ${invoice.amount_paid / 100}€`);
   }

@@ -256,12 +256,12 @@ export default function Agent() {
               <p className="text-sm text-[#86868b] border-t border-[#1d1d1f]/10 pt-6 max-w-[460px]">
                 {isFr ? (
                   <>
-                    <span className="text-[#1d1d1f] font-semibold">+$197</span>
+                    <span className="text-[#1d1d1f] font-semibold">+197 €</span>
                     {' '}par module et par mois. Premier mois offert. Sans engagement.
                   </>
                 ) : (
                   <>
-                    <span className="text-[#1d1d1f] font-semibold">+$197</span>
+                    <span className="text-[#1d1d1f] font-semibold">+197 €</span>
                     {' '}per module per month. First month free. No commitment.
                   </>
                 )}
@@ -318,7 +318,7 @@ export default function Agent() {
                   {isFr ? '4 modules actifs' : '4 modules active'}
                 </span>
                 <span style={{ color: '#e7bafd' }} className="font-semibold">
-                  +$788/{isFr ? 'mois' : 'month'}
+                  +788 €/{isFr ? 'mois' : 'month'}
                 </span>
               </div>
             </div>
@@ -427,9 +427,9 @@ export default function Agent() {
                 className="text-[clamp(2rem,4vw,3.2rem)] font-semibold tracking-[-0.03em] leading-[1.05] mb-5"
               >
                 {isFr ? (
-                  <><span className="font-serif italic" style={{ color: '#cd6afb' }}>$197</span> par module, par mois.</>
+                  <><span className="font-serif italic" style={{ color: '#cd6afb' }}>197 €</span> par module, par mois.</>
                 ) : (
-                  <><span className="font-serif italic" style={{ color: '#cd6afb' }}>$197</span> per module, per month.</>
+                  <><span className="font-serif italic" style={{ color: '#cd6afb' }}>197 €</span> per module, per month.</>
                 )}
               </h2>
               <p className="text-[#525257] text-[15px] leading-relaxed max-w-[440px]">
@@ -450,7 +450,7 @@ export default function Agent() {
                 {isFr ? 'Suite complète' : 'Complete suite'}
               </p>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-5xl font-semibold tracking-[-0.03em] tabular-nums">$788</span>
+                <span className="text-5xl font-semibold tracking-[-0.03em] tabular-nums">788 €</span>
                 <span className="text-sm text-white/60">/{isFr ? 'mois' : 'month'}</span>
               </div>
               <p className="text-xs mb-6" style={{ color: '#e7bafd' }}>

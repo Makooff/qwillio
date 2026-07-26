@@ -122,7 +122,7 @@ export default function City() {
 
       <section className="mx-auto max-w-5xl px-6 pb-16 pt-24 sm:pt-32">
         <Reveal>
-          <span className="inline-block rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium tracking-wide text-indigo-700">
+          <span className="inline-block rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-medium tracking-wide text-primary-700">
             {name}
           </span>
         </Reveal>
@@ -161,7 +161,7 @@ export default function City() {
             <Reveal key={b.title} delay={0.05 + i * 0.05}>
               <Card3D>
                 <div className="h-full rounded-2xl border border-neutral-200 bg-white p-6">
-                  <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                  <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
                     <b.icon className="h-4 w-4" />
                   </div>
                   <h2 className="font-outfit text-lg font-semibold">{b.title}</h2>
@@ -184,9 +184,9 @@ export default function City() {
             <li key={s}>
               <Link
                 to={`/${s}`}
-                className="flex items-center gap-2 text-sm text-neutral-700 transition-colors hover:text-indigo-600"
+                className="flex items-center gap-2 text-sm text-neutral-700 transition-colors hover:text-primary-600"
               >
-                <Check className="h-4 w-4 shrink-0 text-indigo-600" />
+                <Check className="h-4 w-4 shrink-0 text-primary-600" />
                 <span className="capitalize">{s}</span>
               </Link>
             </li>

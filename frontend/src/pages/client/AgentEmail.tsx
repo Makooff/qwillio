@@ -20,10 +20,10 @@ interface Email {
 
 const TABS: { key: Tab; label: string; icon: React.ElementType; count: number; color: string }[] = [
   { key: 'urgent', label: 'Urgent', icon: AlertCircle, count: 3, color: 'text-red-600 bg-red-50 border-red-200' },
-  { key: 'appointment', label: 'Appointment', icon: Calendar, count: 7, color: 'text-blue-600 bg-blue-50 border-blue-200' },
+  { key: 'appointment', label: 'Appointment', icon: Calendar, count: 7, color: 'text-primary-600 bg-primary-50 border-primary-200' },
   { key: 'payment', label: 'Payment', icon: CreditCard, count: 4, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
   { key: 'spam', label: 'Spam', icon: Trash2, count: 12, color: 'text-[#86868b] bg-[#f5f5f7] border-[#d2d2d7]' },
-  { key: 'info', label: 'Info', icon: Info, count: 9, color: 'text-purple-600 bg-purple-50 border-purple-200' },
+  { key: 'info', label: 'Info', icon: Info, count: 9, color: 'text-violet-600 bg-violet-300 border-violet-300' },
 ];
 
 const EMAILS: Email[] = [
@@ -99,8 +99,8 @@ export default function AgentEmail() {
         </div>
         <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-              <Mail size={20} className="text-blue-500" />
+            <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center">
+              <Mail size={20} className="text-primary-500" />
             </div>
             <div>
               <p className="text-sm font-semibold">Outlook</p>

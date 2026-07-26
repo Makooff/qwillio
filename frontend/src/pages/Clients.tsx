@@ -114,7 +114,7 @@ function ClientCard({ client }: ClientCardProps) {
       {/* Plan badge */}
       {client.plan && (
         <div className="flex items-center gap-2">
-          <span className="text-[11px] px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
+          <span className="text-[11px] px-2 py-0.5 rounded-md bg-primary-500/10 text-primary-300 border border-primary-500/20 font-medium">
             {planLabel(client.plan)}
           </span>
           {client.city && (
@@ -126,7 +126,7 @@ function ClientCard({ client }: ClientCardProps) {
       {/* Key stat */}
       <div className="rounded-lg bg-white/[0.03] border border-white/[0.05] px-3 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
+          <TrendingUp className="w-3.5 h-3.5 text-primary-400" aria-hidden="true" />
           <span className="text-[11.5px] text-white/40">MRR</span>
         </div>
         <span className="text-[14px] font-semibold text-white tabular-nums">
@@ -139,8 +139,8 @@ function ClientCard({ client }: ClientCardProps) {
         <span className="text-[11px] text-white/25">{fmtDate(client.createdAt)}</span>
         <button
           aria-label={`Voir le client ${client.businessName}`}
-          className="flex items-center gap-1 text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors
-                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded"
+          className="flex items-center gap-1 text-[12px] text-primary-400 hover:text-primary-300 transition-colors
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded"
         >
           Voir
           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
@@ -193,16 +193,16 @@ export default function Clients() {
             onClick={load}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04]
                        text-[12px] text-white/60 hover:text-white hover:bg-white/[0.07] transition-colors
-                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             Actualiser
           </button>
           <button
             aria-label="Ajouter un nouveau client"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-400
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-500 hover:bg-primary-400
                        text-[12px] text-white font-medium transition-colors
-                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
           >
             <Plus className="w-3.5 h-3.5" aria-hidden="true" />
             Nouveau client
@@ -241,7 +241,7 @@ export default function Clients() {
           onChange={e => setQ(e.target.value)}
           placeholder="Rechercher par entreprise ou contact…"
           className="w-full pl-9 pr-3 h-9 rounded-lg bg-white/[0.05] border border-white/[0.08] text-[13px] text-white
-                     placeholder-white/25 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+                     placeholder-white/25 outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
         />
       </div>
 
@@ -258,8 +258,8 @@ export default function Clients() {
                 <p className="text-[14px] text-white/30">Aucun résultat pour &ldquo;{q}&rdquo;</p>
                 <button
                   onClick={() => setQ('')}
-                  className="mt-3 text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors
-                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded"
+                  className="mt-3 text-[12px] text-primary-400 hover:text-primary-300 transition-colors
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded"
                 >
                   Effacer la recherche
                 </button>
