@@ -9,6 +9,7 @@ import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema 
 import { emailService } from '../services/email.service';
 import { logger } from '../config/logger';
 import { getPlan } from '../config/plans';
+import { affiliateService } from '../services/affiliate.service';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
@@ -347,6 +348,11 @@ export class AuthController {
           });
           clientId = client.id;
           logger.info(`Client record created for ${user.email} — clientId: ${client.id}`);
+
+          // Referral attribution, decided once here at sign-up. A bad or missing
+          // code is ignored rather than blocking onboarding.
+          const referralCode = typeof req.body?.referralCode === 'string' ? req.body.referralCode : null;
+          await affiliateService.attribute(client.id, referralCode);
         }
       }
 

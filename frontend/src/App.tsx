@@ -71,6 +71,7 @@ const BlogPage = lazy(() => import('./pages/Blog'));
 const BlogArticlePage = lazy(() => import('./pages/BlogArticle'));
 const ComparisonPage = lazy(() => import('./pages/ComparisonPage'));
 const AffiliatePage = lazy(() => import('./pages/Affiliate'));
+const AffiliateDashboardPage = lazy(() => import('./pages/AffiliateDashboard'));
 const Partenaires = lazy(() => import('./pages/Partenaires'));
 const Vertical = lazy(() => import('./pages/Vertical'));
 const Faq = lazy(() => import('./pages/Faq'));
@@ -241,6 +242,7 @@ export default function App() {
         <Route path="/blog/:slug" element={<Suspense fallback={<Spinner />}><BlogArticlePage /></Suspense>} />
         <Route path="/vs/:slug" element={<Suspense fallback={<Spinner />}><ComparisonPage /></Suspense>} />
         <Route path="/affiliate" element={<Suspense fallback={<Spinner />}><AffiliatePage /></Suspense>} />
+        <Route path="/affiliate/dashboard" element={<Suspense fallback={<Spinner />}><AffiliateDashboardPage /></Suspense>} />
         <Route path="/faq" element={<Suspense fallback={<Spinner />}><Faq /></Suspense>} />
         <Route path="/fr/faq" element={<Suspense fallback={<Spinner />}><Faq /></Suspense>} />
         <Route path="/ville/:ville" element={<Suspense fallback={<Spinner />}><City /></Suspense>} />

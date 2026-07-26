@@ -9,6 +9,7 @@ import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
 import { useLang } from '../stores/langStore';
 import api from '../services/api';
+import { getReferral, clearReferral } from '../lib/referral';
 
 type Step = 1 | 2 | 3;
 
@@ -50,7 +51,9 @@ export default function SelfOnboard() {
         industry: industry || null,
         website: website || null,
         planType: selectedPlan,
+        referralCode: getReferral(),
       });
+      clearReferral();
       // Save the fresh JWT and update store directly (no extra /auth/me round-trip)
       if (data.token) {
         localStorage.setItem('token', data.token);

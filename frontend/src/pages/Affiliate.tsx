@@ -52,13 +52,13 @@ export default function Affiliate() {
   const faqs = isFr
     ? [
         { q: 'Quel est le taux de commission ?', a: '30% du MRR de chaque client recommandé, versé chaque mois tant que le client reste actif. Pas de plafond, pas de dégressivité.' },
-        { q: 'Comment suis-je payé ?', a: 'Virement bancaire automatique le 5 de chaque mois. Seuil minimum de $50. Reporting transparent dans votre dashboard affilié.' },
+        { q: 'Comment suis-je payé ?', a: 'Vos commissions s\'accumulent automatiquement dès qu\'un filleul paie une facture, et sont visibles en temps réel dans votre espace affilié. Le versement se fait par virement, sur demande.' },
         { q: 'Y a-t-il un cookie de tracking ?', a: 'Oui, 90 jours. Si un prospect clique sur votre lien puis souscrit dans les 90 jours, la commission vous revient.' },
         { q: 'Puis-je faire de l\'affiliation et être client ?', a: 'Bien sûr. Beaucoup de nos meilleurs affiliés sont des clients qui recommandent l\'outil qu\'ils utilisent eux-mêmes.' },
       ]
     : [
         { q: 'What is the commission rate?', a: '30% of recurring revenue from each referred customer, paid monthly for as long as they stay active. No cap, no decay.' },
-        { q: 'How am I paid?', a: 'Automatic bank transfer on the 5th of each month. Minimum threshold $50. Transparent reporting in your affiliate dashboard.' },
+        { q: 'How am I paid?', a: 'Commissions accrue automatically as soon as a referral pays an invoice, and show live in your affiliate dashboard. Payout is by bank transfer, on request.' },
         { q: 'Is there a tracking cookie?', a: 'Yes, 90 days. If a prospect clicks your link and subscribes within 90 days, the commission goes to you.' },
         { q: 'Can I be both an affiliate and a customer?', a: 'Of course. Many of our best affiliates are customers who recommend the tool they use themselves.' },
       ];
@@ -262,7 +262,7 @@ export default function Affiliate() {
                 {isFr ? 'Compte créé en 30 secondes. Lien unique immédiat.' : 'Account in 30 seconds. Unique link instantly.'}
               </p>
               <Link
-                to="/register?role=affiliate"
+                to="/affiliate/dashboard"
                 className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-base font-medium pl-6 pr-7 py-4 rounded-full hover:bg-[#cd6afb] transition-colors"
               >
                 {isFr ? 'Devenir affilié' : 'Become an affiliate'}
