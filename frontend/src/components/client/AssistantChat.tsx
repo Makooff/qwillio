@@ -168,11 +168,9 @@ export default function AssistantChat({
 
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#0A0A0C] overflow-hidden flex flex-col" style={{ height: 480 }}>
-      {/* Header: title + speaker toggle */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-        <span className="text-[13px] font-semibold text-[#F2F2F2]">
-          {isFr ? 'Parler à ma réceptionniste' : 'Talk to my receptionist'}
-        </span>
+      {/* Speaker toggle only: the section above already reads "Réceptionniste
+          IA", so a second title here just said the same thing twice. */}
+      <div className="flex items-center justify-end px-3 py-2 border-b border-white/[0.06]">
         <button
           type="button"
           onClick={() => setSpeak(s => !s)}
