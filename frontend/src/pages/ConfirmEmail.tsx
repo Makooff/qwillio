@@ -25,19 +25,23 @@ export default function ConfirmEmail() {
 
     api.get(`/auth/confirm/${token}`)
       .then(async (res) => {
-        const { token: jwtToken, user } = res.data;
+        const { token: jwtToken } = res.data;
         if (jwtToken) {
           localStorage.setItem('token', jwtToken);
         }
         await checkAuth();
         setStatus('success');
 
-        // Redirect based on role after 2s
+        // Route on the refreshed account, not on the confirm response: only the
+        // former knows whether a card is already on file.
         setTimeout(() => {
-          if (!user?.onboardingCompleted) {
-            navigate('/onboard');
+          const fresh = useAuthStore.getState().user;
+          if (fresh?.onboardingCompleted) {
+            navigate(fresh.role === 'admin' ? '/admin' : '/dashboard');
+          } else if (!fresh?.hasSubscription) {
+            navigate('/subscribe');
           } else {
-            navigate(user?.role === 'admin' ? '/admin' : '/dashboard');
+            navigate('/onboard');
           }
         }, 2000);
       })

@@ -24,7 +24,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Combien ça coûte ?',
-    a: "Le plan Solo est à 149 EUR par mois (300 appels, français, hébergement UE). Les plans supérieurs ajoutent du volume et des fonctions avancées. Premier mois offert sans carte, résiliable au mois, remise de 20 % en annuel.",
+    a: "Le plan Solo est à 149 EUR par mois (300 appels, français, hébergement UE). Les plans supérieurs ajoutent du volume et des fonctions avancées. 7 jours d’essai gratuit, résiliable au mois, remise de 20 % en annuel.",
   },
   {
     q: 'Est-ce que Qwillio prend les rendez-vous dans mon agenda ?',
@@ -67,7 +67,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'How much does it cost?',
-    a: 'The Solo plan is 149 EUR per month (300 calls, French, EU hosting). Higher plans add volume and advanced features. First month free with no card, cancel monthly, 20% off annually.',
+    a: 'The Solo plan is 149 EUR per month (300 calls, French, EU hosting). Higher plans add volume and advanced features. 7-day free trial, cancel monthly, 20% off annually.',
   },
   {
     q: 'Does Qwillio book appointments into my calendar?',
@@ -165,8 +165,8 @@ export default function Faq() {
             </h2>
             <p className="mt-2 text-[#6e6e73]">
               {isFr
-                ? 'Premier mois offert, sans carte. 15 minutes de setup.'
-                : 'First month free, no card. 15 minutes to set up.'}
+                ? '7 jours d’essai gratuit. 15 minutes de setup.'
+                : '7-day free trial. 15 minutes to set up.'}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link

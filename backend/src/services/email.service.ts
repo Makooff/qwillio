@@ -335,7 +335,7 @@ export class EmailService {
     const pkg = PACKAGES[data.planType] || PACKAGES.basic;
     const html = lang === 'fr'
       ? (() => {
-          const planLabel = data.isTrial ? 'essai gratuit de 30 jours' : `forfait ${pkg.name}`;
+          const planLabel = data.isTrial ? 'essai gratuit de 7 jours' : `forfait ${pkg.name}`;
           return brandWrap({
             title: 'Configurez votre réceptionniste IA',
             preheader: `Votre ${planLabel} pour ${data.businessName} est maintenant actif.`,
@@ -463,10 +463,10 @@ export class EmailService {
     const html = lang === 'fr'
       ? brandWrap({
           title: 'Vos résultats d\'essai et votre facture',
-          preheader: `Bilan de 30 jours pour ${data.businessName} + premier paiement.`,
+          preheader: `Bilan de fin d'essai pour ${data.businessName} + premier paiement.`,
           body: [
             brandTitle('Vos résultats d\'essai'),
-            brandText(`Bonjour ${data.contactName}, votre essai de 30 jours pour <strong>${data.businessName}</strong> est terminé. Voici ce que votre IA a accompli :`),
+            brandText(`Bonjour ${data.contactName}, votre essai de 7 jours pour <strong>${data.businessName}</strong> est terminé. Voici ce que votre IA a accompli :`),
             brandList([
               `<strong>${data.trialStats.totalCalls}</strong> appels traités`,
               `<strong>${data.trialStats.totalBookings}</strong> rendez-vous créés`,
@@ -915,24 +915,24 @@ export class EmailService {
       const rawHtml = lang === 'fr'
         ? brandWrap({
             title: 'Votre réceptionniste IA est prête',
-            preheader: `30 jours gratuits pour ${data.businessName} — sans carte de crédit.`,
+            preheader: `7 jours gratuits pour ${data.businessName}.`,
             body: [
               brandTitle('Votre IA est prête'),
               brandText(`Bonjour ${data.contactName}, ravie de notre échange. Qwillio gère vos appels entrants 24 h/24 — répond aux questions, prend les rendez-vous et qualifie les leads pendant que vous vous concentrez sur votre entreprise.`),
               brandText(`Nous recommandons le forfait <strong>${planName}</strong> pour <strong>${data.businessName}</strong>. Vos 30 premiers jours sont entièrement gratuits — sans engagement, annulable à tout moment.`),
-              brandHighlight('Essai gratuit', '30 jours', 28),
+              brandHighlight('Essai gratuit', '7 jours', 28),
               brandButton('Démarrer mon essai gratuit', data.registrationUrl),
               brandSmall('La configuration prend moins de 5 minutes. Sans carte de crédit. — Marie, Qwillio IA'),
             ].join(''),
           })
         : brandWrap({
             title: 'Your AI receptionist is ready',
-            preheader: `30 days free for ${data.businessName} — no card required.`,
+            preheader: `7 days free for ${data.businessName}.`,
             body: [
               brandTitle('Your AI is ready'),
               brandText(`Hi ${data.contactName}, great speaking with you. Qwillio handles your incoming calls 24/7 — answering questions, booking appointments and qualifying leads while you focus on your business.`),
-              brandText(`We recommend the <strong>${planName}</strong> plan for <strong>${data.businessName}</strong>. Your first 30 days are completely free — no commitment, cancel anytime.`),
-              brandHighlight('Free trial', '30 days', 28),
+              brandText(`We recommend the <strong>${planName}</strong> plan for <strong>${data.businessName}</strong>. Your first 7 days are completely free — cancel anytime before they end.`),
+              brandHighlight('Free trial', '7 days', 28),
               brandButton('Start your free trial', data.registrationUrl),
               brandSmall('Setup takes less than 5 minutes. No credit card required. — Ashley, Qwillio AI'),
             ].join(''),
@@ -944,8 +944,8 @@ export class EmailService {
         to: data.to,
         replyTo: env.RESEND_REPLY_TO,
         subject: lang === 'fr'
-          ? `${data.contactName}, votre réceptionniste IA est prête — 30 jours gratuits`
-          : `${data.contactName}, your AI receptionist is ready — 30 days free`,
+          ? `${data.contactName}, votre réceptionniste IA est prête — 7 jours gratuits`
+          : `${data.contactName}, your AI receptionist is ready — 7 days free`,
         html,
         headers: { 'List-Unsubscribe': `<${this.getUnsubscribeUrl(data.to)}>` },
         tags: [{ name: 'campaign', value: 'registration_invite' }],

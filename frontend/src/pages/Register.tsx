@@ -72,7 +72,10 @@ export default function Register() {
     try {
       await register(email.trim(), password, '');
       const { user } = useAuthStore.getState();
-      if (user?.emailConfirmed) { navigate('/onboard'); } else { setStep('activation'); }
+      // Registration already handed out a JWT, so an unconfirmed account is
+      // "logged in". Sending it to /subscribe would only get it bounced; the
+      // guards own the routing from here.
+      if (user?.emailConfirmed) { navigate('/subscribe'); } else { setStep('activation'); }
     } catch (err: any) {
       const errData = err?.response?.data?.error;
       setError(typeof errData === 'string' ? errData : (errData?.message || err?.message || 'Une erreur est survenue. Réessayez.'));

@@ -87,7 +87,7 @@ export default function Pricing() {
 
   const faqs = isFr
     ? [
-        { q: 'Y a-t-il un engagement ?', a: 'En mensuel, non. Annulez en un clic depuis votre dashboard, à tout moment. En annuel, vous vous engagez sur 12 mois en échange d\'une remise de 20 %. Le premier mois reste offert dans les deux cas.' },
+        { q: 'Y a-t-il un engagement ?', a: 'En mensuel, non. Annulez en un clic depuis votre dashboard, à tout moment. En annuel, vous vous engagez sur 12 mois en échange d\'une remise de 20 %. Les 7 jours d’essai restent offerts dans les deux cas.' },
         { q: 'Comment fonctionne la remise de 20 % en annuel ?', a: 'Choisissez la facturation annuelle sur la page tarifs. Vous économisez 20 % sur le prix mensuel, prélevé en une fois à l\'inscription. Le calcul est simple : le montant annuel affiché correspond à 12 × (prix mensuel × 0,80).' },
         { q: 'Comment fonctionne la facturation à la minute ?', a: 'Chaque plan inclut un volume de minutes par mois. Au-delà, les minutes supplémentaires sont facturées au tarif de dépassement de votre plan (par exemple 0,39 €/min en Starter). Seuls les appels réels comptent : le spam bloqué n\'est jamais facturé. Vous recevez une alerte à 80, 95 et 100 % de votre quota.' },
         { q: 'Puis-je changer de plan ?', a: 'Oui, à tout moment. Les changements sont au prorata sur votre prochaine facture.' },
@@ -95,7 +95,7 @@ export default function Pricing() {
         { q: 'Quels moyens de paiement acceptez-vous ?', a: 'Carte bancaire (Visa, Mastercard, Amex), SEPA, virement pour les comptes Enterprise et annuels.' },
       ]
     : [
-        { q: 'Is there a commitment?', a: 'On monthly billing, none: cancel anytime from your dashboard. On annual, you commit for 12 months in exchange for a 20% discount. First month is free either way.' },
+        { q: 'Is there a commitment?', a: 'On monthly billing, none: cancel anytime from your dashboard. On annual, you commit for 12 months in exchange for a 20% discount. The 7-day trial applies either way.' },
         { q: 'How does the 20% annual discount work?', a: 'Pick annual billing on the pricing page. You save 20% on the monthly price, charged upfront at signup. The math is simple: the annual amount shown equals 12 × (monthly price × 0.80).' },
         { q: 'How does per-minute billing work?', a: 'Each plan includes a monthly minute allowance. Beyond that, extra minutes are billed at your plan\'s overage rate (for example €0.39/min on Starter). Only real calls count: blocked spam is never billed. You get an alert at 80%, 95% and 100% of your quota.' },
         { q: 'Can I change my plan?', a: 'Yes, anytime. Changes are prorated on your next invoice.' },
@@ -142,8 +142,8 @@ export default function Pricing() {
             <Reveal delay={0.12}>
             <p className="text-[#525257] text-[15px] leading-relaxed max-w-[400px]">
               {isFr
-                ? 'Premier mois offert sur tous les plans. Sans carte requise pour démarrer. Annulez en un clic.'
-                : 'First month free on every plan. No card required to start. Cancel anytime.'}
+                ? '7 jours d’essai sur tous les plans. Carte requise, rien n’est débité avant la fin. Annulez en un clic.'
+                : '7-day trial on every plan. Card required, nothing charged until it ends. Cancel anytime.'}
             </p>
             </Reveal>
           </div>
@@ -620,7 +620,7 @@ export default function Pricing() {
                         [isFr ? 'CRM natif inclus' : 'Native CRM included', yes, isFr ? 'Zapier' : 'Zapier', yes, isFr ? 'Sur-mesure' : 'Custom'],
                         [isFr ? 'Prise de RDV agenda native' : 'Native calendar booking', yes, isFr ? 'Tier sup.' : 'Higher tier', yes, isFr ? 'Sur-mesure' : 'Custom'],
                         [isFr ? 'Onboarding self-serve' : 'Self-serve onboarding', <>{yes} <span className="text-[11px] text-[#6e6e73]">15 min</span></>, yes, isFr ? 'Partiel' : 'Partial', no],
-                        [isFr ? '1er mois offert, sans carte' : 'First month free, no card', yes, no, isFr ? 'Cas par cas' : 'Case by case', no],
+                        [isFr ? '7 jours d’essai' : '7-day free trial', yes, no, isFr ? 'Cas par cas' : 'Case by case', no],
                         [isFr ? 'Résiliable au mois' : 'Cancel monthly', yes, yes, yes, isFr ? 'Contrat' : 'Contract'],
                       ];
                       return rows.map(([label, q, r, s, y], i) => (
@@ -735,8 +735,8 @@ export default function Pricing() {
             <div className="flex flex-col items-start gap-4 lg:items-end lg:text-right pb-4">
               <p className="text-[#525257] text-[15px] leading-relaxed max-w-[320px] lg:ml-auto">
                 {isFr
-                  ? 'Sans engagement. Sans carte bancaire. Premier mois offert.'
-                  : 'No commitment. No credit card. First month free.'}
+                  ? 'Sans engagement. 7 jours d’essai gratuit.'
+                  : 'No commitment. 7-day free trial.'}
               </p>
               <Link
                 to="/register"
