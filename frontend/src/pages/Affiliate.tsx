@@ -199,27 +199,6 @@ export default function Affiliate() {
           </div>
         </section>
 
-        {/* ── TESTIMONIAL ─────────────────────────────────── */}
-        <section className="py-12 sm:py-16 md:py-24 px-6">
-          <div className="max-w-[1240px] mx-auto">
-            <figure
-              className="rounded-[2rem] px-8 md:px-16 py-14 md:py-20"
-              style={{ background: '#cd6afb' }}
-            >
-              <blockquote className="text-white text-[clamp(1.4rem,3vw,2.2rem)] font-semibold tracking-[-0.025em] leading-[1.25] max-w-[820px]">
-                <span className="font-serif italic text-white/40 text-[1.8em] leading-none mr-2 align-[-0.18em]" aria-hidden="true">"</span>
-                {isFr
-                  ? 'Je touche $4 800 par mois sans rien faire. Trois clients recommandés il y a 18 mois, toujours actifs aujourd\'hui.'
-                  : 'I make $4,800 a month doing nothing. Three customers I referred 18 months ago, still active today.'}
-              </blockquote>
-              <figcaption className="mt-6 text-white/80 text-sm">
-                <span className="font-semibold text-white">Thomas K.</span>
-                <span className="text-white/60"> — {isFr ? 'Consultant indépendant' : 'Independent consultant'}</span>
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
         {/* ── FAQ ─────────────────────────────────────────── */}
         <section
           aria-labelledby="faq-heading"
