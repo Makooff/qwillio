@@ -185,7 +185,7 @@ function TabWorkPlanner() {
             value={date}
             onChange={e => setDate(e.target.value)}
             aria-label="Date du plan de travail"
-            className="px-3 py-2 rounded-xl text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+            className="px-3 py-2 rounded-xl text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
             style={{ background: pro.bg, color: pro.text, border: `1px solid ${pro.border}` }}
           />
           <PrimaryBtn onClick={generate} disabled={loading} size="sm">
@@ -255,7 +255,7 @@ function TabBusinessPlan() {
             onChange={e => setProspectId(e.target.value)}
             placeholder="ID prospect…"
             aria-label="Identifiant du prospect pour générer un business plan"
-            className="px-3 py-2 rounded-xl text-sm flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+            className="px-3 py-2 rounded-xl text-sm flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
             style={{ background: pro.bg, color: pro.text, border: `1px solid ${pro.border}` }}
           />
           <PrimaryBtn onClick={generate} disabled={loading || !prospectId.trim()} size="sm">
@@ -308,7 +308,7 @@ function TabBranding() {
             onChange={e => setProspectId(e.target.value)}
             placeholder="ID prospect…"
             aria-label="Identifiant du prospect pour analyse de marque"
-            className="px-3 py-2 rounded-xl text-sm flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+            className="px-3 py-2 rounded-xl text-sm flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
             style={{ background: pro.bg, color: pro.text, border: `1px solid ${pro.border}` }}
           />
           <PrimaryBtn onClick={generate} disabled={loading || !prospectId.trim()} size="sm">

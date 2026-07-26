@@ -9,7 +9,7 @@ import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';
 import Reveal from '../components/ui/Reveal';
 import Card3D from '../components/ui/Card3D';
-import PhoneCallVisual from '../components/landing/PhoneCallVisual';
+import HeroPhone3D from '../components/ui/HeroPhone3D';
 import VoiceCard, { type VoiceData } from '../components/landing/VoiceCard';
 
 /* ── Page ─────────────────────────────────────────────────────────────────── */
@@ -216,7 +216,7 @@ export default function Landing() {
             </div>
 
             <Reveal delay={0.12}>
-              <PhoneCallVisual isFr={isFr} />
+              <HeroPhone3D isFr={isFr} />
             </Reveal>
           </div>
         </section>

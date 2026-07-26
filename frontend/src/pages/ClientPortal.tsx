@@ -376,9 +376,9 @@ export default function ClientPortal() {
 /* ── KPI Card ── */
 function KpiCard({ label, value, icon: Icon, color }: { label: string; value: any; icon: any; color: string }) {
   const colorMap: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-600',
-    indigo: 'bg-indigo-50 text-indigo-600',
-    purple: 'bg-purple-50 text-purple-600',
+    blue: 'bg-primary-50 text-primary-600',
+    indigo: 'bg-primary-50 text-primary-600',
+    purple: 'bg-violet-300 text-violet-600',
     amber: 'bg-amber-50 text-amber-600',
     cyan: 'bg-cyan-50 text-cyan-600',
     emerald: 'bg-emerald-50 text-emerald-600',

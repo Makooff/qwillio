@@ -4,9 +4,9 @@ interface StatusBadgeProps {
 }
 
 const statusStyles: Record<string, string> = {
-  new: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
+  new: 'bg-primary-400/10 text-primary-400 border-primary-400/20',
   contacted: 'bg-[#8a6fff]/10 text-[#8a6fff] border-[#8a6fff]/20',
-  qualified: 'bg-purple-400/10 text-purple-400 border-purple-400/20',
+  qualified: 'bg-violet-400/10 text-violet-400 border-violet-400/20',
   converted: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
   lost: 'bg-red-400/10 text-red-400 border-red-400/20',
   confirmed: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
@@ -16,8 +16,8 @@ const statusStyles: Record<string, string> = {
   missed: 'bg-red-400/10 text-red-400 border-red-400/20',
   active: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
   paused: 'bg-amber-400/10 text-amber-400 border-amber-400/20',
-  trialing: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
-  'in-progress': 'bg-blue-400/10 text-blue-400 border-blue-400/20',
+  trialing: 'bg-primary-400/10 text-primary-400 border-primary-400/20',
+  'in-progress': 'bg-primary-400/10 text-primary-400 border-primary-400/20',
   'no-answer': 'bg-white/[0.06] text-[#8B8BA7] border-white/[0.08]',
 };
 

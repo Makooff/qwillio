@@ -56,8 +56,8 @@ interface NewDealState {
 type NewDealTextField = 'contactName' | 'title' | 'value' | 'closeDate';
 
 const STAGES: { key: DealStage; label: string; color: string; bgLight: string; border: string }[] = [
-  { key: 'new',         label: 'New',         color: '#3b82f6', bgLight: 'bg-blue-50',    border: 'border-blue-200' },
-  { key: 'qualified',   label: 'Qualified',   color: '#7349fe', bgLight: 'bg-violet-50',  border: 'border-violet-200' },
+  { key: 'new',         label: 'New',         color: '#3b82f6', bgLight: 'bg-primary-50',    border: 'border-primary-200' },
+  { key: 'qualified',   label: 'Qualified',   color: '#7349fe', bgLight: 'bg-violet-300',  border: 'border-violet-300' },
   { key: 'appointment', label: 'Appointment', color: '#f59e0b', bgLight: 'bg-amber-50',   border: 'border-amber-200' },
   { key: 'client',      label: 'Client',      color: '#10b981', bgLight: 'bg-emerald-50', border: 'border-emerald-200' },
   { key: 'inactive',    label: 'Inactive',    color: '#6b7280', bgLight: 'bg-gray-50',    border: 'border-gray-200' },

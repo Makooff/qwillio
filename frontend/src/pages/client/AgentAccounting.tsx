@@ -36,7 +36,7 @@ const INVOICES: Invoice[] = [
 
 const STATUS_CONFIG = {
   paid: { label: 'Paid', classes: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
-  outstanding: { label: 'Outstanding', classes: 'bg-blue-50 text-blue-700', dot: 'bg-blue-500' },
+  outstanding: { label: 'Outstanding', classes: 'bg-primary-50 text-primary-700', dot: 'bg-primary-500' },
   overdue: { label: 'Overdue', classes: 'bg-red-50 text-red-700', dot: 'bg-red-500' },
 };
 
@@ -108,8 +108,8 @@ export default function AgentAccounting() {
         </div>
         <div className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-              <DollarSign size={20} className="text-blue-600" />
+            <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center">
+              <DollarSign size={20} className="text-primary-600" />
             </div>
             <div>
               <p className="text-sm font-semibold">Wave</p>

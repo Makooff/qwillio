@@ -45,8 +45,8 @@ type NewContactField = keyof Omit<NewContactState, 'status'>;
 
 const STATUS_COLORS: Record<ContactStatus, { bg: string; text: string }> = {
   active:   { bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  prospect: { bg: 'bg-blue-50',    text: 'text-blue-700' },
-  client:   { bg: 'bg-indigo-50',  text: 'text-indigo-700' },
+  prospect: { bg: 'bg-primary-50',    text: 'text-primary-700' },
+  client:   { bg: 'bg-primary-50',  text: 'text-primary-700' },
   inactive: { bg: 'bg-gray-100',   text: 'text-gray-600' },
   lost:     { bg: 'bg-red-50',     text: 'text-red-700' },
 };

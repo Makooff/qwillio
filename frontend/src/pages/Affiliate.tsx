@@ -44,7 +44,7 @@ export default function Affiliate() {
       icon: Wallet,
       title: isFr ? 'Encaissez' : 'Cash in',
       desc: isFr
-        ? 'Virement mensuel. 30% du MRR de chaque client recommandé, à vie.'
+        ? '30 % de chaque facture payée par vos filleuls, à vie, comptabilisé automatiquement.'
         : 'Monthly payout. 30% of recurring revenue from every referred customer, for life.',
     },
   ];
@@ -92,7 +92,7 @@ export default function Affiliate() {
         {/* ── HERO ──────────────────────────────────────────── */}
         <section
           aria-labelledby="aff-heading"
-          className="pt-24 sm:pt-28 md:pt-36 pb-12 md:pb-20 px-5 sm:px-6"
+          className="pt-24 sm:pt-28 md:pt-36 pb-10 md:pb-14 px-5 sm:px-6"
         >
           <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.4fr_1fr] gap-12 items-end">
             <div>
@@ -134,8 +134,8 @@ export default function Affiliate() {
               id="how-heading"
               className="text-[clamp(1.6rem,3vw,2.4rem)] font-semibold tracking-[-0.025em] mb-12 max-w-[640px]"
             >
-              {isFr ? <>Trois étapes. <span className="text-[#86868b] font-normal">Premier virement sous 30 jours.</span></>
-                : <>Three steps. <span className="text-[#86868b] font-normal">First payout within 30 days.</span></>}
+              {isFr ? <>Trois étapes. <span className="text-[#86868b] font-normal">Vos gains comptabilisés en direct.</span></>
+                : <>Three steps. <span className="text-[#86868b] font-normal">Your earnings tallied live.</span></>}
             </h2>
 
             <ol className="grid md:grid-cols-3 gap-8 md:gap-12" role="list">

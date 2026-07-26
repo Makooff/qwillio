@@ -101,17 +101,17 @@ const DEMO_DEALS: Record<string, Deal[]> = {
 };
 
 const TYPE_CONFIG: Record<ActivityType, { icon: React.ElementType; bg: string; iconColor: string; label: string }> = {
-  call:        { icon: PhoneIcon,    bg: 'bg-blue-50',    iconColor: 'text-blue-500',    label: 'Call' },
-  email:       { icon: MailIcon,     bg: 'bg-indigo-50',  iconColor: 'text-[#7349fe]',  label: 'Email' },
+  call:        { icon: PhoneIcon,    bg: 'bg-primary-50',    iconColor: 'text-primary-500',    label: 'Call' },
+  email:       { icon: MailIcon,     bg: 'bg-primary-50',  iconColor: 'text-[#7349fe]',  label: 'Email' },
   note:        { icon: FileText,     bg: 'bg-amber-50',   iconColor: 'text-amber-500',   label: 'Note' },
   deal_update: { icon: TrendingUp,   bg: 'bg-emerald-50', iconColor: 'text-emerald-500', label: 'Deal Update' },
-  sms:         { icon: MessageSquare,bg: 'bg-purple-50',  iconColor: 'text-purple-500',  label: 'SMS' },
+  sms:         { icon: MessageSquare,bg: 'bg-violet-300',  iconColor: 'text-violet-500',  label: 'SMS' },
 };
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   active:   { bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  prospect: { bg: 'bg-blue-50',    text: 'text-blue-700' },
-  client:   { bg: 'bg-indigo-50',  text: 'text-indigo-700' },
+  prospect: { bg: 'bg-primary-50',    text: 'text-primary-700' },
+  client:   { bg: 'bg-primary-50',  text: 'text-primary-700' },
   inactive: { bg: 'bg-gray-100',   text: 'text-gray-600' },
   lost:     { bg: 'bg-red-50',     text: 'text-red-700' },
 };
@@ -301,8 +301,8 @@ export default function CrmContactDetail() {
               </div>
             ) : timeline.filter(a => a.type === 'call').map((a: TimelineEntry) => (
               <div key={a.id} className="rounded-2xl border border-[#d2d2d7]/60 bg-white px-5 py-4 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                  <PhoneIcon size={14} className="text-blue-500" />
+                <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
+                  <PhoneIcon size={14} className="text-primary-500" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-[#1d1d1f]">{a.description}</p>
@@ -323,7 +323,7 @@ export default function CrmContactDetail() {
               </div>
             ) : timeline.filter(a => a.type === 'email').map((a: TimelineEntry) => (
               <div key={a.id} className="rounded-2xl border border-[#d2d2d7]/60 bg-white px-5 py-4 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
                   <MailIcon size={14} className="text-[#7349fe]" />
                 </div>
                 <div>

@@ -131,16 +131,6 @@ export default function Contact() {
                 ))}
               </ul>
 
-              <div className="mt-12 p-6 rounded-2xl bg-[#fafaf8] border border-[#1d1d1f]/8">
-                <p className="text-[11px] font-bold tracking-[0.16em] uppercase mb-2" style={{ color: '#cd6afb' }}>
-                  {isFr ? 'Temps de réponse' : 'Response time'}
-                </p>
-                <p className="text-[#424245] text-sm leading-relaxed">
-                  {isFr
-                    ? 'Réponse en moins de 4 heures pendant les heures ouvrées (9h-19h, lundi-vendredi, heure de Bruxelles).'
-                    : 'Reply within 4 hours during business hours (9am-7pm, Mon-Fri, Brussels time).'}
-                </p>
-              </div>
             </aside>
 
             {/* Form */}

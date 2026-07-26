@@ -95,9 +95,10 @@ export default function About() {
         {/* ── HERO ──────────────────────────────────────────────── */}
         <section
           aria-labelledby="about-heading"
-          className="pt-24 sm:pt-28 md:pt-36 pb-16 md:pb-24 px-5 sm:px-6"
+          className="pt-24 sm:pt-28 md:pt-36 pb-10 md:pb-14 px-5 sm:px-6"
         >
-          <div className="max-w-[1240px] mx-auto">
+          <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1.45fr_1fr] gap-8 lg:gap-16 items-end">
+            <div>
             <span className="text-[11px] font-semibold tracking-[0.18em] uppercase block mb-4" style={{ color: '#7a5fff' }}>
               {isFr ? 'À propos' : 'About'}
             </span>
@@ -119,15 +120,22 @@ export default function About() {
                 </>
               )}
             </h1>
+            </div>
+            <p className="text-[#525257] text-base md:text-lg leading-[1.65] max-w-[420px] lg:pb-3">
+              {isFr
+                ? "Construit et opéré depuis Bruxelles. Un outil qui répond vraiment au téléphone, pas une démo."
+                : 'Built and run from Brussels. A tool that actually answers the phone, not a demo.'}
+            </p>
           </div>
         </section>
 
         {/* ── ORIGIN STORY ─────────────────────────────────────── */}
         <section
           aria-labelledby="story-heading"
-          className="px-6 pb-20 md:pb-28"
+          className="px-6 pb-14 md:pb-20"
         >
-          <div className="max-w-[820px] mx-auto">
+          <div className="max-w-[1240px] mx-auto">
+            <div className="max-w-[760px]">
             <h2 id="story-heading" className="sr-only">
               {isFr ? 'Notre histoire' : 'Our story'}
             </h2>
@@ -139,8 +147,8 @@ export default function About() {
               </p>
               <p>
                 {isFr
-                  ? 'Les solutions existantes coûtaient trop cher (réceptionnistes humains à 38 000 $/an) ou étaient trop primitives (répondeurs sans intelligence). Personne ne proposait l\'évidence : une IA vocale capable de tenir une vraie conversation, prendre un rendez-vous, et qualifier un lead.'
-                  : 'Existing solutions were either too expensive (human receptionists at $38,000/year) or too primitive (dumb voicemail). Nobody offered the obvious: a voice AI that could hold a real conversation, book an appointment, and qualify a lead.'}
+                  ? 'Les solutions existantes coûtaient trop cher (réceptionnistes humains à 38 000 €/an) ou étaient trop primitives (répondeurs sans intelligence). Personne ne proposait l\'évidence : une IA vocale capable de tenir une vraie conversation, prendre un rendez-vous, et qualifier un lead.'
+                  : 'Existing solutions were either too expensive (human receptionists at 38,000 EUR/year) or too primitive (dumb voicemail). Nobody offered the obvious: a voice AI that could hold a real conversation, book an appointment, and qualify a lead.'}
               </p>
               <blockquote
                 className="border-l-0 pl-0 my-10"
@@ -157,6 +165,7 @@ export default function About() {
                   ? 'Qwillio répond aujourd\'hui aux appels de cliniques, garages, salons, restaurants et cabinets d\'avocats. Notre engagement reste le même : un outil qui marche, sans engagement, sans surprise.'
                   : 'Qwillio answers calls today for clinics, garages, salons, restaurants and law firms. Our commitment stays the same: a tool that works, no lock-in, no surprises.'}
               </p>
+            </div>
             </div>
           </div>
         </section>

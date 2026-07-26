@@ -22,8 +22,8 @@ const FILTERS: { key: OutcomeFilter; label: string }[] = [
 
 const OUTCOME_STYLES: Record<string, { badge: string; avatar: string; label: string }> = {
   interested: {
-    badge: 'bg-indigo-500/10 text-indigo-400',
-    avatar: 'bg-indigo-500/10 text-indigo-400 ring-indigo-500/30',
+    badge: 'bg-primary-500/10 text-primary-400',
+    avatar: 'bg-primary-500/10 text-primary-400 ring-primary-500/30',
     label: 'Intéressé',
   },
   converted: {
@@ -235,7 +235,7 @@ export default function Calls() {
             onClick={() => setActiveFilter(key)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
               activeFilter === key
-                ? 'bg-indigo-500 text-white'
+                ? 'bg-primary-500 text-white'
                 : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70'
             }`}
           >
