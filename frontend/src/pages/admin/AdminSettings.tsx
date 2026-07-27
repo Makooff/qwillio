@@ -1,82 +1,66 @@
-﻿import { useEffect, useState, useCallback } from 'react';
-import api from '../../services/api';
-import OrbsLoader from '../../components/OrbsLoader';
+import { useEffect, useState, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Save, AlertTriangle, Clock, Phone, Server, Database,
-  CheckCircle2, XCircle, Loader2, Brain, Mail, DollarSign,
-  Shield, Target, Mic, MapPin,
-  RefreshCw, Timer, BarChart3, Key, Lock,
-  MessageSquare, Search, ChevronDown, ChevronRight,
+  Save, AlertTriangle, Clock, Phone, Target, Server, ScrollText,
+  ChevronRight, Loader2, X, Plus, CheckCircle2, XCircle,
 } from 'lucide-react';
+import api from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { pro } from '../../styles/pro-theme';
-import TabSysteme from '../../components/admin/TabSysteme';
+import { Card, SectionHead, PageHeader, PrimaryBtn, GhostBtn } from '../../components/pro/ProBlocks';
 import TabLogs from '../../components/admin/TabLogs';
 
-// ── Types for tabs ────────────────────────────────────────────────────────────
+/**
+ * Admin settings, in the shape of the client account page: one column, sections
+ * that open one at a time.
+ *
+ * Only settings the backend actually stores are here. The previous version put
+ * `activeDays`, `retryDelay` and `maxRetries` on screen as editable fields —
+ * they marked the page dirty, and `POST /admin/bot-config` dropped all three on
+ * the floor. It also carried walls of hardcoded read-only rows (scoring table,
+ * pricing grid, cron schedules, 45 env var names with permanently green dots)
+ * that reported nothing real.
+ */
 
-type SettingsTab = 'Configuration' | 'Système' | 'Logs';
-
-const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-
-const NICHES = [
-  { id: 'dental',        label: 'Dentaire',        score: 7 },
-  { id: 'medical',       label: 'Médical',         score: 6 },
-  { id: 'law',           label: 'Juridique',       score: 5 },
-  { id: 'salon',         label: 'Salon',           score: 5 },
-  { id: 'restaurant',    label: 'Restaurant',      score: 4 },
-  { id: 'garage',        label: 'Garage auto',     score: 6 },
-  { id: 'hotel',         label: 'Hôtel',           score: 3 },
-  { id: 'home_services', label: 'Services maison', score: 8 },
-];
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Config {
   startHour: number;
   endHour: number;
   callsPerDay: number;
   callIntervalSeconds: number;
-  activeDays: number[];
   maxCallDuration: number;
-  retryDelay: number;
-  maxRetries: number;
+  vapiSilenceTimeout: number;
   prospectionQuotaPerDay: number;
   minPriorityScore: number;
   targetCities: string[];
   targetNiches: string[];
   apifyTargetCities: string[];
-  vapiModel: string;
-  vapiVoiceId: string;
-  vapiStability: number;
-  vapiSimilarityBoost: number;
-  vapiStyle: number;
-  vapiLatency: number;
-  vapiInterruptionMs: number;
-  vapiSilenceTimeout: number;
-  vapiMaxDuration: number;
-  smsEnabled: boolean;
-  prospectionRadius: number;
-  timezone: string;
-  resendFrom: string;
-  resendReplyTo: string;
-  jwtExpiresIn: string;
-  bcryptRounds: number;
 }
 
+/** Exactly the keys `POST /admin/bot-config` persists — nothing else. */
 const DEFAULT: Config = {
-  startHour: 9, endHour: 18, callsPerDay: 50,
-  callIntervalSeconds: 1200, activeDays: [1, 2, 3, 4, 5],
-  maxCallDuration: 600, retryDelay: 3600, maxRetries: 3,
+  startHour: 9, endHour: 18, callsPerDay: 50, callIntervalSeconds: 1200,
+  maxCallDuration: 600, vapiSilenceTimeout: 10,
   prospectionQuotaPerDay: 30, minPriorityScore: 10,
   targetCities: [], targetNiches: [], apifyTargetCities: [],
-  vapiModel: 'gpt-4-turbo', vapiVoiceId: '21m00Tcm4TlvDq8ikWAM',
-  vapiStability: 0.45, vapiSimilarityBoost: 0.82, vapiStyle: 0.35,
-  vapiLatency: 4, vapiInterruptionMs: 200, vapiSilenceTimeout: 10, vapiMaxDuration: 480,
-  smsEnabled: false, prospectionRadius: 5000, timezone: 'Europe/Brussels',
-  resendFrom: 'Qwillio <hello@qwillio.com>', resendReplyTo: 'contact@qwillio.com',
-  jwtExpiresIn: '24h', bcryptRounds: 12,
 };
+
+const NICHES = [
+  { id: 'home_services', label: 'Services à domicile' },
+  { id: 'dental', label: 'Dentaire' },
+  { id: 'medical', label: 'Médical' },
+  { id: 'law', label: 'Juridique' },
+  { id: 'salon', label: 'Salon' },
+  { id: 'garage', label: 'Garage auto' },
+  { id: 'restaurant', label: 'Restaurant' },
+  { id: 'hotel', label: 'Hôtel' },
+];
+
+const inputCls = 'h-9 px-3 rounded-xl text-[13px] outline-none transition-colors w-full';
+const inputStyle = { background: pro.panel, color: pro.text, border: `1px solid ${pro.border}` };
 
 function fmtUptime(seconds: number) {
   const d = Math.floor(seconds / 86400);
@@ -86,84 +70,192 @@ function fmtUptime(seconds: number) {
   return h > 0 ? `${h}h ${m}min` : `${m}min`;
 }
 
-// ─── Shared sub-components ────────────────────────────────────────────────────
+// ─── Primitives (module scope: declaring them inside the component remounted
+// every input on each keystroke, which is what kept stealing focus) ───────────
 
-function Section({ title, icon: Icon, children, defaultOpen = true }: {
-  title: string; icon: React.ElementType; children: React.ReactNode; defaultOpen?: boolean;
+function Row({
+  icon: Icon, label, hint, open, onClick,
+}: {
+  icon: typeof Clock; label: string; hint?: string; open: boolean; onClick: () => void;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-2xl overflow-hidden border"
-         style={{ background: 'rgba(255,255,255,0.03)', borderColor: pro.border }}>
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2.5 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors"
-      >
-        {open
-          ? <ChevronDown  className="w-3.5 h-3.5" style={{ color: pro.textTer }} />
-          : <ChevronRight className="w-3.5 h-3.5" style={{ color: pro.textTer }} />}
-        <Icon className="w-4 h-4" style={{ color: pro.textSec }} />
-        <span className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: pro.textSec }}>
-          {title}
-        </span>
-      </button>
-      {open && <div className="px-5 pb-5 pt-0">{children}</div>}
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={open}
+      className="w-full flex items-center gap-3 px-4 h-[58px] text-left transition-colors"
+    >
+      <span className="w-8 h-8 rounded-lg grid place-items-center flex-shrink-0"
+            style={{ background: 'rgba(255,255,255,0.05)', color: pro.text }}>
+        <Icon size={15} />
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[13px] font-medium truncate" style={{ color: pro.text }}>{label}</span>
+        {hint && <span className="block text-[11.5px] truncate" style={{ color: pro.textTer }}>{hint}</span>}
+      </span>
+      <ChevronRight
+        size={15}
+        className="transition-transform flex-shrink-0"
+        style={{ color: pro.textTer, transform: open ? 'rotate(90deg)' : 'none' }}
+      />
+    </button>
+  );
+}
+
+function Panel({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return (
+    <AnimatePresence initial={false}>
+      {open && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          className="overflow-hidden"
+        >
+          <div className="px-4 pb-5 pt-1">{children}</div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function NumField({
+  label, value, onChange, min, max, unit,
+}: {
+  label: string; value: number; onChange: (n: number) => void;
+  min?: number; max?: number; unit?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[12px]" style={{ color: pro.textSec }}>
+        {label}{unit ? ` (${unit})` : ''}
+      </span>
+      <input
+        type="number"
+        value={value}
+        min={min}
+        max={max}
+        onChange={e => onChange(Number(e.target.value))}
+        className={`${inputCls} mt-1`}
+        style={inputStyle}
+      />
+    </label>
+  );
+}
+
+function TagList({
+  label, values, onAdd, onRemove, placeholder,
+}: {
+  label: string; values: string[]; placeholder: string;
+  onAdd: (v: string) => void; onRemove: (v: string) => void;
+}) {
+  const [draft, setDraft] = useState('');
+  const commit = () => {
+    const v = draft.trim();
+    if (!v) return;
+    onAdd(v);
+    setDraft('');
+  };
+  return (
+    <div>
+      <span className="text-[12px]" style={{ color: pro.textSec }}>{label}</span>
+      <div className="flex gap-2 mt-1">
+        <input
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } }}
+          placeholder={placeholder}
+          className={inputCls}
+          style={inputStyle}
+        />
+        <button
+          type="button"
+          onClick={commit}
+          aria-label={`Ajouter à ${label}`}
+          className="h-9 w-9 rounded-xl grid place-items-center flex-shrink-0"
+          style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.text }}
+        >
+          <Plus size={14} />
+        </button>
+      </div>
+      {values.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {values.map(v => (
+            <span key={v} className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1.5 rounded-lg text-[12px]"
+                  style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.textSec }}>
+              {v}
+              <button type="button" onClick={() => onRemove(v)} aria-label={`Retirer ${v}`} style={{ color: pro.textTer }}>
+                <X size={11} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+function StatusLine({ label, ok }: { label: string; ok: boolean | string }) {
+  const isOk = ok === true || ok === 'optional';
+  return (
+    <div className="flex items-center justify-between py-2 border-b last:border-0" style={{ borderColor: pro.border }}>
+      <span className="text-[13px]" style={{ color: pro.textSec }}>{label}</span>
+      {isOk
+        ? <CheckCircle2 size={14} style={{ color: pro.ok }} />
+        : <XCircle size={14} style={{ color: pro.bad }} />}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+type SectionKey = 'calls' | 'prospection' | 'system' | 'logs' | 'danger';
 
 export default function AdminSettings() {
-  const [activeTab, setActiveTab]   = useState<SettingsTab>('Configuration');
-  const [config, setConfig]         = useState<Config>(DEFAULT);
+  const [config, setConfig] = useState<Config>(DEFAULT);
   const [savedConfig, setSavedConfig] = useState<Config>(DEFAULT);
-  const [loading, setLoading]       = useState(true);
-  const [saving, setSaving]         = useState(false);
-  const [confirmPause, setConfirmPause]   = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [open, setOpen] = useState<SectionKey | null>('calls');
+  const [health, setHealth] = useState<Record<string, boolean | string> | null>(null);
+  const [sysInfo, setSysInfo] = useState<Record<string, unknown> | null>(null);
+  const [confirmPause, setConfirmPause] = useState(false);
   const [confirmResume, setConfirmResume] = useState(false);
-  const [health, setHealth]         = useState<Record<string, boolean | string> | null>(null);
-  const [sysInfo, setSysInfo]       = useState<Record<string, unknown> | null>(null);
-  const [prospecting, setProspecting] = useState<Record<string, unknown> | null>(null);
-  const [aiStats, setAiStats]       = useState<Record<string, unknown> | null>(null);
-  const [newCity, setNewCity]       = useState('');
-  const [newApifyCity, setNewApifyCity] = useState('');
   const { toasts, add: toast, remove } = useToast();
 
-  // ── Dirty detection ───────────────────────────────────────────────────────
   const isDirty = JSON.stringify(config) !== JSON.stringify(savedConfig);
 
-  // ── Load ──────────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
     try {
-      const [cfg, h, sys, p, ai] = await Promise.all([
+      const [cfg, h, sys] = await Promise.all([
         api.get('/admin/bot-config').catch(() => ({ data: null })),
         api.get('/bot/health').catch(() => ({ data: {} })),
         api.get('/admin/system').catch(() => ({ data: null })),
-        api.get('/prospecting/status').catch(() => ({ data: null })),
-        api.get('/ai/stats').catch(() => ({ data: null })),
       ]);
-      const merged = cfg.data ? { ...DEFAULT, ...cfg.data } : DEFAULT;
+      // Keep only the keys we can save, so nothing on screen is a dead control.
+      const merged: Config = { ...DEFAULT };
+      if (cfg.data) {
+        for (const k of Object.keys(DEFAULT) as (keyof Config)[]) {
+          if (cfg.data[k] !== undefined) (merged as any)[k] = cfg.data[k];
+        }
+      }
       setConfig(merged);
       setSavedConfig(merged);
       setHealth(h.data);
       setSysInfo(sys.data);
-      setProspecting(p.data);
-      setAiStats(ai.data);
-    } catch { /* silent */ }
+    } catch { /* the page still works with defaults */ }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
-  // ── Save ──────────────────────────────────────────────────────────────────
   const save = async () => {
     setSaving(true);
     try {
       await api.post('/admin/bot-config', config);
       setSavedConfig(config);
-      toast('Configuration sauvegardée', 'success');
+      toast('Configuration sauvegardée');
     } catch {
       toast('Erreur sauvegarde', 'error');
     } finally {
@@ -171,695 +263,197 @@ export default function AdminSettings() {
     }
   };
 
+  const set = <K extends keyof Config>(k: K, v: Config[K]) => setConfig(c => ({ ...c, [k]: v }));
+
+  const toggleNiche = (id: string) =>
+    setConfig(c => ({
+      ...c,
+      targetNiches: c.targetNiches.includes(id)
+        ? c.targetNiches.filter(x => x !== id)
+        : [...c.targetNiches, id],
+    }));
+
   const pauseAll = async () => {
-    try { await api.post('/bot/stop'); toast('Bot arrêté', 'success'); }
+    try { await api.post('/bot/stop'); toast('Bot arrêté'); }
     catch { toast('Erreur', 'error'); }
     finally { setConfirmPause(false); }
   };
 
   const resumeAll = async () => {
-    try { await api.post('/bot/start'); toast('Bot démarré', 'success'); }
+    try { await api.post('/bot/start'); toast('Bot démarré'); }
     catch { toast('Erreur', 'error'); }
     finally { setConfirmResume(false); }
   };
 
-  const toggleDay = (d: number) => {
-    setConfig(prev => ({
-      ...prev,
-      activeDays: prev.activeDays.includes(d)
-        ? prev.activeDays.filter(x => x !== d)
-        : [...prev.activeDays, d].sort(),
-    }));
-  };
+  const toggle = (k: SectionKey) => setOpen(o => (o === k ? null : k));
 
-  const toggleNiche = (niche: string) => {
-    setConfig(prev => ({
-      ...prev,
-      targetNiches: prev.targetNiches.includes(niche)
-        ? prev.targetNiches.filter(x => x !== niche)
-        : [...prev.targetNiches, niche],
-    }));
-  };
+  if (loading) {
+    return (
+      <div className="max-w-[720px] py-20 text-center">
+        <Loader2 size={20} className="animate-spin mx-auto" style={{ color: pro.textTer }} />
+      </div>
+    );
+  }
 
-  const addCity = (type: 'targetCities' | 'apifyTargetCities', value: string, setter: (v: string) => void) => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    setConfig(prev => ({
-      ...prev,
-      [type]: prev[type].includes(trimmed) ? prev[type] : [...prev[type], trimmed],
-    }));
-    setter('');
-  };
-
-  const removeCity = (type: 'targetCities' | 'apifyTargetCities', city: string) => {
-    setConfig(prev => ({ ...prev, [type]: prev[type].filter(c => c !== city) }));
-  };
-
-  // ── Shared styles ──────────────────────────────────────────────────────────
-  const inputStyle = {
-    background: pro.bg,
-    color: pro.text,
-    border: `1px solid ${pro.border}`,
-    borderRadius: '12px',
-  };
-  const inputCls = "w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none tabular-nums";
-  const rowCls   = "flex justify-between py-2 border-b last:border-0";
-
-  const InfoRow = ({ l, v, c }: { l: string; v: string | number; c?: string }) => (
-    <div className={rowCls} style={{ borderColor: 'rgba(255,255,255,0.03)' }}>
-      <span className="text-[11px]" style={{ color: pro.textSec }}>{l}</span>
-      <span className="text-[11px] font-semibold tabular-nums" style={{ color: c ?? pro.text }}>{v}</span>
-    </div>
-  );
-
-  const NumInput = ({ label, value, onChange, min, max, step, unit }: {
-    label: string; value: number; onChange: (v: number) => void;
-    min?: number; max?: number; step?: number; unit?: string;
-  }) => (
-    <div>
-      <label className="text-[10px] mb-1 block" style={{ color: pro.textSec }}>
-        {label}{unit ? ` (${unit})` : ''}
-      </label>
-      <input
-        type="number" min={min} max={max} step={step} value={value}
-        onChange={e => onChange(Number(e.target.value))}
-        className={inputCls}
-        style={inputStyle}
-      />
-    </div>
-  );
-
-  if (loading) return (
-    <div className="flex items-center justify-center py-32">
-      <OrbsLoader size={40} fullscreen={false} />
-    </div>
-  );
+  const uptime = typeof sysInfo?.uptime === 'number' ? fmtUptime(sysInfo.uptime as number) : '—';
 
   return (
-    <div className="space-y-5 max-w-[1200px]">
+    <div className="max-w-[720px] space-y-6">
       <ToastContainer toasts={toasts} remove={remove} />
 
-      {/* ── Header ────────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: pro.text }}>Paramètres</h1>
-          <p className="text-[12.5px] mt-0.5" style={{ color: pro.textSec }}>
-            Configuration complète du système
-          </p>
-        </div>
-        {activeTab === 'Configuration' && (
+      <PageHeader
+        title="Paramètres"
+        subtitle="Ce que le bot fait, et quand."
+        right={
           <div className="flex items-center gap-2">
-            {isDirty && (
-              <div className="flex items-center gap-1.5 mr-1">
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: pro.warn }} />
-                <span className="text-[11.5px]" style={{ color: pro.warn }}>Modifications non sauvegardées</span>
+            {isDirty && <span className="text-[12px]" style={{ color: pro.warn }}>Non sauvegardé</span>}
+            <PrimaryBtn onClick={save} disabled={saving || !isDirty}>
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Sauvegarder
+            </PrimaryBtn>
+          </div>
+        }
+      />
+
+      <div>
+        <SectionHead title="Bot" />
+        <Card>
+          <Row icon={Clock} label="Horaires d’appel" open={open === 'calls'} onClick={() => toggle('calls')}
+               hint={`${config.startHour}h – ${config.endHour}h · ${config.callsPerDay} appels/jour`} />
+          <Panel open={open === 'calls'}>
+            <div className="grid grid-cols-2 gap-3">
+              <NumField label="Heure de début" value={config.startHour} min={0} max={23} onChange={v => set('startHour', v)} />
+              <NumField label="Heure de fin" value={config.endHour} min={0} max={23} onChange={v => set('endHour', v)} />
+              <NumField label="Appels par jour" value={config.callsPerDay} min={1} max={500} onChange={v => set('callsPerDay', v)} />
+              <NumField label="Intervalle" unit="s" value={config.callIntervalSeconds} min={60} onChange={v => set('callIntervalSeconds', v)} />
+              <NumField label="Durée max d’appel" unit="s" value={config.maxCallDuration} min={60} onChange={v => set('maxCallDuration', v)} />
+              <NumField label="Silence avant raccroché" unit="s" value={config.vapiSilenceTimeout} min={5} onChange={v => set('vapiSilenceTimeout', v)} />
+            </div>
+          </Panel>
+
+          <div style={{ borderTop: `1px solid ${pro.border}` }}>
+            <Row icon={Target} label="Prospection" open={open === 'prospection'} onClick={() => toggle('prospection')}
+                 hint={`${config.prospectionQuotaPerDay}/jour · score ≥ ${config.minPriorityScore} · ${config.targetNiches.length} niches`} />
+            <Panel open={open === 'prospection'}>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <NumField label="Quota par jour" value={config.prospectionQuotaPerDay} min={1} onChange={v => set('prospectionQuotaPerDay', v)} />
+                  <NumField label="Score minimum" value={config.minPriorityScore} min={0} onChange={v => set('minPriorityScore', v)} />
+                </div>
+
+                <div>
+                  <span className="text-[12px]" style={{ color: pro.textSec }}>Niches ciblées</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {NICHES.map(n => {
+                      const active = config.targetNiches.includes(n.id);
+                      return (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={() => toggleNiche(n.id)}
+                          aria-pressed={active}
+                          className="h-8 px-3 rounded-xl text-[12px] font-medium transition-colors"
+                          style={{
+                            background: active ? pro.text : pro.panel,
+                            color: active ? '#0B0B0D' : pro.textSec,
+                            border: `1px solid ${active ? pro.text : pro.border}`,
+                          }}
+                        >
+                          {n.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <TagList
+                  label="Villes de prospection"
+                  placeholder="Bruxelles"
+                  values={config.targetCities}
+                  onAdd={v => set('targetCities', [...config.targetCities, v])}
+                  onRemove={v => set('targetCities', config.targetCities.filter(x => x !== v))}
+                />
+                <TagList
+                  label="Villes Apify (Google Maps)"
+                  placeholder="Namur"
+                  values={config.apifyTargetCities}
+                  onAdd={v => set('apifyTargetCities', [...config.apifyTargetCities, v])}
+                  onRemove={v => set('apifyTargetCities', config.apifyTargetCities.filter(x => x !== v))}
+                />
+              </div>
+            </Panel>
+          </div>
+        </Card>
+      </div>
+
+      <div>
+        <SectionHead title="Serveur" />
+        <Card>
+          <Row icon={Server} label="État des services" open={open === 'system'} onClick={() => toggle('system')}
+               hint={`Uptime ${uptime}`} />
+          <Panel open={open === 'system'}>
+            {health && Object.keys(health).length > 0 ? (
+              <div>
+                {Object.entries(health).map(([k, v]) => <StatusLine key={k} label={k} ok={v} />)}
+              </div>
+            ) : (
+              <p className="text-[13px]" style={{ color: pro.textTer }}>État indisponible.</p>
+            )}
+            {sysInfo && (
+              <div className="mt-4 grid grid-cols-2 gap-2 text-[12.5px]" style={{ color: pro.textSec }}>
+                <span>Node {String(sysInfo.nodeVersion ?? '—')}</span>
+                <span>Env {String(sysInfo.env ?? '—')}</span>
+                <span>{String(sysInfo.prospects ?? '—')} prospects</span>
+                <span>{String(sysInfo.clients ?? '—')} clients</span>
               </div>
             )}
-            <button type="button" onClick={load} title="Rafraîchir"
-              className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors" style={{ color: pro.textSec }}>
-              <RefreshCw className="w-4 h-4" />
-            </button>
-            <button type="button" onClick={save} disabled={saving}
-              className="inline-flex items-center gap-2 px-4 h-9 text-[12.5px] font-medium rounded-xl transition-colors disabled:opacity-50"
-              style={{ background: pro.text, color: '#0B0B0D' }}>
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              {saving ? 'Sauvegarde…' : 'Sauvegarder'}
-            </button>
+          </Panel>
+
+          <div style={{ borderTop: `1px solid ${pro.border}` }}>
+            <Row icon={ScrollText} label="Journaux" open={open === 'logs'} onClick={() => toggle('logs')}
+                 hint="Erreurs et activité du serveur" />
+            <Panel open={open === 'logs'}>
+              <TabLogs active={open === 'logs'} />
+            </Panel>
           </div>
-        )}
+        </Card>
       </div>
 
-      {/* ── Tab bar ───────────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
-        {(['Configuration', 'Système', 'Logs'] as SettingsTab[]).map(tab => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className="px-4 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors"
-            style={activeTab === tab
-              ? { background: 'rgba(255,255,255,0.08)', color: pro.text }
-              : { color: pro.textSec }}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Système tab ───────────────────────────────────────────────────────── */}
-      {activeTab === 'Système' && <TabSysteme active={activeTab === 'Système'} />}
-
-      {/* ── Logs tab ──────────────────────────────────────────────────────────── */}
-      {activeTab === 'Logs' && <TabLogs active={activeTab === 'Logs'} />}
-
-      {/* ── Configuration tab ─────────────────────────────────────────────────── */}
-      {activeTab === 'Configuration' && (<>
-
-      {/* ── SECTION 1: Planning & Appels ──────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Section title="Planning des appels" icon={Clock}>
-          <div className="grid grid-cols-2 gap-4 mb-5">
-            <NumInput label="Heure début" value={config.startHour} min={0} max={23}
-              onChange={v => setConfig(p => ({ ...p, startHour: v }))} />
-            <NumInput label="Heure fin" value={config.endHour} min={0} max={23}
-              onChange={v => setConfig(p => ({ ...p, endHour: v }))} />
-            <NumInput label="Appels / jour" value={config.callsPerDay} min={1} max={500}
-              onChange={v => setConfig(p => ({ ...p, callsPerDay: v }))} />
-            <NumInput label="Intervalle" value={config.callIntervalSeconds} min={30} unit="sec"
-              onChange={v => setConfig(p => ({ ...p, callIntervalSeconds: v }))} />
-          </div>
-          <label className="text-[10px] mb-2 block" style={{ color: pro.textSec }}>Jours actifs</label>
-          <div className="flex flex-wrap gap-1.5">
-            {DAYS.map((day, i) => {
-              const d  = i + 1;
-              const on = config.activeDays.includes(d);
-              return (
-                <button key={d} type="button" onClick={() => toggleDay(d)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
-                  style={on
-                    ? { background: 'rgba(255,255,255,0.06)', borderColor: pro.borderHi, color: pro.text }
-                    : { background: 'rgba(255,255,255,0.02)', borderColor: pro.border, color: pro.textSec }}>
-                  {day.slice(0, 3)}
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-4 pt-3" style={{ borderTop: `1px solid rgba(255,255,255,0.04)` }}>
-            <InfoRow l="Timezone"          v={config.timezone} />
-            <InfoRow l="Blackout lundi"    v="< 10h" />
-            <InfoRow l="Blackout vendredi" v="> 14h" />
-            <InfoRow l="Jours prioritaires" v="Mar, Mer, Jeu" c={pro.ok} />
-          </div>
-        </Section>
-
-        <Section title="Paramètres appels" icon={Phone}>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <NumInput label="Durée max" value={config.maxCallDuration} min={60} unit="sec"
-              onChange={v => setConfig(p => ({ ...p, maxCallDuration: v }))} />
-            <NumInput label="Délai re-tentative" value={config.retryDelay} min={300} unit="sec"
-              onChange={v => setConfig(p => ({ ...p, retryDelay: v }))} />
-            <NumInput label="Tentatives max" value={config.maxRetries} min={1} max={10}
-              onChange={v => setConfig(p => ({ ...p, maxRetries: v }))} />
-            <NumInput label="Silence timeout" value={config.vapiSilenceTimeout} min={5} max={60} unit="sec"
-              onChange={v => setConfig(p => ({ ...p, vapiSilenceTimeout: v }))} />
-          </div>
-          <div className="pt-3" style={{ borderTop: `1px solid rgba(255,255,255,0.04)` }}>
-            <InfoRow l="Durée max VAPI"   v={`${config.vapiMaxDuration}s (${Math.round(config.vapiMaxDuration / 60)}min)`} />
-            <InfoRow l="Seuil interruption" v={`${config.vapiInterruptionMs}ms`} />
-            <InfoRow l="Seuil lead chaud"  v="Score ≥ 8/10" c={pro.ok} />
-            <InfoRow l="Seuil lead qualifié" v="Score ≥ 6/10" c={pro.warn} />
-            <InfoRow l="SMS activé"        v={config.smsEnabled ? 'Oui' : 'Non'} c={config.smsEnabled ? pro.ok : pro.bad} />
-          </div>
-        </Section>
-      </div>
-
-      {/* ── SECTION 2: VAPI Voice & Prospection ──────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Section title="Voix & VAPI" icon={Mic}>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="text-[10px] mb-1 block" style={{ color: pro.textSec }}>Modèle AI</label>
-              <input type="text" value={config.vapiModel} readOnly
-                className={`${inputCls} opacity-60`} style={inputStyle} />
+      <div>
+        <SectionHead title="Zone dangereuse" />
+        <Card>
+          <Row icon={AlertTriangle} label="Arrêter ou relancer le bot" open={open === 'danger'} onClick={() => toggle('danger')}
+               hint="Coupe tous les appels sortants" />
+          <Panel open={open === 'danger'}>
+            <p className="text-[13px] leading-relaxed mb-3" style={{ color: pro.textSec }}>
+              L’arrêt coupe immédiatement la boucle d’appels sortants. Les appels entrants
+              de vos clients ne sont pas concernés.
+            </p>
+            <div className="flex items-center gap-2">
+              <GhostBtn onClick={() => setConfirmPause(true)}><Phone size={13} /> Arrêter le bot</GhostBtn>
+              <GhostBtn onClick={() => setConfirmResume(true)}>Démarrer le bot</GhostBtn>
             </div>
-            <div>
-              <label className="text-[10px] mb-1 block" style={{ color: pro.textSec }}>Voice ID (ElevenLabs)</label>
-              <input type="text" value={config.vapiVoiceId} readOnly
-                className={`${inputCls} opacity-60 text-[10px]`} style={inputStyle} />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            {[
-              { l: 'Stabilité',  v: config.vapiStability },
-              { l: 'Similarité', v: config.vapiSimilarityBoost },
-              { l: 'Style',      v: config.vapiStyle },
-            ].map(s => (
-              <div key={s.l} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <p className="text-lg font-bold tabular-nums" style={{ color: pro.text }}>{s.v}</p>
-                <p className="text-[8px] uppercase mt-1" style={{ color: pro.textSec }}>{s.l}</p>
-              </div>
-            ))}
-          </div>
-          <InfoRow l="Latence optimisée" v={`Niveau ${config.vapiLatency}`} />
-          <InfoRow l="Voix Ashley (EN)"  v="Rachel — ElevenLabs" />
-          <InfoRow l="Voix Marie (FR)"   v="Amélie — ElevenLabs" />
-          <InfoRow l="Filler injection"  v="Activé" c={pro.ok} />
-          <InfoRow l="Speaker boost"     v="Activé" c={pro.ok} />
-          <InfoRow l="Streaming TTS"     v="Activé (FR)" c={pro.ok} />
-          <InfoRow l="Tutoiement FR"     v="salon, restaurant, garage" />
-          <InfoRow l="Vouvoiement FR"    v="law, medical, hotel" />
-        </Section>
-
-        <Section title="Prospection" icon={Target}>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <NumInput label="Quota / jour" value={config.prospectionQuotaPerDay} min={1} max={500}
-              onChange={v => setConfig(p => ({ ...p, prospectionQuotaPerDay: v }))} />
-            <NumInput label="Score minimum" value={config.minPriorityScore} min={0} max={22}
-              onChange={v => setConfig(p => ({ ...p, minPriorityScore: v }))} />
-          </div>
-
-          <label className="text-[10px] mb-2 block" style={{ color: pro.textSec }}>Niches ciblées</label>
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {NICHES.map(n => {
-              const on = config.targetNiches.includes(n.id);
-              return (
-                <button key={n.id} type="button" onClick={() => toggleNiche(n.id)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
-                  style={on
-                    ? { background: 'rgba(255,255,255,0.06)', borderColor: pro.borderHi, color: pro.text }
-                    : { background: 'rgba(255,255,255,0.02)', borderColor: pro.border, color: pro.textSec }}>
-                  {n.label} ({n.score}pts)
-                </button>
-              );
-            })}
-          </div>
-
-          <label className="text-[10px] mb-1.5 block" style={{ color: pro.textSec }}>Villes de prospection</label>
-          <div className="flex gap-2 mb-2">
-            <input type="text" value={newCity} onChange={e => setNewCity(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addCity('targetCities', newCity, setNewCity)}
-              placeholder="Ajouter une ville..."
-              className={`${inputCls} flex-1`} style={inputStyle} />
-            <button type="button" onClick={() => addCity('targetCities', newCity, setNewCity)}
-              className="px-3 py-2 rounded-xl text-xs font-medium"
-              style={{ background: 'rgba(255,255,255,0.06)', color: pro.textSec, border: `1px solid ${pro.border}` }}>+</button>
-          </div>
-          <div className="flex flex-wrap gap-1 mb-4">
-            {config.targetCities.map(c => (
-              <span key={c} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px]"
-                style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${pro.border}`, color: pro.text }}>
-                {c}
-                <button type="button" onClick={() => removeCity('targetCities', c)} className="ml-0.5" style={{ color: pro.bad }}>×</button>
-              </span>
-            ))}
-          </div>
-
-          <div className="pt-3" style={{ borderTop: `1px solid rgba(255,255,255,0.04)` }}>
-            <InfoRow l="Rayon scraping"   v={`${config.prospectionRadius}m`} />
-            <InfoRow l="Score max possible" v="22 points" />
-            <InfoRow l="Local presence"   v={`${prospecting?.localPresenceNumbers ?? 20} numéros US`} />
-            <InfoRow l="Variantes A/B"    v="2 scripts / niche" />
-            <InfoRow l="Seuil A/B winner" v="200 appels + 15% diff" c={pro.ok} />
-          </div>
-        </Section>
-      </div>
-
-      {/* ── SECTION 3: Apify Scraping ────────────────────────────────────────── */}
-      <Section title="Scraping Apify (Google Maps)" icon={Search} defaultOpen={false}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <label className="text-[10px] mb-1.5 block" style={{ color: pro.textSec }}>Villes Apify scraping</label>
-            <div className="flex gap-2 mb-2">
-              <input type="text" value={newApifyCity} onChange={e => setNewApifyCity(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addCity('apifyTargetCities', newApifyCity, setNewApifyCity)}
-                placeholder="Ajouter une ville..."
-                className={`${inputCls} flex-1`} style={inputStyle} />
-              <button type="button" onClick={() => addCity('apifyTargetCities', newApifyCity, setNewApifyCity)}
-                className="px-3 py-2 rounded-xl text-xs font-medium"
-                style={{ background: 'rgba(255,255,255,0.06)', color: pro.textSec, border: `1px solid ${pro.border}` }}>+</button>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {config.apifyTargetCities.map(c => (
-                <span key={c} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px]"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${pro.border}`, color: pro.text }}>
-                  {c}
-                  <button type="button" onClick={() => removeCity('apifyTargetCities', c)} className="ml-0.5" style={{ color: pro.bad }}>×</button>
-                </span>
-              ))}
-            </div>
-          </div>
-          <div>
-            <InfoRow l="Actor Apify"     v="compass~crawler-google-places" />
-            <InfoRow l="Schedule"        v="Tous les jours 2h UTC" />
-            <InfoRow l="Niches scrapées" v="home_services, dental" />
-            <InfoRow l="Résultats / niche" v="~50-200 prospects" />
-          </div>
-        </div>
-      </Section>
-
-      {/* ── SECTION 4: AI & Follow-ups ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Section title="Intelligence artificielle" icon={Brain}>
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {[
-              { l: 'Mutations', v: aiStats?.totalMutations ?? 0 },
-              { l: 'Tests A/B', v: aiStats?.activeTests ?? 0 },
-              { l: 'Décisions', v: aiStats?.totalDecisions ?? 0 },
-            ].map(s => (
-              <div key={s.l} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <p className="text-lg font-bold tabular-nums" style={{ color: pro.text }}>{String(s.v)}</p>
-                <p className="text-[8px] uppercase mt-0.5" style={{ color: pro.textSec }}>{s.l}</p>
-              </div>
-            ))}
-          </div>
-          <InfoRow l="Ce mois"           v={String(aiStats?.mutationsThisMonth ?? 0)} c={pro.warn} />
-          <InfoRow l="Reverts"           v={String(aiStats?.reverts ?? 0)}            c={pro.bad} />
-          <InfoRow l="Confiance moyenne" v={`${Number(aiStats?.avgConfidenceScore ?? 0).toFixed(0)}%`} />
-          <div className="mt-3 pt-3" style={{ borderTop: `1px solid rgba(255,255,255,0.04)` }}>
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: pro.textSec }}>Garde-fous IA</p>
-            <InfoRow l="Max mutations / niche / sem."    v="1" />
-            <InfoRow l="Max changements opening / mois"  v="1" />
-            <InfoRow l="Max mots script"                v="195 (90sec)" />
-            <InfoRow l="Confiance minimum"              v="75%" c={pro.warn} />
-            <InfoRow l="Min data points"                v="20 appels" />
-            <InfoRow l="Appels validation"              v="50 appels" />
-            <InfoRow l="Moteurs"                        v="Claude + GPT-4 Turbo" />
-          </div>
-        </Section>
-
-        <Section title="Follow-ups & séquences" icon={MessageSquare}>
-          <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: pro.textSec }}>Après appel qualifié</p>
-          <div className="space-y-1.5 mb-4">
-            {[
-              { time: 'Immédiat',  type: 'SMS',   desc: 'Lien vers devis',                    color: pro.info },
-              { time: 'T + 5 min', type: 'Email', desc: 'Vidéo Loom de démo',                color: pro.info },
-              { time: 'T + 24h',   type: 'Email', desc: 'Rappel si devis non vu',            color: pro.warn },
-              { time: 'T + 48h',   type: 'Email', desc: 'Dashboard preview + témoignage',    color: pro.bad },
-            ].map((s, i) => (
-              <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl"
-                style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(255,255,255,0.04)` }}>
-                <div className="w-1 h-8 rounded-full" style={{ background: s.color }} />
-                <div className="flex-1">
-                  <p className="text-xs font-medium" style={{ color: pro.text }}>{s.type} — {s.desc}</p>
-                  <p className="text-[10px]" style={{ color: pro.textSec }}>{s.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: pro.textSec }}>Callback retry (pas de réponse)</p>
-          <InfoRow l="1er rappel"  v="+ 2 heures" />
-          <InfoRow l="2ème rappel" v="+ 24 heures" />
-          <InfoRow l="3ème rappel" v="+ 72 heures" />
-          <div className="mt-3 pt-3" style={{ borderTop: `1px solid rgba(255,255,255,0.04)` }}>
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: pro.textSec }}>Détection lead chaud</p>
-            <InfoRow l="Score ≥ 8" v="Discord alert + callback 5min" c={pro.ok} />
-            <InfoRow l="Critères"  v="Durée, questions, prix, démo" />
-          </div>
-        </Section>
-      </div>
-
-      {/* ── SECTION 5: Scoring ───────────────────────────────────────────────── */}
-      <Section title="Scoring prospects (max 22 pts)" icon={BarChart3} defaultOpen={false}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: pro.textSec }}>Signaux business (max 10 pts)</p>
-            <InfoRow l="Google rating ≥ 4.5"     v="+3 pts" c={pro.ok} />
-            <InfoRow l="Avis ≥ 50"               v="+2 pts" c={pro.ok} />
-            <InfoRow l="Site web"                v="+2 pts" c={pro.ok} />
-            <InfoRow l="Avis ≥ 30"               v="+2 pts" c={pro.ok} />
-            <InfoRow l="Avis < 20 & rating ≥ 4.0" v="+1 pt"  c={pro.ok} />
-          </div>
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: pro.textSec }}>Points par niche (max 8 pts)</p>
-            {NICHES.map(n => (
-              <InfoRow key={n.id} l={n.label} v={`${n.score} pts`} c={pro.warn} />
-            ))}
-          </div>
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: pro.textSec }}>Signaux timing (max 4 pts)</p>
-            <InfoRow l="États prioritaires (TX, FL)" v="+2 pts" c={pro.info} />
-            <InfoRow l="Grandes villes US"           v="+1 pt"  c={pro.info} />
-            <InfoRow l="Ancienneté business"         v="+1 pt"  c={pro.info} />
-            <div className="mt-3 pt-3" style={{ borderTop: `1px solid rgba(255,255,255,0.04)` }}>
-              <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: pro.textSec }}>Top villes</p>
-              <p className="text-[10px] leading-relaxed" style={{ color: pro.textSec }}>
-                Houston, Dallas, LA, Miami, Atlanta, Phoenix, San Antonio, San Diego, Orlando, Tampa
-              </p>
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* ── SECTION 6: Services & santé ──────────────────────────────────────── */}
-      <Section title="Services & santé" icon={Shield}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-          {health && [
-            { k: 'vapi',     label: 'VAPI',     desc: 'Appels Voice AI' },
-            { k: 'openai',   label: 'OpenAI',   desc: 'GPT-4 Turbo' },
-            { k: 'twilio',   label: 'Twilio',   desc: 'SMS & validation' },
-            { k: 'stripe',   label: 'Stripe',   desc: 'Paiements' },
-            { k: 'resend',   label: 'Resend',   desc: 'Emails' },
-            { k: 'database', label: 'Database', desc: 'PostgreSQL / Neon' },
-            { k: 'discord',  label: 'Discord',  desc: 'Alertes' },
-            { k: 'apify',    label: 'Apify',    desc: 'Scraping Maps' },
-          ].map(s => {
-            const val        = health[s.k] ?? false;
-            const isOptional = val === 'optional';
-            const ok         = isOptional || !!val;
-            const color      = isOptional ? pro.warn : ok ? pro.ok : pro.bad;
-            const bg         = isOptional ? 'rgba(245,158,11,0.05)' : ok ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)';
-            return (
-              <div key={s.k} className="flex items-center gap-3 p-3 rounded-xl"
-                style={{ background: bg, border: `1px solid ${pro.border}` }}>
-                {ok
-                  ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color }} />
-                  : <XCircle      className="w-4 h-4 flex-shrink-0" style={{ color }} />}
-                <div className="min-w-0">
-                  <p className="text-xs font-medium" style={{ color: pro.text }}>{s.label}</p>
-                  <p className="text-[9px]" style={{ color: pro.textSec }}>
-                    {s.desc}{isOptional ? ' (optionnel)' : ''}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Section>
-
-      {/* ── SECTION 7: System, DB, Crons ─────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Section title="Système" icon={Server}>
-          <InfoRow l="Backend"      v="Render (Express/TS)" />
-          <InfoRow l="Frontend"     v="Vercel (React 19/Vite)" />
-          <InfoRow l="Domaine"      v="qwillio.com" />
-          <InfoRow l="API"          v="qwillio.onrender.com" />
-          <InfoRow l="Uptime"       v={sysInfo?.uptime ? fmtUptime(Number(sysInfo.uptime)) : '—'} c={pro.ok} />
-          <InfoRow l="Node.js"      v={String(sysInfo?.nodeVersion ?? '—')} />
-          <InfoRow l="Environnement" v={String(sysInfo?.env ?? '—')} />
-          <InfoRow l="Timezone"     v={config.timezone} />
-          <InfoRow l="Rate limit"   v="500 req / 15min" />
-        </Section>
-
-        <Section title="Base de données" icon={Database}>
-          <div className="flex items-center gap-2 mb-3 p-2 rounded-xl"
-            style={{ background: 'rgba(34,197,94,0.05)', border: `1px solid rgba(34,197,94,0.15)` }}>
-            <CheckCircle2 className="w-3.5 h-3.5" style={{ color: pro.ok }} />
-            <span className="text-xs font-semibold" style={{ color: pro.ok }}>Connectée</span>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5 mb-3">
-            {[
-              { l: 'Prospects', v: sysInfo?.prospects ?? '—' },
-              { l: 'Clients',   v: sysInfo?.clients   ?? '—' },
-              { l: 'Appels',    v: sysInfo?.calls      ?? '—' },
-            ].map(s => (
-              <div key={s.l} className="rounded-lg p-2 text-center" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <p className="text-base font-bold tabular-nums" style={{ color: pro.text }}>{String(s.v)}</p>
-                <p className="text-[8px] uppercase" style={{ color: pro.textSec }}>{s.l}</p>
-              </div>
-            ))}
-          </div>
-          <InfoRow l="ORM"      v="Prisma" />
-          <InfoRow l="Modèles"  v="45 tables" />
-          <InfoRow l="Provider" v="Neon (prod) / PG16 (local)" />
-          <InfoRow l="Logs max" v="500 entrées in-memory" />
-        </Section>
-
-        <Section title="Cron Jobs (26)" icon={Timer}>
-          <div className="space-y-0 text-[10px]">
-            {[
-              { l: 'Prospection',          v: '9h Lun-Ven' },
-              { l: 'Appels sortants',      v: '*/20min 9-17h' },
-              { l: 'Follow-ups',           v: '*/30min' },
-              { l: 'Follow-ups client',    v: 'Chaque heure' },
-              { l: 'Analytics',            v: '23h55' },
-              { l: 'Reset quotidien',      v: '00h01' },
-              { l: 'Trial check',          v: '8h' },
-              { l: 'Onboarding retry',     v: '*/5min' },
-              { l: 'Booking rappels',      v: '*/h à :30' },
-              { l: 'Client analytics',     v: '23h50' },
-              { l: 'AI optimization',      v: 'Dim 0h' },
-              { l: 'Phone validation',     v: '*/10min' },
-              { l: 'Niche learning',       v: 'Dim 1h' },
-              { l: 'Stale call cleanup',   v: '*/15min' },
-              { l: 'Agent payments',       v: '*/h à :15' },
-              { l: 'Agent accounting',     v: '1er du mois 2h' },
-              { l: 'Agent inventory',      v: '*/6h' },
-              { l: 'Agent inv. forecast',  v: '3h' },
-              { l: 'Agent email sync',     v: '*/10min' },
-              { l: 'Agent email follow',   v: '*/h à :30' },
-              { l: 'Apify scraping',       v: '2h UTC' },
-              { l: 'Outbound engine',      v: '*/20min 9-17 CT' },
-              { l: 'A/B analysis',         v: '6h UTC' },
-              { l: 'Best-time learning',   v: '4h UTC' },
-              { l: 'Script learning',      v: 'Dim 1h UTC' },
-              { l: 'Rescoring',            v: 'On-demand' },
-            ].map(r => (
-              <div key={r.l} className="flex justify-between py-1 last:border-0"
-                   style={{ borderBottom: `1px solid rgba(255,255,255,0.02)` }}>
-                <span style={{ color: pro.textSec }}>{r.l}</span>
-                <span className="font-mono" style={{ color: pro.text }}>{r.v}</span>
-              </div>
-            ))}
-          </div>
-        </Section>
-      </div>
-
-      {/* ── SECTION 8: Tarifs + Email + Sécurité ─────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Section title="Grille tarifaire" icon={DollarSign}>
-          <div className="space-y-2">
-            {[
-              { plan: 'Solo',       monthly: '99 €',    minutes: '250',   overage: '0,45 €', color: pro.info },
-              { plan: 'Starter',    monthly: '249 €',   minutes: '750',   overage: '0,39 €', color: pro.info },
-              { plan: 'Pro',        monthly: '599 €',   minutes: '2 000', overage: '0,35 €', color: pro.textSec },
-              { plan: 'Enterprise', monthly: '1 290 €', minutes: '5 000', overage: '0,30 €', color: pro.warn },
-            ].map(p => (
-              <div key={p.plan} className="flex items-center gap-3 p-3 rounded-xl"
-                style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(255,255,255,0.04)` }}>
-                <div className="w-1.5 h-10 rounded-full" style={{ background: p.color }} />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold" style={{ color: pro.text }}>{p.plan}</p>
-                  <p className="text-[10px]" style={{ color: pro.textSec }}>{p.minutes} min/mois · Dépassement: {p.overage}/min</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold" style={{ color: pro.text }}>{p.monthly}/mo</p>
-                  <p className="text-[10px]" style={{ color: pro.textSec }}>sans frais d'installation</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="Email & notifications" icon={Mail}>
-          <InfoRow l="Provider"    v="Resend" />
-          <InfoRow l="From"        v={config.resendFrom} />
-          <InfoRow l="Reply-to"    v={config.resendReplyTo} />
-          <InfoRow l="SMS Provider" v="Twilio" />
-          <InfoRow l="SMS actif"   v={config.smsEnabled ? 'Oui' : 'Non'} c={config.smsEnabled ? pro.ok : pro.bad} />
-          <div className="mt-3 pt-3" style={{ borderTop: `1px solid rgba(255,255,255,0.04)` }}>
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: pro.textSec }}>Discord Webhooks</p>
-            <InfoRow l="Principal" v="Configuré"     c={pro.ok} />
-            <InfoRow l="Appels"    v="Canal dédié" />
-            <InfoRow l="Leads"     v="Canal dédié" />
-            <InfoRow l="Système"   v="Canal dédié" />
-            <InfoRow l="Alertes"   v="Canal dédié" />
-          </div>
-        </Section>
-
-        <Section title="Sécurité & auth" icon={Lock}>
-          <InfoRow l="JWT expiration"  v={config.jwtExpiresIn} />
-          <InfoRow l="Refresh token"   v="7 jours" />
-          <InfoRow l="Bcrypt rounds"   v={String(config.bcryptRounds)} />
-          <InfoRow l="Google OAuth"    v="Activé"    c={pro.ok} />
-          <InfoRow l="DocuSign"        v="Configuré" c={pro.ok} />
-          <div className="mt-3 pt-3" style={{ borderTop: `1px solid rgba(255,255,255,0.04)` }}>
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: pro.textSec }}>Protection</p>
-            <InfoRow l="Rate limiting" v="500 req / 15min" />
-            <InfoRow l="CORS"          v="Whitelist domains" />
-            <InfoRow l="Helmet"        v="Security headers" />
-            <InfoRow l="Trial abuse"   v="Fingerprinting actif" c={pro.ok} />
-          </div>
-        </Section>
-      </div>
-
-      {/* ── SECTION 9: Env vars ───────────────────────────────────────────────── */}
-      <Section title="Variables d'environnement (45+)" icon={Key} defaultOpen={false}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6">
-          {[
-            { cat: 'VAPI',        vars: ['VAPI_PRIVATE_KEY', 'VAPI_PUBLIC_KEY', 'VAPI_ASSISTANT_ID', 'VAPI_PHONE_NUMBER_ID', 'VAPI_WEBHOOK_SECRET'] },
-            { cat: 'AI',          vars: ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY'] },
-            { cat: 'Twilio',      vars: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_API_KEY_SID', 'TWILIO_API_KEY_SECRET', 'TWILIO_PHONE_NUMBER'] },
-            { cat: 'Stripe',      vars: ['STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY', 'STRIPE_WEBHOOK_SECRET'] },
-            { cat: 'Email',       vars: ['RESEND_API_KEY', 'RESEND_FROM_EMAIL', 'RESEND_REPLY_TO'] },
-            { cat: 'Discord',     vars: ['DISCORD_WEBHOOK_URL', 'DISCORD_WEBHOOK_CALLS', 'DISCORD_WEBHOOK_LEADS', 'DISCORD_WEBHOOK_SYSTEM', 'DISCORD_WEBHOOK_ALERTS'] },
-            { cat: 'Auth',        vars: ['JWT_SECRET', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_PLACES_API_KEY'] },
-            { cat: 'DocuSign',    vars: ['DOCUSIGN_INTEGRATION_KEY', 'DOCUSIGN_USER_ID', 'DOCUSIGN_ACCOUNT_ID', 'DOCUSIGN_PRIVATE_KEY'] },
-            { cat: 'Infra',       vars: ['DATABASE_URL', 'NODE_ENV', 'PORT', 'FRONTEND_URL', 'API_BASE_URL', 'TZ', 'SENTRY_DSN'] },
-            { cat: 'Prospection', vars: ['APIFY_API_KEY', 'APIFY_ACTOR_ID', 'CALLS_PER_DAY', 'AUTOMATION_START_HOUR', 'AUTOMATION_END_HOUR', 'CALL_INTERVAL_MINUTES', 'MIN_PRIORITY_SCORE'] },
-            { cat: 'Admin',       vars: ['ADMIN_EMAIL', 'ADMIN_SECRET'] },
-            { cat: 'Démo',        vars: ['DEMO_LINK_EN', 'DEMO_LINK_FR'] },
-          ].map(group => (
-            <div key={group.cat} className="mb-3">
-              <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: pro.textSec }}>{group.cat}</p>
-              {group.vars.map(v => (
-                <div key={v} className="flex items-center gap-1.5 py-1"
-                     style={{ borderBottom: `1px solid rgba(255,255,255,0.02)` }}>
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: pro.ok }} />
-                  <span className="text-[10px] font-mono truncate" style={{ color: pro.textSec }}>{v}</span>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* ── SECTION 10: Local Presence ────────────────────────────────────────── */}
-      <Section title="Local presence dialing (20 numéros)" icon={MapPin} defaultOpen={false}>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2">
-          {[
-            { code: '212', city: 'New York' },      { code: '310', city: 'Los Angeles' },
-            { code: '312', city: 'Chicago' },        { code: '713', city: 'Houston' },
-            { code: '602', city: 'Phoenix' },        { code: '215', city: 'Philadelphia' },
-            { code: '210', city: 'San Antonio' },    { code: '619', city: 'San Diego' },
-            { code: '214', city: 'Dallas' },         { code: '408', city: 'San Jose' },
-            { code: '512', city: 'Austin' },         { code: '617', city: 'Boston' },
-            { code: '415', city: 'San Francisco' },  { code: '303', city: 'Denver' },
-            { code: '404', city: 'Atlanta' },        { code: '305', city: 'Miami' },
-            { code: '702', city: 'Las Vegas' },      { code: '206', city: 'Seattle' },
-            { code: '615', city: 'Nashville' },      { code: '504', city: 'New Orleans' },
-          ].map(n => (
-            <div key={n.code} className="p-2 rounded-lg text-center"
-              style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(255,255,255,0.04)` }}>
-              <p className="text-sm font-bold font-mono" style={{ color: pro.textSec }}>{n.code}</p>
-              <p className="text-[9px]" style={{ color: pro.textTer }}>{n.city}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* ── DANGER ZONE ───────────────────────────────────────────────────────── */}
-      <div className="p-5 rounded-2xl"
-           style={{ background: 'rgba(239,68,68,0.05)', border: `1px solid rgba(239,68,68,0.2)` }}>
-        <div className="flex items-center gap-2 mb-4">
-          <AlertTriangle className="w-4 h-4" style={{ color: pro.bad }} />
-          <h3 className="text-sm font-semibold" style={{ color: pro.bad }}>Zone dangereuse</h3>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => setConfirmPause(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-            style={{ background: 'rgba(239,68,68,0.10)', border: `1px solid rgba(239,68,68,0.3)`, color: pro.bad }}>
-            Arrêter le bot
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirmResume(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-            style={{ background: 'rgba(34,197,94,0.10)', border: `1px solid rgba(34,197,94,0.3)`, color: pro.ok }}>
-            Démarrer le bot
-          </button>
-        </div>
+          </Panel>
+        </Card>
       </div>
 
       <ConfirmDialog
         open={confirmPause}
-        title="Arrêter le bot"
-        message="Arrêter immédiatement toutes les opérations du bot ?"
-        confirmLabel="Arrêter"
-        onConfirm={pauseAll}
         onCancel={() => setConfirmPause(false)}
+        onConfirm={pauseAll}
+        title="Arrêter le bot ?"
+        message="Tous les appels sortants s’arrêtent immédiatement."
+        confirmLabel="Arrêter"
+        danger
       />
       <ConfirmDialog
         open={confirmResume}
-        title="Démarrer le bot"
-        message="Relancer le bot et reprendre les opérations ?"
+        onCancel={() => setConfirmResume(false)}
+        onConfirm={resumeAll}
+        title="Démarrer le bot ?"
+        message="La boucle d’appels sortants reprend selon les horaires configurés."
         confirmLabel="Démarrer"
         danger={false}
-        onConfirm={resumeAll}
-        onCancel={() => setConfirmResume(false)}
       />
-      </>)}
     </div>
   );
 }
