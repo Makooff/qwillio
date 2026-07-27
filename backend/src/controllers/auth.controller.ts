@@ -8,7 +8,7 @@ import { env } from '../config/env';
 import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from '../utils/validators';
 import { emailService } from '../services/email.service';
 import { logger } from '../config/logger';
-import { getPlan } from '../config/plans';
+import { getPlan, PLANS } from '../config/plans';
 import { affiliateService } from '../services/affiliate.service';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
@@ -291,70 +291,134 @@ export class AuthController {
     }
   }
 
-  async onboard(req: any, res: Response) {
+  /**
+   * Step 2 of sign-up: pick a plan and register a card.
+   *
+   * Returns a Stripe Checkout URL. The Client row is not created here — the
+   * `checkout.session.completed` webhook does that, so a customer only ever
+   * exists once a card actually cleared.
+   */
+  async startSubscription(req: any, res: Response) {
     try {
-      const { businessName, businessPhone, industry, website, planType } = req.body;
+      const businessName = String(req.body?.businessName || '').trim();
+      const planType = String(req.body?.planType || '').trim();
+      const industry = req.body?.industry ? String(req.body.industry).trim() : null;
 
       if (!businessName || !planType) {
         return res.status(400).json({ error: 'Business name and plan are required' });
       }
 
-      const user = await prisma.user.update({
-        where: { id: req.userId },
+      // getPlan falls back to `starter` for anything it does not recognise, so
+      // an unknown value would quietly bill a plan the customer never chose.
+      if (!Object.prototype.hasOwnProperty.call(PLANS, planType.toLowerCase())) {
+        return res.status(400).json({ error: 'unknown_plan' });
+      }
+      const plan = getPlan(planType);
+
+      const user = await prisma.user.findUnique({ where: { id: req.userId } });
+      if (!user) return res.status(401).json({ error: 'Non authentifié' });
+
+      // Already paying: nothing to buy. Sending them through Checkout again
+      // would open a second subscription on the same account.
+      const existing = await prisma.client.findUnique({ where: { userId: user.id } });
+      if (existing?.stripeSubscriptionId) {
+        return res.status(409).json({ error: 'subscription_exists', clientId: existing.id });
+      }
+
+      // Kept on the User so the webhook can name the business it creates.
+      await prisma.user.update({
+        where: { id: user.id },
         data: {
           businessName,
-          businessPhone: businessPhone || null,
           industry: industry || null,
-          website: website || null,
-          planType,
+          website: req.body?.website ? String(req.body.website).trim() : undefined,
+          businessPhone: req.body?.businessPhone ? String(req.body.businessPhone).trim() : undefined,
+          planType: plan.id,
+        },
+      });
+
+      // Lazy: importing the Stripe service at module scope builds the Stripe
+      // client on load, which breaks every test that touches this controller
+      // without a STRIPE_SECRET_KEY.
+      const { stripeService } = await import('../services/stripe.service');
+      const checkoutUrl = await stripeService.createSelfOnboardingCheckout(
+        { id: user.id, email: user.email },
+        plan.id,
+        businessName,
+        industry,
+      );
+      if (!checkoutUrl) return res.status(502).json({ error: 'checkout_unavailable' });
+
+      res.json({ checkoutUrl });
+    } catch (error: any) {
+      logger.error('[auth] startSubscription failed', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * Final step of sign-up: the receptionist is configured, open the dashboard.
+   *
+   * Requires a Client that already carries a Stripe subscription, so this can
+   * never be the step that hands out access on its own. Setting
+   * `onboardingCompleted` here (and only here) is also what keeps existing
+   * customers grandfathered: they already have the flag and never come back
+   * through this path.
+   */
+  async onboard(req: any, res: Response) {
+    try {
+      const { businessName, businessPhone, industry, website } = req.body;
+
+      const user = await prisma.user.findUnique({ where: { id: req.userId } });
+      if (!user) return res.status(401).json({ error: 'Non authentifié' });
+
+      const client = await prisma.client.findUnique({ where: { userId: user.id } });
+      if (!client || !client.stripeSubscriptionId) {
+        return res.status(402).json({ error: 'payment_required' });
+      }
+
+      const planType = client.planType;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          businessName: businessName || user.businessName,
+          businessPhone: businessPhone ?? user.businessPhone,
+          industry: industry ?? user.industry,
+          website: website ?? user.website,
           onboardingCompleted: true,
         },
       });
 
-      // Create or reuse Client record (idempotent — safe if user retries onboarding)
-      let clientId: string | null = null;
-      if (user.role === 'client') {
-        const existing = await prisma.client.findUnique({ where: { userId: user.id } });
-        if (existing) {
-          clientId = existing.id;
-          logger.info(`Client record already exists for ${user.email} — reusing clientId: ${existing.id}`);
-        } else {
-          const dashboardToken = crypto.randomBytes(32).toString('hex');
-          const plan = getPlan(planType);
-          const trialEnd = new Date();
-          trialEnd.setDate(trialEnd.getDate() + plan.trialDays);
+      // Mirror anything the owner corrected during onboarding onto the Client,
+      // which is what the receptionist is actually built from.
+      await prisma.client.update({
+        where: { id: client.id },
+        data: {
+          businessName: businessName || client.businessName,
+          businessType: industry || client.businessType,
+          contactPhone: businessPhone ?? client.contactPhone,
+          // Deliberately not touching transferNumber: this field is the
+          // business's own line, and the onboarding copy promises forwarding is
+          // configured later. Copying it here would make the receptionist
+          // transfer callers to the number it answers on.
+          onboardingCompletedAt: new Date(),
+        },
+      });
 
-          const client = await prisma.client.create({
-            data: {
-              userId: user.id,
-              businessName,
-              businessType: industry || 'other',
-              contactName: user.name,
-              contactEmail: user.email,
-              contactPhone: businessPhone || null,
-              country: 'BE',
-              planType,
-              setupFee: 0,
-              monthlyFee: plan.monthlyPriceEur,
-              currency: 'EUR',
-              dashboardToken,
-              onboardingStatus: 'completed',
-              subscriptionStatus: 'active',
-              isTrial: true,
-              trialStartDate: new Date(),
-              trialEndDate: trialEnd,
-              monthlyMinutesQuota: plan.includedMinutes,
-            },
-          });
-          clientId = client.id;
-          logger.info(`Client record created for ${user.email} — clientId: ${client.id}`);
+      const clientId = client.id;
 
-          // Referral attribution, decided once here at sign-up. A bad or missing
-          // code is ignored rather than blocking onboarding.
-          const referralCode = typeof req.body?.referralCode === 'string' ? req.body.referralCode : null;
-          await affiliateService.attribute(client.id, referralCode);
-        }
-      }
+      // Referral attribution, decided once. A bad or missing code is ignored
+      // rather than blocking the customer from finishing.
+      const referralCode = typeof req.body?.referralCode === 'string' ? req.body.referralCode : null;
+      await affiliateService.attribute(clientId, referralCode);
+
+      // Now that there is a real config to build from, provision the assistant.
+      // Fire-and-forget: the 5-min retry cron picks up failures.
+      void import('../services/onboarding.service').then(({ onboardingService }) =>
+        onboardingService.onboardClient(clientId).catch((err: Error) => {
+          logger.error(`Async onboarding failed for client ${clientId}: ${err.message}`);
+        }),
+      );
 
       logger.info(`Onboarding completed for user ${user.email} — plan: ${planType}`);
 
@@ -373,6 +437,7 @@ export class AuthController {
           role: user.role,
           emailConfirmed: user.emailConfirmed,
           onboardingCompleted: true,
+          hasSubscription: true,
           clientId,
         },
       });
@@ -483,7 +548,7 @@ export class AuthController {
           createdAt: true,
           emailConfirmed: true,
           onboardingCompleted: true,
-          client: { select: { id: true } },
+          client: { select: { id: true, stripeSubscriptionId: true } },
         },
       });
 
@@ -493,7 +558,15 @@ export class AuthController {
         expiresIn: env.JWT_EXPIRES_IN,
       });
       const { client, ...rest } = user;
-      res.json({ ...rest, clientId: client?.id || null, token: freshToken });
+      res.json({
+        ...rest,
+        clientId: client?.id || null,
+        // Drives the sign-up gate in the router. Existing customers reach the
+        // dashboard on `onboardingCompleted` alone, so a legacy client with no
+        // Stripe subscription is never bounced back to the card step.
+        hasSubscription: !!client?.stripeSubscriptionId,
+        token: freshToken,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

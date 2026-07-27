@@ -1,6 +1,10 @@
 ﻿// === FILE: Clients.tsx ===
 import { useEffect, useState } from 'react';
-import { RefreshCw, Search, Plus, ArrowRight, TrendingUp } from 'lucide-react';
+import { RefreshCw, Search, Plus, ArrowRight, TrendingUp, Loader2 } from 'lucide-react';
+import Modal from '../components/ui/Modal';
+import SlideSheet from '../components/ui/SlideSheet';
+import ToastContainer from '../components/ui/Toast';
+import { useToast } from '../hooks/useToast';
 
 const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com';
 const getH = (): Record<string, string> => {
@@ -74,9 +78,20 @@ function SkeletonCard() {
   );
 }
 
-interface ClientCardProps { client: Cl }
+const PLAN_OPTIONS = [
+  { key: 'solo', label: 'Solo — 99 €/mois' },
+  { key: 'starter', label: 'Starter — 249 €/mois' },
+  { key: 'pro', label: 'Pro — 599 €/mois' },
+  { key: 'enterprise', label: 'Enterprise — 1290 €/mois' },
+];
 
-function ClientCard({ client }: ClientCardProps) {
+const fieldCls =
+  'w-full px-3 py-2.5 rounded-lg border border-white/[0.1] bg-white/[0.04] text-[13px] text-white ' +
+  'placeholder-white/25 outline-none transition-colors focus:border-primary-500';
+
+interface ClientCardProps { client: Cl; onOpen: (c: Cl) => void }
+
+function ClientCard({ client, onOpen }: ClientCardProps) {
   const status = getClientStatus(client);
   const sm = STATUS_META[status] ?? STATUS_META.active;
   const [bg, fg] = avatarColor(client.id);
@@ -139,6 +154,7 @@ function ClientCard({ client }: ClientCardProps) {
         <span className="text-[11px] text-white/25">{fmtDate(client.createdAt)}</span>
         <button
           aria-label={`Voir le client ${client.businessName}`}
+          onClick={() => onOpen(client)}
           className="flex items-center gap-1 text-[12px] text-primary-400 hover:text-primary-300 transition-colors
                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded"
         >
@@ -150,11 +166,22 @@ function ClientCard({ client }: ClientCardProps) {
   );
 }
 
+const EMPTY_FORM = {
+  businessName: '', contactName: '', contactEmail: '',
+  contactPhone: '', city: '', businessType: '', planType: 'starter',
+};
+
 export default function Clients() {
   const [items, setItems] = useState<Cl[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [q, setQ] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [formError, setFormError] = useState('');
+  const [detail, setDetail] = useState<Cl | null>(null);
+  const { toasts, add: toast, remove } = useToast();
 
   const load = () => {
     setRefreshing(true);
@@ -166,6 +193,39 @@ export default function Clients() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const submitNewClient = async () => {
+    setFormError('');
+    if (!form.businessName.trim() || !form.contactEmail.trim()) {
+      setFormError('Le nom de l’entreprise et l’email sont obligatoires.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/api/admin/clients`, {
+        method: 'POST',
+        headers: { ...getH(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFormError(
+          res.status === 409
+            ? 'Un client existe déjà avec cet email.'
+            : (data?.error || 'La création a échoué.'),
+        );
+        return;
+      }
+      setCreating(false);
+      setForm(EMPTY_FORM);
+      toast(`${form.businessName} ajouté`);
+      load();
+    } catch {
+      setFormError('La création a échoué. Réessayez.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const filtered = items.filter(c =>
     !q ||
@@ -200,6 +260,7 @@ export default function Clients() {
           </button>
           <button
             aria-label="Ajouter un nouveau client"
+            onClick={() => { setForm(EMPTY_FORM); setFormError(''); setCreating(true); }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-500 hover:bg-primary-400
                        text-[12px] text-white font-medium transition-colors
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
@@ -270,10 +331,132 @@ export default function Clients() {
           </div>
         ) : (
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filtered.map(c => <ClientCard key={c.id} client={c} />)}
+            {filtered.map(c => <ClientCard key={c.id} client={c} onOpen={setDetail} />)}
           </ul>
         )}
       </section>
+
+      {/* Create a customer by hand — the founder signs people up by phone,
+          long before they ever create a login. */}
+      <Modal
+        open={creating}
+        onClose={() => setCreating(false)}
+        title="Nouveau client"
+        subtitle="Le compte peut être créé avant que le client ne s’inscrive."
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => setCreating(false)}
+              className="px-4 py-2 rounded-lg text-[13px] text-white/60 hover:text-white transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={submitNewClient}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-400
+                         text-[13px] text-white font-medium transition-colors disabled:opacity-40"
+            >
+              {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Créer le client
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          {formError && (
+            <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12.5px] text-red-300">
+              {formError}
+            </p>
+          )}
+          <label className="block">
+            <span className="text-[12px] text-white/50">Entreprise *</span>
+            <input
+              className={`${fieldCls} mt-1`}
+              value={form.businessName}
+              onChange={e => setForm({ ...form, businessName: e.target.value })}
+              placeholder="Fiduciaire Dupont"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[12px] text-white/50">Email du contact *</span>
+            <input
+              type="email"
+              className={`${fieldCls} mt-1`}
+              value={form.contactEmail}
+              onChange={e => setForm({ ...form, contactEmail: e.target.value })}
+              placeholder="contact@exemple.be"
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-[12px] text-white/50">Nom du contact</span>
+              <input
+                className={`${fieldCls} mt-1`}
+                value={form.contactName}
+                onChange={e => setForm({ ...form, contactName: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="text-[12px] text-white/50">Téléphone</span>
+              <input
+                type="tel"
+                className={`${fieldCls} mt-1`}
+                value={form.contactPhone}
+                onChange={e => setForm({ ...form, contactPhone: e.target.value })}
+                placeholder="+32 470 12 34 56"
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-[12px] text-white/50">Ville</span>
+              <input
+                className={`${fieldCls} mt-1`}
+                value={form.city}
+                onChange={e => setForm({ ...form, city: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="text-[12px] text-white/50">Forfait</span>
+              <select
+                className={`${fieldCls} mt-1`}
+                value={form.planType}
+                onChange={e => setForm({ ...form, planType: e.target.value })}
+              >
+                {PLAN_OPTIONS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+              </select>
+            </label>
+          </div>
+        </div>
+      </Modal>
+
+      <SlideSheet
+        open={!!detail}
+        onClose={() => setDetail(null)}
+        title={detail?.businessName || ''}
+        subtitle={detail?.contactName || undefined}
+      >
+        {detail && (
+          <dl className="space-y-3 text-[13px]">
+            {[
+              ['Email', detail.email],
+              ['Ville', detail.city],
+              ['Forfait', planLabel(detail.plan)],
+              ['MRR', toNum(detail.monthlyFee) > 0 ? `${toNum(detail.monthlyFee).toFixed(0)} €` : '—'],
+              ['Appels', detail.callCount != null ? String(detail.callCount) : '—'],
+              ['Client depuis', fmtDate(detail.createdAt)],
+            ].map(([k, v]) => (
+              <div key={k} className="flex items-center justify-between gap-4 border-b border-white/[0.05] pb-2.5">
+                <dt className="text-white/40">{k}</dt>
+                <dd className="text-white text-right truncate">{v || '—'}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </SlideSheet>
+
+      <ToastContainer toasts={toasts} remove={remove} />
     </main>
   );
 }

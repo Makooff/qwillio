@@ -201,7 +201,7 @@ export default function City() {
               {isFr ? `Testez Qwillio à ${name}` : `Try Qwillio in ${name}`}
             </h2>
             <p className="mt-3 max-w-2xl text-neutral-600">
-              {isFr ? 'Premier mois offert, sans carte. 15 minutes de setup.' : 'First month free, no card. 15 minutes to set up.'}
+              {isFr ? '7 jours d’essai gratuit. 15 minutes de setup.' : '7-day free trial. 15 minutes to set up.'}
             </p>
             <div className="mt-6">
               <Link

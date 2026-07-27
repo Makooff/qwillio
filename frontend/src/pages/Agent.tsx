@@ -257,12 +257,12 @@ export default function Agent() {
                 {isFr ? (
                   <>
                     <span className="text-[#1d1d1f] font-semibold">+197 €</span>
-                    {' '}par module et par mois. Premier mois offert. Sans engagement.
+                    {' '}par module et par mois. 7 jours d’essai gratuit. Sans engagement.
                   </>
                 ) : (
                   <>
                     <span className="text-[#1d1d1f] font-semibold">+197 €</span>
-                    {' '}per module per month. First month free. No commitment.
+                    {' '}per module per month. 7-day free trial. No commitment.
                   </>
                 )}
               </p>
@@ -434,8 +434,8 @@ export default function Agent() {
               </h2>
               <p className="text-[#525257] text-[15px] leading-relaxed max-w-[440px]">
                 {isFr
-                  ? 'Ajoutez un, deux, trois ou les quatre. Activez ou désactivez quand vous voulez. Premier mois offert.'
-                  : 'Add one, two, three or all four. Toggle anytime. First month free.'}
+                  ? 'Ajoutez un, deux, trois ou les quatre. Activez ou désactivez quand vous voulez. 7 jours d’essai gratuit.'
+                  : 'Add one, two, three or all four. Toggle anytime. 7-day free trial.'}
               </p>
             </div>
             </Reveal>
@@ -454,7 +454,7 @@ export default function Agent() {
                 <span className="text-sm text-white/60">/{isFr ? 'mois' : 'month'}</span>
               </div>
               <p className="text-xs mb-6" style={{ color: '#e7bafd' }}>
-                {isFr ? 'Les 4 modules · Premier mois offert' : 'All 4 modules · 1st month free'}
+                {isFr ? 'Les 4 modules · 7 jours d’essai gratuit' : 'All 4 modules · 7-day trial'}
               </p>
               <Link
                 to="/register"

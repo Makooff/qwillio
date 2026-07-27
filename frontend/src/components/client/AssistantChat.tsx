@@ -82,13 +82,19 @@ function VoiceViz({ isFr }: { isFr: boolean }) {
  * Text + browser mic (Web Speech API) + optional spoken replies.
  */
 export default function AssistantChat({
-  isFr = true, onConfigChanged,
+  isFr = true, onConfigChanged, initialMode = 'config', lockMode = false, onCompleted,
 }: {
   isFr?: boolean;
   onConfigChanged?: () => void;
+  /** Mode to open in. Defaults to config, the dashboard's use. */
+  initialMode?: Mode;
+  /** Hides the mode pills, for first-time setup where switching makes no sense. */
+  lockMode?: boolean;
+  /** Onboarding mode: the assistant considers first-time setup finished. */
+  onCompleted?: () => void;
 }) {
-  const [mode, setMode] = useState<Mode>('config');
-  const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: greetingFor('config', isFr) }]);
+  const [mode, setMode] = useState<Mode>(initialMode);
+  const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: greetingFor(initialMode, isFr) }]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [listening, setListening] = useState(false);
@@ -137,6 +143,7 @@ export default function AssistantChat({
       setMessages(m => [...m, { role: 'assistant', content: reply }]);
       speakReply(reply);
       if (res.data?.configChanged) onConfigChanged?.();
+      if (res.data?.completed) onCompleted?.();
     } catch {
       setMessages(m => [...m, { role: 'assistant', content: isFr ? 'Une erreur est survenue. Réessayez.' : 'Something went wrong. Please try again.' }]);
     } finally {
@@ -168,11 +175,9 @@ export default function AssistantChat({
 
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#0A0A0C] overflow-hidden flex flex-col" style={{ height: 480 }}>
-      {/* Header: title + speaker toggle */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-        <span className="text-[13px] font-semibold text-[#F2F2F2]">
-          {isFr ? 'Parler à ma réceptionniste' : 'Talk to my receptionist'}
-        </span>
+      {/* Speaker toggle only: the section above already reads "Réceptionniste
+          IA", so a second title here just said the same thing twice. */}
+      <div className="flex items-center justify-end px-3 py-2 border-b border-white/[0.06]">
         <button
           type="button"
           onClick={() => setSpeak(s => !s)}
@@ -270,7 +275,7 @@ export default function AssistantChat({
           {/* Actions row: mode pills + mic/send */}
           <div className="flex items-center justify-between gap-2 pt-1">
             <div className={cn('flex items-center gap-1', listening && 'opacity-0 invisible')}>
-              {MODES.map(m => {
+              {(lockMode ? [] : MODES).map(m => {
                 const active = mode === m.id;
                 const Icon = m.icon;
                 return (

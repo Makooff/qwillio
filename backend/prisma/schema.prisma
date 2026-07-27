@@ -34,6 +34,7 @@ model User {
   agency              Agency?
   apiKeys             ApiKey[]
   affiliate           Affiliate?
+  savedSearches       SavedSearch[]
 
   @@map("users")
 }
@@ -126,6 +127,11 @@ model Prospect {
   scriptVariantUsed     String?               @map("script_variant_used") @db.VarChar(10)
   state                 String?               @db.VarChar(50)
   isFavorite            Boolean               @default(false) @map("is_favorite")
+  // Sales script written for THIS business, generated on demand and kept so
+  // reopening it costs nothing. The generator's own cache is keyed by niche,
+  // which is why it cannot be relied on for per-prospect copy.
+  salesScript           Json?                 @map("sales_script")
+  salesScriptAt         DateTime?             @map("sales_script_at")
   calls                 Call[]
   campaignSends         CampaignSend[]
   clients               Client[]
@@ -1811,4 +1817,25 @@ model AffiliateCommission {
 
   @@index([affiliateId, status])
   @@map("affiliate_commissions")
+}
+
+/// A prospection search the founder wants to come back to.
+///
+/// Calling 2000+ leads by hand takes many sittings, so a search stores both the
+/// filters and where the calling stopped, letting a session resume instead of
+/// starting from the top every time.
+model SavedSearch {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id") @db.Uuid
+  name           String   @db.VarChar(120)
+  filters        Json
+  lastProspectId String?  @map("last_prospect_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("saved_searches")
 }

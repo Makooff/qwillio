@@ -177,8 +177,8 @@ export default function Terms() {
                     {isFr ? 'Renouvellement automatique. ' : 'Automatic renewal. '}
                   </strong>
                   {isFr
-                    ? "Votre abonnement Qwillio se renouvelle automatiquement à la fin de chaque période de facturation au tarif en vigueur, sauf annulation avant la date de renouvellement. L'essai gratuit de 30 jours se convertit automatiquement en abonnement payant à son terme. Vous pouvez annuler à tout moment depuis votre tableau de bord."
-                    : 'Your Qwillio subscription automatically renews at the end of each billing period at the then-current rate unless you cancel before the renewal date. The 30 day free trial automatically converts to a paid subscription at the end of the trial period. You may cancel at any time from your dashboard.'}
+                    ? "Votre abonnement Qwillio se renouvelle automatiquement à la fin de chaque période de facturation au tarif en vigueur, sauf annulation avant la date de renouvellement. L'essai gratuit de 7 jours se convertit automatiquement en abonnement payant à son terme. Vous pouvez annuler à tout moment depuis votre tableau de bord."
+                    : 'Your Qwillio subscription automatically renews at the end of each billing period at the then-current rate unless you cancel before the renewal date. The 7 day free trial automatically converts to a paid subscription at the end of the trial period. You may cancel at any time from your dashboard.'}
                 </p>
               </aside>
 
@@ -208,14 +208,14 @@ export default function Terms() {
                 <ul className="space-y-3 pl-0 list-none">
                   {(isFr
                     ? [
-                        'Durée : 30 jours.',
+                        'Durée : 7 jours.',
                         "Carte de crédit requise à l'inscription.",
                         "Se renouvelle automatiquement en abonnement payant à la fin de la période d'essai.",
                         'Limité à un essai par personne physique et par entreprise.',
                         'Nous nous réservons le droit de révoquer les essais abusifs et de facturer au tarif standard.',
                       ]
                     : [
-                        'Duration: 30 days.',
+                        'Duration: 7 days.',
                         'Credit card required at signup.',
                         'Automatically renews into a paid subscription at the end of the trial period.',
                         'Limited to one trial per natural person and per business.',

@@ -32,11 +32,19 @@ export const prospectQuerySchema = z.object({
   city: z.string().optional(),
   minScore: z.coerce.number().optional(),
   maxScore: z.coerce.number().optional(),
+  // Separate from score on purpose: the UI shows and filters on interest (0-10),
+  // while `score` is the 0-30 priority score. Folding them together meant the
+  // "8+" pill filtered a different number from the one on screen.
+  minInterest: z.coerce.number().optional(),
+  hasPhone: z.enum(['true', 'false']).optional(),
   search: z.string().optional(),
   favorite: z.enum(['true', 'false']).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
-  sortBy: z.string().default('createdAt'),
+  // Whitelisted: this value is interpolated straight into Prisma's orderBy.
+  sortBy: z
+    .enum(['createdAt', 'businessName', 'score', 'priorityScore', 'interestLevel', 'googleRating', 'googleReviewsCount', 'lastContactDate'])
+    .default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 

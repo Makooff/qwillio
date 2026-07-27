@@ -221,8 +221,8 @@ export default function ComparisonPage() {
                   </h3>
                   <p className="relative text-white/75 text-[15px] leading-relaxed mb-6 max-w-[540px]">
                     {isFr
-                      ? 'Premier mois offert. Sans carte, sans engagement. Comparez par vous-même sur vos vrais appels.'
-                      : 'First month free. No card, no commitment. Compare on your own real calls.'}
+                      ? '7 jours d’essai gratuit. Sans engagement. Comparez par vous-même sur vos vrais appels.'
+                      : '7-day free trial. No commitment. Compare on your own real calls.'}
                   </p>
                   <Link
                     to="/register"

@@ -519,16 +519,16 @@ export default function Landing() {
                     className="text-[clamp(1.9rem,4vw,3.2rem)] font-semibold tracking-[-0.035em] leading-[1.05] max-w-[640px]"
                   >
                     {isFr ? (
-                      <>Trois forfaits. <span className="font-serif italic text-[#7a5fff]">Premier mois offert.</span></>
+                      <>Trois forfaits. <span className="font-serif italic text-[#7a5fff]">7 jours d’essai gratuit.</span></>
                     ) : (
-                      <>Three plans. <span className="font-serif italic text-[#7a5fff]">First month free.</span></>
+                      <>Three plans. <span className="font-serif italic text-[#7a5fff]">7-day free trial.</span></>
                     )}
                   </h2>
                 </div>
                 <p className="text-[#525257] text-sm max-w-[300px] leading-relaxed">
                   {isFr
-                    ? 'Sans engagement. Annulation en un clic. Pas de carte requise pour démarrer.'
-                    : 'No commitment. Cancel in one click. No card required to get started.'}
+                    ? 'Sans engagement. Annulation en un clic. Carte requise, rien n’est débité pendant l’essai.'
+                    : 'No commitment. Cancel in one click. Card required, nothing charged during the trial.'}
                 </p>
               </div>
             </Reveal>
@@ -591,7 +591,7 @@ export default function Landing() {
                           </span>
                         </div>
                         <p className={`text-xs mb-8 ${isHi ? 'text-[#b9a8ff]' : 'text-[#7a5fff]'}`}>
-                          {isFr ? 'Premier mois offert' : 'First month free'}
+                          {isFr ? '7 jours d’essai gratuit' : '7-day free trial'}
                         </p>
 
                         <ul className="space-y-2.5 mb-8" role="list">
@@ -743,8 +743,8 @@ export default function Landing() {
                 <div className="flex flex-col items-start gap-4 lg:items-end lg:text-right pb-4">
                   <p className="text-[#525257] text-[15px] leading-relaxed max-w-[320px] lg:ml-auto">
                     {isFr
-                      ? 'Sans engagement. Sans carte bancaire. Premier mois offert.'
-                      : 'No commitment. No credit card. First month free.'}
+                      ? 'Sans engagement. 7 jours d’essai gratuit.'
+                      : 'No commitment. 7-day free trial.'}
                   </p>
                   <div className="flex flex-wrap gap-3 lg:justify-end">
                     <Link

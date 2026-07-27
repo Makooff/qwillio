@@ -242,7 +242,7 @@ export default function Home() {
       ? 'Meilleur réceptionniste IA en Belgique et en France'
       : 'AI Receptionist for Businesses',
     description: isFr
-      ? 'Qwillio, le réceptionniste IA francophone n°1 pour la Belgique et la France : répond à chaque appel 24/7, prend les rendez-vous, hébergement UE et conforme RGPD. Sans engagement, premier mois offert.'
+      ? 'Qwillio, le réceptionniste IA francophone n°1 pour la Belgique et la France : répond à chaque appel 24/7, prend les rendez-vous, hébergement UE et conforme RGPD. Sans engagement, 7 jours d’essai gratuit.'
       : 'Qwillio is your AI receptionist that answers every call 24/7, books appointments, and never sleeps. Bilingual French / English, EU-hosted, GDPR-friendly.',
     canonical: 'https://qwillio.com/',
   });
@@ -570,12 +570,12 @@ export default function Home() {
                   num: isFr ? '01 / Inscription' : '01 / Sign up',
                   title: isFr ? 'Inscrivez-vous' : 'Sign up',
                   desc: isFr
-                    ? 'Créez votre compte en 2 minutes. Sans carte. Premier mois offert.'
-                    : 'Create your account in 2 minutes. No card. First month free.',
+                    ? 'Créez votre compte en 2 minutes. 7 jours d’essai gratuit.'
+                    : 'Create your account in 2 minutes. 7-day free trial.',
                   points: [
                     { icon: Clock,      label: '2 minutes' },
-                    { icon: CreditCard, label: isFr ? 'Sans carte bancaire' : 'No credit card' },
-                    { icon: Gift,       label: isFr ? '1er mois offert' : '1st month free' },
+                    { icon: CreditCard, label: isFr ? 'Annulable à tout moment' : 'Cancel anytime' },
+                    { icon: Gift,       label: isFr ? '7 jours d’essai' : '7-day trial' },
                   ],
                   accent: '#7a5fff',
                 },
@@ -676,7 +676,7 @@ export default function Home() {
             <div className="flex flex-col items-start gap-4 lg:items-end lg:text-right pb-4">
               <p className="text-[#525257] text-[15px] leading-relaxed max-w-[320px] lg:ml-auto">
                 {isFr
-                  ? 'Sans engagement. Sans carte bancaire. Annulez en un clic.'
+                  ? 'Sans engagement. Annulez en un clic.'
                   : 'No commitment. No credit card. Cancel anytime.'}
               </p>
               <Link

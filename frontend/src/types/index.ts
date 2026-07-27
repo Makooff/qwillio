@@ -5,6 +5,8 @@ export interface User {
   role: string;
   emailConfirmed?: boolean;
   onboardingCompleted?: boolean;
+  /** A Stripe subscription exists, i.e. a card cleared at sign-up. */
+  hasSubscription?: boolean;
   clientId?: string;
 }
 

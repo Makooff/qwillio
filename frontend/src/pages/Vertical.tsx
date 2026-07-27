@@ -506,7 +506,7 @@ export default function Vertical({ secteur: secteurProp }: { secteur?: string } 
           <div className="rounded-3xl border border-neutral-200 bg-neutral-50 p-8 sm:p-12">
             <div className="flex items-center gap-2 text-sm font-medium text-primary-700">
               <Sparkles className="h-4 w-4" />
-              {isFr ? 'Premier mois offert, sans carte' : 'First month free, no card required'}
+              {isFr ? '7 jours d’essai gratuit' : '7-day free trial'}
             </div>
             <h2 className="mt-3 font-outfit text-3xl font-semibold tracking-tight sm:text-4xl">
               {isFr

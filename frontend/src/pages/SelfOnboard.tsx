@@ -1,89 +1,80 @@
-﻿import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import {
-  ArrowRight, ArrowLeft, Check, ChevronRight,
-  Building2, Phone, CreditCard, Loader2, Sparkles, LogOut
+  ArrowLeft, Check, ChevronRight,
+  Building2, Phone, Loader2, Sparkles, SlidersHorizontal, LogOut,
 } from 'lucide-react';
 import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
+import AssistantChat from '../components/client/AssistantChat';
 import { useLang } from '../stores/langStore';
 import api from '../services/api';
 import { getReferral, clearReferral } from '../lib/referral';
 
-type Step = 1 | 2 | 3;
+/**
+ * Last step of sign-up: describe the business and configure the receptionist.
+ *
+ * The card is already registered by now (the guard in App.tsx will not let an
+ * unpaid account in), so nothing here touches billing. Two ways through:
+ * talk it out with the assistant, or fill the fields by hand.
+ */
 
-const plans = [
-  { key: 'solo', name: 'Solo', price: 99, minutes: 250, trial: 'Essai gratuit' },
-  { key: 'starter', name: 'Starter', price: 249, minutes: 750, trial: 'Essai gratuit' },
-  { key: 'pro', name: 'Pro', price: 599, minutes: 2000, popular: true, trial: 'Essai gratuit' },
-  { key: 'enterprise', name: 'Enterprise', price: 1290, minutes: 5000, trial: 'Essai gratuit' },
-];
+type Path = null | 'assistant' | 'manual';
+type Step = 1 | 2;
 
 export default function SelfOnboard() {
   const navigate = useNavigate();
-  const { user, checkAuth, logout } = useAuthStore();
-  const { t } = useLang();
+  const { logout } = useAuthStore();
+  const { t, lang } = useLang();
+  const isFr = lang === 'fr';
+
+  const [path, setPath] = useState<Path>(null);
   const [step, setStep] = useState<Step>(1);
   const [businessName, setBusinessName] = useState('');
   const [industry, setIndustry] = useState('');
   const [website, setWebsite] = useState('');
   const [phone, setPhone] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('pro');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searchParams] = useSearchParams();
 
-  useEffect(() => {
-    if (searchParams.get('payment') === 'cancelled') {
-      setError('Paiement annulé. Vous pouvez réessayer quand vous êtes prêt.');
-      setStep(3); // Go back to plan selection step
-    }
-  }, [searchParams]);
-
-  const handleFinish = async () => {
+  const finish = async (payload: Record<string, unknown> = {}) => {
     setLoading(true);
     setError('');
     try {
       const { data } = await api.post('/auth/onboard', {
-        businessName,
-        businessPhone: phone || null,
-        industry: industry || null,
-        website: website || null,
-        planType: selectedPlan,
+        businessName: businessName.trim() || undefined,
+        businessPhone: phone.trim() || undefined,
+        industry: industry || undefined,
+        website: website.trim() || undefined,
         referralCode: getReferral(),
+        ...payload,
       });
       clearReferral();
-      // Save the fresh JWT and update store directly (no extra /auth/me round-trip)
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-      }
-      if (data.user) {
-        useAuthStore.setState({ user: data.user, token: data.token, isLoading: false });
-      }
-
-      // Redirect to Stripe Checkout if available (1st month free, then monthly)
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-        return;
-      }
-
+      if (data.token) localStorage.setItem('token', data.token);
+      if (data.user) useAuthStore.setState({ user: data.user, token: data.token, isLoading: false });
       navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 402) {
+        // The card never cleared — the guard will send them back to /subscribe.
+        navigate('/subscribe');
+        return;
+      }
       const response = (err as { response?: { data?: { error?: string | { message?: string } } } })?.response;
       const errData = response?.data?.error;
-      setError(typeof errData === 'string' ? errData : ((errData as { message?: string })?.message || (err instanceof Error ? err.message : 'Something went wrong.')));
+      setError(
+        typeof errData === 'string'
+          ? errData
+          : ((errData as { message?: string })?.message || (isFr ? 'Une erreur est survenue.' : 'Something went wrong.')),
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const progress = (step / 3) * 100;
-
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
-
-      {/* Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-[#d2d2d7]/60">
         <div className="max-w-[640px] mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -91,236 +82,237 @@ export default function SelfOnboard() {
             <span className="text-xl font-semibold tracking-tight">Qwillio</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[#86868b]">{t('onboard.step')} {step} / 3</span>
+            <span className="text-sm text-[#86868b]">{isFr ? 'Étape 2 / 2' : 'Step 2 / 2'}</span>
             <LangToggle />
             <button
               onClick={() => { logout(); navigate('/'); }}
               className="inline-flex items-center gap-1.5 text-sm text-[#86868b] hover:text-red-500 transition-colors"
-              title="Logout"
+              title={isFr ? 'Se déconnecter' : 'Log out'}
             >
               <LogOut size={16} />
             </button>
           </div>
         </div>
-        <div className="h-1 bg-[#d2d2d7]/30">
-          <div
-            className="h-full bg-[#7a5fff] transition-colors duration-500 ease-out"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
       </header>
 
-      {/* Step dots */}
-      <div className="flex items-center justify-center gap-2 py-6">
-        {[1, 2, 3].map(s => (
-          <div
-            key={s}
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
-              s < step
-                ? 'bg-[#7a5fff] text-white'
-                : s === step
-                ? 'bg-[#7a5fff]/10 text-[#7a5fff] border-2 border-[#7a5fff]'
-                : 'bg-[#f5f5f7] text-[#86868b]'
-            }`}
-          >
-            {s < step ? <Check size={14} /> : s}
+      <main className="max-w-[640px] mx-auto px-6 py-10 pb-12">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm mb-6">
+            {error}
           </div>
-        ))}
-      </div>
+        )}
 
-      {/* Main content */}
-      <main className="max-w-[640px] mx-auto px-6 pb-12">
-        <div className="rounded-2xl border border-[#d2d2d7]/60 bg-[#f5f5f7] p-8">
+        {/* ═══ Choice: talk it out, or fill it in ═══ */}
+        {path === null && (
+          <>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {isFr ? 'Configurons votre réceptionniste' : "Let's set up your receptionist"}
+            </h1>
+            <p className="mt-2 mb-8 text-[15px] leading-relaxed text-[#525257]">
+              {isFr
+                ? 'Deux façons de faire, le résultat est le même. Vous pourrez tout changer plus tard.'
+                : 'Two ways to do it, same result. Everything stays editable later.'}
+            </p>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm mb-6">
-              {error}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setPath('assistant')}
+                className="group rounded-2xl border-2 border-[#d2d2d7] bg-white p-6 text-left transition-colors hover:border-[#7a5fff]"
+              >
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#7a5fff]/10">
+                  <Sparkles size={20} className="text-[#7a5fff]" />
+                </div>
+                <h2 className="text-base font-semibold">
+                  {isFr ? 'Avec l’assistant' : 'With the assistant'}
+                </h2>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-[#86868b]">
+                  {isFr
+                    ? 'Répondez à quelques questions, à l’écrit ou à la voix. Il remplit tout pour vous.'
+                    : 'Answer a few questions, by voice or text. It fills everything in for you.'}
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPath('manual')}
+                className="group rounded-2xl border-2 border-[#d2d2d7] bg-white p-6 text-left transition-colors hover:border-[#7a5fff]"
+              >
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#1d1d1f]/[0.06]">
+                  <SlidersHorizontal size={20} className="text-[#1d1d1f]" />
+                </div>
+                <h2 className="text-base font-semibold">
+                  {isFr ? 'Manuellement' : 'Manually'}
+                </h2>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-[#86868b]">
+                  {isFr
+                    ? 'Remplissez les champs vous-même. Deux écrans, deux minutes.'
+                    : 'Fill the fields yourself. Two screens, two minutes.'}
+                </p>
+              </button>
             </div>
-          )}
+          </>
+        )}
 
-          {/* ═══ STEP 1: Business Info ═══ */}
-          {step === 1 && (
-            <>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-[#7a5fff]/10 flex items-center justify-center">
-                  <Building2 size={20} className="text-[#7a5fff]" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold tracking-tight">{t('selfOnboard.step1.title')}</h2>
-                  <p className="text-sm text-[#86868b]">{t('selfOnboard.step1.subtitle')}</p>
-                </div>
-              </div>
+        {/* ═══ Assistant path ═══ */}
+        {path === 'assistant' && (
+          <>
+            <button
+              type="button"
+              onClick={() => setPath(null)}
+              className="mb-5 inline-flex items-center gap-1.5 text-sm text-[#86868b] transition-colors hover:text-[#1d1d1f]"
+            >
+              <ArrowLeft size={16} /> {isFr ? 'Choisir une autre méthode' : 'Pick another way'}
+            </button>
 
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    {t('selfOnboard.businessName')} <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={businessName}
-                    onChange={e => setBusinessName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
-                    placeholder="Acme Inc."
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">{t('selfOnboard.industry')}</label>
-                  <select
-                    value={industry}
-                    onChange={e => setIndustry(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
-                  >
-                    <option value="">{t('selfOnboard.selectIndustry')}</option>
-                    <option value="restaurant">Restaurant / Food</option>
-                    <option value="medical">Medical / Healthcare</option>
-                    <option value="legal">Legal</option>
-                    <option value="real-estate">Real Estate</option>
-                    <option value="salon">Salon / Spa</option>
-                    <option value="automotive">Automotive</option>
-                    <option value="dental">Dental</option>
-                    <option value="hvac">HVAC / Plumbing</option>
-                    <option value="retail">Retail / E-commerce</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">{t('selfOnboard.website')}</label>
-                  <input
-                    type="url"
-                    value={website}
-                    onChange={e => setWebsite(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
-                    placeholder="https://mywebsite.com"
-                  />
-                </div>
-              </div>
-            </>
-          )}
+            <AssistantChat
+              isFr={isFr}
+              initialMode="onboarding"
+              lockMode
+              onCompleted={() => { void finish(); }}
+            />
 
-          {/* ═══ STEP 2: Phone Number ═══ */}
-          {step === 2 && (
-            <>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-[#7a5fff]/10 flex items-center justify-center">
-                  <Phone size={20} className="text-[#7a5fff]" />
+            <button
+              type="button"
+              onClick={() => { void finish(); }}
+              disabled={loading}
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-[#1d1d1f] px-6 py-3.5 text-[15px] font-medium text-white transition-colors duration-300 hover:bg-[#7a5fff] disabled:opacity-40"
+            >
+              {loading && <Loader2 size={16} className="animate-spin" />}
+              {isFr ? 'Terminer et ouvrir le dashboard' : 'Finish and open the dashboard'}
+            </button>
+            <p className="mt-2.5 text-[13px] text-[#86868b]">
+              {isFr
+                ? 'L’assistant vous y emmène tout seul quand il a l’essentiel.'
+                : 'The assistant takes you there on its own once it has the essentials.'}
+            </p>
+          </>
+        )}
+
+        {/* ═══ Manual path ═══ */}
+        {path === 'manual' && (
+          <div className="rounded-2xl border border-[#d2d2d7]/60 bg-[#f5f5f7] p-8">
+            {step === 1 && (
+              <>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-[#7a5fff]/10 flex items-center justify-center">
+                    <Building2 size={20} className="text-[#7a5fff]" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold tracking-tight">{t('selfOnboard.step1.title')}</h2>
+                    <p className="text-sm text-[#86868b]">{t('selfOnboard.step1.subtitle')}</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-semibold tracking-tight">{t('selfOnboard.step2.title')}</h2>
-                  <p className="text-sm text-[#86868b]">{t('selfOnboard.step2.subtitle')}</p>
+
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      {t('selfOnboard.businessName')} <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={businessName}
+                      onChange={e => setBusinessName(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
+                      placeholder="Acme Inc."
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">{t('selfOnboard.industry')}</label>
+                    <select
+                      value={industry}
+                      onChange={e => setIndustry(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
+                    >
+                      <option value="">{t('selfOnboard.selectIndustry')}</option>
+                      <option value="restaurant">Restaurant / Food</option>
+                      <option value="medical">Medical / Healthcare</option>
+                      <option value="legal">Legal</option>
+                      <option value="real-estate">Real Estate</option>
+                      <option value="salon">Salon / Spa</option>
+                      <option value="automotive">Automotive</option>
+                      <option value="dental">Dental</option>
+                      <option value="hvac">HVAC / Plumbing</option>
+                      <option value="retail">Retail / E-commerce</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">{t('selfOnboard.website')}</label>
+                    <input
+                      type="url"
+                      value={website}
+                      onChange={e => setWebsite(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
+                      placeholder="https://mywebsite.com"
+                    />
+                  </div>
                 </div>
-              </div>
+              </>
+            )}
 
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium mb-2">{t('selfOnboard.phone')}</label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
-                    placeholder="+1 (555) 123-4567"
-                  />
-                  <p className="text-xs text-[#86868b] mt-2">{t('selfOnboard.phoneHint')}</p>
+            {step === 2 && (
+              <>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-[#7a5fff]/10 flex items-center justify-center">
+                    <Phone size={20} className="text-[#7a5fff]" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold tracking-tight">{t('selfOnboard.step2.title')}</h2>
+                    <p className="text-sm text-[#86868b]">{t('selfOnboard.step2.subtitle')}</p>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
 
-          {/* ═══ STEP 3: Plan Selection ═══ */}
-          {step === 3 && (
-            <>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-[#7a5fff]/10 flex items-center justify-center">
-                  <CreditCard size={20} className="text-[#7a5fff]" />
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">{t('selfOnboard.phone')}</label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] placeholder-[#86868b]/50 focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
+                      placeholder="+32 470 12 34 56"
+                    />
+                    <p className="text-xs text-[#86868b] mt-2">{t('selfOnboard.phoneHint')}</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-semibold tracking-tight">{t('register.selectPlan')}</h2>
-                  <p className="text-sm text-[#86868b]">{t('register.selectPlanSub')}</p>
-                </div>
-              </div>
+              </>
+            )}
 
-              <div className="space-y-3">
-                {plans.map(plan => (
-                  <button
-                    key={plan.key}
-                    onClick={() => setSelectedPlan(plan.key)}
-                    className={`w-full flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl border-2 transition-colors text-left ${
-                      selectedPlan === plan.key
-                        ? 'border-[#7a5fff] bg-white'
-                        : 'border-[#d2d2d7] bg-white hover:border-[#86868b]'
-                    }`}
-                  >
-                    <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      selectedPlan === plan.key ? 'border-[#7a5fff] bg-[#7a5fff]' : 'border-[#d2d2d7]'
-                    }`}>
-                      {selectedPlan === plan.key && <Check size={12} className="text-white" />}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-base font-semibold">{plan.name}</span>
-                        {plan.popular && (
-                          <span className="text-[10px] font-semibold uppercase tracking-wider bg-[#7a5fff] text-white px-2 py-0.5 rounded-full">
-                            {t('price.popular')}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-[#86868b] mt-0.5">
-                        {plan.minutes.toLocaleString()} {t('register.callsIncluded')}
-                      </p>
-                      {plan.trial && (
-                        <p className="text-[11px] font-semibold text-emerald-600 mt-1.5">{plan.trial}</p>
-                      )}
-                    </div>
-
-                    <div className="flex-shrink-0 text-right leading-tight whitespace-nowrap">
-                      <div>
-                        <span className="text-lg font-semibold">{plan.price}&nbsp;€</span>
-                        <span className="text-sm text-[#86868b]">{t('register.mo')}</span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* ── Navigation ── */}
-          <div className="flex items-center justify-between gap-4 mt-10 pt-6 px-2 sm:px-4 border-t border-[#d2d2d7]/40">
-            {step > 1 ? (
+            {/* ── Navigation ── */}
+            <div className="flex items-center justify-between gap-4 mt-10 pt-6 px-2 sm:px-4 border-t border-[#d2d2d7]/40">
               <button
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-[#86868b] hover:text-[#1d1d1f] transition-colors flex-shrink-0"
-                onClick={() => setStep((step - 1) as Step)}
+                onClick={() => (step > 1 ? setStep(1) : setPath(null))}
               >
                 <ArrowLeft size={18} /> {t('onboard.prev')}
               </button>
-            ) : <div className="flex-shrink-0" />}
 
-            {step < 3 ? (
-              <button
-                className="inline-flex items-center gap-1.5 bg-[#7a5fff] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#7349fe] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-                disabled={step === 1 && !businessName.trim()}
-                onClick={() => setStep((step + 1) as Step)}
-              >
-                {t('onboard.next')} <ChevronRight size={18} />
-              </button>
-            ) : (
-              <button
-                className="inline-flex items-center justify-center gap-1.5 bg-[#1d1d1f] text-white text-sm font-medium px-5 sm:px-6 py-3 rounded-full hover:bg-[#424245] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink min-w-0"
-                disabled={loading}
-                onClick={handleFinish}
-              >
-                {loading ? (
-                  <><Loader2 size={18} className="animate-spin flex-shrink-0" /> <span className="truncate">Redirection…</span></>
-                ) : (
-                  <><CreditCard size={18} className="flex-shrink-0" /> <span className="truncate">Continuer vers le paiement</span></>
-                )}
-              </button>
-            )}
+              {step < 2 ? (
+                <button
+                  className="inline-flex items-center gap-1.5 bg-[#7a5fff] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#7349fe] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                  disabled={!businessName.trim()}
+                  onClick={() => setStep(2)}
+                >
+                  {t('onboard.next')} <ChevronRight size={18} />
+                </button>
+              ) : (
+                <button
+                  className="inline-flex items-center justify-center gap-1.5 bg-[#1d1d1f] text-white text-sm font-medium px-5 sm:px-6 py-3 rounded-full hover:bg-[#424245] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink min-w-0"
+                  disabled={loading}
+                  onClick={() => { void finish(); }}
+                >
+                  {loading ? (
+                    <><Loader2 size={18} className="animate-spin flex-shrink-0" /> <span className="truncate">{isFr ? 'Finalisation…' : 'Finishing…'}</span></>
+                  ) : (
+                    <><Check size={18} className="flex-shrink-0" /> <span className="truncate">{isFr ? 'Ouvrir mon dashboard' : 'Open my dashboard'}</span></>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

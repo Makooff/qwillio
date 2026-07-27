@@ -2,7 +2,8 @@
  * AI Script Generator — dynamically creates niche-specific call scripts
  * using OpenAI GPT-4o. Falls back to a generic template when the API is
  * unavailable. Scripts are cached in memory to avoid redundant API calls
- * within the same process lifetime.
+ * within the same process lifetime; the key covers everything that ends up in
+ * the copy, so two businesses never share a script.
  */
 import { logger } from '../config/logger';
 import { env } from '../config/env';
@@ -18,7 +19,7 @@ export interface GeneratedScript {
   rawFull: string;
 }
 
-interface ScriptContext {
+export interface ScriptContext {
   businessName: string;
   niche: string;
   city: string;
@@ -29,7 +30,7 @@ interface ScriptContext {
   language?: 'en' | 'fr';
 }
 
-// ─── In-memory cache (niche + language key) ───────────────
+// ─── In-memory cache (niche + language + business + city) ────
 const scriptCache = new Map<string, GeneratedScript>();
 
 // ─── Niche-to-plain-English labels ───────────────────────
@@ -60,13 +61,13 @@ function buildSystemPrompt(language: 'en' | 'fr'): string {
   if (language === 'fr') {
     return `Tu es un expert en scripts d'appels commerciaux B2B pour Qwillio, un service de réceptionniste IA.
 Qwillio aide les PME à ne jamais manquer un appel entrant grâce à une IA qui répond, prend les rendez-vous et capture les leads — 24h/24, 7j/7.
-Tarif : premier mois offert, puis 497 $/mois.
+Tarif : 7 jours d'essai gratuit, puis à partir de 99 €/mois (Solo 99, Starter 249, Pro 599).
 Ton objectif : écrire un script d'appel sortant qui sonne naturel, humain, et déclenche une démo.
 Format JSON strict, sans markdown.`;
   }
   return `You are an expert B2B cold-call script writer for Qwillio, an AI receptionist service.
 Qwillio helps small businesses never miss an inbound call — the AI answers, books appointments, and captures leads 24/7.
-Pricing: first month free, then $497/month flat.
+Pricing: 7-day free trial, then from 99 EUR/month (Solo 99, Starter 249, Pro 599).
 Goal: write an outbound call script that feels natural, human, and drives a demo booking.
 Strict JSON output, no markdown.`;
 }
@@ -135,32 +136,32 @@ function buildFallbackScript(ctx: ScriptContext): GeneratedScript {
     return {
       intro: `Allô bonjour — c'est ${agent} de Qwillio.`,
       painPoint: `Question rapide — quand vous êtes occupé(e), qu'est-ce qui se passe avec les appels entrants de ${ctx.businessName} ?`,
-      pitch: `Qwillio est une réceptionniste IA qui répond à chaque appel, prend les rendez-vous et capture les leads — 24h/24. Premier mois offert.`,
+      pitch: `Qwillio est une réceptionniste IA qui répond à chaque appel, prend les rendez-vous et capture les leads — 24h/24. 7 jours d'essai gratuit.`,
       cta: `Je peux vous montrer en 5 minutes comment ça marche pour votre ${nicheLabel} à ${ctx.city} ?`,
       objectionHandlers: {
         voicemail: "La messagerie fait perdre 80% des appelants. Notre IA les retient.",
-        cost: "Premier mois entièrement gratuit. Ensuite 497 $/mois — moins d'un client perdu.",
+        cost: "7 jours d'essai gratuit. Ensuite à partir de 99 €/mois — moins qu'un seul client perdu.",
         think_about_it: "Bien sûr — je peux vous envoyer un clip démo de 2 minutes ?",
         already_have_receptionist: "Parfait — notre IA gère le débordement et les appels hors horaires. Votre équipe reste concentrée.",
         not_interested: "Je comprends. Juste une dernière chose — combien d'appels estimez-vous manquer par semaine ?",
       },
-      rawFull: `Allô bonjour — c'est ${agent} de Qwillio. Question rapide — quand vous êtes occupé(e), qu'est-ce qui se passe avec les appels entrants de ${ctx.businessName} ?\n[Écouter]\nVoilà exactement le problème qu'on résout. Notre réceptionniste IA répond à chaque appel, prend les rendez-vous, capture les leads — 24h/24, 7j/7. Premier mois offert, zéro frais de setup. Je vous montre en 5 minutes comment ça marche pour votre activité à ${ctx.city} ?`,
+      rawFull: `Allô bonjour — c'est ${agent} de Qwillio. Question rapide — quand vous êtes occupé(e), qu'est-ce qui se passe avec les appels entrants de ${ctx.businessName} ?\n[Écouter]\nVoilà exactement le problème qu'on résout. Notre réceptionniste IA répond à chaque appel, prend les rendez-vous, capture les leads — 24h/24, 7j/7. 7 jours d'essai gratuit, zéro frais de setup. Je vous montre en 5 minutes comment ça marche pour votre activité à ${ctx.city} ?`,
     };
   }
 
   return {
     intro: `Hi, this is ${agent} from Qwillio.`,
     painPoint: `Quick question — when ${ctx.businessName} is busy, what happens to incoming calls?`,
-    pitch: `Qwillio gives you an AI receptionist that answers every call, books appointments, and captures leads — 24/7. First month is completely free.`,
+    pitch: `Qwillio gives you an AI receptionist that answers every call, books appointments, and captures leads — 24/7. First 7 days are free.`,
     cta: `Can I show you in 5 minutes how it'd work for your ${nicheLabel} in ${ctx.city}?`,
     objectionHandlers: {
       voicemail: "Voicemail loses 80% of callers — they hang up and call a competitor. Our AI keeps every one of them.",
-      cost: "First month is completely free. After that, $497 flat — less than one missed job.",
+      cost: "First 7 days are free. After that, from 99 EUR/month — less than one missed job.",
       think_about_it: "Totally fair. Can I send you a 2-minute audio demo? No commitment.",
       already_have_receptionist: "Perfect — Ashley handles overflow and after-hours so your team stays focused.",
       not_interested: "I understand. One last thing — how many calls do you estimate you miss per week?",
     },
-    rawFull: `Hi, this is ${agent} from Qwillio. Quick question — when ${ctx.businessName} is busy, what happens to incoming calls?\n[Listen]\nThat's exactly what we fix. Our AI receptionist answers every call, books the job, and captures the customer info — 24/7, even on weekends. First month completely free, no setup fee. Can I show you in 5 minutes how it'd work for your ${nicheLabel} in ${ctx.city}?`,
+    rawFull: `Hi, this is ${agent} from Qwillio. Quick question — when ${ctx.businessName} is busy, what happens to incoming calls?\n[Listen]\nThat's exactly what we fix. Our AI receptionist answers every call, books the job, and captures the customer info — 24/7, even on weekends. First 7 days free, no setup fee. Can I show you in 5 minutes how it'd work for your ${nicheLabel} in ${ctx.city}?`,
   };
 }
 
@@ -173,9 +174,12 @@ export class AiScriptGeneratorService {
   /** Generate (or return cached) a script for the given context */
   async generateScript(ctx: ScriptContext): Promise<GeneratedScript> {
     const language = ctx.language ?? 'en';
-    const cacheKey = `${ctx.niche}:${language}`;
+    // The business name and city are written into the generated copy, so they
+    // have to be part of the key. Caching on niche+language alone meant the
+    // first business scripted in a niche had its name and city handed to every
+    // other prospect in that niche.
+    const cacheKey = `${ctx.niche}:${language}:${ctx.businessName}:${ctx.city ?? ''}`;
 
-    // Return cached version if it exists (we cache per niche+language, not per business)
     const cached = scriptCache.get(cacheKey);
     if (cached) return cached;
 

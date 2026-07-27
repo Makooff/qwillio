@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authController } from '../controllers/auth.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, requireConfirmedEmail } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -12,7 +12,9 @@ router.post('/reset-password', (req, res) => authController.resetPassword(req, r
 router.get('/me', authMiddleware, (req, res) => authController.me(req, res));
 router.get('/confirm/:token', (req, res) => authController.confirmEmail(req, res));
 router.post('/resend-confirmation', authMiddleware, (req, res) => authController.resendConfirmation(req, res));
-router.post('/onboard', authMiddleware, (req, res) => authController.onboard(req, res));
+// Sign-up gates: the card step and the final step both require a real address.
+router.post('/checkout', authMiddleware, requireConfirmedEmail, (req, res) => authController.startSubscription(req, res));
+router.post('/onboard', authMiddleware, requireConfirmedEmail, (req, res) => authController.onboard(req, res));
 router.post('/logout', authMiddleware, (req, res) => authController.logout(req, res));
 
 export default router;
