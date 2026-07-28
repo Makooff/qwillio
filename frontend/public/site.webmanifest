@@ -4,8 +4,8 @@
   "description": "Your AI receptionist that answers every call, books appointments, and never sleeps. CRM, billing, follow-up SMS — all automated.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#7a5fff",
+  "background_color": "#0A0A0C",
+  "theme_color": "#0A0A0C",
   "orientation": "portrait-primary",
   "icons": [
     {

@@ -1,8 +1,9 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAuthStore } from './stores/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
+import SplashScreen, { isStandaloneApp } from './components/SplashScreen';
 const Layout = lazy(() => import('./components/layout/Layout'));
 const ClientLayout = lazy(() => import('./components/layout/ClientLayout'));
 const CloserLayout = lazy(() => import('./components/layout/CloserLayout'));
@@ -196,11 +197,19 @@ function PublicOrDashboard() {
     if (!user.onboardingCompleted) return <Navigate to="/onboard" />;
     return <Navigate to={homeRoute(user)} />;
   }
+  // Launched from the home screen, someone has already chosen Qwillio: send
+  // them to sign-in rather than to the marketing page they installed from.
+  if (isStandaloneApp()) return <Navigate to="/login" replace />;
   return <Suspense fallback={<Spinner />}><Home /></Suspense>;
 }
 
 export default function App() {
   const { checkAuth } = useAuthStore();
+  // The launch animation belongs to the installed app, and to one launch only:
+  // it must not replay on client-side navigation within the session.
+  const [splashDone, setSplashDone] = useState(
+    () => !isStandaloneApp() || sessionStorage.getItem('qw.splashShown') === '1',
+  );
 
   useEffect(() => {
     checkAuth();
@@ -210,6 +219,14 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      {!splashDone && (
+        <SplashScreen
+          onDone={() => {
+            sessionStorage.setItem('qw.splashShown', '1');
+            setSplashDone(true);
+          }}
+        />
+      )}
       <GoogleOAuthProvider clientId={googleClientId}>
       <BrowserRouter>
       <ScrollToTop />
