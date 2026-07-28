@@ -34,22 +34,63 @@ function greetingFor(mode: Mode, isFr: boolean): string {
     : 'What would you like to set up? Hours, services, voice, FAQ… talk or type.';
 }
 
-type SpeechRec = any;
-function getRecognition(): SpeechRec | null {
-  if (typeof window === 'undefined') return null;
-  const Ctor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  return Ctor ? new Ctor() : null;
+/** MediaRecorder MIME, first one the browser actually supports. */
+function pickAudioMime(): string {
+  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+  for (const c of candidates) {
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported?.(c)) return c;
+  }
+  return '';
 }
 
-// Recording visualizer + timer.
-function VoiceViz({ isFr }: { isFr: boolean }) {
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    // result is a data URL; strip the "data:...;base64," prefix.
+    r.onload = () => resolve(String(r.result).split(',')[1] || '');
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Recording visualizer + timer, driven by the real microphone level so you can
+ * tell at a glance whether anything is being captured. The bars used to be
+ * Math.random(), which looked alive even when the mic was dead.
+ */
+function VoiceViz({ isFr, analyser }: { isFr: boolean; analyser: AnalyserNode | null }) {
+  const BARS = 32;
   const [t, setT] = useState(0);
+  const [levels, setLevels] = useState<number[]>(() => Array(BARS).fill(0));
+
   useEffect(() => {
     const id = setInterval(() => setT(v => v + 1), 1000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!analyser) return;
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    let raf = 0;
+    const tick = () => {
+      analyser.getByteFrequencyData(data);
+      const step = Math.floor(data.length / BARS) || 1;
+      const next: number[] = [];
+      for (let i = 0; i < BARS; i++) {
+        let sum = 0;
+        for (let j = 0; j < step; j++) sum += data[i * step + j] || 0;
+        next.push(sum / step / 255);
+      }
+      setLevels(next);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [analyser]);
+
   const mm = String(Math.floor(t / 60)).padStart(2, '0');
   const ss = String(t % 60).padStart(2, '0');
+
   return (
     <div className="flex flex-col items-center justify-center w-full py-3">
       <div className="flex items-center gap-2 mb-2">
@@ -57,16 +98,12 @@ function VoiceViz({ isFr }: { isFr: boolean }) {
         <span className="font-mono text-xs text-white/70">{mm}:{ss}</span>
         <span className="text-[11px] text-white/50">{isFr ? '· parlez…' : '· speak…'}</span>
       </div>
-      <div className="w-full h-8 flex items-center justify-center gap-0.5 px-4">
-        {Array.from({ length: 32 }).map((_, i) => (
+      <div className="w-full h-8 flex items-center justify-center gap-0.5 px-4" aria-hidden="true">
+        {levels.map((v, i) => (
           <span
             key={i}
-            className="w-0.5 rounded-full bg-white/40 animate-pulse"
-            style={{
-              height: `${Math.max(15, Math.random() * 100)}%`,
-              animationDelay: `${i * 0.05}s`,
-              animationDuration: `${0.5 + Math.random() * 0.5}s`,
-            }}
+            className="w-0.5 rounded-full bg-white/40"
+            style={{ height: `${Math.max(8, v * 100)}%`, transition: 'height 80ms linear' }}
           />
         ))}
       </div>
@@ -104,12 +141,42 @@ export default function AssistantChat({
   const [copied, setCopied] = useState(false);
   // Live test call is driven from the header, independently of the chat mode.
   const [liveCall, setLiveCall] = useState(false);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+  /**
+   * Language YOU dictate in. Deliberately separate from `isFr`, which is the
+   * language the receptionist uses with callers: a Belgian owner routinely
+   * speaks French to configure an English-speaking agent. Defaults to French
+   * and is remembered per browser.
+   */
+  const [dictationLang, setDictationLang] = useState<'fr' | 'en'>(() => {
+    if (typeof localStorage === 'undefined') return 'fr';
+    return localStorage.getItem('qw.dictationLang') === 'en' ? 'en' : 'fr';
+  });
+  useEffect(() => { localStorage.setItem('qw.dictationLang', dictationLang); }, [dictationLang]);
 
-  const recRef = useRef<SpeechRec | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  // Set when the user cancels, so onstop discards instead of transcribing.
+  const abortRef = useRef(false);
 
-  useEffect(() => { setMicSupported(!!getRecognition()); }, []);
+  useEffect(() => {
+    setMicSupported(
+      typeof navigator !== 'undefined' &&
+      !!navigator.mediaDevices?.getUserMedia &&
+      typeof MediaRecorder !== 'undefined',
+    );
+  }, []);
+
+  // Release the mic and the audio graph if the panel unmounts mid-recording.
+  useEffect(() => () => {
+    try { recorderRef.current?.stop(); } catch { /* noop */ }
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    void audioCtxRef.current?.close().catch(() => { /* noop */ });
+  }, []);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, sending, listening]);
@@ -151,23 +218,126 @@ export default function AssistantChat({
     }
   };
 
-  const toggleMic = () => {
-    if (listening) { recRef.current?.stop(); setListening(false); return; }
-    const rec = getRecognition();
-    if (!rec) return;
-    rec.lang = isFr ? 'fr-FR' : 'en-US';
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-    rec.onresult = (e: any) => {
-      const transcript = e.results?.[0]?.[0]?.transcript || '';
+  /** Surface a problem in the thread. Silence was the old behaviour and it read as "broken". */
+  const notify = (fr: string, en: string) =>
+    setMessages(m => [...m, { role: 'assistant', content: isFr ? fr : en }]);
+
+  const releaseMic = () => {
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    void audioCtxRef.current?.close().catch(() => { /* noop */ });
+    audioCtxRef.current = null;
+    setAnalyser(null);
+  };
+
+  const transcribe = async (blob: Blob, mimeType: string) => {
+    setSending(true);
+    try {
+      const audio = await blobToBase64(blob);
+      const { data } = await api.post('/my-dashboard/assistant/transcribe', {
+        audio,
+        mimeType,
+        // The dictation language is the language YOU speak to the assistant.
+        // It is deliberately not `agentLanguage`, which is the language the
+        // receptionist speaks to callers — conflating the two is what made
+        // French dictation transcribe as English.
+        language: dictationLang,
+      });
+      const text = (data?.text || '').trim();
+      if (!text) {
+        notify("Je n'ai rien entendu. Réessayez en parlant plus près du micro.",
+               'I did not hear anything. Try again, closer to the mic.');
+        return;
+      }
+      await send(text);
+    } catch (err: any) {
+      const code = err?.response?.data?.error;
+      if (code === 'transcription_unavailable') {
+        notify('La transcription vocale n’est pas configurée sur ce compte. Écrivez votre message.',
+               'Voice transcription is not configured on this account. Please type instead.');
+      } else if (code === 'audio_too_large') {
+        notify('Enregistrement trop long. Faites des phrases plus courtes.',
+               'Recording too long. Try shorter takes.');
+      } else {
+        notify('La transcription a échoué. Réessayez, ou écrivez votre message.',
+               'Transcription failed. Try again, or type your message.');
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const startRecording = async () => {
+    if (!micSupported) {
+      notify('Votre navigateur ne permet pas l’enregistrement audio. Écrivez votre message.',
+             'Your browser cannot record audio. Please type instead.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      // Real level meter, so the visualizer reflects the actual mic.
+      const Ctx: typeof AudioContext =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (Ctx) {
+        const ctx = new Ctx();
+        audioCtxRef.current = ctx;
+        const node = ctx.createAnalyser();
+        node.fftSize = 128;
+        ctx.createMediaStreamSource(stream).connect(node);
+        setAnalyser(node);
+      }
+
+      const mimeType = pickAudioMime();
+      const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      chunksRef.current = [];
+      abortRef.current = false;
+
+      rec.ondataavailable = e => { if (e.data.size) chunksRef.current.push(e.data); };
+      rec.onerror = () => {
+        setListening(false);
+        releaseMic();
+        notify('L’enregistrement a échoué. Réessayez.', 'Recording failed. Please try again.');
+      };
+      rec.onstop = () => {
+        setListening(false);
+        const type = rec.mimeType || mimeType || 'audio/webm';
+        const blob = new Blob(chunksRef.current, { type });
+        chunksRef.current = [];
+        releaseMic();
+        if (abortRef.current) return;
+        if (blob.size > 0) void transcribe(blob, type.split(';')[0]);
+      };
+
+      recorderRef.current = rec;
+      rec.start();
+      setListening(true);
+    } catch (err: any) {
+      releaseMic();
       setListening(false);
-      if (transcript) send(transcript);
-    };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
-    recRef.current = rec;
-    setListening(true);
-    rec.start();
+      const denied = err?.name === 'NotAllowedError' || err?.name === 'SecurityError';
+      notify(
+        denied
+          ? 'Accès au micro refusé. Autorisez le micro dans votre navigateur, puis réessayez.'
+          : 'Micro indisponible. Vérifiez qu’aucune autre application ne l’utilise.',
+        denied
+          ? 'Microphone access denied. Allow the mic in your browser, then try again.'
+          : 'Microphone unavailable. Check that no other app is using it.',
+      );
+    }
+  };
+
+  /** Stop and transcribe. */
+  const stopRecording = () => {
+    abortRef.current = false;
+    try { recorderRef.current?.stop(); } catch { /* noop */ }
+  };
+
+  /** Stop and throw the take away. */
+  const cancelRecording = () => {
+    abortRef.current = true;
+    try { recorderRef.current?.stop(); } catch { /* noop */ }
   };
 
   const hasContent = input.trim() !== '';
@@ -340,7 +510,7 @@ export default function AssistantChat({
           style={{ borderColor: listening ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.10)' }}
         >
           {listening ? (
-            <VoiceViz isFr={isFr} />
+            <VoiceViz isFr={isFr} analyser={analyser} />
           ) : (
             <textarea
               ref={taRef}
@@ -405,29 +575,59 @@ export default function AssistantChat({
               })}
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (listening) { recRef.current?.stop(); setListening(false); }
-                else if (hasContent) send(input);
-                else if (micSupported) toggleMic();
-              }}
-              disabled={sending && !hasContent}
-              aria-label={listening ? (isFr ? 'Arrêter' : 'Stop') : hasContent ? (isFr ? 'Envoyer' : 'Send') : (isFr ? 'Micro' : 'Voice')}
-              className="h-9 w-9 rounded-full grid place-items-center transition-colors flex-shrink-0"
-              style={
-                listening
-                  ? { background: '#dc2626', color: '#fff' }
-                  : hasContent
-                    ? { background: '#F2F2F2', color: '#0B0B0D' }
-                    : { background: 'rgba(255,255,255,0.06)', color: '#9CA3AF' }
-              }
-            >
-              {sending ? <Square size={14} className="animate-pulse" />
-                : listening ? <StopCircle size={17} />
-                : hasContent ? <ArrowUp size={16} />
-                : <Mic size={17} />}
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Dictation language. Separate from the agent's caller-facing
+                  language on purpose: you may configure an English agent while
+                  speaking French. */}
+              {!listening && !hasContent && micSupported && (
+                <button
+                  type="button"
+                  onClick={() => setDictationLang(l => (l === 'fr' ? 'en' : 'fr'))}
+                  aria-label={isFr
+                    ? `Langue de dictée : ${dictationLang === 'fr' ? 'français' : 'anglais'}. Changer.`
+                    : `Dictation language: ${dictationLang === 'fr' ? 'French' : 'English'}. Change.`}
+                  className="h-9 px-2.5 rounded-full text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF] hover:text-[#E5E5EA] hover:bg-white/[0.06] transition-colors active:scale-[0.97]"
+                >
+                  {dictationLang}
+                </button>
+              )}
+
+              {/* Discard the take rather than transcribing it. */}
+              {listening && (
+                <button
+                  type="button"
+                  onClick={cancelRecording}
+                  aria-label={isFr ? 'Annuler l’enregistrement' : 'Discard recording'}
+                  className="h-9 w-9 rounded-full grid place-items-center transition-colors text-[#9CA3AF] hover:text-[#E5E5EA] hover:bg-white/[0.06] active:scale-[0.97]"
+                >
+                  <X size={16} />
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (listening) stopRecording();
+                  else if (hasContent) void send(input);
+                  else void startRecording();
+                }}
+                disabled={sending && !hasContent}
+                aria-label={listening ? (isFr ? 'Arrêter et transcrire' : 'Stop and transcribe') : hasContent ? (isFr ? 'Envoyer' : 'Send') : (isFr ? 'Dicter' : 'Dictate')}
+                className="h-9 w-9 rounded-full grid place-items-center transition-colors flex-shrink-0 active:scale-[0.97]"
+                style={
+                  listening
+                    ? { background: '#dc2626', color: '#fff' }
+                    : hasContent
+                      ? { background: '#F2F2F2', color: '#0B0B0D' }
+                      : { background: 'rgba(255,255,255,0.06)', color: '#9CA3AF' }
+                }
+              >
+                {sending ? <Square size={14} className="animate-pulse" />
+                  : listening ? <StopCircle size={17} />
+                  : hasContent ? <ArrowUp size={16} />
+                  : <Mic size={17} />}
+              </button>
+            </div>
           </div>
         </div>
       </div>
