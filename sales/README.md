@@ -27,14 +27,14 @@ Tout ce qu'il faut pour signer les 10 premiers clients Qwillio en Belgique et en
 ## Objectif 30 jours
 
 - 3 démos par semaine à partir de la semaine 2.
-- 1 à 3 clients payants (Solo 149 EUR ou Starter 497 USD).
+- 1 à 3 clients payants (Solo 99 EUR ou Starter 249 EUR).
 - 1 partenariat fiduciaire signé (commission 15 %).
 - 3 vidéos courtes de clients qui parlent, à mettre sur qwillio.com.
 
 ## Rappel produit
 
-- Solo : 149 EUR / mois, 300 appels, français, hébergement UE, sans engagement.
-- Starter : 497 USD / mois, 800 appels, EN + FR, 24/7.
-- Pro : 1 297 USD / mois, 2 000 appels, sentiment, smart routing.
-- Enterprise : 2 497 USD / mois, 4 000 appels, SLA 99,5 %, API complète.
-- Toutes les offres : 1er mois offert sans carte, résiliable au mois. Annuel : -20 %.
+- Solo : 99 EUR / mois, 250 minutes incluses, français, hébergement UE, sans engagement.
+- Starter : 249 EUR / mois, 750 minutes incluses, EN + FR, 24/7.
+- Pro : 599 EUR / mois, 2 000 minutes incluses, analytiques avancées.
+- Enterprise : 1 290 EUR / mois, 5 000 minutes incluses, SLA 99,5 %, API complète.
+- Toutes les offres : 7 jours d'essai gratuit, résiliable au mois. Annuel : -20 %.

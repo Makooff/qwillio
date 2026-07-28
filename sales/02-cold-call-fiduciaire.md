@@ -12,7 +12,7 @@ Décroche.
 >
 > Je vous appelle pas pour vous vendre à vous, mais pour vous proposer un truc simple : vos clients artisans et petites PME manquent en moyenne 25 % de leurs appels. Chaque appel manqué c'est environ 140 EUR de chiffre perdu.
 >
-> Nous, on a une solution qui coûte 149 EUR / mois, réponse 24/7 en français, prise de RDV automatique, sans engagement.
+> Nous, on a une solution qui coûte 99 EUR / mois, réponse 24/7 en français, prise de RDV automatique, sans engagement.
 >
 > Ce qu'on propose aux fiduciaires : à chaque client que vous nous recommandez et qui reste 3 mois, vous touchez 15 % de commission récurrente. Sur 10 clients, ça fait environ 2 700 EUR / an sans effort.
 >

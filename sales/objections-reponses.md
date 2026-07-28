@@ -6,19 +6,19 @@ Chaque objection a une réponse en 1 phrase, puis un follow-up en 2 phrases si l
 
 **"C'est cher / je paie déjà rien"**
 
-- Court : "149 EUR par mois. Une seule urgence bookée le week-end couvre le mois."
+- Court : "99 EUR par mois. Une seule urgence bookée le week-end couvre le mois."
 - Long : "Aujourd'hui vous payez zéro à Qwillio, mais vous payez 5 000 à 15 000 EUR par an en appels manqués. C'est comptable, pas marketing."
 
 **"Rosie coûte 49 dollars"**
 
 - Court : "Rosie est en anglais uniquement, hébergement US, sans CRM natif. Compare à un Qwillio Solo tout inclus, pas au sticker."
-- Long : "À 800 appels par mois sur Rosie Growth vous êtes à 149 dollars + 200 dollars d'overage. En pratique, à volume comparable, Qwillio Starter à 497 dollars est équivalent avec bilingue et RGPD UE en plus."
+- Long : "Rosie facture en dollars, en anglais, hébergé aux États-Unis. À volume comparable, Qwillio Starter est à 249 EUR avec le bilingue et l'hébergement UE en plus. Comparez le total, pas le prix d'appel."
 
 ## Technique
 
 **"Ma cliente va reconnaître que c'est une IA"**
 
-- Court : "En blind test, 78 % des appelants de service à domicile n'y voient rien."
+- Court : "Écoutez la démo et jugez vous-même. Et demandez-vous ce que préfère votre client : une IA qui décroche, ou un répondeur ?"
 - Long : "Vous pouvez aussi choisir de dire à l'accueil 'Bonjour, je suis l'assistante virtuelle de [entreprise]', c'est un réglage."
 
 **"Ça marche vraiment en français ?"**
@@ -30,13 +30,13 @@ Chaque objection a une réponse en 1 phrase, puis un follow-up en 2 phrases si l
 
 **"C'est nouveau, je ne vous connais pas"**
 
-- Court : "Le premier mois est gratuit, sans carte. Vous ne prenez aucun risque."
+- Court : "7 jours d'essai gratuit, résiliable en un clic. Vous voyez le produit tourner sur vos vrais appels avant de payer quoi que ce soit."
 - Long : "Fondée à Bruxelles en 2025. Vous pouvez lire notre SLA sur qwillio.com/sla et le comparatif détaillé sur qwillio.com/vs/smith-ai. Et si vous n'aimez pas, un clic pour arrêter."
 
 **"Y a personne qui l'utilise chez moi ?"**
 
 - Court : "C'est justement pour ça qu'on offre le premier mois : soyez le premier de votre secteur dans votre ville, et on rend votre témoignage public si vous voulez."
-- Long : "Un plombier à Namur a signé en mars. Un cabinet dentaire à Anvers en avril. Vous pouvez leur parler, je vous mets en relation."
+- Long : "Je ne vais pas vous citer des clients que je n'ai pas. On démarre, vous seriez le premier de votre secteur dans votre ville, et c'est exactement pour ça que je vous fais ces conditions et que je m'occupe moi-même de la mise en route."
 
 ## Timing
 
@@ -48,7 +48,7 @@ Chaque objection a une réponse en 1 phrase, puis un follow-up en 2 phrases si l
 **"On va y penser"**
 
 - Court : "Pas de souci. Je vous envoie le lien de la démo, et je vous rappelle vendredi ?"
-- Long : "Une info : le tarif Solo à 149 EUR est en offre de lancement Belgique jusqu'à septembre. Ensuite ce sera 199 EUR."
+- Long : "Une info : le tarif Solo à 99 EUR est en offre de lancement Belgique jusqu'à septembre. Ensuite ce sera 199 EUR."
 
 Note : n'utilise cette dernière phrase que si tu es prêt à tenir ta parole.
 

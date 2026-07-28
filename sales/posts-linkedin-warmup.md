@@ -46,7 +46,7 @@ En 15 minutes on a installé Qwillio, notre réceptionniste IA en français.
 + 4 200 EUR de chiffre supplémentaire au mois 2
 0 appel manqué
 
-Il paie 149 EUR par mois.
+Il paie 99 EUR par mois.
 
 Le calcul est simple : 1 rendez-vous urgence booké un dimanche couvre le mois entier.
 
@@ -69,7 +69,7 @@ Beaucoup de patrons me disent : "les clients veulent parler à un humain, pas à
 
 C'est faux depuis 2026.
 
-En tests aveugles, 78 % des appelants de services à domicile ne distinguent plus une IA vocale moderne d'une secrétaire.
+La vraie question n'est pas de savoir si l'appelant reconnaît l'IA. C'est de savoir ce qu'il préfère : une IA qui décroche, ou un répondeur.
 
 Les 22 % restants ? Ils disent souvent qu'ils préfèrent l'IA, parce qu'elle ne les met pas en attente et n'a jamais de mauvaise journée.
 

@@ -49,7 +49,7 @@ Objectif : donner un chiffre concret pour déclencher.
 
 Cabinet dentaire à Anvers (2 fauteuils, 3 collaboratrices) : avant, ils rataient 32 % des appels sur l'heure de midi. Après Qwillio : 4 % de manqués, +11 000 EUR de chiffre en 90 jours.
 
-Coût : 149 EUR / mois, 15 min de setup, 1er mois offert sans carte.
+Coût : 99 EUR / mois, 15 min de setup, 7 jours d'essai gratuit.
 
 Dispo pour un call 15 minutes cette semaine ?
 ```
@@ -78,7 +78,7 @@ Objectif : porte fermée proprement.
 ```
 {{firstName}},
 
-Dernier message. Si vous voulez tester Qwillio 30 jours gratuits (sans carte), voici le lien direct : qwillio.com/register
+Dernier message. Si vous voulez tester Qwillio 7 jours gratuitement, voici le lien direct : qwillio.com/register
 
 Sinon, bonne suite dans vos projets. Restons connectés.
 
