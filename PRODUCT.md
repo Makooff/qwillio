@@ -41,10 +41,15 @@ Linear × Vercel × Granola. Tools made by people who care about craft. Confiden
 4. Suite agent modulaire: Email, Comptabilite, Inventaire, Paiements. Greffes a la carte.
 
 ## Pricing
-- Starter $497/mois — 800 appels, support email
-- Pro $1297/mois — 2000 appels, support prioritaire (le plus populaire)
-- Enterprise $2497/mois — 4000 appels, responsable dedie, SLA
-- Agent modules: +$197/mois par module
+Source unique de verite: `backend/src/config/plans.ts`. Facturation a la minute, en euros.
+
+- Solo 99 EUR/mois — 250 minutes incluses, 0,45 EUR/min au-dela, francais
+- Starter 249 EUR/mois — 750 minutes incluses, 0,39 EUR/min, bilingue FR/EN
+- Pro 599 EUR/mois — 2 000 minutes incluses, 0,35 EUR/min (le plus populaire)
+- Enterprise 1 290 EUR/mois — 5 000 minutes incluses, 0,30 EUR/min, responsable dedie, SLA 99,5 %
+
+Premier mois offert, sans carte, sans frais d'installation. Annuel: -20 %.
+Toute modification de prix se fait dans `plans.ts` en premier, puis se propage a Pricing.tsx, Landing.tsx, Faq.tsx, Vertical.tsx, comparisons.ts et llms.txt.
 
 ## Brand Identity (LOGO-DRIVEN, NOT INHERITED FROM TAILWIND)
 The Qwillio logo carries two overlapping circles:
