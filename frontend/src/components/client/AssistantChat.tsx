@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowUp, Mic, StopCircle, Square, Settings, Rocket, Headphones,
-  Volume2, VolumeX, Loader2,
+  Loader2, Bot, Copy, Check, PhoneCall, X,
 } from 'lucide-react';
 import api from '../../services/api';
 import VapiLiveCall from './VapiLiveCall';
@@ -83,17 +83,27 @@ function VoiceViz({ isFr }: { isFr: boolean }) {
  */
 export default function AssistantChat({
   isFr = true, onConfigChanged,
+  businessName, planLabel, isTrial = false, phone, quota,
 }: {
   isFr?: boolean;
   onConfigChanged?: () => void;
+  /** Identity shown in the chat header, so the panel says who you are talking to. */
+  businessName?: string;
+  planLabel?: string;
+  isTrial?: boolean;
+  phone?: string | null;
+  /** Included-minutes gauge. Receptionist-specific, so it lives here and nowhere else. */
+  quota?: { used: number; total: number };
 }) {
   const [mode, setMode] = useState<Mode>('config');
   const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: greetingFor('config', isFr) }]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [listening, setListening] = useState(false);
-  const [speak, setSpeak] = useState(false);
   const [micSupported, setMicSupported] = useState(false);
+  const [copied, setCopied] = useState(false);
+  // Live test call is driven from the header, independently of the chat mode.
+  const [liveCall, setLiveCall] = useState(false);
 
   const recRef = useRef<SpeechRec | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -106,18 +116,16 @@ export default function AssistantChat({
 
   const switchMode = (m: Mode) => {
     if (m === mode) return;
-    window.speechSynthesis?.cancel();
     setMode(m);
     setMessages([{ role: 'assistant', content: greetingFor(m, isFr) }]);
     setInput('');
   };
 
-  const speakReply = (text: string) => {
-    if (!speak || typeof window === 'undefined' || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = isFr ? 'fr-FR' : 'en-US';
-    window.speechSynthesis.speak(u);
+  const copyPhone = () => {
+    if (!phone) return;
+    void navigator.clipboard.writeText(phone);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const send = async (text: string) => {
@@ -135,7 +143,6 @@ export default function AssistantChat({
       });
       const reply = res.data?.reply || (isFr ? 'Désolée, je n’ai pas compris.' : 'Sorry, I didn’t catch that.');
       setMessages(m => [...m, { role: 'assistant', content: reply }]);
-      speakReply(reply);
       if (res.data?.configChanged) onConfigChanged?.();
     } catch {
       setMessages(m => [...m, { role: 'assistant', content: isFr ? 'Une erreur est survenue. Réessayez.' : 'Something went wrong. Please try again.' }]);
@@ -167,26 +174,115 @@ export default function AssistantChat({
   const activeColor = MODES.find(m => m.id === mode)!.color;
 
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-[#0A0A0C] overflow-hidden flex flex-col" style={{ height: 480 }}>
-      {/* Header: title + speaker toggle */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-        <span className="text-[13px] font-semibold text-[#F2F2F2]">
-          {isFr ? 'Parler à ma réceptionniste' : 'Talk to my receptionist'}
-        </span>
-        <button
-          type="button"
-          onClick={() => setSpeak(s => !s)}
-          aria-pressed={speak}
-          aria-label={isFr ? 'Lecture vocale' : 'Speak replies'}
-          className="w-8 h-8 rounded-full grid place-items-center transition-colors"
-          style={{ background: speak ? 'rgba(122,95,255,0.16)' : 'rgba(255,255,255,0.04)', color: speak ? '#b9a8ff' : '#8B8BA7' }}
-        >
-          {speak ? <Volume2 size={14} /> : <VolumeX size={14} />}
-        </button>
+    // Height follows the viewport: the header now carries identity, number and
+    // quota, so a fixed 480px would starve the message list on short screens.
+    <div
+      className="rounded-2xl border border-white/[0.08] bg-[#0A0A0C] overflow-hidden flex flex-col"
+      style={{ height: 'min(76vh, 640px)' }}
+    >
+      {/* Header: who you are talking to, the AI number, and the live test call.
+          This is the page's identity block — it lives here so the panel is
+          self-describing and the page above it stays free of a duplicate. */}
+      <div className="px-4 py-3 border-b border-white/[0.06] space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,0.05)' }}
+            >
+              <Bot size={17} className="text-[#E5E5EA]" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-[15px] font-semibold text-[#F2F2F2] tracking-tight truncate">
+                {isFr ? 'Réceptionniste IA' : 'AI Receptionist'}
+              </h2>
+              <p className="text-[11.5px] text-[#9A9AA5] truncate">
+                {businessName || (isFr ? 'Votre entreprise' : 'Your business')}
+                {planLabel && <> · {isFr ? 'Plan' : 'Plan'} {planLabel}</>}
+                {isTrial && <span className="ml-1 text-amber-400">({isFr ? 'essai' : 'trial'})</span>}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {phone && (
+              <button
+                type="button"
+                onClick={copyPhone}
+                aria-label={isFr ? `Copier le numéro ${phone}` : `Copy number ${phone}`}
+                className="hidden sm:flex items-center gap-2 h-9 pl-3 pr-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-colors active:scale-[0.97]"
+              >
+                <span className="text-[12.5px] font-mono font-medium text-[#E5E5EA] tabular-nums">{phone}</span>
+                {copied
+                  ? <Check size={13} className="text-emerald-400" aria-hidden="true" />
+                  : <Copy size={13} className="text-[#9A9AA5]" aria-hidden="true" />}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setLiveCall(v => !v)}
+              aria-pressed={liveCall}
+              className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-[12.5px] font-medium transition-colors active:scale-[0.97]"
+              style={liveCall
+                ? { background: 'rgba(255,255,255,0.08)', color: '#E5E5EA' }
+                : { background: 'rgba(122,95,255,0.16)', color: '#b9a8ff' }}
+            >
+              {liveCall ? <X size={14} aria-hidden="true" /> : <PhoneCall size={14} aria-hidden="true" />}
+              <span className="hidden sm:inline">
+                {liveCall ? (isFr ? 'Fermer' : 'Close') : (isFr ? 'Appel test live' : 'Live test call')}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Copyable number on phones, where it cannot sit on the header row. */}
+        {phone && (
+          <button
+            type="button"
+            onClick={copyPhone}
+            aria-label={isFr ? `Copier le numéro ${phone}` : `Copy number ${phone}`}
+            className="sm:hidden flex w-full items-center justify-between gap-2 h-9 px-3 rounded-xl border border-white/[0.08] bg-white/[0.03] active:scale-[0.99] transition-transform"
+          >
+            <span className="text-[12.5px] font-mono font-medium text-[#E5E5EA] tabular-nums">{phone}</span>
+            {copied
+              ? <Check size={13} className="text-emerald-400" aria-hidden="true" />
+              : <Copy size={13} className="text-[#9A9AA5]" aria-hidden="true" />}
+          </button>
+        )}
+
+        {/* Included-minutes gauge: the one figure that is specific to the
+            receptionist and warns before an overage invoice. */}
+        {quota && quota.total > 0 && (() => {
+          const pct = Math.round((quota.used / quota.total) * 100);
+          return (
+            <div>
+              <div className="flex justify-between text-[10.5px] text-[#9A9AA5] mb-1">
+                <span>{isFr ? 'Minutes ce mois' : 'Minutes this month'}</span>
+                <span className="tabular-nums">{quota.used} / {quota.total} min ({pct}%)</span>
+              </div>
+              <div
+                className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden"
+                role="progressbar"
+                aria-valuenow={Math.min(pct, 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={isFr ? 'Minutes consommées ce mois' : 'Minutes used this month'}
+              >
+                <div
+                  className="h-full rounded-full transition-[width] duration-500 ease-out"
+                  style={{
+                    width: `${Math.min(pct, 100)}%`,
+                    background: pct > 90 ? '#EF4444' : pct > 70 ? '#F59E0B' : '#E5E5EA',
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
-      {/* Receptionist mode: live voice call with the real agent */}
-      {mode === 'receptionist' && (
+      {/* Live voice call with the real receptionist, driven from the header. */}
+      {liveCall && (
         <div className="px-3 pt-3">
           <VapiLiveCall isFr={isFr} />
         </div>
