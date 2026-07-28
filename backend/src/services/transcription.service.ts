@@ -13,9 +13,16 @@ import { env } from '../config/env';
 
 const WHISPER_URL = 'https://api.openai.com/v1/audio/transcriptions';
 const MODEL = 'whisper-1';
+const TIMEOUT_MS = 30_000;
 
-/** Whisper's own cap is 25 MB. Dictation clips are seconds long, so stay well under. */
-export const MAX_AUDIO_BYTES = 8 * 1024 * 1024;
+/**
+ * Whisper's own cap is 25 MB, but the binding constraint here is the express
+ * json limit of 10 MB: base64 inflates by ~4/3, so the cap has to leave room
+ * for that expansion or the body parser rejects the request before the handler
+ * can answer with a coded error. 6 MB encodes to ~8 MB, comfortably inside.
+ * Dictation clips are seconds long, so this is never reached in practice.
+ */
+export const MAX_AUDIO_BYTES = 6 * 1024 * 1024;
 
 const ALLOWED_MIME = new Set([
   'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/flac',
@@ -54,11 +61,20 @@ export class TranscriptionService {
     // Whisper wants a bare ISO-639-1 code, not a locale.
     if (language) form.append('language', language.slice(0, 2).toLowerCase());
 
-    const res = await fetch(WHISPER_URL, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
-      body: form,
-    });
+    // Without a deadline a stalled upstream would hold this request, and the
+    // caller's spinner, indefinitely.
+    let res: Response;
+    try {
+      res = await fetch(WHISPER_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
+        body: form,
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+    } catch (err) {
+      logger.error('[Transcription] Whisper request failed or timed out:', err);
+      throw new Error('transcription_failed');
+    }
 
     if (!res.ok) {
       const detail = (await res.text().catch(() => '')).slice(0, 200);

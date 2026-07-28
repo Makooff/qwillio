@@ -34,6 +34,9 @@ function greetingFor(mode: Mode, isFr: boolean): string {
     : 'What would you like to set up? Hours, services, voice, FAQ… talk or type.';
 }
 
+/** Auto-stop for a take, so a forgotten recording never becomes a refused upload. */
+const MAX_RECORDING_MS = 120_000;
+
 /** MediaRecorder MIME, first one the browser actually supports. */
 function pickAudioMime(): string {
   const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
@@ -119,11 +122,17 @@ function VoiceViz({ isFr, analyser }: { isFr: boolean; analyser: AnalyserNode | 
  * Text + browser mic (Web Speech API) + optional spoken replies.
  */
 export default function AssistantChat({
-  isFr = true, onConfigChanged,
-  businessName, planLabel, isTrial = false, phone, quota,
+  isFr = true, onConfigChanged, initialMode = 'config', lockMode = false, onCompleted,
+  businessName, planLabel, isTrial = false, phone, quota, showHeader = true,
 }: {
   isFr?: boolean;
   onConfigChanged?: () => void;
+  /** Mode to open in. Defaults to config, the dashboard's use. */
+  initialMode?: Mode;
+  /** Hides the mode pills, for first-time setup where switching makes no sense. */
+  lockMode?: boolean;
+  /** Onboarding mode: the assistant considers first-time setup finished. */
+  onCompleted?: () => void;
   /** Identity shown in the chat header, so the panel says who you are talking to. */
   businessName?: string;
   planLabel?: string;
@@ -131,13 +140,19 @@ export default function AssistantChat({
   phone?: string | null;
   /** Included-minutes gauge. Receptionist-specific, so it lives here and nowhere else. */
   quota?: { used: number; total: number };
+  /**
+   * The dashboard wants the identity header; onboarding does not, because the
+   * page around it already introduces the step and there is no number yet.
+   */
+  showHeader?: boolean;
 }) {
-  const [mode, setMode] = useState<Mode>('config');
-  const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: greetingFor('config', isFr) }]);
+  const [mode, setMode] = useState<Mode>(initialMode);
+  const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: greetingFor(initialMode, isFr) }]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [listening, setListening] = useState(false);
   const [micSupported, setMicSupported] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [copied, setCopied] = useState(false);
   // Live test call is driven from the header, independently of the chat mode.
   const [liveCall, setLiveCall] = useState(false);
@@ -162,6 +177,12 @@ export default function AssistantChat({
   const audioCtxRef = useRef<AudioContext | null>(null);
   // Set when the user cancels, so onstop discards instead of transcribing.
   const abortRef = useRef(false);
+  const maxDurationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearMaxDuration = () => {
+    if (maxDurationRef.current) clearTimeout(maxDurationRef.current);
+    maxDurationRef.current = null;
+  };
 
   useEffect(() => {
     setMicSupported(
@@ -172,7 +193,11 @@ export default function AssistantChat({
   }, []);
 
   // Release the mic and the audio graph if the panel unmounts mid-recording.
+  // The abort flag has to be set first: stop() fires onstop, which would
+  // otherwise build the blob, call the API and setState on a dead component.
   useEffect(() => () => {
+    abortRef.current = true;
+    if (maxDurationRef.current) clearTimeout(maxDurationRef.current);
     try { recorderRef.current?.stop(); } catch { /* noop */ }
     streamRef.current?.getTracks().forEach(t => t.stop());
     void audioCtxRef.current?.close().catch(() => { /* noop */ });
@@ -190,9 +215,22 @@ export default function AssistantChat({
 
   const copyPhone = () => {
     if (!phone) return;
-    void navigator.clipboard.writeText(phone);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    // clipboard is undefined outside a secure origin, and writeText rejects
+    // when permission is denied. Only claim success once it actually copied,
+    // otherwise the tick appeared while nothing had been put on the clipboard.
+    const write = navigator.clipboard?.writeText(phone);
+    if (!write) {
+      notify('Copie impossible ici. Sélectionnez le numéro à la main.',
+             'Cannot copy here. Select the number manually.');
+      return;
+    }
+    write.then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => notify(
+      'Copie refusée par le navigateur. Sélectionnez le numéro à la main.',
+      'The browser refused the copy. Select the number manually.',
+    ));
   };
 
   const send = async (text: string) => {
@@ -211,6 +249,7 @@ export default function AssistantChat({
       const reply = res.data?.reply || (isFr ? 'Désolée, je n’ai pas compris.' : 'Sorry, I didn’t catch that.');
       setMessages(m => [...m, { role: 'assistant', content: reply }]);
       if (res.data?.configChanged) onConfigChanged?.();
+      if (res.data?.completed) onCompleted?.();
     } catch {
       setMessages(m => [...m, { role: 'assistant', content: isFr ? 'Une erreur est survenue. Réessayez.' : 'Something went wrong. Please try again.' }]);
     } finally {
@@ -231,7 +270,10 @@ export default function AssistantChat({
   };
 
   const transcribe = async (blob: Blob, mimeType: string) => {
-    setSending(true);
+    // Its own flag, not `sending`: transcribe hands the text to send(), which
+    // bails out when `sending` is already set. Sharing one flag meant the
+    // transcript could be silently dropped instead of sent.
+    setTranscribing(true);
     try {
       const audio = await blobToBase64(blob);
       const { data } = await api.post('/my-dashboard/assistant/transcribe', {
@@ -239,7 +281,7 @@ export default function AssistantChat({
         mimeType,
         // The dictation language is the language YOU speak to the assistant.
         // It is deliberately not `agentLanguage`, which is the language the
-        // receptionist speaks to callers — conflating the two is what made
+        // receptionist speaks to callers. Conflating the two is what made
         // French dictation transcribe as English.
         language: dictationLang,
       });
@@ -263,7 +305,7 @@ export default function AssistantChat({
                'Transcription failed. Try again, or type your message.');
       }
     } finally {
-      setSending(false);
+      setTranscribing(false);
     }
   };
 
@@ -296,11 +338,13 @@ export default function AssistantChat({
 
       rec.ondataavailable = e => { if (e.data.size) chunksRef.current.push(e.data); };
       rec.onerror = () => {
+        clearMaxDuration();
         setListening(false);
         releaseMic();
         notify('L’enregistrement a échoué. Réessayez.', 'Recording failed. Please try again.');
       };
       rec.onstop = () => {
+        clearMaxDuration();
         setListening(false);
         const type = rec.mimeType || mimeType || 'audio/webm';
         const blob = new Blob(chunksRef.current, { type });
@@ -313,6 +357,15 @@ export default function AssistantChat({
       recorderRef.current = rec;
       rec.start();
       setListening(true);
+
+      // Close the take on its own rather than letting it grow until the upload
+      // is refused for size. Two minutes is far past any dictation.
+      maxDurationRef.current = setTimeout(() => {
+        if (recorderRef.current?.state !== 'recording') return;
+        notify('Enregistrement arrêté après 2 minutes. Je transcris ce que j’ai.',
+               'Recording stopped after 2 minutes. Transcribing what I have.');
+        stopRecording();
+      }, MAX_RECORDING_MS);
     } catch (err: any) {
       releaseMic();
       setListening(false);
@@ -348,11 +401,12 @@ export default function AssistantChat({
     // quota, so a fixed 480px would starve the message list on short screens.
     <div
       className="rounded-2xl border border-white/[0.08] bg-[#0A0A0C] overflow-hidden flex flex-col"
-      style={{ height: 'min(76vh, 640px)' }}
+      style={{ height: showHeader ? 'min(76vh, 640px)' : 480 }}
     >
       {/* Header: who you are talking to, the AI number, and the live test call.
-          This is the page's identity block — it lives here so the panel is
-          self-describing and the page above it stays free of a duplicate. */}
+          This is the page's identity block, kept here so the panel is
+          self-describing and the page above it carries no duplicate. */}
+      {showHeader && (
       <div className="px-4 py-3 border-b border-white/[0.06] space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -368,7 +422,7 @@ export default function AssistantChat({
               </h2>
               <p className="text-[11.5px] text-[#9A9AA5] truncate">
                 {businessName || (isFr ? 'Votre entreprise' : 'Your business')}
-                {planLabel && <> · {isFr ? 'Plan' : 'Plan'} {planLabel}</>}
+                {planLabel && <> · Plan {planLabel}</>}
                 {isTrial && <span className="ml-1 text-amber-400">({isFr ? 'essai' : 'trial'})</span>}
               </p>
             </div>
@@ -450,6 +504,7 @@ export default function AssistantChat({
           );
         })()}
       </div>
+      )}
 
       {/* Live voice call with the real receptionist, driven from the header. */}
       {liveCall && (
@@ -494,7 +549,7 @@ export default function AssistantChat({
             </div>
           );
         })}
-        {sending && (
+        {(sending || transcribing) && (
           <div className="flex justify-start">
             <div className="px-3.5 py-2.5" style={{ background: '#26262A', borderRadius: 18 }}>
               <Loader2 size={14} className="animate-spin" style={{ color: '#8B8BA7' }} />
@@ -536,7 +591,7 @@ export default function AssistantChat({
           {/* Actions row: mode pills + mic/send */}
           <div className="flex items-center justify-between gap-2 pt-1">
             <div className={cn('flex items-center gap-1', listening && 'opacity-0 invisible')}>
-              {MODES.map(m => {
+              {(lockMode ? [] : MODES).map(m => {
                 const active = mode === m.id;
                 const Icon = m.icon;
                 return (
@@ -611,7 +666,7 @@ export default function AssistantChat({
                   else if (hasContent) void send(input);
                   else void startRecording();
                 }}
-                disabled={sending && !hasContent}
+                disabled={(sending || transcribing) && !hasContent}
                 aria-label={listening ? (isFr ? 'Arrêter et transcrire' : 'Stop and transcribe') : hasContent ? (isFr ? 'Envoyer' : 'Send') : (isFr ? 'Dicter' : 'Dictate')}
                 className="h-9 w-9 rounded-full grid place-items-center transition-colors flex-shrink-0 active:scale-[0.97]"
                 style={
@@ -622,7 +677,7 @@ export default function AssistantChat({
                       : { background: 'rgba(255,255,255,0.06)', color: '#9CA3AF' }
                 }
               >
-                {sending ? <Square size={14} className="animate-pulse" />
+                {(sending || transcribing) ? <Square size={14} className="animate-pulse" />
                   : listening ? <StopCircle size={17} />
                   : hasContent ? <ArrowUp size={16} />
                   : <Mic size={17} />}

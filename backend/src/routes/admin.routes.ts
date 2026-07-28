@@ -9,6 +9,7 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 import { env } from '../config/env';
 import { getErrors, markResolved } from '../utils/error-store';
 import { getPlan } from '../config/plans';
+import { adminClientsService } from '../services/admin-clients.service';
 import { emailService } from '../services/email.service';
 import { smsService } from '../services/sms.service';
 import { smsTemplates } from '../services/sms-templates';
@@ -802,6 +803,27 @@ router.delete('/prospects/cleanup-belgian', async (_req: Request, res: Response)
     res.json({ success: true, deleted: result.count, prospects: found.map(p => `${p.businessName} / ${p.city}`) });
   } catch (err: any) {
     logger.error('[API] Admin cleanup-belgian error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/clients — create a customer by hand.
+ *
+ * Unlike /create-client, this does not need a User to exist first: the founder
+ * signs customers up over the phone, long before they ever create a login.
+ * `Client.userId` is optional, and clientMiddleware links the row to a User by
+ * contactEmail the first time that person registers.
+ */
+router.post('/clients', async (req: Request, res: Response) => {
+  try {
+    const result = await adminClientsService.create(req.body || {});
+    if (!result.ok) {
+      return res.status(result.status).json({ error: result.error, clientId: result.clientId });
+    }
+    res.status(201).json({ success: true, clientId: result.client.id, client: result.client });
+  } catch (err: any) {
+    logger.error('[Admin] manual client creation failed:', err);
     res.status(500).json({ error: err.message });
   }
 });

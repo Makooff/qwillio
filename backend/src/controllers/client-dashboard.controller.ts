@@ -364,7 +364,7 @@ export class ClientDashboardController {
     }
   }
 
-  // POST /my-dashboard/assistant/transcribe — speech-to-text for the chat's
+  // POST /my-dashboard/assistant/transcribe: speech-to-text for the chat's
   // dictation button. Audio arrives base64-encoded in JSON so no multipart
   // dependency is needed; clips are seconds long and stay far under the 10mb
   // express json limit.
@@ -375,8 +375,16 @@ export class ClientDashboardController {
         return res.status(400).json({ error: 'audio required' });
       }
 
-      const buf = Buffer.from(audio, 'base64');
       const { transcriptionService, MAX_AUDIO_BYTES } = await import('../services/transcription.service');
+      // Check the encoded length first: base64 is ~4/3 of the bytes it carries,
+      // so decoding an oversized payload would waste the memory before we
+      // rejected it. MAX_AUDIO_BYTES is set below the express json limit so a
+      // clip at the cap still reaches this handler and gets the coded 413,
+      // rather than a bare PayloadTooLargeError from the body parser.
+      if (audio.length > Math.ceil((MAX_AUDIO_BYTES * 4) / 3) + 4) {
+        return res.status(413).json({ error: 'audio_too_large' });
+      }
+      const buf = Buffer.from(audio, 'base64');
       if (buf.length > MAX_AUDIO_BYTES) {
         return res.status(413).json({ error: 'audio_too_large' });
       }
@@ -388,7 +396,7 @@ export class ClientDashboardController {
       );
       res.json(result);
     } catch (error: any) {
-      // These are expected, actionable states — the UI shows them to the user
+      // These are expected, actionable states. The UI shows them to the user
       // rather than failing silently the way the old browser API did.
       const known: Record<string, number> = {
         transcription_unavailable: 503,

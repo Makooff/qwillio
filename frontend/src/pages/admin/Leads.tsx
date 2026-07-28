@@ -1,17 +1,26 @@
-﻿import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Search, Phone, X, Zap, MapPin, Mail, Star } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import {
+  RefreshCw, Search, X, Zap, Star, SlidersHorizontal, Bookmark,
+  ClipboardList, Palette, Phone, Loader2, Copy, Check, UserPlus, Trash2,
+} from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import api from '../../services/api';
 import { pro } from '../../styles/pro-theme';
-import {
-  PageHeader, Card, SectionHead, Stat, IconBtn, PrimaryBtn, GhostBtn, Pill,
-} from '../../components/pro/ProBlocks';
+import { PageHeader, Card, IconBtn, PrimaryBtn, GhostBtn, Pill } from '../../components/pro/ProBlocks';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
 import Pagination from '../../components/ui/Pagination';
 import SlideSheet from '../../components/ui/SlideSheet';
+import Modal from '../../components/ui/Modal';
+
+/**
+ * Prospection, built for calling by hand.
+ *
+ * One search box over the leads already collected — instant and free. Scraping
+ * for new businesses is a separate, explicit button, because that one costs
+ * money on every press.
+ */
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,48 +32,72 @@ interface Lead {
   city?: string;
   phone?: string;
   email?: string;
+  website?: string;
+  googleRating?: number | string;
+  googleReviewsCount?: number;
   score: number;
   priorityScore: number;
   interestLevel?: number;
   status: string;
-  callTranscript?: string;
-  painPoints?: string[];
-  notes?: string;
   callAttempts: number;
   createdAt: string;
-  lastCallDate?: string;
+  lastContactDate?: string;
   isFavorite?: boolean;
 }
 
-interface LeadsResponse {
-  leads?: Lead[];
-  data?: Lead[];
-  prospects?: Lead[];
-  total?: number;
-  pagination?: { total?: number };
+interface SavedSearch {
+  id: string;
+  name: string;
+  filters: Record<string, string>;
+  lastProspectId?: string | null;
+}
+
+interface Brief {
+  id: string;
+  businessName: string;
+  niche?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  address?: string;
+  city?: string;
+  contactName?: string;
+  google: { rating?: number | string; reviews?: number };
+  score: number;
+  priorityScore: number;
+  interestLevel?: number;
+  status: string;
+  website_signals: Record<string, unknown> & { scraped?: boolean; techStack?: string[] };
+  talkingPoints: string[];
+  painPoints: string[];
+  notes?: string;
+  lastContactDate?: string;
+  callAttempts: number;
+  hasScript: boolean;
+}
+
+interface Script {
+  intro: string; painPoint: string; pitch: string; cta: string;
+  objectionHandlers: Record<string, string>; rawFull: string;
 }
 
 type PillColor = 'neutral' | 'ok' | 'warn' | 'bad' | 'info' | 'accent';
-type ScoreFilter = 'all' | '5' | '7' | '8';
-type StatusFilterValue = 'all' | 'new' | 'contacted' | 'hot_lead';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const LIMIT = 30;
 
 const NICHES = [
-  'Restaurant', 'Plomberie', 'Électricité', 'Coiffure', 'Auto', 'Santé',
-  'Immobilier', 'Comptabilité', 'Nettoyage', 'Sport', 'Mode', 'Informatique',
-];
-
-// Backend niche keys used to launch a live scrape (map to Google Maps queries).
-const SCRAPE_SECTORS: { value: string; label: string }[] = [
-  { value: 'financial',     label: '💼 Comptable / Fiduciaire / Assurance' },
-  { value: 'home_services', label: '🔧 Services à domicile' },
-  { value: 'dental',        label: '🦷 Dentaire' },
-  { value: 'medical',       label: '⚕️ Médical / Para-médical' },
-  { value: 'law',           label: '⚖️ Avocat / Notaire' },
-  { value: 'auto',          label: '🚗 Garage auto' },
-  { value: 'salon',         label: '💇 Coiffure / Beauté' },
-  { value: 'real_estate',   label: '🏠 Immobilier' },
-  { value: 'restaurant',    label: '🍽️ Restaurant' },
-  { value: 'veterinary',    label: '🐾 Vétérinaire' },
+  { value: 'financial', label: 'Comptable / Fiduciaire' },
+  { value: 'home_services', label: 'Services à domicile' },
+  { value: 'dental', label: 'Dentaire' },
+  { value: 'medical', label: 'Médical' },
+  { value: 'law', label: 'Avocat / Notaire' },
+  { value: 'auto', label: 'Garage auto' },
+  { value: 'salon', label: 'Coiffure / Beauté' },
+  { value: 'real_estate', label: 'Immobilier' },
+  { value: 'restaurant', label: 'Restaurant' },
+  { value: 'veterinary', label: 'Vétérinaire' },
 ];
 
 const SCRAPE_CITIES: Record<string, string[]> = {
@@ -72,51 +105,57 @@ const SCRAPE_CITIES: Record<string, string[]> = {
   FR: ['Paris', 'Lyon', 'Marseille', 'Lille', 'Toulouse', 'Bordeaux', 'Nantes'],
 };
 
+const SORTS = [
+  { value: 'priorityScore:desc', label: 'Score le plus élevé' },
+  { value: 'googleRating:desc', label: 'Meilleure note Google' },
+  { value: 'googleReviewsCount:desc', label: 'Plus d’avis' },
+  { value: 'createdAt:desc', label: 'Ajoutés récemment' },
+  { value: 'businessName:asc', label: 'Nom (A→Z)' },
+  { value: 'lastContactDate:asc', label: 'Pas appelés depuis longtemps' },
+];
+
+const PLAN_OPTIONS = [
+  { key: 'solo', label: 'Solo — 99 €/mois' },
+  { key: 'starter', label: 'Starter — 249 €/mois' },
+  { key: 'pro', label: 'Pro — 599 €/mois' },
+  { key: 'enterprise', label: 'Enterprise — 1290 €/mois' },
+];
+
+const STATUSES = [
+  { value: 'all', label: 'Tous' },
+  { value: 'new', label: 'Jamais appelés' },
+  { value: 'contacted', label: 'Déjà appelés' },
+  { value: 'hot_lead', label: 'Chauds' },
+  { value: 'converted', label: 'Convertis' },
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function statusColor(s: string): PillColor {
-  switch (s.toLowerCase()) {
-    case 'hot_lead':   return 'ok';
-    case 'contacted':  return 'info';
-    case 'new':        return 'neutral';
-    default:           return 'neutral';
+  switch (s?.toLowerCase()) {
+    case 'hot_lead': return 'ok';
+    case 'converted': return 'accent';
+    case 'contacted': return 'info';
+    default: return 'neutral';
   }
 }
 
-function scoreBarColor(n: number): string {
-  return n >= 70 ? pro.ok : n >= 50 ? pro.warn : pro.bad;
+function statusLabel(s: string): string {
+  const map: Record<string, string> = {
+    new: 'Nouveau', contacted: 'Appelé', hot_lead: 'Chaud',
+    converted: 'Client', rejected: 'Refusé', exhausted: 'Épuisé',
+  };
+  return map[s?.toLowerCase()] || s || '—';
 }
 
-function interestColor(n: number): PillColor {
-  return n >= 7 ? 'ok' : n >= 5 ? 'warn' : 'bad';
+/** Strips anything a dialer would choke on, keeping a leading +. */
+function telHref(phone?: string): string | null {
+  if (!phone) return null;
+  const clean = phone.replace(/[^\d+]/g, '');
+  return clean.length >= 6 ? `tel:${clean}` : null;
 }
 
-function isThisWeek(iso: string): boolean {
-  const d = new Date(iso);
-  const now = new Date();
-  const diff = now.getTime() - d.getTime();
-  return diff >= 0 && diff < 7 * 24 * 60 * 60 * 1000;
-}
-
-// ─── Score bar ────────────────────────────────────────────────────────────────
-
-function ScoreBar({ value }: { value: number }) {
-  const pct = Math.min(100, Math.max(0, value));
-  return (
-    <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-      <div
-        className="h-full rounded-full transition-[width] duration-500 ease-out"
-        style={{ width: `${pct}%`, background: scoreBarColor(pct) }}
-      />
-    </div>
-  );
-}
-
-// ─── Filter chip ─────────────────────────────────────────────────────────────
-
-function Chip({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
@@ -133,554 +172,674 @@ function Chip({
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+const selectCls = 'h-9 px-3 rounded-xl text-[12.5px] outline-none transition-colors';
+const selectStyle = { background: pro.panel, color: pro.text, border: `1px solid ${pro.border}` };
 
-const LIMIT = 30;
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function AdminLeads() {
-  const navigate = useNavigate();
-
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [niche, setNiche] = useState('');
-  const [minScore, setMinScore] = useState<ScoreFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [selected, setSelected] = useState<Lead | null>(null);
-  const [callingId, setCallingId] = useState<string | null>(null);
-  const [closingId, setClosingId] = useState<string | null>(null);
-  // Search-scrape + favorites
-  const [country, setCountry] = useState<'BE' | 'FR'>('BE');
-  const [sector, setSector] = useState('financial');
-  const [favOnly, setFavOnly] = useState(false);
-  const [scraping, setScraping] = useState(false);
-  const [favBusy, setFavBusy] = useState<string | null>(null);
   const { toasts, add: toast, remove } = useToast();
 
-  // ── Fetch ─────────────────────────────────────────────────────────────────
+  // Filters
+  const [search, setSearch] = useState('');
+  const [debounced, setDebounced] = useState('');
+  const [niche, setNiche] = useState('');
+  const [minInterest, setMinInterest] = useState('');
+  const [status, setStatus] = useState('all');
+  const [favOnly, setFavOnly] = useState(false);
+  const [phoneOnly, setPhoneOnly] = useState(true);
+  const [sort, setSort] = useState('priorityScore:desc');
+  const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
+
+  // Data
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [favBusy, setFavBusy] = useState<string | null>(null);
+
+  // Saved searches
+  const [saved, setSaved] = useState<SavedSearch[]>([]);
+  const [savingSearch, setSavingSearch] = useState(false);
+
+  // Scraping
+  const [scrapeOpen, setScrapeOpen] = useState(false);
+  const [scrapeSector, setScrapeSector] = useState('financial');
+  const [scrapeCountry, setScrapeCountry] = useState('BE');
+  const [scrapeKeyword, setScrapeKeyword] = useState('');
+  const [scraping, setScraping] = useState(false);
+
+  // Panels
+  const [brief, setBrief] = useState<Brief | null>(null);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [script, setScript] = useState<Script | null>(null);
+  const [scriptFor, setScriptFor] = useState<Lead | null>(null);
+  const [scriptLoading, setScriptLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Conversion
+  const [convertFor, setConvertFor] = useState<Lead | Brief | null>(null);
+  const [convertEmail, setConvertEmail] = useState('');
+  const [convertPlan, setConvertPlan] = useState('starter');
+  const [converting, setConverting] = useState(false);
+  const [convertError, setConvertError] = useState('');
+
+  const firstRender = useRef(true);
+
+  // Typing filters the leads already in the database — no API cost, no scraping.
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(search.trim()), 250);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  const filters = useMemo(() => ({
+    search: debounced, niche, minInterest, status, sort,
+    favorite: favOnly ? 'true' : '', hasPhone: phoneOnly ? 'true' : '',
+  }), [debounced, niche, minInterest, status, sort, favOnly, phoneOnly]);
 
   const load = useCallback(async () => {
-    setRefreshing(true);
+    setLoading(true);
+    const [sortBy, sortOrder] = sort.split(':');
+    const params = new URLSearchParams({ page: String(page), limit: String(LIMIT), sortBy, sortOrder });
+    if (debounced) params.set('search', debounced);
+    if (niche) params.set('niche', niche);
+    if (minInterest) params.set('minInterest', minInterest);
+    if (status !== 'all') params.set('status', status);
+    if (favOnly) params.set('favorite', 'true');
+    if (phoneOnly) params.set('hasPhone', 'true');
     try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(LIMIT),
-        ...(search && { search }),
-        ...(niche && { niche }),
-        ...(minScore !== 'all' && { minScore }),
-        ...(statusFilter !== 'all' && { status: statusFilter }),
-        ...(favOnly && { favorite: 'true' }),
-      });
-      const { data: res } = await api.get<LeadsResponse>(`/prospects?${params}`);
-      const list = res.leads ?? res.data ?? res.prospects ?? [];
-      setLeads(list);
-      setTotal(res.total ?? res.pagination?.total ?? list.length);
+      const { data } = await api.get(`/prospects?${params}`);
+      setLeads(data?.data ?? []);
+      setTotal(data?.pagination?.total ?? 0);
     } catch {
-      toast('Erreur chargement des leads', 'error');
+      toast('Impossible de charger les prospects', 'error');
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  }, [page, search, niche, minScore, statusFilter, favOnly, toast]);
+  }, [page, debounced, niche, minInterest, status, favOnly, phoneOnly, sort, toast]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { setPage(1); }, [search, niche, minScore, statusFilter, favOnly]);
 
-  // ── Search → live scrape (Apify) ───────────────────────────────────────────
-  const runSearchScrape = useCallback(async () => {
-    setScraping(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    setPage(1);
+  }, [debounced, niche, minInterest, status, favOnly, phoneOnly, sort]);
+
+  const loadSaved = useCallback(async () => {
     try {
-      await api.post('/prospecting/trigger/custom-scrape', {
-        niches: [sector],
-        cities: SCRAPE_CITIES[country],
-        extraQueries: search.trim() ? [search.trim()] : [],
-      });
-      toast(`Scraping lancé — ${country} · ${SCRAPE_CITIES[country].length} villes`, 'success');
-      // Results arrive in the background; refresh a few times.
-      setTimeout(() => void load(), 4000);
-      setTimeout(() => void load(), 12000);
-    } catch (e: any) {
-      toast(e?.response?.data?.error ?? 'Erreur scraping (clé Apify ?)', 'error');
-    } finally {
-      setScraping(false);
-    }
-  }, [sector, country, search, load, toast]);
+      const { data } = await api.get('/prospects/saved-searches');
+      setSaved(Array.isArray(data) ? data : []);
+    } catch { /* saved searches are a convenience, not a requirement */ }
+  }, []);
+  useEffect(() => { void loadSaved(); }, [loadSaved]);
 
-  // ── Toggle favorite ─────────────────────────────────────────────────────────
-  const toggleFavorite = useCallback(async (lead: Lead) => {
-    setFavBusy(lead.id);
+  // ─── Actions ──────────────────────────────────────────────
+
+  const toggleFavorite = async (lead: Lead) => {
     const next = !lead.isFavorite;
-    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, isFavorite: next } : l));
+    setFavBusy(lead.id);
+    setLeads(ls => ls.map(l => (l.id === lead.id ? { ...l, isFavorite: next } : l)));
     try {
       await api.patch(`/prospects/${lead.id}/favorite`, { favorite: next });
     } catch {
-      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, isFavorite: !next } : l));
+      setLeads(ls => ls.map(l => (l.id === lead.id ? { ...l, isFavorite: !next } : l)));
       toast('Erreur favori', 'error');
     } finally {
       setFavBusy(null);
     }
-  }, [toast]);
+  };
 
-  // ── Client-side status filter (applied after fetch) ───────────────────────
+  /** The dialer opens from the href; this only records that it happened. */
+  const markCalled = (lead: Lead) => {
+    setLeads(ls => ls.map(l => (l.id === lead.id
+      ? { ...l, status: l.status === 'new' ? 'contacted' : l.status, callAttempts: l.callAttempts + 1 }
+      : l)));
+    api.post(`/prospects/${lead.id}/touch`).catch(() => { /* the call still happened */ });
+  };
 
-  const filtered = useMemo(() => {
-    if (statusFilter === 'all') return leads;
-    return leads.filter(l => l.status.toLowerCase() === statusFilter);
-  }, [leads, statusFilter]);
-
-  // ── Stats ─────────────────────────────────────────────────────────────────
-
-  const stats = useMemo(() => {
-    const hotLeads = leads.filter(
-      l => (l.interestLevel ?? 0) >= 8 || l.status.toLowerCase() === 'hot_lead',
-    ).length;
-    const scores = leads.map(l => l.interestLevel ?? 0).filter(n => n > 0);
-    const avgScore = scores.length
-      ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
-      : 0;
-    const thisWeek = leads.filter(l => isThisWeek(l.createdAt)).length;
-    return { total, hotLeads, avgScore, thisWeek };
-  }, [leads, total]);
-
-  // ── Actions ───────────────────────────────────────────────────────────────
-
-  const callLead = async (lead: Lead) => {
-    if (!lead.phone) { toast('Numéro de téléphone manquant', 'error'); return; }
-    setCallingId(lead.id);
+  const openBrief = async (lead: Lead) => {
+    setBriefLoading(true);
+    setBrief({ id: lead.id, businessName: lead.businessName } as Brief);
     try {
-      await api.post('/prospecting/trigger/call', { prospectId: lead.id });
-      toast(`Appel déclenché — ${lead.businessName}`, 'success');
+      const { data } = await api.get(`/prospects/${lead.id}/brief`);
+      setBrief(data);
     } catch {
-      toast('Erreur déclenchement appel', 'error');
+      toast('Impossible de charger la fiche', 'error');
+      setBrief(null);
     } finally {
-      setCallingId(null);
+      setBriefLoading(false);
     }
   };
 
-  const triggerCloserSequence = async (lead: Lead) => {
-    setClosingId(lead.id);
+  const openScript = async (lead: Lead) => {
+    setScriptFor(lead);
+    setScript(null);
+    setScriptLoading(true);
     try {
-      await api.post(`/closer/sequence/${lead.id}`);
-      toast('Séquence closer déclenchée', 'success');
+      const { data } = await api.post(`/prospects/${lead.id}/script`);
+      setScript(data.script);
     } catch {
-      toast('Erreur séquence closer', 'error');
+      toast('Génération du script impossible', 'error');
+      setScriptFor(null);
     } finally {
-      setClosingId(null);
+      setScriptLoading(false);
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const regenerateScript = async () => {
+    if (!scriptFor) return;
+    setScriptLoading(true);
+    try {
+      const { data } = await api.post(`/prospects/${scriptFor.id}/script?refresh=true`);
+      setScript(data.script);
+      toast('Script régénéré');
+    } catch {
+      toast('Régénération impossible', 'error');
+    } finally {
+      setScriptLoading(false);
+    }
+  };
+
+  const copyScript = () => {
+    if (!script) return;
+    navigator.clipboard.writeText(script.rawFull);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const saveCurrentSearch = async () => {
+    const name = window.prompt('Nom de la recherche ?', debounced || niche || 'Ma recherche');
+    if (!name?.trim()) return;
+    setSavingSearch(true);
+    try {
+      await api.post('/prospects/saved-searches', { name: name.trim(), filters });
+      toast('Recherche sauvegardée');
+      loadSaved();
+    } catch {
+      toast('Sauvegarde impossible', 'error');
+    } finally {
+      setSavingSearch(false);
+    }
+  };
+
+  const applySaved = (s: SavedSearch) => {
+    const f = s.filters || {};
+    setSearch(f.search || '');
+    setNiche(f.niche || '');
+    setMinInterest(f.minInterest || '');
+    setStatus(f.status || 'all');
+    setFavOnly(f.favorite === 'true');
+    setPhoneOnly(f.hasPhone === 'true');
+    setSort(f.sort || 'priorityScore:desc');
+    setPage(1);
+    toast(`« ${s.name} » restaurée`);
+  };
+
+  const deleteSaved = async (s: SavedSearch) => {
+    try {
+      await api.delete(`/prospects/saved-searches/${s.id}`);
+      setSaved(list => list.filter(x => x.id !== s.id));
+    } catch {
+      toast('Suppression impossible', 'error');
+    }
+  };
+
+  const runScrape = async () => {
+    setScraping(true);
+    try {
+      await api.post('/prospecting/trigger/custom-scrape', {
+        niches: [scrapeSector],
+        cities: SCRAPE_CITIES[scrapeCountry],
+        extraQueries: scrapeKeyword.trim() ? [scrapeKeyword.trim()] : [],
+      });
+      toast('Recherche lancée. Les nouveaux business apparaîtront ici dans une minute.');
+      setScrapeOpen(false);
+    } catch {
+      toast('Le scraping a échoué', 'error');
+    } finally {
+      setScraping(false);
+    }
+  };
+
+  const submitConvert = async () => {
+    if (!convertFor) return;
+    setConvertError('');
+    setConverting(true);
+    try {
+      await api.post(`/prospects/${convertFor.id}/convert`, {
+        contactEmail: convertEmail.trim(),
+        planType: convertPlan,
+      });
+      toast(`${convertFor.businessName} est maintenant client`);
+      setConvertFor(null);
+      setConvertEmail('');
+      setBrief(null);
+      load();
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setConvertError(
+        status === 409 ? 'Ce prospect est déjà client.'
+          : status === 400 ? 'Une adresse email est nécessaire.'
+            : 'La conversion a échoué.',
+      );
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const activeFilterCount =
+    (niche ? 1 : 0) + (minInterest ? 1 : 0) + (status !== 'all' ? 1 : 0) +
+    (favOnly ? 1 : 0) + (!phoneOnly ? 1 : 0);
+
+  // ─── Render ───────────────────────────────────────────────
 
   return (
-    <div className="space-y-5 max-w-[1200px]">
+    <div className="space-y-5 max-w-[1100px]">
       <ToastContainer toasts={toasts} remove={remove} />
 
-      {/* Header */}
       <PageHeader
-        title="Leads qualifiés"
-        subtitle="Prospects avec score d'intérêt ≥ 5"
-        right={
-          <IconBtn onClick={load} title="Rafraîchir">
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </IconBtn>
-        }
+        title="Prospection"
+        subtitle="Cherchez, appelez, convertissez."
+        right={<IconBtn onClick={load} title="Actualiser"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} /></IconBtn>}
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat label="Total qualifiés" value={stats.total} hint="Score ≥ 5" />
-        <Stat label="Hot leads" value={stats.hotLeads} hint="Score ≥ 8 ou hot_lead" />
-        <Stat label="Score moyen" value={stats.avgScore > 0 ? `${stats.avgScore}/10` : '—'} hint="Intérêt moyen" />
-        <Stat label="Cette semaine" value={stats.thisWeek} hint="Créés < 7j" />
+      {/* One box over the leads already collected: instant, and it costs nothing. */}
+      <div className="relative">
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: pro.textTer }} />
+        <input
+          type="search"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Nom, ville, téléphone…"
+          aria-label="Rechercher un business"
+          className="w-full h-14 pl-12 pr-12 rounded-2xl text-[15px] outline-none transition-colors"
+          style={{ background: pro.panel, color: pro.text, border: `1px solid ${pro.border}` }}
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            aria-label="Effacer"
+            className="absolute right-4 top-1/2 -translate-y-1/2"
+            style={{ color: pro.textTer }}
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
-      {/* Filters */}
-      <Card>
-        {/* Search + scrape */}
-        <div className="flex items-center gap-2.5 px-4 h-12">
-          <Search className="w-4 h-4 flex-shrink-0" style={{ color: pro.textTer }} />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') void runSearchScrape(); }}
-            placeholder="Mot-clé à scraper (ex. fiduciaire) ou filtrer nom/téléphone…"
-            className="flex-1 bg-transparent text-[13px] outline-none"
-            style={{ color: pro.text }}
-          />
-          {search && (
-            <button type="button" onClick={() => setSearch('')} style={{ color: pro.textTer }}>
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <PrimaryBtn size="sm" onClick={() => void runSearchScrape()} disabled={scraping}>
-            {scraping ? '…' : (<><Search className="w-3.5 h-3.5" /> Rechercher &amp; scraper</>)}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[12.5px]" style={{ color: pro.textSec }}>
+          {loading ? 'Recherche…' : `${total.toLocaleString('fr-BE')} business`}
+        </span>
+        <span style={{ color: pro.textTer }}>·</span>
+        <button
+          onClick={() => setShowFilters(v => !v)}
+          className="inline-flex items-center gap-1.5 text-[12.5px] transition-colors"
+          style={{ color: showFilters || activeFilterCount ? pro.text : pro.textSec }}
+        >
+          <SlidersHorizontal size={13} />
+          Filtres{activeFilterCount ? ` (${activeFilterCount})` : ''}
+        </button>
+        <span style={{ color: pro.textTer }}>·</span>
+        <select
+          value={sort}
+          onChange={e => setSort(e.target.value)}
+          aria-label="Trier"
+          className="text-[12.5px] bg-transparent outline-none cursor-pointer"
+          style={{ color: pro.textSec }}
+        >
+          {SORTS.map(s => <option key={s.value} value={s.value} style={{ background: pro.bg }}>{s.label}</option>)}
+        </select>
+
+        <div className="ml-auto flex items-center gap-2">
+          <GhostBtn onClick={saveCurrentSearch} disabled={savingSearch}>
+            <Bookmark size={13} /> Sauvegarder
+          </GhostBtn>
+          <PrimaryBtn onClick={() => setScrapeOpen(true)}>
+            <Zap size={13} /> Chercher de nouveaux business
           </PrimaryBtn>
         </div>
+      </div>
 
-        {/* Scrape target + list filters */}
-        <div
-          className="flex flex-wrap items-center gap-3 px-4 py-3"
-          style={{ borderTop: `1px solid ${pro.border}` }}
-        >
-          {/* Country for the scrape */}
-          <select
-            value={country}
-            onChange={e => setCountry(e.target.value as 'BE' | 'FR')}
-            className="h-8 px-3 text-[12px] rounded-xl outline-none cursor-pointer"
-            style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.text }}
-          >
-            <option value="BE">🇧🇪 Belgique</option>
-            <option value="FR">🇫🇷 France</option>
-          </select>
-
-          {/* Sector for the scrape */}
-          <select
-            value={sector}
-            onChange={e => setSector(e.target.value)}
-            className="h-8 px-3 text-[12px] rounded-xl outline-none cursor-pointer"
-            style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.text }}
-          >
-            {SCRAPE_SECTORS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
-
-          <span className="w-px h-6" style={{ background: pro.border }} />
-
-          {/* Favorites */}
-          <Chip active={favOnly} onClick={() => setFavOnly(v => !v)}>
-            ⭐ Favoris
-          </Chip>
-
-          {/* Niche list filter */}
-          <select
-            value={niche}
-            onChange={e => setNiche(e.target.value)}
-            className="h-8 px-3 text-[12px] rounded-xl outline-none cursor-pointer"
-            style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.text }}
-          >
-            <option value="">Toutes les niches</option>
-            {NICHES.map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-
-          {/* Score min tabs */}
-          <div className="flex items-center gap-1.5">
-            {(['all', '5', '7', '8'] as ScoreFilter[]).map(s => (
-              <Chip key={s} active={minScore === s} onClick={() => setMinScore(s)}>
-                {s === 'all' ? 'Tous' : s === '8' ? '8+ 🔥' : `${s}+`}
-              </Chip>
-            ))}
-          </div>
-
-          {/* Status tabs */}
-          <div className="flex items-center gap-1.5">
-            {(['all', 'new', 'contacted', 'hot_lead'] as StatusFilterValue[]).map(s => (
-              <Chip key={s} active={statusFilter === s} onClick={() => setStatusFilter(s)}>
-                {s === 'all' ? 'Tous' : s === 'new' ? 'Nouveau' : s === 'contacted' ? 'Contacté' : 'Hot lead'}
-              </Chip>
-            ))}
-          </div>
+      {saved.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {saved.map(s => (
+            <span key={s.id} className="inline-flex items-center rounded-xl overflow-hidden"
+                  style={{ border: `1px solid ${pro.border}`, background: pro.panel }}>
+              <button onClick={() => applySaved(s)} className="h-8 pl-3 pr-2 text-[12px]" style={{ color: pro.textSec }}>
+                {s.name}
+              </button>
+              <button onClick={() => deleteSaved(s)} aria-label={`Supprimer ${s.name}`} className="h-8 pr-2.5" style={{ color: pro.textTer }}>
+                <Trash2 size={12} />
+              </button>
+            </span>
+          ))}
         </div>
-      </Card>
+      )}
 
-      {/* Leads table */}
+      {showFilters && (
+        <Card>
+          <div className="flex flex-wrap items-center gap-2 p-4">
+            <select value={niche} onChange={e => setNiche(e.target.value)} className={selectCls} style={selectStyle} aria-label="Niche">
+              <option value="">Toutes les niches</option>
+              {NICHES.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
+            </select>
+            <select value={minInterest} onChange={e => setMinInterest(e.target.value)} className={selectCls} style={selectStyle} aria-label="Intérêt minimum">
+              <option value="">Tout intérêt</option>
+              <option value="5">Intérêt 5+</option>
+              <option value="7">Intérêt 7+</option>
+              <option value="8">Intérêt 8+</option>
+            </select>
+            <div className="flex flex-wrap items-center gap-2">
+              {STATUSES.map(s => (
+                <Chip key={s.value} active={status === s.value} onClick={() => setStatus(s.value)}>{s.label}</Chip>
+              ))}
+            </div>
+            <Chip active={favOnly} onClick={() => setFavOnly(v => !v)}>★ Favoris</Chip>
+            <Chip active={phoneOnly} onClick={() => setPhoneOnly(v => !v)}>Avec numéro</Chip>
+          </div>
+        </Card>
+      )}
+
+      {/* Results */}
       <Card>
-        {/* Table header */}
-        <div
-          className="hidden md:grid px-4 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider"
-          style={{
-            color: pro.textTer,
-            borderBottom: `1px solid ${pro.border}`,
-            gridTemplateColumns: '24px 1fr 100px 80px 70px 60px 80px 80px 120px',
-            gap: '12px',
-          }}
-        >
-          <span>#</span>
-          <span>Business</span>
-          <span>Niche</span>
-          <span>Ville</span>
-          <span>Score</span>
-          <span>Intérêt</span>
-          <span>Âge</span>
-          <span>Statut</span>
-          <span className="text-right">Actions</span>
-        </div>
-
         {loading ? (
-          <div className="p-12 text-center" style={{ color: pro.textTer }}>
-            <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mx-auto mb-3 opacity-40" />
-            <p className="text-[13px]">Chargement…</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="p-12 text-center" style={{ color: pro.textTer }}>
-            <Zap className="w-6 h-6 mx-auto mb-3 opacity-40" />
-            <p className="text-[13px]">Aucun lead qualifié trouvé</p>
+          <div className="py-20 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: pro.textTer }} /></div>
+        ) : leads.length === 0 ? (
+          <div className="py-20 text-center">
+            <p className="text-[14px]" style={{ color: pro.textSec }}>Aucun business ne correspond.</p>
+            <button onClick={() => setScrapeOpen(true)} className="mt-3 text-[13px]" style={{ color: pro.accent }}>
+              Chercher de nouveaux business
+            </button>
           </div>
         ) : (
-          <>
-            {filtered.map((lead, i) => (
-              <div
-                key={lead.id}
-                onClick={() => setSelected(lead)}
-                className="flex md:grid items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
-                style={{
-                  borderTop: i > 0 ? `1px solid ${pro.border}` : undefined,
-                  gridTemplateColumns: '24px 1fr 100px 80px 70px 60px 80px 80px 120px',
-                }}
-              >
-                {/* # */}
-                <span className="text-[11.5px] tabular-nums hidden md:block" style={{ color: pro.textTer }}>
-                  {(page - 1) * LIMIT + i + 1}
-                </span>
-
-                {/* Business */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium truncate" style={{ color: pro.text }}>
-                    {lead.businessName}
-                  </p>
-                  {lead.phone && (
-                    <p className="text-[11px] font-mono truncate hidden md:block" style={{ color: pro.textTer }}>
-                      {lead.phone}
-                    </p>
-                  )}
-                </div>
-
-                {/* Niche */}
-                <div className="hidden md:flex items-center">
-                  {lead.niche
-                    ? <Pill color="accent">{lead.niche}</Pill>
-                    : <span style={{ color: pro.textTer }}>—</span>
-                  }
-                </div>
-
-                {/* Ville */}
-                <div className="hidden md:flex items-center">
-                  <span className="text-[12px] truncate" style={{ color: pro.textSec }}>
-                    {lead.city ?? '—'}
-                  </span>
-                </div>
-
-                {/* Score bar */}
-                <div className="hidden md:flex flex-col gap-1">
-                  <ScoreBar value={lead.priorityScore ?? lead.score} />
-                  <span className="text-[10px] tabular-nums" style={{ color: pro.textTer }}>
-                    {lead.priorityScore ?? lead.score}
-                  </span>
-                </div>
-
-                {/* Interest score */}
-                <div className="hidden md:flex items-center">
-                  {lead.interestLevel != null ? (
-                    <span
-                      className="text-[18px] font-bold tabular-nums leading-none"
-                      style={{ color: lead.interestLevel >= 7 ? pro.ok : lead.interestLevel >= 5 ? pro.warn : pro.bad }}
-                    >
-                      {lead.interestLevel}
-                    </span>
-                  ) : (
-                    <span style={{ color: pro.textTer }}>—</span>
-                  )}
-                </div>
-
-                {/* Âge */}
-                <div className="hidden md:flex items-center">
-                  <span className="text-[11px]" style={{ color: pro.textTer }}>
-                    {formatDistanceToNow(new Date(lead.createdAt), { locale: fr, addSuffix: false })}
-                  </span>
-                </div>
-
-                {/* Statut */}
-                <div className="hidden md:flex items-center">
-                  <Pill color={statusColor(lead.status)}>{lead.status}</Pill>
-                </div>
-
-                {/* Actions */}
-                <div
-                  className="flex items-center gap-1.5 justify-end flex-shrink-0"
-                  onClick={e => e.stopPropagation()}
-                >
+          <ul>
+            {leads.map(lead => {
+              const href = telHref(lead.phone);
+              return (
+                <li key={lead.id}
+                    className="flex items-center gap-3 px-4 py-3 border-b last:border-0"
+                    style={{ borderColor: pro.border }}>
                   <button
-                    type="button"
-                    onClick={() => void toggleFavorite(lead)}
+                    onClick={() => toggleFavorite(lead)}
                     disabled={favBusy === lead.id}
                     aria-label={lead.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                    aria-pressed={!!lead.isFavorite}
-                    className="w-7 h-7 grid place-items-center rounded-lg transition-colors hover:bg-white/[0.06]"
-                    title={lead.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                    className="flex-shrink-0"
                   >
-                    <Star
-                      className="w-4 h-4"
-                      style={{ color: lead.isFavorite ? '#f5b301' : pro.textTer }}
-                      fill={lead.isFavorite ? '#f5b301' : 'none'}
-                    />
+                    <Star size={15} fill={lead.isFavorite ? '#FCD34D' : 'none'} style={{ color: lead.isFavorite ? '#FCD34D' : pro.textTer }} />
                   </button>
-                  <GhostBtn
-                    size="sm"
-                    onClick={() => callLead(lead)}
-                    disabled={callingId === lead.id || !lead.phone}
-                  >
-                    {callingId === lead.id ? '…' : '📞'}
-                  </GhostBtn>
-                  <GhostBtn
-                    size="sm"
-                    onClick={() => navigate('/admin/agents/business-plan', { state: { prospectId: lead.id } })}
-                  >
-                    📋
-                  </GhostBtn>
-                  <GhostBtn
-                    size="sm"
-                    onClick={() => navigate('/admin/agents/branding', { state: { prospectId: lead.id } })}
-                  >
-                    🎨
-                  </GhostBtn>
-                </div>
-              </div>
-            ))}
 
-            {/* Pagination */}
-            <div className="px-4 py-3" style={{ borderTop: `1px solid ${pro.border}` }}>
-              <div className="flex items-center justify-between">
-                <span className="text-[12px]" style={{ color: pro.textTer }}>
-                  {total} lead{total !== 1 ? 's' : ''} au total
-                </span>
-                <Pagination page={page} total={total} limit={LIMIT} onChange={setPage} />
-              </div>
-            </div>
-          </>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13.5px] font-medium truncate" style={{ color: pro.text }}>{lead.businessName}</p>
+                    <p className="text-[11.5px] truncate" style={{ color: pro.textTer }}>
+                      {[lead.city, lead.googleRating ? `★ ${Number(lead.googleRating).toFixed(1)}` : null,
+                        lead.googleReviewsCount ? `${lead.googleReviewsCount} avis` : null,
+                        lead.lastContactDate ? `appelé ${formatDistanceToNow(new Date(lead.lastContactDate), { addSuffix: true, locale: fr })}` : null,
+                      ].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+
+                  <Pill color={statusColor(lead.status)}>{statusLabel(lead.status)}</Pill>
+
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {/* Opens the dialer on the founder's own phone. */}
+                    {href ? (
+                      <a
+                        href={href}
+                        onClick={() => markCalled(lead)}
+                        title={`Appeler ${lead.phone}`}
+                        aria-label={`Appeler ${lead.businessName}`}
+                        className="h-9 w-9 grid place-items-center rounded-xl transition-colors"
+                        style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.text }}
+                      >
+                        <Phone size={14} />
+                      </a>
+                    ) : (
+                      <span className="h-9 w-9 grid place-items-center rounded-xl opacity-30"
+                            title="Pas de numéro"
+                            style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.textTer }}>
+                        <Phone size={14} />
+                      </span>
+                    )}
+                    <button
+                      onClick={() => openBrief(lead)}
+                      title="Fiche de prospection"
+                      aria-label={`Fiche de ${lead.businessName}`}
+                      className="h-9 w-9 grid place-items-center rounded-xl transition-colors"
+                      style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.text }}
+                    >
+                      <ClipboardList size={14} />
+                    </button>
+                    <button
+                      onClick={() => openScript(lead)}
+                      title="Script de vente"
+                      aria-label={`Script pour ${lead.businessName}`}
+                      className="h-9 w-9 grid place-items-center rounded-xl transition-colors"
+                      style={{ background: pro.panel, border: `1px solid ${pro.border}`, color: pro.text }}
+                    >
+                      <Palette size={14} />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </Card>
 
-      {/* Detail SlideSheet */}
+      {total > LIMIT && (
+        <Pagination page={page} total={total} limit={LIMIT} onChange={setPage} />
+      )}
+
+      {/* ── Brief ── */}
       <SlideSheet
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        title={selected?.businessName ?? 'Détail lead'}
-        subtitle={selected
-          ? [selected.city, selected.niche].filter(Boolean).join(' · ')
-          : undefined
-        }
+        open={!!brief}
+        onClose={() => setBrief(null)}
+        title={brief?.businessName || ''}
+        subtitle={brief?.city || undefined}
       >
-        {selected && (
-          <div className="space-y-4">
-            {/* KPI row */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-xl p-3 text-center" style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
-                <p
-                  className="text-[22px] font-bold tabular-nums leading-none"
-                  style={{
-                    color: (selected.interestLevel ?? 0) >= 7
-                      ? pro.ok
-                      : (selected.interestLevel ?? 0) >= 5
-                        ? pro.warn
-                        : pro.bad,
-                  }}
-                >
-                  {selected.interestLevel ?? '—'}
-                </p>
-                <p className="text-[10px] mt-1 uppercase tracking-wider" style={{ color: pro.textTer }}>Intérêt</p>
-              </div>
-              <div className="rounded-xl p-3 text-center" style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
-                <p className="text-[17px] font-semibold tabular-nums" style={{ color: pro.text }}>
-                  {selected.callAttempts}
-                </p>
-                <p className="text-[10px] mt-0.5 uppercase tracking-wider" style={{ color: pro.textTer }}>Appels</p>
-              </div>
-              <div className="rounded-xl p-3 text-center" style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
-                <div className="flex items-center justify-center" style={{ minHeight: 24 }}>
-                  <Pill color={statusColor(selected.status)}>{selected.status}</Pill>
-                </div>
-                <p className="text-[10px] mt-1 uppercase tracking-wider" style={{ color: pro.textTer }}>Statut</p>
-              </div>
+        {briefLoading ? (
+          <div className="py-16 text-center"><Loader2 size={18} className="animate-spin mx-auto" style={{ color: pro.textTer }} /></div>
+        ) : brief && (
+          <div className="space-y-5">
+            <div className="flex flex-wrap gap-2">
+              {brief.phone && <Pill color="info">{brief.phone}</Pill>}
+              {brief.email && <Pill color="neutral">{brief.email}</Pill>}
+              {brief.google?.rating && <Pill color="ok">★ {Number(brief.google.rating).toFixed(1)} · {brief.google.reviews ?? 0} avis</Pill>}
+              <Pill color={statusColor(brief.status)}>{statusLabel(brief.status)}</Pill>
             </div>
 
-            {/* Contact info */}
-            <div className="space-y-2">
-              {selected.phone && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
-                  <Phone className="w-3.5 h-3.5 flex-shrink-0" style={{ color: pro.textSec }} />
-                  <span className="text-[13px] font-mono" style={{ color: pro.text }}>{selected.phone}</span>
-                </div>
-              )}
-              {selected.email && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
-                  <Mail className="w-3.5 h-3.5 flex-shrink-0" style={{ color: pro.textSec }} />
-                  <span className="text-[13px]" style={{ color: pro.text }}>{selected.email}</span>
-                </div>
-              )}
-              {selected.city && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
-                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: pro.textSec }} />
-                  <span className="text-[13px]" style={{ color: pro.text }}>{selected.city}</span>
-                </div>
-              )}
-            </div>
+            {brief.website && (
+              <a href={brief.website} target="_blank" rel="noreferrer noopener"
+                 className="block text-[13px] truncate" style={{ color: pro.accent }}>
+                {brief.website}
+              </a>
+            )}
+            {brief.address && <p className="text-[13px]" style={{ color: pro.textSec }}>{brief.address}</p>}
 
-            {/* Dates */}
-            <div className="text-[11.5px] space-y-1" style={{ color: pro.textTer }}>
-              <p>Créé {formatDistanceToNow(new Date(selected.createdAt), { locale: fr, addSuffix: true })}</p>
-              {selected.lastCallDate && (
-                <p>Dernier appel {formatDistanceToNow(new Date(selected.lastCallDate), { locale: fr, addSuffix: true })}</p>
-              )}
-            </div>
-
-            {/* Pain points */}
-            {selected.painPoints && selected.painPoints.length > 0 && (
+            {brief.talkingPoints?.length > 0 && (
               <div>
-                <p className="text-[11px] mb-2 font-semibold uppercase tracking-wider" style={{ color: pro.textSec }}>Points de douleur</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: pro.textTer }}>
+                  À dire au téléphone
+                </p>
+                <ul className="space-y-1.5">
+                  {brief.talkingPoints.map((t, i) => (
+                    <li key={i} className="text-[13px] leading-relaxed" style={{ color: pro.text }}>· {t}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {brief.website_signals?.techStack && brief.website_signals.techStack.length > 0 && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: pro.textTer }}>
+                  Technos détectées
+                </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {selected.painPoints.map((p, i) => (
-                    <Pill key={i} color="warn">{p}</Pill>
+                  {brief.website_signals.techStack.map(t => <Pill key={t} color="neutral">{t}</Pill>)}
+                </div>
+              </div>
+            )}
+
+            {brief.notes && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: pro.textTer }}>Notes</p>
+                <p className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: pro.textSec }}>{brief.notes}</p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-2">
+              {telHref(brief.phone) && (
+                <a href={telHref(brief.phone)!}
+                   className="inline-flex items-center gap-2 h-9 px-4 rounded-xl text-[13px] font-medium"
+                   style={{ background: pro.accent, color: '#fff' }}>
+                  <Phone size={13} /> Appeler
+                </a>
+              )}
+              <GhostBtn onClick={() => { setConvertFor(brief); setConvertEmail(brief.email || ''); setConvertError(''); }}>
+                <UserPlus size={13} /> Convertir en client
+              </GhostBtn>
+            </div>
+          </div>
+        )}
+      </SlideSheet>
+
+      {/* ── Script ── */}
+      <SlideSheet
+        open={!!scriptFor}
+        onClose={() => { setScriptFor(null); setScript(null); }}
+        title={scriptFor?.businessName || ''}
+        subtitle="Script de vente"
+      >
+        {scriptLoading ? (
+          <div className="py-16 text-center">
+            <Loader2 size={18} className="animate-spin mx-auto" style={{ color: pro.textTer }} />
+            <p className="mt-3 text-[12.5px]" style={{ color: pro.textTer }}>Écriture du script…</p>
+          </div>
+        ) : script && (
+          <div className="space-y-5">
+            {([
+              ['Accroche', script.intro],
+              ['Question qui ouvre', script.painPoint],
+              ['Pitch', script.pitch],
+              ['Rendez-vous', script.cta],
+            ] as const).map(([label, body]) => (
+              <div key={label}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1.5" style={{ color: pro.textTer }}>{label}</p>
+                <p className="text-[13.5px] leading-relaxed" style={{ color: pro.text }}>{body}</p>
+              </div>
+            ))}
+
+            {Object.keys(script.objectionHandlers || {}).length > 0 && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: pro.textTer }}>Objections</p>
+                <div className="space-y-3">
+                  {Object.entries(script.objectionHandlers).map(([k, v]) => (
+                    <div key={k}>
+                      <p className="text-[12px] font-medium" style={{ color: pro.textSec }}>{k.replace(/_/g, ' ')}</p>
+                      <p className="text-[13px] leading-relaxed" style={{ color: pro.text }}>{v}</p>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Last call transcript */}
-            {selected.callTranscript && (
-              <div>
-                <p className="text-[11px] mb-2 font-semibold uppercase tracking-wider" style={{ color: pro.textSec }}>Dernier appel — transcription</p>
-                <pre
-                  className="text-[11.5px] leading-relaxed max-h-64 overflow-y-auto whitespace-pre-wrap rounded-xl p-3 font-mono"
-                  style={{ color: pro.text, background: pro.panel, border: `1px solid ${pro.border}` }}
-                >
-                  {selected.callTranscript}
-                </pre>
-              </div>
-            )}
-
-            {/* Notes */}
-            {selected.notes && (
-              <div>
-                <p className="text-[11px] mb-2 font-semibold uppercase tracking-wider" style={{ color: pro.textSec }}>Notes</p>
-                <p
-                  className="text-[12.5px] leading-relaxed rounded-xl p-3"
-                  style={{ color: pro.text, background: pro.panel, border: `1px solid ${pro.border}` }}
-                >
-                  {selected.notes}
-                </p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              <GhostBtn onClick={() => callLead(selected)} disabled={callingId === selected.id || !selected.phone}>
-                <Phone className="w-3.5 h-3.5" />
-                {callingId === selected.id ? 'Appel…' : 'Appeler'}
-              </GhostBtn>
-              <GhostBtn onClick={() => navigate('/admin/agents/business-plan', { state: { prospectId: selected.id } })}>
-                Business plan
-              </GhostBtn>
-              <GhostBtn onClick={() => navigate('/admin/agents/branding', { state: { prospectId: selected.id } })}>
-                Branding
-              </GhostBtn>
-              <PrimaryBtn onClick={() => triggerCloserSequence(selected)} disabled={closingId === selected.id}>
-                {closingId === selected.id ? 'Déclenchement…' : 'Séquence closer'}
+            <div className="flex items-center gap-2 pt-2">
+              <PrimaryBtn onClick={copyScript}>
+                {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Copié' : 'Copier'}
               </PrimaryBtn>
+              <GhostBtn onClick={regenerateScript}>Régénérer</GhostBtn>
             </div>
           </div>
         )}
       </SlideSheet>
+
+      {/* ── Scrape ── */}
+      <Modal
+        open={scrapeOpen}
+        onClose={() => setScrapeOpen(false)}
+        title="Chercher de nouveaux business"
+        subtitle="Interroge Google Maps. Facturé à la requête, contrairement à la recherche ci-dessus."
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <GhostBtn onClick={() => setScrapeOpen(false)}>Annuler</GhostBtn>
+            <PrimaryBtn onClick={runScrape} disabled={scraping}>
+              {scraping ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />} Lancer
+            </PrimaryBtn>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <label className="block">
+            <span className="text-[12px]" style={{ color: pro.textSec }}>Secteur</span>
+            <select value={scrapeSector} onChange={e => setScrapeSector(e.target.value)} className={`${selectCls} w-full mt-1`} style={selectStyle}>
+              {NICHES.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[12px]" style={{ color: pro.textSec }}>Pays</span>
+            <select value={scrapeCountry} onChange={e => setScrapeCountry(e.target.value)} className={`${selectCls} w-full mt-1`} style={selectStyle}>
+              <option value="BE">Belgique</option>
+              <option value="FR">France</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[12px]" style={{ color: pro.textSec }}>Mot-clé (optionnel)</span>
+            <input
+              value={scrapeKeyword}
+              onChange={e => setScrapeKeyword(e.target.value)}
+              placeholder="fiduciaire"
+              className={`${selectCls} w-full mt-1`}
+              style={selectStyle}
+            />
+          </label>
+          <p className="text-[12px]" style={{ color: pro.textTer }}>
+            Villes couvertes : {SCRAPE_CITIES[scrapeCountry].join(', ')}.
+          </p>
+        </div>
+      </Modal>
+
+      {/* ── Convert ── */}
+      <Modal
+        open={!!convertFor}
+        onClose={() => setConvertFor(null)}
+        title="Convertir en client"
+        subtitle={convertFor?.businessName}
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <GhostBtn onClick={() => setConvertFor(null)}>Annuler</GhostBtn>
+            <PrimaryBtn onClick={submitConvert} disabled={converting}>
+              {converting && <Loader2 size={13} className="animate-spin" />} Créer le client
+            </PrimaryBtn>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          {convertError && (
+            <p role="alert" className="rounded-lg px-3 py-2 text-[12.5px]"
+               style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#FCA5A5' }}>
+              {convertError}
+            </p>
+          )}
+          <label className="block">
+            <span className="text-[12px]" style={{ color: pro.textSec }}>Email du contact *</span>
+            <input
+              type="email"
+              value={convertEmail}
+              onChange={e => setConvertEmail(e.target.value)}
+              placeholder="contact@exemple.be"
+              className={`${selectCls} w-full mt-1`}
+              style={selectStyle}
+            />
+          </label>
+          <label className="block">
+            <span className="text-[12px]" style={{ color: pro.textSec }}>Forfait</span>
+            <select value={convertPlan} onChange={e => setConvertPlan(e.target.value)} className={`${selectCls} w-full mt-1`} style={selectStyle}>
+              {PLAN_OPTIONS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+            </select>
+          </label>
+        </div>
+      </Modal>
     </div>
   );
 }

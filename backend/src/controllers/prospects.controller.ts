@@ -16,12 +16,17 @@ export class ProspectsController {
       if (query.favorite === 'true') where.isFavorite = true;
       if (query.minScore !== undefined) where.score = { ...((where.score as any) || {}), gte: query.minScore };
       if (query.maxScore !== undefined) where.score = { ...((where.score as any) || {}), lte: query.maxScore };
+      if (query.minInterest !== undefined) where.interestLevel = { gte: query.minInterest };
+      // Calling by hand means a row without a number is noise.
+      if (query.hasPhone === 'true') where.phone = { not: null };
       if (query.search) {
         where.OR = [
           { businessName: { contains: query.search, mode: 'insensitive' } },
           { email: { contains: query.search, mode: 'insensitive' } },
           { contactName: { contains: query.search, mode: 'insensitive' } },
           { city: { contains: query.search, mode: 'insensitive' } },
+          // The placeholder has always promised phone search; the server never did it.
+          { phone: { contains: query.search, mode: 'insensitive' } },
         ];
       }
 

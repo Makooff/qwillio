@@ -29,6 +29,8 @@ const AdminNotFound = lazy(() => import('./pages/admin/NotFound'));
 const ClientPortal = lazy(() => import('./pages/ClientPortal'));
 const OnboardingPage = lazy(() => import('./pages/Onboarding'));
 const SelfOnboard = lazy(() => import('./pages/SelfOnboard'));
+const Subscribe = lazy(() => import('./pages/Subscribe'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const ClientOverview = lazy(() => import('./pages/client/ClientOverview'));
 const ClientCalls = lazy(() => import('./pages/client/ClientCalls'));
 const ClientLeads = lazy(() => import('./pages/client/ClientLeads'));
@@ -157,19 +159,19 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
   if (isLoading) return <Spinner />;
   if (!user) return <Navigate to="/login" />;
-  if (!user.onboardingCompleted) return <Navigate to="/onboard" />;
+  if (!user.onboardingCompleted) return <Navigate to={signupStep(user)} />;
   if (user.role !== 'admin') return <Navigate to={homeRoute(user)} />;
   return <>{children}</>;
 }
 
 function ClientRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
-  const location = useLocation();
   if (isLoading) return <Spinner />;
   if (!user) return <Navigate to="/login" />;
-  // Allow through if returning from Stripe payment (webhook will create Client)
-  const isPaymentReturn = new URLSearchParams(location.search).get('payment') === 'success';
-  if (!user.onboardingCompleted && !isPaymentReturn) return <Navigate to="/onboard" />;
+  // No `?payment=success` escape hatch: it used to wave anyone through on a
+  // query string alone. Sign-up now returns to /onboard, and customers upgrading
+  // a plan already carry `onboardingCompleted`, so nothing needs the bypass.
+  if (!user.onboardingCompleted) return <Navigate to={signupStep(user)} />;
   if (user.role !== 'client') return <Navigate to={homeRoute(user)} />;
   return <>{children}</>;
 }
@@ -182,11 +184,46 @@ function CloserRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Where an account that has not finished signing up belongs.
+ *
+ * Three gates, in order: a confirmed address, a card on file, then the
+ * receptionist config. Existing customers carry `onboardingCompleted` already,
+ * so they never enter this function and are never asked for a card they were
+ * not asked for when they signed up.
+ */
+function signupStep(user: { emailConfirmed?: boolean; hasSubscription?: boolean }) {
+  if (!user.emailConfirmed) return '/verify-email';
+  if (!user.hasSubscription) return '/subscribe';
+  return '/onboard';
+}
+
 function OnboardRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
   if (isLoading) return <Spinner />;
   if (!user) return <Navigate to="/login" />;
   if (user.onboardingCompleted) return <Navigate to={homeRoute(user)} />;
+  const step = signupStep(user);
+  if (step !== '/onboard') return <Navigate to={step} />;
+  return <>{children}</>;
+}
+
+function SubscribeRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuthStore();
+  if (isLoading) return <Spinner />;
+  if (!user) return <Navigate to="/login" />;
+  if (user.onboardingCompleted) return <Navigate to={homeRoute(user)} />;
+  const step = signupStep(user);
+  if (step !== '/subscribe') return <Navigate to={step} />;
+  return <>{children}</>;
+}
+
+function VerifyEmailRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuthStore();
+  if (isLoading) return <Spinner />;
+  if (!user) return <Navigate to="/login" />;
+  if (user.onboardingCompleted) return <Navigate to={homeRoute(user)} />;
+  if (user.emailConfirmed) return <Navigate to={signupStep(user)} />;
   return <>{children}</>;
 }
 
@@ -194,7 +231,7 @@ function PublicOrDashboard() {
   const { user, isLoading } = useAuthStore();
   if (isLoading) return <Spinner />;
   if (user) {
-    if (!user.onboardingCompleted) return <Navigate to="/onboard" />;
+    if (!user.onboardingCompleted) return <Navigate to={signupStep(user)} />;
     return <Navigate to={homeRoute(user)} />;
   }
   // Launched from the home screen, someone has already chosen Qwillio: send
@@ -203,12 +240,24 @@ function PublicOrDashboard() {
   return <Suspense fallback={<Spinner />}><Home /></Suspense>;
 }
 
+/**
+ * sessionStorage throws outright when storage is disabled or the app runs in a
+ * restricted webview. The read below happens during App's own render, before
+ * the ErrorBoundary can mount, so an unguarded access takes the whole app down.
+ */
+function safeSessionGet(key: string): string | null {
+  try { return sessionStorage.getItem(key); } catch { return null; }
+}
+function safeSessionSet(key: string, value: string): void {
+  try { sessionStorage.setItem(key, value); } catch { /* splash replays next launch, harmless */ }
+}
+
 export default function App() {
   const { checkAuth } = useAuthStore();
   // The launch animation belongs to the installed app, and to one launch only:
   // it must not replay on client-side navigation within the session.
   const [splashDone, setSplashDone] = useState(
-    () => !isStandaloneApp() || sessionStorage.getItem('qw.splashShown') === '1',
+    () => !isStandaloneApp() || safeSessionGet('qw.splashShown') === '1',
   );
 
   useEffect(() => {
@@ -222,7 +271,7 @@ export default function App() {
       {!splashDone && (
         <SplashScreen
           onDone={() => {
-            sessionStorage.setItem('qw.splashShown', '1');
+            safeSessionSet('qw.splashShown', '1');
             setSplashDone(true);
           }}
         />
@@ -286,7 +335,25 @@ export default function App() {
         <Route path="/fr/immobilier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="immobilier" /></Suspense>} />
         <Route path="/fr/coiffeur" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="coiffeur" /></Suspense>} />
 
-        {/* Self-service onboarding (requires auth, not yet onboarded) */}
+        {/* Sign-up funnel, in order: confirm the address, register a card, then
+            configure the receptionist. Each guard sends the account to whichever
+            of the three it still owes. */}
+        <Route
+          path="/verify-email"
+          element={
+            <VerifyEmailRoute>
+              <Suspense fallback={<Spinner />}><VerifyEmail /></Suspense>
+            </VerifyEmailRoute>
+          }
+        />
+        <Route
+          path="/subscribe"
+          element={
+            <SubscribeRoute>
+              <Suspense fallback={<Spinner />}><Subscribe /></Suspense>
+            </SubscribeRoute>
+          }
+        />
         <Route
           path="/onboard"
           element={

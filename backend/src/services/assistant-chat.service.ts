@@ -21,6 +21,8 @@ export interface ChatResult {
   reply: string;
   configChanged: boolean;
   config: Record<string, any>;
+  /** Onboarding mode only: the assistant considers first-time setup finished. */
+  completed: boolean;
 }
 
 const MAX_TOOL_ROUNDS = 4;
@@ -57,6 +59,10 @@ const TOOLS = [
             type: 'object',
             description: 'Weekly opening hours object, e.g. { "monday": { "open": true, "from": "09:00", "to": "18:00" } }.',
           },
+          transferNumber: {
+            type: 'string',
+            description: 'Phone number, in international format, that calls are transferred to when a caller needs a human.',
+          },
           items: {
             type: 'array',
             description: 'Services / menu / price list.',
@@ -81,6 +87,15 @@ const TOOLS = [
       parameters: { type: 'object', properties: {}, required: [] },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'complete_onboarding',
+      description:
+        'Call this ONLY in onboarding mode, once the essentials are covered (character/voice, opening hours, services, and either a transfer number or an explicit refusal). It opens the dashboard for the owner. Never call it to skip ahead.',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
 ];
 
 export class AssistantChatService {
@@ -90,6 +105,7 @@ export class AssistantChatService {
         reply: "L'assistant conversationnel n'est pas encore configuré (clé OpenAI manquante).",
         configChanged: false,
         config: {},
+        completed: false,
       };
     }
 
@@ -104,6 +120,7 @@ export class AssistantChatService {
 
     let config = (client.vapiConfig as any) || {};
     let configChanged = false;
+    let completed = false;
 
     const isFr = client.agentLanguage === 'fr'
       || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String(client.country || '').toUpperCase());
@@ -128,13 +145,20 @@ export class AssistantChatService {
       }
 
       for (const call of toolCalls) {
+        // Only onboarding mode may declare itself finished, so a chat in config
+        // mode can never talk its way past the sign-up gate.
+        if (call.function?.name === 'complete_onboarding') {
+          if (mode === 'onboarding') completed = true;
+          convo.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ ok: completed }) });
+          continue;
+        }
         const { output, changed } = await this.runTool(clientId, call, () => config, (c) => { config = c; });
         if (changed) configChanged = true;
         convo.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(output) });
       }
     }
 
-    return { reply: reply || (isFr ? "D'accord." : 'Okay.'), configChanged, config };
+    return { reply: reply || (isFr ? "D'accord." : 'Okay.'), configChanged, config, completed };
   }
 
   private async runTool(
@@ -183,7 +207,20 @@ export class AssistantChatService {
       const validated = buildVapiConfigPatch(getConfig(), patch);
       const next = await applyConfigPatch(clientId, patch);
       setConfig(next);
-      return { output: { ok: true, applied: this.diffKeys(validated, patch) }, changed: true };
+
+      // The transfer number is a Client column, not part of the vapiConfig blob,
+      // so it needs its own write. Kept loose on purpose: onboarding callers
+      // type numbers in every format, and a rejected number would stall the
+      // conversation. E.164 normalisation happens when the call is placed.
+      const applied = this.diffKeys(validated, patch);
+      if (typeof args.transferNumber === 'string' && args.transferNumber.trim()) {
+        await prisma.client.update({
+          where: { id: clientId },
+          data: { transferNumber: args.transferNumber.trim().slice(0, 32) },
+        });
+        applied.push('transferNumber');
+      }
+      return { output: { ok: true, applied }, changed: true };
     }
     return { output: { error: `unknown tool ${name}` }, changed: false };
   }

@@ -62,7 +62,7 @@ const translations = {
   // ── Pricing ──
   'price.label': { fr: 'Tarifs', en: 'Pricing' },
   'price.title': { fr: 'Des plans simples et transparents.', en: 'Simple, transparent plans.' },
-  'price.trial': { fr: 'Essai gratuit de 30 jours. Sans engagement.', en: '30-day free trial. No commitment.' },
+  'price.trial': { fr: '7 jours d’essai gratuit. Sans engagement.', en: '7-day free trial. No commitment.' },
   'price.starter.sub': { fr: 'Pour les petites entreprises', en: 'For small businesses' },
   'price.pro.sub': { fr: 'Pour les entreprises en croissance', en: 'For growing businesses' },
   'price.enterprise.sub': { fr: 'Pour les grands volumes', en: 'For high volume' },
@@ -70,7 +70,7 @@ const translations = {
   'price.setup': { fr: "frais d'installation", en: 'setup fee' },
   'price.calls': { fr: 'minutes/mois incluses', en: 'minutes/month included' },
   'price.choose': { fr: 'Choisir ce plan', en: 'Choose this plan' },
-  'price.firstFree': { fr: 'Premier mois gratuit', en: 'First month free' },
+  'price.firstFree': { fr: '7 jours gratuits', en: '7 days free' },
   'price.then': { fr: 'Puis', en: 'Then' },
   'price.noSetup': { fr: "Aucun frais d'installation", en: 'No setup fee' },
 
@@ -205,7 +205,7 @@ const translations = {
 
   // ── Register ──
   'register.title': { fr: 'Créer votre compte', en: 'Create your account' },
-  'register.trial': { fr: 'Essai gratuit de 30 jours. Sans engagement.', en: '30-day free trial. No commitment.' },
+  'register.trial': { fr: '7 jours d’essai gratuit. Sans engagement.', en: '7-day free trial. No commitment.' },
   'register.name': { fr: 'Nom complet', en: 'Full name' },
   'register.firstName': { fr: 'Prénom', en: 'First name' },
   'register.lastName': { fr: 'Nom', en: 'Last name' },
@@ -224,7 +224,7 @@ const translations = {
   'register.activationText2': { fr: 'Cliquez sur le lien pour activer votre compte et choisir votre plan.', en: 'Click the link to activate your account and choose your plan.' },
   'register.resend': { fr: 'Renvoyer l\'email', en: 'Resend email' },
   'register.selectPlan': { fr: 'Choisissez votre plan', en: 'Choose your plan' },
-  'register.selectPlanSub': { fr: 'Essai gratuit de 30 jours sur tous les plans. Sans engagement.', en: '30-day free trial on all plans. No commitment.' },
+  'register.selectPlanSub': { fr: '7 jours d’essai sur tous les plans. Carte requise, rien n’est débité avant la fin de l’essai.', en: '7-day trial on every plan. Card required, nothing charged until it ends.' },
   'register.google': { fr: "S'inscrire avec Google", en: 'Sign up with Google' },
   'register.continue': { fr: 'Continuer', en: 'Continue' },
   'register.mo': { fr: '/mois', en: '/mo' },

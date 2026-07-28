@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -48,6 +49,7 @@
     "eslint-plugin-react-refresh": "^0.4.26",
     "jsdom": "^25.0.1",
     "postcss": "^8.5.1",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.61.0",

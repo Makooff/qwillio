@@ -68,8 +68,8 @@ export default function Sla() {
           <Reveal delay={0.16}>
             <p className="mt-5 text-lg text-[#525257] leading-relaxed max-w-[680px]">
               {isFr
-                ? "Ce document décrit les engagements de disponibilité, de réponse au support et de gestion des incidents que Qwillio prend envers ses clients payants. Il complète les Conditions Générales de Service et s'applique dès le début de l'abonnement payant (le mois d'essai gratuit est fourni « tel quel »)."
-                : 'This document describes the uptime, support response and incident commitments Qwillio makes to paying customers. It complements the Terms of Service and applies from the start of the paid subscription (the free trial month is provided as-is).'}
+                ? "Ce document décrit les engagements de disponibilité, de réponse au support et de gestion des incidents que Qwillio prend envers ses clients payants. Il complète les Conditions Générales de Service et s'applique dès le début de l'abonnement payant (la période d'essai gratuite est fournie « tel quel »)."
+                : 'This document describes the uptime, support response and incident commitments Qwillio makes to paying customers. It complements the Terms of Service and applies from the start of the paid subscription (the free trial period is provided as-is).'}
             </p>
           </Reveal>
 

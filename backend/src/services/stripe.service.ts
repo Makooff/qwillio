@@ -86,7 +86,7 @@ export class StripeService {
     const plan = getPlan(planType);
     const dashboardToken = crypto.randomBytes(32).toString('hex');
     const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 30);
+    trialEnd.setDate(trialEnd.getDate() + plan.trialDays);
 
     // Create Client record — trial starts NOW
     const client = await prisma.client.create({
@@ -97,14 +97,14 @@ export class StripeService {
         contactName: user.name,
         contactEmail: user.email,
         contactPhone: businessPhone,
-        country: 'US',
+        country: 'BE',
         planType,
         setupFee: 0,
         monthlyFee: plan.monthlyPriceEur,
         currency: 'EUR',
         dashboardToken,
         onboardingStatus: 'pending',
-        subscriptionStatus: 'active',
+        subscriptionStatus: 'trialing',
         isTrial: true,
         trialStartDate: new Date(),
         trialEndDate: trialEnd,
@@ -114,11 +114,10 @@ export class StripeService {
       },
     });
 
-    // Mark user onboarding as completed
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { onboardingCompleted: true },
-    });
+    // Deliberately NOT setting User.onboardingCompleted here. The card is only
+    // the second gate: the owner still has to configure the receptionist, and
+    // that final step is what marks onboarding done. It is also what
+    // grandfathers existing customers, who already carry the flag.
 
     // Update analytics
     const today = new Date();
@@ -130,16 +129,16 @@ export class StripeService {
     });
 
     await discordService.notify(
-      `🎉 NEW SELF-ONBOARD CLIENT!\n\nBusiness: ${businessName}\nEmail: ${user.email}\nPlan: ${planType.toUpperCase()}\nTrial: 30 days free\nClient ID: ${client.id}`
+      `💳 CARD REGISTERED — trial started\n\nBusiness: ${businessName}\nEmail: ${user.email}\nPlan: ${planType.toUpperCase()}\nTrial: ${plan.trialDays} days free\nClient ID: ${client.id}`
     );
 
-    logger.info(`Self-onboarding complete: Client created for ${user.email} — clientId: ${client.id}, plan: ${planType}`);
+    logger.info(`Card registered for ${user.email} — clientId: ${client.id}, plan: ${planType}, trial ${plan.trialDays}d`);
 
-    // Trigger VAPI assistant creation + welcome email asynchronously.
-    // Fire-and-forget: the 5-min onboarding retry cron handles failures.
-    onboardingService.onboardClient(client.id).catch((err: Error) => {
-      logger.error(`Async onboarding failed for client ${client.id}: ${err.message}`);
-    });
+    // VAPI provisioning is deliberately NOT started here. The assistant is built
+    // from the receptionist config (hours, services, voice, transfer number),
+    // none of which exists yet — the owner fills it in during onboarding, and
+    // authController.onboard triggers onboardClient once it does. The retry cron
+    // only picks up `retry_pending`, so a client left at `pending` stays put.
   }
 
   private async handleTrialConversion(client: any, session: any) {
@@ -452,6 +451,50 @@ export class StripeService {
   // Returns null for paid clients (subscription updated inline);
   // returns Stripe Checkout URL for trial clients.
   // ═══════════════════════════════════════════════════════════════
+  /**
+   * Sign-up checkout: registers a card and opens the free trial.
+   *
+   * `payment_method_collection: 'always'` is the point of the whole thing —
+   * with a trial Stripe defaults to 'if_required' and lets the customer through
+   * without a card, which is exactly the hole this closes. Nothing is charged
+   * until the trial ends.
+   *
+   * Completing this session fires `checkout.session.completed`, which
+   * `handleSelfOnboardingCheckout` turns into the Client row.
+   */
+  async createSelfOnboardingCheckout(
+    user: { id: string; email: string },
+    planType: string,
+    businessName: string,
+    industry?: string | null,
+  ): Promise<string | null> {
+    const plan = getPlan(planType);
+    const priceId = await this.resolveMonthlyPriceId(planType);
+    if (!priceId) throw new Error(`No Stripe price configured for plan: ${planType}`);
+
+    const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer_email: user.email,
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: { trial_period_days: plan.trialDays },
+      payment_method_collection: 'always',
+      success_url: `${frontendUrl}/onboard?payment=success`,
+      cancel_url: `${frontendUrl}/subscribe?payment=cancelled`,
+      client_reference_id: user.id,
+      metadata: {
+        source: 'self-onboarding',
+        userId: user.id,
+        planType: plan.id,
+        businessName,
+        industry: industry || 'other',
+      },
+    });
+
+    logger.info(`Self-onboarding checkout created for ${user.email} — plan ${plan.id}, trial ${plan.trialDays}d`);
+    return session.url;
+  }
+
   async createUpgradeCheckout(client: any, planType: string): Promise<string | null> {
     const priceId = await this.resolveMonthlyPriceId(planType);
     if (!priceId) throw new Error(`No Stripe price configured for plan: ${planType}`);

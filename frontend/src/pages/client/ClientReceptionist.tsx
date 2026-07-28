@@ -276,10 +276,16 @@ export default function ClientReceptionist() {
   // Per-minute billing: the gauge is rendered by AssistantChat's header.
   const quota = overview?.minutes?.quota || settings?.monthlyMinutesQuota || 0;
   const used = overview?.minutes?.used || 0;
+  // `planType` is a lowercase key ('starter'); shown to a customer it becomes
+  // a name. One formatting, used by both the header and the Abonnement row.
+  const planName = (() => {
+    const k = client.planType || 'starter';
+    return k.charAt(0).toUpperCase() + k.slice(1);
+  })();
 
   return (
     <div className="max-w-3xl space-y-4">
-      {/* —— Assistant conversationnel : parler pour configurer/onboarder ——
+      {/* Assistant conversationnel : parler pour configurer et onboarder.
           Il porte aussi l'identité de la page (titre, entreprise, plan), le
           numéro copiable, l'appel test live et la jauge de minutes, pour que
           tout ce qui décrit la réceptionniste soit au même endroit. */}
@@ -287,13 +293,13 @@ export default function ClientReceptionist() {
         isFr={agentLanguage !== 'en'}
         onConfigChanged={load}
         businessName={client.businessName || businessName}
-        planLabel={client.planType || 'starter'}
+        planLabel={planName}
         isTrial={!!client.isTrial}
         phone={phone}
         quota={{ used, total: quota }}
       />
 
-      {/* —— Bande d'état —— le numéro, le plan et la jauge de minutes sont
+      {/* Bande d'état. Le numéro, le plan et la jauge de minutes sont
           désormais dans l'entête du chat ; les compteurs d'appels et de leads
           vivent sur la page Appels et sur l'accueil. Il ne reste ici que ce
           qui n'existe nulle part ailleurs : l'état du transfert d'appel, et
@@ -700,15 +706,17 @@ export default function ClientReceptionist() {
 
       {/* —— Subscription info —— */}
       <Section title="Abonnement" icon={Shield} color="#22C55E" defaultOpen={false}>
-        <Row l="Plan" v={(client.planType || 'starter').charAt(0).toUpperCase() + (client.planType || 'starter').slice(1)} c="#7349fe" />
+        <Row l="Plan" v={planName} c="#7349fe" />
         <Row l="Statut" v={
           status === 'active' ? 'Actif' : status === 'trialing' ? 'Essai' : status === 'paused' ? 'En pause' : status === 'cancelled' ? 'Annulé' : status
         } c={isActive ? '#22C55E' : isPaused ? '#F59E0B' : '#EF4444'} />
         {client.isTrial && client.trialEndDate && (
           <Row l="Fin de l'essai" v={new Date(client.trialEndDate).toLocaleDateString('fr-FR')} c="#F59E0B" />
         )}
-        <Row l="Quota mensuel" v={`${quota} appels`} />
-        <Row l="Utilisés ce mois" v={`${used} appels`} />
+        {/* Minutes, not calls: billing is per minute, and the same two values
+            feed the gauge in the chat header. */}
+        <Row l="Quota mensuel" v={`${quota} min`} />
+        <Row l="Utilisées ce mois" v={`${used} min`} />
         {settings?.activationDate && <Row l="Activé le" v={new Date(settings.activationDate).toLocaleDateString('fr-FR')} />}
         {settings?.lastCallDate && <Row l="Dernier appel" v={new Date(settings.lastCallDate).toLocaleDateString('fr-FR')} />}
       </Section>

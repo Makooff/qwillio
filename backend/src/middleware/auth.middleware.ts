@@ -37,6 +37,31 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
   }
 }
 
+/**
+ * Blocks anything that must not happen before the address is proven real.
+ *
+ * The UI hides these steps too, but the JWT is handed out at registration —
+ * before confirmation — so an unconfirmed account can call the API directly.
+ * This is the guard that actually holds.
+ */
+export async function requireConfirmedEmail(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    if (!req.userId) return res.status(401).json({ error: 'Non authentifié' });
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { emailConfirmed: true },
+    });
+    if (!user) return res.status(401).json({ error: 'Non authentifié' });
+    if (!user.emailConfirmed) {
+      return res.status(403).json({ error: 'email_not_confirmed' });
+    }
+    next();
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export function adminMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   // Allow X-Admin-Secret header as alternative to JWT admin role
   const adminSecret = env.ADMIN_SECRET;

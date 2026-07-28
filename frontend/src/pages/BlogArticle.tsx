@@ -134,7 +134,7 @@ export default function BlogArticle() {
                   </h3>
                   <p className="relative text-white/75 text-[15px] leading-relaxed mb-6 max-w-[480px]">
                     {isFr
-                      ? 'Testez Qwillio gratuitement pendant un mois. Sans carte, sans engagement, configuration en 15 minutes.'
+                      ? 'Testez Qwillio gratuitement pendant 7 jours. Sans engagement, configuration en 15 minutes.'
                       : 'Try Qwillio free for one month. No credit card, no commitment, set up in 15 minutes.'}
                   </p>
                   <Link
