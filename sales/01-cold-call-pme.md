@@ -14,7 +14,7 @@ Décroche.
 >
 > Notre système décroche à votre place, en français, prend le rendez-vous directement dans votre agenda, et vous envoie un SMS avec le récap.
 >
-> Le premier mois est offert, sans carte, et vous êtes en route en 15 minutes.
+> Les 7 premiers jours sont gratuits, et vous êtes en route en 15 minutes.
 >
 > Ma question : combien d'appels vous pensez rater par semaine, en moyenne ?
 
@@ -47,7 +47,7 @@ Voir le fichier `objections-reponses.md` pour la liste complète. Les 3 les plus
    Réponse : "15 minutes une seule fois, et vous récupérez au moins 5 heures par semaine ensuite."
 
 3. **"C'est cher"**
-   Réponse : "149 EUR par mois. Une seule urgence bookée le week-end couvre le mois."
+   Réponse : "99 EUR par mois. Une seule urgence bookée le week-end couvre le mois."
 
 ## Règles à tenir
 

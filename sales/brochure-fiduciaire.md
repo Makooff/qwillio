@@ -27,12 +27,12 @@ Qwillio est une réceptionniste IA en français natif qui :
 
 | Plan | Prix | Appels / mois | Cible |
 |---|---:|---:|---|
-| Solo | 149 EUR | 300 | Artisan, profession libérale |
-| Starter | 497 USD | 800 | PME service, cabinet |
-| Pro | 1 297 USD | 2 000 | Cabinet mid-market, franchise |
-| Enterprise | 2 497 USD | 4 000 | Multi-sites, SLA 99,5 % |
+| Solo | 99 EUR | 300 | Artisan, profession libérale |
+| Starter | 249 EUR | 750 min | PME service, cabinet |
+| Pro | 599 EUR | 2 000 min | Cabinet mid-market, franchise |
+| Enterprise | 1 290 EUR | 5 000 min | Multi-sites, SLA 99,5 % |
 
-Toutes les offres : premier mois offert sans carte, résiliable au mois, annuel à -20 %.
+Toutes les offres : 7 jours d'essai gratuit, résiliable au mois, annuel à -20 %.
 
 ---
 
@@ -47,7 +47,7 @@ Toutes les offres : premier mois offert sans carte, résiliable au mois, annuel 
 
 ### Exemple concret
 
-Un notaire de votre portefeuille souscrit au plan Solo à 149 EUR / mois. Vous touchez **22,35 EUR / mois**, soit **268 EUR / an**, tant qu'il reste abonné.
+Un notaire de votre portefeuille souscrit au plan Solo à 99 EUR / mois. Vous touchez **22,35 EUR / mois**, soit **268 EUR / an**, tant qu'il reste abonné.
 
 Sur 10 clients au plan Solo : **223 EUR / mois**, soit **2 683 EUR / an**, sans rien faire.
 

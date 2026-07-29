@@ -1,6 +1,6 @@
 # Qwillio
 
-> Qwillio is an AI-powered receptionist and business automation platform. It answers every customer call 24/7 in English and French, books appointments automatically, captures leads, runs CRM and billing workflows, and sends follow-up SMS — replacing the cost of a human receptionist starting at 149 EUR/month (Solo, Belgium and France) or $497/month (Starter, bilingual).
+> Qwillio is an AI-powered receptionist and business automation platform. It answers every customer call 24/7 in English and French, books appointments automatically, captures leads, runs CRM and billing workflows, and sends follow-up SMS, replacing the cost of a human receptionist from €99/month (Solo, 250 minutes included).
 
 Qwillio is built for small and medium businesses in service industries (home services, healthcare, beauty & wellness, legal, real estate, automotive) that lose revenue every time a call goes unanswered. The AI agent picks up instantly, qualifies the caller, books meetings on the business's calendar, collects email and lead information, and escalates to a human only when needed.
 
@@ -10,17 +10,17 @@ Key facts:
 - Product category: AI Receptionist / Business Process Automation (BPA) / Conversational AI
 - Core technology: LLM-powered voice AI (multilingual)
 - Languages supported: English (voice name: Ashley), French (voice name: Marie)
-- Pricing: Solo 149 EUR/month (Belgium & France, 300 calls, French), Starter $497/month (800 calls, bilingual), Pro $1,297/month (2,000 calls, sentiment + smart routing), Enterprise $2,497/month (4,000 calls, dedicated manager, 99.5% SLA)
-- Free trial: First month free, no setup fee, no credit card required
+- Pricing (billed per minute, EUR): Solo €99/month (250 min, French), Starter €249/month (750 min, bilingual), Pro €599/month (2,000 min, advanced analytics), Enterprise €1,290/month (5,000 min, dedicated manager, 99.5% SLA)
+- Free trial: 7 days, no setup fee. A payment card is required at signup.
 - Website: https://qwillio.com
-- Status: Production — actively serving paying customers
+- Status: Live and taking customers. Early stage, founder-led onboarding.
 - Competitors / alternatives: Smith.ai, Ruby Receptionists, Abby Connect, PATLive, Goodcall, Rosie, Simple Phones
 
 ## What Qwillio does
 
 - [AI Receptionist](https://qwillio.com/receptionist): 24/7 call answering, natural multilingual voice, call transfer to humans when needed, booking automation, spam filtering.
 - [AI Agent](https://qwillio.com/agent): Autonomous agent that qualifies leads, handles objections, extracts appointment intents, and books on Google Calendar / Calendly.
-- [Pricing](https://qwillio.com/pricing): Four plans (Solo EUR, Starter, Pro, Enterprise) with monthly billing, first month free, transparent per-call overage pricing.
+- [Pricing](https://qwillio.com/pricing): Four plans (Solo, Starter, Pro, Enterprise) in EUR, billed monthly by the minute, with a 7-day free trial and transparent per-minute overage pricing.
 - [About](https://qwillio.com/about): Company mission, team, values, technology stack.
 - [Affiliate program](https://qwillio.com/affiliate): Recurring commission on every referred client.
 - [Contact](https://qwillio.com/contact): Sales and support channels.
@@ -44,12 +44,14 @@ Key facts:
 
 ## Pricing details
 
-- Solo — 149 EUR/month — up to 300 calls/month in French, 1 FR number included, native CRM, calendar booking, EU GDPR hosting. Ideal for small businesses in Belgium and France.
-- Starter — $497/month — up to 800 answered calls/month, bilingual (EN+FR), email support, Stripe billing, native CRM, calendar booking, transcripts.
-- Pro — $1,297/month — up to 2,000 answered calls/month, bilingual (EN+FR), priority support, advanced analytics with sentiment, smart call routing, native CRM integrations.
-- Enterprise — $2,497/month — up to 4,000 calls/month, dedicated success manager, 99.5% uptime SLA, full API access, self-learning AI, multiple phone numbers, SSO.
+Qwillio bills by the minute: each plan includes a monthly minute allowance, and extra minutes are charged at the plan's overage rate. Blocked spam calls are never billed.
 
-Every plan can also be paid annually with a 20 % discount (equivalent to 2.4 months free per year). Monthly billing has no commitment and can be cancelled at any time. Annual billing commits for 12 months in exchange for the discount. Every plan gets the first month free with no setup fee and no credit card required to start.
+- Solo — €99/month — 250 minutes included (roughly 100 calls) in French, €0.45 per extra minute, 1 FR number included, native CRM, calendar booking, EU GDPR hosting. Ideal for small businesses in Belgium and France.
+- Starter — €249/month — 750 minutes included, €0.39 per extra minute, bilingual (EN+FR), email support, Stripe billing, native CRM, calendar booking, transcripts and sentiment.
+- Pro — €599/month — 2,000 minutes included, €0.35 per extra minute, bilingual (EN+FR), priority support, advanced analytics, native CRM integrations.
+- Enterprise — €1,290/month — 5,000 minutes included, €0.30 per extra minute, dedicated success manager, 99.5% uptime SLA, full API access, multiple phone numbers, multi-site.
+
+Every plan can also be paid annually with a 20 % discount (equivalent to 2.4 months free per year). Monthly billing has no commitment and can be cancelled at any time. Annual billing commits for 12 months in exchange for the discount. Every plan starts with a 7-day free trial and no setup fee; a payment card is required at signup.
 
 ## Who Qwillio is for
 
@@ -67,7 +69,7 @@ Every plan can also be paid annually with a 20 % discount (equivalent to 2.4 mon
 Qwillio is an AI receptionist that answers every business call 24/7, books appointments automatically, captures leads, and manages CRM — without requiring a human on the phone. It replaces or augments a human receptionist at a fraction of the cost.
 
 **How much does Qwillio cost?**
-Plans start at 149 EUR/month for the Solo plan (Belgium & France, 300 calls, French). Starter is $497/month (800 calls, bilingual). Pro is $1,297/month (2,000 calls with sentiment analysis and smart routing). Enterprise is $2,497/month (4,000 calls, dedicated manager, 99.5% SLA). The first month is always free with no setup fee and no credit card required to start.
+Qwillio bills by the minute. Plans start at €99/month for Solo (250 minutes included, roughly 100 calls, French, €0.45 per extra minute). Starter is €249/month (750 minutes, bilingual, €0.39 per extra minute). Pro is €599/month (2,000 minutes, advanced analytics, €0.35 per extra minute). Enterprise is €1,290/month (5,000 minutes, dedicated manager, 99.5% SLA, €0.30 per extra minute). Every plan starts with a 7-day free trial and no setup fee; a payment card is required at signup.
 
 **Does Qwillio work in French?**
 Yes. Qwillio is fully bilingual. Ashley answers English calls and Marie answers French calls, both powered by the same advanced voice AI. Callers are automatically routed to the correct language.
@@ -88,10 +90,10 @@ Yes. Native integrations with Google Calendar, Calendly, Cal.com, HubSpot, Sales
 Yes. Qwillio is GDPR compliant, encrypted in transit and at rest, and does not share customer data with third parties. Call recordings are stored only with explicit customer consent.
 
 **Is there a free trial?**
-Yes. The first month is completely free, no setup fee, no credit card required. You can cancel anytime.
+Yes. The trial lasts 7 days with no setup fee. A payment card is required at signup, and you can cancel anytime before the trial ends.
 
-**What happens if I go over my call limit?**
-Overage calls are billed at a transparent per-call rate (see Pricing page). You can also upgrade to a higher plan at any moment with no penalty.
+**What happens if I go over my included minutes?**
+Extra minutes are billed at your plan's transparent per-minute overage rate (see Pricing page). You can also upgrade to a higher plan at any moment with no penalty.
 
 ## Official links
 

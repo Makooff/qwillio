@@ -15,7 +15,7 @@ Objectif : une vidéo de 90 secondes à mettre sur qwillio.com/pricing et dans t
 
 **0 à 10 s — Accroche**
 
-> Salut, je suis [ton prénom], fondateur de Qwillio. En 90 secondes je te montre comment un plombier, un dentiste ou un notaire peut arrêter de perdre des clients au téléphone, pour 149 EUR par mois.
+> Salut, je suis [ton prénom], fondateur de Qwillio. En 90 secondes je te montre comment un plombier, un dentiste ou un notaire peut arrêter de perdre des clients au téléphone, pour 99 EUR par mois.
 
 **10 à 25 s — Le problème**
 
@@ -45,7 +45,7 @@ Fin de démo. Tu raccroches.
 
 **75 à 90 s — CTA**
 
-> Premier mois offert, sans carte. Résiliable en un clic. Va sur qwillio.com et clique "Créer un compte". Si tu es fiduciaire ou courtier, contacte-moi : 15 % de commission récurrente sur chaque client que tu recommandes.
+> 7 jours d'essai gratuit. Résiliable en un clic. Va sur qwillio.com et clique "Créer un compte". Si tu es fiduciaire ou courtier, contacte-moi : 15 % de commission récurrente sur chaque client que tu recommandes.
 
 ## Ce qu'il faut éviter
 

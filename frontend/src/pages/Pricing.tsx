@@ -37,12 +37,25 @@ export default function Pricing() {
   useSEO({
     title: isFr ? 'Tarifs Qwillio' : 'Qwillio Pricing',
     description: isFr
-      ? 'Tarifs par minute, simples et transparents. Facturation à la minute, minutes incluses par plan. Essai gratuit, sans engagement. Économisez 20 % en annuel.'
-      : 'Simple transparent per-minute pricing. Billed by the minute, minutes included per plan. Free trial, no commitment. Save 20% on annual billing.',
+      ? 'Tarifs par minute, simples et transparents. Facturation à la minute, minutes incluses par plan. 7 jours d\'essai gratuit, sans engagement. Économisez 20 % en annuel.'
+      : 'Simple transparent per-minute pricing. Billed by the minute, minutes included per plan. 7-day free trial, no commitment. Save 20% on annual billing.',
     canonical: 'https://qwillio.com/pricing',
   });
 
   const tiers: Tier[] = [
+    {
+      id: 'solo',
+      name: 'Solo',
+      monthly: 99,
+      minutes: 250,
+      overage: 0.45,
+      description: isFr ? 'Pour un indépendant' : 'For a solo operator',
+      features: isFr
+        ? ['250 minutes incluses par mois', 'IA 24/7 en français', 'Prise de RDV + agenda', 'Transfert des urgences', 'Bouclier anti-spam inclus', 'Hébergement UE, RGPD', 'Support email']
+        : ['250 minutes included per month', '24/7 AI in French', 'Booking + calendar sync', 'Urgency transfer', 'Spam shield included', 'EU hosting, GDPR', 'Email support'],
+      cta: isFr ? 'Commencer' : 'Start',
+      popular: false,
+    },
     {
       id: 'starter',
       name: 'Starter',
@@ -230,7 +243,7 @@ export default function Pricing() {
                   </p>
                 )}
                 <p className="text-[11px] text-[#6e6e73]">{isFr ? 'Dépassement : 0,45 €/min' : 'Overage: €0.45/min'}</p>
-                <p className="text-xs" style={{ color: '#7a5fff' }}>· {isFr ? 'Essai gratuit' : 'Free trial'}</p>
+                <p className="text-xs" style={{ color: '#7a5fff' }}>· {isFr ? '7 jours d\'essai' : '7-day trial'}</p>
                 <Link
                   to="/register"
                   className="inline-flex items-center justify-center gap-2 text-sm font-medium pl-5 pr-6 py-3 rounded-full transition-colors active:scale-[0.97] bg-[#1d1d1f] text-white hover:bg-[#7a5fff]"
@@ -244,9 +257,9 @@ export default function Pricing() {
           </div>
         </section>
 
-        {/* ── PRICING BENTO 1fr 1.4fr 1fr — Pro dominant ─────────── */}
+        {/* ── PRICING BENTO : four tiers, Pro dominant ───────────── */}
         <section aria-label={isFr ? 'Plans tarifaires' : 'Pricing plans'} className="px-6 pb-24 md:pb-32">
-          <div className="max-w-[1240px] mx-auto grid lg:grid-cols-[1fr_1.4fr_1fr] gap-5 items-stretch">
+          <div className="max-w-[1240px] mx-auto grid sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.25fr_1fr] gap-5 items-stretch">
             {tiers.map((tier, i) => {
               const isPro = tier.popular;
               return (
@@ -254,7 +267,7 @@ export default function Pricing() {
                 <Card3D intensity={isPro ? 4 : 3}>
                 <article
                   aria-label={tier.name}
-                  className={`relative rounded-3xl sm:rounded-[2rem] p-7 sm:p-8 md:p-10 flex flex-col ${
+                  className={`relative rounded-3xl sm:rounded-[2rem] p-7 sm:p-8 lg:p-7 xl:p-9 flex flex-col ${
                     isPro ? 'text-white mt-3 sm:mt-0' : 'border border-[#1d1d1f]/10 bg-[#fafaf8] text-[#1d1d1f]'
                   }`}
                   style={
@@ -283,7 +296,7 @@ export default function Pricing() {
 
                   <div className="mb-6">
                     <div className="flex items-baseline gap-1">
-                      <span className={`text-[clamp(2.6rem,4vw,3.4rem)] font-semibold tracking-[-0.04em] tabular-nums ${isPro ? 'text-white' : 'text-[#1d1d1f]'}`}>
+                      <span className={`text-[clamp(2.2rem,3.2vw,3rem)] font-semibold tracking-[-0.04em] tabular-nums ${isPro ? 'text-white' : 'text-[#1d1d1f]'}`}>
                         {priceFor(tier.monthly).toLocaleString('fr-FR')}&nbsp;€
                       </span>
                       <span className={`text-sm ${isPro ? 'text-white/60' : 'text-[#6e6e73]'}`}>
@@ -298,7 +311,7 @@ export default function Pricing() {
                       </p>
                     )}
                     <p className={`text-xs mt-2 ${isPro ? 'text-[#b9a8ff]' : 'text-[#7a5fff]'}`}>
-                      · {isFr ? 'Essai gratuit, sans frais d\'installation' : 'Free trial, no setup fee'}
+                      · {isFr ? '7 jours d\'essai, sans frais d\'installation' : '7-day trial, no setup fee'}
                     </p>
                   </div>
 
@@ -436,38 +449,43 @@ export default function Pricing() {
             </Reveal>
 
             {(() => {
+              // One entry per tier, in the same order as `tiers`
+              // (Solo, Starter, Pro, Enterprise).
               const rows = isFr
                 ? [
-                    ['Minutes incluses', '750', '2 000', '5 000'],
-                    ['Prix / mois', '249 €', '599 €', '1 290 €'],
-                    ['Dépassement / minute', '0,39 €', '0,35 €', '0,30 €'],
-                    ['IA 24/7 bilingue FR / EN', '✓', '✓', '✓'],
-                    ['Prise de RDV + agenda', '✓', '✓', '✓'],
-                    ['Transfert des urgences', '✓', '✓', '✓'],
-                    ['Transcription + sentiment', '✓', '✓', '✓'],
-                    ['Bouclier anti-spam', '✓', '✓', '✓'],
-                    ['Analytiques avancées', '·', '✓', '✓'],
-                    ['Intégrations CRM natives', '·', '✓', '✓'],
-                    ['Accès API complet', '·', '·', '✓'],
-                    ['SLA 99,5% uptime', '·', '·', '✓'],
-                    ['Responsable dédié', '·', '·', '✓'],
-                    ['Support', 'Email', 'Prioritaire', 'Dédié'],
+                    ['Minutes incluses', '250', '750', '2 000', '5 000'],
+                    // Derived, not hardcoded: the cards already run through
+                    // priceFor(), so a fixed row here contradicted them the
+                    // moment the annual toggle was flipped.
+                    [`Prix / ${perLabel}`, ...tiers.map(t => `${priceFor(t.monthly).toLocaleString('fr-FR')} €`)],
+                    ['Dépassement / minute', '0,45 €', '0,39 €', '0,35 €', '0,30 €'],
+                    ['IA 24/7', 'FR', 'FR + EN', 'FR + EN', 'FR + EN'],
+                    ['Prise de RDV + agenda', '✓', '✓', '✓', '✓'],
+                    ['Transfert des urgences', '✓', '✓', '✓', '✓'],
+                    ['Bouclier anti-spam', '✓', '✓', '✓', '✓'],
+                    ['Transcription + sentiment', '·', '✓', '✓', '✓'],
+                    ['Analytiques avancées', '·', '·', '✓', '✓'],
+                    ['Intégrations CRM natives', '·', '·', '✓', '✓'],
+                    ['Accès API complet', '·', '·', '·', '✓'],
+                    ['SLA 99,5% uptime', '·', '·', '·', '✓'],
+                    ['Responsable dédié', '·', '·', '·', '✓'],
+                    ['Support', 'Email', 'Email', 'Prioritaire', 'Dédié'],
                   ]
                 : [
-                    ['Minutes included', '750', '2,000', '5,000'],
-                    ['Price / month', '€249', '€599', '€1,290'],
-                    ['Overage per minute', '€0.39', '€0.35', '€0.30'],
-                    ['24/7 AI, bilingual FR / EN', '✓', '✓', '✓'],
-                    ['Booking + calendar', '✓', '✓', '✓'],
-                    ['Urgency transfer', '✓', '✓', '✓'],
-                    ['Transcript + sentiment', '✓', '✓', '✓'],
-                    ['Spam shield', '✓', '✓', '✓'],
-                    ['Advanced analytics', '·', '✓', '✓'],
-                    ['Native CRM integrations', '·', '✓', '✓'],
-                    ['Full API access', '·', '·', '✓'],
-                    ['99.5% uptime SLA', '·', '·', '✓'],
-                    ['Dedicated manager', '·', '·', '✓'],
-                    ['Support', 'Email', 'Priority', 'Dedicated'],
+                    ['Minutes included', '250', '750', '2,000', '5,000'],
+                    [`Price / ${perLabel}`, ...tiers.map(t => `€${priceFor(t.monthly).toLocaleString('en-US')}`)],
+                    ['Overage per minute', '€0.45', '€0.39', '€0.35', '€0.30'],
+                    ['24/7 AI', 'FR', 'FR + EN', 'FR + EN', 'FR + EN'],
+                    ['Booking + calendar', '✓', '✓', '✓', '✓'],
+                    ['Urgency transfer', '✓', '✓', '✓', '✓'],
+                    ['Spam shield', '✓', '✓', '✓', '✓'],
+                    ['Transcript + sentiment', '·', '✓', '✓', '✓'],
+                    ['Advanced analytics', '·', '·', '✓', '✓'],
+                    ['Native CRM integrations', '·', '·', '✓', '✓'],
+                    ['Full API access', '·', '·', '·', '✓'],
+                    ['99.5% uptime SLA', '·', '·', '·', '✓'],
+                    ['Dedicated manager', '·', '·', '·', '✓'],
+                    ['Support', 'Email', 'Email', 'Priority', 'Dedicated'],
                   ];
               return (
                 <>
@@ -495,14 +513,23 @@ export default function Pricing() {
                         {rows.map((row) => (
                           <tr key={row[0]}>
                             <td className="py-3.5 text-[#1d1d1f] font-medium">{row[0]}</td>
-                            <td className="py-3.5 text-center text-[#525257]">{row[1]}</td>
-                            <td
-                              className="py-3.5 text-center font-semibold"
-                              style={{ background: 'rgba(122,95,255,0.04)', color: '#7a5fff' }}
-                            >
-                              {row[2]}
-                            </td>
-                            <td className="py-3.5 text-center text-[#525257]">{row[3]}</td>
+                            {/* One cell per tier so the highlighted column
+                                follows `popular` instead of a fixed index. */}
+                            {tiers.map((t, ti) =>
+                              t.popular ? (
+                                <td
+                                  key={t.id}
+                                  className="py-3.5 text-center font-semibold"
+                                  style={{ background: 'rgba(122,95,255,0.04)', color: '#7a5fff' }}
+                                >
+                                  {row[ti + 1]}
+                                </td>
+                              ) : (
+                                <td key={t.id} className="py-3.5 text-center text-[#525257]">
+                                  {row[ti + 1]}
+                                </td>
+                              )
+                            )}
                           </tr>
                         ))}
                       </tbody>

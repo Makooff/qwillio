@@ -20,7 +20,7 @@ Merci pour votre temps aujourd'hui. Récap de ce qu'on a vu :
 
 - Votre problème : {{Probleme_Concret_Discute}}.
 - La solution Qwillio : décrochage 24/7 en français, RDV posé dans votre agenda, SMS de récap au client.
-- Le prix pour vous : {{Plan_Recommande}} à {{Prix}} EUR / mois, premier mois offert sans carte.
+- Le prix pour vous : {{Plan_Recommande}} à {{Prix}} EUR / mois, 7 jours d'essai gratuit.
 
 Prochaine étape :
 1. Vous testez gratuitement pendant 30 jours : lien d'inscription direct {{Lien_Signup}}.
@@ -73,9 +73,9 @@ Cette touche a un rôle unique : rappeler l'existence de Qwillio sans forcer la 
 
 Je suis à peu près sûr que ce qui vous fait hésiter, c'est un ou plusieurs de ces trois trucs :
 
-1. "Mes clients vont détecter l'IA" : dans nos tests aveugles, 78 % ne la distinguent pas d'une humaine.
+1. "Mes clients vont détecter l'IA" : écoutez la démo et jugez. Et si certains la reconnaissent, la question devient : préfèrent-ils une IA qui décroche, ou un répondeur ?
 2. "Le setup va prendre des jours" : 15 minutes en visio, vous êtes en prod le soir même.
-3. "Si je n'aime pas je perds mon argent" : premier mois offert sans carte, résiliation en un clic.
+3. "Si je n'aime pas je perds mon argent" : 7 jours d'essai gratuit, résiliation en un clic.
 
 Si c'est autre chose qui vous bloque, je préfère qu'on en parle plutôt que je vous relance à l'aveugle. Répondez juste avec ce qui coince : je réagis dans l'heure.
 
@@ -113,7 +113,7 @@ Ton informel volontaire : LinkedIn est un canal semi-privé, un email formel y f
 
 Dernier message. Je vous sors de mes relances pour ne pas encombrer.
 
-Si un jour vous voulez essayer Qwillio, le lien reste actif : qwillio.com. Premier mois offert, sans carte, résiliable en un clic.
+Si un jour vous voulez essayer Qwillio, le lien reste actif : qwillio.com. 7 jours d'essai gratuit, résiliable en un clic.
 
 Bonne suite pour {{Nom_Cabinet}}.
 

@@ -170,6 +170,9 @@ export default function SelfOnboard() {
               initialMode="onboarding"
               lockMode
               onCompleted={() => { void finish(); }}
+              /* First-time setup: no number is assigned yet and the page above
+                 already introduces the step, so the identity header is noise. */
+              showHeader={false}
             />
 
             <button

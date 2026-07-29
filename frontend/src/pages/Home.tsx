@@ -330,16 +330,15 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* Inline credibility strip — not centered hero-metric template.
-                  Type is untouched (text-2xl figures, text-sm labels); the row
-                  is held on one line by closing the gaps on phones, and the
-                  French labels are the short forms because the full ones cannot
-                  share a line at this size. */}
+              {/* Inline credibility strip, not the centered hero-metric template.
+                  Every figure here has to be a property of the product that can
+                  be checked, not a performance number: with no customers yet,
+                  an answer-rate percentage would be invented. */}
               <dl className="flex flex-nowrap items-baseline justify-between gap-x-1 sm:justify-start sm:gap-x-9 text-sm text-[#86868b] border-t border-[#1d1d1f]/10 pt-6 max-w-[520px]">
                 <div className="flex items-baseline gap-1 sm:gap-2 whitespace-nowrap">
-                  <dt className="sr-only">{isFr ? 'Taux de réponse' : 'Answer rate'}</dt>
-                  <dd className="text-2xl font-semibold text-[#1d1d1f] tabular-nums">98%</dd>
-                  <span>{isFr ? 'décroché' : 'pickup'}</span>
+                  <dt className="sr-only">{isFr ? 'Langues' : 'Languages'}</dt>
+                  <dd className="text-2xl font-semibold text-[#1d1d1f]">FR/EN</dd>
+                  <span>{isFr ? 'bilingue' : 'bilingual'}</span>
                 </div>
                 <div className="flex items-baseline gap-1 sm:gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Temps de réponse' : 'Response time'}</dt>

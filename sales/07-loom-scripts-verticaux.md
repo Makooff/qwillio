@@ -28,7 +28,7 @@ Fin d'appel. Raccrocher.
 
 **30 à 45 s — CTA**
 
-> RDV posé dans ton agenda, SMS envoyé au client, tu reçois un résumé sur ton portable pendant que tu bosses. 149 EUR par mois, premier mois offert sans carte. Va sur qwillio.com et clique "Créer un compte".
+> RDV posé dans ton agenda, SMS envoyé au client, tu reçois un résumé sur ton portable pendant que tu bosses. 99 EUR par mois, 7 jours d'essai gratuit. Va sur qwillio.com et clique "Créer un compte".
 
 ---
 
@@ -54,7 +54,7 @@ Fin d'appel. Raccrocher.
 
 **30 à 45 s — CTA**
 
-> Le no-show est reprogrammé, le créneau libéré est automatiquement proposé au prochain qui appelle. 149 EUR par mois pour le solo, 497 USD pour un cabinet Starter. Premier mois offert sans carte. qwillio.com.
+> Le no-show est reprogrammé, le créneau libéré est automatiquement proposé au prochain qui appelle. 99 EUR par mois en Solo, 249 EUR en Starter. 7 jours d'essai gratuit. qwillio.com.
 
 ---
 
@@ -80,7 +80,7 @@ Fin d'appel. Raccrocher.
 
 **30 à 45 s — CTA**
 
-> Le RDV est posé, un email de qualification arrive dans la boîte du notaire : type de dossier, montant, urgence, contexte. Pré-qualification livrée. 1 297 USD par mois pour un cabinet mid-market, premier mois offert. qwillio.com.
+> Le RDV est posé, un email de qualification arrive dans la boîte du notaire : type de dossier, montant, urgence, contexte. Pré-qualification livrée. 599 EUR par mois en Pro pour un cabinet de cette taille, 7 jours d'essai gratuit. qwillio.com.
 
 ---
 

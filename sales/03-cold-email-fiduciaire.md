@@ -39,7 +39,7 @@ Bonjour {{firstName}},
 
 Petit up rapide au cas où mon premier mail a atterri en spam.
 
-Un cas concret : Menuiserie X à Namur a signé avec nous il y a 3 mois. Résultat : +23 % d'appels convertis en RDV, +4 200 EUR de chiffre supplémentaire au mois 2. Son fiduciaire a touché 75 EUR / mois de commission.
+Je ne vais pas vous inventer un cas client : nous démarrons, et vous seriez parmi les premiers cabinets partenaires. C'est justement pour ça que les conditions sont ce qu'elles sont, et que je m'occupe personnellement de chaque mise en route.
 
 Dispo pour un call cette semaine ? Voici mon lien Calendly : {{lien_calendly}}
 

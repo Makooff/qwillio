@@ -37,14 +37,19 @@ Linear × Vercel × Granola. Tools made by people who care about craft. Confiden
 ## Core Value Props
 1. Decroche en moins d'une seconde, prend les rendez-vous, qualifie les leads.
 2. 24/7. Premier appel traité le jour meme. Transfert intelligent vers humain quand il faut.
-3. Premier mois offert. Sans engagement. Annulez en un clic.
+3. 7 jours d'essai gratuit. Sans engagement. Annulez en un clic.
 4. Suite agent modulaire: Email, Comptabilite, Inventaire, Paiements. Greffes a la carte.
 
 ## Pricing
-- Starter $497/mois — 800 appels, support email
-- Pro $1297/mois — 2000 appels, support prioritaire (le plus populaire)
-- Enterprise $2497/mois — 4000 appels, responsable dedie, SLA
-- Agent modules: +$197/mois par module
+Source unique de vérité: `backend/src/config/plans.ts`. Facturation à la minute, en euros.
+
+- Solo 99 EUR/mois : 250 minutes incluses, 0,45 EUR/min au-delà, français
+- Starter 249 EUR/mois : 750 minutes incluses, 0,39 EUR/min, bilingue FR/EN
+- Pro 599 EUR/mois : 2 000 minutes incluses, 0,35 EUR/min (le plus populaire)
+- Enterprise 1 290 EUR/mois : 5 000 minutes incluses, 0,30 EUR/min, responsable dédié, SLA 99,5 %
+
+7 jours d'essai gratuit, sans frais d'installation. Une carte est demandée à l'inscription. Annuel: -20 %.
+Toute modification de prix se fait dans `plans.ts` en premier, puis se propage à Pricing.tsx, Landing.tsx, Faq.tsx, Vertical.tsx, comparisons.ts et llms.txt.
 
 ## Brand Identity (LOGO-DRIVEN, NOT INHERITED FROM TAILWIND)
 The Qwillio logo carries two overlapping circles:

@@ -364,6 +364,54 @@ export class ClientDashboardController {
     }
   }
 
+  // POST /my-dashboard/assistant/transcribe: speech-to-text for the chat's
+  // dictation button. Audio arrives base64-encoded in JSON so no multipart
+  // dependency is needed; clips are seconds long and stay far under the 10mb
+  // express json limit.
+  async assistantTranscribe(req: any, res: Response) {
+    try {
+      const { audio, mimeType, language } = req.body || {};
+      if (typeof audio !== 'string' || !audio) {
+        return res.status(400).json({ error: 'audio required' });
+      }
+
+      const { transcriptionService, MAX_AUDIO_BYTES } = await import('../services/transcription.service');
+      // Check the encoded length first: base64 is ~4/3 of the bytes it carries,
+      // so decoding an oversized payload would waste the memory before we
+      // rejected it. MAX_AUDIO_BYTES is set below the express json limit so a
+      // clip at the cap still reaches this handler and gets the coded 413,
+      // rather than a bare PayloadTooLargeError from the body parser.
+      if (audio.length > Math.ceil((MAX_AUDIO_BYTES * 4) / 3) + 4) {
+        return res.status(413).json({ error: 'audio_too_large' });
+      }
+      const buf = Buffer.from(audio, 'base64');
+      if (buf.length > MAX_AUDIO_BYTES) {
+        return res.status(413).json({ error: 'audio_too_large' });
+      }
+
+      const result = await transcriptionService.transcribe(
+        buf,
+        typeof mimeType === 'string' ? mimeType : 'audio/webm',
+        typeof language === 'string' ? language : undefined,
+      );
+      res.json(result);
+    } catch (error: any) {
+      // These are expected, actionable states. The UI shows them to the user
+      // rather than failing silently the way the old browser API did.
+      const known: Record<string, number> = {
+        transcription_unavailable: 503,
+        empty_audio: 400,
+        audio_too_large: 413,
+        transcription_failed: 502,
+      };
+      const status = known[error.message];
+      if (status) return res.status(status).json({ error: error.message });
+
+      logger.error('assistantTranscribe failed:', error);
+      res.status(500).json({ error: 'transcription_failed' });
+    }
+  }
+
   // GET /my-dashboard/voice/live-config — config to start an in-browser Vapi
   // call with THIS client's receptionist (real voice + their config), like the
   // public demo but personalized. Returns the Vapi public key + assistant.

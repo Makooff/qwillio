@@ -19,7 +19,7 @@ Vu que vous êtes {{Metier}} à {{Ville}}, une question simple : combien d'appel
 
 La moyenne du secteur en Belgique, c'est 5 par semaine. Multiplié par 52 semaines et un ticket moyen à 140 EUR, ça fait 36 400 EUR de chiffre qui part chez la concurrence chaque année.
 
-Chez Qwillio on a construit une réceptionniste IA en français qui décroche à votre place, prend les rendez-vous dans votre agenda et vous envoie un SMS de résumé. 149 EUR par mois, premier mois offert sans carte.
+Chez Qwillio on a construit une réceptionniste IA en français qui décroche à votre place, prend les rendez-vous dans votre agenda et vous envoie un SMS de résumé. 99 EUR par mois, 7 jours d'essai gratuit.
 
 Pas de démo à caler pour l'instant : est-ce que ce chiffre de 5 appels ratés par semaine est réaliste chez vous, ou vous êtes plutôt à moins ?
 
@@ -38,23 +38,26 @@ Bonnes pratiques :
 
 ## Email 2 — Jour 3 — La preuve sociale
 
-**Objet** : `Une menuiserie namuroise gagne 4 200 EUR de plus par mois`
+**Objet** : `Combien d'appels vous ratez, {{Prenom}} ?`
 
 ```
 {{Prenom}},
 
-Petit follow-up. On a un client menuisier à Namur qui a exactement le même profil que vous : 8 collaborateurs, secteur service, jamais assez de mains pour décrocher.
+Petit follow-up, et une seule question.
 
-Il a installé Qwillio en 15 minutes. Deux mois plus tard :
-- 0 appel manqué
-- 23 % d'appels transformés en RDV (contre 12 % avant)
-- 4 200 EUR de CA supplémentaire par mois
+Sur une semaine normale, combien d'appels partent sans réponse chez vous ?
+La plupart des patrons répondent deux ou trois. Quand on mesure vraiment,
+c'est presque toujours plus.
 
-Pour 149 EUR d'abonnement. C'est un ROI x 28.
+Prenez votre chiffre, multipliez par la valeur d'un client chez vous, puis
+par 52. C'est ce que l'accueil vous coûte chaque année.
 
-Si vous voulez son témoignage vidéo, je vous envoie le lien. Vous pouvez aussi tester direct sur qwillio.com : premier mois offert, sans carte, résiliable en un clic.
+Qwillio décroche à votre place, prend le rendez-vous dans votre agenda et
+vous envoie le résumé par SMS. 99 EUR par mois, 7 jours d'essai gratuit,
+15 minutes de mise en route.
 
-{{Prenom_Fondateur}}
+Si votre chiffre est en dessous de deux appels par semaine, ne perdez pas
+votre temps avec moi. S'il est au-dessus, ça vaut un appel de dix minutes.
 ```
 
 Bonnes pratiques :
@@ -73,7 +76,7 @@ Bonnes pratiques :
 
 C'est la question qu'on me pose le plus souvent, alors je préfère la traiter à l'avance.
 
-Réponse courte : en 2026, dans nos tests aveugles, 78 % des appelants ne distinguent plus une IA vocale moderne d'une réceptionniste humaine. Sur les 22 % qui la reconnaissent, la majorité dit qu'elle préfère : pas de mise en attente, pas de mauvaise journée, jamais fatiguée.
+Réponse courte : jugez par vous-même avant de juger pour vos clients. Appelez la ligne de démo, écoutez, et dites-moi ce que vous en pensez. Ceux qui reconnaissent l'IA disent le plus souvent que ça les dérange moins que prévu : pas de mise en attente, pas de mauvaise journée, jamais fatiguée.
 
 L'IA parle français natif avec accent belge (ou français si vous préférez). Elle interrompt, hésite, s'excuse quand c'est humain de le faire. Elle prend le RDV dans votre agenda et route les urgences vers votre portable.
 
@@ -98,7 +101,7 @@ Bonnes pratiques :
 
 Dernier message pour ne pas encombrer votre boîte.
 
-Si vous voulez tester Qwillio, le lien direct : qwillio.com (premier mois offert, sans carte).
+Si vous voulez tester Qwillio, le lien direct : qwillio.com (7 jours d'essai gratuit).
 
 Si le sujet ne vous intéresse pas aujourd'hui, aucun souci. Je vous relance dans 3 mois. Vous pouvez répondre "stop" et je vous sors définitivement de mes contacts.
 

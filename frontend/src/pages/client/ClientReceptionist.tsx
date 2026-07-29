@@ -1,10 +1,10 @@
 ﻿import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Bot, Phone, PhoneForwarded, Check, AlertCircle,
+  Bot, PhoneForwarded, AlertCircle,
   Activity, Power, Globe, User, Clock, Shield, Calendar,
   Volume2, Languages, Building2, MapPin, Settings,
-  ChevronDown, ChevronRight, Copy, CheckCircle2, XCircle,
+  ChevronDown, ChevronRight, CheckCircle2, XCircle,
   BookOpen, Tag, HelpCircle, Clock3, Plus, X,
 } from 'lucide-react';
 import api from '../../services/api';
@@ -93,7 +93,6 @@ export default function ClientReceptionist() {
   const [loading, setLoading] = useState(true);
   const hydrated = useRef(false);
   const skipAutosave = useRef(false);
-  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Editable fields
@@ -251,11 +250,6 @@ export default function ClientReceptionist() {
     return () => clearTimeout(t);
   }, [autoSave]);
 
-  const copyPhone = () => {
-    const phone = overview?.client?.vapiPhoneNumber || settings?.vapiPhoneNumber;
-    if (phone) { navigator.clipboard.writeText(phone); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-  };
-
   if (loading) return (
     <div className="max-w-3xl space-y-4" aria-busy="true">
       <div className="space-y-2"><div className="h-6 w-48 rounded-lg bg-white/[0.06] animate-pulse" /><div className="h-4 w-64 rounded bg-white/[0.05] animate-pulse" /></div>
@@ -279,108 +273,59 @@ export default function ClientReceptionist() {
   const phone = client.vapiPhoneNumber || settings?.vapiPhoneNumber;
   const fwdStatus = settings?.forwardingStatus;
   const fwdVerified = settings?.forwardingVerifiedAt;
-  // Per-minute billing: quota gauge tracks included minutes.
+  // Per-minute billing: the gauge is rendered by AssistantChat's header.
   const quota = overview?.minutes?.quota || settings?.monthlyMinutesQuota || 0;
   const used = overview?.minutes?.used || 0;
-  const quotaPct = quota > 0 ? Math.round((used / quota) * 100) : 0;
+  // `planType` is a lowercase key ('starter'); shown to a customer it becomes
+  // a name. One formatting, used by both the header and the Abonnement row.
+  const planName = (() => {
+    const k = client.planType || 'starter';
+    return k.charAt(0).toUpperCase() + k.slice(1);
+  })();
 
   return (
     <div className="max-w-3xl space-y-4">
-      {/* —— Header + status, merged into one block —— the page title and the
-          agent's live state were two stacked sections saying the same thing. */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-        {/* State and the pause control live in the top bar (AiStatusPill), so
-            they are deliberately not repeated here. */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-               style={{ background: 'rgba(255,255,255,0.05)' }}>
-            <Bot size={18} className="text-[#E5E5EA]" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-[17px] font-semibold text-[#F2F2F2] tracking-tight truncate">Réceptionniste IA</h1>
-            <p className="text-[11.5px] text-[#9A9AA5] truncate">
-              {client.businessName || businessName || 'Votre entreprise'} · Plan {client.planType || 'starter'}
-              {client.isTrial && <span className="ml-1 text-amber-400">(essai)</span>}
-            </p>
-          </div>
-        </div>
-      </motion.div>
+      {/* Assistant conversationnel : parler pour configurer et onboarder.
+          Il porte aussi l'identité de la page (titre, entreprise, plan), le
+          numéro copiable, l'appel test live et la jauge de minutes, pour que
+          tout ce qui décrit la réceptionniste soit au même endroit. */}
+      <AssistantChat
+        isFr={agentLanguage !== 'en'}
+        onConfigChanged={load}
+        businessName={client.businessName || businessName}
+        planLabel={planName}
+        isTrial={!!client.isTrial}
+        phone={phone}
+        quota={{ used, total: quota }}
+      />
 
-      {/* —— Assistant conversationnel : parler pour configurer/onboarder —— */}
-      <AssistantChat isFr={agentLanguage !== 'en'} onConfigChanged={load} />
+      {/* Bande d'état. Le numéro, le plan et la jauge de minutes sont
+          désormais dans l'entête du chat ; les compteurs d'appels et de leads
+          vivent sur la page Appels et sur l'accueil. Il ne reste ici que ce
+          qui n'existe nulle part ailleurs : l'état du transfert d'appel, et
+          l'attente d'attribution du numéro. */}
+      <div className="space-y-3">
+        {!phone && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+            className="flex items-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3">
+            <AlertCircle size={13} className="text-amber-400 flex-shrink-0" />
+            <p className="text-[12px] text-[#9A9AA5]">Numéro IA en cours d'attribution</p>
+          </motion.div>
+        )}
 
-      {/* —— Phone + Stats row — flat neutral surfaces —— */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Phone number */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-          className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Phone size={13} className="text-[#9A9AA5]" />
-            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#9A9AA5]">Numéro IA</h3>
+          className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <PhoneForwarded size={13} className="text-[#9A9AA5] flex-shrink-0" />
+            <span className="text-[12px] text-[#9A9AA5] truncate">Transfert d'appel</span>
           </div>
-          {phone ? (
-            <div className="flex items-center gap-2">
-              <div className="flex-1 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                <p className="text-[15px] font-mono font-semibold text-[#F2F2F2] tabular-nums">{phone}</p>
-              </div>
-              <button onClick={copyPhone}
-                className="p-2.5 rounded-xl hover:bg-white/[0.06] text-[#9A9AA5] transition-colors">
-                {copied ? <Check size={15} className="text-emerald-400" /> : <Copy size={15} />}
-              </button>
-            </div>
+          {fwdVerified && transferNumber ? (
+            <span className="flex items-center gap-1 text-[11px] text-emerald-400 flex-shrink-0"><CheckCircle2 size={12} /> Vérifié</span>
+          ) : fwdStatus === 'pending' ? (
+            <span className="flex items-center gap-1 text-[11px] text-amber-400 flex-shrink-0"><Clock size={12} /> En attente</span>
           ) : (
-            <div className="flex items-center gap-2 text-[#9A9AA5]">
-              <AlertCircle size={13} className="text-amber-400" />
-              <p className="text-[12px]">En cours d'attribution</p>
-            </div>
+            <span className="flex items-center gap-1 text-[11px] text-[#6B6B75] flex-shrink-0"><XCircle size={12} /> Non configuré</span>
           )}
-          <div className="mt-3 pt-3 border-t border-white/[0.05]">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-[#9A9AA5]">Transfert d'appel</span>
-              {fwdVerified && transferNumber ? (
-                <span className="flex items-center gap-1 text-[11px] text-emerald-400"><CheckCircle2 size={12} /> Vérifié</span>
-              ) : fwdStatus === 'pending' ? (
-                <span className="flex items-center gap-1 text-[11px] text-amber-400"><Clock size={12} /> En attente</span>
-              ) : (
-                <span className="flex items-center gap-1 text-[11px] text-[#6B6B75]"><XCircle size={12} /> Non configuré</span>
-              )}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Stats — uniform white numbers */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Activity size={13} className="text-[#9A9AA5]" />
-            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#9A9AA5]">Statistiques</h3>
-          </div>
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            {[
-              { label: 'Ce mois', value: overview?.calls?.thisMonth || 0 },
-              { label: 'Leads',   value: overview?.leads?.thisMonth || 0 },
-              { label: 'Total',   value: settings?.totalCallsMade || client.totalCallsMade || 0 },
-            ].map((s, i) => (
-              <div key={i} className="bg-[#0A0A0C] rounded-lg p-2.5 text-center">
-                <p className="text-[18px] font-semibold tabular-nums text-[#F2F2F2]">{s.value}</p>
-                <p className="text-[9px] text-[#9A9AA5] uppercase tracking-wider mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
-          {/* Quota bar */}
-          <div>
-            <div className="flex justify-between text-[10px] text-[#9A9AA5] mb-1">
-              <span>Minutes ce mois</span>
-              <span className="tabular-nums">{used} / {quota} min ({quotaPct}%)</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-              <div className="h-full rounded-full transition-[width] duration-500 ease-out" style={{
-                width: `${Math.min(quotaPct, 100)}%`,
-                background: quotaPct > 90 ? '#EF4444' : quotaPct > 70 ? '#F59E0B' : '#E5E5EA',
-              }} />
-            </div>
-          </div>
         </motion.div>
       </div>
 
@@ -761,15 +706,17 @@ export default function ClientReceptionist() {
 
       {/* —— Subscription info —— */}
       <Section title="Abonnement" icon={Shield} color="#22C55E" defaultOpen={false}>
-        <Row l="Plan" v={(client.planType || 'starter').charAt(0).toUpperCase() + (client.planType || 'starter').slice(1)} c="#7349fe" />
+        <Row l="Plan" v={planName} c="#7349fe" />
         <Row l="Statut" v={
           status === 'active' ? 'Actif' : status === 'trialing' ? 'Essai' : status === 'paused' ? 'En pause' : status === 'cancelled' ? 'Annulé' : status
         } c={isActive ? '#22C55E' : isPaused ? '#F59E0B' : '#EF4444'} />
         {client.isTrial && client.trialEndDate && (
           <Row l="Fin de l'essai" v={new Date(client.trialEndDate).toLocaleDateString('fr-FR')} c="#F59E0B" />
         )}
-        <Row l="Quota mensuel" v={`${quota} appels`} />
-        <Row l="Utilisés ce mois" v={`${used} appels`} />
+        {/* Minutes, not calls: billing is per minute, and the same two values
+            feed the gauge in the chat header. */}
+        <Row l="Quota mensuel" v={`${quota} min`} />
+        <Row l="Utilisées ce mois" v={`${used} min`} />
         {settings?.activationDate && <Row l="Activé le" v={new Date(settings.activationDate).toLocaleDateString('fr-FR')} />}
         {settings?.lastCallDate && <Row l="Dernier appel" v={new Date(settings.lastCallDate).toLocaleDateString('fr-FR')} />}
       </Section>

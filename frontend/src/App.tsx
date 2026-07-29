@@ -1,8 +1,9 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAuthStore } from './stores/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
+import SplashScreen, { isStandaloneApp } from './components/SplashScreen';
 const Layout = lazy(() => import('./components/layout/Layout'));
 const ClientLayout = lazy(() => import('./components/layout/ClientLayout'));
 const CloserLayout = lazy(() => import('./components/layout/CloserLayout'));
@@ -233,11 +234,31 @@ function PublicOrDashboard() {
     if (!user.onboardingCompleted) return <Navigate to={signupStep(user)} />;
     return <Navigate to={homeRoute(user)} />;
   }
+  // Launched from the home screen, someone has already chosen Qwillio: send
+  // them to sign-in rather than to the marketing page they installed from.
+  if (isStandaloneApp()) return <Navigate to="/login" replace />;
   return <Suspense fallback={<Spinner />}><Home /></Suspense>;
+}
+
+/**
+ * sessionStorage throws outright when storage is disabled or the app runs in a
+ * restricted webview. The read below happens during App's own render, before
+ * the ErrorBoundary can mount, so an unguarded access takes the whole app down.
+ */
+function safeSessionGet(key: string): string | null {
+  try { return sessionStorage.getItem(key); } catch { return null; }
+}
+function safeSessionSet(key: string, value: string): void {
+  try { sessionStorage.setItem(key, value); } catch { /* splash replays next launch, harmless */ }
 }
 
 export default function App() {
   const { checkAuth } = useAuthStore();
+  // The launch animation belongs to the installed app, and to one launch only:
+  // it must not replay on client-side navigation within the session.
+  const [splashDone, setSplashDone] = useState(
+    () => !isStandaloneApp() || safeSessionGet('qw.splashShown') === '1',
+  );
 
   useEffect(() => {
     checkAuth();
@@ -247,6 +268,14 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      {!splashDone && (
+        <SplashScreen
+          onDone={() => {
+            safeSessionSet('qw.splashShown', '1');
+            setSplashDone(true);
+          }}
+        />
+      )}
       <GoogleOAuthProvider clientId={googleClientId}>
       <BrowserRouter>
       <ScrollToTop />
