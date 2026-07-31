@@ -1,0 +1,8 @@
+{
+  "name": "qwillio",
+  "private": true,
+  "scripts": {
+    "sync:templates": "node scripts/sync-templates.mjs",
+    "check:templates": "node scripts/sync-templates.mjs --check"
+  }
+}
