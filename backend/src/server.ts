@@ -469,6 +469,14 @@ async function runBootstrap() {
       }
     }
 
+    // Scheduled jobs. Only the process that owns them starts them, so the API
+    // can be redeployed without killing a reminder or a follow-up mid-run.
+    // RUN_JOBS defaults to true: a single-service deploy is unchanged.
+    if (!env.RUN_JOBS) {
+      logger.info('Bot loop skipped: RUN_JOBS=false, this process serves the API only');
+      return;
+    }
+
     // Initialize bot loop (non-fatal — DB may still be waking up)
     try {
       await botLoop.initialize();
