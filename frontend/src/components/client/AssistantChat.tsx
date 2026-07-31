@@ -1,22 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowUp, Mic, StopCircle, Square, Settings, Rocket, Headphones,
-  Loader2, Bot, Copy, Check, PhoneCall, X,
+  ArrowUp, Mic, StopCircle, Square, Settings, Headphones,
+  Loader2, Bot, Copy, Check, PhoneCall, X, Lightbulb, Paperclip,
 } from 'lucide-react';
 import api from '../../services/api';
 import VapiLiveCall from './VapiLiveCall';
 
 const cn = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
+/** Modes the backend understands. Onboarding keeps its own tool to finish setup. */
 type Mode = 'config' | 'onboarding' | 'receptionist';
 interface Msg { role: 'user' | 'assistant'; content: string }
 
-const MODES: { id: Mode; label: string; labelEn: string; icon: typeof Settings; color: string }[] = [
-  { id: 'config',       label: 'Config',        labelEn: 'Config',       icon: Settings,    color: '#7A5FFF' },
-  { id: 'onboarding',   label: 'Onboarding',    labelEn: 'Onboarding',   icon: Rocket,      color: '#cd6afb' },
-  { id: 'receptionist', label: 'Réceptionniste', labelEn: 'Reception',   icon: Headphones,  color: '#14b8a6' },
+/**
+ * What the user picks from. Config and onboarding were two buttons for the same
+ * intent, "help me set this up", and the difference between them is something
+ * the app already knows: whether the setup is done. So it decides, and the
+ * user has one choice fewer to make.
+ */
+type Pill = 'assistant' | 'receptionist';
+
+const PILLS: { id: Pill; label: string; labelEn: string; icon: typeof Settings; color: string }[] = [
+  { id: 'assistant',    label: 'Assistant',      labelEn: 'Assistant', icon: Settings,   color: '#7A5FFF' },
+  { id: 'receptionist', label: 'Test d’appel',   labelEn: 'Call test', icon: Headphones, color: '#14b8a6' },
 ];
+
+const pillOf = (m: Mode): Pill => (m === 'receptionist' ? 'receptionist' : 'assistant');
 
 function greetingFor(mode: Mode, isFr: boolean): string {
   if (mode === 'onboarding') {
@@ -115,15 +125,16 @@ function VoiceViz({ isFr, analyser }: { isFr: boolean; analyser: AnalyserNode | 
 }
 
 /**
- * Conversational assistant with three modes:
- *  - Config: change your receptionist's settings by talking.
- *  - Onboarding: guided first-time setup, one step at a time.
- *  - Receptionist: roleplay/test — the AI answers as your receptionist would.
- * Text + browser mic (Web Speech API) + optional spoken replies.
+ * Conversational assistant, two things the user can pick from:
+ *  - Assistant: set the receptionist up by talking. Guided when nothing is
+ *    configured yet, free-form once it is; the app decides which, not the user.
+ *  - Call test: roleplay, the AI answers as your receptionist would.
+ * Typing or dictation, with server-side transcription.
  */
 export default function AssistantChat({
   isFr = true, onConfigChanged, initialMode = 'config', lockMode = false, onCompleted,
   businessName, planLabel, isTrial = false, phone, quota, showHeader = true,
+  setupComplete = true, onItemsExtracted,
 }: {
   isFr?: boolean;
   onConfigChanged?: () => void;
@@ -145,6 +156,18 @@ export default function AssistantChat({
    * page around it already introduces the step and there is no number yet.
    */
   showHeader?: boolean;
+  /**
+   * Whether the receptionist is already configured. Decides, on the user's
+   * behalf, whether the assistant walks them through setup or takes free-form
+   * instructions. Defaults to true so an unconfigured caller never gets the
+   * guided path by accident.
+   */
+  setupComplete?: boolean;
+  /**
+   * Receives the price lines read out of a photo, once the user has confirmed
+   * them. Nothing is written to the configuration without that confirmation.
+   */
+  onItemsExtracted?: (items: { category: string; name: string; price: string }[]) => void;
 }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: greetingFor(initialMode, isFr) }]);
@@ -154,6 +177,21 @@ export default function AssistantChat({
   const [micSupported, setMicSupported] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Shown once per browser. localStorage can throw in a restricted webview,
+  // and a crash here would take the panel down, so it is guarded.
+  const [showIntro, setShowIntro] = useState(() => {
+    try { return localStorage.getItem('qw.chatIntroSeen') !== '1'; } catch { return false; }
+  });
+  const [extracting, setExtracting] = useState(false);
+  // Held until confirmed. Writing a customer's price list straight from an OCR
+  // pass nobody has read is exactly the kind of silent change to avoid.
+  const [pendingItems, setPendingItems] = useState<{ category: string; name: string; price: string }[] | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const dismissIntro = () => {
+    setShowIntro(false);
+    try { localStorage.setItem('qw.chatIntroSeen', '1'); } catch { /* it reappears next time, harmless */ }
+  };
   // Live test call is driven from the header, independently of the chat mode.
   const [liveCall, setLiveCall] = useState(false);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
@@ -206,10 +244,16 @@ export default function AssistantChat({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, sending, listening]);
 
-  const switchMode = (m: Mode) => {
-    if (m === mode) return;
-    setMode(m);
-    setMessages([{ role: 'assistant', content: greetingFor(m, isFr) }]);
+  /**
+   * The pill picks an intent; the backend mode follows from whether setup is
+   * done. Choosing between "config" and "onboarding" was a decision the app
+   * could already make, so it makes it.
+   */
+  const switchPill = (p: Pill) => {
+    const next: Mode = p === 'receptionist' ? 'receptionist' : setupComplete ? 'config' : 'onboarding';
+    if (next === mode) return;
+    setMode(next);
+    setMessages([{ role: 'assistant', content: greetingFor(next, isFr) }]);
     setInput('');
   };
 
@@ -309,6 +353,56 @@ export default function AssistantChat({
     }
   };
 
+  /** Read a price list out of a photo, then show it for confirmation. */
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      notify('Envoyez une photo (JPEG, PNG ou HEIC).', 'Please send a photo (JPEG, PNG or HEIC).');
+      return;
+    }
+    setExtracting(true);
+    try {
+      const image = await blobToBase64(file);
+      const { data } = await api.post('/my-dashboard/assistant/extract-items', {
+        image,
+        mimeType: file.type,
+      });
+      const items: { category: string; name: string; price: string }[] = data?.items || [];
+      if (!items.length) {
+        notify("Je n'ai trouvé aucun tarif sur cette image. Essayez une photo plus nette, ou cadrée sur la grille de prix.",
+               'I found no prices in that image. Try a sharper photo, or one framed on the price list.');
+        return;
+      }
+      // Shown, not written. A customer's configuration is not something to
+      // modify on the strength of an OCR pass nobody has looked at.
+      const preview = items.slice(0, 30).map(i => `· ${i.name}${i.price ? ` — ${i.price}` : ''}`).join('\n');
+      setPendingItems(items);
+      setMessages(m => [...m, { role: 'assistant', content: isFr
+        ? `J'ai lu ${items.length} ligne${items.length > 1 ? 's' : ''} :\n\n${preview}${items.length > 30 ? `\n\n…et ${items.length - 30} de plus.` : ''}\n\nJe les ajoute à votre base de connaissances ?`
+        : `I read ${items.length} line${items.length > 1 ? 's' : ''}:\n\n${preview}${items.length > 30 ? `\n\n…and ${items.length - 30} more.` : ''}\n\nShall I add them to your knowledge base?` }]);
+    } catch (err: any) {
+      const code = err?.response?.data?.error;
+      notify(
+        code === 'extraction_unavailable'
+          ? "La lecture d'image n'est pas configurée sur ce compte."
+          : code === 'image_too_large'
+            ? 'Image trop lourde. Réduisez-la avant de renvoyer.'
+            : code === 'extraction_rate_limited'
+              ? 'Trop d’envois d’un coup. Réessayez dans une minute.'
+              : "La lecture de l'image a échoué. Réessayez.",
+        code === 'extraction_unavailable'
+          ? 'Image reading is not configured on this account.'
+          : code === 'image_too_large'
+            ? 'Image too large. Shrink it and try again.'
+            : code === 'extraction_rate_limited'
+              ? 'Too many uploads at once. Try again in a minute.'
+              : 'Reading the image failed. Please try again.',
+      );
+    } finally {
+      setExtracting(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
   const startRecording = async () => {
     if (!micSupported) {
       notify('Votre navigateur ne permet pas l’enregistrement audio. Écrivez votre message.',
@@ -394,7 +488,8 @@ export default function AssistantChat({
   };
 
   const hasContent = input.trim() !== '';
-  const activeColor = MODES.find(m => m.id === mode)!.color;
+  const activePill = pillOf(mode);
+  const activeColor = PILLS.find(p => p.id === activePill)!.color;
 
   return (
     // Height follows the viewport: the header now carries identity, number and
@@ -513,6 +608,31 @@ export default function AssistantChat({
         </div>
       )}
 
+      {/* First-run explainer. Deliberately an inline card and not a modal: a
+          dialog on open traps focus, has to be dismissed before anything can be
+          done, and comes back every visit. This reads in document order, is
+          dismissed once, and never returns. */}
+      {showIntro && !lockMode && (
+        <div className="px-3 pt-3">
+          <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-3">
+            <Lightbulb size={15} className="mt-0.5 flex-shrink-0" style={{ color: '#b9a8ff' }} aria-hidden="true" />
+            <p className="flex-1 text-[12.5px] leading-relaxed text-[#9A9AA5]">
+              {isFr
+                ? 'Dites ce que vous voulez changer et je le fais : horaires, services, tarifs, façon de répondre. Pour entendre le résultat, passez sur Test d’appel ou lancez un appel test live.'
+                : 'Tell me what you want to change and I do it: hours, services, prices, how it answers. To hear the result, switch to Call test or start a live test call.'}
+            </p>
+            <button
+              type="button"
+              onClick={dismissIntro}
+              aria-label={isFr ? 'Masquer cette explication' : 'Dismiss this note'}
+              className="flex-shrink-0 rounded-lg p-1 text-[#6B6B75] transition-colors hover:bg-white/[0.06] hover:text-[#E5E5EA] active:scale-[0.97]"
+            >
+              <X size={13} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {/* iMessage bubbles: full 18px radius with a tail on the last of a run,
@@ -558,6 +678,45 @@ export default function AssistantChat({
         )}
       </div>
 
+      {/* Confirmation before anything is written to the configuration. */}
+      {pendingItems && (
+        <div className="px-3 pb-1">
+          <div className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5"
+               style={{ borderColor: 'rgba(122,95,255,0.35)', background: 'rgba(122,95,255,0.08)' }}>
+            <span className="text-[12.5px] text-[#E5E5EA]">
+              {isFr ? `${pendingItems.length} ligne${pendingItems.length > 1 ? 's' : ''} à ajouter` : `${pendingItems.length} line${pendingItems.length > 1 ? 's' : ''} to add`}
+            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingItems(null);
+                  setMessages(m => [...m, { role: 'assistant', content: isFr ? "D'accord, je n'ajoute rien." : 'Fine, nothing added.' }]);
+                }}
+                className="h-8 px-3 rounded-lg text-[12px] font-medium text-[#9A9AA5] transition-colors hover:bg-white/[0.06] hover:text-[#E5E5EA] active:scale-[0.97]"
+              >
+                {isFr ? 'Annuler' : 'Discard'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onItemsExtracted?.(pendingItems);
+                  const n = pendingItems.length;
+                  setPendingItems(null);
+                  setMessages(m => [...m, { role: 'assistant', content: isFr
+                    ? `${n} ligne${n > 1 ? 's ajoutées' : ' ajoutée'}. Vérifiez-les dans Base de connaissances, elles sont modifiables.`
+                    : `${n} line${n > 1 ? 's added' : ' added'}. Check them under Knowledge base, they stay editable.` }]);
+                }}
+                className="h-8 px-3 rounded-lg text-[12px] font-semibold transition-colors active:scale-[0.97]"
+                style={{ background: '#7A5FFF', color: '#fff' }}
+              >
+                {isFr ? 'Ajouter' : 'Add'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Input box (redesigned) */}
       <div className="p-3">
         <div
@@ -591,14 +750,14 @@ export default function AssistantChat({
           {/* Actions row: mode pills + mic/send */}
           <div className="flex items-center justify-between gap-2 pt-1">
             <div className={cn('flex items-center gap-1', listening && 'opacity-0 invisible')}>
-              {(lockMode ? [] : MODES).map(m => {
-                const active = mode === m.id;
+              {(lockMode ? [] : PILLS).map(m => {
+                const active = activePill === m.id;
                 const Icon = m.icon;
                 return (
                   <button
                     key={m.id}
                     type="button"
-                    onClick={() => switchMode(m.id)}
+                    onClick={() => switchPill(m.id)}
                     aria-pressed={active}
                     className="rounded-full transition-all flex items-center gap-1 px-2 py-1 border h-8"
                     style={active
@@ -631,6 +790,32 @@ export default function AssistantChat({
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Hand over a price list you already have, instead of retyping
+                  thirty rows. Hidden in call-test mode, where it means nothing. */}
+              {!listening && mode !== 'receptionist' && (
+                <>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) void handleFile(f);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={extracting}
+                    aria-label={isFr ? 'Envoyer une photo de vos tarifs' : 'Send a photo of your prices'}
+                    className="h-9 w-9 rounded-full grid place-items-center text-[#9CA3AF] transition-colors hover:bg-white/[0.06] hover:text-[#E5E5EA] disabled:opacity-40 active:scale-[0.97]"
+                  >
+                    {extracting ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+                  </button>
+                </>
+              )}
+
               {/* Dictation language. Separate from the agent's caller-facing
                   language on purpose: you may configure an English agent while
                   speaking French. */}

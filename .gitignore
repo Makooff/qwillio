@@ -62,3 +62,7 @@ nul
 
 .vercel
 frontend/tsconfig.tsbuildinfo
+
+# Données de prospects: elles vivent dans le dashboard admin, pas dans le dépôt.
+*prospects*.csv
+pipeline.csv

@@ -22,6 +22,52 @@ type Sector = {
 };
 
 const SECTORS: Record<string, Sector> = {
+  fiduciaire: {
+    slug: 'fiduciaire',
+    metierFr: 'cabinet comptable',
+    metierEn: 'accounting firm',
+    headlineFr: "La réceptionniste IA des cabinets comptables, en français et en néerlandais",
+    headlineEn: 'The AI receptionist for accounting firms, in French and Dutch',
+    painFr:
+      "En période de déclarations, la ligne ne désemplit pas et l'équipe est sur les dossiers. Chaque appel manqué est un client qui rappelle trois fois, s'agace, puis demande à son voisin le nom d'un autre cabinet. Combien en ratez-vous par semaine à ce moment de l'année ?",
+    painEn:
+      'During filing season the line never stops and the team is heads-down on files. Every missed call is a client who rings three times, gets annoyed, then asks a neighbour for another firm. How many do you miss a week at that time of year?',
+    scenarioFr:
+      "Un client appelle un mardi de mars pour une échéance TVA. Qwillio décroche en français ou en néerlandais selon lui, identifie le dossier, propose un créneau avec le bon collaborateur, et transfère immédiatement si c'est urgent.",
+    scenarioEn:
+      'A client calls on a Tuesday in March about a VAT deadline. Qwillio answers in French or Dutch depending on the caller, identifies the file, offers a slot with the right accountant, and transfers straight away when it is urgent.',
+    wins: [
+      {
+        titleFr: 'Bilingue sur le même appel',
+        titleEn: 'Bilingual on one call',
+        bodyFr:
+          "Français et néerlandais sans que l'appelant ait à choisir une touche. En Belgique, ce n'est pas un supplément, c'est la base.",
+        bodyEn: 'French and Dutch without the caller pressing a key. In Belgium that is not an extra, it is the baseline.',
+      },
+      {
+        titleFr: 'Les pics de saison absorbés',
+        titleEn: 'Season peaks absorbed',
+        bodyFr:
+          "Les échéances TVA et bilans font tripler le volume d'appels. Qwillio ne demande pas de renfort intérimaire.",
+        bodyEn: 'VAT and year-end deadlines triple call volume. Qwillio does not need a temp.',
+      },
+      {
+        titleFr: 'Hébergement européen',
+        titleEn: 'European hosting',
+        bodyFr:
+          "Vous traitez les données de vos clients. Tout reste dans l'Union européenne, et le consentement à l'enregistrement est demandé au décrochage.",
+        bodyEn: 'You handle your clients\' data. Everything stays in the European Union, and consent to recording is asked at pickup.',
+      },
+      {
+        titleFr: 'Un revenu récurrent en plus',
+        titleEn: 'Recurring revenue on top',
+        bodyFr:
+          "Vos clients PME ratent des appels toute la journée. En leur recommandant Qwillio, vous touchez une commission récurrente sur chacun.",
+        bodyEn: 'Your SMB clients miss calls all day. Recommend Qwillio and you earn a recurring commission on each one.',
+      },
+    ],
+    plan: 'starter',
+  },
   plombier: {
     slug: 'plombier',
     metierFr: 'plombier',

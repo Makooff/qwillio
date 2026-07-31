@@ -3,11 +3,64 @@ services:
     name: qwillio-backend
     runtime: node
     region: oregon
-    plan: free
+    # Not `free`: a free web service sleeps after 15 minutes without traffic,
+    # and the 44 cron jobs in this process sleep with it. Appointment reminders
+    # and follow-ups would stop without anything failing visibly. The keepalive
+    # workflow currently masks this, but it depends on GitHub not disabling a
+    # scheduled workflow after 60 days of repository inactivity.
+    plan: starter
     buildCommand: npm install --include=dev && npx prisma generate && npm run build
     preDeployCommand: npx prisma migrate deploy
     startCommand: npm start
     envVars:
+      # The API process does not own the scheduled jobs: a deploy of the API
+      # would otherwise kill a reminder or a follow-up mid-run.
+      - key: RUN_JOBS
+        value: "false"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: VAPI_PRIVATE_KEY
+        sync: false
+      - key: VAPI_PUBLIC_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      # Required for the real voice previews in the client dashboard. Without it
+      # the preview endpoint returns 503 and the UI falls back to browser TTS.
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+
+  # Scheduled jobs live here, in their own process. Two reasons: a web deploy
+  # no longer interrupts a job in flight, and the jobs no longer depend on the
+  # web service staying awake (which is what the GitHub keepalive was really
+  # doing, and what would have stopped silently after 60 days of repo quiet).
+  - type: worker
+    name: qwillio-jobs
+    runtime: node
+    region: oregon
+    plan: starter
+    rootDir: backend
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
+    startCommand: npm start
+    envVars:
+      - key: RUN_JOBS
+        value: "true"
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL

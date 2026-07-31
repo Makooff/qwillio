@@ -110,6 +110,11 @@ export const env = {
   // so a paused/unbilled account never hammers those paid APIs. Set 'true' in
   // Render to resume prospection.
   PROSPECTION_ENABLED: process.env.PROSPECTION_ENABLED === 'true',
+  // Whether this process owns the scheduled jobs. Defaults to true so a
+  // single-service deployment keeps behaving exactly as before; the split
+  // is opted into by setting RUN_JOBS=false on the web service and true on
+  // a dedicated worker, so a deploy of the API no longer kills jobs in flight.
+  RUN_JOBS: process.env.RUN_JOBS !== 'false',
   CALLS_PER_DAY: parseInt(process.env.CALLS_PER_DAY || '50', 10),
   AUTOMATION_START_HOUR: parseInt(process.env.AUTOMATION_START_HOUR || '9', 10),
   AUTOMATION_END_HOUR: parseInt(process.env.AUTOMATION_END_HOUR || '19', 10),

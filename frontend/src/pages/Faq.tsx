@@ -16,7 +16,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Mes clients vont-ils se rendre compte que c\'est une IA ?',
-    a: "En tests aveugles en 2026, la majorité des appelants ne distinguent plus une IA vocale moderne d'une secrétaire humaine. La voix a un accent naturel (belge, français ou québécois), elle hésite, s'excuse et reformule comme un humain. Beaucoup préfèrent même l'IA : jamais de mise en attente, jamais de mauvaise journée.",
+    a: "Certains le remarqueront, d'autres non : la qualité vocale a beaucoup progressé, et la voix hésite, s'excuse et reformule comme un humain, avec un accent naturel belge, français ou québécois. Le mieux est de juger vous-même en écoutant la démo. Et posez-vous la vraie question : ce que votre client préfère, ce n'est pas humain contre IA, c'est quelqu'un qui décroche plutôt qu'un répondeur.",
   },
   {
     q: 'Combien de temps pour installer Qwillio ?',
@@ -43,6 +43,14 @@ const FAQ_FR: QA[] = [
     a: "Oui, sur tous les plans. Le bouclier anti-spam détecte les robocalls, les appels silencieux et les numéros qui inondent la ligne, les écarte de vos rendez-vous et de vos leads, et ne les décompte pas de vos minutes incluses.",
   },
   {
+    q: "Après le 11 août, aurai-je encore le droit d'utiliser Qwillio ?",
+    a: "Oui, et la loi joue même en votre faveur. Ce qui devient interdit en France, c'est le démarchage téléphonique vers les particuliers sans accord préalable. Qwillio répond aux appels entrants, ceux que vos clients vous passent : c'est l'inverse du démarchage, et ce n'est pas concerné. Concrètement, comme beaucoup d'entreprises perdent le téléphone sortant, l'appel entrant devient leur principal canal, et en rater un coûte plus cher qu'avant.",
+  },
+  {
+    q: 'Pourquoi payer 99 € quand certains sont à 49 € ?',
+    a: "Parce que ce n'est pas le même produit. À 49 €, vous avez le décrochage en français. Qwillio parle français et anglais sur le même appel sans que l'appelant ait à choisir, héberge vos données dans l'Union européenne, et inclut le CRM et la prise de rendez-vous. Si le français seul vous suffit et que vous n'avez pas besoin de CRM, prenez l'offre la moins chère, franchement. Le bon repère n'est pas un autre logiciel : c'est ce que coûte une secrétaire à mi-temps.",
+  },
+  {
     q: 'Puis-je résilier facilement ?',
     a: "Oui. Tous les plans sont sans engagement, résiliables au mois en un clic depuis votre tableau de bord.",
   },
@@ -59,7 +67,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'Will my customers notice it is an AI?',
-    a: 'In blind tests in 2026, most callers can no longer tell a modern voice AI from a human receptionist. The voice has a natural accent, hesitates, apologises and rephrases like a human. Many even prefer the AI: never on hold, never having a bad day.',
+    a: 'Some will notice, some will not: voice quality has come a long way, and the voice hesitates, apologises and rephrases like a human, with a natural Belgian, French or Quebec accent. The best way to judge is to listen to the demo yourself. And ask the real question: what your customer is comparing is not human versus AI, it is someone picking up versus voicemail.',
   },
   {
     q: 'How long does it take to set up?',
@@ -84,6 +92,14 @@ const FAQ_EN: QA[] = [
   {
     q: 'Does Qwillio block spam calls?',
     a: 'Yes, on every plan. The spam shield detects robocalls, silent calls and numbers flooding the line, keeps them out of your appointments and leads, and does not count them against your call quota.',
+  },
+  {
+    q: 'After 11 August, will I still be allowed to use Qwillio?',
+    a: 'Yes, and the law actually works in your favour. What becomes illegal in France is unsolicited outbound calling to consumers without prior consent. Qwillio answers inbound calls, the ones your customers make to you: that is the opposite of cold calling, and it is not covered. In practice, as many businesses lose outbound calling, the inbound call becomes their main channel, so missing one costs more than it used to.',
+  },
+  {
+    q: 'Why pay €99 when some charge €49?',
+    a: 'Because it is not the same product. At €49 you get answering in French. Qwillio speaks French and English on the same call without the caller picking an option, hosts your data in the European Union, and includes the CRM and calendar booking. If French-only covers you and you do not need a CRM, take the cheaper option, honestly. The right yardstick is not another piece of software: it is what a part-time receptionist costs.',
   },
   {
     q: 'Can I cancel easily?',

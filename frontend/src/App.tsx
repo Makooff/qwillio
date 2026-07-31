@@ -325,6 +325,7 @@ export default function App() {
         <Route path="/restaurant" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="restaurant" /></Suspense>} />
         <Route path="/immobilier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="immobilier" /></Suspense>} />
         <Route path="/coiffeur" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="coiffeur" /></Suspense>} />
+        <Route path="/fiduciaire" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="fiduciaire" /></Suspense>} />
         <Route path="/fr/plombier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="plombier" /></Suspense>} />
         <Route path="/fr/dentiste" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="dentiste" /></Suspense>} />
         <Route path="/fr/notaire" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="notaire" /></Suspense>} />
@@ -334,6 +335,7 @@ export default function App() {
         <Route path="/fr/restaurant" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="restaurant" /></Suspense>} />
         <Route path="/fr/immobilier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="immobilier" /></Suspense>} />
         <Route path="/fr/coiffeur" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="coiffeur" /></Suspense>} />
+        <Route path="/fr/fiduciaire" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="fiduciaire" /></Suspense>} />
 
         {/* Sign-up funnel, in order: confirm the address, register a card, then
             configure the receptionist. Each guard sends the account to whichever

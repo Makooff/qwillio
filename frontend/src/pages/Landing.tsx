@@ -164,9 +164,13 @@ export default function Landing() {
 
               <Reveal delay={0.16}>
                 <p className="text-lg md:text-xl text-[#424245] max-w-[480px] mb-9 leading-[1.55]">
+                  {/* This page is where a prospect lands after a call, so he is
+                      past the problem and weighing the purchase. The subhead
+                      carries the two things that close: the salary anchor, and
+                      the one advantage competitors do not have. */}
                   {isFr
-                    ? "Un réceptionniste IA qui parle naturellement, prend les rendez-vous dans votre calendrier, et ne demande jamais de pause café."
-                    : 'An AI receptionist that speaks naturally, books appointments in your calendar, and never asks for a coffee break.'}
+                    ? "Elle parle français et anglais sur le même appel, prend les rendez-vous dans votre agenda et vous envoie le résumé par SMS. À partir de 99 € par mois, contre 1 200 € pour une secrétaire à mi-temps."
+                    : 'She speaks French and English on the same call, books appointments in your calendar and texts you the summary. From €99 a month, against €1,200 for a part-time receptionist.'}
                 </p>
               </Reveal>
 

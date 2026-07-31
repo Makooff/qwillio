@@ -43,6 +43,22 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
+  docs:
+    name: Docs (miroirs des templates)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # emails/ and sms/ mirror the transactional copy that lives in code.
+      # A mirror that has drifted is worse than no mirror, so a change to the
+      # templates without a regenerated folder fails here.
+      - name: Les miroirs sont à jour
+        run: npm run check:templates
+
   frontend:
     name: Frontend (build · test)
     runs-on: ubuntu-latest

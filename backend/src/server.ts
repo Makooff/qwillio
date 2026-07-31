@@ -218,8 +218,15 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Neon keepalive — pinged every few minutes by Vercel cron to keep the DB
-// warm. Returns { ready: boolean } without exposing internal error details.
+// Neon keepalive, pinged every 5 minutes by .github/workflows/keepalive.yml
+// (not Vercel cron, which needed a paid plan for sub-daily schedules).
+//
+// It keeps the database warm AND, as a side effect, keeps this service awake,
+// which is what makes the in-process cron jobs run at all. That side effect is
+// load-bearing and fragile: GitHub disables scheduled workflows after 60 days
+// without repository activity, and the jobs would then stop silently. Moving
+// the service off the free tier is what removes the dependency.
+// Returns { ready: boolean } without exposing internal error details.
 app.get('/api/auth/warmup', async (_req, res) => {
   try {
     await prisma.user.count();
@@ -460,6 +467,14 @@ async function runBootstrap() {
       } catch (err) {
         logger.warn('[bootstrap] Closer seed failed (non-fatal):', err);
       }
+    }
+
+    // Scheduled jobs. Only the process that owns them starts them, so the API
+    // can be redeployed without killing a reminder or a follow-up mid-run.
+    // RUN_JOBS defaults to true: a single-service deploy is unchanged.
+    if (!env.RUN_JOBS) {
+      logger.info('Bot loop skipped: RUN_JOBS=false, this process serves the API only');
+      return;
     }
 
     // Initialize bot loop (non-fatal — DB may still be waking up)

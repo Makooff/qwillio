@@ -25,6 +25,15 @@ const transcribeLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const extractLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 6,
+  keyGenerator: (req: any) => req.clientId || req.ip,
+  message: { error: 'extraction_rate_limited' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const router = Router();
 
 // All routes require JWT auth + client role
@@ -55,6 +64,8 @@ router.get('/characters', (req, res) => clientDashboardController.getCharacters(
 router.get('/characters/:id/preview', (req, res) => clientDashboardController.characterPreview(req, res));
 router.post('/assistant/chat', (req, res) => clientDashboardController.assistantChat(req, res));
 router.post('/assistant/transcribe', transcribeLimiter, (req, res) => clientDashboardController.assistantTranscribe(req, res));
+// Vision costs more per call than transcription, hence the tighter budget.
+router.post('/assistant/extract-items', extractLimiter, (req, res) => clientDashboardController.assistantExtractItems(req, res));
 router.get('/voice/live-config', (req, res) => clientDashboardController.voiceLiveConfig(req, res));
 router.post('/pause', (req, res) => clientDashboardController.pauseAgent(req, res));
 router.post('/resume', (req, res) => clientDashboardController.resumeAgent(req, res));

@@ -412,6 +412,41 @@ export class ClientDashboardController {
     }
   }
 
+  // POST /my-dashboard/assistant/extract-items: reads a price list out of a
+  // photo. The image is never stored, only the lines it yields, and only after
+  // the user confirms them in the chat.
+  async assistantExtractItems(req: any, res: Response) {
+    try {
+      const { image, mimeType } = req.body || {};
+      if (typeof image !== 'string' || !image) {
+        return res.status(400).json({ error: 'image required' });
+      }
+
+      const { priceExtractionService, MAX_IMAGE_BYTES } = await import('../services/price-extraction.service');
+      if (image.length > Math.ceil((MAX_IMAGE_BYTES * 4) / 3) + 4) {
+        return res.status(413).json({ error: 'image_too_large' });
+      }
+
+      const items = await priceExtractionService.extract(
+        Buffer.from(image, 'base64'),
+        typeof mimeType === 'string' ? mimeType : 'image/jpeg',
+      );
+      res.json({ items });
+    } catch (error: any) {
+      const known: Record<string, number> = {
+        extraction_unavailable: 503,
+        empty_image: 400,
+        image_too_large: 413,
+        extraction_failed: 502,
+      };
+      const status = known[error.message];
+      if (status) return res.status(status).json({ error: error.message });
+
+      logger.error('assistantExtractItems failed:', error);
+      res.status(500).json({ error: 'extraction_failed' });
+    }
+  }
+
   // GET /my-dashboard/voice/live-config — config to start an in-browser Vapi
   // call with THIS client's receptionist (real voice + their config), like the
   // public demo but personalized. Returns the Vapi public key + assistant.
