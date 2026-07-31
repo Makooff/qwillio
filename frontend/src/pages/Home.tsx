@@ -32,7 +32,7 @@ const INDUSTRY_HREFS: (string | null)[] = [
   '/garagiste',                // Automobile / Automotive
   null,                        // Fitness
   '/coiffeur',                 // Beauté / Beauty
-  '/partenaires-fiduciaires',  // Finance
+  '/fiduciaire',               // Finance
   null,                        // Commerce / Retail
   null,                        // Startups
 ];
@@ -290,27 +290,29 @@ export default function Home() {
                 id="hero-heading"
                 className="text-[clamp(2.6rem,6.5vw,5.6rem)] font-semibold tracking-[-0.04em] leading-[0.95] mb-6"
               >
+                {/* The headline names the loss, not the feature. A prospect who
+                    misses calls does not recognise himself in "every call
+                    answered"; he recognises himself in the customer who hung up
+                    and called the next number. */}
                 {isFr ? (
                   <>
-                    Chaque appel<br />
-                    <span className="italic font-serif" style={{ color: '#7a5fff' }}>répondu.</span><br />
-                    Chaque lead<br />
-                    <span className="italic font-serif" style={{ color: '#cd6afb' }}>capturé.</span>
+                    L'appel que<br />
+                    vous ratez part<br />
+                    <span className="italic font-serif" style={{ color: '#7a5fff' }}>chez le voisin.</span>
                   </>
                 ) : (
                   <>
-                    Every call<br />
-                    <span className="italic font-serif" style={{ color: '#7a5fff' }}>answered.</span><br />
-                    Every lead<br />
-                    <span className="italic font-serif" style={{ color: '#cd6afb' }}>captured.</span>
+                    The call you<br />
+                    miss goes to<br />
+                    <span className="italic font-serif" style={{ color: '#7a5fff' }}>the next name.</span>
                   </>
                 )}
               </h1>
 
-              <p className="text-lg md:text-xl text-[#424245] max-w-[460px] mb-9 leading-[1.55]">
+              <p className="text-lg md:text-xl text-[#424245] max-w-[480px] mb-9 leading-[1.55]">
                 {isFr
-                  ? 'Réceptionniste IA, CRM, facturation. Une seule plateforme qui prend vos rendez-vous, qualifie vos leads et travaille 24h sur 24.'
-                  : 'AI receptionist, CRM, billing. One platform that books your appointments, qualifies your leads, and works around the clock.'}
+                  ? 'Qwillio décroche à votre place, en moins d’une seconde, prend le rendez-vous dans votre agenda et vous envoie le résumé. Français et anglais sur le même appel. À partir de 99 € par mois, soit moins qu’une matinée de secrétariat.'
+                  : 'Qwillio picks up for you in under a second, books the appointment in your calendar and sends you the summary. French and English on the same call. From €99 a month, less than a morning of reception cover.'}
               </p>
 
               <div className="flex flex-wrap items-center gap-3 mb-10">

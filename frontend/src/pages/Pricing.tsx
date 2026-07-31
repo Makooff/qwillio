@@ -153,7 +153,15 @@ export default function Pricing() {
             </div>
             </Reveal>
             <Reveal delay={0.12}>
+            {/* Frame the value before showing the number: read cold, €99 sits
+                next to a €49 tool. Read after the comparison a customer
+                actually faces, a part-time receptionist, it reads cheap. */}
             <p className="text-[#525257] text-[15px] leading-relaxed max-w-[400px]">
+              {isFr
+                ? 'Une secrétaire à mi-temps coûte environ 1 200 € par mois, charges comprises, et ne répond pas le samedi. Qwillio commence à 99 €.'
+                : 'A part-time receptionist costs around €1,200 a month all in, and does not answer on Saturday. Qwillio starts at €99.'}
+            </p>
+            <p className="text-[#86868b] text-[13px] leading-relaxed max-w-[400px] mt-3">
               {isFr
                 ? '7 jours d’essai sur tous les plans. Carte requise, rien n’est débité avant la fin. Annulez en un clic.'
                 : '7-day trial on every plan. Card required, nothing charged until it ends. Cancel anytime.'}

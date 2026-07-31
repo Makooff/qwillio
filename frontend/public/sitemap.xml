@@ -296,6 +296,14 @@
     <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/coiffeur"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/coiffeur"/>
   </url>
+  <url>
+    <loc>https://qwillio.com/fiduciaire</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://qwillio.com/fiduciaire"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://qwillio.com/fiduciaire"/>
+  </url>
 
   <url>
     <loc>https://qwillio.com/ville/bruxelles</loc>
