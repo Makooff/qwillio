@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowUp, Mic, StopCircle, Square, Settings, Headphones,
-  Loader2, Bot, Copy, Check, PhoneCall, X, Lightbulb,
+  Loader2, Bot, Copy, Check, PhoneCall, X, Lightbulb, Paperclip,
 } from 'lucide-react';
 import api from '../../services/api';
 import VapiLiveCall from './VapiLiveCall';
@@ -134,7 +134,7 @@ function VoiceViz({ isFr, analyser }: { isFr: boolean; analyser: AnalyserNode | 
 export default function AssistantChat({
   isFr = true, onConfigChanged, initialMode = 'config', lockMode = false, onCompleted,
   businessName, planLabel, isTrial = false, phone, quota, showHeader = true,
-  setupComplete = true,
+  setupComplete = true, onItemsExtracted,
 }: {
   isFr?: boolean;
   onConfigChanged?: () => void;
@@ -163,6 +163,11 @@ export default function AssistantChat({
    * guided path by accident.
    */
   setupComplete?: boolean;
+  /**
+   * Receives the price lines read out of a photo, once the user has confirmed
+   * them. Nothing is written to the configuration without that confirmation.
+   */
+  onItemsExtracted?: (items: { category: string; name: string; price: string }[]) => void;
 }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: greetingFor(initialMode, isFr) }]);
@@ -177,6 +182,12 @@ export default function AssistantChat({
   const [showIntro, setShowIntro] = useState(() => {
     try { return localStorage.getItem('qw.chatIntroSeen') !== '1'; } catch { return false; }
   });
+  const [extracting, setExtracting] = useState(false);
+  // Held until confirmed. Writing a customer's price list straight from an OCR
+  // pass nobody has read is exactly the kind of silent change to avoid.
+  const [pendingItems, setPendingItems] = useState<{ category: string; name: string; price: string }[] | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
   const dismissIntro = () => {
     setShowIntro(false);
     try { localStorage.setItem('qw.chatIntroSeen', '1'); } catch { /* it reappears next time, harmless */ }
@@ -339,6 +350,56 @@ export default function AssistantChat({
       }
     } finally {
       setTranscribing(false);
+    }
+  };
+
+  /** Read a price list out of a photo, then show it for confirmation. */
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      notify('Envoyez une photo (JPEG, PNG ou HEIC).', 'Please send a photo (JPEG, PNG or HEIC).');
+      return;
+    }
+    setExtracting(true);
+    try {
+      const image = await blobToBase64(file);
+      const { data } = await api.post('/my-dashboard/assistant/extract-items', {
+        image,
+        mimeType: file.type,
+      });
+      const items: { category: string; name: string; price: string }[] = data?.items || [];
+      if (!items.length) {
+        notify("Je n'ai trouvé aucun tarif sur cette image. Essayez une photo plus nette, ou cadrée sur la grille de prix.",
+               'I found no prices in that image. Try a sharper photo, or one framed on the price list.');
+        return;
+      }
+      // Shown, not written. A customer's configuration is not something to
+      // modify on the strength of an OCR pass nobody has looked at.
+      const preview = items.slice(0, 30).map(i => `· ${i.name}${i.price ? ` — ${i.price}` : ''}`).join('\n');
+      setPendingItems(items);
+      setMessages(m => [...m, { role: 'assistant', content: isFr
+        ? `J'ai lu ${items.length} ligne${items.length > 1 ? 's' : ''} :\n\n${preview}${items.length > 30 ? `\n\n…et ${items.length - 30} de plus.` : ''}\n\nJe les ajoute à votre base de connaissances ?`
+        : `I read ${items.length} line${items.length > 1 ? 's' : ''}:\n\n${preview}${items.length > 30 ? `\n\n…and ${items.length - 30} more.` : ''}\n\nShall I add them to your knowledge base?` }]);
+    } catch (err: any) {
+      const code = err?.response?.data?.error;
+      notify(
+        code === 'extraction_unavailable'
+          ? "La lecture d'image n'est pas configurée sur ce compte."
+          : code === 'image_too_large'
+            ? 'Image trop lourde. Réduisez-la avant de renvoyer.'
+            : code === 'extraction_rate_limited'
+              ? 'Trop d’envois d’un coup. Réessayez dans une minute.'
+              : "La lecture de l'image a échoué. Réessayez.",
+        code === 'extraction_unavailable'
+          ? 'Image reading is not configured on this account.'
+          : code === 'image_too_large'
+            ? 'Image too large. Shrink it and try again.'
+            : code === 'extraction_rate_limited'
+              ? 'Too many uploads at once. Try again in a minute.'
+              : 'Reading the image failed. Please try again.',
+      );
+    } finally {
+      setExtracting(false);
+      if (fileRef.current) fileRef.current.value = '';
     }
   };
 
@@ -617,6 +678,45 @@ export default function AssistantChat({
         )}
       </div>
 
+      {/* Confirmation before anything is written to the configuration. */}
+      {pendingItems && (
+        <div className="px-3 pb-1">
+          <div className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5"
+               style={{ borderColor: 'rgba(122,95,255,0.35)', background: 'rgba(122,95,255,0.08)' }}>
+            <span className="text-[12.5px] text-[#E5E5EA]">
+              {isFr ? `${pendingItems.length} ligne${pendingItems.length > 1 ? 's' : ''} à ajouter` : `${pendingItems.length} line${pendingItems.length > 1 ? 's' : ''} to add`}
+            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingItems(null);
+                  setMessages(m => [...m, { role: 'assistant', content: isFr ? "D'accord, je n'ajoute rien." : 'Fine, nothing added.' }]);
+                }}
+                className="h-8 px-3 rounded-lg text-[12px] font-medium text-[#9A9AA5] transition-colors hover:bg-white/[0.06] hover:text-[#E5E5EA] active:scale-[0.97]"
+              >
+                {isFr ? 'Annuler' : 'Discard'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onItemsExtracted?.(pendingItems);
+                  const n = pendingItems.length;
+                  setPendingItems(null);
+                  setMessages(m => [...m, { role: 'assistant', content: isFr
+                    ? `${n} ligne${n > 1 ? 's ajoutées' : ' ajoutée'}. Vérifiez-les dans Base de connaissances, elles sont modifiables.`
+                    : `${n} line${n > 1 ? 's added' : ' added'}. Check them under Knowledge base, they stay editable.` }]);
+                }}
+                className="h-8 px-3 rounded-lg text-[12px] font-semibold transition-colors active:scale-[0.97]"
+                style={{ background: '#7A5FFF', color: '#fff' }}
+              >
+                {isFr ? 'Ajouter' : 'Add'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Input box (redesigned) */}
       <div className="p-3">
         <div
@@ -690,6 +790,32 @@ export default function AssistantChat({
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Hand over a price list you already have, instead of retyping
+                  thirty rows. Hidden in call-test mode, where it means nothing. */}
+              {!listening && mode !== 'receptionist' && (
+                <>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) void handleFile(f);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={extracting}
+                    aria-label={isFr ? 'Envoyer une photo de vos tarifs' : 'Send a photo of your prices'}
+                    className="h-9 w-9 rounded-full grid place-items-center text-[#9CA3AF] transition-colors hover:bg-white/[0.06] hover:text-[#E5E5EA] disabled:opacity-40 active:scale-[0.97]"
+                  >
+                    {extracting ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+                  </button>
+                </>
+              )}
+
               {/* Dictation language. Separate from the agent's caller-facing
                   language on purpose: you may configure an English agent while
                   speaking French. */}

@@ -300,6 +300,12 @@ export default function ClientReceptionist() {
         /* Setup counts as done once the agent knows who it answers for and
            when. Those two are what every other answer depends on. */
         setupComplete={!!(businessName && businessType && weekHours)}
+        /* Confirmed price lines land in the same knowledge base the form
+           edits, so they stay reviewable and editable afterwards. */
+        onItemsExtracted={(rows) => setItems(prev => [
+          ...prev,
+          ...rows.map(r => ({ id: newId(), category: r.category, name: r.name, price: r.price })),
+        ])}
       />
 
       {/* Bande d'état. Le numéro, le plan et la jauge de minutes sont
