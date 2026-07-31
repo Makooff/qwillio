@@ -21,6 +21,158 @@ export interface ComparisonPage {
 
 export const COMPARISON_PAGES: ComparisonPage[] = [
   {
+    slug: 'sylen',
+    competitor: 'Sylen AI',
+    title: {
+      en: 'Qwillio vs Sylen AI',
+      fr: 'Qwillio ou Sylen AI',
+    },
+    subtitle: {
+      en: 'Two French-market AI receptionists. Sylen is cheaper; the question is what you give up.',
+      fr: 'Deux réceptionnistes IA sur le marché français. Sylen est moins cher, la question est ce que vous perdez.',
+    },
+    updated: '2026-07',
+    content: {
+      fr: [
+        { type: 'p', text: "Sylen AI est un standard téléphonique IA français, positionné sur les TPE, avec une entrée de gamme autour de 49 €/mois et un haut de gamme vers 199 €. C'est aujourd'hui l'offre la moins chère du marché français, et si votre besoin est de décrocher en français et rien d'autre, elle le couvre." },
+        { type: 'p', text: "Qwillio démarre à 99 €/mois. Il faut donc dire les choses simplement : sur le seul prix du décrochage, Sylen gagne. Ce qui suit est ce que cet écart achète, pour que vous décidiez si ça vaut la différence chez vous." },
+        { type: 'h2', text: 'Ce qui les sépare vraiment' },
+        {
+          type: 'table',
+          head: ['', 'Qwillio', 'Sylen AI'],
+          rows: [
+            ['Entrée de gamme', '99 €/mois (250 min)', '~49 €/mois'],
+            ['Français', 'Oui', 'Oui'],
+            ['Anglais sur le même appel', 'Oui', 'Non'],
+            ['Hébergement', 'Union européenne', 'À vérifier auprès d\'eux'],
+            ['CRM inclus', 'Oui, natif', 'Non'],
+            ['Prise de rendez-vous agenda', 'Incluse', 'Selon formule'],
+            ['Facturation', 'À la minute, minutes incluses', 'Par formule'],
+            ['Essai', '7 jours, carte à l\'inscription', 'Voir leur site'],
+          ],
+        },
+        { type: 'h2', text: 'Quand Sylen est le bon choix' },
+        { type: 'p', text: "Si votre clientèle est exclusivement francophone, que vous n'avez pas besoin de CRM, et que le budget est le premier critère, prenez Sylen. Payer 50 € de plus par mois pour du bilingue dont vous ne vous servirez pas n'a aucun sens." },
+        { type: 'h2', text: 'Quand l\'écart se justifie' },
+        { type: 'ul', items: [
+          "Vous êtes en Belgique, ou vous avez des clients anglophones : le bilingue sur un même appel n'est pas une option chez Sylen.",
+          "Vous traitez des données sensibles et devez prouver où elles sont hébergées.",
+          "Vous voulez que l'appel finisse dans un CRM plutôt que dans un email.",
+        ] },
+        {
+          type: 'verdict',
+          tone: 'neutral',
+          title: 'Comparez sur votre besoin, pas sur le prix affiché',
+          text: "Sylen est moins cher et l'assume. Si le français seul vous suffit, c'est un choix rationnel. Testez les deux sur vos vrais appels pendant une semaine : c'est la seule comparaison qui tranche.",
+        },
+      ],
+      en: [
+        { type: 'p', text: 'Sylen AI is a French AI phone receptionist aimed at small businesses, entry tier around €49/month and top tier near €199. It is currently the cheapest sticker in the French market, and if your need is to answer calls in French and nothing else, it covers that.' },
+        { type: 'p', text: 'Qwillio starts at €99/month. So let us be plain: on the price of answering alone, Sylen wins. What follows is what the gap buys, so you can decide whether it is worth it in your case.' },
+        { type: 'h2', text: 'What actually separates them' },
+        {
+          type: 'table',
+          head: ['', 'Qwillio', 'Sylen AI'],
+          rows: [
+            ['Entry price', '€99/month (250 min)', '~€49/month'],
+            ['French', 'Yes', 'Yes'],
+            ['English on the same call', 'Yes', 'No'],
+            ['Hosting', 'European Union', 'Check with them'],
+            ['CRM included', 'Yes, native', 'No'],
+            ['Calendar booking', 'Included', 'Depends on tier'],
+            ['Billing', 'Per minute, minutes included', 'Per tier'],
+            ['Trial', '7 days, card at signup', 'See their site'],
+          ],
+        },
+        { type: 'h2', text: 'When Sylen is the right call' },
+        { type: 'p', text: 'If your callers are exclusively French-speaking, you do not need a CRM, and budget is the first criterion, take Sylen. Paying €50 more a month for bilingual handling you will never use makes no sense.' },
+        { type: 'h2', text: 'When the gap is worth it' },
+        { type: 'ul', items: [
+          'You are in Belgium, or you have English-speaking customers: bilingual handling on one call is not on the table with Sylen.',
+          'You handle sensitive data and need to prove where it is hosted.',
+          'You want the call to land in a CRM rather than an inbox.',
+        ] },
+        {
+          type: 'verdict',
+          tone: 'neutral',
+          title: 'Compare on your need, not on the sticker',
+          text: 'Sylen is cheaper and owns it. If French-only covers you, that is a rational choice. Run both on your real calls for a week: that is the only comparison that settles it.',
+        },
+      ],
+    },
+  },
+  {
+    slug: 'nerolia',
+    competitor: 'Nerolia',
+    title: {
+      en: 'Qwillio vs Nerolia',
+      fr: 'Qwillio ou Nerolia',
+    },
+    subtitle: {
+      en: 'Both answer calls in French. The difference shows after the call.',
+      fr: 'Les deux décrochent en français. La différence se voit après l\'appel.',
+    },
+    updated: '2026-07',
+    content: {
+      fr: [
+        { type: 'p', text: "Nerolia propose un accueil téléphonique automatique par IA pour les PME françaises, à partir d'environ 80 €/mois. L'offre est sérieuse et bien documentée, avec beaucoup de contenu pédagogique sur leur site." },
+        { type: 'p', text: "Sur le décrochage lui-même, les deux produits font la même chose, et il faut le reconnaître : personne dans cette catégorie n'a d'avantage technologique, tout le monde s'appuie sur les mêmes briques vocales. La différence est ailleurs." },
+        { type: 'h2', text: 'Comparaison' },
+        {
+          type: 'table',
+          head: ['', 'Qwillio', 'Nerolia'],
+          rows: [
+            ['Entrée de gamme', '99 €/mois (250 min)', "à partir de ~80 €/mois"],
+            ['Français', 'Oui', 'Oui'],
+            ['Anglais sur le même appel', 'Oui', 'Non mis en avant'],
+            ['Hébergement UE', 'Oui', 'À vérifier auprès d\'eux'],
+            ['CRM natif', 'Inclus', 'À vérifier'],
+            ['Facturation', 'À la minute', 'Par formule'],
+            ['Suivi après appel', 'Relances et séquences intégrées', 'À vérifier'],
+          ],
+        },
+        { type: 'h2', text: 'Ce qui se passe après l\'appel' },
+        { type: 'p', text: "Un appel décroché n'est pas un client gagné. Chez Qwillio, l'appel produit une fiche, un score, et une relance si le devis reste sans réponse. C'est là que se joue la différence de résultat, davantage que sur la qualité de la voix." },
+        { type: 'h2', text: 'Bilingue, si vous êtes en Belgique' },
+        { type: 'p', text: "Nerolia cible la France. En Belgique, où une part des appels arrive en néerlandais ou en anglais, le bilingue sur un même appel change la nature du service." },
+        {
+          type: 'verdict',
+          tone: 'neutral',
+          title: 'Deux offres proches, testez-les côte à côte',
+          text: "Sur le décrochage, l'écart est faible et nous ne prétendrons pas le contraire. Regardez ce qui se passe après l'appel, et si vous avez besoin du bilingue. Puis faites tourner les deux une semaine sur vos vrais appels.",
+        },
+      ],
+      en: [
+        { type: 'p', text: 'Nerolia offers automated AI phone answering for French SMBs, from around €80/month. It is a serious product with a lot of well-written educational content on their site.' },
+        { type: 'p', text: 'On answering itself the two products do the same thing, and it is worth saying plainly: nobody in this category has a technology advantage, everyone builds on the same voice stack. The difference is elsewhere.' },
+        { type: 'h2', text: 'Comparison' },
+        {
+          type: 'table',
+          head: ['', 'Qwillio', 'Nerolia'],
+          rows: [
+            ['Entry price', '€99/month (250 min)', 'from ~€80/month'],
+            ['French', 'Yes', 'Yes'],
+            ['English on the same call', 'Yes', 'Not advertised'],
+            ['EU hosting', 'Yes', 'Check with them'],
+            ['Native CRM', 'Included', 'Check'],
+            ['Billing', 'Per minute', 'Per tier'],
+            ['After-call follow-up', 'Built-in sequences', 'Check'],
+          ],
+        },
+        { type: 'h2', text: 'What happens after the call' },
+        { type: 'p', text: 'An answered call is not a won customer. With Qwillio the call produces a record, a score, and a follow-up if the quote goes quiet. That is where the difference in outcome sits, more than in voice quality.' },
+        { type: 'h2', text: 'Bilingual, if you are in Belgium' },
+        { type: 'p', text: 'Nerolia targets France. In Belgium, where a share of calls arrives in Dutch or English, bilingual handling on one call changes what the service is.' },
+        {
+          type: 'verdict',
+          tone: 'neutral',
+          title: 'Two close products, run them side by side',
+          text: 'On answering, the gap is small and we will not pretend otherwise. Look at what happens after the call, and whether you need bilingual handling. Then run both for a week on your real calls.',
+        },
+      ],
+    },
+  },
+  {
     slug: 'smith-ai',
     competitor: 'Smith.ai',
     title: {
