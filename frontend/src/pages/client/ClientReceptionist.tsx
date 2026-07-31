@@ -297,6 +297,9 @@ export default function ClientReceptionist() {
         isTrial={!!client.isTrial}
         phone={phone}
         quota={{ used, total: quota }}
+        /* Setup counts as done once the agent knows who it answers for and
+           when. Those two are what every other answer depends on. */
+        setupComplete={!!(businessName && businessType && weekHours)}
       />
 
       {/* Bande d'état. Le numéro, le plan et la jauge de minutes sont
