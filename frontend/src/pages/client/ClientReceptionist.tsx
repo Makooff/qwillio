@@ -60,20 +60,49 @@ const PERSONALITY_PRESETS: { v: string; l: string; d: string }[] = [
   { v: 'caring',       l: 'Bienveillant', d: 'Doux, rassurant, idéal pour santé / médical' },
 ];
 
-function Section({ title, icon: Icon, children, defaultOpen = true }: {
-  title: string; icon: React.ElementType; color?: string; children: React.ReactNode; defaultOpen?: boolean;
+/**
+ * One section, on the vocabulary of the account settings page: a 58px row with
+ * a 32px icon tile, a label, a hint, and a chevron.
+ *
+ * They open one at a time rather than all at once. Sub-pages were the other
+ * option, but the whole form shares one autosave effect, so routing would have
+ * meant either lifting every field or loading the settings once per page. An
+ * accordion gives the same "one thing at a time" reading without splitting
+ * state that has no reason to be split.
+ */
+function Section({ title, hint, icon: Icon, children, id, openId, setOpenId }: {
+  title: string;
+  hint?: string;
+  icon: React.ElementType;
+  color?: string;
+  children: React.ReactNode;
+  id: string;
+  openId: string | null;
+  setOpenId: (v: string | null) => void;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const open = openId === id;
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
-      <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2.5 px-5 py-4 text-left hover:bg-white/[0.02] transition-colors">
-        {open ? <ChevronDown className="w-3.5 h-3.5 text-[#6B6B75]" /> : <ChevronRight className="w-3.5 h-3.5 text-[#6B6B75]" />}
-        <Icon size={15} className="text-[#9A9AA5]" />
-        <span className="text-[13px] font-semibold text-[#F2F2F2]">{title}</span>
+      className="rounded-2xl border overflow-hidden"
+      style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
+      <button
+        type="button"
+        onClick={() => setOpenId(open ? null : id)}
+        aria-expanded={open}
+        className="w-full flex items-center gap-3.5 px-4 h-[58px] text-left group transition-colors hover:bg-white/[0.02]">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+             style={{ background: 'rgba(255,255,255,0.05)' }}>
+          <Icon size={14} className="text-[#F5F5F7]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-medium text-[#F5F5F7] truncate">{title}</p>
+          {hint && <p className="text-[11.5px] text-[#6B6B75] truncate">{hint}</p>}
+        </div>
+        {open
+          ? <ChevronDown size={14} className="text-[#6B6B75] flex-shrink-0" />
+          : <ChevronRight size={14} className="text-[#6B6B75] opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0" />}
       </button>
-      {open && <div className="px-5 pb-5 pt-0">{children}</div>}
+      {open && <div className="px-4 pb-5 pt-1 border-t border-white/[0.05]">{children}</div>}
     </motion.div>
   );
 }
@@ -118,6 +147,16 @@ export default function ClientReceptionist() {
   const [personalityNotes, setPersonalityNotes] = useState('');
   const [characterId, setCharacterId] = useState<string>('marie');
   const [characters, setCharacters] = useState<Character[]>([]);
+  // One section open at a time, remembered so a reload lands where you were.
+  const [openId, setOpenId] = useState<string | null>(() => {
+    try { return localStorage.getItem('qw.receptionistSection') || 'identite'; } catch { return 'identite'; }
+  });
+  useEffect(() => {
+    try {
+      if (openId) localStorage.setItem('qw.receptionistSection', openId);
+      else localStorage.removeItem('qw.receptionistSection');
+    } catch { /* nothing worth breaking the page over */ }
+  }, [openId]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -339,7 +378,7 @@ export default function ClientReceptionist() {
       </div>
 
       {/* —— Agent identity —— */}
-      <Section title="Identité de l'agent" icon={Bot} color="#7349fe">
+      <Section title="Identité de l'agent" hint="Nom, langue, voix et caractère" id="identite" openId={openId} setOpenId={setOpenId} icon={Bot}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Nom de l'agent</label>
@@ -440,7 +479,7 @@ export default function ClientReceptionist() {
       </Section>
 
       {/* —— Connaissances IA — items list + week schedule —— */}
-      <Section title="Base de connaissances" icon={BookOpen} color="#7349fe" defaultOpen={false}>
+      <Section title="Base de connaissances" hint="Services, tarifs, horaires et FAQ" id="connaissances" openId={openId} setOpenId={setOpenId} icon={BookOpen}>
         <p className="text-[12px] text-[#9A9AA5] mb-5 leading-relaxed">
           Ce que l'IA doit savoir pour répondre aux appelants : services, menu,
           tarifs, horaires, FAQ. Plus c'est précis, plus elle sera précise.
@@ -564,7 +603,7 @@ export default function ClientReceptionist() {
 
       {/* —— Transfert d'appel —— */}
       <div id="transfer" style={{ scrollMarginTop: 80 }}>
-      <Section title="Transfert d'appel" icon={PhoneForwarded} color="#3B82F6">
+      <Section title="Transfert d'appel" hint="Vers qui basculer, et quand" id="transfert" openId={openId} setOpenId={setOpenId} icon={PhoneForwarded}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Numéro de transfert</label>
@@ -594,7 +633,7 @@ export default function ClientReceptionist() {
       </div>
 
       {/* —— Contact & adresse —— */}
-      <Section title="Coordonnées" icon={MapPin} color="#F59E0B" defaultOpen={false}>
+      <Section title="Coordonnées" hint="Adresse et téléphone de contact" id="coordonnees" openId={openId} setOpenId={setOpenId} icon={MapPin}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Téléphone de contact</label>
@@ -625,7 +664,7 @@ export default function ClientReceptionist() {
       </Section>
 
       {/* —— Intégrations —— */}
-      <Section title="Intégrations" icon={Calendar} color="#7349fe" defaultOpen={false}>
+      <Section title="Intégrations" hint="Agenda et outils connectés" id="integrations" openId={openId} setOpenId={setOpenId} icon={Calendar}>
         <div className="space-y-3">
           {/* Google Calendar — real OAuth connect */}
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
@@ -714,7 +753,7 @@ export default function ClientReceptionist() {
       </Section>
 
       {/* —— Subscription info —— */}
-      <Section title="Abonnement" icon={Shield} color="#22C55E" defaultOpen={false}>
+      <Section title="Abonnement" hint="Plan, minutes et facturation" id="abonnement" openId={openId} setOpenId={setOpenId} icon={Shield}>
         <Row l="Plan" v={planName} c="#7349fe" />
         <Row l="Statut" v={
           status === 'active' ? 'Actif' : status === 'trialing' ? 'Essai' : status === 'paused' ? 'En pause' : status === 'cancelled' ? 'Annulé' : status
