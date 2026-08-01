@@ -37,6 +37,14 @@ export interface IntentDecision {
   reply: string;
   /** Why the router decided this — logged for tuning, never spoken. */
   reason: string;
+  /**
+   * The utterance carries explicit business intent (booking, pricing, a
+   * complaint). Consumers use this to decide which model tier a turn deserves —
+   * the router itself stays model-agnostic.
+   */
+  businessIntent: boolean;
+  /** Length of the normalised utterance, for the same tiering decision. */
+  wordCount: number;
 }
 
 /**
@@ -139,21 +147,23 @@ export function routeIntent(
   const utterance = normalizeUtterance(raw);
   const turnIndex = opts.turnIndex ?? 0;
 
+  const words = utterance ? utterance.split(' ') : [];
+  const businessIntent = ESCALATE_MARKERS.test(utterance);
+  const base = { businessIntent, wordCount: words.length };
+
   if (!utterance) {
-    return { kind: 'noise', handledLocally: true, reply: '', reason: 'empty transcript' };
+    return { kind: 'noise', handledLocally: true, reply: '', reason: 'empty transcript', ...base };
   }
 
   // Any business marker wins over every short-circuit below.
-  if (ESCALATE_MARKERS.test(utterance)) {
-    return { kind: 'reasoning', handledLocally: false, reply: '', reason: 'business marker present' };
+  if (businessIntent) {
+    return { kind: 'reasoning', handledLocally: false, reply: '', reason: 'business marker present', ...base };
   }
-
-  const words = utterance.split(' ');
 
   // Long utterances are never small talk. The threshold is low on purpose:
   // beyond ~5 words a caller is making a request, not acknowledging.
   if (words.length > 5) {
-    return { kind: 'reasoning', handledLocally: false, reply: '', reason: 'utterance too long for a canned reply' };
+    return { kind: 'reasoning', handledLocally: false, reply: '', reason: 'utterance too long for a canned reply', ...base };
   }
 
   if (matches(REPEAT_REQUEST[lang], utterance)) {
@@ -165,6 +175,7 @@ export function routeIntent(
       handledLocally: false,
       reply: pick(REPLIES[lang].repeat_request),
       reason: 'caller asked for a repeat — acknowledge locally, model restates',
+      ...base,
     };
   }
 
@@ -174,6 +185,7 @@ export function routeIntent(
       handledLocally: true,
       reply: pick(REPLIES[lang].farewell),
       reason: 'closing phrase',
+      ...base,
     };
   }
 
@@ -183,6 +195,7 @@ export function routeIntent(
       handledLocally: true,
       reply: pick(REPLIES[lang].presence_check),
       reason: 'opening greeting / line check',
+      ...base,
     };
   }
 
@@ -192,10 +205,11 @@ export function routeIntent(
       handledLocally: true,
       reply: pick(REPLIES[lang].backchannel),
       reason: 'acknowledgement only',
+      ...base,
     };
   }
 
-  return { kind: 'reasoning', handledLocally: false, reply: '', reason: 'no deterministic rule matched' };
+  return { kind: 'reasoning', handledLocally: false, reply: '', reason: 'no deterministic rule matched', ...base };
 }
 
 /**

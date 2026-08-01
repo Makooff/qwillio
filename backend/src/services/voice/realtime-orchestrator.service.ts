@@ -77,18 +77,34 @@ class RealtimeOrchestratorService {
       country: profile.country,
     });
 
+    // Custom-LLM moves the turn loop into this backend, which is what lets the
+    // intent router actually skip the model on a backchannel and route the rest
+    // to the cheapest model that can answer. Opt-in per client, because it also
+    // puts this service in the audio path of every turn.
+    const model = profile.customLlm
+      ? {
+          provider: 'custom-llm',
+          url: `${env.API_BASE_URL}/api/webhooks/vapi/llm/${clientId}`,
+          model: env.VAPI_MODEL,
+          temperature: 0.6,
+          maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
+          messages: [{ role: 'system', content: buildSystemPrompt(profile, caller) }],
+          tools: buildVoiceTools(profile),
+        }
+      : {
+          provider: 'openai',
+          model: env.VAPI_MODEL,
+          temperature: 0.6,
+          // Cap the completion: a receptionist turn that runs past ~60 tokens is
+          // a monologue, and long completions are the other half of TTS latency.
+          maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
+          messages: [{ role: 'system', content: buildSystemPrompt(profile, caller) }],
+          tools: buildVoiceTools(profile),
+        };
+
     const assistant = {
       name: `Receptionist - ${profile.businessName}`,
-      model: {
-        provider: 'openai',
-        model: env.VAPI_MODEL,
-        temperature: 0.6,
-        // Cap the completion: a receptionist turn that runs past ~60 tokens is
-        // a monologue, and long completions are the other half of TTS latency.
-        maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
-        messages: [{ role: 'system', content: buildSystemPrompt(profile, caller) }],
-        tools: buildVoiceTools(profile),
-      },
+      model,
       voice: buildVoice({
         voiceId: character.voiceId,
         stability: character.stability,

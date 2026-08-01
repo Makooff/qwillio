@@ -37,6 +37,18 @@ describe('buildVapiCallPayload', () => {
     expect(o.endCallFunctionEnabled).toBe(true);
     expect(o.endCallMessage).toBe('');
     expect(o.backgroundSound).toBe('office');
-    expect(o.interruptionsEnabled).toBe(true);
+  });
+
+  it('drives barge-in from the stop-speaking plan, not the legacy flags', () => {
+    const o = buildVapiCallPayload(input).assistantOverrides as Record<string, any>;
+    // Outbound calls now share the inbound receptionist's turn-taking tuning.
+    expect(o.stopSpeakingPlan.numWords).toBe(0);
+    expect(o.startSpeakingPlan.smartEndpointingEnabled).toBe(true);
+    expect(o.transcriber.provider).toBe('deepgram');
+    // The superseded trio must be gone: shipping both makes the behaviour
+    // ambiguous, and Vapi resolves the conflict in an undocumented order.
+    expect(o.interruptionsEnabled).toBeUndefined();
+    expect(o.numWordsToInterruptAssistant).toBeUndefined();
+    expect(o.responseDelaySeconds).toBeUndefined();
   });
 });

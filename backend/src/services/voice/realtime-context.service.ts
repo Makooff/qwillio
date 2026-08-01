@@ -48,6 +48,12 @@ export interface ClientVoiceProfile {
   characterId: string | null;
   /** Drives the Belgian French voice override. */
   country: string | null;
+  /**
+   * Opt-in to the custom-LLM path. Off by default: it puts this backend in the
+   * audio path of every turn, so it is enabled per client once their traffic
+   * justifies the deflection savings.
+   */
+  customLlm: boolean;
 }
 
 interface CacheEntry<T> {
@@ -206,6 +212,7 @@ class RealtimeContextService {
       planType: client.planType,
       characterId: typeof vapiConfig.characterId === 'string' ? vapiConfig.characterId : null,
       country: client.country,
+      customLlm: vapiConfig.customLlm === true || env.VOICE_CUSTOM_LLM_DEFAULT,
     };
 
     await this.set(key, profile, PROFILE_TTL_MS);

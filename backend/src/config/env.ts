@@ -75,6 +75,14 @@ export const env = {
   VOICE_TOOL_TIMEOUT_SECONDS: parseInt(process.env.VOICE_TOOL_TIMEOUT_SECONDS || '8', 10),
   /** Client profile cache TTL. Invalidated explicitly on config changes. */
   VOICE_CONTEXT_TTL_MS: parseInt(process.env.VOICE_CONTEXT_TTL_MS || '300000', 10),
+  /** Cheap tier for conversational turns that still need a model. */
+  VOICE_SMALL_MODEL: process.env.VOICE_SMALL_MODEL || 'gpt-4o-mini',
+  /**
+   * Turns the custom-LLM path on for every client at once. Off by default —
+   * it belongs on `Client.vapiConfig.customLlm` per tenant, and this switch
+   * exists for staging and for a global kill/enable.
+   */
+  VOICE_CUSTOM_LLM_DEFAULT: process.env.VOICE_CUSTOM_LLM_DEFAULT === 'true',
   /** Optional shared cache. Absent = per-process in-memory cache. */
   REDIS_URL: process.env.REDIS_URL || '',
 

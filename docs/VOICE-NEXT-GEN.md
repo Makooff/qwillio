@@ -97,7 +97,9 @@ protège.
 
 **Routeur d'intention** (`intent-router.ts`) : classification déterministe des
 tours sans contenu métier (acquiescements, vérifications de ligne, formules de
-politesse, salutation d'ouverture). Garde-fous :
+politesse, salutation d'ouverture). Il n'encaisse quoi que ce soit que sur le
+chemin custom-LLM décrit en section 4bis : sur le chemin OpenAI direct, Vapi
+possède la boucle de tour et le routeur ne fait que mesurer. Garde-fous :
 
 - tout marqueur métier (`rdv`, `dispo`, `annul`, `prix`, `book`, `cancel`…)
   force l'escalade vers le modèle, même sur un énoncé court ;
@@ -118,6 +120,35 @@ court-circuit erroné coûte un mauvais appel.
 - Voicemail et non-réponse : plus aucune analyse GPT sur transcript vide.
 
 ---
+
+## 4bis. Chemin custom-LLM (SSE)
+
+Sans lui, le routeur d'intention compte des économies qu'il n'encaisse pas :
+Vapi possède la boucle de tour, donc chaque énoncé part chez GPT-4o quoi qu'ait
+décidé le routeur.
+
+`POST /api/webhooks/vapi/llm/:clientId/chat/completions` est un endpoint
+compatible OpenAI en `text/event-stream`. Déclaré côté assistant en
+`model.provider: 'custom-llm'`, il déplace la boucle de tour chez nous :
+
+- **tour dévié** (backchannel, salutation, formule de clôture) : réponse émise
+  depuis la mémoire, aucun appel modèle. Économie réelle d'environ 1 500 tokens
+  d'entrée par tour, et la latence passe d'un aller-retour OpenAI à moins d'une
+  milliseconde ;
+- **tour conversationnel court** non reconnu : routé vers `VOICE_SMALL_MODEL` ;
+- **intention métier, résultat d'outil à énoncer, ou énoncé de plus de 5 mots** :
+  GPT-4o. Le modèle cher est mérité, jamais par défaut.
+
+Les deltas d'OpenAI sont relayés octet par octet, donc le premier token part
+aussi vite qu'en direct. Trois modes de défaillance couverts : erreur HTTP,
+flux fermé sans token, exception réseau. Tous parlent une phrase naturelle,
+jamais un message technique.
+
+**Le compromis, explicitement** : ce service se met dans le chemin audio de
+chaque tour. Un cold start Render devient un silence en ligne. D'où le flag
+par client `Client.vapiConfig.customLlm`, désactivé par défaut, plus un
+interrupteur global `VOICE_CUSTOM_LLM_DEFAULT` pour le staging. À n'activer
+qu'une fois le service tenu chaud.
 
 ## 5. Function calling et meublage
 
@@ -179,20 +210,25 @@ par le modèle, pour empêcher un accès cross-tenant.
 
 ```
 tsc --noEmit          0 erreur
-vitest run            216 tests, 25 fichiers, 100 % passants
-eslint src/services/voice src/controllers/voice-webhook.controller.ts   propre
+vitest run            230 tests, 26 fichiers, 100 % passants
+eslint (fichiers touchés)   0 erreur
 ```
 
-71 tests ajoutés, dont 14 tests de routes qui montent le routeur Express avec
+85 tests ajoutés, dont 14 tests de routes qui montent le routeur Express avec
 orchestrateur simulé et vérifient : réponse inline sur `assistant-request` et
 sur les outils, acquittement avant travail sur `status-update`, absence
 d'écriture DB sur `transcript`, 200 avec résultats vides sur échec d'outil,
 saut de l'analyse sur voicemail, et échec fermé de l'authentification.
 
-Ces tests ont attrapé un vrai bug pendant l'implémentation : le filtre
-« hot-path » comparait l'étiquette préfixée `client_transcript` au lieu du type
-brut `transcript`, ce qui laissait passer une écriture `webhookLog` par
-transcript.
+Les tests ont attrapé deux vrais bugs pendant l'implémentation :
+
+1. le filtre « hot-path » comparait l'étiquette préfixée `client_transcript` au
+   lieu du type brut `transcript`, ce qui laissait passer une écriture
+   `webhookLog` par transcript ;
+2. la politique de tiering se basait sur `kind === 'reasoning'`, valeur que
+   prend *tout* énoncé non reconnu — le modèle bon marché n'aurait donc jamais
+   été utilisé. Le routeur expose maintenant `businessIntent` et `wordCount`, et
+   reste agnostique des modèles.
 
 Aucune régression : authentification, schéma Prisma, migrations et flux Stripe
 n'ont pas été touchés.
@@ -211,6 +247,21 @@ mesuré. À valider en conditions réelles :
    fond ; trop haut, l'interruption redevient molle.
 3. Le `waitFunction` LiveKit n'a de modèle qu'en anglais ; le français retombe
    sur l'endpointing intégré de Vapi, d'où un plancher d'attente non nul.
+4. Le chemin custom-LLM ajoute un saut réseau vers ce backend sur chaque tour
+   proxifié. Sur une instance chaude c'est quelques millisecondes ; sur un cold
+   start Render c'est un silence audible. À mesurer avant d'activer le flag sur
+   un client réel.
+
+Ce qui reste explicitement **non fait** : aucun transport audio propre (Twilio
+Media Streams en WebSocket). Le transport reste chez Vapi. Le construire
+signifierait reprendre VAD, buffering et jitter, et perdre l'AMD, le fallback
+voix et les plans de parole — pour un gain proche de zéro, le transport n'étant
+pas le goulot.
+
+Également non fait : `captureLead` n'écrit que dans
+`ClientCall.metadata.realtime`, pas dans un enregistrement de lead ou un CRM
+dédié. Suffisant pour la restitution en fin d'appel, insuffisant si le lead doit
+déclencher une séquence de relance.
 
 La métrique `medianTurnLatencyMs`, persistée dans `ClientCall.metadata.realtime`
 avec le nombre de barge-ins et de tours déviés, sert précisément à ce réglage
