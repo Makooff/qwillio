@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowUp, Mic, StopCircle, Square, Settings, Headphones,
-  Loader2, Bot, Copy, Check, PhoneCall, X, Lightbulb, Paperclip,
+  ArrowUp, Mic, Square, AudioLines, Plus,
+  Loader2, Bot, Copy, Check, PhoneCall, X, Lightbulb,
 } from 'lucide-react';
 import api from '../../services/api';
 import VapiLiveCall from './VapiLiveCall';
@@ -14,19 +14,14 @@ type Mode = 'config' | 'onboarding' | 'receptionist';
 interface Msg { role: 'user' | 'assistant'; content: string }
 
 /**
- * What the user picks from. Config and onboarding were two buttons for the same
- * intent, "help me set this up", and the difference between them is something
- * the app already knows: whether the setup is done. So it decides, and the
- * user has one choice fewer to make.
+ * The composer used to carry a mode switch — "Assistant" vs "Call test".
+ * It was a second door to a room that already has one: the live-call card sits
+ * directly above this chat and starts a REAL call with the receptionist. A
+ * typed roleplay of a phone agent was never as good as phoning it, so the
+ * switch only ever offered a worse version of something one tap away.
+ *
+ * The chat is now one thing: the setup assistant.
  */
-type Pill = 'assistant' | 'receptionist';
-
-const PILLS: { id: Pill; label: string; labelEn: string; icon: typeof Settings; color: string }[] = [
-  { id: 'assistant',    label: 'Assistant',      labelEn: 'Assistant', icon: Settings,   color: '#7A5FFF' },
-  { id: 'receptionist', label: 'Test d’appel',   labelEn: 'Call test', icon: Headphones, color: '#14b8a6' },
-];
-
-const pillOf = (m: Mode): Pill => (m === 'receptionist' ? 'receptionist' : 'assistant');
 
 function greetingFor(mode: Mode, isFr: boolean): string {
   if (mode === 'onboarding') {
@@ -125,11 +120,15 @@ function VoiceViz({ isFr, analyser }: { isFr: boolean; analyser: AnalyserNode | 
 }
 
 /**
- * Conversational assistant, two things the user can pick from:
- *  - Assistant: set the receptionist up by talking. Guided when nothing is
- *    configured yet, free-form once it is; the app decides which, not the user.
- *  - Call test: roleplay, the AI answers as your receptionist would.
- * Typing or dictation, with server-side transcription.
+ * The setup assistant: configure the receptionist by talking to it.
+ *
+ * Guided when nothing is configured yet, free-form once it is — the app decides
+ * which from `setupComplete`, so that is one choice the user never makes.
+ *
+ * Three ways in, all landing on the same assistant: type, dictate into the
+ * field, or open a spoken session with the voice button. Testing the
+ * receptionist is NOT one of them: that is a real call, and it has its own card
+ * above this panel.
  */
 export default function AssistantChat({
   isFr = true, onConfigChanged, initialMode = 'config', lockMode = false, onCompleted,
@@ -140,7 +139,7 @@ export default function AssistantChat({
   onConfigChanged?: () => void;
   /** Mode to open in. Defaults to config, the dashboard's use. */
   initialMode?: Mode;
-  /** Hides the mode pills, for first-time setup where switching makes no sense. */
+  /** Hides the intro card, for first-time setup where it would repeat the page. */
   lockMode?: boolean;
   /** Onboarding mode: the assistant considers first-time setup finished. */
   onCompleted?: () => void;
@@ -201,6 +200,8 @@ export default function AssistantChat({
    * speaks French to configure an English-speaking agent. Defaults to French
    * and is remembered per browser.
    */
+  /** Spoken configuration session, opened from the composer's voice button. */
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [dictationLang, setDictationLang] = useState<'fr' | 'en'>(() => {
     if (typeof localStorage === 'undefined') return 'fr';
     return localStorage.getItem('qw.dictationLang') === 'en' ? 'en' : 'fr';
@@ -243,19 +244,6 @@ export default function AssistantChat({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, sending, listening]);
-
-  /**
-   * The pill picks an intent; the backend mode follows from whether setup is
-   * done. Choosing between "config" and "onboarding" was a decision the app
-   * could already make, so it makes it.
-   */
-  const switchPill = (p: Pill) => {
-    const next: Mode = p === 'receptionist' ? 'receptionist' : setupComplete ? 'config' : 'onboarding';
-    if (next === mode) return;
-    setMode(next);
-    setMessages([{ role: 'assistant', content: greetingFor(next, isFr) }]);
-    setInput('');
-  };
 
   const copyPhone = () => {
     if (!phone) return;
@@ -488,8 +476,19 @@ export default function AssistantChat({
   };
 
   const hasContent = input.trim() !== '';
-  const activePill = pillOf(mode);
-  const activeColor = PILLS.find(p => p.id === activePill)!.color;
+
+  /**
+   * Open a spoken conversation with the SETUP assistant.
+   *
+   * Not the receptionist: that one is one tap above, in its own card, and it
+   * answers callers. This one changes settings, and it runs on the same voice
+   * stack so configuring the agent never feels worse than the agent itself.
+   */
+  const startVoiceSession = () => {
+    setVoiceOpen(true);
+  };
+  /** Brand violet — the setup assistant is the only identity this chat has now. */
+  const activeColor = '#7A5FFF';
 
   return (
     // Height follows the viewport: the header now carries identity, number and
@@ -717,8 +716,39 @@ export default function AssistantChat({
         </div>
       )}
 
+      {voiceOpen && (
+        <div className="p-3">
+          <div className="rounded-3xl border border-white/10 bg-[#111114] p-3">
+            <div className="flex items-center justify-between pb-2">
+              <span className="text-[12px] font-medium text-[#9CA3AF]">
+                {isFr ? 'Configuration \u00e0 la voix' : 'Voice setup'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setVoiceOpen(false)}
+                aria-label={isFr ? 'Fermer' : 'Close'}
+                className="h-8 w-8 rounded-full grid place-items-center text-[#9CA3AF] transition-colors hover:bg-white/[0.06] hover:text-[#E5E5EA] active:scale-[0.97]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <VapiLiveCall
+              isFr={isFr}
+              endpoint="/my-dashboard/assistant/voice-config"
+              autoStart
+              onEnded={() => {
+                setVoiceOpen(false);
+                // Settings may have changed during the spoken session; let the
+                // page reload them rather than showing a stale summary.
+                onConfigChanged?.();
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Input box (redesigned) */}
-      <div className="p-3">
+      <div className={cn('p-3', voiceOpen && 'hidden')}>
         <div
           className={cn('rounded-3xl border bg-[#111114] p-2 transition-colors')}
           style={{ borderColor: listening ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.10)' }}
@@ -747,52 +777,16 @@ export default function AssistantChat({
             />
           )}
 
-          {/* Actions row: mode pills + mic/send */}
+          {/* Actions row.
+              Layout follows the pattern every phone user already knows from
+              their assistant app: attachments on the left, one primary button
+              on the right whose meaning follows what you have typed. Empty
+              field means voice, text means send. Nothing else moves. */}
           <div className="flex items-center justify-between gap-2 pt-1">
-            <div className={cn('flex items-center gap-1', listening && 'opacity-0 invisible')}>
-              {(lockMode ? [] : PILLS).map(m => {
-                const active = activePill === m.id;
-                const Icon = m.icon;
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => switchPill(m.id)}
-                    aria-pressed={active}
-                    className="rounded-full transition-all flex items-center gap-1 px-2 py-1 border h-8"
-                    style={active
-                      ? { background: `${m.color}26`, borderColor: m.color, color: m.color }
-                      : { background: 'transparent', borderColor: 'transparent', color: '#9CA3AF' }}
-                  >
-                    <motion.span
-                      className="grid place-items-center"
-                      animate={{ scale: active ? 1.1 : 1 }}
-                      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-                    >
-                      <Icon size={15} />
-                    </motion.span>
-                    <AnimatePresence>
-                      {active && (
-                        <motion.span
-                          initial={{ width: 0, opacity: 0 }}
-                          animate={{ width: 'auto', opacity: 1 }}
-                          exit={{ width: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="text-[11px] overflow-hidden whitespace-nowrap font-medium"
-                        >
-                          {isFr ? m.label : m.labelEn}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1">
               {/* Hand over a price list you already have, instead of retyping
-                  thirty rows. Hidden in call-test mode, where it means nothing. */}
-              {!listening && mode !== 'receptionist' && (
+                  thirty rows. */}
+              {!listening && (
                 <>
                   <input
                     ref={fileRef}
@@ -811,11 +805,25 @@ export default function AssistantChat({
                     aria-label={isFr ? 'Envoyer une photo de vos tarifs' : 'Send a photo of your prices'}
                     className="h-9 w-9 rounded-full grid place-items-center text-[#9CA3AF] transition-colors hover:bg-white/[0.06] hover:text-[#E5E5EA] disabled:opacity-40 active:scale-[0.97]"
                   >
-                    {extracting ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+                    {extracting ? <Loader2 size={16} className="animate-spin" /> : <Plus size={18} />}
                   </button>
                 </>
               )}
 
+              {/* Discard the take rather than transcribing it. */}
+              {listening && (
+                <button
+                  type="button"
+                  onClick={cancelRecording}
+                  aria-label={isFr ? 'Annuler l\u2019enregistrement' : 'Discard recording'}
+                  className="h-9 w-9 rounded-full grid place-items-center transition-colors text-[#9CA3AF] hover:text-[#E5E5EA] hover:bg-white/[0.06] active:scale-[0.97]"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 flex-shrink-0">
               {/* Dictation language. Separate from the agent's caller-facing
                   language on purpose: you may configure an English agent while
                   speaking French. */}
@@ -824,7 +832,7 @@ export default function AssistantChat({
                   type="button"
                   onClick={() => setDictationLang(l => (l === 'fr' ? 'en' : 'fr'))}
                   aria-label={isFr
-                    ? `Langue de dictée : ${dictationLang === 'fr' ? 'français' : 'anglais'}. Changer.`
+                    ? `Langue de dict\u00e9e : ${dictationLang === 'fr' ? 'fran\u00e7ais' : 'anglais'}. Changer.`
                     : `Dictation language: ${dictationLang === 'fr' ? 'French' : 'English'}. Change.`}
                   className="h-9 px-2.5 rounded-full text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF] hover:text-[#E5E5EA] hover:bg-white/[0.06] transition-colors active:scale-[0.97]"
                 >
@@ -832,40 +840,85 @@ export default function AssistantChat({
                 </button>
               )}
 
-              {/* Discard the take rather than transcribing it. */}
-              {listening && (
+              {/* Dictate into the field. Distinct from the voice button beside
+                  it: this one produces text you can still edit, that one opens
+                  a spoken conversation. */}
+              {!listening && micSupported && (
                 <button
                   type="button"
-                  onClick={cancelRecording}
-                  aria-label={isFr ? 'Annuler l’enregistrement' : 'Discard recording'}
-                  className="h-9 w-9 rounded-full grid place-items-center transition-colors text-[#9CA3AF] hover:text-[#E5E5EA] hover:bg-white/[0.06] active:scale-[0.97]"
+                  onClick={() => void startRecording()}
+                  aria-label={isFr ? 'Dicter' : 'Dictate'}
+                  className="h-9 w-9 rounded-full grid place-items-center text-[#9CA3AF] transition-colors hover:bg-white/[0.06] hover:text-[#E5E5EA] active:scale-[0.97]"
                 >
-                  <X size={16} />
+                  <Mic size={17} />
                 </button>
               )}
 
+              {/* Stop the take and transcribe it. */}
+              {listening && (
+                <button
+                  type="button"
+                  onClick={() => stopRecording()}
+                  aria-label={isFr ? 'Arr\u00eater et transcrire' : 'Stop and transcribe'}
+                  className="h-9 w-9 rounded-full grid place-items-center text-[#E5E5EA] transition-colors hover:bg-white/[0.06] active:scale-[0.97]"
+                >
+                  <Square size={15} />
+                </button>
+              )}
+
+              {/*
+                The primary button. One control, three meanings, decided by what
+                is in the field:
+                  empty      -> open a spoken conversation with the assistant
+                  typed      -> send it
+                  recording  -> send the take
+                It stays in the same place and keeps the same shape through all
+                three, so the eye never has to re-find it. Only the icon crosses
+                over, and only the fill colour changes.
+              */}
               <button
                 type="button"
                 onClick={() => {
-                  if (listening) stopRecording();
-                  else if (hasContent) void send(input);
-                  else void startRecording();
+                  if (listening) { stopRecording(); return; }
+                  if (hasContent) { void send(input); return; }
+                  void startVoiceSession();
                 }}
-                disabled={(sending || transcribing) && !hasContent}
-                aria-label={listening ? (isFr ? 'Arrêter et transcrire' : 'Stop and transcribe') : hasContent ? (isFr ? 'Envoyer' : 'Send') : (isFr ? 'Dicter' : 'Dictate')}
-                className="h-9 w-9 rounded-full grid place-items-center transition-colors flex-shrink-0 active:scale-[0.97]"
-                style={
+                disabled={sending || transcribing}
+                aria-label={
                   listening
-                    ? { background: '#dc2626', color: '#fff' }
+                    ? (isFr ? 'Envoyer' : 'Send')
                     : hasContent
-                      ? { background: '#F2F2F2', color: '#0B0B0D' }
-                      : { background: 'rgba(255,255,255,0.06)', color: '#9CA3AF' }
+                      ? (isFr ? 'Envoyer' : 'Send')
+                      : (isFr ? 'Parler \u00e0 l\u2019assistant' : 'Talk to the assistant')
                 }
+                className="relative h-9 w-9 rounded-full grid place-items-center flex-shrink-0 transition-colors active:scale-[0.97] disabled:opacity-40"
+                style={{
+                  background: hasContent || listening ? activeColor : 'rgba(255,255,255,0.06)',
+                  color: hasContent || listening ? '#fff' : activeColor,
+                }}
               >
-                {(sending || transcribing) ? <Square size={14} className="animate-pulse" />
-                  : listening ? <StopCircle size={17} />
-                  : hasContent ? <ArrowUp size={16} />
-                  : <Mic size={17} />}
+                {/* Crossfade the icon rather than swapping it: a hard swap on
+                    every keystroke of the first character reads as a glitch.
+                    Transitions, not keyframes, so typing fast retargets the
+                    animation mid-flight instead of restarting it. */}
+                <span
+                  className="absolute inset-0 grid place-items-center transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  style={{
+                    opacity: hasContent || listening ? 1 : 0,
+                    transform: hasContent || listening ? 'scale(1)' : 'scale(0.7)',
+                  }}
+                >
+                  {sending ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={17} />}
+                </span>
+                <span
+                  className="absolute inset-0 grid place-items-center transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  style={{
+                    opacity: hasContent || listening ? 0 : 1,
+                    transform: hasContent || listening ? 'scale(0.7)' : 'scale(1)',
+                  }}
+                >
+                  <AudioLines size={17} />
+                </span>
               </button>
             </div>
           </div>

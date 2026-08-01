@@ -273,7 +273,33 @@ export class AssistantChatService {
         `CONFIG MODE: the owner already knows their setup; just make the changes they ask for and answer questions. Don't run a full onboarding unless asked.`,
       );
     }
+
+    // Completeness rule. Without it the assistant happily saves "breakfast"
+    // with no price and no hours, and the receptionist then tells a caller
+    // about a service it cannot describe — worse than not having the entry.
+    base.push(
+      [
+        'COMPLETENESS — applies to every change:',
+        '- A service or product needs a NAME and a PRICE. If the owner gives only the name ("add that we do breakfast"), ask for the price before saving. Ask for the serving hours too when the thing only exists at certain times.',
+        '- One question per turn, never a checklist. Ask for the most important missing field first.',
+        '- Do not guess a price, a schedule, a phone number or any business fact. An invented price is a promise the business has to honour.',
+        '- Once you have what you need, call update_config immediately, then say in one sentence what you saved.',
+        '- If the owner explicitly refuses to give a missing field, save what you have and tell them plainly what the receptionist will not be able to answer.',
+        '- Put the change in the right place: a sellable thing goes in items (with its category), an opening/closing time goes in hours, a question callers ask goes in faq, a tone instruction goes in personalityNotes. Never dump everything into faq.',
+      ].join('\n'),
+    );
     return base.join('\n');
+  }
+
+  /**
+   * The configuration prompt, exposed for the voice path.
+   *
+   * Same instructions as the typed assistant so the two agree: an owner who
+   * configures by voice and then reopens the chat must not meet a different
+   * assistant with different rules.
+   */
+  voiceConfigPrompt(client: any, isFr: boolean): string {
+    return this.systemPrompt(client, isFr, 'config');
   }
 
   private async callOpenAI(messages: any[], mode: ChatMode): Promise<any | null> {

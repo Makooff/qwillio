@@ -11,7 +11,22 @@ type CallState = 'idle' | 'connecting' | 'active' | 'ending';
  * home-page demo, but personalized. Config (public key + assistant) comes from
  * GET /my-dashboard/voice/live-config.
  */
-export default function VapiLiveCall({ isFr = true }: { isFr?: boolean }) {
+export default function VapiLiveCall({
+  isFr = true,
+  /**
+   * Which assistant to dial. Defaults to the receptionist; the setup assistant
+   * passes its own endpoint. Same transport, same component — the difference
+   * between the two agents belongs on the server, not in two copies of this.
+   */
+  endpoint = '/my-dashboard/voice/live-config',
+  autoStart = false,
+  onEnded,
+}: {
+  isFr?: boolean;
+  endpoint?: string;
+  autoStart?: boolean;
+  onEnded?: () => void;
+}) {
   const [state, setState] = useState<CallState>('idle');
   const [speaking, setSpeaking] = useState(false);
   const [level, setLevel] = useState(0);
@@ -27,6 +42,13 @@ export default function VapiLiveCall({ isFr = true }: { isFr?: boolean }) {
     if (timerRef.current) clearInterval(timerRef.current);
   }, []);
 
+  // Opened deliberately (the composer's voice button), so dial immediately
+  // rather than asking the user to press a second button for the same intent.
+  useEffect(() => {
+    if (autoStart) void start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
+
   const stop = () => {
     try { vapiRef.current?.stop?.(); } catch { /* noop */ }
   };
@@ -35,7 +57,7 @@ export default function VapiLiveCall({ isFr = true }: { isFr?: boolean }) {
     setError(null);
     setState('connecting');
     try {
-      const { data } = await api.get('/my-dashboard/voice/live-config');
+      const { data } = await api.get(endpoint);
       if (!data?.publicKey) throw new Error('missing key');
 
       const vapi = new Vapi(data.publicKey);
@@ -50,6 +72,7 @@ export default function VapiLiveCall({ isFr = true }: { isFr?: boolean }) {
         setState('idle');
         setSpeaking(false);
         if (timerRef.current) clearInterval(timerRef.current);
+        onEnded?.();
       });
       vapi.on('speech-start', () => setSpeaking(true));
       vapi.on('speech-end', () => setSpeaking(false));
