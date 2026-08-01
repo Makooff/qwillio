@@ -132,10 +132,21 @@ bloquant qui ferait attendre les deux parties.
 
 ### 11. Boucle d'apprentissage sur l'entrant
 
-`script-learning`, `ai-learning` et `optimization.service` ne tournent que sur la
-prospection sortante. Les alimenter avec les appels entrants : transcripts,
-issues, latences, barge-ins. **Ajouter une source, ne pas remplacer** — la
-boucle sortante existante ne doit pas bouger.
+**Correction après lecture du code** : `optimization.service` tourne déjà sur
+les appels entrants, contrairement à ce que ce plan affirmait d'abord. Seuls
+`script-learning` et `ai-learning` sont propres au sortant.
+
+Le manque réel est ailleurs : `optimization.service` n'apprend que de ce que
+produit l'analyse de transcript (sentiment, issue, tags). Il ne voit aucun des
+signaux que cette refonte a commencé à enregistrer — latence par étage,
+interruptions dures, taux de déviation, humeur, échecs d'outils — et ce sont
+précisément ceux qui disent *pourquoi* un appel s'est mal passé plutôt que
+*qu'il* s'est mal passé.
+
+D'où un service distinct qui lit ces signaux et produit des constats. Volontairement
+étroit dans ce qu'il modifie seul : il rafraîchit les embeddings, et il rapporte
+le reste. Un agent qui réécrit son propre prompt sur une semaine de données
+bruitées, c'est un réceptionniste qui marchait et qui ne marche plus.
 
 ### 12. Embeddings sur la base de connaissances
 
