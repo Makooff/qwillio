@@ -44,6 +44,8 @@ export interface CallSession {
   bargeIns: number;
   toolCalls: Array<{ name: string; ms: number }>;
   lead: LeadCapture | null;
+  /** AgentCrmActivity row created for the lead, linked to the call at the end. */
+  leadActivityId: string | null;
   bookingId: string | null;
   /** ms between the caller's last word and the assistant's first audio. */
   turnLatencies: number[];
@@ -112,6 +114,7 @@ class CallSessionStore {
       bargeIns: 0,
       toolCalls: [],
       lead: null,
+      leadActivityId: null,
       bookingId: null,
       turnLatencies: [],
       lastCallerSpeechEndedAt: null,
@@ -157,6 +160,11 @@ class CallSessionStore {
   recordLead(vapiCallId: string | null, lead: LeadCapture): void {
     const session = this.get(vapiCallId);
     if (session) session.lead = lead;
+  }
+
+  markLeadActivity(vapiCallId: string | null, activityId: string): void {
+    const session = this.get(vapiCallId);
+    if (session) session.leadActivityId = activityId;
   }
 
   markBooked(vapiCallId: string | null, bookingId: string): void {

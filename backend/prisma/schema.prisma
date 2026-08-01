@@ -330,6 +330,8 @@ model Client {
   agentAnalyticsConfig       AgentAnalyticsConfig?
   agentAnalyticsActivities   AgentAnalyticsActivity[]
   callTransfers              CallTransfer[]
+  callerMemories             CallerMemory[]
+  businessKnowledge          BusinessKnowledge[]
   clientAnalytics            ClientAnalyticsDaily[]
   clientBookings             ClientBooking[]
   clientCalls                ClientCall[]
@@ -1838,4 +1840,67 @@ model SavedSearch {
   @@unique([userId, name])
   @@index([userId])
   @@map("saved_searches")
+}
+
+/// Persistent per-caller memory for the AI receptionist.
+///
+/// ClientCall already stores every call, but reconstructing "what do we know
+/// about this number" means scanning and re-summarising that history on every
+/// inbound ring. This table is the collapsed view: one row per caller per
+/// client, updated at the end of each call, read in a single indexed lookup
+/// while the phone is still ringing.
+model CallerMemory {
+  id             String    @id @default(uuid()) @db.Uuid
+  clientId       String    @map("client_id") @db.Uuid
+  /// E.164 number. Together with clientId this is the natural key.
+  callerNumber   String    @map("caller_number") @db.VarChar(50)
+  knownName      String?   @map("known_name") @db.VarChar(255)
+  email          String?   @db.VarChar(255)
+  /// Rolling one-paragraph picture of this caller, rewritten after each call.
+  profileSummary String?   @map("profile_summary")
+  /// Stable preferences worth repeating back ("always asks for Sarah").
+  preferences    String[]  @default([])
+  /// Free-form facts the agent should not have to ask twice.
+  facts          Json?
+  totalCalls     Int       @default(0) @map("total_calls")
+  lastCallAt     DateTime? @map("last_call_at")
+  lastSummary    String?   @map("last_summary")
+  lastOutcome    String?   @map("last_outcome") @db.VarChar(100)
+  /// Caller asked never to be called back / flagged abusive.
+  isBlocked      Boolean   @default(false) @map("is_blocked")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, callerNumber])
+  @@index([clientId])
+  @@index([clientId, lastCallAt])
+  @@map("caller_memories")
+}
+
+/// Business knowledge the receptionist answers from: FAQ entries, staff, and
+/// house rules. Kept as rows rather than a blob on Client so entries can be
+/// edited, disabled and ranked individually from the dashboard, and so only the
+/// relevant ones are injected into the prompt.
+model BusinessKnowledge {
+  id        String   @id @default(uuid()) @db.Uuid
+  clientId  String   @map("client_id") @db.Uuid
+  /// faq | staff | rule
+  kind      String   @db.VarChar(20)
+  /// Question, staff member name, or a short rule label.
+  title     String   @db.VarChar(300)
+  /// Answer, role and availability, or the rule itself.
+  content   String
+  /// Alternate phrasings that should match this entry.
+  keywords  String[] @default([])
+  /// Higher wins when the prompt budget forces a trim.
+  priority  Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, kind, isActive])
+  @@index([clientId, priority])
+  @@map("business_knowledge")
 }

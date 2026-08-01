@@ -18,6 +18,8 @@ const profile: ClientVoiceProfile = {
   planType: 'pro',
   characterId: null,
   country: 'FR',
+  customLlm: true,
+  hasKnowledgeBase: false,
 };
 
 function toolNames(tools: Array<Record<string, any>>): string[] {
@@ -41,6 +43,12 @@ describe('buildVoiceTools', () => {
   it('hides booking tools when the client disabled booking', () => {
     const names = toolNames(buildVoiceTools({ ...profile, bookingEnabled: false }));
     expect(names).not.toContain('bookAppointment');
+  });
+
+  it('only offers lookupKnowledge when the client actually has entries', () => {
+    // An agent with an empty knowledge base would only ever get "no info" back.
+    expect(toolNames(buildVoiceTools(profile))).not.toContain('lookupKnowledge');
+    expect(toolNames(buildVoiceTools({ ...profile, hasKnowledgeBase: true }))).toContain('lookupKnowledge');
   });
 
   it('only offers transferCall when a transfer number exists', () => {

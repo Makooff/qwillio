@@ -22,7 +22,15 @@ function clamp(text: string, max: number): string {
   return trimmed.length <= max ? trimmed : `${trimmed.slice(0, max - 1)}…`;
 }
 
-export function buildSystemPrompt(profile: ClientVoiceProfile, caller: CallerHistory): string {
+export function buildSystemPrompt(
+  profile: ClientVoiceProfile,
+  caller: CallerHistory,
+  /**
+   * Pre-rendered business knowledge (rules, staff, top FAQ). Passed in rather
+   * than fetched here so prompt assembly stays synchronous and testable.
+   */
+  knowledgeBlock = '',
+): string {
   const fr = profile.language === 'fr';
   const lines: string[] = [];
 
@@ -72,6 +80,9 @@ export function buildSystemPrompt(profile: ClientVoiceProfile, caller: CallerHis
     );
   }
 
+  // ── Business knowledge: rules first, they change behaviour ──
+  if (knowledgeBlock) lines.push(knowledgeBlock);
+
   // ── Tooling contract ──
   if (profile.bookingEnabled && profile.calendarConnected) {
     lines.push(
@@ -104,6 +115,14 @@ export function buildSystemPrompt(profile: ClientVoiceProfile, caller: CallerHis
       fr
         ? 'TRANSFERT: si on demande un humain, un responsable, ou en cas d\'urgence, utilise transferCall sans discuter.'
         : 'TRANSFER: if the caller asks for a human, a manager, or it is an emergency, use transferCall without arguing.'
+    );
+  }
+
+  if (profile.hasKnowledgeBase) {
+    lines.push(
+      fr
+        ? 'INFOS ENTREPRISE: pour toute question sur l\'entreprise qui n\'est pas couverte ci-dessus, appelle lookupKnowledge. N\'invente jamais une reponse sur l\'entreprise.'
+        : 'BUSINESS INFO: for any question about the business not covered above, call lookupKnowledge. Never invent an answer about the business.'
     );
   }
 

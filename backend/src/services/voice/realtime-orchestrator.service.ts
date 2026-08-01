@@ -8,6 +8,8 @@ import { buildRealtimePlans, buildVoice } from './speech-plans';
 import { buildVoiceTools } from './voice-tools';
 import { buildFirstMessage, buildSystemPrompt } from './system-prompt';
 import { routeIntent } from './intent-router';
+import { businessMemoryService } from './business-memory.service';
+import { callerMemoryService } from './caller-memory.service';
 import { toolRuntimeService, type ToolCallInput, type ToolCallResult } from './tool-runtime.service';
 import { resolveCharacter } from '../../config/voice-characters';
 
@@ -67,6 +69,13 @@ class RealtimeOrchestratorService {
       return null;
     }
 
+    // Only the highest-priority entries go into the prompt; the rest stay
+    // reachable through lookupKnowledge so a large knowledge base does not
+    // become a per-turn token bill.
+    const knowledgeBlock = profile.hasKnowledgeBase
+      ? businessMemoryService.promptBlock(await businessMemoryService.all(clientId), profile.language)
+      : '';
+
     if (vapiCallId) {
       callSessionStore.start({ vapiCallId, clientId, callerNumber, language: profile.language });
     }
@@ -88,7 +97,7 @@ class RealtimeOrchestratorService {
           model: env.VAPI_MODEL,
           temperature: 0.6,
           maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
-          messages: [{ role: 'system', content: buildSystemPrompt(profile, caller) }],
+          messages: [{ role: 'system', content: buildSystemPrompt(profile, caller, knowledgeBlock) }],
           tools: buildVoiceTools(profile),
         }
       : {
@@ -98,7 +107,7 @@ class RealtimeOrchestratorService {
           // Cap the completion: a receptionist turn that runs past ~60 tokens is
           // a monologue, and long completions are the other half of TTS latency.
           maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
-          messages: [{ role: 'system', content: buildSystemPrompt(profile, caller) }],
+          messages: [{ role: 'system', content: buildSystemPrompt(profile, caller, knowledgeBlock) }],
           tools: buildVoiceTools(profile),
         };
 
@@ -169,11 +178,10 @@ class RealtimeOrchestratorService {
     callSessionStore.appendTranscript(vapiCallId, role, text);
     if (role !== 'user' || !session) return null;
 
-    // Phase 3: classify the caller's turn. The router does not currently
-    // short-circuit the model (Vapi owns the turn loop), but it measures how
-    // many turns COULD be deflected and drives the deflection stats persisted
-    // at end of call — and `handledLocally` is what the custom-LLM path reads
-    // when a client is on that plan.
+    // Phase 3: classify the caller's turn. On the custom-LLM path the decision
+    // is what actually skips the model (see llm-stream.service); on Vapi's own
+    // OpenAI path it only feeds the deflection stats, because Vapi owns the
+    // turn loop there.
     const decision = routeIntent(text, session.language, { turnIndex: session.callerTurns - 1 });
     if (decision.handledLocally) {
       callSessionStore.recordDeflection(vapiCallId);
@@ -260,6 +268,7 @@ class RealtimeOrchestratorService {
           toolCalls: session.toolCalls,
           bookingId: session.bookingId,
           lead: session.lead,
+          leadActivityId: session.leadActivityId,
           medianTurnLatencyMs: median(session.turnLatencies),
         }
       : null;
@@ -273,6 +282,58 @@ class RealtimeOrchestratorService {
     }
 
     return { transcript, durationSeconds, callerNumber: callerNumberOf(event), metrics };
+  }
+
+  /**
+   * Fold the finished call into the caller's persistent memory, and link the
+   * lead activity created mid-call to the ClientCall row that now exists.
+   */
+  async persistMemory(input: {
+    clientId: string;
+    vapiCallId: string;
+    callerNumber: string | null;
+    metrics: { lead: { name: string | null; email: string | null; reason: string } | null; leadActivityId?: string | null } | null;
+  }): Promise<void> {
+    try {
+      const call = await prisma.clientCall.findUnique({
+        where: { vapiCallId: input.vapiCallId },
+        select: { id: true, summary: true, outcome: true, nameCollected: true, emailCollected: true },
+      });
+
+      await callerMemoryService.remember({
+        clientId: input.clientId,
+        callerNumber: input.callerNumber,
+        name: input.metrics?.lead?.name ?? call?.nameCollected ?? null,
+        email: input.metrics?.lead?.email ?? call?.emailCollected ?? null,
+        summary: call?.summary ?? input.metrics?.lead?.reason ?? null,
+        outcome: call?.outcome ?? null,
+      });
+
+      // The lead activity was written mid-call, before the ClientCall row
+      // existed. Link them now so the follow-up has the transcript — merging
+      // into the existing content, never replacing it: that payload is what the
+      // CRM sync reads.
+      if (input.metrics?.leadActivityId && call?.id) {
+        const activity = await prisma.agentCrmActivity.findUnique({
+          where: { id: input.metrics.leadActivityId },
+          select: { content: true },
+        });
+        if (activity) {
+          await prisma.agentCrmActivity.update({
+            where: { id: input.metrics.leadActivityId },
+            data: {
+              content: {
+                ...((activity.content as Record<string, unknown>) || {}),
+                clientCallId: call.id,
+                callSummary: call.summary ?? null,
+              } as Prisma.InputJsonObject,
+            },
+          });
+        }
+      }
+    } catch (error) {
+      logger.warn(`[Voice] memory persist failed for ${input.vapiCallId}: ${(error as Error).message}`);
+    }
   }
 
   /**

@@ -49,11 +49,12 @@ export interface ClientVoiceProfile {
   /** Drives the Belgian French voice override. */
   country: string | null;
   /**
-   * Opt-in to the custom-LLM path. Off by default: it puts this backend in the
-   * audio path of every turn, so it is enabled per client once their traffic
-   * justifies the deflection savings.
+   * Custom-LLM path. On by default (see VOICE_CUSTOM_LLM_DEFAULT); a client can
+   * still be pinned off with `vapiConfig.customLlm === false`.
    */
   customLlm: boolean;
+  /** Whether any active knowledge entry exists — gates the lookup tool. */
+  hasKnowledgeBase: boolean;
 }
 
 interface CacheEntry<T> {
@@ -171,7 +172,8 @@ class RealtimeContextService {
     const cached = await this.get<ClientVoiceProfile>(key);
     if (cached) return cached;
 
-    const client = await prisma.client.findUnique({
+    const [client, knowledgeCount] = await Promise.all([
+      prisma.client.findUnique({
       where: { id: clientId },
       select: {
         id: true,
@@ -186,7 +188,9 @@ class RealtimeContextService {
         googleCalendarRefreshToken: true,
         vapiConfig: true,
       },
-    });
+      }),
+      prisma.businessKnowledge.count({ where: { clientId, isActive: true } }),
+    ]);
     if (!client) return null;
 
     const onboarding = (client.onboardingData as Record<string, any> | null) || {};
@@ -212,7 +216,10 @@ class RealtimeContextService {
       planType: client.planType,
       characterId: typeof vapiConfig.characterId === 'string' ? vapiConfig.characterId : null,
       country: client.country,
-      customLlm: vapiConfig.customLlm === true || env.VOICE_CUSTOM_LLM_DEFAULT,
+      // An explicit per-client false wins over the global default, so one
+      // problematic tenant can be pinned back to Vapi's own OpenAI path.
+      customLlm: vapiConfig.customLlm === false ? false : vapiConfig.customLlm === true || env.VOICE_CUSTOM_LLM_DEFAULT,
+      hasKnowledgeBase: knowledgeCount > 0,
     };
 
     await this.set(key, profile, PROFILE_TTL_MS);
@@ -238,7 +245,11 @@ class RealtimeContextService {
     const cached = await this.get<CallerHistory>(key);
     if (cached) return cached;
 
-    const [calls, booking] = await Promise.all([
+    const [memory, calls, booking] = await Promise.all([
+      prisma.callerMemory.findUnique({
+        where: { clientId_callerNumber: { clientId, callerNumber } },
+        select: { knownName: true, profileSummary: true, lastSummary: true, lastCallAt: true, totalCalls: true },
+      }),
       prisma.clientCall.findMany({
         where: { clientId, callerNumber, status: 'completed' },
         orderBy: { createdAt: 'desc' },
@@ -256,11 +267,15 @@ class RealtimeContextService {
       }),
     ]);
 
+    // CallerMemory is the collapsed, authoritative view when it exists; the
+    // ClientCall scan is the fallback for callers who rang before this table.
     const history: CallerHistory = {
-      previousCalls: calls.length,
-      lastCallAt: calls[0]?.createdAt.toISOString() ?? null,
-      lastSummary: calls[0]?.summary ?? null,
-      knownName: calls.find(c => c.nameCollected || c.callerName)?.nameCollected
+      previousCalls: memory?.totalCalls ?? calls.length,
+      lastCallAt: (memory?.lastCallAt ?? calls[0]?.createdAt)?.toISOString() ?? null,
+      lastSummary: memory?.profileSummary ?? memory?.lastSummary ?? calls[0]?.summary ?? null,
+      knownName:
+        memory?.knownName
+        ?? calls.find(c => c.nameCollected)?.nameCollected
         ?? calls.find(c => c.callerName)?.callerName
         ?? null,
       hasUpcomingBooking: Boolean(booking),
@@ -290,6 +305,20 @@ class RealtimeContextService {
    */
   async invalidateClient(clientId: string): Promise<void> {
     const key = `voice:profile:${clientId}`;
+    this.local.delete(key);
+    const redis = await this.store();
+    if (redis) {
+      try {
+        await redis.del(key);
+      } catch {
+        /* non-fatal */
+      }
+    }
+  }
+
+  /** Drop a caller's cached history after their memory row changes. */
+  async invalidateCaller(clientId: string, callerNumber: string): Promise<void> {
+    const key = `voice:caller:${clientId}:${callerNumber}`;
     this.local.delete(key);
     const redis = await this.store();
     if (redis) {

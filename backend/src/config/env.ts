@@ -78,11 +78,17 @@ export const env = {
   /** Cheap tier for conversational turns that still need a model. */
   VOICE_SMALL_MODEL: process.env.VOICE_SMALL_MODEL || 'gpt-4o-mini',
   /**
-   * Turns the custom-LLM path on for every client at once. Off by default —
-   * it belongs on `Client.vapiConfig.customLlm` per tenant, and this switch
-   * exists for staging and for a global kill/enable.
+   * Custom-LLM path for every client. ON by default: it is what makes the
+   * intent router actually skip the model instead of only counting the turns it
+   * could have skipped, and what routes easy turns to the cheap tier.
+   *
+   * The cost is that this service sits in the audio path of every turn, so a
+   * cold instance is an audible silence. That is mitigated externally by
+   * pinging GET /ping every 5 minutes. Set this to "false" to fall straight
+   * back to Vapi's own OpenAI path — no redeploy of the assistants needed, the
+   * next call picks it up.
    */
-  VOICE_CUSTOM_LLM_DEFAULT: process.env.VOICE_CUSTOM_LLM_DEFAULT === 'true',
+  VOICE_CUSTOM_LLM_DEFAULT: process.env.VOICE_CUSTOM_LLM_DEFAULT !== 'false',
   /** Optional shared cache. Absent = per-process in-memory cache. */
   REDIS_URL: process.env.REDIS_URL || '',
 

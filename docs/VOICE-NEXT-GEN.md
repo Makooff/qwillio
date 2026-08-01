@@ -3,9 +3,11 @@
 Refonte de la couche vocale et de l'orchestrateur du réceptionniste IA.
 Branche : `feature/qwillio-next-gen-core`.
 
-Périmètre conservé intact : authentification, base de données, abonnements
-Stripe, interfaces graphiques. Aucune migration Prisma, aucun changement de
-schéma.
+Périmètre conservé intact : authentification, abonnements Stripe, interfaces
+graphiques. Le schéma n'a reçu que deux tables nouvelles (`caller_memories`,
+`business_knowledge`) : aucune colonne existante modifiée, aucune donnée
+touchée. La migration `20260801130000_add_caller_and_business_memory` doit être
+appliquée avant déploiement.
 
 ---
 
@@ -145,10 +147,50 @@ flux fermé sans token, exception réseau. Tous parlent une phrase naturelle,
 jamais un message technique.
 
 **Le compromis, explicitement** : ce service se met dans le chemin audio de
-chaque tour. Un cold start Render devient un silence en ligne. D'où le flag
-par client `Client.vapiConfig.customLlm`, désactivé par défaut, plus un
-interrupteur global `VOICE_CUSTOM_LLM_DEFAULT` pour le staging. À n'activer
-qu'une fois le service tenu chaud.
+chaque tour. Un cold start Render devient un silence en ligne.
+
+Décision prise : le chemin est **actif par défaut**
+(`VOICE_CUSTOM_LLM_DEFAULT`, mettre `false` pour tout basculer sur le chemin
+OpenAI de Vapi sans redéployer les assistants). La parade au cold start est
+externe : `GET /ping`, endpoint public le plus léger du service, sans base de
+données, sans authentification, sans log, à appeler toutes les 5 minutes par un
+ordonnanceur externe. Un client peut être épinglé hors du chemin avec
+`Client.vapiConfig.customLlm = false`, qui l'emporte sur le défaut global.
+
+## 4ter. Mémoire client et mémoire entreprise
+
+Deux tables ajoutées, purement additives (migration
+`20260801130000_add_caller_and_business_memory`, à appliquer avant déploiement).
+
+**`caller_memories`** — une ligne par (client, numéro). `ClientCall` garde tous
+les appels ; cette table est la vue aplatie, réécrite en fin d'appel et lue en
+une seule recherche indexée pendant que le téléphone sonne. Résumé glissant
+borné à 400 caractères, le plus récent en tête : c'est le plus ancien qui saute
+à la troncature. Un nom déjà connu n'est jamais écrasé par un `null` venant d'un
+appel où l'appelant ne l'a pas redit.
+
+**`business_knowledge`** — FAQ, équipe, règles de la maison, en lignes plutôt
+qu'en blob sur `Client`, pour que chaque entrée soit éditable, désactivable et
+priorisable. Deux chemins de lecture, et la distinction est le point important :
+
+- les 8 entrées les plus prioritaires sont injectées dans le prompt système, les
+  règles d'abord (une règle enfreinte coûte plus qu'une FAQ non récitée) ;
+- tout le reste est atteignable via l'outil `lookupKnowledge`. C'est ce qui
+  permet à un client d'avoir 200 entrées sans payer 200 entrées de prompt à
+  chaque tour de modèle.
+
+La recherche est un score de recouvrement de tokens normalisés, pas du vectoriel :
+à l'échelle d'un commerce (quelques dizaines à quelques centaines d'entrées)
+c'est assez précis, gratuit, et ça n'ajoute pas d'aller-retour d'embedding à un
+tour où l'appelant attend.
+
+**`captureLead` écrit maintenant en base pendant l'appel**, pas à la fin : une
+ligne `AgentCrmActivity` en statut `pending` avec le payload destiné au CRM
+externe, plus la mise à jour de `caller_memories`. Deux raisons : un appel qui
+coupe en pleine phrase laisse quand même un lead exploitable, et la relance
+commerciale peut partir dès que la ligne se libère au lieu d'attendre l'analyse
+du transcript. L'activité est reliée à la ligne `ClientCall` en fin d'appel, par
+fusion dans le contenu existant, jamais par remplacement.
 
 ## 5. Function calling et meublage
 
@@ -210,7 +252,7 @@ par le modèle, pour empêcher un accès cross-tenant.
 
 ```
 tsc --noEmit          0 erreur
-vitest run            230 tests, 26 fichiers, 100 % passants
+vitest run            254 tests, 28 fichiers, 100 % passants
 eslint (fichiers touchés)   0 erreur
 ```
 
@@ -258,10 +300,11 @@ signifierait reprendre VAD, buffering et jitter, et perdre l'AMD, le fallback
 voix et les plans de parole — pour un gain proche de zéro, le transport n'étant
 pas le goulot.
 
-Également non fait : `captureLead` n'écrit que dans
-`ClientCall.metadata.realtime`, pas dans un enregistrement de lead ou un CRM
-dédié. Suffisant pour la restitution en fin d'appel, insuffisant si le lead doit
-déclencher une séquence de relance.
+Restent non faits, et demandés : le **warm transfer avec résumé envoyé au
+professionnel avant qu'il décroche** (le transfert est aujourd'hui un
+`blind-transfer`), et le **monitoring de latence par étage** (STT, LLM, TTS
+séparément). Aujourd'hui seule la latence de tour bout-en-bout est mesurée
+(`medianTurnLatencyMs`), ce qui dit qu'un tour est lent sans dire où.
 
 La métrique `medianTurnLatencyMs`, persistée dans `ClientCall.metadata.realtime`
 avec le nombre de barge-ins et de tours déviés, sert précisément à ce réglage

@@ -218,6 +218,18 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Keep-warm probe for the voice path. Deliberately the cheapest endpoint in the
+// service: no database, no auth, no JSON serialisation, no logging. It exists
+// to be called every few minutes by an external scheduler so the instance is
+// never cold when a call arrives — with the custom-LLM path on, a cold start is
+// a silence the caller hears.
+//
+// It answers "is this process up", nothing more. /api/health is the readiness
+// check, /api/auth/warmup is the one that proves the database is reachable.
+app.get('/ping', (_req, res) => {
+  res.type('text/plain').send('pong');
+});
+
 // Neon keepalive, pinged every 5 minutes by .github/workflows/keepalive.yml
 // (not Vercel cron, which needed a paid plan for sub-daily schedules).
 //

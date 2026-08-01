@@ -199,6 +199,14 @@ export class VoiceWebhookController {
     );
 
     await realtimeOrchestratorService.persistMetrics(vapiCallId, finalized.metrics as Record<string, unknown> | null);
+
+    // Caller memory last: it reads the ClientCall row the analysis just wrote.
+    await realtimeOrchestratorService.persistMemory({
+      clientId,
+      vapiCallId,
+      callerNumber: finalized.callerNumber,
+      metrics: finalized.metrics as never,
+    });
   }
 
   /** Liveness probe for the voice layer — used by the admin health panel. */

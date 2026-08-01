@@ -4,6 +4,8 @@ import { googleCalendarService } from '../google-calendar.service';
 import { realtimeContextService, type ClientVoiceProfile } from './realtime-context.service';
 import { isKnownTool } from './voice-tools';
 import { callSessionStore } from './call-session.store';
+import { callerMemoryService } from './caller-memory.service';
+import { businessMemoryService } from './business-memory.service';
 
 /**
  * Tool runtime (Phase 4).
@@ -102,6 +104,9 @@ class ToolRuntimeService {
           break;
         case 'captureLead':
           result = await this.captureLead(profile, vapiCallId, call.args);
+          break;
+        case 'lookupKnowledge':
+          result = await this.lookupKnowledge(profile, call.args);
           break;
         default:
           result = 'That action is not available on this line.';
@@ -302,19 +307,86 @@ class ToolRuntimeService {
 
   // ── captureLead ─────────────────────────────────────────────────────────
 
+  /**
+   * Record the caller and why they rang.
+   *
+   * This writes to durable storage during the call, not at the end of it, for
+   * two reasons: a call that drops mid-sentence still leaves a followable lead,
+   * and the sales follow-up can start the second the line clears rather than
+   * waiting on the transcript-analysis pass.
+   *
+   * Three destinations, each with a distinct job:
+   *  - `AgentCrmActivity` (status `pending`) — the durable record and the
+   *    payload the external CRM sync drains.
+   *  - `CallerMemory` — so a callback thirty seconds later already knows them.
+   *  - the live session — so the end-of-call rollup can link the lead to the
+   *    `ClientCall` row once it exists.
+   */
   private async captureLead(
     profile: ClientVoiceProfile,
     vapiCallId: string | null,
     args: Record<string, any>,
   ): Promise<string> {
-    callSessionStore.recordLead(vapiCallId, {
-      name: typeof args.name === 'string' ? args.name : null,
-      email: typeof args.email === 'string' ? args.email : null,
-      reason: typeof args.reason === 'string' ? args.reason : '',
-      urgency: ['low', 'normal', 'high'].includes(args.urgency) ? args.urgency : 'normal',
+    const session = callSessionStore.get(vapiCallId);
+    const lead = {
+      name: typeof args.name === 'string' ? args.name.trim() || null : null,
+      email: typeof args.email === 'string' ? args.email.trim() || null : null,
+      reason: typeof args.reason === 'string' ? args.reason.trim() : '',
+      urgency: ['low', 'normal', 'high'].includes(args.urgency) ? String(args.urgency) : 'normal',
+    };
+
+    callSessionStore.recordLead(vapiCallId, lead);
+
+    const phone = session?.callerNumber ?? null;
+
+    // Durable first, and awaited: the whole point is that this survives the
+    // call. It is one indexed insert, well inside the tool budget.
+    const activity = await prisma.agentCrmActivity.create({
+      data: {
+        clientId: profile.clientId,
+        type: 'lead_capture',
+        status: 'pending',
+        content: {
+          source: 'ai_receptionist',
+          vapiCallId,
+          capturedAt: new Date().toISOString(),
+          contact: { name: lead.name, email: lead.email, phone },
+          reason: lead.reason,
+          urgency: lead.urgency,
+          language: profile.language,
+          businessName: profile.businessName,
+        },
+      },
+      select: { id: true },
     });
+    callSessionStore.markLeadActivity(vapiCallId, activity.id);
+
+    // Memory is an enhancement, so it must not be able to fail the tool.
+    void callerMemoryService
+      .remember({
+        clientId: profile.clientId,
+        callerNumber: phone,
+        name: lead.name,
+        email: lead.email,
+        summary: lead.reason || null,
+        outcome: 'lead',
+      })
+      .catch(err => logger.warn(`[VoiceTools] caller memory write failed: ${err.message}`));
 
     return profile.language === 'fr' ? 'NOTE. Continue la conversation.' : 'NOTED. Continue the conversation.';
+  }
+
+  // ── lookupKnowledge ─────────────────────────────────────────────────────
+
+  /**
+   * Answer from the client's knowledge base. Only the highest-priority entries
+   * live in the prompt; this reaches the rest without paying for them on every
+   * model turn.
+   */
+  private async lookupKnowledge(profile: ClientVoiceProfile, args: Record<string, any>): Promise<string> {
+    const query = typeof args.question === 'string' ? args.question : '';
+    const hits = await businessMemoryService.search(profile.clientId, query);
+    return businessMemoryService.formatForSpeech(hits, profile.language);
   }
 }
 

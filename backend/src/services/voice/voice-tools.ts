@@ -81,6 +81,16 @@ const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: s
       delayed: ['Still looking, one moment.'],
     },
   },
+  lookupKnowledge: {
+    fr: {
+      start: ['Je vérifie ça.', 'Alors, je regarde.'],
+      delayed: [],
+    },
+    en: {
+      start: ['Let me check on that.', 'One sec, checking.'],
+      delayed: [],
+    },
+  },
 };
 
 export function fillerFor(tool: string, lang: VoiceLanguage, phase: 'start' | 'delayed'): string[] {
@@ -230,6 +240,33 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
     },
   });
 
+  // Knowledge lookup. Only offered when the client actually has entries, so an
+  // agent with an empty knowledge base is not tempted to call a tool that can
+  // only ever answer "no info".
+  if (profile.hasKnowledgeBase) {
+    tools.push({
+      type: 'function',
+      async: false,
+      server: { url: serverUrl, timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
+      messages: toolMessages('lookupKnowledge', lang),
+      function: {
+        name: 'lookupKnowledge',
+        description:
+          'Look up the business knowledge base (FAQ, staff, house rules) when the caller asks something not already covered in your instructions. Never guess an answer about the business.',
+        parameters: {
+          type: 'object',
+          properties: {
+            question: {
+              type: 'string',
+              description: 'The caller\'s question, in their own words.',
+            },
+          },
+          required: ['question'],
+        },
+      },
+    });
+  }
+
   if (profile.transferNumber) {
     tools.push({
       type: 'transferCall',
@@ -253,7 +290,13 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
 }
 
 /** Tool names the runtime knows how to execute, for validation on the webhook. */
-export const KNOWN_TOOLS = ['checkAvailability', 'bookAppointment', 'lookupBooking', 'captureLead'] as const;
+export const KNOWN_TOOLS = [
+  'checkAvailability',
+  'bookAppointment',
+  'lookupBooking',
+  'captureLead',
+  'lookupKnowledge',
+] as const;
 export type KnownTool = (typeof KNOWN_TOOLS)[number];
 
 export function isKnownTool(name: string): name is KnownTool {

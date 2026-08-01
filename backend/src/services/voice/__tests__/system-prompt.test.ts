@@ -18,6 +18,8 @@ const profile: ClientVoiceProfile = {
   planType: 'pro',
   characterId: null,
   country: 'FR',
+  customLlm: true,
+  hasKnowledgeBase: false,
 };
 
 const newCaller: CallerHistory = {
@@ -73,6 +75,17 @@ describe('buildSystemPrompt', () => {
     // ~4 chars per token; 2000 chars keeps a 20-turn call under ~10k input
     // tokens of pure prompt.
     expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2000);
+  });
+
+  it('injects the pre-rendered knowledge block when one is supplied', () => {
+    const prompt = buildSystemPrompt(profile, newCaller, 'RÈGLES DE LA MAISON:\n- Pas de prix au téléphone');
+    expect(prompt).toContain('RÈGLES DE LA MAISON');
+  });
+
+  it('tells the agent to look things up rather than invent them, when a base exists', () => {
+    const prompt = buildSystemPrompt({ ...profile, hasKnowledgeBase: true }, newCaller);
+    expect(prompt).toContain('lookupKnowledge');
+    expect(prompt).toMatch(/n'invente jamais/i);
   });
 
   it('switches language wholesale for an English client', () => {
