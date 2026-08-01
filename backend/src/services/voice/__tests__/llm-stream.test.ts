@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { llmStreamService } from '../llm-stream.service';
+import { llmStreamService, parseUsageChunk } from '../llm-stream.service';
 import { callSessionStore } from '../call-session.store';
 
 /** Collects everything written to the SSE channel. */
@@ -214,5 +214,31 @@ describe('llmStreamService.handle — proxied turns', () => {
 
     expect(stream.text()).not.toBe('');
     expect(stream.ended).toBe(true);
+  });
+});
+
+describe('parseUsageChunk — the prompt cache must be verified, not assumed', () => {
+  it('returns null for an ordinary delta chunk', () => {
+    expect(parseUsageChunk('data: {"choices":[{"delta":{"content":"Bien"}}]}\n\n')).toBeNull();
+  });
+
+  it('returns null for the terminator', () => {
+    expect(parseUsageChunk('data: [DONE]\n\n')).toBeNull();
+  });
+
+  it('extracts prompt, cached and completion counts', () => {
+    const chunk =
+      'data: {"choices":[],"usage":{"prompt_tokens":1500,"completion_tokens":40,"prompt_tokens_details":{"cached_tokens":1408}}}\n\n';
+    expect(parseUsageChunk(chunk)).toEqual({ input: 1500, cached: 1408, output: 40 });
+  });
+
+  it('reports zero cached rather than null when the cache missed', () => {
+    // A miss is a real measurement; treating it as "no data" would hide it.
+    const chunk = 'data: {"choices":[],"usage":{"prompt_tokens":1500,"completion_tokens":40}}\n\n';
+    expect(parseUsageChunk(chunk)).toEqual({ input: 1500, cached: 0, output: 40 });
+  });
+
+  it('survives a malformed chunk instead of throwing mid-stream', () => {
+    expect(parseUsageChunk('data: {"usage":{broken\n\n')).toBeNull();
   });
 });

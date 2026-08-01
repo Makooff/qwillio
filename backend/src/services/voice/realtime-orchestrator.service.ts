@@ -8,6 +8,7 @@ import { buildRealtimePlans, buildVoice } from './speech-plans';
 import { buildVoiceTools } from './voice-tools';
 import { buildFirstMessage, buildSystemPrompt } from './system-prompt';
 import { routeIntent } from './intent-router';
+import { assessMood } from './caller-mood';
 import { businessMemoryService } from './business-memory.service';
 import { callerMemoryService } from './caller-memory.service';
 import { toolRuntimeService, type ToolCallInput, type ToolCallResult } from './tool-runtime.service';
@@ -181,6 +182,15 @@ class RealtimeOrchestratorService {
     // Closes the STT stage: the caller stopped talking, this is the transcript.
     callSessionStore.markLatency(vapiCallId, 'transcriptFinal');
 
+    // Mood is read from the opening turns and only ever escalates: a caller who
+    // opened angry stays handled carefully even if their third sentence is
+    // neutral, because the anger was paused, not resolved.
+    const assessed = assessMood(text, session.language, session.callerTurns - 1, session.mood);
+    if (assessed.mood !== session.mood) {
+      callSessionStore.setMood(vapiCallId, assessed.mood);
+      logger.info(`[Voice] caller mood → ${assessed.mood} (${assessed.signals.join(', ')})`);
+    }
+
     // Phase 3: classify the caller's turn. On the custom-LLM path the decision
     // is what actually skips the model (see llm-stream.service); on Vapi's own
     // OpenAI path it only feeds the deflection stats, because Vapi owns the
@@ -295,6 +305,8 @@ class RealtimeOrchestratorService {
           deflectedTurns: session.deflectedTurns,
           bargeIns: session.bargeIns,
           hardBargeIns: session.hardBargeIns,
+          mood: session.mood,
+          tokens: session.tokens,
           toolCalls: session.toolCalls,
           bookingId: session.bookingId,
           lead: session.lead,
@@ -311,6 +323,11 @@ class RealtimeOrchestratorService {
       );
       // Per-stage line: this is what says WHICH stage owns a slow call.
       logger.info(`[Voice] call ${vapiCallId} latency — ${session!.latency.summaryLine()}`);
+      const { input, cached, output } = session!.tokens;
+      if (input > 0) {
+        const hitRate = Math.round((cached / input) * 100);
+        logger.info(`[Voice] call ${vapiCallId} tokens — in ${input} (cache ${hitRate}%), out ${output}`);
+      }
     }
 
     return { transcript, durationSeconds, callerNumber: callerNumberOf(event), metrics };

@@ -2,6 +2,7 @@ import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { routeIntent, type IntentDecision } from './intent-router';
 import { callSessionStore } from './call-session.store';
+import { moodPromptBlock } from './caller-mood';
 import type { VoiceLanguage } from './speech-plans';
 
 /**
@@ -61,6 +62,11 @@ const TIER = {
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 /** Ceiling on time-to-first-token before we speak a fallback instead. */
 const FIRST_TOKEN_TIMEOUT_MS = 4_000;
+/**
+ * OpenAI only caches a prefix once it is long enough to be worth caching.
+ * Below this the cache never engages and the bookkeeping is pure overhead.
+ */
+const MIN_CACHEABLE_PREFIX_CHARS = 4_000;
 
 function sseChunk(id: string, model: string, delta: Record<string, unknown>, finish: string | null): string {
   return `data: ${JSON.stringify({
@@ -82,6 +88,31 @@ function emitLocal(stream: StreamHandle, text: string, model: string): void {
   stream.write(sseChunk(id, model, {}, 'stop'));
   stream.write('data: [DONE]\n\n');
   stream.end();
+}
+
+/**
+ * Pull token counts out of the final `usage` chunk of a stream.
+ *
+ * Returns null for every other chunk, which is the overwhelming majority — the
+ * check is a substring test before any JSON parsing so the hot path stays cheap.
+ */
+export function parseUsageChunk(chunk: string): { input: number; cached: number; output: number } | null {
+  if (!chunk.includes('"usage"')) return null;
+  for (const line of chunk.split('\n')) {
+    if (!line.startsWith('data: ') || line.includes('[DONE]')) continue;
+    try {
+      const usage = JSON.parse(line.slice(6))?.usage;
+      if (!usage) continue;
+      return {
+        input: usage.prompt_tokens ?? 0,
+        cached: usage.prompt_tokens_details?.cached_tokens ?? 0,
+        output: usage.completion_tokens ?? 0,
+      };
+    } catch {
+      /* a partial chunk: the counts arrive whole in a later one */
+    }
+  }
+  return null;
 }
 
 /** Last thing the caller actually said, ignoring tool plumbing. */
@@ -158,7 +189,10 @@ class LlmStreamService {
     }
 
     try {
-      await this.proxy(request, plan.model, stream, vapiCallId);
+      // Order matters: mood is appended first so it lands after the stable
+      // prefix, then the caching hint is attached to the finished request.
+      const prepared = this.withCaching(this.withMood(request, vapiCallId, lang), vapiCallId);
+      await this.proxy(prepared, plan.model, stream, vapiCallId);
       callSessionStore.markLatency(vapiCallId, 'llmEnd');
       logger.debug(`[VoiceLLM] ${plan.model} turn for ${clientId} in ${Date.now() - started}ms`);
     } catch (error) {
@@ -166,6 +200,45 @@ class LlmStreamService {
       emitLocal(stream, this.fallbackLine(lang), plan.model);
       callSessionStore.markLatency(vapiCallId, 'llmEnd');
     }
+  }
+
+  /**
+   * Prepare the request for prompt caching (chantier 7).
+   *
+   * The system prompt is ~1,500 tokens and is replayed on every turn: a
+   * twenty-turn call spends ~30,000 input tokens before the conversation
+   * itself. OpenAI caches a request's stable *prefix*, so the only thing that
+   * matters is that the leading messages are byte-identical from one turn to
+   * the next.
+   *
+   * Two consequences shape the code around this:
+   *  - the mood block is appended at the END (see `withMood`), never merged
+   *    into the system prompt, because mutating the prefix mid-call would
+   *    invalidate the cache on the exact turns it matters most;
+   *  - `prompt_cache_key` is pinned to the call so concurrent calls for
+   *    different clients do not fight over the same cache slot.
+   *
+   * The cache is a hint, not a contract: a miss simply costs what it costs
+   * today. That is why nothing downstream depends on it having worked.
+   */
+  private withCaching(request: ChatCompletionRequest, vapiCallId: string | null): ChatCompletionRequest {
+    const prefix = typeof request.messages?.[0]?.content === 'string' ? request.messages[0].content : '';
+    if (prefix.length < MIN_CACHEABLE_PREFIX_CHARS) return request;
+    return { ...request, prompt_cache_key: vapiCallId ?? undefined };
+  }
+
+  /**
+   * Append the mood register as a trailing system message.
+   *
+   * Trailing, not merged into the opening system prompt, for two reasons: the
+   * prompt is fixed at call-start and mood is discovered later, and keeping the
+   * long prefix byte-identical across turns is what lets it be cached.
+   */
+  private withMood(request: ChatCompletionRequest, vapiCallId: string | null, lang: VoiceLanguage): ChatCompletionRequest {
+    const mood = callSessionStore.get(vapiCallId)?.mood ?? 'neutral';
+    const block = moodPromptBlock(mood, lang);
+    if (!block) return request;
+    return { ...request, messages: [...request.messages, { role: 'system', content: block }] };
   }
 
   /**
@@ -191,7 +264,15 @@ class LlmStreamService {
           Authorization: `Bearer ${env.OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...request, model, stream: true }),
+        // `include_usage` makes OpenAI emit a final chunk carrying token counts
+        // including `cached_tokens` — the only way to verify the cache is
+        // actually engaging rather than assume it from the config.
+        body: JSON.stringify({
+          ...request,
+          model,
+          stream: true,
+          stream_options: { include_usage: true },
+        }),
       });
     } catch (error) {
       clearTimeout(firstTokenTimer);
@@ -219,7 +300,10 @@ class LlmStreamService {
           callSessionStore.markLatency(vapiCallId, 'llmFirstDelta');
           sawFirstChunk = true;
         }
-        stream.write(decoder.decode(value, { stream: true }));
+        const text = decoder.decode(value, { stream: true });
+        const usage = parseUsageChunk(text);
+        if (usage) callSessionStore.recordTokens(vapiCallId, usage);
+        stream.write(text);
       }
     } finally {
       clearTimeout(firstTokenTimer);

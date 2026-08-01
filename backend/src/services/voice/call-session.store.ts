@@ -1,5 +1,6 @@
 import { logger } from '../../config/logger';
 import { CallLatencyTracker } from './latency-tracker';
+import type { CallerMood } from './caller-mood';
 
 /**
  * In-process state for calls that are currently on the line (Phase 1.3).
@@ -57,6 +58,10 @@ export interface CallSession {
   assistantSpeakingSince: number | null;
   /** Interruptions that cut a substantive utterance, not a backchannel. */
   hardBargeIns: number;
+  /** Live read on how the caller sounds — drives register, never permissions. */
+  mood: CallerMood;
+  /** Token accounting, so the prompt cache is verified rather than assumed. */
+  tokens: { input: number; cached: number; output: number };
 }
 
 /** A slot promised on a live call, so a parallel call cannot double-book it. */
@@ -133,6 +138,8 @@ class CallSessionStore {
       latency: new CallLatencyTracker(),
       assistantSpeakingSince: null,
       hardBargeIns: 0,
+      mood: 'neutral',
+      tokens: { input: 0, cached: 0, output: 0 },
     };
     this.sessions.set(input.vapiCallId, session);
     return session;
@@ -178,6 +185,19 @@ class CallSessionStore {
       case 'assistantSpeechStart':
         return session.latency.markAssistantSpeechStart();
     }
+  }
+
+  setMood(vapiCallId: string | null, mood: CallerMood): void {
+    const session = this.get(vapiCallId);
+    if (session) session.mood = mood;
+  }
+
+  recordTokens(vapiCallId: string | null, usage: { input: number; cached: number; output: number }): void {
+    const session = this.get(vapiCallId);
+    if (!session) return;
+    session.tokens.input += usage.input;
+    session.tokens.cached += usage.cached;
+    session.tokens.output += usage.output;
   }
 
   recordDeflection(vapiCallId: string | null): void {
