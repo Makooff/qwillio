@@ -140,23 +140,31 @@ class LlmStreamService {
     stream: StreamHandle,
   ): Promise<void> {
     const started = Date.now();
+    callSessionStore.markLatency(vapiCallId, 'llmStart');
     const plan = this.plan(request, lang);
 
     if (plan.mode === 'local') {
       callSessionStore.recordDeflection(vapiCallId);
       logger.debug(`[VoiceLLM] deflected (${plan.decision.kind}) for ${clientId} — no model call`);
+      // A deflected turn still closes the LLM stage: it is a real turn that
+      // took sub-millisecond instead of a round-trip, and omitting it would
+      // flatter the median rather than reflect it.
+      callSessionStore.markLatency(vapiCallId, 'llmFirstDelta');
       // An empty reply is the correct answer to a backchannel: the caller said
       // "mhm", a human receptionist says nothing and keeps listening.
       emitLocal(stream, plan.reply, plan.model);
+      callSessionStore.markLatency(vapiCallId, 'llmEnd');
       return;
     }
 
     try {
-      await this.proxy(request, plan.model, stream);
+      await this.proxy(request, plan.model, stream, vapiCallId);
+      callSessionStore.markLatency(vapiCallId, 'llmEnd');
       logger.debug(`[VoiceLLM] ${plan.model} turn for ${clientId} in ${Date.now() - started}ms`);
     } catch (error) {
       logger.error(`[VoiceLLM] proxy failed for ${clientId}: ${(error as Error).message}`);
       emitLocal(stream, this.fallbackLine(lang), plan.model);
+      callSessionStore.markLatency(vapiCallId, 'llmEnd');
     }
   }
 
@@ -165,7 +173,12 @@ class LlmStreamService {
    * so the first token reaches the synthesiser as fast as it would have without
    * this hop.
    */
-  private async proxy(request: ChatCompletionRequest, model: string, stream: StreamHandle): Promise<void> {
+  private async proxy(
+    request: ChatCompletionRequest,
+    model: string,
+    stream: StreamHandle,
+    vapiCallId: string | null,
+  ): Promise<void> {
     const controller = new AbortController();
     const firstTokenTimer = setTimeout(() => controller.abort(), FIRST_TOKEN_TIMEOUT_MS);
 
@@ -200,8 +213,10 @@ class LlmStreamService {
         if (done) break;
         if (!sawFirstChunk) {
           // First bytes arrived: the turn is alive, the deadline no longer
-          // applies to the rest of the completion.
+          // applies to the rest of the completion. This is also the moment the
+          // LLM stage closes — everything after is generation, not waiting.
           clearTimeout(firstTokenTimer);
+          callSessionStore.markLatency(vapiCallId, 'llmFirstDelta');
           sawFirstChunk = true;
         }
         stream.write(decoder.decode(value, { stream: true }));

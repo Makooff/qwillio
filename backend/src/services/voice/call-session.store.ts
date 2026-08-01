@@ -1,4 +1,5 @@
 import { logger } from '../../config/logger';
+import { CallLatencyTracker } from './latency-tracker';
 
 /**
  * In-process state for calls that are currently on the line (Phase 1.3).
@@ -50,6 +51,8 @@ export interface CallSession {
   /** ms between the caller's last word and the assistant's first audio. */
   turnLatencies: number[];
   lastCallerSpeechEndedAt: number | null;
+  /** Per-stage timings (STT / LLM / TTS), owned by the call. */
+  latency: CallLatencyTracker;
 }
 
 /** A slot promised on a live call, so a parallel call cannot double-book it. */
@@ -118,6 +121,7 @@ class CallSessionStore {
       bookingId: null,
       turnLatencies: [],
       lastCallerSpeechEndedAt: null,
+      latency: new CallLatencyTracker(),
     };
     this.sessions.set(input.vapiCallId, session);
     return session;
@@ -139,6 +143,29 @@ class CallSessionStore {
     } else if (session.lastCallerSpeechEndedAt) {
       session.turnLatencies.push(Date.now() - session.lastCallerSpeechEndedAt);
       session.lastCallerSpeechEndedAt = null;
+    }
+  }
+
+  /** Stage marks. No-ops on an unknown call, so callers need no guard. */
+  markLatency(
+    vapiCallId: string | null,
+    mark: 'callerSpeechEnd' | 'transcriptFinal' | 'llmStart' | 'llmFirstDelta' | 'llmEnd' | 'assistantSpeechStart',
+  ): void {
+    const session = this.get(vapiCallId);
+    if (!session) return;
+    switch (mark) {
+      case 'callerSpeechEnd':
+        return session.latency.markCallerSpeechEnd();
+      case 'transcriptFinal':
+        return session.latency.markTranscriptFinal();
+      case 'llmStart':
+        return session.latency.markLlmStart();
+      case 'llmFirstDelta':
+        return session.latency.markLlmFirstDelta();
+      case 'llmEnd':
+        return session.latency.markLlmEnd();
+      case 'assistantSpeechStart':
+        return session.latency.markAssistantSpeechStart();
     }
   }
 

@@ -178,6 +178,9 @@ class RealtimeOrchestratorService {
     callSessionStore.appendTranscript(vapiCallId, role, text);
     if (role !== 'user' || !session) return null;
 
+    // Closes the STT stage: the caller stopped talking, this is the transcript.
+    callSessionStore.markLatency(vapiCallId, 'transcriptFinal');
+
     // Phase 3: classify the caller's turn. On the custom-LLM path the decision
     // is what actually skips the model (see llm-stream.service); on Vapi's own
     // OpenAI path it only feeds the deflection stats, because Vapi owns the
@@ -196,12 +199,25 @@ class RealtimeOrchestratorService {
    */
   handleSpeechUpdate(event: VapiEvent): void {
     const msg = unwrap(event);
-    if (msg.role === 'user' && msg.status === 'started') {
-      const session = callSessionStore.get(callIdOf(event));
-      // Only counts as a barge-in if the assistant currently holds the floor,
-      // which Vapi signals by sending the user speech-start while an assistant
-      // utterance is open.
-      if (session && msg.turn !== 0) callSessionStore.recordBargeIn(session.vapiCallId);
+    const vapiCallId = callIdOf(event);
+
+    if (msg.role === 'user') {
+      if (msg.status === 'started') {
+        const session = callSessionStore.get(vapiCallId);
+        // Only counts as a barge-in if the assistant currently holds the floor,
+        // which Vapi signals by sending the user speech-start while an assistant
+        // utterance is open.
+        if (session && msg.turn !== 0) callSessionStore.recordBargeIn(session.vapiCallId);
+      } else if (msg.status === 'stopped') {
+        // Opens the turn: everything downstream is measured from this instant.
+        callSessionStore.markLatency(vapiCallId, 'callerSpeechEnd');
+      }
+      return;
+    }
+
+    if (msg.role === 'assistant' && msg.status === 'started') {
+      // Closes TTS and the turn — the caller is hearing audio now.
+      callSessionStore.markLatency(vapiCallId, 'assistantSpeechStart');
     }
   }
 
@@ -260,6 +276,12 @@ class RealtimeOrchestratorService {
     const transcript: string = msg.transcript || event.transcript || session?.transcript.join('\n') || '';
     const durationSeconds: number = msg.call?.duration ?? msg.durationSeconds ?? event.call?.duration ?? 0;
 
+    if (session) {
+      // Vapi's own numbers, when present, sit next to ours rather than
+      // replacing them: disagreement between the two is itself a signal.
+      session.latency.attachVendorMetrics(msg.performanceMetrics ?? msg.performance ?? null);
+    }
+
     const metrics = session
       ? {
           callerTurns: session.callerTurns,
@@ -270,15 +292,17 @@ class RealtimeOrchestratorService {
           lead: session.lead,
           leadActivityId: session.leadActivityId,
           medianTurnLatencyMs: median(session.turnLatencies),
+          latency: session.latency.snapshot(),
         }
       : null;
 
     if (metrics) {
       logger.info(
         `[Voice] call ${vapiCallId} ended — ${metrics.callerTurns} turns, ` +
-          `${metrics.deflectedTurns} deflected, ${metrics.bargeIns} barge-ins, ` +
-          `median turn latency ${metrics.medianTurnLatencyMs ?? 'n/a'}ms`
+          `${metrics.deflectedTurns} deflected, ${metrics.bargeIns} barge-ins`
       );
+      // Per-stage line: this is what says WHICH stage owns a slow call.
+      logger.info(`[Voice] call ${vapiCallId} latency — ${session!.latency.summaryLine()}`);
     }
 
     return { transcript, durationSeconds, callerNumber: callerNumberOf(event), metrics };
