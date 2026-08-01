@@ -6,6 +6,7 @@ import { isKnownTool } from './voice-tools';
 import { callSessionStore } from './call-session.store';
 import { callerMemoryService } from './caller-memory.service';
 import { businessMemoryService } from './business-memory.service';
+import { availabilitySpeculator } from './availability-speculator';
 
 /**
  * Tool runtime (Phase 4).
@@ -154,21 +155,10 @@ class ToolRuntimeService {
         : 'INVALID DATE: ask the caller which day they would like.';
     }
 
-    const client = await prisma.client.findUnique({
-      where: { id: profile.clientId },
-      select: { googleCalendarRefreshToken: true, googleCalendarId: true },
-    });
-    if (!client?.googleCalendarRefreshToken) {
-      throw new Error('calendar not connected');
-    }
-
-    const accessToken = await withTimeout(
-      googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken),
-      EXTERNAL_TIMEOUT_MS,
-      'google token',
-    );
+    // Single read path, shared with the speculator: a day already pre-loaded
+    // from the transcript is served from cache and costs nothing here.
     const slots = await withTimeout(
-      googleCalendarService.getAvailability(accessToken, client.googleCalendarId || 'primary', date),
+      availabilitySpeculator.freeSlots(profile.clientId, date),
       EXTERNAL_TIMEOUT_MS,
       'freeBusy',
     );

@@ -10,6 +10,7 @@ import { buildSystemPrompt, firstMessageVariants } from './system-prompt';
 import { greetingAudioService } from './greeting-audio.service';
 import { routeIntent } from './intent-router';
 import { assessMood } from './caller-mood';
+import { availabilitySpeculator, detectDate } from './availability-speculator';
 import { businessMemoryService } from './business-memory.service';
 import { callerMemoryService } from './caller-memory.service';
 import { toolRuntimeService, type ToolCallInput, type ToolCallResult } from './tool-runtime.service';
@@ -215,6 +216,14 @@ class RealtimeOrchestratorService {
       logger.info(`[Voice] caller mood → ${assessed.mood} (${assessed.signals.join(', ')})`);
     }
 
+    // The caller just named a day: start the calendar read now rather than
+    // waiting for the model to ask for it. Reads only, capped per call, and a
+    // failure is silent — the real tool call runs the normal path.
+    const spokenDate = detectDate(text, session.language);
+    if (spokenDate) {
+      availabilitySpeculator.speculate(session.clientId, vapiCallId, spokenDate);
+    }
+
     // Phase 3: classify the caller's turn. On the custom-LLM path the decision
     // is what actually skips the model (see llm-stream.service); on Vapi's own
     // OpenAI path it only feeds the deflection stats, because Vapi owns the
@@ -312,6 +321,7 @@ class RealtimeOrchestratorService {
     if (!vapiCallId) return null;
 
     const session = callSessionStore.end(vapiCallId);
+    availabilitySpeculator.release(vapiCallId);
     // Vapi's report is authoritative; our buffer is the fallback when the
     // process restarted mid-call and lost the session.
     const transcript: string = msg.transcript || event.transcript || session?.transcript.join('\n') || '';
