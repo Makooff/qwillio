@@ -54,6 +54,30 @@ export const env = {
   VAPI_MAX_DURATION: parseInt(process.env.VAPI_MAX_DURATION || '480', 10), // 8 minutes
   VAPI_WEBHOOK_SECRET: process.env.VAPI_WEBHOOK_SECRET || '',
 
+  // ─── Real-time voice pipeline ───
+  // Every value below trades perceived latency against a failure mode; the
+  // defaults are the tuned pair. See services/voice/speech-plans.ts.
+  /** Silence (ms) after speech before a final transcript is flushed. */
+  VOICE_ENDPOINTING_MS: parseInt(process.env.VOICE_ENDPOINTING_MS || '150', 10),
+  /** Hard floor before the assistant may answer. Smart endpointing sits on top. */
+  VOICE_START_WAIT_SECONDS: parseFloat(process.env.VOICE_START_WAIT_SECONDS || '0.12'),
+  /** Voiced audio required from the caller before outbound audio is cut. */
+  VOICE_BARGE_IN_VOICE_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_VOICE_SECONDS || '0.2'),
+  /** Silence the assistant keeps after being interrupted, before speaking again. */
+  VOICE_BARGE_IN_BACKOFF_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_BACKOFF_SECONDS || '1.0'),
+  /** First TTS chunk size — smaller means audio starts sooner. */
+  VOICE_TTS_MIN_CHUNK_CHARS: parseInt(process.env.VOICE_TTS_MIN_CHUNK_CHARS || '20', 10),
+  /** Cap on a single assistant turn; long completions are long silences. */
+  VOICE_MAX_COMPLETION_TOKENS: parseInt(process.env.VOICE_MAX_COMPLETION_TOKENS || '120', 10),
+  /** How long a running tool waits before the second filler line fires. */
+  VOICE_FILLER_DELAY_MS: parseInt(process.env.VOICE_FILLER_DELAY_MS || '1200', 10),
+  /** Vapi-side tool timeout; the runtime's own ceiling is lower. */
+  VOICE_TOOL_TIMEOUT_SECONDS: parseInt(process.env.VOICE_TOOL_TIMEOUT_SECONDS || '8', 10),
+  /** Client profile cache TTL. Invalidated explicitly on config changes. */
+  VOICE_CONTEXT_TTL_MS: parseInt(process.env.VOICE_CONTEXT_TTL_MS || '300000', 10),
+  /** Optional shared cache. Absent = per-process in-memory cache. */
+  REDIS_URL: process.env.REDIS_URL || '',
+
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
   STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY || '',
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',

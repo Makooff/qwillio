@@ -6,6 +6,8 @@ import { emailService } from './email.service';
 import { discordService } from './discord.service';
 import { resolveCharacter } from '../config/voice-characters';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
+import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
+import { realtimeContextService } from './voice/realtime-context.service';
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2000; // 2s, 4s, 8s exponential backoff
@@ -69,34 +71,21 @@ export class OnboardingService {
           temperature: 0.7,
           messages: [{ role: 'system', content: systemPrompt }],
         },
-        voice: {
-          provider: '11labs',
-          // Selected character's voice: matches the caller's language and the
-          // chosen personality (French clients get a French voice, not the
-          // English default). Character is env-overridable per id.
+        // Voice, transcriber and the start/stop speaking plans all come from
+        // the real-time module so an onboarded assistant is born with the same
+        // barge-in and endpointing tuning the orchestrator applies per call.
+        voice: buildVoice({
           voiceId: character.voiceId,
-          model: character.model,
           stability: character.stability,
           similarityBoost: character.similarityBoost,
           style: character.style,
-          useSpeakerBoost: true,
-          optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
-          fallbackPlan: {
-            voices: [
-              { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1 },
-              { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2 },
-            ],
-          },
-        },
+        }),
         firstMessage: this.generateFirstMessage(client, isFrClient),
+        ...buildRealtimePlans(isFrClient ? 'fr' : 'en'),
         serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
         endCallFunctionEnabled: true,
         recordingEnabled: true,
         backgroundSound: 'office',
-        silenceTimeoutSeconds: env.VAPI_SILENCE_TIMEOUT,
-        maxDurationSeconds: env.VAPI_MAX_DURATION,
-        interruptionsEnabled: true,
-        numWordsToInterruptAssistant: Math.round(env.VAPI_INTERRUPTION_THRESHOLD / 50),
       };
 
       // Only add tools if we have any
@@ -710,16 +699,14 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
         messages: [{ role: 'system', content: systemPrompt }],
       },
       // Keep the voice in sync when the client switches character.
-      voice: {
-        provider: '11labs',
+      voice: buildVoice({
         voiceId: character.voiceId,
-        model: character.model,
         stability: character.stability,
         similarityBoost: character.similarityBoost,
         style: character.style,
-        useSpeakerBoost: true,
-      },
+      }),
       firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
+      ...buildRealtimePlans(this.isFrenchClient(client) ? 'fr' : 'en'),
       serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
     };
 
@@ -730,6 +717,8 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 
     try {
       await vapiClient.updateAssistant(client.vapiAssistantId, updatedConfig);
+      // The next call must not be greeted by the cached previous persona.
+      await realtimeContextService.invalidateClient(client.id);
       logger.info(`VAPI assistant ${client.vapiAssistantId} synced for ${client.businessName}`);
     } catch (error) {
       logger.error(`Failed to update VAPI assistant ${client.vapiAssistantId}:`, error);

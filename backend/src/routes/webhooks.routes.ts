@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { webhooksController } from '../controllers/webhooks.controller';
+import { voiceWebhookController } from '../controllers/voice-webhook.controller';
 import { validateTwilioSignature } from '../middleware/twilio.middleware';
 
 const router = Router();
@@ -7,9 +8,15 @@ const router = Router();
 // Stripe webhook - needs raw body for signature verification
 router.post('/stripe', (req, res) => webhooksController.stripeWebhook(req, res));
 
-// VAPI webhooks
+// VAPI outbound prospecting webhooks (Ashley calling prospects)
 router.post('/vapi', (req, res) => webhooksController.vapiWebhook(req, res));
-router.post('/vapi/client/:clientId', (req, res) => webhooksController.vapiClientWebhook(req, res));
+
+// VAPI inbound receptionist — real-time streaming orchestrator.
+// `/tools/:clientId` is a separate path so the round-trip the caller is waiting
+// on never queues behind transcript telemetry on the same route.
+router.post('/vapi/client/:clientId', (req, res) => voiceWebhookController.clientEvent(req, res));
+router.post('/vapi/tools/:clientId', (req, res) => voiceWebhookController.toolCall(req, res));
+router.get('/vapi/health', (req, res) => voiceWebhookController.health(req, res));
 
 // Twilio inbound SMS — handles prospect email corrections via SMS reply
 router.post('/twilio/sms', validateTwilioSignature, (req, res) => webhooksController.twilioInboundSMS(req, res));
