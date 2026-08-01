@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
 import { normalizeUtterance } from './intent-router';
+import { knowledgeEmbeddingsService } from './knowledge-embeddings.service';
 import type { VoiceLanguage } from './speech-plans';
 
 /**
@@ -85,12 +86,19 @@ class BusinessMemoryService {
   }
 
   /**
-   * Keyword search over the full knowledge base, for the on-demand tool.
+   * Search the knowledge base for the on-demand tool.
    *
-   * Deliberately not a vector search: at the scale a single business has
-   * (tens to low hundreds of entries), scoring on normalised token overlap is
-   * both accurate enough and free, and it adds no embedding round-trip to a
-   * turn the caller is waiting on.
+   * Two layers, in this order:
+   *
+   *  - **Semantic**, but only once the base is large enough to justify an
+   *    embedding round-trip on a turn the caller is waiting through. It is what
+   *    matches "vous avez un parking ?" against an entry titled "Où se garer" —
+   *    the case the lexical score cannot reach, since they share no word.
+   *  - **Lexical** token overlap, which answers a small base accurately and for
+   *    free, and which also catches every failure of the layer above.
+   *
+   * The lexical pass is a fallback rather than an else branch on purpose: an
+   * empty semantic result means "unavailable", never "nothing matched".
    */
   async search(clientId: string, query: string): Promise<KnowledgeEntry[]> {
     const normalised = normalizeUtterance(query);
@@ -99,6 +107,24 @@ class BusinessMemoryService {
     if (!queryTokens.size) return [];
 
     const entries = await this.all(clientId);
+    if (!entries.length) return [];
+
+    // Semantic first, but only on a base big enough to justify the round-trip.
+    // An empty result means "unavailable", never "nothing matched" — the
+    // lexical score below is the answer in both the small-base and failure
+    // cases, which is why it is not an else branch but a fallback.
+    if (knowledgeEmbeddingsService.shouldUseEmbeddings(entries.length)) {
+      const ranked = await knowledgeEmbeddingsService.rank(clientId, query);
+      if (ranked.length) {
+        const byId = new Map(entries.map(e => [e.id, e]));
+        const hits = ranked
+          .map(r => byId.get(r.id))
+          .filter((e): e is KnowledgeEntry => Boolean(e))
+          .slice(0, SEARCH_RESULT_LIMIT);
+        if (hits.length) return hits;
+      }
+    }
+
     const scored = entries
       .map(entry => ({ entry, score: this.score(entry, queryTokens) }))
       .filter(s => s.score > 0)

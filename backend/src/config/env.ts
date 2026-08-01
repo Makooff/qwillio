@@ -107,6 +107,16 @@ export const env = {
    * next call picks it up.
    */
   VOICE_CUSTOM_LLM_DEFAULT: process.env.VOICE_CUSTOM_LLM_DEFAULT !== 'false',
+  /**
+   * Semantic search over the knowledge base. The lexical score answers a small
+   * base correctly and for free, so embeddings only engage above the threshold:
+   * a client with a dozen FAQ entries must not pay a round-trip on a turn the
+   * caller is waiting through.
+   */
+  VOICE_EMBEDDING_ENABLED: process.env.VOICE_EMBEDDING_ENABLED !== 'false',
+  VOICE_EMBEDDING_MIN_ENTRIES: parseInt(process.env.VOICE_EMBEDDING_MIN_ENTRIES || '25', 10),
+  /** Changing this re-embeds the base rather than mixing two vector spaces. */
+  VOICE_EMBEDDING_MODEL: process.env.VOICE_EMBEDDING_MODEL || 'text-embedding-3-small',
   /** Optional shared cache. Absent = per-process in-memory cache. */
   REDIS_URL: process.env.REDIS_URL || '',
 

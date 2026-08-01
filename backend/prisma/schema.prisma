@@ -1894,6 +1894,11 @@ model BusinessKnowledge {
   content   String
   /// Alternate phrasings that should match this entry.
   keywords  String[] @default([])
+  /// Embedding of title + content, for semantic search on large bases.
+  /// Empty until generated; the lexical score is what runs in the meantime.
+  embedding Float[]  @default([])
+  /// Model that produced `embedding`, so a model change invalidates cleanly.
+  embeddingModel String? @map("embedding_model") @db.VarChar(100)
   /// Higher wins when the prompt budget forces a trim.
   priority  Int      @default(0)
   isActive  Boolean  @default(true) @map("is_active")
