@@ -163,15 +163,50 @@ export function buildSystemPrompt(
   return lines.join('\n\n');
 }
 
-/** Opening line. Short: the caller is waiting for a human-sounding hello. */
-export function buildFirstMessage(profile: ClientVoiceProfile, caller: CallerHistory): string {
+/**
+ * Opening lines. Short: the caller is waiting for a human-sounding hello.
+ *
+ * Three variants rather than one, because a regular who phones twice a week
+ * hears the identical sentence word for word and concludes they are talking to
+ * a recording — before the agent has had a chance to be good at anything else.
+ * A real receptionist never says hello the same way twice.
+ *
+ * Exported so the pre-synthesis job (chantier 8) can generate audio for every
+ * variant instead of guessing which one will be picked.
+ */
+export function firstMessageVariants(profile: ClientVoiceProfile, knownName: string | null): string[] {
   const fr = profile.language === 'fr';
-  if (caller.knownName) {
+  const { businessName, agentName } = profile;
+
+  // A caller we recognise gets their name, which matters far more than variety.
+  if (knownName) {
     return fr
-      ? `${profile.businessName}, bonjour ${caller.knownName}, c'est ${profile.agentName}. Que puis-je faire pour vous ?`
-      : `${profile.businessName}, hi ${caller.knownName}, it's ${profile.agentName}. What can I do for you?`;
+      ? [
+          `${businessName}, bonjour ${knownName}, c'est ${agentName}. Que puis-je faire pour vous ?`,
+          `${businessName}, bonjour ${knownName} ! ${agentName} à l'appareil, je vous écoute.`,
+          `${businessName}, rebonjour ${knownName}, c'est ${agentName}. Qu'est-ce qui vous amène ?`,
+        ]
+      : [
+          `${businessName}, hi ${knownName}, it's ${agentName}. What can I do for you?`,
+          `${businessName}, hi ${knownName}! ${agentName} here, go ahead.`,
+          `${businessName}, welcome back ${knownName}, it's ${agentName}. What can I help with?`,
+        ];
   }
+
   return fr
-    ? `${profile.businessName}, bonjour, ${profile.agentName} à l'appareil. Que puis-je faire pour vous ?`
-    : `Thanks for calling ${profile.businessName}, this is ${profile.agentName}. How can I help?`;
+    ? [
+        `${businessName}, bonjour, ${agentName} à l'appareil. Que puis-je faire pour vous ?`,
+        `${businessName}, bonjour ! C'est ${agentName}, je vous écoute.`,
+        `${businessName}, bonjour, ${agentName}. Qu'est-ce que je peux faire pour vous ?`,
+      ]
+    : [
+        `Thanks for calling ${businessName}, this is ${agentName}. How can I help?`,
+        `${businessName}, good day, ${agentName} speaking. What can I do for you?`,
+        `${businessName}, hi there, it's ${agentName}. How can I help you today?`,
+      ];
+}
+
+export function buildFirstMessage(profile: ClientVoiceProfile, caller: CallerHistory): string {
+  const variants = firstMessageVariants(profile, caller.knownName);
+  return variants[Math.floor(Math.random() * variants.length)];
 }

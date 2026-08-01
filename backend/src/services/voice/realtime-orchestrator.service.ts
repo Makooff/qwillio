@@ -207,6 +207,8 @@ class RealtimeOrchestratorService {
         // Only counts as a barge-in if the assistant currently holds the floor,
         // which Vapi signals by sending the user speech-start while an assistant
         // utterance is open.
+        // The store decides whether this was a real interruption or just the
+        // caller talking through a backchannel.
         if (session && msg.turn !== 0) callSessionStore.recordBargeIn(session.vapiCallId);
       } else if (msg.status === 'stopped') {
         // Opens the turn: everything downstream is measured from this instant.
@@ -215,9 +217,14 @@ class RealtimeOrchestratorService {
       return;
     }
 
-    if (msg.role === 'assistant' && msg.status === 'started') {
-      // Closes TTS and the turn — the caller is hearing audio now.
-      callSessionStore.markLatency(vapiCallId, 'assistantSpeechStart');
+    if (msg.role === 'assistant') {
+      if (msg.status === 'started') {
+        // Closes TTS and the turn — the caller is hearing audio now.
+        callSessionStore.markLatency(vapiCallId, 'assistantSpeechStart');
+        callSessionStore.assistantStartedSpeaking(vapiCallId);
+      } else if (msg.status === 'stopped') {
+        callSessionStore.assistantStoppedSpeaking(vapiCallId);
+      }
     }
   }
 
@@ -287,6 +294,7 @@ class RealtimeOrchestratorService {
           callerTurns: session.callerTurns,
           deflectedTurns: session.deflectedTurns,
           bargeIns: session.bargeIns,
+          hardBargeIns: session.hardBargeIns,
           toolCalls: session.toolCalls,
           bookingId: session.bookingId,
           lead: session.lead,

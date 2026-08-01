@@ -78,6 +78,24 @@ export const env = {
   /** Cheap tier for conversational turns that still need a model. */
   VOICE_SMALL_MODEL: process.env.VOICE_SMALL_MODEL || 'gpt-4o-mini',
   /**
+   * Assistant acknowledgements emitted while the caller is still talking.
+   * Off makes the agent read as a machine even at perfect latency; too eager
+   * makes it read as interrupting. The two delays below are the throttle.
+   */
+  VOICE_BACKCHANNEL_ENABLED: process.env.VOICE_BACKCHANNEL_ENABLED !== 'false',
+  /** Caller must talk this long before the first acknowledgement. */
+  VOICE_BACKCHANNEL_START_DELAY_SECONDS: parseFloat(process.env.VOICE_BACKCHANNEL_START_DELAY_SECONDS || '2.5'),
+  /** Minimum gap between two acknowledgements. Lower sounds like a parrot. */
+  VOICE_BACKCHANNEL_FREQUENCY_SECONDS: parseFloat(process.env.VOICE_BACKCHANNEL_FREQUENCY_SECONDS || '4'),
+  /**
+   * Silence before the agent asks whether the caller is still there. Distinct
+   * from VAPI_SILENCE_TIMEOUT, which is the hang-up deadline: by ten seconds the
+   * caller has already decided the line dropped.
+   */
+  VOICE_IDLE_NUDGE_SECONDS: parseFloat(process.env.VOICE_IDLE_NUDGE_SECONDS || '4'),
+  /** How many times to nudge before letting the silence timeout end the call. */
+  VOICE_IDLE_NUDGE_COUNT: parseInt(process.env.VOICE_IDLE_NUDGE_COUNT || '2', 10),
+  /**
    * Custom-LLM path for every client. ON by default: it is what makes the
    * intent router actually skip the model instead of only counting the turns it
    * could have skipped, and what routes easy turns to the cheap tier.

@@ -1,4 +1,5 @@
 import { env } from '../../config/env';
+import { buildIdleMessagePlan } from './conversational-repair';
 
 /**
  * Real-time speech plans for the Vapi pipeline.
@@ -146,6 +147,38 @@ export function buildVoice(opts: {
 }
 
 /**
+ * Backchannels — the assistant saying "mm-hmm" WHILE the caller is talking.
+ *
+ * This is the largest remaining humanity gap, and it is independent of latency:
+ * an agent that stays perfectly silent through a twenty-second explanation and
+ * then answers instantly still reads as a machine, because humans acknowledge
+ * continuously.
+ *
+ * The words deliberately do NOT overlap with `stopSpeakingPlan.acknowledgementPhrases`
+ * beyond what is unavoidable. That list tells Vapi "if the CALLER says this,
+ * it is not an interruption"; this one is what the ASSISTANT emits. Sharing a
+ * vocabulary is fine — they are evaluated on different audio streams — but the
+ * assistant's set is kept short and low-energy on purpose: a backchannel that
+ * carries meaning ("yes", "oui") reads as agreement to whatever was just said,
+ * which is a promise nobody made.
+ */
+export function buildBackchannelPlan(lang: VoiceLanguage) {
+  return {
+    enabled: env.VOICE_BACKCHANNEL_ENABLED,
+    // Non-committal by design: never "yes", never "d'accord".
+    words:
+      lang === 'fr'
+        ? ['mm-hmm', 'hm-hm', 'mhm', 'je vois']
+        : ['mm-hmm', 'uh-huh', 'right', 'i see'],
+    // How long the caller must have been talking before the first one fires.
+    // Below this the caller is still forming a sentence and an interjection
+    // sounds like an interruption rather than attention.
+    responseFrequencySeconds: env.VOICE_BACKCHANNEL_FREQUENCY_SECONDS,
+    startDelaySeconds: env.VOICE_BACKCHANNEL_START_DELAY_SECONDS,
+  };
+}
+
+/**
  * The full real-time block shared by inbound receptionist assistants and
  * outbound call overrides. Everything here is latency- or interruption-related;
  * business config (prompt, tools, first message) is layered on by the caller.
@@ -155,6 +188,10 @@ export function buildRealtimePlans(lang: VoiceLanguage) {
     transcriber: buildTranscriber(lang),
     startSpeakingPlan: buildStartSpeakingPlan(lang),
     stopSpeakingPlan: buildStopSpeakingPlan(),
+    backchannelingEnabled: env.VOICE_BACKCHANNEL_ENABLED,
+    backchannelPlan: buildBackchannelPlan(lang),
+    // Nudge long before the hang-up deadline below: they are different events.
+    messagePlan: buildIdleMessagePlan(lang, env.VOICE_IDLE_NUDGE_SECONDS, env.VOICE_IDLE_NUDGE_COUNT),
     // Streams the first message as soon as the channel is up instead of waiting
     // for the model to be primed.
     firstMessageMode: 'assistant-speaks-first',

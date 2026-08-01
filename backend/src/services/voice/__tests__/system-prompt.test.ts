@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFirstMessage, buildSystemPrompt } from '../system-prompt';
+import { buildFirstMessage, buildSystemPrompt, firstMessageVariants } from '../system-prompt';
 import type { CallerHistory, ClientVoiceProfile } from '../realtime-context.service';
 
 const profile: ClientVoiceProfile = {
@@ -105,5 +105,38 @@ describe('buildFirstMessage', () => {
     const msg = buildFirstMessage(profile, newCaller);
     expect(msg).toContain('Le Comptoir');
     expect(msg).toContain('Camille');
+  });
+});
+
+describe('firstMessageVariants', () => {
+  it('offers several distinct openings — a regular must not hear a recording', () => {
+    const variants = firstMessageVariants(profile, null);
+    expect(variants.length).toBeGreaterThan(1);
+    expect(new Set(variants).size).toBe(variants.length);
+  });
+
+  it('names every variant after the business and the agent', () => {
+    for (const v of firstMessageVariants(profile, null)) {
+      expect(v).toContain('Le Comptoir');
+      expect(v).toContain('Camille');
+    }
+  });
+
+  it('uses the caller name in every variant when we know it', () => {
+    for (const v of firstMessageVariants(profile, 'Julien')) {
+      expect(v).toContain('Julien');
+    }
+  });
+
+  it('keeps openings short — this is the sentence the caller judges', () => {
+    for (const v of firstMessageVariants(profile, null)) {
+      expect(v.length).toBeLessThan(120);
+    }
+  });
+
+  it('switches language with the profile', () => {
+    for (const v of firstMessageVariants({ ...profile, language: 'en', agentName: 'Ashley' }, null)) {
+      expect(v).not.toMatch(/bonjour/i);
+    }
   });
 });

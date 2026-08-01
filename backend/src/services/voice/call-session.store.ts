@@ -53,6 +53,10 @@ export interface CallSession {
   lastCallerSpeechEndedAt: number | null;
   /** Per-stage timings (STT / LLM / TTS), owned by the call. */
   latency: CallLatencyTracker;
+  /** When the assistant started its current utterance, null when silent. */
+  assistantSpeakingSince: number | null;
+  /** Interruptions that cut a substantive utterance, not a backchannel. */
+  hardBargeIns: number;
 }
 
 /** A slot promised on a live call, so a parallel call cannot double-book it. */
@@ -67,6 +71,11 @@ interface SlotHold {
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const SLOT_HOLD_TTL_MS = 5 * 60 * 1000;
 const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+/**
+ * An assistant utterance shorter than this was a backchannel, not a sentence.
+ * Cutting one off is not an interruption worth counting or apologising for.
+ */
+const MIN_UTTERANCE_FOR_HARD_BARGE_IN_MS = 900;
 
 class CallSessionStore {
   private sessions = new Map<string, CallSession>();
@@ -122,6 +131,8 @@ class CallSessionStore {
       turnLatencies: [],
       lastCallerSpeechEndedAt: null,
       latency: new CallLatencyTracker(),
+      assistantSpeakingSince: null,
+      hardBargeIns: 0,
     };
     this.sessions.set(input.vapiCallId, session);
     return session;
@@ -174,9 +185,37 @@ class CallSessionStore {
     if (session) session.deflectedTurns++;
   }
 
-  recordBargeIn(vapiCallId: string | null): void {
+  assistantStartedSpeaking(vapiCallId: string | null, at = Date.now()): void {
     const session = this.get(vapiCallId);
-    if (session) session.bargeIns++;
+    if (session) session.assistantSpeakingSince = at;
+  }
+
+  assistantStoppedSpeaking(vapiCallId: string | null): void {
+    const session = this.get(vapiCallId);
+    if (session) session.assistantSpeakingSince = null;
+  }
+
+  /**
+   * Record an interruption and report whether it was a HARD one.
+   *
+   * Now that the assistant emits backchannels while the caller talks, a naive
+   * counter would log a barge-in every time the caller keeps going after an
+   * "mm-hmm" — which is not an interruption at all, it is the backchannel
+   * working. Anything shorter than the floor is treated as such.
+   *
+   * The same distinction drives the recovery line: apologising for cutting the
+   * caller off only makes sense when the assistant was genuinely mid-sentence.
+   */
+  recordBargeIn(vapiCallId: string | null, at = Date.now()): boolean {
+    const session = this.get(vapiCallId);
+    if (!session) return false;
+    session.bargeIns++;
+
+    const speakingFor = session.assistantSpeakingSince === null ? 0 : at - session.assistantSpeakingSince;
+    const isHard = speakingFor >= MIN_UTTERANCE_FOR_HARD_BARGE_IN_MS;
+    if (isHard) session.hardBargeIns++;
+    session.assistantSpeakingSince = null;
+    return isHard;
   }
 
   recordToolCall(vapiCallId: string | null, name: string, ms: number): void {
