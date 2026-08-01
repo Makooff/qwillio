@@ -11,6 +11,7 @@ import { greetingAudioService } from './greeting-audio.service';
 import { routeIntent } from './intent-router';
 import { assessMood } from './caller-mood';
 import { availabilitySpeculator, detectDate } from './availability-speculator';
+import { warmTransferService } from './warm-transfer.service';
 import { businessMemoryService } from './business-memory.service';
 import { callerMemoryService } from './caller-memory.service';
 import { toolRuntimeService, type ToolCallInput, type ToolCallResult } from './tool-runtime.service';
@@ -182,6 +183,25 @@ class RealtimeOrchestratorService {
         language: profile?.language ?? 'en',
       });
     }
+  }
+
+  /**
+   * `transfer-destination-request` — Vapi asks where to send the caller.
+   *
+   * Both parties are waiting on this answer, so it reads memory only: the brief
+   * is built from the transcript buffer, and the SMS is fired without being
+   * awaited.
+   */
+  async handleTransferRequest(clientId: string, event: VapiEvent) {
+    const vapiCallId = callIdOf(event);
+    const profile = await realtimeContextService.getClientProfile(clientId);
+    if (!profile?.transferNumber) return null;
+
+    const brief = warmTransferService.brief(profile, vapiCallId);
+    warmTransferService.notify(profile, brief);
+    logger.info(`[Voice] warm transfer for ${profile.businessName}: ${brief.reason}`);
+
+    return { destination: warmTransferService.destination(profile, brief) };
   }
 
   /**

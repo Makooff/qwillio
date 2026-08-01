@@ -108,7 +108,18 @@ export class VoiceWebhookController {
           return;
         }
 
-        case 'transfer-destination-request':
+        // Both parties are waiting on the destination, so it is answered
+        // inline: the brief is built from memory and the SMS is not awaited.
+        case 'transfer-destination-request': {
+          const answer = await realtimeOrchestratorService.handleTransferRequest(clientId, event);
+          void clientCallService
+            .logTransfer(clientId, event.message?.call?.id || event.call?.id, 'initiated', event)
+            .catch(err => logger.error(`[Voice] transfer log failed for ${clientId}:`, err));
+          // No transfer number configured: an empty answer makes Vapi keep the
+          // caller with the assistant rather than dropping the call.
+          return res.json(answer ?? {});
+        }
+
         case 'transfer-update': {
           res.json({ received: true });
           const vapiCallId = event.message?.call?.id || event.call?.id;

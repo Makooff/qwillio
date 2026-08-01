@@ -280,7 +280,10 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
             lang === 'fr'
               ? 'Bien sûr, je vous mets en relation avec quelqu\'un de l\'équipe. Un instant.'
               : 'Of course, let me connect you with someone from the team. One moment.',
-          transferPlan: { mode: 'blind-transfer' },
+          // Warm: Vapi speaks a summary to the operator before bridging. The
+          // per-call summary comes from the transfer-destination-request
+          // handler; this static plan is the fallback when that is not reached.
+          transferPlan: { mode: 'warm-transfer-say-summary', summaryPlan: { enabled: true } },
         },
       ],
     });
