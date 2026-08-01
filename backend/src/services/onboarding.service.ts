@@ -8,6 +8,7 @@ import { resolveCharacter } from '../config/voice-characters';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
 import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
 import { realtimeContextService } from './voice/realtime-context.service';
+import { greetingAudioService } from './voice/greeting-audio.service';
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2000; // 2s, 4s, 8s exponential backoff
@@ -158,6 +159,10 @@ export class OnboardingService {
       await discordService.notify(
         `🎉 ${client.isTrial ? 'FREE TRIAL ACTIVATED' : 'NEW PAYING CLIENT'}!\n\nClient: ${client.businessName}\nPackage: ${client.planType.toUpperCase()}\n${revenueLabel}\nAI Phone: ${sharedPhoneNumber}\nVAPI Assistant: ${assistant.id} ✅\nHealth Check: ${isHealthy ? '✅ Passed' : '⚠️ Skipped'}`
       );
+
+      // Pre-synthesise the greetings so the very first caller already skips the
+      // TTS wait on the opening line.
+      void this.regenerateGreetings(clientId);
 
       logger.info(`✅ Onboarding completed for ${client.businessName} in ${retryCount + 1} attempt(s)`);
 
@@ -717,12 +722,29 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 
     try {
       await vapiClient.updateAssistant(client.vapiAssistantId, updatedConfig);
-      // The next call must not be greeted by the cached previous persona.
+      // The next call must not be greeted by the cached previous persona, nor
+      // by pre-synthesised audio introducing the agent under the old name.
       await realtimeContextService.invalidateClient(client.id);
+      await greetingAudioService.invalidate(client.id);
+      void this.regenerateGreetings(client.id);
       logger.info(`VAPI assistant ${client.vapiAssistantId} synced for ${client.businessName}`);
     } catch (error) {
       logger.error(`Failed to update VAPI assistant ${client.vapiAssistantId}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Rebuild the pre-synthesised greetings after a config change. Fire-and-
+   * forget: a client whose greetings are not yet generated simply falls back to
+   * live synthesis on the next call, which is what happens today anyway.
+   */
+  private async regenerateGreetings(clientId: string): Promise<void> {
+    try {
+      const profile = await realtimeContextService.getClientProfile(clientId);
+      if (profile) await greetingAudioService.generate(profile);
+    } catch (error) {
+      logger.warn(`Greeting regeneration failed for ${clientId}:`, error);
     }
   }
 

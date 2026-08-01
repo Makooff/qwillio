@@ -230,6 +230,30 @@ app.get('/ping', (_req, res) => {
   res.type('text/plain').send('pong');
 });
 
+// Pre-synthesised greeting audio, fetched by Vapi as the assistant's
+// firstMessage. Public by necessity: Vapi fetches it unauthenticated, and the
+// content is a business greeting that is spoken to anyone who calls the number
+// anyway. Cached hard — the bytes only change when the wording or voice does,
+// and that path deletes the row rather than mutating it.
+app.get('/api/voice/greeting/:clientId/:variant', async (req, res) => {
+  try {
+    const { greetingAudioService } = await import('./services/voice/greeting-audio.service');
+    const variant = Number.parseInt(req.params.variant, 10);
+    if (!Number.isInteger(variant) || variant < 0) return res.status(400).end();
+
+    const row = await greetingAudioService.fetch(req.params.clientId, variant);
+    if (!row) return res.status(404).end();
+
+    res.setHeader('Content-Type', row.mimeType);
+    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+    return res.send(row.data);
+  } catch {
+    // A failure here costs the latency optimisation, not the call: Vapi falls
+    // back to synthesising the text firstMessage.
+    return res.status(404).end();
+  }
+});
+
 // Neon keepalive, pinged every 5 minutes by .github/workflows/keepalive.yml
 // (not Vercel cron, which needed a paid plan for sub-daily schedules).
 //

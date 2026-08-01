@@ -2,11 +2,12 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
 import { env } from '../../config/env';
-import { realtimeContextService } from './realtime-context.service';
+import { realtimeContextService, type ClientVoiceProfile } from './realtime-context.service';
 import { callSessionStore } from './call-session.store';
 import { buildRealtimePlans, buildVoice } from './speech-plans';
 import { buildVoiceTools } from './voice-tools';
-import { buildFirstMessage, buildSystemPrompt } from './system-prompt';
+import { buildSystemPrompt, firstMessageVariants } from './system-prompt';
+import { greetingAudioService } from './greeting-audio.service';
 import { routeIntent } from './intent-router';
 import { assessMood } from './caller-mood';
 import { businessMemoryService } from './business-memory.service';
@@ -77,6 +78,8 @@ class RealtimeOrchestratorService {
       ? businessMemoryService.promptBlock(await businessMemoryService.all(clientId), profile.language)
       : '';
 
+    const firstMessage = await this.resolveFirstMessage(profile, caller.knownName);
+
     if (vapiCallId) {
       callSessionStore.start({ vapiCallId, clientId, callerNumber, language: profile.language });
     }
@@ -121,7 +124,7 @@ class RealtimeOrchestratorService {
         similarityBoost: character.similarityBoost,
         style: character.style,
       }),
-      firstMessage: buildFirstMessage(profile, caller),
+      firstMessage,
       ...buildRealtimePlans(profile.language),
       serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${clientId}`,
       recordingEnabled: true,
@@ -134,6 +137,27 @@ class RealtimeOrchestratorService {
         `(known caller: ${caller.previousCalls > 0})`
     );
     return assistant;
+  }
+
+  /**
+   * The opening line, as a pre-synthesised audio URL when one exists.
+   *
+   * A recognised caller is greeted by name, which is worth far more than the
+   * saved TTS milliseconds — those greetings cannot be pre-generated because
+   * they depend on who is ringing, so they stay text.
+   */
+  private async resolveFirstMessage(profile: ClientVoiceProfile, knownName: string | null): Promise<string> {
+    const variants = firstMessageVariants(profile, knownName);
+    const pick = Math.floor(Math.random() * variants.length);
+
+    if (!knownName) {
+      const audio = await greetingAudioService.available(profile.clientId);
+      // Match on the exact text: a greeting generated before a rename would
+      // otherwise introduce the agent under the old name.
+      const hit = audio.find(a => a.variant === pick && a.text === variants[pick]);
+      if (hit) return hit.url;
+    }
+    return variants[pick];
   }
 
   /**

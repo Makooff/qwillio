@@ -332,6 +332,7 @@ model Client {
   callTransfers              CallTransfer[]
   callerMemories             CallerMemory[]
   businessKnowledge          BusinessKnowledge[]
+  greetingAudio              GreetingAudio[]
   clientAnalytics            ClientAnalyticsDaily[]
   clientBookings             ClientBooking[]
   clientCalls                ClientCall[]
@@ -1903,4 +1904,32 @@ model BusinessKnowledge {
   @@index([clientId, kind, isActive])
   @@index([clientId, priority])
   @@map("business_knowledge")
+}
+
+/// Pre-synthesised greeting audio (chantier 8).
+///
+/// The opening line is stable per client, so synthesising it on every call
+/// spends the TTS time-to-first-byte on the one second where the caller decides
+/// whether they are talking to a person. Generated once, served from a public
+/// URL that Vapi plays directly as `firstMessage`.
+///
+/// Stored as bytes rather than on disk because Render's filesystem is ephemeral:
+/// a redeploy would silently drop every greeting and send every client back to
+/// live synthesis with nothing in the logs to say why.
+model GreetingAudio {
+  id        String   @id @default(uuid()) @db.Uuid
+  clientId  String   @map("client_id") @db.Uuid
+  /// Index into the greeting variants, so each one has its own audio.
+  variant   Int
+  language  String   @db.VarChar(10)
+  /// The exact text this audio speaks — the cache key for regeneration.
+  text      String
+  mimeType  String   @default("audio/mpeg") @map("mime_type") @db.VarChar(100)
+  data      Bytes
+  createdAt DateTime @default(now()) @map("created_at")
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, variant])
+  @@index([clientId])
+  @@map("greeting_audio")
 }
