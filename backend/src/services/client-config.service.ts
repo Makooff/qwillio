@@ -35,12 +35,19 @@ export function buildVapiConfigPatch(
 
   if (patch.items !== undefined) {
     const arr = Array.isArray(patch.items) ? patch.items : [];
-    next.items = arr.slice(0, 200).map((it: any) => ({
-      id:       String(it?.id || Math.random().toString(36).slice(2, 10)),
-      category: String(it?.category || 'service').slice(0, 40),
-      name:     String(it?.name || '').slice(0, 200),
-      price:    String(it?.price || '').slice(0, 80),
-    }));
+    next.items = arr
+      .slice(0, 200)
+      .map((it: any) => ({
+        id:       String(it?.id || Math.random().toString(36).slice(2, 10)),
+        category: String(it?.category || 'service').slice(0, 40),
+        name:     String(it?.name || '').trim().slice(0, 200),
+        price:    String(it?.price || '').trim().slice(0, 80),
+      }))
+      // A nameless or priceless line is not a half-saved entry, it is a trap:
+      // the receptionist reads the item list aloud and would announce a service
+      // it cannot quote. The setup assistant is instructed to ask for the price
+      // before saving, but an instruction is not a guarantee — this is.
+      .filter((it: { name: string; price: string }) => it.name !== '' && it.price !== '');
   }
   if (patch.hours !== undefined) {
     next.hours = patch.hours && typeof patch.hours === 'object' && !Array.isArray(patch.hours)
