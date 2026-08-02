@@ -81,12 +81,17 @@ export function H2({
   children,
   onDark = false,
   className = '',
+  ...rest
 }: {
   children: ReactNode;
   onDark?: boolean;
   className?: string;
-}) {
-  return <h2 className={`q2-h2 ${onDark ? 'text-white' : 'text-q2-ink'} ${className}`}>{children}</h2>;
+} & HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h2 {...rest} className={`q2-h2 ${onDark ? 'text-white' : 'text-q2-ink'} ${className}`}>
+      {children}
+    </h2>
+  );
 }
 
 export function Lead({
