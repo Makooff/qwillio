@@ -7,27 +7,73 @@ refaire à la main, et ce qui ne l'est pas.
 
 ---
 
-## 1. Migrations — rien à faire
+## 1. Migrations — à faire, contrairement à ce que dit le blueprint
 
-Render les applique lui-même, `backend/render.yaml` :
+**Constat du 2026-08-02, après merge.** `backend/render.yaml` n'a jamais été
+appliqué : le service Render s'appelle `qwillio`, pas `qwillio-backend`, il a été
+créé à la main, et il n'existe qu'un seul service dans l'environnement Production
+(pas de worker `qwillio-jobs`). Le blueprint est un fichier mort dans le repo.
 
-```yaml
-preDeployCommand: npx prisma migrate deploy
+Conséquence directe : `npx prisma migrate deploy` n'a jamais tourné.
+`prisma migrate status` sur l'instance de production affiche **8 migrations non
+appliquées**, la plus ancienne datant du 17 juillet. La base est en retard depuis
+des semaines, pas depuis cette refonte.
+
+Trois raccourcis existent maintenant dans `backend/package.json`, pour pouvoir
+diagnostiquer depuis le Web Shell de Render sans avoir à coller une longue
+commande (le presse-papier ne fonctionne pas dans ce shell depuis un mobile) :
+
+```bash
+npm run db:status   # quelles migrations manquent
+npm run db:check    # le SQL qui manque réellement à la base — lecture seule
+npm run db:deploy   # applique les migrations en attente
 ```
+
+`db:check` avant `db:deploy`, toujours. Il répond à la seule question qui
+compte : la base est-elle réellement en retard, ou le schéma est-il déjà là avec
+seulement les enregistrements de migration manquants (cas d'un ancien
+`prisma db push`) ? Dans le second cas `db:deploy` échoue sur
+`relation already exists`, marque la migration en échec et bloque les
+déploiements suivants jusqu'à un `prisma migrate resolve --applied` manuel.
+
+- `db:check` renvoie du SQL `CREATE TABLE` → la base est en retard, `db:deploy`
+  est sûr.
+- `db:check` ne renvoie rien → ne pas lancer `db:deploy`, il faut `resolve`.
+
+Le réglage durable, à faire une fois dans le dashboard, Settings → Build &
+Deploy → **Pre-Deploy Command** :
+
+```
+npx prisma migrate deploy
+```
+
+C'est ce que le blueprint aurait fait si Render l'utilisait :
 
 Cette commande tourne **avant** que le trafic bascule sur la nouvelle version.
 Si une migration échoue, le déploiement est annulé et l'ancienne version reste
 en ligne : jamais de code neuf sur un schéma ancien.
 
-Les trois migrations de cette refonte sont purement additives — trois tables
-nouvelles, deux colonnes ajoutées, aucune colonne existante modifiée, aucun
-backfill :
+Les huit migrations en attente sont purement additives — tables nouvelles et
+colonnes ajoutées avec valeur par défaut ou nullable, aucun `DROP`, aucune
+colonne existante modifiée, aucun backfill. Les trois dernières sont celles de
+cette refonte :
 
 ```
+20260717000000_add_spam_detection
+20260719000000_add_minutes_quota
+20260721000000_add_prospect_favorite
+20260726000000_add_affiliate_programme
+20260727000000_add_saved_searches_and_sales_script
 20260801130000_add_caller_and_business_memory
 20260801180000_add_greeting_audio
 20260801190000_add_knowledge_embeddings
 ```
+
+Rien ne casse tant qu'elles manquent : les quatre services vocaux concernés
+attrapent l'erreur et dégradent en silence (`caller-memory.service.ts:53`,
+« Memory is an enhancement. A failed lookup must never stop a call from being
+answered »). Les appels passent, mais mémoire appelant, accueil pré-synthétisé
+et recherche par embeddings restent morts sans rien signaler.
 
 Vérification après déploiement, si tu veux la certitude :
 
@@ -37,10 +83,19 @@ WHERE table_name IN ('caller_memories', 'business_knowledge', 'greeting_audio');
 -- doit renvoyer 3 lignes
 ```
 
-**Le worker `qwillio-jobs` n'a pas de `preDeployCommand`.** Ce n'est pas un
-problème — il partage la base du service web, donc les migrations appliquées par
-celui-ci lui suffisent. Mais il faut déployer les deux services, sinon le job
-hebdomadaire `receptionist-learning` tournerait sur l'ancien code.
+**Le worker `qwillio-jobs` n'existe pas.** Le blueprint le décrit, Render ne l'a
+jamais créé. Ce n'est pas cassé pour autant : `RUN_JOBS` n'est pas défini sur le
+service, et le défaut est `true` —
+
+```ts
+// backend/src/config/env.ts:183
+RUN_JOBS: process.env.RUN_JOBS !== 'false',
+```
+
+— donc les 44 tâches planifiées, `receptionist-learning` compris, tournent dans
+le process web. Comportement d'avant la séparation, rien de perdu. Le seul
+inconvénient reste celui qui avait motivé la séparation : un déploiement web
+coupe une tâche en cours d'exécution.
 
 ---
 
@@ -113,14 +168,20 @@ prend en compte.
 Le custom-LLM est actif par défaut, donc ce backend est dans le chemin audio de
 chaque tour. Une instance froide devient un silence en ligne.
 
-Cron externe, toutes les 5 minutes :
+Déjà couvert : `.github/workflows/keepalive.yml` tourne toutes les 5 minutes et
+appelle `/api/auth/warmup`, ce qui garde le process **et** Neon chauds. Rien à
+ajouter aujourd'hui.
+
+La route `/ping` (`backend/src/server.ts:229`) reste plus légère — pas de base,
+pas d'auth, pas de log, `pong` en texte brut — et sert de repli si tu veux un
+cron hors GitHub :
 
 ```
 GET https://<ton-api>/ping
 ```
 
-C'est l'endpoint le plus léger du service : pas de base, pas d'auth, pas de log,
-il renvoie `pong` en texte brut.
+La seule vraie raison de doubler : GitHub désactive un workflow planifié après
+60 jours sans activité sur le repo, en silence.
 
 ---
 
