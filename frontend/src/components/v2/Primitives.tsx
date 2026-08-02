@@ -13,7 +13,7 @@ const SECTION_BG: Record<SectionVariant, string> = {
   canvas: 'bg-q2-canvas',
   band: 'bg-q2-band',
   'drenched-indigo': 'q2-drenched',
-  'drenched-violet': 'q2-drenched',
+  'drenched-violet': 'q2-drenched-violet',
 };
 
 interface SectionProps extends HTMLAttributes<HTMLElement> {
@@ -57,7 +57,7 @@ export function Eyebrow({
         ? 'text-q2-violet'
         : onDark
           ? 'text-q2-fog'
-          : 'text-q2-faint';
+          : 'text-q2-body';
   return <p className={`q2-eyebrow ${color} ${className}`}>{children}</p>;
 }
 

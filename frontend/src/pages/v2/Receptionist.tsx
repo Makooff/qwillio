@@ -35,7 +35,7 @@ interface Tier {
 }
 
 function PanelLabel({ children }: { children: ReactNode }) {
-  return <p className="q2-eyebrow text-q2-faint mb-6">{children}</p>;
+  return <p className="q2-eyebrow text-q2-body mb-6">{children}</p>;
 }
 
 export default function Receptionist() {
@@ -106,7 +106,7 @@ export default function Receptionist() {
           <ul className="space-y-5" role="list">
             {voices.map((v) => (
               <li key={v.name} className="border-b border-q2-plate pb-5 last:border-0 last:pb-0">
-                <p className="text-[11px] font-medium tracking-[0.14em] uppercase text-q2-faint mb-2">
+                <p className="text-[11px] font-medium tracking-[0.14em] uppercase text-q2-body mb-2">
                   {v.name} · {v.lang}
                 </p>
                 <p className="text-q2-graphite text-[15px] leading-relaxed q2-body-text">{v.sample}</p>
@@ -357,7 +357,7 @@ export default function Receptionist() {
               </div>
 
               {/* Propriétés vérifiables du produit uniquement (DA/voix.md) */}
-              <dl className="flex flex-wrap items-baseline gap-x-9 gap-y-3 text-sm text-q2-faint border-t border-q2-plate pt-6 max-w-[540px]">
+              <dl className="flex flex-wrap items-baseline gap-x-9 gap-y-3 text-sm text-q2-body border-t border-q2-plate pt-6 max-w-[540px]">
                 <div className="flex items-baseline gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Temps de décrochage' : 'Pickup time'}</dt>
                   <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">&lt;1&nbsp;s</dd>
@@ -428,7 +428,7 @@ export default function Receptionist() {
                         <span className="w-11 h-11 rounded-full bg-q2-plate flex items-center justify-center">
                           <cap.icon size={18} className="text-q2-indigo" aria-hidden="true" />
                         </span>
-                        <span className="q2-eyebrow text-q2-faint tabular-nums">{cap.num}</span>
+                        <span className="q2-eyebrow text-q2-body tabular-nums">{cap.num}</span>
                       </div>
                       <h3 className="q2-h3 text-q2-ink mb-3 max-w-[380px]">{cap.title}</h3>
                       <p className="text-q2-body text-[15px] leading-relaxed max-w-[420px] q2-body-text">{cap.body}</p>
@@ -473,7 +473,7 @@ export default function Receptionist() {
 
           <RevealV2 className="mb-12">
             <div className="flex items-center gap-5 flex-wrap border-y border-q2-plate py-6">
-              <span className="inline-flex items-center gap-2 q2-eyebrow text-q2-faint">
+              <span className="inline-flex items-center gap-2 q2-eyebrow text-q2-body">
                 <Languages size={13} aria-hidden="true" />
                 {isFr ? 'Disponible en' : 'Available in'}
               </span>
@@ -509,7 +509,7 @@ export default function Receptionist() {
             </Eyebrow>
             <H2 id="how-heading" className="max-w-[760px]">
               {isFr ? 'Mise en route en 12 minutes. ' : 'Live in 12 minutes. '}
-              <span className="text-q2-faint">
+              <span className="text-q2-body">
                 {isFr ? 'Premier appel traité ce soir.' : 'First call handled tonight.'}
               </span>
             </H2>

@@ -27,7 +27,7 @@ interface Module {
 }
 
 function PanelLabel({ children }: { children: ReactNode }) {
-  return <p className="q2-eyebrow text-q2-faint mb-6">{children}</p>;
+  return <p className="q2-eyebrow text-q2-body mb-6">{children}</p>;
 }
 
 function Chip({ children }: { children: ReactNode }) {
@@ -45,8 +45,8 @@ export default function Agent() {
   useSEO({
     title: isFr ? 'Qwillio Agent · Modules IA' : 'Qwillio Agent · AI Modules',
     description: isFr
-      ? 'Quatre modules IA add-on à greffer sur votre Réceptionniste : Email, Facturation, Inventaire, Paiements. 197 € par module et par mois, 7 jours d’essai gratuit.'
-      : 'Four add-on AI modules to bolt onto your Receptionist: Email, Billing, Inventory, Payments. €197 per module per month, 7-day free trial.',
+      ? 'Quatre modules IA add-on à greffer sur votre Réceptionniste : Email, Facturation, Inventaire, Paiements. 197 € par module et par mois au lancement.'
+      : 'Four add-on AI modules to bolt onto your Receptionist: Email, Billing, Inventory, Payments. €197 per module per month at launch.',
     canonical: 'https://qwillio.com/agent',
   });
 
@@ -74,7 +74,7 @@ export default function Agent() {
             ].map((cat) => (
               <li key={cat} className="flex items-center justify-between gap-4 py-4 first:pt-0">
                 <span className="text-q2-graphite text-[15px] q2-body-text">{cat}</span>
-                <span className="text-q2-faint text-xs">{isFr ? 'routé' : 'routed'}</span>
+                <span className="text-q2-body text-xs">{isFr ? 'routé' : 'routed'}</span>
               </li>
             ))}
           </ul>
@@ -196,9 +196,14 @@ export default function Agent() {
         <Container className="grid lg:grid-cols-[1.15fr_1fr] gap-14 lg:gap-20 items-center">
           <RevealV2>
             <div>
-              <Eyebrow tone="violet" className="mb-6">
-                Qwillio Agent · {isFr ? 'Modules IA' : 'AI Modules'}
-              </Eyebrow>
+              <div className="flex items-center gap-3 mb-6">
+                <Eyebrow tone="violet">
+                  Qwillio Agent · {isFr ? 'Modules IA' : 'AI Modules'}
+                </Eyebrow>
+                <span className="q2-eyebrow text-q2-violet rounded-full border border-q2-violet/30 px-3 py-1">
+                  {isFr ? 'Bientôt' : 'Coming soon'}
+                </span>
+              </div>
               <Display className="mb-7">
                 {isFr ? (
                   <>
@@ -217,21 +222,21 @@ export default function Agent() {
               </Lead>
 
               <div className="flex flex-wrap items-center gap-3 mb-12">
-                <PillLink to="/register" variant="primary" size="lg">
-                  {isFr ? 'Démarrer' : 'Get started'}
+                <PillLink to="/contact" variant="primary" size="lg">
+                  {isFr ? 'Être prévenu au lancement' : 'Get notified at launch'}
                   <ArrowRight size={15} aria-hidden="true" />
                 </PillLink>
-                <PillLink to="/pricing" variant="outline" size="lg">
-                  {isFr ? 'Voir les tarifs' : 'See pricing'}
+                <PillLink to="/receptionist" variant="outline" size="lg">
+                  {isFr ? 'Découvrir le Réceptionniste' : 'Explore the Receptionist'}
                   <ArrowRight size={15} aria-hidden="true" />
                 </PillLink>
               </div>
 
-              <p className="text-sm text-q2-faint border-t border-q2-plate pt-6 max-w-[460px] q2-body-text">
+              <p className="text-sm text-q2-body border-t border-q2-plate pt-6 max-w-[460px] q2-body-text">
                 <span className="text-q2-ink text-lg font-light tabular-nums">+197&nbsp;€</span>{' '}
                 {isFr
-                  ? 'par module et par mois. 7 jours d’essai gratuit. Sans engagement.'
-                  : 'per module per month. 7-day free trial. No commitment.'}
+                  ? 'par module et par mois au lancement. Greffé à votre Réceptionniste IA.'
+                  : 'per module per month at launch. Bolted onto your AI Receptionist.'}
               </p>
             </div>
           </RevealV2>
@@ -239,22 +244,27 @@ export default function Agent() {
           <RevealV2 index={2}>
             <CardV2 variant="drenched">
               <div className="flex items-center justify-between mb-6">
-                <span className="q2-eyebrow text-q2-fog">{isFr ? 'Agent actif' : 'Agent active'}</span>
+                <span className="q2-eyebrow text-q2-fog">{isFr ? 'Aperçu' : 'Preview'}</span>
                 <span className="text-[11px] text-q2-fog tabular-nums">qwillio.com/agent</span>
               </div>
-              <ul className="grid grid-cols-2 gap-3" role="list">
-                {modules.map((m) => (
-                  <li key={m.id} className="rounded-xl border border-q2-graphite-d bg-q2-obsidian p-4">
-                    <span className="w-9 h-9 rounded-full bg-q2-carbon flex items-center justify-center mb-3">
+              <ul role="list">
+                {modules.map((m, i) => (
+                  <li
+                    key={m.id}
+                    className={`flex items-center gap-4 py-4 ${i > 0 ? 'border-t border-q2-graphite-d' : ''}`}
+                  >
+                    <span className="w-9 h-9 shrink-0 rounded-full bg-q2-obsidian flex items-center justify-center">
                       <m.icon size={16} className="text-q2-violet" aria-hidden="true" />
                     </span>
-                    <p className="text-sm font-medium text-white mb-1">{m.name}</p>
-                    <p className="text-[11px] text-q2-fog leading-relaxed">{m.tagline}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-white">{m.name}</p>
+                      <p className="text-[11px] text-q2-fog leading-relaxed">{m.tagline}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
               <div className="mt-6 flex items-center justify-between text-[13px] border-t border-q2-graphite-d pt-5">
-                <span className="text-q2-fog">{isFr ? '4 modules actifs' : '4 modules active'}</span>
+                <span className="text-q2-fog">{isFr ? '4 modules · bientôt' : '4 modules · coming soon'}</span>
                 <span className="text-q2-mist tabular-nums">
                   +788&nbsp;€/{isFr ? 'mois' : 'month'}
                 </span>
@@ -273,7 +283,7 @@ export default function Agent() {
             </Eyebrow>
             <H2 id="modules-heading" className="max-w-[720px]">
               {isFr ? 'Quatre modules. ' : 'Four modules. '}
-              <span className="text-q2-faint">
+              <span className="text-q2-body">
                 {isFr ? 'Chacun excellent à son métier.' : 'Each one excellent at its job.'}
               </span>
             </H2>
@@ -290,10 +300,10 @@ export default function Agent() {
                         <span className="w-11 h-11 rounded-full bg-q2-plate flex items-center justify-center">
                           <m.icon size={18} className="text-q2-violet" aria-hidden="true" />
                         </span>
-                        <span className="q2-eyebrow text-q2-faint tabular-nums">{m.num}</span>
+                        <span className="q2-eyebrow text-q2-body tabular-nums">{m.num}</span>
                       </div>
                       <h3 className="q2-h3 text-q2-ink mb-1.5">{m.name}</h3>
-                      <p className="text-q2-faint text-sm mb-5 q2-body-text">{m.tagline}</p>
+                      <p className="text-q2-body text-sm mb-5 q2-body-text">{m.tagline}</p>
                       <p className="text-q2-body text-base leading-relaxed max-w-[440px] mb-7 q2-body-text">
                         {m.description}
                       </p>
@@ -327,8 +337,8 @@ export default function Agent() {
             </H2>
             <p className="text-q2-body text-[15px] leading-relaxed max-w-[440px] q2-body-text">
               {isFr
-                ? 'Ajoutez un, deux, trois ou les quatre. Activez ou désactivez quand vous voulez. 7 jours d’essai gratuit.'
-                : 'Add one, two, three or all four. Toggle anytime. 7-day free trial.'}
+                ? 'Au lancement : ajoutez un, deux, trois ou les quatre. Activez ou désactivez quand vous voulez.'
+                : 'At launch: add one, two, three or all four. Toggle anytime.'}
             </p>
           </RevealV2>
 
@@ -340,7 +350,7 @@ export default function Agent() {
                 <span className="text-sm text-q2-fog">/{isFr ? 'mois' : 'month'}</span>
               </p>
               <p className="text-sm text-q2-mist mb-8 q2-body-text">
-                {isFr ? 'Les 4 modules · 7 jours d’essai gratuit' : 'All 4 modules · 7-day free trial'}
+                {isFr ? 'Les 4 modules · au lancement' : 'All 4 modules · at launch'}
               </p>
               <ul className="border-t border-q2-graphite-d mb-8" role="list">
                 {modules.map((m) => (
@@ -353,8 +363,8 @@ export default function Agent() {
                   </li>
                 ))}
               </ul>
-              <PillLink to="/register" variant="onDark" size="lg" className="w-full">
-                {isFr ? 'Activer' : 'Activate'}
+              <PillLink to="/contact" variant="onDark" size="lg" className="w-full">
+                {isFr ? 'Être prévenu au lancement' : 'Get notified at launch'}
                 <ArrowRight size={15} aria-hidden="true" />
               </PillLink>
             </CardV2>
@@ -381,11 +391,11 @@ export default function Agent() {
           <RevealV2 index={1} className="flex flex-col items-start gap-5 lg:items-end pb-2">
             <p className="text-q2-fog text-[15px] leading-relaxed max-w-[320px] lg:text-right q2-body-text">
               {isFr
-                ? 'Activez à la carte. Désactivez en un clic. Sans engagement.'
-                : 'Activate à la carte. Deactivate anytime. No commitment.'}
+                ? 'En construction. Commencez avec le Réceptionniste IA, les modules s’y grefferont.'
+                : 'In the works. Start with the AI Receptionist, the modules will bolt onto it.'}
             </p>
-            <PillLink to="/register" variant="chromatic" size="lg">
-              {isFr ? 'Créer un compte' : 'Create account'}
+            <PillLink to="/receptionist" variant="chromatic" size="lg">
+              {isFr ? 'Commencer avec le Réceptionniste' : 'Start with the Receptionist'}
               <ArrowRight size={16} aria-hidden="true" />
             </PillLink>
           </RevealV2>

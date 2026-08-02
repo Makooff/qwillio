@@ -115,6 +115,11 @@
   background: linear-gradient(180deg, var(--q2-void) 0%, var(--q2-void-tint) 100%);
 }
 
+/* Variante violette: même noir, voile tiré vers la teinte du cercle W */
+.q2-drenched-violet {
+  background: linear-gradient(180deg, var(--q2-void) 0%, oklch(10% 0.015 320) 100%);
+}
+
 /* --- Entrées (RevealV2 s'appuie sur framer-motion; keyframes de secours CSS) --- */
 @keyframes q2In {
   from {

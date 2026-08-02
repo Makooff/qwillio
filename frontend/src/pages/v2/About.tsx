@@ -197,11 +197,11 @@ export default function About() {
             <H2 id="values-heading" className="max-w-[700px]">
               {isFr ? (
                 <>
-                  Trois valeurs. <span className="text-q2-faint">Qui guident chaque décision.</span>
+                  Trois valeurs. <span className="text-q2-body">Qui guident chaque décision.</span>
                 </>
               ) : (
                 <>
-                  Three values. <span className="text-q2-faint">Guiding every decision.</span>
+                  Three values. <span className="text-q2-body">Guiding every decision.</span>
                 </>
               )}
             </H2>
@@ -242,7 +242,7 @@ export default function About() {
             <H2 id="founder-heading" className="max-w-[320px]">
               Mathieu&nbsp;P.
             </H2>
-            <p className="text-q2-faint text-sm mt-3">{isFr ? 'Fondateur, Bruxelles' : 'Founder, Brussels'}</p>
+            <p className="text-q2-body text-sm mt-3">{isFr ? 'Fondateur, Bruxelles' : 'Founder, Brussels'}</p>
           </RevealV2>
 
           <RevealV2 index={1}>

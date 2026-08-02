@@ -173,7 +173,7 @@ export default function AffiliateDashboard() {
                         {copied ? (isFr ? 'Copié' : 'Copied') : isFr ? 'Copier' : 'Copy'}
                       </PillButton>
                     </div>
-                    <p className="mt-4 text-[13px] text-q2-faint q2-body-text">
+                    <p className="mt-4 text-[13px] text-q2-body q2-body-text">
                       {isFr
                         ? `Commission de ${Math.round(summary.commissionPct * 100)} % sur chaque facture payée par vos filleuls.`
                         : `${Math.round(summary.commissionPct * 100)}% of every invoice your referrals pay.`}
@@ -219,13 +219,13 @@ export default function AffiliateDashboard() {
                         <caption className="sr-only">{isFr ? 'Vos filleuls' : 'Your referrals'}</caption>
                         <thead>
                           <tr className="border-y border-q2-plate">
-                            <th scope="col" className="q2-eyebrow text-q2-faint py-3 pr-4">
+                            <th scope="col" className="q2-eyebrow text-q2-body py-3 pr-4">
                               {isFr ? 'Entreprise' : 'Business'}
                             </th>
-                            <th scope="col" className="q2-eyebrow text-q2-faint py-3 pr-4">
+                            <th scope="col" className="q2-eyebrow text-q2-body py-3 pr-4">
                               {isFr ? 'Depuis le' : 'Since'}
                             </th>
-                            <th scope="col" className="q2-eyebrow text-q2-faint py-3 text-right">
+                            <th scope="col" className="q2-eyebrow text-q2-body py-3 text-right">
                               {isFr ? 'Formule' : 'Plan'}
                             </th>
                           </tr>

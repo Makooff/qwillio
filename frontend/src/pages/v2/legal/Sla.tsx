@@ -94,7 +94,7 @@ export default function Sla() {
           head={[isFr ? 'Engagement' : 'Commitment', 'Starter', 'Pro', 'Enterprise']}
           rows={rows.map((r) => [r.label, r.starter, r.pro, r.enterprise])}
         />
-        <p className="mt-4 text-[13px] text-q2-faint">
+        <p className="mt-4 text-[13px] text-q2-body">
           {isFr
             ? "Solo (99 €/mois) suit les mêmes engagements que Starter. Enterprise permet des SLA sur-mesure au-delà du barème ci-dessus."
             : 'Solo (€99/month) follows the same commitments as Starter. Enterprise supports custom SLAs beyond the table above.'}

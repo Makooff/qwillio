@@ -115,7 +115,7 @@ export default function Home() {
               </Display>
               <Lead className="max-w-[480px] mb-10 q2-body-text">
                 {isFr
-                  ? 'Qwillio décroche à votre place, en moins d’une seconde, prend le rendez-vous dans votre agenda et vous envoie le résumé. Français et anglais sur le même appel. À partir de 99 € par mois, soit moins qu’une matinée de secrétariat.'
+                  ? 'Qwillio décroche à votre place, en moins d’une seconde, prend le rendez-vous dans votre agenda et vous envoie le résumé. Français et anglais sur le même appel. À partir de 99 € par mois, soit moins qu’une matinée de secrétariat.'
                   : 'Qwillio picks up for you in under a second, books the appointment in your calendar and sends you the summary. French and English on the same call. From €99 a month, less than a morning of reception cover.'}
               </Lead>
 
@@ -132,7 +132,7 @@ export default function Home() {
 
               {/* Strip crédibilité: uniquement des propriétés vérifiables du produit,
                   jamais des métriques de performance inventées (DA/voix.md). */}
-              <dl className="flex items-baseline gap-8 sm:gap-10 text-sm text-q2-faint border-t border-q2-plate pt-6 max-w-[520px]">
+              <dl className="flex items-baseline gap-8 sm:gap-10 text-sm text-q2-body border-t border-q2-plate pt-6 max-w-[520px]">
                 <div className="flex items-baseline gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Langues' : 'Languages'}</dt>
                   <dd className="text-2xl font-light tracking-tight text-q2-ink">FR/EN</dd>
@@ -167,7 +167,7 @@ export default function Home() {
             </Eyebrow>
             <H2 className="max-w-[700px]">
               {isFr ? 'Deux modules. ' : 'Two modules. '}
-              <span className="text-q2-faint">{isFr ? 'Un cerveau.' : 'One brain.'}</span>
+              <span className="text-q2-body">{isFr ? 'Un cerveau.' : 'One brain.'}</span>
             </H2>
             <p className="text-q2-body text-base max-w-[520px] leading-relaxed mt-4 q2-body-text">
               {isFr
@@ -216,7 +216,7 @@ export default function Home() {
                     </ul>
 
                     <div className="mt-8 flex items-baseline justify-between gap-4 flex-wrap">
-                      <p className="text-q2-faint text-sm">
+                      <p className="text-q2-body text-sm">
                         {isFr ? 'À partir de ' : 'From '}
                         <span className="text-q2-ink text-lg font-light tabular-nums">99&nbsp;€</span>
                         <span>/{isFr ? 'mois' : 'mo'}</span>
@@ -269,7 +269,7 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-8 text-q2-faint text-sm">
+                  <p className="mt-8 text-q2-body text-sm">
                     <span className="text-q2-ink text-lg font-light tabular-nums">+197&nbsp;€</span>
                     /{isFr ? 'mois · par module' : 'mo · per module'}
                   </p>
@@ -331,7 +331,7 @@ export default function Home() {
             </Eyebrow>
             <H2 id="industries-heading">
               {isFr ? 'Pour ' : 'For '}
-              <SerifWord>{isFr ? 'qui ?' : 'whom?'}</SerifWord>
+              <SerifWord>{isFr ? 'qui ?' : 'whom?'}</SerifWord>
             </H2>
             <p className="text-q2-body text-base mt-4 max-w-[380px] leading-relaxed q2-body-text">
               {isFr
@@ -355,7 +355,7 @@ export default function Home() {
                     {name}
                   </Link>
                 ) : (
-                  <span key={name} className={`${cls} text-q2-faint`}>
+                  <span key={name} className={`${cls} text-q2-body`}>
                     {name}
                   </span>
                 );

@@ -112,7 +112,7 @@ export default function Blog() {
                   aria-label={isFr ? article.titleFr : article.title}
                   className="group grid md:grid-cols-[150px_1fr_auto] gap-3 md:gap-10 py-8 md:py-10 items-start rounded-[20px] focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
                 >
-                  <p className="text-sm text-q2-faint tabular-nums md:pt-1.5">{formatDate(article.date)}</p>
+                  <p className="text-sm text-q2-body tabular-nums md:pt-1.5">{formatDate(article.date)}</p>
 
                   <div>
                     <h3 className="q2-h3 text-q2-ink mb-2 max-w-[560px] transition-colors duration-150 group-hover:text-q2-graphite">
@@ -121,7 +121,7 @@ export default function Blog() {
                     <p className="text-[15px] leading-relaxed text-q2-body max-w-[560px] q2-body-text">
                       {isFr ? article.excerptFr : article.excerpt}
                     </p>
-                    <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-q2-faint">
+                    <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-q2-body">
                       <span className="q2-eyebrow text-q2-indigo">{isFr ? article.tagFr : article.tag}</span>
                       <span aria-hidden="true">·</span>
                       <span className="tabular-nums">{article.readTime}&nbsp;min</span>
@@ -152,13 +152,13 @@ export default function Blog() {
             {legacyPosts.map((post, i) => (
               <RevealV2 key={post.title} index={i} as="article" className="border-b border-q2-plate">
                 <div className="grid md:grid-cols-[150px_1fr] gap-3 md:gap-10 py-8 md:py-10 items-start">
-                  <p className="text-sm text-q2-faint md:pt-1.5">{post.date}</p>
+                  <p className="text-sm text-q2-body md:pt-1.5">{post.date}</p>
                   <div>
                     <h3 className="q2-h3 text-q2-ink mb-2 max-w-[560px]">{post.title}</h3>
                     <p className="text-[15px] leading-relaxed text-q2-body max-w-[560px] q2-body-text">
                       {post.excerpt}
                     </p>
-                    <p className="mt-4 q2-eyebrow text-q2-faint">{post.tag}</p>
+                    <p className="mt-4 q2-eyebrow text-q2-body">{post.tag}</p>
                   </div>
                 </div>
               </RevealV2>

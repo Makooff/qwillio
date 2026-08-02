@@ -96,7 +96,7 @@ export default function LegalShell({
               <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2 text-sm text-q2-body border-t border-q2-plate pt-5">
                 {updatedLabel && (
                   <>
-                    <span className="text-q2-faint">
+                    <span className="text-q2-body">
                       {isFr ? 'Dernière mise à jour' : 'Last updated'}
                     </span>
                     <time className="font-medium text-q2-ink" dateTime={updatedISO}>
@@ -104,7 +104,7 @@ export default function LegalShell({
                     </time>
                   </>
                 )}
-                {meta && <span className="text-q2-faint">{meta}</span>}
+                {meta && <span className="text-q2-body">{meta}</span>}
               </div>
             )}
           </RevealV2>
@@ -114,7 +114,7 @@ export default function LegalShell({
               aria-label={isFr ? 'Table des matières' : 'Table of contents'}
               className="lg:sticky lg:top-24 lg:self-start print:hidden"
             >
-              <p className="q2-eyebrow text-q2-faint mb-4">{isFr ? 'Sommaire' : 'Contents'}</p>
+              <p className="q2-eyebrow text-q2-body mb-4">{isFr ? 'Sommaire' : 'Contents'}</p>
               <nav aria-label={isFr ? 'Navigation des sections' : 'Section navigation'}>
                 <ol className="border-l border-q2-plate" role="list">
                   {sections.map((section) => {
@@ -283,7 +283,7 @@ export function LegalCloser({ children }: { children: ReactNode }) {
   const { lang } = useLang();
   const isFr = lang === 'fr';
   return (
-    <div className="mt-20 pt-8 border-t border-q2-plate text-[13px] text-q2-faint flex flex-wrap items-baseline gap-x-4 gap-y-1 print:hidden">
+    <div className="mt-20 pt-8 border-t border-q2-plate text-[13px] text-q2-body flex flex-wrap items-baseline gap-x-4 gap-y-1 print:hidden">
       <span className="q2-serif-word">{isFr ? 'Fin du document.' : 'End of document.'}</span>
       <span>{children}</span>
     </div>

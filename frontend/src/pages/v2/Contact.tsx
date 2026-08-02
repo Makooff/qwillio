@@ -128,7 +128,7 @@ export default function Contact() {
                       aria-hidden="true"
                       className={`shrink-0 ${m.tone === 'indigo' ? 'text-q2-indigo' : 'text-q2-violet'}`}
                     />
-                    <span className="q2-eyebrow text-q2-faint">{m.label}</span>
+                    <span className="q2-eyebrow text-q2-body">{m.label}</span>
                   </div>
                   {m.href ? (
                     <a

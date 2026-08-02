@@ -65,12 +65,12 @@ export default function FooterV2() {
               {isFr ? (
                 <>
                   L'IA qui ne dort jamais.{' '}
-                  <span className="text-q2-faint">Pour les entreprises qui n'arrêtent pas.</span>
+                  <span className="text-q2-body">Pour les entreprises qui n'arrêtent pas.</span>
                 </>
               ) : (
                 <>
                   The AI that never sleeps.{' '}
-                  <span className="text-q2-faint">For businesses that don't either.</span>
+                  <span className="text-q2-body">For businesses that don't either.</span>
                 </>
               )}
             </p>
@@ -82,7 +82,7 @@ export default function FooterV2() {
           >
             {columns.map((col) => (
               <div key={col.heading}>
-                <p className="q2-eyebrow text-q2-faint mb-4">{col.heading}</p>
+                <p className="q2-eyebrow text-q2-body mb-4">{col.heading}</p>
                 <ul role="list" className="space-y-2.5">
                   {col.links.map((link) => (
                     <li key={link.to}>
@@ -110,11 +110,11 @@ export default function FooterV2() {
         </div>
 
         <div className="flex items-center justify-between flex-wrap gap-3 pt-8">
-          <p className="text-xs text-q2-faint">
+          <p className="text-xs text-q2-body">
             &copy; {new Date().getFullYear()} Qwillio Inc.{' '}
             {isFr ? 'Tous droits réservés.' : 'All rights reserved.'}
           </p>
-          <p className="text-xs text-q2-faint">
+          <p className="text-xs text-q2-body">
             {isFr ? 'Conçu et bâti à Bruxelles' : 'Designed and built in Brussels'}
           </p>
         </div>

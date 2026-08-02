@@ -53,9 +53,9 @@ export default function BlogArticle() {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-7">
                 <Eyebrow tone="indigo">{isFr ? article.tag.fr : article.tag.en}</Eyebrow>
                 <span className="text-q2-plate" aria-hidden="true">·</span>
-                <span className="text-xs text-q2-faint">{dateStr}</span>
+                <span className="text-xs text-q2-body">{dateStr}</span>
                 <span className="text-q2-plate" aria-hidden="true">·</span>
-                <span className="text-xs text-q2-faint tabular-nums">{article.readTime}&nbsp;min</span>
+                <span className="text-xs text-q2-body tabular-nums">{article.readTime}&nbsp;min</span>
               </div>
             </RevealV2>
 
@@ -126,7 +126,7 @@ export default function BlogArticle() {
             <p className="text-q2-fog text-[15px] leading-relaxed max-w-[320px] lg:text-right q2-body-text">
               {isFr
                 ? 'Testez Qwillio gratuitement pendant 7 jours. Sans engagement, configuration en 15 minutes.'
-                : 'Try Qwillio free for one month. No credit card, no commitment, set up in 15 minutes.'}
+                : 'Try Qwillio free for 7 days. No commitment, set up in 15 minutes.'}
             </p>
             <PillLink to="/register" variant="chromatic" size="lg">
               {isFr ? 'Créer un compte' : 'Create account'}

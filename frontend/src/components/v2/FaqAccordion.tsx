@@ -44,14 +44,14 @@ export default function FaqAccordion({
                 <ChevronDown
                   size={16}
                   aria-hidden="true"
-                  className={`shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${onDark ? 'text-q2-fog' : 'text-q2-faint'}`}
+                  className={`shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${onDark ? 'text-q2-fog' : 'text-q2-body'}`}
                 />
               </button>
             </dt>
             <dd
               id={panelId}
               className={`grid transition-[grid-template-rows] duration-300 ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
-              style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+              style={{ transitionTimingFunction: 'var(--ease-out-expo)' }}
             >
               <div className="overflow-hidden">
                 <p className={`pb-5 text-sm leading-relaxed q2-body-text ${answer} max-w-[560px]`}>{item.a}</p>

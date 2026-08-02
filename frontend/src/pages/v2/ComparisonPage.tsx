@@ -22,7 +22,7 @@ function renderCell(text: string) {
   }
   if (text === 'No' || text === 'Non') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-q2-faint">
+      <span className="inline-flex items-center gap-1.5 text-q2-body">
         <X size={14} aria-hidden="true" /> {text}
       </span>
     );
@@ -33,7 +33,7 @@ function renderCell(text: string) {
 const VERDICT_TONE: Record<'good' | 'bad' | 'neutral', string> = {
   good: 'text-q2-indigo',
   bad: 'text-q2-graphite',
-  neutral: 'text-q2-faint',
+  neutral: 'text-q2-body',
 };
 
 export default function ComparisonPage() {
@@ -79,7 +79,7 @@ export default function ComparisonPage() {
                   {isFr ? 'Comparatif' : 'Comparison'} · Qwillio vs {page.competitor}
                 </Eyebrow>
                 <span className="text-q2-plate" aria-hidden="true">·</span>
-                <span className="text-xs text-q2-faint">
+                <span className="text-xs text-q2-body">
                   {isFr ? 'Mis à jour le' : 'Updated'} {updated}
                 </span>
               </div>
@@ -165,7 +165,7 @@ export default function ComparisonPage() {
                         </table>
                       </div>
                       {block.caption && (
-                        <figcaption className="text-xs text-q2-faint mt-3">{block.caption}</figcaption>
+                        <figcaption className="text-xs text-q2-body mt-3">{block.caption}</figcaption>
                       )}
                     </figure>
                   </RevealV2>

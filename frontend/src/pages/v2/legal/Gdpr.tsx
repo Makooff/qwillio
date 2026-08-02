@@ -210,7 +210,7 @@ export default function Gdpr() {
 
   const asideExtra = (
     <>
-      <p className="q2-eyebrow text-q2-faint mb-3">{isFr ? 'Action rapide' : 'Quick action'}</p>
+      <p className="q2-eyebrow text-q2-body mb-3">{isFr ? 'Action rapide' : 'Quick action'}</p>
       <a
         href="mailto:hello@qwillio.com?subject=GDPR%20Request"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-q2-ink hover:text-q2-body transition-colors duration-150"
@@ -269,7 +269,7 @@ export default function Gdpr() {
               className="grid grid-cols-[40px_1fr] gap-x-5 gap-y-1 py-6 border-b border-q2-plate"
             >
               <span
-                className="text-2xl font-light tracking-tight text-q2-faint tabular-nums leading-none pt-1"
+                className="text-2xl font-light tracking-tight text-q2-body tabular-nums leading-none pt-1"
                 aria-hidden="true"
               >
                 {String(i + 1).padStart(2, '0')}
@@ -279,7 +279,7 @@ export default function Gdpr() {
                   <h3 className="text-[17px] font-medium tracking-tight text-q2-ink">
                     {right.title}
                   </h3>
-                  <span className="q2-eyebrow text-q2-faint">{right.article}</span>
+                  <span className="q2-eyebrow text-q2-body">{right.article}</span>
                 </div>
                 <p className="text-q2-body">{right.desc}</p>
               </div>

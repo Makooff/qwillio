@@ -96,7 +96,7 @@ export default function Privacy() {
 
   const asideExtra = (
     <>
-      <p className="q2-eyebrow text-q2-faint mb-3">{isFr ? 'Voir aussi' : 'See also'}</p>
+      <p className="q2-eyebrow text-q2-body mb-3">{isFr ? 'Voir aussi' : 'See also'}</p>
       <Link
         to="/gdpr"
         className="flex items-center gap-1.5 text-sm text-q2-body hover:text-q2-ink transition-colors duration-150"

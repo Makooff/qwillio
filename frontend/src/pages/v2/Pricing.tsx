@@ -223,7 +223,7 @@ export default function Pricing() {
     </span>
   );
   const no = (
-    <span className="inline-flex items-center gap-1.5 text-q2-faint">
+    <span className="inline-flex items-center gap-1.5 text-q2-body">
       <X size={14} aria-hidden="true" />
       {isFr ? 'Non' : 'No'}
     </span>
@@ -311,7 +311,7 @@ export default function Pricing() {
                 ? 'Une secrétaire à mi-temps coûte environ 1 200 € par mois, charges comprises, et ne répond pas le samedi. Qwillio commence à 99 €.'
                 : 'A part-time receptionist costs around €1,200 a month all in, and does not answer on Saturday. Qwillio starts at €99.'}
             </Lead>
-            <p className="text-q2-faint text-[13px] leading-relaxed max-w-[400px] mt-4 q2-body-text">
+            <p className="text-q2-body text-[13px] leading-relaxed max-w-[400px] mt-4 q2-body-text">
               {isFr
                 ? '7 jours d’essai sur tous les plans. Carte requise, rien n’est débité avant la fin. Annulez en un clic.'
                 : '7-day trial on every plan. Card required, nothing charged until it ends. Cancel anytime.'}
@@ -378,10 +378,10 @@ export default function Pricing() {
                       <div className="text-left sm:text-right">
                         <p className="text-[clamp(1.7rem,2.4vw,2.2rem)] font-light tracking-[-0.04em] tabular-nums text-q2-ink leading-none">
                           {priceFor(tier.monthly).toLocaleString('fr-FR')}&nbsp;€
-                          <span className="text-sm text-q2-faint font-normal tracking-normal">/{perLabel}</span>
+                          <span className="text-sm text-q2-body font-normal tracking-normal">/{perLabel}</span>
                         </p>
                         {billing === 'annual' && (
-                          <p className="text-[11px] text-q2-faint mt-1.5">{annualLine(tier.monthly)}</p>
+                          <p className="text-[11px] text-q2-body mt-1.5">{annualLine(tier.monthly)}</p>
                         )}
                       </div>
                     </div>
@@ -400,7 +400,7 @@ export default function Pricing() {
                     </ul>
 
                     <div className="mt-7 flex flex-wrap items-center justify-between gap-4">
-                      <p className="text-xs text-q2-faint max-w-[420px] leading-relaxed">{overageLine(tier)}</p>
+                      <p className="text-xs text-q2-body max-w-[420px] leading-relaxed">{overageLine(tier)}</p>
                       <PillLink to="/register" variant="outline">
                         {tier.cta}
                         <ArrowRight size={15} aria-hidden="true" />
@@ -425,10 +425,10 @@ export default function Pricing() {
 
                 <p className="q2-price text-q2-ink mt-8 leading-none">
                   {priceFor(pro.monthly).toLocaleString('fr-FR')}&nbsp;€
-                  <span className="text-sm text-q2-faint font-normal tracking-normal">/{perLabel}</span>
+                  <span className="text-sm text-q2-body font-normal tracking-normal">/{perLabel}</span>
                 </p>
                 {billing === 'annual' && (
-                  <p className="text-[11px] text-q2-faint mt-2">{annualLine(pro.monthly)}</p>
+                  <p className="text-[11px] text-q2-body mt-2">{annualLine(pro.monthly)}</p>
                 )}
                 <ul role="list" className="mt-8 border-t border-q2-plate">
                   {pro.features.map((f) => (
@@ -442,7 +442,7 @@ export default function Pricing() {
                   ))}
                 </ul>
 
-                <p className="text-xs text-q2-faint mt-6 leading-relaxed">{overageLine(pro)}</p>
+                <p className="text-xs text-q2-body mt-6 leading-relaxed">{overageLine(pro)}</p>
 
                 <PillLink to="/register" variant="primary" size="lg" className="mt-6 w-full">
                   {pro.cta}
@@ -452,7 +452,7 @@ export default function Pricing() {
             </RevealV2>
           </div>
 
-          <p className="text-xs text-q2-faint mt-8">· {trialLine}</p>
+          <p className="text-xs text-q2-body mt-8">· {trialLine}</p>
         </Container>
       </Section>
 
@@ -500,7 +500,7 @@ export default function Pricing() {
                   </>
                 )}
               </p>
-              <p className="mt-4 text-[13px] text-q2-faint leading-relaxed">
+              <p className="mt-4 text-[13px] text-q2-body leading-relaxed">
                 {isFr
                   ? 'Basé sur un mi-temps CP200 chargé (brut + ONSS 27 % + chèques repas + transport + backup + turnover) et le tier Qwillio Starter (750 minutes incluses), mensuel ou annuel selon le sélecteur ci-dessus. Prix de lancement.'
                   : 'Based on a CP200 loaded part-time (gross + 27% ONSS + meal vouchers + transport + backup + turnover) and the Qwillio Starter tier (750 included minutes), monthly or annual depending on the toggle above. Launch pricing.'}
@@ -517,11 +517,11 @@ export default function Pricing() {
             <H2 id="compare-heading" className="max-w-[640px]">
               {isFr ? (
                 <>
-                  Tout ce qui change. <span className="text-q2-faint">Et tout ce qui reste pareil.</span>
+                  Tout ce qui change. <span className="text-q2-body">Et tout ce qui reste pareil.</span>
                 </>
               ) : (
                 <>
-                  What changes. <span className="text-q2-faint">And what stays the same.</span>
+                  What changes. <span className="text-q2-body">And what stays the same.</span>
                 </>
               )}
             </H2>
@@ -536,7 +536,7 @@ export default function Pricing() {
                     <ChevronDown
                       size={16}
                       aria-hidden="true"
-                      className="shrink-0 text-q2-faint transition-transform duration-200 group-open:rotate-180"
+                      className="shrink-0 text-q2-body transition-transform duration-200 group-open:rotate-180"
                     />
                   </summary>
 
@@ -545,7 +545,7 @@ export default function Pricing() {
                       <caption className="sr-only">{group.label}</caption>
                       <thead>
                         <tr className="border-b border-q2-plate">
-                          <th scope="col" className="text-left py-3 pr-4 font-normal text-q2-faint text-xs uppercase tracking-[0.12em]">
+                          <th scope="col" className="text-left py-3 pr-4 font-normal text-q2-body text-xs uppercase tracking-[0.12em]">
                             {isFr ? 'Fonction' : 'Feature'}
                           </th>
                           {tiers.map((t) => (
@@ -599,11 +599,11 @@ export default function Pricing() {
             <H2 id="vs-heading">
               {isFr ? (
                 <>
-                  Qwillio vs le marché. <span className="text-q2-faint">Rien à cacher.</span>
+                  Qwillio vs le marché. <span className="text-q2-body">Rien à cacher.</span>
                 </>
               ) : (
                 <>
-                  Qwillio vs the market. <span className="text-q2-faint">Nothing to hide.</span>
+                  Qwillio vs the market. <span className="text-q2-body">Nothing to hide.</span>
                 </>
               )}
             </H2>
@@ -665,7 +665,7 @@ export default function Pricing() {
                 {isFr ? 'Détail vs Yelda' : 'Full vs Yelda'}
                 <ArrowRight size={14} aria-hidden="true" />
               </PillLink>
-              <span className="text-xs text-q2-faint max-w-[320px] leading-relaxed">
+              <span className="text-xs text-q2-body max-w-[320px] leading-relaxed">
                 {isFr
                   ? 'Sources publiques 2026. Comparatif détaillé par acteur sur nos pages dédiées.'
                   : 'Public 2026 sources. Full detail per provider on our dedicated pages.'}

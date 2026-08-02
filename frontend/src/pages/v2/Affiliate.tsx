@@ -141,11 +141,11 @@ export default function Affiliate() {
             <H2 id="how-heading" className="max-w-[700px]">
               {isFr ? (
                 <>
-                  Trois étapes. <span className="text-q2-faint">Vos gains comptabilisés en direct.</span>
+                  Trois étapes. <span className="text-q2-body">Vos gains comptabilisés en direct.</span>
                 </>
               ) : (
                 <>
-                  Three steps. <span className="text-q2-faint">Your earnings tallied live.</span>
+                  Three steps. <span className="text-q2-body">Your earnings tallied live.</span>
                 </>
               )}
             </H2>
