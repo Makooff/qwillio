@@ -14,10 +14,11 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import ConfirmEmail from './pages/ConfirmEmail';
-// Landing is large — lazy load it
-const Landing = lazy(() => import('./pages/Landing'));
+// Marketing V2 « Papier & Signal » (DA/v2-direction.md). Les pages V1
+// restent dans pages/ pour rollback, seules les routes pointent vers v2/.
+const Landing = lazy(() => import('./pages/v2/Receptionist'));
+const Home = lazy(() => import('./pages/v2/Home'));
 // Admin pages (lazy loaded)
-const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const AdminClients = lazy(() => import('./pages/Clients'));
 const AdminCalls = lazy(() => import('./pages/admin/Calls'));
@@ -61,24 +62,24 @@ const CrmActivities = lazy(() => import('./pages/client/CrmActivities'));
 const CrmContactDetail = lazy(() => import('./pages/client/CrmContactDetail'));
 const Integrations = lazy(() => import('./pages/client/Integrations'));
 // Legal pages (lazy loaded)
-const Privacy = lazy(() => import('./pages/legal/Privacy'));
-const Terms = lazy(() => import('./pages/legal/Terms'));
-const About = lazy(() => import('./pages/legal/About'));
-const Contact = lazy(() => import('./pages/legal/Contact'));
-const Gdpr = lazy(() => import('./pages/legal/Gdpr'));
-const Sla = lazy(() => import('./pages/legal/Sla'));
+const Privacy = lazy(() => import('./pages/v2/legal/Privacy'));
+const Terms = lazy(() => import('./pages/v2/legal/Terms'));
+const About = lazy(() => import('./pages/v2/About'));
+const Contact = lazy(() => import('./pages/v2/Contact'));
+const Gdpr = lazy(() => import('./pages/v2/legal/Gdpr'));
+const Sla = lazy(() => import('./pages/v2/legal/Sla'));
 // Public pages (lazy loaded)
-// Qwillio Agent marketing page — hidden (coming soon), route redirects to home
-const PricingPage = lazy(() => import('./pages/Pricing'));
-const BlogPage = lazy(() => import('./pages/Blog'));
-const BlogArticlePage = lazy(() => import('./pages/BlogArticle'));
-const ComparisonPage = lazy(() => import('./pages/ComparisonPage'));
-const AffiliatePage = lazy(() => import('./pages/Affiliate'));
-const AffiliateDashboardPage = lazy(() => import('./pages/AffiliateDashboard'));
-const Partenaires = lazy(() => import('./pages/Partenaires'));
-const Vertical = lazy(() => import('./pages/Vertical'));
-const Faq = lazy(() => import('./pages/Faq'));
-const City = lazy(() => import('./pages/City'));
+const AgentPage = lazy(() => import('./pages/v2/Agent'));
+const PricingPage = lazy(() => import('./pages/v2/Pricing'));
+const BlogPage = lazy(() => import('./pages/v2/Blog'));
+const BlogArticlePage = lazy(() => import('./pages/v2/BlogArticle'));
+const ComparisonPage = lazy(() => import('./pages/v2/ComparisonPage'));
+const AffiliatePage = lazy(() => import('./pages/v2/Affiliate'));
+const AffiliateDashboardPage = lazy(() => import('./pages/v2/AffiliateDashboard'));
+const Partenaires = lazy(() => import('./pages/v2/Partenaires'));
+const Vertical = lazy(() => import('./pages/v2/Vertical'));
+const Faq = lazy(() => import('./pages/v2/Faq'));
+const City = lazy(() => import('./pages/v2/City'));
 
 function VerticalWrap({ secteur }: { secteur: string }) {
   return <Vertical secteur={secteur} />;
@@ -147,6 +148,12 @@ function ScrollToTop() {
 function Spinner() {
   // No visible loader on arrival/refresh — just the dark surface, seamless into content.
   return <div style={{ minHeight: '100dvh', background: '#0a0a0a' }} aria-hidden="true" />;
+}
+
+function PublicSpinner() {
+  // Marketing V2 loads on the cream canvas: a dark flash here would break the
+  // register, so the fallback matches --q2-canvas.
+  return <div style={{ minHeight: '100dvh', background: '#fdfcfc' }} aria-hidden="true" />;
 }
 
 function homeRoute(user: { role: string }) {
@@ -287,55 +294,55 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth/confirm" element={<ConfirmEmail />} />
-        <Route path="/privacy" element={<Suspense fallback={<Spinner />}><Privacy /></Suspense>} />
-        <Route path="/terms" element={<Suspense fallback={<Spinner />}><Terms /></Suspense>} />
-        <Route path="/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
-        <Route path="/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
-        <Route path="/gdpr" element={<Suspense fallback={<Spinner />}><Gdpr /></Suspense>} />
-        <Route path="/sla" element={<Suspense fallback={<Spinner />}><Sla /></Suspense>} />
+        <Route path="/privacy" element={<Suspense fallback={<PublicSpinner />}><Privacy /></Suspense>} />
+        <Route path="/terms" element={<Suspense fallback={<PublicSpinner />}><Terms /></Suspense>} />
+        <Route path="/about" element={<Suspense fallback={<PublicSpinner />}><About /></Suspense>} />
+        <Route path="/contact" element={<Suspense fallback={<PublicSpinner />}><Contact /></Suspense>} />
+        <Route path="/gdpr" element={<Suspense fallback={<PublicSpinner />}><Gdpr /></Suspense>} />
+        <Route path="/sla" element={<Suspense fallback={<PublicSpinner />}><Sla /></Suspense>} />
         {/* French route aliases for legal pages */}
-        <Route path="/fr/privacy" element={<Suspense fallback={<Spinner />}><Privacy /></Suspense>} />
-        <Route path="/fr/terms" element={<Suspense fallback={<Spinner />}><Terms /></Suspense>} />
-        <Route path="/fr/gdpr" element={<Suspense fallback={<Spinner />}><Gdpr /></Suspense>} />
-        <Route path="/fr/sla" element={<Suspense fallback={<Spinner />}><Sla /></Suspense>} />
-        <Route path="/fr/about" element={<Suspense fallback={<Spinner />}><About /></Suspense>} />
-        <Route path="/fr/contact" element={<Suspense fallback={<Spinner />}><Contact /></Suspense>} />
-        <Route path="/receptionist" element={<Suspense fallback={<Spinner />}><Landing /></Suspense>} />
-        {/* Qwillio Agent — marketing page hidden (coming soon); redirect to home */}
-        <Route path="/agent" element={<Navigate to="/" replace />} />
-        <Route path="/pricing" element={<Suspense fallback={<Spinner />}><PricingPage /></Suspense>} />
-        <Route path="/blog" element={<Suspense fallback={<Spinner />}><BlogPage /></Suspense>} />
-        <Route path="/blog/:slug" element={<Suspense fallback={<Spinner />}><BlogArticlePage /></Suspense>} />
-        <Route path="/vs/:slug" element={<Suspense fallback={<Spinner />}><ComparisonPage /></Suspense>} />
-        <Route path="/affiliate" element={<Suspense fallback={<Spinner />}><AffiliatePage /></Suspense>} />
-        <Route path="/affiliate/dashboard" element={<Suspense fallback={<Spinner />}><AffiliateDashboardPage /></Suspense>} />
-        <Route path="/faq" element={<Suspense fallback={<Spinner />}><Faq /></Suspense>} />
-        <Route path="/fr/faq" element={<Suspense fallback={<Spinner />}><Faq /></Suspense>} />
-        <Route path="/ville/:ville" element={<Suspense fallback={<Spinner />}><City /></Suspense>} />
-        <Route path="/fr/ville/:ville" element={<Suspense fallback={<Spinner />}><City /></Suspense>} />
-        <Route path="/partenaires-fiduciaires" element={<Suspense fallback={<Spinner />}><Partenaires /></Suspense>} />
-        <Route path="/fr/partenaires-fiduciaires" element={<Suspense fallback={<Spinner />}><Partenaires /></Suspense>} />
+        <Route path="/fr/privacy" element={<Suspense fallback={<PublicSpinner />}><Privacy /></Suspense>} />
+        <Route path="/fr/terms" element={<Suspense fallback={<PublicSpinner />}><Terms /></Suspense>} />
+        <Route path="/fr/gdpr" element={<Suspense fallback={<PublicSpinner />}><Gdpr /></Suspense>} />
+        <Route path="/fr/sla" element={<Suspense fallback={<PublicSpinner />}><Sla /></Suspense>} />
+        <Route path="/fr/about" element={<Suspense fallback={<PublicSpinner />}><About /></Suspense>} />
+        <Route path="/fr/contact" element={<Suspense fallback={<PublicSpinner />}><Contact /></Suspense>} />
+        <Route path="/receptionist" element={<Suspense fallback={<PublicSpinner />}><Landing /></Suspense>} />
+        {/* Qwillio Agent — page marketing V2 réactivée */}
+        <Route path="/agent" element={<Suspense fallback={<PublicSpinner />}><AgentPage /></Suspense>} />
+        <Route path="/pricing" element={<Suspense fallback={<PublicSpinner />}><PricingPage /></Suspense>} />
+        <Route path="/blog" element={<Suspense fallback={<PublicSpinner />}><BlogPage /></Suspense>} />
+        <Route path="/blog/:slug" element={<Suspense fallback={<PublicSpinner />}><BlogArticlePage /></Suspense>} />
+        <Route path="/vs/:slug" element={<Suspense fallback={<PublicSpinner />}><ComparisonPage /></Suspense>} />
+        <Route path="/affiliate" element={<Suspense fallback={<PublicSpinner />}><AffiliatePage /></Suspense>} />
+        <Route path="/affiliate/dashboard" element={<Suspense fallback={<PublicSpinner />}><AffiliateDashboardPage /></Suspense>} />
+        <Route path="/faq" element={<Suspense fallback={<PublicSpinner />}><Faq /></Suspense>} />
+        <Route path="/fr/faq" element={<Suspense fallback={<PublicSpinner />}><Faq /></Suspense>} />
+        <Route path="/ville/:ville" element={<Suspense fallback={<PublicSpinner />}><City /></Suspense>} />
+        <Route path="/fr/ville/:ville" element={<Suspense fallback={<PublicSpinner />}><City /></Suspense>} />
+        <Route path="/partenaires-fiduciaires" element={<Suspense fallback={<PublicSpinner />}><Partenaires /></Suspense>} />
+        <Route path="/fr/partenaires-fiduciaires" element={<Suspense fallback={<PublicSpinner />}><Partenaires /></Suspense>} />
         <Route path="/partenaires" element={<Navigate to="/partenaires-fiduciaires" replace />} />
-        <Route path="/plombier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="plombier" /></Suspense>} />
-        <Route path="/dentiste" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="dentiste" /></Suspense>} />
-        <Route path="/notaire" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="notaire" /></Suspense>} />
-        <Route path="/garagiste" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="garagiste" /></Suspense>} />
-        <Route path="/kine" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="kine" /></Suspense>} />
-        <Route path="/avocat" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="avocat" /></Suspense>} />
-        <Route path="/restaurant" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="restaurant" /></Suspense>} />
-        <Route path="/immobilier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="immobilier" /></Suspense>} />
-        <Route path="/coiffeur" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="coiffeur" /></Suspense>} />
-        <Route path="/fiduciaire" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="fiduciaire" /></Suspense>} />
-        <Route path="/fr/plombier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="plombier" /></Suspense>} />
-        <Route path="/fr/dentiste" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="dentiste" /></Suspense>} />
-        <Route path="/fr/notaire" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="notaire" /></Suspense>} />
-        <Route path="/fr/garagiste" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="garagiste" /></Suspense>} />
-        <Route path="/fr/kine" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="kine" /></Suspense>} />
-        <Route path="/fr/avocat" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="avocat" /></Suspense>} />
-        <Route path="/fr/restaurant" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="restaurant" /></Suspense>} />
-        <Route path="/fr/immobilier" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="immobilier" /></Suspense>} />
-        <Route path="/fr/coiffeur" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="coiffeur" /></Suspense>} />
-        <Route path="/fr/fiduciaire" element={<Suspense fallback={<Spinner />}><VerticalWrap secteur="fiduciaire" /></Suspense>} />
+        <Route path="/plombier" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="plombier" /></Suspense>} />
+        <Route path="/dentiste" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="dentiste" /></Suspense>} />
+        <Route path="/notaire" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="notaire" /></Suspense>} />
+        <Route path="/garagiste" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="garagiste" /></Suspense>} />
+        <Route path="/kine" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="kine" /></Suspense>} />
+        <Route path="/avocat" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="avocat" /></Suspense>} />
+        <Route path="/restaurant" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="restaurant" /></Suspense>} />
+        <Route path="/immobilier" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="immobilier" /></Suspense>} />
+        <Route path="/coiffeur" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="coiffeur" /></Suspense>} />
+        <Route path="/fiduciaire" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="fiduciaire" /></Suspense>} />
+        <Route path="/fr/plombier" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="plombier" /></Suspense>} />
+        <Route path="/fr/dentiste" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="dentiste" /></Suspense>} />
+        <Route path="/fr/notaire" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="notaire" /></Suspense>} />
+        <Route path="/fr/garagiste" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="garagiste" /></Suspense>} />
+        <Route path="/fr/kine" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="kine" /></Suspense>} />
+        <Route path="/fr/avocat" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="avocat" /></Suspense>} />
+        <Route path="/fr/restaurant" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="restaurant" /></Suspense>} />
+        <Route path="/fr/immobilier" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="immobilier" /></Suspense>} />
+        <Route path="/fr/coiffeur" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="coiffeur" /></Suspense>} />
+        <Route path="/fr/fiduciaire" element={<Suspense fallback={<PublicSpinner />}><VerticalWrap secteur="fiduciaire" /></Suspense>} />
 
         {/* Sign-up funnel, in order: confirm the address, register a card, then
             configure the receptionist. Each guard sends the account to whichever
