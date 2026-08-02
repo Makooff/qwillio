@@ -2,23 +2,34 @@
 
 Branche `feature/qwillio-next-gen-core`, PR #67.
 
-Sept étapes, dans cet ordre. L'étape 2 est celle qui décide si tout le reste
-sert à quelque chose : sans elle, le code est déployé mais aucun appel entrant
-ne le traverse.
+L'essentiel est automatique. Ce document liste ce qui l'est, pour ne pas le
+refaire à la main, et ce qui ne l'est pas.
 
 ---
 
-## 1. Migrations
+## 1. Migrations — rien à faire
 
-Trois migrations, purement additives : trois tables nouvelles, deux colonnes
-ajoutées, aucune colonne existante modifiée, aucun backfill.
+Render les applique lui-même, `backend/render.yaml` :
 
-```bash
-cd backend
-npx prisma migrate deploy
+```yaml
+preDeployCommand: npx prisma migrate deploy
 ```
 
-Sur staging d'abord. Vérifier ensuite que les tables existent :
+Cette commande tourne **avant** que le trafic bascule sur la nouvelle version.
+Si une migration échoue, le déploiement est annulé et l'ancienne version reste
+en ligne : jamais de code neuf sur un schéma ancien.
+
+Les trois migrations de cette refonte sont purement additives — trois tables
+nouvelles, deux colonnes ajoutées, aucune colonne existante modifiée, aucun
+backfill :
+
+```
+20260801130000_add_caller_and_business_memory
+20260801180000_add_greeting_audio
+20260801190000_add_knowledge_embeddings
+```
+
+Vérification après déploiement, si tu veux la certitude :
 
 ```sql
 SELECT table_name FROM information_schema.tables
@@ -26,8 +37,10 @@ WHERE table_name IN ('caller_memories', 'business_knowledge', 'greeting_audio');
 -- doit renvoyer 3 lignes
 ```
 
-**Si cette étape est sautée**, la construction du profil échoue à chaque appel
-entrant : le code lit `callerMemory`, `businessKnowledge` et `greetingAudio`.
+**Le worker `qwillio-jobs` n'a pas de `preDeployCommand`.** Ce n'est pas un
+problème — il partage la base du service web, donc les migrations appliquées par
+celui-ci lui suffisent. Mais il faut déployer les deux services, sinon le job
+hebdomadaire `receptionist-learning` tournerait sur l'ancien code.
 
 ---
 
@@ -66,13 +79,19 @@ deuxième. `logger.error` le dit explicitement quand le cas se produit.
 
 ---
 
-## 3. Variables d'environnement (Render)
+## 3. Variables d'environnement — déjà en place
+
+`OPENAI_API_KEY` et `ELEVENLABS_API_KEY` sont déclarées dans `render.yaml`.
+`VAPI_WEBHOOK_SECRET` ne l'est pas mais est définie dans le dashboard Render, ce
+qui suffit : les variables du dashboard ne sont pas écrasées par le blueprint.
+
+À savoir sur chacune, en cas de panne :
 
 | Variable | Sans elle |
 |---|---|
 | `OPENAI_API_KEY` | le chemin custom-LLM tombe en repli parlé à chaque tour |
 | `ELEVENLABS_API_KEY` | pas d'accueil pré-synthétisé, retour à la synthèse live |
-| `VAPI_WEBHOOK_SECRET` | en production les webhooks sont rejetés en 401 (échec fermé volontaire) |
+| `VAPI_WEBHOOK_SECRET` | webhooks rejetés en 401 en production (échec fermé volontaire) |
 
 Optionnelles, toutes avec un défaut sain : `VOICE_*` (voir `config/env.ts`),
 `REDIS_URL` (absent = cache par processus).
@@ -107,7 +126,8 @@ il renvoie `pong` en texte brut.
 
 ## 5. Déploiement
 
-PR #67 en ready, merge, déploiement Render. Vérifications immédiates :
+PR #67 en ready, merge. Render construit, applique les migrations, puis
+bascule. Vérifications immédiates :
 
 ```bash
 curl https://<ton-api>/ping                      # pong
