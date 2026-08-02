@@ -38,22 +38,31 @@ l'envoie **que** si le numéro est configuré avec un Server URL, et non attach�
 un assistant statique. Rien dans le code ne configure ce numéro : c'est de la
 configuration dans le dashboard Vapi.
 
-Dashboard Vapi → Phone Numbers → le numéro partagé (`VAPI_PHONE_NUMBER_ID`) :
+**État constaté le 2026-08-02** : le numéro `+1 (607) 354-8569` porte bien un
+Server URL, `https://qwillio.onrender.com/api/webhooks/vapi`. C'est la bonne
+nouvelle — `assistant-request` sera envoyé.
 
-| Ce que tu vois | Ce que ça veut dire | Action |
-|---|---|---|
-| Un **Assistant** sélectionné | `assistant-request` n'est jamais envoyé. Aucune des optimisations ne s'exécute sur un appel entrant. | Retirer l'assistant, mettre un Server URL |
-| Un **Server URL** déjà défini | Vérifier qu'il pointe sur la bonne route | Corriger si besoin |
+Cette URL est celle du handler de prospection sortante, qui ne connaissait pas
+`assistant-request`. Le code le gère désormais : il résout le tenant depuis le
+**numéro appelé** puis construit le vrai réceptionniste. Aucun changement à
+faire dans le dashboard.
 
-Server URL attendu :
+| Ce que tu vois | Ce que ça veut dire |
+|---|---|
+| **Server URL** `.../api/webhooks/vapi` | correct, routage par numéro appelé |
+| **Server URL** `.../api/webhooks/vapi/client/<id>` | correct aussi, mais épingle un seul client |
+| Un **Assistant** sélectionné, pas de Server URL | `assistant-request` n'est jamais envoyé, rien ne s'exécute |
 
-```
-https://<ton-api>/api/webhooks/vapi/client/<clientId>
-```
+### La limite à connaître
 
-Le `clientId` dans l'URL est ce qui identifie le tenant. Avec un numéro partagé
-entre plusieurs clients, il faut soit un numéro par client, soit un routage en
-amont — à trancher avant d'ouvrir à plus d'un client.
+Le routage se fait sur le numéro appelé. Tant qu'un client possède son numéro,
+c'est exact. **Si plusieurs clients actifs partagent le même numéro, rien dans
+l'appel ne dit lequel était visé** : le service refuse alors de deviner et
+l'appelant entend « cette ligne n'est pas encore configurée ».
+
+Répondre au hasard serait pire — un appelant d'un client entendrait l'agent d'un
+autre commerce. Il faut donc un numéro Vapi par client avant d'en ouvrir un
+deuxième. `logger.error` le dit explicitement quand le cas se produit.
 
 ---
 

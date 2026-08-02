@@ -15,6 +15,8 @@ import { detectLanguage } from '../config/vapi-templates';
 import { storeError } from '../utils/error-store';
 import { closerAgentService } from '../services/closer-agent.service';
 import { callSessionStore } from '../services/voice/call-session.store';
+import { inboundRoutingService } from '../services/voice/inbound-routing.service';
+import { realtimeOrchestratorService } from '../services/voice/realtime-orchestrator.service';
 
 /**
  * Verify the shared secret on inbound VAPI webhooks.
@@ -151,6 +153,31 @@ export class WebhooksController {
 
     try {
       const messageType = event.message?.type || event.type;
+
+      // `assistant-request` on the SHARED number.
+      //
+      // The Vapi number carries one Server URL, so an inbound call lands here
+      // rather than on the per-tenant receptionist route. The tenant is
+      // resolved from the dialed number and the real receptionist is built by
+      // the same code a per-tenant call would use — this is a routing hop, not
+      // a second implementation.
+      if (messageType === 'assistant-request') {
+        const dialed = event.message?.call?.phoneNumber?.number
+          ?? event.message?.phoneNumber?.number
+          ?? event.call?.phoneNumber?.number;
+
+        const routed = await inboundRoutingService.resolveClient(dialed);
+        if (routed.kind !== 'resolved') {
+          return res.json({ assistant: inboundRoutingService.unroutableAssistant() });
+        }
+
+        const assistant = await realtimeOrchestratorService.buildAssistantForCall(routed.clientId, event);
+        if (!assistant) {
+          return res.json({ assistant: inboundRoutingService.unroutableAssistant() });
+        }
+        logger.info(`[Voice] inbound routed to ${routed.businessName}`);
+        return res.json({ assistant });
+      }
 
       switch (messageType) {
         case 'end-of-call-report': {
