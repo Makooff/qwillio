@@ -11,6 +11,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:status": "prisma migrate status",
+    "db:doctor": "node prisma/db-doctor.mjs",
+    "db:heal": "node prisma/db-doctor.mjs --heal",
     "db:check": "prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
