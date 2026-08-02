@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "magic": {
+      "command": "npx",
+      "args": ["-y", "@21st-dev/magic@latest"],
+      "env": {
+        "API_KEY": "${MAGIC_API_KEY}"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "claude-mem": {
+      "command": "npx",
+      "args": ["-y", "claude-mem"]
+    },
+    "graphify": {
+      "command": "npx",
+      "args": ["-y", "graphify-mcp"]
+    }
+  }
+}

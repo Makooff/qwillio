@@ -12,6 +12,7 @@ any new session on this repo starts with the same context and tooling.
 | `skills/` | Project-specific custom skills |
 | `commands/` | Slash commands available in this repo |
 | `hooks/` | SessionStart / Stop / PreCommit hooks |
+| `scripts/` | Helper scripts (Obsidian memory bridge, skill auto-router) |
 
 ## What's ignored (local-only)
 
