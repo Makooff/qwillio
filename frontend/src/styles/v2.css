@@ -1,0 +1,145 @@
+/* ============================================================
+   Design V2 « Papier & Signal » — couche additive, ne touche pas
+   aux tokens V1 de globals.css. Voir DA/v2-direction.md.
+   Clair: DA/references/elevenlabs.md · Drenched: DA/references/linear.md
+   ============================================================ */
+
+:root {
+  /* Registre clair */
+  --q2-canvas: #fdfcfc;
+  --q2-band: #f5f3f1;
+  --q2-plate: #ebe8e4;
+  --q2-ink: #1d1d1f;
+  --q2-graphite: #44403b;
+  --q2-body: #777169;
+  --q2-faint: #a59f97;
+
+  /* Marque (DA/couleurs.md) */
+  --q2-indigo: #7a5fff;
+  --q2-violet: #cd6bfb;
+  --q2-deep: #7349fe;
+  --q2-lift: #b9a8ff;
+
+  /* Registre drenched */
+  --q2-void: #08090a;
+  --q2-carbon: #0f1011;
+  --q2-obsidian: #161718;
+  --q2-border-d: #23252a;
+  --q2-mist: #d0d6e0;
+  --q2-fog: #8a8f98;
+  /* Voile de marque: le noir Qwillio n'est jamais neutre */
+  --q2-void-tint: oklch(10% 0.015 285);
+
+  /* Ombres — la seule autorisée sur clair est diffuse et teintée */
+  --q2-shadow-whisper: rgba(0, 0, 0, 0.4) 0 0 1px, rgba(0, 0, 0, 0.04) 0 1px 1px,
+    rgba(0, 0, 0, 0.04) 0 2px 4px;
+  --q2-shadow-hover: 0 30px 80px rgba(20, 16, 50, 0.1);
+
+  --q2-hairline: 1px solid #ebe8e4;
+  --q2-hairline-d: 1px solid #23252a;
+}
+
+/* --- Typographie whisper (signature V2) --- */
+.q2-display {
+  font-weight: 300;
+  font-size: clamp(2.8rem, 6.5vw, 5.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.q2-h2 {
+  font-weight: 300;
+  font-size: clamp(2rem, 4.5vw, 3.4rem);
+  line-height: 1.13;
+  letter-spacing: -0.02em;
+}
+
+.q2-h3 {
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.33;
+  letter-spacing: -0.012em;
+}
+
+.q2-lead {
+  font-weight: 400;
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+
+.q2-price {
+  font-weight: 300;
+  font-size: clamp(2.2rem, 3.2vw, 3rem);
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Un mot serif italic système par titre, en couleur pleine (DA/typographie.md) */
+.q2-serif-word {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.q2-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Corps: tracking légèrement positif (contraste voulu avec le display négatif) */
+.q2-body-text {
+  letter-spacing: 0.01em;
+}
+
+/* --- Surfaces --- */
+.q2-hairline {
+  border-top: var(--q2-hairline);
+}
+
+.q2-card-hover {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) {
+  .q2-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--q2-shadow-hover);
+  }
+}
+
+/* Fond drenched avec voile indigo (dégradé, jamais un aplat neutre) */
+.q2-drenched {
+  background: linear-gradient(180deg, var(--q2-void) 0%, var(--q2-void-tint) 100%);
+}
+
+/* --- Entrées (RevealV2 s'appuie sur framer-motion; keyframes de secours CSS) --- */
+@keyframes q2In {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Orbes du logo (LogoOrbs) — respiration lente, décorative */
+@keyframes q2OrbDrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0) scale(1.015);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q2-card-hover:hover {
+    transform: none;
+  }
+}
