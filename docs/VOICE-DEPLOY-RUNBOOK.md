@@ -16,12 +16,57 @@ créé à la main, et il n'existe qu'un seul service dans l'environnement Produc
 
 Conséquence directe : `npx prisma migrate deploy` n'a jamais tourné.
 `prisma migrate status` sur l'instance de production affiche **8 migrations non
-appliquées**, la plus ancienne datant du 17 juillet. La base est en retard depuis
-des semaines, pas depuis cette refonte.
+appliquées**, la plus ancienne datant du 17 juillet.
 
-Trois raccourcis existent maintenant dans `backend/package.json`, pour pouvoir
-diagnostiquer depuis le Web Shell de Render sans avoir à coller une longue
-commande (le presse-papier ne fonctionne pas dans ce shell depuis un mobile) :
+### La vraie cause : une migration en échec, jamais résolue
+
+Une fois le `preDeployCommand` en place, le déploiement a échoué :
+
+```
+Error: P3009
+migrate found failed migrations in the target database, new migrations will not be applied.
+The `20260611000000_add_password_reset` migration started at 2026-07-26 14:14:43 UTC failed
+```
+
+Voilà ce qui gelait réellement la base. Une migration a planté le 26 juillet et
+a laissé dans `_prisma_migrations` une ligne sans `finished_at` ni
+`rolled_back_at`. À partir de là, `migrate deploy` refuse d'appliquer **quoi que
+ce soit**, y compris les migrations qui n'ont rien à voir. Le blueprint non
+appliqué n'a fait que masquer le symptôme : sans `preDeployCommand`, personne
+n'a jamais vu l'erreur.
+
+L'échec du pre-deploy s'est comporté comme prévu : le trafic n'a pas basculé,
+l'ancienne version est restée en ligne.
+
+### Résoudre une migration en échec
+
+Prisma veut savoir dans quel sens enregistrer la tentative ratée :
+
+| Direction | Quand |
+|---|---|
+| `--applied` | les objets sont en base, seul l'enregistrement manque |
+| `--rolled-back` | les objets sont absents, la migration doit être rejouée |
+
+Se tromper laisse le schéma et son historique en désaccord, ce qui est pire que
+l'échec d'origine. `prisma/db-doctor.mjs` tranche à partir des faits plutôt que
+d'une intuition : il lit le SQL de la migration en échec, demande à
+`information_schema` si chaque table, colonne et index existe, et n'annonce une
+direction que si la réponse est unanime. Une application **partielle** est
+signalée et laissée en l'état, parce qu'aucune des deux directions n'est vraie
+dans ce cas.
+
+```bash
+npm run db:doctor   # constat seul, n'écrit rien
+npm run db:heal     # applique le verdict si il est sans ambiguïté
+```
+
+`migrate resolve` n'écrit que dans `_prisma_migrations`, jamais dans les données
+applicatives, dans les deux directions.
+
+### Les autres raccourcis
+
+Tous existent pour être tapés depuis le Web Shell de Render, où le
+presse-papier ne fonctionne pas depuis un mobile :
 
 ```bash
 npm run db:status   # quelles migrations manquent
@@ -29,16 +74,8 @@ npm run db:check    # le SQL qui manque réellement à la base — lecture seule
 npm run db:deploy   # applique les migrations en attente
 ```
 
-`db:check` avant `db:deploy`, toujours. Il répond à la seule question qui
-compte : la base est-elle réellement en retard, ou le schéma est-il déjà là avec
-seulement les enregistrements de migration manquants (cas d'un ancien
-`prisma db push`) ? Dans le second cas `db:deploy` échoue sur
-`relation already exists`, marque la migration en échec et bloque les
-déploiements suivants jusqu'à un `prisma migrate resolve --applied` manuel.
-
-- `db:check` renvoie du SQL `CREATE TABLE` → la base est en retard, `db:deploy`
-  est sûr.
-- `db:check` ne renvoie rien → ne pas lancer `db:deploy`, il faut `resolve`.
+Ordre à suivre après un P3009 : `db:doctor`, puis `db:heal`, puis `db:status`
+pour vérifier, puis `db:deploy`.
 
 Le réglage durable, à faire une fois dans le dashboard, Settings → Build &
 Deploy → **Pre-Deploy Command** :
