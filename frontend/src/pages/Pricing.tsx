@@ -211,60 +211,6 @@ export default function Pricing() {
           </div>
         </section>
 
-        {/* ── SOLO BANNER — Belgian / French SMB entry ─────────────── */}
-        <section aria-label={isFr ? 'Plan Solo pour la Belgique et la France' : 'Solo plan for Belgium and France'} className="px-6 pb-6">
-          <div className="max-w-[1240px] mx-auto">
-            <Reveal>
-            <article
-              aria-label="Solo"
-              className="relative rounded-3xl sm:rounded-[2rem] p-6 sm:p-8 flex flex-col md:flex-row md:items-center gap-6 border border-[#1d1d1f]/10 bg-[#fafaf8] text-[#1d1d1f]"
-            >
-              <span
-                className="inline-flex md:absolute md:-top-3 md:left-6 text-[10px] font-bold tracking-[0.18em] uppercase px-3 py-1.5 rounded-full whitespace-nowrap self-start"
-                style={{ background: '#7a5fff', color: '#fff' }}
-              >
-                {isFr ? 'Nouveau : Belgique & France' : 'New: Belgium & France'}
-              </span>
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold tracking-[-0.02em] mb-1">Solo</h2>
-                <p className="text-sm text-[#6e6e73] mb-3">
-                  {isFr
-                    ? 'PME, artisans, professions libérales (français, hébergement UE).'
-                    : 'Small businesses, tradespeople, liberal professions (French, EU hosting).'}
-                </p>
-                <ul role="list" className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-[#424245]">
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#7a5fff' }} aria-hidden="true" /> 250 {isFr ? 'minutes / mois' : 'minutes / month'}</li>
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#7a5fff' }} aria-hidden="true" /> {isFr ? 'IA 24/7 bilingue FR / EN' : '24/7 AI, bilingual FR / EN'}</li>
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#7a5fff' }} aria-hidden="true" /> {isFr ? 'RDV + agenda + transfert urgences' : 'Booking + calendar + urgency transfer'}</li>
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#7a5fff' }} aria-hidden="true" /> {isFr ? 'Transcript + sentiment + anti-spam' : 'Transcript + sentiment + spam shield'}</li>
-                  <li className="flex items-center gap-1.5"><Check size={14} style={{ color: '#7a5fff' }} aria-hidden="true" /> {isFr ? 'RGPD, UE' : 'GDPR, EU'}</li>
-                </ul>
-              </div>
-              <div className="flex flex-col md:items-end gap-2">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-semibold tracking-[-0.04em] tabular-nums">{priceFor(99)}&nbsp;€</span>
-                  <span className="text-sm text-[#6e6e73]">/{perLabel}</span>
-                </div>
-                {billing === 'annual' && (
-                  <p className="text-[11px] text-[#6e6e73]">
-                    {isFr ? `Facturé ${priceFor(99) * 12} €/an` : `Billed ${priceFor(99) * 12} €/yr`}
-                  </p>
-                )}
-                <p className="text-[11px] text-[#6e6e73]">{isFr ? 'Dépassement : 0,45 €/min' : 'Overage: €0.45/min'}</p>
-                <p className="text-xs" style={{ color: '#7a5fff' }}>· {isFr ? '7 jours d\'essai' : '7-day trial'}</p>
-                <Link
-                  to="/register"
-                  className="inline-flex items-center justify-center gap-2 text-sm font-medium pl-5 pr-6 py-3 rounded-full transition-colors active:scale-[0.97] bg-[#1d1d1f] text-white hover:bg-[#7a5fff]"
-                >
-                  {isFr ? 'Choisir Solo' : 'Choose Solo'}
-                  <ArrowRight size={15} aria-hidden="true" />
-                </Link>
-              </div>
-            </article>
-            </Reveal>
-          </div>
-        </section>
-
         {/* ── PRICING BENTO : four tiers, Pro dominant ───────────── */}
         <section aria-label={isFr ? 'Plans tarifaires' : 'Pricing plans'} className="px-6 pb-24 md:pb-32">
           <div className="max-w-[1240px] mx-auto grid sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.25fr_1fr] gap-5 items-stretch">
