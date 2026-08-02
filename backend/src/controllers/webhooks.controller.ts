@@ -14,6 +14,9 @@ import { extractEmailFromText, isValidEmail, normalizeEmail } from '../utils/val
 import { detectLanguage } from '../config/vapi-templates';
 import { storeError } from '../utils/error-store';
 import { closerAgentService } from '../services/closer-agent.service';
+import { callSessionStore } from '../services/voice/call-session.store';
+import { inboundRoutingService } from '../services/voice/inbound-routing.service';
+import { realtimeOrchestratorService } from '../services/voice/realtime-orchestrator.service';
 
 /**
  * Verify the shared secret on inbound VAPI webhooks.
@@ -151,10 +154,38 @@ export class WebhooksController {
     try {
       const messageType = event.message?.type || event.type;
 
+      // `assistant-request` on the SHARED number.
+      //
+      // The Vapi number carries one Server URL, so an inbound call lands here
+      // rather than on the per-tenant receptionist route. The tenant is
+      // resolved from the dialed number and the real receptionist is built by
+      // the same code a per-tenant call would use — this is a routing hop, not
+      // a second implementation.
+      if (messageType === 'assistant-request') {
+        const dialed = event.message?.call?.phoneNumber?.number
+          ?? event.message?.phoneNumber?.number
+          ?? event.call?.phoneNumber?.number;
+
+        const routed = await inboundRoutingService.resolveClient(dialed);
+        if (routed.kind !== 'resolved') {
+          return res.json({ assistant: inboundRoutingService.unroutableAssistant() });
+        }
+
+        const assistant = await realtimeOrchestratorService.buildAssistantForCall(routed.clientId, event);
+        if (!assistant) {
+          return res.json({ assistant: inboundRoutingService.unroutableAssistant() });
+        }
+        logger.info(`[Voice] inbound routed to ${routed.businessName}`);
+        return res.json({ assistant });
+      }
+
       switch (messageType) {
         case 'end-of-call-report': {
           const callId = event.message?.call?.id || event.call?.id;
-          const transcript = event.message?.transcript || event.transcript || '';
+          // Vapi's report is authoritative; the buffer only covers the case
+          // where the report arrives without a transcript.
+          const buffered = callId ? callSessionStore.end(callId)?.transcript.join('\n') ?? '' : '';
+          const transcript = event.message?.transcript || event.transcript || buffered;
           const duration = event.message?.call?.duration || event.call?.duration || 0;
           const recordingUrl = event.message?.recordingUrl || event.recordingUrl;
           const endedReason = event.message?.endedReason || event.endedReason || '';
@@ -187,6 +218,14 @@ export class WebhooksController {
             const startCallId = event.message?.call?.id || event.call?.id;
             const phoneNumber = event.message?.call?.customer?.number || event.call?.customer?.number || '';
             if (startCallId) {
+              // Live state for the transcript buffer. Outbound prospecting has
+              // no client tenant, so the session is keyed on the call alone.
+              callSessionStore.start({
+                vapiCallId: startCallId,
+                clientId: 'outbound',
+                callerNumber: phoneNumber || null,
+                language: 'en',
+              });
               await prisma.call.upsert({
                 where: { vapiCallId: startCallId },
                 update: { status: 'in-progress', startedAt: new Date() },
@@ -205,13 +244,16 @@ export class WebhooksController {
           break;
 
         case 'transcript': {
+          // Buffered in memory, never written per utterance. The old handler
+          // ran a `call.updateMany` on every partial transcript — several
+          // database round-trips per second, inside the webhook response path,
+          // to store a value that `end-of-call-report` sends again in full.
           const tCallId = event.message?.call?.id || event.call?.id;
           const partialTranscript = event.message?.transcript || event.transcript || '';
-          if (tCallId && partialTranscript) {
-            await prisma.call.updateMany({
-              where: { vapiCallId: tCallId },
-              data: { transcript: partialTranscript },
-            });
+          const isFinal = (event.message?.transcriptType ?? 'final') === 'final';
+          if (tCallId && partialTranscript && isFinal) {
+            const role = event.message?.role === 'assistant' ? 'assistant' : 'user';
+            callSessionStore.appendTranscript(tCallId, role, partialTranscript);
           }
           break;
         }
@@ -250,64 +292,9 @@ export class WebhooksController {
     res.json({ received: true });
   }
 
-  async vapiClientWebhook(req: Request, res: Response) {
-    if (!isVapiWebhookAuthorized(req)) {
-      logger.warn('VAPI client webhook: unauthorized (missing or invalid x-vapi-secret)');
-      return res.status(401).json({ error: 'Invalid webhook secret' });
-    }
-
-    const clientId = req.params.clientId as string;
-    const event = req.body;
-
-    await prisma.webhookLog.create({
-      data: {
-        source: 'vapi',
-        eventType: `client_${event.message?.type || event.type || 'unknown'}`,
-        payload: { clientId, ...event },
-        status: 'received',
-      },
-    });
-
-    const messageType = event.message?.type || event.type;
-
-    // Handle transfer events
-    if (messageType === 'transfer-destination-request' || messageType === 'transfer-update') {
-      const vapiCallId = event.message?.call?.id || event.call?.id;
-      const transferStatus = event.message?.status || event.status || 'initiated';
-      try {
-        await clientCallService.logTransfer(clientId, vapiCallId, transferStatus, event);
-      } catch (error) {
-        logger.error(`Error logging transfer for client ${clientId}:`, error);
-      }
-    }
-
-    // Handle client-specific VAPI events (incoming calls to client's AI)
-    if (messageType === 'end-of-call-report') {
-      const vapiCallId = event.message?.call?.id || event.call?.id;
-      const transcript = event.message?.transcript || event.transcript || '';
-      const duration = event.message?.call?.duration || event.call?.duration || 0;
-      const recordingUrl = event.message?.recordingUrl || event.recordingUrl;
-      const callerNumber = event.message?.call?.customer?.number || event.call?.customer?.number;
-
-      if (vapiCallId) {
-        try {
-          // Full call analysis: transcript → GPT-4 → client call record + booking + lead detection
-          await clientCallService.handleClientCallCompleted(
-            clientId,
-            vapiCallId,
-            transcript,
-            duration,
-            callerNumber,
-            recordingUrl,
-          );
-        } catch (error) {
-          logger.error(`Error processing client call webhook for ${clientId}:`, error);
-        }
-      }
-    }
-
-    res.json({ received: true });
-  }
+  // NOTE: the inbound client receptionist webhook moved to
+  // controllers/voice-webhook.controller.ts. It is a streaming orchestrator
+  // now, not a request/response handler — see routes/webhooks.routes.ts.
 
   // ═══════════════════════════════════════════════════════════
   // TWILIO VOICE/CALL STATUS — CallStatus callback

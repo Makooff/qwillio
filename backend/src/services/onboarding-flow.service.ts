@@ -264,6 +264,10 @@ export class OnboardingFlowService {
             messages: [{ role: 'system', content: enrichedPrompt }],
           },
         });
+        // Onboarding data feeds the cached voice profile (services, hours,
+        // instructions) — drop it so the next call sees the new answers.
+        const { realtimeContextService } = await import('./voice/realtime-context.service');
+        await realtimeContextService.invalidateClient(client.id);
         logger.info(`VAPI assistant updated with onboarding data for ${client.businessName}`);
       } catch (err) {
         vapiUpdateFailed = true;

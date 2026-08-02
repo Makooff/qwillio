@@ -1,0 +1,311 @@
+# Qwillio Next-Gen Voice Core
+
+Refonte de la couche vocale et de l'orchestrateur du réceptionniste IA.
+Branche : `feature/qwillio-next-gen-core`.
+
+Périmètre conservé intact : authentification, abonnements Stripe, interfaces
+graphiques. Le schéma n'a reçu que deux tables nouvelles (`caller_memories`,
+`business_knowledge`) : aucune colonne existante modifiée, aucune donnée
+touchée. La migration `20260801130000_add_caller_and_business_memory` doit être
+appliquée avant déploiement.
+
+---
+
+## 1. Ce qui bloquait
+
+L'audit du pipeline existant a isolé quatre causes de latence et de coût, dans
+cet ordre d'impact :
+
+| Cause | Détail | Où |
+|---|---|---|
+| Écriture DB par transcript partiel | `call.updateMany` sur chaque événement `transcript`, soit 2 à 5 allers-retours Postgres par seconde et par appel, dans le chemin de réponse du webhook | `webhooks.controller.ts` |
+| Insertion `webhookLog` bloquante | `await prisma.webhookLog.create(...)` avant tout dispatch, sur tous les types d'événements | idem |
+| Turn-taking à l'ancienne | `interruptionsEnabled` + `numWordsToInterruptAssistant` + `responseDelaySeconds: 0.2`. Le barge-in attendait qu'un mot soit transcrit ; le délai de réponse fixe s'appliquait à chaque tour | `vapi-payload.ts`, `onboarding.service.ts` |
+| Aucun transcriber explicite | Endpointing laissé au défaut Vapi, alors que c'est le premier levier sur la latence de tour | `onboarding.service.ts` |
+
+S'y ajoutaient l'absence totale de function calling exécutable côté serveur
+(les `function-call` étaient loggés, jamais exécutés), et un prompt système
+construit sans aucun contexte client mis en cache.
+
+---
+
+## 2. Architecture livrée
+
+Nouveau module `backend/src/services/voice/` :
+
+```
+speech-plans.ts              transcriber + start/stop speaking plans + voice
+realtime-context.service.ts  cache profil client + historique appelant
+system-prompt.ts             assemblage du prompt système et du first message
+intent-router.ts             classification déterministe des tours sans valeur
+voice-tools.ts               schémas d'outils + meublage (filler) par outil
+tool-runtime.service.ts      exécution des outils (agenda, réservation, lead)
+call-session.store.ts        état live en mémoire, buffer de transcript
+realtime-orchestrator.service.ts  dispatch des événements streaming
+```
+
+Contrôleur : `controllers/voice-webhook.controller.ts`.
+Routes : `/api/webhooks/vapi/client/:clientId`, `/api/webhooks/vapi/tools/:clientId`,
+`/api/webhooks/vapi/health`.
+
+### Règle structurante
+
+**Les événements sur lesquels l'appelant attend sont traités inline ; les autres
+répondent 200 immédiatement et travaillent après.**
+
+| Événement | Traitement |
+|---|---|
+| `assistant-request` | inline — construit l'assistant depuis le cache |
+| `tool-calls` / `function-call` | inline — exécute et renvoie le résultat |
+| `transcript` | ack immédiat, buffer mémoire, zéro I/O |
+| `speech-update` | ack immédiat, compteur de barge-in |
+| `status-update` | ack immédiat, travail en `void` |
+| `end-of-call-report` | ack immédiat, analyse déportée |
+
+---
+
+## 3. Budget de latence perçue
+
+Cible < 400 ms sur un tour simple :
+
+```
+endpointing Deepgram        150 ms   VOICE_ENDPOINTING_MS
+attente avant réponse       120 ms   VOICE_START_WAIT_SECONDS
+premier token LLM            ~90 ms   maxTokens plafonné à 120
+TTFB TTS (Flash v2.5)        ~75 ms   chunkPlan.minCharacters = 20
+                            ───────
+                            ~435 ms théorique, dont le smart endpointing
+                            retire l'attente sur les fins de phrase prédites
+```
+
+Les valeurs sont dans `config/env.ts`, toutes surchargeables par variable
+d'environnement. Chaque constante documente le mode de défaillance qu'elle
+protège.
+
+### Barge-in
+
+`stopSpeakingPlan` remplace `interruptionsEnabled` :
+
+- `numWords: 0` — coupure sur activité vocale, sans attendre la transcription.
+  C'est ce qui rend l'interruption instantanée au lieu de bégayante.
+- `voiceSeconds: 0.2` — garde-fou : une toux ou un « mhm » ne coupe pas.
+- `backoffSeconds: 1.0` — silence tenu après coupure, évite la saturation où les
+  deux parties se parlent dessus en boucle.
+- Listes d'acquiescements et d'interruptions en français et en anglais.
+
+---
+
+## 4. Économie de tokens
+
+**Routeur d'intention** (`intent-router.ts`) : classification déterministe des
+tours sans contenu métier (acquiescements, vérifications de ligne, formules de
+politesse, salutation d'ouverture). Il n'encaisse quoi que ce soit que sur le
+chemin custom-LLM décrit en section 4bis : sur le chemin OpenAI direct, Vapi
+possède la boucle de tour et le routeur ne fait que mesurer. Garde-fous :
+
+- tout marqueur métier (`rdv`, `dispo`, `annul`, `prix`, `book`, `cancel`…)
+  force l'escalade vers le modèle, même sur un énoncé court ;
+- au-delà de 5 mots, escalade systématique ;
+- correspondance sur l'énoncé normalisé entier, jamais en sous-chaîne.
+
+Le biais est asymétrique et assumé : une escalade inutile coûte des tokens, un
+court-circuit erroné coûte un mauvais appel.
+
+**Autres réductions :**
+
+- `maxTokens: 120` sur les complétions — un tour de réceptionniste plus long est
+  un monologue, et une complétion longue est aussi une latence TTS longue.
+- Prompt système compact, testé à moins de 2 000 caractères, car il est rejoué à
+  chaque tour du modèle.
+- Résultats d'outils courts et impératifs (`LIBRE le 2026-09-14 a: 10:00, 11:00`)
+  plutôt que du JSON verbeux, pour la même raison.
+- Voicemail et non-réponse : plus aucune analyse GPT sur transcript vide.
+
+---
+
+## 4bis. Chemin custom-LLM (SSE)
+
+Sans lui, le routeur d'intention compte des économies qu'il n'encaisse pas :
+Vapi possède la boucle de tour, donc chaque énoncé part chez GPT-4o quoi qu'ait
+décidé le routeur.
+
+`POST /api/webhooks/vapi/llm/:clientId/chat/completions` est un endpoint
+compatible OpenAI en `text/event-stream`. Déclaré côté assistant en
+`model.provider: 'custom-llm'`, il déplace la boucle de tour chez nous :
+
+- **tour dévié** (backchannel, salutation, formule de clôture) : réponse émise
+  depuis la mémoire, aucun appel modèle. Économie réelle d'environ 1 500 tokens
+  d'entrée par tour, et la latence passe d'un aller-retour OpenAI à moins d'une
+  milliseconde ;
+- **tour conversationnel court** non reconnu : routé vers `VOICE_SMALL_MODEL` ;
+- **intention métier, résultat d'outil à énoncer, ou énoncé de plus de 5 mots** :
+  GPT-4o. Le modèle cher est mérité, jamais par défaut.
+
+Les deltas d'OpenAI sont relayés octet par octet, donc le premier token part
+aussi vite qu'en direct. Trois modes de défaillance couverts : erreur HTTP,
+flux fermé sans token, exception réseau. Tous parlent une phrase naturelle,
+jamais un message technique.
+
+**Le compromis, explicitement** : ce service se met dans le chemin audio de
+chaque tour. Un cold start Render devient un silence en ligne.
+
+Décision prise : le chemin est **actif par défaut**
+(`VOICE_CUSTOM_LLM_DEFAULT`, mettre `false` pour tout basculer sur le chemin
+OpenAI de Vapi sans redéployer les assistants). La parade au cold start est
+externe : `GET /ping`, endpoint public le plus léger du service, sans base de
+données, sans authentification, sans log, à appeler toutes les 5 minutes par un
+ordonnanceur externe. Un client peut être épinglé hors du chemin avec
+`Client.vapiConfig.customLlm = false`, qui l'emporte sur le défaut global.
+
+## 4ter. Mémoire client et mémoire entreprise
+
+Deux tables ajoutées, purement additives (migration
+`20260801130000_add_caller_and_business_memory`, à appliquer avant déploiement).
+
+**`caller_memories`** — une ligne par (client, numéro). `ClientCall` garde tous
+les appels ; cette table est la vue aplatie, réécrite en fin d'appel et lue en
+une seule recherche indexée pendant que le téléphone sonne. Résumé glissant
+borné à 400 caractères, le plus récent en tête : c'est le plus ancien qui saute
+à la troncature. Un nom déjà connu n'est jamais écrasé par un `null` venant d'un
+appel où l'appelant ne l'a pas redit.
+
+**`business_knowledge`** — FAQ, équipe, règles de la maison, en lignes plutôt
+qu'en blob sur `Client`, pour que chaque entrée soit éditable, désactivable et
+priorisable. Deux chemins de lecture, et la distinction est le point important :
+
+- les 8 entrées les plus prioritaires sont injectées dans le prompt système, les
+  règles d'abord (une règle enfreinte coûte plus qu'une FAQ non récitée) ;
+- tout le reste est atteignable via l'outil `lookupKnowledge`. C'est ce qui
+  permet à un client d'avoir 200 entrées sans payer 200 entrées de prompt à
+  chaque tour de modèle.
+
+La recherche est un score de recouvrement de tokens normalisés, pas du vectoriel :
+à l'échelle d'un commerce (quelques dizaines à quelques centaines d'entrées)
+c'est assez précis, gratuit, et ça n'ajoute pas d'aller-retour d'embedding à un
+tour où l'appelant attend.
+
+**`captureLead` écrit maintenant en base pendant l'appel**, pas à la fin : une
+ligne `AgentCrmActivity` en statut `pending` avec le payload destiné au CRM
+externe, plus la mise à jour de `caller_memories`. Deux raisons : un appel qui
+coupe en pleine phrase laisse quand même un lead exploitable, et la relance
+commerciale peut partir dès que la ligne se libère au lieu d'attendre l'analyse
+du transcript. L'activité est reliée à la ligne `ClientCall` en fin d'appel, par
+fusion dans le contenu existant, jamais par remplacement.
+
+## 5. Function calling et meublage
+
+Outils exposés selon la configuration réelle du client : `checkAvailability`,
+`bookAppointment`, `lookupBooking` seulement si un agenda Google est connecté et
+la réservation activée ; `captureLead` toujours ; `transferCall` seulement si un
+numéro de transfert existe. Un agent qui promet un créneau qu'il ne peut pas
+écrire est pire qu'un agent qui propose un rappel.
+
+Le meublage est déclaré dans le schéma de l'outil, pas généré par un tour de
+modèle supplémentaire :
+
+- `request-start` — parlé dès l'invocation (« Je regarde ça tout de suite. »),
+  plusieurs variantes pour éviter l'effet répondeur ;
+- `request-response-delayed` — seconde relance après 1,2 s, uniquement sur les
+  outils réellement lents.
+
+`captureLead` est le seul outil `async: true` : le modèle ne doit pas attendre
+une écriture qui ne compte qu'après l'appel.
+
+Côté runtime : chaque appel externe est borné à 2,5 s, ne lève jamais, et
+dégrade vers une consigne actionnable (« propose de noter ses coordonnées pour
+un rappel ») plutôt qu'un message d'erreur. L'écriture agenda après réservation
+n'est volontairement pas attendue : la ligne `ClientBooking` fait foi.
+
+**Double réservation :** un créneau confirmé sur un appel en cours est retenu en
+mémoire (`holdSlot`, TTL 5 min) et retiré des disponibilités proposées aux
+appels parallèles.
+
+---
+
+## 6. Contexte temps réel
+
+`realtime-context.service.ts` sert le profil client et l'historique de
+l'appelant depuis un cache, avant la première seconde de l'appel. Deux
+allers-retours Neon à froid suffiraient à consommer tout le budget de latence.
+
+- Cache local en mémoire par défaut, borné à 500 entrées.
+- Store partagé Redis si `REDIS_URL` est défini **et** `ioredis` installé —
+  import dynamique, dépendance optionnelle, dégradation silencieuse sinon.
+- Invalidation explicite sur changement de configuration assistant
+  (`onboarding.service`, `onboarding-flow.service`), sans quoi l'agent
+  continuerait à se présenter sous l'ancien nom pendant la durée du TTL.
+
+Injecté dans le prompt initial : nom du commerce, persona, horaires, services,
+consignes du client, et mémoire de l'appelant (nom déjà connu, résumé du dernier
+appel, rendez-vous à venir). Un appelant connu est salué par son prénom dès le
+`firstMessage`.
+
+**Sécurité :** le transcript est du texte contrôlé par l'appelant qui atterrit
+dans le contexte du modèle. Le prompt contient une clause explicite indiquant
+que ce que dit l'appelant est une demande, jamais une instruction système. Le
+`clientId` provient toujours du chemin du webhook, jamais des arguments produits
+par le modèle, pour empêcher un accès cross-tenant.
+
+---
+
+## 7. Vérification
+
+```
+tsc --noEmit          0 erreur
+vitest run            254 tests, 28 fichiers, 100 % passants
+eslint (fichiers touchés)   0 erreur
+```
+
+85 tests ajoutés, dont 14 tests de routes qui montent le routeur Express avec
+orchestrateur simulé et vérifient : réponse inline sur `assistant-request` et
+sur les outils, acquittement avant travail sur `status-update`, absence
+d'écriture DB sur `transcript`, 200 avec résultats vides sur échec d'outil,
+saut de l'analyse sur voicemail, et échec fermé de l'authentification.
+
+Les tests ont attrapé deux vrais bugs pendant l'implémentation :
+
+1. le filtre « hot-path » comparait l'étiquette préfixée `client_transcript` au
+   lieu du type brut `transcript`, ce qui laissait passer une écriture
+   `webhookLog` par transcript ;
+2. la politique de tiering se basait sur `kind === 'reasoning'`, valeur que
+   prend *tout* énoncé non reconnu — le modèle bon marché n'aurait donc jamais
+   été utilisé. Le routeur expose maintenant `businessIntent` et `wordCount`, et
+   reste agnostique des modèles.
+
+Aucune régression : authentification, schéma Prisma, migrations et flux Stripe
+n'ont pas été touchés.
+
+---
+
+## 8. Ce qui n'a pas pu être vérifié ici
+
+La latence réelle et la qualité du barge-in ne se mesurent que sur un appel
+réel. Les valeurs par défaut sont un point de départ argumenté, pas un résultat
+mesuré. À valider en conditions réelles :
+
+1. `VOICE_ENDPOINTING_MS` — descendre sous 150 ms coupe la parole des locuteurs
+   lents ; monter au-dessus de 250 ms rend le silence audible.
+2. `VOICE_BARGE_IN_VOICE_SECONDS` — trop bas, l'agent se coupe sur un bruit de
+   fond ; trop haut, l'interruption redevient molle.
+3. Le `waitFunction` LiveKit n'a de modèle qu'en anglais ; le français retombe
+   sur l'endpointing intégré de Vapi, d'où un plancher d'attente non nul.
+4. Le chemin custom-LLM ajoute un saut réseau vers ce backend sur chaque tour
+   proxifié. Sur une instance chaude c'est quelques millisecondes ; sur un cold
+   start Render c'est un silence audible. À mesurer avant d'activer le flag sur
+   un client réel.
+
+Ce qui reste explicitement **non fait** : aucun transport audio propre (Twilio
+Media Streams en WebSocket). Le transport reste chez Vapi. Le construire
+signifierait reprendre VAD, buffering et jitter, et perdre l'AMD, le fallback
+voix et les plans de parole — pour un gain proche de zéro, le transport n'étant
+pas le goulot.
+
+Restent non faits, et demandés : le **warm transfer avec résumé envoyé au
+professionnel avant qu'il décroche** (le transfert est aujourd'hui un
+`blind-transfer`), et le **monitoring de latence par étage** (STT, LLM, TTS
+séparément). Aujourd'hui seule la latence de tour bout-en-bout est mesurée
+(`medianTurnLatencyMs`), ce qui dit qu'un tour est lent sans dire où.
+
+La métrique `medianTurnLatencyMs`, persistée dans `ClientCall.metadata.realtime`
+avec le nombre de barge-ins et de tours déviés, sert précisément à ce réglage
+après mise en production.
