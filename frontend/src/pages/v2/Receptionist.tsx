@@ -17,8 +17,8 @@ import ChatConfigMock from '../../components/v2/ChatConfigMock';
 import VoiceCard, { type VoiceData } from '../../components/landing/VoiceCard';
 
 /* Réceptionniste V2 « Papier & Signal » (DA/v2-direction.md).
-   Récit: un réceptionniste qui agit pendant l'appel. Sémantique indigo = ce qui
-   décroche. Aucun chiffre de latence de conversation, aucun témoignage.
+   Récit: un réceptionniste qui agit pendant l'appel. Indigo = ce qui décroche
+   (inbound). Aucun chiffre de latence de conversation, aucun témoignage.
    La prise de rendez-vous en direct est toujours conditionnée à l'agenda connecté. */
 
 const NB = ' ';
