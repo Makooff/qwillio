@@ -199,7 +199,6 @@ export default function ClientAccount() {
 
   // Identité de l'agent et coordonnées: mêmes clés que la page Réceptionniste,
   // PUT /my-dashboard/settings n'écrit que les clés envoyées.
-  const [agentName, setAgentName] = useState('');
   const [agentLanguage, setAgentLanguage] = useState('fr');
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
@@ -232,7 +231,6 @@ export default function ClientAccount() {
           if (typeof notif.notifLeads === 'boolean') setNotifLeads(notif.notifLeads);
           if (typeof notif.notifQuota === 'boolean') setNotifQuota(notif.notifQuota);
         }
-        setAgentName(s.agentName || '');
         setAgentLanguage(s.agentLanguage || 'fr');
         setBusinessName(s.businessName || '');
         setBusinessType(s.businessType || '');
@@ -298,7 +296,7 @@ export default function ClientAccount() {
   const saveAgentIdentity = async () => {
     setAgentSaving(true);
     try {
-      await api.put('/my-dashboard/settings', { agentName, agentLanguage, businessName, businessType });
+      await api.put('/my-dashboard/settings', { agentLanguage, businessName, businessType });
       setAgentSaved(true);
       setTimeout(() => setAgentSaved(false), 2000);
     } catch {
@@ -380,7 +378,7 @@ export default function ClientAccount() {
     },
   ];
 
-  const agentHint = [agentName || null, businessName || null].filter(Boolean).join(', ') || 'Nom, langue, entreprise';
+  const agentHint = [businessName || null, agentLanguage === 'en' ? 'English' : 'Français'].filter(Boolean).join(', ') || 'Langue, entreprise';
 
   return (
     <div className="max-w-[720px] space-y-6">
@@ -523,22 +521,15 @@ export default function ClientAccount() {
 
           <AccRow
             icon={Bot}
-            label="Identité de l'agent"
+            label="Entreprise et langue"
             hint={agentHint}
             open={open === 'agent'}
             onToggle={() => toggle('agent')}
           >
             <div className="space-y-3">
+              {/* Le nom de l'agent se choisit sur la page Réceptionniste (carrousel),
+                  pas ici: seuls langue et entreprise vivent dans le compte. */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Nom de l'agent" hint="Le prénom utilisé par l'IA pour se présenter">
-                  <input
-                    type="text"
-                    value={agentName}
-                    onChange={(e) => setAgentName(e.target.value)}
-                    placeholder="Ex: Ashley, Marie..."
-                    className={accInput}
-                  />
-                </Field>
                 <Field label="Langue" hint="Langue parlée par votre réceptionniste IA">
                   <select
                     value={agentLanguage}
