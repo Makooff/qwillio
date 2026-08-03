@@ -17,6 +17,27 @@ type CallState = 'idle' | 'connecting' | 'active' | 'ending';
  * Anything that is not a usable string becomes null, and the caller supplies
  * wording the user can act on.
  */
+export function errorDetail(e: unknown): string | null {
+  // Last resort when the SDK gives no readable message: show the raw payload,
+  // trimmed. Without devtools on a phone there is no other way to learn why a
+  // call refuses to start, and a generic sentence has already proved useless
+  // twice. Ugly on purpose, and only ever shown when nothing better exists.
+  try {
+    const seen = new WeakSet();
+    const json = JSON.stringify(e, (_k, v) => {
+      if (typeof v === 'object' && v !== null) {
+        if (seen.has(v)) return '[circular]';
+        seen.add(v);
+      }
+      return v;
+    });
+    if (!json || json === '{}' || json === 'null') return null;
+    return json.length > 220 ? `${json.slice(0, 220)}…` : json;
+  } catch {
+    return null;
+  }
+}
+
 export function errorText(e: unknown): string | null {
   if (typeof e === 'string') return e.trim() || null;
   if (!e || typeof e !== 'object') return null;
@@ -115,9 +136,13 @@ export default function VapiLiveCall({
       vapi.on('error', (e: any) => {
         // Vapi routinely emits errors with no message. Saying "Erreur appel"
         // and nothing else sends the user looking in the wrong place.
-        setError(errorText(e) || (isFr
-          ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
-          : 'The call dropped. Check the microphone and connection, then try again.'));
+        const detail = errorDetail(e);
+        setError(errorText(e) || [
+          isFr
+            ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
+            : 'The call dropped. Check the microphone and connection, then try again.',
+          detail,
+        ].filter(Boolean).join(' — '));
         setState('idle');
         if (timerRef.current) clearInterval(timerRef.current);
       });
