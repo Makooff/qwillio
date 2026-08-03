@@ -389,14 +389,14 @@ export default function Home() {
       </Section>
 
       {/* ── APRÈS L'APPEL + CONFIANCE, bande taupe ── */}
-      <Section variant="band" hairline aria-labelledby="after-heading">
+      <Section variant="band" hairline aria-labelledby="after-heading" className="relative">
         <Container>
           <RevealV2 className="mb-12 max-w-[640px]">
             <Eyebrow tone="neutral" className="mb-4">
               {isFr ? 'Et après' : 'And after'}
             </Eyebrow>
             <H2 id="after-heading">
-              {isFr ? 'Rien ne se perd.' : 'Nothing gets lost.'}
+              <TextReveal>{isFr ? 'Rien ne se perd.' : 'Nothing gets lost.'}</TextReveal>
             </H2>
           </RevealV2>
           <div className="grid md:grid-cols-3 gap-x-10 gap-y-8">
@@ -425,7 +425,7 @@ export default function Home() {
           </div>
 
           <RevealV2 index={3} className="mt-14">
-            <CardV2 variant="canvas" className="flex flex-wrap items-center justify-between gap-6">
+            <CardV2 variant="canvas" glow className="flex flex-wrap items-center justify-between gap-6">
               <p className="text-q2-graphite text-[15px] q2-body-text max-w-[520px]">
                 {isFr ? (
                   <>
@@ -450,6 +450,8 @@ export default function Home() {
             </CardV2>
           </RevealV2>
         </Container>
+        {/* La bande taupe s'assombrit avant le drenched violet de clôture */}
+        <ScrollVeil />
       </Section>
 
       {/* ── NOTE HONNÊTE + CTA FINAL, drenched violet ── */}
