@@ -136,14 +136,18 @@ export default function Home() {
               </Lead>
 
               <div className="flex flex-wrap items-center gap-3 mb-12">
-                <PillLink to="/register" variant="primary" size="lg">
-                  {isFr ? 'Essayer 7 jours' : 'Try it for 7 days'}
-                  <ArrowRight size={15} aria-hidden="true" />
-                </PillLink>
-                <PillLink to="/demo.html" variant="outline" size="lg">
-                  <Play size={13} fill="currentColor" aria-hidden="true" />
-                  {isFr ? 'L’entendre décrocher' : 'Hear her answer'}
-                </PillLink>
+                <Magnetic>
+                  <PillLink to="/register" variant="primary" size="lg">
+                    {isFr ? 'Essayer 7 jours' : 'Try it for 7 days'}
+                    <ArrowRight size={15} aria-hidden="true" />
+                  </PillLink>
+                </Magnetic>
+                <Magnetic strength={4}>
+                  <PillLink to="/demo.html" variant="outline" size="lg">
+                    <Play size={13} fill="currentColor" aria-hidden="true" />
+                    {isFr ? 'L’entendre décrocher' : 'Hear her answer'}
+                  </PillLink>
+                </Magnetic>
               </div>
 
               {/* Propriétés vérifiables uniquement, jamais des métriques inventées */}
@@ -155,12 +159,17 @@ export default function Home() {
                 </div>
                 <div className="flex items-baseline gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Disponibilité' : 'Availability'}</dt>
-                  <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">24/7</dd>
+                  <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">
+                    <Counter value={24} />/<Counter value={7} />
+                  </dd>
                   <span>{isFr ? 'jamais fermé' : 'always on'}</span>
                 </div>
                 <div className="flex items-baseline gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Clonage de voix' : 'Voice cloning'}</dt>
-                  <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">90&nbsp;s</dd>
+                  <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">
+                    <Counter value={90} />
+                    &nbsp;s
+                  </dd>
                   <span>{isFr ? 'pour cloner votre voix' : 'to clone your voice'}</span>
                 </div>
               </dl>
