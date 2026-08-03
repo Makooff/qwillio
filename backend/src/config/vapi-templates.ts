@@ -3,6 +3,7 @@
  * Ashley = English ONLY | Marie = French ONLY
  */
 import { buildRealtimePlans } from '../services/voice/speech-plans';
+import { toE164 } from '../utils/phone';
 
 export const VOICE_CONFIG = {
   ashley: {
@@ -224,8 +225,11 @@ export function buildVapiAssistantConfig(params: {
     endCallMessage: params.language === 'fr'
       ? 'Merci pour votre appel, bonne journée !'
       : 'Thank you for calling, have a great day!',
-    ...(params.transferNumber && {
-      forwardingPhoneNumber: params.transferNumber,
+    // E.164 or absent. Vapi validates this field and rejects the whole
+    // assistant when it fails, so a number typed with spaces here would take
+    // the assistant down rather than just disable transfers.
+    ...(toE164(params.transferNumber, params.language === 'fr' ? 'FR' : 'US') && {
+      forwardingPhoneNumber: toE164(params.transferNumber, params.language === 'fr' ? 'FR' : 'US'),
     }),
   };
 }

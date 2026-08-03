@@ -670,7 +670,16 @@ export class ClientDashboardController {
         // voice id, quota exhausted) and without it this is undiagnosable.
         const detail = await r.text().catch(() => '');
         logger.warn(`ElevenLabs preview ${r.status} for ${id} (voice ${character.voiceId}): ${detail.slice(0, 300)}`);
-        return res.status(502).json({ error: 'elevenlabs_request_failed', status: r.status });
+        // The reason travels to the browser too. Server logs are not reachable
+        // from a phone, and "the preview does not play" was indistinguishable
+        // from a bad voice for as long as the cause stayed here.
+        let reason: string | undefined;
+        try { reason = JSON.parse(detail)?.detail?.message || JSON.parse(detail)?.detail?.status; } catch { /* not JSON */ }
+        return res.status(502).json({
+          error: 'elevenlabs_request_failed',
+          status: r.status,
+          reason: (reason || detail).toString().slice(0, 200) || undefined,
+        });
       }
       const buf = Buffer.from(await r.arrayBuffer());
       res.setHeader('Content-Type', 'audio/mpeg');
