@@ -20,9 +20,9 @@ export default function ChatConfigMock({ isFr, className = '' }: { isFr: boolean
         { name: 'Coloration', price: `65${NB}€` },
       ]
     : [
-        { name: 'Haircut', price: `€28` },
-        { name: 'Cut and beard', price: `€39` },
-        { name: 'Colour', price: `€65` },
+        { name: 'Haircut', price: '€28' },
+        { name: 'Cut and beard', price: '€39' },
+        { name: 'Colour', price: '€65' },
       ];
 
   return (
@@ -56,7 +56,7 @@ export default function ChatConfigMock({ isFr, className = '' }: { isFr: boolean
             <Check size={13} className="shrink-0 text-q2-lift" aria-hidden="true" />
             {isFr ? 'Samedi' : 'Saturday'}
             <span aria-hidden="true">·</span>
-            09:00 – 13:00
+            09:00 - 13:00
           </p>
         </div>
 
