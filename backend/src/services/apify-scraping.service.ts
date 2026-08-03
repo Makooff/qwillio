@@ -372,46 +372,10 @@ const SCRAPE_QUERIES: Array<{ niche: string; queries: string[]; cities: string[]
   },
 ];
 
-// ─── E.164 phone normalizer (country-aware) ───────────────
-// The country comes from getCityMeta(); passing it is what lets a Belgian or
-// French national-format number ("02 345 67 89", "01 23 45 67 89") normalize to
-// +32/+33 instead of being wrongly prefixed with US +1.
-const COUNTRY_CALLING_CODE: Record<string, string> = { BE: '32', FR: '33', US: '1' };
-
-export function toE164(raw: string | null | undefined, country?: string): string | null {
-  if (!raw) return null;
-  const s = String(raw).trim();
-  const cc = country ? COUNTRY_CALLING_CODE[country.toUpperCase()] : undefined;
-
-  // Already international: leading "+" or "00" prefix — trust the country code in it.
-  const allDigits = s.replace(/\D/g, '');
-  if (s.startsWith('+')) {
-    return allDigits.length >= 8 && allDigits.length <= 15 ? `+${allDigits}` : null;
-  }
-  if (allDigits.startsWith('00')) {
-    const intl = allDigits.slice(2);
-    return intl.length >= 8 && intl.length <= 15 ? `+${intl}` : null;
-  }
-
-  let digits = allDigits;
-  if (!digits) return null;
-
-  if (country?.toUpperCase() === 'US') {
-    if (digits.length === 10) return `+1${digits}`;
-    if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
-    return null;
-  }
-
-  if (cc) {
-    // BE/FR national format: strip a single national leading 0, prepend the code.
-    if (digits.startsWith('0')) digits = digits.slice(1);
-    return digits.length >= 8 && digits.length <= 12 ? `+${cc}${digits}` : null;
-  }
-
-  // Unknown country and no international prefix: only trust a long CC-bearing number,
-  // never guess +1 on an ambiguous 10-digit national number.
-  return digits.length >= 11 && digits.length <= 15 ? `+${digits}` : null;
-}
+// E.164 normalisation lives in utils/phone: the voice path needs it too, and
+// reaching it through a scraping module was the reason it got duplicated once.
+export { toE164 } from '../utils/phone';
+import { toE164 } from '../utils/phone';
 
 interface ApifyResult {
   title?: string;

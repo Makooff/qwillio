@@ -1,6 +1,8 @@
 import type { VoiceLanguage } from './speech-plans';
 import type { ClientVoiceProfile } from './realtime-context.service';
 import { env } from '../../config/env';
+import { logger } from '../../config/logger';
+import { toE164 } from '../../utils/phone';
 
 /**
  * Tool schemas + contextual filler (Phase 4).
@@ -267,13 +269,25 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
     });
   }
 
-  if (profile.transferNumber) {
+  // Vapi validates the destination and rejects the ENTIRE assistant when it is
+  // not E.164 ("each value in destinations.number must be a valid phone
+  // number"). The transfer number is typed by hand in the settings screen, so
+  // "06 12 34 56 78" is as likely as "+33612345678" — and one badly typed
+  // number used to take down every call for that client, transfer or not.
+  const transferTo = toE164(profile.transferNumber, profile.country);
+  if (profile.transferNumber && !transferTo) {
+    logger.warn(
+      `[VoiceTools] transfer number "${profile.transferNumber}" for ${profile.clientId} is not a valid ` +
+        'phone number; the transfer tool is omitted rather than breaking every call.'
+    );
+  }
+  if (transferTo) {
     tools.push({
       type: 'transferCall',
       destinations: [
         {
           type: 'number',
-          number: profile.transferNumber,
+          number: transferTo,
           // Spoken before the bridge, so the caller is not dumped into silence
           // while Twilio dials.
           message:

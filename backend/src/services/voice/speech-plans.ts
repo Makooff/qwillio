@@ -189,7 +189,12 @@ export function buildRealtimePlans(lang: VoiceLanguage) {
     startSpeakingPlan: buildStartSpeakingPlan(lang),
     stopSpeakingPlan: buildStopSpeakingPlan(),
     backchannelingEnabled: env.VOICE_BACKCHANNEL_ENABLED,
-    backchannelPlan: buildBackchannelPlan(lang),
+    // No backchannelPlan here. Vapi rejects the whole assistant with
+    // "assistant.property backchannelPlan should not exist", which took down
+    // every call — the test call AND the real inbound ones, since both are
+    // built from this. `backchannelingEnabled` alone is accepted, and the
+    // phrase list it used to carry is kept in buildBackchannelPlan for the day
+    // the API accepts one again.
     // Nudge long before the hang-up deadline below: they are different events.
     messagePlan: buildIdleMessagePlan(lang, env.VOICE_IDLE_NUDGE_SECONDS, env.VOICE_IDLE_NUDGE_COUNT),
     // Streams the first message as soon as the channel is up instead of waiting
