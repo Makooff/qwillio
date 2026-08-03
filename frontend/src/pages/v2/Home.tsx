@@ -103,13 +103,15 @@ export default function Home() {
     <PublicShell>
       {/* ── HERO, un réceptionniste qui agit, pas qui note ── */}
       <Section aria-labelledby="hero-heading" className="relative !pt-16 md:!pt-24 overflow-hidden">
-        {/* Voile lilas du hero: fini le blanc plat, le fond respire vers le canvas */}
+        {/* Voile lilas du hero: fini le blanc plat, le fond respire vers le canvas.
+            Il démarre sur le canvas exact, puis s'ouvre: la barre de nav
+            transparente n'a plus d'arête visible sous elle. */}
         <div
           className="absolute inset-0 pointer-events-none"
           aria-hidden="true"
           style={{
             background:
-              'linear-gradient(180deg, #f5f2fb 0%, #faf8fc 55%, #fdfcfc 100%)',
+              'linear-gradient(180deg, #fdfcfc 0%, #f5f2fb 14%, #f8f6fc 58%, #fdfcfc 100%)',
           }}
         />
         <Container className="relative grid lg:grid-cols-[1.2fr_1fr] gap-14 lg:gap-20 items-center">

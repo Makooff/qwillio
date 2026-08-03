@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -13,7 +13,7 @@ import { useLang } from '../../stores/langStore';
 import { EASE_OUT_EXPO } from './motion/reducedMotion';
 import { useGlow } from './motion/GlowCard';
 
-/* Nav V2 — barre typographique crème qui se condense au scroll (64 vers 52px)
+/* Nav V2: barre typographique crème qui se condense au scroll (64 vers 52px)
    et laisse alors apparaître un fond translucide plus un hairline.
 
    Exception glassmorphism assumée et bornée: le `backdrop-blur` n'existe QUE
@@ -35,6 +35,24 @@ type HoverKey = PanelKey | 'pricing';
 
 /* Ressort raide: la pilule de survol rattrape le curseur sans traîner */
 const PILL_SPRING = { type: 'spring' as const, stiffness: 520, damping: 38, mass: 0.6 };
+
+const PANEL_MAX = 760;
+
+/* Le panneau s'aligne sur son trigger, et ne recule que s'il allait dépasser
+   la gouttière droite du conteneur. L'origine de la transformation reste le
+   centre du trigger dans tous les cas: l'ouverture part toujours de lui. */
+function measurePanel(button: HTMLElement) {
+  const nav = button.closest('nav');
+  if (!nav) return null;
+  const navBox = nav.getBoundingClientRect();
+  const style = getComputedStyle(nav);
+  const contentLeft = navBox.left + parseFloat(style.paddingLeft);
+  const contentRight = navBox.right - parseFloat(style.paddingRight);
+  const width = Math.min(PANEL_MAX, window.innerWidth - 48);
+  const btn = button.getBoundingClientRect();
+  const left = Math.max(contentLeft, Math.min(btn.left, contentRight - width));
+  return { dx: left - btn.left, origin: btn.left + btn.width / 2 - left };
+}
 
 function PanelItem({ link, onNavigate }: { link: PanelLink; onNavigate: () => void }) {
   const Icon = link.icon;
@@ -79,6 +97,18 @@ function NavPanel({ label, links, aside, open, hovered, onOpen, onClose, onHover
   const id = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const reduced = useReducedMotion();
+  const [geo, setGeo] = useState<{ dx: number; origin: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const measure = () => {
+      const btn = buttonRef.current;
+      if (btn) setGeo(measurePanel(btn));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -130,10 +160,14 @@ function NavPanel({ label, links, aside, open, hovered, onOpen, onClose, onHover
             exit={{ opacity: 0, scale: 0.97, y: -4 }}
             transition={reduced ? { duration: 0 } : { duration: 0.18, ease: EASE_OUT_EXPO }}
             /* Ouverture depuis l'origine du trigger, jamais depuis le centre */
-            style={{ transformOrigin: 'top left', boxShadow: 'var(--q2-shadow-hover)' }}
-            className="absolute left-0 top-full mt-2.5 z-50 w-[min(680px,calc(100vw-3rem))] rounded-[22px] border border-q2-plate bg-q2-canvas p-2.5"
+            style={{
+              left: geo ? geo.dx : 0,
+              transformOrigin: `${geo ? geo.origin : 0}px top`,
+              boxShadow: 'var(--q2-shadow-hover)',
+            }}
+            className="absolute top-full mt-2.5 z-50 w-[min(760px,calc(100vw-3rem))] rounded-[22px] border border-q2-plate bg-q2-canvas p-2.5"
           >
-            <div className="grid sm:grid-cols-[1fr_236px] gap-2.5">
+            <div className="grid sm:grid-cols-[1fr_228px] gap-2.5">
               <div className="grid sm:grid-cols-2 gap-1">
                 {links.map((link) => (
                   <PanelItem key={link.to} link={link} onNavigate={onClose} />
@@ -408,7 +442,7 @@ export default function NavV2() {
           menuOpen
             ? 'bg-q2-canvas border-transparent'
             : scrolled
-              ? 'bg-q2-canvas/80 backdrop-blur-xl border-q2-plate'
+              ? 'bg-q2-canvas/95 backdrop-blur-xl border-q2-plate'
               : 'bg-transparent border-transparent'
         }`}
       >

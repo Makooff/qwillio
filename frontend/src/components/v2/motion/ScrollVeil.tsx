@@ -19,9 +19,12 @@ interface ScrollVeilProps {
   className?: string;
 }
 
+/* Hauteur calée sur le padding bas des sections (py-32 = 128px): le voile
+   couvre la respiration de fin de section et n'assombrit le contenu que par
+   sa frange haute, la plus transparente. */
 export default function ScrollVeil({
   to = '#08090A',
-  height = '44vh',
+  height = '190px',
   className = '',
 }: ScrollVeilProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -56,7 +59,7 @@ export default function ScrollVeil({
       style={{
         height,
         opacity: 0,
-        background: `linear-gradient(180deg, rgba(8, 9, 10, 0) 0%, ${to} 100%)`,
+        background: `linear-gradient(180deg, rgba(8, 9, 10, 0) 0%, rgba(8, 9, 10, 0.42) 58%, ${to} 100%)`,
       }}
     />
   );
