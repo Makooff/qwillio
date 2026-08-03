@@ -116,8 +116,8 @@ export default function Faq() {
   useSEO({
     title: isFr ? 'Questions fréquentes · Qwillio' : 'Frequently asked questions · Qwillio',
     description: isFr
-      ? 'Réponses aux questions sur Qwillio : installation, langues, tarifs, RGPD, prise de rendez-vous, anti-spam, résiliation.'
-      : 'Answers about Qwillio: setup, languages, pricing, GDPR, appointment booking, spam shield, cancellation.',
+      ? 'Réponses aux questions sur Qwillio : prise de rendez-vous pendant l’appel, transfert avec résumé, mémoire des habitués, import des tarifs par photo, appel test, voix, RGPD, tarifs et résiliation.'
+      : 'Answers about Qwillio: booking during the call, warm transfer with a brief, memory of regulars, importing rates from a photo, test call, voices, GDPR, pricing and cancellation.',
     canonical: 'https://qwillio.com/faq',
   });
 
