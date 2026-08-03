@@ -53,6 +53,7 @@ class GreetingAudioService {
       characterId: profile.characterId,
       isFrench: profile.language === 'fr',
       country: profile.country,
+      customVoice: profile.customVoice,
     });
     // Only the anonymous variants are pre-generated: the named ones depend on
     // who is calling, which is not knowable before the phone rings.

@@ -38,6 +38,52 @@ n'a jamais vu l'erreur.
 L'échec du pre-deploy s'est comporté comme prévu : le trafic n'a pas basculé,
 l'ancienne version est restée en ligne.
 
+### Comment ça s'est terminé, le 2026-08-03
+
+Les dix migrations ont été résolues en **`applied`**, sans exception. Chacune
+échouait sur `already exists` — `is_spam`, `affiliates`, `saved_searches`,
+`caller_memories`, `greeting_audio`, `embedding` — parce que le schéma complet
+était déjà en base, créé par un `prisma db push` et jamais enregistré comme
+migration.
+
+Autrement dit : rien n'a été créé pendant la réparation, seule la comptabilité a
+été remise d'équerre. Le SQL des migrations n'a jamais été rejoué.
+
+Preuve finale, `npm run db:check` :
+
+```
+-- This is an empty migration.
+```
+
+`information_schema` correspond exactement à `schema.prisma`. C'est la seule
+vérification qui compte : `migrate resolve` n'écrit que dans `_prisma_migrations`
+et ne prouve rien sur le schéma réel.
+
+**La leçon.** `db:push` sur une base de production laisse le schéma juste et
+l'historique faux. Tout marche, jusqu'au jour où une migration s'exécute enfin et
+trouve ses objets déjà là. Les migrations, désormais, ou rien.
+
+### P1002 pendant un déploiement : à relancer, pas à réparer
+
+```
+Timed out trying to acquire a postgres advisory lock (SELECT pg_advisory_lock(72707369))
+```
+
+Prisma prend un verrou consultatif avant d'appliquer, pour empêcher deux
+migrations simultanées. Ces verrous sont liés à une session PostgreSQL, et l'URL
+de production passe par le pooler Neon (`...-pooler.c-5.us-east-1.aws.neon.tech`)
+qui peut servir une connexion différente d'une requête à l'autre.
+
+C'est arrivé deux fois pendant la réparation, et la simple relance a suffi. Rien
+n'est cassé, rien n'est à moitié appliqué : le verrou est pris *avant* toute
+écriture. Si un déploiement échoue là-dessus, relancer le déploiement.
+
+Contournement ponctuel si ça persiste, sans rien modifier durablement :
+
+```bash
+DATABASE_URL="${DATABASE_URL/-pooler/}" npx prisma migrate deploy
+```
+
 ### Résoudre une migration en échec
 
 Prisma veut savoir dans quel sens enregistrer la tentative ratée :
@@ -182,7 +228,7 @@ qui suffit : les variables du dashboard ne sont pas écrasées par le blueprint.
 | Variable | Sans elle |
 |---|---|
 | `OPENAI_API_KEY` | le chemin custom-LLM tombe en repli parlé à chaque tour |
-| `ELEVENLABS_API_KEY` | pas d'accueil pré-synthétisé, retour à la synthèse live |
+| `ELEVENLABS_API_KEY` | pas d'accueil pré-synthétisé, aperçus de voix en 503 (le dashboard retombe sur la voix du navigateur et le dit), clonage de voix indisponible |
 | `VAPI_WEBHOOK_SECRET` | webhooks rejetés en 401 en production (échec fermé volontaire) |
 
 Optionnelles, toutes avec un défaut sain : `VOICE_*` (voir `config/env.ts`),

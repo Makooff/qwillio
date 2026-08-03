@@ -1,6 +1,25 @@
 import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
 import { env } from '../../config/env';
+import type { CustomVoice } from '../../config/voice-characters';
+
+/**
+ * A cloned voice as stored in `vapiConfig.customVoice`.
+ *
+ * Validated field by field rather than cast: this JSON column is written by
+ * several code paths over time, and a half-written value here would send an
+ * empty voiceId to ElevenLabs on every call of a live tenant.
+ */
+export function readCustomVoice(raw: unknown): CustomVoice | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const v = raw as Record<string, unknown>;
+  if (typeof v.voiceId !== 'string' || v.voiceId.trim() === '') return null;
+  return {
+    voiceId: v.voiceId,
+    name: typeof v.name === 'string' ? v.name : 'Ma voix',
+    createdAt: typeof v.createdAt === 'string' ? v.createdAt : new Date(0).toISOString(),
+  };
+}
 
 /**
  * Real-time context cache (Phase 5).
@@ -46,6 +65,8 @@ export interface ClientVoiceProfile {
   planType: string;
   /** Voice persona chosen by the client, resolved against the character catalog. */
   characterId: string | null;
+  /** The client's own cloned voice, when they made one. Used iff characterId is 'custom'. */
+  customVoice: CustomVoice | null;
   /** Drives the Belgian French voice override. */
   country: string | null;
   /**
@@ -215,6 +236,7 @@ class RealtimeContextService {
       calendarConnected: Boolean(client.googleCalendarRefreshToken),
       planType: client.planType,
       characterId: typeof vapiConfig.characterId === 'string' ? vapiConfig.characterId : null,
+      customVoice: readCustomVoice(vapiConfig.customVoice),
       country: client.country,
       // An explicit per-client false wins over the global default, so one
       // problematic tenant can be pinned back to Vapi's own OpenAI path.

@@ -6,7 +6,7 @@ import { googleCalendarService } from '../services/google-calendar.service';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
-import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN } from '../config/voice-characters';
+import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN, CUSTOM_CHARACTER_ID } from '../config/voice-characters';
 import { buildVapiConfigPatch } from '../services/client-config.service';
 
 // OAuth state: per-user, signed, short-lived — the callback verifies it was
@@ -249,6 +249,9 @@ export class ClientDashboardController {
         personalityPreset: cfg.personalityPreset ?? 'warm',
         personalityNotes:  cfg.personalityNotes  ?? cfg.specialNotes ?? '',
         characterId:       cfg.characterId ?? (isFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN),
+        // Null rather than absent: the UI shows either the recorder or the
+        // cloned-voice card, and "not loaded yet" must not look like "none".
+        customVoice:       cfg.customVoice?.voiceId ? cfg.customVoice : null,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -596,10 +599,26 @@ export class ClientDashboardController {
   async characterPreview(req: any, res: Response) {
     try {
       const id = String(req.params.id || '');
-      if (!isValidCharacterId(id)) return res.status(404).json({ error: 'Unknown character' });
+      const isCustom = id === CUSTOM_CHARACTER_ID;
+      if (!isCustom && !isValidCharacterId(id)) return res.status(404).json({ error: 'Unknown character' });
       if (!env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'elevenlabs_key_missing' });
 
-      const character = CHARACTERS[id];
+      // The cloned voice has no entry in the catalog: its id lives in the
+      // client's own config, so the preview reads it from there and borrows the
+      // language default's sample line and tuning.
+      let character = isCustom ? null : CHARACTERS[id];
+      if (isCustom) {
+        const client = await prisma.client.findUnique({
+          where: { id: req.clientId },
+          select: { vapiConfig: true, agentLanguage: true },
+        });
+        const voiceId = ((client?.vapiConfig as any)?.customVoice?.voiceId ?? '') as string;
+        if (!voiceId) return res.status(404).json({ error: 'no_custom_voice' });
+        const base = CHARACTERS[client?.agentLanguage?.startsWith('fr') ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
+        character = { ...base, voiceId, style: 0, similarityBoost: 0.85 };
+      }
+      if (!character) return res.status(404).json({ error: 'Unknown character' });
+
       const text = character.language === 'fr' ? character.previewFr : character.previewEn;
       const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${character.voiceId}`, {
         method: 'POST',
@@ -627,6 +646,102 @@ export class ClientDashboardController {
       res.send(buf);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  }
+
+  // POST /my-dashboard/voice-clone — the client's own voice as the receptionist.
+  //
+  // The sample arrives base64 in JSON, like the dictation endpoint: the express
+  // json parser already handles it, and adding multipart here would mean a new
+  // dependency for one route.
+  async createVoiceClone(req: any, res: Response) {
+    try {
+      const { audio, mimeType, label, consent } = req.body || {};
+      if (typeof audio !== 'string' || !audio) return res.status(400).json({ error: 'audio required' });
+
+      const { voiceCloneService, MAX_SAMPLE_BYTES } =
+        await import('../services/voice/voice-clone.service');
+
+      // Encoded length first: base64 is ~4/3 of what it carries, so an oversized
+      // payload is rejected before it costs the memory to decode it.
+      if (audio.length > Math.ceil((MAX_SAMPLE_BYTES * 4) / 3) + 4) {
+        return res.status(413).json({ error: 'sample_too_large' });
+      }
+
+      const client = await prisma.client.findUnique({ where: { id: req.clientId } });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+
+      const current = (client.vapiConfig as Record<string, unknown>) ?? {};
+      const previous = current.customVoice as { voiceId?: string } | undefined;
+
+      const voice = await voiceCloneService.create({
+        clientId: req.clientId,
+        sample: Buffer.from(audio, 'base64'),
+        mimeType: typeof mimeType === 'string' ? mimeType : 'audio/webm',
+        label: typeof label === 'string' ? label : '',
+        consent: consent === true,
+      });
+
+      await prisma.client.update({
+        where: { id: req.clientId },
+        // Selecting it immediately is the point of the screen: a client who
+        // records their voice wants to hear it answer, not to then hunt for a
+        // radio button.
+        data: { vapiConfig: { ...current, customVoice: { ...voice }, characterId: CUSTOM_CHARACTER_ID } },
+      });
+
+      // Re-cloning replaces: leaving the old voice on the shared ElevenLabs
+      // account would accumulate one dead voice per retry, and the account has
+      // a voice limit.
+      if (previous?.voiceId && previous.voiceId !== voice.voiceId) {
+        void voiceCloneService.remove(previous.voiceId);
+      }
+
+      const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+      await realtimeContextService.invalidateClient(req.clientId);
+
+      res.json({ success: true, voice });
+    } catch (error: any) {
+      const { VoiceCloneError } = await import('../services/voice/voice-clone.service');
+      if (error instanceof VoiceCloneError) {
+        return res.status(error.status).json({ error: error.message, upstream: error.upstream });
+      }
+      logger.error('createVoiceClone failed:', error);
+      res.status(500).json({ error: 'voice_clone_failed' });
+    }
+  }
+
+  // DELETE /my-dashboard/voice-clone
+  async deleteVoiceClone(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({ where: { id: req.clientId } });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+
+      const current = (client.vapiConfig as Record<string, unknown>) ?? {};
+      const voice = current.customVoice as { voiceId?: string } | undefined;
+      const { customVoice: _removed, ...rest } = current;
+
+      // Falling back to a catalog character rather than leaving `custom`
+      // pointing at nothing: an agent with no voice cannot answer a call.
+      const characterId = current.characterId === CUSTOM_CHARACTER_ID
+        ? (client.agentLanguage?.startsWith('fr') ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN)
+        : (typeof current.characterId === 'string' ? current.characterId : null);
+
+      await prisma.client.update({
+        where: { id: req.clientId },
+        data: { vapiConfig: { ...rest, characterId } },
+      });
+
+      const { voiceCloneService } = await import('../services/voice/voice-clone.service');
+      if (voice?.voiceId) await voiceCloneService.remove(voice.voiceId);
+
+      const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+      await realtimeContextService.invalidateClient(req.clientId);
+
+      res.json({ success: true, characterId });
+    } catch (error: any) {
+      logger.error('deleteVoiceClone failed:', error);
+      res.status(500).json({ error: 'voice_clone_delete_failed' });
     }
   }
 
