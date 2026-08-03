@@ -470,15 +470,17 @@ export default function Home() {
           <Container className="!px-0 grid lg:grid-cols-[1.5fr_1fr] gap-10 items-end">
             <RevealV2 index={1}>
               <Display as="h2" onDark>
-                {isFr ? (
-                  <>
-                    Votre prochaine cliente appelle <SerifWord>ce soir.</SerifWord>
-                  </>
-                ) : (
-                  <>
-                    Your next customer calls <SerifWord>tonight.</SerifWord>
-                  </>
-                )}
+                <TextReveal>
+                  {isFr ? (
+                    <>
+                      Votre prochaine cliente appelle <SerifWord>ce soir.</SerifWord>
+                    </>
+                  ) : (
+                    <>
+                      Your next customer calls <SerifWord>tonight.</SerifWord>
+                    </>
+                  )}
+                </TextReveal>
               </Display>
             </RevealV2>
             <RevealV2 index={2} className="flex flex-col items-start gap-5 lg:items-end pb-2">
@@ -487,10 +489,12 @@ export default function Home() {
                   ? '7 jours d’essai. Sans engagement, résiliable en un clic.'
                   : '7-day trial. No commitment, cancel in one click.'}
               </p>
-              <PillLink to="/register" variant="chromatic" size="lg">
-                {isFr ? 'Mettre Qwillio en ligne' : 'Put Qwillio on the line'}
-                <ArrowRight size={16} aria-hidden="true" />
-              </PillLink>
+              <Magnetic strength={7}>
+                <PillLink to="/register" variant="chromatic" size="lg">
+                  {isFr ? 'Mettre Qwillio en ligne' : 'Put Qwillio on the line'}
+                  <ArrowRight size={16} aria-hidden="true" />
+                </PillLink>
+              </Magnetic>
             </RevealV2>
           </Container>
         </Container>
