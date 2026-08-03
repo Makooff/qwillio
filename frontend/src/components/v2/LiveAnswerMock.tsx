@@ -4,7 +4,7 @@ import { CalendarCheck, CalendarPlus, MessageSquare } from 'lucide-react';
    Registre clair, hairlines, indigo comme seule couleur. Rien d'animé,
    aucune donnée de performance: seulement des actions que le produit exécute. */
 
-const NB = ' ';
+const NB = '\u00A0';
 
 interface Line {
   who: string;
@@ -57,7 +57,7 @@ export default function LiveAnswerMock({ isFr, className = '' }: { isFr: boolean
 
       <div className="flex items-baseline justify-between gap-4 pb-5 border-b border-q2-plate">
         <p className="flex items-center gap-2.5 text-[13px] font-medium text-q2-ink">
-          <span className="w-1.5 h-1.5 rounded-full bg-q2-indigo shrink-0" aria-hidden="true" />
+          <span className="w-1.5 h-1.5 rounded-full bg-q2-indigo shrink-0" aria-hidden="true" />
           {isFr ? 'Appel entrant' : 'Incoming call'}
           <span className="text-q2-faint" aria-hidden="true">
             ·

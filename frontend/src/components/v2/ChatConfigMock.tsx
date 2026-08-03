@@ -5,7 +5,7 @@ import { Check, Paperclip } from 'lucide-react';
    l'unique action chromatique de la section qui accueille ce bloc.
    La photo est une vignette abstraite: aucune image réelle n'est chargée. */
 
-const NB = ' ';
+const NB = '\u00A0';
 
 interface Rate {
   name: string;
