@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  Phone, Mic, Calendar, MessageSquare, ArrowRight, Play, Check,
-  Shield, Headphones, Languages, Lock, Server, FileText,
+  ArrowRight, Play, Phone, CalendarCheck, PhoneForwarded, UserCheck,
+  MessagesSquare, Mic, Camera, PhoneCall, Shield,
   type LucideIcon,
 } from 'lucide-react';
 import { useSEO } from '../../hooks/useSEO';
@@ -11,347 +12,360 @@ import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../..
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
-import FaqAccordion, { type FaqEntry } from '../../components/v2/FaqAccordion';
-import HeroPhone3D from '../../components/ui/HeroPhone3D';
+import LiveAnswerMock from '../../components/v2/LiveAnswerMock';
+import ChatConfigMock from '../../components/v2/ChatConfigMock';
 import VoiceCard, { type VoiceData } from '../../components/landing/VoiceCard';
 
 /* Réceptionniste V2 « Papier & Signal » (DA/v2-direction.md).
-   Sémantique indigo: ce qui décroche. Copie FR/EN portée de la V1 (pages/Landing.tsx),
-   aucune métrique ajoutée. HeroPhone3D et VoiceCard sont réutilisés tels quels. */
+   Récit: un réceptionniste qui agit pendant l'appel. Sémantique indigo = ce qui
+   décroche. Aucun chiffre de latence de conversation, aucun témoignage.
+   La prise de rendez-vous en direct est toujours conditionnée à l'agenda connecté. */
 
-interface Capability {
+const NB = ' ';
+
+interface Pillar {
   icon: LucideIcon;
   num: string;
   title: string;
   body: string;
-  panel: ReactNode;
+  panelLabel: string;
+  panelRows: { label: string; meta?: string }[];
+  panelNote?: string;
 }
 
-interface Tier {
-  name: string;
-  price: string;
-  included: string;
-  desc: string;
-}
-
-function PanelLabel({ children }: { children: ReactNode }) {
-  return <p className="q2-eyebrow text-q2-body mb-6">{children}</p>;
+function Panel({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <CardV2 variant="band" large className="h-full">
+      <p className="q2-eyebrow text-q2-body mb-6">{label}</p>
+      {children}
+    </CardV2>
+  );
 }
 
 export default function Receptionist() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
-  const voiceName = isFr ? 'Marie' : 'Ashley';
 
   useSEO({
-    title: isFr ? 'Réceptionniste IA en français, Belgique et France' : 'AI Receptionist',
+    title: isFr
+      ? 'Réceptionniste IA qui prend le rendez-vous pendant l’appel'
+      : 'AI receptionist that books during the call',
     description: isFr
-      ? "Le meilleur réceptionniste IA francophone pour la Belgique et la France : répond à chaque appel en moins d'une seconde, prend les rendez-vous et qualifie vos leads 24h/24. Hébergement UE, RGPD."
-      : 'The Qwillio AI receptionist answers every call in under a second, books appointments, and qualifies leads, around the clock.',
+      ? 'Qwillio répond, lit votre agenda Google en direct, inscrit le rendez-vous pendant l’appel, vous résume l’appelant avant de vous le passer et reconnaît vos habitués. Français et anglais, hébergement UE, à partir de 99 € par mois.'
+      : 'Qwillio answers, reads your Google calendar live, books the appointment during the call, briefs you before handing the caller over and recognises your regulars. French and English, EU hosting, from €99 a month.',
     canonical: 'https://qwillio.com/receptionist',
   });
 
   const voices: VoiceData[] = [
     {
+      name: 'Marie',
+      accent: isFr ? 'Français · France et Belgique' : 'French · France and Belgium',
+      vibe: isFr
+        ? 'Chaleureuse et accueillante, sourire dans la voix.'
+        : 'Warm and welcoming, a smile in her voice.',
+      swatch: '#7a5fff',
+      ring: 'rgba(122,95,255,0.45)',
+      initials: 'MA',
+      lang: 'fr-FR',
+      sample: 'Bonjour, merci d’appeler ! Comment puis-je vous aider aujourd’hui ?',
+    },
+    {
       name: 'Ashley',
       accent: isFr ? 'Anglais · États-Unis' : 'English · United States',
       vibe: isFr
-        ? 'Chaleureuse, naturelle. Ventes sortantes et accueil entrant.'
-        : 'Warm, natural. Built for outbound sales and inbound reception.',
-      swatch: '#7a5fff',
-      ring: 'rgba(122,95,255,0.45)',
-      initials: 'AS',
-      lang: 'en-US',
-      sample: 'Hey, Bright Dental, this is Ashley. How can I help you today?',
-    },
-    {
-      name: 'Marie',
-      accent: isFr ? 'Français · France & Québec' : 'French · France & Quebec',
-      vibe: isFr
-        ? 'Chaleureuse, conversationnelle. Conçue pour le marché francophone.'
-        : 'Warm, conversational. Built for French and Quebec markets.',
+        ? 'Chaleureuse, voix anglaise naturelle.'
+        : 'Warm and welcoming, natural English voice.',
       swatch: '#cd6bfb',
       ring: 'rgba(205,107,251,0.45)',
-      initials: 'MA',
-      lang: 'fr-FR',
-      sample: "Bonjour, cabinet Bright Dental, c'est Marie. Comment puis-je vous aider ?",
+      initials: 'AS',
+      lang: 'en-US',
+      sample: 'Hello, thanks for calling! How can I help you today?',
     },
   ];
 
-  const languages = [
-    isFr ? 'Français' : 'French',
-    'English',
-    isFr ? 'Espagnol' : 'Spanish',
-    isFr ? 'Italien' : 'Italian',
-    isFr ? 'Allemand' : 'German',
-    isFr ? 'Portugais' : 'Portuguese',
-    isFr ? 'Néerlandais' : 'Dutch',
-    isFr ? 'Arabe' : 'Arabic',
-    isFr ? 'Mandarin' : 'Mandarin',
-    isFr ? 'Japonais' : 'Japanese',
-    isFr ? 'Coréen' : 'Korean',
-  ];
+  const otherVoices = isFr
+    ? [
+        { name: 'Camille', note: 'Soignée et raffinée, pour une image premium.', tag: 'FR' },
+        { name: 'Léa', note: 'Dynamique et enthousiaste, pleine d’énergie.', tag: 'FR' },
+        { name: 'Lucas', note: 'Posé et professionnel, direct et rassurant.', tag: 'FR' },
+        { name: 'Sofia', note: 'Naturelle et décontractée, ton conversationnel.', tag: 'FR' },
+        { name: 'Ethan', note: 'Voix anglaise masculine, posée.', tag: 'EN' },
+      ]
+    : [
+        { name: 'Camille', note: 'Polished and refined, for a premium brand.', tag: 'FR' },
+        { name: 'Léa', note: 'Dynamic and upbeat, full of energy.', tag: 'FR' },
+        { name: 'Lucas', note: 'Composed and professional, direct and reassuring.', tag: 'FR' },
+        { name: 'Sofia', note: 'Natural and easy-going, conversational tone.', tag: 'FR' },
+        { name: 'Ethan', note: 'Composed male English voice.', tag: 'EN' },
+      ];
 
-  const capabilities: Capability[] = [
-    {
-      icon: Mic,
-      num: '01',
-      title: isFr ? 'Conversations naturelles' : 'Natural conversation',
-      body: isFr
-        ? `Pas de scripts robotiques. ${voiceName} adapte le ton, gère les interruptions et reformule quand c’est flou.`
-        : `No robotic scripts. ${voiceName} adapts tone, handles interruptions, and rephrases when something is unclear.`,
-      panel: (
-        <CardV2 variant="band" large className="h-full">
-          <PanelLabel>{isFr ? 'Salutation' : 'Greeting'}</PanelLabel>
-          <ul className="space-y-5" role="list">
-            {voices.map((v) => (
-              <li key={v.name} className="border-b border-q2-plate pb-5 last:border-0 last:pb-0">
-                <p className="text-[11px] font-medium tracking-[0.14em] uppercase text-q2-body mb-2">
-                  {v.name} · {v.lang}
-                </p>
-                <p className="text-q2-graphite text-[15px] leading-relaxed q2-body-text">{v.sample}</p>
-              </li>
-            ))}
-          </ul>
-        </CardV2>
-      ),
-    },
-    {
-      icon: Calendar,
-      num: '02',
-      title: isFr ? 'Rendez-vous dans votre agenda' : 'Books in your calendar',
-      body: isFr
-        ? `Google, Outlook, Calendly. ${voiceName} vérifie les créneaux libres et réserve directement.`
-        : `Google, Outlook, Calendly. ${voiceName} checks availability and books straight in.`,
-      panel: (
-        <CardV2 variant="band" large className="h-full">
-          <PanelLabel>{isFr ? 'Agendas connectés' : 'Connected calendars'}</PanelLabel>
-          <ul className="flex flex-wrap gap-2.5 mb-8" role="list">
-            {['Google', 'Outlook', 'Calendly', 'Cal.com'].map((c) => (
-              <li
-                key={c}
-                className="inline-flex items-center rounded-full bg-q2-canvas border border-q2-plate px-4 py-2 text-[13px] font-medium text-q2-graphite"
-              >
-                {c}
-              </li>
-            ))}
-          </ul>
-          <p className="text-q2-body text-sm leading-relaxed q2-body-text border-t border-q2-plate pt-5">
-            {isFr
-              ? 'Les créneaux libres sont vérifiés pendant l’appel, la réservation part dans votre vrai calendrier.'
-              : 'Open slots are checked during the call, the booking lands in your real calendar.'}
-          </p>
-        </CardV2>
-      ),
-    },
-    {
-      icon: MessageSquare,
-      num: '03',
-      title: isFr ? 'SMS et email de suivi' : 'SMS and email follow-up',
-      body: isFr
-        ? 'Confirmations envoyées dans la minute. Rappels la veille. Réponses aux questions courantes.'
-        : 'Confirmations sent within a minute. Reminders the day before. Answers to common questions.',
-      panel: (
-        <CardV2 variant="band" large className="h-full">
-          <PanelLabel>{isFr ? 'Après l’appel' : 'After the call'}</PanelLabel>
-          <ul className="divide-y divide-q2-plate" role="list">
-            {[
-              isFr ? 'Confirmation envoyée dans la minute' : 'Confirmation sent within a minute',
-              isFr ? 'Rappel la veille du rendez-vous' : 'Reminder the day before the appointment',
-              isFr ? 'Réponses aux questions courantes' : 'Answers to common questions',
-            ].map((line) => (
-              <li key={line} className="flex items-start gap-3 py-4 first:pt-0 last:pb-0">
-                <Check size={15} className="mt-0.5 shrink-0 text-q2-indigo" aria-hidden="true" />
-                <span className="text-q2-graphite text-[15px] leading-snug q2-body-text">{line}</span>
-              </li>
-            ))}
-          </ul>
-        </CardV2>
-      ),
-    },
-    {
-      icon: Headphones,
-      num: '04',
-      title: isFr ? 'Transferts intelligents' : 'Smart transfers',
-      body: isFr
-        ? `Quand un appel devient urgent, ${voiceName} identifie qui doit décrocher et transfère sans faire patienter.`
-        : `When a call turns urgent, ${voiceName} identifies who should take it and transfers without making the caller wait.`,
-      panel: (
-        <CardV2 variant="band" large className="h-full">
-          <PanelLabel>{isFr ? 'Règles que vous définissez' : 'Rules you define'}</PanelLabel>
-          <ul className="flex flex-wrap gap-2.5 mb-8" role="list">
-            {[
-              isFr ? 'Urgence médicale' : 'Medical urgency',
-              isFr ? 'Demande VIP' : 'VIP request',
-              isFr ? 'Plainte' : 'Complaint',
-            ].map((rule) => (
-              <li
-                key={rule}
-                className="inline-flex items-center rounded-full bg-q2-canvas border border-q2-plate px-4 py-2 text-[13px] font-medium text-q2-graphite"
-              >
-                {rule}
-              </li>
-            ))}
-          </ul>
-          <ul className="divide-y divide-q2-plate" role="list">
-            {[
-              isFr ? 'Transfert vers vous' : 'Transfer to you',
-              isFr ? 'Message détaillé' : 'Detailed message',
-              isFr ? 'Rappel programmé' : 'Scheduled callback',
-            ].map((out) => (
-              <li key={out} className="flex items-center gap-3 py-4 first:pt-0 last:pb-0">
-                <ArrowRight size={14} className="shrink-0 text-q2-indigo" aria-hidden="true" />
-                <span className="text-q2-graphite text-[15px] q2-body-text">{out}</span>
-              </li>
-            ))}
-          </ul>
-        </CardV2>
-      ),
-    },
-  ];
+  const tones = isFr
+    ? ['Chaleureux', 'Professionnel', 'Décontracté', 'Énergique', 'Haut de gamme', 'Rassurant']
+    : ['Warm', 'Professional', 'Casual', 'Energetic', 'Premium', 'Reassuring'];
 
-  const steps = [
-    {
-      num: '01',
-      title: isFr ? 'Choisissez votre voix' : 'Pick your voice',
-      desc: isFr
-        ? 'Sélectionnez parmi 40+ voix. Écoutez chaque option. Personnalisez le nom, la salutation, le ton.'
-        : 'Pick from 40+ voices. Audition each option. Customize the name, greeting, and tone.',
-      icon: Mic,
-    },
-    {
-      num: '02',
-      title: isFr ? 'Connectez votre agenda' : 'Connect your calendar',
-      desc: isFr
-        ? `Google, Outlook, Calendly, Cal.com. ${voiceName} voit vos créneaux libres et réserve directement.`
-        : `Google, Outlook, Calendly, Cal.com. ${voiceName} sees your open slots and books straight in.`,
-      icon: Calendar,
-    },
-    {
-      num: '03',
-      title: isFr ? 'Transférez votre numéro' : 'Forward your number',
-      desc: isFr
-        ? `Gardez votre numéro existant. Activez le renvoi d’appel. ${voiceName} prend le relais immédiatement.`
-        : `Keep your existing number. Activate call forwarding. ${voiceName} takes over immediately.`,
-      icon: Phone,
-    },
-  ];
+  const trades: { label: string; href: string }[] = isFr
+    ? [
+        { label: 'Dentiste', href: '/dentiste' },
+        { label: 'Avocat', href: '/avocat' },
+        { label: 'Notaire', href: '/notaire' },
+        { label: 'Plombier', href: '/plombier' },
+        { label: 'Garagiste', href: '/garagiste' },
+        { label: 'Kiné', href: '/kine' },
+        { label: 'Restaurant', href: '/restaurant' },
+        { label: 'Immobilier', href: '/immobilier' },
+        { label: 'Coiffeur', href: '/coiffeur' },
+        { label: 'Fiduciaire', href: '/fiduciaire' },
+      ]
+    : [
+        { label: 'Dental', href: '/dentiste' },
+        { label: 'Legal', href: '/avocat' },
+        { label: 'Notary', href: '/notaire' },
+        { label: 'Plumbing', href: '/plombier' },
+        { label: 'Garage', href: '/garagiste' },
+        { label: 'Physio', href: '/kine' },
+        { label: 'Restaurant', href: '/restaurant' },
+        { label: 'Real estate', href: '/immobilier' },
+        { label: 'Hair salon', href: '/coiffeur' },
+        { label: 'Accounting', href: '/fiduciaire' },
+      ];
 
-  const tiers: Tier[] = isFr
+  const pillars: Pillar[] = isFr
     ? [
         {
-          name: 'Solo',
-          price: '99',
-          included: '250 minutes par mois',
-          desc: 'Pour les indépendants et les petites équipes qui démarrent.',
+          icon: CalendarCheck,
+          num: '01',
+          title: 'Le rendez-vous est inscrit avant qu’il raccroche',
+          body: 'Dès qu’un jour est prononcé, la disponibilité part en avance vers votre agenda Google. Le créneau retenu est écrit confirmé, pas mis de côté pour plus tard. Deux appels au même moment ne peuvent pas repartir avec le même créneau.',
+          panelLabel: 'Ce qui se passe pendant la phrase',
+          panelRows: [
+            { label: 'Un jour est prononcé, l’agenda est interrogé', meta: 'en avance' },
+            { label: 'Le créneau choisi est écrit, confirmé' },
+            { label: 'Un créneau retenu disparaît des autres appels' },
+          ],
+          panelNote: `Fonctionne si votre agenda Google est connecté${NB}: sinon il note la demande et vous rappelez.`,
         },
         {
-          name: 'Cabinet',
-          price: '249',
-          included: '750 minutes par mois',
-          desc: 'Le forfait le plus choisi par les cabinets et les agences.',
+          icon: PhoneForwarded,
+          num: '02',
+          title: 'Il vous dit qui appelle avant de vous passer l’appel',
+          body: 'Vous ne décrochez plus dans le vide. Avant de faire le pont, il vous résume à l’oral qui est en ligne et pourquoi, puis vous envoie le même brief par SMS, avec le numéro et l’état d’esprit de l’appelant.',
+          panelLabel: 'Le SMS de brief',
+          panelRows: [
+            { label: 'Qui appelle', meta: 'nom et numéro' },
+            { label: 'Ce qu’il veut', meta: 'motif' },
+            { label: 'Dans quel état', meta: 'pressé, contrarié' },
+          ],
+          panelNote: 'Si le transfert saute, vous avez le numéro sous les yeux.',
         },
         {
-          name: 'Volume',
-          price: '599',
-          included: '2 000 minutes par mois',
-          desc: 'Pour les multi-sites, franchises et opérations à grand volume.',
+          icon: UserCheck,
+          num: '03',
+          title: 'Vos habitués sont reconnus, pas réinterrogés',
+          body: 'Un client qui rappelle est salué par son prénom. Ce qu’il a dit la dernière fois est déjà là, son rendez-vous à venir aussi. Il ne redemande pas ce qu’il sait déjà, et ça s’entend dès la première seconde.',
+          panelLabel: 'D’un appel à l’autre',
+          panelRows: [
+            { label: 'Salué par son prénom au décrochage' },
+            { label: 'Résumé du dernier appel disponible' },
+            { label: 'Rendez-vous à venir connu' },
+          ],
+          panelNote: 'La mémoire se limite à ce qui sert l’appel suivant, effaçable sur demande.',
+        },
+        {
+          icon: MessagesSquare,
+          num: '04',
+          title: 'Une conversation, pas un serveur vocal',
+          body: 'Coupez-le, il s’arrête net. Une toux ne le coupe pas. Pendant que vous parlez il glisse des « mhm », jamais un « oui » qui vaudrait engagement. Un blanc trop long et il demande si vous êtes toujours là. Un appelant agacé obtient des phrases courtes, zéro discours commercial, et un humain proposé plus tôt.',
+          panelLabel: 'Ce qu’il dit vraiment',
+          panelRows: [
+            { label: '« Pardon, allez-y. »', meta: 'coupé' },
+            { label: '« Vous êtes toujours là ? »', meta: 'silence' },
+            { label: '« mhm »', meta: 'pendant que vous parlez' },
+          ],
+          panelNote: 'Un acquiescement n’est jamais interprété comme un accord.',
         },
       ]
     : [
         {
-          name: 'Solo',
-          price: '99',
-          included: '250 minutes a month',
-          desc: 'For independents and small teams getting started.',
+          icon: CalendarCheck,
+          num: '01',
+          title: 'The appointment is written before it hangs up',
+          body: 'The moment a day is named, availability is fetched ahead of the request from your Google calendar. The chosen slot is written confirmed, not parked for later. Two calls at the same moment cannot walk away with the same slot.',
+          panelLabel: 'What happens mid-sentence',
+          panelRows: [
+            { label: 'A day is named, the calendar is queried', meta: 'ahead' },
+            { label: 'The chosen slot is written, confirmed' },
+            { label: 'A held slot disappears from other calls' },
+          ],
+          panelNote: 'Requires a connected Google calendar: otherwise it takes the request and you call back.',
         },
         {
-          name: 'Practice',
-          price: '249',
-          included: '750 minutes a month',
-          desc: 'The most chosen plan by practices and agencies.',
+          icon: PhoneForwarded,
+          num: '02',
+          title: 'It tells you who is calling before it hands over',
+          body: 'You no longer pick up blind. Before bridging the call, it tells you out loud who is on the line and why, then sends you the same brief by text, with the number and the caller’s state of mind.',
+          panelLabel: 'The brief text',
+          panelRows: [
+            { label: 'Who is calling', meta: 'name and number' },
+            { label: 'What they want', meta: 'reason' },
+            { label: 'In what state', meta: 'rushed, upset' },
+          ],
+          panelNote: 'If the transfer drops, you already have the number.',
         },
         {
-          name: 'Volume',
-          price: '599',
-          included: '2,000 minutes a month',
-          desc: 'For multi-site, franchises, and high-volume operations.',
+          icon: UserCheck,
+          num: '03',
+          title: 'Your regulars are recognised, not re-interviewed',
+          body: 'A returning customer is greeted by first name. What they said last time is already there, so is their upcoming appointment. It does not ask again for what it already knows, and you hear that in the first second.',
+          panelLabel: 'From one call to the next',
+          panelRows: [
+            { label: 'Greeted by first name at pickup' },
+            { label: 'Summary of the last call on hand' },
+            { label: 'Upcoming appointment known' },
+          ],
+          panelNote: 'Memory is limited to what serves the next call, erasable on request.',
+        },
+        {
+          icon: MessagesSquare,
+          num: '04',
+          title: 'A conversation, not a phone menu',
+          body: 'Cut in and it stops dead. A cough does not cut it off. While you speak it slips in a quiet "mhm", never a "yes" that could pass for consent. After a long pause it asks whether you are still there. An annoyed caller gets short sentences, no sales talk, and a human offered sooner.',
+          panelLabel: 'What it actually says',
+          panelRows: [
+            { label: '"Sorry, go ahead."', meta: 'cut off' },
+            { label: '"Are you still there?"', meta: 'silence' },
+            { label: '"mhm"', meta: 'while you speak' },
+          ],
+          panelNote: 'A backchannel is never read as agreement.',
         },
       ];
 
-  const trustFacts: { icon: LucideIcon; label: string }[] = [
-    { icon: Shield, label: isFr ? 'Conformité RGPD intégrale' : 'Full GDPR compliance' },
-    { icon: Server, label: isFr ? 'Données hébergées en Europe' : 'Data hosted in the EU' },
-    {
-      icon: Lock,
-      label: isFr ? 'Enregistrements chiffrés, accessibles uniquement par vous' : 'Recordings encrypted, only accessible by you',
-    },
-    {
-      icon: FileText,
-      label: isFr
-        ? 'Audit logs complets. Aucune donnée vendue ou utilisée pour l’entraînement.'
-        : 'Complete audit logs. No data sold or used for training.',
-    },
-  ];
+  const configFacts: { icon: LucideIcon; title: string; body: string }[] = isFr
+    ? [
+        {
+          icon: Mic,
+          title: 'Dictée vocale',
+          body: 'Dites la consigne au lieu de la taper. Même chat, même effet.',
+        },
+        {
+          icon: Camera,
+          title: 'Tarifs par photo',
+          body: 'Photographiez votre carte, relisez les lignes lues, confirmez. Aucune image conservée.',
+        },
+        {
+          icon: PhoneCall,
+          title: 'Appel test',
+          body: 'Appelez-le depuis votre navigateur avant de brancher votre vraie ligne.',
+        },
+      ]
+    : [
+        {
+          icon: Mic,
+          title: 'Voice dictation',
+          body: 'Say the instruction instead of typing it. Same chat, same effect.',
+        },
+        {
+          icon: Camera,
+          title: 'Rates from a photo',
+          body: 'Photograph your rate card, review the lines read, confirm. No image is kept.',
+        },
+        {
+          icon: PhoneCall,
+          title: 'Test call',
+          body: 'Call it from your browser before you point your real line at it.',
+        },
+      ];
 
-  const objections: FaqEntry[] = [
-    {
-      q: isFr ? '« Mes clients vont sentir que c’est une IA. »' : '"My customers will know it is AI."',
-      a: isFr
-        ? `${voiceName} utilise les voix les plus avancées du marché, avec respirations, hésitations courtes et intonations naturelles. La plupart des appelants ne s’en rendent pas compte. Et nous indiquons clairement quand un appel doit être annoncé comme automatisé.`
-        : `${voiceName} runs on the most advanced voice models, with breath, short pauses, and natural intonation. Most callers do not notice. And we make it clear when a call must be disclosed as automated.`,
-    },
-    {
-      q: isFr ? '« Et la confidentialité ? »' : '"What about privacy?"',
-      a: isFr
-        ? 'Conformité RGPD intégrale. Données hébergées en Europe. Enregistrements chiffrés, accessibles uniquement par vous. Audit logs complets. Aucune donnée vendue ou utilisée pour l’entraînement.'
-        : 'Full GDPR compliance. Data hosted in the EU. Recordings encrypted, only accessible by you. Complete audit logs. No data sold or used for training.',
-    },
-    {
-      q: isFr ? '« Et si elle ne sait pas répondre ? »' : '"What if she does not know the answer?"',
-      a: isFr
-        ? `${voiceName} transfère vers vous, prend un message détaillé, ou propose un rappel. Vous pouvez aussi définir des règles précises\u00A0: urgence médicale, demande VIP, plainte. Elle apprend de chaque appel.`
-        : `${voiceName} transfers to you, takes a detailed message, or schedules a callback. You can set specific rules: medical urgency, VIP request, complaint. She learns from every call.`,
-    },
-  ];
+  const afterCall = isFr
+    ? [
+        {
+          title: 'Le lead est écrit pendant l’appel',
+          body: 'Pas à la fin. Une ligne qui coupe en pleine phrase laisse quand même de quoi rappeler.',
+        },
+        {
+          title: 'En cas de pépin technique, il ne dit jamais « erreur »',
+          body: 'Il prend les coordonnées de l’appelant et propose un rappel. L’appelant n’entend jamais la panne.',
+        },
+        {
+          title: 'Chaque appel repart avec son analyse',
+          body: 'Résumé, sentiment, lead scoré. Le client final reçoit son SMS de confirmation, et un rappel 24 h avant le rendez-vous sur les plans Pro et Enterprise.',
+        },
+        {
+          title: 'Chaque semaine, il vous dit ce qui cloche',
+          body: 'Trop bavard, agenda déconnecté, questions revenues sans réponse dans la FAQ. Il signale et vous décidez, il ne se réécrit pas tout seul.',
+        },
+      ]
+    : [
+        {
+          title: 'The lead is written during the call',
+          body: 'Not at the end. A line that drops mid-sentence still leaves you something to call back.',
+        },
+        {
+          title: 'On a technical hiccup it never says "error"',
+          body: 'It takes the caller’s details and offers a callback. The caller never hears the failure.',
+        },
+        {
+          title: 'Every call comes back analysed',
+          body: 'Summary, sentiment, scored lead. The customer gets their confirmation text, plus a reminder 24 h before the appointment on Pro and Enterprise plans.',
+        },
+        {
+          title: 'Every week it tells you what is off',
+          body: 'Too talkative, calendar disconnected, questions that keep coming back with no FAQ answer. It reports and you decide, it does not rewrite itself.',
+        },
+      ];
+
+  const guarantees = isFr
+    ? [
+        'Annonce d’enregistrement au décrochage, conforme RGPD',
+        'Données hébergées dans l’Union européenne',
+        'Les appels spam sont écartés et ne comptent pas dans vos minutes',
+        'Disponible 24/7, français et anglais sur le même appel',
+        `À partir de 99${NB}€ par mois, sans engagement`,
+      ]
+    : [
+        'Recording announced at pickup, GDPR compliant',
+        'Data hosted in the European Union',
+        'Spam calls are filtered out and never counted against your minutes',
+        'Available 24/7, French and English on the same call',
+        'From €99 a month, no commitment',
+      ];
 
   return (
     <PublicShell>
-      {/* HERO, asymétrique: titre whisper à gauche, iPhone sombre à droite */}
+      {/* HERO, asymétrique: titre whisper à gauche, fiche d'appel en cours à droite */}
       <Section
         aria-label={isFr ? 'Réceptionniste IA Qwillio' : 'Qwillio AI receptionist'}
         className="!pt-16 md:!pt-24 overflow-hidden"
       >
-        <Container className="grid lg:grid-cols-[1.15fr_1fr] gap-14 lg:gap-20 items-center">
+        <Container className="grid lg:grid-cols-[1.1fr_1fr] gap-14 lg:gap-20 items-center">
           <RevealV2>
             <div>
               <Eyebrow tone="indigo" className="mb-6">
-                {isFr ? 'Réceptionniste IA' : 'AI Receptionist'}
+                {isFr ? 'Réceptionniste IA' : 'AI receptionist'}
               </Eyebrow>
               <Display className="mb-7">
                 {isFr ? (
                   <>
-                    Elle décroche <SerifWord>avant la deuxième sonnerie.</SerifWord>
+                    Il ne prend pas le message. <SerifWord>Il prend le rendez-vous.</SerifWord>
                   </>
                 ) : (
                   <>
-                    She picks up <SerifWord>before the second ring.</SerifWord>
+                    It doesn’t take a message. <SerifWord>It takes the appointment.</SerifWord>
                   </>
                 )}
               </Display>
-              <Lead className="max-w-[480px] mb-10 q2-body-text">
+              <Lead className="max-w-[500px] mb-10 q2-body-text">
                 {isFr
-                  ? 'Elle parle français et anglais sur le même appel, prend les rendez-vous dans votre agenda et vous envoie le résumé par SMS. À partir de 99 € par mois, contre 1 200 € pour une secrétaire à mi-temps.'
-                  : 'She speaks French and English on the same call, books appointments in your calendar and texts you the summary. From €99 a month, against €1,200 for a part-time receptionist.'}
+                  ? `Il répond, lit votre agenda Google en direct et inscrit le créneau avant la fin de la conversation. Il vous résume l’appelant avant de vous le passer, et reconnaît ceux qui rappellent. Français et anglais sur le même appel, à partir de 99${NB}€ par mois.`
+                  : 'It answers, reads your Google calendar live and writes the slot in before the conversation ends. It briefs you on the caller before handing over, and recognises the ones who call back. French and English on the same call, from €99 a month.'}
               </Lead>
 
               <div className="flex flex-wrap items-center gap-3 mb-12">
                 <PillLink to="/demo.html" variant="primary" size="lg">
                   <Play size={13} fill="currentColor" aria-hidden="true" />
-                  {isFr ? `Écouter ${voiceName} parler` : `Hear ${voiceName} speak`}
+                  {isFr ? 'Écouter une démo' : 'Hear a demo'}
                 </PillLink>
                 <PillLink to="/register" variant="outline" size="lg">
-                  {isFr ? 'Essayer gratuitement' : 'Try free'}
+                  {isFr ? 'Essayer gratuitement' : 'Try it free'}
                   <ArrowRight size={15} aria-hidden="true" />
                 </PillLink>
               </div>
@@ -365,13 +379,8 @@ export default function Receptionist() {
                 </div>
                 <div className="flex items-baseline gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Langues' : 'Languages'}</dt>
-                  <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">11</dd>
-                  <span>{isFr ? 'langues' : 'languages'}</span>
-                </div>
-                <div className="flex items-baseline gap-2 whitespace-nowrap">
-                  <dt className="sr-only">{isFr ? 'Voix' : 'Voices'}</dt>
-                  <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">40+</dd>
-                  <span>{isFr ? 'voix' : 'voices'}</span>
+                  <dd className="text-2xl font-light tracking-tight text-q2-ink">FR/EN</dd>
+                  <span>{isFr ? 'même appel' : 'same call'}</span>
                 </div>
                 <div className="flex items-baseline gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Disponibilité' : 'Uptime'}</dt>
@@ -383,57 +392,82 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={2}>
-            <HeroPhone3D isFr={isFr} />
+            <LiveAnswerMock isFr={isFr} />
           </RevealV2>
         </Container>
       </Section>
 
-      {/* CAPACITÉS, blocs 2 colonnes alternés (jamais une grille de cards identiques) */}
-      <Section hairline aria-labelledby="capabilities-heading">
+      {/* PILIERS 1 à 4, rangées éditoriales alternées (jamais une grille de cards identiques) */}
+      <Section hairline aria-labelledby="pillars-heading">
         <Container>
           <RevealV2 className="mb-4 md:mb-10">
             <div className="grid lg:grid-cols-[1fr_1fr] gap-8 lg:gap-16 items-end">
               <div>
                 <Eyebrow tone="indigo" className="mb-4">
-                  {isFr ? 'Ce qu’elle fait' : 'What she does'}
+                  {isFr ? 'Pendant l’appel' : 'During the call'}
                 </Eyebrow>
-                <H2 id="capabilities-heading" className="max-w-[560px]">
+                <H2 id="pillars-heading" className="max-w-[560px]">
                   {isFr ? (
                     <>
-                      Pas un menu vocal. <SerifWord>Une vraie conversation.</SerifWord>
+                      La conversation avance, <SerifWord>le travail aussi.</SerifWord>
                     </>
                   ) : (
                     <>
-                      Not a phone menu. <SerifWord>A real conversation.</SerifWord>
+                      The conversation moves, <SerifWord>so does the work.</SerifWord>
                     </>
                   )}
                 </H2>
               </div>
-              <p className="text-q2-body text-base leading-relaxed max-w-[420px] q2-body-text lg:pb-2">
+              <p className="text-q2-body text-base leading-relaxed max-w-[440px] q2-body-text lg:pb-2">
                 {isFr
-                  ? `${voiceName} écoute, comprend le contexte, et agit. Elle prend les rendez-vous dans votre vrai calendrier, envoie les confirmations, et reconnaît une urgence quand elle en entend une.`
-                  : `${voiceName} listens, understands context, and acts. She books appointments in your real calendar, sends confirmations, and recognizes an emergency when she hears one.`}
+                  ? 'La plupart des répondeurs intelligents notent une demande et vous la repassent. Celui-ci ouvre l’agenda, écrit le rendez-vous, envoie la confirmation et vous brieffe. Vous récupérez un dossier, pas une liste de rappels à faire.'
+                  : 'Most smart answering services take a request and hand it back to you. This one opens the calendar, writes the appointment, sends the confirmation and briefs you. What you get back is a handled case, not a callback list.'}
               </p>
             </div>
           </RevealV2>
 
           <div className="border-t border-q2-plate">
-            {capabilities.map((cap, i) => {
+            {pillars.map((pillar, i) => {
               const flip = i % 2 === 1;
               return (
-                <RevealV2 key={cap.num} as="article" className="border-b border-q2-plate">
+                <RevealV2 key={pillar.num} as="article" className="border-b border-q2-plate">
                   <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center py-12 md:py-20">
                     <div className={flip ? 'lg:order-2' : ''}>
                       <div className="flex items-center gap-3 mb-6">
                         <span className="w-11 h-11 rounded-full bg-q2-plate flex items-center justify-center">
-                          <cap.icon size={18} className="text-q2-indigo" aria-hidden="true" />
+                          <pillar.icon size={18} className="text-q2-indigo" aria-hidden="true" />
                         </span>
-                        <span className="q2-eyebrow text-q2-body tabular-nums">{cap.num}</span>
+                        <span className="q2-eyebrow text-q2-body tabular-nums">{pillar.num}</span>
                       </div>
-                      <h3 className="q2-h3 text-q2-ink mb-3 max-w-[380px]">{cap.title}</h3>
-                      <p className="text-q2-body text-[15px] leading-relaxed max-w-[420px] q2-body-text">{cap.body}</p>
+                      <h3 className="q2-h3 text-q2-ink mb-3 max-w-[420px]">{pillar.title}</h3>
+                      <p className="text-q2-body text-[15px] leading-relaxed max-w-[440px] q2-body-text">
+                        {pillar.body}
+                      </p>
                     </div>
-                    <div className={flip ? 'lg:order-1' : ''}>{cap.panel}</div>
+                    <div className={flip ? 'lg:order-1' : ''}>
+                      <Panel label={pillar.panelLabel}>
+                        <ul className="divide-y divide-q2-plate" role="list">
+                          {pillar.panelRows.map((row) => (
+                            <li
+                              key={row.label}
+                              className="flex items-baseline justify-between gap-5 py-4 first:pt-0"
+                            >
+                              <span className="text-q2-graphite text-[15px] leading-snug q2-body-text">
+                                {row.label}
+                              </span>
+                              {row.meta ? (
+                                <span className="text-q2-body text-[13px] whitespace-nowrap">{row.meta}</span>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                        {pillar.panelNote ? (
+                          <p className="mt-5 pt-5 border-t border-q2-plate text-q2-faint text-[13px] leading-relaxed q2-body-text">
+                            {pillar.panelNote}
+                          </p>
+                        ) : null}
+                      </Panel>
+                    </div>
                   </div>
                 </RevealV2>
               );
@@ -442,46 +476,92 @@ export default function Receptionist() {
         </Container>
       </Section>
 
-      {/* VOIX ET LANGUES, bande taupe: chips langues puis les deux voix */}
+      {/* PILIER 5, drenched indigo: la seule action chromatique est la pilule du mockup */}
+      <Section variant="drenched-indigo" aria-labelledby="config-heading">
+        <Container className="grid lg:grid-cols-[1fr_1.05fr] gap-12 lg:gap-20 items-center">
+          <RevealV2>
+            <Eyebrow tone="indigo" onDark className="mb-4">
+              {isFr ? 'Configuration' : 'Setup'}
+            </Eyebrow>
+            <H2 id="config-heading" onDark className="max-w-[520px]">
+              {isFr ? (
+                <>
+                  Dites-lui ce qui change, <SerifWord>il change.</SerifWord>
+                </>
+              ) : (
+                <>
+                  Tell it what changed, <SerifWord>it changes.</SerifWord>
+                </>
+              )}
+            </H2>
+            <p className="mt-6 text-q2-mist text-base leading-relaxed max-w-[440px] q2-body-text">
+              {isFr
+                ? 'Pas de formulaire à quinze champs. Vous écrivez ou vous dictez une phrase, le réglage est appliqué et relu devant vous. Ce qui touche vos tarifs demande toujours une confirmation avant d’être écrit.'
+                : 'No fifteen-field form. You write or dictate one sentence, the setting is applied and read back to you. Anything touching your rates always asks for confirmation before it is written.'}
+            </p>
+
+            <ul className="mt-10 border-t border-q2-graphite-d" role="list">
+              {configFacts.map((fact) => (
+                <li key={fact.title} className="flex items-start gap-4 border-b border-q2-graphite-d py-5">
+                  <fact.icon size={16} className="mt-0.5 shrink-0 text-q2-lift" aria-hidden="true" />
+                  <div>
+                    <p className="text-white text-[15px] mb-1">{fact.title}</p>
+                    <p className="text-q2-fog text-[13.5px] leading-relaxed q2-body-text max-w-[380px]">
+                      {fact.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </RevealV2>
+
+          <RevealV2 index={1}>
+            <ChatConfigMock isFr={isFr} />
+          </RevealV2>
+        </Container>
+      </Section>
+
+      {/* VOIX ET TON, bande taupe: deux aperçus jouables puis la liste hairline */}
       <Section variant="band" hairline aria-labelledby="voices-heading">
         <Container>
           <RevealV2 className="mb-12 md:mb-16">
             <div className="flex items-end justify-between gap-8 flex-wrap">
               <div>
                 <Eyebrow tone="indigo" className="mb-4">
-                  {isFr ? 'Voix et langues' : 'Voices and languages'}
+                  {isFr ? 'Voix et ton' : 'Voice and tone'}
                 </Eyebrow>
-                <H2 id="voices-heading" className="max-w-[680px]">
+                <H2 id="voices-heading" className="max-w-[640px]">
                   {isFr ? (
                     <>
-                      Choisissez la voix <SerifWord>qui sonne comme votre marque.</SerifWord>
+                      Sept voix. <SerifWord>Six façons de les porter.</SerifWord>
                     </>
                   ) : (
                     <>
-                      Pick the voice <SerifWord>that sounds like your brand.</SerifWord>
+                      Seven voices. <SerifWord>Six ways to carry them.</SerifWord>
                     </>
                   )}
                 </H2>
               </div>
-              <p className="text-q2-body text-sm max-w-[300px] leading-relaxed q2-body-text">
+              <p className="text-q2-body text-sm max-w-[320px] leading-relaxed q2-body-text">
                 {isFr
-                  ? '40+ voix humaines en 11 langues. Accents régionaux, intonations naturelles, sans coupures.'
-                  : '40+ human voices across 11 languages. Regional accents, natural intonation, no cut-offs.'}
+                  ? 'Cinq voix françaises, deux anglaises. Vous les écoutez avant de choisir, et le ton se règle séparément de la voix.'
+                  : 'Five French voices, two English. You listen before you pick, and the tone is set separately from the voice.'}
               </p>
             </div>
           </RevealV2>
 
           <RevealV2 className="mb-12">
-            <div className="flex items-center gap-5 flex-wrap border-y border-q2-plate py-6">
-              <span className="inline-flex items-center gap-2 q2-eyebrow text-q2-body">
-                <Languages size={13} aria-hidden="true" />
-                {isFr ? 'Disponible en' : 'Available in'}
-              </span>
+            <div className="flex items-center gap-x-5 gap-y-4 flex-wrap border-y border-q2-plate py-6">
+              <span className="q2-eyebrow text-q2-body">{isFr ? 'Langues' : 'Languages'}</span>
               <ul className="flex flex-wrap gap-2" role="list">
-                {languages.map((lng) => (
-                  <li key={lng}>
+                {[
+                  isFr ? 'Français' : 'French',
+                  'English',
+                  isFr ? 'Les deux sur le même appel' : 'Both on the same call',
+                ].map((item) => (
+                  <li key={item}>
                     <span className="inline-flex items-center text-xs px-3.5 py-2 rounded-full bg-q2-canvas border border-q2-plate text-q2-graphite font-medium">
-                      {lng}
+                      {item}
                     </span>
                   </li>
                 ))}
@@ -489,7 +569,7 @@ export default function Receptionist() {
             </div>
           </RevealV2>
 
-          <div className="grid md:grid-cols-2 gap-5">
+          <div className="grid md:grid-cols-2 gap-5 mb-5">
             <RevealV2>
               <VoiceCard v={voices[0]} large />
             </RevealV2>
@@ -497,169 +577,205 @@ export default function Receptionist() {
               <VoiceCard v={voices[1]} large />
             </RevealV2>
           </div>
-        </Container>
-      </Section>
 
-      {/* MISE EN ROUTE, rangées hairline (aucune tuile) */}
-      <Section aria-labelledby="how-heading">
-        <Container>
-          <RevealV2 className="mb-12 md:mb-14">
-            <Eyebrow tone="neutral" className="mb-4">
-              {isFr ? 'Mise en route' : 'Getting started'}
-            </Eyebrow>
-            <H2 id="how-heading" className="max-w-[760px]">
-              {isFr ? 'Mise en route en 12 minutes. ' : 'Live in 12 minutes. '}
-              <span className="text-q2-body">
-                {isFr ? 'Premier appel traité ce soir.' : 'First call handled tonight.'}
-              </span>
-            </H2>
-          </RevealV2>
-
-          <ol className="border-t border-q2-plate" role="list">
-            {steps.map((step, i) => (
-              <RevealV2 key={step.num} index={i} as="li" className="border-b border-q2-plate">
-                <div className="grid md:grid-cols-[110px_1fr_1.3fr] gap-5 md:gap-10 py-10 md:py-12 items-start">
-                  <p className="q2-price text-q2-plate select-none" aria-hidden="true">
-                    {step.num}
+          <RevealV2 index={2}>
+            <CardV2 variant="canvas" large>
+              <div className="grid md:grid-cols-[1fr_1.4fr] gap-8 md:gap-12">
+                <div>
+                  <p className="q2-eyebrow text-q2-body mb-4">{isFr ? 'Les cinq autres' : 'The other five'}</p>
+                  <p className="text-q2-body text-sm leading-relaxed q2-body-text max-w-[260px]">
+                    {isFr
+                      ? 'Chacune arrive avec un ton par défaut, que vous pouvez remplacer par n’importe lequel des six.'
+                      : 'Each comes with a default tone, which you can swap for any of the six.'}
                   </p>
-                  <div className="flex items-center gap-3">
-                    <span className="w-9 h-9 rounded-full bg-q2-band flex items-center justify-center shrink-0">
-                      <step.icon size={16} className="text-q2-indigo" aria-hidden="true" />
-                    </span>
-                    <h3 className="q2-h3 text-q2-ink">{step.title}</h3>
-                  </div>
-                  <p className="text-q2-body text-[15px] leading-relaxed max-w-[460px] q2-body-text md:pt-1.5">
-                    {step.desc}
-                  </p>
+                  <ul className="mt-6 flex flex-wrap gap-2" role="list">
+                    {tones.map((tone) => (
+                      <li
+                        key={tone}
+                        className="inline-flex items-center rounded-full bg-q2-band px-3.5 py-1.5 text-[12.5px] font-medium text-q2-graphite"
+                      >
+                        {tone}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              </RevealV2>
-            ))}
-          </ol>
-        </Container>
-      </Section>
-
-      {/* TARIFS, teaser drenched: une seule action chromatique vers /pricing */}
-      <Section variant="drenched-indigo" aria-labelledby="pricing-heading">
-        <Container>
-          <RevealV2 className="mb-12 md:mb-16">
-            <div className="grid lg:grid-cols-[1.3fr_1fr] gap-8 lg:gap-16 items-end">
-              <div>
-                <Eyebrow tone="indigo" onDark className="mb-4">
-                  {isFr ? 'Tarifs' : 'Pricing'}
-                </Eyebrow>
-                <H2 id="pricing-heading" onDark className="max-w-[640px]">
-                  {isFr ? (
-                    <>
-                      Trois forfaits. <SerifWord>7 jours d’essai gratuit.</SerifWord>
-                    </>
-                  ) : (
-                    <>
-                      Three plans. <SerifWord>7-day free trial.</SerifWord>
-                    </>
-                  )}
-                </H2>
+                <ul className="border-t border-q2-plate" role="list">
+                  {otherVoices.map((voice) => (
+                    <li
+                      key={voice.name}
+                      className="grid grid-cols-[80px_1fr_auto] gap-4 items-baseline border-b border-q2-plate py-3.5"
+                    >
+                      <span className="text-q2-ink text-[15px]">{voice.name}</span>
+                      <span className="text-q2-body text-[13.5px] leading-snug q2-body-text">{voice.note}</span>
+                      <span className="q2-eyebrow text-q2-faint">{voice.tag}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <p className="text-q2-fog text-sm leading-relaxed max-w-[320px] q2-body-text lg:pb-2">
-                {isFr
-                  ? 'Sans engagement. Annulation en un clic. Carte requise, rien n’est débité pendant l’essai.'
-                  : 'No commitment. Cancel in one click. Card required, nothing charged during the trial.'}
-              </p>
-            </div>
-          </RevealV2>
-
-          <ul className="border-t border-q2-graphite-d mb-12" role="list">
-            {tiers.map((tier, i) => (
-              <RevealV2 key={tier.name} index={i} as="li" className="border-b border-q2-graphite-d">
-                <div className="grid md:grid-cols-[1fr_1fr_auto] gap-4 md:gap-10 py-8 md:py-9 items-baseline">
-                  <div>
-                    <h3 className="text-white text-lg font-normal tracking-[-0.012em]">{tier.name}</h3>
-                    <p className="text-q2-fog text-sm mt-1.5 max-w-[280px] leading-relaxed q2-body-text">{tier.desc}</p>
-                  </div>
-                  <p className="text-q2-mist text-sm q2-body-text tabular-nums">{tier.included}</p>
-                  <p className="text-white whitespace-nowrap md:text-right">
-                    <span className="q2-price">{tier.price}&nbsp;€</span>
-                    <span className="text-q2-fog text-sm ml-1.5">/{isFr ? 'mois' : 'mo'}</span>
-                  </p>
-                </div>
-              </RevealV2>
-            ))}
-          </ul>
-
-          <RevealV2 className="flex flex-wrap items-center gap-5">
-            <PillLink to="/pricing" variant="chromatic" size="lg">
-              {isFr ? 'Voir les tarifs en détail' : 'See full pricing'}
-              <ArrowRight size={16} aria-hidden="true" />
-            </PillLink>
-            <p className="inline-flex items-center gap-2 text-sm text-q2-fog q2-body-text">
-              <Shield size={14} aria-hidden="true" />
-              {isFr
-                ? 'Conforme RGPD. Données hébergées en Europe.'
-                : 'GDPR compliant. Data hosted in the EU.'}
-            </p>
+            </CardV2>
           </RevealV2>
         </Container>
       </Section>
 
-      {/* CONFIANCE, objections en accordéon et faits sécurité en colonne */}
-      <Section variant="band" hairline aria-labelledby="trust-heading">
-        <Container className="grid lg:grid-cols-[1fr_1.5fr] gap-12 lg:gap-20 items-start">
+      {/* PILIER 6, canvas: connaissances prioritaires et scripts par métier */}
+      <Section aria-labelledby="knowledge-heading">
+        <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-20 items-start">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-4">
-              {isFr ? 'Les questions courantes' : 'Common questions'}
+              {isFr ? 'Vos réponses' : 'Your answers'}
             </Eyebrow>
-            <H2 id="trust-heading" className="mb-8">
+            <H2 id="knowledge-heading" className="max-w-[460px]">
               {isFr ? (
                 <>
-                  Trois objections. <SerifWord>Trois réponses honnêtes.</SerifWord>
+                  Il répond avec vos mots, <SerifWord>pas les nôtres.</SerifWord>
                 </>
               ) : (
                 <>
-                  Three concerns. <SerifWord>Three honest answers.</SerifWord>
+                  It answers in your words, <SerifWord>not ours.</SerifWord>
                 </>
               )}
             </H2>
-            <ul className="border-t border-q2-plate" role="list">
-              {trustFacts.map((fact) => (
-                <li key={fact.label} className="flex items-start gap-3 border-b border-q2-plate py-4">
-                  <fact.icon size={15} className="mt-0.5 shrink-0 text-q2-indigo" aria-hidden="true" />
-                  <span className="text-q2-graphite text-sm leading-relaxed q2-body-text">{fact.label}</span>
-                </li>
-              ))}
-            </ul>
+            <p className="mt-6 text-q2-body text-base leading-relaxed max-w-[420px] q2-body-text">
+              {isFr
+                ? 'Vos règles de maison et vos réponses les plus utilisées sont dans sa tête en permanence. Le reste, il va le chercher quand la question tombe, et il retrouve la bonne réponse même formulée autrement. Vous pouvez donc en avoir des centaines sans alourdir chaque appel.'
+                : 'Your house rules and your most-used answers sit in its head permanently. The rest it looks up when the question lands, and it finds the right answer even when the wording differs. So you can keep hundreds of entries without weighing down every call.'}
+            </p>
           </RevealV2>
 
           <RevealV2 index={1}>
-            <FaqAccordion items={objections} />
+            <CardV2 variant="band" large>
+              <p className="q2-eyebrow text-q2-body mb-6">{isFr ? 'Deux mémoires' : 'Two memories'}</p>
+              <ul className="divide-y divide-q2-plate" role="list">
+                {(isFr
+                  ? [
+                      { label: 'Règles de maison et réponses prioritaires', meta: 'toujours en tête' },
+                      { label: 'Le reste de votre base de connaissances', meta: 'à la demande' },
+                      { label: 'Scripts spécialisés par métier', meta: 'inclus' },
+                    ]
+                  : [
+                      { label: 'House rules and priority answers', meta: 'always in mind' },
+                      { label: 'The rest of your knowledge base', meta: 'on demand' },
+                      { label: 'Trade-specific scripts', meta: 'included' },
+                    ]
+                ).map((row) => (
+                  <li key={row.label} className="flex items-baseline justify-between gap-5 py-4 first:pt-0">
+                    <span className="text-q2-graphite text-[15px] leading-snug q2-body-text">{row.label}</span>
+                    <span className="text-q2-body text-[13px] whitespace-nowrap">{row.meta}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="mt-7 pt-6 border-t border-q2-plate q2-eyebrow text-q2-body mb-4">
+                {isFr ? 'Métiers couverts' : 'Trades covered'}
+              </p>
+              <nav aria-label={isFr ? 'Métiers couverts' : 'Trades covered'} className="flex flex-wrap gap-2.5">
+                {trades.map((trade) => (
+                  <Link
+                    key={trade.href}
+                    to={trade.href}
+                    className="inline-flex items-center rounded-full bg-q2-canvas border border-q2-plate px-4 py-2 text-[13px] font-medium text-q2-ink hover:border-q2-indigo hover:text-q2-indigo transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
+                  >
+                    {trade.label}
+                  </Link>
+                ))}
+              </nav>
+            </CardV2>
           </RevealV2>
         </Container>
       </Section>
 
-      {/* CTA FINAL, drenched: une seule action chromatique */}
+      {/* PILIERS 7 à 9, bande taupe: ce qui revient au patron et ce qui est cadré */}
+      <Section variant="band" hairline aria-labelledby="after-heading">
+        <Container className="grid lg:grid-cols-[1.5fr_1fr] gap-12 lg:gap-20 items-start">
+          <RevealV2>
+            <Eyebrow tone="indigo" className="mb-4">
+              {isFr ? 'Après l’appel' : 'After the call'}
+            </Eyebrow>
+            <H2 id="after-heading" className="max-w-[520px] mb-10">
+              {isFr ? (
+                <>
+                  Ce qui vous revient, <SerifWord>et ce qui est cadré.</SerifWord>
+                </>
+              ) : (
+                <>
+                  What comes back to you, <SerifWord>and what is fenced in.</SerifWord>
+                </>
+              )}
+            </H2>
+            <ol className="border-t border-q2-plate" role="list">
+              {afterCall.map((item, i) => (
+                <li key={item.title} className="border-b border-q2-plate py-6">
+                  <div className="grid md:grid-cols-[48px_1fr] gap-3 md:gap-6">
+                    <span className="q2-eyebrow text-q2-faint tabular-nums" aria-hidden="true">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <div>
+                      <h3 className="text-q2-ink text-[16px] mb-1.5">{item.title}</h3>
+                      <p className="text-q2-body text-[14.5px] leading-relaxed q2-body-text max-w-[520px]">
+                        {item.body}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </RevealV2>
+
+          <RevealV2 index={1}>
+            <CardV2 variant="canvas" large className="lg:sticky lg:top-24">
+              <p className="flex items-center gap-2.5 q2-eyebrow text-q2-body mb-6">
+                <Shield size={13} className="text-q2-indigo" aria-hidden="true" />
+                {isFr ? 'Ce qui ne bouge pas' : 'What does not move'}
+              </p>
+              <ul className="divide-y divide-q2-plate" role="list">
+                {guarantees.map((line) => (
+                  <li
+                    key={line}
+                    className="text-q2-graphite text-[14.5px] leading-relaxed q2-body-text py-4 first:pt-0 last:pb-0"
+                  >
+                    {line}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-6 pt-5 border-t border-q2-plate text-q2-faint text-[13px] leading-relaxed q2-body-text">
+                {isFr
+                  ? 'La prise de rendez-vous en direct suppose un agenda Google connecté. Sans agenda, il prend la demande et vous rappelez.'
+                  : 'Live booking assumes a connected Google calendar. Without one, it takes the request and you call back.'}
+              </p>
+            </CardV2>
+          </RevealV2>
+        </Container>
+      </Section>
+
+      {/* CTA FINAL, drenched violet: une seule action chromatique */}
       <Section
         variant="drenched-violet"
         aria-label={isFr ? 'Démarrer avec Qwillio' : 'Get started with Qwillio'}
+        className="border-t border-q2-graphite-d"
       >
         <Container className="grid lg:grid-cols-[1.5fr_1fr] gap-10 items-end">
           <RevealV2>
             <Display as="h2" onDark>
               {isFr ? (
                 <>
-                  Le prochain appel arrive dans une heure. <SerifWord>Soyez prêt.</SerifWord>
+                  Votre ligne sonne déjà. <SerifWord>Autant qu’on décroche.</SerifWord>
                 </>
               ) : (
                 <>
-                  The next call lands in an hour. <SerifWord>Be ready.</SerifWord>
+                  Your line is already ringing. <SerifWord>Someone may as well answer.</SerifWord>
                 </>
               )}
             </Display>
           </RevealV2>
           <RevealV2 index={1} className="flex flex-col items-start gap-5 lg:items-end pb-2">
             <p className="text-q2-fog text-[15px] leading-relaxed max-w-[320px] lg:text-right q2-body-text">
-              {isFr ? 'Sans engagement. 7 jours d’essai gratuit.' : 'No commitment. 7-day free trial.'}
+              {isFr
+                ? '7 jours d’essai gratuit. Sans engagement, annulable en un clic.'
+                : '7-day free trial. No commitment, cancel in one click.'}
             </p>
             <div className="flex flex-wrap gap-3 lg:justify-end">
               <PillLink to="/register" variant="chromatic" size="lg">
-                {isFr ? 'Créer un compte' : 'Create account'}
+                {isFr ? 'Créer un compte' : 'Create an account'}
                 <ArrowRight size={16} aria-hidden="true" />
               </PillLink>
               <PillLink to="/demo.html" variant="onDark" size="lg">
