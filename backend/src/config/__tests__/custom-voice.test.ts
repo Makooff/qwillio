@@ -11,13 +11,13 @@ describe('resolveCharacter with a cloned voice', () => {
     expect(c.id).toBe(CUSTOM_CHARACTER_ID);
   });
 
-  it('keeps the language default tuning and persona', () => {
+  it('keeps the default character tuning and persona', () => {
     // A clone says nothing about how the agent should behave, only how it
-    // sounds. Persona and language must not follow the voice.
+    // sounds. Persona and tuning must not follow the voice.
     const base = CHARACTERS[DEFAULT_CHARACTER_FR];
     const c = resolveCharacter({ characterId: CUSTOM_CHARACTER_ID, isFrench: true, customVoice: clone });
     expect(c.personaKey).toBe(base.personaKey);
-    expect(c.language).toBe('fr');
+    expect(c.stability).toBe(base.stability);
   });
 
   it('drops style on a clone', () => {

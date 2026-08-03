@@ -619,7 +619,16 @@ export class ClientDashboardController {
       }
       if (!character) return res.status(404).json({ error: 'Unknown character' });
 
-      const text = character.language === 'fr' ? character.previewFr : character.previewEn;
+      // The sample follows the CLIENT's language, not the character's: a
+      // character is bilingual now, so playing French to an English client
+      // would demo a voice they will never hear.
+      const previewClient = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { agentLanguage: true, country: true },
+      });
+      const previewFrench = previewClient?.agentLanguage?.startsWith('fr')
+        || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String(previewClient?.country || '').toUpperCase());
+      const text = previewFrench ? character.previewFr : character.previewEn;
       const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${character.voiceId}`, {
         method: 'POST',
         headers: {

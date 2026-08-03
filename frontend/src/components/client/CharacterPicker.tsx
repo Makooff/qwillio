@@ -5,7 +5,8 @@ import api from '../../services/api';
 export interface Character {
   id: string;
   name: string;
-  language: 'fr' | 'en';
+  /** Served from /characters/<id>.webp. Empty for a cloned voice. */
+  avatar?: string;
   accent: 'FR' | 'BE' | 'US';
   gender: 'f' | 'm';
   personaKey: string;
@@ -87,7 +88,7 @@ export default function CharacterPicker({
       setNotice(isFr
         ? "Ce navigateur ne peut pas lire l'audio. Aperçu joué avec la voix du navigateur."
         : 'This browser cannot play audio. Playing the browser voice instead.');
-      speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
+      speak(isFr ? c.previewFr : c.previewEn, isFr ? 'fr' : 'en', () => setPlaying(null));
       return;
     }
 
@@ -140,7 +141,7 @@ export default function CharacterPicker({
           setNotice(isFr
             ? `Le fichier audio reçu n'a pas pu être décodé (${ko} ko). Aperçu joué avec la voix du navigateur.`
             : `The audio file could not be decoded (${ko} kB). Playing the browser voice instead.`);
-          speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
+          speak(isFr ? c.previewFr : c.previewEn, isFr ? 'fr' : 'en', () => setPlaying(null));
           return;
         }
 
@@ -160,7 +161,7 @@ export default function CharacterPicker({
               ? `Aperçu ElevenLabs indisponible (ElevenLabs a répondu ${upstream ?? '?'}). Aperçu joué avec la voix du navigateur.`
               : `ElevenLabs preview unavailable (ElevenLabs replied ${upstream ?? '?'}). Playing the browser voice instead.`),
         );
-        speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
+        speak(isFr ? c.previewFr : c.previewEn, isFr ? 'fr' : 'en', () => setPlaying(null));
       }
     })();
   };
@@ -192,9 +193,24 @@ export default function CharacterPicker({
             <button
               type="button"
               onClick={() => onChange(c.id)}
-              className="flex-1 text-left"
+              className="flex-1 text-left flex items-start gap-2.5"
               aria-pressed={sel}
             >
+              {c.avatar && (
+                <img
+                  src={c.avatar}
+                  alt=""
+                  width={44}
+                  height={44}
+                  loading="lazy"
+                  // The avatar keeps its lavender square; the circle is what
+                  // hides it. Cutting the background out frayed hair edges for
+                  // a shape the mask removes anyway.
+                  className="flex-shrink-0 w-11 h-11 rounded-full object-cover"
+                  style={{ outline: sel ? '2px solid rgba(122,95,255,0.55)' : '1px solid rgba(255,255,255,0.10)', outlineOffset: 1 }}
+                />
+              )}
+              <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-[13px] font-semibold" style={{ color: sel ? '#7349fe' : '#F2F2F2' }}>{c.name}</p>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', color: '#9A9AA5' }}>
@@ -202,6 +218,7 @@ export default function CharacterPicker({
                 </span>
               </div>
               <p className="text-[11px] mt-0.5" style={{ color: sel ? 'rgba(122,95,255,0.85)' : '#8B8BA7' }}>{tagline}</p>
+              </div>
             </button>
             <button
               type="button"
