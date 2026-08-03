@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, LogOut, Menu, X, type LucideIcon } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ArrowRight, ChevronDown, LogOut, Menu, Search, X, type LucideIcon } from 'lucide-react';
 import QwillioLogo from '../../QwillioLogo';
 import { useAuthStore } from '../../../stores/authStore';
+import CommandPalette, { shortcutLabel, type CommandItem } from './CommandPalette';
 
 /* Châssis produit V2 « instrument » (DA/v2-direction.md, addendum produit).
    Remplace DashboardShell pour le portail client: sidebar carbon hairline,
@@ -29,7 +31,11 @@ interface AppShellProps {
   topBarExtras?: ReactNode;
   userFallbackName?: string;
   userFallbackInitials?: string;
+  /* Commandes supplémentaires de la palette (actions rapides, pages à icône dédiée) */
+  extraCommands?: CommandItem[];
 }
+
+const SPRING = { type: 'spring' as const, stiffness: 400, damping: 32 };
 
 function resolveTitle(pathname: string, titles: Record<string, string>, fallback: string) {
   if (titles[pathname]) return titles[pathname];
@@ -40,7 +46,19 @@ function resolveTitle(pathname: string, titles: Record<string, string>, fallback
   return best ? titles[best] : fallback;
 }
 
-function NavLink({ item, active, onNavigate }: { item: ShellNavItem; active: boolean; onNavigate?: () => void }) {
+function NavLink({
+  item,
+  active,
+  scope,
+  onNavigate,
+  reduce,
+}: {
+  item: ShellNavItem;
+  active: boolean;
+  scope: string;
+  onNavigate?: () => void;
+  reduce: boolean;
+}) {
   return (
     <Link
       to={item.to}
@@ -50,9 +68,14 @@ function NavLink({ item, active, onNavigate }: { item: ShellNavItem; active: boo
         active ? 'bg-q2-obsidian text-white' : 'text-q2-fog hover:text-q2-mist hover:bg-q2-obsidian/50'
       }`}
     >
-      {/* Barre d'accent verticale de l'item actif, reprise du shell V1 */}
+      {/* Barre d'accent de l'item actif: glisse d'un item à l'autre (layoutId) */}
       {active && (
-        <span aria-hidden="true" className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full bg-q2-indigo" />
+        <motion.span
+          layoutId={`q2p-nav-active-${scope}`}
+          aria-hidden="true"
+          transition={reduce ? { duration: 0 } : SPRING}
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full bg-q2-indigo"
+        />
       )}
       <item.icon size={15} aria-hidden="true" className={active ? 'text-q2-lift' : ''} />
       {item.label}
@@ -70,11 +93,15 @@ export default function AppShell({
   topBarExtras,
   userFallbackName = 'Compte',
   userFallbackInitials = 'Q',
+  extraCommands,
 }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const reduce = useReducedMotion() ?? false;
   const { user, logout } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [intro, setIntro] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(
     () => (settingsSub ?? []).some((s) => location.pathname.startsWith(s.to)),
   );
@@ -95,6 +122,46 @@ export default function AppShell({
     if ((settingsSub ?? []).some((s) => location.pathname.startsWith(s.to))) setSettingsOpen(true);
   }, [location.pathname, settingsSub]);
 
+  /* Le stagger de la nav ne joue qu'au premier montage */
+  useEffect(() => {
+    const id = window.setTimeout(() => setIntro(false), 600);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && (event.key === 'k' || event.key === 'K')) {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const closePalette = useCallback(() => setPaletteOpen(false), []);
+
+  const commands = useMemo<CommandItem[]>(() => {
+    const list: CommandItem[] = [];
+    /* Les routes déjà décrites par la nav ou par extraCommands ne sont pas
+       redérivées depuis pageTitles (les actions rapides, elles, cohabitent). */
+    const described = new Set<string>((extraCommands ?? []).map((c) => c.to));
+    for (const item of primaryNav) {
+      described.add(item.to);
+      list.push({ id: `nav-${item.to}`, label: item.label, to: item.to, group: 'Navigation', icon: item.icon });
+    }
+    for (const item of settingsSub ?? []) {
+      described.add(item.to);
+      list.push({ id: `set-${item.to}`, label: item.label, to: item.to, group: settingsLabel, icon: item.icon });
+    }
+    for (const [to, label] of Object.entries(pageTitles)) {
+      if (described.has(to)) continue;
+      described.add(to);
+      list.push({ id: `page-${to}`, label, to, group: 'Pages', icon: ArrowRight });
+    }
+    return [...list, ...(extraCommands ?? [])];
+  }, [primaryNav, settingsSub, settingsLabel, pageTitles, extraCommands]);
+
   const isActive = (item: ShellNavItem) =>
     item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to);
 
@@ -112,7 +179,7 @@ export default function AppShell({
     navigate('/login');
   };
 
-  const sidebar = (
+  const renderSidebar = (scope: string) => (
     <div className="flex flex-col h-full">
       <Link
         to="/dashboard"
@@ -123,8 +190,21 @@ export default function AppShell({
       </Link>
 
       <nav aria-label="Navigation" className="flex-1 px-2.5 py-2 space-y-0.5 overflow-y-auto">
-        {primaryNav.map((item) => (
-          <NavLink key={item.to} item={item} active={isActive(item)} onNavigate={() => setMobileOpen(false)} />
+        {primaryNav.map((item, i) => (
+          <motion.div
+            key={item.to}
+            initial={intro && !reduce ? { opacity: 0, x: -4 } : false}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.16, delay: i * 0.025, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <NavLink
+              item={item}
+              active={isActive(item)}
+              scope={scope}
+              reduce={reduce}
+              onNavigate={() => setMobileOpen(false)}
+            />
+          </motion.div>
         ))}
 
         {settingsSub && settingsSub.length > 0 && (
@@ -145,7 +225,14 @@ export default function AppShell({
             {settingsOpen && (
               <div className="space-y-0.5 mt-0.5">
                 {settingsSub.map((item) => (
-                  <NavLink key={item.to} item={item} active={isActive(item)} onNavigate={() => setMobileOpen(false)} />
+                  <NavLink
+                    key={item.to}
+                    item={item}
+                    active={isActive(item)}
+                    scope={scope}
+                    reduce={reduce}
+                    onNavigate={() => setMobileOpen(false)}
+                  />
                 ))}
               </div>
             )}
@@ -180,7 +267,7 @@ export default function AppShell({
     <div className="min-h-dvh bg-q2-carbon text-q2-mist font-outfit flex">
       {/* Sidebar desktop, plate, sans bordure: la séparation vient du panneau */}
       <aside className="hidden md:block w-[220px] shrink-0 bg-q2-carbon sticky top-0 h-dvh">
-        {sidebar}
+        {renderSidebar('desktop')}
       </aside>
 
       {/* Drawer mobile */}
@@ -196,7 +283,7 @@ export default function AppShell({
             >
               <X size={16} aria-hidden="true" />
             </button>
-            {sidebar}
+            {renderSidebar('mobile')}
           </aside>
         </div>
       )}
@@ -217,7 +304,34 @@ export default function AppShell({
             >
               <Menu size={17} aria-hidden="true" />
             </button>
-            <h1 className="q2p-page-title text-white truncate flex-1">{title}</h1>
+
+            {/* Le titre permute au changement de route, sans décaler la barre */}
+            <div className="relative flex-1 min-w-0">
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.h1
+                  key={title}
+                  initial={reduce ? false : { opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                  transition={{ duration: reduce ? 0 : 0.14, ease: [0.16, 1, 0.3, 1] }}
+                  className="q2p-page-title text-white truncate"
+                >
+                  {title}
+                </motion.h1>
+              </AnimatePresence>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="Ouvrir la palette de commandes"
+              aria-haspopup="dialog"
+              className="shrink-0 inline-flex items-center gap-2 h-8 rounded-lg border border-q2-graphite-d px-2 text-q2-fog hover:text-q2-mist hover:border-q2-smoke-d transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+            >
+              <Search size={14} aria-hidden="true" />
+              <span className="q2p-kbd hidden sm:inline-block">{shortcutLabel()}</span>
+            </button>
+
             {topBarExtras}
           </div>
         </header>
@@ -257,6 +371,8 @@ export default function AppShell({
           })}
         </div>
       </nav>
+
+      <CommandPalette open={paletteOpen} onClose={closePalette} commands={commands} />
     </div>
   );
 }

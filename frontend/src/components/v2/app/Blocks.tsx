@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
@@ -62,6 +63,35 @@ export function PageActions({
 
 /* ── KPI ── */
 
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/* Montée du chiffre au montage, une seule fois, valeurs numériques uniquement.
+   Attend la première valeur non nulle: les KPI arrivent après le fetch. */
+function useCountUp(value: ReactNode) {
+  const target = typeof value === 'number' && Number.isFinite(value) ? value : null;
+  const [display, setDisplay] = useState<number | null>(null);
+  const played = useRef(false);
+
+  useEffect(() => {
+    if (target === null || target === 0 || played.current) return;
+    played.current = true;
+    if (prefersReducedMotion()) return;
+    const decimals = Number.isInteger(target) ? 0 : 1;
+    const started = performance.now();
+    let frame = requestAnimationFrame(function tick(now: number) {
+      const t = Math.min(1, (now - started) / 400);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(t < 1 ? Number((target * eased).toFixed(decimals)) : null);
+      if (t < 1) frame = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [target]);
+
+  return display;
+}
+
 export function Stat({
   label,
   value,
@@ -87,6 +117,7 @@ export function Stat({
           : tone === 'accent'
             ? 'var(--q2-lift)'
             : undefined;
+  const counting = useCountUp(value);
   const body = (
     <>
       <div className="flex items-center gap-2 mb-2">
@@ -94,7 +125,7 @@ export function Stat({
         <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog">{label}</p>
       </div>
       <p className="text-[26px] font-light tracking-tight text-white tabular-nums leading-none" style={toneColor ? { color: toneColor } : undefined}>
-        {value}
+        {counting === null ? value : counting.toLocaleString('fr-FR')}
       </p>
       {hint && <p className="text-[11.5px] text-q2-fog mt-2">{hint}</p>}
     </>
@@ -148,13 +179,19 @@ export function Row({
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {right}
-        {(to || onClick) && <ChevronRight size={14} className="text-q2-fog" aria-hidden="true" />}
+        {(to || onClick) && (
+          <ChevronRight
+            size={14}
+            className="text-q2-fog transition-transform duration-100 group-hover:translate-x-[2px]"
+            aria-hidden="true"
+          />
+        )}
       </div>
     </>
   );
   const cls = `w-full min-h-[56px] flex items-center justify-between gap-3 px-4 ${
     first ? '' : 'border-t border-q2-graphite-d'
-  } ${to || onClick ? 'hover:bg-q2-obsidian/60 transition-colors duration-100 focus:outline-none focus-visible:bg-q2-obsidian' : ''}`;
+  } ${to || onClick ? 'group hover:bg-q2-obsidian/60 transition-colors duration-100 focus:outline-none focus-visible:bg-q2-obsidian' : ''}`;
   if (to) {
     return (
       <Link to={to} className={cls}>
@@ -175,17 +212,25 @@ export function Row({
 /* ── Boutons pilule ── */
 
 const BTN_BASE =
-  'inline-flex items-center justify-center gap-1.5 rounded-full text-[13px] font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 disabled:opacity-50 disabled:pointer-events-none';
+  'inline-flex items-center justify-center gap-1.5 rounded-full text-[13px] font-medium transition-[color,background-color,border-color,transform] duration-[120ms] focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 disabled:opacity-50 disabled:pointer-events-none';
+
+/* Décollement d'un pixel au survol, annulé au press et en reduced-motion */
+const BTN_LIFT = 'hover:-translate-y-px active:translate-y-0 motion-reduce:hover:translate-y-0';
 
 export function PrimaryBtn({ className = '', ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button {...rest} className={`${BTN_BASE} bg-q2-indigo text-white hover:bg-q2-deep h-9 px-4 ${className}`} />;
+  return (
+    <button
+      {...rest}
+      className={`${BTN_BASE} ${BTN_LIFT} bg-q2-indigo text-white hover:bg-q2-deep h-9 px-4 ${className}`}
+    />
+  );
 }
 
 export function GhostBtn({ className = '', ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...rest}
-      className={`${BTN_BASE} bg-transparent text-q2-mist border border-q2-graphite-d hover:border-q2-smoke-d h-9 px-4 ${className}`}
+      className={`${BTN_BASE} ${BTN_LIFT} bg-transparent text-q2-mist border border-q2-graphite-d hover:border-q2-smoke-d h-9 px-4 ${className}`}
     />
   );
 }
@@ -353,10 +398,29 @@ export function Meter({
 }) {
   const ratio = max > 0 ? Math.min(1, value / max) : 0;
   const color = ratio >= 1 ? 'var(--q2p-bad)' : ratio >= warnAt ? 'var(--q2p-warn)' : 'var(--q2-indigo)';
+  /* La barre part de zéro et rejoint sa valeur (350ms), sans à-coup en reduced-motion */
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      setWidth(ratio);
+      return;
+    }
+    const frame = requestAnimationFrame(() => setWidth(ratio));
+    return () => cancelAnimationFrame(frame);
+  }, [ratio]);
+
   return (
     <div role="meter" aria-valuenow={value} aria-valuemin={0} aria-valuemax={max} aria-label={label}>
       <div className="h-1.5 rounded-full bg-q2-obsidian overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${ratio * 100}%`, background: color }} />
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${width * 100}%`,
+            background: color,
+            transition: prefersReducedMotion() ? 'none' : 'width 350ms cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        />
       </div>
     </div>
   );
