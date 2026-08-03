@@ -8,12 +8,13 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import api from '../../../services/api';
-import CharacterPickerV2, { type Character } from '../../../components/v2/app/CharacterPickerV2';
+import type { Character } from '../../../components/v2/app/CharacterPickerV2';
+import CharacterCarousel from '../../../components/v2/app/CharacterCarousel';
 import VoiceCloner, { type CustomVoice } from '../../../components/v2/app/VoiceCloner';
 import AssistantChat from '../../../components/client/AssistantChat';
 import {
   Card, PageActions, Row, PrimaryBtn, GhostBtn,
-  Field, Input, Select, Textarea, Toggle, Pill,
+  Field, Input, Select, Textarea, Toggle, Pill, EmptyState,
 } from '../../../components/v2/app/Blocks';
 
 /* Réceptionniste IA, registre produit V2 « instrument ». La logique est celle
@@ -116,6 +117,31 @@ function GroupLabel({ icon: Icon, children }: { icon?: LucideIcon; children: Rea
       {Icon && <Icon size={12} aria-hidden="true" />}
       {children}
     </p>
+  );
+}
+
+/**
+ * Bloc de la base de connaissances : un titre, un compteur, un contenu. Le
+ * compteur est là parce que la seule question qu'on se pose en rouvrant cette
+ * page est « est-ce que j'ai déjà rempli ça ».
+ */
+function KbGroup({ icon: Icon, title, count, children }: {
+  icon: LucideIcon;
+  title: string;
+  count: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3 mb-3">
+        <p className="q2-eyebrow text-q2-fog flex items-center gap-2">
+          <Icon size={12} aria-hidden="true" />
+          {title}
+        </p>
+        <span className="text-[11px] text-q2-fog tabular-nums shrink-0">{count}</span>
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -355,6 +381,12 @@ export default function ClientReceptionist() {
     return k.charAt(0).toUpperCase() + k.slice(1);
   })();
 
+  // Compteurs de la base de connaissances. La FAQ est du texte libre : on compte
+  // les lignes qui ouvrent une question, c'est la façon dont elle est écrite.
+  const filledItems = items.filter(i => i.name.trim()).length;
+  const openDays = DAYS.filter(d => weekHours[d.k]?.open).length;
+  const faqCount = faq.split('\n').filter(l => /^\s*(q\s*[:.)\-]|question)/i.test(l)).length;
+
   return (
     <div className="max-w-3xl">
       <PageActions subtitle="Chaque modification est enregistrée automatiquement." />
@@ -450,9 +482,10 @@ export default function ClientReceptionist() {
             <div className="mt-6">
               <GroupLabel>Personnage de la réceptionniste</GroupLabel>
               <p className="text-[12px] text-q2-fog mb-3 q2-body-text">
-                Choisissez la voix et le caractère qui répond à vos appels. Cliquez sur le bouton lecture pour un aperçu.
+                Naviguez avec les flèches pour choisir qui répond à vos appels. Le bouton lecture donne un aperçu,
+                le crayon ouvre le catalogue complet des voix.
               </p>
-              <CharacterPickerV2
+              <CharacterCarousel
                 characters={pickerCharacters}
                 value={characterId}
                 onChange={setCharacterId}
@@ -517,123 +550,140 @@ export default function ClientReceptionist() {
             tarifs, horaires, FAQ. Plus c'est précis, plus elle sera précise.
           </p>
 
-          {/* Services / Menu / Tarifs */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between">
-              <GroupLabel icon={Tag}>Services, menu, tarifs</GroupLabel>
-              <span className="text-[11px] text-q2-fog tabular-nums mb-3">{items.length} élément{items.length > 1 ? 's' : ''}</span>
-            </div>
-
-            <div className="space-y-2">
-              {items.length === 0 && (
-                <div className="rounded-xl border border-dashed border-q2-graphite-d p-4 text-center">
-                  <p className="text-[12px] text-q2-fog">Aucun élément : ajoutez votre premier service.</p>
-                </div>
-              )}
-              {items.map(it => (
-                <div key={it.id} className="grid grid-cols-12 gap-2 items-center">
-                  <select
-                    value={it.category}
-                    onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, category: e.target.value } : x))}
-                    className={`${compactCls} col-span-3`}
-                    aria-label="Catégorie"
-                  >
-                    {ITEM_CATEGORIES.map(c => <option key={c.v} value={c.v}>{c.l}</option>)}
-                  </select>
-                  <input
-                    value={it.name}
-                    onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, name: e.target.value } : x))}
-                    placeholder="Nom (ex. Coupe homme)"
-                    className={`${compactCls} col-span-5`}
-                    aria-label="Nom"
-                  />
-                  <input
-                    value={it.price}
-                    onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, price: e.target.value } : x))}
-                    placeholder="Prix (ex. 25 €)"
-                    className={`${compactCls} col-span-3`}
-                    aria-label="Prix"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setItems(arr => arr.filter(x => x.id !== it.id))}
-                    className="col-span-1 h-9 rounded-lg flex items-center justify-center text-q2-fog hover:text-white hover:bg-q2-obsidian transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
-                    title="Supprimer"
-                    aria-label="Supprimer l'élément"
-                  >
-                    <X size={14} aria-hidden="true" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <GhostBtn
-              type="button"
-              onClick={() => setItems(arr => [...arr, { id: newId(), category: 'service', name: '', price: '' }])}
-              className="mt-3"
+          <div className="space-y-7">
+            {/* Services et tarifs */}
+            <KbGroup
+              icon={Tag}
+              title="Services et tarifs"
+              count={filledItems > 0 ? `${filledItems} entrée${filledItems > 1 ? 's' : ''}` : 'Vide'}
             >
-              <Plus size={13} aria-hidden="true" /> Ajouter un élément
-            </GhostBtn>
-          </div>
-
-          {/* Horaires hebdomadaires */}
-          <div className="mb-6">
-            <GroupLabel icon={Clock3}>Horaires d'ouverture</GroupLabel>
-            <div className="rounded-xl border border-q2-graphite-d overflow-hidden">
-              {DAYS.map((d, i) => {
-                const h = weekHours[d.k];
-                return (
-                  <div
-                    key={d.k}
-                    className={`grid grid-cols-12 gap-2 items-center px-3 py-2.5 ${i === 0 ? '' : 'border-t border-q2-graphite-d'}`}
-                  >
-                    <span className="col-span-3 text-[13px] font-medium text-white">{d.l}</span>
-                    <div className="col-span-3 flex items-center gap-2">
-                      <Toggle
-                        checked={h.open}
-                        onChange={() => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], open: !w[d.k].open } }))}
-                        label={`${d.l} ouvert`}
+              <div className="rounded-xl border border-q2-graphite-d overflow-hidden">
+                {items.length === 0 ? (
+                  <EmptyState
+                    icon={Tag}
+                    title="Aucun service enregistré"
+                    description="Ajoutez vos prestations, votre menu ou vos tarifs pour que l'IA puisse les annoncer au téléphone."
+                  />
+                ) : (
+                  items.map((it, i) => (
+                    <div
+                      key={it.id}
+                      className={`grid grid-cols-12 gap-2 items-center p-3 ${i === 0 ? '' : 'border-t border-q2-graphite-d'}`}
+                    >
+                      <input
+                        value={it.name}
+                        onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, name: e.target.value } : x))}
+                        placeholder="Nom (ex. Coupe homme)"
+                        className={`${compactCls} col-span-10 order-1 sm:col-span-5 sm:order-2`}
+                        aria-label="Nom"
                       />
-                      <span
-                        className="text-[11.5px] font-medium"
-                        style={{ color: h.open ? 'var(--q2p-ok)' : 'var(--q2-fog)' }}
+                      <button
+                        type="button"
+                        onClick={() => setItems(arr => arr.filter(x => x.id !== it.id))}
+                        className="col-span-2 order-2 sm:col-span-1 sm:order-4 h-9 rounded-lg flex items-center justify-center text-q2-fog hover:text-white hover:bg-q2-obsidian transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                        title="Supprimer"
+                        aria-label={`Supprimer ${it.name || 'l\'élément'}`}
                       >
-                        {h.open ? 'Ouvert' : 'Fermé'}
-                      </span>
+                        <X size={14} aria-hidden="true" />
+                      </button>
+                      <select
+                        value={it.category}
+                        onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, category: e.target.value } : x))}
+                        className={`${compactCls} col-span-5 order-3 sm:col-span-3 sm:order-1`}
+                        aria-label="Catégorie"
+                      >
+                        {ITEM_CATEGORIES.map(c => <option key={c.v} value={c.v}>{c.l}</option>)}
+                      </select>
+                      <input
+                        value={it.price}
+                        onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, price: e.target.value } : x))}
+                        placeholder="Prix (ex. 25 €)"
+                        className={`${compactCls} col-span-7 order-4 sm:col-span-3 sm:order-3`}
+                        aria-label="Prix"
+                      />
                     </div>
-                    <input
-                      type="time"
-                      value={h.from}
-                      disabled={!h.open}
-                      onChange={e => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], from: e.target.value } }))}
-                      className={`${compactCls} col-span-3`}
-                      aria-label={`${d.l} ouverture`}
-                    />
-                    <input
-                      type="time"
-                      value={h.to}
-                      disabled={!h.open}
-                      onChange={e => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], to: e.target.value } }))}
-                      className={`${compactCls} col-span-3`}
-                      aria-label={`${d.l} fermeture`}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                  ))
+                )}
+              </div>
 
-          {/* FAQ */}
-          <div>
-            <GroupLabel icon={HelpCircle}>FAQ</GroupLabel>
-            <Textarea
-              value={faq}
-              onChange={e => setFaq(e.target.value)}
-              rows={6}
-              placeholder="Q : Faut-il réserver ?&#10;R : Oui, on privilégie le rendez-vous mais on accepte les walk-ins si le créneau est libre."
-              className="resize-y leading-relaxed"
-              style={{ minHeight: 140 }}
-            />
+              <GhostBtn
+                type="button"
+                onClick={() => setItems(arr => [...arr, { id: newId(), category: 'service', name: '', price: '' }])}
+                className="mt-3"
+              >
+                <Plus size={13} aria-hidden="true" /> Ajouter un élément
+              </GhostBtn>
+            </KbGroup>
+
+            {/* Horaires hebdomadaires */}
+            <KbGroup
+              icon={Clock3}
+              title="Horaires d'ouverture"
+              count={openDays > 0 ? `${openDays} jour${openDays > 1 ? 's' : ''} sur 7` : 'Fermé toute la semaine'}
+            >
+              <div className="rounded-xl border border-q2-graphite-d overflow-hidden">
+                {DAYS.map((d, i) => {
+                  const h = weekHours[d.k];
+                  return (
+                    <div
+                      key={d.k}
+                      className={`grid grid-cols-12 gap-2 items-center px-3 py-2.5 ${i === 0 ? '' : 'border-t border-q2-graphite-d'}`}
+                    >
+                      <span className="col-span-6 sm:col-span-3 text-[13px] font-medium text-white">{d.l}</span>
+                      <div className="col-span-6 sm:col-span-3 flex items-center justify-end sm:justify-start gap-2">
+                        <Toggle
+                          checked={h.open}
+                          onChange={() => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], open: !w[d.k].open } }))}
+                          label={`${d.l} ouvert`}
+                        />
+                        <span
+                          className="text-[11.5px] font-medium w-[46px]"
+                          style={{ color: h.open ? 'var(--q2p-ok)' : 'var(--q2-fog)' }}
+                        >
+                          {h.open ? 'Ouvert' : 'Fermé'}
+                        </span>
+                      </div>
+                      <input
+                        type="time"
+                        value={h.from}
+                        disabled={!h.open}
+                        onChange={e => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], from: e.target.value } }))}
+                        className={`${compactCls} col-span-6 sm:col-span-3`}
+                        aria-label={`${d.l} ouverture`}
+                      />
+                      <input
+                        type="time"
+                        value={h.to}
+                        disabled={!h.open}
+                        onChange={e => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], to: e.target.value } }))}
+                        className={`${compactCls} col-span-6 sm:col-span-3`}
+                        aria-label={`${d.l} fermeture`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </KbGroup>
+
+            {/* FAQ */}
+            <KbGroup
+              icon={HelpCircle}
+              title="FAQ"
+              count={faqCount > 0 ? `${faqCount} question${faqCount > 1 ? 's' : ''}` : 'Vide'}
+            >
+              <Textarea
+                value={faq}
+                onChange={e => setFaq(e.target.value)}
+                rows={8}
+                placeholder="Q : Faut-il réserver ?&#10;R : Oui, on privilégie le rendez-vous mais on accepte les walk-ins si le créneau est libre."
+                className="resize-y leading-relaxed"
+                style={{ minHeight: 180 }}
+                aria-label="FAQ"
+              />
+              <p className="mt-2 text-[11px] text-q2-fog">
+                Une question par ligne commençant par Q, la réponse sur la ligne suivante.
+              </p>
+            </KbGroup>
           </div>
         </Section>
 
