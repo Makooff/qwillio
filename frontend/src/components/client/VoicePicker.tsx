@@ -97,6 +97,9 @@ export default function VoicePicker({
       {notice && (
         <p
           role="status"
+          // Scrolled to on purpose: the list is long enough that the banner sat
+          // off-screen, so a failed preview looked like a dead button.
+          ref={el => el?.scrollIntoView({ block: 'nearest' })}
           className="mb-2 rounded-lg px-3 py-2 text-[11px] leading-snug"
           style={{ background: 'rgba(221,147,252,0.10)', border: '1px solid rgba(221,147,252,0.30)', color: '#e7bafd' }}
         >

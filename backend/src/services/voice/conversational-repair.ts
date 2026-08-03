@@ -85,11 +85,24 @@ export function silenceNudge(lang: VoiceLanguage): string {
  * concluded the line dropped, so the useful moment is around four. Nudging is
  * not hanging up, and conflating the two is why the agent used to sit silent
  * until it gave up.
+ *
+ * The field names are Vapi's, not ours: `messages` / `timeoutSeconds` / `count`
+ * were rejected outright ("messagePlan.property messages should not exist"),
+ * which killed every call for the client whose settings had just been saved.
+ * The bounds are Vapi's too — 5 s is the floor it accepts, so the nudge lands
+ * there even though four would be better.
  */
+const IDLE_TIMEOUT_MIN = 5;
+const IDLE_TIMEOUT_MAX = 60;
+const IDLE_COUNT_MIN = 1;
+const IDLE_COUNT_MAX = 10;
+
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.round(n)));
+
 export function buildIdleMessagePlan(lang: VoiceLanguage, timeoutSeconds: number, maxCount: number) {
   return {
-    messages: SILENCE_NUDGE[lang].map(content => ({ type: 'request-idle', content })),
-    timeoutSeconds,
-    count: maxCount,
+    idleMessages: SILENCE_NUDGE[lang],
+    idleMessageMaxSpokenCount: clamp(maxCount, IDLE_COUNT_MIN, IDLE_COUNT_MAX),
+    idleTimeoutSeconds: clamp(timeoutSeconds, IDLE_TIMEOUT_MIN, IDLE_TIMEOUT_MAX),
   };
 }

@@ -26,6 +26,11 @@ function audioContextCtor(): AudioCtor | null {
 }
 
 // Browser TTS fallback. A rough preview only — the real call uses ElevenLabs.
+//
+// The timeout is not belt and braces: on iOS `speak()` regularly fires neither
+// `onend` nor `onerror` (silent switch on, no voice loaded for the language),
+// and the button then sits on ■ for ever, which reads as "the app is broken"
+// rather than "this device will not speak".
 function speak(text: string, lang: 'fr' | 'en', onEnd: () => void) {
   if (typeof window === 'undefined' || !window.speechSynthesis) { onEnd(); return; }
   window.speechSynthesis.cancel();
@@ -34,8 +39,12 @@ function speak(text: string, lang: 'fr' | 'en', onEnd: () => void) {
   const match = window.speechSynthesis.getVoices()
     .find(v => v.lang?.toLowerCase().startsWith(u.lang.toLowerCase().slice(0, 2)));
   if (match) u.voice = match;
-  u.onend = onEnd;
-  u.onerror = onEnd;
+  let done = false;
+  const finish = () => { if (!done) { done = true; onEnd(); } };
+  u.onend = finish;
+  u.onerror = finish;
+  // ~14 characters a second is slower than any real speech rate.
+  setTimeout(finish, Math.min(20_000, 3_000 + text.length * 70));
   window.speechSynthesis.speak(u);
 }
 
@@ -138,17 +147,25 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
         // The request asks for raw bytes, so an error body arrives as bytes too
         // and has to be decoded before the upstream status is readable.
         let upstream: number | undefined;
+        let reason: string | undefined;
         if (res?.data instanceof ArrayBuffer) {
-          try { upstream = JSON.parse(new TextDecoder().decode(res.data))?.status; } catch { /* not JSON */ }
+          try {
+            const body = JSON.parse(new TextDecoder().decode(res.data));
+            upstream = body?.status;
+            reason = body?.reason;
+          } catch { /* not JSON */ }
         }
+        // The upstream reason is shown verbatim. "ElevenLabs replied 401" sends
+        // nobody anywhere; "quota exceeded" or "voice not found" is the answer.
+        const detail = [upstream, reason].filter(Boolean).join(' — ') || '?';
         setNotice(
           res?.status === 503
             ? (isFr
               ? "Voix réelles indisponibles : la clé ElevenLabs n'est pas configurée sur le serveur. Aperçu joué avec la voix du navigateur."
               : 'Real voices unavailable: the ElevenLabs key is not configured on the server. Playing the browser voice instead.')
             : (isFr
-              ? `Aperçu ElevenLabs indisponible (ElevenLabs a répondu ${upstream ?? '?'}). Aperçu joué avec la voix du navigateur.`
-              : `ElevenLabs preview unavailable (ElevenLabs replied ${upstream ?? '?'}). Playing the browser voice instead.`),
+              ? `Aperçu ElevenLabs indisponible (${detail}). Aperçu joué avec la voix du navigateur.`
+              : `ElevenLabs preview unavailable (${detail}). Playing the browser voice instead.`),
         );
         speak(fallbackText, lang, () => setPlaying(null));
       }

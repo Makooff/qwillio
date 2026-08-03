@@ -34,6 +34,8 @@ export default function CharacterPicker({
     {notice && (
       <p
         role="status"
+        // See VoicePicker: the banner is useless where it cannot be seen.
+        ref={el => el?.scrollIntoView({ block: 'nearest' })}
         className="mb-2 rounded-lg px-3 py-2 text-[11px] leading-snug"
         style={{ background: 'rgba(221,147,252,0.10)', border: '1px solid rgba(221,147,252,0.30)', color: '#e7bafd' }}
       >

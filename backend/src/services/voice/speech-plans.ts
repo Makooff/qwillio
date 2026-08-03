@@ -99,9 +99,12 @@ export function buildStopSpeakingPlan() {
       'i understand', 'ok', 'okay', 'right', 'yeah', 'yes', 'uh-huh', 'mm-hmm',
       'd\'accord', 'ouais', 'oui', 'hm', 'mhm', 'je vois', 'très bien',
     ],
+    // Unique — Vapi rejects the whole assistant on a duplicate
+    // ("stopSpeakingPlan.All interruptionPhrases's elements must be unique"),
+    // and 'stop' is the same word in both languages.
     interruptionPhrases: [
       'stop', 'wait', 'hold on', 'excuse me', 'actually', 'no no',
-      'attendez', 'attends', 'stop', 'non non', 'pardon', 'en fait',
+      'attendez', 'attends', 'non non', 'pardon', 'en fait',
     ],
   };
 }
@@ -134,7 +137,11 @@ export function buildVoice(opts: {
     chunkPlan: {
       enabled: true,
       minCharacters: env.VOICE_TTS_MIN_CHUNK_CHARS,
-      punctuationBoundaries: ['.', '!', '?', ',', ';', ':', '—', '…'],
+      // Only the boundaries Vapi accepts. An em dash and an ellipsis look like
+      // obvious sentence breaks and are not on the list, and one unknown value
+      // rejects the entire assistant:
+      // "voice.chunkPlan.each value in punctuationBoundaries must be one of…".
+      punctuationBoundaries: ['.', '!', '?', ',', ';', ':'],
       formatPlan: { enabled: true, numberToDigitsCutoff: 2025 },
     },
     fallbackPlan: {

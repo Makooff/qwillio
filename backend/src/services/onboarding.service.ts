@@ -9,6 +9,7 @@ import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
 import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
 import { realtimeContextService } from './voice/realtime-context.service';
 import { greetingAudioService } from './voice/greeting-audio.service';
+import { toE164 } from '../utils/phone';
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2000; // 2s, 4s, 8s exponential backoff
@@ -715,9 +716,16 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
     };
 
-    // Update transfer destinations if transferNumber changed
-    if (client.transferNumber) {
-      updatedConfig.forwardingPhoneNumber = client.transferNumber;
+    // Update transfer destinations if transferNumber changed. E.164 or nothing:
+    // Vapi rejects the whole assistant on a number typed as "06 12 34 56 78",
+    // so one mistyped settings field used to take down every call for that
+    // client, transfer or not.
+    const forwarding = toE164(client.transferNumber, client.country);
+    if (client.transferNumber && !forwarding) {
+      logger.warn(`syncVapiAssistant: transferNumber "${client.transferNumber}" is not a valid number for ${client.country || 'FR'} — transfer disabled for client ${client.id}`);
+    }
+    if (forwarding) {
+      updatedConfig.forwardingPhoneNumber = forwarding;
     }
 
     try {
