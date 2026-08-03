@@ -649,6 +649,26 @@ export class ClientDashboardController {
     }
   }
 
+  // GET /my-dashboard/voices — the voices available on the ElevenLabs account,
+  // so a voice is chosen after being heard instead of pasted as an opaque id.
+  async listVoices(_req: any, res: Response) {
+    try {
+      const { voiceCatalogService } = await import('../services/voice/voice-catalog.service');
+      res.json({ voices: await voiceCatalogService.list() });
+    } catch (error: any) {
+      // 503 rather than 500 for a missing key: the UI shows "not configured",
+      // which is actionable, instead of "server error", which is not.
+      if (error.message === 'elevenlabs_key_missing') {
+        return res.status(503).json({ error: 'elevenlabs_key_missing' });
+      }
+      if (error.message === 'elevenlabs_list_failed') {
+        return res.status(502).json({ error: 'elevenlabs_list_failed' });
+      }
+      logger.error('listVoices failed:', error);
+      res.status(500).json({ error: 'voices_unavailable' });
+    }
+  }
+
   // POST /my-dashboard/voice-clone — the client's own voice as the receptionist.
   //
   // The sample arrives base64 in JSON, like the dictation endpoint: the express
@@ -699,6 +719,9 @@ export class ClientDashboardController {
 
       const { realtimeContextService } = await import('../services/voice/realtime-context.service');
       await realtimeContextService.invalidateClient(req.clientId);
+      // The new clone must appear in the voice list now, not in ten minutes.
+      const { voiceCatalogService } = await import('../services/voice/voice-catalog.service');
+      voiceCatalogService.invalidate();
 
       res.json({ success: true, voice });
     } catch (error: any) {
@@ -737,6 +760,8 @@ export class ClientDashboardController {
 
       const { realtimeContextService } = await import('../services/voice/realtime-context.service');
       await realtimeContextService.invalidateClient(req.clientId);
+      const { voiceCatalogService } = await import('../services/voice/voice-catalog.service');
+      voiceCatalogService.invalidate();
 
       res.json({ success: true, characterId });
     } catch (error: any) {
