@@ -29,14 +29,10 @@ function speak(text: string, lang: 'fr' | 'en', onEnd: () => void) {
   window.speechSynthesis.speak(u);
 }
 
-/** iOS Safari plays a data: URL reliably where a blob: URL decodes to silence. */
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error || new Error('read_failed'));
-    reader.readAsDataURL(blob);
-  });
+type AudioCtor = typeof AudioContext;
+function audioContextCtor(): AudioCtor | null {
+  const w = window as unknown as { AudioContext?: AudioCtor; webkitAudioContext?: AudioCtor };
+  return w.AudioContext || w.webkitAudioContext || null;
 }
 
 const ACCENT_LABEL: Record<string, string> = { FR: 'FR', BE: 'Belgique', US: 'EN' };
@@ -51,95 +47,109 @@ export default function CharacterPicker({
 }) {
   const [playing, setPlaying] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ctxRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const tokenRef = useRef(0);
 
   const stopAll = () => {
     window.speechSynthesis?.cancel();
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    tokenRef.current += 1;
+    if (sourceRef.current) {
+      // The handler would otherwise clear the button state of the clip that is
+      // starting, not the one being stopped.
+      sourceRef.current.onended = null;
+      try { sourceRef.current.stop(); } catch { /* already finished */ }
+      sourceRef.current = null;
+    }
   };
 
-  // Try the real ElevenLabs voice first; fall back to browser TTS if the
-  // backend has no ElevenLabs key (503) or the request fails. The fallback is
-  // announced — silently playing a robotic voice makes a misconfigured server
-  // look like a bad voice.
-  //
-  // iOS Safari only lets audio start from inside a user gesture, and an `await`
-  // ends that window. So the element is created and unlocked synchronously on
-  // the click, and the fetched clip is swapped into that already-unlocked
-  // element afterwards. Without this nothing plays at all on iPhone/iPad —
-  // not even the fallback voice.
+  /**
+   * Play the real ElevenLabs clip, falling back to browser TTS with a visible
+   * notice when the server has no key or the request fails. Announcing the
+   * fallback matters: silently playing a robotic voice makes a misconfigured
+   * server look like a bad voice.
+   *
+   * Web Audio rather than an <audio> element, because of iOS. Safari only lets
+   * audio start from a user gesture, and any `await` closes that window — so an
+   * element has to be created and unlocked synchronously on the click, then have
+   * its source swapped afterwards. That swap is where iOS silently fails:
+   * `play()` resolves, no error fires, and nothing is ever heard. An
+   * AudioContext unlocked in the same gesture keeps working after an await, and
+   * decodeAudioData either returns samples or throws — no silent middle ground.
+   */
   const preview = (c: Character) => {
     if (playing === c.id) { stopAll(); setPlaying(null); return; }
     stopAll();
     setPlaying(c.id);
 
-    const audio = new Audio();
-    audio.preload = 'auto';
-    audioRef.current = audio;
-    // Silent 1-sample WAV: playing it inside the gesture unlocks the element.
-    audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgLsAAAB3AQACABAAZGF0YQAAAAA=';
-    const unlocked = audio.play().catch(() => undefined);
+    const Ctor = audioContextCtor();
+    if (!Ctor) {
+      setNotice(isFr
+        ? "Ce navigateur ne peut pas lire l'audio. Aperçu joué avec la voix du navigateur."
+        : 'This browser cannot play audio. Playing the browser voice instead.');
+      speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
+      return;
+    }
+
+    // Created and resumed inside the click. iOS starts every context suspended
+    // and only allows the resume from a gesture; doing it after the fetch would
+    // be too late.
+    const ctx = ctxRef.current ?? new Ctor();
+    ctxRef.current = ctx;
+    const resumed = ctx.state === 'suspended' ? ctx.resume().catch(() => undefined) : Promise.resolve();
+
+    const token = ++tokenRef.current;
 
     void (async () => {
+      // Hoisted so the failure message can report the size that arrived.
+      let payload: ArrayBuffer | undefined;
       try {
-        const { data } = await api.get(`/my-dashboard/characters/${c.id}/preview`, { responseType: 'blob' });
-        await unlocked;
-        if (audioRef.current !== audio) return; // superseded by another click
-
-        // A `blob:` URL on an <audio> element silently decodes to nothing on
-        // iOS Safari: play() resolves, no error fires, and the button stays
-        // stuck on stop forever. A data: URL is the one form it always plays.
-        // The explicit mime type matters too — the blob axios builds does not
-        // always carry one, and iOS refuses a source it cannot type.
-        const url = await blobToDataUrl(new Blob([data as Blob], { type: 'audio/mpeg' }));
-        if (audioRef.current !== audio) return;
-
-        audio.onended = () => setPlaying(null);
-        audio.onerror = () => setPlaying(null);
-        audio.src = url;
-        // Swapping src on an element that already played needs an explicit
-        // reload on iOS; without it the element keeps the finished silent clip.
-        audio.load();
-        setNotice(null);
-        await audio.play();
-
-        // play() resolving is not proof of sound: it resolves on iOS even when
-        // nothing decodes. Only a `playing` event is. Without this watchdog the
-        // failure mode is a button that never comes back, which reads as a dead
-        // app rather than a problem worth reporting.
-        await new Promise<void>((resolve, reject) => {
-          const ok = () => { cleanup(); resolve(); };
-          const ko = () => { cleanup(); reject(new Error('audio_silent')); };
-          const timer = window.setTimeout(ko, 2500);
-          function cleanup() {
-            window.clearTimeout(timer);
-            audio.removeEventListener('playing', ok);
-            audio.removeEventListener('error', ko);
-          }
-          audio.addEventListener('playing', ok);
-          audio.addEventListener('error', ko);
+        const { data } = await api.get(`/my-dashboard/characters/${c.id}/preview`, {
+          responseType: 'arraybuffer',
         });
-      } catch (err) {
-        if (audioRef.current !== audio) return;
+        payload = data as ArrayBuffer;
+        await resumed;
+        if (tokenRef.current !== token) return; // superseded by another click
 
-        // The clip arrived but the device produced no sound. Almost always the
-        // iPhone's ring/silent switch, which mutes <audio> without telling the
-        // page anything. Naming it is the difference between a five-second fix
-        // and concluding the product is broken.
-        if ((err as Error)?.message === 'audio_silent') {
+        if (!payload.byteLength) throw new Error('empty_audio');
+
+        // Throws on anything that is not decodable audio, which is exactly the
+        // signal the <audio> element refused to give.
+        const buffer = await ctx.decodeAudioData(payload);
+        if (tokenRef.current !== token) return;
+
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.onended = () => {
+          if (tokenRef.current === token) setPlaying(null);
+        };
+        sourceRef.current = source;
+        setNotice(null);
+        source.start();
+      } catch (err) {
+        if (tokenRef.current !== token) return;
+
+        const message = (err as Error)?.message;
+        if (message === 'empty_audio' || err instanceof DOMException) {
+          // Decodable audio was expected and did not arrive. The size is in the
+          // message on purpose: 0 ko means the server sent nothing, a real size
+          // means the file is there and the device refused it. Without it this
+          // failure is indistinguishable from the previous one.
+          const ko = Math.round((payload?.byteLength ?? 0) / 1024);
           setNotice(isFr
-            ? "Aucun son n'est sorti. Sur iPhone, l'interrupteur latéral coupe le son des pages web même quand le volume est au maximum."
-            : 'No sound came out. On iPhone, the side switch mutes web audio even at full volume.');
-          setPlaying(null);
+            ? `Le fichier audio reçu n'a pas pu être décodé (${ko} ko). Aperçu joué avec la voix du navigateur.`
+            : `The audio file could not be decoded (${ko} kB). Playing the browser voice instead.`);
+          speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
           return;
         }
 
         const res = (err as { response?: { status?: number; data?: unknown } }).response;
-        // The request asks for a Blob, so an error body arrives as one too and
-        // has to be decoded before the upstream status is readable.
+        // The request asks for raw bytes, so an error body arrives as bytes too
+        // and has to be decoded before the upstream status is readable.
         let upstream: number | undefined;
-        if (res?.data instanceof Blob) {
-          try { upstream = JSON.parse(await res.data.text())?.status; } catch { /* not JSON */ }
+        if (res?.data instanceof ArrayBuffer) {
+          try { upstream = JSON.parse(new TextDecoder().decode(res.data))?.status; } catch { /* not JSON */ }
         }
         setNotice(
           res?.status === 503
