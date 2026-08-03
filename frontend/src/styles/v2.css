@@ -148,3 +148,39 @@
     transform: none;
   }
 }
+
+/* ============================================================
+   Registre PRODUIT (dashboard client) — « instrument » Linear.
+   Surfaces void/carbon/obsidian + bordures hairline, zéro ombre.
+   États système: signal, jamais décoration (DA/couleurs.md).
+   ============================================================ */
+:root {
+  --q2p-ok: oklch(72% 0.18 145);
+  --q2p-warn: oklch(78% 0.18 75);
+  --q2p-bad: oklch(65% 0.22 25);
+  --q2p-info: oklch(70% 0.18 240);
+}
+
+/* Titre de page produit (rendu par AppShell, jamais par les pages) */
+.q2p-page-title {
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+}
+
+/* Entrée de page produit: discrète et rapide (fréquent = presque pas d'animation) */
+@keyframes q2pPageIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.q2p-page {
+  animation: q2pPageIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}

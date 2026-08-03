@@ -77,6 +77,17 @@ Hero asymétrique : titre whisper à gauche, description/visuel à droite, pilul
 
 Gradient text ; side-stripe `border-left` accent ; hero-metric grid ; grilles de cards identiques ; glassmorphism par défaut ; modal comme première solution ; `transition-all` ; Inter ; emojis ; em dashes ; noir pur `#000` en texte ; blanc pur `#FFF` en fond de page ; ombres noires neutres ; accents mauves sur boutons/liens du canvas clair ; plus d'une action chromatique par section drenched ; poids display >500.
 
+## Registre PRODUIT (dashboard client) — addendum phase 2
+
+Design neuf « instrument » (Linear, DA/references/linear.md), PAS un reskin de ProBlocks. S'applique à `components/v2/app/` et `pages/v2/app/`.
+- **Surfaces** : canvas `q2-void` #08090A plein cadre ; sidebar et cards `q2-carbon` #0F1011 ; élevé `q2-obsidian` #161718. Élévation par bordures `#23252A` (1px) uniquement, **zéro ombre**. Voile indigo optionnel en fond (`--q2-void-tint`).
+- **Texte** : titres blancs, corps `q2-mist` #D0D6E0, muted `q2-fog` #8A8F98. Corps UI 13.5-14px, meta 11-12px, chiffres `tabular-nums`.
+- **Titres de page** : rendus par `AppShell` (`.q2p-page-title`, 20px/400/-0.012em) — les pages ne redessinent JAMAIS leur h1 (répare le bug V1 du titre invisible).
+- **Accent** : indigo `#7A5FFF` (`q2-lift` #B9A8FF pour les petits textes), UNE action primaire par vue. États `--q2p-ok/warn/bad/info` = signal seulement.
+- **Formes** : cards 12px, inputs 12px, boutons pilule ; rangées de réglages 56px hairline ; densité compacte (base 4px, gaps 8-12px).
+- **Motion** : entrée de page `.q2p-page` (180ms), press global, pas d'animation sur la nav ; graphes recharts sobres (1 série accent, grille hairline).
+- **Kit unique** : `components/v2/app/Blocks.tsx` remplace ProBlocks/OverviewBlocks/primitives locales côté client. Interdits identiques au reste de la V2 (+ jamais de glass/blur décoratif).
+
 ## Voix (DA/voix.md, inchangée)
 
 Ne rien écrire d'improuvable. Pas de métriques inventées, pas de témoignages fabriqués. Vocabulaire banni : révolutionnaire, game-changer, disruptif, etc. Français d'abord, anglais traduit. La strip crédibilité n'affiche que des propriétés vérifiables du produit (FR/EN, < 1 s, 24/7).
