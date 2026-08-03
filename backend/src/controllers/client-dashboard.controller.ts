@@ -652,41 +652,69 @@ export class ClientDashboardController {
       const previewFrench = previewClient?.agentLanguage?.startsWith('fr')
         || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String(previewClient?.country || '').toUpperCase());
       const text = previewFrench ? character.previewFr : character.previewEn;
-      const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${character.voiceId}`, {
-        method: 'POST',
-        headers: {
-          'xi-api-key': env.ELEVENLABS_API_KEY,
-          'Content-Type': 'application/json',
-          Accept: 'audio/mpeg',
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_multilingual_v2',
-          voice_settings: { stability: character.stability, similarity_boost: character.similarityBoost, style: character.style },
-        }),
+
+      // Synthesised once, then read from the cache. The line never changes, so
+      // paying for it and waiting for it on every press of ▶ bought nothing —
+      // and it was the delay before the sound, and the silence once the account
+      // hit its rate limit.
+      const { previewAudioService } = await import('../services/voice/preview-audio.service');
+      const { audio, key } = await previewAudioService.get({
+        voiceId: character.voiceId,
+        text,
+        stability: character.stability,
+        similarityBoost: character.similarityBoost,
+        style: character.style,
       });
-      if (!r.ok) {
-        // Log the upstream body: ElevenLabs explains *why* (bad key, unknown
-        // voice id, quota exhausted) and without it this is undiagnosable.
-        const detail = await r.text().catch(() => '');
-        logger.warn(`ElevenLabs preview ${r.status} for ${id} (voice ${character.voiceId}): ${detail.slice(0, 300)}`);
-        // The reason travels to the browser too. Server logs are not reachable
-        // from a phone, and "the preview does not play" was indistinguishable
-        // from a bad voice for as long as the cause stayed here.
-        let reason: string | undefined;
-        try { reason = JSON.parse(detail)?.detail?.message || JSON.parse(detail)?.detail?.status; } catch { /* not JSON */ }
-        return res.status(502).json({
-          error: 'elevenlabs_request_failed',
-          status: r.status,
-          reason: (reason || detail).toString().slice(0, 200) || undefined,
+
+      res.setHeader('Content-Type', 'audio/mpeg');
+      // A week, and an ETag: the clip is immutable for a given voice and line,
+      // so a second press should not leave the device at all.
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+      res.setHeader('ETag', `"${key}"`);
+      if (req.headers['if-none-match'] === `"${key}"`) return res.status(304).end();
+      res.send(audio);
+    } catch (error: any) {
+      const { PreviewAudioError } = await import('../services/voice/preview-audio.service');
+      if (error instanceof PreviewAudioError) {
+        return res.status(error.status).json({
+          error: error.message,
+          status: error.upstream,
+          reason: error.reason,
         });
       }
-      const buf = Buffer.from(await r.arrayBuffer());
-      res.setHeader('Content-Type', 'audio/mpeg');
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-      res.send(buf);
-    } catch (error: any) {
+      logger.error('characterPreview failed:', error);
       res.status(500).json({ error: error.message });
+    }
+  }
+
+  // POST /my-dashboard/characters/warm — synthesise the catalog's clips ahead
+  // of the first press, so ▶ plays instantly instead of waiting on a paid API.
+  async warmCharacterPreviews(req: any, res: Response) {
+    // Answers immediately: this is a hint, and the page must not wait on it.
+    res.json({ started: !!env.ELEVENLABS_API_KEY });
+    if (!env.ELEVENLABS_API_KEY) return;
+
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { agentLanguage: true, country: true, vapiConfig: true },
+      });
+      const isFrench = client?.agentLanguage?.startsWith('fr')
+        || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String(client?.country || '').toUpperCase());
+      const override = ((client?.vapiConfig as any)?.customVoice?.voiceId ?? '') as string;
+
+      const { previewAudioService } = await import('../services/voice/preview-audio.service');
+      void previewAudioService.warm(listCharacters().map(c => ({
+        // With an override in place, every card plays that voice — warming the
+        // catalog voices instead would warm clips nobody will hear.
+        voiceId: override || c.voiceId,
+        text: isFrench ? c.previewFr : c.previewEn,
+        stability: c.stability,
+        similarityBoost: c.similarityBoost,
+        style: c.style,
+      })));
+    } catch (error: any) {
+      logger.debug(`warmCharacterPreviews failed: ${error.message}`);
     }
   }
 

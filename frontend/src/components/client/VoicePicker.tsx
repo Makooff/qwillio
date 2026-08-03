@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Play, Square, Check, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import { useVoicePreview } from './useVoicePreview';
+import { previewUrl } from './CharacterPicker';
 
 export interface CatalogVoice {
   voiceId: string;
@@ -109,9 +110,7 @@ export default function VoicePicker({
       <div className="rounded-xl border border-[rgba(255,255,255,0.08)] divide-y divide-[rgba(255,255,255,0.06)]">
         {rows.map(r => {
           const sel = (value?.voiceId ?? null) === (r.voice?.voiceId ?? null);
-          const url = r.voice
-            ? `/my-dashboard/characters/${characterId}/preview?voiceId=${encodeURIComponent(r.voice.voiceId)}`
-            : `/my-dashboard/characters/${characterId}/preview`;
+          const url = previewUrl(characterId, r.voice);
           return (
             <div key={r.key} className="flex items-center gap-2 px-3 py-2.5">
               <button

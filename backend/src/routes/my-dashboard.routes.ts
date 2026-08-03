@@ -62,6 +62,10 @@ router.get('/settings', (req, res) => clientDashboardController.getMySettings(re
 router.put('/settings', (req, res) => clientDashboardController.updateMySettings(req, res));
 router.get('/characters', (req, res) => clientDashboardController.getCharacters(req, res));
 router.get('/characters/:id/preview', (req, res) => clientDashboardController.characterPreview(req, res));
+// Fired by the settings page on open so the clips exist before anyone presses
+// ▶. Rate-limited with the other paid fan-outs: a loop here would synthesise
+// the catalog over and over.
+router.post('/characters/warm', extractLimiter, (req, res) => clientDashboardController.warmCharacterPreviews(req, res));
 router.get('/voices', (req, res) => clientDashboardController.listVoices(req, res));
 // Voice cloning. Same budget as dictation — a multi-megabyte body going to a
 // paid API, and a retry loop here would both bill the account and litter it
