@@ -67,7 +67,7 @@ export default function Receptionist() {
       ring: 'rgba(122,95,255,0.45)',
       initials: 'MA',
       lang: 'fr-FR',
-      sample: 'Bonjour, merci d’appeler ! Comment puis-je vous aider aujourd’hui ?',
+      sample: 'Bonjour, merci d’appeler ! Comment puis-je vous aider aujourd’hui ?',
     },
     {
       name: 'Ashley',
@@ -434,7 +434,7 @@ export default function Receptionist() {
                   <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center py-12 md:py-20">
                     <div className={flip ? 'lg:order-2' : ''}>
                       <div className="flex items-center gap-3 mb-6">
-                        <span className="w-11 h-11 rounded-full bg-q2-plate flex items-center justify-center">
+                        <span className="w-11 h-11 rounded-full bg-q2-plate flex items-center justify-center">
                           <pillar.icon size={18} className="text-q2-indigo" aria-hidden="true" />
                         </span>
                         <span className="q2-eyebrow text-q2-body tabular-nums">{pillar.num}</span>
