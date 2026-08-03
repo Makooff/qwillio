@@ -248,16 +248,25 @@ export const DEFAULT_CHARACTER_FR = 'marie';
 export const DEFAULT_CHARACTER_EN = 'marie';
 
 /**
- * The client's own cloned voice. Not in CHARACTERS: it has no fixed voiceId,
- * it is per-tenant and lives in the client's config.
+ * A voice the client chose for themselves: cloned from their own recording, or
+ * picked from their ElevenLabs library.
+ *
+ * It is an OVERRIDE on top of a character, not a character of its own. The
+ * first version made it a pseudo-character called 'custom', which meant
+ * choosing your own voice cost you the face, the name and the personality you
+ * had picked — three losses for one gain. Here the character stays whole and
+ * only its voiceId changes.
  */
-export const CUSTOM_CHARACTER_ID = 'custom';
-
 export interface CustomVoice {
   voiceId: string;
   name: string;
   createdAt: string;
+  /** Cloned from the owner's recording, as opposed to picked from the library. */
+  cloned?: boolean;
 }
+
+/** Kept for configs written before the override model. Never assigned anymore. */
+export const CUSTOM_CHARACTER_ID = 'custom';
 
 export function isValidCharacterId(id: string | null | undefined): boolean {
   return !!id && Object.prototype.hasOwnProperty.call(CHARACTERS, id);
@@ -276,34 +285,32 @@ export function resolveCharacter(params: {
 }): Character {
   const { characterId, isFrench, country, customVoice } = params;
 
-  // A cloned voice replaces the voiceId only. Tuning and persona keep coming
-  // from the character: those describe how the agent behaves, which the clone
-  // says nothing about.
-  if (characterId === CUSTOM_CHARACTER_ID && customVoice?.voiceId) {
-    const base = CHARACTERS[isFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
+  let character: Character;
+  if (isValidCharacterId(characterId)) {
+    character = CHARACTERS[characterId as string];
+  } else {
+    character = CHARACTERS[isFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
+    const isBE = (country || '').toUpperCase() === 'BE';
+    if (isFrench && isBE && env.VAPI_VOICE_ID_BE) {
+      character = { ...character, accent: 'BE', voiceId: env.VAPI_VOICE_ID_BE };
+    }
+  }
+
+  // The chosen voice replaces the voiceId and nothing else. Tuning and persona
+  // keep coming from the character: they describe how the agent behaves, which
+  // a voice says nothing about.
+  if (customVoice?.voiceId) {
     return {
-      ...base,
-      id: CUSTOM_CHARACTER_ID,
-      name: customVoice.name || base.name,
+      ...character,
       voiceId: customVoice.voiceId,
-      // A cloned voice carries the speaker's own timbre; pushing style on top
-      // of it is what makes clones sound like impressions of themselves.
-      style: 0,
-      similarityBoost: 0.85,
-      avatar: '',
+      // Only for a clone. A cloned voice carries the speaker's own timbre, and
+      // pushing style on top of it is what makes clones sound like impressions
+      // of themselves. A library voice keeps the character's tuning.
+      ...(customVoice.cloned ? { style: 0, similarityBoost: 0.85 } : {}),
     };
   }
 
-  if (isValidCharacterId(characterId)) {
-    return CHARACTERS[characterId as string];
-  }
-
-  const base = CHARACTERS[isFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
-  const isBE = (country || '').toUpperCase() === 'BE';
-  if (isFrench && isBE && env.VAPI_VOICE_ID_BE) {
-    return { ...base, accent: 'BE', voiceId: env.VAPI_VOICE_ID_BE };
-  }
-  return base;
+  return character;
 }
 
 /** Public catalog for the client picker (no secrets — voiceIds are fine to expose). */

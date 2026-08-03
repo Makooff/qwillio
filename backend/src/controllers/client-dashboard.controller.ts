@@ -297,7 +297,8 @@ export class ClientDashboardController {
         body.faq !== undefined ||
         body.personalityPreset !== undefined ||
         body.personalityNotes !== undefined ||
-        body.characterId !== undefined;
+        body.characterId !== undefined ||
+        body.customVoice !== undefined;
       if (hasKnowledgeUpdate) {
         const existing = await prisma.client.findUnique({
           where: { id: req.clientId },
@@ -311,6 +312,7 @@ export class ClientDashboardController {
           personalityPreset: body.personalityPreset,
           personalityNotes:  body.personalityNotes,
           characterId:       body.characterId,
+          customVoice:       body.customVoice,
         });
       }
 
@@ -318,6 +320,15 @@ export class ClientDashboardController {
         where: { id: req.clientId },
         data: updateData,
       });
+
+      // The voice is read from the cached profile on every call, so a change
+      // that is not invalidated keeps the old voice answering for the rest of
+      // the TTL. The Vapi sync below invalidates too, but only when it succeeds
+      // and only when an assistant exists.
+      if (body.characterId !== undefined || body.customVoice !== undefined) {
+        const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+        await realtimeContextService.invalidateClient(req.clientId);
+      }
 
       // Auto-sync VAPI assistant within 60s of settings change
       if (client.vapiAssistantId) {
@@ -594,8 +605,12 @@ export class ClientDashboardController {
     }
   }
 
-  // GET /my-dashboard/characters/:id/preview — real ElevenLabs voice sample
-  // (mp3). Falls back with 503 when no ELEVENLABS_API_KEY so the UI can use TTS.
+  // GET /my-dashboard/characters/:id/preview[?voiceId=…] — real ElevenLabs
+  // voice sample (mp3). Falls back with 503 when no ELEVENLABS_API_KEY so the
+  // UI can use TTS.
+  //
+  // `voiceId` auditions another voice through the same character: that is what
+  // the client will actually hear once they save the override, tuning included.
   async characterPreview(req: any, res: Response) {
     try {
       const id = String(req.params.id || '');
@@ -603,29 +618,37 @@ export class ClientDashboardController {
       if (!isCustom && !isValidCharacterId(id)) return res.status(404).json({ error: 'Unknown character' });
       if (!env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'elevenlabs_key_missing' });
 
-      // The cloned voice has no entry in the catalog: its id lives in the
-      // client's own config, so the preview reads it from there and borrows the
-      // language default's sample line and tuning.
-      let character = isCustom ? null : CHARACTERS[id];
-      if (isCustom) {
-        const client = await prisma.client.findUnique({
-          where: { id: req.clientId },
-          select: { vapiConfig: true, agentLanguage: true },
-        });
-        const voiceId = ((client?.vapiConfig as any)?.customVoice?.voiceId ?? '') as string;
-        if (!voiceId) return res.status(404).json({ error: 'no_custom_voice' });
-        const base = CHARACTERS[client?.agentLanguage?.startsWith('fr') ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
-        character = { ...base, voiceId, style: 0, similarityBoost: 0.85 };
-      }
-      if (!character) return res.status(404).json({ error: 'Unknown character' });
-
       // The sample follows the CLIENT's language, not the character's: a
       // character is bilingual now, so playing French to an English client
       // would demo a voice they will never hear.
       const previewClient = await prisma.client.findUnique({
         where: { id: req.clientId },
-        select: { agentLanguage: true, country: true },
+        select: { agentLanguage: true, country: true, vapiConfig: true },
       });
+
+      // `custom` is the old pseudo-character, kept because configs written
+      // before the override model still name it. It resolves to whatever voice
+      // the client chose, over the default character.
+      let character = isCustom ? null : CHARACTERS[id];
+      if (isCustom) {
+        const voiceId = ((previewClient?.vapiConfig as any)?.customVoice?.voiceId ?? '') as string;
+        if (!voiceId) return res.status(404).json({ error: 'no_custom_voice' });
+        const base = CHARACTERS[previewClient?.agentLanguage?.startsWith('fr') ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
+        character = { ...base, voiceId, style: 0, similarityBoost: 0.85 };
+      }
+      if (!character) return res.status(404).json({ error: 'Unknown character' });
+
+      const overrideId = String(req.query.voiceId || '').trim();
+      if (overrideId) {
+        // Checked against the account's own voices so this route cannot be used
+        // as an open text-to-speech proxy on our ElevenLabs quota.
+        const { voiceCatalogService } = await import('../services/voice/voice-catalog.service');
+        const voices = await voiceCatalogService.list().catch(() => []);
+        const match = voices.find(v => v.voiceId === overrideId);
+        if (!match) return res.status(404).json({ error: 'unknown_voice' });
+        character = { ...character, voiceId: match.voiceId, ...(match.cloned ? { style: 0, similarityBoost: 0.85 } : {}) };
+      }
+
       const previewFrench = previewClient?.agentLanguage?.startsWith('fr')
         || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String(previewClient?.country || '').toUpperCase());
       const text = previewFrench ? character.previewFr : character.previewEn;
@@ -715,8 +738,9 @@ export class ClientDashboardController {
         where: { id: req.clientId },
         // Selecting it immediately is the point of the screen: a client who
         // records their voice wants to hear it answer, not to then hunt for a
-        // radio button.
-        data: { vapiConfig: { ...current, customVoice: { ...voice }, characterId: CUSTOM_CHARACTER_ID } },
+        // radio button. The character is left alone — the clone changes how the
+        // agent sounds, not who it is.
+        data: { vapiConfig: { ...current, customVoice: { ...voice, cloned: true } } },
       });
 
       // Re-cloning replaces: leaving the old voice on the shared ElevenLabs
@@ -753,8 +777,9 @@ export class ClientDashboardController {
       const voice = current.customVoice as { voiceId?: string } | undefined;
       const { customVoice: _removed, ...rest } = current;
 
-      // Falling back to a catalog character rather than leaving `custom`
-      // pointing at nothing: an agent with no voice cannot answer a call.
+      // Dropping the override is enough now that it sits on top of a real
+      // character. Configs written before that still say `custom`, which points
+      // at nothing once the voice is gone, so they are migrated here.
       const characterId = current.characterId === CUSTOM_CHARACTER_ID
         ? (client.agentLanguage?.startsWith('fr') ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN)
         : (typeof current.characterId === 'string' ? current.characterId : null);
