@@ -1,21 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  AlertCircle, Bot, CalendarCheck, Check, ChevronRight, Gauge, Headphones,
-  Pause, Phone, PhoneForwarded, Settings, Sparkles, Users,
+  AlertCircle, Bot, Calendar, ChevronDown, ChevronRight, Headphones, Pause,
+  Phone, PhoneForwarded, Settings, SlidersHorizontal, Sparkles,
 } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
 import api from '../../../services/api';
 import { daysUntil } from '../../../utils/format';
 import OnboardingChecklist from '../../../components/client/OnboardingChecklist';
 import {
-  Card, EmptyState, GhostBtn, Meter, PageActions, Pill, Row, SectionHead, Stat,
-} from '../../../components/v2/app/Blocks';
+  AttentionList, DetailCard, HeroTrendPanel, InsightCard, KpiSplit, RadialGauge,
+  SegmentBar, TallyMeter,
+  type AttnItem, type Dir, type KpiCell,
+} from '../../../components/dashboard/OverviewBlocks';
 
-/* Vue d'ensemble client, registre produit V2 « instrument ».
-   Le h1 est rendu par AppShell: cette page n'en dessine aucun. */
+/* Vue d'ensemble client, mise en page « frameless » reprise du dashboard V1
+   (blocs partagés de components/dashboard/OverviewBlocks, filets à la place des
+   cartes). Les appels API, états et guards sont ceux de la V2.
+   Le h1 est rendu par AppShell: la salutation est un en-tête de contenu. */
 
-const NB = ' ';
+const NB = ' ';
 
 interface OverviewClient {
   planType?: string;
@@ -55,9 +59,9 @@ interface CallRow {
   outcome?: string | null;
 }
 
-type Tone = 'neutral' | 'ok' | 'warn' | 'bad' | 'info';
+type OutcomeTone = 'neutral' | 'ok' | 'warn' | 'bad' | 'info';
 
-const OUTCOMES: Record<string, { label: string; tone: Tone }> = {
+const OUTCOMES: Record<string, { label: string; tone: OutcomeTone }> = {
   lead_captured: { label: 'Lead', tone: 'ok' },
   booking_made: { label: 'Rendez-vous', tone: 'ok' },
   transferred: { label: 'Transféré', tone: 'info' },
@@ -67,6 +71,15 @@ const OUTCOMES: Record<string, { label: string; tone: Tone }> = {
   missed: { label: 'Manqué', tone: 'bad' },
   technical_issue: { label: 'Incident', tone: 'bad' },
   spam: { label: 'Spam', tone: 'neutral' },
+};
+
+/* Pastilles d'issue d'appel, mêmes teintes que la liste d'activité V1 */
+const OUTCOME_PILL: Record<OutcomeTone, string> = {
+  ok: 'bg-emerald-400/10 text-emerald-400',
+  warn: 'bg-amber-400/10 text-amber-400',
+  bad: 'bg-red-400/10 text-red-400',
+  info: 'bg-white/[0.08] text-white/60',
+  neutral: 'bg-white/[0.05] text-white/40',
 };
 
 function greeting(name: string): string {
@@ -93,26 +106,13 @@ function callMoment(call: CallRow): string {
   return `${when} · ${dur}`;
 }
 
-/* Barre hairline (pas de recharts dans le registre produit pour une simple tendance) */
-function TrendBar({ label, value, max, color }: { label: string; value: number; max: number; color?: string }) {
-  const ratio = max > 0 ? Math.min(1, value / max) : 0;
-  return (
-    <div className="flex items-center gap-3">
-      <span className="w-[92px] shrink-0 text-[11.5px] text-q2-fog">{label}</span>
-      <span className="flex-1 h-[3px] rounded-full bg-q2-obsidian overflow-hidden">
-        <span
-          className="block h-full rounded-full"
-          style={{ width: `${ratio * 100}%`, background: color ?? 'var(--q2-indigo)' }}
-        />
-      </span>
-      <span className="w-12 shrink-0 text-right text-[12.5px] text-q2-mist tabular-nums">{fr(value)}</span>
-    </div>
-  );
+function Bone({ className = '' }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-white/[0.06] ${className}`} />;
 }
 
-function Bone({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-q2-obsidian ${className}`} />;
-}
+/* Bouton de filtre de période, purement visuel comme en V1 */
+const filterBtn =
+  'inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-[13px] font-medium bg-q2-obsidian border border-q2-graphite-d transition-colors duration-150 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50';
 
 export default function ClientOverview() {
   const { user, checkAuth } = useAuthStore();
@@ -167,8 +167,8 @@ export default function ClientOverview() {
   const isPaused = c.subscriptionStatus === 'paused';
 
   const callsMonth = data?.calls?.thisMonth ?? 0;
-  const callsWeek = data?.calls?.thisWeek ?? 0;
   const callsToday = data?.calls?.today ?? 0;
+  const callsYesterday = data?.calls?.yesterday ?? 0;
   const leadsMonth = data?.leads?.thisMonth ?? 0;
   const bookingsMonth = data?.bookings?.thisMonth ?? 0;
   const bookingsUpcoming = data?.bookings?.upcoming ?? 0;
@@ -181,6 +181,14 @@ export default function ClientOverview() {
   const positiveRate = sentTotal > 0 ? Math.round((positive / sentTotal) * 100) : 0;
   const convRate = callsMonth > 0 ? Math.round((leadsMonth / callsMonth) * 100) : 0;
 
+  const callsTodayPct = callsYesterday > 0
+    ? Math.abs(Math.round(((callsToday - callsYesterday) / callsYesterday) * 100))
+    : 0;
+  const callsTodayDir: Dir = callsToday > callsYesterday
+    ? 'up'
+    : callsToday < callsYesterday ? 'down' : 'flat';
+
+  /* Facturation à la minute: la jauge suit les minutes incluses, pas les appels */
   const quotaUsed = data?.minutes?.used ?? 0;
   const quotaTotal = c.monthlyMinutesQuota ?? data?.minutes?.quota ?? 0;
   const quotaPct = data?.minutes?.percent
@@ -190,12 +198,22 @@ export default function ClientOverview() {
     ? `${c.planType.charAt(0).toUpperCase()}${c.planType.slice(1)}`
     : 'Non défini';
 
-  const attn: { icon: typeof AlertCircle; label: string; hint?: string; to: string; tone: Tone }[] = [];
+  const kpis: KpiCell[] = [
+    { label: 'Taux de conversion', value: `${convRate}${NB}%` },
+    {
+      label: 'Appels traités',
+      value: fr(callsMonth),
+      delta: callsTodayPct > 0 ? { pct: callsTodayPct, dir: callsTodayDir } : undefined,
+      deltaSuffix: 'vs hier',
+    },
+    { label: 'Score sentiment', value: sentTotal > 0 ? `${positiveRate}${NB}%` : 'Sans donnée' },
+  ];
+
+  const attn: AttnItem[] = [];
   if (!c.transferNumber) {
     attn.push({
       icon: AlertCircle,
       label: 'Numéro de transfert manquant',
-      hint: 'Les urgences ne peuvent pas être transférées',
       to: '/dashboard/receptionist#transfer',
       tone: 'bad',
     });
@@ -204,7 +222,6 @@ export default function ClientOverview() {
     attn.push({
       icon: PhoneForwarded,
       label: "Renvoi d'appel à configurer",
-      hint: 'iPhone et Android, guide pas à pas',
       to: '/dashboard/setup/call-forwarding',
       tone: 'warn',
     });
@@ -215,11 +232,26 @@ export default function ClientOverview() {
       label: `Essai${NB}: ${daysUntil(c.trialEndDate)} jours restants`,
       to: '/dashboard/billing',
       tone: 'warn',
+      count: daysUntil(c.trialEndDate),
     });
   }
   if (isPaused) {
     attn.push({ icon: Pause, label: 'Abonnement en pause', to: '/dashboard/billing', tone: 'bad' });
   }
+
+  const insightText = sentTotal > 0
+    ? (
+      <>
+        Sentiment positif sur <strong className="font-semibold">{positiveRate}{NB}%</strong> des appels
+        analysés, avec un taux de conversion de <strong className="font-semibold">{convRate}{NB}%</strong> ce mois
+        {bookingsMonth > 0 ? `, et ${fr(bookingsMonth)} rendez-vous pris` : ''}.
+      </>
+    )
+    : (
+      <>
+        Connectez votre ligne pour générer des analyses automatiques de vos appels et de leur sentiment.
+      </>
+    );
 
   const onboardingClient = {
     hasPhone: !!(c.transferNumber || c.vapiPhoneNumber),
@@ -243,13 +275,21 @@ export default function ClientOverview() {
         {paymentPending && (
           <p className="text-[13px] text-q2-fog">Activation de votre compte en cours</p>
         )}
-        <Bone className="h-4 w-56" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {Array.from({ length: 4 }).map((_, i) => <Bone key={i} className="h-[104px] rounded-xl" />)}
+        <div className="space-y-2">
+          <Bone className="h-7 w-44" />
+          <Bone className="h-4 w-40" />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6">
-          <Bone className="h-[320px] rounded-xl" />
-          <Bone className="h-[320px] rounded-xl" />
+        <div className="grid grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Bone className="h-3 w-24" />
+              <Bone className="h-8 w-16" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5">
+          <Bone className="h-[320px] rounded-2xl" />
+          <Bone className="h-[320px] rounded-2xl" />
         </div>
       </div>
     );
@@ -257,14 +297,19 @@ export default function ClientOverview() {
 
   if (error) {
     return (
-      <Card>
-        <EmptyState
-          icon={AlertCircle}
-          title="Chargement impossible"
-          description={error}
-          action={<GhostBtn onClick={load}>Réessayer</GhostBtn>}
-        />
-      </Card>
+      <div className="flex flex-col items-center justify-center py-24 text-center px-6">
+        <span className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
+          <AlertCircle className="w-5 h-5 text-red-400" aria-hidden="true" />
+        </span>
+        <p className="text-[13px] text-q2-fog mb-4">{error}</p>
+        <button
+          type="button"
+          onClick={load}
+          className="px-5 py-2 rounded-xl text-[13px] font-medium bg-white/[0.06] text-white hover:bg-white/[0.1] transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+        >
+          Réessayer
+        </button>
+      </div>
     );
   }
 
@@ -273,258 +318,275 @@ export default function ClientOverview() {
   return (
     <div className="space-y-6">
       {paymentPending && (
-        <Card pad={false}>
-          <p className="px-4 py-3 text-[13px] text-q2-mist">Activation de votre compte en cours</p>
-        </Card>
+        <div className="rounded-2xl border border-q2-graphite-d bg-white/[0.03] px-5 py-3">
+          <p className="text-[13px] text-q2-mist">Activation de votre compte en cours</p>
+        </div>
       )}
 
-      <PageActions
-        subtitle={
-          <>
+      {/* En-tête de contenu: salutation, date, statut de service */}
+      <section className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[22px] font-semibold tracking-tight text-white/90">
             {greeting(user?.name || 'Utilisateur')}
-            <span className="text-q2-fog"> · </span>
+          </p>
+          <p className="text-[12.5px] mt-1 text-q2-fog">
             {today.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </>
-        }
-      >
-        <Pill tone={isActive ? 'ok' : isPaused ? 'warn' : 'bad'}>
-          {isActive ? 'Service actif' : isPaused ? 'En pause' : 'Inactif'}
-        </Pill>
-      </PageActions>
+            <span className="mx-1.5 text-white/20">·</span>
+            <span
+              style={{
+                color: isActive
+                  ? 'var(--q2p-ok)'
+                  : isPaused ? 'var(--q2p-warn)' : 'var(--q2p-bad)',
+              }}
+            >
+              {isActive ? 'Service actif' : isPaused ? 'En pause' : 'Inactif'}
+            </span>
+          </p>
+        </div>
+        <div className="hidden md:flex items-center gap-2 flex-wrap">
+          <button type="button" className={`${filterBtn} text-white/90`}>
+            30 derniers jours <ChevronDown size={14} className="text-q2-fog" aria-hidden="true" />
+          </button>
+          <button type="button" className={`${filterBtn} text-q2-fog`}>
+            <Calendar size={14} aria-hidden="true" />
+            {new Date(Date.now() - 29 * 864e5).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            {' – '}
+            {today.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </button>
+          <button type="button" className={`${filterBtn} text-q2-fog`}>
+            <SlidersHorizontal size={14} aria-hidden="true" /> Personnaliser
+          </button>
+        </div>
+      </section>
 
       {!onboardingDone && <OnboardingChecklist client={onboardingClient} />}
 
-      <section aria-label="Indicateurs du mois" className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat
-          label="Appels ce mois"
-          value={fr(callsMonth)}
-          hint={spamBlockedMonth > 0 ? `${fr(spamBlockedMonth)} spam bloqué` : `${fr(callsToday)} aujourd'hui`}
-          icon={Phone}
-          to="/dashboard/calls"
-        />
-        <Stat
-          label="Rendez-vous"
-          value={fr(bookingsMonth)}
-          hint={bookingsUpcoming > 0 ? `${fr(bookingsUpcoming)} à venir` : 'Aucun à venir'}
-          icon={CalendarCheck}
-        />
-        <Stat
-          label="Leads qualifiés"
-          value={fr(leadsMonth)}
-          hint={`${convRate}${NB}% des appels`}
-          icon={Users}
-          to="/dashboard/leads"
-        />
-        <Card pad={false} className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Gauge size={13} className="text-q2-fog" aria-hidden="true" />
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog">Minutes consommées</p>
-          </div>
-          <p className="text-[26px] font-light tracking-tight text-white tabular-nums leading-none">{fr(quotaUsed)}</p>
-          <div className="mt-3">
-            <Meter value={quotaUsed} max={quotaTotal} label="Minutes consommées ce mois" />
-          </div>
-          <p className="text-[11.5px] text-q2-fog mt-2 tabular-nums">
-            {quotaTotal > 0
-              ? `sur ${fr(quotaTotal)} minutes incluses (${quotaPct}${NB}%)`
-              : 'Aucun quota plafonné'}
-          </p>
-        </Card>
+      {/* Chiffres clés, sans cartes, filet sous la rangée */}
+      <section aria-label="Indicateurs clés" className="pb-6 border-b border-q2-graphite-d">
+        <KpiSplit items={kpis} />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
-        <div className="min-w-0 space-y-6">
-          <section aria-label="Appels récents">
-            <SectionHead
-              title="Activité récente"
-              action={
-                <Link
-                  to="/dashboard/calls"
-                  className="inline-flex items-center gap-1 text-[11.5px] font-medium text-q2-fog hover:text-q2-mist transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded"
-                >
-                  Tout voir <ChevronRight size={12} aria-hidden="true" />
-                </Link>
-              }
-            />
-            <Card pad={false}>
-              {calls.length === 0 ? (
-                <EmptyState
-                  icon={Phone}
-                  title="Aucun appel pour le moment"
-                  description="Les appels traités par votre réceptionniste apparaîtront ici."
-                />
-              ) : (
-                calls.map((call, i) => {
-                  const meta = call.outcome ? OUTCOMES[call.outcome] : undefined;
-                  return (
-                    <Row
-                      key={call.id || i}
-                      first={i === 0}
-                      icon={Phone}
-                      label={call.callerName || call.callerNumber || call.phoneNumber || 'Appel inconnu'}
-                      hint={callMoment(call)}
-                      right={
-                        call.outcome ? (
-                          <Pill tone={meta?.tone ?? 'neutral'}>{meta?.label ?? call.outcome}</Pill>
-                        ) : undefined
-                      }
-                      to={`/dashboard/calls?id=${call.id ?? ''}`}
-                    />
-                  );
-                })
-              )}
-            </Card>
-          </section>
+      {/* Colonne principale et rail droit, séparés par un filet vertical */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] xl:divide-x divide-q2-graphite-d">
+        <div className="min-w-0 divide-y divide-q2-graphite-d xl:pr-6">
+          <HeroTrendPanel
+            value={fr(callsMonth)}
+            label="Appels traités ce mois"
+            delta={callsTodayPct > 0 ? { pct: callsTodayPct, dir: callsTodayDir } : undefined}
+            deltaSuffix="sur 24 h"
+            series={[]}
+            unit="appels"
+          />
 
-          <section aria-label="Volume et sentiment">
-            <SectionHead
-              title="Volume des appels"
-              action={
-                <Link
-                  to="/dashboard/analytics"
-                  className="inline-flex items-center gap-1 text-[11.5px] font-medium text-q2-fog hover:text-q2-mist transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded"
-                >
-                  Analytique <ChevronRight size={12} aria-hidden="true" />
-                </Link>
-              }
-            />
-            <Card>
-              <div className="space-y-2.5">
-                <TrendBar label="Aujourd'hui" value={callsToday} max={callsMonth} />
-                <TrendBar label="Cette semaine" value={callsWeek} max={callsMonth} />
-                <TrendBar label="Ce mois" value={callsMonth} max={callsMonth} />
-              </div>
-              {sentTotal > 0 ? (
-                <div className="mt-5 pt-4 border-t border-q2-graphite-d">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog mb-3">
-                    Sentiment des appels analysés
-                  </p>
-                  <div className="space-y-2.5">
-                    <TrendBar label="Positif" value={positive} max={sentTotal} color="var(--q2p-ok)" />
-                    <TrendBar label="Neutre" value={neutral} max={sentTotal} color="var(--q2-lift)" />
-                    <TrendBar label="Négatif" value={negative} max={sentTotal} color="var(--q2p-bad)" />
-                  </div>
-                  <p className="text-[11.5px] text-q2-fog mt-3 q2-body-text">
-                    {`Sentiment positif sur ${positiveRate}${NB}% des appels analysés, avec un taux de conversion de ${convRate}${NB}% ce mois.`}
-                  </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-q2-graphite-d">
+            <div className="md:pr-6">
+              <InsightCard
+                kicker="Analyse IA"
+                icon={Sparkles}
+                action={{ label: "Voir l'analyse", to: '/dashboard/analytics' }}
+              >
+                {insightText}
+              </InsightCard>
+            </div>
+            <div className="md:pl-6">
+              <SegmentBar
+                title="Minutes consommées"
+                value={fr(quotaUsed)}
+                hint={quotaTotal > 0
+                  ? `sur ${fr(quotaTotal)} minutes incluses`
+                  : 'Aucun quota plafonné'}
+                segments={quotaTotal > 0
+                  ? [
+                      { label: 'Utilisé', pct: quotaPct, bright: true },
+                      { label: 'Restant', pct: 100 - quotaPct },
+                    ]
+                  : [{ label: 'Minutes', pct: 100, bright: true }]}
+                action={{ label: 'Gérer', to: '/dashboard/billing' }}
+              />
+            </div>
+          </div>
+
+          {/* Activité récente, sans cadre, lignes séparées par des filets */}
+          <section aria-label="Appels récents" className="py-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-q2-fog">
+                Activité récente
+              </h2>
+              <Link
+                to="/dashboard/calls"
+                className="text-[11.5px] font-medium text-q2-fog hover:text-q2-mist transition-colors duration-150 flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded"
+              >
+                Tout voir <ChevronRight size={12} aria-hidden="true" />
+              </Link>
+            </div>
+            <div className="-mx-2">
+              {calls.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-q2-fog">
+                  <Phone size={28} className="opacity-40 mb-3" aria-hidden="true" />
+                  <p className="text-[13px]">Aucun appel pour le moment</p>
                 </div>
               ) : (
-                <p className="text-[11.5px] text-q2-fog mt-4 pt-4 border-t border-q2-graphite-d q2-body-text">
-                  Connectez votre ligne pour générer des analyses automatiques de vos appels et de leur sentiment.
-                </p>
+                <ul>
+                  {calls.map((call, i) => {
+                    const meta = call.outcome ? OUTCOMES[call.outcome] : undefined;
+                    return (
+                      <li key={call.id || i}>
+                        <Link
+                          to={`/dashboard/calls?id=${call.id ?? ''}`}
+                          className="flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-white/[0.02] transition-colors duration-150 border-b border-q2-graphite-d last:border-b-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                        >
+                          <span className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0">
+                            <Phone size={13} className="text-q2-fog" aria-hidden="true" />
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[13px] font-medium text-white/90 truncate">
+                              {call.callerName || call.callerNumber || call.phoneNumber || 'Appel inconnu'}
+                            </p>
+                            <p className="text-[11px] text-q2-fog tabular-nums">{callMoment(call)}</p>
+                          </div>
+                          {call.outcome && (
+                            <span
+                              className={`text-[10.5px] font-medium px-2.5 py-0.5 rounded-full uppercase tracking-wide shrink-0 ${OUTCOME_PILL[meta?.tone ?? 'neutral']}`}
+                            >
+                              {meta?.label ?? call.outcome}
+                            </span>
+                          )}
+                          <ChevronRight
+                            size={13}
+                            aria-hidden="true"
+                            className="text-white/20 group-hover:text-white/50 transition-colors duration-150 shrink-0"
+                          />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
-            </Card>
+            </div>
           </section>
         </div>
 
-        <aside className="space-y-6">
-          <section aria-label="À traiter">
-            <SectionHead title="À traiter" />
-            <Card pad={false}>
-              {attn.length === 0 ? (
-                <p className="px-4 py-4 text-[12.5px] text-q2-fog">Tout est en ordre.</p>
-              ) : (
-                attn.map((item, i) => (
-                  <Row
-                    key={item.to + item.label}
-                    first={i === 0}
-                    icon={item.icon}
-                    label={item.label}
-                    hint={item.hint}
-                    to={item.to}
-                    danger={item.tone === 'bad'}
-                  />
-                ))
-              )}
-            </Card>
-          </section>
+        {/* Rail droit, plat, divisé par des filets */}
+        <div className="divide-y divide-q2-graphite-d border-t border-q2-graphite-d xl:border-t-0 xl:pl-6">
+          <RadialGauge
+            caption={quotaTotal > 0 ? 'Minutes ce mois' : 'Appels ce mois'}
+            value={quotaTotal > 0 ? fr(quotaUsed) : fr(callsMonth)}
+            fraction={quotaTotal > 0 ? quotaPct / 100 : Math.min(1, callsMonth / 200)}
+            legend={[
+              ...(quotaTotal > 0
+                ? [
+                    { label: 'Utilisé (min)', value: fr(quotaUsed), bright: true },
+                    { label: 'Inclus (min)', value: fr(quotaTotal) },
+                  ]
+                : [{ label: 'Ce mois', value: fr(callsMonth), bright: true }]),
+              ...(spamBlockedMonth > 0
+                ? [{ label: 'Spam bloqué', value: fr(spamBlockedMonth) }]
+                : []),
+            ]}
+            action={{ label: 'Voir les appels', to: '/dashboard/calls' }}
+          />
 
-          <section aria-label="Actions rapides">
-            <SectionHead title="Actions rapides" />
-            <Card pad={false}>
-              <Row
-                first
-                icon={PhoneForwarded}
-                label="Configurer le renvoi"
-                hint="iPhone et Android, guide pas à pas"
-                to="/dashboard/setup/call-forwarding"
-              />
-              <Row
-                icon={Bot}
-                label="Personnaliser l'IA"
-                hint="Voix, scripts, transferts"
-                to="/dashboard/receptionist"
-              />
-              <Row
-                icon={Settings}
-                label="Paramètres du compte"
-                hint="Profil, sécurité, notifications"
-                to="/dashboard/account"
-              />
-            </Card>
-          </section>
+          <TallyMeter
+            caption="Leads qualifiés ce mois"
+            value={fr(leadsMonth)}
+            pct={convRate}
+            legend={[
+              { label: 'Qualifiés', value: '', bright: true },
+              { label: 'Total appels', value: '' },
+            ]}
+          />
 
-          <section aria-label="Abonnement">
-            <SectionHead title="Abonnement" />
-            <Card pad={false}>
-              <dl className="p-4 space-y-2.5">
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-[12px] text-q2-fog">Plan</dt>
-                  <dd className="text-[12.5px] text-q2-mist">{planLabel}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-[12px] text-q2-fog">Statut</dt>
-                  <dd>
-                    <Pill tone={isActive ? 'ok' : isPaused ? 'warn' : 'bad'}>
-                      {isActive ? (c.isTrial ? 'Essai' : 'Actif') : isPaused ? 'En pause' : 'Inactif'}
-                    </Pill>
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-[12px] text-q2-fog">Numéro IA</dt>
-                  <dd className="text-[12.5px] text-q2-mist tabular-nums">{c.vapiPhoneNumber || 'Non attribué'}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-[12px] text-q2-fog">{c.isTrial ? "Fin d'essai" : 'Renouvellement'}</dt>
-                  <dd className="text-[12.5px] text-q2-mist tabular-nums">
-                    {c.trialEndDate
-                      ? new Date(c.trialEndDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
-                      : 'Non planifié'}
-                  </dd>
-                </div>
-                {Array.isArray(c.planFeatures) && c.planFeatures.length > 0 && (
-                  <div className="pt-3 mt-3 border-t border-q2-graphite-d">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog mb-2">
-                      Ce que votre plan inclut
-                    </p>
-                    <ul className="space-y-1.5">
-                      {c.planFeatures.map((f) => (
-                        <li key={f} className="flex items-start gap-2 text-[12.5px] text-q2-mist">
-                          <Check size={13} className="mt-[2px] shrink-0 text-q2-lift" aria-hidden="true" />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </dl>
-              <Row label="Gérer la facturation" to="/dashboard/billing" />
-            </Card>
-          </section>
+          <DetailCard
+            title="Abonnement"
+            rows={[
+              { k: 'Plan', v: planLabel },
+              {
+                k: 'Statut',
+                v: isActive ? (c.isTrial ? 'Essai' : 'Actif') : isPaused ? 'En pause' : 'Inactif',
+                status: isActive ? 'ok' : isPaused ? 'warn' : 'bad',
+              },
+              { k: 'Numéro IA', v: c.vapiPhoneNumber || 'Non attribué' },
+              { k: 'Rendez-vous', v: bookingsUpcoming > 0 ? `${fr(bookingsMonth)} (${fr(bookingsUpcoming)} à venir)` : fr(bookingsMonth) },
+              {
+                k: c.isTrial ? "Fin d'essai" : 'Renouvellement',
+                v: c.trialEndDate
+                  ? new Date(c.trialEndDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : 'Non planifié',
+              },
+            ]}
+            action={{ label: 'Gérer la facturation', to: '/dashboard/billing' }}
+          />
 
-          <Card pad={false}>
-            <Row
-              first
-              icon={Headphones}
-              label="Contacter le support"
-              hint="Notre équipe répond en moins d'une heure."
-              to="/dashboard/support"
-            />
-          </Card>
-        </aside>
+          {Array.isArray(c.planFeatures) && c.planFeatures.length > 0 && (
+            <div className="py-5">
+              <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-q2-fog mb-3">
+                Ce que votre plan inclut
+              </h3>
+              <ul className="space-y-2">
+                {c.planFeatures.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-[13px] text-q2-mist">
+                    <ChevronRight size={13} className="mt-[3px] shrink-0 text-q2-lift" aria-hidden="true" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <AttentionList title="À traiter" items={attn} empty="Tout est en ordre." />
+        </div>
       </div>
 
-      <p className="text-[10.5px] text-q2-fog text-center tabular-nums">
+      {/* Actions rapides, tuiles sans cadre séparées par des filets verticaux */}
+      <section aria-label="Actions rapides" className="pt-6 border-t border-q2-graphite-d">
+        <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-q2-fog mb-3">
+          Actions rapides
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-q2-graphite-d">
+          {[
+            { icon: PhoneForwarded, label: 'Configurer le renvoi', desc: 'iPhone et Android, guide pas à pas', to: '/dashboard/setup/call-forwarding' },
+            { icon: Bot, label: "Personnaliser l'IA", desc: 'Voix, scripts, transferts', to: '/dashboard/receptionist' },
+            { icon: Settings, label: 'Paramètres du compte', desc: 'Profil, sécurité, notifications', to: '/dashboard/account' },
+          ].map(({ icon: Icon, label, desc, to }) => (
+            <Link
+              key={label}
+              to={to}
+              className="group py-4 sm:px-6 first:sm:pl-0 last:sm:pr-0 rounded-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+            >
+              <div className="flex items-center gap-3 mb-2.5">
+                <span className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
+                  <Icon size={14} className="text-q2-mist" aria-hidden="true" />
+                </span>
+                <ChevronRight
+                  size={13}
+                  aria-hidden="true"
+                  className="ml-auto text-white/20 group-hover:text-white/60 transition-colors duration-150"
+                />
+              </div>
+              <p className="text-[13px] font-semibold text-white/90">{label}</p>
+              <p className="text-[11.5px] mt-0.5 text-q2-fog">{desc}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Bande support */}
+      <section className="pt-5 border-t border-q2-graphite-d">
+        <div className="flex items-center gap-3">
+          <Headphones size={15} className="text-q2-fog shrink-0" aria-hidden="true" />
+          <p className="text-[12.5px] text-q2-mist flex-1 q2-body-text">
+            Besoin d'aide ? Notre équipe répond en moins d'une heure.
+          </p>
+          <Link
+            to="/dashboard/support"
+            className="text-[12px] font-medium text-q2-mist hover:text-white whitespace-nowrap transition-colors duration-150 flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded"
+          >
+            Contacter le support <ChevronRight size={12} aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
+
+      <p className="text-center text-[10.5px] text-q2-fog pb-2 tabular-nums">
         {`Qwillio · Plan ${planLabel} · Mis à jour ${today.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}
       </p>
     </div>

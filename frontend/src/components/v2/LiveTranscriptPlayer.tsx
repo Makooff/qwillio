@@ -7,7 +7,7 @@ import { CalendarCheck, CalendarPlus, MessageSquare } from 'lucide-react';
    lue par le Player, muette, sans controles, en boucle. Charge en lazy
    depuis Home pour garder le chunk marketing leger. Registre drenched:
    carbon, hairlines, un seul indigo. Les donnees dialoguees sont celles
-   du mock produit (LiveAnswerMock), aucune metrique inventee. */
+   d'un appel type du runtime, aucune metrique inventee. */
 
 const FPS = 30;
 const DURATION = 14 * FPS;

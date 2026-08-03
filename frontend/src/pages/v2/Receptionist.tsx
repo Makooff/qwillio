@@ -12,8 +12,7 @@ import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../..
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
-import ChatConfigMock from '../../components/v2/ChatConfigMock';
-import PhoneDashboard3D from '../../components/v2/PhoneDashboard3D';
+import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import VoiceCard, { type VoiceData } from '../../components/landing/VoiceCard';
 
 /* Réceptionniste V2 « Papier & Signal » (DA/v2-direction.md).
@@ -398,7 +397,7 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={2}>
-            <PhoneDashboard3D isFr={isFr} className="lg:max-w-[440px] mx-auto" />
+            <HeroPhone3D isFr={isFr} />
           </RevealV2>
         </Container>
       </Section>
@@ -522,7 +521,24 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            <ChatConfigMock isFr={isFr} />
+            {/* Vraie capture du chat de configuration du dashboard */}
+            <figure>
+              <div className="rounded-xl overflow-hidden border border-q2-graphite-d bg-q2-carbon">
+                <img
+                  src="/screens/chat-config.webp"
+                  alt={
+                    isFr
+                      ? 'Le chat de configuration du dashboard Qwillio : un horaire modifié en une phrase'
+                      : 'The Qwillio dashboard configuration chat: an opening hour changed in one sentence'
+                  }
+                  loading="lazy"
+                  className="w-full h-auto block"
+                />
+              </div>
+              <figcaption className="mt-3 px-1 text-[12.5px] text-q2-fog q2-body-text">
+                {isFr ? 'Capture du dashboard, compte de démonstration.' : 'Dashboard screenshot, demo account.'}
+              </figcaption>
+            </figure>
           </RevealV2>
         </Container>
       </Section>

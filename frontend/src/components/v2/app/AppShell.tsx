@@ -46,10 +46,14 @@ function NavLink({ item, active, onNavigate }: { item: ShellNavItem; active: boo
       to={item.to}
       onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
-      className={`flex items-center gap-3 h-9 px-3 rounded-lg text-[13px] transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 ${
+      className={`relative flex items-center gap-3 h-9 px-3 rounded-lg text-[13px] transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 ${
         active ? 'bg-q2-obsidian text-white' : 'text-q2-fog hover:text-q2-mist hover:bg-q2-obsidian/50'
       }`}
     >
+      {/* Barre d'accent verticale de l'item actif, reprise du shell V1 */}
+      {active && (
+        <span aria-hidden="true" className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full bg-q2-indigo" />
+      )}
       <item.icon size={15} aria-hidden="true" className={active ? 'text-q2-lift' : ''} />
       {item.label}
     </Link>
@@ -173,9 +177,9 @@ export default function AppShell({
   );
 
   return (
-    <div className="min-h-dvh bg-q2-void text-q2-mist font-outfit flex">
-      {/* Sidebar desktop */}
-      <aside className="hidden md:block w-[220px] shrink-0 bg-q2-carbon border-r border-q2-graphite-d sticky top-0 h-dvh">
+    <div className="min-h-dvh bg-q2-carbon text-q2-mist font-outfit flex">
+      {/* Sidebar desktop, plate, sans bordure: la séparation vient du panneau */}
+      <aside className="hidden md:block w-[220px] shrink-0 bg-q2-carbon sticky top-0 h-dvh">
         {sidebar}
       </aside>
 
@@ -197,8 +201,9 @@ export default function AppShell({
         </div>
       )}
 
-      {/* Colonne principale */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      {/* Colonne principale: panneau incrusté, arrondi 45px en haut-gauche
+          avec liseré (le motif signature du shell V1) */}
+      <div className="flex-1 min-w-0 flex flex-col bg-q2-void overflow-hidden md:rounded-tl-[45px] md:border-l-2 md:border-t-2 border-white/[0.08]">
         <header className="sticky top-0 z-40 bg-q2-void/95 backdrop-blur-sm border-b border-q2-graphite-d">
           <div className="flex items-center gap-3 h-14 px-4 md:px-8">
             <button

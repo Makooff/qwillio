@@ -11,7 +11,7 @@ import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../..
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
-import PhoneDashboard3D from '../../components/v2/PhoneDashboard3D';
+import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import ReceptionistGallery from '../../components/v2/ReceptionistGallery';
 import ScreenParade from '../../components/v2/ScreenParade';
 
@@ -160,8 +160,10 @@ export default function Home() {
             </div>
           </RevealV2>
 
+          {/* Le téléphone V1 de l'utilisateur: grand, film produit 4 scènes,
+              tilt souris pleine page, Dynamic Island animée */}
           <RevealV2 index={2}>
-            <PhoneDashboard3D isFr={isFr} className="lg:max-w-[440px] mx-auto" />
+            <HeroPhone3D isFr={isFr} />
           </RevealV2>
         </Container>
       </Section>
