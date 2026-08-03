@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Card, EmptyState, GhostBtn, Meter, PageActions, Pill, PrimaryBtn, Textarea,
+  Card, EmptyState, GhostBtn, PageActions, Pill, PrimaryBtn, Textarea,
 } from '../../../components/v2/app/Blocks';
 
 /* Détail contact CRM, registre produit V2 (DA/v2-direction.md, addendum).
