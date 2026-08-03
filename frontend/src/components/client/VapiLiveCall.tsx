@@ -57,6 +57,19 @@ export default function VapiLiveCall({
     setError(null);
     setState('connecting');
     try {
+      // Ask for the microphone FIRST, before any await. Browsers only grant it
+      // from inside a user gesture, and a network round-trip closes that window
+      // — the SDK would then fail with an error object carrying no message,
+      // which surfaces as a bare "Erreur appel" nobody can act on.
+      // The tracks are stopped straight away: the grant persists for the page,
+      // and holding an open stream would leave the recording indicator on.
+      try {
+        const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
+        probe.getTracks().forEach(t => t.stop());
+      } catch {
+        throw new Error('mic_denied');
+      }
+
       const { data } = await api.get(endpoint);
       if (!data?.publicKey) throw new Error('missing key');
 
@@ -78,7 +91,11 @@ export default function VapiLiveCall({
       vapi.on('speech-end', () => setSpeaking(false));
       vapi.on('volume-level', (l: number) => setLevel(l));
       vapi.on('error', (e: any) => {
-        setError(e?.message || 'Erreur appel');
+        // Vapi routinely emits errors with no message. Saying "Erreur appel"
+        // and nothing else sends the user looking in the wrong place.
+        setError(e?.message || e?.error?.message || (isFr
+          ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
+          : 'The call dropped. Check the microphone and connection, then try again.'));
         setState('idle');
         if (timerRef.current) clearInterval(timerRef.current);
       });
@@ -86,9 +103,13 @@ export default function VapiLiveCall({
       await vapi.start(data.assistant);
     } catch (e: any) {
       setError(
-        e?.response?.status === 503
-          ? (isFr ? 'Appel live non configuré (clé Vapi).' : 'Live call not configured (Vapi key).')
-          : (e?.message || (isFr ? 'Impossible de démarrer l’appel.' : 'Could not start the call.')),
+        e?.message === 'mic_denied'
+          ? (isFr
+            ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
+            : 'Microphone denied. Allow the microphone for this site, then start again.')
+          : e?.response?.status === 503
+            ? (isFr ? 'Appel live non configuré (clé Vapi).' : 'Live call not configured (Vapi key).')
+            : (e?.message || (isFr ? 'Impossible de démarrer l’appel.' : 'Could not start the call.')),
       );
       setState('idle');
     }

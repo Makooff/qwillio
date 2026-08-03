@@ -538,7 +538,22 @@ export default function AssistantChat({
             )}
             <button
               type="button"
-              onClick={() => setLiveCall(v => !v)}
+              onClick={async () => {
+                if (liveCall) { setLiveCall(false); return; }
+                // The browser only grants the microphone from inside a user
+                // gesture. The panel dials on its own once open, and by then we
+                // are past the gesture — so the permission is asked for here,
+                // synchronously on the click, while it can still be granted.
+                // Tracks are released immediately; the grant outlives them.
+                try {
+                  const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
+                  probe.getTracks().forEach(t => t.stop());
+                } catch {
+                  // Opening anyway: the panel asks again and reports the refusal
+                  // in words, which beats a button that silently does nothing.
+                }
+                setLiveCall(true);
+              }}
               aria-pressed={liveCall}
               className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-[12.5px] font-medium transition-colors active:scale-[0.97]"
               style={liveCall
