@@ -57,11 +57,11 @@ const AgentLocalSeo = lazy(() => import('./pages/v2/app/AgentLocalSeo'));
 const AgentLeadGen = lazy(() => import('./pages/v2/app/AgentLeadGen'));
 const AgentAnalytics = lazy(() => import('./pages/v2/app/AgentAnalytics'));
 // CRM pages (lazy loaded)
-const CrmContacts = lazy(() => import('./pages/client/CrmContacts'));
-const CrmDeals = lazy(() => import('./pages/client/CrmDeals'));
-const CrmActivities = lazy(() => import('./pages/client/CrmActivities'));
-const CrmContactDetail = lazy(() => import('./pages/client/CrmContactDetail'));
-const Integrations = lazy(() => import('./pages/client/Integrations'));
+const CrmContacts = lazy(() => import('./pages/v2/app/CrmContacts'));
+const CrmDeals = lazy(() => import('./pages/v2/app/CrmDeals'));
+const CrmActivities = lazy(() => import('./pages/v2/app/CrmActivities'));
+const CrmContactDetail = lazy(() => import('./pages/v2/app/CrmContactDetail'));
+const Integrations = lazy(() => import('./pages/v2/app/Integrations'));
 // Legal pages (lazy loaded)
 const Privacy = lazy(() => import('./pages/v2/legal/Privacy'));
 const Terms = lazy(() => import('./pages/v2/legal/Terms'));
