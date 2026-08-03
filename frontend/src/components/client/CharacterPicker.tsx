@@ -101,35 +101,47 @@ export default function CharacterPicker({
         // reload on iOS; without it the element keeps the finished silent clip.
         audio.load();
         setNotice(null);
-        await audio.play();
 
-        // play() resolving is not proof of sound: it resolves on iOS even when
-        // nothing decodes. Only a `playing` event is. Without this watchdog the
-        // failure mode is a button that never comes back, which reads as a dead
-        // app rather than a problem worth reporting.
-        await new Promise<void>((resolve, reject) => {
+        // play() resolving is not proof that anything decoded: on iOS it can
+        // resolve on an element that never starts. A `playing` event is the
+        // proof. Without this watchdog the failure mode is a button that never
+        // comes back, which reads as a dead app rather than a problem worth
+        // reporting.
+        //
+        // The listeners go on BEFORE play(), not after: `playing` fires as soon
+        // as playback starts, so attaching afterwards can miss it entirely and
+        // report silence over audio the user can hear. `progressed` closes the
+        // same gap for the case where the event fired before either handler.
+        const started = new Promise<void>((resolve, reject) => {
           const ok = () => { cleanup(); resolve(); };
           const ko = () => { cleanup(); reject(new Error('audio_silent')); };
-          const timer = window.setTimeout(ko, 2500);
+          const timer = window.setTimeout(() => {
+            const progressed = !audio.paused && audio.currentTime > 0;
+            if (progressed) ok(); else ko();
+          }, 3000);
           function cleanup() {
             window.clearTimeout(timer);
             audio.removeEventListener('playing', ok);
+            audio.removeEventListener('timeupdate', ok);
             audio.removeEventListener('error', ko);
           }
           audio.addEventListener('playing', ok);
+          audio.addEventListener('timeupdate', ok);
           audio.addEventListener('error', ko);
         });
+
+        await audio.play();
+        await started;
       } catch (err) {
         if (audioRef.current !== audio) return;
 
-        // The clip arrived but the device produced no sound. Almost always the
-        // iPhone's ring/silent switch, which mutes <audio> without telling the
-        // page anything. Naming it is the difference between a five-second fix
-        // and concluding the product is broken.
+        // The clip arrived but never started playing. The page cannot tell why:
+        // iOS reports nothing when the device is muted. So the message names
+        // what to check rather than asserting a cause we do not know.
         if ((err as Error)?.message === 'audio_silent') {
           setNotice(isFr
-            ? "Aucun son n'est sorti. Sur iPhone, l'interrupteur latéral coupe le son des pages web même quand le volume est au maximum."
-            : 'No sound came out. On iPhone, the side switch mutes web audio even at full volume.');
+            ? "La lecture n'a pas démarré. Sur iPhone, le mode silencieux coupe le son des pages web même à plein volume : vérifiez l'interrupteur latéral (ou le bouton Action), ou essayez avec des écouteurs."
+            : 'Playback did not start. On iPhone, silent mode mutes web audio even at full volume: check the side switch (or Action button), or try with headphones.');
           setPlaying(null);
           return;
         }
