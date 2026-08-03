@@ -66,14 +66,17 @@ export function Display({
   as: Tag = 'h1',
   onDark = false,
   className = '',
+  ...rest
 }: {
   children: ReactNode;
   as?: 'h1' | 'h2';
   onDark?: boolean;
   className?: string;
-}) {
+} & HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <Tag className={`q2-display ${onDark ? 'text-white' : 'text-q2-ink'} ${className}`}>{children}</Tag>
+    <Tag {...rest} className={`q2-display ${onDark ? 'text-white' : 'text-q2-ink'} ${className}`}>
+      {children}
+    </Tag>
   );
 }
 
