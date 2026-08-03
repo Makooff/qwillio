@@ -16,103 +16,95 @@ type QA = { q: string; a: string };
 
 const FAQ_FR: QA[] = [
   {
-    q: "Qu'est-ce que Qwillio ?",
-    a: "Qwillio est une réceptionniste IA qui décroche vos appels 24 heures sur 24, prend les rendez-vous dans votre agenda, transfère les urgences vers votre ligne et vous envoie un résumé de chaque appel. Elle parle français et anglais nativement.",
+    q: 'Est-ce qu’il prend vraiment le rendez-vous pendant l’appel ?',
+    a: "Oui, si votre agenda Google est connecté. Dès qu'un jour est prononcé, il interroge vos disponibilités sans attendre la fin de la phrase, propose les créneaux réellement libres, puis écrit la réservation confirmée. Deux appels simultanés ne peuvent pas repartir avec le même créneau : un créneau retenu sur un appel disparaît des propositions faites à l'autre. Sans agenda connecté, il note la demande et vos coordonnées, et c'est vous qui rappelez.",
   },
   {
-    q: 'Mes clients vont-ils se rendre compte que c\'est une IA ?',
-    a: "Certains le remarqueront, d'autres non : la qualité vocale a beaucoup progressé, et la voix hésite, s'excuse et reformule comme un humain, avec un accent naturel belge, français ou québécois. Le mieux est de juger vous-même en écoutant la démo. Et posez-vous la vraie question : ce que votre client préfère, ce n'est pas humain contre IA, c'est quelqu'un qui décroche plutôt qu'un répondeur.",
+    q: 'Que se passe-t-il quand il me passe l’appel ?',
+    a: "Il ne vous met pas devant un inconnu. Avant de faire le pont, il vous résume à l'oral qui est en ligne et pourquoi, puis vous envoie le même brief par SMS : le nom, le numéro, le motif, et l'état d'esprit de l'appelant. Si le transfert saute en route, vous avez déjà le numéro pour rappeler.",
   },
   {
-    q: 'Combien de temps pour installer Qwillio ?',
-    a: "Environ 15 minutes. Vous gardez votre numéro existant et le transférez vers Qwillio. Nous configurons votre agent avec votre activité, vos horaires et vos règles. Le soir même, l'IA prend vos appels.",
+    q: 'Reconnaît-il un client qui rappelle ?',
+    a: "Oui. Un appelant déjà connu est salué par son prénom, et ce qui a été dit lors du précédent appel est disponible dès le décrochage, tout comme son rendez-vous à venir. Il ne redemande pas ce qu'il sait déjà. Cette mémoire se limite à ce qui sert l'appel suivant, reste hébergée dans l'Union européenne, et peut être effacée sur demande, conformément au RGPD.",
   },
   {
-    q: 'Combien ça coûte ?',
-    a: "Le plan Solo est à 99 € par mois : 250 minutes incluses, soit environ 100 appels, en français, hébergement UE. Au-delà, les minutes supplémentaires sont à 0,45 €. Les plans supérieurs ajoutent du volume et des fonctions avancées : Starter 249 € (750 min), Pro 599 € (2 000 min), Enterprise 1 290 € (5 000 min). 7 jours d’essai gratuit, résiliable au mois, remise de 20 % en annuel.",
+    q: 'Puis-je importer mes tarifs depuis une photo ?',
+    a: "Oui. Photographiez votre carte, votre menu ou votre grille de prix, et il en lit les lignes. Rien n'est ajouté sans que vous ayez relu et confirmé la liste extraite. Aucune image n'est conservée : la photo est traitée puis abandonnée, seules les lignes que vous validez sont enregistrées.",
   },
   {
-    q: 'Est-ce que Qwillio prend les rendez-vous dans mon agenda ?',
-    a: "Oui. Qwillio se connecte à Google Calendar, Cal.com et Calendly. Elle vérifie les disponibilités, réserve le créneau, envoie une confirmation par SMS au client et un récapitulatif par email au patron.",
+    q: 'Puis-je l’essayer avant de brancher ma ligne ?',
+    a: "Oui. Depuis votre tableau de bord, vous l'appelez directement dans le navigateur et vous lui parlez comme le ferait un client. Vous corrigez ce qui vous gêne, vous relancez un appel test, et vous ne transférez votre vrai numéro que lorsque le résultat vous convient.",
   },
   {
-    q: 'Mes données sont-elles protégées ?',
-    a: "Oui. Hébergement européen, conforme au RGPD, aucune donnée personnelle transférée hors de l'Espace économique européen. Le consentement à l'enregistrement est demandé au décrochage.",
+    q: 'Combien de voix, et puis-je changer le ton ?',
+    a: "Sept voix : cinq françaises, deux anglaises. Vous les écoutez avant de choisir. Le ton se règle séparément de la voix, parmi six réglages (chaleureux, professionnel, décontracté, énergique, haut de gamme, rassurant), et vous pouvez le changer à tout moment.",
   },
   {
-    q: 'Que se passe-t-il en cas d\'urgence ?',
-    a: "Vous définissez des règles : les vraies urgences sont transférées immédiatement vers votre portable ou une ligne dédiée. Les demandes commerciales, techniques ou le spam sont routés séparément.",
+    q: 'Parle-t-il d’autres langues que le français et l’anglais ?',
+    a: "Non. Français et anglais, et c'est un choix. Les deux fonctionnent sur le même appel, sans menu à choisir : si l'appelant passe à l'anglais en cours de conversation, il suit. Nous préférons deux langues bien tenues qu'une liste longue mal tenue.",
   },
   {
-    q: 'Qwillio bloque-t-elle les appels spam ?',
-    a: "Oui, sur tous les plans. Le bouclier anti-spam détecte les robocalls, les appels silencieux et les numéros qui inondent la ligne, les écarte de vos rendez-vous et de vos leads, et ne les décompte pas de vos minutes incluses.",
+    q: 'Les appels spam comptent-ils dans mes minutes ?',
+    a: "Non, sur tous les plans. Le bouclier anti-spam détecte les robocalls, les appels silencieux et les numéros qui inondent la ligne, les écarte de vos rendez-vous et de vos leads, et ne les décompte pas de vos minutes incluses.",
   },
   {
-    q: "Après le 11 août, aurai-je encore le droit d'utiliser Qwillio ?",
-    a: "Oui, et la loi joue même en votre faveur. Ce qui devient interdit en France, c'est le démarchage téléphonique vers les particuliers sans accord préalable. Qwillio répond aux appels entrants, ceux que vos clients vous passent : c'est l'inverse du démarchage, et ce n'est pas concerné. Concrètement, comme beaucoup d'entreprises perdent le téléphone sortant, l'appel entrant devient leur principal canal, et en rater un coûte plus cher qu'avant.",
+    q: 'Et s’il ne sait pas répondre ?',
+    a: "Il transfère vers vous selon les règles que vous avez posées, ou il prend les coordonnées de l'appelant et propose un rappel. Même en cas de pépin technique de notre côté, l'appelant n'entend jamais un message d'erreur : il repart avec la promesse d'un rappel et vous récupérez la fiche. Chaque semaine, vous recevez la liste de ce qui a coincé, par exemple les questions revenues sans réponse dans votre FAQ.",
   },
   {
-    q: 'Pourquoi payer 99 € quand certains sont à 49 € ?',
-    a: "Parce que ce n'est pas le même produit. À 49 €, vous avez le décrochage en français. Qwillio parle français et anglais sur le même appel sans que l'appelant ait à choisir, héberge vos données dans l'Union européenne, et inclut le CRM et la prise de rendez-vous. Si le français seul vous suffit et que vous n'avez pas besoin de CRM, prenez l'offre la moins chère, franchement. Le bon repère n'est pas un autre logiciel : c'est ce que coûte une secrétaire à mi-temps.",
+    q: 'Combien ça coûte ?',
+    a: "Le plan Solo est à 99 € par mois : 250 minutes incluses, soit environ 100 appels, hébergement UE. Au-delà, les minutes supplémentaires sont à 0,45 €. Les plans supérieurs ajoutent du volume et des fonctions avancées : Starter 249 € (750 min), Pro 599 € (2 000 min), Enterprise 1 290 € (5 000 min). Les rappels de rendez-vous 24 h avant sont inclus à partir du plan Pro. 7 jours d'essai gratuit, résiliable au mois, remise de 20 % en annuel.",
   },
   {
-    q: 'Puis-je résilier facilement ?',
-    a: "Oui. Tous les plans sont sans engagement, résiliables au mois en un clic depuis votre tableau de bord.",
-  },
-  {
-    q: 'Qwillio remplace-t-elle une secrétaire humaine ?',
-    a: "Pour le décrochage, la prise de rendez-vous et la qualification des appels, oui, à une fraction du coût et sans absence ni turnover. Pour les tâches qui demandent un jugement humain, elle vous transfère l'appel. C'est un renfort qui ne dort jamais, pas un remplacement de votre équipe.",
+    q: 'Puis-je résilier facilement ?',
+    a: "Oui. Tous les plans sont sans engagement, résiliables au mois en un clic depuis votre tableau de bord. Aucun frais d'installation, aucune période minimale.",
   },
 ];
 
 const FAQ_EN: QA[] = [
   {
-    q: 'What is Qwillio?',
-    a: 'Qwillio is an AI receptionist that answers your calls 24/7, books appointments into your calendar, transfers emergencies to your line and sends you a summary of every call. It speaks French and English natively.',
+    q: 'Does it really book the appointment during the call?',
+    a: "Yes, if your Google calendar is connected. As soon as a day is named it checks your availability without waiting for the end of the sentence, offers slots that are genuinely free, then writes the booking confirmed. Two simultaneous calls cannot walk away with the same slot: a slot held on one call disappears from what is offered on the other. Without a connected calendar it takes the request and the caller's details, and you call back.",
   },
   {
-    q: 'Will my customers notice it is an AI?',
-    a: 'Some will notice, some will not: voice quality has come a long way, and the voice hesitates, apologises and rephrases like a human, with a natural Belgian, French or Quebec accent. The best way to judge is to listen to the demo yourself. And ask the real question: what your customer is comparing is not human versus AI, it is someone picking up versus voicemail.',
+    q: 'What happens when it hands the call over to me?',
+    a: "You are not dropped in front of a stranger. Before bridging the call it tells you out loud who is on the line and why, then sends you the same brief by text: name, number, reason, and the caller's state of mind. If the transfer drops on the way, you already have the number to call back.",
   },
   {
-    q: 'How long does it take to set up?',
-    a: 'About 15 minutes. You keep your existing number and forward it to Qwillio. We configure your agent with your business, hours and rules. It answers your calls the same evening.',
+    q: 'Does it recognise a customer calling back?',
+    a: "Yes. A known caller is greeted by first name, and what was said on the previous call is available from pickup, along with their upcoming appointment. It does not ask again for what it already knows. That memory is limited to what serves the next call, stays hosted in the European Union, and can be erased on request, in line with GDPR.",
+  },
+  {
+    q: 'Can I import my rates from a photo?',
+    a: 'Yes. Photograph your rate card, menu or price list and it reads the lines off it. Nothing is added until you have reviewed and confirmed the extracted list. No image is kept: the photo is processed then dropped, and only the lines you approve are stored.',
+  },
+  {
+    q: 'Can I try it before pointing my line at it?',
+    a: 'Yes. From your dashboard you call it straight in the browser and talk to it the way a customer would. You fix what bothers you, run another test call, and only forward your real number once you are happy with the result.',
+  },
+  {
+    q: 'How many voices, and can I change the tone?',
+    a: 'Seven voices: five French, two English. You listen before you pick. Tone is set separately from the voice, across six settings (warm, professional, casual, energetic, premium, reassuring), and you can change it at any time.',
+  },
+  {
+    q: 'Does it speak languages other than French and English?',
+    a: 'No. French and English, and that is a choice. Both work on the same call, with no menu to pick from: if the caller switches to English mid-conversation, it follows. We would rather hold two languages properly than a long list badly.',
+  },
+  {
+    q: 'Do spam calls count against my minutes?',
+    a: 'No, on every plan. The spam shield detects robocalls, silent calls and numbers flooding the line, keeps them out of your appointments and leads, and does not count them against your included minutes.',
+  },
+  {
+    q: 'What if it does not know the answer?',
+    a: 'It transfers to you according to the rules you set, or it takes the caller’s details and offers a callback. Even on a technical hiccup on our side, the caller never hears an error message: they leave with the promise of a callback and you get the record. Every week you receive a list of what went wrong, for example questions that kept coming back with no answer in your FAQ.',
   },
   {
     q: 'How much does it cost?',
-    a: 'The Solo plan is €99 per month: 250 minutes included, roughly 100 calls, French, EU hosting. Beyond that, extra minutes are €0.45. Higher plans add volume and advanced features: Starter €249 (750 min), Pro €599 (2,000 min), Enterprise €1,290 (5,000 min). 7-day free trial, cancel monthly, 20% off annually.',
-  },
-  {
-    q: 'Does Qwillio book appointments into my calendar?',
-    a: 'Yes. Qwillio connects to Google Calendar, Cal.com and Calendly. It checks availability, books the slot, texts a confirmation to the customer and emails a recap to the owner.',
-  },
-  {
-    q: 'Is my data protected?',
-    a: 'Yes. European hosting, GDPR compliant, no personal data transferred outside the European Economic Area. Consent to recording is asked at pickup.',
-  },
-  {
-    q: 'What happens in an emergency?',
-    a: 'You define rules: real emergencies are transferred immediately to your mobile or a dedicated line. Sales enquiries, technical requests and spam are routed separately.',
-  },
-  {
-    q: 'Does Qwillio block spam calls?',
-    a: 'Yes, on every plan. The spam shield detects robocalls, silent calls and numbers flooding the line, keeps them out of your appointments and leads, and does not count them against your call quota.',
-  },
-  {
-    q: 'After 11 August, will I still be allowed to use Qwillio?',
-    a: 'Yes, and the law actually works in your favour. What becomes illegal in France is unsolicited outbound calling to consumers without prior consent. Qwillio answers inbound calls, the ones your customers make to you: that is the opposite of cold calling, and it is not covered. In practice, as many businesses lose outbound calling, the inbound call becomes their main channel, so missing one costs more than it used to.',
-  },
-  {
-    q: 'Why pay €99 when some charge €49?',
-    a: 'Because it is not the same product. At €49 you get answering in French. Qwillio speaks French and English on the same call without the caller picking an option, hosts your data in the European Union, and includes the CRM and calendar booking. If French-only covers you and you do not need a CRM, take the cheaper option, honestly. The right yardstick is not another piece of software: it is what a part-time receptionist costs.',
+    a: 'The Solo plan is €99 per month: 250 minutes included, roughly 100 calls, EU hosting. Beyond that, extra minutes are €0.45. Higher plans add volume and advanced features: Starter €249 (750 min), Pro €599 (2,000 min), Enterprise €1,290 (5,000 min). Appointment reminders 24 h ahead are included from the Pro plan up. 7-day free trial, cancel monthly, 20% off annually.',
   },
   {
     q: 'Can I cancel easily?',
-    a: 'Yes. All plans are commitment-free, cancellable monthly in one click from your dashboard.',
-  },
-  {
-    q: 'Does Qwillio replace a human receptionist?',
-    a: 'For answering, booking and qualifying calls, yes, at a fraction of the cost with no absences or turnover. For tasks that need human judgement, it transfers the call to you. It is backup that never sleeps, not a replacement for your team.',
+    a: 'Yes. All plans are commitment-free, cancellable monthly in one click from your dashboard. No setup fee, no minimum term.',
   },
 ];
 

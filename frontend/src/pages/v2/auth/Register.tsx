@@ -17,7 +17,7 @@ import AuthShell, {
   AUTH_SUBMIT,
 } from './AuthShell';
 
-/* Création de compte V2 — registre clair (DA/v2-direction.md).
+/* Création de compte V2, registre clair (DA/v2-direction.md).
    Logique portée de pages/Register.tsx: authStore.register, écran d'activation,
    renvoi d'email, Google. La capture du parrainage reste globale. */
 

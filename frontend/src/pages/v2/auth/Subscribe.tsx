@@ -69,7 +69,7 @@ export default function Subscribe() {
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 409) {
-        // Already subscribed — the guard will route on the refreshed user.
+        // Already subscribed, the guard will route on the refreshed user.
         navigate('/onboard');
         return;
       }

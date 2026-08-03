@@ -8,7 +8,7 @@ import api from '../../../services/api';
 import { PillLink } from '../../../components/v2/Button';
 import AuthShell, { AUTH_ICON_PLATE } from './AuthShell';
 
-/* Confirmation d'email V2 — registre clair. Logique portée de
+/* Confirmation d'email V2, registre clair. Logique portée de
    pages/ConfirmEmail.tsx: jeton URL, JWT stocké, redirection sur le compte
    rafraîchi (jamais sur la réponse de confirmation). */
 

@@ -11,7 +11,7 @@ import AuthShell, {
   AUTH_SUBMIT,
 } from './AuthShell';
 
-/* Mot de passe oublié V2 — registre clair. Logique portée de
+/* Mot de passe oublié V2, registre clair. Logique portée de
    pages/ForgotPassword.tsx: réponse volontairement générique, jamais
    d'indication sur l'existence du compte. */
 
@@ -29,7 +29,7 @@ export default function ForgotPassword() {
       const language = navigator.language?.startsWith('en') ? 'en' : 'fr';
       await api.post('/auth/forgot-password', { email: email.trim(), language });
     } catch {
-      // Intentionally ignore — the endpoint always responds generically so we
+      // Intentionally ignore, the endpoint always responds generically so we
       // never reveal whether the address exists.
     } finally {
       setLoading(false);

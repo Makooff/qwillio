@@ -11,7 +11,7 @@ import AuthShell, {
   AUTH_SUBMIT,
 } from './AuthShell';
 
-/* Réinitialisation V2 — registre clair. Logique portée de
+/* Réinitialisation V2, registre clair. Logique portée de
    pages/ResetPassword.tsx: jeton lu dans l'URL, redirection après 2,2 s. */
 
 export default function ResetPassword() {

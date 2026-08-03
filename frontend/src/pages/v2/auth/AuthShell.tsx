@@ -6,7 +6,7 @@ import QwillioLogo from '../../../components/QwillioLogo';
 import { useAuthStore } from '../../../stores/authStore';
 import RevealV2 from '../../../components/v2/RevealV2';
 
-/* Accès clients V2 « Papier & Signal » — registre CLAIR (DA/v2-direction.md).
+/* Accès clients V2 « Papier & Signal », registre CLAIR (DA/v2-direction.md).
    L'auth est la porte entre le site crème et l'app sombre: canvas plein cadre,
    carte définie par sa hairline, CTA pilule encre, jamais de mauve sur un bouton. */
 
@@ -110,7 +110,7 @@ function GoogleButton({ mode, disabled, onError }: GoogleProps) {
   );
 }
 
-// Only renders if VITE_GOOGLE_CLIENT_ID is configured — prevents broken OAuth errors
+// Only renders if VITE_GOOGLE_CLIENT_ID is configured, prevents broken OAuth errors
 export function GoogleAuthV2(props: GoogleProps) {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   if (!clientId) return null;

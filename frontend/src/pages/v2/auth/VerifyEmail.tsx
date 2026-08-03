@@ -29,7 +29,7 @@ export default function VerifyEmail() {
       await api.post('/auth/resend-confirmation');
       setResendOk(true);
       setTimeout(() => setResendOk(false), 5000);
-    } catch { /* silent — the user can just try again */ } finally {
+    } catch { /* silent, the user can just try again */ } finally {
       setResending(false);
     }
   };

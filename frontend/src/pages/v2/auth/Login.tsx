@@ -13,7 +13,7 @@ import AuthShell, {
   AUTH_SUBMIT,
 } from './AuthShell';
 
-/* Connexion V2 — registre clair (DA/v2-direction.md).
+/* Connexion V2, registre clair (DA/v2-direction.md).
    La logique (authStore.login, Google, redirections par rôle) est celle de
    pages/Login.tsx, portée sans modification. */
 
