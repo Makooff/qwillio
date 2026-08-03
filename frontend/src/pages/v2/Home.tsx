@@ -184,64 +184,80 @@ export default function Home() {
         </Container>
       </Section>
 
-      {/* ── PENDANT L'APPEL, le cœur du récit, 4 actes en rangées éditoriales ── */}
+      {/* ── PENDANT L'APPEL, scène au scroll: titre épinglé, actes qui s'allument ── */}
       <Section variant="band" hairline aria-labelledby="during-heading">
         <Container>
-          <RevealV2 className="mb-14 max-w-[640px]">
-            <Eyebrow tone="indigo" className="mb-4">
-              {isFr ? 'Pendant l’appel' : 'During the call'}
-            </Eyebrow>
-            <H2 id="during-heading">
-              {isFr ? (
-                <>
-                  Tout se passe <SerifWord>en ligne.</SerifWord>
-                </>
-              ) : (
-                <>
-                  Everything happens <SerifWord>on the line.</SerifWord>
-                </>
-              )}
-            </H2>
-            <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
-              {isFr
-                ? 'Pas de « je transmets le message ». Pendant que votre client parle, elle agit.'
-                : 'No “I will pass on the message”. While your customer talks, she acts.'}
-            </p>
-          </RevealV2>
-
-          <ol className="border-t border-q2-plate" role="list">
+          <PinnedScene
+            aside={
+              <RevealV2 className="max-w-[420px]">
+                <Eyebrow tone="indigo" className="mb-4">
+                  {isFr ? 'Pendant l’appel' : 'During the call'}
+                </Eyebrow>
+                <H2 id="during-heading">
+                  <TextReveal>
+                    {isFr ? (
+                      <>
+                        Tout se passe <SerifWord>en ligne.</SerifWord>
+                      </>
+                    ) : (
+                      <>
+                        Everything happens <SerifWord>on the line.</SerifWord>
+                      </>
+                    )}
+                  </TextReveal>
+                </H2>
+                <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
+                  {isFr
+                    ? 'Pas de « je transmets le message ». Pendant que votre client parle, elle agit.'
+                    : 'No “I will pass on the message”. While your customer talks, she acts.'}
+                </p>
+              </RevealV2>
+            }
+          >
             {during.map((item, i) => (
-              <RevealV2 key={item.title} index={i} as="li" className="border-b border-q2-plate">
-                <div className="grid md:grid-cols-[56px_1fr_1.6fr] gap-5 md:gap-10 py-9 items-start">
+              <div
+                key={item.title}
+                className="grid md:grid-cols-[56px_1fr] gap-5 md:gap-8 py-9 items-start"
+              >
+                <div className="flex md:flex-col items-center md:items-start gap-3">
                   <span className="w-11 h-11 rounded-full bg-q2-canvas border border-q2-plate flex items-center justify-center">
                     <item.icon size={17} className="text-q2-indigo" aria-hidden="true" />
                   </span>
-                  <h3 className="q2-h3 text-q2-ink">{item.title}</h3>
-                  <p className="text-q2-body text-[15px] leading-relaxed max-w-[520px] q2-body-text md:pt-1">{item.desc}</p>
+                  <span className="q2-eyebrow text-q2-faint tabular-nums">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
                 </div>
-              </RevealV2>
+                <div>
+                  <h3 className="q2-h3 text-q2-ink mb-2">{item.title}</h3>
+                  <p className="text-q2-body text-[15px] leading-relaxed max-w-[560px] q2-body-text">
+                    {item.desc}
+                  </p>
+                </div>
+              </div>
             ))}
-          </ol>
+          </PinnedScene>
         </Container>
       </Section>
 
       {/* ── VOS RÉCEPTIONNISTES, galerie de presets ── */}
-      <Section aria-labelledby="team-heading">
+      <Section aria-labelledby="team-heading" className="relative">
         <Container>
           <RevealV2 className="mb-12 max-w-[640px]">
             <Eyebrow tone="indigo" className="mb-4">
               {isFr ? 'Vos réceptionnistes' : 'Your receptionists'}
             </Eyebrow>
             <H2 id="team-heading">
-              {isFr ? (
-                <>
-                  Choisissez qui <SerifWord>décroche.</SerifWord>
-                </>
-              ) : (
-                <>
-                  Choose who <SerifWord>answers.</SerifWord>
-                </>
-              )}
+              <TextReveal>
+                {isFr ? (
+                  <>
+                    Choisissez qui <SerifWord>décroche.</SerifWord>
+                  </>
+                ) : (
+                  <>
+                    Choose who <SerifWord>answers.</SerifWord>
+                  </>
+                )}
+              </TextReveal>
             </H2>
             <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
               {isFr
@@ -250,9 +266,16 @@ export default function Home() {
             </p>
           </RevealV2>
           <RevealV2 index={1}>
-            <ReceptionistGallery isFr={isFr} />
+            {/* La rangée de visages respire: chaque avatar avance à sa vitesse.
+                La galerie n'est pas modifiée, la parallaxe passe par la
+                propriété CSS `translate`, qui se compose avec ses transforms. */}
+            <ParallaxGroup selector='[role="tablist"] > button' amount={12}>
+              <ReceptionistGallery isFr={isFr} />
+            </ParallaxGroup>
           </RevealV2>
         </Container>
+        {/* Fondu vers la section drenched qui suit, plutôt qu'une coupure nette */}
+        <ScrollVeil />
       </Section>
 
       {/* ── UNE VRAIE CONVERSATION, drenched indigo + transcript vivant ── */}
