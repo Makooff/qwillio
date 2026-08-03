@@ -600,10 +600,14 @@ export default function AssistantChat({
       </div>
       )}
 
-      {/* Live voice call with the real receptionist, driven from the header. */}
+      {/* Live voice call with the real receptionist, driven from the header.
+          The header button IS the intent to call, so it dials straight away —
+          landing on a card that says "call" after pressing a phone icon asks
+          the same question twice. Hanging up closes the panel for the same
+          reason: the call is over, there is nothing left to show. */}
       {liveCall && (
         <div className="px-3 pt-3">
-          <VapiLiveCall isFr={isFr} />
+          <VapiLiveCall isFr={isFr} autoStart onEnded={() => setLiveCall(false)} />
         </div>
       )}
 
