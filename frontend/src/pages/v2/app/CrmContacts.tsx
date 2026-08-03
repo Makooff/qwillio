@@ -264,14 +264,14 @@ export default function CrmContacts() {
             type="number" placeholder="Min" min={1} max={10} value={minScore}
             aria-label="Minimum lead score"
             onChange={(e) => { setMinScore(e.target.value); setPage(1); }}
-            className="w-[74px] !py-[7px] tabular-nums"
+            className="!w-[74px] !py-[7px] tabular-nums"
           />
           <span className="text-q2-fog text-[12px]">-</span>
           <Input
             type="number" placeholder="Max" min={1} max={10} value={maxScore}
             aria-label="Maximum lead score"
             onChange={(e) => { setMaxScore(e.target.value); setPage(1); }}
-            className="w-[74px] !py-[7px] tabular-nums"
+            className="!w-[74px] !py-[7px] tabular-nums"
           />
         </div>
       </div>
