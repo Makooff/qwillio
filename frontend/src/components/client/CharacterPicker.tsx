@@ -29,6 +29,16 @@ function speak(text: string, lang: 'fr' | 'en', onEnd: () => void) {
   window.speechSynthesis.speak(u);
 }
 
+/** iOS Safari plays a data: URL reliably where a blob: URL decodes to silence. */
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error || new Error('read_failed'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 const ACCENT_LABEL: Record<string, string> = { FR: 'FR', BE: 'Belgique', US: 'EN' };
 
 export default function CharacterPicker({
@@ -75,14 +85,55 @@ export default function CharacterPicker({
         const { data } = await api.get(`/my-dashboard/characters/${c.id}/preview`, { responseType: 'blob' });
         await unlocked;
         if (audioRef.current !== audio) return; // superseded by another click
-        const url = URL.createObjectURL(data as Blob);
-        audio.onended = () => { setPlaying(null); URL.revokeObjectURL(url); };
-        audio.onerror = () => { setPlaying(null); URL.revokeObjectURL(url); };
+
+        // A `blob:` URL on an <audio> element silently decodes to nothing on
+        // iOS Safari: play() resolves, no error fires, and the button stays
+        // stuck on stop forever. A data: URL is the one form it always plays.
+        // The explicit mime type matters too — the blob axios builds does not
+        // always carry one, and iOS refuses a source it cannot type.
+        const url = await blobToDataUrl(new Blob([data as Blob], { type: 'audio/mpeg' }));
+        if (audioRef.current !== audio) return;
+
+        audio.onended = () => setPlaying(null);
+        audio.onerror = () => setPlaying(null);
         audio.src = url;
+        // Swapping src on an element that already played needs an explicit
+        // reload on iOS; without it the element keeps the finished silent clip.
+        audio.load();
         setNotice(null);
         await audio.play();
+
+        // play() resolving is not proof of sound: it resolves on iOS even when
+        // nothing decodes. Only a `playing` event is. Without this watchdog the
+        // failure mode is a button that never comes back, which reads as a dead
+        // app rather than a problem worth reporting.
+        await new Promise<void>((resolve, reject) => {
+          const ok = () => { cleanup(); resolve(); };
+          const ko = () => { cleanup(); reject(new Error('audio_silent')); };
+          const timer = window.setTimeout(ko, 2500);
+          function cleanup() {
+            window.clearTimeout(timer);
+            audio.removeEventListener('playing', ok);
+            audio.removeEventListener('error', ko);
+          }
+          audio.addEventListener('playing', ok);
+          audio.addEventListener('error', ko);
+        });
       } catch (err) {
         if (audioRef.current !== audio) return;
+
+        // The clip arrived but the device produced no sound. Almost always the
+        // iPhone's ring/silent switch, which mutes <audio> without telling the
+        // page anything. Naming it is the difference between a five-second fix
+        // and concluding the product is broken.
+        if ((err as Error)?.message === 'audio_silent') {
+          setNotice(isFr
+            ? "Aucun son n'est sorti. Sur iPhone, l'interrupteur latéral coupe le son des pages web même quand le volume est au maximum."
+            : 'No sound came out. On iPhone, the side switch mutes web audio even at full volume.');
+          setPlaying(null);
+          return;
+        }
+
         const res = (err as { response?: { status?: number; data?: unknown } }).response;
         // The request asks for a Blob, so an error body arrives as one too and
         // has to be decoded before the upstream status is readable.
