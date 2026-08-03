@@ -14,6 +14,13 @@ import CardV2 from '../../components/v2/CardV2';
 import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import ReceptionistGallery from '../../components/v2/ReceptionistGallery';
 import ScreenParade from '../../components/v2/ScreenParade';
+import TextReveal from '../../components/v2/motion/TextReveal';
+import Magnetic from '../../components/v2/motion/Magnetic';
+import Counter from '../../components/v2/motion/Counter';
+import GlowCard from '../../components/v2/motion/GlowCard';
+import PinnedScene from '../../components/v2/motion/PinnedScene';
+import ScrollVeil from '../../components/v2/motion/ScrollVeil';
+import ParallaxGroup from '../../components/v2/motion/ParallaxGroup';
 
 /* Le Player Remotion vit dans son propre chunk: la section drenched le
    charge en lazy, le reste de la page ne paie rien. */
