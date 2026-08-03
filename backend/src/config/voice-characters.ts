@@ -49,7 +49,13 @@ const EL = {
   frMarie:   'BilXxxvRLrA8YTteM2sl',
   frCamille: 'd3AXX0BlgJHYFCuH9X88',
   frLea:     'CYR0HqHoZAUmoZsLWPob',
-  frLucas:   'NEjemlRxgWmL5ZGJetsB',
+  // Was 'NEjemlRxgWmL5ZGJetsB' until 2026-08-03: a paste error, that id is a
+  // FEMALE voice. It shipped on Lucas, the only male French character, so a
+  // client picking "posé et professionnel" heard a woman. Nothing in the code
+  // could catch it — only listening did. Antoni is a documented male premade
+  // voice and multilingual_v2 speaks French with it; set VAPI_VOICE_ID_LUCAS
+  // to a native French male voice once one has been auditioned.
+  frLucas:   'ErXwobaYiN019PkySvjV',
   frSofia:   'FvmvwvObRqIHojkEGh5N',
 } as const;
 
@@ -179,6 +185,18 @@ export const CHARACTERS: Record<string, Character> = {
 export const DEFAULT_CHARACTER_FR = 'marie';
 export const DEFAULT_CHARACTER_EN = 'ashley';
 
+/**
+ * The client's own cloned voice. Not in CHARACTERS: it has no fixed voiceId,
+ * it is per-tenant and lives in the client's config.
+ */
+export const CUSTOM_CHARACTER_ID = 'custom';
+
+export interface CustomVoice {
+  voiceId: string;
+  name: string;
+  createdAt: string;
+}
+
 export function isValidCharacterId(id: string | null | undefined): boolean {
   return !!id && Object.prototype.hasOwnProperty.call(CHARACTERS, id);
 }
@@ -193,8 +211,26 @@ export function resolveCharacter(params: {
   characterId?: string | null;
   isFrench: boolean;
   country?: string | null;
+  customVoice?: CustomVoice | null;
 }): Character {
-  const { characterId, isFrench, country } = params;
+  const { characterId, isFrench, country, customVoice } = params;
+
+  // A cloned voice replaces the voiceId only. Tuning (stability, style) and the
+  // persona keep coming from the language default: those describe how the agent
+  // behaves, which the clone says nothing about.
+  if (characterId === CUSTOM_CHARACTER_ID && customVoice?.voiceId) {
+    const base = CHARACTERS[isFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
+    return {
+      ...base,
+      id: CUSTOM_CHARACTER_ID,
+      name: customVoice.name || base.name,
+      voiceId: customVoice.voiceId,
+      // A cloned voice carries the speaker's own timbre; pushing style on top
+      // of it is what makes clones sound like impressions of themselves.
+      style: 0,
+      similarityBoost: 0.85,
+    };
+  }
 
   if (isValidCharacterId(characterId)) {
     return CHARACTERS[characterId as string];

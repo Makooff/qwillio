@@ -90,6 +90,7 @@ class RealtimeOrchestratorService {
       characterId: profile.characterId,
       isFrench: profile.language === 'fr',
       country: profile.country,
+      customVoice: profile.customVoice,
     });
 
     // Custom-LLM moves the turn loop into this backend, which is what lets the

@@ -240,6 +240,7 @@ export class AssistantChatService {
         characterId: cfg.characterId,
         isFrench: isFr,
         country: client.country,
+        customVoice: cfg.customVoice,
       });
       const items = Array.isArray(cfg.items) ? cfg.items.slice(0, 40)
         .map((i: any) => `- ${i.name}${i.price ? ` (${i.price})` : ''}`).join('\n') : '';

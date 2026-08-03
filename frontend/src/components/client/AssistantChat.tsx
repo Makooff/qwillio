@@ -538,7 +538,22 @@ export default function AssistantChat({
             )}
             <button
               type="button"
-              onClick={() => setLiveCall(v => !v)}
+              onClick={async () => {
+                if (liveCall) { setLiveCall(false); return; }
+                // The browser only grants the microphone from inside a user
+                // gesture. The panel dials on its own once open, and by then we
+                // are past the gesture — so the permission is asked for here,
+                // synchronously on the click, while it can still be granted.
+                // Tracks are released immediately; the grant outlives them.
+                try {
+                  const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
+                  probe.getTracks().forEach(t => t.stop());
+                } catch {
+                  // Opening anyway: the panel asks again and reports the refusal
+                  // in words, which beats a button that silently does nothing.
+                }
+                setLiveCall(true);
+              }}
               aria-pressed={liveCall}
               className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-[12.5px] font-medium transition-colors active:scale-[0.97]"
               style={liveCall
@@ -600,10 +615,14 @@ export default function AssistantChat({
       </div>
       )}
 
-      {/* Live voice call with the real receptionist, driven from the header. */}
+      {/* Live voice call with the real receptionist, driven from the header.
+          The header button IS the intent to call, so it dials straight away —
+          landing on a card that says "call" after pressing a phone icon asks
+          the same question twice. Hanging up closes the panel for the same
+          reason: the call is over, there is nothing left to show. */}
       {liveCall && (
         <div className="px-3 pt-3">
-          <VapiLiveCall isFr={isFr} />
+          <VapiLiveCall isFr={isFr} autoStart onEnded={() => setLiveCall(false)} />
         </div>
       )}
 
