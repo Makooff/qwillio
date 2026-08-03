@@ -51,7 +51,7 @@ export default function Receptionist() {
       ? 'Réceptionniste IA qui prend le rendez-vous pendant l’appel'
       : 'AI receptionist that books during the call',
     description: isFr
-      ? 'Qwillio répond, lit votre agenda Google en direct, inscrit le rendez-vous pendant l’appel, vous résume l’appelant avant de vous le passer et reconnaît vos habitués. Français et anglais, hébergement UE, à partir de 99 € par mois.'
+      ? 'Qwillio répond, lit votre agenda Google en direct, inscrit le rendez-vous pendant l’appel, vous résume l’appelant avant de vous le passer et reconnaît vos habitués. Français et anglais, hébergement UE, à partir de 99 € par mois.'
       : 'Qwillio answers, reads your Google calendar live, books the appointment during the call, briefs you before handing the caller over and recognises your regulars. French and English, EU hosting, from €99 a month.',
     canonical: 'https://qwillio.com/receptionist',
   });
