@@ -25,8 +25,10 @@ const SIZES = {
   lg: 'text-[15px] font-medium px-7 py-3.5',
 };
 
+/* `q2-pill` (v2.css) porte le survol (translateY -1px, 120ms), le press
+   composé avec le scale(0.97) global, et le glissement de la flèche finale. */
 const BASE =
-  'inline-flex items-center justify-center gap-2 rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 min-h-[44px]';
+  'q2-pill inline-flex items-center justify-center gap-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 min-h-[44px]';
 
 interface CommonProps {
   variant?: Variant;
