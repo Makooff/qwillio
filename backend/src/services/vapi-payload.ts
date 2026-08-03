@@ -1,4 +1,5 @@
 import { env } from '../config/env';
+import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
 
 /**
  * Builds the Vapi `createCall` payload. Extracted from vapi.service so the
@@ -29,29 +30,13 @@ export function buildVapiCallPayload(input: VapiCallPayloadInput) {
         model: env.VAPI_MODEL,
         messages: [{ role: 'system', content: input.systemPrompt }],
       },
-      voice: {
-        provider: '11labs',
-        voiceId: input.voiceId,
-        model: 'eleven_flash_v2_5', // <300ms latency → sounds more human (quick reactions)
-        stability: 0.22,        // low = natural pitch variation, not flat
-        similarityBoost: 0.65,  // less "clean" = more human
-        style: 0.70,            // high expressiveness
-        useSpeakerBoost: true,
-        optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
-        speed: 1.0, // natural pace
-        fallbackPlan: {
-          voices: [
-            { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1 || '9BWtsMINqrJLrRacOk9x' }, // Aria
-            { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2 || 'EXAVITQu4vr4xnSDxMaL' }, // Sarah
-          ],
-        },
-      },
+      // Same real-time tuning as the inbound receptionist: outbound prospects
+      // hang up on a robot just as fast as inbound callers do. The legacy
+      // `responseDelaySeconds` / `interruptionsEnabled` / `numWordsToInterrupt`
+      // trio is superseded by the start- and stop-speaking plans.
+      voice: buildVoice({ voiceId: input.voiceId }),
       backgroundSound: 'office',
-      silenceTimeoutSeconds: env.VAPI_SILENCE_TIMEOUT,
-      maxDurationSeconds: env.VAPI_MAX_DURATION,
-      responseDelaySeconds: 0.2, // faster turn-taking
-      interruptionsEnabled: true,
-      numWordsToInterruptAssistant: Math.round(env.VAPI_INTERRUPTION_THRESHOLD / 50),
+      ...buildRealtimePlans('en'),
       firstMessage: input.firstMessage,
       // ── Voicemail / answering machine detection ──
       // Twilio AMD detects machine on pickup (up to 6s). If detected, VAPI

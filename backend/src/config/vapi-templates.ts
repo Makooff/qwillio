@@ -2,6 +2,7 @@
  * Vapi Assistant Templates — 12 total (6 niches × 2 languages)
  * Ashley = English ONLY | Marie = French ONLY
  */
+import { buildRealtimePlans } from '../services/voice/speech-plans';
 
 export const VOICE_CONFIG = {
   ashley: {
@@ -208,12 +209,13 @@ export function buildVapiAssistantConfig(params: {
       temperature: 0.75,
       maxTokens: 200,
     },
-    silenceTimeoutSeconds: 15,
+    // Turn-taking comes from the shared real-time plans, not the legacy
+    // responseDelaySeconds / numWordsToInterruptAssistant pair: a template that
+    // ships different barge-in behaviour than the live assistants is a template
+    // that gets demoed and then feels wrong in production.
+    ...buildRealtimePlans(params.language),
     maxDurationSeconds: params.maxDuration || 480,
-    responseDelaySeconds: 0.1,
-    numWordsToInterruptAssistant: 1,
     backgroundSound: voice.backgroundSound,
-    backgroundDenoisingEnabled: true,
     firstMessage: params.language === 'fr'
       ? (getMarieFormality(params.niche) === 'tu'
         ? `${params.businessName}, salut ! C'est Marie, comment je peux t'aider ?`

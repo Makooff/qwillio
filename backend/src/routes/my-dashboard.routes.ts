@@ -67,6 +67,9 @@ router.post('/assistant/transcribe', transcribeLimiter, (req, res) => clientDash
 // Vision costs more per call than transcription, hence the tighter budget.
 router.post('/assistant/extract-items', extractLimiter, (req, res) => clientDashboardController.assistantExtractItems(req, res));
 router.get('/voice/live-config', (req, res) => clientDashboardController.voiceLiveConfig(req, res));
+// Talk to the SETUP assistant by voice. Same voice quality as the receptionist,
+// different job: it changes settings, it does not answer callers.
+router.get('/assistant/voice-config', (req, res) => clientDashboardController.assistantVoiceConfig(req, res));
 router.post('/pause', (req, res) => clientDashboardController.pauseAgent(req, res));
 router.post('/resume', (req, res) => clientDashboardController.resumeAgent(req, res));
 

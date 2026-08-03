@@ -54,6 +54,72 @@ export const env = {
   VAPI_MAX_DURATION: parseInt(process.env.VAPI_MAX_DURATION || '480', 10), // 8 minutes
   VAPI_WEBHOOK_SECRET: process.env.VAPI_WEBHOOK_SECRET || '',
 
+  // ─── Real-time voice pipeline ───
+  // Every value below trades perceived latency against a failure mode; the
+  // defaults are the tuned pair. See services/voice/speech-plans.ts.
+  /** Silence (ms) after speech before a final transcript is flushed. */
+  VOICE_ENDPOINTING_MS: parseInt(process.env.VOICE_ENDPOINTING_MS || '150', 10),
+  /** Hard floor before the assistant may answer. Smart endpointing sits on top. */
+  VOICE_START_WAIT_SECONDS: parseFloat(process.env.VOICE_START_WAIT_SECONDS || '0.12'),
+  /** Voiced audio required from the caller before outbound audio is cut. */
+  VOICE_BARGE_IN_VOICE_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_VOICE_SECONDS || '0.2'),
+  /** Silence the assistant keeps after being interrupted, before speaking again. */
+  VOICE_BARGE_IN_BACKOFF_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_BACKOFF_SECONDS || '1.0'),
+  /** First TTS chunk size — smaller means audio starts sooner. */
+  VOICE_TTS_MIN_CHUNK_CHARS: parseInt(process.env.VOICE_TTS_MIN_CHUNK_CHARS || '20', 10),
+  /** Cap on a single assistant turn; long completions are long silences. */
+  VOICE_MAX_COMPLETION_TOKENS: parseInt(process.env.VOICE_MAX_COMPLETION_TOKENS || '120', 10),
+  /** How long a running tool waits before the second filler line fires. */
+  VOICE_FILLER_DELAY_MS: parseInt(process.env.VOICE_FILLER_DELAY_MS || '1200', 10),
+  /** Vapi-side tool timeout; the runtime's own ceiling is lower. */
+  VOICE_TOOL_TIMEOUT_SECONDS: parseInt(process.env.VOICE_TOOL_TIMEOUT_SECONDS || '8', 10),
+  /** Client profile cache TTL. Invalidated explicitly on config changes. */
+  VOICE_CONTEXT_TTL_MS: parseInt(process.env.VOICE_CONTEXT_TTL_MS || '300000', 10),
+  /** Cheap tier for conversational turns that still need a model. */
+  VOICE_SMALL_MODEL: process.env.VOICE_SMALL_MODEL || 'gpt-4o-mini',
+  /**
+   * Assistant acknowledgements emitted while the caller is still talking.
+   * Off makes the agent read as a machine even at perfect latency; too eager
+   * makes it read as interrupting. The two delays below are the throttle.
+   */
+  VOICE_BACKCHANNEL_ENABLED: process.env.VOICE_BACKCHANNEL_ENABLED !== 'false',
+  /** Caller must talk this long before the first acknowledgement. */
+  VOICE_BACKCHANNEL_START_DELAY_SECONDS: parseFloat(process.env.VOICE_BACKCHANNEL_START_DELAY_SECONDS || '2.5'),
+  /** Minimum gap between two acknowledgements. Lower sounds like a parrot. */
+  VOICE_BACKCHANNEL_FREQUENCY_SECONDS: parseFloat(process.env.VOICE_BACKCHANNEL_FREQUENCY_SECONDS || '4'),
+  /**
+   * Silence before the agent asks whether the caller is still there. Distinct
+   * from VAPI_SILENCE_TIMEOUT, which is the hang-up deadline: by ten seconds the
+   * caller has already decided the line dropped.
+   */
+  VOICE_IDLE_NUDGE_SECONDS: parseFloat(process.env.VOICE_IDLE_NUDGE_SECONDS || '4'),
+  /** How many times to nudge before letting the silence timeout end the call. */
+  VOICE_IDLE_NUDGE_COUNT: parseInt(process.env.VOICE_IDLE_NUDGE_COUNT || '2', 10),
+  /**
+   * Custom-LLM path for every client. ON by default: it is what makes the
+   * intent router actually skip the model instead of only counting the turns it
+   * could have skipped, and what routes easy turns to the cheap tier.
+   *
+   * The cost is that this service sits in the audio path of every turn, so a
+   * cold instance is an audible silence. That is mitigated externally by
+   * pinging GET /ping every 5 minutes. Set this to "false" to fall straight
+   * back to Vapi's own OpenAI path — no redeploy of the assistants needed, the
+   * next call picks it up.
+   */
+  VOICE_CUSTOM_LLM_DEFAULT: process.env.VOICE_CUSTOM_LLM_DEFAULT !== 'false',
+  /**
+   * Semantic search over the knowledge base. The lexical score answers a small
+   * base correctly and for free, so embeddings only engage above the threshold:
+   * a client with a dozen FAQ entries must not pay a round-trip on a turn the
+   * caller is waiting through.
+   */
+  VOICE_EMBEDDING_ENABLED: process.env.VOICE_EMBEDDING_ENABLED !== 'false',
+  VOICE_EMBEDDING_MIN_ENTRIES: parseInt(process.env.VOICE_EMBEDDING_MIN_ENTRIES || '25', 10),
+  /** Changing this re-embeds the base rather than mixing two vector spaces. */
+  VOICE_EMBEDDING_MODEL: process.env.VOICE_EMBEDDING_MODEL || 'text-embedding-3-small',
+  /** Optional shared cache. Absent = per-process in-memory cache. */
+  REDIS_URL: process.env.REDIS_URL || '',
+
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
   STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY || '',
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',

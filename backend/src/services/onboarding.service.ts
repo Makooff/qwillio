@@ -6,6 +6,9 @@ import { emailService } from './email.service';
 import { discordService } from './discord.service';
 import { resolveCharacter } from '../config/voice-characters';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
+import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
+import { realtimeContextService } from './voice/realtime-context.service';
+import { greetingAudioService } from './voice/greeting-audio.service';
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2000; // 2s, 4s, 8s exponential backoff
@@ -69,34 +72,21 @@ export class OnboardingService {
           temperature: 0.7,
           messages: [{ role: 'system', content: systemPrompt }],
         },
-        voice: {
-          provider: '11labs',
-          // Selected character's voice: matches the caller's language and the
-          // chosen personality (French clients get a French voice, not the
-          // English default). Character is env-overridable per id.
+        // Voice, transcriber and the start/stop speaking plans all come from
+        // the real-time module so an onboarded assistant is born with the same
+        // barge-in and endpointing tuning the orchestrator applies per call.
+        voice: buildVoice({
           voiceId: character.voiceId,
-          model: character.model,
           stability: character.stability,
           similarityBoost: character.similarityBoost,
           style: character.style,
-          useSpeakerBoost: true,
-          optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
-          fallbackPlan: {
-            voices: [
-              { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1 },
-              { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2 },
-            ],
-          },
-        },
+        }),
         firstMessage: this.generateFirstMessage(client, isFrClient),
+        ...buildRealtimePlans(isFrClient ? 'fr' : 'en'),
         serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
         endCallFunctionEnabled: true,
         recordingEnabled: true,
         backgroundSound: 'office',
-        silenceTimeoutSeconds: env.VAPI_SILENCE_TIMEOUT,
-        maxDurationSeconds: env.VAPI_MAX_DURATION,
-        interruptionsEnabled: true,
-        numWordsToInterruptAssistant: Math.round(env.VAPI_INTERRUPTION_THRESHOLD / 50),
       };
 
       // Only add tools if we have any
@@ -169,6 +159,10 @@ export class OnboardingService {
       await discordService.notify(
         `🎉 ${client.isTrial ? 'FREE TRIAL ACTIVATED' : 'NEW PAYING CLIENT'}!\n\nClient: ${client.businessName}\nPackage: ${client.planType.toUpperCase()}\n${revenueLabel}\nAI Phone: ${sharedPhoneNumber}\nVAPI Assistant: ${assistant.id} ✅\nHealth Check: ${isHealthy ? '✅ Passed' : '⚠️ Skipped'}`
       );
+
+      // Pre-synthesise the greetings so the very first caller already skips the
+      // TTS wait on the opening line.
+      void this.regenerateGreetings(clientId);
 
       logger.info(`✅ Onboarding completed for ${client.businessName} in ${retryCount + 1} attempt(s)`);
 
@@ -710,16 +704,14 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
         messages: [{ role: 'system', content: systemPrompt }],
       },
       // Keep the voice in sync when the client switches character.
-      voice: {
-        provider: '11labs',
+      voice: buildVoice({
         voiceId: character.voiceId,
-        model: character.model,
         stability: character.stability,
         similarityBoost: character.similarityBoost,
         style: character.style,
-        useSpeakerBoost: true,
-      },
+      }),
       firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
+      ...buildRealtimePlans(this.isFrenchClient(client) ? 'fr' : 'en'),
       serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
     };
 
@@ -730,10 +722,29 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 
     try {
       await vapiClient.updateAssistant(client.vapiAssistantId, updatedConfig);
+      // The next call must not be greeted by the cached previous persona, nor
+      // by pre-synthesised audio introducing the agent under the old name.
+      await realtimeContextService.invalidateClient(client.id);
+      await greetingAudioService.invalidate(client.id);
+      void this.regenerateGreetings(client.id);
       logger.info(`VAPI assistant ${client.vapiAssistantId} synced for ${client.businessName}`);
     } catch (error) {
       logger.error(`Failed to update VAPI assistant ${client.vapiAssistantId}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Rebuild the pre-synthesised greetings after a config change. Fire-and-
+   * forget: a client whose greetings are not yet generated simply falls back to
+   * live synthesis on the next call, which is what happens today anyway.
+   */
+  private async regenerateGreetings(clientId: string): Promise<void> {
+    try {
+      const profile = await realtimeContextService.getClientProfile(clientId);
+      if (profile) await greetingAudioService.generate(profile);
+    } catch (error) {
+      logger.warn(`Greeting regeneration failed for ${clientId}:`, error);
     }
   }
 

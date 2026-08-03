@@ -447,57 +447,143 @@ export class ClientDashboardController {
     }
   }
 
-  // GET /my-dashboard/voice/live-config — config to start an in-browser Vapi
-  // call with THIS client's receptionist (real voice + their config), like the
-  // public demo but personalized. Returns the Vapi public key + assistant.
+  // GET /my-dashboard/voice/live-config — in-browser Vapi call with THIS
+  // client's receptionist.
+  //
+  // Built by the SAME functions as a real phone call (services/voice/), not by
+  // a config written here. The previous version hand-rolled its own assistant:
+  // a slower voice model, no speaking plans, no tools. It therefore demoed
+  // something worse than the product — the one place where that is least
+  // acceptable, since this is what an owner judges the agent on.
   async voiceLiveConfig(req: any, res: Response) {
     try {
-      const client = await prisma.client.findUnique({
-        where: { id: req.clientId },
-        select: {
-          businessName: true, businessType: true, agentLanguage: true, country: true,
-          transferNumber: true, vapiConfig: true, agentName: true,
-        },
-      });
-      if (!client) return res.status(404).json({ error: 'Client not found' });
       if (!env.VAPI_PUBLIC_KEY) return res.status(503).json({ error: 'Vapi public key not configured' });
 
-      const cfg = (client.vapiConfig as any) || {};
-      const isFr = (client as any).agentLanguage === 'fr'
-        || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String((client as any).country || '').toUpperCase());
-      const character = resolveCharacter({ characterId: cfg.characterId, isFrench: isFr, country: client.country });
+      const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+      const { businessMemoryService } = await import('../services/voice/business-memory.service');
+      const { buildSystemPrompt, firstMessageVariants } = await import('../services/voice/system-prompt');
+      const { buildRealtimePlans, buildVoice } = await import('../services/voice/speech-plans');
+      const { buildVoiceTools } = await import('../services/voice/voice-tools');
 
-      const items = Array.isArray(cfg.items)
-        ? cfg.items.slice(0, 40).map((i: any) => `- ${i.name}${i.price ? ` (${i.price})` : ''}`).join('\n')
+      const profile = await realtimeContextService.getClientProfile(req.clientId);
+      if (!profile) return res.status(404).json({ error: 'Client not found' });
+
+      const caller = { previousCalls: 0, lastCallAt: null, lastSummary: null, knownName: null, hasUpcomingBooking: false };
+      const knowledgeBlock = profile.hasKnowledgeBase
+        ? businessMemoryService.promptBlock(await businessMemoryService.all(req.clientId), profile.language)
         : '';
-      const systemPrompt = [
-        `You are ${character.name}, the AI phone receptionist for "${client.businessName}" (${client.businessType || 'business'}).`,
-        `Answer callers in ${isFr ? 'French' : 'English'}, warm and natural, one short turn at a time. This is a live test call.`,
-        cfg.faq ? `Business knowledge:\n${String(cfg.faq).slice(0, 2000)}` : '',
-        items ? `Services / prices:\n${items}` : '',
-        cfg.personalityNotes ? `Tone: ${String(cfg.personalityNotes).slice(0, 500)}` : '',
-        `Never invent prices or facts you don't have — offer to take a message. Book appointments when asked (collect name, phone, reason, preferred time).`,
-      ].filter(Boolean).join('\n');
 
-      const greeting = isFr
-        ? `${client.businessName}, bonjour ! Comment puis-je vous aider ?`
-        : `Hello, thanks for calling ${client.businessName}! How can I help you?`;
+      const character = resolveCharacter({
+        characterId: profile.characterId,
+        isFrench: profile.language === 'fr',
+        country: profile.country,
+      });
+
+      // Reading tools stay: an owner testing the agent should hear it check a
+      // real slot. Writing tools do not — every demo would otherwise put a fake
+      // appointment in the client's calendar.
+      const tools = buildVoiceTools(profile).filter((t: any) => t.function?.name !== 'bookAppointment');
+
+      const testNotice = profile.language === 'fr'
+        ? "\n\nCONTEXTE: c'est un appel de test, le gerant joue un appelant. Comporte-toi exactement comme sur un vrai appel, mais ne confirme aucune reservation definitive."
+        : '\n\nCONTEXT: this is a test call, the owner is playing a caller. Behave exactly as on a real call, but do not confirm any final booking.';
+
+      const variants = firstMessageVariants(profile, null);
 
       res.json({
         publicKey: env.VAPI_PUBLIC_KEY,
         assistant: {
-          model: { provider: 'openai', model: 'gpt-4o-mini', temperature: 0.7, maxTokens: 120,
-            messages: [{ role: 'system', content: systemPrompt }] },
-          voice: {
-            provider: '11labs', voiceId: character.voiceId, model: 'eleven_multilingual_v2',
-            stability: character.stability, similarityBoost: character.similarityBoost,
-            style: character.style, useSpeakerBoost: true, optimizeStreamingLatency: 3,
+          name: `${character.name} — ${profile.businessName}`,
+          model: {
+            provider: 'openai',
+            model: env.VAPI_MODEL,
+            temperature: 0.6,
+            maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
+            messages: [{ role: 'system', content: buildSystemPrompt(profile, caller, knowledgeBlock) + testNotice }],
+            tools,
           },
-          transcriber: isFr ? { provider: 'deepgram', language: 'fr' } : { provider: 'deepgram', language: 'en' },
-          firstMessage: greeting,
-          name: `${character.name} — ${client.businessName}`,
+          voice: buildVoice({
+            voiceId: character.voiceId,
+            stability: character.stability,
+            similarityBoost: character.similarityBoost,
+            style: character.style,
+          }),
+          firstMessage: variants[Math.floor(Math.random() * variants.length)],
+          ...buildRealtimePlans(profile.language),
           backgroundSound: 'office',
-          silenceTimeoutSeconds: 30,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // GET /my-dashboard/assistant/voice-config — talk to the CONFIG assistant by
+  // voice instead of typing.
+  //
+  // Same voice stack as the receptionist (flash model, speaking plans,
+  // backchannels): configuring the agent should not feel worse than the agent.
+  // Different job though — this one changes settings, it does not answer
+  // callers, so it carries no receptionist tools.
+  async assistantVoiceConfig(req: any, res: Response) {
+    try {
+      if (!env.VAPI_PUBLIC_KEY) return res.status(503).json({ error: 'Vapi public key not configured' });
+
+      const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+      const { buildRealtimePlans, buildVoice } = await import('../services/voice/speech-plans');
+      const { assistantChatService } = await import('../services/assistant-chat.service');
+
+      const profile = await realtimeContextService.getClientProfile(req.clientId);
+      if (!profile) return res.status(404).json({ error: 'Client not found' });
+
+      const client = await prisma.client.findUnique({ where: { id: req.clientId } });
+      const character = resolveCharacter({
+        characterId: profile.characterId,
+        isFrench: profile.language === 'fr',
+        country: profile.country,
+      });
+
+      const fr = profile.language === 'fr';
+      // Spoken configuration needs its own rules: reading a settings list out
+      // loud is unlistenable, so it asks one question at a time.
+      const spokenRules = fr
+        ? [
+            'Tu configures le receptionniste IA de ce commerce, a la voix.',
+            'Une question a la fois. Jamais de liste a voix haute.',
+            'Reformule brievement ce que tu as compris avant de passer au point suivant.',
+            'Si le gerant hesite, propose la valeur la plus courante pour son secteur.',
+          ].join('\n')
+        : [
+            'You are configuring this business\'s AI receptionist, by voice.',
+            'One question at a time. Never read a list out loud.',
+            'Briefly restate what you understood before moving on.',
+            'If the owner hesitates, offer the most common value for their sector.',
+          ].join('\n');
+
+      res.json({
+        publicKey: env.VAPI_PUBLIC_KEY,
+        assistant: {
+          name: `Config — ${profile.businessName}`,
+          model: {
+            provider: 'openai',
+            model: env.VAPI_MODEL,
+            temperature: 0.6,
+            maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
+            messages: [{
+              role: 'system',
+              content: `${assistantChatService.voiceConfigPrompt(client, fr)}\n\n${spokenRules}`,
+            }],
+          },
+          voice: buildVoice({
+            voiceId: character.voiceId,
+            stability: character.stability,
+            similarityBoost: character.similarityBoost,
+            style: character.style,
+          }),
+          firstMessage: fr
+            ? `Bonjour ! On configure votre standard ensemble. Qu'est-ce que vous voulez ajuster ?`
+            : `Hi! Let's set up your receptionist together. What would you like to adjust?`,
+          ...buildRealtimePlans(profile.language),
         },
       });
     } catch (error: any) {

@@ -26,6 +26,7 @@ import { outboundEngineService } from '../services/outbound-engine.service';
 import { abTestingService } from '../services/ab-testing.service';
 import { bestTimeLearningService } from '../services/best-time-learning.service';
 import { scriptLearningService } from '../services/script-learning.service';
+import { receptionistLearningService } from '../services/voice/receptionist-learning.service';
 import { callIntelligenceService } from '../services/call-intelligence.service';
 import { followUpSequencesService } from '../services/follow-up-sequences.service';
 import { prospectScoringService } from '../services/prospect-scoring.service';
@@ -68,6 +69,7 @@ class BotLoop {
   private outboundEngineJob: cron.ScheduledTask | null = null;
   private abTestingJob: cron.ScheduledTask | null = null;
   private bestTimeJob: cron.ScheduledTask | null = null;
+  private receptionistLearningJob: cron.ScheduledTask | null = null;
   private scriptLearningJob: cron.ScheduledTask | null = null;
   private callIntelligenceJob: cron.ScheduledTask | null = null;
   private followUpJob: cron.ScheduledTask | null = null;
@@ -690,6 +692,34 @@ class BotLoop {
     }), { timezone: 'UTC' });
 
     // ═══════════════════════════════════════════════════════════
+    // RECEPTIONIST LEARNING — Sunday 2am UTC
+    //
+    // Reads the real-time signals the inbound pipeline records (per-stage
+    // latency, hard barge-ins, deflection rate, caller mood, tool failures)
+    // and reports what they imply. Separate from script-learning above, which
+    // owns the OUTBOUND prospecting scripts — this adds a source, it does not
+    // replace one.
+    // ═══════════════════════════════════════════════════════════
+    this.receptionistLearningJob = cron.schedule('0 2 * * 0', () => jobGuard.run('receptionist-learning', async () => {
+      logger.info('🎧 [CRON] Analysing receptionist real-time signals...');
+      try {
+        const reports = await receptionistLearningService.runWeekly();
+        const warned = reports.filter(r => r.findings.some(f => f.severity === 'warn'));
+        if (warned.length) {
+          await discordService.notify(
+            `🎧 RECEPTIONIST LEARNING\n\n${warned.length} client(s) with findings:\n` +
+              warned
+                .slice(0, 10)
+                .map(r => `• ${r.clientId}: ${r.findings.filter(f => f.severity === 'warn').map(f => f.code).join(', ')}`)
+                .join('\n')
+          );
+        }
+      } catch (error) {
+        logger.error('[CRON] Receptionist learning failed:', error);
+      }
+    }), { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
     // PROSPECTING ENGINE — CRON P5c: Agent Evolution — Sunday 3am UTC
     // Evolves AI agent strategies from last week's action/outcome data
     // ═══════════════════════════════════════════════════════════
@@ -967,6 +997,7 @@ class BotLoop {
     this.abTestingJob?.stop(); this.abTestingJob = null;
     this.bestTimeJob?.stop(); this.bestTimeJob = null;
     this.scriptLearningJob?.stop(); this.scriptLearningJob = null;
+    this.receptionistLearningJob?.stop(); this.receptionistLearningJob = null;
     this.callIntelligenceJob?.stop(); this.callIntelligenceJob = null;
     this.followUpJob?.stop(); this.followUpJob = null;
     this.rescoreJob?.stop(); this.rescoreJob = null;
@@ -1048,6 +1079,7 @@ class BotLoop {
         abTesting: cronState(this.abTestingJob),
         bestTimeLearning: cronState(this.bestTimeJob),
         scriptLearning: cronState(this.scriptLearningJob),
+        receptionistLearning: cronState(this.receptionistLearningJob),
         callIntelligence: cronState(this.callIntelligenceJob),
         followUpSequences: cronState(this.followUpJob),
         rescoreProspects: cronState(this.rescoreJob),
@@ -1138,6 +1170,7 @@ class BotLoop {
       abTesting: () => abTestingService.analyzeAll(),
       bestTime: () => bestTimeLearningService.analyzeAll(),
       scriptLearning: () => scriptLearningService.runWeeklyAnalysis(),
+      receptionistLearning: () => receptionistLearningService.runWeekly(),
       followUp: () => followUpSequencesService.processDue(),
       rescore: () => prospectScoringService.rescoreUnscored(1000),
     };
