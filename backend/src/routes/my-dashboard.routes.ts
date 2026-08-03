@@ -62,6 +62,7 @@ router.get('/settings', (req, res) => clientDashboardController.getMySettings(re
 router.put('/settings', (req, res) => clientDashboardController.updateMySettings(req, res));
 router.get('/characters', (req, res) => clientDashboardController.getCharacters(req, res));
 router.get('/characters/:id/preview', (req, res) => clientDashboardController.characterPreview(req, res));
+router.get('/voices', (req, res) => clientDashboardController.listVoices(req, res));
 // Voice cloning. Same budget as dictation — a multi-megabyte body going to a
 // paid API, and a retry loop here would both bill the account and litter it
 // with dead voices.
