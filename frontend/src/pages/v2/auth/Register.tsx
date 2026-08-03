@@ -115,7 +115,7 @@ export default function Register() {
               Se connecter
             </Link>
           </p>
-          <p className="mt-4 text-[12px] text-q2-faint">
+          <p className="mt-4 text-[12px] text-q2-body">
             En créant un compte, vous acceptez nos{' '}
             <a href="/terms" target="_blank" rel="noopener noreferrer" className={AUTH_LINK}>CGU</a>
             {' '}et notre{' '}
@@ -152,7 +152,7 @@ export default function Register() {
               <button
                 type="button" onClick={() => setShowPw(!showPw)}
                 aria-label={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                className="absolute inset-y-0 right-3 flex items-center text-q2-faint hover:text-q2-graphite transition-colors duration-150 focus:outline-none focus-visible:text-q2-ink"
+                className="absolute inset-y-0 right-3 flex items-center text-q2-body hover:text-q2-graphite transition-colors duration-150 focus:outline-none focus-visible:text-q2-ink"
               >
                 {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>

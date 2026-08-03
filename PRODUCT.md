@@ -1,18 +1,18 @@
-# Qwillio — Product Context
+# Qwillio, Product Context
 
 ## Product Purpose
 AI voice platform for SMBs. The receptionist (Receptionist AI) answers inbound calls 24/7, books appointments, captures leads, transfers urgent calls. The agent suite (Qwillio Agent) adds Email, Accounting, Inventory, Payments AI modules. One brain, multiple workflows.
 
 ## Users
-- **Primary**: Owners and operators of small French and Quebec service businesses (dental, salon, HVAC, garage, law, restaurant, real estate) — 1 to 30 employees, missing inbound calls daily, no front desk staff
+- **Primary**: Owners and operators of small French and Quebec service businesses (dental, salon, HVAC, garage, law, restaurant, real estate), 1 to 30 employees, missing inbound calls daily, no front desk staff
 - **Secondary**: French B2B sales agencies that want outbound voice automation
 - **Tertiary**: Affiliates (consultants, agencies) reselling Qwillio for 30% recurring commission
 
 ## Surfaces and Register
 This product has TWO registers across its surfaces. Identify before designing.
 
-- **Brand register** (`register: brand`) — public marketing: Home, Landing/Receptionist, Agent, Pricing, About, Contact, Affiliate, Blog, Legal, Auth landing panels. Design IS the product here. Editorial, asymmetric, committed brand color.
-- **Product register** (`register: product`) — authed app: Dashboard, Calls, Leads, Prospects, Clients, Billing, Settings, Campaigns, Client portal, Closer workspace, Admin tools. Design SERVES the product. Dark surfaces, dense data, restrained color, fast.
+- **Brand register** (`register: brand`), public marketing: Home, Landing/Receptionist, Agent, Pricing, About, Contact, Affiliate, Blog, Legal, Auth landing panels. Design IS the product here. Editorial, asymmetric, committed brand color.
+- **Product register** (`register: product`), authed app: Dashboard, Calls, Leads, Prospects, Clients, Billing, Settings, Campaigns, Client portal, Closer workspace, Admin tools. Design SERVES the product. Dark surfaces, dense data, restrained color, fast.
 
 ## Register
 mixed
@@ -53,8 +53,8 @@ Toute modification de prix se fait dans `plans.ts` en premier, puis se propage �
 
 ## Brand Identity (LOGO-DRIVEN, NOT INHERITED FROM TAILWIND)
 The Qwillio logo carries two overlapping circles:
-- **Q-circle** (left, primary): indigo `oklch(56% 0.22 264)` = `#6366f1`
-- **W-circle** (right, secondary): violet `oklch(67% 0.26 299)` = `#a855f7`
+- **Q-circle** (left, primary): indigo `#7A5FFF` (deep `#7349FE` for pressed states)
+- **W-circle** (right, secondary): violet `#CD6BFB`
 
 These two colors ARE the brand. Both must be visible across the system, not just indigo alone. Use indigo for receptionist / call / voice contexts. Use violet for agent / modules / outbound contexts. Drenched-color sections alternate indigo and violet across the page rhythm.
 

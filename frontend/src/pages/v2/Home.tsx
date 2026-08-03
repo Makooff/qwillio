@@ -87,7 +87,7 @@ export default function Home() {
 
   return (
     <PublicShell>
-      {/* ── HERO — un réceptionniste qui agit, pas qui note ── */}
+      {/* ── HERO, un réceptionniste qui agit, pas qui note ── */}
       <Section aria-labelledby="hero-heading" className="!pt-16 md:!pt-24 overflow-hidden">
         <Container className="grid lg:grid-cols-[1.2fr_1fr] gap-14 lg:gap-20 items-center">
           <RevealV2>
@@ -150,7 +150,7 @@ export default function Home() {
         </Container>
       </Section>
 
-      {/* ── PENDANT L'APPEL — le cœur du récit, 4 actes en rangées éditoriales ── */}
+      {/* ── PENDANT L'APPEL, le cœur du récit, 4 actes en rangées éditoriales ── */}
       <Section variant="band" hairline aria-labelledby="during-heading">
         <Container>
           <RevealV2 className="mb-14 max-w-[640px]">
@@ -191,7 +191,7 @@ export default function Home() {
         </Container>
       </Section>
 
-      {/* ── UNE VRAIE CONVERSATION — drenched indigo ── */}
+      {/* ── UNE VRAIE CONVERSATION, drenched indigo ── */}
       <Section variant="drenched-indigo" aria-labelledby="conv-heading">
         <Container className="grid lg:grid-cols-[1fr_1.2fr] gap-12 items-start">
           <RevealV2>
@@ -277,7 +277,7 @@ export default function Home() {
         </Container>
       </Section>
 
-      {/* ── APRÈS L'APPEL + CONFIANCE — bande taupe ── */}
+      {/* ── APRÈS L'APPEL + CONFIANCE, bande taupe ── */}
       <Section variant="band" hairline aria-labelledby="after-heading">
         <Container>
           <RevealV2 className="mb-12 max-w-[640px]">
@@ -341,7 +341,7 @@ export default function Home() {
         </Container>
       </Section>
 
-      {/* ── NOTE HONNÊTE + CTA FINAL — drenched violet ── */}
+      {/* ── NOTE HONNÊTE + CTA FINAL, drenched violet ── */}
       <Section variant="drenched-violet" aria-label={isFr ? 'Commencer avec Qwillio' : 'Get started with Qwillio'}>
         <Container>
           <RevealV2 className="max-w-[720px] mb-16">

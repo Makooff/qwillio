@@ -2,7 +2,7 @@ import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAt
 import { Link } from 'react-router-dom';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
 
-/* Kit produit V2 « instrument » — remplace ProBlocks/OverviewBlocks et les
+/* Kit produit V2 « instrument », remplace ProBlocks/OverviewBlocks et les
    primitives locales dupliquées, côté client uniquement. Règles:
    DA/v2-direction.md (addendum registre produit). Surfaces carbon, bordures
    hairline #23252A, zéro ombre, un accent indigo par vue. */

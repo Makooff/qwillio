@@ -9,7 +9,7 @@ const Layout = lazy(() => import('./components/layout/Layout'));
 const ClientLayout = lazy(() => import('./components/v2/app/ClientLayoutV2'));
 const CloserLayout = lazy(() => import('./components/layout/CloserLayout'));
 import ComingSoon from './components/client/ComingSoon';
-// Eager-loaded entry points (Login, Register, ConfirmEmail) — accès clients V2
+// Eager-loaded entry points (Login, Register, ConfirmEmail), accès clients V2
 import Login from './pages/v2/auth/Login';
 import Register from './pages/v2/auth/Register';
 import ForgotPassword from './pages/v2/auth/ForgotPassword';
@@ -46,7 +46,7 @@ const ClientBilling = lazy(() => import('./pages/v2/app/ClientBilling'));
 // Agent IA pages (lazy loaded)
 const AgentDashboard = lazy(() => import('./pages/v2/app/AgentDashboard'));
 // Email / Payments / Accounting / Inventory agent pages are not functional yet
-// (no backend) — their routes render a ComingSoon notice instead of the mock UI.
+// (no backend), their routes render a ComingSoon notice instead of the mock UI.
 const AgentMarketing = lazy(() => import('./pages/v2/app/AgentMarketing'));
 const AgentReputation = lazy(() => import('./pages/v2/app/AgentReputation'));
 const AgentScheduling = lazy(() => import('./pages/v2/app/AgentScheduling'));
@@ -111,7 +111,7 @@ const CloserFollowUps      = lazy(() => import('./pages/closer/CloserFollowUps')
 const CloserAccount        = lazy(() => import('./pages/closer/CloserAccount'));
 
 // Tell the browser to stop restoring previous scroll positions on
-// back / forward / route change — we manage scroll ourselves below.
+// back / forward / route change, we manage scroll ourselves below.
 if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
   try { window.history.scrollRestoration = 'manual'; } catch { /* empty */ }
 }
@@ -147,7 +147,7 @@ function ScrollToTop() {
 }
 
 function Spinner() {
-  // No visible loader on arrival/refresh — just the dark surface, seamless into content.
+  // No visible loader on arrival/refresh, just the dark surface, seamless into content.
   return <div style={{ minHeight: '100dvh', background: '#0a0a0a' }} aria-hidden="true" />;
 }
 
@@ -309,7 +309,7 @@ export default function App() {
         <Route path="/fr/about" element={<Suspense fallback={<PublicSpinner />}><About /></Suspense>} />
         <Route path="/fr/contact" element={<Suspense fallback={<PublicSpinner />}><Contact /></Suspense>} />
         <Route path="/receptionist" element={<Suspense fallback={<PublicSpinner />}><Landing /></Suspense>} />
-        {/* Qwillio Agent — page marketing V2 réactivée */}
+        {/* Qwillio Agent, page marketing V2 réactivée */}
         <Route path="/agent" element={<Suspense fallback={<PublicSpinner />}><AgentPage /></Suspense>} />
         <Route path="/pricing" element={<Suspense fallback={<PublicSpinner />}><PricingPage /></Suspense>} />
         <Route path="/blog" element={<Suspense fallback={<PublicSpinner />}><BlogPage /></Suspense>} />

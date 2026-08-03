@@ -27,10 +27,10 @@ export const AUTH_LINK =
 
 /* États système: signal seulement, une teinte par état. */
 export const AUTH_ALERT =
-  'rounded-xl border border-[#f0d3cf] bg-[#fdf4f3] px-4 py-3 text-[13px] leading-relaxed text-[#b42318]';
+  'rounded-xl border border-[color:var(--q2-bad-brd)] bg-[color:var(--q2-bad-bg)] px-4 py-3 text-[13px] leading-relaxed text-[color:var(--q2-bad-ink)]';
 
 export const AUTH_NOTICE =
-  'rounded-xl border border-[#cfe4d7] bg-[#f4faf6] px-4 py-3 text-[13px] leading-relaxed text-[#1a7f52]';
+  'rounded-xl border border-[color:var(--q2-ok-brd)] bg-[color:var(--q2-ok-bg)] px-4 py-3 text-[13px] leading-relaxed text-[color:var(--q2-ok-ink)]';
 
 export const AUTH_ICON_PLATE =
   'w-11 h-11 rounded-full bg-q2-plate flex items-center justify-center';

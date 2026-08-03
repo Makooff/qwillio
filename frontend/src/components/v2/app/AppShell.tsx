@@ -224,7 +224,7 @@ export default function AppShell({
         </main>
       </div>
 
-      {/* Nav basse mobile — simple, sans bulle décorative (fréquent = pas d'animation) */}
+      {/* Nav basse mobile, simple, sans bulle décorative (fréquent = pas d'animation) */}
       <nav
         aria-label="Navigation mobile"
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-q2-carbon border-t border-q2-graphite-d"

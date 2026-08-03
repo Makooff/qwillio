@@ -1,5 +1,5 @@
 /* ============================================================
-   Design V2 « Papier & Signal » — couche additive, ne touche pas
+   Design V2 « Papier & Signal », couche additive, ne touche pas
    aux tokens V1 de globals.css. Voir DA/v2-direction.md.
    Clair: DA/references/elevenlabs.md · Drenched: DA/references/linear.md
    ============================================================ */
@@ -30,10 +30,18 @@
   /* Voile de marque: le noir Qwillio n'est jamais neutre */
   --q2-void-tint: oklch(10% 0.015 285);
 
-  /* Ombres — la seule autorisée sur clair est diffuse et teintée */
+  /* Ombres, la seule autorisée sur clair est diffuse et teintée */
   --q2-shadow-whisper: rgba(0, 0, 0, 0.4) 0 0 1px, rgba(0, 0, 0, 0.04) 0 1px 1px,
     rgba(0, 0, 0, 0.04) 0 2px 4px;
   --q2-shadow-hover: 0 30px 80px rgba(20, 16, 50, 0.1);
+
+  /* États sur registre clair (erreur/succès des écrans auth) */
+  --q2-bad-ink: #b42318;
+  --q2-bad-bg: #fdf4f3;
+  --q2-bad-brd: #f0d3cf;
+  --q2-ok-ink: #1a7f52;
+  --q2-ok-bg: #f4faf6;
+  --q2-ok-brd: #cfe4d7;
 
   --q2-hairline: 1px solid #ebe8e4;
   --q2-hairline-d: 1px solid #23252a;
@@ -132,7 +140,7 @@
   }
 }
 
-/* Orbes du logo (LogoOrbs) — respiration lente, décorative */
+/* Orbes du logo (LogoOrbs), respiration lente, décorative */
 @keyframes q2OrbDrift {
   0%,
   100% {
@@ -150,7 +158,7 @@
 }
 
 /* ============================================================
-   Registre PRODUIT (dashboard client) — « instrument » Linear.
+   Registre PRODUIT (dashboard client), « instrument » Linear.
    Surfaces void/carbon/obsidian + bordures hairline, zéro ombre.
    États système: signal, jamais décoration (DA/couleurs.md).
    ============================================================ */

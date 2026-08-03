@@ -462,7 +462,7 @@ export default function Receptionist() {
                           ))}
                         </ul>
                         {pillar.panelNote ? (
-                          <p className="mt-5 pt-5 border-t border-q2-plate text-q2-faint text-[13px] leading-relaxed q2-body-text">
+                          <p className="mt-5 pt-5 border-t border-q2-plate text-q2-body text-[13px] leading-relaxed q2-body-text">
                             {pillar.panelNote}
                           </p>
                         ) : null}
@@ -607,7 +607,7 @@ export default function Receptionist() {
                     >
                       <span className="text-q2-ink text-[15px]">{voice.name}</span>
                       <span className="text-q2-body text-[13.5px] leading-snug q2-body-text">{voice.note}</span>
-                      <span className="q2-eyebrow text-q2-faint">{voice.tag}</span>
+                      <span className="q2-eyebrow text-q2-body">{voice.tag}</span>
                     </li>
                   ))}
                 </ul>
@@ -706,7 +706,7 @@ export default function Receptionist() {
               {afterCall.map((item, i) => (
                 <li key={item.title} className="border-b border-q2-plate py-6">
                   <div className="grid md:grid-cols-[48px_1fr] gap-3 md:gap-6">
-                    <span className="q2-eyebrow text-q2-faint tabular-nums" aria-hidden="true">
+                    <span className="q2-eyebrow text-q2-body tabular-nums" aria-hidden="true">
                       {String(i + 1).padStart(2, '0')}
                     </span>
                     <div>
@@ -737,7 +737,7 @@ export default function Receptionist() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-6 pt-5 border-t border-q2-plate text-q2-faint text-[13px] leading-relaxed q2-body-text">
+              <p className="mt-6 pt-5 border-t border-q2-plate text-q2-body text-[13px] leading-relaxed q2-body-text">
                 {isFr
                   ? 'La prise de rendez-vous en direct suppose un agenda Google connecté. Sans agenda, il prend la demande et vous rappelez.'
                   : 'Live booking assumes a connected Google calendar. Without one, it takes the request and you call back.'}

@@ -121,7 +121,7 @@ export default function ResetPassword() {
         />
 
         {error && (
-          <p className="mt-3 text-[13px] leading-relaxed text-[#b42318]" role="alert">{error}</p>
+          <p className="mt-3 text-[13px] leading-relaxed text-[color:var(--q2-bad-ink)]" role="alert">{error}</p>
         )}
 
         <button type="submit" disabled={loading || !password || !confirm} className={`${AUTH_SUBMIT} mt-5`}>

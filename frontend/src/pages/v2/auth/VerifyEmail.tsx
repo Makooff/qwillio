@@ -58,7 +58,7 @@ export default function VerifyEmail() {
           <LangToggle />
           <button
             onClick={() => { logout(); navigate('/'); }}
-            className="inline-flex items-center gap-1.5 text-sm text-q2-body hover:text-[#b42318] transition-colors duration-150"
+            className="inline-flex items-center gap-1.5 text-sm text-q2-body hover:text-[color:var(--q2-bad-ink)] transition-colors duration-150"
             title={isFr ? 'Se déconnecter' : 'Log out'}
           >
             <LogOut size={16} />

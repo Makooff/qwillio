@@ -78,7 +78,7 @@ export default function ConfirmEmail() {
       {status === 'error' && (
         <div className="flex flex-col gap-6">
           <span className={AUTH_ICON_PLATE}>
-            <XCircle size={20} className="text-[#b42318]" aria-hidden="true" />
+            <XCircle size={20} className="text-[color:var(--q2-bad-ink)]" aria-hidden="true" />
           </span>
           <PillLink to="/login" variant="primary" size="lg" className="w-full">
             {t('confirm.goLogin')}
