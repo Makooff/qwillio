@@ -91,3 +91,11 @@ Design neuf « instrument » (Linear, DA/references/linear.md), PAS un reskin de
 ## Voix (DA/voix.md, inchangée)
 
 Ne rien écrire d'improuvable. Pas de métriques inventées, pas de témoignages fabriqués. Vocabulaire banni : révolutionnaire, game-changer, disruptif, etc. Français d'abord, anglais traduit. La strip crédibilité n'affiche que des propriétés vérifiables du produit (FR/EN, < 1 s, 24/7).
+
+## Addendum phase 3 (2026-08-03)
+
+- **Avatars de personnages** : `frontend/public/characters/{id}.webp` (10 visages, PR #79). Rendus en rond (48 px dashboard, 56-64 px galerie marketing). Repli sans image : pastille initiale (`ashley`, `ethan`) ; « Ma voix » : icône micro.
+- **Hero marketing** : voile lilas `#f5f2fb → #fdfcfc` accordé au fond des avatars, halo radial indigo doux derrière l'illustration. `PhoneDashboard3D` : iPhone 17 Pro, écran = mini-dashboard du registre produit.
+- **Exception glassmorphism documentée** : la barre d'onglets translucide (`backdrop-blur`) DANS l'écran de `PhoneDashboard3D` est une illustration d'iOS 26, pas du chrome UI du site. Le ban glassmorphism reste entier partout ailleurs.
+- **Animation** : GSAP (tilt pointeur du téléphone, stagger galerie, parallaxe ScrollTrigger de ScreenParade) et Remotion Player (transcript vivant, chunk lazy). Toujours transform/opacity, `prefers-reduced-motion` = état final statique.
+- **Clonage de voix (copy)** : conditions prouvées par le code uniquement : 20-90 s, consentement explicite revalidé serveur, remplaçable/supprimable, utilisable dans la foulée (Instant). Ne jamais promettre l'appel test avec la voix clonée.

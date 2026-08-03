@@ -85,18 +85,18 @@ export default function Receptionist() {
 
   const otherVoices = isFr
     ? [
-        { name: 'Camille', note: 'Soignée et raffinée, pour une image premium.', tag: 'FR' },
-        { name: 'Léa', note: 'Dynamique et enthousiaste, pleine d’énergie.', tag: 'FR' },
-        { name: 'Lucas', note: 'Posé et professionnel, direct et rassurant.', tag: 'FR' },
-        { name: 'Sofia', note: 'Naturelle et décontractée, ton conversationnel.', tag: 'FR' },
-        { name: 'Ethan', note: 'Voix anglaise masculine, posée.', tag: 'EN' },
+        { id: 'camille', name: 'Camille', note: 'Soignée et raffinée, pour une image premium.', tag: 'FR' },
+        { id: 'lea', name: 'Léa', note: 'Dynamique et enthousiaste, pleine d’énergie.', tag: 'FR' },
+        { id: 'lucas', name: 'Lucas', note: 'Posé et professionnel, direct et rassurant.', tag: 'FR' },
+        { id: 'sofia', name: 'Sofia', note: 'Naturelle et décontractée, ton conversationnel.', tag: 'FR' },
+        { id: '', name: 'Ethan', note: 'Voix anglaise masculine, posée.', tag: 'EN' },
       ]
     : [
-        { name: 'Camille', note: 'Polished and refined, for a premium brand.', tag: 'FR' },
-        { name: 'Léa', note: 'Dynamic and upbeat, full of energy.', tag: 'FR' },
-        { name: 'Lucas', note: 'Composed and professional, direct and reassuring.', tag: 'FR' },
-        { name: 'Sofia', note: 'Natural and easy-going, conversational tone.', tag: 'FR' },
-        { name: 'Ethan', note: 'Composed male English voice.', tag: 'EN' },
+        { id: 'camille', name: 'Camille', note: 'Polished and refined, for a premium brand.', tag: 'FR' },
+        { id: 'lea', name: 'Léa', note: 'Dynamic and upbeat, full of energy.', tag: 'FR' },
+        { id: 'lucas', name: 'Lucas', note: 'Composed and professional, direct and reassuring.', tag: 'FR' },
+        { id: 'sofia', name: 'Sofia', note: 'Natural and easy-going, conversational tone.', tag: 'FR' },
+        { id: '', name: 'Ethan', note: 'Composed male English voice.', tag: 'EN' },
       ];
 
   const tones = isFr
@@ -550,8 +550,8 @@ export default function Receptionist() {
               </div>
               <p className="text-q2-body text-sm max-w-[320px] leading-relaxed q2-body-text">
                 {isFr
-                  ? 'Cinq voix françaises, deux anglaises. Vous les écoutez avant de choisir, et le ton se règle séparément de la voix.'
-                  : 'Five French voices, two English. You listen before you pick, and the tone is set separately from the voice.'}
+                  ? 'Cinq voix françaises, deux anglaises. Vous les écoutez avant de choisir, le ton se règle séparément. Et si aucune n’est la bonne, clonez la vôtre.'
+                  : 'Five French voices, two English. You listen before you pick, the tone is set separately. And if none feels right, clone your own.'}
               </p>
             </div>
           </RevealV2>
@@ -609,11 +609,72 @@ export default function Receptionist() {
                   {otherVoices.map((voice) => (
                     <li
                       key={voice.name}
-                      className="grid grid-cols-[80px_1fr_auto] gap-4 items-baseline border-b border-q2-plate py-3.5"
+                      className="grid grid-cols-[32px_72px_1fr_auto] gap-4 items-center border-b border-q2-plate py-3"
                     >
+                      {voice.id ? (
+                        <img
+                          src={`/characters/${voice.id}.webp`}
+                          alt=""
+                          loading="lazy"
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="w-8 h-8 rounded-full bg-q2-plate text-q2-graphite text-[12px] font-medium flex items-center justify-center">
+                          {voice.name[0]}
+                        </span>
+                      )}
                       <span className="text-q2-ink text-[15px]">{voice.name}</span>
                       <span className="text-q2-body text-[13.5px] leading-snug q2-body-text">{voice.note}</span>
                       <span className="q2-eyebrow text-q2-body">{voice.tag}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </CardV2>
+          </RevealV2>
+
+          {/* Clonage de voix: fonction reelle du dashboard (VoiceCloner),
+              conditions honnetes: consentement, 20-90 s, remplacable,
+              supprimable. On ne promet pas l'appel test avec la voix clonee. */}
+          <RevealV2 index={3} className="mt-5">
+            <CardV2 variant="canvas" large>
+              <div className="grid md:grid-cols-[1fr_1.4fr] gap-8 md:gap-12 items-start">
+                <div>
+                  <p className="q2-eyebrow text-q2-indigo mb-4">{isFr ? 'Ou la vôtre' : 'Or your own'}</p>
+                  <p className="text-[22px] font-light tracking-tight text-q2-ink leading-snug max-w-[300px]">
+                    {isFr ? (
+                      <>
+                        Clonez votre voix, elle répond avec votre <SerifWord>timbre.</SerifWord>
+                      </>
+                    ) : (
+                      <>
+                        Clone your voice, she answers with your <SerifWord>timbre.</SerifWord>
+                      </>
+                    )}
+                  </p>
+                </div>
+                <ul className="border-t border-q2-plate" role="list">
+                  {(isFr
+                    ? [
+                        'De 20 à 90 secondes d’enregistrement suffisent, au micro ou depuis un fichier audio.',
+                        'Consentement explicite exigé : la voix doit être la vôtre, ou enregistrée avec un accord écrit.',
+                        'Utilisable seconde après seconde : pas d’entraînement de plusieurs heures.',
+                        'Vous la remplacez ou la supprimez quand vous voulez, l’ancienne est effacée.',
+                      ]
+                    : [
+                        '20 to 90 seconds of recording are enough, from the mic or an audio file.',
+                        'Explicit consent required: the voice must be yours, or recorded with written permission.',
+                        'Usable within seconds: no hours-long training.',
+                        'Replace or delete it whenever you want, the previous one is erased.',
+                      ]
+                  ).map((line) => (
+                    <li
+                      key={line}
+                      className="border-b border-q2-plate py-3.5 text-[14px] text-q2-body leading-relaxed q2-body-text"
+                    >
+                      {line}
                     </li>
                   ))}
                 </ul>

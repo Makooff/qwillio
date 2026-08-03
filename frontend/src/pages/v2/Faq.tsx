@@ -37,7 +37,11 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Combien de voix, et puis-je changer le ton ?',
-    a: "Sept voix : cinq françaises, deux anglaises. Vous les écoutez avant de choisir. Le ton se règle séparément de la voix, parmi six réglages (chaleureux, professionnel, décontracté, énergique, haut de gamme, rassurant), et vous pouvez le changer à tout moment.",
+    a: "Sept voix : cinq françaises, deux anglaises. Vous les écoutez avant de choisir. Le ton se règle séparément de la voix, parmi six réglages (chaleureux, professionnel, décontracté, énergique, haut de gamme, rassurant), et vous pouvez le changer à tout moment. Vous pouvez aussi cloner votre propre voix.",
+  },
+  {
+    q: 'Puis-je utiliser ma propre voix ?',
+    a: "Oui. Depuis le tableau de bord, enregistrez entre 20 et 90 secondes au micro, ou importez un fichier audio, et la voix clonée est utilisable dans la foulée : votre réceptionniste répond avec votre timbre. Le clonage exige votre consentement explicite, la voix doit être la vôtre ou enregistrée avec l’accord écrit de la personne. Vous pouvez la remplacer ou la supprimer à tout moment, l’ancienne est alors effacée.",
   },
   {
     q: 'Parle-t-il d’autres langues que le français et l’anglais ?',
@@ -84,7 +88,11 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'How many voices, and can I change the tone?',
-    a: 'Seven voices: five French, two English. You listen before you pick. Tone is set separately from the voice, across six settings (warm, professional, casual, energetic, premium, reassuring), and you can change it at any time.',
+    a: 'Seven voices: five French, two English. You listen before you pick. Tone is set separately from the voice, across six settings (warm, professional, casual, energetic, premium, reassuring), and you can change it at any time. You can also clone your own voice.',
+  },
+  {
+    q: 'Can I use my own voice?',
+    a: 'Yes. From the dashboard, record 20 to 90 seconds with your microphone, or import an audio file, and the cloned voice is usable right away: your receptionist answers with your timbre. Cloning requires your explicit consent, the voice must be yours or recorded with the person’s written permission. You can replace or delete it at any time, and the previous one is erased.',
   },
   {
     q: 'Does it speak languages other than French and English?',
