@@ -6,6 +6,28 @@ import api from '../../services/api';
 type CallState = 'idle' | 'connecting' | 'active' | 'ending';
 
 /**
+ * Pull a displayable string out of whatever Vapi threw.
+ *
+ * Its error events are not a stable shape: sometimes `{ message: string }`,
+ * sometimes `{ message: { message, error, ... } }`, sometimes an Error. Passing
+ * that straight to state and then into JSX renders an object as a React child,
+ * which throws React #31 and takes the whole dashboard down with it — an
+ * unreadable crash screen in place of a call that merely failed.
+ *
+ * Anything that is not a usable string becomes null, and the caller supplies
+ * wording the user can act on.
+ */
+export function errorText(e: unknown): string | null {
+  if (typeof e === 'string') return e.trim() || null;
+  if (!e || typeof e !== 'object') return null;
+  const o = e as Record<string, unknown>;
+  for (const candidate of [o.message, o.errorMsg, (o.error as Record<string, unknown> | undefined)?.message, o.error]) {
+    if (typeof candidate === 'string' && candidate.trim()) return candidate;
+  }
+  return null;
+}
+
+/**
  * Live in-browser voice call with THIS client's receptionist (real ElevenLabs
  * voice + their config), via the Vapi Web SDK — the same tech as the public
  * home-page demo, but personalized. Config (public key + assistant) comes from
@@ -93,7 +115,7 @@ export default function VapiLiveCall({
       vapi.on('error', (e: any) => {
         // Vapi routinely emits errors with no message. Saying "Erreur appel"
         // and nothing else sends the user looking in the wrong place.
-        setError(e?.message || e?.error?.message || (isFr
+        setError(errorText(e) || (isFr
           ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
           : 'The call dropped. Check the microphone and connection, then try again.'));
         setState('idle');
@@ -103,13 +125,13 @@ export default function VapiLiveCall({
       await vapi.start(data.assistant);
     } catch (e: any) {
       setError(
-        e?.message === 'mic_denied'
+        errorText(e) === 'mic_denied'
           ? (isFr
             ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
             : 'Microphone denied. Allow the microphone for this site, then start again.')
           : e?.response?.status === 503
             ? (isFr ? 'Appel live non configuré (clé Vapi).' : 'Live call not configured (Vapi key).')
-            : (e?.message || (isFr ? 'Impossible de démarrer l’appel.' : 'Could not start the call.')),
+            : (errorText(e) || (isFr ? 'Impossible de démarrer l’appel.' : 'Could not start the call.')),
       );
       setState('idle');
     }
