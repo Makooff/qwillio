@@ -228,7 +228,7 @@ qui suffit : les variables du dashboard ne sont pas écrasées par le blueprint.
 | Variable | Sans elle |
 |---|---|
 | `OPENAI_API_KEY` | le chemin custom-LLM tombe en repli parlé à chaque tour |
-| `ELEVENLABS_API_KEY` | pas d'accueil pré-synthétisé, retour à la synthèse live |
+| `ELEVENLABS_API_KEY` | pas d'accueil pré-synthétisé, aperçus de voix en 503 (le dashboard retombe sur la voix du navigateur et le dit), clonage de voix indisponible |
 | `VAPI_WEBHOOK_SECRET` | webhooks rejetés en 401 en production (échec fermé volontaire) |
 
 Optionnelles, toutes avec un défaut sain : `VOICE_*` (voir `config/env.ts`),
