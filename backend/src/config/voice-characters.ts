@@ -49,7 +49,13 @@ const EL = {
   frMarie:   'BilXxxvRLrA8YTteM2sl',
   frCamille: 'd3AXX0BlgJHYFCuH9X88',
   frLea:     'CYR0HqHoZAUmoZsLWPob',
-  frLucas:   'NEjemlRxgWmL5ZGJetsB',
+  // Was 'NEjemlRxgWmL5ZGJetsB' until 2026-08-03: a paste error, that id is a
+  // FEMALE voice. It shipped on Lucas, the only male French character, so a
+  // client picking "posé et professionnel" heard a woman. Nothing in the code
+  // could catch it — only listening did. Antoni is a documented male premade
+  // voice and multilingual_v2 speaks French with it; set VAPI_VOICE_ID_LUCAS
+  // to a native French male voice once one has been auditioned.
+  frLucas:   'ErXwobaYiN019PkySvjV',
   frSofia:   'FvmvwvObRqIHojkEGh5N',
 } as const;
 
