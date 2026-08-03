@@ -188,7 +188,7 @@ export class AssistantChatService {
     if (name === 'list_characters') {
       return {
         output: listCharacters().map(ch => ({
-          id: ch.id, name: ch.name, language: ch.language, accent: ch.accent,
+          id: ch.id, name: ch.name, accent: ch.accent,
           gender: ch.gender, personality: ch.personaKey, tagline: ch.taglineFr,
         })),
         changed: false,
