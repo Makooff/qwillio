@@ -204,7 +204,10 @@ export default function AppShell({
       {/* Colonne principale: panneau incrusté, arrondi 45px en haut-gauche
           avec liseré (le motif signature du shell V1) */}
       <div className="flex-1 min-w-0 flex flex-col bg-q2-void overflow-hidden md:rounded-tl-[45px] md:border-l-2 md:border-t-2 border-white/[0.08]">
-        <header className="sticky top-0 z-40 bg-q2-void/95 backdrop-blur-sm border-b border-q2-graphite-d">
+        <header
+          className="sticky top-0 z-40 bg-q2-void/95 backdrop-blur-sm border-b border-q2-graphite-d"
+          style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        >
           <div className="flex items-center gap-3 h-14 px-4 md:px-8">
             <button
               type="button"
