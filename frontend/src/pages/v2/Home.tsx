@@ -292,15 +292,17 @@ export default function Home() {
               {isFr ? 'Au naturel' : 'Naturally'}
             </Eyebrow>
             <H2 id="conv-heading" onDark>
-              {isFr ? (
-                <>
-                  Parlez-lui comme à <SerifWord>quelqu'un.</SerifWord>
-                </>
-              ) : (
-                <>
-                  Talk to her like a <SerifWord>person.</SerifWord>
-                </>
-              )}
+              <TextReveal>
+                {isFr ? (
+                  <>
+                    Parlez-lui comme à <SerifWord>quelqu'un.</SerifWord>
+                  </>
+                ) : (
+                  <>
+                    Talk to her like a <SerifWord>person.</SerifWord>
+                  </>
+                )}
+              </TextReveal>
             </H2>
           </RevealV2>
           <RevealV2 index={1}>
@@ -337,15 +339,17 @@ export default function Home() {
               {isFr ? 'Mise en route' : 'Setup'}
             </Eyebrow>
             <H2 id="setup-heading">
-              {isFr ? (
-                <>
-                  Configurez-la en lui <SerifWord>parlant.</SerifWord>
-                </>
-              ) : (
-                <>
-                  Set her up by <SerifWord>talking.</SerifWord>
-                </>
-              )}
+              <TextReveal>
+                {isFr ? (
+                  <>
+                    Configurez-la en lui <SerifWord>parlant.</SerifWord>
+                  </>
+                ) : (
+                  <>
+                    Set her up by <SerifWord>talking.</SerifWord>
+                  </>
+                )}
+              </TextReveal>
             </H2>
             <p className="text-q2-body text-base leading-relaxed mt-4 max-w-[380px] q2-body-text">
               {isFr
@@ -356,7 +360,10 @@ export default function Home() {
           <RevealV2 index={1}>
             <div className="border-t border-q2-plate">
               {setup.map((s) => (
-                <div key={s.label} className="border-b border-q2-plate py-7 grid sm:grid-cols-[44px_1fr] gap-4 items-start">
+                <GlowCard
+                  key={s.label}
+                  className="border-b border-q2-plate py-7 grid sm:grid-cols-[44px_1fr] gap-4 items-start"
+                >
                   <span className="w-10 h-10 rounded-full bg-q2-band flex items-center justify-center">
                     <s.icon size={16} className="text-q2-violet" aria-hidden="true" />
                   </span>
@@ -364,7 +371,7 @@ export default function Home() {
                     <p className="text-[17px] font-medium text-q2-ink mb-1">{s.label}</p>
                     <p className="text-q2-body text-sm leading-relaxed q2-body-text">{s.desc}</p>
                   </div>
-                </div>
+                </GlowCard>
               ))}
             </div>
           </RevealV2>
