@@ -12,8 +12,8 @@ import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../..
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
-import LiveAnswerMock from '../../components/v2/LiveAnswerMock';
 import ChatConfigMock from '../../components/v2/ChatConfigMock';
+import PhoneDashboard3D from '../../components/v2/PhoneDashboard3D';
 import VoiceCard, { type VoiceData } from '../../components/landing/VoiceCard';
 
 /* Réceptionniste V2 « Papier & Signal » (DA/v2-direction.md).
@@ -331,12 +331,18 @@ export default function Receptionist() {
 
   return (
     <PublicShell>
-      {/* HERO, asymétrique: titre whisper à gauche, fiche d'appel en cours à droite */}
+      {/* HERO, asymétrique: titre whisper à gauche, le dashboard dans l'iPhone à droite */}
       <Section
         aria-label={isFr ? 'Réceptionniste IA Qwillio' : 'Qwillio AI receptionist'}
-        className="!pt-16 md:!pt-24 overflow-hidden"
+        className="relative !pt-16 md:!pt-24 overflow-hidden"
       >
-        <Container className="grid lg:grid-cols-[1.1fr_1fr] gap-14 lg:gap-20 items-center">
+        {/* Voile lilas du hero, accordé au fond des avatars */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden="true"
+          style={{ background: 'linear-gradient(180deg, #f5f2fb 0%, #faf8fc 55%, #fdfcfc 100%)' }}
+        />
+        <Container className="relative grid lg:grid-cols-[1.1fr_1fr] gap-14 lg:gap-20 items-center">
           <RevealV2>
             <div>
               <Eyebrow tone="indigo" className="mb-6">
@@ -392,7 +398,7 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={2}>
-            <LiveAnswerMock isFr={isFr} />
+            <PhoneDashboard3D isFr={isFr} className="lg:max-w-[440px] mx-auto" />
           </RevealV2>
         </Container>
       </Section>

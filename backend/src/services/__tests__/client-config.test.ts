@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildVapiConfigPatch } from '../client-config.service';
+import { CUSTOM_CHARACTER_ID } from '../../config/voice-characters';
 
 const prev = {};
 
@@ -47,5 +48,23 @@ describe('buildVapiConfigPatch — items', () => {
   it('leaves items untouched when the patch does not mention them', () => {
     const existing = { items: [{ id: 'a', category: 'service', name: 'Spa', price: '40 €' }] };
     expect(buildVapiConfigPatch(existing, { faq: 'hello' }).items).toEqual(existing.items);
+  });
+});
+
+describe('buildVapiConfigPatch — characterId', () => {
+  it('persists the cloned voice selection', () => {
+    // 'custom' is not in the catalog, so the catalog check alone rejected it and
+    // the client's own cloned voice could never be selected from the dashboard.
+    expect(buildVapiConfigPatch(prev, { characterId: CUSTOM_CHARACTER_ID }).characterId)
+      .toBe(CUSTOM_CHARACTER_ID);
+  });
+
+  it('persists a catalog character', () => {
+    expect(buildVapiConfigPatch(prev, { characterId: 'marie' }).characterId).toBe('marie');
+  });
+
+  it('keeps the previous selection when the id is unknown', () => {
+    const existing = { characterId: 'marie' };
+    expect(buildVapiConfigPatch(existing, { characterId: 'nobody' }).characterId).toBe('marie');
   });
 });

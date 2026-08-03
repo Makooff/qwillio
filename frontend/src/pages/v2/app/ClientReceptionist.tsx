@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   Bot, PhoneForwarded, AlertCircle,
   Activity, Globe, Clock, Shield, Calendar,
@@ -8,7 +8,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import api from '../../../services/api';
-import CharacterPicker, { type Character } from '../../../components/client/CharacterPicker';
+import CharacterPickerV2, { type Character } from '../../../components/v2/app/CharacterPickerV2';
+import VoiceCloner, { type CustomVoice } from '../../../components/v2/app/VoiceCloner';
 import AssistantChat from '../../../components/client/AssistantChat';
 import {
   Card, PageActions, Row, PrimaryBtn, GhostBtn,
@@ -149,6 +150,7 @@ export default function ClientReceptionist() {
   const [personalityNotes, setPersonalityNotes] = useState('');
   const [characterId, setCharacterId] = useState<string>('marie');
   const [characters, setCharacters] = useState<Character[]>([]);
+  const [customVoice, setCustomVoice] = useState<CustomVoice | null>(null);
   // One section open at a time, remembered so a reload lands where you were.
   const [openId, setOpenId] = useState<string | null>(() => {
     try { return localStorage.getItem('qw.receptionistSection') || 'identite'; } catch { return 'identite'; }
@@ -159,6 +161,27 @@ export default function ClientReceptionist() {
       else localStorage.removeItem('qw.receptionistSection');
     } catch { /* nothing worth breaking the page over */ }
   }, [openId]);
+
+  // La voix clonée est une carte de plus dans la même grille, pas un widget à
+  // part : la choisir est le même geste que choisir Marie. Elle emprunte la
+  // persona du personnage par défaut de la langue, parce qu'un clone ne dit
+  // rien de la façon de se comporter.
+  const pickerCharacters = useMemo<Character[]>(() => {
+    if (!customVoice) return characters;
+    const isFr = agentLanguage !== 'en';
+    const base = characters.find(c => c.id === (isFr ? 'marie' : 'ashley')) || characters[0];
+    if (!base) return characters;
+    return [
+      {
+        ...base,
+        id: 'custom',
+        name: isFr ? 'Ma voix' : 'My voice',
+        taglineFr: 'Votre voix, clonée',
+        taglineEn: 'Your own cloned voice',
+      },
+      ...characters,
+    ];
+  }, [characters, customVoice, agentLanguage]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -203,6 +226,7 @@ export default function ClientReceptionist() {
       setPersonalityPreset(s?.personalityPreset || 'warm');
       setPersonalityNotes(s?.personalityNotes || '');
       setCharacterId(s?.characterId || 'marie');
+      setCustomVoice(s?.customVoice?.voiceId ? s.customVoice : null);
       // Values below come from the server, so they must not trigger an auto-save.
       hydrated.current = true;
       skipAutosave.current = true;
@@ -428,11 +452,21 @@ export default function ClientReceptionist() {
               <p className="text-[12px] text-q2-fog mb-3 q2-body-text">
                 Choisissez la voix et le caractère qui répond à vos appels. Cliquez sur le bouton lecture pour un aperçu.
               </p>
-              <CharacterPicker
-                characters={characters}
+              <CharacterPickerV2
+                characters={pickerCharacters}
                 value={characterId}
                 onChange={setCharacterId}
                 isFr={agentLanguage !== 'en'}
+              />
+              <VoiceCloner
+                voice={customVoice}
+                isFr={agentLanguage !== 'en'}
+                onChange={v => {
+                  setCustomVoice(v);
+                  // Cloner sélectionne la nouvelle voix ; supprimer ne doit pas
+                  // laisser la sélection pointer sur une carte disparue.
+                  setCharacterId(v ? 'custom' : (agentLanguage === 'en' ? 'ashley' : 'marie'));
+                }}
               />
             </div>
           )}

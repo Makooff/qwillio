@@ -5,7 +5,7 @@
 
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
-import { isValidCharacterId } from '../config/voice-characters';
+import { isValidCharacterId, CUSTOM_CHARACTER_ID } from '../config/voice-characters';
 import { PERSONALITY_PROMPTS } from '../config/personalities';
 
 export interface VapiConfigPatch {
@@ -69,7 +69,9 @@ export function buildVapiConfigPatch(
   }
   if (patch.characterId !== undefined) {
     const v = String(patch.characterId || '');
-    if (isValidCharacterId(v)) next.characterId = v;
+    // The cloned voice is a valid selection but is not in the catalog: it has
+    // no fixed voiceId, it lives per-tenant in the client's own config.
+    if (isValidCharacterId(v) || v === CUSTOM_CHARACTER_ID) next.characterId = v;
   }
   return next;
 }

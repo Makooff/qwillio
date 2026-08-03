@@ -8,11 +8,11 @@ import {
 import { useToast } from '../../../hooks/useToast';
 import ToastContainer from '../../../components/ui/Toast';
 import api from '../../../services/api';
-import CharacterPicker, { type Character } from '../../../components/client/CharacterPicker';
+import CharacterPickerV2, { type Character } from '../../../components/v2/app/CharacterPickerV2';
 import { Card, PageActions, PrimaryBtn, GhostBtn, Input, Textarea, Toggle } from '../../../components/v2/app/Blocks';
 
 /* Personnalisation guidée, registre produit V2. Logique identique à la V1
-   (GET/PUT /my-dashboard/settings, /characters, CharacterPicker réutilisé).
+   (GET/PUT /my-dashboard/settings, /characters, CharacterPickerV2 réutilisé).
    Le titre de page vient d'AppShell: la page ne rend que le titre d'étape. */
 
 const compactCls =
@@ -213,7 +213,7 @@ export default function ClientSetupCustomize() {
       isValid: () => !!characterId,
       render: () => (
         characters.length > 0 ? (
-          <CharacterPicker
+          <CharacterPickerV2
             characters={characters}
             value={characterId}
             onChange={setCharacterId}

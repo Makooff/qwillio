@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, Play, CalendarCheck, MessageSquare, PhoneForwarded,
@@ -10,7 +11,13 @@ import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../..
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
-import LogoOrbs from '../../components/v2/LogoOrbs';
+import PhoneDashboard3D from '../../components/v2/PhoneDashboard3D';
+import ReceptionistGallery from '../../components/v2/ReceptionistGallery';
+import ScreenParade from '../../components/v2/ScreenParade';
+
+/* Le Player Remotion vit dans son propre chunk: la section drenched le
+   charge en lazy, le reste de la page ne paie rien. */
+const LiveTranscriptPlayer = lazy(() => import('../../components/v2/LiveTranscriptPlayer'));
 
 /* Home phase 2, récit neuf sourcé du réceptionniste next-gen (PR #67).
    Zéro copie V1. Chaque affirmation est couverte par le code
@@ -88,8 +95,17 @@ export default function Home() {
   return (
     <PublicShell>
       {/* ── HERO, un réceptionniste qui agit, pas qui note ── */}
-      <Section aria-labelledby="hero-heading" className="!pt-16 md:!pt-24 overflow-hidden">
-        <Container className="grid lg:grid-cols-[1.2fr_1fr] gap-14 lg:gap-20 items-center">
+      <Section aria-labelledby="hero-heading" className="relative !pt-16 md:!pt-24 overflow-hidden">
+        {/* Voile lilas du hero: fini le blanc plat, le fond respire vers le canvas */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden="true"
+          style={{
+            background:
+              'linear-gradient(180deg, #f5f2fb 0%, #faf8fc 55%, #fdfcfc 100%)',
+          }}
+        />
+        <Container className="relative grid lg:grid-cols-[1.2fr_1fr] gap-14 lg:gap-20 items-center">
           <RevealV2>
             <div>
               <Eyebrow tone="indigo" className="mb-6">
@@ -136,16 +152,16 @@ export default function Home() {
                   <span>{isFr ? 'jamais fermé' : 'always on'}</span>
                 </div>
                 <div className="flex items-baseline gap-2 whitespace-nowrap">
-                  <dt className="sr-only">{isFr ? 'Voix' : 'Voices'}</dt>
-                  <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">7</dd>
-                  <span>{isFr ? 'voix au choix' : 'voices to pick'}</span>
+                  <dt className="sr-only">{isFr ? 'Clonage de voix' : 'Voice cloning'}</dt>
+                  <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">90&nbsp;s</dd>
+                  <span>{isFr ? 'pour cloner votre voix' : 'to clone your voice'}</span>
                 </div>
               </dl>
             </div>
           </RevealV2>
 
-          <RevealV2 index={2} className="hidden lg:block">
-            <LogoOrbs className="max-w-[420px] mx-auto" />
+          <RevealV2 index={2}>
+            <PhoneDashboard3D isFr={isFr} className="lg:max-w-[440px] mx-auto" />
           </RevealV2>
         </Container>
       </Section>
@@ -191,9 +207,45 @@ export default function Home() {
         </Container>
       </Section>
 
-      {/* ── UNE VRAIE CONVERSATION, drenched indigo ── */}
+      {/* ── VOS RÉCEPTIONNISTES, galerie de presets ── */}
+      <Section aria-labelledby="team-heading">
+        <Container>
+          <RevealV2 className="mb-12 max-w-[640px]">
+            <Eyebrow tone="indigo" className="mb-4">
+              {isFr ? 'Vos réceptionnistes' : 'Your receptionists'}
+            </Eyebrow>
+            <H2 id="team-heading">
+              {isFr ? (
+                <>
+                  Choisissez qui <SerifWord>décroche.</SerifWord>
+                </>
+              ) : (
+                <>
+                  Choose who <SerifWord>answers.</SerifWord>
+                </>
+              )}
+            </H2>
+            <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
+              {isFr
+                ? 'Chaque réceptionniste a un visage, une personnalité et sa façon de tenir un appel. Choisissez la vôtre, ou prêtez-lui votre propre voix.'
+                : 'Each receptionist has a face, a personality and a way of holding a call. Pick yours, or lend her your own voice.'}
+            </p>
+          </RevealV2>
+          <RevealV2 index={1}>
+            <ReceptionistGallery isFr={isFr} />
+          </RevealV2>
+        </Container>
+      </Section>
+
+      {/* ── UNE VRAIE CONVERSATION, drenched indigo + transcript vivant ── */}
       <Section variant="drenched-indigo" aria-labelledby="conv-heading">
-        <Container className="grid lg:grid-cols-[1fr_1.2fr] gap-12 items-start">
+        <Container className="grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
+          <RevealV2 index={1} className="order-2 lg:order-1">
+            <Suspense fallback={<div className="min-h-[300px]" aria-hidden="true" />}>
+              <LiveTranscriptPlayer isFr={isFr} className="max-w-[520px] mx-auto lg:mx-0" />
+            </Suspense>
+          </RevealV2>
+          <div className="order-1 lg:order-2">
           <RevealV2>
             <Eyebrow tone="indigo" onDark className="mb-4">
               {isFr ? 'Au naturel' : 'Naturally'}
@@ -211,7 +263,7 @@ export default function Home() {
             </H2>
           </RevealV2>
           <RevealV2 index={1}>
-            <ul className="border-t border-q2-graphite-d" role="list">
+            <ul className="border-t border-q2-graphite-d mt-8" role="list">
               {(isFr
                 ? [
                     'Coupez-la en pleine phrase : elle s’arrête net. Une toux ne la déstabilise pas.',
@@ -232,6 +284,7 @@ export default function Home() {
               ))}
             </ul>
           </RevealV2>
+          </div>
         </Container>
       </Section>
 
@@ -255,8 +308,8 @@ export default function Home() {
             </H2>
             <p className="text-q2-body text-base leading-relaxed mt-4 max-w-[380px] q2-body-text">
               {isFr
-                ? 'Pas de formulaire interminable. Vous discutez, elle se règle. Sept voix au choix, avec de vrais aperçus audio.'
-                : 'No endless forms. You chat, she adjusts. Seven voices to pick from, with real audio previews.'}
+                ? 'Pas de formulaire interminable. Vous discutez, elle se règle. Des voix avec de vrais aperçus audio, ou la vôtre, clonée en 90 secondes d’enregistrement.'
+                : 'No endless forms. You chat, she adjusts. Voices with real audio previews, or your own, cloned from 90 seconds of recording.'}
             </p>
           </RevealV2>
           <RevealV2 index={1}>
@@ -274,6 +327,16 @@ export default function Home() {
               ))}
             </div>
           </RevealV2>
+        </Container>
+
+        {/* Les vrais écrans du produit, posés en perspective */}
+        <Container className="mt-20">
+          <RevealV2>
+            <p className="q2-eyebrow text-q2-graphite mb-8">
+              {isFr ? 'Et voici son poste de travail' : 'And this is her workstation'}
+            </p>
+          </RevealV2>
+          <ScreenParade isFr={isFr} />
         </Container>
       </Section>
 
