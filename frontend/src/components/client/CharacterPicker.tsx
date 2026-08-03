@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Play, Square } from 'lucide-react';
+import api from '../../services/api';
 import { useVoicePreview } from './useVoicePreview';
 
 export interface Character {
@@ -17,6 +19,18 @@ export interface Character {
 
 const ACCENT_LABEL: Record<string, string> = { FR: 'FR', BE: 'Belgique', US: 'EN' };
 
+/**
+ * The clip plays what this card will actually sound like, override included —
+ * otherwise picking a face would audition a voice the client has replaced.
+ * Exported because the URL is also the cache key, so prefetching and playing
+ * have to agree on it exactly.
+ */
+export function previewUrl(characterId: string, overrideVoice?: { voiceId: string } | null): string {
+  return overrideVoice
+    ? `/my-dashboard/characters/${characterId}/preview?voiceId=${encodeURIComponent(overrideVoice.voiceId)}`
+    : `/my-dashboard/characters/${characterId}/preview`;
+}
+
 export default function CharacterPicker({
   characters, value, onChange, isFr = true, overrideVoice = null,
 }: {
@@ -27,7 +41,23 @@ export default function CharacterPicker({
   /** Voice replacing the catalog one for every character, when the client set one. */
   overrideVoice?: { voiceId: string; name: string } | null;
 }) {
-  const { playing, notice, toggle } = useVoicePreview(isFr);
+  const { playing, notice, toggle, prefetch } = useVoicePreview(isFr);
+
+  // Ask the server to synthesise the catalog while the client reads the page.
+  // The clips are identical every time, so the only reason ▶ ever waited was
+  // that nobody had asked for them yet.
+  useEffect(() => {
+    void api.post('/my-dashboard/characters/warm').catch(() => undefined);
+  }, []);
+
+  // The selected card is the one most likely to be pressed, so its clip is
+  // downloaded and kept in memory: pressing ▶ then costs nothing at all.
+  const selectedUrl = value && characters.some(c => c.id === value)
+    ? previewUrl(value, overrideVoice)
+    : null;
+  useEffect(() => {
+    if (selectedUrl) prefetch(selectedUrl);
+  }, [selectedUrl, prefetch]);
 
   return (
     <>
@@ -46,12 +76,7 @@ export default function CharacterPicker({
       {characters.map(c => {
         const sel = value === c.id;
         const tagline = isFr ? c.taglineFr : c.taglineEn;
-        // The preview plays what this card will actually sound like, override
-        // included — otherwise picking a face would audition a voice the client
-        // has already replaced.
-        const url = overrideVoice
-          ? `/my-dashboard/characters/${c.id}/preview?voiceId=${encodeURIComponent(overrideVoice.voiceId)}`
-          : `/my-dashboard/characters/${c.id}/preview`;
+        const url = previewUrl(c.id, overrideVoice);
         return (
           <div
             key={c.id}

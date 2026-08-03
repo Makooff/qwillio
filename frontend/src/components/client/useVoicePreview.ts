@@ -48,6 +48,27 @@ function speak(text: string, lang: 'fr' | 'en', onEnd: () => void) {
   window.speechSynthesis.speak(u);
 }
 
+/**
+ * Downloaded clips, by URL. Module-level so they survive a re-render and a
+ * remount, and shared between the character grid and the voice list — the same
+ * clip is on both.
+ *
+ * Bytes rather than AudioBuffer: decodeAudioData detaches the buffer it is
+ * given, so a decoded clip cannot be replayed from the same memory. Each play
+ * decodes a copy.
+ */
+const clips = new Map<string, Uint8Array>();
+
+async function fetchClip(url: string): Promise<Uint8Array> {
+  const held = clips.get(url);
+  if (held) return held;
+  const { data } = await api.get(url, { responseType: 'arraybuffer' });
+  const bytes = new Uint8Array(data as ArrayBuffer);
+  if (!bytes.byteLength) throw new Error('empty_audio');
+  clips.set(url, bytes);
+  return bytes;
+}
+
 export interface VoicePreview {
   /** Key of the clip currently playing, or null. */
   playing: string | null;
@@ -55,6 +76,8 @@ export interface VoicePreview {
   notice: string | null;
   /** Click handler: starts the clip, or stops it when it is the one playing. */
   toggle: (key: string, url: string, fallbackText: string) => void;
+  /** Download a clip before it is asked for, so ▶ plays with no wait. */
+  prefetch: (url: string) => void;
   stop: () => void;
 }
 
@@ -103,18 +126,15 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
 
     void (async () => {
       // Hoisted so the failure message can report the size that arrived.
-      let payload: ArrayBuffer | undefined;
+      let payload: Uint8Array | undefined;
       try {
-        const { data } = await api.get(url, { responseType: 'arraybuffer' });
-        payload = data as ArrayBuffer;
+        payload = await fetchClip(url);
         await resumed;
         if (tokenRef.current !== token) return; // superseded by another click
 
-        if (!payload.byteLength) throw new Error('empty_audio');
-
-        // Throws on anything that is not decodable audio, which is exactly the
-        // signal the <audio> element refused to give.
-        const buffer = await ctx.decodeAudioData(payload);
+        // A copy: decodeAudioData detaches what it decodes, and the original
+        // has to stay playable for the next press.
+        const buffer = await ctx.decodeAudioData(payload.slice().buffer);
         if (tokenRef.current !== token) return;
 
         const source = ctx.createBufferSource();
@@ -172,5 +192,9 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
     })();
   }, [isFr, playing, stop]);
 
-  return { playing, notice, toggle, stop };
+  // Failures are ignored on purpose: this is a hint, and the press that follows
+  // reports the reason properly.
+  const prefetch = useCallback((url: string) => { void fetchClip(url).catch(() => undefined); }, []);
+
+  return { playing, notice, toggle, prefetch, stop };
 }
