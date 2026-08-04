@@ -1,28 +1,32 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import gsap from 'gsap';
 import { ChevronLeft, ChevronRight, Mic, Play, Square } from 'lucide-react';
 import { prefersReducedMotion } from './motion/reducedMotion';
 
-/* Sélection des réceptionnistes en carrousel circulaire: les dix visages sont
-   posés sur un arc, l'actif descend au centre-bas et s'agrandit nettement
-   (160px contre 77px pour ses voisins), sa fiche de personnalité s'écrit
-   dessous. Flèches, clavier (gauche/droite, Origine/Fin) et glisser au doigt
-   font tourner l'arc.
+/* Sélection des réceptionnistes, portée du Circular Carousel de nexus-ui
+   (DA/references/21st/circular-carousel/source.tsx, collé par l'utilisateur) :
+   arc elliptique x = sin(a)*rx / y = -cos(a)*ry, AnimatePresence popLayout,
+   transition 0.65 s cubic-bezier(0.22, 1, 0.36, 1), autoplay pausé au survol
+   et au focus, flèches clavier sur le conteneur, chevrons whileHover 1.08 /
+   whileTap 0.95, points indicateurs (l'actif s'étire en pilule).
 
-   Un bouton d'aperçu posé sur le bas du visage actif fait dire une phrase
-   d'accueil par le moteur de synthèse du navigateur, dans la langue du site:
-   aucun appel réseau, l'aperçu audio des vraies voix vit dans le dashboard.
+   Écarts assumés vis-à-vis de la référence, exigés ou déjà validés :
+   - les items sont des BULLES avatar rondes, l'actif nettement plus grand
+     (échelles par distance, pas la décroissance linéaire douce du source) ;
+   - l'angle par item vient d'un pas de PI/7 et l'arc s'arrête à 3 voisins :
+     avec nos 10 visages, le pas de la référence (PI/5) les enroulerait sous
+     l'ellipse (bug de wraparound déjà corrigé en phase 6) ;
+   - le compteur central du source (l'ellipse est occupée par les visages)
+     rejoint la rangée de contrôles, entre les chevrons ;
+   - les dots de la référence portent transition-all, banni par la DA :
+     transition ciblée ici ;
+   - glisser tactile conservé (un cran par 64px), acquis des phases précédentes.
 
-   Les données sont celles du catalogue serveur (voice-characters.ts), les
-   mêmes que ReceptionistGallery, qui reste en place comme repli réutilisable
-   ailleurs. Chaque personnage porte sa voix et parle français et anglais: la
-   langue vient du client, pas du personnage. Le onzième choix est le clonage
-   de voix (VoiceCloner, 20-90 s).
-
-   Motion: transform et opacity uniquement, une seule écriture GSAP par
-   changement d'index. En reduced-motion on rend une rangée simple, sans arc,
-   sans animation: la fiche et l'aperçu de voix restent disponibles. */
+   L'aperçu de voix reste la synthèse du navigateur (aucun appel réseau côté
+   marketing), et la langue vient du site : chaque personnage parle FR et EN.
+   En reduced-motion : rangée statique, fiche et aperçu conservés. */
 
 interface Preset {
   id: string;
@@ -47,25 +51,42 @@ const PRESETS: Preset[] = [
 ];
 
 const COUNT = PRESETS.length;
-/* Nombre de visages visibles de chaque côté de l'actif: au-delà, le visage
-   sort de l'arc (opacité 0) et le débordement de la scène le découpe */
+/* Pas angulaire de l'arc et dernier voisin affiché (voir en-tête) */
+const STEP = Math.PI / 7;
 const EDGE = 3;
-/* Échelle et opacité par distance à l'actif. L'écart entre 1 et 0.48 est
-   voulu: on doit voir d'un coup d'œil qui décroche. */
-const SCALE = [1, 0.48, 0.38, 0.3, 0.28, 0.26];
-const OPACITY = [1, 0.88, 0.62, 0.32, 0, 0];
-/* Diamètre du visage dans le DOM, avant mise à l'échelle. L'actif le porte
-   tel quel, ses voisins descendent à environ 77px. */
+/* Actif nettement plus grand que ses voisins : exigence utilisateur */
+const SCALE = [1, 0.52, 0.4, 0.3];
+/* Décroissance d'opacité de la référence : max(0.3, 1 - d/maxD * 0.7) */
+const OPACITY = [1, 0.825, 0.65, 0.475];
+/* Diamètre DOM du visage avant mise à l'échelle */
 const FACE = 160;
-/* Sous cette largeur de scène, tout l'arc rétrécit d'un cran */
 const NARROW = 520;
-const NARROW_SCALE = 0.75;
+const AUTOPLAY_MS = 4000;
 
-/* Distance signée la plus courte sur un anneau de COUNT éléments */
+/* Distance signée la plus courte sur l'anneau, wrap de la référence */
 function ringDelta(i: number, active: number) {
   let d = (i - active + COUNT) % COUNT;
   if (d > COUNT / 2) d -= COUNT;
   return d;
+}
+
+/* Portage direct de getItemPosition (source.tsx) : ellipse sin/cos, échelle,
+   opacité et zIndex par distance, null au-delà du bord. */
+function getItemPosition(i: number, active: number, rx: number, ry: number) {
+  const d = ringDelta(i, active);
+  const dist = Math.abs(d);
+  if (dist > EDGE) return null;
+  const angle = d * STEP;
+  const x = Math.sin(angle) * rx;
+  const y = -Math.cos(angle) * ry;
+  return {
+    x,
+    y,
+    scale: SCALE[dist],
+    opacity: OPACITY[dist],
+    zIndex: EDGE + 1 - dist,
+    isActive: dist === 0,
+  };
 }
 
 /* Aperçu de voix par synthèse du navigateur: une phrase d'accueil dans la
@@ -115,17 +136,20 @@ function VoicePreviewButton({
   isFr,
   name,
   className = '',
+  style,
 }: {
   speaking: boolean;
   onToggle: () => void;
   isFr: boolean;
   name: string;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <button
       type="button"
       onClick={onToggle}
+      style={style}
       aria-label={
         speaking
           ? isFr
@@ -214,123 +238,61 @@ function VoiceCloneNote({ isFr }: { isFr: boolean }) {
 export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
   const [active, setActive] = useState(0);
   const [reduced] = useState(prefersReducedMotion);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  /* Rayons de l'ellipse et taille de visage, déduits de la largeur de scène */
+  const [dims, setDims] = useState({ rx: 250, ry: 112, face: FACE });
   const stageRef = useRef<HTMLDivElement>(null);
-  const ringRef = useRef<HTMLSpanElement>(null);
-  const tabsRef = useRef<Array<HTMLButtonElement | null>>([]);
   const dragRef = useRef<{ id: number; x: number; consumed: number } | null>(null);
 
   const preset = PRESETS[active];
   const { speaking, toggle } = useVoicePreview(preset, isFr);
 
-  const go = useCallback((next: number) => {
+  const goTo = useCallback((next: number) => {
     setActive(((next % COUNT) + COUNT) % COUNT);
   }, []);
 
-  /* Pose l'arc: chaque visage prend son angle, seuls x/y/scale sont écrits */
-  const layout = useCallback(
-    (animate: boolean) => {
-      const stage = stageRef.current;
-      if (!stage) return;
-      const w = stage.clientWidth;
-      const h = stage.clientHeight;
-      if (w === 0) return;
+  const next = useCallback(() => goTo(active + 1), [active, goTo]);
+  const prev = useCallback(() => goTo(active - 1), [active, goTo]);
 
-      /* L'arc est déduit de la scène, pas de constantes en dur: le visage le
-         plus éloigné encore visible atterrit à `span` du centre et `depth`
-         plus haut. Le rayon et le pas s'en déduisent, donc la courbe reste
-         juste de 390px à 1200px sans point de rupture. */
-      /* Empan plafonné: sans lui, un écran large étirerait l'arc en rangée
-         plate et la courbe ne se lirait plus. Angle de bord plafonné à 72deg:
-         au-delà l'arc se referme sur lui-même et les visages se rattrapent. */
-      const vs = w < NARROW ? NARROW_SCALE : 1;
-      /* Diamètre visible de l'actif, une fois la mise à l'échelle appliquée */
-      const facePx = FACE * vs;
-      const span = Math.min(w * 0.46, 300);
-      const depth = h * 0.58;
-      const edgeAngle = Math.min(2 * Math.atan(depth / span), (72 * Math.PI) / 180);
-      const radius = span / Math.sin(edgeAngle);
-      const step = edgeAngle / EDGE;
-      /* Ligne de base: le centre de l'actif, posé au bas de la scène */
-      const baseY = h - facePx / 2 - 22;
-
-      PRESETS.forEach((_, i) => {
-        const el = tabsRef.current[i];
-        if (!el) return;
-        const d = ringDelta(i, active);
-        const a = d * step;
-        const x = radius * Math.sin(a);
-        /* FACE et non facePx: l'élément est mis à l'échelle depuis son
-           centre, la translation part donc de sa taille DOM */
-        const y = baseY - radius * (1 - Math.cos(a)) - FACE / 2;
-        const k = Math.min(Math.abs(d), SCALE.length - 1);
-        const vars = {
-          x,
-          y,
-          scale: SCALE[k] * vs,
-          opacity: OPACITY[k],
-          zIndex: 20 - Math.abs(d),
-          duration: animate ? 0.62 : 0,
-          ease: 'expo.out',
-          overwrite: 'auto' as const,
-        };
-        gsap.to(el, vars);
-      });
-
-      const ring = ringRef.current;
-      if (ring) {
-        const size = facePx + 12;
-        ring.style.width = `${size}px`;
-        ring.style.height = `${size}px`;
-        ring.style.marginLeft = `${-size / 2}px`;
-        ring.style.top = `${baseY - size / 2}px`;
-      }
-    },
-    [active],
-  );
-
-  useLayoutEffect(() => {
-    if (reduced) return;
-    layout(false);
-  }, [reduced, layout]);
-
+  /* Autoplay de la référence : 4 s, pausé au survol, au focus, et pendant
+     qu'une voix parle (avancer couperait l'aperçu). */
   useEffect(() => {
-    if (reduced) return;
-    layout(true);
-  }, [active, reduced, layout]);
+    if (reduced || isHovered || isFocused || speaking) return;
+    const id = setInterval(() => setActive((a) => (a + 1) % COUNT), AUTOPLAY_MS);
+    return () => clearInterval(id);
+  }, [reduced, isHovered, isFocused, speaking]);
 
   useEffect(() => {
     if (reduced) return;
     const stage = stageRef.current;
     if (!stage || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => layout(false));
+    const measure = () => {
+      const w = stage.clientWidth;
+      if (w === 0) return;
+      const face = w < NARROW ? 116 : FACE;
+      const rx = Math.min(w * 0.42, 250);
+      setDims({ rx, ry: Math.round(rx * 0.45), face });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
     ro.observe(stage);
     return () => ro.disconnect();
-  }, [reduced, layout]);
-
-  useEffect(
-    () => () => {
-      gsap.killTweensOf(tabsRef.current.filter(Boolean) as HTMLButtonElement[]);
-    },
-    [],
-  );
+  }, [reduced]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      go(active + 1);
-      tabsRef.current[(active + 1) % COUNT]?.focus();
+      next();
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      go(active - 1);
-      tabsRef.current[(active - 1 + COUNT) % COUNT]?.focus();
+      prev();
     } else if (e.key === 'Home') {
       e.preventDefault();
-      go(0);
-      tabsRef.current[0]?.focus();
+      goTo(0);
     } else if (e.key === 'End') {
       e.preventDefault();
-      go(COUNT - 1);
-      tabsRef.current[COUNT - 1]?.focus();
+      goTo(COUNT - 1);
     }
   };
 
@@ -346,7 +308,7 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
     const total = e.clientX - drag.x;
     const steps = Math.trunc(total / 64);
     if (steps !== drag.consumed) {
-      go(active - (steps - drag.consumed));
+      goTo(active - (steps - drag.consumed));
       drag.consumed = steps;
     }
   };
@@ -405,90 +367,156 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
     );
   }
 
+  /* Bord bas de la bulle active dans la scène (centre + -ry + rayon) : le
+     bouton d'aperçu s'y accroche, l'anneau décoratif aussi. */
+  const activeCenterY = -dims.ry;
+  const ringSize = dims.face + 12;
+
   return (
     <div>
-      {/* Le bouton d'aperçu vit hors du tablist: un bouton simple entre des
-          role="tab" casserait la sémantique de la liste */}
-      <div className="relative">
-        <div
-          ref={stageRef}
-          role="tablist"
-          aria-label={label}
-          tabIndex={-1}
-          onKeyDown={onKeyDown}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-          className="relative h-[300px] sm:h-[400px] overflow-hidden touch-pan-y select-none"
-        >
-          {PRESETS.map((p, i) => (
-            <button
-              key={p.id}
-              ref={(el) => {
-                tabsRef.current[i] = el;
-              }}
-              type="button"
-              role="tab"
-              aria-selected={active === i}
-              tabIndex={active === i ? 0 : -1}
-              aria-label={`${p.name}, ${isFr ? p.personalityFr : p.personalityEn}`}
-              onClick={() => go(i)}
-              id={`recep-tab-${p.id}`}
-              aria-controls="recep-panel"
-              /* Pose neutre en haut au centre: GSAP n'écrit que x/y/scale */
-              style={{ willChange: 'transform' }}
-              className="absolute top-0 left-1/2 -ml-[80px] w-[160px] h-[160px] rounded-full overflow-hidden bg-q2-band focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-q2-canvas"
-            >
-              <img
-                src={`/characters/${p.id}.webp`}
-                alt=""
-                loading={i < 4 ? 'eager' : 'lazy'}
-                width={160}
-                height={160}
-                className="w-full h-full object-cover"
-              />
-            </button>
-          ))}
-
-          {/* Anneau de l'actif, décoratif: il ne bouge pas, l'arc vient à lui.
-              Ses dimensions suivent l'échelle de la scène, écrites par layout */}
+      <div
+        ref={stageRef}
+        role="region"
+        aria-roledescription="carousel"
+        aria-label={label}
+        tabIndex={0}
+        onKeyDown={onKeyDown}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        className="relative h-[300px] sm:h-[380px] overflow-hidden touch-pan-y select-none outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-3xl"
+      >
+        {/* Décalage du repère : le centre de l'ellipse vit sous le milieu de
+            scène pour que l'actif (en haut de l'ellipse) respire */}
+        <div className="absolute left-1/2 top-[62%]">
+          {/* Anneau décoratif sous la bulle active : l'arc vient à lui */}
           <span
-            ref={ringRef}
             aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 rounded-full ring-1 ring-q2-plate"
+            className="pointer-events-none absolute rounded-full ring-1 ring-q2-plate"
+            style={{
+              width: ringSize,
+              height: ringSize,
+              left: -ringSize / 2,
+              top: activeCenterY - ringSize / 2,
+            }}
+          />
+          <AnimatePresence mode="popLayout">
+            {PRESETS.map((p, i) => {
+              const pos = getItemPosition(i, active, dims.rx, dims.ry);
+              if (!pos) return null;
+              return (
+                <motion.button
+                  key={p.id}
+                  layout
+                  type="button"
+                  id={`recep-tab-${p.id}`}
+                  aria-label={`${p.name}, ${isFr ? p.personalityFr : p.personalityEn}`}
+                  aria-current={pos.isActive}
+                  onClick={() => goTo(i)}
+                  initial={{ opacity: 0, scale: 0.8, x: pos.x, y: pos.y }}
+                  animate={{
+                    x: pos.x,
+                    y: pos.y,
+                    scale: pos.scale,
+                    opacity: pos.opacity,
+                    zIndex: pos.zIndex,
+                  }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+                  className={`absolute cursor-pointer rounded-full overflow-hidden bg-q2-band focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-q2-canvas ${
+                    pos.isActive
+                      ? 'shadow-[0_20px_60px_-12px_rgba(20,16,50,0.28)]'
+                      : 'shadow-[0_8px_24px_-4px_rgba(20,16,50,0.14)]'
+                  }`}
+                  style={{
+                    width: dims.face,
+                    height: dims.face,
+                    left: -dims.face / 2,
+                    top: -dims.face / 2,
+                    transformOrigin: 'center center',
+                  }}
+                >
+                  <img
+                    src={`/characters/${p.id}.webp`}
+                    alt=""
+                    loading={i < 4 ? 'eager' : 'lazy'}
+                    width={FACE}
+                    height={FACE}
+                    className="w-full h-full object-cover"
+                  />
+                </motion.button>
+              );
+            })}
+          </AnimatePresence>
+          <VoicePreviewButton
+            speaking={speaking}
+            onToggle={toggle}
+            isFr={isFr}
+            name={preset.name}
+            className="absolute z-30"
+            style={{ left: -16, top: activeCenterY + dims.face / 2 - 24 }}
           />
         </div>
-
-        <VoicePreviewButton
-          speaking={speaking}
-          onToggle={toggle}
-          isFr={isFr}
-          name={preset.name}
-          className="absolute left-1/2 -ml-4 bottom-[6px] z-30"
-        />
       </div>
 
-      <div className="flex items-center justify-center gap-3 mt-4 mb-6 sm:mt-5 sm:mb-8">
-        <button
+      {/* Contrôles de la référence : chevrons animés, compteur re-animé à
+          chaque changement, dots avec l'actif en pilule */}
+      <div className="flex items-center justify-center gap-4 mt-4 mb-6 sm:mt-5 sm:mb-8">
+        <motion.button
           type="button"
-          onClick={() => go(active - 1)}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={prev}
           aria-label={isFr ? 'Réceptionniste précédente' : 'Previous receptionist'}
-          className="q2-pill w-11 h-11 inline-flex items-center justify-center rounded-full border border-q2-plate bg-q2-canvas text-q2-ink hover:border-q2-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
+          className="w-10 h-10 inline-flex items-center justify-center rounded-full border border-q2-plate bg-q2-canvas text-q2-ink hover:border-q2-faint transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
         >
           <ChevronLeft size={17} aria-hidden="true" />
-        </button>
-        <p className="q2-eyebrow text-q2-faint tabular-nums w-16 text-center" aria-hidden="true">
-          {String(active + 1).padStart(2, '0')} / {COUNT}
-        </p>
-        <button
+        </motion.button>
+
+        <div className="flex flex-col items-center gap-2 w-32">
+          <motion.p
+            key={preset.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            aria-hidden="true"
+            className="q2-eyebrow text-q2-faint tabular-nums"
+          >
+            {String(active + 1).padStart(2, '0')} / {String(COUNT).padStart(2, '0')}
+          </motion.p>
+          <div className="flex items-center gap-1.5">
+            {PRESETS.map((p, i) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => goTo(i)}
+                aria-label={isFr ? `Aller à ${p.name}` : `Go to ${p.name}`}
+                aria-current={i === active}
+                className={`h-1.5 rounded-full transition-[width,background-color] duration-300 ${
+                  i === active
+                    ? 'w-6 bg-q2-ink'
+                    : 'w-1.5 bg-q2-plate hover:bg-q2-faint'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        <motion.button
           type="button"
-          onClick={() => go(active + 1)}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={next}
           aria-label={isFr ? 'Réceptionniste suivante' : 'Next receptionist'}
-          className="q2-pill w-11 h-11 inline-flex items-center justify-center rounded-full border border-q2-plate bg-q2-canvas text-q2-ink hover:border-q2-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
+          className="w-10 h-10 inline-flex items-center justify-center rounded-full border border-q2-plate bg-q2-canvas text-q2-ink hover:border-q2-faint transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
         >
           <ChevronRight size={17} aria-hidden="true" />
-        </button>
+        </motion.button>
       </div>
 
       <PersonaCard preset={preset} isFr={isFr} />
