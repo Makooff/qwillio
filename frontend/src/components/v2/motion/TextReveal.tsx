@@ -1,29 +1,18 @@
-import { Children, Fragment, isValidElement } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import { EASE_OUT_EXPO } from './reducedMotion';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SplitText } from 'gsap/SplitText';
+import { prefersReducedMotion } from './reducedMotion';
 
-/* Révélation de titre mot par mot au scroll (translateY + opacity, jamais
-   de masque qui rognerait les jambages). Les enfants texte sont découpés en
-   mots, les enfants React (SerifWord) restent une unité insécable: le mot
-   serif italique garde sa ligature visuelle.
-   Transform/opacity uniquement, `once`, statique si reduced-motion. */
+gsap.registerPlugin(ScrollTrigger, SplitText);
 
-function toUnits(children: ReactNode): ReactNode[] {
-  const units: ReactNode[] = [];
-  Children.toArray(children).forEach((child) => {
-    if (typeof child === 'string' || typeof child === 'number') {
-      String(child)
-        .split(/\s+/)
-        .forEach((word) => {
-          if (word.length > 0) units.push(word);
-        });
-    } else if (isValidElement(child)) {
-      units.push(child);
-    }
-  });
-  return units;
-}
+/* Révélation de titre au scroll via GSAP SplitText: les mots montent depuis
+   un masque de ligne (yPercent 110 -> 0), la signature des sites référence.
+   Le découpage attend document.fonts.ready (sinon les lignes se calculent
+   sur la mauvaise fonte), respecte les éléments imbriqués (SerifWord reste
+   une unité), et se révert proprement au démontage. Statique si
+   reduced-motion. API inchangée: children, delay, stagger, className. */
 
 interface TextRevealProps {
   children: ReactNode;
@@ -36,39 +25,46 @@ interface TextRevealProps {
 export default function TextReveal({
   children,
   delay = 0,
-  stagger = 0.03,
+  stagger = 0.04,
   className = '',
 }: TextRevealProps) {
-  const reduced = useReducedMotion();
-  if (reduced) return <span className={className}>{children}</span>;
+  const ref = useRef<HTMLSpanElement>(null);
 
-  const units = toUnits(children);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || prefersReducedMotion()) return;
+
+    let split: SplitText | null = null;
+    let cancelled = false;
+    const ctx = gsap.context(() => {
+      document.fonts.ready.then(() => {
+        if (cancelled || !ref.current) return;
+        split = SplitText.create(ref.current, {
+          type: 'lines,words',
+          mask: 'lines',
+          linesClass: 'q2-split-line',
+        });
+        gsap.from(split.words, {
+          yPercent: 110,
+          duration: 0.7,
+          ease: 'expo.out',
+          stagger,
+          delay,
+          scrollTrigger: { trigger: el, start: 'top 85%', once: true },
+        });
+      });
+    }, el);
+
+    return () => {
+      cancelled = true;
+      split?.revert();
+      ctx.revert();
+    };
+  }, [delay, stagger]);
 
   return (
-    <motion.span
-      className={className}
-      initial="hidden"
-      whileInView="shown"
-      viewport={{ once: true, margin: '-12% 0px -8% 0px' }}
-      variants={{
-        hidden: {},
-        shown: { transition: { staggerChildren: stagger, delayChildren: delay } },
-      }}
-    >
-      {units.map((unit, i) => (
-        <Fragment key={i}>
-          {i > 0 ? ' ' : null}
-          <motion.span
-            style={{ display: 'inline-block' }}
-            variants={{
-              hidden: { opacity: 0, y: 20 },
-              shown: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE_OUT_EXPO } },
-            }}
-          >
-            {unit}
-          </motion.span>
-        </Fragment>
-      ))}
-    </motion.span>
+    <span ref={ref} className={className} style={{ display: 'block' }}>
+      {children}
+    </span>
   );
 }
