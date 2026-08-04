@@ -44,6 +44,75 @@ function preferPlaybackSession(): void {
   try { session.type = 'playback'; } catch { /* not settable here */ }
 }
 
+const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+/**
+ * One context for the whole page.
+ *
+ * The character grid and the voice list each used to make their own, and iOS
+ * caps how many a page may hold — cross the cap and the constructor throws, so
+ * a page that had been reopened a few times would simply stop playing anything.
+ * Sharing also means a context recovered in one list is recovered for both.
+ */
+let sharedCtx: AudioContext | null = null;
+
+function liveContext(): AudioContext | null {
+  const Ctor = audioContextCtor();
+  if (!Ctor) return null;
+  // A closed context cannot be revived; a suspended or interrupted one can, and
+  // is handled by resumeWithin.
+  if (!sharedCtx || sharedCtx.state === 'closed') {
+    try { sharedCtx = new Ctor(); } catch { return null; }
+  }
+  return sharedCtx;
+}
+
+/**
+ * The context plumbing, exposed for tests. Everything here has broken in
+ * production at least once, and none of it is reachable through the hook
+ * without a real audio device.
+ */
+export const __audio = {
+  liveContext: () => liveContext(),
+  replaceContext: () => replaceContext(),
+  resumeWithin: (ctx: AudioContext, ms: number) => resumeWithin(ctx, ms),
+  reset: () => { sharedCtx = null; },
+  current: () => sharedCtx,
+};
+
+/** Drops the current context and returns a fresh one. */
+function replaceContext(): AudioContext | null {
+  const dead = sharedCtx;
+  sharedCtx = null;
+  if (dead) void dead.close().catch(() => undefined);
+  return liveContext();
+}
+
+// iOS interrupts the audio session when the app goes to the background — a
+// notification, a call, the home screen. Nothing tells the page, and the next
+// press is silent. Resuming when the page comes back keeps the first press
+// after a switch working like any other.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !sharedCtx) return;
+    preferPlaybackSession();
+    void resumeWithin(sharedCtx, 1_000);
+  });
+}
+
+/**
+ * Resume, but never hang on it. On iOS `resume()` can take the best part of a
+ * second, and it can also never settle at all when the audio session belongs to
+ * another app — awaiting it without a bound is how ▶ turns into a permanent ■.
+ */
+function resumeWithin(ctx: AudioContext, ms: number): Promise<void> {
+  if (ctx.state === 'running') return Promise.resolve();
+  return Promise.race([
+    ctx.resume().catch(() => undefined),
+    wait(ms),
+  ]).then(() => undefined);
+}
+
 // Browser TTS fallback. A rough preview only — the real call uses ElevenLabs.
 //
 // The timeout is not belt and braces: on iOS `speak()` regularly fires neither
@@ -111,13 +180,14 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
   const [playing, setPlaying] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [debug, setDebug] = useState<string | null>(null);
-  const ctxRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const guardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tokenRef = useRef(0);
 
   const stop = useCallback(() => {
     window.speechSynthesis?.cancel();
     tokenRef.current += 1;
+    if (guardRef.current) { clearTimeout(guardRef.current); guardRef.current = null; }
     if (sourceRef.current) {
       // The handler would otherwise clear the button state of the clip that is
       // starting, not the one being stopped.
@@ -127,20 +197,57 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
     }
   }, []);
 
+  /**
+   * Last resort: throw the context away and play the same bytes on a fresh one.
+   *
+   * A context that Safari has interrupted — a phone call, another app, a
+   * backgrounded tab, or simply a page that has been refreshed a few times —
+   * can stay stuck with no error to report. Nothing revives it, and everything
+   * built on it is silent from then on, which is exactly the intermittent
+   * failure that survived every earlier fix.
+   */
+  const restart = useCallback(async (bytes: Uint8Array, token: number): Promise<boolean> => {
+    try {
+      preferPlaybackSession();
+      const ctx = replaceContext();
+      if (!ctx) return false;
+      await resumeWithin(ctx, 2_500);
+      if (tokenRef.current !== token) return true; // superseded, not a failure
+
+      const buffer = await ctx.decodeAudioData(bytes.slice().buffer);
+      if (tokenRef.current !== token) return true;
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.onended = () => {
+        if (tokenRef.current !== token) return;
+        if (guardRef.current) { clearTimeout(guardRef.current); guardRef.current = null; }
+        setPlaying(null);
+      };
+      sourceRef.current = source;
+      const clockAtStart = ctx.currentTime;
+      source.start();
+      setDebug(`${Math.round(bytes.byteLength / 1024)} ko · contexte recréé · ${ctx.state}…`);
+
+      await wait(1_000);
+      if (tokenRef.current !== token) return true;
+      if (ctx.state === 'running' && ctx.currentTime > clockAtStart + 0.05) return true;
+
+      source.onended = null;
+      try { source.stop(); } catch { /* never started */ }
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const toggle = useCallback((key: string, url: string, fallbackText: string) => {
     if (playing === key) { stop(); setPlaying(null); return; }
     stop();
     setPlaying(key);
 
     const lang = isFr ? 'fr' : 'en';
-    const Ctor = audioContextCtor();
-    if (!Ctor) {
-      setNotice(isFr
-        ? "Ce navigateur ne peut pas lire l'audio. Aperçu joué avec la voix du navigateur."
-        : 'This browser cannot play audio. Playing the browser voice instead.');
-      speak(fallbackText, lang, () => setPlaying(null));
-      return;
-    }
 
     // Before the context exists: on iOS the session type is what decides
     // whether any of this will be audible at all.
@@ -148,10 +255,21 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
 
     // Created and resumed inside the click. iOS starts every context suspended
     // and only allows the resume from a gesture; doing it after the fetch would
-    // be too late.
-    const ctx = ctxRef.current ?? new Ctor();
-    ctxRef.current = ctx;
-    const resumed = ctx.state === 'suspended' ? ctx.resume().catch(() => undefined) : Promise.resolve();
+    // be too late. A context Safari has closed cannot be revived, so it is
+    // replaced rather than reused — that is what a refresh occasionally leaves
+    // behind.
+    const ctx = liveContext();
+    if (!ctx) {
+      setNotice(isFr
+        ? "Ce navigateur ne peut pas lire l'audio. Aperçu joué avec la voix du navigateur."
+        : 'This browser cannot play audio. Playing the browser voice instead.');
+      speak(fallbackText, lang, () => setPlaying(null));
+      return;
+    }
+    // resume() unconditionally: Safari also has an 'interrupted' state (a call,
+    // another app taking the audio session) that needs exactly the same
+    // treatment, and resuming a running context is a no-op.
+    const resumed = resumeWithin(ctx, 2_500);
 
     const token = ++tokenRef.current;
 
@@ -172,26 +290,48 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
         source.buffer = buffer;
         source.connect(ctx.destination);
         const startedAt = Date.now();
+        const ko = Math.round(payload.byteLength / 1024);
         source.onended = () => {
           if (tokenRef.current !== token) return;
+          if (guardRef.current) { clearTimeout(guardRef.current); guardRef.current = null; }
           setPlaying(null);
-          setDebug(`${Math.round(payload!.byteLength / 1024)} ko · ${buffer.duration.toFixed(1)} s · lu en ${((Date.now() - startedAt) / 1000).toFixed(1)} s · ${ctx.state} · vol ${ctx.destination.channelCount}ch`);
+          setDebug(`${ko} ko · ${buffer.duration.toFixed(1)} s · lu en ${((Date.now() - startedAt) / 1000).toFixed(1)} s · ${ctx.state}`);
         };
         sourceRef.current = source;
         setNotice(null);
-        setDebug(`${Math.round(payload.byteLength / 1024)} ko · ${buffer.duration.toFixed(1)} s · ${ctx.state}…`);
+        setDebug(`${ko} ko · ${buffer.duration.toFixed(1)} s · ${ctx.state}…`);
+
+        const clockAtStart = ctx.currentTime;
         source.start();
 
-        // A context that is not running produces no sound and no error. Saying
-        // so is the difference between "this app is broken" and "unlock the
-        // phone / turn off silent and press again".
-        setTimeout(() => {
-          if (tokenRef.current !== token) return;
-          if (ctx.state === 'running') return;
-          setNotice(isFr
-            ? "Le navigateur a mis l'audio en pause. Touchez de nouveau ▶, et vérifiez l'interrupteur silence de l'iPhone."
-            : 'The browser paused audio. Tap ▶ again, and check the iPhone silent switch.');
-        }, 400);
+        // The button must come back on its own even if `ended` never fires,
+        // which is what left ■ frozen on the card. A clip cannot outlast its own
+        // duration plus a margin.
+        guardRef.current = setTimeout(() => {
+          if (tokenRef.current === token) setPlaying(null);
+        }, (buffer.duration + 2) * 1000);
+
+        // Whether it is REALLY playing — the previous version asked at 400 ms
+        // and called a slow resume a failure, which is how a working preview
+        // got a scary banner and a stuck square. The clock is the only honest
+        // witness: a running context advances it, a blocked one does not.
+        await wait(1_200);
+        if (tokenRef.current !== token) return;
+        if (ctx.state === 'running' && ctx.currentTime > clockAtStart + 0.05) return;
+
+        // Genuinely stuck. One recovery attempt on a brand new context, because
+        // a context Safari has interrupted sometimes never comes back.
+        source.onended = null;
+        try { source.stop(); } catch { /* never started */ }
+        const recovered = await restart(payload, token);
+        if (tokenRef.current !== token) return;
+        if (recovered) return;
+
+        if (guardRef.current) { clearTimeout(guardRef.current); guardRef.current = null; }
+        setNotice(isFr
+          ? "Le navigateur a bloqué l'audio. Aperçu joué avec la voix du navigateur — touchez ▶ à nouveau pour la vraie voix."
+          : 'The browser blocked audio. Playing the browser voice — tap ▶ again for the real one.');
+        speak(fallbackText, lang, () => setPlaying(null));
       } catch (err) {
         if (tokenRef.current !== token) return;
 
@@ -236,7 +376,7 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
         speak(fallbackText, lang, () => setPlaying(null));
       }
     })();
-  }, [isFr, playing, stop]);
+  }, [isFr, playing, stop, restart]);
 
   // Failures are ignored on purpose: this is a hint, and the press that follows
   // reports the reason properly.
