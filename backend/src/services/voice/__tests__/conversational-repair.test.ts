@@ -51,16 +51,25 @@ describe('silence handling', () => {
   });
 
   it('nudges well before the hang-up deadline — they are different events', () => {
-    const plan = buildIdleMessagePlan('fr', 4, 2);
-    expect(plan.timeoutSeconds).toBe(4);
-    expect(plan.timeoutSeconds).toBeLessThan(10);
-    expect(plan.count).toBe(2);
-    expect(plan.messages.length).toBeGreaterThan(0);
+    const plan = buildIdleMessagePlan('fr', 6, 2);
+    expect(plan.idleTimeoutSeconds).toBe(6);
+    expect(plan.idleTimeoutSeconds).toBeLessThan(10);
+    expect(plan.idleMessageMaxSpokenCount).toBe(2);
+    expect(plan.idleMessages.length).toBeGreaterThan(0);
+  });
+
+  it('clamps to what Vapi accepts rather than shipping a rejected assistant', () => {
+    // Out-of-range values do not disable the nudge, they reject the whole
+    // assistant — every call for that client dies, not just the idle line.
+    expect(buildIdleMessagePlan('fr', 4, 2).idleTimeoutSeconds).toBe(5);
+    expect(buildIdleMessagePlan('fr', 900, 2).idleTimeoutSeconds).toBe(60);
+    expect(buildIdleMessagePlan('fr', 6, 0).idleMessageMaxSpokenCount).toBe(1);
+    expect(buildIdleMessagePlan('fr', 6, 99).idleMessageMaxSpokenCount).toBe(10);
   });
 
   it('ships the idle plan alongside the silence timeout, not instead of it', () => {
     const plans = buildRealtimePlans('en') as Record<string, any>;
-    expect(plans.messagePlan.timeoutSeconds).toBeLessThan(plans.silenceTimeoutSeconds);
+    expect(plans.messagePlan.idleTimeoutSeconds).toBeLessThan(plans.silenceTimeoutSeconds);
   });
 });
 

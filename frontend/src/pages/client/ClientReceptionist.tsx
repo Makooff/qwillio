@@ -11,6 +11,7 @@ import api from '../../services/api';
 import CharacterPicker, { type Character } from '../../components/client/CharacterPicker';
 import AssistantChat from '../../components/client/AssistantChat';
 import VoiceCloner, { type CustomVoice } from '../../components/client/VoiceCloner';
+import VoicePicker from '../../components/client/VoicePicker';
 
 const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors disabled:opacity-50';
 const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] focus:outline-none focus:border-[#7349fe]/50 transition-colors disabled:opacity-50';
@@ -160,25 +161,10 @@ export default function ClientReceptionist() {
     } catch { /* nothing worth breaking the page over */ }
   }, [openId]);
 
-  // The cloned voice is one more card in the same grid, not a separate widget:
-  // choosing it is the same gesture as choosing Marie. It carries the language
-  // default's persona because a clone says nothing about how to behave.
-  const pickerCharacters = useMemo<Character[]>(() => {
-    if (!customVoice) return characters;
-    const isFr = agentLanguage !== 'en';
-    const base = characters.find(c => c.id === (isFr ? 'marie' : 'ashley')) || characters[0];
-    if (!base) return characters;
-    return [
-      {
-        ...base,
-        id: 'custom',
-        name: isFr ? 'Ma voix' : 'My voice',
-        taglineFr: 'Votre voix, clonée',
-        taglineEn: 'Your own cloned voice',
-      },
-      ...characters,
-    ];
-  }, [characters, customVoice, agentLanguage]);
+  const selectedCharacter = useMemo<Character | null>(
+    () => characters.find(c => c.id === characterId) || characters[0] || null,
+    [characters, characterId],
+  );
 
   const load = useCallback(async () => {
     setError(null);
@@ -297,11 +283,12 @@ export default function ClientReceptionist() {
         personalityPreset,
         personalityNotes,
         characterId,
+        customVoice,
       });
     } catch { /* silent — the next edit retries */ }
   }, [businessName, businessType, transferNumber, agentName, agentLanguage,
       contactPhone, address, city, postalCode, forwardingType, googleCalendarId,
-      items, weekHours, faq, personalityPreset, personalityNotes, characterId]);
+      items, weekHours, faq, personalityPreset, personalityNotes, characterId, customVoice]);
 
   // Auto-save: debounce after any edit. Skips the initial hydration from load()
   // so we never fire a redundant save on mount.
@@ -450,20 +437,31 @@ export default function ClientReceptionist() {
               Choisissez la voix et le caractère qui répond à vos appels. Cliquez sur ▶ pour un aperçu.
             </p>
             <CharacterPicker
-              characters={pickerCharacters}
+              characters={characters}
               value={characterId}
-              onChange={setCharacterId}
+              // The character carries a tone of its own; selecting one applies
+              // it, and the tone buttons below stay available to override it.
+              onChange={c => { setCharacterId(c.id); setPersonalityPreset(c.personaKey); }}
               isFr={agentLanguage !== 'en'}
+              overrideVoice={customVoice}
             />
+            {selectedCharacter && (
+              <VoicePicker
+                characterId={selectedCharacter.id}
+                characterVoiceName={selectedCharacter.name}
+                value={customVoice}
+                onChange={setCustomVoice}
+                sampleText={agentLanguage === 'en' ? selectedCharacter.previewEn : selectedCharacter.previewFr}
+                isFr={agentLanguage !== 'en'}
+              />
+            )}
             <VoiceCloner
               voice={customVoice}
               isFr={agentLanguage !== 'en'}
-              onChange={v => {
-                setCustomVoice(v);
-                // Cloning selects the new voice; deleting it must not leave the
-                // selection pointing at a card that no longer exists.
-                setCharacterId(v ? 'custom' : (agentLanguage === 'en' ? 'ashley' : 'marie'));
-              }}
+              // A clone is selected the moment it exists, and deleting it falls
+              // back to the character's own voice — the character itself never
+              // moves.
+              onChange={v => setCustomVoice(v ? { ...v, cloned: true } : null)}
             />
           </div>
         )}

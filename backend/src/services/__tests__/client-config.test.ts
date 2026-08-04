@@ -68,3 +68,42 @@ describe('buildVapiConfigPatch — characterId', () => {
     expect(buildVapiConfigPatch(existing, { characterId: 'nobody' }).characterId).toBe('marie');
   });
 });
+
+describe('buildVapiConfigPatch — customVoice', () => {
+  it('stores a chosen voice with a name and a date', () => {
+    const next = buildVapiConfigPatch(prev, { customVoice: { voiceId: 'v_1', name: 'Grave' } });
+    expect(next.customVoice).toMatchObject({ voiceId: 'v_1', name: 'Grave' });
+    expect(typeof next.customVoice.createdAt).toBe('string');
+  });
+
+  it('removes the override when the voice is cleared', () => {
+    // Clearing has to mean "back to the character's own voice", which is the
+    // absence of the key — not a customVoice holding an empty id.
+    const existing = { customVoice: { voiceId: 'v_1', name: 'Grave', createdAt: 'x' } };
+    expect(buildVapiConfigPatch(existing, { customVoice: null }).customVoice).toBeUndefined();
+    expect(buildVapiConfigPatch(existing, { customVoice: { voiceId: '  ' } }).customVoice).toBeUndefined();
+  });
+
+  it('keeps the original date when the same voice is re-selected', () => {
+    const existing = { customVoice: { voiceId: 'v_1', name: 'Grave', createdAt: '2026-01-01T00:00:00.000Z' } };
+    const next = buildVapiConfigPatch(existing, { customVoice: { voiceId: 'v_1' } });
+    expect(next.customVoice.createdAt).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  it('carries the cloned flag, which changes the tuning', () => {
+    expect(buildVapiConfigPatch(prev, { customVoice: { voiceId: 'v_1', cloned: true } }).customVoice.cloned).toBe(true);
+    expect(buildVapiConfigPatch(prev, { customVoice: { voiceId: 'v_1' } }).customVoice.cloned).toBeUndefined();
+  });
+
+  it('never touches the character', () => {
+    // The regression this guards: choosing a voice used to move the client onto
+    // a pseudo-character, losing the face, the name and the personality.
+    const existing = { characterId: 'lucas' };
+    expect(buildVapiConfigPatch(existing, { customVoice: { voiceId: 'v_1' } }).characterId).toBe('lucas');
+  });
+
+  it('leaves the override untouched when the patch does not mention it', () => {
+    const existing = { customVoice: { voiceId: 'v_1', name: 'Grave', createdAt: 'x' } };
+    expect(buildVapiConfigPatch(existing, { faq: 'hello' }).customVoice).toEqual(existing.customVoice);
+  });
+});

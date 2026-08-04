@@ -4,7 +4,8 @@ import { env } from '../../config/env';
 import type { CustomVoice } from '../../config/voice-characters';
 
 /**
- * A cloned voice as stored in `vapiConfig.customVoice`.
+ * The client's own voice as stored in `vapiConfig.customVoice` — cloned from
+ * their recording, or picked from their ElevenLabs library.
  *
  * Validated field by field rather than cast: this JSON column is written by
  * several code paths over time, and a half-written value here would send an
@@ -18,6 +19,10 @@ export function readCustomVoice(raw: unknown): CustomVoice | null {
     voiceId: v.voiceId,
     name: typeof v.name === 'string' ? v.name : 'Ma voix',
     createdAt: typeof v.createdAt === 'string' ? v.createdAt : new Date(0).toISOString(),
+    // Carried through because it changes the tuning: a clone gets style 0 so it
+    // sounds like the speaker rather than an impression of them. Dropping the
+    // flag here silently gave every clone the character's style back.
+    ...(v.cloned === true ? { cloned: true } : {}),
   };
 }
 

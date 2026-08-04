@@ -5,7 +5,10 @@ import api from '../../services/api';
 export interface CustomVoice {
   voiceId: string;
   name: string;
-  createdAt: string;
+  /** Set by the server. Absent on a voice just picked from the list. */
+  createdAt?: string;
+  /** Cloned from the owner's recording, which drops style at call time. */
+  cloned?: boolean;
 }
 
 /** ElevenLabs wants a real sample; under this a clone sounds like a stranger. */
@@ -154,7 +157,7 @@ export default function VoiceCloner({
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-[#e7bafd]">Votre voix est clonée</p>
             <p className="text-[11px] text-[#8B8BA7] mt-0.5">
-              Sélectionnez la carte « Ma voix » ci-dessus pour l'utiliser en appel.
+              Elle est sélectionnée dans la liste des voix ci-dessus. Le personnage, lui, ne change pas.
             </p>
           </div>
           <button

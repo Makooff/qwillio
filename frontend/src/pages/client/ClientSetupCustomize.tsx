@@ -224,7 +224,10 @@ export default function ClientSetupCustomize() {
           <CharacterPicker
             characters={characters}
             value={characterId}
-            onChange={setCharacterId}
+            // Each character comes with a tone; picking one pre-fills the next
+            // step rather than asking the same question twice. The tone step is
+            // still there to override it.
+            onChange={c => { setCharacterId(c.id); setPersonalityPreset(c.personaKey); }}
             isFr={agentLanguage !== 'en'}
           />
         ) : (

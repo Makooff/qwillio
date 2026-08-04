@@ -15,6 +15,12 @@ export interface VapiConfigPatch {
   personalityPreset?: string;
   personalityNotes?: string;
   characterId?: string;
+  /**
+   * The voice the client chose for themselves. An override on top of the
+   * character, not a character: null (or a blank voiceId) means "use the
+   * character's own voice".
+   */
+  customVoice?: { voiceId?: string; name?: string; cloned?: boolean } | null;
 }
 
 const PERSONA_KEYS = new Set(Object.keys(PERSONALITY_PROMPTS));
@@ -72,6 +78,26 @@ export function buildVapiConfigPatch(
     // The cloned voice is a valid selection but is not in the catalog: it has
     // no fixed voiceId, it lives per-tenant in the client's own config.
     if (isValidCharacterId(v) || v === CUSTOM_CHARACTER_ID) next.characterId = v;
+  }
+  if (patch.customVoice !== undefined) {
+    const voiceId = String(patch.customVoice?.voiceId || '').trim();
+    if (!voiceId) {
+      // Deleted rather than set to null: readCustomVoice treats both as "no
+      // override", and an absent key keeps the stored config honest.
+      delete next.customVoice;
+    } else {
+      const prevVoice = (prev.customVoice || {}) as Record<string, unknown>;
+      next.customVoice = {
+        voiceId: voiceId.slice(0, 64),
+        name: String(patch.customVoice?.name || prevVoice.name || 'Ma voix').slice(0, 80),
+        // The date marks when this voice was chosen, so re-picking the same one
+        // must not reset it.
+        createdAt: prevVoice.voiceId === voiceId && typeof prevVoice.createdAt === 'string'
+          ? prevVoice.createdAt
+          : new Date().toISOString(),
+        ...(patch.customVoice?.cloned === true ? { cloned: true } : {}),
+      };
+    }
   }
   return next;
 }

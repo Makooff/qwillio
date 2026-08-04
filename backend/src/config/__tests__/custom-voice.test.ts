@@ -1,49 +1,71 @@
 import { describe, it, expect } from 'vitest';
-import { resolveCharacter, CUSTOM_CHARACTER_ID, CHARACTERS, DEFAULT_CHARACTER_FR } from '../voice-characters';
+import { resolveCharacter, CHARACTERS, DEFAULT_CHARACTER_FR } from '../voice-characters';
 import { readCustomVoice } from '../../services/voice/realtime-context.service';
 
-const clone = { voiceId: 'v_cloned', name: 'Ma voix', createdAt: '2026-08-03T00:00:00.000Z' };
+const clone = { voiceId: 'v_cloned', name: 'Ma voix', createdAt: '2026-08-03T00:00:00.000Z', cloned: true };
+const library = { voiceId: 'v_library', name: 'Voix ElevenLabs', createdAt: '2026-08-03T00:00:00.000Z' };
 
-describe('resolveCharacter with a cloned voice', () => {
-  it('uses the clone as the voice when the client selected it', () => {
-    const c = resolveCharacter({ characterId: CUSTOM_CHARACTER_ID, isFrench: true, customVoice: clone });
+describe('a chosen voice overrides the character voice', () => {
+  it('replaces the voiceId of whichever character is selected', () => {
+    const c = resolveCharacter({ characterId: 'lucas', isFrench: true, customVoice: clone });
     expect(c.voiceId).toBe('v_cloned');
-    expect(c.id).toBe(CUSTOM_CHARACTER_ID);
   });
 
-  it('keeps the language default tuning and persona', () => {
-    // A clone says nothing about how the agent should behave, only how it
-    // sounds. Persona and language must not follow the voice.
-    const base = CHARACTERS[DEFAULT_CHARACTER_FR];
-    const c = resolveCharacter({ characterId: CUSTOM_CHARACTER_ID, isFrench: true, customVoice: clone });
-    expect(c.personaKey).toBe(base.personaKey);
-    expect(c.language).toBe('fr');
+  it('keeps the character whole', () => {
+    // The whole point of the override model: picking your own voice used to
+    // swap you onto a pseudo-character called 'custom', costing the face, the
+    // name and the personality. Only the timbre should change.
+    const c = resolveCharacter({ characterId: 'lucas', isFrench: true, customVoice: clone });
+    expect(c.id).toBe('lucas');
+    expect(c.name).toBe(CHARACTERS.lucas.name);
+    expect(c.avatar).toBe(CHARACTERS.lucas.avatar);
+    expect(c.personaKey).toBe(CHARACTERS.lucas.personaKey);
+    expect(c.stability).toBe(CHARACTERS.lucas.stability);
   });
 
   it('drops style on a clone', () => {
     // Style exaggeration on top of a cloned timbre is what makes clones sound
     // like impressions of the person rather than the person.
-    const c = resolveCharacter({ characterId: CUSTOM_CHARACTER_ID, isFrench: true, customVoice: clone });
+    const c = resolveCharacter({ characterId: 'lea', isFrench: true, customVoice: clone });
     expect(c.style).toBe(0);
+    expect(c.similarityBoost).toBe(0.85);
   });
 
-  it('falls back to a catalog voice when the clone is missing', () => {
+  it('leaves the character tuning alone for a library voice', () => {
+    // A voice picked from the account library is a normal ElevenLabs voice, so
+    // the character's tuning applies to it exactly as to its own default.
+    const c = resolveCharacter({ characterId: 'lea', isFrench: true, customVoice: library });
+    expect(c.voiceId).toBe('v_library');
+    expect(c.style).toBe(CHARACTERS.lea.style);
+    expect(c.similarityBoost).toBe(CHARACTERS.lea.similarityBoost);
+  });
+
+  it('applies to the default character when none is selected', () => {
+    const c = resolveCharacter({ characterId: null, isFrench: true, customVoice: clone });
+    expect(c.id).toBe(DEFAULT_CHARACTER_FR);
+    expect(c.voiceId).toBe('v_cloned');
+  });
+
+  it('falls back to the character voice when the override is missing', () => {
     // The selection can outlive the voice: deleted upstream, or a half-written
     // config. An agent with no voiceId cannot answer a call at all.
-    const c = resolveCharacter({ characterId: CUSTOM_CHARACTER_ID, isFrench: true, customVoice: null });
-    expect(c.voiceId).toBe(CHARACTERS[DEFAULT_CHARACTER_FR].voiceId);
-    expect(c.id).not.toBe(CUSTOM_CHARACTER_ID);
+    const c = resolveCharacter({ characterId: 'lucas', isFrench: true, customVoice: null });
+    expect(c.voiceId).toBe(CHARACTERS.lucas.voiceId);
   });
 
-  it('ignores a clone when another character is selected', () => {
-    const c = resolveCharacter({ characterId: 'marie', isFrench: true, customVoice: clone });
-    expect(c.voiceId).toBe(CHARACTERS.marie.voiceId);
+  it('ignores an override with a blank voice id', () => {
+    const c = resolveCharacter({
+      characterId: 'lucas',
+      isFrench: true,
+      customVoice: { voiceId: '', name: 'x', createdAt: '' },
+    });
+    expect(c.voiceId).toBe(CHARACTERS.lucas.voiceId);
   });
 });
 
 describe('readCustomVoice', () => {
   it('accepts a well-formed stored value', () => {
-    expect(readCustomVoice(clone)).toEqual(clone);
+    expect(readCustomVoice(clone)).toMatchObject({ voiceId: 'v_cloned', name: 'Ma voix' });
   });
 
   it('rejects anything without a usable voice id', () => {
@@ -52,6 +74,13 @@ describe('readCustomVoice', () => {
     for (const bad of [null, undefined, 'string', 42, {}, { voiceId: '' }, { voiceId: '  ' }, { voiceId: 7 }]) {
       expect(readCustomVoice(bad)).toBeNull();
     }
+  });
+
+  it('carries the cloned flag through', () => {
+    // Lost here, a clone would be tuned like a library voice and sound like an
+    // impression of its owner.
+    expect(readCustomVoice(clone)?.cloned).toBe(true);
+    expect(readCustomVoice(library)?.cloned).toBeUndefined();
   });
 
   it('fills in a name and date rather than returning a partial object', () => {

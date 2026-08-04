@@ -1,16 +1,20 @@
 // Receptionist character catalog — single source of truth.
 //
-// A "character" bundles a named persona (Marie, Lucas, Ashley…) with a specific
-// ElevenLabs voice AND a personality tone. Clients pick one for their inbound
-// receptionist; provisioning (onboarding.service) reads the selected character's
-// voiceId + tuning + persona, so the voice actually matches the language and the
-// chosen personality (previously every client got the same English voice).
+// A "character" bundles a name, a face, an ElevenLabs voice and a personality
+// tone. Clients pick one for their inbound receptionist; provisioning
+// (onboarding.service) reads the selected character's voiceId + tuning + persona.
 //
-// Voice IDs are launch defaults using known ElevenLabs voices. Each is
-// overridable via an env var `VAPI_VOICE_ID_<ID>` (e.g. VAPI_VOICE_ID_LUCAS) so
-// the founder can swap in the best-sounding voice after testing — no code change.
-// Voice quality is subjective and can't be judged from code, so treat these as
-// placeholders to validate.
+// Characters are NOT tied to a language. The ElevenLabs models in use
+// (turbo_v2_5, multilingual_v2) speak both French and English from one voice id,
+// so the same Marie answers a French caller in French and an English one in
+// English — the language comes from the client, not from the character. The
+// `accent` field only says which accent the voice carries when it speaks.
+//
+// Voice IDs are defaults, and defaults are the weak point here: a voice id is an
+// opaque string, and one of them (Lucas) turned out to be a woman's voice and
+// shipped that way for weeks. Nothing in the code could catch it — only
+// listening did. Each is overridable via `VAPI_VOICE_ID_<ID>` without a deploy,
+// and the dashboard voice picker exists so a human ear assigns them.
 
 import { env } from './env';
 import type { PersonaKey } from './personalities';
@@ -18,7 +22,7 @@ import type { PersonaKey } from './personalities';
 export interface Character {
   id: string;
   name: string;
-  language: 'fr' | 'en';
+  /** Accent the voice carries. Not a restriction on who may pick it. */
   accent: 'FR' | 'BE' | 'US';
   gender: 'f' | 'm';
   voiceId: string;
@@ -27,6 +31,8 @@ export interface Character {
   similarityBoost: number;
   style: number;
   personaKey: PersonaKey;
+  /** Served under /characters/<id>.webp, 512px. */
+  avatar: string;
   taglineFr: string;
   taglineEn: string;
   previewFr: string;
@@ -40,22 +46,21 @@ function voice(id: string, fallback: string): string {
   return process.env[`VAPI_VOICE_ID_${id.toUpperCase()}`] || fallback;
 }
 
-// Known ElevenLabs voice IDs used as launch defaults.
+/**
+ * ElevenLabs voice ids.
+ *
+ * Only the first five were auditioned. The five characters added afterwards
+ * reuse them deliberately rather than carrying an id nobody has listened to:
+ * a duplicate voice is a cosmetic flaw, an unverified id is how a male
+ * character ends up speaking with a woman's voice. Each has its own env
+ * override so they diverge as soon as someone assigns them by ear.
+ */
 const EL = {
   rachel: '21m00Tcm4TlvDq8ikWAM', // EN female, calm
-  bella: 'EXAVITQu4vr4xnSDxMaL',  // EN female, soft
-  antoni: 'ErXwobaYiN019PkySvjV', // male, warm
-  // Founder-selected French voices (ElevenLabs).
+  antoni: 'ErXwobaYiN019PkySvjV', // male, warm — documented premade voice
   frMarie:   'BilXxxvRLrA8YTteM2sl',
   frCamille: 'd3AXX0BlgJHYFCuH9X88',
   frLea:     'CYR0HqHoZAUmoZsLWPob',
-  // Was 'NEjemlRxgWmL5ZGJetsB' until 2026-08-03: a paste error, that id is a
-  // FEMALE voice. It shipped on Lucas, the only male French character, so a
-  // client picking "posé et professionnel" heard a woman. Nothing in the code
-  // could catch it — only listening did. Antoni is a documented male premade
-  // voice and multilingual_v2 speaks French with it; set VAPI_VOICE_ID_LUCAS
-  // to a native French male voice once one has been auditioned.
-  frLucas:   'ErXwobaYiN019PkySvjV',
   frSofia:   'FvmvwvObRqIHojkEGh5N',
 } as const;
 
@@ -63,16 +68,15 @@ export const CHARACTERS: Record<string, Character> = {
   marie: {
     id: 'marie',
     name: 'Marie',
-    language: 'fr',
     accent: 'FR',
     gender: 'f',
-    // Default to the configured French voice so existing env keeps working.
     voiceId: voice('marie', env.VAPI_VOICE_ID_FR || EL.frMarie),
     model: MODEL,
     stability: 0.38,
     similarityBoost: 0.78,
     style: 0.45,
     personaKey: 'warm',
+    avatar: '/characters/marie.webp',
     taglineFr: 'Chaleureuse et accueillante, sourire dans la voix.',
     taglineEn: 'Warm and welcoming, a smile in her voice.',
     previewFr: 'Bonjour, merci d’appeler ! Comment puis-je vous aider aujourd’hui ?',
@@ -81,7 +85,6 @@ export const CHARACTERS: Record<string, Character> = {
   camille: {
     id: 'camille',
     name: 'Camille',
-    language: 'fr',
     accent: 'FR',
     gender: 'f',
     voiceId: voice('camille', EL.frCamille),
@@ -90,6 +93,7 @@ export const CHARACTERS: Record<string, Character> = {
     similarityBoost: 0.8,
     style: 0.3,
     personaKey: 'luxury',
+    avatar: '/characters/camille.webp',
     taglineFr: 'Soignée et raffinée, pour une image premium.',
     taglineEn: 'Polished and refined, for a premium brand.',
     previewFr: 'Bonjour et bienvenue. Je vous écoute, en quoi puis-je vous être utile ?',
@@ -98,7 +102,6 @@ export const CHARACTERS: Record<string, Character> = {
   lea: {
     id: 'lea',
     name: 'Léa',
-    language: 'fr',
     accent: 'FR',
     gender: 'f',
     voiceId: voice('lea', EL.frLea),
@@ -107,32 +110,15 @@ export const CHARACTERS: Record<string, Character> = {
     similarityBoost: 0.75,
     style: 0.6,
     personaKey: 'energetic',
+    avatar: '/characters/lea.webp',
     taglineFr: 'Dynamique et enthousiaste, pleine d’énergie.',
     taglineEn: 'Dynamic and upbeat, full of energy.',
     previewFr: 'Salut ! Super de vous avoir au téléphone, dites-moi tout !',
     previewEn: 'Hi there! Great to have you on the line, tell me everything!',
   },
-  lucas: {
-    id: 'lucas',
-    name: 'Lucas',
-    language: 'fr',
-    accent: 'FR',
-    gender: 'm',
-    voiceId: voice('lucas', EL.frLucas),
-    model: MODEL,
-    stability: 0.45,
-    similarityBoost: 0.8,
-    style: 0.35,
-    personaKey: 'professional',
-    taglineFr: 'Posé et professionnel, direct et rassurant.',
-    taglineEn: 'Composed and professional, direct and reassuring.',
-    previewFr: 'Bonjour, vous êtes bien au secrétariat. Que puis-je faire pour vous ?',
-    previewEn: 'Hello, you’ve reached the front desk. What can I do for you?',
-  },
   sofia: {
     id: 'sofia',
     name: 'Sofia',
-    language: 'fr',
     accent: 'FR',
     gender: 'f',
     voiceId: voice('sofia', EL.frSofia),
@@ -141,61 +127,146 @@ export const CHARACTERS: Record<string, Character> = {
     similarityBoost: 0.78,
     style: 0.5,
     personaKey: 'casual',
+    avatar: '/characters/sofia.webp',
     taglineFr: 'Naturelle et décontractée, ton conversationnel.',
     taglineEn: 'Natural and easy-going, conversational tone.',
     previewFr: 'Bonjour, ravie de vous entendre. Comment puis-je vous aider ?',
     previewEn: 'Hi, lovely to hear from you. How can I help?',
   },
-  ashley: {
-    id: 'ashley',
-    name: 'Ashley',
-    language: 'en',
-    accent: 'US',
+  nour: {
+    id: 'nour',
+    name: 'Nour',
+    accent: 'FR',
     gender: 'f',
-    voiceId: voice('ashley', env.VAPI_VOICE_ID || EL.rachel),
+    // Shares Camille's voice until a calmer one is auditioned: `caring` wants a
+    // slower, softer delivery, which is tuning as much as timbre.
+    voiceId: voice('nour', EL.frCamille),
     model: MODEL,
-    stability: 0.42,
-    similarityBoost: 0.82,
-    style: 0.35,
-    personaKey: 'warm',
-    taglineFr: 'Chaleureuse, voix anglaise naturelle.',
-    taglineEn: 'Warm and welcoming, natural English voice.',
-    previewFr: 'Hello, thanks for calling! How can I help you today?',
-    previewEn: 'Hello, thanks for calling! How can I help you today?',
+    stability: 0.62,
+    similarityBoost: 0.8,
+    style: 0.15,
+    personaKey: 'caring',
+    avatar: '/characters/nour.webp',
+    taglineFr: 'Douce et rassurante, idéale pour la santé.',
+    taglineEn: 'Soft and reassuring, ideal for healthcare.',
+    previewFr: 'Bonjour, je vous écoute. Prenez votre temps.',
+    previewEn: 'Hello, I’m listening. Take your time.',
   },
-  ethan: {
-    id: 'ethan',
-    name: 'Ethan',
-    language: 'en',
-    accent: 'US',
+  lucas: {
+    id: 'lucas',
+    name: 'Lucas',
+    accent: 'FR',
     gender: 'm',
-    voiceId: voice('ethan', EL.antoni),
+    voiceId: voice('lucas', EL.antoni),
     model: MODEL,
     stability: 0.45,
     similarityBoost: 0.8,
-    style: 0.3,
+    style: 0.35,
     personaKey: 'professional',
-    taglineFr: 'Professionnel, voix anglaise masculine posée.',
-    taglineEn: 'Professional, composed male English voice.',
-    previewFr: 'Hi, you’ve reached the front desk. How can I help?',
-    previewEn: 'Hi, you’ve reached the front desk. How can I help?',
+    avatar: '/characters/lucas.webp',
+    taglineFr: 'Posé et professionnel, direct et rassurant.',
+    taglineEn: 'Composed and professional, direct and reassuring.',
+    previewFr: 'Bonjour, vous êtes bien au secrétariat. Que puis-je faire pour vous ?',
+    previewEn: 'Hello, you’ve reached the front desk. What can I do for you?',
+  },
+  adrien: {
+    id: 'adrien',
+    name: 'Adrien',
+    accent: 'FR',
+    gender: 'm',
+    voiceId: voice('adrien', EL.antoni),
+    model: MODEL,
+    stability: 0.4,
+    similarityBoost: 0.78,
+    style: 0.45,
+    personaKey: 'warm',
+    avatar: '/characters/adrien.webp',
+    taglineFr: 'Chaleureux et avenant, met à l’aise tout de suite.',
+    taglineEn: 'Warm and approachable, puts callers at ease.',
+    previewFr: 'Bonjour ! Merci de votre appel, qu’est-ce qui vous ferait plaisir ?',
+    previewEn: 'Hello! Thanks for calling, what can I do for you?',
+  },
+  hugo: {
+    id: 'hugo',
+    name: 'Hugo',
+    accent: 'FR',
+    gender: 'm',
+    voiceId: voice('hugo', EL.antoni),
+    model: MODEL,
+    stability: 0.35,
+    similarityBoost: 0.76,
+    style: 0.4,
+    personaKey: 'casual',
+    avatar: '/characters/hugo.webp',
+    taglineFr: 'Détendu et direct, comme un collègue au comptoir.',
+    taglineEn: 'Relaxed and direct, like a colleague at the desk.',
+    previewFr: 'Salut, vous êtes bien chez nous. Je peux vous aider ?',
+    previewEn: 'Hi, you’ve got the right place. How can I help?',
+  },
+  theo: {
+    id: 'theo',
+    name: 'Théo',
+    accent: 'FR',
+    gender: 'm',
+    voiceId: voice('theo', EL.antoni),
+    model: MODEL,
+    stability: 0.3,
+    similarityBoost: 0.75,
+    style: 0.6,
+    personaKey: 'energetic',
+    avatar: '/characters/theo.webp',
+    taglineFr: 'Énergique et motivé, ça s’entend au téléphone.',
+    taglineEn: 'Energetic and driven, you can hear it on the line.',
+    previewFr: 'Bonjour ! Ravi de vous avoir, dites-moi ce qu’il vous faut !',
+    previewEn: 'Hello! Great to have you, tell me what you need!',
+  },
+  julien: {
+    id: 'julien',
+    name: 'Julien',
+    accent: 'FR',
+    gender: 'm',
+    voiceId: voice('julien', EL.antoni),
+    model: MODEL,
+    stability: 0.55,
+    similarityBoost: 0.82,
+    style: 0.2,
+    personaKey: 'luxury',
+    avatar: '/characters/julien.webp',
+    taglineFr: 'Distingué et posé, pour une maison haut de gamme.',
+    taglineEn: 'Distinguished and composed, for a high-end house.',
+    previewFr: 'Bonjour, vous êtes bien à l’accueil. Je vous écoute.',
+    previewEn: 'Good day, you’ve reached the front desk. I’m listening.',
   },
 };
 
 export const DEFAULT_CHARACTER_FR = 'marie';
-export const DEFAULT_CHARACTER_EN = 'ashley';
+/**
+ * English default. Still Marie: characters are bilingual now, and the previous
+ * English-only pair (Ashley, Ethan) offered nothing the ten do not, while
+ * splitting the catalog in two.
+ */
+export const DEFAULT_CHARACTER_EN = 'marie';
 
 /**
- * The client's own cloned voice. Not in CHARACTERS: it has no fixed voiceId,
- * it is per-tenant and lives in the client's config.
+ * A voice the client chose for themselves: cloned from their own recording, or
+ * picked from their ElevenLabs library.
+ *
+ * It is an OVERRIDE on top of a character, not a character of its own. The
+ * first version made it a pseudo-character called 'custom', which meant
+ * choosing your own voice cost you the face, the name and the personality you
+ * had picked — three losses for one gain. Here the character stays whole and
+ * only its voiceId changes.
  */
-export const CUSTOM_CHARACTER_ID = 'custom';
-
 export interface CustomVoice {
   voiceId: string;
   name: string;
   createdAt: string;
+  /** Cloned from the owner's recording, as opposed to picked from the library. */
+  cloned?: boolean;
 }
+
+/** Kept for configs written before the override model. Never assigned anymore. */
+export const CUSTOM_CHARACTER_ID = 'custom';
 
 export function isValidCharacterId(id: string | null | undefined): boolean {
   return !!id && Object.prototype.hasOwnProperty.call(CHARACTERS, id);
@@ -203,9 +274,8 @@ export function isValidCharacterId(id: string | null | undefined): boolean {
 
 /**
  * Resolve the character for a client. Honors an explicit selection; otherwise
- * falls back by language. For a French/Belgian client with no selection we use
- * Marie, and if a Belgian-accent voice is configured (VAPI_VOICE_ID_BE) we swap
- * just the voiceId so the accent matches while keeping Marie's tuning.
+ * falls back to the default. For a Belgian client with no selection, a Belgian
+ * voice replaces the voiceId only, keeping the character's tuning.
  */
 export function resolveCharacter(params: {
   characterId?: string | null;
@@ -215,36 +285,32 @@ export function resolveCharacter(params: {
 }): Character {
   const { characterId, isFrench, country, customVoice } = params;
 
-  // A cloned voice replaces the voiceId only. Tuning (stability, style) and the
-  // persona keep coming from the language default: those describe how the agent
-  // behaves, which the clone says nothing about.
-  if (characterId === CUSTOM_CHARACTER_ID && customVoice?.voiceId) {
-    const base = CHARACTERS[isFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
+  let character: Character;
+  if (isValidCharacterId(characterId)) {
+    character = CHARACTERS[characterId as string];
+  } else {
+    character = CHARACTERS[isFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
+    const isBE = (country || '').toUpperCase() === 'BE';
+    if (isFrench && isBE && env.VAPI_VOICE_ID_BE) {
+      character = { ...character, accent: 'BE', voiceId: env.VAPI_VOICE_ID_BE };
+    }
+  }
+
+  // The chosen voice replaces the voiceId and nothing else. Tuning and persona
+  // keep coming from the character: they describe how the agent behaves, which
+  // a voice says nothing about.
+  if (customVoice?.voiceId) {
     return {
-      ...base,
-      id: CUSTOM_CHARACTER_ID,
-      name: customVoice.name || base.name,
+      ...character,
       voiceId: customVoice.voiceId,
-      // A cloned voice carries the speaker's own timbre; pushing style on top
-      // of it is what makes clones sound like impressions of themselves.
-      style: 0,
-      similarityBoost: 0.85,
+      // Only for a clone. A cloned voice carries the speaker's own timbre, and
+      // pushing style on top of it is what makes clones sound like impressions
+      // of themselves. A library voice keeps the character's tuning.
+      ...(customVoice.cloned ? { style: 0, similarityBoost: 0.85 } : {}),
     };
   }
 
-  if (isValidCharacterId(characterId)) {
-    return CHARACTERS[characterId as string];
-  }
-
-  if (isFrench) {
-    const base = CHARACTERS[DEFAULT_CHARACTER_FR];
-    const isBE = (country || '').toUpperCase() === 'BE';
-    if (isBE && env.VAPI_VOICE_ID_BE) {
-      return { ...base, accent: 'BE', voiceId: env.VAPI_VOICE_ID_BE };
-    }
-    return base;
-  }
-  return CHARACTERS[DEFAULT_CHARACTER_EN];
+  return character;
 }
 
 /** Public catalog for the client picker (no secrets — voiceIds are fine to expose). */
