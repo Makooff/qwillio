@@ -3,7 +3,7 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   LogOut, X, ChevronDown,
-  Settings as SettingsIcon, LayoutDashboard, RefreshCw,
+  Settings as SettingsIcon, LayoutDashboard,
   HelpCircle, BookOpen, type LucideIcon,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
@@ -418,14 +418,13 @@ export default function DashboardShell(props: DashboardShellProps) {
           <div className="flex items-center gap-2 ml-auto">
             {topBarExtras}
 
-            <button
-              onClick={() => window.location.reload()}
-              title="Rafraîchir"
-              className="p-2 rounded-xl hover:bg-white/[0.06] transition-colors"
-              style={{ color: t.textSec }}
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
+            {/*
+              No refresh button. It reloaded the whole application to fetch
+              numbers that now arrive on their own — on a timer, when the window
+              regains focus, and when the app comes back from the background.
+              A button whose job is done by the app itself is a button that
+              teaches people the app cannot be trusted.
+            */}
 
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center"
