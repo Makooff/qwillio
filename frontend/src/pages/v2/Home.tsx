@@ -318,12 +318,9 @@ export default function Home() {
             </p>
           </RevealV2>
           <RevealV2 index={1}>
-            {/* La rangée de visages respire: chaque avatar avance à sa vitesse.
-                La galerie n'est pas modifiée, la parallaxe passe par la
-                propriété CSS `translate`, qui se compose avec ses transforms. */}
-            <ParallaxGroup selector='[role="tablist"] > button' amount={12}>
-              <ReceptionistGallery isFr={isFr} />
-            </ParallaxGroup>
+            {/* Carrousel circulaire: l'arc tourne, l'actif descend au centre-bas.
+                ReceptionistGallery reste en place comme repli réutilisable. */}
+            <CircularReceptionists isFr={isFr} />
           </RevealV2>
         </Container>
         {/* Fondu vers la section drenched qui suit, plutôt qu'une coupure nette */}
@@ -451,30 +448,17 @@ export default function Home() {
               <TextReveal>{isFr ? 'Rien ne se perd.' : 'Nothing gets lost.'}</TextReveal>
             </H2>
           </RevealV2>
-          <div className="grid md:grid-cols-3 gap-x-10 gap-y-8">
-            <RevealV2>
-              <p className="text-[15px] text-q2-graphite leading-relaxed q2-body-text border-t border-q2-plate pt-5">
-                {isFr
-                  ? 'Chaque appel arrive dans votre dashboard : résumé, transcript, enregistrement, lead qualifié.'
-                  : 'Every call lands in your dashboard: summary, transcript, recording, qualified lead.'}
-              </p>
-            </RevealV2>
-            <RevealV2 index={1}>
-              <p className="text-[15px] text-q2-graphite leading-relaxed q2-body-text border-t border-q2-plate pt-5">
-                {isFr
-                  ? 'Chaque semaine, elle vous dit ce qui cloche : réponses trop longues, agenda déconnecté, questions absentes de votre FAQ.'
-                  : 'Every week she tells you what needs fixing: answers too long, calendar disconnected, questions missing from your FAQ.'}
-              </p>
-            </RevealV2>
-            <RevealV2 index={2}>
-              <p className="text-[15px] text-q2-graphite leading-relaxed q2-body-text border-t border-q2-plate pt-5">
-                <ShieldCheck size={14} className="inline mr-1.5 -mt-0.5 text-q2-indigo" aria-hidden="true" />
-                {isFr
-                  ? 'Hébergement UE, annonce d’enregistrement conforme RGPD, et le spam est filtré sans entamer votre quota.'
-                  : 'EU hosting, GDPR-compliant recording notice, and spam is filtered without touching your quota.'}
-              </p>
-            </RevealV2>
-          </div>
+          {/* Les deux cartes portent les vraies captures, illustration en haut */}
+          <FeatureCards isFr={isFr} />
+
+          <RevealV2 className="mt-12">
+            <p className="text-[15px] text-q2-graphite leading-relaxed q2-body-text border-t border-q2-plate pt-5 max-w-[640px]">
+              <ShieldCheck size={14} className="inline mr-1.5 -mt-0.5 text-q2-indigo" aria-hidden="true" />
+              {isFr
+                ? 'Hébergement UE, annonce d’enregistrement conforme RGPD, et le spam est filtré sans entamer votre quota.'
+                : 'EU hosting, GDPR-compliant recording notice, and spam is filtered without touching your quota.'}
+            </p>
+          </RevealV2>
 
           <RevealV2 index={3} className="mt-14">
             <CardV2 variant="canvas" glow className="flex flex-wrap items-center justify-between gap-6">
