@@ -41,7 +41,7 @@ export default function CharacterPicker({
   /** Voice replacing the catalog one for every character, when the client set one. */
   overrideVoice?: { voiceId: string; name: string } | null;
 }) {
-  const { playing, notice, toggle, prefetch } = useVoicePreview(isFr);
+  const { playing, notice, toggle, prefetch, debug } = useVoicePreview(isFr);
 
   // Ask the server to synthesise the catalog while the client reads the page.
   // The clips are identical every time, so the only reason ▶ ever waited was
@@ -129,6 +129,11 @@ export default function CharacterPicker({
         );
       })}
     </div>
+    {debug && (
+      // Only after a press, and only here: the grid is where people press ▶
+      // first, and "no error, no sound" needs something to report.
+      <p className="mt-2 text-[10px] font-mono text-[#6D6D7A]">{debug}</p>
+    )}
     </>
   );
 }

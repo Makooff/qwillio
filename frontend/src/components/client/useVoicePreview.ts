@@ -25,6 +25,25 @@ function audioContextCtor(): AudioCtor | null {
   return w.AudioContext || w.webkitAudioContext || null;
 }
 
+/**
+ * Ask iOS to treat this page as media playback.
+ *
+ * Without it, Safari puts Web Audio in the ambient session, which the physical
+ * Ring/Silent switch mutes — the clip decodes, plays, ends, and reports nothing
+ * wrong, because from the browser's point of view nothing IS wrong. That is
+ * exactly the symptom that survived every previous fix: no error, no banner, no
+ * sound. Speech synthesis is on another path, which is why the robotic fallback
+ * was audible on the same device and made the real voices look broken.
+ *
+ * Safari 16.4+ and Chrome expose it; older browsers ignore the assignment, and
+ * the visible hint under the list covers them.
+ */
+function preferPlaybackSession(): void {
+  const session = (navigator as unknown as { audioSession?: { type: string } }).audioSession;
+  if (!session) return;
+  try { session.type = 'playback'; } catch { /* not settable here */ }
+}
+
 // Browser TTS fallback. A rough preview only — the real call uses ElevenLabs.
 //
 // The timeout is not belt and braces: on iOS `speak()` regularly fires neither
@@ -78,12 +97,20 @@ export interface VoicePreview {
   toggle: (key: string, url: string, fallbackText: string) => void;
   /** Download a clip before it is asked for, so ▶ plays with no wait. */
   prefetch: (url: string) => void;
+  /**
+   * What the last press actually did — clip size, context state, whether the
+   * clip ran to the end. Shown in small print because "no error and no sound"
+   * is otherwise unreportable: the person holding the phone cannot see the
+   * difference between a muted device and a broken player, and neither can I.
+   */
+  debug: string | null;
   stop: () => void;
 }
 
 export function useVoicePreview(isFr: boolean): VoicePreview {
   const [playing, setPlaying] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [debug, setDebug] = useState<string | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const tokenRef = useRef(0);
@@ -115,6 +142,10 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
       return;
     }
 
+    // Before the context exists: on iOS the session type is what decides
+    // whether any of this will be audible at all.
+    preferPlaybackSession();
+
     // Created and resumed inside the click. iOS starts every context suspended
     // and only allows the resume from a gesture; doing it after the fetch would
     // be too late.
@@ -140,12 +171,27 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
         const source = ctx.createBufferSource();
         source.buffer = buffer;
         source.connect(ctx.destination);
+        const startedAt = Date.now();
         source.onended = () => {
-          if (tokenRef.current === token) setPlaying(null);
+          if (tokenRef.current !== token) return;
+          setPlaying(null);
+          setDebug(`${Math.round(payload!.byteLength / 1024)} ko · ${buffer.duration.toFixed(1)} s · lu en ${((Date.now() - startedAt) / 1000).toFixed(1)} s · ${ctx.state} · vol ${ctx.destination.channelCount}ch`);
         };
         sourceRef.current = source;
         setNotice(null);
+        setDebug(`${Math.round(payload.byteLength / 1024)} ko · ${buffer.duration.toFixed(1)} s · ${ctx.state}…`);
         source.start();
+
+        // A context that is not running produces no sound and no error. Saying
+        // so is the difference between "this app is broken" and "unlock the
+        // phone / turn off silent and press again".
+        setTimeout(() => {
+          if (tokenRef.current !== token) return;
+          if (ctx.state === 'running') return;
+          setNotice(isFr
+            ? "Le navigateur a mis l'audio en pause. Touchez de nouveau ▶, et vérifiez l'interrupteur silence de l'iPhone."
+            : 'The browser paused audio. Tap ▶ again, and check the iPhone silent switch.');
+        }, 400);
       } catch (err) {
         if (tokenRef.current !== token) return;
 
@@ -196,5 +242,5 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
   // reports the reason properly.
   const prefetch = useCallback((url: string) => { void fetchClip(url).catch(() => undefined); }, []);
 
-  return { playing, notice, toggle, prefetch, stop };
+  return { playing, notice, toggle, prefetch, debug, stop };
 }

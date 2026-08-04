@@ -45,7 +45,7 @@ export default function VoicePicker({
   const [voices, setVoices] = useState<CatalogVoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { playing, notice, toggle } = useVoicePreview(isFr);
+  const { playing, notice, toggle, debug } = useVoicePreview(isFr);
 
   useEffect(() => {
     let alive = true;
@@ -151,6 +151,15 @@ export default function VoicePicker({
           );
         })}
       </div>
+      {/*
+        On iPhone the side switch mutes the browser's audio without any error,
+        so a working preview and a muted phone look identical. Saying it once,
+        here, costs a line and answers the question before it is asked.
+      */}
+      <p className="mt-2 text-[10px] leading-snug text-[#6D6D7A]">
+        Pas de son ? Sur iPhone, l'interrupteur silence coupe l'audio du navigateur, et le volume média se règle pendant la lecture.
+        {debug && <span className="block mt-0.5 font-mono">{debug}</span>}
+      </p>
     </div>
   );
 }
