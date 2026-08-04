@@ -13,13 +13,21 @@ import { useLang } from '../../stores/langStore';
 import { EASE_OUT_EXPO } from './motion/reducedMotion';
 import { useGlow } from './motion/GlowCard';
 
-/* Nav V2: barre typographique crème qui se condense au scroll (64 vers 52px)
-   et laisse alors apparaître un fond translucide plus un hairline.
+/* Nav V2: barre typographique crème pleine largeur au repos qui, passé ~80px
+   de scroll, se DÉTACHE en pilule flottante compacte centrée (max-width
+   réduite, radius 9999, fond canvas translucide, hairline, ombre whisper).
+   Le trajet est un ressort framer-motion, réversible en remontant, avec une
+   hystérésis 80/40px pour qu'un scroll d'un pixel ne fasse pas battre la
+   barre.
 
    Exception glassmorphism assumée et bornée: le `backdrop-blur` n'existe QUE
-   sur le chrome de nav une fois scrollé, là où du contenu passe dessous. Au
+   sur le chrome de nav une fois détaché, là où du contenu passe dessous. Au
    repos la barre est totalement transparente, donc aucun filtre à composer.
    Le ban glassmorphism reste entier partout ailleurs (DA/v2-direction.md).
+
+   Aucun décalage de mise en page: l'en-tête est `fixed`, PublicShell réserve
+   déjà les 64px de haut, et la pilule ne fait que rétrécir à l'intérieur de
+   cette bande.
 
    CTA unique: pilule encre « Essayer » vers /register. */
 
@@ -35,6 +43,13 @@ type HoverKey = PanelKey | 'pricing';
 
 /* Ressort raide: la pilule de survol rattrape le curseur sans traîner */
 const PILL_SPRING = { type: 'spring' as const, stiffness: 520, damping: 38, mass: 0.6 };
+
+/* Ressort du détachement: plus souple, il porte une masse plus grande */
+const DETACH_SPRING = { type: 'spring' as const, stiffness: 260, damping: 30, mass: 0.9 };
+
+/* Seuils du détachement, en pixels de scroll (hystérésis) */
+const DETACH_AT = 80;
+const REATTACH_AT = 40;
 
 const PANEL_MAX = 760;
 
@@ -107,7 +122,13 @@ function NavPanel({ label, links, aside, open, hovered, onOpen, onClose, onHover
     };
     measure();
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    /* La barre change de largeur au scroll: un panneau ouvert doit suivre
+       son trigger plutôt que de rester ancré à l'ancienne géométrie */
+    window.addEventListener('scroll', measure, { passive: true });
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -185,7 +206,7 @@ function NavPanel({ label, links, aside, open, hovered, onOpen, onClose, onHover
 export default function NavV2() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
-  const [scrolled, setScrolled] = useState(false);
+  const [detached, setDetached] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [openPanel, setOpenPanel] = useState<PanelKey | null>(null);
   const [hovered, setHovered] = useState<HoverKey | null>(null);
@@ -203,7 +224,10 @@ export default function NavV2() {
   }, [location.pathname]);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => {
+      const y = window.scrollY;
+      setDetached((was) => (was ? y > REATTACH_AT : y > DETACH_AT));
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -436,20 +460,33 @@ export default function NavV2() {
         {isFr ? 'Aller au contenu' : 'Skip to content'}
       </a>
 
-      <header
+      <motion.header
         id="q2-nav-header"
-        className={`fixed top-0 inset-x-0 z-50 border-b transition-colors duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          menuOpen
-            ? 'bg-q2-canvas border-transparent'
-            : scrolled
-              ? 'bg-q2-canvas/95 backdrop-blur-xl border-q2-plate'
-              : 'bg-transparent border-transparent'
-        }`}
+        className={`fixed top-0 inset-x-0 z-50 ${menuOpen ? 'bg-q2-canvas' : ''}`}
+        animate={{
+          paddingTop: floating ? 10 : 0,
+          paddingLeft: floating ? 12 : 0,
+          paddingRight: floating ? 12 : 0,
+        }}
+        transition={reduced ? { duration: 0 } : DETACH_SPRING}
       >
-        <nav
+        <motion.nav
           aria-label={isFr ? 'Navigation principale' : 'Main navigation'}
-          className={`max-w-[1200px] mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 transition-[height] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            scrolled && !menuOpen ? 'h-[52px]' : 'h-16'
+          animate={{
+            maxWidth: floating ? 880 : 1200,
+            height: floating ? 52 : 64,
+            borderRadius: floating ? 999 : 0,
+          }}
+          transition={reduced ? { duration: 0 } : DETACH_SPRING}
+          /* Liste de propriétés explicite: la couleur et l'ombre glissent en
+             CSS pendant que le ressort framer porte la géométrie */
+          style={{
+            boxShadow: floating ? 'var(--q2-shadow-whisper)' : 'none',
+            transition:
+              'background-color 260ms cubic-bezier(0.16, 1, 0.3, 1), border-color 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+          className={`mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 border ${
+            floating ? 'bg-q2-canvas/80 backdrop-blur-xl border-q2-plate' : 'bg-transparent border-transparent'
           }`}
         >
           <Link
@@ -536,8 +573,8 @@ export default function NavV2() {
           >
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-        </nav>
-      </header>
+        </motion.nav>
+      </motion.header>
 
       <AnimatePresence>
         {menuOpen && (
