@@ -411,6 +411,35 @@ router.get('/twilio-info', async (_req: Request, res: Response) => {
   }
 });
 
+// ─── Character voices ────────────────────────────────────
+// The assignment runs itself on first boot; these two exist to see what the
+// library offers and to redo it after a voice turns out to be wrong by ear —
+// which is the only way a voice is ever found to be wrong.
+
+// GET /api/admin/voices/french — what the library offers, changing nothing.
+router.get('/voices/french', async (_req: Request, res: Response) => {
+  try {
+    const { frenchVoicesService } = await import('../services/voice/french-voices.service');
+    const { female, male } = await frenchVoicesService.preview();
+    const { getAssignedVoices } = await import('../config/voice-characters');
+    res.json({ assigned: getAssignedVoices(), female: female.slice(0, 20), male: male.slice(0, 20) });
+  } catch (err: any) {
+    const missing = err?.message === 'elevenlabs_key_missing';
+    res.status(missing ? 503 : 502).json({ error: err?.message || 'french_voices_failed' });
+  }
+});
+
+// POST /api/admin/voices/french — pick and assign, replacing what is stored.
+router.post('/voices/french', async (_req: Request, res: Response) => {
+  try {
+    const { frenchVoicesService } = await import('../services/voice/french-voices.service');
+    res.json({ success: true, assigned: await frenchVoicesService.assign() });
+  } catch (err: any) {
+    const missing = err?.message === 'elevenlabs_key_missing';
+    res.status(missing ? 503 : 502).json({ error: err?.message || 'french_voices_failed' });
+  }
+});
+
 // ─── Bot config (used by AdminSettings page) ─────────────
 // GET  /api/admin/bot-config  — returns AdminConfig + BotStatus + env defaults
 router.get('/bot-config', async (_req: Request, res: Response) => {

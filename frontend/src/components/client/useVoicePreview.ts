@@ -74,12 +74,45 @@ function replaceContext(): AudioContext | null {
   return liveContext();
 }
 
+/**
+ * Set when the app comes back from the background, cleared by the next press.
+ *
+ * An installed app is not reloaded when it is closed and reopened: iOS freezes
+ * the page and thaws the same document. Everything survives — including the
+ * audio element and the AudioContext, both of which have lost the audio session
+ * they were bound to. They report nothing wrong and produce no sound, which is
+ * exactly why refreshing in Chrome fixed it and reopening the installed app did
+ * not: a refresh builds new ones, a thaw does not.
+ *
+ * So the next press after a thaw rebuilds both, inside the gesture, where iOS
+ * allows it.
+ */
+let thawed = false;
+
+if (typeof document !== 'undefined') {
+  const markThawed = () => {
+    thawed = true;
+    preferPlaybackSession();
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') markThawed();
+  });
+  // Fired when the document is restored from the back/forward cache, which is
+  // how an installed app returns from the background.
+  window.addEventListener('pageshow', event => {
+    if ((event as PageTransitionEvent).persisted) markThawed();
+  });
+  window.addEventListener('focus', markThawed);
+}
+
 export const __audio = {
   liveContext: () => liveContext(),
   replaceContext: () => replaceContext(),
   resumeWithin: (ctx: AudioContext, ms: number) => resumeWithin(ctx, ms),
-  reset: () => { sharedCtx = null; },
+  reset: () => { sharedCtx = null; thawed = false; },
   current: () => sharedCtx,
+  markThawed: () => { thawed = true; },
+  isThawed: () => thawed,
 };
 
 // Browser TTS, the last resort. A rough preview only.
@@ -272,6 +305,26 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
     const lang = isFr ? 'fr' : 'en';
     const token = ++tokenRef.current;
     preferPlaybackSession();
+
+    // Everything the audio session touches is rebuilt here, inside the gesture,
+    // when the app has just been thawed. Doing it later — after the element has
+    // been given its chance and awaited — would be outside the gesture, where
+    // iOS refuses to hand the session back.
+    if (thawed) {
+      thawed = false;
+      if (elementRef.current) {
+        try { elementRef.current.pause(); } catch { /* nothing playing */ }
+        elementRef.current.onended = null;
+        elementRef.current = null;
+      }
+      const revived = replaceContext();
+      if (revived) void resumeWithin(revived, 2_500);
+    } else {
+      // Resumed on every press regardless: the fallback needs a running context
+      // and can only get one from a gesture.
+      const ctx = liveContext();
+      if (ctx) void resumeWithin(ctx, 2_500);
+    }
 
     const giveUp = (message: string) => {
       if (tokenRef.current !== token) return;

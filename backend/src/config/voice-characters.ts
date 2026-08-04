@@ -41,9 +41,37 @@ export interface Character {
 
 const MODEL = 'eleven_turbo_v2_5';
 
-// Per-character voice override: VAPI_VOICE_ID_MARIE, VAPI_VOICE_ID_LUCAS, …
+/**
+ * Voices assigned at runtime from ElevenLabs' own library, gender-checked
+ * against each character.
+ *
+ * The hardcoded ids below were pasted in by hand and never verified: one of the
+ * men spoke with a woman's voice for weeks, two of the women turned out to be
+ * men, and five of the characters shared a single voice. A voice id is an
+ * opaque string, so nothing in the code could ever have caught that — the only
+ * fix is to stop writing them down and start reading them from the API, which
+ * publishes each voice's gender and language.
+ *
+ * Filled by french-voices.service at boot. The hardcoded values stay as the
+ * fallback for the moments before that lands, and for a server with no key.
+ */
+let assigned: Record<string, string> = {};
+
+export function applyAssignedVoices(map: Record<string, string>): void {
+  assigned = { ...map };
+}
+
+export function getAssignedVoices(): Record<string, string> {
+  return { ...assigned };
+}
+
+/**
+ * Precedence: an explicit env override, then the assignment, then the
+ * hardcoded default. The env var stays first so one voice can be pinned by
+ * hand without disabling the rest.
+ */
 function voice(id: string, fallback: string): string {
-  return process.env[`VAPI_VOICE_ID_${id.toUpperCase()}`] || fallback;
+  return process.env[`VAPI_VOICE_ID_${id.toUpperCase()}`] || assigned[id] || fallback;
 }
 
 /**
@@ -64,7 +92,7 @@ const EL = {
   frSofia:   'FvmvwvObRqIHojkEGh5N',
 } as const;
 
-export const CHARACTERS: Record<string, Character> = {
+const BASE_CHARACTERS: Record<string, Character> = {
   marie: {
     id: 'marie',
     name: 'Marie',
@@ -238,6 +266,22 @@ export const CHARACTERS: Record<string, Character> = {
     previewEn: 'Good day, you’ve reached the front desk. I’m listening.',
   },
 };
+
+/**
+ * The catalog as everything else reads it, with the current voice assignment
+ * applied on the way out.
+ *
+ * A proxy rather than a rebuilt object because the assignment arrives after
+ * this module is imported — every consumer already holds `CHARACTERS`, and a
+ * copy made at import time would be frozen with the old voices for the life of
+ * the process.
+ */
+export const CHARACTERS: Record<string, Character> = new Proxy(BASE_CHARACTERS, {
+  get(target, prop: string) {
+    const base = target[prop];
+    return base ? { ...base, voiceId: voice(base.id, base.voiceId) } : base;
+  },
+});
 
 export const DEFAULT_CHARACTER_FR = 'marie';
 /**

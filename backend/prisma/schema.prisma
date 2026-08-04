@@ -1604,6 +1604,9 @@ model AdminConfig {
   targetCities           String[] @default([]) @map("target_cities")
   vapiAssistantId        String?  @map("vapi_assistant_id") @db.VarChar(255)
   vapiVoiceId            String?  @map("vapi_voice_id") @db.VarChar(100)
+  /// Per-character ElevenLabs voice ids, assigned from the library and
+  /// gender-checked. Written by french-voices.service, read at boot.
+  characterVoices        Json?    @map("character_voices")
   maxCallDurationMin     Int      @default(10) @map("max_call_duration_min")
   silenceTimeoutSeconds  Int      @default(30) @map("silence_timeout_seconds")
   apifyActorId           String?  @map("apify_actor_id") @db.VarChar(255)
