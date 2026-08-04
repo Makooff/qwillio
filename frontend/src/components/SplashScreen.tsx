@@ -23,26 +23,50 @@ import QwillioLogo from './QwillioLogo';
 const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 const EASE_DRAWER = [0.32, 0.72, 0, 1] as const;
 
-/** Lobe geometry, matched to where the circles sit inside the 512 logo box. */
+/** The mark's own size on screen, and the geometry inside its 512 box. */
+const LOGO = 168;
 const ORB = { r: 116, y: 256, leftX: 190, rightX: 322 };
 
-/** How far off-screen each lobe starts, in the 512 viewBox's own units. */
-const ENTRY = 470;
+/** The same circles, in the pixels they occupy inside a LOGO-sized box. */
+const px = (n: number) => (n / 512) * LOGO;
+const BLOB = {
+  size: px(ORB.r * 2),
+  top: px(ORB.y - ORB.r),
+  leftX: px(ORB.leftX - ORB.r),
+  rightX: px(ORB.rightX - ORB.r),
+};
 
 /**
- * The vesica where the two lobes overlap, which the brand paints in the deep
- * mauve. Its outline is an arc of each circle meeting at the two intersection
- * points, not a circle of its own.
+ * How a blob of water behaves with nothing to fall onto.
+ *
+ * In free fall it is drawn out along its path; released, surface tension pulls
+ * it back and overshoots, so it oscillates between prolate (stretched) and
+ * oblate (flattened) with the amplitude dying away — never a bounce, never a
+ * flat impact frame, which is what a cartoon squash gets wrong.
+ *
+ * The keyframes are that oscillation: strongly drawn out while travelling, then
+ * three decaying swings, in antiphase between the two axes because volume is
+ * conserved — wider means shorter, always.
  */
-const LENS = (() => {
-  const midX = (ORB.leftX + ORB.rightX) / 2;
-  const half = Math.sqrt(ORB.r ** 2 - ((ORB.rightX - ORB.leftX) / 2) ** 2);
-  const top = ORB.y - half;
-  const bottom = ORB.y + half;
-  // Down the left edge (arc of the right circle), then up the right edge (arc
-  // of the left circle); both bulge outward, hence sweep-flag 0.
-  return `M ${midX} ${top} A ${ORB.r} ${ORB.r} 0 0 0 ${midX} ${bottom} A ${ORB.r} ${ORB.r} 0 0 0 ${midX} ${top} Z`;
-})();
+const WOBBLE = {
+  times: [0, 0.46, 0.62, 0.74, 0.85, 0.93, 1],
+  scaleX: [0.52, 0.62, 1.13, 0.93, 1.05, 0.98, 1],
+  scaleY: [0.52, 0.92, 0.88, 1.07, 0.96, 1.02, 1],
+  /**
+   * The outline goes with it. A levitating drop is never a perfect ellipse: the
+   * radii differ around the shape and drift, which is what the eye reads as
+   * liquid rather than as a stretched circle.
+   */
+  radius: [
+    '50% 50% 50% 50% / 50% 50% 50% 50%',
+    '46% 54% 50% 50% / 62% 62% 38% 38%',
+    '56% 44% 52% 48% / 40% 42% 58% 60%',
+    '48% 52% 46% 54% / 56% 52% 48% 44%',
+    '52% 48% 53% 47% / 47% 50% 50% 53%',
+    '49% 51% 49% 51% / 51% 49% 51% 49%',
+    '50% 50% 50% 50% / 50% 50% 50% 50%',
+  ],
+};
 
 export default function SplashScreen({
   onDone, waitFor,
@@ -146,37 +170,42 @@ export default function SplashScreen({
           )}
 
           <div className="relative flex flex-col items-center">
-            <div className="relative" style={{ width: 168, height: 168 }}>
-              {/* Stage 1: the lobes fall and rise into place, then settle. */}
-              <motion.svg
-                viewBox="0 0 512 512"
-                className="absolute inset-0 h-full w-full"
+            <div className="relative" style={{ width: LOGO, height: LOGO }}>
+              {/*
+                Stage 1: two drops crossing the whole screen.
+
+                Elements rather than an SVG, and vh rather than viewBox units,
+                because the travel is a screen-height journey: inside the 512
+                box the same numbers only ever moved them the width of the logo.
+                They come to rest exactly where the mark's lobes are, so the
+                crossfade that follows lands on itself.
+
+                The left one is painted over the right, as in the mark — the
+                whole way down, not only once it arrives.
+              */}
+              <motion.div
                 aria-hidden="true"
+                className="absolute inset-0"
                 initial={{ opacity: 1 }}
                 animate={{ opacity: 0 }}
                 transition={{ duration: t.resolve, delay: t.travel + t.settle, ease: 'linear' }}
               >
-                {/*
-                  Painted in the logo's own order: the violet lobe, then the
-                  indigo one over it, then the deep overlap. The left lobe is on
-                  top in the mark, so it is on top here too — for the whole
-                  journey, not only once everything has landed.
-
-                  Each lobe travels inside a group so the motion is a transform,
-                  and scales about its own centre (`fill-box`) rather than about
-                  the viewBox corner, which would send it across the screen.
-                */}
-                <motion.g
-                  style={{ willChange: 'transform', transformBox: 'fill-box', transformOrigin: 'center' }}
-                  initial={{ y: reduced ? 0 : ENTRY, scaleX: reduced ? 1 : 0.5, scaleY: reduced ? 1 : 0.5, opacity: reduced ? 1 : 0 }}
+                <motion.div
+                  className="absolute"
+                  style={{
+                    width: BLOB.size, height: BLOB.size,
+                    top: BLOB.top, left: BLOB.rightX,
+                    background: 'radial-gradient(circle at 36% 30%, #E39BFF 0%, #CD6BFB 42%, #B14FE6 100%)',
+                    willChange: 'transform, border-radius',
+                  }}
+                  initial={{ y: reduced ? 0 : '58vh', scaleX: 0.52, scaleY: 0.52, opacity: reduced ? 1 : 0 }}
                   animate={{
-                    y: reduced ? 0 : [ENTRY, -16, 5, 0],
-                    // A falling drop stretches along its path and flattens when
-                    // it lands, then rounds out. Without it a circle crossing
-                    // the screen reads as a sticker being slid, not as
-                    // something with weight arriving.
-                    scaleX: reduced ? 1 : [0.5, 0.6, 1.12, 0.95, 1],
-                    scaleY: reduced ? 1 : [0.5, 0.86, 0.86, 1.05, 1],
+                    // Rises from below the fold, overshoots the meeting point,
+                    // and drifts back onto it.
+                    y: reduced ? 0 : ['58vh', '-2.4vh', '0.8vh', '-0.3vh', '0.1vh', '0vh', '0vh'],
+                    scaleX: reduced ? 1 : WOBBLE.scaleX,
+                    scaleY: reduced ? 1 : WOBBLE.scaleY,
+                    borderRadius: reduced ? '50%' : WOBBLE.radius,
                     opacity: 1,
                   }}
                   // Slightly behind the left one: two objects arriving on the
@@ -184,38 +213,33 @@ export default function SplashScreen({
                   transition={{
                     duration: t.travel + t.settle,
                     delay: reduced ? 0 : 0.07,
-                    times: reduced ? undefined : [0, 0.55, 0.72, 0.88, 1],
+                    times: reduced ? undefined : WOBBLE.times,
                     ease: EASE_OUT_EXPO,
                   }}
-                >
-                  <circle cx={ORB.rightX} cy={ORB.y} r={ORB.r} fill="#CD6BFB" />
-                </motion.g>
-                <motion.g
-                  style={{ willChange: 'transform', transformBox: 'fill-box', transformOrigin: 'center' }}
-                  initial={{ y: reduced ? 0 : -ENTRY, scaleX: reduced ? 1 : 0.5, scaleY: reduced ? 1 : 0.5, opacity: reduced ? 1 : 0 }}
+                />
+                <motion.div
+                  className="absolute"
+                  style={{
+                    width: BLOB.size, height: BLOB.size,
+                    top: BLOB.top, left: BLOB.leftX,
+                    background: 'radial-gradient(circle at 36% 30%, #A08CFF 0%, #7A5FFF 44%, #5B41DB 100%)',
+                    willChange: 'transform, border-radius',
+                  }}
+                  initial={{ y: reduced ? 0 : '-58vh', scaleX: 0.52, scaleY: 0.52, opacity: reduced ? 1 : 0 }}
                   animate={{
-                    y: reduced ? 0 : [-ENTRY, 16, -5, 0],
-                    scaleX: reduced ? 1 : [0.5, 0.6, 1.12, 0.95, 1],
-                    scaleY: reduced ? 1 : [0.5, 0.86, 0.86, 1.05, 1],
+                    y: reduced ? 0 : ['-58vh', '2.4vh', '-0.8vh', '0.3vh', '-0.1vh', '0vh', '0vh'],
+                    scaleX: reduced ? 1 : WOBBLE.scaleX,
+                    scaleY: reduced ? 1 : WOBBLE.scaleY,
+                    borderRadius: reduced ? '50%' : WOBBLE.radius,
                     opacity: 1,
                   }}
                   transition={{
                     duration: t.travel + t.settle,
-                    times: reduced ? undefined : [0, 0.55, 0.72, 0.88, 1],
+                    times: reduced ? undefined : WOBBLE.times,
                     ease: EASE_OUT_EXPO,
                   }}
-                >
-                  <circle cx={ORB.leftX} cy={ORB.y} r={ORB.r} fill="#7A5FFF" />
-                </motion.g>
-                {/* The overlap the brand paints last, revealed as they meet. */}
-                <motion.path
-                  d={LENS}
-                  fill="#7349FE"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: t.settle * 0.8, delay: t.travel * 0.82 }}
                 />
-              </motion.svg>
+              </motion.div>
 
               {/* Stage 2: the real mark takes over, so the held frame is exact. */}
               <motion.div
@@ -225,7 +249,7 @@ export default function SplashScreen({
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: t.resolve, delay: t.travel + t.settle, ease: EASE_OUT_EXPO }}
               >
-                <QwillioLogo size={168} />
+                <QwillioLogo size={LOGO} />
               </motion.div>
             </div>
 
