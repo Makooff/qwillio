@@ -437,6 +437,47 @@ export default function Home() {
         </Container>
       </Section>
 
+      {/* ── QWILLIO EN CHIFFRES, bande taupe: quatre faits, rien d'autre ── */}
+      <ImpactStats isFr={isFr} />
+
+      {/* ── L'APP DANS VOTRE POCHE, le téléphone quitte le hero ── */}
+      <Section aria-labelledby="pocket-heading">
+        <Container className="grid lg:grid-cols-[1fr_1fr] gap-14 lg:gap-20 items-center [&>*]:min-w-0">
+          <RevealV2>
+            <Eyebrow tone="indigo" className="mb-4">
+              {isFr ? 'Sur mobile' : 'On mobile'}
+            </Eyebrow>
+            <H2 id="pocket-heading">
+              <TextReveal>
+                {isFr ? (
+                  <>
+                    L’app dans votre <SerifWord>poche.</SerifWord>
+                  </>
+                ) : (
+                  <>
+                    The app in your <SerifWord>pocket.</SerifWord>
+                  </>
+                )}
+              </TextReveal>
+            </H2>
+            <p className="text-q2-body text-base leading-relaxed mt-4 max-w-[420px] q2-body-text">
+              {isFr
+                ? 'Une notification à chaque appel pris, le résumé lisible en trois secondes, et le rendez-vous déjà inscrit. Le dashboard complet tient dans le navigateur du téléphone.'
+                : 'A notification for every call taken, a summary readable in three seconds, and the appointment already booked. The full dashboard fits in the phone browser.'}
+            </p>
+            <p className="flex items-center gap-2 mt-6 text-sm text-q2-body q2-body-text">
+              <Smartphone size={15} className="text-q2-indigo shrink-0" aria-hidden="true" />
+              {isFr
+                ? 'Rien à installer : la même adresse, sur tous vos écrans.'
+                : 'Nothing to install: the same address, on every screen you own.'}
+            </p>
+          </RevealV2>
+          <RevealV2 index={2}>
+            <HeroPhone3D isFr={isFr} />
+          </RevealV2>
+        </Container>
+      </Section>
+
       {/* ── APRÈS L'APPEL + CONFIANCE, bande taupe ── */}
       <Section variant="band" hairline aria-labelledby="after-heading" className="relative">
         <Container>
@@ -486,7 +527,39 @@ export default function Home() {
             </CardV2>
           </RevealV2>
         </Container>
-        {/* La bande taupe s'assombrit avant le drenched violet de clôture */}
+      </Section>
+
+      {/* ── CE À QUOI ELLE EST BRANCHÉE, orbite d'intégrations ── */}
+      <Section aria-labelledby="integrations-heading" className="relative">
+        <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-14 items-center [&>*]:min-w-0">
+          <RevealV2 className="max-w-[440px]">
+            <Eyebrow tone="violet" className="mb-4">
+              {isFr ? 'Intégrations' : 'Integrations'}
+            </Eyebrow>
+            <H2 id="integrations-heading">
+              <TextReveal>
+                {isFr ? (
+                  <>
+                    Branchée à ce que vous <SerifWord>utilisez déjà.</SerifWord>
+                  </>
+                ) : (
+                  <>
+                    Wired into what you <SerifWord>already use.</SerifWord>
+                  </>
+                )}
+              </TextReveal>
+            </H2>
+            <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
+              {isFr
+                ? 'Elle lit votre agenda, envoie les SMS, pousse le lead dans votre CRM. Ce qui n’est pas dans la liste passe par un webhook : Zapier, Make, n8n. D’autres arrivent.'
+                : 'She reads your calendar, sends the texts, pushes the lead into your CRM. Whatever is not on the list goes through a webhook: Zapier, Make, n8n. More are coming.'}
+            </p>
+          </RevealV2>
+          <RevealV2 index={1}>
+            <IntegrationsOrbit isFr={isFr} />
+          </RevealV2>
+        </Container>
+        {/* La section s'assombrit avant le drenched violet de clôture */}
         <ScrollVeil />
       </Section>
 
