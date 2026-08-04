@@ -68,6 +68,84 @@ const WOBBLE = {
   ],
 };
 
+/**
+ * The small droplets trailing each lobe.
+ *
+ * They exist for the merge: a satellite caught by the surface it is falling
+ * towards is what makes the whole thing read as liquid rather than as two discs
+ * meeting. They shrink to nothing as they are absorbed — under the filter that
+ * looks like being drunk by the larger body, not like fading out.
+ */
+const SATELLITE = {
+  times: [0, 0.62, 0.8, 1],
+  scale: [0.9, 0.75, 0.28, 0],
+};
+
+interface Drop {
+  key: string;
+  size: number;
+  /** Resting offset from the centre of the band, in pixels. */
+  x: number;
+  y: number;
+  fill: string;
+  from: string;
+  travel: string[];
+  delay: number;
+  satellite?: boolean;
+}
+
+/**
+ * Painted in the mark's own order: violet first, indigo over it. The left lobe
+ * is on top in the logo, so it is on top here for the whole journey.
+ */
+const DROPS: Drop[] = [
+  {
+    key: 'satellite-right',
+    size: BLOB.size * 0.3,
+    x: BLOB.rightX - LOGO / 2 + BLOB.size * 0.62,
+    y: BLOB.top - LOGO / 2 + BLOB.size * 0.5,
+    fill: '#CD6BFB',
+    from: '78vh',
+    travel: ['78vh', '9vh', '2vh', '0vh'],
+    delay: 0.02,
+    satellite: true,
+  },
+  {
+    key: 'right',
+    size: BLOB.size,
+    x: BLOB.rightX - LOGO / 2,
+    y: BLOB.top - LOGO / 2,
+    fill: 'radial-gradient(circle at 34% 28%, #F0B6FF 0%, #CD6BFB 46%, #A93FDF 100%)',
+    from: '58vh',
+    // Rises from below the fold, overshoots the meeting point, and drifts back.
+    travel: ['58vh', '-2.4vh', '0.8vh', '-0.3vh', '0.1vh', '0vh', '0vh'],
+    // Slightly behind the left one: two objects arriving on the exact same
+    // frame read as one object, not as a meeting.
+    delay: 0.07,
+  },
+  {
+    key: 'satellite-left',
+    size: BLOB.size * 0.26,
+    x: BLOB.leftX - LOGO / 2 - BLOB.size * 0.16,
+    y: BLOB.top - LOGO / 2 + BLOB.size * 0.34,
+    fill: '#7A5FFF',
+    from: '-76vh',
+    travel: ['-76vh', '-8vh', '-1.6vh', '0vh'],
+    delay: 0,
+    satellite: true,
+  },
+  {
+    key: 'left',
+    size: BLOB.size,
+    x: BLOB.leftX - LOGO / 2,
+    y: BLOB.top - LOGO / 2,
+    fill: 'radial-gradient(circle at 34% 28%, #B3A4FF 0%, #7A5FFF 46%, #533AD4 100%)',
+    from: '-58vh',
+    travel: ['-58vh', '2.4vh', '-0.8vh', '0.3vh', '-0.1vh', '0vh', '0vh'],
+    delay: 0,
+  },
+];
+
 export default function SplashScreen({
   onDone, waitFor,
 }: {
@@ -169,77 +247,150 @@ export default function SplashScreen({
             </>
           )}
 
+          {/*
+            The metaball filter: blur everything underneath, then push the alpha
+            through a steep curve so semi-transparent edges snap back to solid.
+            Two shapes that come close therefore grow a neck and fuse into one
+            surface, and small droplets are swallowed whole — the behaviour in
+            the reference images, and something no amount of border-radius
+            tweening can fake, because it is a property of the pair, not of
+            either shape.
+          */}
+          <svg aria-hidden="true" className="absolute" width="0" height="0">
+            <defs>
+              <filter id="qw-goo" colorInterpolationFilters="sRGB">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="11" result="soft" />
+                <feColorMatrix
+                  in="soft"
+                  mode="matrix"
+                  values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 26 -12"
+                  result="goo"
+                />
+                {/* The un-thresholded blur is kept underneath as a halo, which
+                    is what stops the fused shape from reading as flat paper. */}
+                <feBlend in="soft" in2="goo" mode="screen" />
+              </filter>
+            </defs>
+          </svg>
+
           <div className="relative flex flex-col items-center">
             <div className="relative" style={{ width: LOGO, height: LOGO }}>
               {/*
-                Stage 1: two drops crossing the whole screen.
+                Stage 1: two drops crossing the whole screen and merging.
 
                 Elements rather than an SVG, and vh rather than viewBox units,
-                because the travel is a screen-height journey: inside the 512
-                box the same numbers only ever moved them the width of the logo.
-                They come to rest exactly where the mark's lobes are, so the
-                crossfade that follows lands on itself.
+                because the travel is a screen-height journey. They come to rest
+                exactly where the mark's lobes are, so the crossfade that
+                follows lands on itself.
 
-                The left one is painted over the right, as in the mark — the
-                whole way down, not only once it arrives.
+                The filtered layer is a tall narrow band rather than the whole
+                screen: a filter costs its own area every frame, and the drops
+                only ever occupy this column.
               */}
               <motion.div
                 aria-hidden="true"
-                className="absolute inset-0"
+                className="absolute"
+                style={{
+                  left: '50%',
+                  top: '50%',
+                  width: LOGO * 2.4,
+                  height: '150vh',
+                  marginLeft: -(LOGO * 2.4) / 2,
+                  marginTop: '-75vh',
+                  filter: reduced ? undefined : 'url(#qw-goo)',
+                  willChange: 'opacity',
+                }}
                 initial={{ opacity: 1 }}
                 animate={{ opacity: 0 }}
                 transition={{ duration: t.resolve, delay: t.travel + t.settle, ease: 'linear' }}
               >
-                <motion.div
-                  className="absolute"
-                  style={{
-                    width: BLOB.size, height: BLOB.size,
-                    top: BLOB.top, left: BLOB.rightX,
-                    background: 'radial-gradient(circle at 36% 30%, #E39BFF 0%, #CD6BFB 42%, #B14FE6 100%)',
-                    willChange: 'transform, border-radius',
-                  }}
-                  initial={{ y: reduced ? 0 : '58vh', scaleX: 0.52, scaleY: 0.52, opacity: reduced ? 1 : 0 }}
-                  animate={{
-                    // Rises from below the fold, overshoots the meeting point,
-                    // and drifts back onto it.
-                    y: reduced ? 0 : ['58vh', '-2.4vh', '0.8vh', '-0.3vh', '0.1vh', '0vh', '0vh'],
-                    scaleX: reduced ? 1 : WOBBLE.scaleX,
-                    scaleY: reduced ? 1 : WOBBLE.scaleY,
-                    borderRadius: reduced ? '50%' : WOBBLE.radius,
-                    opacity: 1,
-                  }}
-                  // Slightly behind the left one: two objects arriving on the
-                  // exact same frame read as one object, not as a meeting.
-                  transition={{
-                    duration: t.travel + t.settle,
-                    delay: reduced ? 0 : 0.07,
-                    times: reduced ? undefined : WOBBLE.times,
-                    ease: EASE_OUT_EXPO,
-                  }}
-                />
-                <motion.div
-                  className="absolute"
-                  style={{
-                    width: BLOB.size, height: BLOB.size,
-                    top: BLOB.top, left: BLOB.leftX,
-                    background: 'radial-gradient(circle at 36% 30%, #A08CFF 0%, #7A5FFF 44%, #5B41DB 100%)',
-                    willChange: 'transform, border-radius',
-                  }}
-                  initial={{ y: reduced ? 0 : '-58vh', scaleX: 0.52, scaleY: 0.52, opacity: reduced ? 1 : 0 }}
-                  animate={{
-                    y: reduced ? 0 : ['-58vh', '2.4vh', '-0.8vh', '0.3vh', '-0.1vh', '0vh', '0vh'],
-                    scaleX: reduced ? 1 : WOBBLE.scaleX,
-                    scaleY: reduced ? 1 : WOBBLE.scaleY,
-                    borderRadius: reduced ? '50%' : WOBBLE.radius,
-                    opacity: 1,
-                  }}
-                  transition={{
-                    duration: t.travel + t.settle,
-                    times: reduced ? undefined : WOBBLE.times,
-                    ease: EASE_OUT_EXPO,
-                  }}
-                />
+                {DROPS.map(drop => (
+                  <motion.div
+                    key={drop.key}
+                    className="absolute"
+                    style={{
+                      width: drop.size,
+                      height: drop.size,
+                      // Positioned against the band's centre so the resting
+                      // place is the lobe's own spot inside the mark.
+                      left: `calc(50% + ${drop.x}px)`,
+                      top: `calc(50% + ${drop.y}px)`,
+                      background: drop.fill,
+                      borderRadius: '50%',
+                      willChange: 'transform, border-radius',
+                    }}
+                    initial={{
+                      y: reduced ? 0 : drop.from,
+                      scaleX: reduced ? 1 : drop.satellite ? 1 : 0.52,
+                      scaleY: reduced ? 1 : drop.satellite ? 1 : 0.52,
+                      opacity: reduced && drop.satellite ? 0 : 1,
+                    }}
+                    animate={{
+                      y: reduced ? 0 : drop.travel,
+                      scaleX: reduced ? 1 : drop.satellite ? SATELLITE.scale : WOBBLE.scaleX,
+                      scaleY: reduced ? 1 : drop.satellite ? SATELLITE.scale : WOBBLE.scaleY,
+                      borderRadius: reduced || drop.satellite ? '50%' : WOBBLE.radius,
+                      opacity: drop.satellite && reduced ? 0 : 1,
+                    }}
+                    transition={{
+                      duration: t.travel + t.settle,
+                      delay: reduced ? 0 : drop.delay,
+                      times: reduced ? undefined : drop.satellite ? SATELLITE.times : WOBBLE.times,
+                      ease: EASE_OUT_EXPO,
+                    }}
+                  />
+                ))}
               </motion.div>
+
+              {/*
+                The gloss, on its own unfiltered layer.
+
+                The metaball filter is a threshold on alpha, so anything painted
+                inside a blob comes back out flattened — a specular highlight put
+                in there would simply disappear. Riding above it, on the same
+                path, it reads as light sitting on a curved wet surface, which is
+                the difference between these shapes and coloured discs.
+              */}
+              {!reduced && (
+                <motion.div
+                  aria-hidden="true"
+                  className="absolute"
+                  style={{
+                    left: '50%', top: '50%',
+                    width: LOGO * 2.4, height: '150vh',
+                    marginLeft: -(LOGO * 2.4) / 2, marginTop: '-75vh',
+                    willChange: 'opacity',
+                  }}
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: 0 }}
+                  transition={{ duration: t.resolve * 0.7, delay: t.travel + t.settle, ease: 'linear' }}
+                >
+                  {DROPS.filter(drop => !drop.satellite).map(drop => (
+                    <motion.div
+                      key={`gloss-${drop.key}`}
+                      className="absolute"
+                      style={{
+                        width: drop.size * 0.52,
+                        height: drop.size * 0.34,
+                        left: `calc(50% + ${drop.x + drop.size * 0.16}px)`,
+                        top: `calc(50% + ${drop.y + drop.size * 0.12}px)`,
+                        background: 'radial-gradient(closest-side, rgba(255,255,255,0.82), rgba(255,255,255,0) 100%)',
+                        borderRadius: '50%',
+                        filter: 'blur(3px)',
+                        willChange: 'transform',
+                      }}
+                      initial={{ y: drop.from, scaleX: 0.52, scaleY: 0.52 }}
+                      animate={{ y: drop.travel, scaleX: WOBBLE.scaleX, scaleY: WOBBLE.scaleY }}
+                      transition={{
+                        duration: t.travel + t.settle,
+                        delay: drop.delay,
+                        times: WOBBLE.times,
+                        ease: EASE_OUT_EXPO,
+                      }}
+                    />
+                  ))}
+                </motion.div>
+              )}
 
               {/* Stage 2: the real mark takes over, so the held frame is exact. */}
               <motion.div
