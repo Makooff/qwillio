@@ -37,48 +37,64 @@ const BLOB = {
 };
 
 /**
- * How a blob of water behaves with nothing to fall onto.
+ * The masses that become the mark.
  *
- * In free fall it is drawn out along its path; released, surface tension pulls
- * it back and overshoots, so it oscillates between prolate (stretched) and
- * oblate (flattened) with the amplitude dying away — never a bounce, never a
- * flat impact frame, which is what a cartoon squash gets wrong.
+ * They travel large — the width of a phone, not the width of the logo. That is
+ * the whole difference from the previous attempt: a metaball surface only reads
+ * as a substance when it is big enough to show its own shading, and two
+ * seventy-pixel dots crossing a screen read as dots however they are filtered.
+ * They shrink onto the logo's lobes at the very end, once the merge has been
+ * seen.
+ */
+const TRAVEL_SCALE = 4.4;
+
+/**
+ * How a body of liquid behaves with nothing to fall onto: drawn out along its
+ * path, then pulled back by surface tension, overshooting and settling. The two
+ * axes are in antiphase because volume is conserved — wider always means
+ * shorter — and the swings decay rather than bouncing, because there is no
+ * surface to bounce off.
  *
- * The keyframes are that oscillation: strongly drawn out while travelling, then
- * three decaying swings, in antiphase between the two axes because volume is
- * conserved — wider means shorter, always.
+ * The scale carries the shrink as well as the wobble: one keyframe list, so the
+ * two can never disagree about where the shape is.
  */
 const WOBBLE = {
-  times: [0, 0.46, 0.62, 0.74, 0.85, 0.93, 1],
-  scaleX: [0.52, 0.62, 1.13, 0.93, 1.05, 0.98, 1],
-  scaleY: [0.52, 0.92, 0.88, 1.07, 0.96, 1.02, 1],
+  times: [0, 0.34, 0.52, 0.66, 0.78, 0.9, 1],
+  scaleX: [
+    TRAVEL_SCALE * 0.92, TRAVEL_SCALE, TRAVEL_SCALE * 1.06,
+    TRAVEL_SCALE * 0.96, TRAVEL_SCALE * 0.66, TRAVEL_SCALE * 0.3, 1,
+  ],
+  scaleY: [
+    TRAVEL_SCALE * 1.14, TRAVEL_SCALE * 1.05, TRAVEL_SCALE * 0.93,
+    TRAVEL_SCALE * 1.03, TRAVEL_SCALE * 0.68, TRAVEL_SCALE * 0.31, 1,
+  ],
   /**
-   * The outline goes with it. A levitating drop is never a perfect ellipse: the
-   * radii differ around the shape and drift, which is what the eye reads as
-   * liquid rather than as a stretched circle.
+   * The outline drifts with it. A free-floating body of liquid is never a
+   * perfect ellipse: its radii differ around the shape and keep changing, which
+   * is what the eye reads as liquid rather than as a stretched circle.
    */
   radius: [
-    '50% 50% 50% 50% / 50% 50% 50% 50%',
-    '46% 54% 50% 50% / 62% 62% 38% 38%',
-    '56% 44% 52% 48% / 40% 42% 58% 60%',
-    '48% 52% 46% 54% / 56% 52% 48% 44%',
-    '52% 48% 53% 47% / 47% 50% 50% 53%',
-    '49% 51% 49% 51% / 51% 49% 51% 49%',
+    '54% 46% 58% 42% / 48% 56% 44% 52%',
+    '42% 58% 46% 54% / 62% 44% 56% 38%',
+    '58% 42% 52% 48% / 40% 58% 42% 60%',
+    '48% 52% 44% 56% / 56% 46% 54% 44%',
+    '52% 48% 53% 47% / 47% 52% 48% 53%',
+    '49% 51% 50% 50% / 51% 49% 51% 49%',
     '50% 50% 50% 50% / 50% 50% 50% 50%',
   ],
 };
 
 /**
- * The small droplets trailing each lobe.
+ * The droplets that get swallowed.
  *
- * They exist for the merge: a satellite caught by the surface it is falling
- * towards is what makes the whole thing read as liquid rather than as two discs
- * meeting. They shrink to nothing as they are absorbed — under the filter that
- * looks like being drunk by the larger body, not like fading out.
+ * A satellite caught by the surface it is falling towards is the clearest
+ * single sign that the thing is liquid. They vanish into the mass rather than
+ * fading: under the filter, shrinking next to a larger body looks like being
+ * drunk by it.
  */
 const SATELLITE = {
-  times: [0, 0.62, 0.8, 1],
-  scale: [0.9, 0.75, 0.28, 0],
+  times: [0, 0.5, 0.72, 1],
+  scale: [2.6, 2.1, 0.6, 0],
 };
 
 interface Drop {
@@ -97,17 +113,22 @@ interface Drop {
 /**
  * Painted in the mark's own order: violet first, indigo over it. The left lobe
  * is on top in the logo, so it is on top here for the whole journey.
+ *
+ * The fills are three-stop gradients rather than flat colour — light gathered
+ * off-centre, saturated body, a darker far side. The filter blurs them, which
+ * is exactly right: the shading softens into the surface instead of sitting on
+ * it like the white smear the previous version painted on top.
  */
 const DROPS: Drop[] = [
   {
     key: 'satellite-right',
-    size: BLOB.size * 0.3,
-    x: BLOB.rightX - LOGO / 2 + BLOB.size * 0.62,
-    y: BLOB.top - LOGO / 2 + BLOB.size * 0.5,
-    fill: '#CD6BFB',
-    from: '78vh',
-    travel: ['78vh', '9vh', '2vh', '0vh'],
-    delay: 0.02,
+    size: BLOB.size * 0.26,
+    x: BLOB.rightX - LOGO / 2 + BLOB.size * 1.5,
+    y: BLOB.top - LOGO / 2 + BLOB.size * 0.9,
+    fill: 'radial-gradient(circle at 34% 28%, #EFB2FF 0%, #CD6BFB 55%, #9B37D0 100%)',
+    from: '86vh',
+    travel: ['86vh', '16vh', '3vh', '0vh'],
+    delay: 0.04,
     satellite: true,
   },
   {
@@ -115,22 +136,22 @@ const DROPS: Drop[] = [
     size: BLOB.size,
     x: BLOB.rightX - LOGO / 2,
     y: BLOB.top - LOGO / 2,
-    fill: 'radial-gradient(circle at 34% 28%, #F0B6FF 0%, #CD6BFB 46%, #A93FDF 100%)',
-    from: '58vh',
+    fill: 'radial-gradient(circle at 32% 26%, #F6C8FF 0%, #E08BFF 26%, #CD6BFB 55%, #8E2FC6 100%)',
+    from: '76vh',
     // Rises from below the fold, overshoots the meeting point, and drifts back.
-    travel: ['58vh', '-2.4vh', '0.8vh', '-0.3vh', '0.1vh', '0vh', '0vh'],
+    travel: ['76vh', '16vh', '1.5vh', '-0.6vh', '0.2vh', '0vh', '0vh'],
     // Slightly behind the left one: two objects arriving on the exact same
     // frame read as one object, not as a meeting.
-    delay: 0.07,
+    delay: 0.09,
   },
   {
     key: 'satellite-left',
-    size: BLOB.size * 0.26,
-    x: BLOB.leftX - LOGO / 2 - BLOB.size * 0.16,
-    y: BLOB.top - LOGO / 2 + BLOB.size * 0.34,
-    fill: '#7A5FFF',
-    from: '-76vh',
-    travel: ['-76vh', '-8vh', '-1.6vh', '0vh'],
+    size: BLOB.size * 0.22,
+    x: BLOB.leftX - LOGO / 2 - BLOB.size * 1.35,
+    y: BLOB.top - LOGO / 2 - BLOB.size * 0.55,
+    fill: 'radial-gradient(circle at 34% 28%, #C3B6FF 0%, #7A5FFF 55%, #4A32C4 100%)',
+    from: '-84vh',
+    travel: ['-84vh', '-15vh', '-2.5vh', '0vh'],
     delay: 0,
     satellite: true,
   },
@@ -139,9 +160,9 @@ const DROPS: Drop[] = [
     size: BLOB.size,
     x: BLOB.leftX - LOGO / 2,
     y: BLOB.top - LOGO / 2,
-    fill: 'radial-gradient(circle at 34% 28%, #B3A4FF 0%, #7A5FFF 46%, #533AD4 100%)',
-    from: '-58vh',
-    travel: ['-58vh', '2.4vh', '-0.8vh', '0.3vh', '-0.1vh', '0vh', '0vh'],
+    fill: 'radial-gradient(circle at 32% 26%, #D8D0FF 0%, #9E8CFF 26%, #7A5FFF 55%, #452BC0 100%)',
+    from: '-76vh',
+    travel: ['-76vh', '-16vh', '-1.5vh', '0.6vh', '-0.2vh', '0vh', '0vh'],
     delay: 0,
   },
 ];
@@ -163,7 +184,7 @@ export default function SplashScreen({
     // travel + settle is one continuous motion: the lobes fall and rise, pass
     // their mark, and ease back onto it. Splitting it into two tweens is what
     // makes an arrival look mechanical.
-    : { travel: 0.95, settle: 0.45, resolve: 0.4, hold: 2, out: 0.5 }),
+    : { travel: 1.35, settle: 0.75, resolve: 0.45, hold: 2, out: 0.5 }),
   [reduced]);
 
   /** When the mark is fully formed and the wordmark is up. */
@@ -259,16 +280,19 @@ export default function SplashScreen({
           <svg aria-hidden="true" className="absolute" width="0" height="0">
             <defs>
               <filter id="qw-goo" colorInterpolationFilters="sRGB">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="11" result="soft" />
+                <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="soft" />
+                {/*
+                  A gentler slope than the textbook gooey filter. Steep values
+                  give a crisp silhouette and a hard, aliased edge; this leaves
+                  a hair of softness at the rim, which is what a wet surface
+                  has. The bias is set so the neck between two masses appears
+                  while they are still a good distance apart.
+                */}
                 <feColorMatrix
                   in="soft"
                   mode="matrix"
-                  values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 26 -12"
-                  result="goo"
+                  values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 15 -6"
                 />
-                {/* The un-thresholded blur is kept underneath as a halo, which
-                    is what stops the fused shape from reading as flat paper. */}
-                <feBlend in="soft" in2="goo" mode="screen" />
               </filter>
             </defs>
           </svg>
@@ -283,9 +307,10 @@ export default function SplashScreen({
                 exactly where the mark's lobes are, so the crossfade that
                 follows lands on itself.
 
-                The filtered layer is a tall narrow band rather than the whole
-                screen: a filter costs its own area every frame, and the drops
-                only ever occupy this column.
+                The filtered layer covers the screen because the masses now do
+                too. That costs more per frame than the narrow band it replaces,
+                and it is the price of the effect: a metaball surface only reads
+                as a substance at a size where its own shading is visible.
               */}
               <motion.div
                 aria-hidden="true"
@@ -293,10 +318,10 @@ export default function SplashScreen({
                 style={{
                   left: '50%',
                   top: '50%',
-                  width: LOGO * 2.4,
-                  height: '150vh',
-                  marginLeft: -(LOGO * 2.4) / 2,
-                  marginTop: '-75vh',
+                  width: '150vw',
+                  height: '170vh',
+                  marginLeft: '-75vw',
+                  marginTop: '-85vh',
                   filter: reduced ? undefined : 'url(#qw-goo)',
                   willChange: 'opacity',
                 }}
@@ -321,8 +346,8 @@ export default function SplashScreen({
                     }}
                     initial={{
                       y: reduced ? 0 : drop.from,
-                      scaleX: reduced ? 1 : drop.satellite ? 1 : 0.52,
-                      scaleY: reduced ? 1 : drop.satellite ? 1 : 0.52,
+                      scaleX: reduced ? 1 : drop.satellite ? SATELLITE.scale[0] : WOBBLE.scaleX[0],
+                      scaleY: reduced ? 1 : drop.satellite ? SATELLITE.scale[0] : WOBBLE.scaleY[0],
                       opacity: reduced && drop.satellite ? 0 : 1,
                     }}
                     animate={{
@@ -341,56 +366,6 @@ export default function SplashScreen({
                   />
                 ))}
               </motion.div>
-
-              {/*
-                The gloss, on its own unfiltered layer.
-
-                The metaball filter is a threshold on alpha, so anything painted
-                inside a blob comes back out flattened — a specular highlight put
-                in there would simply disappear. Riding above it, on the same
-                path, it reads as light sitting on a curved wet surface, which is
-                the difference between these shapes and coloured discs.
-              */}
-              {!reduced && (
-                <motion.div
-                  aria-hidden="true"
-                  className="absolute"
-                  style={{
-                    left: '50%', top: '50%',
-                    width: LOGO * 2.4, height: '150vh',
-                    marginLeft: -(LOGO * 2.4) / 2, marginTop: '-75vh',
-                    willChange: 'opacity',
-                  }}
-                  initial={{ opacity: 1 }}
-                  animate={{ opacity: 0 }}
-                  transition={{ duration: t.resolve * 0.7, delay: t.travel + t.settle, ease: 'linear' }}
-                >
-                  {DROPS.filter(drop => !drop.satellite).map(drop => (
-                    <motion.div
-                      key={`gloss-${drop.key}`}
-                      className="absolute"
-                      style={{
-                        width: drop.size * 0.52,
-                        height: drop.size * 0.34,
-                        left: `calc(50% + ${drop.x + drop.size * 0.16}px)`,
-                        top: `calc(50% + ${drop.y + drop.size * 0.12}px)`,
-                        background: 'radial-gradient(closest-side, rgba(255,255,255,0.82), rgba(255,255,255,0) 100%)',
-                        borderRadius: '50%',
-                        filter: 'blur(3px)',
-                        willChange: 'transform',
-                      }}
-                      initial={{ y: drop.from, scaleX: 0.52, scaleY: 0.52 }}
-                      animate={{ y: drop.travel, scaleX: WOBBLE.scaleX, scaleY: WOBBLE.scaleY }}
-                      transition={{
-                        duration: t.travel + t.settle,
-                        delay: drop.delay,
-                        times: WOBBLE.times,
-                        ease: EASE_OUT_EXPO,
-                      }}
-                    />
-                  ))}
-                </motion.div>
-              )}
 
               {/* Stage 2: the real mark takes over, so the held frame is exact. */}
               <motion.div
