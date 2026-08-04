@@ -446,6 +446,10 @@ export default function NavV2() {
     </div>
   );
 
+  /* Le menu mobile plein écran reprend toute la largeur: la pilule se
+     rattache le temps de son ouverture */
+  const floating = detached && !menuOpen;
+
   const mobileGroups = [
     { label: isFr ? 'Produit' : 'Product', links: product },
     { label: isFr ? 'Société' : 'Company', links: company },

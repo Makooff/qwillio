@@ -1,8 +1,10 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   ArrowRight, Play, CalendarCheck, MessageSquare, PhoneForwarded,
-  Camera, Mic2, ShieldCheck, Sparkles, Users,
+  Camera, Mic2, ShieldCheck, Smartphone, Sparkles, Users,
 } from 'lucide-react';
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
@@ -12,19 +14,83 @@ import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
 import HeroPhone3D from '../../components/ui/HeroPhone3D';
-import ReceptionistGallery from '../../components/v2/ReceptionistGallery';
+import CircularReceptionists from '../../components/v2/CircularReceptionists';
 import ScreenParade from '../../components/v2/ScreenParade';
+import FeatureCards from '../../components/v2/FeatureCards';
+import IntegrationsOrbit from '../../components/v2/IntegrationsOrbit';
+import ImpactStats from '../../components/v2/ImpactStats';
 import TextReveal from '../../components/v2/motion/TextReveal';
 import Magnetic from '../../components/v2/motion/Magnetic';
-import Counter from '../../components/v2/motion/Counter';
 import GlowCard from '../../components/v2/motion/GlowCard';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import ScrollVeil from '../../components/v2/motion/ScrollVeil';
-import ParallaxGroup from '../../components/v2/motion/ParallaxGroup';
+import PixelBlushBackdrop from '../../components/v2/motion/PixelBlushBackdrop';
+import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
+
+gsap.registerPlugin(ScrollTrigger);
 
 /* Le Player Remotion vit dans son propre chunk: la section drenched le
    charge en lazy, le reste de la page ne paie rien. */
 const LiveTranscriptPlayer = lazy(() => import('../../components/v2/LiveTranscriptPlayer'));
+
+/* La capture réelle du dashboard qui referme le hero: cadre hairline, coins
+   16px, halo doux derrière, et une perspective très légère (rotateX 4deg) qui
+   s'aplatit au scroll. Le ratio est réservé par les attributs width/height de
+   l'image: aucun décalage de mise en page pendant le chargement. */
+function HeroDashboardShot({ isFr }: { isFr: boolean }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    const frame = frameRef.current;
+    if (!wrap || !frame || prefersReducedMotion()) return;
+    const ctx = gsap.context(() => {
+      gsap.from(frame, { y: 46, opacity: 0, duration: 0.9, ease: 'expo.out', delay: 0.2 });
+      gsap.fromTo(
+        frame,
+        { rotateX: 4 },
+        {
+          rotateX: 0,
+          ease: 'none',
+          scrollTrigger: { trigger: wrap, start: 'top 94%', end: 'top 44%', scrub: 0.6 },
+        },
+      );
+    }, wrap);
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <div ref={wrapRef} className="relative mt-16 md:mt-20" style={{ perspective: '1800px' }}>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-8 -top-6 bottom-6 rounded-[40px]"
+        style={{
+          background:
+            'radial-gradient(60% 60% at 50% 40%, rgba(122, 95, 255, 0.16) 0%, rgba(122, 95, 255, 0) 70%)',
+          filter: 'blur(28px)',
+        }}
+      />
+      <div
+        ref={frameRef}
+        className="relative rounded-[16px] border border-q2-plate bg-q2-carbon overflow-hidden shadow-[var(--q2-shadow-hover)]"
+        style={{ transformOrigin: 'center top', willChange: 'transform' }}
+      >
+        <img
+          src="/screens/hero-dashboard.webp"
+          alt={
+            isFr
+              ? 'Dashboard Qwillio : les appels du jour, leur issue et leur transcript'
+              : 'Qwillio dashboard: the day’s calls, their outcome and their transcript'
+          }
+          width={1600}
+          height={930}
+          className="block w-full h-auto"
+        />
+      </div>
+    </div>
+  );
+}
 
 /* Home phase 2, récit neuf sourcé du réceptionniste next-gen (PR #67).
    Zéro copie V1. Chaque affirmation est couverte par le code
