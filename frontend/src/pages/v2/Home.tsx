@@ -15,7 +15,6 @@ import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
 import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import CircularReceptionists from '../../components/v2/CircularReceptionists';
-import ScreenParade from '../../components/v2/ScreenParade';
 import FeatureCards from '../../components/v2/FeatureCards';
 import IntegrationsOrbit from '../../components/v2/IntegrationsOrbit';
 import ImpactStats from '../../components/v2/ImpactStats';
@@ -425,23 +424,15 @@ export default function Home() {
             </div>
           </RevealV2>
         </Container>
-
-        {/* Les vrais écrans du produit, posés en perspective */}
-        <Container className="mt-20">
-          <RevealV2>
-            <p className="q2-eyebrow text-q2-graphite mb-8">
-              {isFr ? 'Et voici son poste de travail' : 'And this is her workstation'}
-            </p>
-          </RevealV2>
-          <ScreenParade isFr={isFr} />
-        </Container>
       </Section>
 
       {/* ── QWILLIO EN CHIFFRES, bande taupe: quatre faits, rien d'autre ── */}
       <ImpactStats isFr={isFr} />
 
       {/* ── L'APP DANS VOTRE POCHE, le téléphone quitte le hero ── */}
-      <Section aria-labelledby="pocket-heading">
+      {/* overflow-hidden: le halo ambiant de HeroPhone3D fait 420px de large et
+          dépasserait la colonne sur un écran de 390px */}
+      <Section aria-labelledby="pocket-heading" className="relative overflow-hidden">
         <Container className="grid lg:grid-cols-[1fr_1fr] gap-14 lg:gap-20 items-center [&>*]:min-w-0">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-4">

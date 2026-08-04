@@ -135,9 +135,12 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
          plus éloigné encore visible atterrit à `span` du centre et `depth`
          plus haut. Le rayon et le pas s'en déduisent, donc la courbe reste
          juste de 390px à 1200px sans point de rupture. */
-      const span = w * 0.46;
-      const depth = h * 0.42;
-      const edgeAngle = 2 * Math.atan(depth / span);
+      /* Empan plafonné: sans lui, un écran large étirerait l'arc en rangée
+         plate et la courbe ne se lirait plus. Angle de bord plafonné à 72deg:
+         au-delà l'arc se referme sur lui-même et les visages se rattrapent. */
+      const span = Math.min(w * 0.46, 300);
+      const depth = h * 0.58;
+      const edgeAngle = Math.min(2 * Math.atan(depth / span), (72 * Math.PI) / 180);
       const radius = span / Math.sin(edgeAngle);
       const step = edgeAngle / EDGE;
       /* Ligne de base: le centre de l'actif, posé au bas de la scène */
@@ -285,7 +288,7 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        className="relative h-[240px] sm:h-[300px] overflow-hidden touch-pan-y select-none"
+        className="relative h-[250px] sm:h-[340px] overflow-hidden touch-pan-y select-none"
       >
         {PRESETS.map((p, i) => (
           <button

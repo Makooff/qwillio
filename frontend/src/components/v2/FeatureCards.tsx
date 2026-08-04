@@ -60,9 +60,11 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
         <RevealV2 key={f.src} index={i} className="h-full">
           {/* flex-col, pas un bloc simple: sans contexte de formatage la marge
               négative du liseré remonterait la carte au lieu de la déborder */}
-          <article className="q2-card-hover flex h-full flex-col bg-q2-band rounded-[24px] px-6 pb-6 pt-0">
+          {/* Carte canvas + hairline: la section qui l'accueille est déjà une
+              bande taupe, une plate sur une plate ne se verrait pas */}
+          <article className="q2-card-hover flex h-full flex-col bg-q2-canvas border border-q2-plate rounded-[24px] px-6 pb-6 pt-0">
             {/* Le liseré remonte de 40px: la capture déborde du haut de la carte */}
-            <div className="-mt-10 mb-6 rounded-[18px] border border-q2-plate bg-q2-canvas p-1.5 shadow-[var(--q2-shadow-whisper)]">
+            <div className="-mt-10 mb-6 rounded-[18px] border border-q2-plate bg-q2-band p-1.5 shadow-[var(--q2-shadow-whisper)]">
               <div className="rounded-[13px] overflow-hidden bg-q2-carbon">
                 <img
                   src={f.src}
