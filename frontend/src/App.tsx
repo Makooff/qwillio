@@ -6,7 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import SplashScreen, { isStandaloneApp } from './components/SplashScreen';
 const Layout = lazy(() => import('./components/layout/Layout'));
 // Portail client V2 « instrument » (DA/v2-direction.md, addendum produit)
-const ClientLayout = lazy(() => import('./components/v2/app/ClientLayoutV2'));
+const ClientLayout = lazy(() => import('./components/layout/ClientLayout'));
 const CloserLayout = lazy(() => import('./components/layout/CloserLayout'));
 import ComingSoon from './components/client/ComingSoon';
 // Eager-loaded entry points (Login, Register, ConfirmEmail), accès clients V2
@@ -33,35 +33,35 @@ const OnboardingPage = lazy(() => import('./pages/Onboarding'));
 const SelfOnboard = lazy(() => import('./pages/SelfOnboard'));
 const Subscribe = lazy(() => import('./pages/v2/auth/Subscribe'));
 const VerifyEmail = lazy(() => import('./pages/v2/auth/VerifyEmail'));
-const ClientOverview = lazy(() => import('./pages/v2/app/ClientOverview'));
-const ClientCalls = lazy(() => import('./pages/v2/app/ClientCalls'));
-const ClientLeads = lazy(() => import('./pages/v2/app/ClientLeads'));
-const ClientReceptionist = lazy(() => import('./pages/v2/app/ClientReceptionist'));
-const ClientAccount = lazy(() => import('./pages/v2/app/ClientAccount'));
-const ClientSetupForwarding = lazy(() => import('./pages/v2/app/ClientSetupForwarding'));
-const ClientSetupCustomize  = lazy(() => import('./pages/v2/app/ClientSetupCustomize'));
-const ClientSupport = lazy(() => import('./pages/v2/app/ClientSupport'));
-const ClientAnalytics = lazy(() => import('./pages/v2/app/ClientAnalytics'));
-const ClientBilling = lazy(() => import('./pages/v2/app/ClientBilling'));
+const ClientOverview = lazy(() => import('./pages/client/ClientOverview'));
+const ClientCalls = lazy(() => import('./pages/client/ClientCalls'));
+const ClientLeads = lazy(() => import('./pages/client/ClientLeads'));
+const ClientReceptionist = lazy(() => import('./pages/client/ClientReceptionist'));
+const ClientAccount = lazy(() => import('./pages/client/ClientAccount'));
+const ClientSetupForwarding = lazy(() => import('./pages/client/ClientSetupForwarding'));
+const ClientSetupCustomize  = lazy(() => import('./pages/client/ClientSetupCustomize'));
+const ClientSupport = lazy(() => import('./pages/client/ClientSupport'));
+const ClientAnalytics = lazy(() => import('./pages/client/ClientAnalytics'));
+const ClientBilling = lazy(() => import('./pages/client/ClientBilling'));
 // Agent IA pages (lazy loaded)
-const AgentDashboard = lazy(() => import('./pages/v2/app/AgentDashboard'));
+const AgentDashboard = lazy(() => import('./pages/client/AgentDashboard'));
 // Email / Payments / Accounting / Inventory agent pages are not functional yet
 // (no backend), their routes render a ComingSoon notice instead of the mock UI.
-const AgentMarketing = lazy(() => import('./pages/v2/app/AgentMarketing'));
-const AgentReputation = lazy(() => import('./pages/v2/app/AgentReputation'));
-const AgentScheduling = lazy(() => import('./pages/v2/app/AgentScheduling'));
-const AgentSupport = lazy(() => import('./pages/v2/app/AgentSupport'));
-const AgentCrm = lazy(() => import('./pages/v2/app/AgentCrm'));
-const AgentDocument = lazy(() => import('./pages/v2/app/AgentDocument'));
-const AgentLocalSeo = lazy(() => import('./pages/v2/app/AgentLocalSeo'));
-const AgentLeadGen = lazy(() => import('./pages/v2/app/AgentLeadGen'));
-const AgentAnalytics = lazy(() => import('./pages/v2/app/AgentAnalytics'));
+const AgentMarketing = lazy(() => import('./pages/client/AgentMarketing'));
+const AgentReputation = lazy(() => import('./pages/client/AgentReputation'));
+const AgentScheduling = lazy(() => import('./pages/client/AgentScheduling'));
+const AgentSupport = lazy(() => import('./pages/client/AgentSupport'));
+const AgentCrm = lazy(() => import('./pages/client/AgentCrm'));
+const AgentDocument = lazy(() => import('./pages/client/AgentDocument'));
+const AgentLocalSeo = lazy(() => import('./pages/client/AgentLocalSeo'));
+const AgentLeadGen = lazy(() => import('./pages/client/AgentLeadGen'));
+const AgentAnalytics = lazy(() => import('./pages/client/AgentAnalytics'));
 // CRM pages (lazy loaded)
-const CrmContacts = lazy(() => import('./pages/v2/app/CrmContacts'));
-const CrmDeals = lazy(() => import('./pages/v2/app/CrmDeals'));
-const CrmActivities = lazy(() => import('./pages/v2/app/CrmActivities'));
-const CrmContactDetail = lazy(() => import('./pages/v2/app/CrmContactDetail'));
-const Integrations = lazy(() => import('./pages/v2/app/Integrations'));
+const CrmContacts = lazy(() => import('./pages/client/CrmContacts'));
+const CrmDeals = lazy(() => import('./pages/client/CrmDeals'));
+const CrmActivities = lazy(() => import('./pages/client/CrmActivities'));
+const CrmContactDetail = lazy(() => import('./pages/client/CrmContactDetail'));
+const Integrations = lazy(() => import('./pages/client/Integrations'));
 // Legal pages (lazy loaded)
 const Privacy = lazy(() => import('./pages/v2/legal/Privacy'));
 const Terms = lazy(() => import('./pages/v2/legal/Terms'));
