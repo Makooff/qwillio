@@ -1,21 +1,25 @@
 import RevealV2 from './RevealV2';
 
-/* Cartes « produit » du registre clair: l'illustration se pose EN HAUT, dans
-   un liseré arrondi qui déborde légèrement du bord supérieur de la carte, le
-   titre et la description suivent dessous. Les visuels sont de VRAIES captures
-   du dashboard (public/screens/), jamais des illustrations.
+/* Rangées « produit » du registre clair: plus de grille de deux cartes
+   étroites côte à côte. Chaque rangée occupe toute la largeur, le texte tient
+   sur environ 40 pour cent et la capture sur environ 60, le côté de
+   l'illustration s'inverse d'une rangée à l'autre.
 
-   Deux colonnes sur desktop, une sur mobile. La carte est une plate taupe
-   (bg-q2-band, radius 24) sans bordure ni ombre au repos: l'élévation
-   n'apparaît qu'au survol (q2-card-hover: translateY(-2px) + ombre
-   éditoriale). Pas de grille de cards identiques: le liseré, le cadrage et la
-   longueur de texte diffèrent d'une carte à l'autre. */
+   L'illustration se pose sur une plate douce (radius 28) dont le cadre de la
+   capture DÉBORDE par le haut, et par le côté extérieur au-delà de lg: le
+   visuel sort de son conteneur au lieu d'y être enfermé. Les visuels sont de
+   VRAIES captures recadrées du dashboard (public/screens/).
+
+   La section d'accueil est déjà une bande taupe: la plate prend donc le ton
+   au-dessus (bg-q2-plate), sinon elle disparaîtrait dans le fond.
+
+   Mobile: texte puis image empilés, image pleine largeur. */
 
 interface Feature {
   src: string;
-  /* Cadrage de la capture dans le liseré */
-  ratio: string;
-  position: string;
+  /* Ratio réel du fichier, réservé pour éviter tout décalage au chargement */
+  width: number;
+  height: number;
   titleFr: string;
   titleEn: string;
   descFr: string;
@@ -26,9 +30,9 @@ interface Feature {
 
 const FEATURES: Feature[] = [
   {
-    src: '/screens/appels.webp',
-    ratio: '16 / 10',
-    position: 'center top',
+    src: '/screens/crop-appels.webp',
+    width: 1600,
+    height: 930,
     titleFr: 'Chaque appel documenté',
     titleEn: 'Every call documented',
     descFr:
@@ -39,9 +43,9 @@ const FEATURES: Feature[] = [
     altEn: 'Call list in the Qwillio dashboard',
   },
   {
-    src: '/screens/chat-config.webp',
-    ratio: '16 / 11',
-    position: 'center top',
+    src: '/screens/crop-chat.webp',
+    width: 1600,
+    height: 1196,
     titleFr: 'Ce qui cloche se corrige en parlant',
     titleEn: 'What needs fixing gets fixed by talking',
     descFr:
@@ -55,35 +59,52 @@ const FEATURES: Feature[] = [
 
 export default function FeatureCards({ isFr }: { isFr: boolean }) {
   return (
-    <div className="grid md:grid-cols-2 gap-6 md:gap-8 mt-14">
-      {FEATURES.map((f, i) => (
-        <RevealV2 key={f.src} index={i} className="h-full">
-          {/* flex-col, pas un bloc simple: sans contexte de formatage la marge
-              négative du liseré remonterait la carte au lieu de la déborder */}
-          {/* Carte canvas + hairline: la section qui l'accueille est déjà une
-              bande taupe, une plate sur une plate ne se verrait pas */}
-          <article className="q2-card-hover flex h-full flex-col bg-q2-canvas border border-q2-plate rounded-[24px] px-6 pb-6 pt-0">
-            {/* Le liseré remonte de 40px: la capture déborde du haut de la carte */}
-            <div className="-mt-10 mb-6 rounded-[18px] border border-q2-plate bg-q2-band p-1.5 shadow-[var(--q2-shadow-whisper)]">
-              <div className="rounded-[13px] overflow-hidden bg-q2-carbon">
-                <img
-                  src={f.src}
-                  alt={isFr ? f.altFr : f.altEn}
-                  loading="lazy"
-                  width={1600}
-                  height={930}
-                  className="block w-full h-full object-cover"
-                  style={{ aspectRatio: f.ratio, objectPosition: f.position }}
-                />
+    <div className="mt-14 flex flex-col gap-20 md:gap-28">
+      {FEATURES.map((f, i) => {
+        const flipped = i % 2 === 1;
+        return (
+          <RevealV2 key={f.src} index={i}>
+            <article
+              className={`grid items-center gap-10 lg:gap-16 ${
+                flipped
+                  ? 'lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)]'
+                  : 'lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)]'
+              }`}
+            >
+              <div className={flipped ? 'lg:order-2' : ''}>
+                <h3 className="text-[22px] lg:text-[24px] leading-[1.2] tracking-[-0.01em] text-q2-ink mb-4">
+                  {isFr ? f.titleFr : f.titleEn}
+                </h3>
+                <p className="text-[15px] leading-relaxed text-q2-body q2-body-text max-w-[440px]">
+                  {isFr ? f.descFr : f.descEn}
+                </p>
               </div>
-            </div>
-            <h3 className="text-[17px] font-medium text-q2-ink mb-2">{isFr ? f.titleFr : f.titleEn}</h3>
-            <p className="text-sm leading-relaxed text-q2-body q2-body-text">
-              {isFr ? f.descFr : f.descEn}
-            </p>
-          </article>
-        </RevealV2>
-      ))}
+
+              {/* La plate, et la capture qui en sort par le haut */}
+              <div
+                className={`q2-card-hover rounded-[28px] bg-q2-plate px-5 pb-5 pt-0 sm:px-8 sm:pb-8 lg:px-10 lg:pb-10 ${
+                  flipped ? 'lg:order-1' : ''
+                }`}
+              >
+                <div
+                  className={`-mt-6 lg:-mt-10 rounded-[16px] border border-q2-plate bg-q2-carbon overflow-hidden shadow-[var(--q2-shadow-whisper)] ${
+                    flipped ? 'lg:-ml-6' : 'lg:-mr-6'
+                  }`}
+                >
+                  <img
+                    src={f.src}
+                    alt={isFr ? f.altFr : f.altEn}
+                    loading="lazy"
+                    width={f.width}
+                    height={f.height}
+                    className="block w-full h-auto"
+                  />
+                </div>
+              </div>
+            </article>
+          </RevealV2>
+        );
+      })}
     </div>
   );
 }

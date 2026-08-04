@@ -2,16 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight,
-  Download, Filter, Pause, Phone, Play, Search, X,
+  Download, Filter, Pause, Phone, Play, Search, Users, X,
 } from 'lucide-react';
 import api from '../../../services/api';
 import { exportToCSV, formatDateTime, formatDuration } from '../../../utils/format';
 import {
-  Card, EmptyState, Field, GhostBtn, Input, PageActions, Pill, Stat, tableCls,
+  EmptyState, Field, GhostBtn, Input, PageActions, Pill,
 } from '../../../components/v2/app/Blocks';
 
-/* Appels, registre produit V2 (DA/v2-direction.md, addendum). Logique de
-   données identique à la V1: /my-dashboard/overview + /my-dashboard/calls. */
+/* Appels, mise en page « frameless » de la vue d'ensemble (ClientOverview):
+   chiffres nus séparés par des filets, liste en rangées hairline, aucune carte.
+   Logique de données identique: /my-dashboard/overview + /my-dashboard/calls. */
 
 interface Call {
   id: string;
@@ -60,9 +61,53 @@ const SENTIMENT_FILTERS = [
   { value: 'negative', label: 'Négatif' },
 ];
 
+/* Libellés d'issue d'appel, mêmes clés que la vue d'ensemble. */
+const OUTCOME_LABELS: Record<string, string> = {
+  lead_captured: 'Lead capté',
+  booking_made: 'Rendez-vous',
+  transferred: 'Transféré',
+  info_provided: 'Information',
+  message_taken: 'Message',
+  complaint: 'Réclamation',
+  missed: 'Manqué',
+  technical_issue: 'Incident',
+  spam: 'Spam',
+};
+
+function outcomeLabel(outcome?: string | null): string {
+  if (!outcome) return 'Non renseigné';
+  return OUTCOME_LABELS[outcome] || outcome.replace(/_/g, ' ');
+}
+
 function SentimentPill({ sentiment }: { sentiment?: string | null }) {
   const meta = SENTIMENT_META[(sentiment || 'neutral').toLowerCase()];
   return <Pill tone={meta ? meta.tone : 'neutral'}>{meta ? meta.label : sentiment}</Pill>;
+}
+
+/* Barre de chargement neutre: jamais de spinner sur cette page. */
+function Bone({ className = '' }: { className?: string }) {
+  return <div className={`animate-pulse rounded bg-white/[0.06] ${className}`} />;
+}
+
+/**
+ * Rangée de chiffres nue, vocabulaire de la vue d'ensemble: pas de cadre, des
+ * filets verticaux, un chiffre par colonne. En 2x2 sur mobile, le filet gauche
+ * de la première cellule de chaque ligne est neutralisé.
+ */
+function KpiSplit({ items }: { items: { label: string; value: string; hint?: string }[] }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-6 divide-x divide-q2-graphite-d [&>*:nth-child(2n+1)]:border-l-0 sm:[&>*:nth-child(2n+1)]:border-l">
+      {items.map((k) => (
+        <div key={k.label} className="px-3 sm:px-6 first:pl-0 last:pr-0">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog">{k.label}</p>
+          <p className="text-[22px] sm:text-[26px] font-light tracking-tight tabular-nums leading-none mt-2.5 text-white truncate">
+            {k.value}
+          </p>
+          {k.hint && <p className="text-[11.5px] mt-2.5 text-q2-fog truncate">{k.hint}</p>}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function Segmented({
@@ -116,10 +161,7 @@ function PageNav({
   const btn =
     'w-8 h-8 rounded-lg flex items-center justify-center text-q2-fog border border-q2-graphite-d hover:text-q2-mist hover:border-q2-smoke-d transition-colors duration-150 disabled:opacity-30 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50';
   return (
-    <nav
-      aria-label="Pagination"
-      className="flex items-center justify-between gap-4 px-4 py-3 border-t border-q2-graphite-d"
-    >
+    <nav aria-label="Pagination" className="flex items-center justify-between gap-4 pt-4">
       <p className="text-[11.5px] text-q2-fog tabular-nums">
         {total.toLocaleString('fr-FR')} {label} · page {page} sur {totalPages}
       </p>
@@ -135,11 +177,71 @@ function PageNav({
   );
 }
 
+/* Rangée de détail du panneau: libellé en eyebrow à gauche, valeur à droite. */
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3 border-t border-q2-graphite-d first:border-t-0">
+    <div className="flex items-center justify-between gap-4 py-3 border-b border-q2-graphite-d last:border-b-0">
       <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog">{label}</span>
-      <span className="text-[13px] text-white tabular-nums text-right">{value}</span>
+      <span className="text-[13px] text-white text-right min-w-0 truncate">{value}</span>
+    </div>
+  );
+}
+
+function Eyebrow({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 mb-3">
+      <p className="q2-eyebrow text-q2-fog">{children}</p>
+      {right}
+    </div>
+  );
+}
+
+/**
+ * Transcript: les tours de parole sont préfixés par le locuteur (AI:, User:).
+ * Quand le motif est là on rend des rangées propres, sinon le texte brut.
+ */
+interface Turn { who: 'ai' | 'human'; text: string }
+
+function parseTranscript(raw: string): Turn[] | null {
+  const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+  const re = /^(ai|assistant|bot|agent|ia|user|customer|caller|client|humain)\s*[:\-]\s*(.*)$/i;
+  const turns: Turn[] = [];
+  for (const line of lines) {
+    const m = line.match(re);
+    if (!m) {
+      if (turns.length === 0) return null;
+      turns[turns.length - 1].text += ` ${line}`;
+      continue;
+    }
+    const speaker = m[1].toLowerCase();
+    const who: Turn['who'] = ['ai', 'assistant', 'bot', 'agent', 'ia'].includes(speaker) ? 'ai' : 'human';
+    turns.push({ who, text: m[2] });
+  }
+  return turns.length > 1 ? turns : null;
+}
+
+function Transcript({ raw }: { raw: string }) {
+  const turns = useMemo(() => parseTranscript(raw), [raw]);
+  if (!turns) {
+    return (
+      <p className="text-[12.5px] text-q2-mist leading-relaxed whitespace-pre-wrap max-h-[340px] overflow-y-auto">
+        {raw}
+      </p>
+    );
+  }
+  return (
+    <div className="max-h-[380px] overflow-y-auto">
+      {turns.map((t, i) => (
+        <div key={i} className="py-3 border-b border-q2-graphite-d last:border-b-0">
+          <p
+            className="text-[10.5px] font-medium uppercase tracking-[0.1em] mb-1.5"
+            style={{ color: t.who === 'ai' ? 'var(--q2-lift)' : 'var(--q2-fog)' }}
+          >
+            {t.who === 'ai' ? 'Réceptionniste' : 'Appelant'}
+          </p>
+          <p className="text-[12.5px] leading-relaxed text-q2-mist q2-body-text">{t.text}</p>
+        </div>
+      ))}
     </div>
   );
 }
@@ -248,21 +350,20 @@ export default function ClientCalls() {
     else { setSortKey(key); setSortDir('desc'); }
   };
 
-  const SortHead = ({ k, children, className = '' }: { k: SortKey; children: React.ReactNode; className?: string }) => (
-    <th scope="col" className={`${tableCls.th} ${className}`} aria-sort={sortKey === k ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-      <button
-        type="button"
-        onClick={() => toggleSort(k)}
-        className="inline-flex items-center gap-1.5 uppercase tracking-[0.08em] hover:text-q2-mist transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded"
-      >
-        {children}
-        {sortKey !== k
-          ? <ArrowUpDown size={11} aria-hidden="true" />
-          : sortDir === 'asc'
-            ? <ArrowUp size={11} aria-hidden="true" className="text-q2-lift" />
-            : <ArrowDown size={11} aria-hidden="true" className="text-q2-lift" />}
-      </button>
-    </th>
+  const SortBtn = ({ k, children, className = '' }: { k: SortKey; children: React.ReactNode; className?: string }) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(k)}
+      aria-pressed={sortKey === k}
+      className={`inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog hover:text-q2-mist transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded ${className}`}
+    >
+      {children}
+      {sortKey !== k
+        ? <ArrowUpDown size={11} aria-hidden="true" />
+        : sortDir === 'asc'
+          ? <ArrowUp size={11} aria-hidden="true" className="text-q2-lift" />
+          : <ArrowDown size={11} aria-hidden="true" className="text-q2-lift" />}
+    </button>
   );
 
   const totalCalls = overview?.calls?.total ?? 0;
@@ -281,6 +382,9 @@ export default function ClientCalls() {
     setSelectedCall(call);
     setShowTranscript(false);
   };
+
+  /* Grille commune à l'en-tête de tri et aux rangées: une seule définition. */
+  const gridCols = 'md:grid md:grid-cols-[minmax(0,1fr)_100px_110px_150px_24px] md:items-center md:gap-4';
 
   return (
     <div>
@@ -314,49 +418,73 @@ export default function ClientCalls() {
         </GhostBtn>
       </PageActions>
 
-      <section aria-label="Statistiques" className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <Stat label="Total appels" value={totalCalls.toLocaleString('fr-FR')} />
-        <Stat label="Durée moyenne" value={formatDuration(avgDuration)} />
-        <Stat label="Taux positif" value={`${positiveRate} %`} tone={positiveRate >= 60 ? 'ok' : undefined} />
-        <Stat label="Leads ce mois" value={leadsMonth.toLocaleString('fr-FR')} />
+      {/* Chiffres d'ouverture, sans cartes, filet dessous */}
+      <section aria-label="Statistiques" className="pb-6 border-b border-q2-graphite-d">
+        <KpiSplit
+          items={[
+            { label: 'Total appels', value: totalCalls.toLocaleString('fr-FR'), hint: 'depuis le début' },
+            { label: 'Durée moyenne', value: formatDuration(avgDuration), hint: 'par appel traité' },
+            {
+              label: 'Taux positif',
+              value: sentimentTotal > 0 ? `${positiveRate} %` : 'Sans donnée',
+              hint: sentimentTotal > 0 ? 'sentiment des appelants' : 'analyse en attente',
+            },
+            { label: 'Leads ce mois', value: leadsMonth.toLocaleString('fr-FR'), hint: 'contacts qualifiés' },
+          ]}
+        />
       </section>
 
-      {showFilters && (
-        <Card className="mb-4">
-          <div className="flex flex-wrap items-end gap-5">
-            <div>
-              <p className="text-[12px] font-medium text-q2-mist mb-1.5">Sentiment</p>
-              <Segmented
-                options={SENTIMENT_FILTERS}
-                value={sentimentFilter}
-                onChange={setSentimentFilter}
-                ariaLabel="Filtrer par sentiment"
-              />
+      {/* Filtres avancés, dépliés à la demande, sans cadre */}
+      <AnimatePresence initial={false}>
+        {showFilters && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden border-b border-q2-graphite-d"
+          >
+            <div className="flex flex-wrap items-end gap-5 py-5">
+              <div>
+                <p className="text-[12px] font-medium text-q2-mist mb-1.5">Sentiment</p>
+                <Segmented
+                  options={SENTIMENT_FILTERS}
+                  value={sentimentFilter}
+                  onChange={setSentimentFilter}
+                  ariaLabel="Filtrer par sentiment"
+                />
+              </div>
+              <Field label="Du" className="w-[150px]">
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="!py-[7px]" />
+              </Field>
+              <Field label="Au" className="w-[150px]">
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="!py-[7px]" />
+              </Field>
+              {hasActiveFilters && (
+                <GhostBtn type="button" onClick={clearFilters}>
+                  <X size={13} aria-hidden="true" />
+                  Effacer
+                </GhostBtn>
+              )}
             </div>
-            <Field label="Du" className="w-[150px]">
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="!py-[7px]" />
-            </Field>
-            <Field label="Au" className="w-[150px]">
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="!py-[7px]" />
-            </Field>
-            {hasActiveFilters && (
-              <GhostBtn type="button" onClick={clearFilters}>
-                <X size={13} aria-hidden="true" />
-                Effacer
-              </GhostBtn>
-            )}
-          </div>
-        </Card>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <Card pad={false}>
+      {/* Liste des appels: rangées nues, un filet entre chacune */}
+      <section aria-label="Appels" className="pt-6">
         {loading ? (
-          <div role="status" aria-busy="true" aria-label="Chargement des appels" className="p-4 space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="h-3 w-40 rounded bg-q2-obsidian animate-pulse" />
-                <div className="h-3 w-16 rounded bg-q2-obsidian animate-pulse ml-auto" />
-                <div className="h-3 w-24 rounded bg-q2-obsidian animate-pulse" />
+          <div role="status" aria-busy="true" aria-label="Chargement des appels">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3.5 py-3.5 border-b border-q2-graphite-d">
+                <Bone className="w-8 h-8 rounded-full shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Bone className="h-3.5 w-44" />
+                  <Bone className="h-2.5 w-28" />
+                </div>
+                <Bone className="h-3 w-12 hidden md:block" />
+                <Bone className="h-5 w-16 rounded-full" />
+                <Bone className="h-3 w-24 hidden md:block" />
               </div>
             ))}
           </div>
@@ -372,70 +500,65 @@ export default function ClientCalls() {
           />
         ) : (
           <>
-            {/* Desktop */}
-            <div className={`hidden md:block ${tableCls.wrap}`}>
-              <table className={tableCls.table}>
-                <thead>
-                  <tr>
-                    <SortHead k="callerName">Appelant</SortHead>
-                    <SortHead k="durationSeconds">Durée</SortHead>
-                    <SortHead k="sentiment">Sentiment</SortHead>
-                    <SortHead k="createdAt">Date</SortHead>
-                    <th scope="col" className={tableCls.th}><span className="sr-only">Détail</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedCalls.map((call) => (
-                    <tr key={call.id} className={`${tableCls.tr} cursor-pointer`} onClick={() => openCall(call)}>
-                      <td className={tableCls.td}>
+            <div className={`hidden ${gridCols} pb-2.5 border-b border-q2-graphite-d`}>
+              <SortBtn k="callerName">Appelant</SortBtn>
+              <SortBtn k="durationSeconds">Durée</SortBtn>
+              <SortBtn k="sentiment">Sentiment</SortBtn>
+              <SortBtn k="createdAt">Date</SortBtn>
+              <span className="sr-only">Détail</span>
+            </div>
+
+            <ul role="list">
+              {sortedCalls.map((call) => (
+                <li key={call.id} className="border-b border-q2-graphite-d">
+                  <button
+                    type="button"
+                    onClick={() => openCall(call)}
+                    aria-label={`Voir le détail de l'appel de ${call.callerName || call.callerNumber || 'appelant inconnu'}`}
+                    className={`group w-full text-left py-3.5 px-2 -mx-2 rounded-lg hover:bg-q2-obsidian/40 transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 ${gridCols}`}
+                  >
+                    <span className="flex items-center gap-3.5 min-w-0">
+                      <span className="w-8 h-8 shrink-0 rounded-full bg-q2-obsidian flex items-center justify-center">
+                        {call.isLead
+                          ? <Users size={14} className="text-q2-lift" aria-hidden="true" />
+                          : <Phone size={14} className="text-q2-fog" aria-hidden="true" />}
+                      </span>
+                      <span className="min-w-0">
                         <span className="flex items-center gap-2 min-w-0">
-                          <span className="text-white truncate">
+                          <span className="text-[13.5px] font-medium text-white truncate">
                             {call.callerName || call.callerNumber || 'Inconnu'}
                           </span>
                           {call.isLead && <Pill tone="accent">Lead</Pill>}
                         </span>
-                        {call.callerName && call.callerNumber && (
-                          <span className="block text-[11.5px] text-q2-fog mt-0.5">{call.callerNumber}</span>
-                        )}
-                      </td>
-                      <td className={tableCls.td}>{formatDuration(call.durationSeconds)}</td>
-                      <td className={tableCls.td}><SentimentPill sentiment={call.sentiment} /></td>
-                      <td className={`${tableCls.td} text-q2-fog whitespace-nowrap`}>{formatDateTime(call.createdAt)}</td>
-                      <td className={`${tableCls.td} w-10`}>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); openCall(call); }}
-                          aria-label={`Voir le détail de l'appel de ${call.callerName || call.callerNumber || 'appelant inconnu'}`}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-q2-fog hover:text-q2-mist transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
-                        >
-                          <ChevronRight size={14} aria-hidden="true" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile */}
-            <ul className="md:hidden">
-              {sortedCalls.map((call) => (
-                <li key={call.id} className="border-b border-q2-graphite-d last:border-b-0">
-                  <button
-                    type="button"
-                    onClick={() => openCall(call)}
-                    className="w-full text-left px-4 py-3.5 hover:bg-q2-obsidian/50 transition-colors duration-100 focus:outline-none focus-visible:bg-q2-obsidian"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-[13.5px] font-medium text-white truncate">
-                        {call.callerName || call.callerNumber || 'Inconnu'}
+                        <span className="block text-[11.5px] text-q2-fog truncate tabular-nums">
+                          {call.callerName && call.callerNumber ? `${call.callerNumber} · ` : ''}
+                          {outcomeLabel(call.outcome)}
+                          <span className="md:hidden">
+                            {` · ${formatDuration(call.durationSeconds)} · ${formatDateTime(call.createdAt)}`}
+                          </span>
+                        </span>
                       </span>
+                    </span>
+
+                    <span className="hidden md:block text-[12.5px] text-q2-mist tabular-nums">
+                      {formatDuration(call.durationSeconds)}
+                    </span>
+
+                    <span className="hidden md:flex">
                       <SentimentPill sentiment={call.sentiment} />
-                    </div>
-                    <p className="text-[11.5px] text-q2-fog mt-1 tabular-nums">
-                      {formatDuration(call.durationSeconds)} · {formatDateTime(call.createdAt)}
-                      {call.isLead && ' · Lead'}
-                    </p>
+                    </span>
+
+                    <span className="hidden md:block text-[12px] text-q2-fog tabular-nums whitespace-nowrap">
+                      {formatDateTime(call.createdAt)}
+                    </span>
+
+                    <span className="hidden md:flex justify-end">
+                      <ChevronRight
+                        size={14}
+                        aria-hidden="true"
+                        className="text-white/20 group-hover:text-white/50 transition-colors duration-150"
+                      />
+                    </span>
                   </button>
                 </li>
               ))}
@@ -450,7 +573,7 @@ export default function ClientCalls() {
             />
           </>
         )}
-      </Card>
+      </section>
 
       {/* Panneau latéral de détail */}
       <AnimatePresence>
@@ -470,20 +593,13 @@ export default function ClientCalls() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+              role="dialog"
+              aria-modal="true"
               aria-label="Détail de l'appel"
-              className="fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] bg-q2-carbon border-l border-q2-graphite-d overflow-y-auto"
+              className="fixed inset-y-0 right-0 z-50 w-full sm:w-[460px] bg-q2-carbon border-l border-q2-graphite-d overflow-y-auto"
             >
-              <header className="sticky top-0 bg-q2-carbon border-b border-q2-graphite-d px-5 h-14 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[14px] font-medium text-white truncate">
-                    {selectedCall.callerName || selectedCall.callerNumber || 'Appelant inconnu'}
-                  </p>
-                  <p className="text-[11.5px] text-q2-fog truncate">
-                    {selectedCall.callerName && selectedCall.callerNumber
-                      ? selectedCall.callerNumber
-                      : "Détail de l'appel"}
-                  </p>
-                </div>
+              <header className="sticky top-0 z-10 bg-q2-carbon border-b border-q2-graphite-d px-6 h-14 flex items-center justify-between gap-3">
+                <p className="q2-eyebrow text-q2-fog">Détail de l'appel</p>
                 <button
                   type="button"
                   onClick={() => setSelectedCall(null)}
@@ -494,22 +610,28 @@ export default function ClientCalls() {
                 </button>
               </header>
 
-              <div className="p-5 space-y-5">
-                <div className="rounded-xl border border-q2-graphite-d overflow-hidden">
-                  <Detail label="Durée" value={formatDuration(selectedCall.durationSeconds)} />
-                  <Detail label="Date" value={formatDateTime(selectedCall.createdAt)} />
-                  <Detail label="Résultat" value={<span className="capitalize">{selectedCall.outcome || 'Non renseigné'}</span>} />
-                  <Detail label="Sentiment" value={<SentimentPill sentiment={selectedCall.sentiment} />} />
-                  {selectedCall.leadScore != null && (
-                    <Detail label="Score lead" value={`${selectedCall.leadScore}/10`} />
-                  )}
-                  {selectedCall.emailCollected && (
-                    <Detail label="Email" value={<span className="tabular-nums">{selectedCall.emailCollected}</span>} />
-                  )}
+              <div className="px-6">
+                {/* Identité de l'appelant */}
+                <div className="flex items-center gap-4 py-6 border-b border-q2-graphite-d">
+                  <span className="w-11 h-11 shrink-0 rounded-full bg-q2-obsidian flex items-center justify-center">
+                    {selectedCall.isLead
+                      ? <Users size={18} className="text-q2-lift" aria-hidden="true" />
+                      : <Phone size={18} className="text-q2-fog" aria-hidden="true" />}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[16px] font-medium text-white truncate">
+                      {selectedCall.callerName || selectedCall.callerNumber || 'Appelant inconnu'}
+                    </p>
+                    <p className="text-[12px] text-q2-fog truncate tabular-nums">
+                      {selectedCall.callerName && selectedCall.callerNumber
+                        ? selectedCall.callerNumber
+                        : formatDateTime(selectedCall.createdAt)}
+                    </p>
+                  </div>
                 </div>
 
                 {(selectedCall.isLead || selectedCall.bookingRequested) && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 py-5 border-b border-q2-graphite-d">
                     {selectedCall.isLead && <Pill tone="accent">Lead qualifié</Pill>}
                     {selectedCall.bookingRequested && (
                       <Pill tone="ok">
@@ -519,29 +641,44 @@ export default function ClientCalls() {
                   </div>
                 )}
 
+                {/* Faits de l'appel */}
+                <section className="py-6 border-b border-q2-graphite-d">
+                  <Eyebrow>Appel</Eyebrow>
+                  <Detail label="Durée" value={<span className="tabular-nums">{formatDuration(selectedCall.durationSeconds)}</span>} />
+                  <Detail label="Date" value={<span className="tabular-nums">{formatDateTime(selectedCall.createdAt)}</span>} />
+                  <Detail label="Résultat" value={outcomeLabel(selectedCall.outcome)} />
+                  <Detail label="Sentiment" value={<SentimentPill sentiment={selectedCall.sentiment} />} />
+                  {selectedCall.leadScore != null && (
+                    <Detail label="Score lead" value={<span className="tabular-nums">{selectedCall.leadScore}/10</span>} />
+                  )}
+                  {selectedCall.emailCollected && (
+                    <Detail label="Email" value={selectedCall.emailCollected} />
+                  )}
+                </section>
+
                 {selectedCall.summary && (
-                  <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog mb-2">Résumé IA</p>
-                    <p className="text-[13px] text-q2-mist leading-relaxed bg-q2-obsidian border border-q2-graphite-d rounded-xl p-4 q2-body-text">
+                  <section className="py-6 border-b border-q2-graphite-d">
+                    <Eyebrow>Résumé IA</Eyebrow>
+                    <p className="text-[13.5px] text-q2-mist leading-relaxed q2-body-text max-w-[62ch]">
                       {selectedCall.summary}
                     </p>
-                  </div>
+                  </section>
                 )}
 
                 {selectedCall.bookingDetails && (
-                  <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog mb-2">Détails réservation</p>
-                    <p className="text-[13px] text-q2-mist bg-q2-obsidian border border-q2-graphite-d rounded-xl p-4 whitespace-pre-wrap">
+                  <section className="py-6 border-b border-q2-graphite-d">
+                    <Eyebrow>Détails réservation</Eyebrow>
+                    <p className="text-[12.5px] text-q2-mist leading-relaxed whitespace-pre-wrap">
                       {typeof selectedCall.bookingDetails === 'string'
                         ? selectedCall.bookingDetails
                         : JSON.stringify(selectedCall.bookingDetails, null, 2)}
                     </p>
-                  </div>
+                  </section>
                 )}
 
                 {selectedCall.recordingUrl && (
-                  <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog mb-2">Enregistrement</p>
+                  <section className="py-6 border-b border-q2-graphite-d">
+                    <Eyebrow>Enregistrement</Eyebrow>
                     <GhostBtn
                       type="button"
                       onClick={() => setPlayingId(playingId === selectedCall.id ? null : selectedCall.id)}
@@ -554,35 +691,46 @@ export default function ClientCalls() {
                       <audio
                         controls
                         autoPlay
-                        className="w-full mt-3"
+                        className="w-full mt-4"
                         src={selectedCall.recordingUrl}
                         aria-label="Enregistrement de l'appel"
                       >
                         Votre navigateur ne supporte pas l'audio.
                       </audio>
                     )}
-                  </div>
+                  </section>
                 )}
 
                 {selectedCall.transcript && (
-                  <div>
-                    <div className="flex items-baseline justify-between gap-3 mb-2">
-                      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog">Transcript</p>
-                      <button
-                        type="button"
-                        onClick={() => setShowTranscript(!showTranscript)}
-                        aria-expanded={showTranscript}
-                        className="text-[12px] text-q2-lift hover:text-white transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded"
-                      >
-                        {showTranscript ? 'Masquer' : 'Afficher'}
-                      </button>
-                    </div>
-                    {showTranscript && (
-                      <p className="text-[12.5px] text-q2-mist leading-relaxed bg-q2-obsidian border border-q2-graphite-d rounded-xl p-4 whitespace-pre-wrap max-h-[320px] overflow-y-auto">
-                        {selectedCall.transcript}
-                      </p>
-                    )}
-                  </div>
+                  <section className="py-6">
+                    <Eyebrow
+                      right={
+                        <button
+                          type="button"
+                          onClick={() => setShowTranscript(!showTranscript)}
+                          aria-expanded={showTranscript}
+                          className="text-[12px] text-q2-lift hover:text-white transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded"
+                        >
+                          {showTranscript ? 'Masquer' : 'Afficher'}
+                        </button>
+                      }
+                    >
+                      Transcript
+                    </Eyebrow>
+                    <AnimatePresence initial={false}>
+                      {showTranscript && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.18 }}
+                          className="overflow-hidden"
+                        >
+                          <Transcript raw={selectedCall.transcript} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </section>
                 )}
               </div>
             </motion.aside>

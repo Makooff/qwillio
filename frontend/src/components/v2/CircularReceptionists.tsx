@@ -1,22 +1,28 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import gsap from 'gsap';
-import { ChevronLeft, ChevronRight, Mic } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Mic, Play, Square } from 'lucide-react';
 import { prefersReducedMotion } from './motion/reducedMotion';
 
 /* Sélection des réceptionnistes en carrousel circulaire: les dix visages sont
-   posés sur un arc, l'actif descend au centre-bas et s'agrandit, sa fiche de
-   personnalité s'écrit dessous. Flèches, clavier (gauche/droite, Origine/Fin)
-   et glisser au doigt font tourner l'arc.
+   posés sur un arc, l'actif descend au centre-bas et s'agrandit nettement
+   (160px contre 77px pour ses voisins), sa fiche de personnalité s'écrit
+   dessous. Flèches, clavier (gauche/droite, Origine/Fin) et glisser au doigt
+   font tourner l'arc.
+
+   Un bouton d'aperçu posé sur le bas du visage actif fait dire une phrase
+   d'accueil par le moteur de synthèse du navigateur, dans la langue du site:
+   aucun appel réseau, l'aperçu audio des vraies voix vit dans le dashboard.
 
    Les données sont celles du catalogue serveur (voice-characters.ts), les
    mêmes que ReceptionistGallery, qui reste en place comme repli réutilisable
-   ailleurs. Chaque personnage porte sa voix, avec aperçu audio dans le
-   dashboard, et parle français et anglais: la langue vient du client, pas du
-   personnage. Le onzième choix est le clonage de voix (VoiceCloner, 20-90 s).
+   ailleurs. Chaque personnage porte sa voix et parle français et anglais: la
+   langue vient du client, pas du personnage. Le onzième choix est le clonage
+   de voix (VoiceCloner, 20-90 s).
 
    Motion: transform et opacity uniquement, une seule écriture GSAP par
    changement d'index. En reduced-motion on rend une rangée simple, sans arc,
-   sans animation: le composant reste entièrement utilisable au clavier. */
+   sans animation: la fiche et l'aperçu de voix restent disponibles. */
 
 interface Preset {
   id: string;
@@ -44,11 +50,16 @@ const COUNT = PRESETS.length;
 /* Nombre de visages visibles de chaque côté de l'actif: au-delà, le visage
    sort de l'arc (opacité 0) et le débordement de la scène le découpe */
 const EDGE = 3;
-/* Échelle et opacité par distance à l'actif */
-const SCALE = [1, 0.76, 0.6, 0.48, 0.44, 0.42];
+/* Échelle et opacité par distance à l'actif. L'écart entre 1 et 0.48 est
+   voulu: on doit voir d'un coup d'œil qui décroche. */
+const SCALE = [1, 0.48, 0.38, 0.3, 0.28, 0.26];
 const OPACITY = [1, 0.88, 0.62, 0.32, 0, 0];
-/* Diamètre du visage au repos, avant mise à l'échelle */
-const FACE = 88;
+/* Diamètre du visage dans le DOM, avant mise à l'échelle. L'actif le porte
+   tel quel, ses voisins descendent à environ 77px. */
+const FACE = 160;
+/* Sous cette largeur de scène, tout l'arc rétrécit d'un cran */
+const NARROW = 520;
+const NARROW_SCALE = 0.75;
 
 /* Distance signée la plus courte sur un anneau de COUNT éléments */
 function ringDelta(i: number, active: number) {
@@ -57,7 +68,93 @@ function ringDelta(i: number, active: number) {
   return d;
 }
 
-function PersonaCard({ preset, isFr }: { preset: Preset; isFr: boolean }) {
+/* Aperçu de voix par synthèse du navigateur: une phrase d'accueil dans la
+   langue du site, coupée dès qu'on change de personnage ou de langue. */
+function useVoicePreview(preset: Preset, isFr: boolean) {
+  const [speaking, setSpeaking] = useState(false);
+
+  const stop = useCallback(() => {
+    if (typeof window !== 'undefined') window.speechSynthesis?.cancel();
+    setSpeaking(false);
+  }, []);
+
+  useEffect(() => {
+    stop();
+    return stop;
+  }, [preset.id, isFr, stop]);
+
+  const toggle = useCallback(() => {
+    const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
+    if (!synth) return;
+    if (speaking) {
+      stop();
+      return;
+    }
+    synth.cancel();
+    const utt = new SpeechSynthesisUtterance(
+      isFr
+        ? `Bonjour, ici ${preset.name}, merci d’appeler ! Comment puis-je vous aider ?`
+        : `Hello, this is ${preset.name}, thanks for calling! How can I help you?`,
+    );
+    utt.lang = isFr ? 'fr-FR' : 'en-US';
+    utt.rate = 0.98;
+    const match = synth.getVoices().find((v) => v.lang.startsWith(isFr ? 'fr' : 'en'));
+    if (match) utt.voice = match;
+    utt.onend = () => setSpeaking(false);
+    utt.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    synth.speak(utt);
+  }, [isFr, preset.name, speaking, stop]);
+
+  return { speaking, toggle };
+}
+
+function VoicePreviewButton({
+  speaking,
+  onToggle,
+  isFr,
+  name,
+  className = '',
+}: {
+  speaking: boolean;
+  onToggle: () => void;
+  isFr: boolean;
+  name: string;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={
+        speaking
+          ? isFr
+            ? `Arrêter l’aperçu de la voix de ${name}`
+            : `Stop the voice preview for ${name}`
+          : isFr
+            ? `Écouter un aperçu de la voix de ${name}`
+            : `Hear a voice preview for ${name}`
+      }
+      className={`w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full bg-q2-ink text-white ring-2 ring-q2-canvas hover:bg-q2-indigo transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo ${className}`}
+    >
+      {speaking ? (
+        <Square size={10} fill="currentColor" aria-hidden="true" />
+      ) : (
+        <Play size={10} fill="currentColor" aria-hidden="true" />
+      )}
+    </button>
+  );
+}
+
+function PersonaCard({
+  preset,
+  isFr,
+  preview,
+}: {
+  preset: Preset;
+  isFr: boolean;
+  preview?: ReactNode;
+}) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,11 +175,12 @@ function PersonaCard({ preset, isFr }: { preset: Preset; isFr: boolean }) {
       tabIndex={0}
       className="bg-q2-band rounded-3xl p-6 sm:p-8 max-w-[640px] mx-auto text-center sm:text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
     >
-      <div className="flex items-baseline gap-3 mb-1.5 flex-wrap justify-center sm:justify-start">
+      <div className="flex items-center gap-3 mb-1.5 flex-wrap justify-center sm:justify-start">
         <p className="text-xl text-q2-ink font-normal">{preset.name}</p>
         <span className="q2-eyebrow text-q2-indigo">
           {isFr ? preset.personalityFr : preset.personalityEn}
         </span>
+        {preview}
       </div>
       <p className="text-[15px] text-q2-body leading-relaxed q2-body-text mb-3">
         {isFr ? preset.descFr : preset.descEn}
@@ -115,8 +213,12 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
   const [active, setActive] = useState(0);
   const [reduced] = useState(prefersReducedMotion);
   const stageRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLSpanElement>(null);
   const tabsRef = useRef<Array<HTMLButtonElement | null>>([]);
   const dragRef = useRef<{ id: number; x: number; consumed: number } | null>(null);
+
+  const preset = PRESETS[active];
+  const { speaking, toggle } = useVoicePreview(preset, isFr);
 
   const go = useCallback((next: number) => {
     setActive(((next % COUNT) + COUNT) % COUNT);
@@ -138,13 +240,16 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
       /* Empan plafonné: sans lui, un écran large étirerait l'arc en rangée
          plate et la courbe ne se lirait plus. Angle de bord plafonné à 72deg:
          au-delà l'arc se referme sur lui-même et les visages se rattrapent. */
+      const vs = w < NARROW ? NARROW_SCALE : 1;
+      /* Diamètre visible de l'actif, une fois la mise à l'échelle appliquée */
+      const facePx = FACE * vs;
       const span = Math.min(w * 0.46, 300);
       const depth = h * 0.58;
       const edgeAngle = Math.min(2 * Math.atan(depth / span), (72 * Math.PI) / 180);
       const radius = span / Math.sin(edgeAngle);
       const step = edgeAngle / EDGE;
       /* Ligne de base: le centre de l'actif, posé au bas de la scène */
-      const baseY = h - FACE / 2 - 22;
+      const baseY = h - facePx / 2 - 22;
 
       PRESETS.forEach((_, i) => {
         const el = tabsRef.current[i];
@@ -152,12 +257,14 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
         const d = ringDelta(i, active);
         const a = d * step;
         const x = radius * Math.sin(a);
+        /* FACE et non facePx: l'élément est mis à l'échelle depuis son
+           centre, la translation part donc de sa taille DOM */
         const y = baseY - radius * (1 - Math.cos(a)) - FACE / 2;
         const k = Math.min(Math.abs(d), SCALE.length - 1);
         const vars = {
           x,
           y,
-          scale: SCALE[k],
+          scale: SCALE[k] * vs,
           opacity: OPACITY[k],
           zIndex: 20 - Math.abs(d),
           duration: animate ? 0.62 : 0,
@@ -166,6 +273,15 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
         };
         gsap.to(el, vars);
       });
+
+      const ring = ringRef.current;
+      if (ring) {
+        const size = facePx + 12;
+        ring.style.width = `${size}px`;
+        ring.style.height = `${size}px`;
+        ring.style.marginLeft = `${-size / 2}px`;
+        ring.style.top = `${baseY - size / 2}px`;
+      }
     },
     [active],
   );
@@ -237,10 +353,10 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
     dragRef.current = null;
   };
 
-  const preset = PRESETS[active];
   const label = isFr ? 'Réceptionnistes' : 'Receptionists';
 
-  /* Repli reduced-motion: la rangée simple, sans arc ni animation */
+  /* Repli reduced-motion: la rangée simple, sans arc ni animation. La fiche et
+     l'aperçu de voix restent là, l'aperçu passe dans l'en-tête de la fiche. */
   if (reduced) {
     return (
       <div>
@@ -270,7 +386,18 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
             </button>
           ))}
         </div>
-        <PersonaCard preset={preset} isFr={isFr} />
+        <PersonaCard
+          preset={preset}
+          isFr={isFr}
+          preview={
+            <VoicePreviewButton
+              speaking={speaking}
+              onToggle={toggle}
+              isFr={isFr}
+              name={preset.name}
+            />
+          }
+        />
         <VoiceCloneNote isFr={isFr} />
       </div>
     );
@@ -278,52 +405,65 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
 
   return (
     <div>
-      <div
-        ref={stageRef}
-        role="tablist"
-        aria-label={label}
-        tabIndex={-1}
-        onKeyDown={onKeyDown}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        className="relative h-[250px] sm:h-[340px] overflow-hidden touch-pan-y select-none"
-      >
-        {PRESETS.map((p, i) => (
-          <button
-            key={p.id}
-            ref={(el) => {
-              tabsRef.current[i] = el;
-            }}
-            type="button"
-            role="tab"
-            aria-selected={active === i}
-            tabIndex={active === i ? 0 : -1}
-            aria-label={`${p.name}, ${isFr ? p.personalityFr : p.personalityEn}`}
-            onClick={() => go(i)}
-            id={`recep-tab-${p.id}`}
-            aria-controls="recep-panel"
-            /* Pose neutre en haut au centre: GSAP n'écrit que x/y/scale */
-            style={{ willChange: 'transform' }}
-            className="absolute top-0 left-1/2 -ml-[44px] w-[88px] h-[88px] rounded-full overflow-hidden bg-q2-band focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-q2-canvas"
-          >
-            <img
-              src={`/characters/${p.id}.webp`}
-              alt=""
-              loading={i < 4 ? 'eager' : 'lazy'}
-              width={88}
-              height={88}
-              className="w-full h-full object-cover"
-            />
-          </button>
-        ))}
+      {/* Le bouton d'aperçu vit hors du tablist: un bouton simple entre des
+          role="tab" casserait la sémantique de la liste */}
+      <div className="relative">
+        <div
+          ref={stageRef}
+          role="tablist"
+          aria-label={label}
+          tabIndex={-1}
+          onKeyDown={onKeyDown}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          className="relative h-[300px] sm:h-[400px] overflow-hidden touch-pan-y select-none"
+        >
+          {PRESETS.map((p, i) => (
+            <button
+              key={p.id}
+              ref={(el) => {
+                tabsRef.current[i] = el;
+              }}
+              type="button"
+              role="tab"
+              aria-selected={active === i}
+              tabIndex={active === i ? 0 : -1}
+              aria-label={`${p.name}, ${isFr ? p.personalityFr : p.personalityEn}`}
+              onClick={() => go(i)}
+              id={`recep-tab-${p.id}`}
+              aria-controls="recep-panel"
+              /* Pose neutre en haut au centre: GSAP n'écrit que x/y/scale */
+              style={{ willChange: 'transform' }}
+              className="absolute top-0 left-1/2 -ml-[80px] w-[160px] h-[160px] rounded-full overflow-hidden bg-q2-band focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-q2-canvas"
+            >
+              <img
+                src={`/characters/${p.id}.webp`}
+                alt=""
+                loading={i < 4 ? 'eager' : 'lazy'}
+                width={160}
+                height={160}
+                className="w-full h-full object-cover"
+              />
+            </button>
+          ))}
 
-        {/* Anneau de l'actif, purement décoratif: il ne bouge pas, l'arc vient à lui */}
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 -ml-[48px] w-[96px] h-[96px] rounded-full ring-1 ring-q2-plate"
-          style={{ top: 'calc(100% - 114px)' }}
+          {/* Anneau de l'actif, décoratif: il ne bouge pas, l'arc vient à lui.
+              Ses dimensions suivent l'échelle de la scène, écrites par layout */}
+          <span
+            ref={ringRef}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 rounded-full ring-1 ring-q2-plate"
+          />
+        </div>
+
+        <VoicePreviewButton
+          speaking={speaking}
+          onToggle={toggle}
+          isFr={isFr}
+          name={preset.name}
+          className="absolute left-1/2 -ml-4 bottom-[6px] z-30"
         />
       </div>
 

@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bot, AlertCircle, Activity, Globe, Calendar,
   Settings, Mic, PhoneCall,
-  CheckCircle2, XCircle,
+  CheckCircle2, XCircle, ChevronDown, ChevronRight,
+  CreditCard, MapPin, PhoneForwarded, Plug,
   Tag, HelpCircle, Clock3, Plus, X,
   type LucideIcon,
 } from 'lucide-react';
@@ -13,16 +14,18 @@ import CharacterCarousel from '../../../components/v2/app/CharacterCarousel';
 import VoiceCloner, { type CustomVoice } from '../../../components/v2/app/VoiceCloner';
 import AssistantChat from '../../../components/client/AssistantChat';
 import {
-  PageActions, PrimaryBtn, GhostBtn,
+  Card, PageActions, PrimaryBtn, GhostBtn, SectionHead,
   Field, Input, Select, Textarea, Toggle, Pill, EmptyState,
 } from '../../../components/v2/app/Blocks';
 
-/* Réceptionniste IA, registre produit V2 « instrument ». Mise en page frameless
-   du dashboard (OverviewBlocks, ClientOverview): rangée de chiffres nue en
-   ouverture, sections séparées par des filets, aucune carte. La logique est
-   celle de la V1 (autosave 900 ms, OAuth Google Calendar, ancres de hash);
-   seule la peau change. L'assistant conversationnel vit dans un panneau
-   latéral: il configure, il ne présente pas la page. */
+/* Réceptionniste IA, registre produit V2 « instrument ». L'ouverture reste
+   frameless (rangée de chiffres nue, filet dessous); les réglages reprennent la
+   géométrie de la page Compte: cartes, en-têtes de section, rangées de 56px
+   repliables. Ce qui se lit au repos (identité, base de connaissances) est
+   déplié; le reste est en accordéon. La logique est celle de la V1 (autosave
+   900 ms, OAuth Google Calendar, ancres de hash); seule la peau change.
+   L'assistant conversationnel vit dans un panneau latéral: il configure, il ne
+   présente pas la page. */
 
 const fieldCls =
   'h-9 bg-q2-obsidian border border-q2-graphite-d rounded-lg px-3 text-[12.5px] text-white placeholder:text-q2-fog focus:outline-none focus:border-q2-indigo/60 transition-colors duration-150 disabled:opacity-40';
@@ -115,34 +118,86 @@ function KpiRow({ items }: { items: KpiItem[] }) {
 }
 
 /**
- * Une section de réglages: un eyebrow, une phrase d'aide, du contenu. Aucun
- * cadre, un filet en dessous. Elles sont toutes ouvertes: la page au repos doit
- * se lire, pas se déplier.
+ * Une section dépliée: un en-tête de section, une phrase d'aide, une carte. Ce
+ * qui se lit au repos vit ici, pas derrière un chevron.
  */
-function Sect({ id, eyebrow, hint, right, children, last = false }: {
+function OpenSect({ id, title, hint, right, children }: {
   id?: string;
-  eyebrow: string;
+  title: string;
   hint?: string;
   right?: React.ReactNode;
   children: React.ReactNode;
-  last?: boolean;
 }) {
   return (
     <section
       id={id}
       style={id ? { scrollMarginTop: 80 } : undefined}
-      aria-label={eyebrow}
-      className={`py-8 ${last ? '' : 'border-b border-q2-graphite-d'}`}
+      aria-label={title}
     >
-      <div className="flex items-start justify-between gap-4 mb-5">
-        <div className="min-w-0">
-          <p className="q2-eyebrow text-q2-fog">{eyebrow}</p>
-          {hint && <p className="text-[12px] text-q2-fog mt-2 q2-body-text max-w-[62ch]">{hint}</p>}
-        </div>
-        {right && <div className="flex items-center gap-2 shrink-0">{right}</div>}
-      </div>
-      {children}
+      <SectionHead title={title} action={right} />
+      {hint && <p className="text-[12px] text-q2-fog -mt-1 mb-3 q2-body-text max-w-[70ch]">{hint}</p>}
+      <Card>{children}</Card>
     </section>
+  );
+}
+
+/**
+ * Rangée repliable de la page Compte: 56px, icône carrée, libellé, indice,
+ * chevron. Le panneau s'ouvre en dessous, dans la même carte.
+ */
+function AccRow({ id, icon: Icon, label, hint, right, open, onToggle, first = false, children }: {
+  id?: string;
+  icon: LucideIcon;
+  label: string;
+  hint?: string;
+  right?: React.ReactNode;
+  open: boolean;
+  onToggle: () => void;
+  first?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div id={id} style={id ? { scrollMarginTop: 80 } : undefined}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className={`w-full min-h-[56px] flex items-center justify-between gap-3 px-4 text-left hover:bg-q2-obsidian/60 transition-colors duration-100 focus:outline-none focus-visible:bg-q2-obsidian ${
+          first ? '' : 'border-t border-q2-graphite-d'
+        }`}
+      >
+        <div className="flex items-center gap-3.5 min-w-0">
+          <span className="w-8 h-8 shrink-0 rounded-lg bg-q2-obsidian flex items-center justify-center">
+            <Icon size={15} aria-hidden="true" className="text-q2-lift" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[13.5px] font-medium text-white truncate">{label}</p>
+            {hint && <p className="text-[11.5px] text-q2-fog truncate">{hint}</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          {right}
+          {open ? (
+            <ChevronDown size={14} className="text-q2-fog" aria-hidden="true" />
+          ) : (
+            <ChevronRight size={14} className="text-q2-fog" aria-hidden="true" />
+          )}
+        </div>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden border-t border-q2-graphite-d"
+          >
+            <div className="p-5">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -294,6 +349,9 @@ export default function ClientReceptionist() {
   const [characterId, setCharacterId] = useState<string>(DEFAULT_CHARACTER_ID);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [customVoice, setCustomVoice] = useState<CustomVoice | null>(null);
+  // Réglages en accordéon: une seule rangée ouverte à la fois, comme au Compte.
+  const [openRow, setOpenRow] = useState<string | null>(null);
+  const toggleRow = (k: string) => setOpenRow(o => (o === k ? null : k));
   // Assistant conversationnel: un panneau, ouvert à la demande.
   const [chatOpen, setChatOpen] = useState(false);
   const chatTrigger = useRef<HTMLButtonElement | null>(null);
@@ -426,6 +484,9 @@ export default function ClientReceptionist() {
     if (loading) return;
     const hash = window.location.hash.replace('#', '');
     if (!hash) return;
+    // Une ancre qui pointe vers un réglage replié doit l'ouvrir, sinon elle
+    // amène l'utilisateur devant un chevron fermé.
+    setOpenRow(o => (o === hash ? o : hash));
     // wait one frame so the DOM with the new markup is mounted
     requestAnimationFrame(() => {
       const el = document.getElementById(hash);
@@ -471,11 +532,13 @@ export default function ClientReceptionist() {
         ))}
       </div>
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="space-y-4 pb-8 border-b border-q2-graphite-d">
+        <div key={i} className="space-y-3">
           <div className="h-3 w-32 rounded bg-white/[0.06] animate-pulse" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="h-16 rounded-xl bg-white/[0.04] animate-pulse" />
-            <div className="h-16 rounded-xl bg-white/[0.04] animate-pulse" />
+          <div className="rounded-xl border border-q2-graphite-d bg-q2-carbon p-5 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="h-16 rounded-xl bg-white/[0.04] animate-pulse" />
+              <div className="h-16 rounded-xl bg-white/[0.04] animate-pulse" />
+            </div>
           </div>
         </div>
       ))}
@@ -575,10 +638,11 @@ export default function ClientReceptionist() {
         Astuce : le panneau « Configurer en parlant » modifie ces réglages à votre place, et lance un appel test avec la voix choisie.
       </p>
 
-      {/* Identité de l'agent */}
-      <Sect
+      <div className="mt-7 space-y-7">
+      {/* Identité: dépliée, c'est le premier réglage que l'on vient toucher */}
+      <OpenSect
         id="identite"
-        eyebrow="Identité de l'agent"
+        title="Identité de l'agent"
         hint="Le nom que l'IA donne au téléphone, la langue principale de vos appels, et le personnage qui répond. Chaque personnage parle français et anglais."
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -611,7 +675,7 @@ export default function ClientReceptionist() {
         </div>
 
         {characters.length > 0 && (
-          <div className="mt-8 pt-6 border-t border-q2-graphite-d">
+          <div className="mt-6 pt-5 border-t border-q2-graphite-d">
             <GroupLabel>Personnage de la réceptionniste</GroupLabel>
             <p className="text-[12px] text-q2-fog mb-4 q2-body-text max-w-[62ch]">
               Naviguez avec les flèches pour choisir qui répond à vos appels. Le bouton lecture donne un aperçu
@@ -636,11 +700,11 @@ export default function ClientReceptionist() {
             />
           </div>
         )}
-      </Sect>
+      </OpenSect>
 
-      {/* Ton */}
-      <Sect
-        eyebrow="Ton"
+      {/* Ton et personnalisation, une seule carte */}
+      <OpenSect
+        title="Ton"
         hint="Affinage optionnel de la façon de parler. Le personnage porte la voix, le ton porte l'attitude."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8">
@@ -667,7 +731,7 @@ export default function ClientReceptionist() {
           })}
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 pt-5 border-t border-q2-graphite-d">
           <GroupLabel>Personnalisation</GroupLabel>
           <Textarea
             value={personalityNotes}
@@ -678,11 +742,11 @@ export default function ClientReceptionist() {
             style={{ minHeight: 100 }}
           />
         </div>
-      </Sect>
+      </OpenSect>
 
-      {/* Base de connaissances */}
-      <Sect
-        eyebrow="Base de connaissances"
+      {/* Base de connaissances: dépliée, c'est le corps du réglage */}
+      <OpenSect
+        title="Base de connaissances"
         hint="Ce que l'IA doit savoir pour répondre aux appelants : services, menu, tarifs, horaires, FAQ. Plus c'est précis, plus elle sera précise."
       >
         <GroupLabel
@@ -815,15 +879,26 @@ export default function ClientReceptionist() {
             </p>
           </div>
         </div>
-      </Sect>
+      </OpenSect>
 
-      {/* Transfert d'appel */}
-      <Sect
+      {/* Réglages: repliés par défaut, géométrie de la page Compte */}
+      <section aria-label="Réglages">
+        <SectionHead title="Réglages" />
+        <Card pad={false}>
+
+      <AccRow
+        first
         id="transfer"
-        eyebrow="Transfert d'appel"
-        hint="Vers qui basculer, et quand. L'IA passe la main avec un résumé de ce qu'elle a compris."
+        icon={PhoneForwarded}
+        label="Transfert d'appel"
+        hint={transferNumber || 'Aucun numéro de transfert'}
         right={transferPill}
+        open={openRow === 'transfer'}
+        onToggle={() => toggleRow('transfer')}
       >
+        <p className="text-[12px] text-q2-fog mb-4 q2-body-text max-w-[62ch]">
+          Vers qui basculer, et quand. L'IA passe la main avec un résumé de ce qu'elle a compris.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Numéro de transfert" hint="L'IA transfère les appels urgents à ce numéro">
             <Input type="tel" value={transferNumber} onChange={e => setTransferNumber(e.target.value)} placeholder="+1 (555) 000-0000" />
@@ -846,13 +921,18 @@ export default function ClientReceptionist() {
             </span>
           </div>
         )}
-      </Sect>
+      </AccRow>
 
-      {/* Coordonnées */}
-      <Sect
-        eyebrow="Coordonnées"
-        hint="Adresse et téléphone de contact, tels que l'IA les donne aux appelants."
+      <AccRow
+        icon={MapPin}
+        label="Coordonnées"
+        hint={[address, city].filter(Boolean).join(', ') || 'Adresse, téléphone de contact'}
+        open={openRow === 'coordonnees'}
+        onToggle={() => toggleRow('coordonnees')}
       >
+        <p className="text-[12px] text-q2-fog mb-4 q2-body-text max-w-[62ch]">
+          Adresse et téléphone de contact, tels que l'IA les donne aux appelants.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
           <Field label="Téléphone de contact">
             <Input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="+1 (555) 000-0000" />
@@ -881,13 +961,19 @@ export default function ClientReceptionist() {
             right={<span className="text-[12.5px] text-q2-mist">{settings?.country || client.country || 'Non renseigné'}</span>}
           />
         </div>
-      </Sect>
+      </AccRow>
 
-      {/* Intégrations */}
-      <Sect
-        eyebrow="Intégrations"
-        hint="Agenda et outils connectés. L'IA note les rendez-vous là où vous les lisez déjà."
+      <AccRow
+        icon={Plug}
+        label="Intégrations"
+        hint={gcal?.connected ? 'Google Calendar connecté' : 'Agenda et outils connectés'}
+        right={gcal?.connected ? <Pill tone="ok">Actif</Pill> : undefined}
+        open={openRow === 'integrations'}
+        onToggle={() => toggleRow('integrations')}
       >
+        <p className="text-[12px] text-q2-fog mb-4 q2-body-text max-w-[62ch]">
+          L'IA note les rendez-vous là où vous les lisez déjà.
+        </p>
         <LineRow
           icon={Calendar}
           label="Google Calendar"
@@ -948,18 +1034,23 @@ export default function ClientReceptionist() {
             />
           ))}
         </div>
-      </Sect>
+      </AccRow>
 
-      {/* Abonnement */}
-      <Sect
-        eyebrow="Abonnement"
-        hint="Plan, minutes incluses et facturation. Les détails complets vivent sur la page Facturation."
+      <AccRow
+        icon={CreditCard}
+        label="Abonnement"
+        hint={`Plan ${planName}, ${quota} min incluses`}
         right={
           <Pill tone={isActive ? 'ok' : isPaused ? 'warn' : 'bad'}>
             {status === 'active' ? 'Actif' : status === 'trialing' ? 'Essai' : status === 'paused' ? 'En pause' : status === 'cancelled' ? 'Annulé' : status}
           </Pill>
         }
+        open={openRow === 'abonnement'}
+        onToggle={() => toggleRow('abonnement')}
       >
+        <p className="text-[12px] text-q2-fog mb-4 q2-body-text max-w-[62ch]">
+          Plan, minutes incluses et facturation. Les détails complets vivent sur la page Facturation.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
           <LineRow label="Plan" right={<Pill tone="accent">{planName}</Pill>} />
           <LineRow label="Quota mensuel" right={<span className="text-[12.5px] text-q2-mist tabular-nums">{quota} min</span>} />
@@ -977,14 +1068,23 @@ export default function ClientReceptionist() {
             <LineRow label="Dernier appel" right={<span className="text-[12.5px] text-q2-mist tabular-nums">{new Date(settings.lastCallDate).toLocaleDateString('fr-FR')}</span>} />
           )}
         </div>
-      </Sect>
+      </AccRow>
 
-      {/* Aide */}
-      <Sect eyebrow="Besoin d'aide" last>
+      <AccRow
+        icon={HelpCircle}
+        label="Besoin d'aide"
+        hint="Voix sur mesure, script avancé, réglages VAPI"
+        open={openRow === 'aide'}
+        onToggle={() => toggleRow('aide')}
+      >
         <p className="text-[12.5px] text-q2-mist leading-relaxed q2-body-text max-w-[70ch]">
           Pour modifier la voix, le script personnalisé, ou les paramètres VAPI avancés de votre IA, contactez notre équipe via le Support. Nous nous occupons de tout en moins de 24h.
         </p>
-      </Sect>
+      </AccRow>
+
+        </Card>
+      </section>
+      </div>
 
       {/* Assistant conversationnel, à la demande, jamais en travers de la page */}
       <SidePanel open={chatOpen} onClose={closeChat} label="Configurer en parlant">

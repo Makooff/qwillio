@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -22,15 +22,10 @@ import TextReveal from '../../components/v2/motion/TextReveal';
 import Magnetic from '../../components/v2/motion/Magnetic';
 import GlowCard from '../../components/v2/motion/GlowCard';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
-import ScrollVeil from '../../components/v2/motion/ScrollVeil';
 import PixelBlushBackdrop from '../../components/v2/motion/PixelBlushBackdrop';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
-
-/* Le Player Remotion vit dans son propre chunk: la section drenched le
-   charge en lazy, le reste de la page ne paie rien. */
-const LiveTranscriptPlayer = lazy(() => import('../../components/v2/LiveTranscriptPlayer'));
 
 /* La capture réelle du dashboard qui referme le hero: cadre hairline, coins
    16px, halo doux derrière, et une perspective très légère (rotateX 4deg) qui
@@ -218,15 +213,6 @@ export default function Home() {
                   </PillLink>
                 </Magnetic>
               </div>
-
-              {/* Propriétés vérifiables uniquement, jamais des métriques
-                  inventées. La rangée complète vit maintenant dans la bande
-                  ImpactStats: ici on ne garde que la promesse de prix. */}
-              <p className="text-sm text-q2-body border-t border-q2-plate pt-6 max-w-[520px] min-w-0 q2-body-text">
-                {isFr
-                  ? 'Français et anglais dans le même appel, 24/7, dès 99 € par mois. Sans engagement.'
-                  : 'French and English inside the same call, 24/7, from €99 a month. No commitment.'}
-              </p>
             </div>
           </RevealV2>
 
@@ -291,7 +277,7 @@ export default function Home() {
       </Section>
 
       {/* ── VOS RÉCEPTIONNISTES, galerie de presets ── */}
-      <Section aria-labelledby="team-heading" className="relative">
+      <Section aria-labelledby="team-heading">
         <Container>
           <RevealV2 className="mb-12 max-w-[640px]">
             <Eyebrow tone="indigo" className="mb-4">
@@ -322,17 +308,35 @@ export default function Home() {
             <CircularReceptionists isFr={isFr} />
           </RevealV2>
         </Container>
-        {/* Fondu vers la section drenched qui suit, plutôt qu'une coupure nette */}
-        <ScrollVeil />
       </Section>
 
       {/* ── UNE VRAIE CONVERSATION, drenched indigo + transcript vivant ── */}
       <Section variant="drenched-indigo" aria-labelledby="conv-heading">
         <Container className="grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
+          {/* La preuve n'est pas une animation de transcript, c'est l'écran
+              réel du suivi d'appel tel qu'il apparaît dans le dashboard */}
           <RevealV2 index={1} className="order-2 lg:order-1">
-            <Suspense fallback={<div className="min-h-[300px]" aria-hidden="true" />}>
-              <LiveTranscriptPlayer isFr={isFr} className="max-w-[520px] mx-auto lg:mx-0" />
-            </Suspense>
+            <figure className="m-0">
+              <div className="rounded-xl border border-q2-graphite-d bg-q2-carbon overflow-hidden">
+                <img
+                  src="/screens/suivi-appel.webp"
+                  alt={
+                    isFr
+                      ? 'Suivi d’un appel dans le dashboard Qwillio : résumé, transcript et sentiment'
+                      : 'Call follow-up in the Qwillio dashboard: summary, transcript and sentiment'
+                  }
+                  loading="lazy"
+                  width={1600}
+                  height={930}
+                  className="block w-full h-auto"
+                />
+              </div>
+              <figcaption className="mt-4 text-[13px] leading-relaxed text-q2-fog q2-body-text">
+                {isFr
+                  ? 'Le suivi réel d’un appel dans le dashboard : résumé, transcript, sentiment.'
+                  : 'The real call follow-up in the dashboard: summary, transcript, sentiment.'}
+              </figcaption>
+            </figure>
           </RevealV2>
           <div className="order-1 lg:order-2">
           <RevealV2>
@@ -480,7 +484,7 @@ export default function Home() {
               <TextReveal>{isFr ? 'Rien ne se perd.' : 'Nothing gets lost.'}</TextReveal>
             </H2>
           </RevealV2>
-          {/* Les deux cartes portent les vraies captures, illustration en haut */}
+          {/* Deux rangées pleine largeur, illustration alternée gauche/droite */}
           <FeatureCards isFr={isFr} />
 
           <RevealV2 className="mt-12">
@@ -521,7 +525,7 @@ export default function Home() {
       </Section>
 
       {/* ── CE À QUOI ELLE EST BRANCHÉE, orbite d'intégrations ── */}
-      <Section aria-labelledby="integrations-heading" className="relative">
+      <Section aria-labelledby="integrations-heading">
         <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-14 items-center [&>*]:min-w-0">
           <RevealV2 className="max-w-[440px]">
             <Eyebrow tone="violet" className="mb-4">
@@ -550,8 +554,6 @@ export default function Home() {
             <IntegrationsOrbit isFr={isFr} />
           </RevealV2>
         </Container>
-        {/* La section s'assombrit avant le drenched violet de clôture */}
-        <ScrollVeil />
       </Section>
 
       {/* ── NOTE HONNÊTE + CTA FINAL, drenched violet ── */}
