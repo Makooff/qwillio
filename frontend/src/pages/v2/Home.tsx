@@ -114,7 +114,7 @@ export default function Home() {
               'linear-gradient(180deg, #fdfcfc 0%, #f5f2fb 14%, #f8f6fc 58%, #fdfcfc 100%)',
           }}
         />
-        <Container className="relative grid lg:grid-cols-[1.2fr_1fr] gap-14 lg:gap-20 items-center">
+        <Container className="relative grid lg:grid-cols-[1.2fr_1fr] gap-14 lg:gap-20 items-center [&>*]:min-w-0">
           <RevealV2>
             <div>
               <Eyebrow tone="indigo" className="mb-6">
@@ -133,8 +133,8 @@ export default function Home() {
               </Display>
               <Lead className="max-w-[500px] mb-10 q2-body-text">
                 {isFr
-                  ? 'Qwillio décroche 24/7, consulte votre agenda Google pendant l’appel, inscrit le rendez-vous et confirme par SMS. Et quand il faut un humain, elle vous passe l’appel en vous disant d’abord qui appelle et pourquoi. Français et anglais, à partir de 99 € par mois.'
-                  : 'Qwillio answers 24/7, checks your Google Calendar during the call, books the appointment and confirms by SMS. And when a human is needed, she hands you the call after telling you who is calling and why. French and English, from €99 a month.'}
+                  ? 'Elle décroche 24/7, vérifie votre agenda pendant l’appel et confirme le rendez-vous par SMS. Dès 99 € par mois.'
+                  : 'She answers 24/7, checks your calendar during the call and confirms the booking by SMS. From €99 a month.'}
               </Lead>
 
               <div className="flex flex-wrap items-center gap-3 mb-12">
@@ -153,7 +153,9 @@ export default function Home() {
               </div>
 
               {/* Propriétés vérifiables uniquement, jamais des métriques inventées */}
-              <dl className="flex items-baseline gap-8 sm:gap-10 text-sm text-q2-body border-t border-q2-plate pt-6 max-w-[520px]">
+              {/* flex-wrap + min-w-0: la rangée ne doit JAMAIS forcer la page
+                  plus large que l'écran (débordement constaté sur iPhone) */}
+              <dl className="flex flex-wrap items-baseline gap-x-6 gap-y-3 sm:gap-x-10 text-sm text-q2-body border-t border-q2-plate pt-6 max-w-[520px] min-w-0">
                 <div className="flex items-baseline gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Langues' : 'Languages'}</dt>
                   <dd className="text-2xl font-light tracking-tight text-q2-ink">FR/EN</dd>
