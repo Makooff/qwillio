@@ -60,6 +60,11 @@ const DEFAULT_HOURS: WeekHours = {
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
+/** Le défaut du serveur, identique en français et en anglais depuis que les
+    personnages sont bilingues (voice-characters.ts, DEFAULT_CHARACTER_FR et
+    DEFAULT_CHARACTER_EN). */
+const DEFAULT_CHARACTER_ID = 'marie';
+
 const PERSONALITY_PRESETS: { v: string; l: string; d: string }[] = [
   { v: 'warm',         l: 'Chaleureux',   d: 'Accueillant, empathique, sourire dans la voix' },
   { v: 'professional', l: 'Professionnel', d: 'Direct, précis, cadre formel' },
@@ -174,7 +179,7 @@ export default function ClientReceptionist() {
   const [faq, setFaq] = useState('');
   const [personalityPreset, setPersonalityPreset] = useState<string>('warm');
   const [personalityNotes, setPersonalityNotes] = useState('');
-  const [characterId, setCharacterId] = useState<string>('marie');
+  const [characterId, setCharacterId] = useState<string>(DEFAULT_CHARACTER_ID);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [customVoice, setCustomVoice] = useState<CustomVoice | null>(null);
   // One section open at a time, remembered so a reload lands where you were.
@@ -190,12 +195,13 @@ export default function ClientReceptionist() {
 
   // La voix clonée est une carte de plus dans la même grille, pas un widget à
   // part : la choisir est le même geste que choisir Marie. Elle emprunte la
-  // persona du personnage par défaut de la langue, parce qu'un clone ne dit
-  // rien de la façon de se comporter.
+  // persona du personnage par défaut, parce qu'un clone ne dit rien de la façon
+  // de se comporter. Ce défaut ne dépend plus de la langue : les personnages
+  // sont bilingues, le serveur répond Marie dans les deux cas.
   const pickerCharacters = useMemo<Character[]>(() => {
     if (!customVoice) return characters;
     const isFr = agentLanguage !== 'en';
-    const base = characters.find(c => c.id === (isFr ? 'marie' : 'ashley')) || characters[0];
+    const base = characters.find(c => c.id === DEFAULT_CHARACTER_ID) || characters[0];
     if (!base) return characters;
     return [
       {
@@ -251,7 +257,7 @@ export default function ClientReceptionist() {
       setFaq(s?.faq || '');
       setPersonalityPreset(s?.personalityPreset || 'warm');
       setPersonalityNotes(s?.personalityNotes || '');
-      setCharacterId(s?.characterId || 'marie');
+      setCharacterId(s?.characterId || DEFAULT_CHARACTER_ID);
       setCustomVoice(s?.customVoice?.voiceId ? s.customVoice : null);
       // Values below come from the server, so they must not trigger an auto-save.
       hydrated.current = true;
@@ -450,12 +456,12 @@ export default function ClientReceptionist() {
         <Section title="Identité de l'agent" hint="Nom, langue, voix et caractère" id="identite" openId={openId} setOpenId={setOpenId} icon={Bot}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Nom de l'agent" hint="Le prénom utilisé par l'IA pour se présenter">
-              <Input type="text" value={agentName} onChange={e => setAgentName(e.target.value)} placeholder="Ex: Ashley, Marie..." />
+              <Input type="text" value={agentName} onChange={e => setAgentName(e.target.value)} placeholder="Ex: Marie, Lucas..." />
             </Field>
-            <Field label="Langue" hint="Langue parlée par votre réceptionniste IA">
+            <Field label="Langue" hint="Langue principale de vos appels. Chaque personnage parle français et anglais.">
               <Select value={agentLanguage} onChange={e => setAgentLanguage(e.target.value)}>
-                <option value="en">Anglais (Ashley)</option>
-                <option value="fr">Français (Marie)</option>
+                <option value="en">Anglais</option>
+                <option value="fr">Français</option>
               </Select>
             </Field>
             <Field label="Nom de l'entreprise" hint="Utilisé par l'IA pour se présenter au téléphone">
@@ -482,8 +488,8 @@ export default function ClientReceptionist() {
             <div className="mt-6">
               <GroupLabel>Personnage de la réceptionniste</GroupLabel>
               <p className="text-[12px] text-q2-fog mb-3 q2-body-text">
-                Naviguez avec les flèches pour choisir qui répond à vos appels. Le bouton lecture donne un aperçu,
-                le crayon ouvre le catalogue complet des voix.
+                Naviguez avec les flèches pour choisir qui répond à vos appels. Le bouton lecture donne un aperçu
+                dans votre langue, le crayon ouvre le catalogue complet. Chaque personnage parle français et anglais.
               </p>
               <CharacterCarousel
                 characters={pickerCharacters}
@@ -497,8 +503,9 @@ export default function ClientReceptionist() {
                 onChange={v => {
                   setCustomVoice(v);
                   // Cloner sélectionne la nouvelle voix ; supprimer ne doit pas
-                  // laisser la sélection pointer sur une carte disparue.
-                  setCharacterId(v ? 'custom' : (agentLanguage === 'en' ? 'ashley' : 'marie'));
+                  // laisser la sélection pointer sur une carte disparue, donc on
+                  // retombe sur le défaut du serveur.
+                  setCharacterId(v ? 'custom' : DEFAULT_CHARACTER_ID);
                 }}
               />
             </div>

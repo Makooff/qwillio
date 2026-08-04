@@ -79,6 +79,11 @@ const BUSINESS_TYPES = [
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
+/** Le défaut du serveur, identique en français et en anglais depuis que les
+    personnages sont bilingues (voice-characters.ts, DEFAULT_CHARACTER_FR et
+    DEFAULT_CHARACTER_EN). */
+const DEFAULT_CHARACTER_ID = 'marie';
+
 function StepLabel({ children }: { children: React.ReactNode }) {
   return <p className="q2-eyebrow text-q2-fog mb-2">{children}</p>;
 }
@@ -91,13 +96,13 @@ export default function ClientSetupCustomize() {
   const { toasts, add: addToast, remove: removeToast } = useToast();
 
   // Form state
-  const [agentName, setAgentName] = useState('Ashley');
+  const [agentName, setAgentName] = useState('Marie');
   const [agentLanguage, setAgentLanguage] = useState('en');
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [personalityPreset, setPersonalityPreset] = useState('warm');
   const [personalityNotes, setPersonalityNotes] = useState('');
-  const [characterId, setCharacterId] = useState('marie');
+  const [characterId, setCharacterId] = useState(DEFAULT_CHARACTER_ID);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [items, setItems] = useState<KbItem[]>([]);
   const [weekHours, setWeekHours] = useState<WeekHours>(DEFAULT_HOURS);
@@ -113,13 +118,13 @@ export default function ClientSetupCustomize() {
         setCharacters(Array.isArray(ch.data?.characters) ? ch.data.characters : []);
         const s = res.data;
         if (s) {
-          setAgentName(s.agentName || 'Ashley');
+          setAgentName(s.agentName || 'Marie');
           setAgentLanguage(s.agentLanguage || 'en');
           setBusinessName(s.businessName || '');
           setBusinessType(s.businessType || '');
           setPersonalityPreset(s.personalityPreset || 'warm');
           setPersonalityNotes(s.personalityNotes || '');
-          setCharacterId(s.characterId || 'marie');
+          setCharacterId(s.characterId || DEFAULT_CHARACTER_ID);
           const rawItems = Array.isArray(s.items) ? s.items : [];
           setItems(rawItems.map((it: any) => ({
             id: it.id || newId(),
@@ -148,7 +153,7 @@ export default function ClientSetupCustomize() {
         <div className="space-y-5">
           <div>
             <StepLabel>Prénom de l'IA</StepLabel>
-            <Input value={agentName} onChange={e => setAgentName(e.target.value)} placeholder="Ashley, Marie, Sophie…" />
+            <Input value={agentName} onChange={e => setAgentName(e.target.value)} placeholder="Marie, Lucas, Sofia…" />
             <p className="text-[12px] text-q2-fog mt-1.5 q2-body-text">
               C'est le prénom utilisé pour se présenter au téléphone.
             </p>
@@ -157,8 +162,8 @@ export default function ClientSetupCustomize() {
             <StepLabel>Langue</StepLabel>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { v: 'en', l: 'Anglais', d: 'Voix d\'Ashley' },
-                { v: 'fr', l: 'Français', d: 'Voix de Marie' },
+                { v: 'en', l: 'Anglais', d: 'Vos appels en anglais' },
+                { v: 'fr', l: 'Français', d: 'Vos appels en français' },
               ].map(opt => {
                 const sel = agentLanguage === opt.v;
                 return (
@@ -171,6 +176,10 @@ export default function ClientSetupCustomize() {
                 );
               })}
             </div>
+            <p className="text-[12px] text-q2-fog mt-2 q2-body-text">
+              Chaque personnage parle français et anglais : ce réglage dit dans quelle langue
+              vos appels commencent, pas qui peut y répondre.
+            </p>
           </div>
         </div>
       ),
@@ -209,16 +218,22 @@ export default function ClientSetupCustomize() {
       key: 'character',
       icon: Sparkles,
       title: 'Voix et personnage',
-      hint: 'Choisissez qui répond à vos appels',
+      hint: 'Choisissez qui répond à vos appels, écoutez avant de trancher',
       isValid: () => !!characterId,
       render: () => (
         characters.length > 0 ? (
-          <CharacterPickerV2
-            characters={characters}
-            value={characterId}
-            onChange={setCharacterId}
-            isFr={agentLanguage !== 'en'}
-          />
+          <>
+            <p className="text-[12px] text-q2-fog mb-3 q2-body-text">
+              L'aperçu est joué dans votre langue. L'accent indiqué décrit le timbre de la voix,
+              pas la langue : tous répondent en français comme en anglais.
+            </p>
+            <CharacterPickerV2
+              characters={characters}
+              value={characterId}
+              onChange={setCharacterId}
+              isFr={agentLanguage !== 'en'}
+            />
+          </>
         ) : (
           <p className="text-[13px] text-q2-fog">Chargement des voix…</p>
         )

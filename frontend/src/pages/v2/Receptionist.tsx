@@ -65,37 +65,50 @@ export default function Receptionist() {
       swatch: '#7a5fff',
       ring: 'rgba(122,95,255,0.45)',
       initials: 'MA',
-      lang: 'fr-FR',
-      sample: 'Bonjour, merci d’appeler ! Comment puis-je vous aider aujourd’hui ?',
+      lang: isFr ? 'fr-FR' : 'en-US',
+      sample: isFr
+        ? 'Bonjour, merci d’appeler ! Comment puis-je vous aider aujourd’hui ?'
+        : 'Hello, thanks for calling! How can I help you today?',
     },
     {
-      name: 'Ashley',
-      accent: isFr ? 'Anglais · États-Unis' : 'English · United States',
+      name: 'Lucas',
+      accent: isFr ? 'Français · France et Belgique' : 'French · France and Belgium',
       vibe: isFr
-        ? 'Chaleureuse, voix anglaise naturelle.'
-        : 'Warm and welcoming, natural English voice.',
+        ? 'Posé et professionnel, direct et rassurant.'
+        : 'Composed and professional, direct and reassuring.',
       swatch: '#cd6bfb',
       ring: 'rgba(205,107,251,0.45)',
-      initials: 'AS',
-      lang: 'en-US',
-      sample: 'Hello, thanks for calling! How can I help you today?',
+      initials: 'LU',
+      lang: isFr ? 'fr-FR' : 'en-US',
+      sample: isFr
+        ? `Bonjour, vous êtes bien au secrétariat. Que puis-je faire pour vous${NB}?`
+        : 'Hello, you’ve reached the front desk. What can I do for you?',
     },
   ];
 
+  // Les huit autres personnages du catalogue (voice-characters.ts). Chacun a
+  // son portrait et sa voix ; le tag dit l'accent porté par la voix, pas la
+  // langue: tous répondent en français comme en anglais.
   const otherVoices = isFr
     ? [
         { id: 'camille', name: 'Camille', note: 'Soignée et raffinée, pour une image premium.', tag: 'FR' },
         { id: 'lea', name: 'Léa', note: 'Dynamique et enthousiaste, pleine d’énergie.', tag: 'FR' },
-        { id: 'lucas', name: 'Lucas', note: 'Posé et professionnel, direct et rassurant.', tag: 'FR' },
         { id: 'sofia', name: 'Sofia', note: 'Naturelle et décontractée, ton conversationnel.', tag: 'FR' },
-        { id: '', name: 'Ethan', note: 'Voix anglaise masculine, posée.', tag: 'EN' },
+        { id: 'nour', name: 'Nour', note: 'Douce et rassurante, idéale pour la santé.', tag: 'FR' },
+        { id: 'adrien', name: 'Adrien', note: 'Chaleureux et avenant, met à l’aise tout de suite.', tag: 'FR' },
+        { id: 'hugo', name: 'Hugo', note: 'Détendu et direct, comme un collègue au comptoir.', tag: 'FR' },
+        { id: 'theo', name: 'Théo', note: 'Énergique et motivé, ça s’entend au téléphone.', tag: 'FR' },
+        { id: 'julien', name: 'Julien', note: 'Distingué et posé, pour une maison haut de gamme.', tag: 'FR' },
       ]
     : [
         { id: 'camille', name: 'Camille', note: 'Polished and refined, for a premium brand.', tag: 'FR' },
         { id: 'lea', name: 'Léa', note: 'Dynamic and upbeat, full of energy.', tag: 'FR' },
-        { id: 'lucas', name: 'Lucas', note: 'Composed and professional, direct and reassuring.', tag: 'FR' },
         { id: 'sofia', name: 'Sofia', note: 'Natural and easy-going, conversational tone.', tag: 'FR' },
-        { id: '', name: 'Ethan', note: 'Composed male English voice.', tag: 'EN' },
+        { id: 'nour', name: 'Nour', note: 'Soft and reassuring, ideal for healthcare.', tag: 'FR' },
+        { id: 'adrien', name: 'Adrien', note: 'Warm and approachable, puts callers at ease.', tag: 'FR' },
+        { id: 'hugo', name: 'Hugo', note: 'Relaxed and direct, like a colleague at the desk.', tag: 'FR' },
+        { id: 'theo', name: 'Théo', note: 'Energetic and driven, you can hear it on the line.', tag: 'FR' },
+        { id: 'julien', name: 'Julien', note: 'Distinguished and composed, for a high-end house.', tag: 'FR' },
       ];
 
   const tones = isFr
@@ -555,19 +568,19 @@ export default function Receptionist() {
                 <H2 id="voices-heading" className="max-w-[640px]">
                   {isFr ? (
                     <>
-                      Sept voix. <SerifWord>Six façons de les porter.</SerifWord>
+                      Dix réceptionnistes. <SerifWord>Six façons de les porter.</SerifWord>
                     </>
                   ) : (
                     <>
-                      Seven voices. <SerifWord>Six ways to carry them.</SerifWord>
+                      Ten receptionists. <SerifWord>Six ways to carry them.</SerifWord>
                     </>
                   )}
                 </H2>
               </div>
               <p className="text-q2-body text-sm max-w-[320px] leading-relaxed q2-body-text">
                 {isFr
-                  ? 'Cinq voix françaises, deux anglaises. Vous les écoutez avant de choisir, le ton se règle séparément. Et si aucune n’est la bonne, clonez la vôtre.'
-                  : 'Five French voices, two English. You listen before you pick, the tone is set separately. And if none feels right, clone your own.'}
+                  ? 'Dix personnages, chacun parle français et anglais. Vous les écoutez avant de choisir, le ton se règle séparément. Et si aucun n’est le bon, clonez votre voix.'
+                  : 'Ten characters, each speaks French and English. You listen before you pick, the tone is set separately. And if none is the right one, clone your own voice.'}
               </p>
             </div>
           </RevealV2>
@@ -604,10 +617,10 @@ export default function Receptionist() {
             <CardV2 variant="canvas" large>
               <div className="grid md:grid-cols-[1fr_1.4fr] gap-8 md:gap-12">
                 <div>
-                  <p className="q2-eyebrow text-q2-body mb-4">{isFr ? 'Les cinq autres' : 'The other five'}</p>
+                  <p className="q2-eyebrow text-q2-body mb-4">{isFr ? 'Les huit autres' : 'The other eight'}</p>
                   <p className="text-q2-body text-sm leading-relaxed q2-body-text max-w-[260px]">
                     {isFr
-                      ? 'Chacune arrive avec un ton par défaut, que vous pouvez remplacer par n’importe lequel des six.'
+                      ? 'Chacun arrive avec un ton par défaut, que vous pouvez remplacer par n’importe lequel des six.'
                       : 'Each comes with a default tone, which you can swap for any of the six.'}
                   </p>
                   <ul className="mt-6 flex flex-wrap gap-2" role="list">
@@ -627,20 +640,14 @@ export default function Receptionist() {
                       key={voice.name}
                       className="grid grid-cols-[32px_72px_1fr_auto] gap-4 items-center border-b border-q2-plate py-3"
                     >
-                      {voice.id ? (
-                        <img
-                          src={`/characters/${voice.id}.webp`}
-                          alt=""
-                          loading="lazy"
-                          width={32}
-                          height={32}
-                          className="w-8 h-8 rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="w-8 h-8 rounded-full bg-q2-plate text-q2-graphite text-[12px] font-medium flex items-center justify-center">
-                          {voice.name[0]}
-                        </span>
-                      )}
+                      <img
+                        src={`/characters/${voice.id}.webp`}
+                        alt=""
+                        loading="lazy"
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
                       <span className="text-q2-ink text-[15px]">{voice.name}</span>
                       <span className="text-q2-body text-[13.5px] leading-snug q2-body-text">{voice.note}</span>
                       <span className="q2-eyebrow text-q2-body">{voice.tag}</span>

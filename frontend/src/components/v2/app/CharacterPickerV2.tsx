@@ -1,11 +1,19 @@
-import { useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Play, Square, Mic } from 'lucide-react';
 import api from '../../../services/api';
+import { useVoicePreview } from '../../client/useVoicePreview';
+
+/* Grille de personnages, registre produit V2. Le contrat vient du catalogue
+   serveur (voice-characters.ts) : un personnage n'a plus de langue, il parle
+   français et anglais, et l'aperçu suit la langue du client. L'accent reste une
+   information sur le timbre, jamais une barrière. */
 
 export interface Character {
   id: string;
   name: string;
-  language: 'fr' | 'en';
+  /** Servi depuis /characters/<id>.webp. */
+  avatar?: string;
+  /** Accent porté par la voix, pas une restriction sur qui peut la choisir. */
   accent: 'FR' | 'BE' | 'US';
   gender: 'f' | 'm';
   personaKey: string;
@@ -15,68 +23,53 @@ export interface Character {
   previewEn: string;
 }
 
-// Aperçu TTS du navigateur. C'est un repli grossier : l'appel réel utilise la
-// voix ElevenLabs, ceci sert juste à entendre vite le ton et la réplique.
-function speak(text: string, lang: 'fr' | 'en', onEnd: () => void) {
-  if (typeof window === 'undefined' || !window.speechSynthesis) { onEnd(); return; }
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang === 'fr' ? 'fr-FR' : 'en-US';
-  const match = window.speechSynthesis.getVoices().find(v => v.lang?.toLowerCase().startsWith(u.lang.toLowerCase().slice(0, 2)));
-  if (match) u.voice = match;
-  u.onend = onEnd;
-  u.onerror = onEnd;
-  window.speechSynthesis.speak(u);
-}
-
-type AudioCtor = typeof AudioContext;
-function audioContextCtor(): AudioCtor | null {
-  const w = window as unknown as { AudioContext?: AudioCtor; webkitAudioContext?: AudioCtor };
-  return w.AudioContext || w.webkitAudioContext || null;
-}
-
 const ACCENT_LABEL: Record<string, string> = { FR: 'FR', BE: 'Belgique', US: 'EN' };
 
-// Personnages sans portrait dans /public/characters. Les rendre directement en
-// pastille évite le clignotement d'une image qui part en 404 à chaque montage.
-const NO_PORTRAIT = new Set(['custom', 'ashley', 'ethan']);
+/**
+ * Le clip joue ce que cette carte donnera vraiment à entendre. Exporté parce
+ * que l'URL est aussi la clé de cache : le préchargement et la lecture doivent
+ * tomber exactement sur la même.
+ */
+export function previewUrl(characterId: string): string {
+  return `/my-dashboard/characters/${characterId}/preview`;
+}
 
 /**
- * Portrait rond 48px. La voix clonée du client n'a pas de visage : elle porte
- * l'icône micro, qui dit ce qu'elle est plutôt que d'emprunter un portrait.
+ * Portrait rond 48px. Chaque personnage du catalogue porte son webp ; la voix
+ * clonée, elle, n'a pas de visage et prend l'icône micro, qui dit ce qu'elle
+ * est plutôt que d'emprunter un portrait. La pastille à l'initiale ne sert plus
+ * que de repli si une image manque.
  */
-function CharacterAvatar({ id, name }: { id: string; name: string }) {
+function CharacterAvatar({ c }: { c: Character }) {
   const [broken, setBroken] = useState(false);
+  const shell = 'w-12 h-12 shrink-0 rounded-full bg-q2-obsidian border border-q2-graphite-d';
 
-  if (id === 'custom') {
+  if (c.id === 'custom') {
     return (
-      <span
-        aria-hidden="true"
-        className="w-12 h-12 shrink-0 rounded-full bg-q2-obsidian border border-q2-graphite-d grid place-items-center"
-      >
+      <span aria-hidden="true" className={`${shell} grid place-items-center`}>
         <Mic size={16} className="text-q2-lift" />
       </span>
     );
   }
 
-  if (broken || NO_PORTRAIT.has(id)) {
+  if (broken) {
     return (
       <span
         aria-hidden="true"
-        className="w-12 h-12 shrink-0 rounded-full bg-q2-obsidian border border-q2-graphite-d grid place-items-center text-[15px] font-medium text-q2-lift"
+        className={`${shell} grid place-items-center text-[15px] font-medium text-q2-lift`}
       >
-        {name.charAt(0).toUpperCase()}
+        {c.name.charAt(0).toUpperCase()}
       </span>
     );
   }
 
   return (
     <img
-      src={`/characters/${id}.webp`}
+      src={c.avatar || `/characters/${c.id}.webp`}
       alt=""
       loading="lazy"
       onError={() => setBroken(true)}
-      className="w-12 h-12 shrink-0 rounded-full object-cover bg-q2-obsidian border border-q2-graphite-d"
+      className={`${shell} object-cover`}
     />
   );
 }
@@ -89,128 +82,21 @@ export default function CharacterPickerV2({
   onChange: (id: string) => void;
   isFr?: boolean;
 }) {
-  const [playing, setPlaying] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const ctxRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const tokenRef = useRef(0);
+  const { playing, notice, toggle, prefetch, debug } = useVoicePreview(isFr);
 
-  const stopAll = () => {
-    window.speechSynthesis?.cancel();
-    tokenRef.current += 1;
-    if (sourceRef.current) {
-      // Sinon le gestionnaire remettrait à zéro l'état du bouton du clip qui
-      // démarre, et non de celui qu'on arrête.
-      sourceRef.current.onended = null;
-      try { sourceRef.current.stop(); } catch { /* déjà terminé */ }
-      sourceRef.current = null;
-    }
-  };
+  // Le serveur synthétise le catalogue pendant que la page se lit. Les clips
+  // sont identiques d'une fois sur l'autre : la seule raison pour laquelle la
+  // lecture attendait, c'est que personne ne les avait encore demandés.
+  useEffect(() => {
+    void api.post('/my-dashboard/characters/warm').catch(() => undefined);
+  }, []);
 
-  /**
-   * Joue le vrai clip ElevenLabs, avec repli sur le TTS du navigateur et un
-   * message visible quand le serveur n'a pas de clé ou que la requête échoue.
-   * Annoncer le repli compte : jouer en silence une voix robotique fait passer
-   * un serveur mal configuré pour une mauvaise voix.
-   *
-   * Web Audio plutôt qu'un élément <audio>, à cause d'iOS. Safari n'autorise le
-   * démarrage audio que depuis un geste utilisateur, et tout `await` ferme cette
-   * fenêtre : il faudrait créer et débloquer l'élément de façon synchrone au
-   * clic, puis échanger sa source ensuite. C'est cet échange qui échoue en
-   * silence sur iOS : `play()` se résout, aucune erreur ne part, et on n'entend
-   * jamais rien. Un AudioContext débloqué dans le même geste continue de
-   * fonctionner après un await, et decodeAudioData rend des échantillons ou
-   * lève : pas d'entre-deux silencieux.
-   */
-  const preview = (c: Character) => {
-    if (playing === c.id) { stopAll(); setPlaying(null); return; }
-    stopAll();
-    setPlaying(c.id);
-
-    const Ctor = audioContextCtor();
-    if (!Ctor) {
-      setNotice(isFr
-        ? "Ce navigateur ne peut pas lire l'audio. Aperçu joué avec la voix du navigateur."
-        : 'This browser cannot play audio. Playing the browser voice instead.');
-      speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
-      return;
-    }
-
-    // Créé et repris dans le clic. iOS démarre tout contexte suspendu et
-    // n'autorise la reprise que depuis un geste ; le faire après le fetch
-    // serait trop tard.
-    const ctx = ctxRef.current ?? new Ctor();
-    ctxRef.current = ctx;
-    const resumed = ctx.state === 'suspended' ? ctx.resume().catch(() => undefined) : Promise.resolve();
-
-    const token = ++tokenRef.current;
-
-    void (async () => {
-      // Sorti du try pour que le message d'échec puisse citer la taille reçue.
-      let payload: ArrayBuffer | undefined;
-      try {
-        const { data } = await api.get(`/my-dashboard/characters/${c.id}/preview`, {
-          responseType: 'arraybuffer',
-        });
-        payload = data as ArrayBuffer;
-        await resumed;
-        if (tokenRef.current !== token) return; // supplanté par un autre clic
-
-        if (!payload.byteLength) throw new Error('empty_audio');
-
-        // Lève sur tout ce qui n'est pas de l'audio décodable, exactement le
-        // signal que l'élément <audio> refusait de donner.
-        const buffer = await ctx.decodeAudioData(payload);
-        if (tokenRef.current !== token) return;
-
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(ctx.destination);
-        source.onended = () => {
-          if (tokenRef.current === token) setPlaying(null);
-        };
-        sourceRef.current = source;
-        setNotice(null);
-        source.start();
-      } catch (err) {
-        if (tokenRef.current !== token) return;
-
-        const message = (err as Error)?.message;
-        if (message === 'empty_audio' || err instanceof DOMException) {
-          // On attendait de l'audio décodable et il n'est pas arrivé. La taille
-          // est dans le message exprès : 0 ko veut dire que le serveur n'a rien
-          // envoyé, une taille réelle veut dire que le fichier est là et que
-          // l'appareil l'a refusé. Sans elle, cet échec est indiscernable du
-          // précédent.
-          const ko = Math.round((payload?.byteLength ?? 0) / 1024);
-          setNotice(isFr
-            ? `Le fichier audio reçu n'a pas pu être décodé (${ko} ko). Aperçu joué avec la voix du navigateur.`
-            : `The audio file could not be decoded (${ko} kB). Playing the browser voice instead.`);
-          speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
-          return;
-        }
-
-        const res = (err as { response?: { status?: number; data?: unknown } }).response;
-        // La requête demande des octets bruts, donc un corps d'erreur arrive en
-        // octets lui aussi et doit être décodé avant que le statut amont soit
-        // lisible.
-        let upstream: number | undefined;
-        if (res?.data instanceof ArrayBuffer) {
-          try { upstream = JSON.parse(new TextDecoder().decode(res.data))?.status; } catch { /* pas du JSON */ }
-        }
-        setNotice(
-          res?.status === 503
-            ? (isFr
-              ? 'Voix réelles indisponibles : la clé ElevenLabs n\'est pas configurée sur le serveur. Aperçu joué avec la voix du navigateur.'
-              : 'Real voices unavailable: the ElevenLabs key is not configured on the server. Playing the browser voice instead.')
-            : (isFr
-              ? `Aperçu ElevenLabs indisponible (ElevenLabs a répondu ${upstream ?? '?'}). Aperçu joué avec la voix du navigateur.`
-              : `ElevenLabs preview unavailable (ElevenLabs replied ${upstream ?? '?'}). Playing the browser voice instead.`),
-        );
-        speak(isFr ? c.previewFr : c.previewEn, c.language, () => setPlaying(null));
-      }
-    })();
-  };
+  // La carte sélectionnée est celle qu'on écoutera en premier : son clip est
+  // téléchargé d'avance et gardé en mémoire.
+  const selectedUrl = value && characters.some(c => c.id === value) ? previewUrl(value) : null;
+  useEffect(() => {
+    if (selectedUrl) prefetch(selectedUrl);
+  }, [selectedUrl, prefetch]);
 
   return (
     <>
@@ -235,7 +121,7 @@ export default function CharacterPickerV2({
                   : 'bg-q2-obsidian border-q2-graphite-d'
               }`}
             >
-              <CharacterAvatar id={c.id} name={c.name} />
+              <CharacterAvatar c={c} />
               <button
                 type="button"
                 onClick={() => onChange(c.id)}
@@ -252,7 +138,7 @@ export default function CharacterPickerV2({
               </button>
               <button
                 type="button"
-                onClick={() => { preview(c); }}
+                onClick={() => toggle(c.id, previewUrl(c.id), isFr ? c.previewFr : c.previewEn)}
                 aria-label={isFr ? `Écouter ${c.name}` : `Preview ${c.name}`}
                 className="shrink-0 w-8 h-8 rounded-full grid place-items-center bg-q2-indigo/15 text-q2-lift hover:bg-q2-indigo/25 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
               >
@@ -264,6 +150,11 @@ export default function CharacterPickerV2({
           );
         })}
       </div>
+      {debug && (
+        // Seulement après une pression : « aucune erreur, aucun son » n'est
+        // autrement pas rapportable par la personne qui tient le téléphone.
+        <p className="mt-2 text-[10px] font-mono text-q2-fog">{debug}</p>
+      )}
     </>
   );
 }

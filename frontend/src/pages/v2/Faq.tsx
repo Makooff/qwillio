@@ -37,7 +37,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Combien de voix, et puis-je changer le ton ?',
-    a: "Sept voix : cinq françaises, deux anglaises. Vous les écoutez avant de choisir. Le ton se règle séparément de la voix, parmi six réglages (chaleureux, professionnel, décontracté, énergique, haut de gamme, rassurant), et vous pouvez le changer à tout moment. Vous pouvez aussi cloner votre propre voix.",
+    a: "Dix personnages, chacun avec sa voix, et chacun parle français et anglais : la langue vient de vos appels, pas du personnage. Vous les écoutez avant de choisir. Le ton se règle séparément de la voix, parmi six réglages (chaleureux, professionnel, décontracté, énergique, haut de gamme, rassurant), et vous pouvez le changer à tout moment. Vous pouvez aussi cloner votre propre voix.",
   },
   {
     q: 'Puis-je utiliser ma propre voix ?',
@@ -88,7 +88,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'How many voices, and can I change the tone?',
-    a: 'Seven voices: five French, two English. You listen before you pick. Tone is set separately from the voice, across six settings (warm, professional, casual, energetic, premium, reassuring), and you can change it at any time. You can also clone your own voice.',
+    a: 'Ten characters, each with its own voice, and each speaks French and English: the language comes from your calls, not from the character. You listen before you pick. Tone is set separately from the voice, across six settings (warm, professional, casual, energetic, premium, reassuring), and you can change it at any time. You can also clone your own voice.',
   },
   {
     q: 'Can I use my own voice?',
