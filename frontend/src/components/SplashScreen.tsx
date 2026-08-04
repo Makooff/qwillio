@@ -156,42 +156,64 @@ export default function SplashScreen({
                 animate={{ opacity: 0 }}
                 transition={{ duration: t.resolve, delay: t.travel + t.settle, ease: 'linear' }}
               >
-                {/* The lobes are grouped so their travel is a transform on the
-                    group rather than a change to the circle's own geometry. */}
+                {/*
+                  Painted in the logo's own order: the violet lobe, then the
+                  indigo one over it, then the deep overlap. The left lobe is on
+                  top in the mark, so it is on top here too — for the whole
+                  journey, not only once everything has landed.
+
+                  Each lobe travels inside a group so the motion is a transform,
+                  and scales about its own centre (`fill-box`) rather than about
+                  the viewBox corner, which would send it across the screen.
+                */}
                 <motion.g
-                  style={{ willChange: 'transform' }}
-                  initial={{ y: reduced ? 0 : -ENTRY, opacity: reduced ? 1 : 0 }}
-                  animate={{ y: reduced ? 0 : [-ENTRY, 16, -5, 0], opacity: 1 }}
-                  transition={{
-                    duration: t.travel + t.settle,
-                    times: reduced ? undefined : [0, 0.6, 0.82, 1],
-                    ease: EASE_OUT_EXPO,
+                  style={{ willChange: 'transform', transformBox: 'fill-box', transformOrigin: 'center' }}
+                  initial={{ y: reduced ? 0 : ENTRY, scaleX: reduced ? 1 : 0.5, scaleY: reduced ? 1 : 0.5, opacity: reduced ? 1 : 0 }}
+                  animate={{
+                    y: reduced ? 0 : [ENTRY, -16, 5, 0],
+                    // A falling drop stretches along its path and flattens when
+                    // it lands, then rounds out. Without it a circle crossing
+                    // the screen reads as a sticker being slid, not as
+                    // something with weight arriving.
+                    scaleX: reduced ? 1 : [0.5, 0.6, 1.12, 0.95, 1],
+                    scaleY: reduced ? 1 : [0.5, 0.86, 0.86, 1.05, 1],
+                    opacity: 1,
                   }}
-                >
-                  <circle cx={ORB.leftX} cy={ORB.y} r={ORB.r} fill="#7A5FFF" />
-                </motion.g>
-                <motion.g
-                  style={{ willChange: 'transform' }}
-                  initial={{ y: reduced ? 0 : ENTRY, opacity: reduced ? 1 : 0 }}
-                  animate={{ y: reduced ? 0 : [ENTRY, -16, 5, 0], opacity: 1 }}
                   // Slightly behind the left one: two objects arriving on the
                   // exact same frame read as one object, not as a meeting.
                   transition={{
                     duration: t.travel + t.settle,
                     delay: reduced ? 0 : 0.07,
-                    times: reduced ? undefined : [0, 0.6, 0.82, 1],
+                    times: reduced ? undefined : [0, 0.55, 0.72, 0.88, 1],
                     ease: EASE_OUT_EXPO,
                   }}
                 >
                   <circle cx={ORB.rightX} cy={ORB.y} r={ORB.r} fill="#CD6BFB" />
                 </motion.g>
-                {/* The overlap the brand actually uses, revealed as they meet. */}
+                <motion.g
+                  style={{ willChange: 'transform', transformBox: 'fill-box', transformOrigin: 'center' }}
+                  initial={{ y: reduced ? 0 : -ENTRY, scaleX: reduced ? 1 : 0.5, scaleY: reduced ? 1 : 0.5, opacity: reduced ? 1 : 0 }}
+                  animate={{
+                    y: reduced ? 0 : [-ENTRY, 16, -5, 0],
+                    scaleX: reduced ? 1 : [0.5, 0.6, 1.12, 0.95, 1],
+                    scaleY: reduced ? 1 : [0.5, 0.86, 0.86, 1.05, 1],
+                    opacity: 1,
+                  }}
+                  transition={{
+                    duration: t.travel + t.settle,
+                    times: reduced ? undefined : [0, 0.55, 0.72, 0.88, 1],
+                    ease: EASE_OUT_EXPO,
+                  }}
+                >
+                  <circle cx={ORB.leftX} cy={ORB.y} r={ORB.r} fill="#7A5FFF" />
+                </motion.g>
+                {/* The overlap the brand paints last, revealed as they meet. */}
                 <motion.path
                   d={LENS}
                   fill="#7349FE"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: t.settle * 0.8, delay: t.travel * 0.78 }}
+                  transition={{ duration: t.settle * 0.8, delay: t.travel * 0.82 }}
                 />
               </motion.svg>
 
