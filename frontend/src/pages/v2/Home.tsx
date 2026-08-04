@@ -180,9 +180,11 @@ export default function Home() {
               'linear-gradient(180deg, #fdfcfc 0%, #f5f2fb 14%, #f8f6fc 58%, #fdfcfc 100%)',
           }}
         />
-        <Container className="relative grid lg:grid-cols-[1.2fr_1fr] gap-14 lg:gap-20 items-center [&>*]:min-w-0">
+        {/* Les blobs pixel blush dérivent par-dessus le voile, sous le texte */}
+        <PixelBlushBackdrop />
+        <Container className="relative [&>*]:min-w-0">
           <RevealV2>
-            <div>
+            <div className="max-w-[860px]">
               <Eyebrow tone="indigo" className="mb-6">
                 {isFr ? 'Réceptionniste IA nouvelle génération' : 'Next-generation AI receptionist'}
               </Eyebrow>
@@ -218,39 +220,19 @@ export default function Home() {
                 </Magnetic>
               </div>
 
-              {/* Propriétés vérifiables uniquement, jamais des métriques inventées */}
-              {/* flex-wrap + min-w-0: la rangée ne doit JAMAIS forcer la page
-                  plus large que l'écran (débordement constaté sur iPhone) */}
-              <dl className="flex flex-wrap items-baseline gap-x-6 gap-y-3 sm:gap-x-10 text-sm text-q2-body border-t border-q2-plate pt-6 max-w-[520px] min-w-0">
-                <div className="flex items-baseline gap-2 whitespace-nowrap">
-                  <dt className="sr-only">{isFr ? 'Langues' : 'Languages'}</dt>
-                  <dd className="text-2xl font-light tracking-tight text-q2-ink">FR/EN</dd>
-                  <span>{isFr ? 'même appel' : 'same call'}</span>
-                </div>
-                <div className="flex items-baseline gap-2 whitespace-nowrap">
-                  <dt className="sr-only">{isFr ? 'Disponibilité' : 'Availability'}</dt>
-                  <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">
-                    <Counter value={24} />/<Counter value={7} />
-                  </dd>
-                  <span>{isFr ? 'jamais fermé' : 'always on'}</span>
-                </div>
-                <div className="flex items-baseline gap-2 whitespace-nowrap">
-                  <dt className="sr-only">{isFr ? 'Clonage de voix' : 'Voice cloning'}</dt>
-                  <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">
-                    <Counter value={90} />
-                    &nbsp;s
-                  </dd>
-                  <span>{isFr ? 'pour cloner votre voix' : 'to clone your voice'}</span>
-                </div>
-              </dl>
+              {/* Propriétés vérifiables uniquement, jamais des métriques
+                  inventées. La rangée complète vit maintenant dans la bande
+                  ImpactStats: ici on ne garde que la promesse de prix. */}
+              <p className="text-sm text-q2-body border-t border-q2-plate pt-6 max-w-[520px] min-w-0 q2-body-text">
+                {isFr
+                  ? 'Français et anglais dans le même appel, 24/7, dès 99 € par mois. Sans engagement.'
+                  : 'French and English inside the same call, 24/7, from €99 a month. No commitment.'}
+              </p>
             </div>
           </RevealV2>
 
-          {/* Le téléphone V1 de l'utilisateur: grand, film produit 4 scènes,
-              tilt souris pleine page, Dynamic Island animée */}
-          <RevealV2 index={2}>
-            <HeroPhone3D isFr={isFr} />
-          </RevealV2>
+          {/* La vraie capture du dashboard referme le hero, pleine largeur */}
+          <HeroDashboardShot isFr={isFr} />
         </Container>
       </Section>
 
