@@ -8,6 +8,7 @@ import {
   BookOpen, Tag, HelpCircle, Clock3, Plus, X,
 } from 'lucide-react';
 import api from '../../services/api';
+import { invalidateLive } from '../../services/liveData';
 import CharacterPicker, { type Character } from '../../components/client/CharacterPicker';
 import AssistantChat from '../../components/client/AssistantChat';
 import VoiceCloner, { type CustomVoice } from '../../components/client/VoiceCloner';
@@ -285,6 +286,9 @@ export default function ClientReceptionist() {
         characterId,
         customVoice,
       });
+      // The dashboard is holding a copy of these settings, and it is wrong from
+      // the instant this call returns.
+      invalidateLive('/my-dashboard/');
     } catch { /* silent — the next edit retries */ }
   }, [businessName, businessType, transferNumber, agentName, agentLanguage,
       contactPhone, address, city, postalCode, forwardingType, googleCalendarId,

@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAuthStore } from './stores/authStore';
@@ -264,12 +264,25 @@ export default function App() {
     checkAuth();
   }, []);
 
+  /**
+   * The dashboard loads under the animation rather than after it, so the fade
+   * ends on a populated screen whose chart has numbers to animate. Started once
+   * and only for a signed-in client — the launch screen is the only moment in
+   * the app where a second of loading is already budgeted for.
+   */
+  const boot = useMemo(() => {
+    if (typeof window === 'undefined') return undefined;
+    try { if (!localStorage.getItem('token')) return undefined; } catch { return undefined; }
+    return import('./services/appBoot').then(m => m.bootClientApp()).catch(() => undefined);
+  }, []);
+
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
   return (
     <ErrorBoundary>
       {!splashDone && (
         <SplashScreen
+          waitFor={boot}
           onDone={() => {
             safeSessionSet('qw.splashShown', '1');
             setSplashDone(true);
