@@ -96,14 +96,14 @@ function Bone({ className = '' }: { className?: string }) {
  */
 function KpiSplit({ items }: { items: { label: string; value: string; hint?: string }[] }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-6 divide-x divide-q2-graphite-d [&>*:nth-child(2n+1)]:border-l-0 sm:[&>*:nth-child(2n+1)]:border-l">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-4 sm:gap-y-6 divide-x divide-q2-graphite-d [&>*:nth-child(2n+1)]:border-l-0 sm:[&>*:nth-child(2n+1)]:border-l">
       {items.map((k) => (
-        <div key={k.label} className="px-3 sm:px-6 first:pl-0 last:pr-0">
+        <div key={k.label} className="px-2.5 sm:px-6 first:pl-0 last:pr-0">
           <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog">{k.label}</p>
-          <p className="text-[22px] sm:text-[26px] font-light tracking-tight tabular-nums leading-none mt-2.5 text-white truncate">
+          <p className="text-[22px] sm:text-[26px] font-light tracking-tight tabular-nums leading-none mt-2 sm:mt-2.5 text-white truncate">
             {k.value}
           </p>
-          {k.hint && <p className="text-[11.5px] mt-2.5 text-q2-fog truncate">{k.hint}</p>}
+          {k.hint && <p className="text-[11px] sm:text-[11.5px] mt-2 sm:mt-2.5 text-q2-fog truncate">{k.hint}</p>}
         </div>
       ))}
     </div>
@@ -133,7 +133,7 @@ function Segmented({
           type="button"
           onClick={() => onChange(o.value)}
           aria-pressed={value === o.value}
-          className={`h-7 px-3 rounded-full text-[12px] font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 ${
+          className={`h-9 sm:h-7 px-3 rounded-full text-[12px] font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 ${
             value === o.value ? 'bg-q2-indigo text-white' : 'text-q2-fog hover:text-q2-mist'
           }`}
         >
@@ -159,9 +159,9 @@ function PageNav({
 }) {
   if (totalPages <= 1) return null;
   const btn =
-    'w-8 h-8 rounded-lg flex items-center justify-center text-q2-fog border border-q2-graphite-d hover:text-q2-mist hover:border-q2-smoke-d transition-colors duration-150 disabled:opacity-30 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50';
+    'w-11 h-11 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-q2-fog border border-q2-graphite-d hover:text-q2-mist hover:border-q2-smoke-d transition-colors duration-150 disabled:opacity-30 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50';
   return (
-    <nav aria-label="Pagination" className="flex items-center justify-between gap-4 pt-4">
+    <nav aria-label="Pagination" className="flex items-center justify-between gap-3 pt-4">
       <p className="text-[11.5px] text-q2-fog tabular-nums">
         {total.toLocaleString('fr-FR')} {label} · page {page} sur {totalPages}
       </p>
@@ -180,7 +180,7 @@ function PageNav({
 /* Rangée de détail du panneau: libellé en eyebrow à gauche, valeur à droite. */
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-q2-graphite-d last:border-b-0">
+    <div className="flex items-center justify-between gap-3 sm:gap-4 py-2.5 sm:py-3 border-b border-q2-graphite-d last:border-b-0">
       <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog">{label}</span>
       <span className="text-[13px] text-white text-right min-w-0 truncate">{value}</span>
     </div>
@@ -389,7 +389,7 @@ export default function ClientCalls() {
   return (
     <div>
       <PageActions subtitle={`${pagination.total.toLocaleString('fr-FR')} appels au total`}>
-        <div className="relative w-[190px] sm:w-[240px]">
+        <div className="relative w-full sm:w-[240px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-q2-fog" aria-hidden="true" />
           <Input
             type="search"
@@ -419,7 +419,7 @@ export default function ClientCalls() {
       </PageActions>
 
       {/* Chiffres d'ouverture, sans cartes, filet dessous */}
-      <section aria-label="Statistiques" className="pb-6 border-b border-q2-graphite-d">
+      <section aria-label="Statistiques" className="pb-4 sm:pb-6 border-b border-q2-graphite-d">
         <KpiSplit
           items={[
             { label: 'Total appels', value: totalCalls.toLocaleString('fr-FR'), hint: 'depuis le début' },
@@ -444,7 +444,7 @@ export default function ClientCalls() {
             transition={{ duration: 0.18 }}
             className="overflow-hidden border-b border-q2-graphite-d"
           >
-            <div className="flex flex-wrap items-end gap-5 py-5">
+            <div className="flex flex-wrap items-end gap-4 sm:gap-5 py-4 sm:py-5">
               <div>
                 <p className="text-[12px] font-medium text-q2-mist mb-1.5">Sentiment</p>
                 <Segmented
@@ -454,10 +454,10 @@ export default function ClientCalls() {
                   ariaLabel="Filtrer par sentiment"
                 />
               </div>
-              <Field label="Du" className="w-[150px]">
+              <Field label="Du" className="w-[calc(50%-8px)] sm:w-[150px]">
                 <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="!py-[7px]" />
               </Field>
-              <Field label="Au" className="w-[150px]">
+              <Field label="Au" className="w-[calc(50%-8px)] sm:w-[150px]">
                 <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="!py-[7px]" />
               </Field>
               {hasActiveFilters && (
@@ -472,14 +472,14 @@ export default function ClientCalls() {
       </AnimatePresence>
 
       {/* Liste des appels: rangées nues, un filet entre chacune */}
-      <section aria-label="Appels" className="pt-6">
+      <section aria-label="Appels" className="pt-5 sm:pt-6">
         {loading ? (
           <div role="status" aria-busy="true" aria-label="Chargement des appels">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3.5 py-3.5 border-b border-q2-graphite-d">
+              <div key={i} className="flex items-center gap-3 sm:gap-3.5 py-3 sm:py-3.5 border-b border-q2-graphite-d">
                 <Bone className="w-8 h-8 rounded-full shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <Bone className="h-3.5 w-44" />
+                  <Bone className="h-3.5 w-32 sm:w-44" />
                   <Bone className="h-2.5 w-28" />
                 </div>
                 <Bone className="h-3 w-12 hidden md:block" />
@@ -515,9 +515,9 @@ export default function ClientCalls() {
                     type="button"
                     onClick={() => openCall(call)}
                     aria-label={`Voir le détail de l'appel de ${call.callerName || call.callerNumber || 'appelant inconnu'}`}
-                    className={`group w-full text-left py-3.5 px-2 -mx-2 rounded-lg hover:bg-q2-obsidian/40 transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 ${gridCols}`}
+                    className={`group w-full text-left py-2.5 sm:py-3.5 min-h-[56px] px-2 -mx-2 rounded-lg hover:bg-q2-obsidian/40 transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 ${gridCols}`}
                   >
-                    <span className="flex items-center gap-3.5 min-w-0">
+                    <span className="flex items-center gap-3 sm:gap-3.5 min-w-0">
                       <span className="w-8 h-8 shrink-0 rounded-full bg-q2-obsidian flex items-center justify-center">
                         {call.isLead
                           ? <Users size={14} className="text-q2-lift" aria-hidden="true" />
@@ -525,12 +525,12 @@ export default function ClientCalls() {
                       </span>
                       <span className="min-w-0">
                         <span className="flex items-center gap-2 min-w-0">
-                          <span className="text-[13.5px] font-medium text-white truncate">
+                          <span className="text-[13px] sm:text-[13.5px] font-medium text-white truncate">
                             {call.callerName || call.callerNumber || 'Inconnu'}
                           </span>
                           {call.isLead && <Pill tone="accent">Lead</Pill>}
                         </span>
-                        <span className="block text-[11.5px] text-q2-fog truncate tabular-nums">
+                        <span className="block text-[11px] sm:text-[11.5px] text-q2-fog truncate tabular-nums">
                           {call.callerName && call.callerNumber ? `${call.callerNumber} · ` : ''}
                           {outcomeLabel(call.outcome)}
                           <span className="md:hidden">
@@ -596,30 +596,34 @@ export default function ClientCalls() {
               role="dialog"
               aria-modal="true"
               aria-label="Détail de l'appel"
-              className="fixed inset-y-0 right-0 z-50 w-full sm:w-[460px] bg-q2-carbon border-l border-q2-graphite-d overflow-y-auto"
+              className="fixed inset-y-0 right-0 z-50 w-full sm:w-[460px] bg-q2-carbon border-l border-q2-graphite-d overflow-y-auto overscroll-contain"
+              style={{
+                paddingTop: 'env(safe-area-inset-top)',
+                paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)',
+              }}
             >
-              <header className="sticky top-0 z-10 bg-q2-carbon border-b border-q2-graphite-d px-6 h-14 flex items-center justify-between gap-3">
+              <header className="sticky top-0 z-10 bg-q2-carbon border-b border-q2-graphite-d px-4 sm:px-6 h-12 sm:h-14 flex items-center justify-between gap-3">
                 <p className="q2-eyebrow text-q2-fog">Détail de l'appel</p>
                 <button
                   type="button"
                   onClick={() => setSelectedCall(null)}
                   aria-label="Fermer le panneau"
-                  className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-q2-fog hover:text-white hover:bg-q2-obsidian transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                  className="w-11 h-11 -mr-2 sm:mr-0 sm:w-8 sm:h-8 shrink-0 rounded-lg flex items-center justify-center text-q2-fog hover:text-white hover:bg-q2-obsidian transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
                 >
-                  <X size={15} aria-hidden="true" />
+                  <X size={16} aria-hidden="true" />
                 </button>
               </header>
 
-              <div className="px-6">
+              <div className="px-4 sm:px-6">
                 {/* Identité de l'appelant */}
-                <div className="flex items-center gap-4 py-6 border-b border-q2-graphite-d">
-                  <span className="w-11 h-11 shrink-0 rounded-full bg-q2-obsidian flex items-center justify-center">
+                <div className="flex items-center gap-3.5 sm:gap-4 py-4 sm:py-6 border-b border-q2-graphite-d">
+                  <span className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-full bg-q2-obsidian flex items-center justify-center">
                     {selectedCall.isLead
                       ? <Users size={18} className="text-q2-lift" aria-hidden="true" />
                       : <Phone size={18} className="text-q2-fog" aria-hidden="true" />}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[16px] font-medium text-white truncate">
+                    <p className="text-[15px] sm:text-[16px] font-medium text-white truncate">
                       {selectedCall.callerName || selectedCall.callerNumber || 'Appelant inconnu'}
                     </p>
                     <p className="text-[12px] text-q2-fog truncate tabular-nums">
@@ -631,7 +635,7 @@ export default function ClientCalls() {
                 </div>
 
                 {(selectedCall.isLead || selectedCall.bookingRequested) && (
-                  <div className="flex flex-wrap gap-2 py-5 border-b border-q2-graphite-d">
+                  <div className="flex flex-wrap gap-2 py-4 sm:py-5 border-b border-q2-graphite-d">
                     {selectedCall.isLead && <Pill tone="accent">Lead qualifié</Pill>}
                     {selectedCall.bookingRequested && (
                       <Pill tone="ok">
@@ -642,7 +646,7 @@ export default function ClientCalls() {
                 )}
 
                 {/* Faits de l'appel */}
-                <section className="py-6 border-b border-q2-graphite-d">
+                <section className="py-5 sm:py-6 border-b border-q2-graphite-d">
                   <Eyebrow>Appel</Eyebrow>
                   <Detail label="Durée" value={<span className="tabular-nums">{formatDuration(selectedCall.durationSeconds)}</span>} />
                   <Detail label="Date" value={<span className="tabular-nums">{formatDateTime(selectedCall.createdAt)}</span>} />
@@ -657,7 +661,7 @@ export default function ClientCalls() {
                 </section>
 
                 {selectedCall.summary && (
-                  <section className="py-6 border-b border-q2-graphite-d">
+                  <section className="py-5 sm:py-6 border-b border-q2-graphite-d">
                     <Eyebrow>Résumé IA</Eyebrow>
                     <p className="text-[13.5px] text-q2-mist leading-relaxed q2-body-text max-w-[62ch]">
                       {selectedCall.summary}
@@ -666,7 +670,7 @@ export default function ClientCalls() {
                 )}
 
                 {selectedCall.bookingDetails && (
-                  <section className="py-6 border-b border-q2-graphite-d">
+                  <section className="py-5 sm:py-6 border-b border-q2-graphite-d">
                     <Eyebrow>Détails réservation</Eyebrow>
                     <p className="text-[12.5px] text-q2-mist leading-relaxed whitespace-pre-wrap">
                       {typeof selectedCall.bookingDetails === 'string'
@@ -677,7 +681,7 @@ export default function ClientCalls() {
                 )}
 
                 {selectedCall.recordingUrl && (
-                  <section className="py-6 border-b border-q2-graphite-d">
+                  <section className="py-5 sm:py-6 border-b border-q2-graphite-d">
                     <Eyebrow>Enregistrement</Eyebrow>
                     <GhostBtn
                       type="button"
@@ -702,7 +706,7 @@ export default function ClientCalls() {
                 )}
 
                 {selectedCall.transcript && (
-                  <section className="py-6">
+                  <section className="py-5 sm:py-6">
                     <Eyebrow
                       right={
                         <button

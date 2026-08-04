@@ -59,13 +59,13 @@ const FEATURES: Feature[] = [
 
 export default function FeatureCards({ isFr }: { isFr: boolean }) {
   return (
-    <div className="mt-14 flex flex-col gap-20 md:gap-28">
+    <div className="mt-9 sm:mt-14 flex flex-col gap-12 sm:gap-20 md:gap-28">
       {FEATURES.map((f, i) => {
         const flipped = i % 2 === 1;
         return (
           <RevealV2 key={f.src} index={i}>
             <article
-              className={`grid items-center gap-10 lg:gap-16 ${
+              className={`grid items-center gap-7 sm:gap-10 lg:gap-16 ${
                 flipped
                   ? 'lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)]'
                   : 'lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)]'
@@ -82,7 +82,7 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
 
               {/* La plate, et la capture qui en sort par le haut */}
               <div
-                className={`q2-card-hover rounded-[28px] bg-q2-plate px-5 pb-5 pt-0 sm:px-8 sm:pb-8 lg:px-10 lg:pb-10 ${
+                className={`q2-card-hover rounded-[24px] sm:rounded-[28px] bg-q2-plate px-4 pb-4 pt-0 sm:px-8 sm:pb-8 lg:px-10 lg:pb-10 ${
                   flipped ? 'lg:order-1' : ''
                 }`}
               >

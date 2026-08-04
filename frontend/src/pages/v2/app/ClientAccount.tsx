@@ -57,7 +57,7 @@ const BUSINESS_TYPES: { v: string; l: string }[] = [
 /* La V1 posait ses champs sur un fond plus clair que la surface de la carte.
    C'est ce qui les faisait lire comme des zones de saisie sans ajouter de trait. */
 const accInput =
-  'w-full rounded-xl border border-q2-graphite-d bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-white placeholder:text-q2-fog focus:outline-none focus:border-q2-indigo/60 focus:ring-2 focus:ring-q2-indigo/25 transition-colors duration-150 disabled:opacity-50';
+  'w-full min-h-[44px] sm:min-h-0 rounded-xl border border-q2-graphite-d bg-white/[0.03] px-3.5 py-2.5 text-[13px] text-white placeholder:text-q2-fog focus:outline-none focus:border-q2-indigo/60 focus:ring-2 focus:ring-q2-indigo/25 transition-colors duration-150 disabled:opacity-50';
 
 /** Rangée dépliable. Le kit a bien la rangée de réglage, mais pas la variante
     accordéon : même géométrie, chevron qui bascule, panneau en dessous. */
@@ -84,16 +84,16 @@ function AccRow({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className={`w-full min-h-[56px] flex items-center justify-between gap-3 px-4 text-left hover:bg-q2-obsidian/60 transition-colors duration-100 focus:outline-none focus-visible:bg-q2-obsidian ${
+        className={`w-full min-h-[52px] sm:min-h-[56px] flex items-center justify-between gap-3 px-3.5 sm:px-4 text-left hover:bg-q2-obsidian/60 transition-colors duration-100 focus:outline-none focus-visible:bg-q2-obsidian ${
           first ? '' : 'border-t border-q2-graphite-d'
         }`}
       >
-        <div className="flex items-center gap-3.5 min-w-0">
+        <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
           <span className="w-8 h-8 shrink-0 rounded-lg bg-q2-obsidian flex items-center justify-center">
             <Icon size={15} aria-hidden="true" className="text-q2-lift" />
           </span>
           <div className="min-w-0">
-            <p className="text-[13.5px] font-medium text-white truncate">{label}</p>
+            <p className="text-[13px] sm:text-[13.5px] font-medium text-white truncate">{label}</p>
             {hint && <p className="text-[11.5px] text-q2-fog truncate">{hint}</p>}
           </div>
         </div>
@@ -112,7 +112,7 @@ function AccRow({
             transition={{ duration: 0.18 }}
             className="overflow-hidden border-t border-q2-graphite-d"
           >
-            <div className="p-5">{children}</div>
+            <div className="p-4 sm:p-5">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -128,7 +128,7 @@ function InvertBtn({
   return (
     <button
       {...rest}
-      className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl bg-q2-mist text-q2-void text-[12.5px] font-medium hover:bg-white transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 disabled:opacity-50 disabled:pointer-events-none"
+      className="inline-flex items-center justify-center gap-1.5 h-11 sm:h-9 px-4 rounded-xl bg-q2-mist text-q2-void text-[12.5px] font-medium hover:bg-white transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 disabled:opacity-50 disabled:pointer-events-none"
     >
       {children}
     </button>
@@ -153,7 +153,7 @@ function GreenToggle({
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
-      className="relative w-[38px] h-[22px] shrink-0 rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+      className="relative w-[38px] h-[22px] shrink-0 rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 after:content-[''] after:absolute after:-inset-[11px] sm:after:hidden"
       style={{ background: checked ? 'var(--q2p-ok)' : 'rgba(255,255,255,0.10)' }}
     >
       <span
@@ -381,21 +381,21 @@ export default function ClientAccount() {
   const agentHint = [businessName || null, agentLanguage === 'en' ? 'English' : 'Français'].filter(Boolean).join(', ') || 'Langue, entreprise';
 
   return (
-    <div className="max-w-[720px] space-y-6">
+    <div className="max-w-[720px] space-y-4 sm:space-y-6">
       <ToastContainer toasts={toasts} remove={removeToast} />
 
       <PageActions subtitle="Profil, sécurité, agent, coordonnées, notifications." />
 
       {/* Identité */}
-      <Card className="flex items-center gap-4">
+      <Card className="flex items-center gap-3.5 sm:gap-4">
         <span
-          className="w-[60px] h-[60px] shrink-0 rounded-full border border-q2-graphite-d flex items-center justify-center text-[20px] font-medium text-white"
+          className="w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] shrink-0 rounded-full border border-q2-graphite-d flex items-center justify-center text-[18px] sm:text-[20px] font-medium text-white"
           style={{ background: 'linear-gradient(135deg, #252529 0%, #141417 100%)' }}
         >
           {initials}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-[16px] font-medium text-white truncate">{user?.name ?? 'Utilisateur'}</p>
+          <p className="text-[15px] sm:text-[16px] font-medium text-white truncate">{user?.name ?? 'Utilisateur'}</p>
           <p className="text-[12.5px] text-q2-fog truncate">{user?.email}</p>
         </div>
         <Pill className="uppercase tracking-[0.06em]">{planLabel}</Pill>
@@ -413,7 +413,7 @@ export default function ClientAccount() {
             open={open === 'profile'}
             onToggle={() => toggle('profile')}
           >
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               <Field label="Nom complet">
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={accInput} />
               </Field>
@@ -436,7 +436,7 @@ export default function ClientAccount() {
             open={open === 'security'}
             onToggle={() => toggle('security')}
           >
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               <Field label="Mot de passe actuel">
                 <div className="relative">
                   <input
@@ -456,7 +456,7 @@ export default function ClientAccount() {
                 </div>
               </Field>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 <Field label="Nouveau mot de passe">
                   <input
                     type={showPw ? 'text' : 'password'}
@@ -505,7 +505,7 @@ export default function ClientAccount() {
               {notifications.map((n, i, arr) => (
                 <div
                   key={n.key}
-                  className={`flex items-center justify-between gap-4 py-2.5 ${
+                  className={`flex items-center justify-between gap-3 sm:gap-4 py-2.5 ${
                     i < arr.length - 1 ? 'border-b border-q2-graphite-d' : ''
                   }`}
                 >
@@ -526,10 +526,10 @@ export default function ClientAccount() {
             open={open === 'agent'}
             onToggle={() => toggle('agent')}
           >
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               {/* Le nom de l'agent se choisit sur la page Réceptionniste (carrousel),
                   pas ici: seuls langue et entreprise vivent dans le compte. */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 <Field label="Langue" hint="Langue parlée par votre réceptionniste IA">
                   <select
                     value={agentLanguage}
@@ -583,8 +583,8 @@ export default function ClientAccount() {
             open={open === 'contact'}
             onToggle={() => toggle('contact')}
           >
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-2.5 sm:space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 <Field label="Téléphone de contact">
                   <input
                     type="tel"
@@ -686,7 +686,7 @@ export default function ClientAccount() {
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full min-h-[56px] flex items-center gap-3.5 px-4 text-left rounded-xl hover:bg-red-500/[0.05] transition-colors duration-100 focus:outline-none focus-visible:bg-red-500/[0.05]"
+          className="w-full min-h-[52px] sm:min-h-[56px] flex items-center gap-3 sm:gap-3.5 px-3.5 sm:px-4 text-left rounded-xl hover:bg-red-500/[0.05] transition-colors duration-100 focus:outline-none focus-visible:bg-red-500/[0.05]"
         >
           <span
             className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center"
@@ -694,7 +694,7 @@ export default function ClientAccount() {
           >
             <LogOut size={15} aria-hidden="true" style={{ color: 'var(--q2p-bad)' }} />
           </span>
-          <span className="text-[13.5px] font-medium" style={{ color: 'var(--q2p-bad)' }}>
+          <span className="text-[13px] sm:text-[13.5px] font-medium" style={{ color: 'var(--q2p-bad)' }}>
             Se déconnecter
           </span>
         </button>

@@ -20,7 +20,7 @@ export function Card({
   pad?: boolean;
 }) {
   return (
-    <section className={`bg-q2-carbon border border-q2-graphite-d rounded-xl ${pad ? 'p-5' : ''} ${className}`}>
+    <section className={`bg-q2-carbon border border-q2-graphite-d rounded-xl ${pad ? 'p-4 sm:p-5' : ''} ${className}`}>
       {children}
     </section>
   );
@@ -36,7 +36,7 @@ export function SectionHead({
   className?: string;
 }) {
   return (
-    <div className={`flex items-baseline justify-between gap-4 mb-3 ${className}`}>
+    <div className={`flex items-baseline justify-between gap-4 mb-2.5 sm:mb-3 ${className}`}>
       <h2 className="q2-eyebrow text-q2-fog">{title}</h2>
       {action}
     </div>
@@ -54,9 +54,11 @@ export function PageActions({
   className?: string;
 }) {
   return (
-    <div className={`flex items-center justify-between gap-4 flex-wrap mb-6 ${className}`}>
-      {subtitle ? <p className="text-[13px] text-q2-fog q2-body-text">{subtitle}</p> : <span />}
-      {children && <div className="flex items-center gap-2">{children}</div>}
+    <div
+      className={`flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap sm:gap-4 mb-4 sm:mb-6 ${className}`}
+    >
+      {subtitle ? <p className="text-[12.5px] sm:text-[13px] text-q2-fog q2-body-text">{subtitle}</p> : <span />}
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </div>
   );
 }
@@ -124,7 +126,7 @@ export function Stat({
         {Icon && <Icon size={13} className="text-q2-fog" aria-hidden="true" />}
         <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog">{label}</p>
       </div>
-      <p className="text-[26px] font-light tracking-tight text-white tabular-nums leading-none" style={toneColor ? { color: toneColor } : undefined}>
+      <p className="text-[22px] sm:text-[26px] font-light tracking-tight text-white tabular-nums leading-none" style={toneColor ? { color: toneColor } : undefined}>
         {counting === null ? value : counting.toLocaleString('fr-FR')}
       </p>
       {hint && <p className="text-[11.5px] text-q2-fog mt-2">{hint}</p>}
@@ -134,13 +136,13 @@ export function Stat({
     return (
       <Link
         to={to}
-        className="block bg-q2-carbon border border-q2-graphite-d rounded-xl p-4 hover:border-q2-smoke-d transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+        className="block bg-q2-carbon border border-q2-graphite-d rounded-xl p-3.5 sm:p-4 hover:border-q2-smoke-d transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
       >
         {body}
       </Link>
     );
   }
-  return <div className="bg-q2-carbon border border-q2-graphite-d rounded-xl p-4">{body}</div>;
+  return <div className="bg-q2-carbon border border-q2-graphite-d rounded-xl p-3.5 sm:p-4">{body}</div>;
 }
 
 /* ── Rangée de réglages/navigation 56px (l'ex-Row dupliqué 3×) ── */
@@ -166,14 +168,14 @@ export function Row({
 }) {
   const inner = (
     <>
-      <div className="flex items-center gap-3.5 min-w-0">
+      <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
         {Icon && (
           <span className="w-8 h-8 shrink-0 rounded-lg bg-q2-obsidian flex items-center justify-center">
             <Icon size={15} aria-hidden="true" className={danger ? 'text-[color:var(--q2p-bad)]' : 'text-q2-lift'} />
           </span>
         )}
         <div className="min-w-0 text-left">
-          <p className={`text-[13.5px] font-medium truncate ${danger ? 'text-[color:var(--q2p-bad)]' : 'text-white'}`}>{label}</p>
+          <p className={`text-[13px] sm:text-[13.5px] font-medium truncate ${danger ? 'text-[color:var(--q2p-bad)]' : 'text-white'}`}>{label}</p>
           {hint && <p className="text-[11.5px] text-q2-fog truncate">{hint}</p>}
         </div>
       </div>
@@ -189,7 +191,7 @@ export function Row({
       </div>
     </>
   );
-  const cls = `w-full min-h-[56px] flex items-center justify-between gap-3 px-4 ${
+  const cls = `w-full min-h-[52px] sm:min-h-[56px] flex items-center justify-between gap-3 px-3.5 sm:px-4 ${
     first ? '' : 'border-t border-q2-graphite-d'
   } ${to || onClick ? 'group hover:bg-q2-obsidian/60 transition-colors duration-100 focus:outline-none focus-visible:bg-q2-obsidian' : ''}`;
   if (to) {
@@ -221,7 +223,7 @@ export function PrimaryBtn({ className = '', ...rest }: ButtonHTMLAttributes<HTM
   return (
     <button
       {...rest}
-      className={`${BTN_BASE} ${BTN_LIFT} bg-q2-indigo text-white hover:bg-q2-deep h-9 px-4 ${className}`}
+      className={`${BTN_BASE} ${BTN_LIFT} bg-q2-indigo text-white hover:bg-q2-deep h-11 sm:h-9 px-4 ${className}`}
     />
   );
 }
@@ -230,7 +232,7 @@ export function GhostBtn({ className = '', ...rest }: ButtonHTMLAttributes<HTMLB
   return (
     <button
       {...rest}
-      className={`${BTN_BASE} ${BTN_LIFT} bg-transparent text-q2-mist border border-q2-graphite-d hover:border-q2-smoke-d h-9 px-4 ${className}`}
+      className={`${BTN_BASE} ${BTN_LIFT} bg-transparent text-q2-mist border border-q2-graphite-d hover:border-q2-smoke-d h-11 sm:h-9 px-4 ${className}`}
     />
   );
 }
@@ -239,7 +241,7 @@ export function DangerBtn({ className = '', ...rest }: ButtonHTMLAttributes<HTML
   return (
     <button
       {...rest}
-      className={`${BTN_BASE} bg-transparent border h-9 px-4 ${className}`}
+      className={`${BTN_BASE} bg-transparent border h-11 sm:h-9 px-4 ${className}`}
       style={{ color: 'var(--q2p-bad)', borderColor: 'color-mix(in oklch, var(--q2p-bad) 40%, transparent)' }}
     />
   );
@@ -248,7 +250,7 @@ export function DangerBtn({ className = '', ...rest }: ButtonHTMLAttributes<HTML
 /* ── Formulaires ── */
 
 export const inputCls =
-  'w-full bg-q2-obsidian border border-q2-graphite-d rounded-xl px-3.5 py-2.5 text-[13px] text-white placeholder:text-q2-fog focus:outline-none focus:border-q2-indigo/60 focus:ring-2 focus:ring-q2-indigo/25 transition-colors duration-150';
+  'w-full min-h-[44px] sm:min-h-0 bg-q2-obsidian border border-q2-graphite-d rounded-xl px-3.5 py-2.5 text-[13px] text-white placeholder:text-q2-fog focus:outline-none focus:border-q2-indigo/60 focus:ring-2 focus:ring-q2-indigo/25 transition-colors duration-150';
 
 export function Field({
   label,
@@ -301,7 +303,7 @@ export function Toggle({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative w-[38px] h-[22px] rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 disabled:opacity-50 ${
+      className={`relative shrink-0 w-[38px] h-[22px] rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 disabled:opacity-50 after:content-[''] after:absolute after:-inset-[11px] sm:after:hidden ${
         checked ? 'bg-q2-indigo' : 'bg-q2-graphite-d'
       }`}
     >
@@ -360,7 +362,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-14 px-6">
+    <div className="flex flex-col items-center justify-center text-center py-10 sm:py-14 px-4 sm:px-6">
       {Icon && (
         <span className="w-10 h-10 rounded-full bg-q2-obsidian flex items-center justify-center mb-4">
           <Icon size={18} className="text-q2-fog" aria-hidden="true" />

@@ -28,7 +28,7 @@ import {
    présente pas la page. */
 
 const fieldCls =
-  'h-9 bg-q2-obsidian border border-q2-graphite-d rounded-lg px-3 text-[12.5px] text-white placeholder:text-q2-fog focus:outline-none focus:border-q2-indigo/60 transition-colors duration-150 disabled:opacity-40';
+  'h-11 sm:h-9 bg-q2-obsidian border border-q2-graphite-d rounded-lg px-3 text-[12.5px] text-white placeholder:text-q2-fog focus:outline-none focus:border-q2-indigo/60 transition-colors duration-150 disabled:opacity-40';
 
 interface KbItem { id: string; category: string; name: string; price: string; }
 interface DayHours { open: boolean; from: string; to: string; }
@@ -97,17 +97,17 @@ interface KpiItem {
 
 function KpiRow({ items }: { items: KpiItem[] }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-6 divide-x divide-q2-graphite-d [&>*:nth-child(3)]:border-l-0 sm:[&>*:nth-child(3)]:border-l">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-4 sm:gap-y-6 divide-x divide-q2-graphite-d [&>*:nth-child(3)]:border-l-0 sm:[&>*:nth-child(3)]:border-l">
       {items.map((k) => (
-        <div key={k.label} className="px-3 sm:px-6 first:pl-0 last:pr-0">
+        <div key={k.label} className="px-2.5 sm:px-6 first:pl-0 last:pr-0">
           <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-q2-fog">{k.label}</p>
           <p
-            className={`${k.wide ? 'text-[17px] sm:text-[19px]' : 'text-[22px] sm:text-[26px]'} font-light tracking-tight tabular-nums leading-none mt-2.5 text-white truncate`}
+            className={`${k.wide ? 'text-[15px] sm:text-[19px]' : 'text-[22px] sm:text-[26px]'} font-light tracking-tight tabular-nums leading-none mt-2 sm:mt-2.5 text-white truncate`}
           >
             {k.value}
           </p>
           {k.hint && (
-            <p className="text-[11.5px] mt-2.5 truncate" style={{ color: k.hintColor || 'var(--q2-fog)' }}>
+            <p className="text-[11px] sm:text-[11.5px] mt-2 sm:mt-2.5 truncate" style={{ color: k.hintColor || 'var(--q2-fog)' }}>
               {k.hint}
             </p>
           )}
@@ -162,16 +162,16 @@ function AccRow({ id, icon: Icon, label, hint, right, open, onToggle, first = fa
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className={`w-full min-h-[56px] flex items-center justify-between gap-3 px-4 text-left hover:bg-q2-obsidian/60 transition-colors duration-100 focus:outline-none focus-visible:bg-q2-obsidian ${
+        className={`w-full min-h-[52px] sm:min-h-[56px] flex items-center justify-between gap-3 px-3.5 sm:px-4 text-left hover:bg-q2-obsidian/60 transition-colors duration-100 focus:outline-none focus-visible:bg-q2-obsidian ${
           first ? '' : 'border-t border-q2-graphite-d'
         }`}
       >
-        <div className="flex items-center gap-3.5 min-w-0">
+        <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
           <span className="w-8 h-8 shrink-0 rounded-lg bg-q2-obsidian flex items-center justify-center">
             <Icon size={15} aria-hidden="true" className="text-q2-lift" />
           </span>
           <div className="min-w-0">
-            <p className="text-[13.5px] font-medium text-white truncate">{label}</p>
+            <p className="text-[13px] sm:text-[13.5px] font-medium text-white truncate">{label}</p>
             {hint && <p className="text-[11.5px] text-q2-fog truncate">{hint}</p>}
           </div>
         </div>
@@ -193,7 +193,7 @@ function AccRow({ id, icon: Icon, label, hint, right, open, onToggle, first = fa
             transition={{ duration: 0.18 }}
             className="overflow-hidden border-t border-q2-graphite-d"
           >
-            <div className="p-5">{children}</div>
+            <div className="p-4 sm:p-5">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -225,7 +225,7 @@ function LineRow({ icon: Icon, label, hint, right }: {
   right?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-3.5 border-b border-q2-graphite-d">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3 sm:py-3.5 border-b border-q2-graphite-d">
       <div className="flex items-center gap-3 min-w-0">
         {Icon && (
           <span className="w-8 h-8 shrink-0 rounded-lg bg-q2-obsidian flex items-center justify-center">
@@ -291,10 +291,14 @@ function SidePanel({ open, label, onClose, children }: {
             aria-modal="true"
             aria-label={label}
             className="fixed inset-y-0 right-0 z-50 w-full sm:w-[460px] bg-q2-carbon border-l border-q2-graphite-d flex flex-col"
+            style={{
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
           >
-            <header className="shrink-0 border-b border-q2-graphite-d px-5 h-14 flex items-center justify-between gap-3">
+            <header className="shrink-0 border-b border-q2-graphite-d px-4 sm:px-5 h-12 sm:h-14 flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[13.5px] font-medium text-white truncate">{label}</p>
+                <p className="text-[13px] sm:text-[13.5px] font-medium text-white truncate">{label}</p>
                 <p className="text-[11.5px] text-q2-fog truncate">
                   Dictez vos changements, ou lancez un appel test
                 </p>
@@ -304,12 +308,12 @@ function SidePanel({ open, label, onClose, children }: {
                 type="button"
                 onClick={onClose}
                 aria-label="Fermer le panneau"
-                className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-q2-fog hover:text-white hover:bg-q2-obsidian transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                className="w-11 h-11 -mr-2 sm:mr-0 sm:w-8 sm:h-8 shrink-0 rounded-lg flex items-center justify-center text-q2-fog hover:text-white hover:bg-q2-obsidian transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
               >
-                <X size={15} aria-hidden="true" />
+                <X size={16} aria-hidden="true" />
               </button>
             </header>
-            <div className="flex-1 min-h-0 p-3">{children}</div>
+            <div className="flex-1 min-h-0 p-2.5 sm:p-3">{children}</div>
           </motion.aside>
         </>
       )}
@@ -522,8 +526,8 @@ export default function ClientReceptionist() {
   }, [autoSave]);
 
   if (loading) return (
-    <div className="space-y-8" aria-busy="true">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pb-6 border-b border-q2-graphite-d">
+    <div className="space-y-6 sm:space-y-8" aria-busy="true">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 pb-4 sm:pb-6 border-b border-q2-graphite-d">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="space-y-3">
             <div className="h-3 w-24 rounded bg-white/[0.06] animate-pulse" />
@@ -534,7 +538,7 @@ export default function ClientReceptionist() {
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="space-y-3">
           <div className="h-3 w-32 rounded bg-white/[0.06] animate-pulse" />
-          <div className="rounded-xl border border-q2-graphite-d bg-q2-carbon p-5 space-y-4">
+          <div className="rounded-xl border border-q2-graphite-d bg-q2-carbon p-4 sm:p-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="h-16 rounded-xl bg-white/[0.04] animate-pulse" />
               <div className="h-16 rounded-xl bg-white/[0.04] animate-pulse" />
@@ -630,15 +634,15 @@ export default function ClientReceptionist() {
       </PageActions>
 
       {/* Chiffres d'ouverture: ce que l'IA sait déjà, sans cadre, filet dessous */}
-      <section aria-label="État de la configuration" className="pb-6 border-b border-q2-graphite-d">
+      <section aria-label="État de la configuration" className="pb-4 sm:pb-6 border-b border-q2-graphite-d">
         <KpiRow items={kpis} />
       </section>
 
-      <p className="text-[11.5px] text-q2-fog pt-4 q2-body-text">
+      <p className="text-[11.5px] text-q2-fog pt-3.5 sm:pt-4 q2-body-text">
         Astuce : le panneau « Configurer en parlant » modifie ces réglages à votre place, et lance un appel test avec la voix choisie.
       </p>
 
-      <div className="mt-7 space-y-7">
+      <div className="mt-5 sm:mt-7 space-y-5 sm:space-y-7">
       {/* Identité: dépliée, c'est le premier réglage que l'on vient toucher */}
       <OpenSect
         id="identite"
@@ -675,7 +679,7 @@ export default function ClientReceptionist() {
         </div>
 
         {characters.length > 0 && (
-          <div className="mt-6 pt-5 border-t border-q2-graphite-d">
+          <div className="mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-q2-graphite-d">
             <GroupLabel>Personnage de la réceptionniste</GroupLabel>
             <p className="text-[12px] text-q2-fog mb-4 q2-body-text max-w-[62ch]">
               Naviguez avec les flèches pour choisir qui répond à vos appels. Le bouton lecture donne un aperçu
@@ -731,7 +735,7 @@ export default function ClientReceptionist() {
           })}
         </div>
 
-        <div className="mt-6 pt-5 border-t border-q2-graphite-d">
+        <div className="mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-q2-graphite-d">
           <GroupLabel>Personnalisation</GroupLabel>
           <Textarea
             value={personalityNotes}
@@ -767,12 +771,12 @@ export default function ClientReceptionist() {
             {items.map(it => (
               <div
                 key={it.id}
-                className="flex flex-wrap sm:flex-nowrap items-center gap-2 py-2.5 border-b border-q2-graphite-d"
+                className="flex flex-wrap sm:flex-nowrap items-center gap-2 py-2 sm:py-2.5 border-b border-q2-graphite-d"
               >
                 <select
                   value={it.category}
                   onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, category: e.target.value } : x))}
-                  className={`${fieldCls} w-[122px] shrink-0`}
+                  className={`${fieldCls} w-[118px] shrink-0`}
                   aria-label="Catégorie"
                 >
                   {ITEM_CATEGORIES.map(c => <option key={c.v} value={c.v}>{c.l}</option>)}
@@ -781,20 +785,20 @@ export default function ClientReceptionist() {
                   value={it.name}
                   onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, name: e.target.value } : x))}
                   placeholder="Nom (ex. Coupe homme)"
-                  className={`${fieldCls} flex-1 min-w-[150px]`}
+                  className={`${fieldCls} flex-1 min-w-[140px]`}
                   aria-label="Nom"
                 />
                 <input
                   value={it.price}
                   onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, price: e.target.value } : x))}
                   placeholder="Prix (ex. 25 €)"
-                  className={`${fieldCls} w-[110px] shrink-0`}
+                  className={`${fieldCls} w-[104px] shrink-0`}
                   aria-label="Prix"
                 />
                 <button
                   type="button"
                   onClick={() => setItems(arr => arr.filter(x => x.id !== it.id))}
-                  className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-q2-fog hover:text-white hover:bg-q2-obsidian transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                  className="w-11 h-11 sm:w-9 sm:h-9 shrink-0 rounded-lg flex items-center justify-center text-q2-fog hover:text-white hover:bg-q2-obsidian transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
                   title="Supprimer"
                   aria-label={`Supprimer ${it.name || "l'élément"}`}
                 >
@@ -813,7 +817,7 @@ export default function ClientReceptionist() {
           <Plus size={13} aria-hidden="true" /> Ajouter un élément
         </GhostBtn>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 lg:divide-x divide-q2-graphite-d mt-8 pt-6 border-t border-q2-graphite-d">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-0 lg:divide-x divide-q2-graphite-d mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-q2-graphite-d">
           <div className="lg:pr-10">
             <GroupLabel
               icon={Clock3}
@@ -826,21 +830,21 @@ export default function ClientReceptionist() {
               return (
                 <div
                   key={d.k}
-                  className="flex items-center gap-3 py-2 border-b border-q2-graphite-d last:border-b-0"
+                  className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-q2-graphite-d last:border-b-0"
                 >
-                  <span className="w-[78px] shrink-0 text-[13px] font-medium text-white">{d.l}</span>
+                  <span className="w-[66px] sm:w-[78px] shrink-0 text-[13px] font-medium text-white">{d.l}</span>
                   <Toggle
                     checked={h.open}
                     onChange={() => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], open: !w[d.k].open } }))}
                     label={`${d.l} ouvert`}
                   />
-                  <div className="ml-auto flex items-center gap-1.5">
+                  <div className="ml-auto flex items-center gap-1.5 shrink-0">
                     <input
                       type="time"
                       value={h.from}
                       disabled={!h.open}
                       onChange={e => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], from: e.target.value } }))}
-                      className={`${fieldCls} w-[96px]`}
+                      className={`${fieldCls} w-[84px] sm:w-[96px]`}
                       aria-label={`${d.l} ouverture`}
                     />
                     <span className="text-[11.5px] text-q2-fog">à</span>
@@ -849,7 +853,7 @@ export default function ClientReceptionist() {
                       value={h.to}
                       disabled={!h.open}
                       onChange={e => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], to: e.target.value } }))}
-                      className={`${fieldCls} w-[96px]`}
+                      className={`${fieldCls} w-[84px] sm:w-[96px]`}
                       aria-label={`${d.l} fermeture`}
                     />
                   </div>

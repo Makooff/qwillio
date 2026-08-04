@@ -51,12 +51,12 @@ export default function FooterV2() {
       className="bg-q2-canvas border-t border-q2-plate"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="max-w-[1200px] mx-auto px-6 lg:px-10 pt-14 pb-10">
-        <div className="grid md:grid-cols-[1.4fr_2fr] gap-10 md:gap-16 pb-12 border-b border-q2-plate">
+      <div className="max-w-[1200px] mx-auto px-5 sm:px-6 lg:px-10 pt-10 sm:pt-14 pb-8 sm:pb-10">
+        <div className="grid md:grid-cols-[1.4fr_2fr] gap-8 sm:gap-10 md:gap-16 pb-9 sm:pb-12 border-b border-q2-plate">
           <div>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 mb-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2 rounded-md"
+              className="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 mb-3 sm:mb-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2 rounded-md"
             >
               <QwillioLogo size={26} />
               <span className="text-[15px] font-semibold tracking-tight text-q2-ink">Qwillio</span>
@@ -82,27 +82,28 @@ export default function FooterV2() {
           >
             {columns.map((col) => (
               <div key={col.heading}>
-                <p className="q2-eyebrow text-q2-body mb-4">{col.heading}</p>
-                <ul role="list" className="space-y-2.5">
-                  {col.links.map((link) => (
-                    <li key={link.to}>
-                      {link.external ? (
-                        <a
-                          href={link.to}
-                          className="text-sm text-q2-graphite hover:text-q2-ink transition-colors duration-150"
-                        >
-                          {link.label}
-                        </a>
-                      ) : (
-                        <Link
-                          to={link.to}
-                          className="text-sm text-q2-graphite hover:text-q2-ink transition-colors duration-150"
-                        >
-                          {link.label}
-                        </Link>
-                      )}
-                    </li>
-                  ))}
+                <p className="q2-eyebrow text-q2-body mb-2 sm:mb-4">{col.heading}</p>
+                {/* Au doigt chaque lien fait 44px de haut, les rangées se
+                    touchent donc sans interligne; au pointeur on retrouve la
+                    liste aérée d'origine. */}
+                <ul role="list" className="sm:space-y-2.5">
+                  {col.links.map((link) => {
+                    const cls =
+                      'inline-flex items-center min-h-[44px] sm:min-h-0 text-sm text-q2-graphite hover:text-q2-ink transition-colors duration-150';
+                    return (
+                      <li key={link.to}>
+                        {link.external ? (
+                          <a href={link.to} className={cls}>
+                            {link.label}
+                          </a>
+                        ) : (
+                          <Link to={link.to} className={cls}>
+                            {link.label}
+                          </Link>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}

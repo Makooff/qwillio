@@ -1,0 +1,15 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const ctx = await b.newContext({ viewport:{width:390,height:844}, isMobile:true, hasTouch:true });
+const reqs=[];
+await ctx.route('**/api/**', async r => { reqs.push(r.request().url()); await r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({id:'u1',email:'m@q.com',name:'Marie',role:'client',emailConfirmed:true,hasSubscription:true,onboardingCompleted:true})}); });
+await ctx.addInitScript(()=>{ localStorage.setItem('token','t'); });
+const p = await ctx.newPage();
+p.on('console', m => console.log('CONSOLE', m.type(), m.text().slice(0,160)));
+await p.goto('http://127.0.0.1:4173/dashboard/account', {waitUntil:'networkidle'});
+await p.waitForTimeout(1500);
+console.log('URL', p.url());
+console.log('H1', await p.evaluate(()=>document.querySelector('h1')?.textContent));
+console.log('BODY', (await p.evaluate(()=>document.body.innerText)).slice(0,400));
+console.log('API CALLS', reqs);
+await b.close();

@@ -63,23 +63,26 @@ export default function ImpactStats({ isFr }: { isFr: boolean }) {
   return (
     <Section variant="band" hairline aria-label={isFr ? 'Qwillio en chiffres' : 'Qwillio in figures'}>
       <Container>
-        <dl className="grid grid-cols-2 md:grid-cols-4 gap-y-10">
+        <dl className="grid grid-cols-2 md:grid-cols-4 gap-y-8 sm:gap-y-10">
           {STATS.map((s, i) => (
             <RevealV2
               key={s.srEn}
               index={i}
               /* Hairline à gauche, sauf en tête de rangée: deux colonnes en
                  mobile, quatre à partir de md */
-              className={`px-4 sm:px-6 md:px-8 ${
+              className={`px-3 sm:px-6 md:px-8 ${
                 i % 2 === 0 ? 'border-l-0' : 'border-l border-q2-plate'
               } ${i === 0 ? 'md:border-l-0' : 'md:border-l md:border-q2-plate'}`}
             >
               <dt className="sr-only">{isFr ? s.srFr : s.srEn}</dt>
               <dd>
-                <span className="block text-[clamp(2.2rem,5vw,3.4rem)] font-light tracking-[-0.03em] leading-none text-q2-ink tabular-nums">
+                {/* `inline-block` pour que la lueur épouse les glyphes et non
+                    toute la colonne. Le chiffre reste une couleur pleine: la
+                    lueur est derrière lui (.q2-figure-lit). */}
+                <span className="q2-figure-lit inline-block text-[clamp(2rem,5vw,3.4rem)] font-light tracking-[-0.03em] leading-none text-q2-ink tabular-nums">
                   {s.value}
                 </span>
-                <span className="block mt-4 text-sm leading-relaxed text-q2-body q2-body-text max-w-[220px]">
+                <span className="block mt-3 sm:mt-4 text-[13.5px] sm:text-sm leading-relaxed text-q2-body q2-body-text max-w-[220px]">
                   {isFr ? s.labelFr : s.labelEn}
                 </span>
               </dd>

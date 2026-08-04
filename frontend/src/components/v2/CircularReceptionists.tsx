@@ -135,7 +135,9 @@ function VoicePreviewButton({
             ? `Écouter un aperçu de la voix de ${name}`
             : `Hear a voice preview for ${name}`
       }
-      className={`w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full bg-q2-ink text-white ring-2 ring-q2-canvas hover:bg-q2-indigo transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo ${className}`}
+      /* Pastille de 32px visuels, mais une zone tactile de 44px étendue par
+         un pseudo-élément: le doigt n'a pas à viser le glyphe. */
+      className={`relative w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full bg-q2-ink text-white ring-2 ring-q2-canvas hover:bg-q2-indigo transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo after:absolute after:-inset-1.5 after:content-[''] ${className}`}
     >
       {speaking ? (
         <Square size={10} fill="currentColor" aria-hidden="true" />
@@ -196,7 +198,7 @@ function PersonaCard({
 
 function VoiceCloneNote({ isFr }: { isFr: boolean }) {
   return (
-    <div className="flex items-center gap-4 mt-6 max-w-[640px] mx-auto">
+    <div className="flex items-center gap-4 mt-5 sm:mt-6 max-w-[640px] mx-auto">
       <span className="w-12 h-12 shrink-0 rounded-full bg-q2-ink text-white flex items-center justify-center">
         <Mic size={18} aria-hidden="true" />
       </span>
@@ -467,7 +469,7 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
         />
       </div>
 
-      <div className="flex items-center justify-center gap-3 mt-5 mb-8">
+      <div className="flex items-center justify-center gap-3 mt-4 mb-6 sm:mt-5 sm:mb-8">
         <button
           type="button"
           onClick={() => go(active - 1)}

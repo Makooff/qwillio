@@ -64,7 +64,7 @@ function NavLink({
       to={item.to}
       onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
-      className={`relative flex items-center gap-3 h-9 px-3 rounded-lg text-[13px] transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 ${
+      className={`relative flex items-center gap-3 h-11 md:h-9 px-3 rounded-lg text-[13px] transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 ${
         active ? 'bg-q2-obsidian text-white' : 'text-q2-fog hover:text-q2-mist hover:bg-q2-obsidian/50'
       }`}
     >
@@ -80,6 +80,108 @@ function NavLink({
       <item.icon size={15} aria-hidden="true" className={active ? 'text-q2-lift' : ''} />
       {item.label}
     </Link>
+  );
+}
+
+/* Pilule de navigation basse, mobile uniquement. Le verre est translucide et
+   très flouté, la bulle glisse en ressort quasi critique pour qu'un saut du
+   premier au dernier item n'oscille pas. Le morphing de la bulle tourne en
+   boucle lente, coupé en reduced-motion. */
+function MobileBottomNav({
+  items,
+  activeIndex,
+  reduce,
+}: {
+  items: ShellNavItem[];
+  activeIndex: number;
+  reduce: boolean;
+}) {
+  if (items.length === 0) return null;
+  const itemPct = 100 / items.length;
+
+  return (
+    <nav
+      aria-label="Navigation mobile"
+      className="md:hidden fixed bottom-0 inset-x-0 z-50 px-4 pointer-events-none"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+    >
+      <div className="relative w-full flex items-center py-1.5 pointer-events-auto">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 rounded-full pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(180deg, oklch(30% 0.01 265 / 0.22) 0%, oklch(16% 0.01 265 / 0.34) 100%)',
+            backdropFilter: 'blur(28px) saturate(1.6)',
+            WebkitBackdropFilter: 'blur(28px) saturate(1.6)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            boxShadow:
+              'inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(0,0,0,0.25), 0 12px 32px rgba(0,0,0,0.38)',
+          }}
+        />
+
+        {activeIndex >= 0 && (
+          <motion.span
+            aria-hidden="true"
+            className="absolute pointer-events-none"
+            initial={false}
+            animate={{
+              left: `${activeIndex * itemPct + itemPct / 2}%`,
+              borderRadius: reduce
+                ? '50%'
+                : [
+                    '46% 54% 52% 48% / 52% 46% 54% 48%',
+                    '54% 46% 48% 52% / 48% 56% 44% 52%',
+                    '48% 52% 55% 45% / 54% 48% 52% 46%',
+                    '46% 54% 52% 48% / 52% 46% 54% 48%',
+                  ],
+            }}
+            transition={{
+              left: reduce
+                ? { duration: 0 }
+                : { type: 'spring', stiffness: 280, damping: 30, mass: 0.8 },
+              borderRadius: reduce ? { duration: 0 } : { duration: 5, repeat: Infinity, ease: 'easeInOut' },
+            }}
+            style={{
+              width: 56,
+              height: 56,
+              top: '50%',
+              x: '-50%',
+              y: '-50%',
+              background:
+                'linear-gradient(180deg, oklch(56% 0.22 264 / 0.30) 0%, rgba(255,255,255,0.05) 60%, rgba(255,255,255,0.10) 100%)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
+              border: '1px solid rgba(255,255,255,0.22)',
+              boxShadow:
+                'inset 0 2px 4px rgba(255,255,255,0.22), inset 0 -3px 6px rgba(0,0,0,0.20), 0 6px 18px rgba(0,0,0,0.28)',
+            }}
+          />
+        )}
+
+        {items.map((item, i) => {
+          const active = i === activeIndex;
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              aria-label={item.label}
+              aria-current={active ? 'page' : undefined}
+              className={`relative z-10 flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 min-h-[52px] transition-transform duration-100 active:scale-[0.97] motion-reduce:active:scale-100 ${
+                active ? 'text-white' : 'text-q2-fog'
+              }`}
+            >
+              <item.icon size={21} aria-hidden="true" className="relative z-10 shrink-0" />
+              {!active && (
+                <span className="relative z-10 text-[9.5px] font-medium leading-none truncate max-w-full px-0.5">
+                  {item.label}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
@@ -183,7 +285,7 @@ export default function AppShell({
     <div className="flex flex-col h-full">
       <Link
         to="/dashboard"
-        className="flex items-center gap-2.5 px-4 h-16 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded-md"
+        className="flex items-center gap-2.5 px-4 h-14 md:h-16 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded-md"
       >
         <QwillioLogo size={26} />
         <span className="text-[14px] font-semibold tracking-tight text-white">Qwillio</span>
@@ -274,12 +376,19 @@ export default function AppShell({
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} aria-hidden="true" />
-          <aside className="absolute inset-y-0 left-0 w-[240px] bg-q2-carbon border-r border-q2-graphite-d">
+          <aside
+            className="absolute inset-y-0 left-0 w-[min(84vw,264px)] bg-q2-carbon border-r border-q2-graphite-d"
+            style={{
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+              paddingLeft: 'env(safe-area-inset-left)',
+            }}
+          >
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
               aria-label="Fermer le menu"
-              className="absolute top-4 right-3 w-9 h-9 rounded-lg flex items-center justify-center text-q2-fog hover:text-white"
+              className="absolute top-2 right-2 w-11 h-11 rounded-lg flex items-center justify-center text-q2-fog hover:text-white"
             >
               <X size={16} aria-hidden="true" />
             </button>
@@ -295,14 +404,14 @@ export default function AppShell({
           className="sticky top-0 z-40 bg-q2-void/95 backdrop-blur-sm border-b border-q2-graphite-d"
           style={{ paddingTop: 'env(safe-area-inset-top)' }}
         >
-          <div className="flex items-center gap-3 h-14 px-4 md:px-8">
+          <div className="flex items-center gap-2 md:gap-3 h-12 md:h-14 px-3.5 md:px-8">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
               aria-label="Ouvrir le menu"
-              className="md:hidden w-9 h-9 -ml-1 rounded-lg flex items-center justify-center text-q2-mist hover:bg-q2-obsidian transition-colors duration-100"
+              className="md:hidden w-11 h-11 -ml-2.5 rounded-lg flex items-center justify-center text-q2-mist hover:bg-q2-obsidian transition-colors duration-100"
             >
-              <Menu size={17} aria-hidden="true" />
+              <Menu size={18} aria-hidden="true" />
             </button>
 
             {/* Le titre permute au changement de route, sans décaler la barre */}
@@ -314,7 +423,7 @@ export default function AppShell({
                   animate={{ opacity: 1, y: 0 }}
                   exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
                   transition={{ duration: reduce ? 0 : 0.14, ease: [0.16, 1, 0.3, 1] }}
-                  className="q2p-page-title text-white truncate"
+                  className="q2p-page-title text-white truncate !text-[17px] md:!text-[20px]"
                 >
                   {title}
                 </motion.h1>
@@ -326,10 +435,12 @@ export default function AppShell({
               onClick={() => setPaletteOpen(true)}
               aria-label="Ouvrir la palette de commandes"
               aria-haspopup="dialog"
-              className="shrink-0 inline-flex items-center gap-2 h-8 rounded-lg border border-q2-graphite-d px-2 text-q2-fog hover:text-q2-mist hover:border-q2-smoke-d transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+              className="shrink-0 inline-flex items-center justify-center gap-2 w-11 md:w-auto h-11 md:h-8 rounded-lg border border-q2-graphite-d px-0 md:px-2 text-q2-fog hover:text-q2-mist hover:border-q2-smoke-d transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
             >
-              <Search size={14} aria-hidden="true" />
-              <span className="q2p-kbd hidden sm:inline-block">{shortcutLabel()}</span>
+              <Search size={15} aria-hidden="true" />
+              {/* .q2p-kbd fixe son display et est chargé après les utilitaires:
+                  sans important, `hidden` ne masquerait pas la touche sur mobile */}
+              <span className="q2p-kbd !hidden md:!inline-flex">{shortcutLabel()}</span>
             </button>
 
             {topBarExtras}
@@ -338,7 +449,7 @@ export default function AppShell({
 
         <main
           data-scroll-root
-          className="flex-1 overflow-y-auto px-4 md:px-8 py-6 pb-28 md:pb-8"
+          className="flex-1 overflow-y-auto px-3.5 md:px-8 py-4 md:py-6 pb-[124px] md:pb-8"
         >
           <div key={location.pathname} className="q2p-page max-w-[1100px]">
             <Outlet />
@@ -346,31 +457,9 @@ export default function AppShell({
         </main>
       </div>
 
-      {/* Nav basse mobile, simple, sans bulle décorative (fréquent = pas d'animation) */}
-      <nav
-        aria-label="Navigation mobile"
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-q2-carbon border-t border-q2-graphite-d"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        <div className="flex">
-          {mobileNav.map((item) => {
-            const active = isActive(item);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                aria-current={active ? 'page' : undefined}
-                className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors duration-100 ${
-                  active ? 'text-q2-lift' : 'text-q2-fog'
-                }`}
-              >
-                <item.icon size={17} aria-hidden="true" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+      {/* Nav basse mobile: pilule flottante en verre, bulle « goutte d'eau »
+          derrière l'item actif (motif V1 du DashboardShell, teinté q2) */}
+      <MobileBottomNav items={mobileNav} activeIndex={mobileNav.findIndex(isActive)} reduce={reduce} />
 
       <CommandPalette open={paletteOpen} onClose={closePalette} commands={commands} />
     </div>

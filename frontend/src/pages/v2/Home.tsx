@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -26,6 +27,9 @@ import PixelBlushBackdrop from '../../components/v2/motion/PixelBlushBackdrop';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
+
+/* Intensité d'un halo décoratif (.q2-halo, v2.css), en variable CSS */
+const halo = (opacity: number) => ({ '--q2-halo-o': String(opacity) }) as CSSProperties;
 
 /* La capture réelle du dashboard qui referme le hero: cadre hairline, coins
    16px, halo doux derrière, et une perspective très légère (rotateX 4deg) qui
@@ -55,15 +59,19 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
   }, []);
 
   return (
-    <div ref={wrapRef} className="relative mt-16 md:mt-20" style={{ perspective: '1800px' }}>
+    <div ref={wrapRef} className="relative mt-10 sm:mt-14 md:mt-20" style={{ perspective: '1800px' }}>
+      {/* Deux nappes: une large et froide qui décolle la capture du fond, une
+          plus resserrée sous son bord bas qui fait office d'assise lumineuse.
+          Aucune ombre portée n'est ajoutée, la profondeur vient de la lueur. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-8 -top-6 bottom-6 rounded-[40px]"
-        style={{
-          background:
-            'radial-gradient(60% 60% at 50% 40%, rgba(122, 95, 255, 0.16) 0%, rgba(122, 95, 255, 0) 70%)',
-          filter: 'blur(28px)',
-        }}
+        className="q2-halo -inset-x-4 sm:-inset-x-16 -top-10 bottom-0 rounded-[64px]"
+        style={halo(0.2)}
+      />
+      <div
+        aria-hidden="true"
+        className="q2-halo q2-halo-violet inset-x-1/4 -bottom-10 h-24"
+        style={halo(0.22)}
       />
       <div
         ref={frameRef}
@@ -179,10 +187,10 @@ export default function Home() {
         <Container className="relative [&>*]:min-w-0">
           <RevealV2>
             <div className="max-w-[860px]">
-              <Eyebrow tone="indigo" className="mb-6">
+              <Eyebrow tone="indigo" className="mb-4 sm:mb-6">
                 {isFr ? 'Réceptionniste IA nouvelle génération' : 'Next-generation AI receptionist'}
               </Eyebrow>
-              <Display className="mb-7" id="hero-heading">
+              <Display className="mb-5 sm:mb-7" id="hero-heading">
                 {isFr ? (
                   <>
                     Elle ne prend pas de messages. Elle prend des <SerifWord>rendez-vous.</SerifWord>
@@ -193,15 +201,15 @@ export default function Home() {
                   </>
                 )}
               </Display>
-              <Lead className="max-w-[500px] mb-10 q2-body-text">
+              <Lead className="max-w-[500px] mb-7 sm:mb-10 q2-body-text">
                 {isFr
                   ? 'Elle décroche 24/7, vérifie votre agenda pendant l’appel et confirme le rendez-vous par SMS. Dès 99 € par mois.'
                   : 'She answers 24/7, checks your calendar during the call and confirms the booking by SMS. From €99 a month.'}
               </Lead>
 
-              <div className="flex flex-wrap items-center gap-3 mb-12">
+              <div className="flex flex-wrap items-center gap-3 mb-2 sm:mb-4">
                 <Magnetic>
-                  <PillLink to="/register" variant="primary" size="lg">
+                  <PillLink to="/register" variant="primary" size="lg" className="q2-pill-lit">
                     {isFr ? 'Essayer 7 jours' : 'Try it for 7 days'}
                     <ArrowRight size={15} aria-hidden="true" />
                   </PillLink>
@@ -254,7 +262,7 @@ export default function Home() {
             {during.map((item, i) => (
               <div
                 key={item.title}
-                className="grid md:grid-cols-[56px_1fr] gap-5 md:gap-8 py-9 items-start"
+                className="grid md:grid-cols-[56px_1fr] gap-4 md:gap-8 py-6 sm:py-8 md:py-9 items-start"
               >
                 <div className="flex md:flex-col items-center md:items-start gap-3">
                   <span className="w-11 h-11 rounded-full bg-q2-canvas border border-q2-plate flex items-center justify-center">
@@ -279,8 +287,8 @@ export default function Home() {
       {/* ── VOS RÉCEPTIONNISTES, galerie de presets ── */}
       <Section aria-labelledby="team-heading">
         <Container>
-          <RevealV2 className="mb-12 max-w-[640px]">
-            <Eyebrow tone="indigo" className="mb-4">
+          <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
+            <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
               {isFr ? 'Vos réceptionnistes' : 'Your receptionists'}
             </Eyebrow>
             <H2 id="team-heading">
@@ -311,13 +319,25 @@ export default function Home() {
       </Section>
 
       {/* ── UNE VRAIE CONVERSATION, drenched indigo + transcript vivant ── */}
-      <Section variant="drenched-indigo" aria-labelledby="conv-heading">
-        <Container className="grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
+      {/* overflow-hidden: le halo de la capture déborde de 24px sur petit
+          écran, il doit être coupé par la section et non pousser la page */}
+      <Section variant="drenched-indigo" aria-labelledby="conv-heading" className="relative overflow-hidden">
+        {/* La bascule vers le noir se fait sur une ligne qui s'éclaire en son
+            milieu, pas sur une arête franche */}
+        <div aria-hidden="true" className="q2-hairline-lit absolute inset-x-0 top-0" />
+        <Container className="grid lg:grid-cols-[1.1fr_1fr] gap-10 sm:gap-12 items-center">
           {/* La preuve n'est pas une animation de transcript, c'est l'écran
               réel du suivi d'appel tel qu'il apparaît dans le dashboard */}
           <RevealV2 index={1} className="order-2 lg:order-1">
-            <figure className="m-0">
-              <div className="rounded-xl border border-q2-graphite-d bg-q2-carbon overflow-hidden">
+            <figure className="relative m-0">
+              {/* Le noir avale les bords: le halo rend la capture posée
+                  au-dessus de la section au lieu d'y être découpée */}
+              <div
+                aria-hidden="true"
+                className="q2-halo q2-halo-dark -inset-6 sm:-inset-10 rounded-[64px]"
+                style={halo(0.26)}
+              />
+              <div className="relative q2-lit rounded-xl border border-q2-graphite-d bg-q2-carbon overflow-hidden">
                 <img
                   src="/screens/suivi-appel.webp"
                   alt={
@@ -331,7 +351,7 @@ export default function Home() {
                   className="block w-full h-auto"
                 />
               </div>
-              <figcaption className="mt-4 text-[13px] leading-relaxed text-q2-fog q2-body-text">
+              <figcaption className="relative mt-4 text-[13px] leading-relaxed text-q2-fog q2-body-text">
                 {isFr
                   ? 'Le suivi réel d’un appel dans le dashboard : résumé, transcript, sentiment.'
                   : 'The real call follow-up in the dashboard: summary, transcript, sentiment.'}
@@ -358,7 +378,7 @@ export default function Home() {
             </H2>
           </RevealV2>
           <RevealV2 index={1}>
-            <ul className="border-t border-q2-graphite-d mt-8" role="list">
+            <ul className="border-t border-q2-graphite-d mt-6 sm:mt-8" role="list">
               {(isFr
                 ? [
                     'Coupez-la en pleine phrase : elle s’arrête net. Une toux ne la déstabilise pas.',
@@ -373,7 +393,7 @@ export default function Home() {
                     'A rushed or upset caller gets a different tone: short sentences, no sales talk, a human offered sooner.',
                   ]
               ).map((line) => (
-                <li key={line} className="border-b border-q2-graphite-d py-5 text-[15px] text-q2-mist leading-relaxed q2-body-text max-w-[560px]">
+                <li key={line} className="border-b border-q2-graphite-d py-4 sm:py-5 text-[15px] text-q2-mist leading-relaxed q2-body-text max-w-[560px]">
                   {line}
                 </li>
               ))}
@@ -385,9 +405,9 @@ export default function Home() {
 
       {/* ── CONFIGUREZ-LA EN LUI PARLANT ── */}
       <Section aria-labelledby="setup-heading">
-        <Container className="grid lg:grid-cols-[1fr_1.4fr] gap-12 items-start">
+        <Container className="grid lg:grid-cols-[1fr_1.4fr] gap-9 sm:gap-12 items-start">
           <RevealV2>
-            <Eyebrow tone="violet" className="mb-4">
+            <Eyebrow tone="violet" className="mb-3 sm:mb-4">
               {isFr ? 'Mise en route' : 'Setup'}
             </Eyebrow>
             <H2 id="setup-heading">
@@ -414,7 +434,7 @@ export default function Home() {
               {setup.map((s) => (
                 <GlowCard
                   key={s.label}
-                  className="border-b border-q2-plate py-7 grid sm:grid-cols-[44px_1fr] gap-4 items-start"
+                  className="border-b border-q2-plate py-5 sm:py-7 grid sm:grid-cols-[44px_1fr] gap-3.5 sm:gap-4 items-start"
                 >
                   <span className="w-10 h-10 rounded-full bg-q2-band flex items-center justify-center">
                     <s.icon size={16} className="text-q2-violet" aria-hidden="true" />
@@ -437,9 +457,9 @@ export default function Home() {
       {/* overflow-hidden: le halo ambiant de HeroPhone3D fait 420px de large et
           dépasserait la colonne sur un écran de 390px */}
       <Section aria-labelledby="pocket-heading" className="relative overflow-hidden">
-        <Container className="grid lg:grid-cols-[1fr_1fr] gap-14 lg:gap-20 items-center [&>*]:min-w-0">
+        <Container className="grid lg:grid-cols-[1fr_1fr] gap-8 sm:gap-14 lg:gap-20 items-center [&>*]:min-w-0">
           <RevealV2>
-            <Eyebrow tone="indigo" className="mb-4">
+            <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
               {isFr ? 'Sur mobile' : 'On mobile'}
             </Eyebrow>
             <H2 id="pocket-heading">
@@ -476,8 +496,8 @@ export default function Home() {
       {/* ── APRÈS L'APPEL + CONFIANCE, bande taupe ── */}
       <Section variant="band" hairline aria-labelledby="after-heading" className="relative">
         <Container>
-          <RevealV2 className="mb-12 max-w-[640px]">
-            <Eyebrow tone="neutral" className="mb-4">
+          <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
+            <Eyebrow tone="neutral" className="mb-3 sm:mb-4">
               {isFr ? 'Et après' : 'And after'}
             </Eyebrow>
             <H2 id="after-heading">
@@ -487,7 +507,7 @@ export default function Home() {
           {/* Deux rangées pleine largeur, illustration alternée gauche/droite */}
           <FeatureCards isFr={isFr} />
 
-          <RevealV2 className="mt-12">
+          <RevealV2 className="mt-9 sm:mt-12">
             <p className="text-[15px] text-q2-graphite leading-relaxed q2-body-text border-t border-q2-plate pt-5 max-w-[640px]">
               <ShieldCheck size={14} className="inline mr-1.5 -mt-0.5 text-q2-indigo" aria-hidden="true" />
               {isFr
@@ -496,8 +516,8 @@ export default function Home() {
             </p>
           </RevealV2>
 
-          <RevealV2 index={3} className="mt-14">
-            <CardV2 variant="canvas" glow className="flex flex-wrap items-center justify-between gap-6">
+          <RevealV2 index={3} className="mt-10 sm:mt-14">
+            <CardV2 variant="canvas" glow className="q2-lit flex flex-wrap items-center justify-between gap-5 sm:gap-6">
               <p className="text-q2-graphite text-[15px] q2-body-text max-w-[520px]">
                 {isFr ? (
                   <>
@@ -526,9 +546,9 @@ export default function Home() {
 
       {/* ── CE À QUOI ELLE EST BRANCHÉE, orbite d'intégrations ── */}
       <Section aria-labelledby="integrations-heading">
-        <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-14 items-center [&>*]:min-w-0">
+        <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-9 sm:gap-14 items-center [&>*]:min-w-0">
           <RevealV2 className="max-w-[440px]">
-            <Eyebrow tone="violet" className="mb-4">
+            <Eyebrow tone="violet" className="mb-3 sm:mb-4">
               {isFr ? 'Intégrations' : 'Integrations'}
             </Eyebrow>
             <H2 id="integrations-heading">
@@ -557,10 +577,22 @@ export default function Home() {
       </Section>
 
       {/* ── NOTE HONNÊTE + CTA FINAL, drenched violet ── */}
-      <Section variant="drenched-violet" aria-label={isFr ? 'Commencer avec Qwillio' : 'Get started with Qwillio'}>
-        <Container>
-          <RevealV2 className="max-w-[720px] mb-16">
-            <Eyebrow tone="violet" className="mb-6">
+      <Section
+        variant="drenched-violet"
+        aria-label={isFr ? 'Commencer avec Qwillio' : 'Get started with Qwillio'}
+        className="relative overflow-hidden"
+      >
+        <div aria-hidden="true" className="q2-hairline-lit absolute inset-x-0 top-0" />
+        {/* Lueur d'assise sous la clôture: la page se termine sur une lumière,
+            pas sur un aplat qui s'éteint */}
+        <div
+          aria-hidden="true"
+          className="q2-halo q2-halo-violet absolute left-1/2 -translate-x-1/2 -bottom-40 w-[760px] h-[320px]"
+          style={halo(0.3)}
+        />
+        <Container className="relative">
+          <RevealV2 className="max-w-[720px] mb-10 sm:mb-16">
+            <Eyebrow tone="violet" className="mb-4 sm:mb-6">
               {isFr ? 'Sans détour' : 'Straight up'}
             </Eyebrow>
             <p className="text-q2-mist text-lg leading-relaxed q2-body-text">
@@ -569,7 +601,7 @@ export default function Home() {
                 : 'Qwillio is young, built in Brussels, and every first customer is onboarded personally. You will find no fake reviews or inflated numbers here: try her, she will do the convincing.'}
             </p>
           </RevealV2>
-          <Container className="!px-0 grid lg:grid-cols-[1.5fr_1fr] gap-10 items-end">
+          <Container className="!px-0 grid lg:grid-cols-[1.5fr_1fr] gap-8 sm:gap-10 items-end">
             <RevealV2 index={1}>
               <Display as="h2" onDark>
                 <TextReveal>
@@ -592,7 +624,7 @@ export default function Home() {
                   : '7-day trial. No commitment, cancel in one click.'}
               </p>
               <Magnetic strength={7}>
-                <PillLink to="/register" variant="chromatic" size="lg">
+                <PillLink to="/register" variant="chromatic" size="lg" className="q2-pill-lit">
                   {isFr ? 'Mettre Qwillio en ligne' : 'Put Qwillio on the line'}
                   <ArrowRight size={16} aria-hidden="true" />
                 </PillLink>

@@ -33,13 +33,13 @@ export default function CardV2({
   className = '',
   ...rest
 }: CardV2Props) {
-  const radius = variant === 'drenched' ? 'rounded-xl' : large ? 'rounded-[28px]' : 'rounded-[20px]';
+  const radius = variant === 'drenched' ? 'rounded-xl' : large ? 'rounded-[24px] sm:rounded-[28px]' : 'rounded-[20px]';
   const glowRef = useGlow<HTMLDivElement>(glow);
   return (
     <div
       ref={glowRef}
       {...rest}
-      className={`${VARIANTS[variant]} ${radius} p-8 ${hover ? 'q2-card-hover' : ''} ${
+      className={`${VARIANTS[variant]} ${radius} p-6 sm:p-8 ${hover ? 'q2-card-hover' : ''} ${
         glow ? 'q2-glow' : ''
       } ${className}`}
     >

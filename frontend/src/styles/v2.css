@@ -47,31 +47,34 @@
   --q2-hairline-d: 1px solid #23252a;
 }
 
-/* --- Typographie whisper (signature V2) --- */
+/* --- Typographie whisper (signature V2) ---
+   Les planchers des clamp sont posés pour le petit écran: sous 640px un
+   display de 44px mangeait deux tiers de la hauteur utile avant même la
+   première phrase. Au-delà de 690px la courbe est celle d'origine. */
 .q2-display {
   font-weight: 300;
-  font-size: clamp(2.8rem, 6.5vw, 5.8rem);
+  font-size: clamp(2.35rem, 6.5vw, 5.8rem);
   line-height: 1.08;
   letter-spacing: -0.02em;
 }
 
 .q2-h2 {
   font-weight: 300;
-  font-size: clamp(2rem, 4.5vw, 3.4rem);
+  font-size: clamp(1.75rem, 4.5vw, 3.4rem);
   line-height: 1.13;
   letter-spacing: -0.02em;
 }
 
 .q2-h3 {
   font-weight: 400;
-  font-size: 1.5rem;
+  font-size: clamp(1.3rem, 3.4vw, 1.5rem);
   line-height: 1.33;
   letter-spacing: -0.012em;
 }
 
 .q2-lead {
   font-weight: 400;
-  font-size: 1.25rem;
+  font-size: clamp(1.0625rem, 3.4vw, 1.25rem);
   line-height: 1.35;
 }
 
@@ -114,7 +117,9 @@
 @media (hover: hover) {
   .q2-card-hover:hover {
     transform: translateY(-2px);
-    box-shadow: var(--q2-shadow-hover);
+    /* Le liseré mauve de 1px double l'ombre diffuse: la surface s'allume
+       au lieu de simplement décoller. */
+    box-shadow: var(--q2-shadow-hover), 0 0 0 1px rgba(122, 95, 255, 0.13);
   }
 }
 
@@ -195,7 +200,17 @@
   transition: background-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
     border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
     color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
     transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Action principale: au survol elle s'allume (lueur mauve portée) plutôt
+   que de changer de teinte. Réservé au CTA d'une section, jamais posé sur
+   deux pilules voisines. */
+@media (hover: hover) {
+  .q2-pill-lit:hover {
+    box-shadow: 0 0 0 1px rgba(122, 95, 255, 0.24), 0 12px 34px -10px rgba(122, 95, 255, 0.55);
+  }
 }
 
 @media (hover: hover) {
@@ -224,6 +239,92 @@
   .q2-pill:hover > svg:last-child {
     transform: none;
   }
+}
+
+/* ============================================================
+   Finitions « lueur ». La profondeur de la V2 vient de halos mauves
+   très dilués posés derrière les éléments clés, jamais d'ombres
+   portées, de verre dépoli ni de texte en dégradé. Sur le registre
+   clair les valeurs restent sous 0.20 d'alpha: on doit le sentir
+   sans pouvoir le nommer. Tout est statique, donc rien à neutraliser
+   en reduced-motion.
+   ============================================================ */
+
+/* Halo décoratif, enfant aria-hidden d'un parent positionné. Le
+   dégradé closest-side est déjà doux: aucun filter: blur à payer. */
+.q2-halo {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  background: radial-gradient(
+    closest-side,
+    rgba(122, 95, 255, var(--q2-halo-o, 0.16)),
+    rgba(122, 95, 255, 0) 100%
+  );
+}
+
+.q2-halo-violet {
+  background: radial-gradient(
+    closest-side,
+    rgba(205, 107, 251, var(--q2-halo-o, 0.15)),
+    rgba(205, 107, 251, 0) 100%
+  );
+}
+
+/* Sur drenched le halo porte plus loin: le noir absorbe. */
+.q2-halo-dark {
+  background: radial-gradient(
+    closest-side,
+    rgba(122, 95, 255, var(--q2-halo-o, 0.3)),
+    rgba(122, 95, 255, 0) 100%
+  );
+}
+
+/* Liseré lumineux au survol d'une surface déjà bordée (panneaux du
+   registre drenched, cadres de captures). */
+.q2-lit {
+  transition: border-color 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) {
+  .q2-lit:hover {
+    border-color: rgba(122, 95, 255, 0.34);
+    box-shadow: 0 0 0 1px rgba(122, 95, 255, 0.12);
+  }
+}
+
+/* Chiffre allumé: la lueur est DERRIÈRE le glyphe (pseudo-élément en
+   z-index -1), le texte lui-même reste une couleur pleine. */
+.q2-figure-lit {
+  position: relative;
+  isolation: isolate;
+}
+
+.q2-figure-lit::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -0.4em -0.3em -0.3em;
+  pointer-events: none;
+  background: radial-gradient(
+    closest-side,
+    rgba(122, 95, 255, 0.19),
+    rgba(122, 95, 255, 0) 100%
+  );
+}
+
+/* Hairline qui s'éclaire vers son milieu, pour ouvrir une section
+   drenched sans y poser une arête franche. */
+.q2-hairline-lit {
+  border: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(35, 37, 42, 0) 0%,
+    rgba(122, 95, 255, 0.34) 50%,
+    rgba(35, 37, 42, 0) 100%
+  );
 }
 
 /* ============================================================

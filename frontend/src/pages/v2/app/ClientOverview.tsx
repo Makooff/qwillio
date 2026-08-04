@@ -271,7 +271,7 @@ export default function ClientOverview() {
 
   if (loading) {
     return (
-      <div className="space-y-6" aria-busy="true">
+      <div className="space-y-4 sm:space-y-6" aria-busy="true">
         {paymentPending && (
           <p className="text-[13px] text-q2-fog">Activation de votre compte en cours</p>
         )}
@@ -279,7 +279,7 @@ export default function ClientOverview() {
           <Bone className="h-7 w-44" />
           <Bone className="h-4 w-40" />
         </div>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-3 sm:gap-6">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="space-y-2">
               <Bone className="h-3 w-24" />
@@ -287,9 +287,9 @@ export default function ClientOverview() {
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-5">
-          <Bone className="h-[320px] rounded-2xl" />
-          <Bone className="h-[320px] rounded-2xl" />
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4 sm:gap-5">
+          <Bone className="h-[220px] sm:h-[320px] rounded-2xl" />
+          <Bone className="h-[220px] sm:h-[320px] rounded-2xl" />
         </div>
       </div>
     );
@@ -305,7 +305,7 @@ export default function ClientOverview() {
         <button
           type="button"
           onClick={load}
-          className="px-5 py-2 rounded-xl text-[13px] font-medium bg-white/[0.06] text-white hover:bg-white/[0.1] transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+          className="px-5 min-h-[44px] py-2 rounded-xl text-[13px] font-medium bg-white/[0.06] text-white hover:bg-white/[0.1] transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
         >
           Réessayer
         </button>
@@ -316,9 +316,9 @@ export default function ClientOverview() {
   const today = new Date();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {paymentPending && (
-        <div className="rounded-2xl border border-q2-graphite-d bg-white/[0.03] px-5 py-3">
+        <div className="rounded-2xl border border-q2-graphite-d bg-white/[0.03] px-4 sm:px-5 py-3">
           <p className="text-[13px] text-q2-mist">Activation de votre compte en cours</p>
         </div>
       )}
@@ -326,10 +326,10 @@ export default function ClientOverview() {
       {/* En-tête de contenu: salutation, date, statut de service */}
       <section className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[22px] font-semibold tracking-tight text-white/90">
+          <p className="text-[19px] sm:text-[22px] font-semibold tracking-tight text-white/90">
             {greeting(user?.name || 'Utilisateur')}
           </p>
-          <p className="text-[12.5px] mt-1 text-q2-fog">
+          <p className="text-[12px] sm:text-[12.5px] mt-0.5 sm:mt-1 text-q2-fog">
             {today.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
             <span className="mx-1.5 text-white/20">·</span>
             <span
@@ -362,7 +362,10 @@ export default function ClientOverview() {
       {!onboardingDone && <OnboardingChecklist client={onboardingClient} />}
 
       {/* Chiffres clés, sans cartes, filet sous la rangée */}
-      <section aria-label="Indicateurs clés" className="pb-6 border-b border-q2-graphite-d">
+      <section
+        aria-label="Indicateurs clés"
+        className="pb-4 sm:pb-6 border-b border-q2-graphite-d max-sm:[&>div]:gap-y-4 max-sm:[&>div>*]:px-2.5 max-sm:[&>div>*>p:nth-child(2)]:text-[22px]"
+      >
         <KpiSplit items={kpis} />
       </section>
 
@@ -407,14 +410,14 @@ export default function ClientOverview() {
           </div>
 
           {/* Activité récente, sans cadre, lignes séparées par des filets */}
-          <section aria-label="Appels récents" className="py-6">
+          <section aria-label="Appels récents" className="py-5 sm:py-6">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-q2-fog">
                 Activité récente
               </h2>
               <Link
                 to="/dashboard/calls"
-                className="text-[11.5px] font-medium text-q2-fog hover:text-q2-mist transition-colors duration-150 flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded"
+                className="text-[11.5px] font-medium text-q2-fog hover:text-q2-mist transition-colors duration-150 flex items-center gap-1 min-h-[44px] sm:min-h-0 -my-3 sm:my-0 px-1 -mr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded"
               >
                 Tout voir <ChevronRight size={12} aria-hidden="true" />
               </Link>
@@ -433,7 +436,7 @@ export default function ClientOverview() {
                       <li key={call.id || i}>
                         <Link
                           to={`/dashboard/calls?id=${call.id ?? ''}`}
-                          className="flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-white/[0.02] transition-colors duration-150 border-b border-q2-graphite-d last:border-b-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                          className="flex items-center gap-3 px-2 py-2.5 min-h-[56px] rounded-lg hover:bg-white/[0.02] transition-colors duration-150 border-b border-q2-graphite-d last:border-b-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
                         >
                           <span className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0">
                             <Phone size={13} className="text-q2-fog" aria-hidden="true" />
@@ -446,7 +449,7 @@ export default function ClientOverview() {
                           </div>
                           {call.outcome && (
                             <span
-                              className={`text-[10.5px] font-medium px-2.5 py-0.5 rounded-full uppercase tracking-wide shrink-0 ${OUTCOME_PILL[meta?.tone ?? 'neutral']}`}
+                              className={`text-[10px] sm:text-[10.5px] font-medium px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wide shrink-0 ${OUTCOME_PILL[meta?.tone ?? 'neutral']}`}
                             >
                               {meta?.label ?? call.outcome}
                             </span>
@@ -518,7 +521,7 @@ export default function ClientOverview() {
           />
 
           {Array.isArray(c.planFeatures) && c.planFeatures.length > 0 && (
-            <div className="py-5">
+            <div className="py-4 sm:py-5">
               <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-q2-fog mb-3">
                 Ce que votre plan inclut
               </h3>
@@ -538,7 +541,7 @@ export default function ClientOverview() {
       </div>
 
       {/* Actions rapides, tuiles sans cadre séparées par des filets verticaux */}
-      <section aria-label="Actions rapides" className="pt-6 border-t border-q2-graphite-d">
+      <section aria-label="Actions rapides" className="pt-5 sm:pt-6 border-t border-q2-graphite-d">
         <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-q2-fog mb-3">
           Actions rapides
         </h2>
@@ -551,7 +554,7 @@ export default function ClientOverview() {
             <Link
               key={label}
               to={to}
-              className="group py-4 sm:px-6 first:sm:pl-0 last:sm:pr-0 rounded-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+              className="group py-3 sm:py-4 sm:px-6 first:sm:pl-0 last:sm:pr-0 rounded-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
             >
               <div className="flex items-center gap-3 mb-2.5">
                 <span className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
@@ -571,15 +574,15 @@ export default function ClientOverview() {
       </section>
 
       {/* Bande support */}
-      <section className="pt-5 border-t border-q2-graphite-d">
-        <div className="flex items-center gap-3">
+      <section className="pt-4 sm:pt-5 border-t border-q2-graphite-d">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <Headphones size={15} className="text-q2-fog shrink-0" aria-hidden="true" />
           <p className="text-[12.5px] text-q2-mist flex-1 q2-body-text">
             Besoin d'aide ? Notre équipe répond en moins d'une heure.
           </p>
           <Link
             to="/dashboard/support"
-            className="text-[12px] font-medium text-q2-mist hover:text-white whitespace-nowrap transition-colors duration-150 flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded"
+            className="text-[12px] font-medium text-q2-mist hover:text-white whitespace-nowrap transition-colors duration-150 flex items-center gap-1 min-h-[44px] sm:min-h-0 -my-3 sm:my-0 px-1 -mr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 rounded"
           >
             Contacter le support <ChevronRight size={12} aria-hidden="true" />
           </Link>

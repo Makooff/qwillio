@@ -4,7 +4,7 @@ import type { ReactNode, HTMLAttributes } from 'react';
    Tokens et règles: DA/v2-direction.md. */
 
 export function Container({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`max-w-[1200px] mx-auto px-6 lg:px-10 ${className}`}>{children}</div>;
+  return <div className={`max-w-[1200px] mx-auto px-5 sm:px-6 lg:px-10 ${className}`}>{children}</div>;
 }
 
 type SectionVariant = 'canvas' | 'band' | 'drenched-indigo' | 'drenched-violet';
@@ -29,7 +29,10 @@ export function Section({ children, variant = 'canvas', hairline = false, classN
     <section
       {...rest}
       data-register={dark ? 'drenched' : 'light'}
-      className={`${SECTION_BG[variant]} ${hairline ? 'q2-hairline' : ''} py-24 md:py-32 ${className}`}
+      /* Rythme mobile serré: 56px de respiration entre deux sections sur
+         petit écran contre 96px auparavant, la courbe rejoint le desktop
+         intact à partir de lg. */
+      className={`${SECTION_BG[variant]} ${hairline ? 'q2-hairline' : ''} py-14 sm:py-20 md:py-28 lg:py-32 ${className}`}
     >
       {children}
     </section>

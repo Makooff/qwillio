@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, Play, Phone, CalendarCheck, PhoneForwarded, UserCheck,
@@ -21,6 +21,9 @@ import VoiceCard, { type VoiceData } from '../../components/landing/VoiceCard';
    La prise de rendez-vous en direct est toujours conditionnée à l'agenda connecté. */
 
 const NB = '\u00A0';
+
+/* Intensit\u00E9 d'un halo d\u00E9coratif (.q2-halo, v2.css), en variable CSS */
+const halo = (opacity: number) => ({ '--q2-halo-o': String(opacity) }) as CSSProperties;
 
 interface Pillar {
   icon: LucideIcon;
@@ -354,13 +357,13 @@ export default function Receptionist() {
           aria-hidden="true"
           style={{ background: 'linear-gradient(180deg, #f5f2fb 0%, #faf8fc 55%, #fdfcfc 100%)' }}
         />
-        <Container className="relative grid lg:grid-cols-[1.1fr_1fr] gap-14 lg:gap-20 items-center">
+        <Container className="relative grid lg:grid-cols-[1.1fr_1fr] gap-9 sm:gap-14 lg:gap-20 items-center">
           <RevealV2>
             <div>
-              <Eyebrow tone="indigo" className="mb-6">
+              <Eyebrow tone="indigo" className="mb-4 sm:mb-6">
                 {isFr ? 'Réceptionniste IA' : 'AI receptionist'}
               </Eyebrow>
-              <Display className="mb-7">
+              <Display className="mb-5 sm:mb-7">
                 {isFr ? (
                   <>
                     Il ne prend pas le message. <SerifWord>Il prend le rendez-vous.</SerifWord>
@@ -371,14 +374,14 @@ export default function Receptionist() {
                   </>
                 )}
               </Display>
-              <Lead className="max-w-[500px] mb-10 q2-body-text">
+              <Lead className="max-w-[500px] mb-7 sm:mb-10 q2-body-text">
                 {isFr
                   ? `Il répond, lit votre agenda Google en direct et inscrit le créneau avant la fin de la conversation. Il vous résume l’appelant avant de vous le passer, et reconnaît ceux qui rappellent. Français et anglais sur le même appel, à partir de 99${NB}€ par mois.`
                   : 'It answers, reads your Google calendar live and writes the slot in before the conversation ends. It briefs you on the caller before handing over, and recognises the ones who call back. French and English on the same call, from €99 a month.'}
               </Lead>
 
-              <div className="flex flex-wrap items-center gap-3 mb-12">
-                <PillLink to="/demo.html" variant="primary" size="lg">
+              <div className="flex flex-wrap items-center gap-3 mb-8 sm:mb-12">
+                <PillLink to="/demo.html" variant="primary" size="lg" className="q2-pill-lit">
                   <Play size={13} fill="currentColor" aria-hidden="true" />
                   {isFr ? 'Écouter une démo' : 'Hear a demo'}
                 </PillLink>
@@ -389,7 +392,7 @@ export default function Receptionist() {
               </div>
 
               {/* Propriétés vérifiables du produit uniquement (DA/voix.md) */}
-              <dl className="flex flex-wrap items-baseline gap-x-9 gap-y-3 text-sm text-q2-body border-t border-q2-plate pt-6 max-w-[540px]">
+              <dl className="flex flex-wrap items-baseline gap-x-6 sm:gap-x-9 gap-y-3 text-sm text-q2-body border-t border-q2-plate pt-5 sm:pt-6 max-w-[540px]">
                 <div className="flex items-baseline gap-2 whitespace-nowrap">
                   <dt className="sr-only">{isFr ? 'Temps de décrochage' : 'Pickup time'}</dt>
                   <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">&lt;1&nbsp;s</dd>
@@ -419,9 +422,9 @@ export default function Receptionist() {
       <Section hairline aria-labelledby="pillars-heading">
         <Container>
           <RevealV2 className="mb-4 md:mb-10">
-            <div className="grid lg:grid-cols-[1fr_1fr] gap-8 lg:gap-16 items-end">
+            <div className="grid lg:grid-cols-[1fr_1fr] gap-6 sm:gap-8 lg:gap-16 items-end">
               <div>
-                <Eyebrow tone="indigo" className="mb-4">
+                <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
                   {isFr ? 'Pendant l’appel' : 'During the call'}
                 </Eyebrow>
                 <H2 id="pillars-heading" className="max-w-[560px]">
@@ -449,9 +452,9 @@ export default function Receptionist() {
               const flip = i % 2 === 1;
               return (
                 <RevealV2 key={pillar.num} as="article" className="border-b border-q2-plate">
-                  <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center py-12 md:py-20">
+                  <div className="grid lg:grid-cols-2 gap-7 sm:gap-10 lg:gap-20 items-center py-8 sm:py-12 md:py-20">
                     <div className={flip ? 'lg:order-2' : ''}>
-                      <div className="flex items-center gap-3 mb-6">
+                      <div className="flex items-center gap-3 mb-4 sm:mb-6">
                         <span className="w-11 h-11 rounded-full bg-q2-plate flex items-center justify-center">
                           <pillar.icon size={18} className="text-q2-indigo" aria-hidden="true" />
                         </span>
@@ -495,10 +498,13 @@ export default function Receptionist() {
       </Section>
 
       {/* PILIER 5, drenched indigo: la seule action chromatique est la pilule du mockup */}
-      <Section variant="drenched-indigo" aria-labelledby="config-heading">
-        <Container className="grid lg:grid-cols-[1fr_1.05fr] gap-12 lg:gap-20 items-center">
+      {/* overflow-hidden: le halo de la capture déborde de 24px sur petit
+          écran, il doit être coupé par la section et non pousser la page */}
+      <Section variant="drenched-indigo" aria-labelledby="config-heading" className="relative overflow-hidden">
+        <div aria-hidden="true" className="q2-hairline-lit absolute inset-x-0 top-0" />
+        <Container className="grid lg:grid-cols-[1fr_1.05fr] gap-9 sm:gap-12 lg:gap-20 items-center">
           <RevealV2>
-            <Eyebrow tone="indigo" onDark className="mb-4">
+            <Eyebrow tone="indigo" onDark className="mb-3 sm:mb-4">
               {isFr ? 'Configuration' : 'Setup'}
             </Eyebrow>
             <H2 id="config-heading" onDark className="max-w-[520px]">
@@ -512,15 +518,15 @@ export default function Receptionist() {
                 </>
               )}
             </H2>
-            <p className="mt-6 text-q2-mist text-base leading-relaxed max-w-[440px] q2-body-text">
+            <p className="mt-5 sm:mt-6 text-q2-mist text-base leading-relaxed max-w-[440px] q2-body-text">
               {isFr
                 ? 'Pas de formulaire à quinze champs. Vous écrivez ou vous dictez une phrase, le réglage est appliqué et relu devant vous. Ce qui touche vos tarifs demande toujours une confirmation avant d’être écrit.'
                 : 'No fifteen-field form. You write or dictate one sentence, the setting is applied and read back to you. Anything touching your rates always asks for confirmation before it is written.'}
             </p>
 
-            <ul className="mt-10 border-t border-q2-graphite-d" role="list">
+            <ul className="mt-8 sm:mt-10 border-t border-q2-graphite-d" role="list">
               {configFacts.map((fact) => (
-                <li key={fact.title} className="flex items-start gap-4 border-b border-q2-graphite-d py-5">
+                <li key={fact.title} className="flex items-start gap-4 border-b border-q2-graphite-d py-4 sm:py-5">
                   <fact.icon size={16} className="mt-0.5 shrink-0 text-q2-lift" aria-hidden="true" />
                   <div>
                     <p className="text-white text-[15px] mb-1">{fact.title}</p>
@@ -535,8 +541,15 @@ export default function Receptionist() {
 
           <RevealV2 index={1}>
             {/* Vraie capture du chat de configuration du dashboard */}
-            <figure>
-              <div className="rounded-xl overflow-hidden border border-q2-graphite-d bg-q2-carbon">
+            <figure className="relative">
+              {/* Même traitement que le suivi d'appel sur la Home: la capture
+                  est posée dans une lueur, jamais découpée dans le noir */}
+              <div
+                aria-hidden="true"
+                className="q2-halo q2-halo-dark -inset-6 sm:-inset-10 rounded-[64px]"
+                style={halo(0.24)}
+              />
+              <div className="relative q2-lit rounded-xl overflow-hidden border border-q2-graphite-d bg-q2-carbon">
                 <img
                   src="/screens/chat-config.webp"
                   alt={
@@ -548,7 +561,7 @@ export default function Receptionist() {
                   className="w-full h-auto block"
                 />
               </div>
-              <figcaption className="mt-3 px-1 text-[12.5px] text-q2-fog q2-body-text">
+              <figcaption className="relative mt-3 px-1 text-[12.5px] text-q2-fog q2-body-text">
                 {isFr ? 'Capture du dashboard, compte de démonstration.' : 'Dashboard screenshot, demo account.'}
               </figcaption>
             </figure>
@@ -559,10 +572,10 @@ export default function Receptionist() {
       {/* VOIX ET TON, bande taupe: deux aperçus jouables puis la liste hairline */}
       <Section variant="band" hairline aria-labelledby="voices-heading">
         <Container>
-          <RevealV2 className="mb-12 md:mb-16">
-            <div className="flex items-end justify-between gap-8 flex-wrap">
+          <RevealV2 className="mb-8 sm:mb-12 md:mb-16">
+            <div className="flex items-end justify-between gap-6 sm:gap-8 flex-wrap">
               <div>
-                <Eyebrow tone="indigo" className="mb-4">
+                <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
                   {isFr ? 'Voix et ton' : 'Voice and tone'}
                 </Eyebrow>
                 <H2 id="voices-heading" className="max-w-[640px]">
@@ -585,8 +598,8 @@ export default function Receptionist() {
             </div>
           </RevealV2>
 
-          <RevealV2 className="mb-12">
-            <div className="flex items-center gap-x-5 gap-y-4 flex-wrap border-y border-q2-plate py-6">
+          <RevealV2 className="mb-8 sm:mb-12">
+            <div className="flex items-center gap-x-5 gap-y-3 flex-wrap border-y border-q2-plate py-5 sm:py-6">
               <span className="q2-eyebrow text-q2-body">{isFr ? 'Langues' : 'Languages'}</span>
               <ul className="flex flex-wrap gap-2" role="list">
                 {[
@@ -615,7 +628,7 @@ export default function Receptionist() {
 
           <RevealV2 index={2}>
             <CardV2 variant="canvas" large>
-              <div className="grid md:grid-cols-[1fr_1.4fr] gap-8 md:gap-12">
+              <div className="grid md:grid-cols-[1fr_1.4fr] gap-7 sm:gap-8 md:gap-12">
                 <div>
                   <p className="q2-eyebrow text-q2-body mb-4">{isFr ? 'Les huit autres' : 'The other eight'}</p>
                   <p className="text-q2-body text-sm leading-relaxed q2-body-text max-w-[260px]">
@@ -634,11 +647,13 @@ export default function Receptionist() {
                     ))}
                   </ul>
                 </div>
+                {/* Sous 640px la note passe sous le nom au lieu de se
+                    comprimer en colonne de trente pixels */}
                 <ul className="border-t border-q2-plate" role="list">
                   {otherVoices.map((voice) => (
                     <li
                       key={voice.name}
-                      className="grid grid-cols-[32px_72px_1fr_auto] gap-4 items-center border-b border-q2-plate py-3"
+                      className="grid grid-cols-[32px_1fr_auto] sm:grid-cols-[32px_72px_1fr_auto] gap-x-3 sm:gap-x-4 gap-y-0.5 items-center border-b border-q2-plate py-3"
                     >
                       <img
                         src={`/characters/${voice.id}.webp`}
@@ -646,11 +661,15 @@ export default function Receptionist() {
                         loading="lazy"
                         width={32}
                         height={32}
-                        className="w-8 h-8 rounded-full object-cover"
+                        className="row-span-2 sm:row-span-1 w-8 h-8 rounded-full object-cover"
                       />
                       <span className="text-q2-ink text-[15px]">{voice.name}</span>
-                      <span className="text-q2-body text-[13.5px] leading-snug q2-body-text">{voice.note}</span>
-                      <span className="q2-eyebrow text-q2-body">{voice.tag}</span>
+                      <span className="col-start-2 sm:col-start-3 row-start-2 sm:row-start-1 text-q2-body text-[13.5px] leading-snug q2-body-text">
+                        {voice.note}
+                      </span>
+                      <span className="col-start-3 sm:col-start-4 row-start-1 q2-eyebrow text-q2-body">
+                        {voice.tag}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -663,7 +682,7 @@ export default function Receptionist() {
               supprimable. On ne promet pas l'appel test avec la voix clonee. */}
           <RevealV2 index={3} className="mt-5">
             <CardV2 variant="canvas" large>
-              <div className="grid md:grid-cols-[1fr_1.4fr] gap-8 md:gap-12 items-start">
+              <div className="grid md:grid-cols-[1fr_1.4fr] gap-6 sm:gap-8 md:gap-12 items-start">
                 <div>
                   <p className="q2-eyebrow text-q2-indigo mb-4">{isFr ? 'Ou la vôtre' : 'Or your own'}</p>
                   <p className="text-[22px] font-light tracking-tight text-q2-ink leading-snug max-w-[300px]">
@@ -709,9 +728,9 @@ export default function Receptionist() {
 
       {/* PILIER 6, canvas: connaissances prioritaires et scripts par métier */}
       <Section aria-labelledby="knowledge-heading">
-        <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-20 items-start">
+        <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-9 sm:gap-12 lg:gap-20 items-start">
           <RevealV2>
-            <Eyebrow tone="indigo" className="mb-4">
+            <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
               {isFr ? 'Vos réponses' : 'Your answers'}
             </Eyebrow>
             <H2 id="knowledge-heading" className="max-w-[460px]">
@@ -725,7 +744,7 @@ export default function Receptionist() {
                 </>
               )}
             </H2>
-            <p className="mt-6 text-q2-body text-base leading-relaxed max-w-[420px] q2-body-text">
+            <p className="mt-5 sm:mt-6 text-q2-body text-base leading-relaxed max-w-[420px] q2-body-text">
               {isFr
                 ? 'Vos règles de maison et vos réponses les plus utilisées sont dans sa tête en permanence. Le reste, il va le chercher quand la question tombe, et il retrouve la bonne réponse même formulée autrement. Vous pouvez donc en avoir des centaines sans alourdir chaque appel.'
                 : 'Your house rules and your most-used answers sit in its head permanently. The rest it looks up when the question lands, and it finds the right answer even when the wording differs. So you can keep hundreds of entries without weighing down every call.'}
@@ -763,7 +782,7 @@ export default function Receptionist() {
                   <Link
                     key={trade.href}
                     to={trade.href}
-                    className="inline-flex items-center rounded-full bg-q2-canvas border border-q2-plate px-4 py-2 text-[13px] font-medium text-q2-ink hover:border-q2-indigo hover:text-q2-indigo transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
+                    className="inline-flex items-center min-h-[44px] rounded-full bg-q2-canvas border border-q2-plate px-4 py-2 text-[13px] font-medium text-q2-ink hover:border-q2-indigo hover:text-q2-indigo transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
                   >
                     {trade.label}
                   </Link>
@@ -776,12 +795,12 @@ export default function Receptionist() {
 
       {/* PILIERS 7 à 9, bande taupe: ce qui revient au patron et ce qui est cadré */}
       <Section variant="band" hairline aria-labelledby="after-heading">
-        <Container className="grid lg:grid-cols-[1.5fr_1fr] gap-12 lg:gap-20 items-start">
+        <Container className="grid lg:grid-cols-[1.5fr_1fr] gap-9 sm:gap-12 lg:gap-20 items-start">
           <RevealV2>
-            <Eyebrow tone="indigo" className="mb-4">
+            <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
               {isFr ? 'Après l’appel' : 'After the call'}
             </Eyebrow>
-            <H2 id="after-heading" className="max-w-[520px] mb-10">
+            <H2 id="after-heading" className="max-w-[520px] mb-7 sm:mb-10">
               {isFr ? (
                 <>
                   Ce qui vous revient, <SerifWord>et ce qui est cadré.</SerifWord>
@@ -794,8 +813,8 @@ export default function Receptionist() {
             </H2>
             <ol className="border-t border-q2-plate" role="list">
               {afterCall.map((item, i) => (
-                <li key={item.title} className="border-b border-q2-plate py-6">
-                  <div className="grid md:grid-cols-[48px_1fr] gap-3 md:gap-6">
+                <li key={item.title} className="border-b border-q2-plate py-5 sm:py-6">
+                  <div className="grid md:grid-cols-[48px_1fr] gap-2 md:gap-6">
                     <span className="q2-eyebrow text-q2-body tabular-nums" aria-hidden="true">
                       {String(i + 1).padStart(2, '0')}
                     </span>
@@ -841,9 +860,15 @@ export default function Receptionist() {
       <Section
         variant="drenched-violet"
         aria-label={isFr ? 'Démarrer avec Qwillio' : 'Get started with Qwillio'}
-        className="border-t border-q2-graphite-d"
+        className="relative overflow-hidden border-t border-q2-graphite-d"
       >
-        <Container className="grid lg:grid-cols-[1.5fr_1fr] gap-10 items-end">
+        <div aria-hidden="true" className="q2-hairline-lit absolute inset-x-0 top-0" />
+        <div
+          aria-hidden="true"
+          className="q2-halo q2-halo-violet absolute left-1/2 -translate-x-1/2 -bottom-40 w-[760px] h-[320px]"
+          style={halo(0.3)}
+        />
+        <Container className="relative grid lg:grid-cols-[1.5fr_1fr] gap-8 sm:gap-10 items-end">
           <RevealV2>
             <Display as="h2" onDark>
               {isFr ? (
@@ -864,7 +889,7 @@ export default function Receptionist() {
                 : '7-day free trial. No commitment, cancel in one click.'}
             </p>
             <div className="flex flex-wrap gap-3 lg:justify-end">
-              <PillLink to="/register" variant="chromatic" size="lg">
+              <PillLink to="/register" variant="chromatic" size="lg" className="q2-pill-lit">
                 {isFr ? 'Créer un compte' : 'Create an account'}
                 <ArrowRight size={16} aria-hidden="true" />
               </PillLink>

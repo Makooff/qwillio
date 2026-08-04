@@ -173,7 +173,7 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
               key={NODES[i].id}
               data-orbit-line
               d={d}
-              stroke="rgba(122, 95, 255, 0.28)"
+              stroke="rgba(122, 95, 255, 0.34)"
               strokeWidth={1.25}
               strokeLinecap="round"
             />
@@ -181,10 +181,16 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
         )}
       </svg>
 
+      {/* Lueur du centre: le hub est la source, les traits en partent */}
+      <div
+        aria-hidden="true"
+        className="q2-halo absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] sm:w-[380px] sm:h-[380px]"
+      />
+
       {/* Le hub: le logo tel quel, jamais redessiné */}
       <div
         ref={hubRef}
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[76px] h-[76px] sm:w-[104px] sm:h-[104px] rounded-full bg-q2-canvas border border-q2-plate flex items-center justify-center shadow-[var(--q2-shadow-whisper)]"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[76px] h-[76px] sm:w-[104px] sm:h-[104px] rounded-full bg-q2-canvas border border-q2-plate flex items-center justify-center shadow-[0_0_0_1px_rgba(122,95,255,0.12),0_18px_44px_-20px_rgba(122,95,255,0.6)]"
       >
         <QwillioLogo size={46} className="w-9 h-9 sm:w-[46px] sm:h-[46px]" />
       </div>
@@ -193,14 +199,14 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
         <div
           key={n.id}
           data-orbit-node={n.id}
-          className={`absolute ${n.corner} w-[120px] sm:w-[168px] rounded-[18px] bg-q2-canvas border border-q2-plate px-3 py-3 shadow-[var(--q2-shadow-whisper)]`}
+          className={`q2-lit absolute ${n.corner} w-[120px] sm:w-[168px] rounded-[18px] bg-q2-canvas border border-q2-plate px-3 py-3 shadow-[var(--q2-shadow-whisper)]`}
         >
-          <span className="relative inline-flex items-center justify-center w-8 h-8 rounded-full bg-q2-band">
+          <span className="relative inline-flex items-center justify-center w-8 h-8 rounded-full bg-q2-band shadow-[0_0_12px_-2px_rgba(122,95,255,0.55)]">
             <n.icon size={15} className="text-q2-indigo" aria-hidden="true" />
             <span
               data-orbit-pulse
               aria-hidden="true"
-              className="absolute inset-0 rounded-full border border-q2-indigo/40"
+              className="absolute inset-0 rounded-full border border-q2-indigo/40 shadow-[0_0_10px_0_rgba(122,95,255,0.35)]"
               style={{ willChange: 'transform, opacity' }}
             />
           </span>
