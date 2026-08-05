@@ -13,21 +13,22 @@ import { useLang } from '../../stores/langStore';
 import { EASE_OUT_EXPO } from './motion/reducedMotion';
 import { useGlow } from './motion/GlowCard';
 
-/* Nav V2: barre typographique crème pleine largeur au repos qui, passé ~80px
-   de scroll, se DÉTACHE en pilule flottante compacte centrée (max-width
-   réduite, radius 9999, fond canvas translucide, hairline, ombre whisper).
-   Le trajet est un ressort framer-motion, réversible en remontant, avec une
-   hystérésis 80/40px pour qu'un scroll d'un pixel ne fasse pas battre la
-   barre.
+/* Nav V2 (demande utilisateur, deux états) :
+   - AU REPOS (haut de page) : aucune surface blanche sous le logo/menu.
+     À la place, un voile de flou progressif permanent sur la bande d'entête :
+     très flou tout en haut, de moins en moins flou en descendant (backdrop
+     blur masqué par un dégradé vertical qui se prolonge sous la barre).
+   - AU SCROLL (hystérésis 80/40px) : la barre se détache en BULLE flottante
+     compacte (ressort framer réversible), et le fond de la bulle est
+     TRANSPARENT FLOU (verre : backdrop-blur + teinte crème très légère),
+     plus jamais blanc. Le voile de repos s'efface pendant que la bulle vit.
 
    Exception glassmorphism assumée et bornée: le `backdrop-blur` n'existe QUE
-   sur le chrome de nav une fois détaché, là où du contenu passe dessous. Au
-   repos la barre est totalement transparente, donc aucun filtre à composer.
-   Le ban glassmorphism reste entier partout ailleurs (DA/v2-direction.md).
+   sur ce chrome de nav. Le ban reste entier partout ailleurs
+   (DA/v2-direction.md).
 
    Aucun décalage de mise en page: l'en-tête est `fixed`, PublicShell réserve
-   déjà les 64px de haut, et la pilule ne fait que rétrécir à l'intérieur de
-   cette bande.
+   déjà les 64px de haut.
 
    CTA unique: pilule encre « Essayer » vers /register. */
 
@@ -474,6 +475,24 @@ export default function NavV2() {
         }}
         transition={reduced ? { duration: 0 } : DETACH_SPRING}
       >
+        {/* Voile de repos : flou progressif permanent sur la bande d'entête,
+            très flou en haut, qui s'estompe en descendant et déborde sous la
+            barre. Aucune surface blanche : juste le contenu qui fond. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0"
+          style={{
+            height: '160%',
+            opacity: floating || menuOpen ? 0 : 1,
+            transition: 'opacity 320ms cubic-bezier(0.16, 1, 0.3, 1)',
+            backdropFilter: 'blur(24px) saturate(1.4)',
+            WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+            maskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
+            background:
+              'linear-gradient(to bottom, rgba(253, 252, 252, 0.4), rgba(253, 252, 252, 0.12) 55%, rgba(253, 252, 252, 0))',
+          }}
+        />
         <motion.nav
           aria-label={isFr ? 'Navigation principale' : 'Main navigation'}
           animate={{
@@ -482,15 +501,18 @@ export default function NavV2() {
             borderRadius: floating ? 999 : 0,
           }}
           transition={reduced ? { duration: 0 } : DETACH_SPRING}
-          /* Liste de propriétés explicite: la couleur et l'ombre glissent en
-             CSS pendant que le ressort framer porte la géométrie */
+          /* Bulle en verre : la géométrie vient du ressort framer, la peau
+             (teinte, bord, ombre) glisse en CSS. Fond transparent flouté,
+             jamais blanc. */
           style={{
             boxShadow: floating ? 'var(--q2-shadow-whisper)' : 'none',
             transition:
               'background-color 260ms cubic-bezier(0.16, 1, 0.3, 1), border-color 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1)',
           }}
-          className={`mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 border ${
-            floating ? 'bg-q2-canvas/80 backdrop-blur-xl border-q2-plate' : 'bg-transparent border-transparent'
+          className={`relative mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 border ${
+            floating
+              ? 'bg-white/20 backdrop-blur-2xl border-q2-plate/70'
+              : 'bg-transparent border-transparent'
           }`}
         >
           <Link

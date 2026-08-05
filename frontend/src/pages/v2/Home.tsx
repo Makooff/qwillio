@@ -170,7 +170,11 @@ export default function Home() {
   return (
     <PublicShell>
       {/* ── HERO, un réceptionniste qui agit, pas qui note ── */}
-      <Section aria-labelledby="hero-heading" className="relative !pt-16 md:!pt-24 overflow-hidden">
+      {/* Le hero remonte sous la nav fixe (-mt-16 annule la bande réservée par
+          PublicShell, le padding la rend au contenu) : le fond pixel-blush vit
+          jusqu'au bord haut de la page et le voile flou de la nav fond dedans,
+          sans carré blanc. */}
+      <Section aria-labelledby="hero-heading" className="relative -mt-16 !pt-32 md:!pt-40 overflow-hidden">
         {/* Voile lilas du hero: fini le blanc plat, le fond respire vers le canvas.
             Il démarre sur le canvas exact, puis s'ouvre: la barre de nav
             transparente n'a plus d'arête visible sous elle. */}

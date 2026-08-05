@@ -13,11 +13,11 @@ import { prefersReducedMotion } from './motion/reducedMotion';
    whileTap 0.95, points indicateurs (l'actif s'étire en pilule).
 
    Écarts assumés vis-à-vis de la référence, exigés ou déjà validés :
-   - les items sont des BULLES avatar rondes, l'actif nettement plus grand
-     (échelles par distance, pas la décroissance linéaire douce du source) ;
-   - l'angle par item vient d'un pas de PI/7 et l'arc s'arrête à 3 voisins :
-     avec nos 10 visages, le pas de la référence (PI/5) les enroulerait sous
-     l'ellipse (bug de wraparound déjà corrigé en phase 6) ;
+   - les items sont des BULLES avatar rondes, et l'actif est DEUX FOIS plus
+     grand que les autres (décision utilisateur) : voisins à ~0.5 puis
+     décroissance douce pour que le morphing reste fluide pendant l'orbite ;
+     le mouvement lui-même (pas PI/5, wrap orbital jusqu'à |d| 4, opacité,
+     timings) est celui du source, sans retouche ;
    - le compteur central du source (l'ellipse est occupée par les visages)
      rejoint la rangée de contrôles, entre les chevrons ;
    - les dots de la référence portent transition-all, banni par la DA :
@@ -51,13 +51,15 @@ const PRESETS: Preset[] = [
 ];
 
 const COUNT = PRESETS.length;
-/* Pas angulaire de l'arc et dernier voisin affiché (voir en-tête) */
-const STEP = Math.PI / 7;
-const EDGE = 3;
-/* Actif nettement plus grand que ses voisins : exigence utilisateur */
-const SCALE = [1, 0.52, 0.4, 0.3];
-/* Décroissance d'opacité de la référence : max(0.3, 1 - d/maxD * 0.7) */
-const OPACITY = [1, 0.825, 0.65, 0.475];
+/* Constantes du source nexus-ui : VISIBLE_COUNT 5 -> pas PI/5, wrap orbital
+   jusqu'à |d| = half*2 = 4 (les visages font le tour de l'ellipse) */
+const STEP = Math.PI / 5;
+const EDGE = 4;
+/* Actif 2x plus grand que les autres (décision utilisateur), décroissance
+   douce ensuite pour garder le morphing fluide pendant la rotation */
+const SCALE = [1, 0.5, 0.46, 0.42, 0.38];
+/* Formule d'opacité du source : max(0.3, 1 - d/(half+1) * 0.7) */
+const OPACITY = [1, 0.767, 0.533, 0.3, 0.3];
 /* Diamètre DOM du visage avant mise à l'échelle */
 const FACE = 160;
 const NARROW = 520;
@@ -272,7 +274,7 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
       if (w === 0) return;
       const face = w < NARROW ? 116 : FACE;
       const rx = Math.min(w * 0.42, 250);
-      setDims({ rx, ry: Math.round(rx * 0.45), face });
+      setDims({ rx, ry: Math.round(rx * 0.42), face });
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -389,11 +391,11 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        className="relative h-[300px] sm:h-[380px] overflow-hidden touch-pan-y select-none outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-3xl"
+        className="relative h-[300px] sm:h-[400px] overflow-hidden touch-pan-y select-none outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-3xl"
       >
-        {/* Décalage du repère : le centre de l'ellipse vit sous le milieu de
-            scène pour que l'actif (en haut de l'ellipse) respire */}
-        <div className="absolute left-1/2 top-[62%]">
+        {/* Centre de l'ellipse au milieu de scène : l'orbite complète occupe
+            le haut (actif) ET redescend derrière en bas, comme la référence */}
+        <div className="absolute left-1/2 top-1/2">
           {/* Anneau décoratif sous la bulle active : l'arc vient à lui */}
           <span
             aria-hidden="true"
