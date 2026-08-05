@@ -111,8 +111,17 @@ async function main() {
      que l'image finale fait exactement la taille de l'écran de l'appareil et
      que la barre de navigation basse reste collée en bas. */
   const shots = figma
+    /* Chaque format reprend le ratio EXACT de la zone d'écran du mockup
+       correspondant, relevé dans les fichiers Figma de l'utilisateur, pour que
+       l'image remplisse le masque sans être ni étirée ni rognée :
+         Chrome (kit macOS)  corps 1280 x 705
+         Safari Big Sur      corps 1280 x 731 (barre d'outils 53)
+         MacBook Pro 16      écran 2061.87 x 1334.09
+         iPhone 15 Pro       écran 1179 x 2556 (54 pt de barre d'état en haut) */
     ? [
-        { width: 1280, height: 705, scale: 3, out: '/tmp/qwillio-figma/dashboard-navigateur.png', png: true },
+        { width: 1280, height: 705, scale: 3, out: '/tmp/qwillio-figma/dashboard-chrome.png', png: true },
+        { width: 1280, height: 731, scale: 3, out: '/tmp/qwillio-figma/dashboard-safari.png', png: true },
+        { width: 1374, height: 889, scale: 3, out: '/tmp/qwillio-figma/dashboard-macbook.png', png: true },
         { width: 393, height: 852 - 54, scale: 3, statusBar: 54, out: '/tmp/qwillio-figma/dashboard-iphone.png', png: true },
       ]
     : [
