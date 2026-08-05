@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import QwillioLogo from './QwillioLogo';
+import { blobKeyframes } from './blobPath';
 
 /**
  * Launch animation for the installed app.
@@ -44,43 +45,22 @@ const BLOB = {
  */
 const TRAVEL_SCALE = 1.12;
 
-/**
- * How a body of liquid behaves with nothing to fall onto: drawn out along its
- * path, then pulled back by surface tension, overshooting and settling. The two
- * axes are in antiphase because volume is conserved — wider always means
- * shorter — and the swings decay rather than bouncing, because there is no
- * surface to bounce off.
- *
- * The scale carries the shrink as well as the wobble: one keyframe list, so the
- * two can never disagree about where the shape is.
- */
-const WOBBLE = {
-  times: [0, 0.34, 0.52, 0.66, 0.78, 0.9, 1],
-  scaleX: [TRAVEL_SCALE * 0.82, TRAVEL_SCALE * 0.9, TRAVEL_SCALE * 1.1, 0.94, 1.05, 0.98, 1],
-  scaleY: [TRAVEL_SCALE * 1.24, TRAVEL_SCALE * 1.12, TRAVEL_SCALE * 0.9, 1.07, 0.96, 1.02, 1],
-  /**
-   * The outline drifts with it. A free-floating bubble is never a perfect
-   * ellipse: its radii differ around the shape and keep changing, which is what
-   * the eye reads as a membrane rather than as a stretched circle.
-   */
-  radius: [
-    '54% 46% 58% 42% / 48% 56% 44% 52%',
-    '42% 58% 46% 54% / 62% 44% 56% 38%',
-    '58% 42% 52% 48% / 40% 58% 42% 60%',
-    '48% 52% 44% 56% / 56% 46% 54% 44%',
-    '52% 48% 53% 47% / 47% 52% 48% 53%',
-    '49% 51% 50% 50% / 51% 49% 51% 49%',
-    '50% 50% 50% 50% / 50% 50% 50% 50%',
-  ],
-};
+/** The scale over the journey: a little large on arrival, settling to exact. */
+const SETTLE = [TRAVEL_SCALE, TRAVEL_SCALE * 1.04, 1.03, 0.99, 1];
 
 /**
- * The droplets that get swallowed.
- *
- * A satellite caught by the surface it is falling towards is the clearest
- * single sign that the thing is liquid. They vanish into the mass rather than
- * fading: under the filter, shrinking next to a larger body looks like being
- * drunk by it.
+ * The box the outlines are drawn in. Wide enough that a bubble can swell and
+ * still have room, and it is the same coordinate space as the mark's own 512
+ * box scaled to LOGO, so a resting bubble sits exactly on its lobe.
+ */
+const BOX = LOGO * 1.9;
+const CENTRE = BOX / 2;
+
+/**
+ * The droplets that get swallowed. A satellite caught by the surface it is
+ * falling towards is the clearest single sign that the thing is liquid — they
+ * vanish into the mass rather than fading, which under the filter looks like
+ * being drunk by it.
  */
 const SATELLITE = {
   times: [0, 0.5, 0.72, 1],
@@ -89,33 +69,36 @@ const SATELLITE = {
 
 interface Drop {
   key: string;
-  size: number;
-  /** Resting offset from the centre of the band, in pixels. */
-  x: number;
-  y: number;
-  fill: string;
+  /** Outline keyframes, from arrival wobble to a circle at rest. */
+  shapes: string[];
+  stops: Array<{ offset: string; color: string }>;
   from: string;
   travel: string[];
   delay: number;
   satellite?: boolean;
 }
 
+const R = px(ORB.r);
+const LOBE_LEFT = CENTRE - (LOGO / 2 - BLOB.leftX - R);
+const LOBE_RIGHT = CENTRE + (BLOB.rightX + R - LOGO / 2);
+const LOBE_Y = CENTRE + (BLOB.top + R - LOGO / 2);
+
 /**
  * Painted in the mark's own order: violet first, indigo over it. The left lobe
  * is on top in the logo, so it is on top here for the whole journey.
  *
- * The fills are three-stop gradients rather than flat colour — light gathered
- * off-centre, saturated body, a darker far side. The filter blurs them, which
- * is exactly right: the shading softens into the surface instead of sitting on
- * it like the white smear the previous version painted on top.
+ * Each gradient is light gathered off-centre, a saturated body and a darker far
+ * side — the shading is in the material rather than painted on top of it.
  */
 const DROPS: Drop[] = [
   {
     key: 'satellite-right',
-    size: BLOB.size * 0.26,
-    x: BLOB.rightX - LOGO / 2 + BLOB.size * 0.78,
-    y: BLOB.top - LOGO / 2 + BLOB.size * 0.42,
-    fill: 'radial-gradient(circle at 34% 28%, #EFB2FF 0%, #CD6BFB 55%, #9B37D0 100%)',
+    shapes: blobKeyframes(LOBE_RIGHT + R * 1.5, LOBE_Y + R * 0.85, R * 0.26, 2.2),
+    stops: [
+      { offset: '0%', color: '#EFB2FF' },
+      { offset: '55%', color: '#CD6BFB' },
+      { offset: '100%', color: '#9B37D0' },
+    ],
     from: '86vh',
     travel: ['86vh', '16vh', '3vh', '0vh'],
     delay: 0.04,
@@ -123,10 +106,13 @@ const DROPS: Drop[] = [
   },
   {
     key: 'right',
-    size: BLOB.size,
-    x: BLOB.rightX - LOGO / 2,
-    y: BLOB.top - LOGO / 2,
-    fill: 'radial-gradient(circle at 32% 26%, #F6C8FF 0%, #E08BFF 26%, #CD6BFB 55%, #8E2FC6 100%)',
+    shapes: blobKeyframes(LOBE_RIGHT, LOBE_Y, R, 0),
+    stops: [
+      { offset: '0%', color: '#F6C8FF' },
+      { offset: '26%', color: '#E08BFF' },
+      { offset: '55%', color: '#CD6BFB' },
+      { offset: '100%', color: '#8E2FC6' },
+    ],
     from: '76vh',
     // Rises from below the fold, overshoots the meeting point, and drifts back.
     travel: ['76vh', '16vh', '1.5vh', '-0.6vh', '0.2vh', '0vh', '0vh'],
@@ -136,10 +122,12 @@ const DROPS: Drop[] = [
   },
   {
     key: 'satellite-left',
-    size: BLOB.size * 0.22,
-    x: BLOB.leftX - LOGO / 2 - BLOB.size * 0.62,
-    y: BLOB.top - LOGO / 2 - BLOB.size * 0.3,
-    fill: 'radial-gradient(circle at 34% 28%, #C3B6FF 0%, #7A5FFF 55%, #4A32C4 100%)',
+    shapes: blobKeyframes(LOBE_LEFT - R * 1.35, LOBE_Y - R * 0.6, R * 0.22, 4.1),
+    stops: [
+      { offset: '0%', color: '#C3B6FF' },
+      { offset: '55%', color: '#7A5FFF' },
+      { offset: '100%', color: '#4A32C4' },
+    ],
     from: '-84vh',
     travel: ['-84vh', '-15vh', '-2.5vh', '0vh'],
     delay: 0,
@@ -147,10 +135,15 @@ const DROPS: Drop[] = [
   },
   {
     key: 'left',
-    size: BLOB.size,
-    x: BLOB.leftX - LOGO / 2,
-    y: BLOB.top - LOGO / 2,
-    fill: 'radial-gradient(circle at 32% 26%, #D8D0FF 0%, #9E8CFF 26%, #7A5FFF 55%, #452BC0 100%)',
+    // A different phase from the right one: twins deforming in unison are the
+    // fastest way to make something look computed.
+    shapes: blobKeyframes(LOBE_LEFT, LOBE_Y, R, 3.4),
+    stops: [
+      { offset: '0%', color: '#D8D0FF' },
+      { offset: '26%', color: '#9E8CFF' },
+      { offset: '55%', color: '#7A5FFF' },
+      { offset: '100%', color: '#452BC0' },
+    ],
     from: '-76vh',
     travel: ['-76vh', '-16vh', '-1.5vh', '0.6vh', '-0.2vh', '0vh', '0vh'],
     delay: 0,
@@ -277,42 +270,49 @@ export default function SplashScreen({
                 animate={{ opacity: 0 }}
                 transition={{ duration: t.resolve, delay: t.travel + t.settle, ease: 'linear' }}
               >
-                {DROPS.map(drop => (
-                  <motion.div
-                    key={drop.key}
-                    className="absolute"
-                    style={{
-                      width: drop.size,
-                      height: drop.size,
-                      // Positioned against the band's centre so the resting
-                      // place is the lobe's own spot inside the mark.
-                      left: `calc(50% + ${drop.x}px)`,
-                      top: `calc(50% + ${drop.y}px)`,
-                      background: drop.fill,
-                      borderRadius: '50%',
-                      willChange: 'transform, border-radius',
-                    }}
-                    initial={{
-                      y: reduced ? 0 : drop.from,
-                      scaleX: reduced ? 1 : drop.satellite ? SATELLITE.scale[0] : WOBBLE.scaleX[0],
-                      scaleY: reduced ? 1 : drop.satellite ? SATELLITE.scale[0] : WOBBLE.scaleY[0],
-                      opacity: reduced && drop.satellite ? 0 : 1,
-                    }}
-                    animate={{
-                      y: reduced ? 0 : drop.travel,
-                      scaleX: reduced ? 1 : drop.satellite ? SATELLITE.scale : WOBBLE.scaleX,
-                      scaleY: reduced ? 1 : drop.satellite ? SATELLITE.scale : WOBBLE.scaleY,
-                      borderRadius: reduced || drop.satellite ? '50%' : WOBBLE.radius,
-                      opacity: drop.satellite && reduced ? 0 : 1,
-                    }}
-                    transition={{
-                      duration: t.travel + t.settle,
-                      delay: reduced ? 0 : drop.delay,
-                      times: reduced ? undefined : drop.satellite ? SATELLITE.times : WOBBLE.times,
-                      ease: EASE_OUT_EXPO,
-                    }}
-                  />
-                ))}
+                <svg
+                  viewBox={`0 0 ${BOX} ${BOX}`}
+                  className="absolute inset-0 h-full w-full overflow-visible"
+                >
+                  <defs>
+                    {DROPS.map(drop => (
+                      <radialGradient key={`g-${drop.key}`} id={`qw-fill-${drop.key}`} cx="34%" cy="28%" r="78%">
+                        {drop.stops.map(stop => (
+                          <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+                        ))}
+                      </radialGradient>
+                    ))}
+                  </defs>
+                  {DROPS.map(drop => (
+                    <motion.path
+                      key={drop.key}
+                      fill={`url(#qw-fill-${drop.key})`}
+                      style={{ willChange: 'transform, d' }}
+                      initial={{
+                        y: reduced ? 0 : drop.from,
+                        d: drop.shapes[0],
+                        scale: reduced ? 1 : drop.satellite ? SATELLITE.scale[0] : TRAVEL_SCALE,
+                        opacity: reduced && drop.satellite ? 0 : 1,
+                      }}
+                      animate={{
+                        y: reduced ? 0 : drop.travel,
+                        // The outline itself is animated, vertex by vertex —
+                        // the whole point of the reference: a shape that
+                        // bulges on one side while flattening on another,
+                        // which no corner radius can express.
+                        d: reduced ? drop.shapes[drop.shapes.length - 1] : drop.shapes,
+                        scale: reduced ? 1 : drop.satellite ? SATELLITE.scale : SETTLE,
+                        opacity: drop.satellite && reduced ? 0 : 1,
+                      }}
+                      transition={{
+                        duration: t.travel + t.settle,
+                        delay: reduced ? 0 : drop.delay,
+                        times: reduced ? undefined : drop.satellite ? SATELLITE.times : undefined,
+                        ease: EASE_OUT_EXPO,
+                      }}
+                    />
+                  ))}
+                </svg>
               </motion.div>
 
               {/* Stage 2: the real mark takes over, so the held frame is exact. */}
