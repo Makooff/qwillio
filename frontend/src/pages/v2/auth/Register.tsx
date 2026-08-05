@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Check, Eye, EyeOff, Mail } from 'lucide-react';
+import { ArrowRight, Check, Eye, EyeOff, Mail } from '../../../components/icons';
 import { useAuthStore } from '../../../stores/authStore';
 import { useSEO } from '../../../hooks/useSEO';
 import api from '../../../services/api';

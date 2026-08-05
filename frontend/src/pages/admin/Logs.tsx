@@ -4,7 +4,7 @@ import {
   RefreshCw, Trash2, Search, AlertCircle, Info, AlertTriangle, Bug,
   Wifi, WifiOff, ChevronDown, ChevronLeft, ChevronRight, Filter,
   Copy, Check, Download, ToggleLeft, ToggleRight,
-} from 'lucide-react';
+} from '../../components/icons';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
 import { pro } from '../../styles/pro-theme';

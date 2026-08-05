@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Search, TrendingUp, CheckCircle, XCircle, MinusCircle, Loader2 } from 'lucide-react';
+import { Search, TrendingUp, CheckCircle, XCircle, MinusCircle, Loader2 } from '../../components/icons';
 import api from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';

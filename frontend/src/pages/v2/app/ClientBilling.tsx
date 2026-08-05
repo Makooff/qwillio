@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Check, Download, FileText, Shield } from 'lucide-react';
+import { AlertTriangle, Check, Download, FileText, Shield } from '../../../components/icons';
 import api from '../../../services/api';
 import { formatDate } from '../../../utils/format';
 import {

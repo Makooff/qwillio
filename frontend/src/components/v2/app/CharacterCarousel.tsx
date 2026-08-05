@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Check, ChevronLeft, ChevronRight, Mic, Pencil, Play, Square } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Mic, Pencil, Play, Square } from '../../icons';
 import api from '../../../services/api';
 import { previewUrl, type Character } from './CharacterPickerV2';
 import { useVoicePreview } from '../../client/useVoicePreview';

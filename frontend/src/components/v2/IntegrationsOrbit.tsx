@@ -2,8 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
-import { CalendarDays, MessageSquare, Users, Webhook } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { CalendarDays, MessageSquare, Users, Webhook } from '../icons';
+import type { LucideIcon } from '../icons';
 import QwillioLogo from '../QwillioLogo';
 import { prefersReducedMotion } from './motion/reducedMotion';
 

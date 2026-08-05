@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2 } from '../components/icons';
 import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
 import { useLang } from '../stores/langStore';

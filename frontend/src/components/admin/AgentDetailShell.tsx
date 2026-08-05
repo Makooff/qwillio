@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, type ComponentType } from 'react';
-import { Activity, MessageSquare, ListChecks, Zap, RefreshCw, Save, Check } from 'lucide-react';
+import { Activity, MessageSquare, ListChecks, Zap, RefreshCw, Save, Check } from '../icons';
 import api from '../../services/api';
 import { pro } from '../../styles/pro-theme';
 import { Card, PageHeader, SectionHead, PrimaryBtn, GhostBtn, Pill, Stat } from '../pro/ProBlocks';

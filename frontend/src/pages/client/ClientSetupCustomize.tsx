@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bot, ArrowLeft, ArrowRight, Check, Building2, Languages,
   Sparkles, Tag, Clock3, HelpCircle, MessageSquare, Plus, X,
-} from 'lucide-react';
+} from '../../components/icons';
 import api from '../../services/api';
 import CharacterPicker, { type Character } from '../../components/client/CharacterPicker';
 import { pro } from '../../styles/pro-theme';

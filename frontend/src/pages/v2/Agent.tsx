@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import {
   Mail, Receipt, Package, Wallet, ArrowRight, Check,
   type LucideIcon,
-} from 'lucide-react';
+} from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';

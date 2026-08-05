@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
-import { ArrowRight, Phone, CalendarDays, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Phone, CalendarDays, ShieldCheck } from '../../components/icons';
 import { useLang } from '../../stores/langStore';
 import { useSEO } from '../../hooks/useSEO';
 import PublicShell from '../../components/v2/PublicShell';

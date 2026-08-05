@@ -7,7 +7,7 @@ import {
   useTransform,
   useReducedMotion,
 } from 'framer-motion';
-import { Phone, ArrowUpRight, ChevronRight, BarChart3 } from 'lucide-react';
+import { Phone, ArrowUpRight, ChevronRight, BarChart3 } from '../icons';
 import QwillioLogo from '../QwillioLogo';
 
 /*

@@ -1,4 +1,4 @@
-import { Calculator } from 'lucide-react';
+import { Calculator } from '../../../components/icons';
 import { AgentDetailShell } from '../../../components/admin/AgentDetailShell';
 
 export default function AdminAgentAccounting() {

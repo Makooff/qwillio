@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bot, ArrowLeft, ArrowRight, Check, Building2,
   Sparkles, Tag, Clock3, HelpCircle, MessageSquare, Plus, X,
-} from 'lucide-react';
+} from '../../../components/icons';
 import { useToast } from '../../../hooks/useToast';
 import ToastContainer from '../../../components/ui/Toast';
 import api from '../../../services/api';

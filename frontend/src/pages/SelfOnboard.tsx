@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import {
   ArrowLeft, Check, ChevronRight,
   Building2, Phone, Loader2, Sparkles, SlidersHorizontal, LogOut,
-} from 'lucide-react';
+} from '../components/icons';
 import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
 import AssistantChat from '../components/client/AssistantChat';

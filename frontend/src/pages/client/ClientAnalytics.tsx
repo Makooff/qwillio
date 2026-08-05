@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   BarChart3, Phone, Users, Clock, Zap, ArrowUp, ArrowDown,
   DollarSign, Calculator,
-} from 'lucide-react';
+} from '../../components/icons';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip,

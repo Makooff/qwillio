@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { CornerDownLeft, Search, type LucideIcon } from 'lucide-react';
+import { CornerDownLeft, Search, type LucideIcon } from '../../icons';
 
 /* Palette de commandes du produit V2 (registre instrument, DA/references/linear.md).
    Ouverte par Cmd+K / Ctrl+K ou par le bouton de la topbar. Navigation vers

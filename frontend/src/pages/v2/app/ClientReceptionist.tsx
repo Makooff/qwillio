@@ -7,7 +7,7 @@ import {
   CreditCard, MapPin, PhoneForwarded, Plug,
   Tag, HelpCircle, Clock3, Plus, X,
   type LucideIcon,
-} from 'lucide-react';
+} from '../../../components/icons';
 import api from '../../../services/api';
 import type { Character } from '../../../components/v2/app/CharacterPickerV2';
 import CharacterCarousel from '../../../components/v2/app/CharacterCarousel';

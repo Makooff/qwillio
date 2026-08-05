@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Play, Square, Check, Loader2 } from 'lucide-react';
+import { Play, Square, Check, Loader2 } from '../icons';
 import api from '../../services/api';
 import { useVoicePreview } from './useVoicePreview';
 import { previewUrl } from './CharacterPicker';

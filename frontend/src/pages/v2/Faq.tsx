@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight } from '../../components/icons';
 import { useLang } from '../../stores/langStore';
 import { useSEO } from '../../hooks/useSEO';
 import PublicShell from '../../components/v2/PublicShell';

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Vapi from '@vapi-ai/web';
-import { PhoneCall, PhoneOff, Loader2 } from 'lucide-react';
+import { PhoneCall, PhoneOff, Loader2 } from '../icons';
 import api from '../../services/api';
 
 type CallState = 'idle' | 'connecting' | 'active' | 'ending';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Send, CheckCircle2, type LucideIcon } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CheckCircle2, type LucideIcon } from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';

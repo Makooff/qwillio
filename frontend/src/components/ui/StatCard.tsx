@@ -1,5 +1,5 @@
 ﻿import { ReactNode, useEffect, useRef, useState } from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown } from '../icons';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { t, glass } from '../../styles/admin-theme';
 

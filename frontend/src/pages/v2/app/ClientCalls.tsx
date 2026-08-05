@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight,
   Download, Filter, Pause, Phone, Play, Search, Users, X,
-} from 'lucide-react';
+} from '../../../components/icons';
 import api from '../../../services/api';
 import { exportToCSV, formatDateTime, formatDuration } from '../../../utils/format';
 import {

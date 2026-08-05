@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
-import { RefreshCw, TrendingDown, TrendingUp, Users, UserCheck, AlertTriangle } from 'lucide-react';
+import { RefreshCw, TrendingDown, TrendingUp, Users, UserCheck, AlertTriangle } from '../components/icons';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import OrbsLoader from '../components/OrbsLoader';
 import { pro } from '../styles/pro-theme';

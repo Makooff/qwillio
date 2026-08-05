@@ -1,0 +1,16 @@
+import { chromium } from '@playwright/test';
+import { spawn } from 'node:child_process';
+const preview = spawn('npx', ['vite', 'preview', '--port', '4173', '--strictPort'], { cwd: process.cwd(), stdio: 'ignore' });
+await new Promise(r => setTimeout(r, 2500));
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
+const errs = [];
+page.on('pageerror', e => errs.push(String(e).slice(0,120)));
+await page.goto('http://localhost:4173/', { waitUntil: 'networkidle' });
+await page.waitForTimeout(1500);
+await page.screenshot({ path: '.icons-home.png' });
+await page.goto('http://localhost:4173/pricing', { waitUntil: 'networkidle' });
+await page.waitForTimeout(1200);
+await page.screenshot({ path: '.icons-pricing.png' });
+console.log('erreurs JS:', errs.length ? errs : 'aucune');
+await page.close(); await browser.close(); preview.kill();

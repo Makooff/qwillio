@@ -1,4 +1,4 @@
-﻿import { LucideIcon, Inbox } from 'lucide-react';
+﻿import { LucideIcon, Inbox } from '../icons';
 
 interface EmptyStateProps {
   icon?: LucideIcon;

@@ -1,4 +1,4 @@
-import { CreditCard } from 'lucide-react';
+import { CreditCard } from '../../../components/icons';
 import { AgentDetailShell } from '../../../components/admin/AgentDetailShell';
 
 export default function AdminAgentPayments() {

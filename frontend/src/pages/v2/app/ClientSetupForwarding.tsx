@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Check, Phone, Settings as SettingsIcon,
   Apple, Bot, Smartphone, Copy, ArrowRight,
-} from 'lucide-react';
+} from '../../../components/icons';
 import api from '../../../services/api';
 import { Card, PageActions, PrimaryBtn, GhostBtn } from '../../../components/v2/app/Blocks';
 

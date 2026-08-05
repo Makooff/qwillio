@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   CheckSquare, ChevronLeft, ChevronRight, Download, Filter, Mail, Phone,
   Plus, Search, Square, Tag, Trash2, Users, X,
-} from 'lucide-react';
+} from '../../../components/icons';
 import api from '../../../services/api';
 import {
   Card, DangerBtn, EmptyState, Field, GhostBtn, Input, PageActions, Pill,

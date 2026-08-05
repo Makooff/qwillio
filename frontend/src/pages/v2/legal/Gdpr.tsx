@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from '../../../components/icons';
 import { useSEO } from '../../../hooks/useSEO';
 import { useLang } from '../../../stores/langStore';
 import { SerifWord } from '../../../components/v2/Primitives';

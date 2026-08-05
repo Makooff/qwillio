@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   AlertTriangle, ArrowLeftRight, ArrowRight, CheckCircle2, ChevronDown, ChevronUp,
   Clock, Database, Link2, MapPin, RefreshCw, TestTube, Unlink, XCircle,
-} from 'lucide-react';
+} from '../../../components/icons';
 import api from '../../../services/api';
 import {
   Card, DangerBtn, EmptyState, GhostBtn, PageActions, Pill, PrimaryBtn, SectionHead,

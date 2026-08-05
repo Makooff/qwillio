@@ -1,5 +1,5 @@
 import { useParams, Navigate, Link } from 'react-router-dom';
-import { ArrowRight, Check, Phone, CalendarDays, MessageSquare, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Phone, CalendarDays, MessageSquare, Sparkles } from '../components/icons';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';

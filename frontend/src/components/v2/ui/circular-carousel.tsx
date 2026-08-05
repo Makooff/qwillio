@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from '../../icons';
 
 /* PORT VERBATIM du Circular Carousel de nexus-ui
    (DA/references/21st/circular-carousel/source.tsx, collé par l'utilisateur).

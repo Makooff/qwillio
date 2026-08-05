@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import api from '../services/api';
-import { RefreshCw, DollarSign, Phone, Cpu, TrendingUp, Layers } from 'lucide-react';
+import { RefreshCw, DollarSign, Phone, Cpu, TrendingUp, Layers } from '../components/icons';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import OrbsLoader from '../components/OrbsLoader';
 import { pro } from '../styles/pro-theme';

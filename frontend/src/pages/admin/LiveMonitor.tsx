@@ -2,7 +2,7 @@
 import {
   RefreshCw, Phone, Search, Mail, MessageSquare, Play, Square,
   Activity, RotateCcw, ShieldCheck, type LucideIcon,
-} from 'lucide-react';
+} from '../../components/icons';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';

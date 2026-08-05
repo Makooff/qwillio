@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { Campaign } from '../types';
-import { Plus, RefreshCw, Trash2, Play, Megaphone } from 'lucide-react';
+import { Plus, RefreshCw, Trash2, Play, Megaphone } from '../components/icons';
 import Modal from '../components/ui/Modal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { useToast } from '../hooks/useToast';

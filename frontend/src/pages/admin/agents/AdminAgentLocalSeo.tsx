@@ -1,4 +1,4 @@
-import { MapPin } from 'lucide-react';
+import { MapPin } from '../../../components/icons';
 import { AgentDetailShell } from '../../../components/admin/AgentDetailShell';
 
 export default function AdminAgentLocalSeo() {

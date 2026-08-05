@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Building2, Key, Plus, Trash2, Copy, Users, DollarSign, RefreshCw } from 'lucide-react';
+import { Building2, Key, Plus, Trash2, Copy, Users, DollarSign, RefreshCw } from '../../components/icons';
 import api from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';

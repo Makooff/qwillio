@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, ChevronDown, LogOut, Menu, Search, X, type LucideIcon } from 'lucide-react';
+import { ArrowRight, ChevronDown, LogOut, Menu, Search, X, type LucideIcon } from '../../icons';
 import QwillioLogo from '../../QwillioLogo';
 import { useAuthStore } from '../../../stores/authStore';
 import CommandPalette, { shortcutLabel, type CommandItem } from './CommandPalette';

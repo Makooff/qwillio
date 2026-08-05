@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Star, RefreshCw, Send } from 'lucide-react';
+import { Star, RefreshCw, Send } from '../../../components/icons';
 import api from '../../../services/api';
 import {
   Card,

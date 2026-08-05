@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { Shield, AlertTriangle, Ban, Eye, UserX, Globe } from 'lucide-react';
+import { Shield, AlertTriangle, Ban, Eye, UserX, Globe } from '../components/icons';
 import api from '../services/api';
 import { t, glass, cx } from '../styles/admin-theme';
 

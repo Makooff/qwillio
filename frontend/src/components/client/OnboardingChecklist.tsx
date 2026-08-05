@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Check, Phone, PhoneCall, Settings, Rocket, X, PartyPopper,
   PhoneForwarded, ChevronRight, ChevronDown,
-} from 'lucide-react';
+} from '../icons';
 import { motion } from 'framer-motion';
 import { pro } from '../../styles/pro-theme';
 

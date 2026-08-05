@@ -1,4 +1,4 @@
-﻿import { AlertTriangle } from 'lucide-react';
+﻿import { AlertTriangle } from '../icons';
 import { t } from '../../styles/admin-theme';
 
 interface Props {

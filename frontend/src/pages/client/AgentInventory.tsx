@@ -4,7 +4,7 @@ import {
   Package, Plus, AlertCircle, QrCode, Download,
   ToggleLeft, ToggleRight, Edit3, Trash2, TrendingDown,
   X, Check, DollarSign, BarChart3
-} from 'lucide-react';
+} from '../../components/icons';
 
 interface Product {
   id: string;

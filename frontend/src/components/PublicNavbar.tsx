@@ -4,7 +4,7 @@ import {
   Play, ChevronDown, Phone, Bot, Building2, BookOpen,
   Mail as MailIcon, DollarSign,
   type LucideIcon,
-} from 'lucide-react';
+} from './icons';
 import QwillioLogo from './QwillioLogo';
 import LangToggle from './LangToggle';
 import { useLang } from '../stores/langStore';

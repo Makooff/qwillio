@@ -1,5 +1,5 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, X } from '../../components/icons';
 import { useLang } from '../../stores/langStore';
 import { useSEO } from '../../hooks/useSEO';
 import { getComparisonBySlug, type ComparisonBlock } from '../../content/comparisons';

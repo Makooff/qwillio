@@ -4,7 +4,7 @@ import {
   ArrowRight, Play, Phone, CalendarCheck, PhoneForwarded, UserCheck,
   MessagesSquare, Mic, Camera, PhoneCall, Shield,
   type LucideIcon,
-} from 'lucide-react';
+} from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';

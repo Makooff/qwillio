@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Pause, Play, Loader2 } from 'lucide-react';
+import { Pause, Play, Loader2 } from './icons';
 import api from '../services/api';
 
 /**

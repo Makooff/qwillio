@@ -4,7 +4,7 @@ import {
   BookOpen, TrendingUp, TrendingDown, DollarSign, Download,
   ToggleLeft, ToggleRight, AlertCircle, CheckCircle2, Clock,
   ExternalLink, FileText, ChevronRight
-} from 'lucide-react';
+} from '../../components/icons';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Legend } from 'recharts';
 
 interface Invoice {

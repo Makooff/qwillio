@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '../icons';
 
 /* Accordéon FAQ V2 — remplace le mur de texte déplié de la V1.
    Pas de modal, pas de grille: liste hairline, un item ouvert à la fois.

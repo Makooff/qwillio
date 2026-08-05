@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FileText, RefreshCw, Send, Plus, Trash2 } from 'lucide-react';
+import { FileText, RefreshCw, Send, Plus, Trash2 } from '../../../components/icons';
 import api from '../../../services/api';
 import {
   Card,

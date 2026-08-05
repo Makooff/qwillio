@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { Quote } from '../types';
-import { Search, RefreshCw, Send, Eye, FileText, ExternalLink } from 'lucide-react';
+import { Search, RefreshCw, Send, Eye, FileText, ExternalLink } from '../components/icons';
 import Badge from '../components/ui/Badge';
 import SlideSheet from '../components/ui/SlideSheet';
 import Pagination from '../components/ui/Pagination';

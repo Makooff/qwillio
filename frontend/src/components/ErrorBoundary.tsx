@@ -1,5 +1,5 @@
 import { Component, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from './icons';
 import { Sentry } from '../lib/sentry';
 
 interface Props {

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   ChevronLeft, Check, Phone, Settings as SettingsIcon,
   Apple, Bot, Smartphone, Copy, ArrowRight,
-} from 'lucide-react';
+} from '../../components/icons';
 import api from '../../services/api';
 
 type Platform = 'ios' | 'android' | 'unknown';

@@ -6,7 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   ArrowRight, Play, CalendarCheck, MessageSquare, PhoneForwarded,
   Camera, Mic2, ShieldCheck, Smartphone, Sparkles, Users,
-} from 'lucide-react';
+} from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';

@@ -19,7 +19,7 @@ import {
   Sparkles,
   User,
   type LucideIcon,
-} from 'lucide-react';
+} from '../../../components/icons';
 import { useAuthStore } from '../../../stores/authStore';
 import { useToast } from '../../../hooks/useToast';
 import ToastContainer from '../../../components/ui/Toast';

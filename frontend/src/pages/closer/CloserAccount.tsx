@@ -1,5 +1,5 @@
 import { useAuthStore } from '../../stores/authStore';
-import { Mail, User, Shield, LogOut } from 'lucide-react';
+import { Mail, User, Shield, LogOut } from '../../components/icons';
 import { pro } from '../../styles/pro-theme';
 import { PageHeader, Card, Row } from '../../components/pro/ProBlocks';
 

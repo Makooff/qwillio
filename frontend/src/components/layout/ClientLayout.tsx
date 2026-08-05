@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Phone, Users, BarChart3, CreditCard,
   Bot, UserCircle, HelpCircle, Settings,
-} from 'lucide-react';
+} from '../icons';
 import AiStatusPill from '../AiStatusPill';
 import DashboardShell, { NavItem } from './DashboardShell';
 

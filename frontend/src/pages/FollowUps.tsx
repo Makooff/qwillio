@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
-import { RefreshCw, Mail, Clock, CheckCircle, AlertCircle, Check } from 'lucide-react';
+import { RefreshCw, Mail, Clock, CheckCircle, AlertCircle, Check } from '../components/icons';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import OrbsLoader from '../components/OrbsLoader';
 import { pro } from '../styles/pro-theme';

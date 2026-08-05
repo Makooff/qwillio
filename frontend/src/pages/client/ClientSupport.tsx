@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, ChevronDown, ChevronUp, HelpCircle, MessageCircle,
   Search, BookOpen, Phone, Settings, CreditCard,
-} from 'lucide-react';
+} from '../../components/icons';
 import api from '../../services/api';
 
 const CATEGORIES = [

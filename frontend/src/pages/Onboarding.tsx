@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
   ChevronRight, ChevronLeft, Check, AlertCircle,
   Loader2, PartyPopper, Sparkles
-} from 'lucide-react';
+} from '../components/icons';
 import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
 import { useLang } from '../stores/langStore';

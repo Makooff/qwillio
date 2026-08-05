@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Phone, ChevronRight } from 'lucide-react';
+import { Search, Phone, ChevronRight } from '../../components/icons';
 import api from '../../services/api';
 import OrbsLoader from '../../components/OrbsLoader';
 import { pro } from '../../styles/pro-theme';

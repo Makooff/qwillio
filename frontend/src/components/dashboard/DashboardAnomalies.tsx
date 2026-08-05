@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle } from '../icons';
 import { pro } from '../../styles/pro-theme';
 import { Card, SectionHead, Pill } from '../pro/ProBlocks';
 import type { Anomaly } from '../../hooks/useDashboardData';

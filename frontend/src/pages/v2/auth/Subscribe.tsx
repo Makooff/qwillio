@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, Loader2, LogOut, ShieldCheck } from 'lucide-react';
+import { Check, Loader2, LogOut, ShieldCheck } from '../../../components/icons';
 import LangToggle from '../../../components/LangToggle';
 import { useLang } from '../../../stores/langStore';
 import { useAuthStore } from '../../../stores/authStore';

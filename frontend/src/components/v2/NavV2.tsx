@@ -5,8 +5,8 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowRight, Building2, ChevronDown, Handshake, Headphones, HelpCircle,
   Mail, Menu, Newspaper, Sparkles, Tag, X,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+} from '../icons';
+import type { LucideIcon } from '../icons';
 import QwillioLogo from '../QwillioLogo';
 import LangToggle from '../LangToggle';
 import { useLang } from '../../stores/langStore';

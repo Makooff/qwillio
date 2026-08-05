@@ -4,7 +4,7 @@ import {
   Users, Search, Plus, X, Phone, Mail, Tag, Star, Trash2,
   Download, ChevronLeft, ChevronRight, Filter, CheckSquare,
   Square, MoreHorizontal, Loader2
-} from 'lucide-react';
+} from '../../components/icons';
 import api from '../../services/api';
 
 type ContactStatus = 'active' | 'prospect' | 'client' | 'inactive' | 'lost';

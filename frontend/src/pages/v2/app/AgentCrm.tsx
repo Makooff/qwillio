@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, RefreshCw, TrendingUp, Search } from 'lucide-react';
+import { Users, RefreshCw, TrendingUp, Search } from '../../../components/icons';
 import api from '../../../services/api';
 import {
   Card,

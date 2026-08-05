@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, Lock, MoreVertical, Plus, RotateCw, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Lock, MoreVertical, Plus, RotateCw, X } from '../../icons';
 import QwillioLogo from '../../QwillioLogo';
 
 /* Fenêtre de navigateur, portée du kit « macOS Browser UI Kit (Big Sur) » que

@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Phone, Users, BarChart3, CreditCard,
   Bot, UserCircle, HelpCircle, Settings, Contact, Plug, PhoneForwarded,
   SlidersHorizontal, Sparkles, PhoneCall, Mic,
-} from 'lucide-react';
+} from '../../icons';
 import AiStatusPill from '../../AiStatusPill';
 import AppShell, { type ShellNavItem } from './AppShell';
 import type { CommandItem } from './CommandPalette';

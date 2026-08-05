@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, LayoutDashboard, Users, Phone, TrendingUp, Settings, BarChart3, Bot, Zap, FileText } from 'lucide-react';
+import { Search, X, LayoutDashboard, Users, Phone, TrendingUp, Settings, BarChart3, Bot, Zap, FileText } from '../icons';
 
 const COMMANDS = [
   { label: 'Dashboard', path: '/admin', icon: LayoutDashboard, shortcut: 'G O' },

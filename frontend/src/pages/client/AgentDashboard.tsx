@@ -7,7 +7,7 @@ import {
   Megaphone, Star, CalendarClock, LifeBuoy,
   Users, FileText, MapPin, Crosshair, LineChart,
   Plus, Activity, Zap, ChevronRight, ToggleLeft, ToggleRight
-} from 'lucide-react';
+} from '../../components/icons';
 
 type ModuleStatus = 'active' | 'setup_required' | 'paused';
 type ActivityType = 'email' | 'payment' | 'accounting' | 'inventory';

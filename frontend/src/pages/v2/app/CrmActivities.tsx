@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Calendar, FileText, Mail, MessageSquare, Phone, TrendingUp } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Calendar, FileText, Mail, MessageSquare, Phone, TrendingUp } from '../../../components/icons';
+import type { LucideIcon } from '../../../components/icons';
 import api from '../../../services/api';
 import { Card, EmptyState, PageActions, Pill, Row, SectionHead } from '../../../components/v2/app/Blocks';
 

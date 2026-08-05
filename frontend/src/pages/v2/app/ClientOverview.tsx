@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   AlertCircle, Bot, Calendar, ChevronDown, ChevronRight, Headphones, Pause,
   Phone, PhoneForwarded, Settings, SlidersHorizontal, Sparkles,
-} from 'lucide-react';
+} from '../../../components/icons';
 import { useAuthStore } from '../../../stores/authStore';
 import api from '../../../services/api';
 import { daysUntil } from '../../../utils/format';

@@ -6,7 +6,7 @@ import {
   Megaphone, Star, CalendarClock, LifeBuoy,
   Users, FileText, MapPin, Crosshair, LineChart,
   Plus, Zap, type LucideIcon,
-} from 'lucide-react';
+} from '../../../components/icons';
 import {
   Card,
   PageActions,

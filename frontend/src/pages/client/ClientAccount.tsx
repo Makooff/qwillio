@@ -7,7 +7,7 @@ import {
   User, Lock, Check, Bell, LogOut, Eye, EyeOff, ChevronRight,
   CreditCard, Bot, HelpCircle, Sparkles, Shield, Globe,
   LucideIcon,
-} from 'lucide-react';
+} from '../../components/icons';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
 

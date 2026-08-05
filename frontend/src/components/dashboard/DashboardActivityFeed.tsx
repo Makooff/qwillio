@@ -1,4 +1,4 @@
-import { Activity, Phone, Zap, Users, Bot } from 'lucide-react';
+import { Activity, Phone, Zap, Users, Bot } from '../icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { pro } from '../../styles/pro-theme';

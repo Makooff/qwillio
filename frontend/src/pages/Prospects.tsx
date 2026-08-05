@@ -1,6 +1,6 @@
 ﻿// === FILE: Prospects.tsx ===
 import { useEffect, useState } from 'react';
-import { RefreshCw, Search, ChevronUp, ChevronDown, Phone, MapPin } from 'lucide-react';
+import { RefreshCw, Search, ChevronUp, ChevronDown, Phone, MapPin } from '../components/icons';
 
 const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com';
 const getH = (): Record<string, string> => {

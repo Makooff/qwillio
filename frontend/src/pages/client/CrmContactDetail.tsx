@@ -5,7 +5,7 @@ import {
   ArrowLeft, Phone, Mail, MapPin, Globe, Star, Edit2, Tag,
   Phone as PhoneIcon, Mail as MailIcon, FileText, TrendingUp, MessageSquare,
   Building2, Calendar, Clock, CheckCircle, AlertCircle, Zap
-} from 'lucide-react';
+} from '../../components/icons';
 
 type TabKey = 'overview' | 'calls' | 'emails' | 'deals' | 'notes' | 'timeline';
 type ActivityType = 'call' | 'email' | 'note' | 'deal_update' | 'sms';

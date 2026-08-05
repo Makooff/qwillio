@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff } from '../../../components/icons';
 import { useAuthStore } from '../../../stores/authStore';
 import { useSEO } from '../../../hooks/useSEO';
 import AuthShell, {

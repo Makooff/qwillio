@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Eye, EyeOff } from '../../../components/icons';
 import api from '../../../services/api';
 import { useSEO } from '../../../hooks/useSEO';
 import AuthShell, {

@@ -6,7 +6,7 @@ import {
   Volume2, Languages, Building2, MapPin, Settings,
   ChevronDown, ChevronRight, CheckCircle2, XCircle,
   BookOpen, Tag, HelpCircle, Clock3, Plus, X,
-} from 'lucide-react';
+} from '../../components/icons';
 import api from '../../services/api';
 import CharacterPicker, { type Character } from '../../components/client/CharacterPicker';
 import AssistantChat from '../../components/client/AssistantChat';

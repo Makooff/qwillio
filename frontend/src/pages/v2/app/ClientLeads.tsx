@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Mail, Phone, Search, Users, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Mail, Phone, Search, Users, X } from '../../../components/icons';
 import api from '../../../services/api';
 import { formatDateTime } from '../../../utils/format';
 import {

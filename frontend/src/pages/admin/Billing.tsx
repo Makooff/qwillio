@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import api from '../../services/api';
 import {
   RefreshCw, DollarSign, Users, Clock, AlertCircle, CreditCard,
-} from 'lucide-react';
+} from '../../components/icons';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle } from '../../../components/icons';
 import LangToggle from '../../../components/LangToggle';
 import { useLang } from '../../../stores/langStore';
 import { useAuthStore } from '../../../stores/authStore';

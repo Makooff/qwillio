@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Clock, ArrowLeft } from 'lucide-react';
+import { Clock, ArrowLeft } from '../icons';
 
 /**
  * Placeholder shown for agent modules that are not functional yet. Keeps the

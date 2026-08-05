@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Play, Square, Mic } from 'lucide-react';
+import { Play, Square, Mic } from '../../icons';
 import api from '../../../services/api';
 import { useVoicePreview } from '../../client/useVoicePreview';
 

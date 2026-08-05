@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from '../../components/icons';
 import { useLang } from '../../stores/langStore';
 import { BLOG_ARTICLES } from '../../content/blogArticles';
 import PublicShell from '../../components/v2/PublicShell';

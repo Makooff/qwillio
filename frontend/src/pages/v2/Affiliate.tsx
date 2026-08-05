@@ -1,4 +1,4 @@
-import { ArrowRight, Share2, Wallet, UserPlus, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Share2, Wallet, UserPlus, type LucideIcon } from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';

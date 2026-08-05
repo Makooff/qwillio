@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowDown, ArrowUp, BarChart3, Clock, Phone, Users, Zap } from 'lucide-react';
+import { ArrowDown, ArrowUp, BarChart3, Clock, Phone, Users, Zap } from '../../../components/icons';
 import {
   Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,

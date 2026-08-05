@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, LogOut, Mail, RefreshCw } from 'lucide-react';
+import { Loader2, LogOut, Mail, RefreshCw } from '../../../components/icons';
 import LangToggle from '../../../components/LangToggle';
 import { useLang } from '../../../stores/langStore';
 import { useAuthStore } from '../../../stores/authStore';

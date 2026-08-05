@@ -5,7 +5,7 @@ import {
   LogOut, X, ChevronDown,
   Settings as SettingsIcon, LayoutDashboard, RefreshCw,
   HelpCircle, BookOpen, type LucideIcon,
-} from 'lucide-react';
+} from '../icons';
 import { useAuthStore } from '../../stores/authStore';
 import QwillioLogo from '../QwillioLogo';
 import { t } from '../../styles/admin-theme';

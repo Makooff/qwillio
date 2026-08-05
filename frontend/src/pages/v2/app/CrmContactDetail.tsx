@@ -3,8 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import {
   AlertCircle, ArrowLeft, Building2, Calendar, CheckCircle, Clock, Edit2,
   FileText, Globe, Mail, MapPin, MessageSquare, Phone, Star, TrendingUp, Zap,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+} from '../../../components/icons';
+import type { LucideIcon } from '../../../components/icons';
 import {
   Card, EmptyState, GhostBtn, PageActions, Pill, PrimaryBtn, Textarea,
 } from '../../../components/v2/app/Blocks';

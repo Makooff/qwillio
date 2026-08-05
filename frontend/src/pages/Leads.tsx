@@ -1,6 +1,6 @@
 ﻿// === FILE: Leads.tsx ===
 import { useEffect, useState } from 'react';
-import { RefreshCw, MapPin, Calendar, Building2 } from 'lucide-react';
+import { RefreshCw, MapPin, Calendar, Building2 } from '../components/icons';
 
 const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com';
 const getH = (): Record<string, string> => {

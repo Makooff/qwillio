@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone, Download, Search, Play, Pause, CheckCircle2, Filter,
   ArrowUpDown, ArrowUp, ArrowDown, X, Clock, Users, ChevronRight,
-} from 'lucide-react';
+} from '../../components/icons';
 import api from '../../services/api';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';

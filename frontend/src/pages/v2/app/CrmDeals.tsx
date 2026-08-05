@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Calendar, DollarSign, GripVertical, Plus, TrendingUp, User, X } from 'lucide-react';
+import { Calendar, DollarSign, GripVertical, Plus, TrendingUp, User, X } from '../../../components/icons';
 import {
   DndContext,
   DragOverlay,

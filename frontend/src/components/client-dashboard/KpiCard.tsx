@@ -1,4 +1,4 @@
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon } from '../icons';
 
 const colorMap: Record<string, string> = {
   blue: 'bg-primary-50 text-primary-600',

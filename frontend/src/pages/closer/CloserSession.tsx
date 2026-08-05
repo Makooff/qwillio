@@ -8,7 +8,7 @@ import {
   ChevronRight, Building2, Mail, MessageSquare, List,
   ArrowLeft, ArrowRight, MapPin, Bot, PhoneOff, User,
   LucideIcon,
-} from 'lucide-react';
+} from '../../components/icons';
 import api from '../../services/api';
 import OrbsLoader from '../../components/OrbsLoader';
 import { pro } from '../../styles/pro-theme';

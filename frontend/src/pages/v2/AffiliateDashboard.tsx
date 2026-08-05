@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, Check, Users, Wallet, Clock, ArrowLeft, type LucideIcon } from 'lucide-react';
+import { Copy, Check, Users, Wallet, Clock, ArrowLeft, type LucideIcon } from '../../components/icons';
 import api from '../../services/api';
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';

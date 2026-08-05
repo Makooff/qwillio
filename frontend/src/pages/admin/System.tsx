@@ -4,7 +4,7 @@ import {
   RefreshCw, Database, Phone, Bot, Mail, Search, Cpu,
   MessageSquare, Play, Square, Zap, FlaskConical, RotateCcw, Trash2,
   Activity, Server, Globe,
-} from 'lucide-react';
+} from '../../components/icons';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
 import { pro } from '../../styles/pro-theme';

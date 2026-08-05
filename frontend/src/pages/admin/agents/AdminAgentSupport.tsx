@@ -1,4 +1,4 @@
-import { LifeBuoy } from 'lucide-react';
+import { LifeBuoy } from '../../../components/icons';
 import { AgentDetailShell } from '../../../components/admin/AgentDetailShell';
 
 export default function AdminAgentSupport() {

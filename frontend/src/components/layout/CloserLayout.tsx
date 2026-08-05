@@ -1,4 +1,4 @@
-import { Phone, List, Bell, UserCircle } from 'lucide-react';
+import { Phone, List, Bell, UserCircle } from '../icons';
 import DashboardShell, { NavItem } from './DashboardShell';
 
 const PRIMARY_NAV: NavItem[] = [

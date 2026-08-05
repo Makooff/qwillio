@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LineChart, RefreshCw, Sparkles, AlertTriangle } from 'lucide-react';
+import { LineChart, RefreshCw, Sparkles, AlertTriangle } from '../../../components/icons';
 import api from '../../../services/api';
 import {
   Card,

@@ -2,7 +2,7 @@
 import {
   Zap, TrendingUp, Brain, GitMerge, RefreshCw, AlertTriangle,
   Bot, Activity, Play, CheckCircle, XCircle,
-} from 'lucide-react';
+} from '../../components/icons';
 import api from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ArrowRight, Heart, Compass, Zap, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Heart, Compass, Zap, type LucideIcon } from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';

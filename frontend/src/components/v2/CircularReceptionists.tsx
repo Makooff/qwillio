@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import gsap from 'gsap';
-import { Mic, Play, Square } from 'lucide-react';
+import { Mic, Play, Square } from '../icons';
 import { prefersReducedMotion } from './motion/reducedMotion';
 import { useVoicePreview } from '../client/useVoicePreview';
 import CircularCarousel from './ui/circular-carousel';

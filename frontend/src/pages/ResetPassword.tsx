@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, CheckCircle2 } from '../components/icons';
 import api from '../services/api';
 import QwillioLogo from '../components/QwillioLogo';
 import { useSEO } from '../hooks/useSEO';

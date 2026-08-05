@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../../services/api';
-import { RefreshCw, Brain, Search, Info, Check, X } from 'lucide-react';
+import { RefreshCw, Brain, Search, Info, Check, X } from '../../components/icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '../../hooks/useToast';

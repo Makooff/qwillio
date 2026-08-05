@@ -1,4 +1,4 @@
-import { RefreshCw, PhoneCall, Megaphone, Target } from 'lucide-react';
+import { RefreshCw, PhoneCall, Megaphone, Target } from '../icons';
 import { pro } from '../../styles/pro-theme';
 import { Card, SectionHead } from '../pro/ProBlocks';
 

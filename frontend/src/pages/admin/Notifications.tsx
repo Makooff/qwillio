@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, AlertTriangle, Flame, Zap, CheckCircle } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Flame, Zap, CheckCircle } from '../../components/icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import api from '../../services/api';

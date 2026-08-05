@@ -1,4 +1,4 @@
-import { Bot, Play, Pause, RefreshCw } from 'lucide-react';
+import { Bot, Play, Pause, RefreshCw } from '../icons';
 import { pro, proShadow } from '../../styles/pro-theme';
 import { Card } from '../pro/ProBlocks';
 import type { BotStatus } from '../../hooks/useDashboardData';

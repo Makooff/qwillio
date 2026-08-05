@@ -11,7 +11,7 @@ import {
   Search,
   Send,
   Settings,
-} from 'lucide-react';
+} from '../../../components/icons';
 import api from '../../../services/api';
 import {
   Card,
