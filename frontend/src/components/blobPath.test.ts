@@ -63,7 +63,8 @@ describe('the keyframes', () => {
   });
 
   it('ends on a circle, so the handover to the real logo has no jump', () => {
-    const last = blobKeyframes(0, 0, 10, 0.7).at(-1)!;
+    const shapes = blobKeyframes(0, 0, 10, 0.7);
+    const last = shapes[shapes.length - 1];
     const points = numbers(last);
     for (let i = 0; i < points.length; i += 2) {
       expect(Math.hypot(points[i], points[i + 1])).toBeLessThanOrEqual(10.6);
