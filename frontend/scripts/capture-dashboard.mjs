@@ -8,9 +8,18 @@
  * liste. Aucun encart « à configurer », aucune étape de démarrage : le
  * dashboard tel qu'il est une fois installé.
  *
- * Usage : node scripts/capture-dashboard.mjs   (après npm run build)
- * Sortie : public/screens/hero-dashboard.webp (1600 de large)
- *          public/screens/mobile-overview.webp (390 de large)
+ * Usage : node scripts/capture-dashboard.mjs           (après npm run build)
+ *           -> public/screens/hero-dashboard.webp   (1600 de large)
+ *           -> public/screens/mobile-overview.webp  (390 de large)
+ *
+ *         node scripts/capture-dashboard.mjs --figma
+ *           -> /tmp/qwillio-figma/*.png, résolution NATIVE des appareils, pour
+ *              coller dans les mockups Figma :
+ *              - iPhone 15 Pro : 1179 x 2556, avec la bande haute laissée VIDE
+ *                (54 pt) pour que la barre d'état du mockup se pose dessus sans
+ *                masquer l'en-tête de l'application ;
+ *              - fenêtre de navigateur : 3840 x 2115, soit exactement le ratio
+ *                du corps du kit macOS (1280 x 705) en 3x.
  */
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
@@ -95,15 +104,26 @@ async function main() {
   await new Promise((r) => setTimeout(r, 2500));
   const browser = await chromium.launch({ executablePath: CHROMIUM });
 
-  const shots = [
-    { width: 1600, height: 1000, out: 'public/screens/hero-dashboard.webp' },
-    { width: 390, height: 844, out: 'public/screens/mobile-overview.webp' },
-  ];
+  const figma = process.argv.includes('--figma');
 
-  await mkdir('public/screens', { recursive: true });
+  /* statusBar : hauteur en points laissée vide en haut de la capture. La
+     fenêtre est réduite d'autant, puis la bande est rajoutée par sharp, si bien
+     que l'image finale fait exactement la taille de l'écran de l'appareil et
+     que la barre de navigation basse reste collée en bas. */
+  const shots = figma
+    ? [
+        { width: 1280, height: 705, scale: 3, out: '/tmp/qwillio-figma/dashboard-navigateur.png', png: true },
+        { width: 393, height: 852 - 54, scale: 3, statusBar: 54, out: '/tmp/qwillio-figma/dashboard-iphone.png', png: true },
+      ]
+    : [
+        { width: 1600, height: 1000, scale: 2, out: 'public/screens/hero-dashboard.webp' },
+        { width: 390, height: 844, scale: 2, out: 'public/screens/mobile-overview.webp' },
+      ];
 
-  for (const { width, height, out } of shots) {
-    const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2 });
+  await mkdir(figma ? '/tmp/qwillio-figma' : 'public/screens', { recursive: true });
+
+  for (const { width, height, scale, out, png: asPng, statusBar } of shots) {
+    const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: scale });
     await ctx.addInitScript(() => {
       localStorage.setItem('token', 'demo-token');
     });
@@ -126,8 +146,16 @@ async function main() {
     await page.getByText('327').first().waitFor({ timeout: 15000 });
     await page.waitForTimeout(1200);
 
-    const png = await page.screenshot();
-    await sharp(png).resize({ width }).webp({ quality: 88 }).toFile(out);
+    const shot = await page.screenshot();
+    let img = sharp(shot);
+    if (statusBar) {
+      /* Fond repris du châssis de l'application pour que la bande se fonde */
+      img = sharp(await img.extend({
+        top: statusBar * scale,
+        background: '#0F1011',
+      }).png().toBuffer());
+    }
+    await (asPng ? img.png() : img.resize({ width }).webp({ quality: 88 })).toFile(out);
     console.log(out, 'ok');
     await page.close();
     await ctx.close();
