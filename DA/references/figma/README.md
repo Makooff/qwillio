@@ -16,6 +16,7 @@ sur QUOI prendre avant intégration.
 | 5 | Glass Effect (community/file/976597933366338655) | matière verre/gloss (nav au scroll, cartes) | EN ATTENTE |
 | 6 | Free MacBook Pro 16 Mockups (community/file/1162016271988369755) | mockup MacBook (hero ou section poste de travail) | EN ATTENTE |
 | 7 | iPhone 15 Pro 3D Mockups (community/file/1303247171848616022) | mockup iOS 3D (alternative au n°2) | EN ATTENTE |
+| 8 | coolicons Free Iconset (community/file/800815864899415771) | iconographie du site (« et met ces logo ») — périmètre à confirmer | EN ATTENTE |
 
 Réseau session : figma.com/community est bloqué (403 proxy), l'accès passe UNIQUEMENT
 par le MCP Figma sur des fichiers du compte de l'utilisateur.
