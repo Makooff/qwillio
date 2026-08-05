@@ -1,0 +1,316 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+/* PORT VERBATIM du Circular Carousel de nexus-ui
+   (DA/references/21st/circular-carousel/source.tsx, collé par l'utilisateur).
+   La mécanique est celle du fichier, intouchée : getItemPosition (ellipse
+   sin/cos, RADIUS 220/100, VISIBLE_COUNT 5, wrap, formules scale/opacité/
+   zIndex), AnimatePresence popLayout + layout, transitions 0.65 s
+   cubic-bezier(0.22,1,0.36,1), autoplay 4 s pausé au survol/focus, flèches
+   clavier, chevrons whileHover/whileTap, dots, compteur central.
+
+   Seuls écarts, tous actés avec l'utilisateur :
+   - `cn` remplacé par un join local (pas de lib/utils ici), "use client" retiré ;
+   - l'item porte un avatar rond + nom + tag (contenu Qwillio) et les couleurs
+     passent aux tokens q2 clairs (méthode : « reprendre les designs, juste
+     ajuster avec mes couleurs et typo ») ;
+   - UNE ligne d'échelle : l'actif reste à la formule (=1), les autres prennent
+     la formule x 0.55 pour que l'actif soit ~2x plus grand, morphing intact ;
+   - les dots du fichier portaient transition-all (banni DA) : transition ciblée ;
+   - `pauseSignal` : l'autoplay se met aussi en pause pendant qu'une voix joue
+     (avancer couperait l'aperçu). */
+
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ');
+}
+
+export interface CarouselItem {
+  id: string;
+  title: string;
+  description: string;
+  tag?: string;
+  avatar?: string;
+}
+
+export interface CircularCarouselProps {
+  items: CarouselItem[];
+  activeIndex?: number;
+  onActiveChange?: (index: number) => void;
+  autoPlay?: boolean;
+  autoPlayInterval?: number;
+  pauseSignal?: boolean;
+  className?: string;
+}
+
+/* VISIBLE_COUNT est LE paramètre de dimensionnement du fichier : il fixe le pas
+   angulaire (180/VISIBLE_COUNT) et la fenêtre visible (|adj| <= half*2).
+   Calé sur 5 pour les 6 cartes de la démo 21st, où l'écart maximal atteint 108
+   degrés : une seule carte dépasse le sommet, l'arc reste lisible.
+   Avec nos 10 visages, un VISIBLE_COUNT trop bas fait tourner les cartes
+   lointaines SOUS l'ellipse : deux d'entre elles retombent au même x (angles
+   symétriques autour de 90 degrés) et se chevauchent, en masquant au passage le
+   compteur central. Réglé sur 11 (nombre d'items + 1) : pas de 16.4 degrés,
+   écart maximal 82 degrés, les dix se répartissent sur le seul arc supérieur,
+   aucune collision, centre dégagé. Tout le reste du fichier est intouché. */
+const VISIBLE_COUNT = 11;
+const RADIUS_X = 220;
+const RADIUS_Y = 100;
+
+function getItemPosition(index: number, activeIndex: number, total: number) {
+  const offset = index - activeIndex;
+  const half = Math.floor(VISIBLE_COUNT / 2);
+  let adjustedOffset = offset;
+
+  if (offset > half) adjustedOffset = offset - total;
+  if (offset < -half) adjustedOffset = offset + total;
+
+  if (Math.abs(adjustedOffset) > half * 2) return null;
+
+  const angle = (adjustedOffset / VISIBLE_COUNT) * Math.PI;
+  const x = Math.sin(angle) * RADIUS_X;
+  const y = -Math.cos(angle) * RADIUS_Y;
+
+  const distance = Math.abs(adjustedOffset);
+  const maxDistance = half + 1;
+  const scale = Math.max(0, 1 - (distance / maxDistance) * 0.3);
+  const opacity = Math.max(0.3, 1 - (distance / maxDistance) * 0.7);
+  const zIndex = VISIBLE_COUNT - distance;
+
+  /* Actif 2x (décision utilisateur) : la formule du fichier reste la base,
+     les non-actifs prennent un multiplicateur unique. */
+  return { x, y, scale: distance === 0 ? scale : scale * 0.55, opacity, zIndex, adjustedOffset };
+}
+
+export function CircularCarousel({
+  items,
+  activeIndex: controlledIndex,
+  onActiveChange,
+  autoPlay = true,
+  autoPlayInterval = 4000,
+  pauseSignal = false,
+  className,
+}: CircularCarouselProps) {
+  const [internalIndex, setInternalIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  /* Les rayons du fichier sont en pixels fixes : sur un téléphone, l'orbite
+     déborde de l'écran. Plutôt que de toucher au math, on met TOUT l'anneau à
+     l'échelle du cadre disponible (demi-empan réel : 218 + 80 de demi-carte). */
+  const [k, setK] = useState(1);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const measure = () => {
+      const w = el.clientWidth;
+      if (w > 0) setK(Math.min(1, (w / 2 - 12) / (RADIUS_X + 56)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const activeIndex = controlledIndex ?? internalIndex;
+  const total = items.length;
+
+  const goTo = useCallback(
+    (index: number) => {
+      const newIndex = ((index % total) + total) % total;
+      if (controlledIndex === undefined) {
+        setInternalIndex(newIndex);
+      }
+      onActiveChange?.(newIndex);
+    },
+    [total, controlledIndex, onActiveChange],
+  );
+
+  const next = useCallback(() => goTo(activeIndex + 1), [activeIndex, goTo]);
+  const prev = useCallback(() => goTo(activeIndex - 1), [activeIndex, goTo]);
+
+  useEffect(() => {
+    if (!autoPlay || isHovered || isFocused || pauseSignal) return;
+    intervalRef.current = setInterval(next, autoPlayInterval);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [autoPlay, autoPlayInterval, isHovered, isFocused, pauseSignal, next]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'ArrowRight') next();
+    };
+    const el = containerRef.current;
+    el?.addEventListener('keydown', handler);
+    return () => el?.removeEventListener('keydown', handler);
+  }, [next, prev]);
+
+  const activeItem = items[activeIndex];
+
+  return (
+    <div
+      ref={containerRef}
+      tabIndex={0}
+      role="region"
+      aria-label="Circular carousel"
+      aria-roledescription="carousel"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
+      className={cn(
+        'relative flex flex-col items-center justify-center gap-8 outline-none',
+        className,
+      )}
+    >
+      {/* Circular track */}
+      {/* Piste élargie par rapport au fichier (max-w-lg, h-[280px]) : les dix
+          visages atteignent x = ±218, l'orbite sortait du cadre. Hauteur et
+          ligne d'ancrage calées sur l'empan réel de l'arc (de -156 à +42 autour
+          de l'ancre) : rien n'est découpé en haut, pas de vide en bas.
+          Géométrie du conteneur, pas de l'animation. */}
+      <div ref={trackRef} className="relative w-full max-w-2xl" style={{ height: 220 * k }}>
+        <div
+          className="absolute inset-x-0 top-0 h-[220px]"
+          style={{ transform: `scale(${k})`, transformOrigin: 'top center' }}
+        >
+        <AnimatePresence mode="popLayout">
+          {items.map((item, i) => {
+            const pos = getItemPosition(i, activeIndex, total);
+            if (!pos) return null;
+
+            const isActive = i === activeIndex;
+
+            return (
+              <motion.button
+                key={item.id}
+                layout
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{
+                  x: pos.x,
+                  y: pos.y,
+                  scale: pos.scale,
+                  opacity: pos.opacity,
+                  zIndex: pos.zIndex,
+                }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{
+                  duration: 0.65,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                onClick={() => goTo(i)}
+                aria-label={item.title}
+                aria-current={isActive}
+                className={cn(
+                  'absolute left-1/2 top-[160px] flex h-28 w-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-q2-plate bg-q2-canvas p-2 transition-shadow duration-300',
+                  isActive
+                    ? 'shadow-[0_20px_60px_-12px_rgba(20,16,50,0.28)]'
+                    : 'shadow-[0_8px_24px_-4px_rgba(20,16,50,0.12)] hover:shadow-[0_12px_32px_-4px_rgba(20,16,50,0.18)]',
+                )}
+                /* Les classes -translate-x/y-1/2 du fichier sont écrasées par le
+                   transform que framer écrit pour x/y : sans ça chaque carte
+                   pend en bas à droite de son point d'orbite. Les marges
+                   négatives (moitié de w-40/h-32) rétablissent le centrage voulu
+                   par l'auteur, sans toucher aux valeurs animées. */
+                style={{ transformOrigin: 'center center', marginLeft: -56, marginTop: -56 }}
+              >
+                {item.avatar && (
+                  <img
+                    src={item.avatar}
+                    alt=""
+                    loading={i < 4 ? 'eager' : 'lazy'}
+                    width={64}
+                    height={64}
+                    className="h-14 w-14 rounded-full object-cover bg-q2-band"
+                  />
+                )}
+                <span
+                  className={cn(
+                    'leading-tight transition-colors duration-300',
+                    isActive ? 'text-q2-ink text-[13px]' : 'text-q2-graphite text-[12px]',
+                  )}
+                >
+                  {item.title}
+                </span>
+                {item.tag && (
+                  <span className="rounded-full bg-q2-band px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-q2-indigo">
+                    {item.tag}
+                  </span>
+                )}
+              </motion.button>
+            );
+          })}
+        </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Center content (position du fichier : centré sur le bloc entier, donc
+          sous la carte active, pas derrière elle) */}
+      <motion.div
+        key={activeItem.id}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+      >
+        <span className="text-5xl font-light tracking-tight text-q2-ink/90 tabular-nums">
+          {String(activeIndex + 1).padStart(2, '0')}
+        </span>
+        {/* « of 10 » du fichier remplacé par « / 10 » : le site est FR et EN,
+            la barre oblique se lit dans les deux langues. */}
+        <span className="mt-1 text-xs text-q2-faint tabular-nums">
+          / {String(total).padStart(2, '0')}
+        </span>
+      </motion.div>
+
+      {/* Controls */}
+      <div className="flex items-center gap-4">
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={prev}
+          aria-label="Previous item"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-q2-plate bg-q2-canvas text-q2-graphite transition-colors hover:bg-q2-band hover:text-q2-ink focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
+        >
+          <ChevronLeft className="size-5" />
+        </motion.button>
+
+        {/* Dot indicators */}
+        <div className="flex items-center gap-1.5" role="tablist">
+          {items.map((_, i) => (
+            <button
+              key={i}
+              role="tab"
+              aria-selected={i === activeIndex}
+              onClick={() => goTo(i)}
+              className={cn(
+                'h-1.5 rounded-full transition-[width,background-color] duration-300',
+                i === activeIndex
+                  ? 'w-6 bg-q2-ink/80'
+                  : 'w-1.5 bg-q2-plate hover:bg-q2-faint',
+              )}
+              aria-label={`Go to item ${i + 1}`}
+            />
+          ))}
+        </div>
+
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={next}
+          aria-label="Next item"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-q2-plate bg-q2-canvas text-q2-graphite transition-colors hover:bg-q2-band hover:text-q2-ink focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
+        >
+          <ChevronRight className="size-5" />
+        </motion.button>
+      </div>
+    </div>
+  );
+}
+
+export default CircularCarousel;
