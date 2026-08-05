@@ -24,6 +24,7 @@ import Magnetic from '../../components/v2/motion/Magnetic';
 import GlowCard from '../../components/v2/motion/GlowCard';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import PixelBlushBackdrop from '../../components/v2/motion/PixelBlushBackdrop';
+import BrowserFrame from '../../components/v2/ui/browser-frame';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -75,20 +76,22 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
       />
       <div
         ref={frameRef}
-        className="relative rounded-[16px] border border-q2-plate bg-q2-carbon overflow-hidden shadow-[var(--q2-shadow-hover)]"
+        className="relative shadow-[var(--q2-shadow-hover)] rounded-[12px]"
         style={{ transformOrigin: 'center top', willChange: 'transform' }}
       >
-        <img
-          src="/screens/hero-dashboard.webp"
-          alt={
-            isFr
-              ? 'Dashboard Qwillio : les appels du jour, leur issue et leur transcript'
-              : 'Qwillio dashboard: the day’s calls, their outcome and their transcript'
-          }
-          width={1600}
-          height={930}
-          className="block w-full h-auto"
-        />
+        <BrowserFrame url="qwillio.com/dashboard" title={isFr ? 'Qwillio — Tableau de bord' : 'Qwillio — Dashboard'}>
+          <img
+            src="/screens/hero-dashboard.webp"
+            alt={
+              isFr
+                ? 'Dashboard Qwillio : les appels du jour, leur issue et leur transcript'
+                : 'Qwillio dashboard: the day’s calls, their outcome and their transcript'
+            }
+            width={1600}
+            height={930}
+            className="block w-full h-auto"
+          />
+        </BrowserFrame>
       </div>
     </div>
   );
