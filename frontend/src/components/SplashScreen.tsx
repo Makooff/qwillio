@@ -37,16 +37,12 @@ const BLOB = {
 };
 
 /**
- * The masses that become the mark.
- *
- * They travel large — the width of a phone, not the width of the logo. That is
- * the whole difference from the previous attempt: a metaball surface only reads
- * as a substance when it is big enough to show its own shading, and two
- * seventy-pixel dots crossing a screen read as dots however they are filtered.
- * They shrink onto the logo's lobes at the very end, once the merge has been
- * seen.
+ * The bubbles arrive at roughly the size they will end at — the mark's own
+ * lobes, give or take the breathing. Blowing them up to the width of a phone
+ * and shrinking them down again made every frame a full-screen composite, and
+ * that is what the stutter was.
  */
-const TRAVEL_SCALE = 4.4;
+const TRAVEL_SCALE = 1.12;
 
 /**
  * How a body of liquid behaves with nothing to fall onto: drawn out along its
@@ -60,18 +56,12 @@ const TRAVEL_SCALE = 4.4;
  */
 const WOBBLE = {
   times: [0, 0.34, 0.52, 0.66, 0.78, 0.9, 1],
-  scaleX: [
-    TRAVEL_SCALE * 0.92, TRAVEL_SCALE, TRAVEL_SCALE * 1.06,
-    TRAVEL_SCALE * 0.96, TRAVEL_SCALE * 0.66, TRAVEL_SCALE * 0.3, 1,
-  ],
-  scaleY: [
-    TRAVEL_SCALE * 1.14, TRAVEL_SCALE * 1.05, TRAVEL_SCALE * 0.93,
-    TRAVEL_SCALE * 1.03, TRAVEL_SCALE * 0.68, TRAVEL_SCALE * 0.31, 1,
-  ],
+  scaleX: [TRAVEL_SCALE * 0.82, TRAVEL_SCALE * 0.9, TRAVEL_SCALE * 1.1, 0.94, 1.05, 0.98, 1],
+  scaleY: [TRAVEL_SCALE * 1.24, TRAVEL_SCALE * 1.12, TRAVEL_SCALE * 0.9, 1.07, 0.96, 1.02, 1],
   /**
-   * The outline drifts with it. A free-floating body of liquid is never a
-   * perfect ellipse: its radii differ around the shape and keep changing, which
-   * is what the eye reads as liquid rather than as a stretched circle.
+   * The outline drifts with it. A free-floating bubble is never a perfect
+   * ellipse: its radii differ around the shape and keep changing, which is what
+   * the eye reads as a membrane rather than as a stretched circle.
    */
   radius: [
     '54% 46% 58% 42% / 48% 56% 44% 52%',
@@ -94,7 +84,7 @@ const WOBBLE = {
  */
 const SATELLITE = {
   times: [0, 0.5, 0.72, 1],
-  scale: [2.6, 2.1, 0.6, 0],
+  scale: [1, 0.85, 0.4, 0],
 };
 
 interface Drop {
@@ -123,8 +113,8 @@ const DROPS: Drop[] = [
   {
     key: 'satellite-right',
     size: BLOB.size * 0.26,
-    x: BLOB.rightX - LOGO / 2 + BLOB.size * 1.5,
-    y: BLOB.top - LOGO / 2 + BLOB.size * 0.9,
+    x: BLOB.rightX - LOGO / 2 + BLOB.size * 0.78,
+    y: BLOB.top - LOGO / 2 + BLOB.size * 0.42,
     fill: 'radial-gradient(circle at 34% 28%, #EFB2FF 0%, #CD6BFB 55%, #9B37D0 100%)',
     from: '86vh',
     travel: ['86vh', '16vh', '3vh', '0vh'],
@@ -147,8 +137,8 @@ const DROPS: Drop[] = [
   {
     key: 'satellite-left',
     size: BLOB.size * 0.22,
-    x: BLOB.leftX - LOGO / 2 - BLOB.size * 1.35,
-    y: BLOB.top - LOGO / 2 - BLOB.size * 0.55,
+    x: BLOB.leftX - LOGO / 2 - BLOB.size * 0.62,
+    y: BLOB.top - LOGO / 2 - BLOB.size * 0.3,
     fill: 'radial-gradient(circle at 34% 28%, #C3B6FF 0%, #7A5FFF 55%, #4A32C4 100%)',
     from: '-84vh',
     travel: ['-84vh', '-15vh', '-2.5vh', '0vh'],
@@ -175,6 +165,13 @@ export default function SplashScreen({
   waitFor?: Promise<unknown>;
 }) {
   const [visible, setVisible] = useState(true);
+  /**
+   * The metaball filter is only switched on for the approach. Two bubbles a
+   * screen apart look the same with or without it, so running it for the whole
+   * animation paid a full compositing pass per frame for nothing — which is
+   * what made it stutter.
+   */
+  const [merging, setMerging] = useState(false);
   const reduced = useReducedMotion();
 
   // A reduced-motion launch still confirms the app opened, it just does not fly
@@ -189,6 +186,12 @@ export default function SplashScreen({
 
   /** When the mark is fully formed and the wordmark is up. */
   const formed = t.travel + t.settle + t.resolve;
+
+  useEffect(() => {
+    if (reduced) return;
+    const id = setTimeout(() => setMerging(true), t.travel * 620);
+    return () => clearTimeout(id);
+  }, [reduced, t.travel]);
 
   useEffect(() => {
     let alive = true;
@@ -233,69 +236,12 @@ export default function SplashScreen({
                 + 'linear-gradient(148deg, rgba(36,26,64,0.75) 0%, rgba(12,10,20,0.9) 52%, #050507 100%)',
             }}
           />
-          {!reduced && (
-            <>
-              {/*
-                Two blooms drifting on different periods, so the light never
-                settles into a symmetrical gradient. Transform only: scaling a
-                blurred layer re-renders the blur every frame, which is exactly
-                the kind of thing a phone cannot keep up with.
-              */}
-              <motion.div
-                aria-hidden="true"
-                className="pointer-events-none absolute"
-                style={{
-                  top: '-18%', left: '-14%', width: '78%', height: '62%',
-                  background: 'radial-gradient(circle at 40% 40%, rgba(174,132,255,0.30), transparent 68%)',
-                  filter: 'blur(30px)',
-                  willChange: 'transform',
-                }}
-                animate={{ x: [0, 46, -20, 0], y: [0, 28, 60, 0] }}
-                transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <motion.div
-                aria-hidden="true"
-                className="pointer-events-none absolute"
-                style={{
-                  top: '4%', left: '16%', width: '66%', height: '56%',
-                  background: 'radial-gradient(circle at 60% 50%, rgba(205,107,251,0.17), transparent 70%)',
-                  filter: 'blur(38px)',
-                  willChange: 'transform',
-                }}
-                animate={{ x: [0, -40, 24, 0], y: [0, 36, -14, 0] }}
-                transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
-              />
-            </>
-          )}
-
           {/*
-            The metaball filter: blur everything underneath, then push the alpha
-            through a steep curve so semi-transparent edges snap back to solid.
-            Two shapes that come close therefore grow a neck and fuse into one
-            surface, and small droplets are swallowed whole — the behaviour in
-            the reference images, and something no amount of border-radius
-            tweening can fake, because it is a property of the pair, not of
-            either shape.
+            The two drifting blooms that used to live here are gone. They were
+            two blurred layers repainting on every frame for the whole splash,
+            behind an animation that needed those frames — an ambience nobody
+            can look at while the mark is forming.
           */}
-          <svg aria-hidden="true" className="absolute" width="0" height="0">
-            <defs>
-              <filter id="qw-goo" colorInterpolationFilters="sRGB">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="soft" />
-                {/*
-                  A gentler slope than the textbook gooey filter. Steep values
-                  give a crisp silhouette and a hard, aliased edge; this leaves
-                  a hair of softness at the rim, which is what a wet surface
-                  has. The bias is set so the neck between two masses appears
-                  while they are still a good distance apart.
-                */}
-                <feColorMatrix
-                  in="soft"
-                  mode="matrix"
-                  values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 15 -6"
-                />
-              </filter>
-            </defs>
-          </svg>
 
           <div className="relative flex flex-col items-center">
             <div className="relative" style={{ width: LOGO, height: LOGO }}>
@@ -307,10 +253,9 @@ export default function SplashScreen({
                 exactly where the mark's lobes are, so the crossfade that
                 follows lands on itself.
 
-                The filtered layer covers the screen because the masses now do
-                too. That costs more per frame than the narrow band it replaces,
-                and it is the price of the effect: a metaball surface only reads
-                as a substance at a size where its own shading is visible.
+                The bubbles are children of the filtered box, and travel far
+                outside it: the filter region below is what decides how much of
+                that is drawn, and it is deliberately tight.
               */}
               <motion.div
                 aria-hidden="true"
@@ -318,11 +263,14 @@ export default function SplashScreen({
                 style={{
                   left: '50%',
                   top: '50%',
-                  width: '150vw',
-                  height: '170vh',
-                  marginLeft: '-75vw',
-                  marginTop: '-85vh',
-                  filter: reduced ? undefined : 'url(#qw-goo)',
+                  width: LOGO * 1.9,
+                  height: LOGO * 1.9,
+                  marginLeft: -(LOGO * 1.9) / 2,
+                  marginTop: -(LOGO * 1.9) / 2,
+                  // Switched on only for the merge. Two bubbles a screen apart
+                  // look identical filtered or not, so paying for the filter
+                  // during the travel bought nothing and cost every frame.
+                  filter: merging && !reduced ? 'url(#qw-goo)' : undefined,
                   willChange: 'opacity',
                 }}
                 initial={{ opacity: 1 }}
