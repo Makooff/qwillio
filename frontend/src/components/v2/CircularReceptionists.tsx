@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import gsap from 'gsap';
 import { ChevronLeft, ChevronRight, Mic, Play, Square } from 'lucide-react';
 import { prefersReducedMotion } from './motion/reducedMotion';
+import { useVoicePreview } from '../client/useVoicePreview';
 
 /* Sélection des réceptionnistes, portée du Circular Carousel de nexus-ui
    (DA/references/21st/circular-carousel/source.tsx, collé par l'utilisateur) :
@@ -24,8 +25,11 @@ import { prefersReducedMotion } from './motion/reducedMotion';
      transition ciblée ici ;
    - glisser tactile conservé (un cran par 64px), acquis des phases précédentes.
 
-   L'aperçu de voix reste la synthèse du navigateur (aucun appel réseau côté
-   marketing), et la langue vient du site : chaque personnage parle FR et EN.
+   L'aperçu de voix joue les VRAIES voix ElevenLabs, comme le dashboard : même
+   hook partagé (components/client/useVoicePreview — cache module, fixes iOS,
+   repli navigateur annoncé), pointé sur l'endpoint public
+   GET /api/public/characters/:id/preview?lang=…, clips en cache serveur.
+   La langue vient du site : chaque personnage parle FR et EN.
    En reduced-motion : rangée statique, fiche et aperçu conservés. */
 
 interface Preset {
@@ -91,45 +95,16 @@ function getItemPosition(i: number, active: number, rx: number, ry: number) {
   };
 }
 
-/* Aperçu de voix par synthèse du navigateur: une phrase d'accueil dans la
-   langue du site, coupée dès qu'on change de personnage ou de langue. */
-function useVoicePreview(preset: Preset, isFr: boolean) {
-  const [speaking, setSpeaking] = useState(false);
+/* URL du clip public (mêmes voix que le dashboard, cache serveur + ETag) et
+   phrase de repli pour la voix du navigateur si l'audio réel échoue. */
+function previewUrl(id: string, isFr: boolean) {
+  return `/public/characters/${id}/preview?lang=${isFr ? 'fr' : 'en'}`;
+}
 
-  const stop = useCallback(() => {
-    if (typeof window !== 'undefined') window.speechSynthesis?.cancel();
-    setSpeaking(false);
-  }, []);
-
-  useEffect(() => {
-    stop();
-    return stop;
-  }, [preset.id, isFr, stop]);
-
-  const toggle = useCallback(() => {
-    const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
-    if (!synth) return;
-    if (speaking) {
-      stop();
-      return;
-    }
-    synth.cancel();
-    const utt = new SpeechSynthesisUtterance(
-      isFr
-        ? `Bonjour, ici ${preset.name}, merci d’appeler ! Comment puis-je vous aider ?`
-        : `Hello, this is ${preset.name}, thanks for calling! How can I help you?`,
-    );
-    utt.lang = isFr ? 'fr-FR' : 'en-US';
-    utt.rate = 0.98;
-    const match = synth.getVoices().find((v) => v.lang.startsWith(isFr ? 'fr' : 'en'));
-    if (match) utt.voice = match;
-    utt.onend = () => setSpeaking(false);
-    utt.onerror = () => setSpeaking(false);
-    setSpeaking(true);
-    synth.speak(utt);
-  }, [isFr, preset.name, speaking, stop]);
-
-  return { speaking, toggle };
+function fallbackLine(name: string, isFr: boolean) {
+  return isFr
+    ? `Bonjour, ici ${name}, merci d’appeler ! Comment puis-je vous aider ?`
+    : `Hello, this is ${name}, thanks for calling! How can I help you?`;
 }
 
 function VoicePreviewButton({
@@ -248,7 +223,20 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
   const dragRef = useRef<{ id: number; x: number; consumed: number } | null>(null);
 
   const preset = PRESETS[active];
-  const { speaking, toggle } = useVoicePreview(preset, isFr);
+  /* Vraies voix, hook partagé avec le dashboard (cache module, fixes iOS,
+     repli navigateur annoncé par `notice`). */
+  const { playing, notice, toggle, prefetch, stop } = useVoicePreview(isFr);
+  const speaking = playing === preset.id;
+  const onTogglePreview = useCallback(() => {
+    toggle(preset.id, previewUrl(preset.id, isFr), fallbackLine(preset.name, isFr));
+  }, [toggle, preset.id, preset.name, isFr]);
+
+  /* Changer de personnage coupe l'aperçu en cours et précharge le clip du
+     nouveau, pour que ▶ parte sans attente. */
+  useEffect(() => {
+    stop();
+    prefetch(previewUrl(preset.id, isFr));
+  }, [preset.id, isFr, stop, prefetch]);
 
   const goTo = useCallback((next: number) => {
     setActive(((next % COUNT) + COUNT) % COUNT);
@@ -260,10 +248,10 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
   /* Autoplay de la référence : 4 s, pausé au survol, au focus, et pendant
      qu'une voix parle (avancer couperait l'aperçu). */
   useEffect(() => {
-    if (reduced || isHovered || isFocused || speaking) return;
+    if (reduced || isHovered || isFocused || playing !== null) return;
     const id = setInterval(() => setActive((a) => (a + 1) % COUNT), AUTOPLAY_MS);
     return () => clearInterval(id);
-  }, [reduced, isHovered, isFocused, speaking]);
+  }, [reduced, isHovered, isFocused, playing]);
 
   useEffect(() => {
     if (reduced) return;
@@ -358,12 +346,17 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
           preview={
             <VoicePreviewButton
               speaking={speaking}
-              onToggle={toggle}
+              onToggle={onTogglePreview}
               isFr={isFr}
               name={preset.name}
             />
           }
         />
+        {notice && (
+          <p role="status" className="text-[12px] text-q2-body q2-body-text max-w-[640px] mx-auto mt-3">
+            {notice}
+          </p>
+        )}
         <VoiceCloneNote isFr={isFr} />
       </div>
     );
@@ -457,7 +450,7 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
           </AnimatePresence>
           <VoicePreviewButton
             speaking={speaking}
-            onToggle={toggle}
+            onToggle={onTogglePreview}
             isFr={isFr}
             name={preset.name}
             className="absolute z-30"
@@ -521,6 +514,11 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
         </motion.button>
       </div>
 
+      {notice && (
+        <p role="status" className="text-[12px] text-q2-body q2-body-text max-w-[640px] mx-auto -mt-3 mb-4 text-center sm:text-left">
+          {notice}
+        </p>
+      )}
       <PersonaCard preset={preset} isFr={isFr} />
       <VoiceCloneNote isFr={isFr} />
     </div>
