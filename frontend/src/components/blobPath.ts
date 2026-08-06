@@ -143,11 +143,18 @@ export function liquidJourney(params: {
      * narrow and deep, because that is the only way to get a notch rather than a
      * flat spot. It is the notches that read as liquid.
      */
-    width: j % 2 === 0 ? 0.85 + random() * 0.35 : 0.62 + random() * 0.3,
-    depth: j % 2 === 0 ? 0.3 + random() * 0.16 : 0.42 + random() * 0.22,
+    width: j % 2 === 0 ? 0.85 + random() * 0.35 : 0.6 + random() * 0.3,
+    depth: j % 2 === 0 ? 0.36 + random() * 0.18 : 0.5 + random() * 0.26,
     /** How fast it breathes. */
     speed: 1.1 + random() * 1.7,
-    phase: random() * Math.PI * 2,
+    /**
+     * Where in its breath it starts.
+     *
+     * Near the top of it, not anywhere: the first frame is the one held longest
+     * on screen, and a shape that opens the splash as a circle and only finds
+     * its character a moment later has already read as a circle.
+     */
+    phase: Math.PI / 2 + (random() - 0.5) * 1.1,
     /**
      * Out or in, decided once and kept.
      *
