@@ -111,7 +111,7 @@ export default function ReceptionistGallery({ isFr }: { isFr: boolean }) {
 
       {/* Le onzième choix: la voix du patron */}
       <div className="flex items-center gap-4 mt-6 max-w-[640px]">
-        <span className="w-12 h-12 shrink-0 rounded-full bg-q2-ink text-white flex items-center justify-center">
+        <span className="w-12 h-12 shrink-0 rounded-full bg-q2-ink text-q2-canvas flex items-center justify-center">
           <Mic size={18} aria-hidden="true" />
         </span>
         <p className="text-[15px] text-q2-body leading-relaxed q2-body-text">

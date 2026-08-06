@@ -93,7 +93,7 @@ function VoicePreviewButton({
       }
       /* Pastille de 32px visuels, mais une zone tactile de 44px étendue par
          un pseudo-élément: le doigt n'a pas à viser le glyphe. */
-      className={`relative w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full bg-q2-ink text-white ring-2 ring-q2-canvas hover:bg-q2-indigo transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo after:absolute after:-inset-1.5 after:content-[''] ${className}`}
+      className={`relative w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full bg-q2-ink text-q2-canvas ring-2 ring-q2-canvas hover:bg-q2-indigo transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo after:absolute after:-inset-1.5 after:content-[''] ${className}`}
     >
       {speaking ? (
         <Square size={10} fill="currentColor" aria-hidden="true" />
@@ -155,7 +155,7 @@ function PersonaCard({
 function VoiceCloneNote({ isFr }: { isFr: boolean }) {
   return (
     <div className="flex items-center gap-4 mt-5 sm:mt-6 max-w-[640px] mx-auto">
-      <span className="w-12 h-12 shrink-0 rounded-full bg-q2-ink text-white flex items-center justify-center">
+      <span className="w-12 h-12 shrink-0 rounded-full bg-q2-ink text-q2-canvas flex items-center justify-center">
         <Mic size={18} aria-hidden="true" />
       </span>
       <p className="text-[15px] text-q2-body leading-relaxed q2-body-text">

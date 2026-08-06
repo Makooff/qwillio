@@ -4,15 +4,25 @@
    Clair: DA/references/elevenlabs.md · Drenched: DA/references/linear.md
    ============================================================ */
 
+/* Les sept jetons de SURFACE et de TEXTE sont écrits en canaux RVB séparés,
+   pas en hexadécimal: c'est ce qui permet à Tailwind de composer
+   `rgb(var(--q2-canvas) / <alpha-value>)` et donc de garder les modificateurs
+   d'opacité (`border-q2-plate/70`, `bg-q2-plate/50`, présents partout dans la
+   V2) tout en rendant la valeur basculable. Un `var()` contenant un
+   hexadécimal casserait tous ces modificateurs.
+
+   Seuls ces sept basculent. Le mauve de marque, lui, ne change pas avec le
+   thème: une marque qui change de couleur selon l'heure n'est plus une
+   marque. */
 :root {
   /* Registre clair */
-  --q2-canvas: #fdfcfc;
-  --q2-band: #f5f3f1;
-  --q2-plate: #ebe8e4;
-  --q2-ink: #1d1d1f;
-  --q2-graphite: #44403b;
-  --q2-body: #777169;
-  --q2-faint: #a59f97;
+  --q2-canvas: 253 252 252;
+  --q2-band: 245 243 241;
+  --q2-plate: 235 232 228;
+  --q2-ink: 29 29 31;
+  --q2-graphite: 68 64 59;
+  --q2-body: 119 113 105;
+  --q2-faint: 165 159 151;
 
   /* Marque (DA/couleurs.md) */
   --q2-indigo: #7a5fff;
@@ -43,8 +53,74 @@
   --q2-ok-bg: #f4faf6;
   --q2-ok-brd: #cfe4d7;
 
-  --q2-hairline: 1px solid #ebe8e4;
+  --q2-hairline: 1px solid rgb(var(--q2-plate));
   --q2-hairline-d: 1px solid #23252a;
+}
+
+/* ============================================================
+   Registre sombre du SITE.
+
+   À ne pas confondre avec les sections « drenched », qui sont sombres dans les
+   deux thèmes: elles restent le point d'orgue du récit, et gardent donc leurs
+   valeurs Linear. Le fond sombre du site est posé un cran AU-DESSUS du void
+   drenched (#0E0F11 contre #08090A), sans quoi les deux registres se
+   confondraient et la page perdrait son rythme.
+
+   Les teintes gardent la dérive indigo de la marque (le noir Qwillio n'est
+   jamais neutre, DA/couleurs.md): les gris tirent vers le bleu-violet, pas
+   vers le vert.
+   ============================================================ */
+:root[data-theme='dark'] {
+  --q2-canvas: 14 15 17;
+  --q2-band: 19 20 23;
+  --q2-plate: 35 37 41;
+  --q2-ink: 245 244 242;
+  --q2-graphite: 201 198 193;
+  --q2-body: 152 148 142;
+  --q2-faint: 107 104 98;
+
+  /* Sur fond sombre l'élévation vient des bordures, pas des ombres (Linear).
+     L'ombre « whisper », calibrée pour du noir sur crème, ne se voit plus et
+     ne fait qu'assombrir: elle disparaît. */
+  --q2-shadow-whisper: 0 0 0 1px rgb(var(--q2-plate));
+  --q2-shadow-hover: 0 30px 80px rgba(0, 0, 0, 0.45);
+
+  /* États: fonds sourds, encre claire, pour rester lisibles sans éblouir. */
+  --q2-bad-ink: #ffb4ab;
+  --q2-bad-bg: #24120f;
+  --q2-bad-brd: #52251f;
+  --q2-ok-ink: #8ee0b4;
+  --q2-ok-bg: #0f1f17;
+  --q2-ok-brd: #1f4433;
+}
+
+/* Le thème suit le système tant que personne n'a tranché. Dès qu'un choix est
+   fait, `data-theme` est posé sur la racine et prime sur la requête média. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --q2-canvas: 14 15 17;
+    --q2-band: 19 20 23;
+    --q2-plate: 35 37 41;
+    --q2-ink: 245 244 242;
+    --q2-graphite: 201 198 193;
+    --q2-body: 152 148 142;
+    --q2-faint: 107 104 98;
+    --q2-shadow-whisper: 0 0 0 1px rgb(var(--q2-plate));
+    --q2-shadow-hover: 0 30px 80px rgba(0, 0, 0, 0.45);
+    --q2-bad-ink: #ffb4ab;
+    --q2-bad-bg: #24120f;
+    --q2-bad-brd: #52251f;
+    --q2-ok-ink: #8ee0b4;
+    --q2-ok-bg: #0f1f17;
+    --q2-ok-brd: #1f4433;
+  }
+}
+
+/* Le basculement se voit sur les grandes surfaces, sinon il claque. Les
+   composants gardent leurs transitions ciblées; c'est le fond de page qui
+   porte le fondu. */
+html {
+  transition: background-color 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* --- Typographie whisper (signature V2) ---

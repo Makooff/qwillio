@@ -334,7 +334,7 @@ export default function Pricing() {
               onClick={() => setBilling('monthly')}
               aria-pressed={billing === 'monthly'}
               className={`!min-h-0 !px-5 !py-2 !text-[13px] !transition-none ${
-                billing === 'monthly' ? '!bg-q2-ink !text-white' : '!text-q2-body hover:!bg-q2-plate'
+                billing === 'monthly' ? '!bg-q2-ink !text-q2-canvas' : '!text-q2-body hover:!bg-q2-plate'
               }`}
             >
               {isFr ? 'Mensuel' : 'Monthly'}
@@ -344,7 +344,7 @@ export default function Pricing() {
               onClick={() => setBilling('annual')}
               aria-pressed={billing === 'annual'}
               className={`!min-h-0 !px-5 !py-2 !text-[13px] !transition-none ${
-                billing === 'annual' ? '!bg-q2-ink !text-white' : '!text-q2-body hover:!bg-q2-plate'
+                billing === 'annual' ? '!bg-q2-ink !text-q2-canvas' : '!text-q2-body hover:!bg-q2-plate'
               }`}
             >
               {isFr ? 'Annuel' : 'Annual'}

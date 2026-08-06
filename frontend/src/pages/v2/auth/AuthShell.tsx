@@ -18,7 +18,7 @@ export const AUTH_FIELD =
   'w-full rounded-xl bg-q2-plate/50 border border-q2-plate px-4 py-3 text-[15px] text-q2-ink placeholder:text-q2-faint outline-none transition-colors duration-150 focus:border-q2-indigo focus:bg-q2-canvas';
 
 export const AUTH_SUBMIT =
-  'w-full inline-flex items-center justify-center gap-2 rounded-full bg-q2-ink text-white text-[15px] font-medium px-6 py-3.5 min-h-[44px] hover:bg-black transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  'w-full inline-flex items-center justify-center gap-2 rounded-full bg-q2-ink text-q2-canvas text-[15px] font-medium px-6 py-3.5 min-h-[44px] hover:opacity-90 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
 export const AUTH_OUTLINE =
   'inline-flex items-center justify-center gap-2 rounded-full border border-q2-plate bg-q2-canvas text-q2-ink text-[15px] font-medium px-6 py-3.5 min-h-[44px] hover:border-q2-faint transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';

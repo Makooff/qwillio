@@ -6,6 +6,8 @@ import {
   ArrowDownRightMd as CiArrowDownRightMd,
   ArrowDownUp as CiArrowDownUp,
   ArrowLeftMd as CiArrowLeftMd,
+  Moon as CiMoon,
+  Sun as CiSun,
   ArrowLeftRight as CiArrowLeftRight,
   ArrowReload02 as CiArrowReload02,
   ArrowRightMd as CiArrowRightMd,
@@ -172,6 +174,8 @@ export const Apple = icon(CiMobile, 'Apple');
 export const ArrowDown = icon(CiArrowDownMd, 'ArrowDown');
 export const ArrowDownRight = icon(CiArrowDownRightMd, 'ArrowDownRight');
 export const ArrowLeft = icon(CiArrowLeftMd, 'ArrowLeft');
+export const Moon = icon(CiMoon, 'Moon');
+export const Sun = icon(CiSun, 'Sun');
 export const ArrowLeftRight = icon(CiArrowLeftRight, 'ArrowLeftRight');
 export const ArrowRight = icon(CiArrowRightMd, 'ArrowRight');
 export const ArrowUp = icon(CiArrowUpMd, 'ArrowUp');

@@ -358,7 +358,7 @@ export default function Receptionist() {
         <div
           className="absolute inset-0 pointer-events-none"
           aria-hidden="true"
-          style={{ background: 'linear-gradient(180deg, #f5f2fb 0%, #faf8fc 55%, #fdfcfc 100%)' }}
+          style={{ background: 'linear-gradient(180deg, rgb(var(--q2-band)) 0%, rgb(var(--q2-band)) 55%, rgb(var(--q2-canvas)) 100%)' }}
         />
         <Container className="relative grid lg:grid-cols-[1.1fr_1fr] gap-9 sm:gap-14 lg:gap-20 items-center">
           <RevealV2>

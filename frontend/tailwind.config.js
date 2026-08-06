@@ -27,13 +27,19 @@ export default {
         // Design V2 « Papier & Signal » — voir DA/v2-direction.md.
         // Clair: ElevenLabs (DA/references/elevenlabs.md). Drenched: Linear (DA/references/linear.md).
         q2: {
-          canvas: '#FDFCFC',
-          band: '#F5F3F1',
-          plate: '#EBE8E4',
-          ink: '#1D1D1F',
-          graphite: '#44403B',
-          body: '#777169',
-          faint: '#A59F97',
+          // Surfaces et textes: pilotés par les variables de v2.css pour que le
+          // thème sombre bascule d'un seul endroit. `<alpha-value>` préserve les
+          // modificateurs d'opacité (bg-q2-plate/50), que `var(--x)` seul
+          // casserait.
+          canvas: 'rgb(var(--q2-canvas) / <alpha-value>)',
+          band: 'rgb(var(--q2-band) / <alpha-value>)',
+          plate: 'rgb(var(--q2-plate) / <alpha-value>)',
+          ink: 'rgb(var(--q2-ink) / <alpha-value>)',
+          graphite: 'rgb(var(--q2-graphite) / <alpha-value>)',
+          body: 'rgb(var(--q2-body) / <alpha-value>)',
+          faint: 'rgb(var(--q2-faint) / <alpha-value>)',
+          // La marque et le registre drenched ne basculent pas: ils sont les
+          // mêmes dans les deux thèmes.
           indigo: '#7A5FFF',
           violet: '#CD6BFB',
           deep: '#7349FE',

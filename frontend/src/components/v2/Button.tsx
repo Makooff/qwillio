@@ -9,7 +9,7 @@ type Variant = 'primary' | 'outline' | 'ghost' | 'onDark' | 'chromatic';
 
 const STYLES: Record<Variant, string> = {
   primary:
-    'bg-q2-ink text-white hover:bg-black focus-visible:ring-q2-indigo/40',
+    'bg-q2-ink text-q2-canvas hover:opacity-90 focus-visible:ring-q2-indigo/40',
   outline:
     'bg-q2-canvas text-q2-ink border border-q2-plate hover:border-q2-faint focus-visible:ring-q2-indigo/40',
   ghost:

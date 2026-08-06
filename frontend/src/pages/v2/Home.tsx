@@ -25,7 +25,6 @@ import GlowCard from '../../components/v2/motion/GlowCard';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import PixelBlushBackdrop from '../../components/v2/motion/PixelBlushBackdrop';
 import ShapeDrift from '../../components/v2/motion/ShapeDrift';
-import StepFrame from '../../components/v2/motion/StepFrame';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -83,7 +82,7 @@ function HeroVideoBackdrop() {
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgba(253,252,252,0.62) 0%, rgba(248,246,252,0.72) 55%, #fdfcfc 100%)',
+            'linear-gradient(180deg, rgb(var(--q2-canvas) / 0.62) 0%, rgb(var(--q2-band) / 0.72) 55%, rgb(var(--q2-canvas)) 100%)',
         }}
       />
     </div>
@@ -196,7 +195,7 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
                mesure de l'utilisateur qui reste lisible dans le code. */
             height: 'calc(9% + 1cm)',
             background:
-              'linear-gradient(to bottom, rgba(253,252,252,0) 0%, rgba(253,252,252,0.72) 14%, #FDFCFC 24%, #FDFCFC 100%)',
+              'linear-gradient(to bottom, rgb(var(--q2-canvas) / 0) 0%, rgb(var(--q2-canvas) / 0.72) 14%, rgb(var(--q2-canvas)) 24%, rgb(var(--q2-canvas)) 100%)',
           }}
         />
       </div>
@@ -347,7 +346,7 @@ export default function Home() {
           aria-hidden="true"
           style={{
             background:
-              'linear-gradient(180deg, #fdfcfc 0%, #f5f2fb 14%, #f8f6fc 58%, #fdfcfc 100%)',
+              'linear-gradient(180deg, rgb(var(--q2-canvas)) 0%, rgb(var(--q2-band)) 14%, rgb(var(--q2-band)) 58%, rgb(var(--q2-canvas)) 100%)',
           }}
         />
         {/* Vidéo de fond (demande utilisateur). Muette, en boucle, sans
@@ -418,7 +417,6 @@ export default function Home() {
               partagée par toute la V2, lui ajouter forwardRef pour un seul
               appelant la complique pour tous les autres. */}
           <div ref={duringRef} className="relative">
-          <StepFrame scope={duringRef} className="hidden md:block" />
           <PinnedScene
             aside={
               <RevealV2 className="max-w-[420px]">

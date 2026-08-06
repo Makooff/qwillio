@@ -9,6 +9,7 @@ import {
 import type { LucideIcon } from '../icons';
 import QwillioLogo from '../QwillioLogo';
 import LangToggle from '../LangToggle';
+import ThemeToggle from './ThemeToggle';
 import { useLang } from '../../stores/langStore';
 import { EASE_OUT_EXPO } from './motion/reducedMotion';
 import { useGlow } from './motion/GlowCard';
@@ -524,7 +525,7 @@ export default function NavV2() {
       <GlassFilter />
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-q2-ink focus:text-white focus:px-4 focus:py-2 focus:rounded-full text-sm"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-q2-ink focus:text-q2-canvas focus:px-4 focus:py-2 focus:rounded-full text-sm"
       >
         {isFr ? 'Aller au contenu' : 'Skip to content'}
       </a>
@@ -558,8 +559,8 @@ export default function NavV2() {
             maskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
             WebkitMaskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
             background: liquid
-              ? (overDark ? 'rgba(8, 9, 10, 0.12)' : 'rgba(253, 252, 252, 0.12)')
-              : (overDark ? 'rgba(8, 9, 10, 0.58)' : 'rgba(253, 252, 252, 0.56)'),
+              ? (overDark ? 'rgba(8, 9, 10, 0.12)' : 'rgb(var(--q2-canvas) / 0.12)')
+              : (overDark ? 'rgba(8, 9, 10, 0.58)' : 'rgb(var(--q2-canvas) / 0.56)'),
           }}
         />
         <motion.nav
@@ -606,7 +607,7 @@ export default function NavV2() {
               tintFallback={
                 overDark
                   ? 'linear-gradient(180deg, rgba(24,26,30,0.48) 0%, rgba(8,9,10,0.58) 100%)'
-                  : 'linear-gradient(180deg, rgba(255,255,255,0.52) 0%, rgba(253,252,252,0.40) 100%)'
+                  : 'linear-gradient(180deg, rgba(255,255,255,0.52) 0%, rgb(var(--q2-canvas) / 0.40) 100%)'
               }
               style={{ zIndex: -1 }}
             />
@@ -674,6 +675,7 @@ export default function NavV2() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle onDark={overDark} />
             <LangToggle onDark={overDark} />
             <Link
               to="/login"
@@ -687,7 +689,7 @@ export default function NavV2() {
               to="/register"
               /* Sur fond sombre la pilule encre disparaîtrait : elle s'inverse */
               className={`q2-pill inline-flex items-center rounded-full text-sm font-medium px-5 py-2 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2 ${
-                overDark ? 'bg-white text-q2-ink hover:bg-white/90' : 'bg-q2-ink text-white hover:bg-black'
+                overDark ? 'bg-white text-q2-ink hover:bg-white/90' : 'bg-q2-ink text-q2-canvas hover:opacity-90'
               }`}
             >
               {isFr ? 'Essayer' : 'Try it'}
@@ -770,7 +772,7 @@ export default function NavV2() {
             >
               <Link
                 to="/register"
-                className="q2-pill flex-1 inline-flex items-center justify-center rounded-full bg-q2-ink text-white text-[15px] font-medium px-6 py-3.5"
+                className="q2-pill flex-1 inline-flex items-center justify-center rounded-full bg-q2-ink text-q2-canvas text-[15px] font-medium px-6 py-3.5"
               >
                 {isFr ? 'Essayer' : 'Try it'}
               </Link>
@@ -780,6 +782,7 @@ export default function NavV2() {
               >
                 {isFr ? 'Connexion' : 'Log in'}
               </Link>
+              <ThemeToggle />
               <LangToggle />
             </motion.div>
           </motion.div>
