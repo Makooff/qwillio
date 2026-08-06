@@ -522,17 +522,25 @@ export default function NavV2() {
           transition={reduced ? { duration: 0 } : DETACH_SPRING}
           /* Bulle en verre : la géométrie vient du ressort framer, la peau
              (teinte, bord, ombre) glisse en CSS. Fond transparent flouté,
-             jamais blanc. */
+             jamais blanc. Même matière que le dock iOS et que la pilule basse
+             du dashboard : flou large et saturé, voile de 14 à 22 %, filet
+             lumineux en haut du verre. */
           style={{
-            boxShadow: floating && !overDark ? 'var(--q2-shadow-whisper)' : 'none',
+            backdropFilter: floating ? 'blur(30px) saturate(1.8)' : undefined,
+            WebkitBackdropFilter: floating ? 'blur(30px) saturate(1.8)' : undefined,
+            boxShadow: floating
+              ? overDark
+                ? 'inset 0 1px 0 rgba(255, 255, 255, 0.18)'
+                : 'inset 0 1px 0 rgba(255, 255, 255, 0.55), var(--q2-shadow-whisper)'
+              : 'none',
             transition:
               'background-color 260ms cubic-bezier(0.16, 1, 0.3, 1), border-color 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1)',
           }}
           className={`relative mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 border ${
             floating
               ? overDark
-                ? 'bg-black/25 backdrop-blur-2xl border-white/10'
-                : 'bg-white/20 backdrop-blur-2xl border-q2-plate/70'
+                ? 'bg-black/[0.22] border-white/10'
+                : 'bg-white/[0.14] border-white/40'
               : 'bg-transparent border-transparent'
           }`}
         >

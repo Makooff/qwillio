@@ -117,21 +117,25 @@ async function main() {
          Chrome (kit macOS)  corps 1280 x 705
          Safari Big Sur      corps 1280 x 731 (barre d'outils 53)
          MacBook Pro 16      écran 2061.87 x 1334.09
-         iPhone 15 Pro       écran 1179 x 2556 (54 pt de barre d'état en haut) */
+         iPhone (mockup)     écran 392 x 850 (54 pt de barre d'état en haut) */
     ? [
         { width: 1280, height: 705, scale: 3, out: '/tmp/qwillio-figma/dashboard-chrome.png', png: true },
         { width: 1280, height: 731, scale: 3, out: '/tmp/qwillio-figma/dashboard-safari.png', png: true },
         { width: 1374, height: 889, scale: 3, out: '/tmp/qwillio-figma/dashboard-macbook.png', png: true },
-        { width: 393, height: 852 - 54, scale: 3, statusBar: 54, out: '/tmp/qwillio-figma/dashboard-iphone.png', png: true },
+        { width: 392, height: 850 - 54, scale: 3, statusBar: 54, out: '/tmp/qwillio-figma/dashboard-iphone.png', png: true },
       ]
+    /* hero-dashboard : le corps de la fenêtre Safari du hero mesure 2560 x 1462
+       dans le PNG du kit, soit exactement 1280 x 731 en points. La capture est
+       donc prise à cette taille (x2 = la taille native du corps), puis réduite à
+       1600 de large pour l'écran. Aucune déformation dans le cadre. */
     : [
-        { width: 1600, height: 1000, scale: 2, out: 'public/screens/hero-dashboard.webp' },
+        { width: 1280, height: 731, scale: 2, outWidth: 1600, out: 'public/screens/hero-dashboard.webp' },
         { width: 390, height: 844, scale: 2, out: 'public/screens/mobile-overview.webp' },
       ];
 
   await mkdir(figma ? '/tmp/qwillio-figma' : 'public/screens', { recursive: true });
 
-  for (const { width, height, scale, out, png: asPng, statusBar } of shots) {
+  for (const { width, height, scale, out, png: asPng, statusBar, outWidth } of shots) {
     const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: scale });
     await ctx.addInitScript(() => {
       localStorage.setItem('token', 'demo-token');
@@ -164,7 +168,7 @@ async function main() {
         background: '#0F1011',
       }).png().toBuffer());
     }
-    await (asPng ? img.png() : img.resize({ width }).webp({ quality: 88 })).toFile(out);
+    await (asPng ? img.png() : img.resize({ width: outWidth ?? width }).webp({ quality: 88 })).toFile(out);
     console.log(out, 'ok');
     await page.close();
     await ctx.close();

@@ -24,7 +24,6 @@ import Magnetic from '../../components/v2/motion/Magnetic';
 import GlowCard from '../../components/v2/motion/GlowCard';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import PixelBlushBackdrop from '../../components/v2/motion/PixelBlushBackdrop';
-import BrowserFrame from '../../components/v2/ui/browser-frame';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -32,10 +31,28 @@ gsap.registerPlugin(ScrollTrigger);
 /* Intensité d'un halo décoratif (.q2-halo, v2.css), en variable CSS */
 const halo = (opacity: number) => ({ '--q2-halo-o': String(opacity) }) as CSSProperties;
 
-/* La capture réelle du dashboard qui referme le hero: cadre hairline, coins
-   16px, halo doux derrière, et une perspective très légère (rotateX 4deg) qui
-   s'aplatit au scroll. Le ratio est réservé par les attributs width/height de
-   l'image: aucun décalage de mise en page pendant le chargement. */
+/* Cadre du hero : le PNG livré par l'utilisateur (export Figma du kit « macOS
+   Browser UI Kit — Big Sur »), posé tel quel, ombre portée comprise. Les cotes
+   ci-dessous sont MESURÉES dans le fichier, pas estimées :
+     image      2760 x 1768 (100 px d'ombre à gauche/droite, 80 en haut, 120 en bas)
+     fenêtre    x 100..2659, y 80..1647, soit 2560 x 1568, coins de 19 px
+     barre      106 px, donc le corps commence à y = 186 et mesure 2560 x 1462
+   D'où les pourcentages : ils tiennent à n'importe quelle taille d'affichage.
+   Changer de mockup (MacBook, autre navigateur) = remplacer ces six valeurs. */
+const MOCKUP = {
+  src: '/mockups/safari-big-sur-dark.png',
+  width: 2760,
+  height: 1768,
+  screen: {
+    left: '3.6232%',
+    top: '10.5204%',
+    width: '92.7536%',
+    height: '82.6923%',
+    borderBottomLeftRadius: '0.742% 1.3%',
+    borderBottomRightRadius: '0.742% 1.3%',
+  },
+} as const;
+
 function HeroDashboardShot({ isFr }: { isFr: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -76,22 +93,53 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
       />
       <div
         ref={frameRef}
-        className="relative shadow-[var(--q2-shadow-hover)] rounded-[12px]"
+        className="relative"
         style={{ transformOrigin: 'center top', willChange: 'transform' }}
       >
-        <BrowserFrame url="qwillio.com/dashboard" title={isFr ? 'Qwillio — Tableau de bord' : 'Qwillio — Dashboard'}>
-          <img
-            src="/screens/hero-dashboard.webp"
-            alt={
-              isFr
-                ? 'Dashboard Qwillio : les appels du jour, leur issue et leur transcript'
-                : 'Qwillio dashboard: the day’s calls, their outcome and their transcript'
-            }
-            width={1600}
-            height={930}
-            className="block w-full h-auto"
-          />
-        </BrowserFrame>
+        <img
+          src={MOCKUP.src}
+          alt=""
+          aria-hidden="true"
+          width={MOCKUP.width}
+          height={MOCKUP.height}
+          className="block w-full h-auto select-none pointer-events-none"
+        />
+        <img
+          src="/screens/hero-dashboard.webp"
+          alt={
+            isFr
+              ? 'Dashboard Qwillio : les appels du jour, leur issue et leur transcript'
+              : 'Qwillio dashboard: the day’s calls, their outcome and their transcript'
+          }
+          width={1600}
+          height={914}
+          className="absolute block object-cover"
+          style={MOCKUP.screen}
+        />
+        {/* Le kit livre sa barre d'adresse remplie (« figma.com »). On la
+            repeint dans le repère du PNG : le champ occupe x 866..1893,
+            y 104..159, aplat #0C0F12. En SVG, donc net à toutes les tailles. */}
+        <svg
+          viewBox={`0 0 ${MOCKUP.width} ${MOCKUP.height}`}
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full pointer-events-none"
+        >
+          <rect x="900" y="105" width="960" height="54" fill="#0C0F12" />
+          <g stroke="#9EA2A6" strokeWidth="3" fill="none">
+            <rect x="1231" y="126" width="18" height="14" rx="3" fill="#9EA2A6" stroke="none" />
+            <path d="M1235 126v-5a5 5 0 0 1 10 0v5" />
+          </g>
+          <text
+            x="1261"
+            y="133"
+            fill="#E8E9EA"
+            fontSize="26"
+            dominantBaseline="central"
+            fontFamily="-apple-system, 'SF Pro Text', system-ui, sans-serif"
+          >
+            qwillio.com/dashboard
+          </text>
+        </svg>
       </div>
     </div>
   );

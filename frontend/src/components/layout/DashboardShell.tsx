@@ -467,10 +467,10 @@ function MobileBottomNav({
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
             background: 'linear-gradient(180deg, oklch(30% 0.01 265 / 0.20) 0%, oklch(16% 0.01 265 / 0.28) 100%)',
-            backdropFilter: 'blur(28px) saturate(1.6)',
-            WebkitBackdropFilter: 'blur(28px) saturate(1.6)',
+            backdropFilter: 'blur(30px) saturate(1.8)',
+            WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
             border: '1px solid rgba(255,255,255,0.12)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(0,0,0,0.25), 0 12px 32px rgba(0,0,0,0.35)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,0,0,0.25), 0 12px 32px rgba(0,0,0,0.35)',
           }}
         />
 
