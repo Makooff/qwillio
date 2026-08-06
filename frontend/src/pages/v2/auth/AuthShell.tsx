@@ -2,8 +2,10 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import QwillioLogo from '../../../components/QwillioLogo';
+import { ArrowLeft } from '../../../components/icons';
 import { useAuthStore } from '../../../stores/authStore';
+import { useLang } from '../../../stores/langStore';
+import NavV2 from '../../../components/v2/NavV2';
 import RevealV2 from '../../../components/v2/RevealV2';
 
 /* Accès clients V2 « Papier & Signal », registre CLAIR (DA/v2-direction.md).
@@ -130,38 +132,55 @@ interface AuthShellProps {
 }
 
 export default function AuthShell({ title, subtitle, footer, headerRight, wide = false, children }: AuthShellProps) {
+  const { lang } = useLang();
+  const isFr = lang === 'fr';
+
   return (
+    /* L'entête du site en entier, pas un logo isolé (demande utilisateur):
+       arriver sur l'essai depuis la page d'accueil ne doit pas donner
+       l'impression d'avoir quitté le site. La nav est `fixed`, d'où le
+       padding-haut, exactement comme dans `PublicShell`.
+
+       Pas de pied de page en revanche: une page d'inscription qui déroule
+       cinq colonnes de liens invite à partir ailleurs. */
     <div className="min-h-dvh bg-q2-canvas font-outfit text-q2-ink flex flex-col">
-      <header className="px-6 lg:px-10 h-16 flex items-center justify-between gap-6 shrink-0">
-        <Link
-          to="/"
-          className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-md"
-        >
-          <QwillioLogo size={26} />
-          <span className="text-[15px] font-semibold tracking-tight text-q2-ink">Qwillio</span>
-        </Link>
-        {headerRight ? <div className="flex items-center gap-3">{headerRight}</div> : null}
-      </header>
+      <NavV2 />
 
-      <main className="flex-1 flex items-start sm:items-center justify-center px-6 pb-16 pt-6 sm:py-10">
-        <RevealV2 y={12} className={`w-full ${wide ? 'max-w-[560px]' : 'max-w-[400px]'}`}>
-          <div className="rounded-[20px] border border-q2-plate bg-q2-canvas p-7 sm:p-8">
-            <h1 className="text-[clamp(1.6rem,3vw,2rem)] font-light tracking-[-0.02em] leading-[1.12] text-q2-ink">
-              {title}
-            </h1>
-            {subtitle ? (
-              <p className="mt-2.5 text-[15px] leading-relaxed text-q2-body q2-body-text">{subtitle}</p>
-            ) : null}
-
-            <div className="mt-7">{children}</div>
-
-            {footer ? (
-              <div className="mt-8 pt-6 border-t border-q2-plate text-center text-[13px] leading-relaxed text-q2-body q2-body-text">
-                {footer}
-              </div>
-            ) : null}
+      <main className="flex-1 flex flex-col items-center justify-start sm:justify-center px-6 pb-16 pt-20 sm:pt-24">
+        <div className={`w-full ${wide ? 'max-w-[560px]' : 'max-w-[400px]'}`}>
+          <div className="flex items-center justify-between gap-4 mb-4">
+            {/* Retour à l'accueil: un lien, jamais `history.back()`. Sur une
+                page ouverte dans un onglet neuf, revenir en arrière ne mène
+                nulle part, alors que l'accueil existe toujours. */}
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-[13px] text-q2-body hover:text-q2-ink transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-full"
+            >
+              <ArrowLeft size={15} aria-hidden="true" />
+              {isFr ? 'Retour' : 'Back'}
+            </Link>
+            {headerRight ? <div className="flex items-center gap-3">{headerRight}</div> : null}
           </div>
-        </RevealV2>
+
+          <RevealV2 y={12}>
+            <div className="rounded-[20px] border border-q2-plate bg-q2-canvas p-7 sm:p-8">
+              <h1 className="text-[clamp(1.6rem,3vw,2rem)] font-light tracking-[-0.02em] leading-[1.12] text-q2-ink">
+                {title}
+              </h1>
+              {subtitle ? (
+                <p className="mt-2.5 text-[15px] leading-relaxed text-q2-body q2-body-text">{subtitle}</p>
+              ) : null}
+
+              <div className="mt-7">{children}</div>
+
+              {footer ? (
+                <div className="mt-8 pt-6 border-t border-q2-plate text-center text-[13px] leading-relaxed text-q2-body q2-body-text">
+                  {footer}
+                </div>
+              ) : null}
+            </div>
+          </RevealV2>
+        </div>
       </main>
     </div>
   );
