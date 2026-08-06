@@ -461,7 +461,12 @@ export default function Receptionist() {
               return (
                 <RevealV2 key={pillar.num} as="article" className="border-b border-q2-plate">
                   <div className="grid lg:grid-cols-2 gap-7 sm:gap-10 lg:gap-20 items-center py-8 sm:py-12 md:py-20">
-                    <div className={flip ? 'lg:order-2' : ''}>
+                    {/* Le cadre encadre le TEXTE, pas le panneau: le texte
+                        change de côté d'un pilier à l'autre, donc le cadre
+                        traverse la scène en diagonale et se déforme sur tout
+                        le trajet. Autour du panneau il n'aurait fait que
+                        descendre. */}
+                    <div data-step-frame className={flip ? 'lg:order-2' : ''}>
                       <div className="flex items-center gap-3 mb-4 sm:mb-6">
                         <span className="w-11 h-11 rounded-full bg-q2-plate flex items-center justify-center">
                           <pillar.icon size={18} className="text-q2-indigo" aria-hidden="true" />
@@ -473,7 +478,7 @@ export default function Receptionist() {
                         {pillar.body}
                       </p>
                     </div>
-                    <div data-step-frame className={flip ? 'lg:order-1' : ''}>
+                    <div className={flip ? 'lg:order-1' : ''}>
                       <Panel label={pillar.panelLabel}>
                         <ul className="divide-y divide-q2-plate" role="list">
                           {pillar.panelRows.map((row) => (
