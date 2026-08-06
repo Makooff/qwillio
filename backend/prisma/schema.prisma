@@ -300,6 +300,7 @@ model Client {
   forwardingType             String?                   @map("forwarding_type") @db.VarChar(50)
   forwardingVerifiedAt       DateTime?                 @map("forwarding_verified_at")
   activities                 Activity[]
+  phoneNumbers               ClientPhoneNumber[]
   agentAccounting            AgentAccounting?
   agentEmailConfigs          AgentEmailConfig?
   agentEmails                AgentEmail[]
@@ -1755,6 +1756,28 @@ model AgencyClient {
   @@map("agency_clients")
 }
 
+/// Numéros supplémentaires d'un client (multi-sites, plusieurs lignes).
+///
+/// Le numéro principal reste `Client.vapiPhoneNumber` : ceux-ci s'y AJOUTENT
+/// plutôt que de le remplacer, si bien qu'aucun client existant ne change de
+/// ligne à la migration. Le routage entrant accepte les deux sources.
+///
+/// `number` est stocké tel qu'il est saisi (les formats varient) ; la
+/// comparaison se fait sur les chiffres seuls, côté service.
+model ClientPhoneNumber {
+  id        String   @id @default(uuid()) @db.Uuid
+  clientId  String   @map("client_id") @db.Uuid
+  number    String   @db.VarChar(50)
+  /// « Boutique Ixelles », « Ligne urgences ». Sert au client, et au brief.
+  label     String?  @db.VarChar(120)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("client_phone_numbers")
+}
+
 model ApiKey {
   id          String    @id @default(cuid())
   key         String    @unique
@@ -1884,27 +1907,27 @@ model CallerMemory {
 /// edited, disabled and ranked individually from the dashboard, and so only the
 /// relevant ones are injected into the prompt.
 model BusinessKnowledge {
-  id        String   @id @default(uuid()) @db.Uuid
-  clientId  String   @map("client_id") @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
+  clientId       String   @map("client_id") @db.Uuid
   /// faq | staff | rule
-  kind      String   @db.VarChar(20)
+  kind           String   @db.VarChar(20)
   /// Question, staff member name, or a short rule label.
-  title     String   @db.VarChar(300)
+  title          String   @db.VarChar(300)
   /// Answer, role and availability, or the rule itself.
-  content   String
+  content        String
   /// Alternate phrasings that should match this entry.
-  keywords  String[] @default([])
+  keywords       String[] @default([])
   /// Embedding of title + content, for semantic search on large bases.
   /// Empty until generated; the lexical score is what runs in the meantime.
-  embedding Float[]  @default([])
+  embedding      Float[]  @default([])
   /// Model that produced `embedding`, so a model change invalidates cleanly.
-  embeddingModel String? @map("embedding_model") @db.VarChar(100)
+  embeddingModel String?  @map("embedding_model") @db.VarChar(100)
   /// Higher wins when the prompt budget forces a trim.
-  priority  Int      @default(0)
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  priority       Int      @default(0)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId, kind, isActive])
   @@index([clientId, priority])

@@ -781,6 +781,75 @@ export class ClientDashboardController {
     }
   }
 
+  // ── Lignes supplémentaires (multi-sites) ──────────────────────────────
+  // « Multi-sites & numéros multiples » est vendu sur Enterprise. Le numéro
+  // principal du client reste sur son enregistrement: celles-ci s'y ajoutent.
+
+  async listPhoneNumbers(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { vapiPhoneNumber: true, phoneNumbers: { orderBy: { createdAt: 'asc' } } },
+      });
+      res.json({ primary: client?.vapiPhoneNumber || null, numbers: client?.phoneNumbers ?? [] });
+    } catch (error: any) {
+      logger.error('[phone-numbers] liste impossible:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async addPhoneNumber(req: any, res: Response) {
+    try {
+      const ok = await this.requireApiPlan(req, res);
+      if (!ok) return;
+
+      const number = String(req.body?.number || '').trim();
+      /* Au moins huit chiffres, comme le routage entrant: en accepter moins
+         créerait une ligne qui ne pourra jamais correspondre à un appel. */
+      if (number.replace(/\D/g, '').length < 8) {
+        return res.status(400).json({ error: 'invalid_number' });
+      }
+
+      /* Un même numéro chez deux clients rend l'appel non routable (le service
+         de routage refuse alors de deviner). Autant le refuser ici, où l'on
+         peut encore l'expliquer. */
+      const digits = number.replace(/\D/g, '');
+      const [taken, others] = await Promise.all([
+        prisma.client.findMany({ select: { id: true, vapiPhoneNumber: true } }),
+        prisma.clientPhoneNumber.findMany({ select: { clientId: true, number: true } }),
+      ]);
+      const clash =
+        taken.some(c => c.id !== req.clientId && (c.vapiPhoneNumber || '').replace(/\D/g, '') === digits) ||
+        others.some(p => p.clientId !== req.clientId && p.number.replace(/\D/g, '') === digits);
+      if (clash) return res.status(409).json({ error: 'number_already_routed' });
+
+      const created = await prisma.clientPhoneNumber.create({
+        data: {
+          clientId: req.clientId,
+          number,
+          label: req.body?.label ? String(req.body.label).trim().slice(0, 120) : null,
+        },
+      });
+      res.status(201).json({ number: created });
+    } catch (error: any) {
+      logger.error('[phone-numbers] ajout impossible:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async removePhoneNumber(req: any, res: Response) {
+    try {
+      const r = await prisma.clientPhoneNumber.deleteMany({
+        where: { id: String(req.params.id), clientId: req.clientId },
+      });
+      if (!r.count) return res.status(404).json({ error: 'number_not_found' });
+      res.json({ removed: true });
+    } catch (error: any) {
+      logger.error('[phone-numbers] suppression impossible:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // GET /my-dashboard/voices — the voices available on the ElevenLabs account,
   // so a voice is chosen after being heard instead of pasted as an opaque id.
   async listVoices(_req: any, res: Response) {

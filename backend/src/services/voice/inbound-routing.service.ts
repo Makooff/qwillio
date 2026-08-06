@@ -17,7 +17,7 @@ import { logger } from '../../config/logger';
  */
 
 export type InboundResolution =
-  | { kind: 'resolved'; clientId: string; businessName: string }
+  | { kind: 'resolved'; clientId: string; businessName: string; lineLabel?: string }
   | { kind: 'unknown'; dialed: string | null }
   | { kind: 'ambiguous'; dialed: string; candidates: number };
 
@@ -40,19 +40,46 @@ class InboundRoutingService {
     const dialed = normalizeNumber(dialedRaw);
     if (!dialed) return { kind: 'unknown', dialed: null };
 
+    /* Deux sources, et non plus une: le numéro principal du client, et ses
+       lignes supplémentaires (multi-sites). Un client qui n'en a aucune se
+       comporte exactement comme avant. */
     const clients = await prisma.client.findMany({
       where: {
         vapiAssistantId: { not: null },
-        vapiPhoneNumber: { not: null },
         subscriptionStatus: { in: ['active', 'trialing'] },
+        OR: [
+          { vapiPhoneNumber: { not: null } },
+          { phoneNumbers: { some: { isActive: true } } },
+        ],
       },
-      select: { id: true, businessName: true, vapiPhoneNumber: true },
+      select: {
+        id: true,
+        businessName: true,
+        vapiPhoneNumber: true,
+        phoneNumbers: { where: { isActive: true }, select: { number: true, label: true } },
+      },
     });
 
-    const matches = clients.filter(c => normalizeNumber(c.vapiPhoneNumber) === dialed);
+    /* Un client est retenu si le numéro composé est SON principal ou l'une de
+       ses lignes. Le dédoublonnage se fait par client, pas par numéro: deux
+       lignes du même client ne doivent pas ressembler à une ambiguïté. */
+    const matches = clients.filter(c =>
+      normalizeNumber(c.vapiPhoneNumber) === dialed ||
+      (c.phoneNumbers ?? []).some(p => normalizeNumber(p.number) === dialed)
+    );
 
     if (matches.length === 1) {
-      return { kind: 'resolved', clientId: matches[0].id, businessName: matches[0].businessName };
+      const c = matches[0];
+      /* Quelle LIGNE a sonné, quand ce n'est pas la principale: c'est ce qui
+         permet plus tard de dire « Boutique Ixelles, bonjour » plutôt que le
+         nom générique de l'entreprise. */
+      const line = (c.phoneNumbers ?? []).find(p => normalizeNumber(p.number) === dialed);
+      return {
+        kind: 'resolved',
+        clientId: c.id,
+        businessName: c.businessName,
+        ...(line?.label ? { lineLabel: line.label } : {}),
+      };
     }
 
     if (matches.length > 1) {

@@ -11,7 +11,15 @@ const client = (id: string, number: string | null, businessName = `Biz ${id}`) =
   id,
   businessName,
   vapiPhoneNumber: number,
+  phoneNumbers: [] as { number: string; label: string | null }[],
 });
+
+/** Un client multi-sites: un numéro principal et des lignes supplémentaires. */
+const multiSite = (
+  id: string,
+  primary: string | null,
+  lines: { number: string; label: string | null }[],
+) => ({ ...client(id, primary), phoneNumbers: lines });
 
 describe('resolveClient', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -73,5 +81,50 @@ describe('unroutableAssistant', () => {
     const a = inboundRoutingService.unroutableAssistant('en') as any;
     expect(a.endCallFunctionEnabled).toBe(true);
     expect(a.maxDurationSeconds).toBeLessThanOrEqual(30);
+  });
+});
+
+
+describe('multi-sites', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('résout un appel arrivé sur une ligne supplémentaire', async () => {
+    findMany.mockResolvedValue([
+      multiSite('c1', '+3225881904', [{ number: '+3223334455', label: 'Boutique Ixelles' }]),
+    ]);
+
+    const r = await inboundRoutingService.resolveClient('+3223334455');
+
+    expect(r).toMatchObject({ kind: 'resolved', clientId: 'c1', lineLabel: 'Boutique Ixelles' });
+  });
+
+  it('résout encore le numéro principal, sans libellé de ligne', async () => {
+    findMany.mockResolvedValue([
+      multiSite('c1', '+3225881904', [{ number: '+3223334455', label: 'Boutique Ixelles' }]),
+    ]);
+
+    const r = await inboundRoutingService.resolveClient('+32 2 588 19 04');
+
+    expect(r).toMatchObject({ kind: 'resolved', clientId: 'c1' });
+    expect((r as { lineLabel?: string }).lineLabel).toBeUndefined();
+  });
+
+  it('ne voit pas deux lignes du même client comme une ambiguïté', async () => {
+    // Le dédoublonnage se fait par CLIENT: sinon un multi-sites deviendrait
+    // non routable dès sa deuxième ligne.
+    findMany.mockResolvedValue([
+      multiSite('c1', '+3223334455', [{ number: '+3223334455', label: 'Doublon' }]),
+    ]);
+
+    expect((await inboundRoutingService.resolveClient('+3223334455')).kind).toBe('resolved');
+  });
+
+  it('refuse toujours quand la ligne est partagée par deux clients', async () => {
+    findMany.mockResolvedValue([
+      multiSite('c1', null, [{ number: '+3223334455', label: null }]),
+      multiSite('c2', '+3223334455', []),
+    ]);
+
+    expect((await inboundRoutingService.resolveClient('+3223334455')).kind).toBe('ambiguous');
   });
 });
