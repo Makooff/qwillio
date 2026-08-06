@@ -5,6 +5,7 @@ import api from '../../../services/api';
 import { previewUrl, type Character } from './CharacterPickerV2';
 import { useVoicePreview } from '../../client/useVoicePreview';
 import VoiceMenu from './VoiceMenu';
+import VoiceBars from './VoiceBars';
 import type { SelectedVoice } from '../../client/VoicePicker';
 
 /* Carrousel de personnages, registre produit V2 « instrument ». Une seule bulle
@@ -201,6 +202,11 @@ export default function CharacterCarousel({
             <ChevronRight size={16} aria-hidden="true" />
           </button>
         </div>
+
+        {/* Le diagramme réactif à l'audio, demandé par l'utilisateur: il est
+            branché sur l'analyseur du lecteur, donc il suit la voix et non un
+            simple état « ça joue ». */}
+        <VoiceBars active={playing === current.id} className="mt-4" />
 
         {/* Voix courante et bascule vers le catalogue complet */}
         <div ref={menuRef} className="relative mt-4 flex items-center justify-center gap-2">

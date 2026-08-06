@@ -57,6 +57,42 @@ function resumeWithin(ctx: AudioContext, ms: number): Promise<void> {
  */
 let sharedCtx: AudioContext | null = null;
 
+/**
+ * Un analyseur par contexte, gardé d'une lecture à l'autre.
+ *
+ * `fftSize` bas (64): on veut un NIVEAU, pas un spectre. Trente-deux bandes
+ * suffisent largement à faire vivre une dizaine de barres, et la lecture est
+ * assez courte pour tenir dans une frame sans peser.
+ */
+let sharedAnalyser: AnalyserNode | null = null;
+let analyserOwner: AudioContext | null = null;
+
+function liveAnalyser(ctx: AudioContext): AnalyserNode {
+  if (sharedAnalyser && analyserOwner === ctx) return sharedAnalyser;
+  const node = ctx.createAnalyser();
+  node.fftSize = 64;
+  node.smoothingTimeConstant = 0.72;
+  sharedAnalyser = node;
+  analyserOwner = ctx;
+  return node;
+}
+
+/**
+ * Le niveau courant, entre 0 et 1, ou 0 si rien ne joue.
+ *
+ * Exporté plutôt que passé en prop: le lecteur est un singleton de module, et
+ * les barres peuvent vivre n'importe où dans l'arbre sans qu'on ait à faire
+ * descendre un noeud audio jusqu'à elles.
+ */
+export function currentLevel(): number {
+  if (!sharedAnalyser) return 0;
+  const bins = new Uint8Array(sharedAnalyser.frequencyBinCount);
+  sharedAnalyser.getByteFrequencyData(bins);
+  let sum = 0;
+  for (let i = 0; i < bins.length; i++) sum += bins[i];
+  return Math.min(1, sum / bins.length / 160);
+}
+
 function liveContext(): AudioContext | null {
   const Ctor = audioContextCtor();
   if (!Ctor) return null;
@@ -70,6 +106,8 @@ function liveContext(): AudioContext | null {
 function replaceContext(): AudioContext | null {
   const dead = sharedCtx;
   sharedCtx = null;
+  sharedAnalyser = null;
+  analyserOwner = null;
   if (dead) void dead.close().catch(() => undefined);
   return liveContext();
 }
@@ -250,9 +288,15 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
       const buffer = await ctx.decodeAudioData(bytes.slice().buffer);
       if (tokenRef.current !== token) return true;
 
+      /* L'analyseur s'insère entre la source et la sortie: c'est lui qui rend
+         les barres RÉELLEMENT réactives à la voix, au lieu d'une animation
+         décorative jouée pendant la lecture. Il ne modifie pas le signal, il
+         l'observe. */
+      const analyser = liveAnalyser(ctx);
       const source = ctx.createBufferSource();
       source.buffer = buffer;
-      source.connect(ctx.destination);
+      source.connect(analyser);
+      analyser.connect(ctx.destination);
       source.onended = () => {
         if (tokenRef.current !== token) return;
         if (guardRef.current) { clearTimeout(guardRef.current); guardRef.current = null; }
