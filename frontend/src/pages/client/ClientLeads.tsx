@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3, Search,
 } from '../../components/icons';
+import { fetchLive, peekLive } from '../../services/liveData';
 import api from '../../services/api';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
@@ -62,13 +63,23 @@ export default function ClientLeads() {
   const [savingNote, setSavingNote] = useState(false);
 
   const fetchLeads = useCallback(async (page = 1) => {
+    const key = `/my-dashboard/leads?page=${page}&limit=50`;
+
+    // The cached page goes up first, then the fresh one replaces it. Returning
+    // to this tab should not blank a list that was correct a moment ago.
+    const held = peekLive<{ data?: Lead[]; pagination?: PaginationState }>(key);
+    if (held) {
+      setLeads(held.data || []);
+      if (held.pagination) setPagination(held.pagination);
+    }
+    setLoading(!held);
+
     try {
-      setLoading(true);
-      const { data } = await api.get(`/my-dashboard/leads?page=${page}&limit=50`);
+      const data = await fetchLive<{ data?: Lead[]; pagination?: PaginationState }>(key);
       setLeads(data.data || []);
       setPagination(data.pagination || { total: 0, page: 1, limit: 50, totalPages: 0 });
     } catch {
-      // leads unavailable — list stays empty
+      // leads unavailable — the cached list, if any, stays on screen
     } finally {
       setLoading(false);
     }

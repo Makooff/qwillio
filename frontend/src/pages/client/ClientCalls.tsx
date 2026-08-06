@@ -3,8 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone, Download, Search, Play, Pause, CheckCircle2, Filter,
   ArrowUpDown, ArrowUp, ArrowDown, X, Clock, Users, ChevronRight,
+/* Icônes: la façade coolicons, pas lucide-react en direct (le dashboard est
+   passé aux coolicons partout). Données: le cache `liveData` arrivé sur master,
+   qui sert la page depuis la mémoire pendant que l'animation joue. Les deux
+   changements sont orthogonaux, on garde les deux. */
 } from '../../components/icons';
-import api from '../../services/api';
+import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
@@ -76,17 +80,28 @@ export default function ClientCalls() {
   const [playingId, setPlayingId] = useState<string | null>(null);
 
   const fetchCalls = useCallback(async (page = 1) => {
+    const params = new URLSearchParams({ page: String(page), limit: '20' });
+    if (sentimentFilter) params.set('sentiment', sentimentFilter);
+    if (dateFrom) params.set('startDate', dateFrom);
+    if (dateTo) params.set('endDate', dateTo);
+    const key = `/my-dashboard/calls?${params}`;
+
+    // Whatever is cached goes on screen first. Coming back to this tab with the
+    // same filters should show the list, then quietly correct it — not blank it
+    // and spin while the same answer comes back.
+    const held = peekLive<{ data?: Call[]; pagination?: PaginationState }>(key);
+    if (held) {
+      setCalls(held.data || []);
+      if (held.pagination) setPagination(held.pagination);
+    }
+    setLoading(!held);
+
     try {
-      setLoading(true);
-      const params = new URLSearchParams({ page: String(page), limit: '20' });
-      if (sentimentFilter) params.set('sentiment', sentimentFilter);
-      if (dateFrom) params.set('startDate', dateFrom);
-      if (dateTo) params.set('endDate', dateTo);
-      const { data } = await api.get(`/my-dashboard/calls?${params}`);
+      const data = await fetchLive<{ data?: Call[]; pagination?: PaginationState }>(key);
       setCalls(data.data || []);
       setPagination(data.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 });
     } catch {
-      // calls unavailable — list stays empty
+      // calls unavailable — the cached list, if any, stays on screen
     } finally {
       setLoading(false);
     }
@@ -95,9 +110,9 @@ export default function ClientCalls() {
   useEffect(() => { fetchCalls(1); }, [fetchCalls]);
 
   useEffect(() => {
-    api.get('/my-dashboard/overview')
-      .then((r) => setOverview(r.data))
-      .catch(() => { /* overview unavailable */ });
+    const held = peekLive<Record<string, unknown>>('/my-dashboard/overview');
+    if (held) setOverview(held as never);
+    return subscribeLive<Record<string, unknown>>('/my-dashboard/overview', next => setOverview(next as never));
   }, []);
 
   const handleExport = () => {

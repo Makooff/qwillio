@@ -537,6 +537,13 @@ async function runBootstrap() {
       }
     }
 
+    // Voices the characters actually speak with, read from ElevenLabs rather
+    // than pasted in by hand. Backgrounded and non-fatal: a failure leaves the
+    // hardcoded ids in place, which is the situation this replaces.
+    void import('./services/voice/french-voices.service')
+      .then(m => m.frenchVoicesService.loadOrBootstrap())
+      .catch(err => logger.warn('French voice assignment skipped:', err));
+
 }
 
 // ─── Start Server ────────────────────────────────────────

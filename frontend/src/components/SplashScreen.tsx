@@ -1,57 +1,166 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import QwillioLogo from './QwillioLogo';
+import { liquidJourney } from './blobPath';
 
 /**
  * Launch animation for the installed app.
  *
- * The two lobes of the mark fly in from either side and meet; at the moment
- * they overlap they resolve into the real logo, so the last frame is the brand
- * mark itself rather than an approximation of it. Then the whole thing lifts
- * away and hands over to whatever route is underneath.
+ * Two big shapes in the mark's own colours sit against the left and right edges,
+ * a quarter of each already past the edge and cut off. They deform where they
+ * are — swells and hollows drifting round their outlines — and then, still
+ * deforming, make their way in to the middle, shrinking as they go. The
+ * deformation dies away with the journey, so what they come to rest as *is* the
+ * mark: two lobes, the right size, dead centre. Nothing else on the screen.
  *
- * Shown only when running as an installed app: on the website it would sit
- * between a visitor and the page for no reason.
+ * There is no handover. The logo used to fade in over the top at the end, and
+ * however short that crossfade was, it was two logos dissolving into each other
+ * where there should have been one thing arriving. The shapes are the mark now,
+ * which is also why they carry the overlap colour: paint the intersection and
+ * two circles are the Qwillio mark, minus its lettering.
+ *
+ * Nothing is translated. The travel is in the outline: every vertex is redrawn a
+ * little further along, so each shape makes its own way across instead of being
+ * slid across by a transform. That is the difference between a blob and a
+ * sticker, and it is the whole reason this file generates paths rather than
+ * animating a `style`.
+ *
+ * The hold is also the point: the dashboard loads underneath, so the fade ends
+ * on a screen that is already populated instead of one that starts fetching.
  */
 
-const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 const EASE_DRAWER = [0.32, 0.72, 0, 1] as const;
 
-/** Lobe geometry, matched to where the circles sit inside the 512 logo box. */
+/** The mark's own size on screen, and the geometry inside its 512 box. */
+const LOGO = 168;
 const ORB = { r: 116, y: 256, leftX: 190, rightX: 322 };
 
-/**
- * The vesica where the two lobes overlap, which the brand paints in the deep
- * mauve. Its outline is an arc of each circle meeting at the two intersection
- * points, not a circle of its own.
- */
-const LENS = (() => {
-  const midX = (ORB.leftX + ORB.rightX) / 2;
-  const half = Math.sqrt(ORB.r ** 2 - ((ORB.rightX - ORB.leftX) / 2) ** 2);
-  const top = ORB.y - half;
-  const bottom = ORB.y + half;
-  // Down the left edge (arc of the right circle), then up the right edge
-  // (arc of the left circle); both bulge outward, hence sweep-flag 0.
-  return `M ${midX} ${top} A ${ORB.r} ${ORB.r} 0 0 0 ${midX} ${bottom} A ${ORB.r} ${ORB.r} 0 0 0 ${midX} ${top} Z`;
-})();
+/** The same circles, in the pixels they occupy inside a LOGO-sized box. */
+const px = (n: number) => (n / 512) * LOGO;
+const LOBE_R = px(ORB.r);
+/** How far the lobes sit either side of the mark's centre. */
+const LOBE_DX = px(ORB.rightX) - LOGO / 2;
 
-export default function SplashScreen({ onDone }: { onDone: () => void }) {
+/** The overlap of the two lobes, as the mark paints it. */
+const LOBE_OVERLAP = '#7349FE';
+
+/**
+ * The wordmark's size.
+ *
+ * The header sets the name at 20px beside a 28px mark, and that ratio does not
+ * carry over: the mark here is 168, which would put the word at 120px and make
+ * it wider than a phone. The typography is the header's exactly — Outfit,
+ * semibold, tight tracking — and the size is the one that makes the word about
+ * as wide as the mark it sits under, since here they are stacked rather than
+ * side by side.
+ */
+const WORDMARK_SIZE = 34;
+
+/**
+ * How big the shapes are before they set off, against the shorter side of the
+ * screen. Big enough that a quarter of one genuinely runs off the edge on a
+ * phone, rather than looking like a ball parked in a corner.
+ */
+const START_R = 0.34;
+
+interface Shape {
+  key: string;
+  seed: number;
+  /** -1 for the shape on the left edge, 1 for the one on the right. */
+  side: -1 | 1;
+  /** Flat brand colour. A gradient reads as a reflection, and a shape in a logo
+   *  animation is the logo's own colour, not a rendered sphere. */
+  fill: string;
+}
+
+/**
+ * Painted in the mark's own order: violet first, indigo over it, so the left
+ * lobe is in front for the whole journey as it is in the logo.
+ */
+const SHAPES: Shape[] = [
+  { key: 'right', seed: 21, side: 1, fill: '#CD6BFB' },
+  { key: 'left', seed: 7, side: -1, fill: '#7A5FFF' },
+];
+
+/** The frame the animation comes to rest on. */
+const last = (frames: string[]) => frames[frames.length - 1];
+
+/** The viewport, read once: a launch animation that reflows mid-flight would
+ *  restart every path it is playing. */
+function useViewport() {
+  return useState(() => ({
+    w: typeof window === 'undefined' ? 390 : window.innerWidth,
+    h: typeof window === 'undefined' ? 844 : window.innerHeight,
+  }))[0];
+}
+
+export default function SplashScreen({
+  onDone, waitFor,
+}: {
+  onDone: () => void;
+  /** Background work to finish before handing over. */
+  waitFor?: Promise<unknown>;
+}) {
   const [visible, setVisible] = useState(true);
   const reduced = useReducedMotion();
+  const view = useViewport();
 
-  // A reduced-motion launch still confirms the app opened, it just does not
-  // fly anything across the screen.
-  const t = useMemo(
-    () => (reduced
-      ? { converge: 0.01, resolve: 0.2, hold: 700, out: 0.25 }
-      : { converge: 0.9, resolve: 0.55, hold: 1450, out: 0.45 }),
-    [reduced],
+  const mark = useMemo(
+    // Dead centre: the mark is the only thing on the screen now.
+    () => ({ x: view.w / 2, y: view.h / 2 }),
+    [view.w, view.h],
   );
 
+  const journeys = useMemo(() => {
+    // A quarter of the width past the edge: the shape is 2r across, so half a
+    // radius of it is outside and three quarters of it can be seen.
+    const r0 = Math.min(view.w, view.h) * START_R;
+    return SHAPES.map(shape => ({
+      ...shape,
+      frames: liquidJourney({
+        from: {
+          x: shape.side < 0 ? r0 / 2 : view.w - r0 / 2,
+          y: view.h / 2,
+        },
+        to: { x: mark.x + shape.side * LOBE_DX, y: mark.y },
+        r0,
+        r1: LOBE_R,
+        seed: shape.seed,
+      }),
+    }));
+  }, [view.w, view.h, mark]);
+
+  // Named rather than indexed: the overlap is the right lobe clipped by the
+  // left, and getting those two the wrong way round is silent and wrong.
+  const rightLobe = journeys[0];
+  const leftLobe = journeys[1];
+
+  // A reduced-motion launch still confirms the app opened, it just does not fly
+  // anything across the screen.
+  const t = useMemo(() => (reduced
+    ? { travel: 0.01, settle: 0.01, hold: 1.4, out: 0.25 }
+    // travel + settle is one continuous motion: the shapes deform where they
+    // are, come in, and ease onto their marks. Splitting it into two tweens is
+    // what makes an arrival look mechanical.
+    : { travel: 1.6, settle: 0.9, hold: 2, out: 0.5 }),
+  [reduced]);
+
+  /** When the mark is formed — which is simply when the shapes stop moving. */
+  const formed = t.travel + t.settle;
+
   useEffect(() => {
-    const id = setTimeout(() => setVisible(false), t.hold);
-    return () => clearTimeout(id);
-  }, [t.hold]);
+    let alive = true;
+    // Two seconds ON the finished logo, as asked — the loading happens inside
+    // that window rather than after it.
+    const floor = new Promise<void>(resolve => setTimeout(resolve, (formed + t.hold) * 1000));
+    // The ceiling matters more than the floor: a phone on a bad connection
+    // should reach the dashboard and fill in, not stare at a logo.
+    const ceiling = new Promise<void>(resolve => setTimeout(resolve, (formed + t.hold) * 1000 + 3_500));
+
+    void Promise.all([floor, Promise.race([waitFor ?? Promise.resolve(), ceiling])])
+      .then(() => { if (alive) setVisible(false); });
+
+    return () => { alive = false; };
+  }, [formed, t.hold, waitFor]);
 
   return (
     <AnimatePresence onExitComplete={onDone}>
@@ -59,81 +168,104 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
         <motion.div
           key="splash"
           className="fixed inset-0 z-[100] grid place-items-center overflow-hidden"
-          style={{ background: '#0A0A0C' }}
+          style={{ background: '#000' }}
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: reduced ? 1 : 1.04 }}
           transition={{ duration: t.out, ease: EASE_DRAWER }}
           role="status"
           aria-label="Qwillio"
         >
-          {/* Brand glow behind the mark, breathing slowly. */}
-          <motion.div
+          {/*
+            The shapes, in screen coordinates.
+
+            The SVG is the viewport itself rather than a box around the logo,
+            because the shapes start at the edges and have to be cut off by them.
+            The viewport is the clip.
+
+            Nothing fades here. What the shapes settle into is the mark, so this
+            layer stays exactly as it lands until the whole splash goes.
+          */}
+          <svg
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                'radial-gradient(58% 42% at 50% 46%, rgba(122,95,255,0.30) 0%, rgba(205,107,251,0.14) 42%, transparent 72%)',
-            }}
-            initial={{ opacity: 0, scale: 0.86 }}
-            animate={{ opacity: 1, scale: reduced ? 1 : [0.86, 1.06, 1] }}
-            transition={{ duration: reduced ? 0.2 : 1.7, ease: EASE_OUT_EXPO }}
-          />
+            className="absolute inset-0 h-full w-full"
+            viewBox={`0 0 ${view.w} ${view.h}`}
+          >
+            <defs>
+              {/*
+                The left lobe again, as a clip. The mark paints the two lobes
+                and then their overlap in a third colour, and the only way to
+                have that overlap while both shapes are still moving is to clip
+                one by the other — so this path plays the same journey as the
+                shape it is a copy of.
+              */}
+              <clipPath id="qw-splash-left">
+                <motion.path
+                  initial={{ d: leftLobe.frames[0] }}
+                  animate={{ d: reduced ? last(leftLobe.frames) : leftLobe.frames }}
+                  transition={{ duration: reduced ? 0.2 : formed, ease: 'linear' }}
+                />
+              </clipPath>
+            </defs>
 
-          <div className="relative" style={{ width: 168, height: 168 }}>
-            {/* Stage 1: the two lobes travel in and meet. */}
-            <motion.svg
-              viewBox="0 0 512 512"
-              className="absolute inset-0 h-full w-full"
-              aria-hidden="true"
-              initial={{ opacity: 1 }}
-              animate={{ opacity: 0 }}
-              transition={{ duration: t.resolve, delay: t.converge * 0.82, ease: 'linear' }}
-            >
-              <motion.circle
-                cx={ORB.leftX}
-                cy={ORB.y}
-                r={ORB.r}
-                fill="#7A5FFF"
-                initial={{ cx: reduced ? ORB.leftX : -40, opacity: reduced ? 1 : 0 }}
-                animate={{ cx: ORB.leftX, opacity: 1 }}
-                transition={{ duration: t.converge, ease: EASE_OUT_EXPO }}
-              />
-              <motion.circle
-                cx={ORB.rightX}
-                cy={ORB.y}
-                r={ORB.r}
-                fill="#CD6BFB"
-                initial={{ cx: reduced ? ORB.rightX : 552, opacity: reduced ? 1 : 0 }}
-                animate={{ cx: ORB.rightX, opacity: 1 }}
-                transition={{ duration: t.converge, ease: EASE_OUT_EXPO }}
-              />
-              {/* The overlap the brand actually uses, revealed as they close in. */}
+            {journeys.map(shape => (
               <motion.path
-                d={LENS}
-                fill="#7349FE"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: t.converge * 0.4, delay: t.converge * 0.55 }}
+                key={shape.key}
+                fill={shape.fill}
+                style={{ willChange: 'd' }}
+                initial={{ d: shape.frames[0] }}
+                animate={{
+                  // The only thing animated in the whole layer. The journey
+                  // lives in the outline: every vertex is redrawn a little
+                  // further along, so the shape makes its own way in rather than
+                  // being slid across by a transform.
+                  d: reduced ? last(shape.frames) : shape.frames,
+                }}
+                transition={{
+                  duration: reduced ? 0.2 : formed,
+                  // The hold and the easing are already in the frames; another
+                  // ease on top of them would fight it.
+                  ease: 'linear',
+                }}
               />
-            </motion.svg>
+            ))}
 
-            {/* Stage 2: the real mark takes over, so the held frame is exact. */}
-            <motion.div
-              className="absolute inset-0 grid place-items-center"
-              initial={{ opacity: 0, scale: reduced ? 1 : 0.94 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: t.resolve, delay: t.converge * 0.82, ease: EASE_OUT_EXPO }}
-            >
-              <QwillioLogo size={168} />
-            </motion.div>
-          </div>
+            {/* The right lobe once more, showing only where the left one covers
+                it. Empty for most of the animation — the two are nowhere near
+                each other — and the mark's own overlap once they have arrived. */}
+            <g clipPath="url(#qw-splash-left)">
+              <motion.path
+                fill={LOBE_OVERLAP}
+                style={{ willChange: 'd' }}
+                initial={{ d: rightLobe.frames[0] }}
+                animate={{ d: reduced ? last(rightLobe.frames) : rightLobe.frames }}
+                transition={{ duration: reduced ? 0.2 : formed, ease: 'linear' }}
+              />
+            </g>
+          </svg>
 
+          {/*
+            The wordmark, exactly as the site sets it beside the logo: Outfit,
+            semibold, tight tracking, at the same fraction of the mark's box that
+            the header uses. Only the colour differs, and it has to — the header
+            sets #1d1d1f for a white page, which on this one would be a word you
+            cannot see — so it takes the mark's own white.
+
+            It sits halfway between the bottom of the mark and the bottom of the
+            screen, and it arrives only once the mark is finished, so nothing
+            competes with the shapes while they are still coming in.
+          */}
           <motion.p
-            className="absolute text-[15px] font-medium tracking-[0.16em] uppercase"
-            style={{ color: 'rgba(245,245,247,0.62)', bottom: '22%' }}
-            initial={{ opacity: 0, y: reduced ? 0 : 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: t.converge + t.resolve * 0.6, ease: EASE_OUT_EXPO }}
+            className="absolute w-full text-center font-semibold tracking-tight"
+            style={{
+              top: (mark.y + LOBE_R + view.h) / 2,
+              fontSize: WORDMARK_SIZE,
+              color: '#FDFDFF',
+              transform: 'translateY(-50%)',
+              willChange: 'opacity',
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: formed, ease: 'linear' }}
           >
             Qwillio
           </motion.p>

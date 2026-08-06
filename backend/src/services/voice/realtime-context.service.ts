@@ -343,6 +343,25 @@ class RealtimeContextService {
     }
   }
 
+  /**
+   * Drop every cached profile. For changes that are not one client's — a new
+   * voice assignment applies to all of them at once, and waiting out the TTL
+   * would mean callers hearing the old voices for minutes afterwards.
+   */
+  async invalidateAll(): Promise<void> {
+    for (const key of [...this.local.keys()]) {
+      if (key.startsWith('voice:profile:')) this.local.delete(key);
+    }
+    const redis = await this.store();
+    if (!redis) return;
+    try {
+      // The local map holds the keys this process knows about; a second worker
+      // will expire on its own TTL, which is the accepted cost of not scanning
+      // the whole keyspace on a shared Redis.
+      await redis.del('voice:profile:*');
+    } catch { /* non-fatal */ }
+  }
+
   /** Drop a caller's cached history after their memory row changes. */
   async invalidateCaller(clientId: string, callerNumber: string): Promise<void> {
     const key = `voice:caller:${clientId}:${callerNumber}`;

@@ -8,8 +8,12 @@ import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
-import api from '../../services/api';
+import { fetchLive, peekLive } from '../../services/liveData';
 import { formatDuration, formatShortDate } from '../../utils/format';
+
+/** The cache key for a period. Must match what the boot warms, character for
+ *  character, or the first visit spins for data it already has. */
+const analyticsKey = (days: number) => `/my-dashboard/analytics?days=${days}`;
 import { SubPageHeader } from '../../components/dashboard/OverviewBlocks';
 
 const TOOLTIP_STYLE = {
@@ -83,23 +87,28 @@ export default function ClientAnalytics() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [compareData, setCompareData] = useState<AnalyticsData | null>(null);
   const [overview, setOverview] = useState<Record<string, unknown> | null>(null);
-  const [loading, setLoading] = useState(true);
+  // The cached period goes on screen at once. A tab that was correct twenty
+  // seconds ago should not blank itself to fetch the same numbers again.
+  const [loading, setLoading] = useState(() => peekLive(analyticsKey(30)) === undefined);
   const [error, setError] = useState<string | null>(null);
   const [costPerLead, setCostPerLead] = useState(50);
   const [avgDealValue, setAvgDealValue] = useState(500);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    const key = analyticsKey(period);
+    const held = peekLive<AnalyticsData>(key);
+    if (held) setData(held);
+    setLoading(!held);
     setError(null);
     try {
       const [an, compare, ov] = await Promise.all([
-        api.get(`/my-dashboard/analytics?days=${period}`),
-        api.get(`/my-dashboard/analytics?days=${period * 2}`).catch(() => ({ data: null })),
-        api.get('/my-dashboard/overview').catch(() => ({ data: null })),
+        fetchLive<AnalyticsData>(key),
+        fetchLive<AnalyticsData>(analyticsKey(period * 2)).catch(() => null),
+        fetchLive<Record<string, unknown>>('/my-dashboard/overview').catch(() => null),
       ]);
-      setData(an.data as AnalyticsData);
-      setCompareData(compare.data as AnalyticsData | null);
-      setOverview(ov.data as Record<string, unknown> | null);
+      setData(an);
+      setCompareData(compare);
+      setOverview(ov);
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number; data?: { error?: string } } })?.response?.status;
       if (status === 404) setError('no-profile');

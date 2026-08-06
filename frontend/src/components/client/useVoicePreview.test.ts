@@ -85,6 +85,27 @@ describe('the page keeps exactly one audio context', () => {
   });
 });
 
+describe('coming back from the background', () => {
+  it('notices a thaw', () => {
+    // An installed app is not reloaded when it is closed and reopened: iOS
+    // freezes the page and thaws the same document, so the context and the
+    // audio element survive without the audio session they were bound to.
+    // Refreshing in Chrome built new ones; reopening the app did not, which is
+    // exactly the difference the bug showed.
+    expect(__audio.isThawed()).toBe(false);
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(__audio.isThawed()).toBe(true);
+  });
+
+  it('builds a working context after the old one is thrown away', async () => {
+    const dead = __audio.liveContext() as unknown as FakeContext;
+    const fresh = __audio.replaceContext() as unknown as FakeContext;
+    expect(dead.closed).toBe(true);
+    await __audio.resumeWithin(fresh as unknown as AudioContext, 50);
+    expect(fresh.state).toBe('running');
+  });
+});
+
 describe('resuming never hangs', () => {
   it('returns as soon as the context is running', async () => {
     const ctx = __audio.liveContext() as unknown as FakeContext;

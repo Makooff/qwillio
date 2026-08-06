@@ -8,11 +8,28 @@ import {
   BookOpen, Tag, HelpCircle, Clock3, Plus, X,
 } from '../../components/icons';
 import api from '../../services/api';
+/* Le cache `liveData` vient de master, le carrousel vient d'ici: les deux se
+   cumulent. CharacterPicker (la grille) n'est plus importé, c'est le carrousel
+   qui a pris sa place dans le rendu. */
+import { invalidateLive, fetchLive, peekLive } from '../../services/liveData';
 import { type Character } from '../../components/client/CharacterPicker';
 import CharacterCarousel from '../../components/v2/app/CharacterCarousel';
 import AssistantChat from '../../components/client/AssistantChat';
 import VoiceCloner, { type CustomVoice } from '../../components/client/VoiceCloner';
-import VoicePicker from '../../components/client/VoicePicker';
+
+/**
+ * The endpoints this tab reads, as the cache knows them.
+ *
+ * Spelled out in one place because they have to match the strings the boot
+ * warms exactly — a query string out of step is a cache miss, which is a
+ * spinner.
+ */
+const RECEPTIONIST_KEYS = {
+  overview: '/my-dashboard/overview',
+  settings: '/my-dashboard/settings',
+  gcal: '/my-dashboard/integrations/google-calendar/status',
+  characters: '/my-dashboard/characters',
+};
 
 const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors disabled:opacity-50';
 const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] focus:outline-none focus:border-[#7349fe]/50 transition-colors disabled:opacity-50';
@@ -122,7 +139,9 @@ function Row({ l, v, c }: { l: string; v: string; c?: string }) {
 export default function ClientReceptionist() {
   const [overview, setOverview] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  // Held data means no spinner, on the very first render as much as on the
+  // fetch below: a skeleton that flashes for one frame is still a flash.
+  const [loading, setLoading] = useState(() => peekLive(RECEPTIONIST_KEYS.settings) === undefined);
   const hydrated = useRef(false);
   const skipAutosave = useRef(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,12 +188,17 @@ export default function ClientReceptionist() {
 
   const load = useCallback(async () => {
     setError(null);
+    // Everything this tab needs was fetched while the launch animation played,
+    // and is kept current in the background. Reading the cache first is what
+    // makes coming back to the tab instant; the request behind it only corrects
+    // what is already on screen.
+    setLoading(peekLive(RECEPTIONIST_KEYS.settings) === undefined);
     try {
       const [ov, st, gc, ch] = await Promise.all([
-        api.get('/my-dashboard/overview'),
-        api.get('/my-dashboard/settings').catch(() => ({ data: null })),
-        api.get('/my-dashboard/integrations/google-calendar/status').catch(() => ({ data: { connected: false } })),
-        api.get('/my-dashboard/characters').catch(() => ({ data: { characters: [] } })),
+        fetchLive<any>(RECEPTIONIST_KEYS.overview).then(data => ({ data })),
+        fetchLive<any>(RECEPTIONIST_KEYS.settings).then(data => ({ data })).catch(() => ({ data: null })),
+        fetchLive<any>(RECEPTIONIST_KEYS.gcal).then(data => ({ data })).catch(() => ({ data: { connected: false } })),
+        fetchLive<any>(RECEPTIONIST_KEYS.characters).then(data => ({ data })).catch(() => ({ data: { characters: [] } })),
       ]);
       setCharacters(Array.isArray(ch.data?.characters) ? ch.data.characters : []);
       setGcal(gc.data);
@@ -286,6 +310,9 @@ export default function ClientReceptionist() {
         characterId,
         customVoice,
       });
+      // The dashboard is holding a copy of these settings, and it is wrong from
+      // the instant this call returns.
+      invalidateLive('/my-dashboard/');
     } catch { /* silent — the next edit retries */ }
   }, [businessName, businessType, transferNumber, agentName, agentLanguage,
       contactPhone, address, city, postalCode, forwardingType, googleCalendarId,

@@ -10,6 +10,7 @@ import {
 } from '../../components/icons';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
+import { fetchLive } from '../../services/liveData';
 
 const C = {
   bg:       '#0A0A0C',
@@ -135,8 +136,11 @@ export default function ClientAccount() {
   const [notifQuota, setNotifQuota] = useState(true);
 
   useEffect(() => {
-    api.get('/my-dashboard/settings').then((res) => {
-      const notif = res.data?.vapiConfig?.notifications as {
+    // Same settings the Réceptionniste tab reads, warmed at launch: from the
+    // cache it is already there, so the toggles never render at their defaults
+    // and then jump.
+    fetchLive<any>('/my-dashboard/settings').then((data) => {
+      const notif = data?.vapiConfig?.notifications as {
         notifEmail?: boolean;
         notifWeekly?: boolean;
         notifLeads?: boolean;

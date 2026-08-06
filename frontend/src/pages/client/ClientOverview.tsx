@@ -7,7 +7,7 @@ import {
   ChevronDown, Calendar, SlidersHorizontal,
 } from '../../components/icons';
 import { useAuthStore } from '../../stores/authStore';
-import api from '../../services/api';
+import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
 import { daysUntil } from '../../utils/format';
 import OnboardingChecklist from '../../components/client/OnboardingChecklist';
 import {
@@ -15,6 +15,10 @@ import {
   AttentionList, SegmentBar, InsightCard,
   type KpiCell, type AttnItem, type Dir,
 } from '../../components/dashboard/OverviewBlocks';
+
+/** Shared with the launch-time preload, so both hit the same cache entry. */
+const OVERVIEW_KEY = '/my-dashboard/overview';
+const RECENT_CALLS_KEY = '/my-dashboard/calls?page=1&limit=6';
 
 function greeting(name: string): string {
   const h = new Date().getHours();
@@ -44,9 +48,16 @@ function Bone({ className }: { className?: string }) {
 export default function ClientOverview() {
   const { user, checkAuth } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [data, setData] = useState<Record<string, unknown> | null>(null);
-  const [calls, setCalls] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Seeded from the live cache, which the launch animation filled: coming back
+  // to this tab shows the dashboard, not a spinner over a page that already
+  // had its numbers a moment ago.
+  const [data, setData] = useState<Record<string, unknown> | null>(
+    () => peekLive<Record<string, unknown>>(OVERVIEW_KEY) ?? null,
+  );
+  const [calls, setCalls] = useState<Record<string, unknown>[]>(
+    () => (peekLive<{ data?: Record<string, unknown>[] }>(RECENT_CALLS_KEY)?.data) ?? [],
+  );
+  const [loading, setLoading] = useState(() => peekLive(OVERVIEW_KEY) === undefined);
   const [error, setError] = useState<string | null>(null);
   const [paymentPending, setPaymentPending] = useState(false);
   const retryCount = useRef(0);
@@ -55,11 +66,12 @@ export default function ClientOverview() {
     setError(null);
     try {
       const [ov, cl] = await Promise.all([
-        api.get('/my-dashboard/overview'),
-        api.get('/my-dashboard/calls?page=1&limit=6').catch(() => ({ data: { data: [] } })),
+        fetchLive<Record<string, unknown>>(OVERVIEW_KEY, { force: true }),
+        fetchLive<{ data?: Record<string, unknown>[] }>(RECENT_CALLS_KEY, { force: true })
+          .catch(() => ({ data: [] })),
       ]);
-      setData(ov.data);
-      setCalls((cl.data?.data as Record<string, unknown>[]) || []);
+      setData(ov);
+      setCalls(cl?.data || []);
       setPaymentPending(false);
       retryCount.current = 0;
       checkAuth();
@@ -88,6 +100,19 @@ export default function ClientOverview() {
     window.addEventListener('ai-status-change', handler);
     return () => window.removeEventListener('ai-status-change', handler);
   }, [load]);
+
+  // The background refresh pushes new numbers straight into the page. No
+  // button, no reload: the dashboard is simply current whenever it is looked at.
+  useEffect(() => {
+    const stopOverview = subscribeLive<Record<string, unknown>>(OVERVIEW_KEY, next => {
+      setData(next);
+      setLoading(false);
+    });
+    const stopCalls = subscribeLive<{ data?: Record<string, unknown>[] }>(RECENT_CALLS_KEY, next => {
+      setCalls(next?.data || []);
+    });
+    return () => { stopOverview(); stopCalls(); };
+  }, []);
 
   // Derived values
   const c = (data as Record<string, unknown> & { client?: Record<string, unknown> })?.client ?? {};
