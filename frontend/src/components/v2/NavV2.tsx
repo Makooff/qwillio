@@ -557,6 +557,18 @@ export default function NavV2() {
             <GlassSkin
               onDark={overDark}
               radius={999}
+              /* Dégradé conservé ici (décision utilisateur) : seule l'entête au
+                 repos s'en passe. Teintes basses, le verre fait le reste. */
+              tint={
+                overDark
+                  ? 'linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(8,9,10,0.20) 100%)'
+                  : 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.07) 100%)'
+              }
+              tintFallback={
+                overDark
+                  ? 'linear-gradient(180deg, rgba(24,26,30,0.58) 0%, rgba(8,9,10,0.70) 100%)'
+                  : 'linear-gradient(180deg, rgba(255,255,255,0.66) 0%, rgba(253,252,252,0.52) 100%)'
+              }
               style={{ zIndex: -1 }}
             />
           )}

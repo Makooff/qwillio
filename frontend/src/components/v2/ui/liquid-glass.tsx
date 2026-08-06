@@ -64,8 +64,12 @@ export function useLiquidGlassSupport() {
 const BEVEL_LIGHT =
   '0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.08), inset 3px 3px 0.5px -3px rgba(0,0,0,0.9), inset -3px -3px 0.5px -3px rgba(0,0,0,0.85), inset 1px 1px 1px -0.5px rgba(0,0,0,0.6), inset -1px -1px 1px -0.5px rgba(0,0,0,0.6), inset 0 0 6px 6px rgba(0,0,0,0.12), inset 0 0 2px 2px rgba(0,0,0,0.06), 0 0 12px rgba(255,255,255,0.15)';
 
+/* Variante sombre : le composant d'origine pousse le blanc à 0,85 sur l'arête
+   basse et ajoute une lueur blanche de 6px. Sur nos sections drenched, ça
+   dessinait un liseré clair trop marqué autour de la barre (retour
+   utilisateur). Les mêmes arêtes sont conservées, à intensité réduite. */
 const BEVEL_DARK =
-  '0 0 8px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.08), inset 3px 3px 0.5px -3.5px rgba(255,255,255,0.09), inset -3px -3px 0.5px -3.5px rgba(255,255,255,0.85), inset 1px 1px 1px -0.5px rgba(255,255,255,0.6), inset -1px -1px 1px -0.5px rgba(255,255,255,0.6), inset 0 0 6px 6px rgba(255,255,255,0.12), inset 0 0 2px 2px rgba(255,255,255,0.06), 0 0 12px rgba(0,0,0,0.15)';
+  '0 0 8px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.08), inset 3px 3px 0.5px -3.5px rgba(255,255,255,0.05), inset -3px -3px 0.5px -3.5px rgba(255,255,255,0.34), inset 1px 1px 1px -0.5px rgba(255,255,255,0.22), inset -1px -1px 1px -0.5px rgba(255,255,255,0.22), inset 0 0 6px 6px rgba(255,255,255,0.04), inset 0 0 2px 2px rgba(255,255,255,0.02), 0 0 12px rgba(0,0,0,0.15)';
 
 export interface GlassSkinProps {
   /** Verre posé sur un fond sombre : le biseau s'inverse. */

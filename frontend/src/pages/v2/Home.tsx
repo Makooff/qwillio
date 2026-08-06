@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import gsap from 'gsap';
@@ -53,6 +53,36 @@ const MOCKUP = {
   },
 } as const;
 
+/* Fond vidéo du hero. `playsInline` + `muted` sont indispensables pour que iOS
+   accepte la lecture automatique ; `preload="metadata"` évite de tirer les
+   2,3 Mo avant que la page soit utilisable. Deux voiles la calment : un aplat
+   crème, et un dégradé qui la referme vers le bas de la section. */
+function HeroVideoBackdrop() {
+  const [reduced] = useState(prefersReducedMotion);
+  if (reduced) return null;
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      <video
+        src="/qwillio-ad.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ opacity: 0.5 }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(253,252,252,0.62) 0%, rgba(248,246,252,0.72) 55%, #fdfcfc 100%)',
+        }}
+      />
+    </div>
+  );
+}
+
 function HeroDashboardShot({ isFr }: { isFr: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -94,7 +124,15 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
       <div
         ref={frameRef}
         className="relative"
-        style={{ transformOrigin: 'center top', willChange: 'transform' }}
+        style={{
+          transformOrigin: 'center top',
+          willChange: 'transform',
+          /* Le bas de la fenêtre se dissout dans la page au lieu de s'arrêter
+             net (demande utilisateur). Le masque porte sur le conteneur, donc
+             le cadre ET la capture s'effacent ensemble. */
+          maskImage: 'linear-gradient(to bottom, black 0%, black 58%, rgba(0,0,0,0.55) 82%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 58%, rgba(0,0,0,0.55) 82%, transparent 100%)',
+        }}
       >
         <img
           src={MOCKUP.src}
@@ -237,6 +275,11 @@ export default function Home() {
               'linear-gradient(180deg, #fdfcfc 0%, #f5f2fb 14%, #f8f6fc 58%, #fdfcfc 100%)',
           }}
         />
+        {/* Vidéo de fond (demande utilisateur). Muette, en boucle, sans
+            contrôles : c'est une texture, pas un média. Elle passe sous un
+            voile crème pour que le titre garde son contraste, et disparaît en
+            reduced-motion, où le dégradé ci-dessus suffit. */}
+        <HeroVideoBackdrop />
         {/* Les blobs pixel blush dérivent par-dessus le voile, sous le texte */}
         <PixelBlushBackdrop />
         <Container className="relative [&>*]:min-w-0">

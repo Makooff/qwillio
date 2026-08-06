@@ -471,8 +471,8 @@ function MobileBottomNav({
         <GlassSkin
           onDark
           radius={9999}
-          tint="rgba(12,13,16,0.16)"
-          tintFallback="rgba(12,13,16,0.66)"
+          tint="linear-gradient(180deg, oklch(30% 0.01 265 / 0.14) 0%, oklch(14% 0.012 265 / 0.24) 100%)"
+          tintFallback="linear-gradient(180deg, oklch(26% 0.012 265 / 0.60) 0%, oklch(12% 0.012 265 / 0.74) 100%)"
         />
 
         {/* Water-drop bubble — wobbly spring travel + continuous liquid morph */}
