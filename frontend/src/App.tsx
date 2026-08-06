@@ -310,7 +310,12 @@ export default function App() {
         <Route path="/fr/contact" element={<Suspense fallback={<PublicSpinner />}><Contact /></Suspense>} />
         <Route path="/receptionist" element={<Suspense fallback={<PublicSpinner />}><Landing /></Suspense>} />
         {/* Qwillio Agent, page marketing V2 réactivée */}
-        <Route path="/agent" element={<Suspense fallback={<PublicSpinner />}><AgentPage /></Suspense>} />
+        {/* Qwillio Agent n'est pas ouvert au public (décision utilisateur): la
+            page existe dans le dépôt mais n'est plus routée, et le menu se
+            contente d'annoncer « bientôt ». Une URL devinée retombe sur
+            l'accueil plutôt que sur une page qui promettrait un produit
+            achetable. */}
+        <Route path="/agent" element={<Navigate to="/" replace />} />
         <Route path="/pricing" element={<Suspense fallback={<PublicSpinner />}><PricingPage /></Suspense>} />
         <Route path="/blog" element={<Suspense fallback={<PublicSpinner />}><BlogPage /></Suspense>} />
         <Route path="/blog/:slug" element={<Suspense fallback={<PublicSpinner />}><BlogArticlePage /></Suspense>} />
@@ -392,21 +397,11 @@ export default function App() {
           <Route path="setup/call-forwarding" element={<Suspense fallback={<Spinner />}><ClientSetupForwarding /></Suspense>} />
           <Route path="setup/customize"       element={<Suspense fallback={<Spinner />}><ClientSetupCustomize /></Suspense>} />
           <Route path="support" element={<Suspense fallback={<Spinner />}><ClientSupport /></Suspense>} />
-          {/* Agent IA */}
-          <Route path="agent" element={<Suspense fallback={<Spinner />}><AgentDashboard /></Suspense>} />
-          <Route path="agent/email" element={<ComingSoon module="Email AI" />} />
-          <Route path="agent/payments" element={<ComingSoon module="Payments AI" />} />
-          <Route path="agent/accounting" element={<ComingSoon module="Accounting AI" />} />
-          <Route path="agent/inventory" element={<ComingSoon module="Inventory AI" />} />
-          <Route path="agent/marketing" element={<Suspense fallback={<Spinner />}><AgentMarketing /></Suspense>} />
-          <Route path="agent/reputation" element={<Suspense fallback={<Spinner />}><AgentReputation /></Suspense>} />
-          <Route path="agent/scheduling" element={<Suspense fallback={<Spinner />}><AgentScheduling /></Suspense>} />
-          <Route path="agent/support" element={<Suspense fallback={<Spinner />}><AgentSupport /></Suspense>} />
-          <Route path="agent/crm" element={<Suspense fallback={<Spinner />}><AgentCrm /></Suspense>} />
-          <Route path="agent/document" element={<Suspense fallback={<Spinner />}><AgentDocument /></Suspense>} />
-          <Route path="agent/local-seo" element={<Suspense fallback={<Spinner />}><AgentLocalSeo /></Suspense>} />
-          <Route path="agent/lead-gen" element={<Suspense fallback={<Spinner />}><AgentLeadGen /></Suspense>} />
-          <Route path="agent/analytics" element={<Suspense fallback={<Spinner />}><AgentAnalytics /></Suspense>} />
+          {/* Agent IA — fermé. Les modules ne sont pas accessibles, y compris
+              par URL directe: tant qu'ils ne sont pas ouverts, y accéder
+              donnerait des écrans à moitié branchés. */}
+          <Route path="agent/*" element={<Navigate to="/dashboard" replace />} />
+
           {/* CRM */}
           <Route path="crm" element={<Suspense fallback={<Spinner />}><CrmContacts /></Suspense>} />
           <Route path="crm/deals" element={<Suspense fallback={<Spinner />}><CrmDeals /></Suspense>} />

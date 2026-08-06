@@ -53,7 +53,8 @@ const PAGE_TITLES: Record<string, string> = {
 const COMMANDS: CommandItem[] = [
   { id: 'page-crm', label: 'CRM', to: '/dashboard/crm', group: 'Pages', icon: Contact, keywords: 'contacts deals pipeline' },
   { id: 'page-integrations', label: 'Intégrations', to: '/dashboard/account/integrations', group: 'Pages', icon: Plug, keywords: 'google calendar api webhook' },
-  { id: 'page-agent', label: 'Qwillio Agent', to: '/dashboard/agent', group: 'Pages', icon: Sparkles, keywords: 'ia modules automation' },
+  /* Qwillio Agent est fermé: le proposer dans la palette conduirait à une
+     redirection, ce qui se lit comme une panne. */
   { id: 'page-forwarding', label: "Renvoi d'appel", to: '/dashboard/setup/call-forwarding', group: 'Pages', icon: PhoneForwarded, keywords: 'numero transfert setup' },
   { id: 'page-customize', label: 'Personnalisation', to: '/dashboard/setup/customize', group: 'Pages', icon: SlidersHorizontal, keywords: 'script accueil setup' },
   {

@@ -24,7 +24,6 @@ import Magnetic from '../../components/v2/motion/Magnetic';
 import GlowCard from '../../components/v2/motion/GlowCard';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import PixelBlushBackdrop from '../../components/v2/motion/PixelBlushBackdrop';
-import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -487,16 +486,6 @@ export default function Home() {
 
       {/* ── AU NATUREL, bento: colonne collante + quatre blocs décalés ── */}
       <Section aria-labelledby="conv-heading" hairline className="relative overflow-hidden">
-        {/* Formes BRIX en fond, très basses en opacité: elles occupent le vide
-            à gauche du bento sans jamais passer devant le texte. */}
-        <ShapeDrift
-          className="hidden lg:block"
-          shapes={[
-            { kind: 'rings', x: '2%', y: '58%', size: 190, drift: -70, opacity: 0.16 },
-            { kind: 'half', x: '20%', y: '86%', size: 130, rotate: 18, tone: 'violet', drift: 50, opacity: 0.2 },
-            { kind: 'quarter', x: '-3%', y: '14%', size: 150, rotate: -12, drift: 40, opacity: 0.12 },
-          ]}
-        />
         <Container className="relative grid lg:grid-cols-[1fr_1.6fr] gap-10 md:gap-16 lg:gap-24 items-start">
           {/* La colonne reste au regard pendant que les blocs défilent: c'est
               ce qui fait tenir la comparaison entre le titre et les quatre
@@ -573,14 +562,6 @@ export default function Home() {
 
       {/* ── CONFIGUREZ-LA EN LUI PARLANT ── */}
       <Section aria-labelledby="setup-heading" className="relative overflow-hidden">
-        <ShapeDrift
-          className="hidden md:block"
-          shapes={[
-            { kind: 'halfDot', x: '84%', y: '4%', size: 170, rotate: 24, drift: 70, opacity: 0.15 },
-            { kind: 'hourglass', x: '6%', y: '72%', size: 96, tone: 'violet', drift: -55, opacity: 0.18 },
-            { kind: 'disc', x: '92%', y: '74%', size: 120, rotate: -20, drift: -40, opacity: 0.14 },
-          ]}
-        />
         <Container className="relative grid lg:grid-cols-[1fr_1.4fr] gap-9 sm:gap-12 items-start">
           <RevealV2>
             <Eyebrow tone="violet" className="mb-3 sm:mb-4">
@@ -697,17 +678,13 @@ export default function Home() {
               <p className="text-q2-graphite text-[15px] q2-body-text max-w-[520px]">
                 {isFr ? (
                   <>
-                    Et bientôt, Qwillio Agent : Email, Facturation, Inventaire et Paiements greffés à votre réceptionniste.{' '}
-                    <Link to="/agent" className="text-q2-ink underline decoration-q2-plate underline-offset-4 hover:decoration-q2-ink transition-colors duration-150">
-                      {isFr ? 'Découvrir' : 'Explore'}
-                    </Link>
+                    {/* Aucun lien: Qwillio Agent n'est pas ouvert, et « Découvrir »
+                        menait à une page qui décrivait un produit non achetable. */}
+                    Et bientôt, Qwillio Agent : Email, Facturation, Inventaire et Paiements greffés à votre réceptionniste.
                   </>
                 ) : (
                   <>
-                    And soon, Qwillio Agent: Email, Billing, Inventory and Payments bolted onto your receptionist.{' '}
-                    <Link to="/agent" className="text-q2-ink underline decoration-q2-plate underline-offset-4 hover:decoration-q2-ink transition-colors duration-150">
-                      Explore
-                    </Link>
+                    And soon, Qwillio Agent: Email, Billing, Inventory and Payments bolted onto your receptionist.
                   </>
                 )}
               </p>

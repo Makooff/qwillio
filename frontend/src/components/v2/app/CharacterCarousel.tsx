@@ -4,6 +4,8 @@ import { Check, ChevronLeft, ChevronRight, Mic, Pencil, Play, Square } from '../
 import api from '../../../services/api';
 import { previewUrl, type Character } from './CharacterPickerV2';
 import { useVoicePreview } from '../../client/useVoicePreview';
+import VoiceMenu from './VoiceMenu';
+import type { SelectedVoice } from '../../client/VoicePicker';
 
 /* Carrousel de personnages, registre produit V2 « instrument ». Une seule bulle
    ronde au centre, nom au-dessus, voix en dessous, flèches de part et d'autre.
@@ -63,12 +65,16 @@ function voiceLabel(c: Character, isFr: boolean) {
 }
 
 export default function CharacterCarousel({
-  characters, value, onChange, isFr = true,
+  characters, value, onChange, isFr = true, override = null, onOverride,
 }: {
   characters: Character[];
   value: string;
   onChange: (id: string) => void;
   isFr?: boolean;
+  /* Voix qui remplace celle du personnage. Le personnage garde son visage et
+     son ton: seul le timbre change. */
+  override?: SelectedVoice | null;
+  onOverride?: (v: SelectedVoice | null) => void;
 }) {
   const reduce = useReducedMotion();
   const { playing, notice, toggle, prefetch, debug } = useVoicePreview(isFr);
@@ -198,7 +204,9 @@ export default function CharacterCarousel({
 
         {/* Voix courante et bascule vers le catalogue complet */}
         <div ref={menuRef} className="relative mt-4 flex items-center justify-center gap-2">
-          <span className="text-[12.5px] text-q2-mist truncate">{voiceLabel(current, isFr)}</span>
+          <span className="text-[12.5px] text-q2-mist truncate">
+            {override ? `${current.name} · ${override.name}` : voiceLabel(current, isFr)}
+          </span>
 
           <button
             type="button"
@@ -224,57 +232,22 @@ export default function CharacterCarousel({
 
           <AnimatePresence>
             {menuOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: reduce ? 0 : -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: reduce ? 0 : -4 }}
-                transition={{ duration: 0.15 }}
-                role="listbox"
-                aria-label={isFr ? 'Voix disponibles' : 'Available voices'}
-                className="absolute top-full left-1/2 -translate-x-1/2 z-20 mt-2 w-[280px] max-h-[264px] overflow-y-auto rounded-xl border border-q2-graphite-d bg-q2-carbon p-1"
-              >
-                {characters.map(c => {
-                  const sel = c.id === current.id;
-                  return (
-                    <div
-                      key={c.id}
-                      className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 ${sel ? 'bg-q2-indigo/10' : ''}`}
-                    >
-                      <Bubble c={c} />
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={sel}
-                        onClick={() => {
-                          const target = characters.findIndex(x => x.id === c.id);
-                          setDir(target >= index ? 1 : -1);
-                          onChange(c.id);
-                          setMenuOpen(false);
-                        }}
-                        className="flex-1 min-w-0 text-left rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
-                      >
-                        <p className={`text-[12.5px] font-medium truncate ${sel ? 'text-q2-lift' : 'text-white'}`}>
-                          {c.name}
-                        </p>
-                        <p className="text-[11px] text-q2-fog truncate">
-                          {ACCENT_LABEL[c.accent] || c.accent} · {c.gender === 'f' ? 'F' : (isFr ? 'H' : 'M')}
-                        </p>
-                      </button>
-                      {sel && <Check size={13} className="shrink-0 text-q2-lift" aria-hidden="true" />}
-                      <button
-                        type="button"
-                        onClick={() => toggle(c.id, previewUrl(c.id), isFr ? c.previewFr : c.previewEn)}
-                        aria-label={isFr ? `Écouter ${c.name}` : `Preview ${c.name}`}
-                        className="w-7 h-7 shrink-0 rounded-full grid place-items-center bg-q2-indigo/15 text-q2-lift hover:bg-q2-indigo/25 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
-                      >
-                        {playing === c.id
-                          ? <Square size={12} aria-hidden="true" />
-                          : <Play size={12} aria-hidden="true" />}
-                      </button>
-                    </div>
-                  );
-                })}
-              </motion.div>
+              <VoiceMenu
+                characters={characters}
+                characterId={current.id}
+                onCharacter={id => {
+                  const target = characters.findIndex(x => x.id === id);
+                  setDir(target >= index ? 1 : -1);
+                  onChange(id);
+                  setMenuOpen(false);
+                }}
+                override={override}
+                onOverride={v => { onOverride?.(v); setMenuOpen(false); }}
+                playing={playing}
+                onToggle={toggle}
+                previewUrlFor={previewUrl}
+                isFr={isFr}
+              />
             )}
           </AnimatePresence>
         </div>

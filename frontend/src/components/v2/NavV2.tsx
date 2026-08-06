@@ -43,6 +43,9 @@ interface PanelLink {
   label: string;
   desc: string;
   icon: LucideIcon;
+  /* Annoncé, pas encore ouvert. L'entrée reste visible pour dire qu'il existe,
+     mais elle ne mène nulle part: aucune page Agent n'est publique. */
+  soon?: boolean;
 }
 
 type PanelKey = 'product' | 'company';
@@ -78,6 +81,31 @@ function measurePanel(button: HTMLElement) {
 
 function PanelItem({ link, onNavigate }: { link: PanelLink; onNavigate: () => void }) {
   const Icon = link.icon;
+
+  /* Un item « bientôt » n'est PAS un lien désactivé: c'est du texte. Un lien
+     mort qui garde son curseur et sa flèche promet une page qui n'existe
+     pas. */
+  if (link.soon) {
+    return (
+      <div className="flex items-start gap-3 rounded-2xl px-3 py-3">
+        <span className="mt-0.5 w-8 h-8 shrink-0 rounded-full bg-q2-band border border-q2-plate flex items-center justify-center">
+          <Icon size={15} className="text-q2-faint" aria-hidden="true" />
+        </span>
+        <span className="min-w-0">
+          <span className="flex items-center gap-2 text-[14px] text-q2-body">
+            {link.label}
+            <span className="rounded-full bg-q2-band px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-q2-faint">
+              Bientôt
+            </span>
+          </span>
+          <span className="block mt-0.5 text-[12px] leading-snug text-q2-faint q2-body-text">
+            {link.desc}
+          </span>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <Link
       to={link.to}
@@ -375,6 +403,7 @@ export default function NavV2() {
       to: '/agent',
       label: 'Qwillio Agent',
       icon: Sparkles,
+      soon: true,
       desc: isFr
         ? 'Email, facturation, inventaire et paiements greffés à l’accueil.'
         : 'Email, billing, inventory and payments bolted onto the front desk.',
