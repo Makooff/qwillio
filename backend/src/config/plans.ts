@@ -14,6 +14,25 @@
 
 export type PlanId = 'solo' | 'starter' | 'pro' | 'enterprise';
 
+/** Mensuel ou annuel. Le site vend les deux, Stripe doit connaître les deux. */
+export type BillingPeriod = 'monthly' | 'annual';
+
+/**
+ * Remise annuelle affichée sur la page tarifs. Elle vit ICI et nulle part
+ * ailleurs: le front la ré-affichait de son côté (ANNUAL_DISCOUNT dans
+ * Pricing.tsx) alors qu'aucun prix annuel n'existait côté Stripe, si bien
+ * qu'un client qui choisissait l'annuel repartait avec un abonnement mensuel.
+ */
+export const ANNUAL_DISCOUNT = 0.2;
+
+/**
+ * Montant prélevé en une fois pour douze mois: 12 × mensuel × 0,80.
+ * Arrondi à l'euro, c'est le chiffre que la page tarifs annonce.
+ */
+export function annualPriceEur(plan: Plan): number {
+  return Math.round(plan.monthlyPriceEur * 12 * (1 - ANNUAL_DISCOUNT));
+}
+
 export interface Plan {
   id: PlanId;
   name: string;

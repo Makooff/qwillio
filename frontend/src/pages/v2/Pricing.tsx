@@ -401,7 +401,10 @@ export default function Pricing() {
 
                     <div className="mt-7 flex flex-wrap items-center justify-between gap-4">
                       <p className="text-xs text-q2-body max-w-[420px] leading-relaxed">{overageLine(tier)}</p>
-                      <PillLink to="/register" variant="outline">
+                      {/* La période choisie voyage avec le clic: sans elle,
+                          l'inscription repartait en mensuel et la remise
+                          annoncée n'existait nulle part. */}
+                      <PillLink to={`/register?billing=${billing}`} variant="outline">
                         {tier.cta}
                         <ArrowRight size={15} aria-hidden="true" />
                       </PillLink>
@@ -444,7 +447,7 @@ export default function Pricing() {
 
                 <p className="text-xs text-q2-body mt-6 leading-relaxed">{overageLine(pro)}</p>
 
-                <PillLink to="/register" variant="primary" size="lg" className="mt-6 w-full">
+                <PillLink to={`/register?billing=${billing}`} variant="primary" size="lg" className="mt-6 w-full">
                   {pro.cta}
                   <ArrowRight size={16} aria-hidden="true" />
                 </PillLink>

@@ -5,6 +5,7 @@ import LangToggle from '../../../components/LangToggle';
 import { useLang } from '../../../stores/langStore';
 import { useAuthStore } from '../../../stores/authStore';
 import api from '../../../services/api';
+import { captureBillingPeriod, clearBillingPeriod, readBillingPeriod } from '../../../lib/billingPeriod';
 import AuthShell, { AUTH_ALERT, AUTH_FIELD, AUTH_LABEL, AUTH_SUBMIT } from './AuthShell';
 
 /**
@@ -43,6 +44,9 @@ export default function Subscribe() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  /* On peut aussi atterrir directement ici depuis un lien tarifaire. */
+  useEffect(() => captureBillingPeriod(window.location.search), []);
+
   useEffect(() => {
     if (searchParams.get('payment') === 'cancelled') {
       setError(isFr
@@ -60,8 +64,14 @@ export default function Subscribe() {
         businessName: businessName.trim(),
         industry: industry || null,
         planType: selectedPlan,
+        /* Choisie sur la page tarifs, portée jusqu'ici. Le back refait le
+           contrôle: seul « annual » vaut annuel. */
+        billingPeriod: readBillingPeriod(),
       });
       if (data?.checkoutUrl) {
+        /* Le choix a servi: le laisser traîner ferait basculer en annuel une
+           seconde souscription faite dans le même onglet. */
+        clearBillingPeriod();
         window.location.href = data.checkoutUrl;
         return;
       }
