@@ -30,7 +30,10 @@ interface Feature {
 
 const FEATURES: Feature[] = [
   {
-    src: '/screens/crop-appels.webp',
+    /* La fiche d'appel, pas la liste: c'est elle qui porte le résumé, le
+       transcript et le lecteur d'enregistrement dont parle le texte. La liste
+       ne montrait qu'appelant, durée et sentiment (retour utilisateur). */
+    src: '/screens/suivi-appel.webp',
     width: 1600,
     height: 930,
     titleFr: 'Chaque appel documenté',
@@ -46,17 +49,21 @@ const FEATURES: Feature[] = [
     src: '/screens/crop-chat.webp',
     width: 1600,
     height: 1196,
-    titleFr: 'Ce qui cloche se corrige en parlant',
-    titleEn: 'What needs fixing gets fixed by talking',
+    /* Le titre ne parle plus de « corriger en parlant »: la section « Mise en
+       route » de la Home dit déjà exactement ça, et les deux se répondaient en
+       écho (retour utilisateur). Ici, le sujet est le CONSTAT qui vous arrive
+       tout seul chaque semaine. */
+    titleFr: 'Chaque semaine, elle vous dit ce qui coince',
+    titleEn: 'Every week she tells you what is stuck',
     /* Chaque promesse ici correspond à un constat réel du code :
        receptionist-learning.service.ts tourne tous les dimanches (bot-loop.ts,
        cron 0 2 * * 0) et receptionist-digest.service.ts envoie les constats
        actionnables au courriel et au téléphone du client (verbose_agent,
        knowledge_gaps, upset_callers, tool_failures sur l'agenda). */
     descFr:
-      'Chaque semaine, elle vous dit ce qui coince : réponses trop longues, agenda déconnecté, questions absentes de sa base. Le constat arrive par courriel et par SMS, vous le réglez dans le chat, en une phrase.',
+      'Réponses trop longues, agenda déconnecté, questions absentes de sa base : le constat arrive sur votre courriel et votre téléphone, sans que vous ayez à ouvrir quoi que ce soit.',
     descEn:
-      'Every week she tells you what is stuck: answers running long, calendar disconnected, questions missing from her knowledge base. It lands in your inbox and by text, and you fix it in the chat, in one sentence.',
+      'Answers running long, calendar disconnected, questions missing from her knowledge base: the findings land in your inbox and on your phone, without you opening anything.',
     altFr: 'Chat de configuration du réceptionniste Qwillio',
     altEn: 'Qwillio receptionist configuration chat',
   },

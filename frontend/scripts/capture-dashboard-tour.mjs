@@ -164,12 +164,22 @@ async function main() {
     await page.route('**/api/**', async (route) => {
       const url = route.request().url();
       const hit = ROUTES.find(([re]) => re.test(url));
-      const body = hit ? hit[1]() : { data: [], total: 0 };
+      /* Filet par défaut : la plupart des routes non stubées sont des LISTES et
+         les pages font `.slice()` / `.filter()` dessus. Leur renvoyer un objet
+         faisait planter neuf pages Agent alors que le backend, lui, renvoie
+         bien un tableau : c'était le bouchon qui mentait, pas le produit. Les
+         routes de synthèse (dashboard, config, overview, stats) restent des
+         objets. */
+      const objectShaped = /\/(dashboard|config|overview|stats|summary|settings)(\?|$)/.test(url);
+      const body = hit ? hit[1]() : objectShaped ? {} : [];
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
     });
 
     try {
-      await page.goto(`http://localhost:${PREVIEW_PORT}${path}`, { waitUntil: 'networkidle', timeout: 20000 });
+      /* `networkidle` ne retombe jamais sur les pages qui interrogent l'API en
+         boucle : chaque capture partait alors en timeout de 20 s. Le DOM chargé
+         plus une pause fixe suffit, et le tour passe de dix minutes à une. */
+      await page.goto(`http://localhost:${PREVIEW_PORT}${path}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
     } catch (e) {
       errors.push(`goto: ${e.message.slice(0, 160)}`);
     }

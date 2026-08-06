@@ -5,7 +5,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   ArrowRight, Play, CalendarCheck, MessageSquare, PhoneForwarded,
-  Camera, Mic2, ShieldCheck, Smartphone, Sparkles, Users,
+  Camera, Mic2, ShieldCheck, Smartphone, Sparkles, Users, Clock, Headphones,
 } from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
@@ -24,6 +24,7 @@ import Magnetic from '../../components/v2/motion/Magnetic';
 import GlowCard from '../../components/v2/motion/GlowCard';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import PixelBlushBackdrop from '../../components/v2/motion/PixelBlushBackdrop';
+import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -250,6 +251,58 @@ export default function Home() {
     },
   ];
 
+  /* Bento « Au naturel », repris de la présentation d'origine (Landing V1,
+     section « Pas un menu vocal ») que l'utilisateur voulait retrouver: colonne
+     de gauche collante, quatre blocs décalés à droite dont deux hauts. Le
+     contenu, lui, est celui du réceptionniste nouvelle génération: barge-in,
+     backchannels, relance sur silence, adaptation au ton. Chaque ligne est un
+     comportement du runtime, pas une promesse (conversational-repair.ts,
+     intent-router.ts, caller-mood.ts). */
+  const naturally = [
+    {
+      icon: Mic2,
+      title: isFr ? 'Coupez-la, elle s’arrête net' : 'Cut her off, she stops dead',
+      body: isFr
+        ? 'En pleine phrase, elle se tait. Une toux ne la déstabilise pas.'
+        : 'Mid-sentence, she goes quiet. A cough will not throw her off.',
+      tall: true,
+      bg: '#0F1011',
+      fg: 'white',
+      accent: '#B9A8FF',
+    },
+    {
+      icon: MessageSquare,
+      title: isFr ? 'Elle acquiesce sans s’engager' : 'She agrees without committing you',
+      body: isFr
+        ? 'Elle glisse des « mhm » pendant que vous parlez, jamais un « oui » qui vaudrait engagement.'
+        : 'She slips in a “mm-hmm” while you talk, never a “yes” that would commit you.',
+      bg: '#F5F3F1',
+      fg: '#1D1D1F',
+      accent: '#7A5FFF',
+    },
+    {
+      icon: Clock,
+      title: isFr ? 'Un blanc ne la fait pas raccrocher' : 'Silence does not make her hang up',
+      body: isFr
+        ? 'Après quelques secondes sans réponse, elle relance « vous êtes toujours là ? ».'
+        : 'After a few seconds of nothing, she asks “are you still there?”.',
+      bg: '#F5F3F1',
+      fg: '#1D1D1F',
+      accent: '#CD6BFB',
+    },
+    {
+      icon: Headphones,
+      title: isFr ? 'Un appelant agacé change son ton' : 'An annoyed caller changes her tone',
+      body: isFr
+        ? 'Phrases courtes, zéro discours commercial, un humain proposé plus tôt.'
+        : 'Short sentences, no sales talk, a human offered sooner.',
+      tall: true,
+      bg: '#7A5FFF',
+      fg: 'white',
+      accent: 'rgba(255,255,255,0.62)',
+    },
+  ];
+
   const setup = [
     {
       icon: MessageSquare,
@@ -432,94 +485,103 @@ export default function Home() {
         </Container>
       </Section>
 
-      {/* ── UNE VRAIE CONVERSATION, drenched indigo + transcript vivant ── */}
-      {/* overflow-hidden: le halo de la capture déborde de 24px sur petit
-          écran, il doit être coupé par la section et non pousser la page */}
-      <Section variant="drenched-indigo" aria-labelledby="conv-heading" className="relative overflow-hidden">
-        {/* La bascule vers le noir se fait sur une ligne qui s'éclaire en son
-            milieu, pas sur une arête franche */}
-        <div aria-hidden="true" className="q2-hairline-lit absolute inset-x-0 top-0" />
-        <Container className="grid lg:grid-cols-[1.1fr_1fr] gap-10 sm:gap-12 items-center">
-          {/* La preuve n'est pas une animation de transcript, c'est l'écran
-              réel du suivi d'appel tel qu'il apparaît dans le dashboard */}
-          <RevealV2 index={1} className="order-2 lg:order-1">
-            <figure className="relative m-0">
-              {/* Le noir avale les bords: le halo rend la capture posée
-                  au-dessus de la section au lieu d'y être découpée */}
-              <div
-                aria-hidden="true"
-                className="q2-halo q2-halo-dark -inset-6 sm:-inset-10 rounded-[64px]"
-                style={halo(0.26)}
-              />
-              <div className="relative q2-lit rounded-xl border border-q2-graphite-d bg-q2-carbon overflow-hidden">
-                <img
-                  src="/screens/suivi-appel.webp"
-                  alt={
-                    isFr
-                      ? 'Suivi d’un appel dans le dashboard Qwillio : résumé, transcript et sentiment'
-                      : 'Call follow-up in the Qwillio dashboard: summary, transcript and sentiment'
-                  }
-                  loading="lazy"
-                  width={1600}
-                  height={930}
-                  className="block w-full h-auto"
-                />
-              </div>
-              <figcaption className="relative mt-4 text-[13px] leading-relaxed text-q2-fog q2-body-text">
+      {/* ── AU NATUREL, bento: colonne collante + quatre blocs décalés ── */}
+      <Section aria-labelledby="conv-heading" hairline className="relative overflow-hidden">
+        {/* Formes BRIX en fond, très basses en opacité: elles occupent le vide
+            à gauche du bento sans jamais passer devant le texte. */}
+        <ShapeDrift
+          className="hidden lg:block"
+          shapes={[
+            { kind: 'rings', x: '2%', y: '58%', size: 190, drift: -70, opacity: 0.16 },
+            { kind: 'half', x: '20%', y: '86%', size: 130, rotate: 18, tone: 'violet', drift: 50, opacity: 0.2 },
+            { kind: 'quarter', x: '-3%', y: '14%', size: 150, rotate: -12, drift: 40, opacity: 0.12 },
+          ]}
+        />
+        <Container className="relative grid lg:grid-cols-[1fr_1.6fr] gap-10 md:gap-16 lg:gap-24 items-start">
+          {/* La colonne reste au regard pendant que les blocs défilent: c'est
+              ce qui fait tenir la comparaison entre le titre et les quatre
+              comportements. */}
+          <div className="lg:sticky lg:top-28">
+            <RevealV2>
+              <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
+                {isFr ? 'Au naturel' : 'Naturally'}
+              </Eyebrow>
+              <H2 id="conv-heading">
+                <TextReveal>
+                  {isFr ? (
+                    <>
+                      Parlez-lui comme à <SerifWord>quelqu'un.</SerifWord>
+                    </>
+                  ) : (
+                    <>
+                      Talk to her like a <SerifWord>person.</SerifWord>
+                    </>
+                  )}
+                </TextReveal>
+              </H2>
+              <p className="text-q2-body text-base leading-relaxed mt-4 max-w-[380px] q2-body-text">
                 {isFr
-                  ? 'Le suivi réel d’un appel dans le dashboard : résumé, transcript, sentiment.'
-                  : 'The real call follow-up in the dashboard: summary, transcript, sentiment.'}
-              </figcaption>
-            </figure>
-          </RevealV2>
-          <div className="order-1 lg:order-2">
-          <RevealV2>
-            <Eyebrow tone="indigo" onDark className="mb-4">
-              {isFr ? 'Au naturel' : 'Naturally'}
-            </Eyebrow>
-            <H2 id="conv-heading" onDark>
-              <TextReveal>
-                {isFr ? (
-                  <>
-                    Parlez-lui comme à <SerifWord>quelqu'un.</SerifWord>
-                  </>
-                ) : (
-                  <>
-                    Talk to her like a <SerifWord>person.</SerifWord>
-                  </>
-                )}
-              </TextReveal>
-            </H2>
-          </RevealV2>
-          <RevealV2 index={1}>
-            <ul className="border-t border-q2-graphite-d mt-6 sm:mt-8" role="list">
-              {(isFr
-                ? [
-                    'Coupez-la en pleine phrase : elle s’arrête net. Une toux ne la déstabilise pas.',
-                    'Elle glisse des « mhm » pendant que vous parlez, jamais un « oui » qui vaudrait engagement.',
-                    'Un blanc de quelques secondes ? Elle relance « vous êtes toujours là ? » au lieu de raccrocher.',
-                    'Un appelant pressé ou agacé n’a pas droit au même ton : phrases courtes, zéro discours commercial, humain proposé plus tôt.',
-                  ]
-                : [
-                    'Cut her mid-sentence: she stops instantly. A cough will not throw her off.',
-                    'She slips in a “mm-hmm” while you talk, never a “yes” that would commit you.',
-                    'A few seconds of silence? She asks “are you still there?” instead of hanging up.',
-                    'A rushed or upset caller gets a different tone: short sentences, no sales talk, a human offered sooner.',
-                  ]
-              ).map((line) => (
-                <li key={line} className="border-b border-q2-graphite-d py-4 sm:py-5 text-[15px] text-q2-mist leading-relaxed q2-body-text max-w-[560px]">
-                  {line}
-                </li>
-              ))}
-            </ul>
-          </RevealV2>
+                  ? 'Pas de « tapez 1 ». Elle écoute, elle se fait couper, elle relance. Ce sont ces détails qui font qu’un appelant ne demande pas à parler à quelqu’un.'
+                  : 'No “press 1”. She listens, gets interrupted, picks the thread back up. Those details are why callers stop asking for a human.'}
+              </p>
+              <Link
+                to="/receptionist"
+                className="inline-flex items-center gap-1.5 mt-7 text-sm font-semibold text-q2-indigo underline decoration-q2-indigo/30 decoration-2 underline-offset-8 hover:decoration-q2-indigo transition-colors duration-150"
+              >
+                {isFr ? 'Comment elle tient un appel' : 'How she holds a call'}
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </RevealV2>
           </div>
+
+          <ul className="grid sm:grid-cols-2 gap-4 sm:gap-5" role="list">
+            {naturally.map((feat, i) => (
+              <RevealV2 key={feat.title} index={i} className={feat.tall ? 'sm:row-span-2' : ''}>
+                <li className="h-full list-none">
+                  <article
+                    className="rounded-3xl p-6 md:p-8 h-full flex flex-col"
+                    style={{
+                      background: feat.bg,
+                      color: feat.fg,
+                      minHeight: feat.tall ? 280 : 220,
+                    }}
+                  >
+                    <span
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center mb-5"
+                      style={{
+                        background: feat.fg === 'white' ? 'rgba(255,255,255,0.10)' : 'rgba(122,95,255,0.10)',
+                      }}
+                    >
+                      <feat.icon size={18} style={{ color: feat.accent }} aria-hidden="true" />
+                    </span>
+                    <h3 className="text-[1.2rem] font-semibold tracking-[-0.015em] mb-2.5 leading-snug">
+                      {feat.title}
+                    </h3>
+                    <p
+                      className="text-[14.5px] leading-relaxed q2-body-text"
+                      style={{ color: feat.fg === 'white' ? 'rgba(255,255,255,0.72)' : '#525257' }}
+                    >
+                      {feat.body}
+                    </p>
+                  </article>
+                </li>
+              </RevealV2>
+            ))}
+          </ul>
         </Container>
       </Section>
 
       {/* ── CONFIGUREZ-LA EN LUI PARLANT ── */}
-      <Section aria-labelledby="setup-heading">
-        <Container className="grid lg:grid-cols-[1fr_1.4fr] gap-9 sm:gap-12 items-start">
+      <Section aria-labelledby="setup-heading" className="relative overflow-hidden">
+        <ShapeDrift
+          className="hidden md:block"
+          shapes={[
+            { kind: 'halfDot', x: '84%', y: '4%', size: 170, rotate: 24, drift: 70, opacity: 0.15 },
+            { kind: 'hourglass', x: '6%', y: '72%', size: 96, tone: 'violet', drift: -55, opacity: 0.18 },
+            { kind: 'disc', x: '92%', y: '74%', size: 120, rotate: -20, drift: -40, opacity: 0.14 },
+          ]}
+        />
+        <Container className="relative grid lg:grid-cols-[1fr_1.4fr] gap-9 sm:gap-12 items-start">
           <RevealV2>
             <Eyebrow tone="violet" className="mb-3 sm:mb-4">
               {isFr ? 'Mise en route' : 'Setup'}
