@@ -78,7 +78,7 @@ export default function CharacterCarousel({
   onOverride?: (v: SelectedVoice | null) => void;
 }) {
   const reduce = useReducedMotion();
-  const { playing, notice, line, toggle, prefetch, debug } = useVoicePreview(isFr);
+  const { playing, notice, line, toggle, prefetch } = useVoicePreview(isFr);
   const [dir, setDir] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -266,11 +266,10 @@ export default function CharacterCarousel({
           <p className="mt-2 text-center text-[11.5px] text-q2-fog q2-body-text">{tagline}</p>
         ) : null}
 
-        {debug && (
-          // Seulement après une pression : « aucune erreur, aucun son » n'est
-          // autrement pas rapportable par la personne qui tient le téléphone.
-          <p className="mt-3 text-center text-[10px] font-mono text-q2-fog">{debug}</p>
-        )}
+        {/* La ligne de diagnostic (« 49 ko · lecteur audio · 0,7 s ») était un
+            outil de mise au point, pas de l'interface: elle s'affichait à tous
+            les clients après chaque écoute. Retirée (retour utilisateur). Le
+            `notice` au-dessus suffit à dire qu'un aperçu a échoué. */}
 
         {/* Repères de position : lire « 3 sur 10 » sans compter les points */}
         {characters.length > 1 && (
