@@ -294,26 +294,6 @@
   }
 }
 
-/* Chiffre allumé: la lueur est DERRIÈRE le glyphe (pseudo-élément en
-   z-index -1), le texte lui-même reste une couleur pleine. */
-.q2-figure-lit {
-  position: relative;
-  isolation: isolate;
-}
-
-.q2-figure-lit::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: -0.4em -0.3em -0.3em;
-  pointer-events: none;
-  background: radial-gradient(
-    closest-side,
-    rgba(122, 95, 255, 0.19),
-    rgba(122, 95, 255, 0) 100%
-  );
-}
-
 /* Hairline qui s'éclaire vers son milieu, pour ouvrir une section
    drenched sans y poser une arête franche. */
 .q2-hairline-lit {

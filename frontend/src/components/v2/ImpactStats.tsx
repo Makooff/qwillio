@@ -76,10 +76,9 @@ export default function ImpactStats({ isFr }: { isFr: boolean }) {
             >
               <dt className="sr-only">{isFr ? s.srFr : s.srEn}</dt>
               <dd>
-                {/* `inline-block` pour que la lueur épouse les glyphes et non
-                    toute la colonne. Le chiffre reste une couleur pleine: la
-                    lueur est derrière lui (.q2-figure-lit). */}
-                <span className="q2-figure-lit inline-block text-[clamp(2rem,5vw,3.4rem)] font-light tracking-[-0.03em] leading-none text-q2-ink tabular-nums">
+                {/* Le chiffre est nu (demande utilisateur) : plus de lueur
+                    derrière le glyphe, la bande taupe suffit à le porter. */}
+                <span className="inline-block text-[clamp(2rem,5vw,3.4rem)] font-light tracking-[-0.03em] leading-none text-q2-ink tabular-nums">
                   {s.value}
                 </span>
                 <span className="block mt-3 sm:mt-4 text-[13.5px] sm:text-sm leading-relaxed text-q2-body q2-body-text max-w-[220px]">
