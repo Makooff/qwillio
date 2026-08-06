@@ -53,7 +53,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Et s’il ne sait pas répondre ?',
-    a: "Il transfère vers vous selon les règles que vous avez posées, ou il prend les coordonnées de l'appelant et propose un rappel. Même en cas de pépin technique de notre côté, l'appelant n'entend jamais un message d'erreur : il repart avec la promesse d'un rappel et vous récupérez la fiche. Chaque semaine, vous recevez la liste de ce qui a coincé, par exemple les questions revenues sans réponse dans votre FAQ.",
+    a: "Il transfère vers vous selon les règles que vous avez posées, ou il prend les coordonnées de l'appelant et propose un rappel. Même en cas de pépin technique de notre côté, l'appelant n'entend jamais un message d'erreur : il repart avec la promesse d'un rappel et vous récupérez la fiche. Chaque semaine, vous recevez par courriel et par SMS la liste de ce qui a coincé, par exemple les questions revenues sans réponse dans votre FAQ.",
   },
   {
     q: 'Combien ça coûte ?',
@@ -104,7 +104,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'What if it does not know the answer?',
-    a: 'It transfers to you according to the rules you set, or it takes the caller’s details and offers a callback. Even on a technical hiccup on our side, the caller never hears an error message: they leave with the promise of a callback and you get the record. Every week you receive a list of what went wrong, for example questions that kept coming back with no answer in your FAQ.',
+    a: 'It transfers to you according to the rules you set, or it takes the caller’s details and offers a callback. Even on a technical hiccup on our side, the caller never hears an error message: they leave with the promise of a callback and you get the record. Every week you receive, by email and text, a list of what went wrong, for example questions that kept coming back with no answer in your FAQ.',
   },
   {
     q: 'How much does it cost?',

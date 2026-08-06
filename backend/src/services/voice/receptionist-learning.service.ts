@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
 import { knowledgeEmbeddingsService } from './knowledge-embeddings.service';
+import { receptionistDigestService } from './receptionist-digest.service';
 
 /**
  * Learning loop over the receptionist's real-time signals (chantier 11).
@@ -46,6 +47,12 @@ export interface Finding {
   detail: string;
   /** What a human should change. Empty when the loop already handled it. */
   action: string;
+  /**
+   * What the finding is about when the code alone is not enough, currently the
+   * failing tool name. The digest needs it to tell a broken calendar (the
+   * client's to reconnect) from any other tool failure (ours to fix).
+   */
+  subject?: string;
 }
 
 export interface LearningReport {
@@ -194,6 +201,7 @@ class ReceptionistLearningService {
         code: 'tool_failures',
         severity: 'warn',
         detail: `${errors.length}/${calls.length} tool calls failed, mostly ${worst[0]}`,
+        subject: worst[0],
         action:
           worst[0] === 'checkAvailability' || worst[0] === 'bookAppointment'
             ? 'Calendar access is failing: the Google token is likely expired or revoked.'
@@ -241,12 +249,22 @@ class ReceptionistLearningService {
    *
    * The only thing it changes on its own is embedding freshness, which is
    * mechanical and cannot make the agent say something wrong. Everything else
-   * is reported.
+   * is reported: to the client by email and SMS for the findings they can act
+   * on (`receptionist-digest`), to us for the rest.
    */
   async runWeekly(): Promise<LearningReport[]> {
     const clients = await prisma.client.findMany({
       where: { subscriptionStatus: { in: ['active', 'trialing'] }, vapiAssistantId: { not: null } },
-      select: { id: true, businessName: true },
+      select: {
+        id: true,
+        businessName: true,
+        contactName: true,
+        contactEmail: true,
+        contactPhone: true,
+        agentLanguage: true,
+        country: true,
+        vapiConfig: true,
+      },
     });
 
     const reports: LearningReport[] = [];
@@ -257,6 +275,10 @@ class ReceptionistLearningService {
 
         reports.push(report);
         await knowledgeEmbeddingsService.generateMissing(client.id).catch(() => 0);
+
+        // The client hears about their own findings here. The digest decides
+        // which ones are theirs to act on and stays silent when none are.
+        await receptionistDigestService.send(client, report);
 
         const warnings = report.findings.filter(f => f.severity === 'warn');
         if (warnings.length) {

@@ -99,6 +99,16 @@ export const smsTemplates = {
     return `Hi ${d.firstName}, your appointment at ${d.businessName} is confirmed for ${dateStr}${when}${svc}. To reschedule or cancel, contact ${d.businessName} directly.`;
   },
 
+  /**
+   * Weekly receptionist digest, sent to the CLIENT (not a prospect). The
+   * findings themselves go by email: the SMS exists so the client knows there
+   * is something to read without opening their inbox first.
+   */
+  weeklyInsights: (d: { businessName: string; count: number; link: string; lang: Lang }) =>
+    d.lang === 'fr'
+      ? `Qwillio : le point de la semaine sur ${d.businessName}. ${d.count} point${d.count > 1 ? 's' : ''} à corriger, le détail est dans votre courriel. Réglez-le dans le chat : ${d.link}. ${STOP.fr}`
+      : `Qwillio: this week's check on ${d.businessName}. ${d.count} thing${d.count > 1 ? 's' : ''} to fix, details are in your inbox. Sort it in the chat: ${d.link}. ${STOP.en}`,
+
   /** 24h reminder before booking. Raw fields, localized here. */
   bookingReminder: (d: {
     firstName: string;
