@@ -77,7 +77,7 @@ export default function CharacterCarousel({
   onOverride?: (v: SelectedVoice | null) => void;
 }) {
   const reduce = useReducedMotion();
-  const { playing, notice, toggle, prefetch, debug } = useVoicePreview(isFr);
+  const { playing, notice, line, toggle, prefetch, debug } = useVoicePreview(isFr);
   const [dir, setDir] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -210,7 +210,7 @@ export default function CharacterCarousel({
 
           <button
             type="button"
-            onClick={() => toggle(current.id, previewUrl(current.id), isFr ? current.previewFr : current.previewEn)}
+            onClick={() => toggle(current.id, previewUrl(current.id), (isFr ? current.previewFr : current.previewEn) || undefined)}
             aria-label={isFr ? `Écouter ${current.name}` : `Preview ${current.name}`}
             className="w-7 h-7 shrink-0 rounded-full grid place-items-center bg-q2-indigo/15 text-q2-lift hover:bg-q2-indigo/25 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
           >
@@ -252,9 +252,13 @@ export default function CharacterCarousel({
           </AnimatePresence>
         </div>
 
-        {tagline && (
+        {/* Pendant la lecture, la phrase enregistrée remplace la accroche: on
+            lit exactement ce que la voix est en train de dire. */}
+        {playing === current.id && line ? (
+          <p className="mt-2 text-center text-[11.5px] italic text-q2-mist q2-body-text">« {line} »</p>
+        ) : tagline ? (
           <p className="mt-2 text-center text-[11.5px] text-q2-fog q2-body-text">{tagline}</p>
-        )}
+        ) : null}
 
         {debug && (
           // Seulement après une pression : « aucune erreur, aucun son » n'est

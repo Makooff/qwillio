@@ -47,10 +47,22 @@ function previewUrl(id: string, isFr: boolean) {
   return `/public/characters/${id}/preview?lang=${isFr ? 'fr' : 'en'}`;
 }
 
-function fallbackLine(name: string, isFr: boolean) {
-  return isFr
-    ? `Bonjour, ici ${name}, merci d’appeler ! Comment puis-je vous aider ?`
-    : `Hello, this is ${name}, thanks for calling! How can I help you?`;
+/* Les phrases RÉELLEMENT enregistrées, reprises telles quelles de
+   `backend/src/config/voice-characters.ts`. Elles ne sont plus prononcées par
+   le navigateur (la voix de lecture de Safari ne ressemblait à aucune voix du
+   produit) : elles s'affichent pendant que le vrai clip ElevenLabs joue, si
+   bien qu'on lit ce qu'on entend. Un écart avec le serveur se voit donc à
+   l'oreille, ce qui est la bonne façon de s'en apercevoir. */
+const SPOKEN: Record<string, { fr: string; en: string }> = {
+  marie:   { fr: 'Bonjour, merci d’appeler ! Comment puis-je vous aider aujourd’hui ?', en: 'Hello, thanks for calling! How can I help you today?' },
+  camille: { fr: 'Bonjour et bienvenue. Je vous écoute, en quoi puis-je vous être utile ?', en: 'Good day and welcome. I’m listening — how may I assist you?' },
+  lea:     { fr: 'Salut ! Super de vous avoir au téléphone, dites-moi tout !', en: 'Hi there! Great to have you on the line, tell me everything!' },
+  sofia:   { fr: 'Bonjour, ravie de vous entendre. Comment puis-je vous aider ?', en: 'Hi, lovely to hear from you. How can I help?' },
+};
+
+function spokenLine(id: string, isFr: boolean): string | undefined {
+  const entry = SPOKEN[id];
+  return entry ? (isFr ? entry.fr : entry.en) : undefined;
 }
 
 function VoicePreviewButton({
@@ -160,10 +172,10 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
   const [reduced] = useState(prefersReducedMotion);
 
   const preset = PRESETS[active];
-  const { playing, notice, toggle, prefetch, stop } = useVoicePreview(isFr);
+  const { playing, notice, line, toggle, prefetch, stop } = useVoicePreview(isFr);
   const speaking = playing === preset.id;
   const onTogglePreview = useCallback(() => {
-    toggle(preset.id, previewUrl(preset.id, isFr), fallbackLine(preset.name, isFr));
+    toggle(preset.id, previewUrl(preset.id, isFr), spokenLine(preset.id, isFr));
   }, [toggle, preset.id, preset.name, isFr]);
 
   /* Changer de personnage coupe l'aperçu en cours et précharge le clip du
@@ -230,6 +242,13 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
             />
           }
         />
+        {/* La phrase qu'on entend, écrite. Elle vient du catalogue serveur,
+            donc c'est le texte réellement enregistré, pas une paraphrase. */}
+        {speaking && line && (
+          <p className="text-[13px] italic text-q2-body q2-body-text max-w-[560px] mx-auto mt-3 text-center">
+            « {line} »
+          </p>
+        )}
         {notice && (
           <p role="status" className="text-[12px] text-q2-body q2-body-text max-w-[640px] mx-auto mt-3">
             {notice}
@@ -250,6 +269,11 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
         className="mb-6 sm:mb-8"
       />
 
+      {speaking && line && (
+        <p className="text-[13px] italic text-q2-body q2-body-text max-w-[560px] mx-auto -mt-2 mb-4 text-center">
+          « {line} »
+        </p>
+      )}
       {notice && (
         <p role="status" className="text-[12px] text-q2-body q2-body-text max-w-[640px] mx-auto -mt-3 mb-4 text-center sm:text-left">
           {notice}
