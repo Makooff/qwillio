@@ -82,6 +82,7 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const hubRef = useRef<HTMLDivElement>(null);
   const [geo, setGeo] = useState<Geometry | null>(null);
+  const [reduced] = useState(prefersReducedMotion);
 
   /* Les extrémités viennent du DOM: la scène peut changer de forme sans
      qu'aucune coordonnée ne soit à retoucher ici. */
@@ -152,6 +153,26 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
         repeat: -1,
         stagger: 0.45,
       });
+
+      /* Le courant. Chaque trait porte un second tracé réduit à un tiret court
+         (`pathLength=100` rend la mesure indépendante de la longueur réelle,
+         donc les quatre éclats filent à la même vitesse malgré des courbes
+         inégales). L'offset qui décroît pousse le tiret du hub vers le nœud :
+         le courant part de Qwillio, il n'y revient pas. */
+      gsap.to('[data-orbit-current]', {
+        strokeDashoffset: -100,
+        duration: 2.6,
+        ease: 'none',
+        repeat: -1,
+        stagger: 0.55,
+      });
+      /* Il ne s'allume qu'une fois le trait tracé : un éclat qui court sur un
+         fil pas encore dessiné se lit comme un bug. */
+      gsap.to('[data-orbit-current]', {
+        opacity: 1,
+        ease: 'none',
+        scrollTrigger: { trigger: stage, start: 'top 82%', end: 'center 52%', scrub: 0.6 },
+      });
     }, stage);
     return () => ctx.revert();
   }, [geo]);
@@ -179,6 +200,25 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
             />
           ) : null,
         )}
+        {/* Le courant qui passe : un éclat court posé sur le même tracé. En
+            reduced-motion il n'existe pas, les quatre fils restent des fils. */}
+        {!reduced &&
+          geo?.paths.map((d, i) =>
+            d ? (
+              <path
+                key={`current-${NODES[i].id}`}
+                data-orbit-current
+                d={d}
+                pathLength={100}
+                stroke="rgba(150, 122, 255, 0.95)"
+                strokeWidth={1.9}
+                strokeLinecap="round"
+                strokeDasharray="9 91"
+                strokeDashoffset={0}
+                style={{ opacity: 0, filter: 'drop-shadow(0 0 4px rgba(122,95,255,0.8))' }}
+              />
+            ) : null,
+          )}
       </svg>
 
       {/* Lueur du centre: le hub est la source, les traits en partent */}
