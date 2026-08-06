@@ -367,6 +367,24 @@ export default function ClientReceptionist() {
           numéro copiable, l'appel test live et la jauge de minutes, pour que
           tout ce qui décrit la réceptionniste soit au même endroit. */}
       <AssistantChat
+        /* L'état du transfert, posé sur la ligne du numéro: même sujet, même
+           endroit. « Transfert » plutôt que « Transfert d'appel »: à côté du
+           numéro, le mot suffit. */
+        numberBadge={
+          fwdVerified && transferNumber ? (
+            <span className="flex items-center gap-1 text-[11px] text-emerald-400 flex-shrink-0">
+              <CheckCircle2 size={12} aria-hidden="true" /> Transfert
+            </span>
+          ) : fwdStatus === 'pending' ? (
+            <span className="flex items-center gap-1 text-[11px] text-amber-400 flex-shrink-0">
+              <Clock size={12} aria-hidden="true" /> Transfert
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-[11px] text-[#6B6B75] flex-shrink-0">
+              <XCircle size={12} aria-hidden="true" /> Transfert
+            </span>
+          )
+        }
         isFr={agentLanguage !== 'en'}
         onConfigChanged={load}
         businessName={client.businessName || businessName}
@@ -399,20 +417,11 @@ export default function ClientReceptionist() {
           </motion.div>
         )}
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-          className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <PhoneForwarded size={13} className="text-[#9A9AA5] flex-shrink-0" />
-            <span className="text-[12px] text-[#9A9AA5] truncate">Transfert d'appel</span>
-          </div>
-          {fwdVerified && transferNumber ? (
-            <span className="flex items-center gap-1 text-[11px] text-emerald-400 flex-shrink-0"><CheckCircle2 size={12} /> Vérifié</span>
-          ) : fwdStatus === 'pending' ? (
-            <span className="flex items-center gap-1 text-[11px] text-amber-400 flex-shrink-0"><Clock size={12} /> En attente</span>
-          ) : (
-            <span className="flex items-center gap-1 text-[11px] text-[#6B6B75] flex-shrink-0"><XCircle size={12} /> Non configuré</span>
-          )}
-        </motion.div>
+        {/* La rangée « Transfert d'appel » à elle seule est partie: elle
+            occupait une bande entière pour un mot et une pastille. L'état vit
+            désormais sur la ligne du numéro, à gauche de l'icône « copier »
+            (retour utilisateur) — c'est là qu'on le cherche, puisque c'est le
+            même sujet. */}
       </div>
 
       {/* —— Agent identity —— */}
