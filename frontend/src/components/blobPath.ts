@@ -118,3 +118,62 @@ export function blobJourney(params: {
   }
   return frames;
 }
+
+/**
+ * Move and resize a path without touching its shape.
+ *
+ * Every number in these paths is a coordinate — they are only M, C and Z — so a
+ * uniform scale about a centre plus a translation can be applied number pair by
+ * number pair. Doing it here rather than with a `transform` attribute is the
+ * whole point: the travel has to live in the path data, or the shape is being
+ * carried rather than making its own way.
+ */
+export function placePath(d: string, from: { x: number; y: number }, to: { x: number; y: number }, k: number): string {
+  let index = 0;
+  return d.replace(/-?\d+(\.\d+)?/g, match => {
+    const value = Number(match);
+    const axis = index++ % 2 === 0 ? 'x' : 'y';
+    const moved = (value - from[axis]) * k + to[axis];
+    return moved.toFixed(2);
+  });
+}
+
+/**
+ * One bubble's journey, drawn with the reference outlines.
+ *
+ * Each frame is the Lottie's own shape, placed a little further along the way
+ * in — so what crosses the screen is the artwork, deforming as it goes, and the
+ * travel is in the coordinates rather than in a transform. The last frame is a
+ * circle on the lobe, because the mark has to take over without a jump.
+ */
+export function lottieJourney(params: {
+  frames: string[];
+  circle: string;
+  /** Centre and half-size of the source shapes, from the extraction. */
+  source: { x: number; y: number; half: number };
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  /** Radius of the lobe the bubble comes to rest on. */
+  r: number;
+  /** Where in the loop to start, so two bubbles are never in the same pose. */
+  offset?: number;
+}): string[] {
+  const { frames, circle, source, from, to, r, offset = 0 } = params;
+  const ordered = [...frames.slice(offset), ...frames.slice(0, offset)];
+  const steps = ordered.length;
+
+  const journey = ordered.map((frame, step) => {
+    const progress = step / steps;
+    // Ease-out: most of the ground is covered early, so the end of the sequence
+    // is the shape settling rather than still travelling.
+    const eased = 1 - Math.pow(1 - progress, 2.2);
+    const scale = (r / source.half) * (1.45 - 0.45 * eased);
+    return placePath(frame, source, {
+      x: from.x + (to.x - from.x) * eased,
+      y: from.y + (to.y - from.y) * eased,
+    }, scale);
+  });
+
+  journey.push(placePath(circle, source, to, r / source.half));
+  return journey;
+}

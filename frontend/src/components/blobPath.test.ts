@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { blobPath, blobJourney, BLOB_POINTS } from './blobPath';
+import { blobPath, blobJourney, placePath, lottieJourney, BLOB_POINTS } from './blobPath';
+import { BLOB_FRAMES, BLOB_CIRCLE, BLOB_CENTRE } from './lottieBlob';
 
 const commands = (d: string) => d.trim().split(/(?=[MCZ])/).map(part => part.trim()[0]);
 const numbers = (d: string) => (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
@@ -103,5 +104,82 @@ describe('the journey', () => {
     expect(again).toEqual(frames);
     const other = blobJourney({ from: { x: -300, y: -300 }, to: { x: 100, y: 100 }, r: 30, seed: 8 });
     expect(other[0]).not.toBe(frames[0]);
+  });
+});
+
+describe('the reference outlines', () => {
+  const journey = lottieJourney({
+    frames: BLOB_FRAMES,
+    circle: BLOB_CIRCLE,
+    source: BLOB_CENTRE,
+    from: { x: -400, y: -400 },
+    to: { x: 160, y: 160 },
+    r: 38,
+  });
+
+  const bounds = (d: string) => {
+    const points = numbers(d);
+    const xs: number[] = [];
+    const ys: number[] = [];
+    for (let i = 0; i < points.length; i += 2) { xs.push(points[i]); ys.push(points[i + 1]); }
+    return {
+      x: (Math.min(...xs) + Math.max(...xs)) / 2,
+      y: (Math.min(...ys) + Math.max(...ys)) / 2,
+      w: Math.max(...xs) - Math.min(...xs),
+    };
+  };
+
+  it('keeps the shapes, which a perturbed circle could never be', () => {
+    // The reference silhouettes fold back into themselves. Measured from their
+    // own centre, some vertices are far closer than others — a circle with
+    // nudged radii cannot reach that ratio.
+    const first = journey[0];
+    const c = bounds(first);
+    const points = numbers(first);
+    const radii: number[] = [];
+    for (let i = 0; i < points.length; i += 2) radii.push(Math.hypot(points[i] - c.x, points[i + 1] - c.y));
+    expect(Math.max(...radii) / Math.min(...radii)).toBeGreaterThan(2);
+  });
+
+  it('every frame has the same structure, or nothing can interpolate', () => {
+    const shape = commands(journey[0]);
+    const count = numbers(journey[0]).length;
+    for (const frame of journey) {
+      expect(commands(frame)).toEqual(shape);
+      expect(numbers(frame)).toHaveLength(count);
+    }
+  });
+
+  it('carries the travel in the path, not in a transform', () => {
+    expect(bounds(journey[0]).x).toBeLessThan(-200);
+    const last = bounds(journey[journey.length - 1]);
+    expect(last.x).toBeCloseTo(160, 0);
+    expect(last.y).toBeCloseTo(160, 0);
+  });
+
+  it('arrives larger and settles onto the lobe', () => {
+    expect(bounds(journey[0]).w).toBeGreaterThan(bounds(journey[journey.length - 1]).w);
+    expect(bounds(journey[journey.length - 1]).w).toBeCloseTo(76, 0);
+  });
+
+  it('starts the second bubble elsewhere in the loop', () => {
+    const offset = lottieJourney({
+      frames: BLOB_FRAMES,
+      circle: BLOB_CIRCLE,
+      source: BLOB_CENTRE,
+      from: { x: -400, y: -400 },
+      to: { x: 160, y: 160 },
+      r: 38,
+      offset: 3,
+    });
+    expect(offset[0]).not.toBe(journey[0]);
+  });
+});
+
+describe('placePath', () => {
+  it('moves and resizes without touching the shape', () => {
+    const square = 'M 0 0 C 0 0 10 0 10 0 C 10 0 10 10 10 10 Z';
+    const moved = placePath(square, { x: 5, y: 5 }, { x: 105, y: 205 }, 2);
+    expect(moved).toBe('M 95.00 195.00 C 95.00 195.00 115.00 195.00 115.00 195.00 C 115.00 195.00 115.00 215.00 115.00 215.00 Z');
   });
 });

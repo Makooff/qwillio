@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import QwillioLogo from './QwillioLogo';
-import { blobJourney } from './blobPath';
+import { lottieJourney } from './blobPath';
+import { BLOB_FRAMES, BLOB_CIRCLE, BLOB_CENTRE } from './lottieBlob';
 
 /**
  * Launch animation for the installed app.
@@ -71,6 +72,10 @@ const LOBE_Y = CENTRE + (BLOB.top + R - LOGO / 2);
  * Painted in the mark's own order: violet first, indigo over it, so the left
  * lobe is in front for the whole journey as it is in the logo.
  *
+ * The outlines are the reference file's own — wide shapes with deep concave
+ * notches. A perturbed circle cannot be one of these: no amount of nudging a
+ * radius produces a silhouette that folds back into itself.
+ *
  * Flat fills. A gradient on these reads as a reflection on a rendered sphere,
  * and what arrives has to be the logo's own colour — it is about to *become*
  * the logo.
@@ -80,22 +85,29 @@ const DROPS: Drop[] = [
     key: 'right',
     // Enters from the bottom right, far outside the box — the SVG does not
     // clip, so "outside the box" is off the screen on any phone.
-    shapes: blobJourney({
+    shapes: lottieJourney({
+      frames: BLOB_FRAMES,
+      circle: BLOB_CIRCLE,
+      source: BLOB_CENTRE,
       from: { x: BOX + REACH, y: BOX + REACH },
       to: { x: LOBE_RIGHT, y: LOBE_Y },
       r: R,
-      seed: 20260806,
+      // Two bubbles in the same pose at the same moment read as one object
+      // duplicated, so this one starts three frames into the loop.
+      offset: 3,
     }),
     fill: '#CD6BFB',
   },
   {
     key: 'left',
     // From the top left, and painted over the other, as in the mark.
-    shapes: blobJourney({
+    shapes: lottieJourney({
+      frames: BLOB_FRAMES,
+      circle: BLOB_CIRCLE,
+      source: BLOB_CENTRE,
       from: { x: -REACH, y: -REACH },
       to: { x: LOBE_LEFT, y: LOBE_Y },
       r: R,
-      seed: 8675309,
     }),
     fill: '#7A5FFF',
   },
