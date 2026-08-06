@@ -242,7 +242,14 @@ export default function NavV2() {
     const onScroll = () => {
       const y = window.scrollY;
       setDetached((was) => (was ? y > REATTACH_AT : y > DETACH_AT));
-      const dark = Array.from(document.querySelectorAll('[data-register="drenched"]')).some((el) => {
+      /* Les sections sombres se signalent par `data-register="drenched"`
+         (Primitives.tsx), mais elles ne sont pas les seules surfaces noires :
+         la fenêtre du hero porte une capture de dashboard sombre et laissait
+         la barre en version claire, texte foncé sur fond noir. Toute surface
+         qui veut ce basculement se marque donc `data-nav-dark`. */
+      const dark = Array.from(
+        document.querySelectorAll('[data-register="drenched"],[data-nav-dark]'),
+      ).some((el) => {
         const r = el.getBoundingClientRect();
         return r.top < BAND && r.bottom > 0;
       });

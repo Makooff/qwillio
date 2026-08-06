@@ -53,22 +53,27 @@ const MOCKUP = {
   },
 } as const;
 
-/* Fond vidéo du hero. `playsInline` + `muted` sont indispensables pour que iOS
-   accepte la lecture automatique ; `preload="metadata"` évite de tirer les
-   2,3 Mo avant que la page soit utilisable. Deux voiles la calment : un aplat
-   crème, et un dégradé qui la referme vers le bas de la section. */
+/* Fond vidéo du hero : la boucle de marque, PAS le film publicitaire
+   (`qwillio-ad.mp4`), qui n'a rien à faire ici. Tant que `/hero-loop.mp4`
+   n'existe pas, le composant s'efface de lui-même (onError) et le hero garde
+   son dégradé et ses blobs : aucune zone vide, aucun cadre cassé.
+   `playsInline` + `muted` sont indispensables pour qu'iOS accepte la lecture
+   automatique ; `preload="metadata"` évite de tirer le fichier avant que la
+   page soit utilisable. Deux voiles la calment ensuite. */
 function HeroVideoBackdrop() {
   const [reduced] = useState(prefersReducedMotion);
-  if (reduced) return null;
+  const [failed, setFailed] = useState(false);
+  if (reduced || failed) return null;
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
       <video
-        src="/qwillio-ad.mp4"
+        src="/hero-loop.mp4"
         autoPlay
         muted
         loop
         playsInline
         preload="metadata"
+        onError={() => setFailed(true)}
         className="absolute inset-0 w-full h-full object-cover"
         style={{ opacity: 0.5 }}
       />
@@ -124,18 +129,12 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
       <div
         ref={frameRef}
         className="relative"
+        /* Surface sombre : la nav doit passer en verre noir quand elle la
+           survole, sinon on lit du texte foncé sur la capture du dashboard. */
+        data-nav-dark=""
         style={{
           transformOrigin: 'center top',
           willChange: 'transform',
-          /* Le bas de la fenêtre se dissout dans la page au lieu de s'arrêter
-             net (demande utilisateur). Le masque porte sur le conteneur, donc
-             le cadre ET la capture s'effacent ensemble.
-             Cotes relevées dans la composition : le bouton « Déconnexion » de
-             la barre latérale tombe à 91 % de la hauteur du cadre. Le fondu
-             démarre donc à 86 %, juste au-dessus de lui, et atteint zéro au
-             tout dernier pixel. Rien ne s'efface plus haut. */
-          maskImage: 'linear-gradient(to bottom, black 0%, black 86%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 86%, transparent 100%)',
         }}
       >
         <img
@@ -182,6 +181,21 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
             qwillio.com/dashboard
           </text>
         </svg>
+        {/* Le bas de la fenêtre ne se dissout pas en transparence (on voyait
+            encore son arête sur ce qui passait derrière) : il est RECOUVERT
+            par la couleur de la page. Cotes de l'image : Déconnexion à 91 %,
+            bord bas de la fenêtre à 93,2 %. Le voile part donc de 74 %,
+            devient opaque à 90 %, et tout ce qui est en dessous, arête et
+            ombre comprises, est un aplat de canvas. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 pointer-events-none"
+          style={{
+            height: '22%',
+            background:
+              'linear-gradient(to bottom, rgba(253,252,252,0) 0%, rgba(253,252,252,0.88) 55%, #FDFCFC 68%, #FDFCFC 100%)',
+          }}
+        />
       </div>
     </div>
   );
