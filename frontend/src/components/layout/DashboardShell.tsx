@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from '../../stores/authStore';
 import QwillioLogo from '../QwillioLogo';
 import { t } from '../../styles/admin-theme';
+import GlassSkin, { GlassFilter } from '../v2/ui/liquid-glass';
 
 /**
  * Shared dashboard shell — sidebar, top bar, mobile bottom nav.
@@ -461,26 +462,17 @@ function MobileBottomNav({
 
   return (
     <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
+      <GlassFilter />
       <div className="relative w-full flex items-center py-1.5">
-        {/* Morph-glass bar — fully translucent, heavy blur, glass edge highlights */}
-        <div
-          className="absolute inset-0 rounded-full pointer-events-none"
-          style={{
-            /* Voile dense : le flou seul ne suffit pas à rendre le fond
-               illisible (mesuré, même à 80 px le texte se relit), donc la
-               matière tient d'abord au voile, le flou l'adoucit. */
-            background: 'linear-gradient(180deg, oklch(24% 0.012 265 / 0.94) 0%, oklch(12% 0.012 265 / 0.97) 100%)',
-            backdropFilter: 'blur(30px) saturate(1.7)',
-            WebkitBackdropFilter: 'blur(30px) saturate(1.7)',
-            /* Indispensable : sans cet indice, le navigateur photographie le
-               fond au montage et ne le refait jamais, parce que le contenu
-               défile dans un scroller imbriqué (<main data-scroll-root>) alors
-               que la pilule est fixed au-dessus. Résultat sans lui : on lit le
-               texte à travers, net. Mesuré en Chromium, reproduit sur iPhone. */
-            willChange: 'backdrop-filter',
-            border: '1px solid rgba(255,255,255,0.12)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,0,0,0.25), 0 12px 32px rgba(0,0,0,0.35)',
-          }}
+        {/* Barre en verre liquide : le fond est déformé par le filtre SVG
+            (porté du composant que l'utilisateur a envoyé), pas seulement
+            flouté, et le biseau vient de ses inset box-shadow. Teinte unie,
+            plus aucun dégradé. Sur WebKit, repli flou + teinte plus dense. */}
+        <GlassSkin
+          onDark
+          radius={9999}
+          tint="rgba(12,13,16,0.16)"
+          tintFallback="rgba(12,13,16,0.66)"
         />
 
         {/* Water-drop bubble — wobbly spring travel + continuous liquid morph */}

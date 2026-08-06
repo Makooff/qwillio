@@ -1,0 +1,123 @@
+import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
+
+/* Verre liquide, porté du composant 21st « liquid-glass-button » que
+   l'utilisateur a envoyé. La différence avec un backdrop-blur ordinaire tient
+   en une ligne : le fond n'est pas seulement adouci, il est DÉFORMÉ, par un
+   filtre SVG posé en backdrop (turbulence -> déplacement -> flou). Le biseau
+   du verre, lui, vient d'une pile d'inset box-shadow, reprise telle quelle.
+
+   Limite assumée et annoncée : WebKit n'accepte pas url() dans
+   backdrop-filter. Sur iOS la déformation n'apparaît pas, donc on retombe sur
+   un flou classique avec une teinte un cran plus dense, pour que la barre
+   reste non traversable. Le biseau, lui, marche partout. */
+
+export const GLASS_FILTER_ID = 'q2-liquid-glass';
+
+/* Le filtre du composant d'origine, valeurs inchangées. */
+export function GlassFilter() {
+  return (
+    <svg className="hidden" aria-hidden="true">
+      <defs>
+        <filter
+          id={GLASS_FILTER_ID}
+          x="0%"
+          y="0%"
+          width="100%"
+          height="100%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feTurbulence type="fractalNoise" baseFrequency="0.05 0.05" numOctaves={1} seed={1} result="turbulence" />
+          <feGaussianBlur in="turbulence" stdDeviation={2} result="blurredNoise" />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="blurredNoise"
+            scale={70}
+            xChannelSelector="R"
+            yChannelSelector="B"
+            result="displaced"
+          />
+          <feGaussianBlur in="displaced" stdDeviation={4} result="finalBlur" />
+          <feComposite in="finalBlur" in2="finalBlur" operator="over" />
+        </filter>
+      </defs>
+    </svg>
+  );
+}
+
+/* Le navigateur accepte-t-il un filtre SVG en backdrop ? Chromium oui, WebKit
+   non. Mesuré au montage plutôt que déduit de l'agent utilisateur. */
+export function useLiquidGlassSupport() {
+  const [supported, setSupported] = useState(false);
+  useEffect(() => {
+    const ok =
+      typeof CSS !== 'undefined' &&
+      typeof CSS.supports === 'function' &&
+      CSS.supports('backdrop-filter', `url("#${GLASS_FILTER_ID}")`);
+    setSupported(ok);
+  }, []);
+  return supported;
+}
+
+/* Les deux piles d'ombres du composant d'origine : elles dessinent l'épaisseur
+   du verre, ses arêtes éclairées et son ombre portée. */
+const BEVEL_LIGHT =
+  '0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.08), inset 3px 3px 0.5px -3px rgba(0,0,0,0.9), inset -3px -3px 0.5px -3px rgba(0,0,0,0.85), inset 1px 1px 1px -0.5px rgba(0,0,0,0.6), inset -1px -1px 1px -0.5px rgba(0,0,0,0.6), inset 0 0 6px 6px rgba(0,0,0,0.12), inset 0 0 2px 2px rgba(0,0,0,0.06), 0 0 12px rgba(255,255,255,0.15)';
+
+const BEVEL_DARK =
+  '0 0 8px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.08), inset 3px 3px 0.5px -3.5px rgba(255,255,255,0.09), inset -3px -3px 0.5px -3.5px rgba(255,255,255,0.85), inset 1px 1px 1px -0.5px rgba(255,255,255,0.6), inset -1px -1px 1px -0.5px rgba(255,255,255,0.6), inset 0 0 6px 6px rgba(255,255,255,0.12), inset 0 0 2px 2px rgba(255,255,255,0.06), 0 0 12px rgba(0,0,0,0.15)';
+
+export interface GlassSkinProps {
+  /** Verre posé sur un fond sombre : le biseau s'inverse. */
+  onDark?: boolean;
+  /** Rayon de la surface, pour que les deux couches épousent la forme. */
+  radius?: number | string;
+  /** Teinte de fond. Basse quand le verre liquide marche, plus dense sinon. */
+  tint?: string;
+  tintFallback?: string;
+  className?: string;
+  style?: CSSProperties;
+}
+
+/* Peau de verre à poser en `absolute inset-0` dans un conteneur `relative`.
+   Deux couches, comme dans le composant d'origine : le backdrop déformé
+   dessous, le biseau par-dessus. */
+export default function GlassSkin({
+  onDark = false,
+  radius = 9999,
+  tint,
+  tintFallback,
+  className = '',
+  style,
+}: GlassSkinProps) {
+  const liquid = useLiquidGlassSupport();
+
+  const backdrop = liquid
+    ? `url("#${GLASS_FILTER_ID}")`
+    : 'blur(24px) saturate(1.8)';
+
+  const background = liquid
+    ? (tint ?? (onDark ? 'rgba(8,9,10,0.10)' : 'rgba(255,255,255,0.10)'))
+    : (tintFallback ?? (onDark ? 'rgba(8,9,10,0.62)' : 'rgba(255,255,255,0.58)'));
+
+  return (
+    <span aria-hidden="true" className={`pointer-events-none absolute inset-0 ${className}`} style={style}>
+      <span
+        className="absolute inset-0 isolate overflow-hidden"
+        style={{
+          borderRadius: radius,
+          background,
+          backdropFilter: backdrop,
+          WebkitBackdropFilter: backdrop,
+          /* Sans cet indice, la couche est photographiée une fois au montage
+             et ne se rafraîchit jamais quand le contenu défile dessous. */
+          willChange: 'backdrop-filter',
+        }}
+      />
+      <span
+        className="absolute inset-0"
+        style={{ borderRadius: radius, boxShadow: onDark ? BEVEL_DARK : BEVEL_LIGHT }}
+      />
+    </span>
+  );
+}

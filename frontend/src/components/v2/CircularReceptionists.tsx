@@ -24,10 +24,10 @@ interface Preset {
   descEn: string;
 }
 
-/* Six visages, un par ton, trois voix féminines et trois masculines. Le
-   carrousel du fichier 21st est calibré pour six cartes : au-delà, sa géométrie
-   se casse. Le catalogue produit, lui, en compte toujours dix — c'est ce que
-   compte la section des chiffres, et cette section-ci n'annonce aucun nombre. */
+/* Les dix visages du catalogue. Le carrousel les tient depuis que son pas
+   angulaire est calé sur dix (VISIBLE_COUNT 7) et que les cartes lointaines
+   s'effacent complètement : le repli se fait à l'écart maximal, donc on ne voit
+   plus une carte de gauche réapparaître à droite. */
 const PRESETS: Preset[] = [
   { id: 'marie', name: 'Marie', personalityFr: 'Chaleureuse', personalityEn: 'Warm', descFr: 'Accueillante, le sourire dans la voix. Celle qui met vos clients à l’aise dès la première seconde.', descEn: 'Welcoming, a smile in her voice. She puts your customers at ease from the first second.' },
   { id: 'camille', name: 'Camille', personalityFr: 'Premium', personalityEn: 'Premium', descFr: 'Soignée et raffinée, pour une image haut de gamme au téléphone.', descEn: 'Polished and refined, for an upscale image on the phone.' },
@@ -35,6 +35,10 @@ const PRESETS: Preset[] = [
   { id: 'lucas', name: 'Lucas', personalityFr: 'Professionnel', personalityEn: 'Professional', descFr: 'Posé et direct, rassurant. Le ton d’un cabinet qui inspire confiance.', descEn: 'Calm and direct, reassuring. The tone of a practice that inspires trust.' },
   { id: 'theo', name: 'Théo', personalityFr: 'Énergique', personalityEn: 'Energetic', descFr: 'Motivé et concret, ça s’entend au téléphone. Il aime les appels qui aboutissent.', descEn: 'Driven and concrete, you can hear it on the line. He likes calls that get somewhere.' },
   { id: 'hugo', name: 'Hugo', personalityFr: 'Décontracté', personalityEn: 'Casual', descFr: 'Détendu et direct, comme un collègue au comptoir. Réponses nettes, rendez-vous vite calé.', descEn: 'Relaxed and direct, like a colleague at the desk. Crisp answers, a quickly booked slot.' },
+  { id: 'lea', name: 'Léa', personalityFr: 'Efficace', personalityEn: 'Efficient', descFr: 'Droit au but, sans jamais bousculer. Elle qualifie vite et note l’essentiel.', descEn: 'Straight to the point, never rushing anyone. She qualifies fast and notes what matters.' },
+  { id: 'sofia', name: 'Sofia', personalityFr: 'Posée', personalityEn: 'Composed', descFr: 'Calme et claire, à l’aise avec les appels longs et les demandes détaillées.', descEn: 'Calm and clear, at ease with long calls and detailed requests.' },
+  { id: 'adrien', name: 'Adrien', personalityFr: 'Direct', personalityEn: 'Direct', descFr: 'Franc et efficace, pour les métiers où l’on va à l’essentiel.', descEn: 'Frank and efficient, for trades that get to the point.' },
+  { id: 'julien', name: 'Julien', personalityFr: 'Cordial', personalityEn: 'Cordial', descFr: 'Aimable et méthodique, il vérifie deux fois plutôt qu’une avant de conclure.', descEn: 'Friendly and methodical, he double-checks before wrapping up.' },
 ];
 
 /* URL du clip public (mêmes voix que le dashboard, cache serveur + ETag) et

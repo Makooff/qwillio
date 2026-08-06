@@ -43,34 +43,40 @@ export interface CircularCarouselProps {
   className?: string;
 }
 
-/* Constantes du fichier, telles quelles. VISIBLE_COUNT fixe le pas angulaire
-   (180/VISIBLE_COUNT) et la fenêtre visible : à 5, l'écart maximal atteint 108
-   degrés, une seule carte dépasse le sommet, l'arc reste lisible. C'est le
-   calibrage de la démo d'origine, prévue pour SIX cartes — d'où les six visages
-   côté appelant. Vouloir en faire tenir dix ici déformait tout : les cartes
-   lointaines passaient sous l'ellipse et se chevauchaient. */
-const VISIBLE_COUNT = 5;
+/* VISIBLE_COUNT fixe le pas angulaire (180/VISIBLE_COUNT). À 7, le pas est de
+   25,7 degrés : les dix visages tiennent sur l'arc sans se chevaucher, alors
+   qu'à 5 ils se marchaient dessus (deux cartes tombaient au même x, ±209).
+
+   La fenêtre de repli (`half`) ne suit plus VISIBLE_COUNT mais la MOITIÉ du
+   catalogue. C'est ce qui rend la téléportation invisible : avec l'ancien
+   calcul, une carte sautait de l'écart +3 (bien visible) à l'écart -6, on
+   voyait celle de gauche réapparaître à droite. En repliant à la moitié, le
+   saut se produit entre les deux écarts LES PLUS GRANDS, là où la carte est
+   déjà transparente (voir FADE_OUT). */
+const VISIBLE_COUNT = 7;
 const RADIUS_X = 220;
 const RADIUS_Y = 100;
 
+/* Écart à partir duquel une carte est complètement effacée. Le fondu commence
+   avant, donc rien ne disparaît d'un coup, et le saut se fait à zéro. */
+const FADE_OUT = 3.6;
+
 function getItemPosition(index: number, activeIndex: number, total: number) {
   const offset = index - activeIndex;
-  const half = Math.floor(VISIBLE_COUNT / 2);
+  const half = Math.floor(total / 2);
   let adjustedOffset = offset;
 
   if (offset > half) adjustedOffset = offset - total;
   if (offset < -half) adjustedOffset = offset + total;
-
-  if (Math.abs(adjustedOffset) > half * 2) return null;
 
   const angle = (adjustedOffset / VISIBLE_COUNT) * Math.PI;
   const x = Math.sin(angle) * RADIUS_X;
   const y = -Math.cos(angle) * RADIUS_Y;
 
   const distance = Math.abs(adjustedOffset);
-  const maxDistance = half + 1;
+  const maxDistance = Math.floor(VISIBLE_COUNT / 2) + 1;
   const scale = Math.max(0, 1 - (distance / maxDistance) * 0.3);
-  const opacity = Math.max(0.3, 1 - (distance / maxDistance) * 0.7);
+  const opacity = distance >= FADE_OUT ? 0 : Math.max(0, 1 - (distance / FADE_OUT) ** 1.3);
   const zIndex = VISIBLE_COUNT - distance;
 
   /* Actif 2x (décision utilisateur) : la formule du fichier reste la base,
@@ -173,7 +179,14 @@ export function CircularCarousel({
       <div ref={trackRef} className="relative w-full max-w-xl" style={{ height: 280 * k }}>
         <div
           className="absolute inset-x-0 top-0 h-[280px]"
-          style={{ transform: `scale(${k})`, transformOrigin: 'top center' }}
+          style={{
+            transform: `scale(${k})`,
+            transformOrigin: 'top center',
+            /* Fondu aux deux bords : même effacée, une carte qui reviendrait
+               par le côté ne couperait jamais net sur l'arête de la piste. */
+            maskImage: 'linear-gradient(to right, transparent 0%, black 16%, black 84%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 16%, black 84%, transparent 100%)',
+          }}
         >
         <AnimatePresence mode="popLayout">
           {items.map((item, i) => {

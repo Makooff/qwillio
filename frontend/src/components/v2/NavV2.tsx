@@ -12,6 +12,7 @@ import LangToggle from '../LangToggle';
 import { useLang } from '../../stores/langStore';
 import { EASE_OUT_EXPO } from './motion/reducedMotion';
 import { useGlow } from './motion/GlowCard';
+import GlassSkin, { GLASS_FILTER_ID, GlassFilter, useLiquidGlassSupport } from './ui/liquid-glass';
 
 /* Nav V2 (demande utilisateur, deux états) :
    - AU REPOS (haut de page) : aucune surface blanche sous le logo/menu.
@@ -474,8 +475,17 @@ export default function NavV2() {
     { label: isFr ? 'Société' : 'Company', links: company },
   ];
 
+  /* Le verre liquide n'existe que là où le navigateur accepte un filtre SVG
+     en backdrop. Ailleurs (WebKit), on retombe sur un flou classique et une
+     teinte plus dense, pour que la barre reste non traversable. */
+  const liquid = useLiquidGlassSupport();
+  const restVeil = liquid
+    ? `url("#${GLASS_FILTER_ID}")`
+    : 'blur(30px) saturate(1.5)';
+
   return (
     <>
+      <GlassFilter />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-q2-ink focus:text-white focus:px-4 focus:py-2 focus:rounded-full text-sm"
@@ -503,14 +513,17 @@ export default function NavV2() {
             height: '160%',
             opacity: floating || menuOpen ? 0 : 1,
             transition: 'opacity 320ms cubic-bezier(0.16, 1, 0.3, 1)',
-            backdropFilter: 'blur(30px) saturate(1.5)',
-            WebkitBackdropFilter: 'blur(30px) saturate(1.5)',
+            backdropFilter: restVeil,
+            WebkitBackdropFilter: restVeil,
             willChange: 'backdrop-filter',
+            /* Le masque reste : c'est lui qui évite le bord franc sous
+               l'entête. La COULEUR, elle, ne se dégrade plus (demande
+               utilisateur) : teinte unie, c'est le verre qui travaille. */
             maskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
             WebkitMaskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
-            background: overDark
-              ? 'linear-gradient(to bottom, rgba(8, 9, 10, 0.72), rgba(8, 9, 10, 0.26) 55%, rgba(8, 9, 10, 0))'
-              : 'linear-gradient(to bottom, rgba(253, 252, 252, 0.72), rgba(253, 252, 252, 0.22) 55%, rgba(253, 252, 252, 0))',
+            background: liquid
+              ? (overDark ? 'rgba(8, 9, 10, 0.12)' : 'rgba(253, 252, 252, 0.12)')
+              : (overDark ? 'rgba(8, 9, 10, 0.58)' : 'rgba(253, 252, 252, 0.56)'),
           }}
         />
         <motion.nav
@@ -527,28 +540,26 @@ export default function NavV2() {
              du dashboard : flou large et saturé, voile de 14 à 22 %, filet
              lumineux en haut du verre. */
           style={{
-            backdropFilter: floating ? 'blur(30px) saturate(1.7)' : undefined,
-            WebkitBackdropFilter: floating ? 'blur(30px) saturate(1.7)' : undefined,
-            /* Sans cet indice, le navigateur photographie le fond une fois au
-               montage et ne le refait jamais : la barre reste transparente
-               au-dessus du contenu qui défile. Mesuré, pas supposé. */
-            willChange: 'backdrop-filter',
-            boxShadow: floating
-              ? overDark
-                ? 'inset 0 1px 0 rgba(255, 255, 255, 0.18)'
-                : 'inset 0 1px 0 rgba(255, 255, 255, 0.55), var(--q2-shadow-whisper)'
-              : 'none',
-            transition:
-              'background-color 260ms cubic-bezier(0.16, 1, 0.3, 1), border-color 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1)',
+            transition: 'border-color 260ms cubic-bezier(0.16, 1, 0.3, 1)',
           }}
           className={`relative mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 border ${
             floating
               ? overDark
-                ? 'bg-black/[0.88] border-white/10'
-                : 'bg-white/[0.86] border-white/60'
-              : 'bg-transparent border-transparent'
+                ? 'border-white/10'
+                : 'border-white/40'
+              : 'border-transparent'
           }`}
         >
+          {/* Peau de verre liquide : le fond derrière la bulle est déformé par
+              le filtre SVG, pas seulement flouté, et le biseau vient des
+              inset box-shadow du composant d'origine. Aucun dégradé. */}
+          {floating && (
+            <GlassSkin
+              onDark={overDark}
+              radius={999}
+              style={{ zIndex: -1 }}
+            />
+          )}
           <Link
             to="/"
             className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-md"
