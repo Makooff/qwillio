@@ -11,12 +11,39 @@ import api from './api';
  * numbers to animate.
  */
 
-/** Endpoints the first screens read. Warmed before anything is rendered. */
+/**
+ * Every endpoint a tab reads on arrival, warmed before anything is rendered.
+ *
+ * These are the exact URLs the pages ask for, query string and all, because
+ * that is the cache key. `calls?page=1&limit=6` is the overview's recent list
+ * and `calls?page=1&limit=20` is the Appels tab's first page: warming one and
+ * not the other is why that tab still had a spinner on the first visit.
+ */
 const CLIENT_KEYS = [
+  // Vue d'ensemble
   '/my-dashboard/overview',
-  '/my-dashboard/settings',
   '/my-dashboard/calls?page=1&limit=6',
+  // Appels
+  '/my-dashboard/calls?page=1&limit=20',
+  // Leads
+  '/my-dashboard/leads?page=1&limit=50',
+  // Réceptionniste IA, and Compte, which reads the same settings
+  '/my-dashboard/settings',
   '/my-dashboard/characters',
+  '/my-dashboard/integrations/google-calendar/status',
+];
+
+/**
+ * Warmed the same way, but left out of the background refresh.
+ *
+ * Analytique is two of the heaviest queries in the app and it reports days, not
+ * seconds — putting it on a 25-second timer would cost a great deal to change
+ * nothing. It still opens instantly from what is warmed here, and the page
+ * corrects it on arrival if it has gone stale.
+ */
+const CLIENT_KEYS_WARM_ONLY = [
+  '/my-dashboard/analytics?days=30',
+  '/my-dashboard/analytics?days=60',
 ];
 
 /**
@@ -76,6 +103,7 @@ export async function bootClientApp(): Promise<void> {
   void preloadVoiceClips();
   await Promise.all([
     primeLive(CLIENT_KEYS),
+    primeLive(CLIENT_KEYS_WARM_ONLY, { live: false }),
     preloadRouteChunks(),
   ]);
 }
