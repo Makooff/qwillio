@@ -4,9 +4,55 @@
 
 **Qwillio** — Voice AI B2B platform. AI receptionist + agent. Inbound call handling, lead qualification, appointment booking. French + English.
 
-**Stack**: React 19, TypeScript, Vite, Tailwind CSS, Framer Motion, Recharts, React Router v7, Zustand, Lucide icons.  
-**Backend**: Node.js/Express on Render. Vercel for frontend.  
-**Brand**: Indigo `oklch(56% 0.22 264)` + Violet `oklch(67% 0.26 299)`. Outfit font. Dark product, cream/white marketing.
+**Stack**: React 19, TypeScript, Vite, Tailwind CSS, Framer Motion, GSAP (ScrollTrigger, DrawSVG), Recharts, React Router v7, Zustand.  
+**Icons**: `components/icons.tsx`, a façade over **coolicons**. Import from there, never from `lucide-react` directly: the façade is what lets the whole icon set be swapped in one file.  
+**Backend**: Node.js/Express on Render. Vercel for frontend. Prisma + Neon.  
+**Brand**: Indigo `#7A5FFF` + Violet `#CD6BFB`. Outfit font.
+
+---
+
+## READ THIS FIRST — the site runs on the V2 design system
+
+The marketing site and the client portal were rebuilt as **« Papier & Signal » (V2)**. The `--q-*` tokens further down this file are the **V1 product** palette: they are still used by admin and closer, and by nothing else. **Anything you touch on the site or the client dashboard uses the `q2` tokens.**
+
+- Authority: **`DA/v2-direction.md`**, plus `DA/references/{elevenlabs,linear,calendly}.md` which are where each token's value comes from.
+- Marketing pages: `frontend/src/pages/v2/*`, chrome in `components/v2/` (`PublicShell` → `NavV2` + `FooterV2`).
+- Client portal: `pages/client/*` under `components/layout/ClientLayout` (V1 pages kept on purpose, the owner prefers them). `pages/v2/app/*` exists but is **not routed**.
+- Auth: `pages/v2/auth/*` on `AuthShell`, which mounts the full site nav plus a « Retour » link.
+
+### q2 tokens (`frontend/src/styles/v2.css` + `tailwind.config.js`)
+
+The **seven surface/text tokens are CSS variables written as RGB channels**, so the site can switch to dark from one place while keeping Tailwind opacity modifiers (`border-q2-plate/70`):
+
+| Token | Light | Dark |
+|---|---|---|
+| `q2-canvas` | `#FDFCFC` | `#0E0F11` |
+| `q2-band` | `#F5F3F1` | `#131417` |
+| `q2-plate` | `#EBE8E4` | `#232529` |
+| `q2-ink` | `#1D1D1F` | `#F5F4F2` |
+| `q2-graphite` | `#44403B` | `#C9C6C1` |
+| `q2-body` | `#777169` | `#98948E` |
+| `q2-faint` | `#A59F97` | `#6B6862` |
+
+**Do NOT flip with the theme** (same value in both): the brand mauve (`q2-indigo`, `q2-violet`, `q2-deep`, `q2-lift`) and the drenched register (`q2-void #08090A`, `q2-carbon`, `q2-obsidian`). Drenched sections are dark in *both* themes: that is their job in the narrative.
+
+Two traps the dark theme sets, both already fixed once:
+- **`bg-q2-ink text-white` becomes white on white.** Ink is light in dark mode. Use `text-q2-canvas`, which is correct both ways.
+- **A literal cream (`#fdfcfc`) in a gradient repaints the page light** over the switched canvas. Any veil or section gradient must use `rgb(var(--q2-canvas))`.
+
+Theme state: `stores/themeStore.ts`, three values (`light` / `dark` / `system`, default system). In system mode the `data-theme` attribute is *removed* and the media query decides, so a live OS switch follows. `bootTheme()` runs in `main.tsx` before first render to avoid a white flash.
+
+### Motion, V2
+
+`components/v2/motion/`. Everything scroll-driven reads **one** rule, `sceneProgress.ts`, so the counter and the travelling frame can never disagree:
+- `PinnedScene` — pinned title left, steps right; the current step is `data-active` on its `<li>`, styled by the page via `group-data-[active=true]:`.
+- `StepFrame` + `frameJourney` — the rounded frame that shrinks through its leading corner and grows into the next card. Catmull-Rom written as beziers, same principle as the blob loader. **The frame's `scope` ref belongs to the parent, and React attaches it *after* the child's layout effect**: measure on the next frame or it renders `null` forever.
+- `IntegrationsOrbit` — a repeating dash pattern whose period divides `pathLength=100`, so the current never stops and the loop is invisible.
+
+### Bans that still hold in V2
+No gradient text, no `transition-all`, no identical card grids, no glassmorphism except the two documented exceptions (nav chrome, OS illustration), no em dashes, Outfit only.
+
+---
 
 ## Skill Routing — Auto-Invoke Rules
 
