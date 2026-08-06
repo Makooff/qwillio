@@ -1,12 +1,12 @@
 /**
- * Closed bezier outlines for the launch animation's bubbles.
+ * Closed bezier outlines for the launch animation's shapes.
  *
  * This is the technique the reference Lottie uses, and the reason it looks like
  * liquid where a `border-radius` does not: it moves the outline's own control
  * points. A border-radius can only ever describe four corner ellipses, so every
  * shape it makes is a rounded rectangle in disguise — the silhouette stays
  * symmetrical and the deformation reads as a stretch. Moving vertices lets one
- * side bulge while another flattens, which is what a membrane under tension
+ * side swell while another caves in, which is what a membrane under tension
  * actually does.
  *
  * The paths are generated rather than drawn by hand because every keyframe must
@@ -14,47 +14,54 @@
  * between them.
  */
 
-/** Vertices around the outline. Eight is enough to bulge without rippling. */
-export const BLOB_POINTS = 8;
-
 /**
- * The circle-approximation constant for this many segments: the handle length
- * that makes cubic beziers pass through the vertices as a circle would.
- * Scaled per vertex so a longer radius carries a proportionally longer handle,
- * which keeps the curve smooth where the shape swells.
+ * Vertices around the outline.
+ *
+ * Twenty, because the deformation is local: a hollow about 0.7 rad wide needs
+ * several points across it or it arrives as a corner. Eight was enough when the
+ * whole outline breathed at once; it is not enough for a dent.
  */
-const HANDLE = (4 / 3) * Math.tan(Math.PI / (2 * BLOB_POINTS));
+export const BLOB_POINTS = 28;
 
 /**
  * A closed outline whose radius varies per vertex.
  *
  * @param radii One multiplier per vertex, starting at 3 o'clock and going
- *              clockwise. Values around 1 give a circle; 0.85–1.15 is the range
- *              that still reads as one body of liquid rather than a splat.
+ *              clockwise.
  */
 export function blobPath(cx: number, cy: number, r: number, radii: number[]): string {
   const n = radii.length;
   const point = (i: number) => {
-    const angle = (i % n) * ((2 * Math.PI) / n);
-    const radius = r * radii[i % n];
-    return {
-      x: cx + Math.cos(angle) * radius,
-      y: cy + Math.sin(angle) * radius,
-      // The tangent at a vertex of a circle is perpendicular to its radius;
-      // keeping that direction and only changing the length is what stops a
-      // varying radius from putting kinks in the curve.
-      tx: -Math.sin(angle) * radius * HANDLE,
-      ty: Math.cos(angle) * radius * HANDLE,
-    };
+    const k = ((i % n) + n) % n;
+    const angle = k * ((2 * Math.PI) / n);
+    const radius = r * radii[k];
+    return { x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius };
   };
+
+  /**
+   * Handles taken from each vertex's neighbours rather than from its own radius.
+   *
+   * The tangent of a circle is the obvious choice and it is wrong here: it only
+   * knows the vertex it belongs to, so where a deep hollow meets a swell the two
+   * control points of a segment overshoot past each other and the curve doubles
+   * back — a nick in the outline, exactly where the shape was supposed to look
+   * softest. Pointing each handle along the line between the vertex's neighbours
+   * (a Catmull-Rom spline, written as beziers) makes the curve smooth for any
+   * set of radii, however uneven.
+   */
+  const handleScale = 1 / 6;
 
   let d = '';
   for (let i = 0; i < n; i++) {
+    const before = point(i - 1);
     const from = point(i);
     const to = point(i + 1);
+    const after = point(i + 2);
     if (i === 0) d += `M ${from.x.toFixed(2)} ${from.y.toFixed(2)}`;
-    d += ` C ${(from.x + from.tx).toFixed(2)} ${(from.y + from.ty).toFixed(2)}`
-      + ` ${(to.x - to.tx).toFixed(2)} ${(to.y - to.ty).toFixed(2)}`
+    d += ` C ${(from.x + (to.x - before.x) * handleScale).toFixed(2)}`
+      + ` ${(from.y + (to.y - before.y) * handleScale).toFixed(2)}`
+      + ` ${(to.x - (after.x - from.x) * handleScale).toFixed(2)}`
+      + ` ${(to.y - (after.y - from.y) * handleScale).toFixed(2)}`
       + ` ${to.x.toFixed(2)} ${to.y.toFixed(2)}`;
   }
   return `${d} Z`;
@@ -78,102 +85,114 @@ function rng(seed: number): () => number {
 }
 
 /**
- * One bubble's whole journey, as outlines.
+ * Shortest signed angle between two points on the outline, so a hollow sitting
+ * either side of three o'clock is one hollow and not two.
+ */
+function around(a: number, b: number): number {
+  let d = a - b;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  return d;
+}
+
+/**
+ * One shape's whole life, as outlines.
+ *
+ * It starts big and still where it is put — over the edge of the screen by a
+ * quarter — and deforms in place for a beat. Then, still deforming, it makes its
+ * way to the mark's lobe, shrinking as it goes, and the deformation dies away
+ * with the journey, so the last frame is an exact circle for the real logo to
+ * take over from.
+ *
+ * The deformation is local, which is the whole character of the reference: a few
+ * swells and hollows, each of its own width, drifting round the outline and
+ * turning from swell to hollow at its own pace. Measured off the reference file,
+ * its radius runs between about half and one and a quarter of nominal and its
+ * hollows are around 0.7 rad wide, which is where the numbers below come from.
  *
  * The travel is in the path data, not in a transform. That is the difference
  * between a shape being *carried* across the screen and a shape *making its own
- * way* across it: a translated blob is a sticker sliding, while a blob whose
- * every vertex is redrawn a little further along flows. Nothing here is
- * animated but `d`.
- *
- * The last frame is a circle centred on the lobe, because the mark has to take
- * over without a jump.
+ * way*: a translated blob is a sticker sliding, while a blob whose every vertex
+ * is redrawn a little further along flows. Nothing here is animated but `d`.
  */
-export function blobJourney(params: {
+export function liquidJourney(params: {
   from: { x: number; y: number };
   to: { x: number; y: number };
-  /** Radius at rest. It arrives a little larger and settles. */
-  r: number;
+  /** Radius where it starts, and the lobe radius it has to end on. */
+  r0: number;
+  r1: number;
   seed: number;
   steps?: number;
+  /** Fraction of the sequence spent deforming in place before setting off. */
+  hold?: number;
 }): string[] {
-  const { from, to, r, seed, steps = 7 } = params;
+  const { from, to, r0, r1, seed, steps = 44, hold = 0.28 } = params;
   const random = rng(seed);
-  const frames: string[] = [];
 
+  // Four, alternating out and in: one is a pulse, two is a see-saw, and past
+  // three the poses stop repeating over a journey this long.
+  const swells = Array.from({ length: 4 }, (_, j) => ({
+    /** Where it sits on the outline, and how far round it drifts on the way. */
+    angle: random() * Math.PI * 2,
+    drift: (random() - 0.5) * 5,
+    /**
+     * How wide and how deep, in radians and in fractions of the radius.
+     *
+     * The two are not mirror images. A swell is broad and shallow — pull a wide
+     * arc out too far and the shape stops being one body — while a hollow is
+     * narrow and deep, because that is the only way to get a notch rather than a
+     * flat spot. It is the notches that read as liquid.
+     */
+    width: j % 2 === 0 ? 0.85 + random() * 0.35 : 0.62 + random() * 0.3,
+    depth: j % 2 === 0 ? 0.3 + random() * 0.16 : 0.42 + random() * 0.22,
+    /** How fast it breathes. */
+    speed: 1.1 + random() * 1.7,
+    phase: random() * Math.PI * 2,
+    /**
+     * Out or in, decided once and kept.
+     *
+     * Letting each one swing through zero looked right on paper and washed out
+     * on screen: several crossing at their own rates spend most of the time
+     * cancelling, and what is left is a gentle throb. Alternating the signs
+     * means there is a swell somewhere and a hollow somewhere else at every
+     * moment, which is what the reference does.
+     */
+    sign: j % 2 === 0 ? 1 : -1,
+  }));
+
+  const frames: string[] = [];
   for (let step = 0; step < steps; step++) {
-    const progress = step / (steps - 1);
-    // Ease-out on the path: most of the ground is covered early, so the last
-    // frames are the settling rather than more travel.
-    const eased = 1 - Math.pow(1 - progress, 2.2);
+    const t = step / (steps - 1);
+    // Still, then away: the shape holds its ground and deforms there before the
+    // journey starts at all.
+    const move = t <= hold ? 0 : (t - hold) / (1 - hold);
+    // Smoothstep, so it leaves and arrives without a lurch at either end.
+    const eased = move * move * (3 - 2 * move);
 
     const cx = from.x + (to.x - from.x) * eased;
     const cy = from.y + (to.y - from.y) * eased;
+    const r = r0 + (r1 - r0) * eased;
+    // The deformation goes with the journey: by the time it is on the lobe it is
+    // round, which is what lets the real mark take over without a jump.
+    const amplitude = Math.pow(1 - eased, 0.9);
 
-    // Deformation dies away as it arrives; the final frame is exactly round.
-    const amplitude = 0.26 * Math.pow(1 - progress, 1.6);
-    const radii = Array.from({ length: BLOB_POINTS }, () => 1 + (random() - 0.5) * 2 * amplitude);
+    const radii = Array.from({ length: BLOB_POINTS }, (_, k) => {
+      const angle = (k * 2 * Math.PI) / BLOB_POINTS;
+      let offset = 0;
+      for (const swell of swells) {
+        const centre = swell.angle + swell.drift * t;
+        // Breathes between a tenth of its depth and all of it, never through it.
+        const depth = swell.sign * swell.depth
+          * (0.55 + 0.45 * Math.sin(swell.phase + swell.speed * t * Math.PI * 2));
+        const d = around(angle, centre);
+        offset += depth * Math.exp(-(d * d) / (2 * swell.width * swell.width));
+      }
+      // Swells that happen to line up would otherwise pinch the outline to a
+      // point or blow it out into a balloon.
+      return Math.min(1.5, Math.max(0.32, 1 + amplitude * offset));
+    });
 
-    frames.push(blobPath(cx, cy, r * (1 + 0.18 * (1 - eased)), radii));
+    frames.push(blobPath(cx, cy, r, radii));
   }
   return frames;
-}
-
-/**
- * Move and resize a path without touching its shape.
- *
- * Every number in these paths is a coordinate — they are only M, C and Z — so a
- * uniform scale about a centre plus a translation can be applied number pair by
- * number pair. Doing it here rather than with a `transform` attribute is the
- * whole point: the travel has to live in the path data, or the shape is being
- * carried rather than making its own way.
- */
-export function placePath(d: string, from: { x: number; y: number }, to: { x: number; y: number }, k: number): string {
-  let index = 0;
-  return d.replace(/-?\d+(\.\d+)?/g, match => {
-    const value = Number(match);
-    const axis = index++ % 2 === 0 ? 'x' : 'y';
-    const moved = (value - from[axis]) * k + to[axis];
-    return moved.toFixed(2);
-  });
-}
-
-/**
- * One bubble's journey, drawn with the reference outlines.
- *
- * Each frame is the Lottie's own shape, placed a little further along the way
- * in — so what crosses the screen is the artwork, deforming as it goes, and the
- * travel is in the coordinates rather than in a transform. The last frame is a
- * circle on the lobe, because the mark has to take over without a jump.
- */
-export function lottieJourney(params: {
-  frames: string[];
-  circle: string;
-  /** Centre and half-size of the source shapes, from the extraction. */
-  source: { x: number; y: number; half: number };
-  from: { x: number; y: number };
-  to: { x: number; y: number };
-  /** Radius of the lobe the bubble comes to rest on. */
-  r: number;
-  /** Where in the loop to start, so two bubbles are never in the same pose. */
-  offset?: number;
-}): string[] {
-  const { frames, circle, source, from, to, r, offset = 0 } = params;
-  const ordered = [...frames.slice(offset), ...frames.slice(0, offset)];
-  const steps = ordered.length;
-
-  const journey = ordered.map((frame, step) => {
-    const progress = step / steps;
-    // Ease-out: most of the ground is covered early, so the end of the sequence
-    // is the shape settling rather than still travelling.
-    const eased = 1 - Math.pow(1 - progress, 2.2);
-    const scale = (r / source.half) * (1.45 - 0.45 * eased);
-    return placePath(frame, source, {
-      x: from.x + (to.x - from.x) * eased,
-      y: from.y + (to.y - from.y) * eased,
-    }, scale);
-  });
-
-  journey.push(placePath(circle, source, to, r / source.half));
-  return journey;
 }
