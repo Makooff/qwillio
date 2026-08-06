@@ -528,6 +528,10 @@ export default function NavV2() {
           style={{
             backdropFilter: floating ? 'blur(30px) saturate(1.8)' : undefined,
             WebkitBackdropFilter: floating ? 'blur(30px) saturate(1.8)' : undefined,
+            /* Sans cet indice, le navigateur photographie le fond une fois au
+               montage et ne le refait jamais : la barre reste transparente
+               au-dessus du contenu qui défile. Mesuré, pas supposé. */
+            willChange: 'backdrop-filter',
             boxShadow: floating
               ? overDark
                 ? 'inset 0 1px 0 rgba(255, 255, 255, 0.18)'

@@ -469,6 +469,12 @@ function MobileBottomNav({
             background: 'linear-gradient(180deg, oklch(30% 0.01 265 / 0.20) 0%, oklch(16% 0.01 265 / 0.28) 100%)',
             backdropFilter: 'blur(30px) saturate(1.8)',
             WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
+            /* Indispensable : sans cet indice, le navigateur photographie le
+               fond au montage et ne le refait jamais, parce que le contenu
+               défile dans un scroller imbriqué (<main data-scroll-root>) alors
+               que la pilule est fixed au-dessus. Résultat sans lui : on lit le
+               texte à travers, net. Mesuré en Chromium, reproduit sur iPhone. */
+            willChange: 'backdrop-filter',
             border: '1px solid rgba(255,255,255,0.12)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,0,0,0.25), 0 12px 32px rgba(0,0,0,0.35)',
           }}
