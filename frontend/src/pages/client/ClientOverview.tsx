@@ -297,36 +297,6 @@ export default function ClientOverview() {
         <KpiSplit items={kpis} />
       </section>
 
-      {/* Les actions rapides passent AVANT le bloc Abonnement (retour
-          utilisateur): on vient sur l'accueil pour FAIRE quelque chose, pas
-          pour relire son forfait. Ce qui se clique est donc en haut, ce qui
-          s'informe en dessous. */}
-      {/* Quick links — frameless tiles split by vertical lines */}
-      <section aria-label="Actions rapides" className="pt-6 border-t border-white/[0.06]">
-        <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/40 mb-3">Actions rapides</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06]">
-          {[
-            { icon: PhoneForwarded, label: 'Configurer le renvoi', desc: 'iPhone et Android, guide pas à pas', to: '/dashboard/setup/call-forwarding' },
-            { icon: Bot, label: "Personnaliser l'IA", desc: 'Voix, scripts, transferts', to: '/dashboard/receptionist' },
-            { icon: Settings, label: 'Paramètres du compte', desc: 'Profil, sécurité, notifications', to: '/dashboard/account' },
-          ].map(({ icon: Icon, label, desc, to }) => (
-            <Link
-              key={to}
-              to={to}
-              className="group py-4 sm:px-6 first:sm:pl-0 last:sm:pr-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg"
-            >
-              <div className="flex items-center gap-3 mb-2.5">
-                <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
-                  <Icon size={14} className="text-white/70" />
-                </div>
-                <ChevronRight size={13} className="ml-auto text-white/20 group-hover:text-white/60 transition-colors" />
-              </div>
-              <p className="text-[13px] font-semibold text-white/90">{label}</p>
-              <p className="text-[11.5px] mt-0.5 text-white/30">{desc}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
 
       {/* Main grid — content + right rail, separated by a vertical hairline */}
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] xl:divide-x divide-white/[0.06]">
@@ -452,6 +422,36 @@ export default function ClientOverview() {
               { label: 'Total appels', value: '' },
             ]}
           />
+
+              {/* Entre « Leads qualifiés » et « Abonnement » (demande
+                  utilisateur): ce qui se clique s'intercale avant ce qui
+                  s'informe, sans quitter la colonne de droite. Tuiles empilées et
+                  non sur trois colonnes: le rail fait 320 px. */}
+              <section aria-label="Actions rapides" className="py-5">
+            <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/40 mb-3">Actions rapides</h2>
+            <div className="grid grid-cols-1 divide-y divide-white/[0.06]">
+              {[
+                { icon: PhoneForwarded, label: 'Configurer le renvoi', desc: 'iPhone et Android, guide pas à pas', to: '/dashboard/setup/call-forwarding' },
+                { icon: Bot, label: "Personnaliser l'IA", desc: 'Voix, scripts, transferts', to: '/dashboard/receptionist' },
+                { icon: Settings, label: 'Paramètres du compte', desc: 'Profil, sécurité, notifications', to: '/dashboard/account' },
+              ].map(({ icon: Icon, label, desc, to }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="group py-4 sm:px-6 first:sm:pl-0 last:sm:pr-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg"
+                >
+                  <div className="flex items-center gap-3 mb-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
+                      <Icon size={14} className="text-white/70" />
+                    </div>
+                    <ChevronRight size={13} className="ml-auto text-white/20 group-hover:text-white/60 transition-colors" />
+                  </div>
+                  <p className="text-[13px] font-semibold text-white/90">{label}</p>
+                  <p className="text-[11.5px] mt-0.5 text-white/30">{desc}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
 
           <DetailCard
             title="Abonnement"
