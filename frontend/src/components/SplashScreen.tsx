@@ -10,8 +10,7 @@ import { liquidJourney } from './blobPath';
  * are — swells and hollows drifting round their outlines — and then, still
  * deforming, make their way in to the middle, shrinking as they go. The
  * deformation dies away with the journey, so what they come to rest as *is* the
- * mark: two lobes, the right size, in the right place, with the wordmark under
- * them.
+ * mark: two lobes, the right size, dead centre. Nothing else on the screen.
  *
  * There is no handover. The logo used to fade in over the top at the end, and
  * however short that crossfade was, it was two logos dissolving into each other
@@ -29,7 +28,6 @@ import { liquidJourney } from './blobPath';
  * on a screen that is already populated instead of one that starts fetching.
  */
 
-const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 const EASE_DRAWER = [0.32, 0.72, 0, 1] as const;
 
 /** The mark's own size on screen, and the geometry inside its 512 box. */
@@ -45,17 +43,17 @@ const LOBE_DX = px(ORB.rightX) - LOGO / 2;
 /** The overlap of the two lobes, as the mark paints it. */
 const LOBE_OVERLAP = '#7349FE';
 
-/** The wordmark's gap under the mark, and its line box. */
-const WORDMARK_GAP = 24;
-const WORDMARK_LINE = 34;
-
 /**
- * The mark does not sit at the middle of the screen: it is the top of a column
- * that also carries the wordmark, and the column is what is centred. This is
- * that offset — half of everything below the mark — and it is what the shapes
- * have to aim at instead of the centre.
+ * The wordmark's size.
+ *
+ * The header sets the name at 20px beside a 28px mark, and that ratio does not
+ * carry over: the mark here is 168, which would put the word at 120px and make
+ * it wider than a phone. The typography is the header's exactly — Outfit,
+ * semibold, tight tracking — and the size is the one that makes the word about
+ * as wide as the mark it sits under, since here they are stacked rather than
+ * side by side.
  */
-const WORDMARK_LIFT = (WORDMARK_GAP + WORDMARK_LINE) / 2;
+const WORDMARK_SIZE = 34;
 
 /**
  * How big the shapes are before they set off, against the shorter side of the
@@ -107,7 +105,8 @@ export default function SplashScreen({
   const view = useViewport();
 
   const mark = useMemo(
-    () => ({ x: view.w / 2, y: view.h / 2 - WORDMARK_LIFT }),
+    // Dead centre: the mark is the only thing on the screen now.
+    () => ({ x: view.w / 2, y: view.h / 2 }),
     [view.w, view.h],
   );
 
@@ -260,21 +259,29 @@ export default function SplashScreen({
             </g>
           </svg>
 
-          {/* The wordmark, set as it is beside the logo everywhere else on the
-              site: Outfit, semibold, tight tracking. Placed under where the mark
-              lands rather than laid out with it, because the mark is in the SVG
-              above and has no box here to sit below. */}
+          {/*
+            The wordmark, exactly as the site sets it beside the logo: Outfit,
+            semibold, tight tracking, at the same fraction of the mark's box that
+            the header uses. Only the colour differs, and it has to — the header
+            sets #1d1d1f for a white page, which on this one would be a word you
+            cannot see — so it takes the mark's own white.
+
+            It sits halfway between the bottom of the mark and the bottom of the
+            screen, and it arrives only once the mark is finished, so nothing
+            competes with the shapes while they are still coming in.
+          */}
           <motion.p
-            className="absolute w-full text-center text-[26px] font-semibold tracking-tight"
+            className="absolute w-full text-center font-semibold tracking-tight"
             style={{
-              top: mark.y + LOGO / 2 + WORDMARK_GAP,
-              lineHeight: `${WORDMARK_LINE}px`,
-              color: '#F5F5F7',
-              willChange: 'transform, opacity',
+              top: (mark.y + LOBE_R + view.h) / 2,
+              fontSize: WORDMARK_SIZE,
+              color: '#FDFDFF',
+              transform: 'translateY(-50%)',
+              willChange: 'opacity',
             }}
-            initial={{ opacity: 0, y: reduced ? 0 : 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: formed * 0.82, ease: EASE_OUT_EXPO }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: formed, ease: 'linear' }}
           >
             Qwillio
           </motion.p>

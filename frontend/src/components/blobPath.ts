@@ -129,6 +129,21 @@ export function liquidJourney(params: {
   const { from, to, r0, r1, seed, steps = 44, hold = 0.28 } = params;
   const random = rng(seed);
 
+  /**
+   * Where the shape starts, and where it turns to.
+   *
+   * The reference is not a circle with dents in it. Its silhouette is a rounded
+   * square pulled about — flat-ish sides, corners that reach out — and that is
+   * most of why it reads as a body of liquid rather than a ball. A superellipse
+   * gives exactly that, and it has the property this animation needs: the
+   * exponent is a dial. At 3.6 it is the reference's squarish body, at 2 it is a
+   * circle, so easing it down over the journey lands on the mark's lobe without
+   * a separate trick to round the shape off.
+   */
+  const SQUARENESS = 3.6;
+  const spin = random() * Math.PI * 2;
+  const spinDrift = (random() - 0.5) * 1.4;
+
   // Four, alternating out and in: one is a pulse, two is a see-saw, and past
   // three the poses stop repeating over a journey this long.
   const swells = Array.from({ length: 4 }, (_, j) => ({
@@ -183,8 +198,22 @@ export function liquidJourney(params: {
     // round, which is what lets the real mark take over without a jump.
     const amplitude = Math.pow(1 - eased, 0.9);
 
+    // Square to begin with, round on arrival, and the same dial does both.
+    const exponent = 2 + (SQUARENESS - 2) * amplitude;
+    // A superellipse reaches furthest at its corners; dividing by that keeps the
+    // shape the size it was asked for rather than growing it.
+    const corner = Math.pow(2, 0.5 - 1 / exponent);
+    const turn = spin + spinDrift * t;
+
     const radii = Array.from({ length: BLOB_POINTS }, (_, k) => {
       const angle = (k * 2 * Math.PI) / BLOB_POINTS;
+
+      const a = angle + turn;
+      const body = Math.pow(
+        Math.pow(Math.abs(Math.cos(a)), exponent) + Math.pow(Math.abs(Math.sin(a)), exponent),
+        -1 / exponent,
+      ) / corner;
+
       let offset = 0;
       for (const swell of swells) {
         const centre = swell.angle + swell.drift * t;
@@ -196,7 +225,7 @@ export function liquidJourney(params: {
       }
       // Swells that happen to line up would otherwise pinch the outline to a
       // point or blow it out into a balloon.
-      return Math.min(1.5, Math.max(0.32, 1 + amplitude * offset));
+      return Math.min(1.5, Math.max(0.32, body * (1 + amplitude * offset)));
     });
 
     frames.push(blobPath(cx, cy, r, radii));
