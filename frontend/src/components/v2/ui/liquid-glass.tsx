@@ -61,8 +61,13 @@ export function useLiquidGlassSupport() {
 
 /* Les deux piles d'ombres du composant d'origine : elles dessinent l'épaisseur
    du verre, ses arêtes éclairées et son ombre portée. */
+/* Le composant d'origine pousse ses arêtes noires à 0,9 et lave l'intérieur
+   d'un voile noir de 12 % : sur fond crème, la bulle vire au gris et son
+   contour se lit comme un trait (retour utilisateur). Les mêmes arêtes sont
+   conservées, à peu près au tiers, et le voile intérieur tombe à 4 % pour que
+   ce soit le flou qui donne la matière, pas la couleur. */
 const BEVEL_LIGHT =
-  '0 0 6px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.08), inset 3px 3px 0.5px -3px rgba(0,0,0,0.9), inset -3px -3px 0.5px -3px rgba(0,0,0,0.85), inset 1px 1px 1px -0.5px rgba(0,0,0,0.6), inset -1px -1px 1px -0.5px rgba(0,0,0,0.6), inset 0 0 6px 6px rgba(0,0,0,0.12), inset 0 0 2px 2px rgba(0,0,0,0.06), 0 0 12px rgba(255,255,255,0.15)';
+  '0 1px 4px rgba(0,0,0,0.05), inset 3px 3px 0.5px -3px rgba(0,0,0,0.34), inset -3px -3px 0.5px -3px rgba(0,0,0,0.30), inset 1px 1px 1px -0.5px rgba(0,0,0,0.22), inset -1px -1px 1px -0.5px rgba(0,0,0,0.22), inset 0 0 6px 6px rgba(0,0,0,0.04), inset 0 0 2px 2px rgba(0,0,0,0.02), 0 0 12px rgba(255,255,255,0.15)';
 
 /* Variante sombre : le composant d'origine pousse le blanc à 0,85 sur l'arête
    basse et ajoute une lueur blanche de 6px. Sur nos sections drenched, ça
