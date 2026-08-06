@@ -131,6 +131,21 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
         style={{
           transformOrigin: 'center top',
           willChange: 'transform',
+          /* Le bas de la fenêtre s'EFFACE, il n'est plus recouvert.
+             Un voile peint en couleur de page était un aplat, alors que la
+             section derrière est un dégradé: le raccord se voyait comme une
+             bande. En masquant l'image, c'est le dégradé de la page qui passe
+             au travers, donc il n'y a plus rien à raccorder — et ça reste vrai
+             dans les deux thèmes, sans aucune couleur écrite ici.
+
+             Cotes mesurées dans le PNG: « Déconnexion » à 91 %, arête basse de
+             la fenêtre à 93,2 %. Le fondu démarre un centimètre plus haut
+             (mesure demandée, laissée en `cm` pour rester lisible) et il est
+             fini à 93,5 %, si bien que l'arête et son ombre disparaissent. */
+          WebkitMaskImage:
+            'linear-gradient(to bottom, #000 0%, #000 calc(91% - 1cm), rgba(0,0,0,0) 93.5%)',
+          maskImage:
+            'linear-gradient(to bottom, #000 0%, #000 calc(91% - 1cm), rgba(0,0,0,0) 93.5%)',
         }}
       >
         <img
@@ -177,27 +192,6 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
             qwillio.com/dashboard
           </text>
         </svg>
-        {/* Le bas de la fenêtre ne se dissout pas en transparence (on voyait
-            encore son arête sur ce qui passait derrière) : il est RECOUVERT
-            par la couleur de la page. Cotes de l'image : Déconnexion à 91 %,
-            bord bas de la fenêtre à 93,2 %.
-            Le voile ne fait plus que 9 % de haut, donc il DÉMARRE à
-            Déconnexion (retour utilisateur : il montait jusqu'au graphique et
-            mangeait la capture). Il devient opaque à 24 % de sa course, soit
-            juste avant l'arête basse, si bien que l'arête et son ombre
-            restent couvertes par un aplat de canvas. */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 pointer-events-none"
-          style={{
-            /* 9 % de la hauteur du cadre, plus un centimètre demandé en plus:
-               exprimé en `cm` et non converti en pixels, pour que ce soit la
-               mesure de l'utilisateur qui reste lisible dans le code. */
-            height: 'calc(9% + 1cm)',
-            background:
-              'linear-gradient(to bottom, rgb(var(--q2-canvas) / 0) 0%, rgb(var(--q2-canvas) / 0.72) 14%, rgb(var(--q2-canvas)) 24%, rgb(var(--q2-canvas)) 100%)',
-          }}
-        />
       </div>
     </div>
   );
