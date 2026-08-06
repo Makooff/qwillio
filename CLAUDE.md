@@ -225,3 +225,35 @@ No Co-Authored-By attribution (disabled globally).
 - Production: https://qwillio.com
 - API: https://qwillio.onrender.com/api
 - Vercel project: qwillio.v2
+
+---
+
+## Chantiers ouverts (dernière mise à jour : 2026-08-06)
+
+À reprendre en priorité. Chaque point porte son diagnostic pour ne pas le refaire.
+
+### 1. Micro et audio (iOS) — le plus gênant
+- **L'autorisation micro ne persiste pas.** `VapiLiveCall.tsx` demande le micro puis coupe aussitôt les pistes (`getTracks().forEach(t => t.stop())`). Le commentaire affirme que l'autorisation survit à la page : vrai sur Chrome, **faux sur iOS Safari**, qui la relâche avec la piste. D'où une invite à chaque fois, et l'erreur « Micro indisponible » quand la sonde et le SDK se disputent le périphérique. Correctif : garder le flux ouvert pour la session, ou supprimer la sonde et laisser le SDK demander.
+- **Le diagramme ne réagit pas à l'audio.** `useVoicePreview` a deux chemins : `playDecoded` (Web Audio, avec analyseur) et `playElement` (un `<audio>` nu, **sans** analyseur), ce dernier servant de repli quand Web Audio échoue. Instrumenter le repli reviendrait à faire repasser un son qui marche par le sous-système qui vient de tomber. La vraie cause est l'échec du chemin Web Audio ; il faut la sortie console d'un aperçu depuis un iPhone.
+- Même racine probable pour les aperçus de voix qui « ne fonctionnent pas » sur Réceptionniste et Home.
+
+### 2. Déplacer des champs vers Paramètres — trois étapes INDISSOCIABLES
+Langue, nom et type d'entreprise, et la section Coordonnées doivent quitter Réceptionniste pour Paramètres.
+Le PUT backend est **partiel** (`if (body.x !== undefined)`), donc Paramètres peut n'envoyer que ses champs. Mais :
+1. poser d'abord les champs dans Paramètres (sinon ils deviennent inéditables) ;
+2. retirer les clés correspondantes du payload de Réceptionniste **en même temps** que ses inputs, sinon son autosave réécrit par-dessus avec sa copie périmée ;
+3. ne jamais faire 2 sans 1 : le symptôme n'est pas visuel, c'est une perte de données silencieuse.
+
+### 3. Facturation : des valeurs de repli affichées comme réelles
+`ClientBilling` alimente `overview` avec `api.get('/my-dashboard/billing')`, mais cette route renvoie **un tableau de paiements**, pas un aperçu. Donc `overview.plan`, `overview.minutesUsed`, `overview.isTrial` sont `undefined` de longue date : le plan et la jauge de minutes affichés ne reflètent pas le client. La page tient grâce à ses valeurs par défaut.
+
+### 4. Personnalisation, base de connaissances et FAQ
+Aujourd'hui une zone de texte libre et des listes à plat : tout le travail retombe sur le client. Attendu : champs nommés, sous-catégories, et présets par niche. Les présets **existent déjà côté backend** sous une autre forme (prompts spécialisés par métier, scripts par verticale) : s'y brancher plutôt que créer une seconde liste de niches qui divergera.
+
+### 5. Divers
+- Renommage du nom de l'agent en ligne sur le carrousel (icône crayon à côté du nom).
+- Géométrie de l'arc du carrousel en 390 px : le compteur ne domine plus, mais l'anneau entier n'a pas été vu à cette largeur.
+- Le flou de la nav sur iOS est corrigé mais **ne peut être validé que sur un vrai iPhone**.
+- Vidéo de fond du hero (`/hero-loop.mp4`) : absente, le hero s'en passe proprement.
+- Région Render : Oregon. Soit la basculer en UE, soit retirer la mention « Hébergement UE » du site.
+- CRM et pipeline : backend réel et cloisonné par client, mais **aucun lien dans le menu** et **rien ne les remplit** (aucun appel ni lead ne crée de contact). Les redessiner ne sert à rien avant de les relier.
