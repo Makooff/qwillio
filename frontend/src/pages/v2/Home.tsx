@@ -89,6 +89,17 @@ function HeroVideoBackdrop() {
   );
 }
 
+/* Masques de la vignette du hero.
+   Cotes mesurées dans le PNG: « Déconnexion » à 91 %, arête basse de la
+   fenêtre à 93,2 %. Le fondu vertical démarre un centimètre plus haut (mesure
+   demandée, laissée en `cm` pour rester lisible) et se termine à 93,5 %, si
+   bien que l'arête et son ombre disparaissent. Le fondu horizontal est bien
+   plus court: assez pour décoller les flancs du bord, trop peu pour rogner le
+   contenu du dashboard. */
+const MASK_V = 'linear-gradient(to bottom, #000 0%, #000 calc(91% - 1cm), rgba(0,0,0,0) 93.5%)';
+const MASK_H =
+  'linear-gradient(to right, rgba(0,0,0,0) 0%, #000 5%, #000 95%, rgba(0,0,0,0) 100%)';
+
 function HeroDashboardShot({ isFr }: { isFr: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -142,10 +153,16 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
              la fenêtre à 93,2 %. Le fondu démarre un centimètre plus haut
              (mesure demandée, laissée en `cm` pour rester lisible) et il est
              fini à 93,5 %, si bien que l'arête et son ombre disparaissent. */
-          WebkitMaskImage:
-            'linear-gradient(to bottom, #000 0%, #000 calc(91% - 1cm), rgba(0,0,0,0) 93.5%)',
-          maskImage:
-            'linear-gradient(to bottom, #000 0%, #000 calc(91% - 1cm), rgba(0,0,0,0) 93.5%)',
+          /* VIGNETTE: le fondu ne descend plus seulement, il fait le tour.
+             Deux masques composés en `intersect` — le vertical efface le bas,
+             l'horizontal adoucit les deux flancs — si bien que la fenêtre est
+             posée dans la page au lieu d'y être découpée. Le haut reste net:
+             c'est là que se lisent la barre d'adresse et les pastilles, les
+             effacer donnerait un mockup abîmé, pas une vignette. */
+          WebkitMaskImage: `${MASK_V}, ${MASK_H}`,
+          maskImage: `${MASK_V}, ${MASK_H}`,
+          WebkitMaskComposite: 'source-in',
+          maskComposite: 'intersect',
         }}
       >
         <img
@@ -264,7 +281,10 @@ export default function Home() {
       body: isFr
         ? 'En pleine phrase, elle se tait. Une toux ne la déstabilise pas.'
         : 'Mid-sentence, she goes quiet. A cough will not throw her off.',
-      tall: true,
+      /* Marge resserrée (retour utilisateur: « il y a beaucoup de marge dans
+         celle noire »). Le noir avale déjà l'espace, il n'a pas besoin d'en
+         réserver autant que les autres pour respirer. */
+      pad: 'p-6 md:p-7',
       bg: '#0F1011',
       fg: 'white',
       accent: '#B9A8FF',
@@ -275,6 +295,7 @@ export default function Home() {
       body: isFr
         ? 'Elle glisse des « mhm » pendant que vous parlez, jamais un « oui » qui vaudrait engagement.'
         : 'She slips in a “mm-hmm” while you talk, never a “yes” that would commit you.',
+      pad: 'p-6 md:p-8',
       bg: '#F5F3F1',
       fg: '#1D1D1F',
       accent: '#7A5FFF',
@@ -285,6 +306,7 @@ export default function Home() {
       body: isFr
         ? 'Après quelques secondes sans réponse, elle relance « vous êtes toujours là ? ».'
         : 'After a few seconds of nothing, she asks “are you still there?”.',
+      pad: 'p-6 md:p-8',
       bg: '#F5F3F1',
       fg: '#1D1D1F',
       accent: '#CD6BFB',
@@ -295,7 +317,10 @@ export default function Home() {
       body: isFr
         ? 'Phrases courtes, zéro discours commercial, un humain proposé plus tôt.'
         : 'Short sentences, no sales talk, a human offered sooner.',
-      tall: true,
+      /* En bas à droite: marge généreuse, volontairement DIFFÉRENTE de celle
+         du noir. C'est l'asymétrie demandée — les quatre blocs ne respirent
+         pas pareil, c'est ce qui empêche la grille de ressembler à un tableau. */
+      pad: 'p-8 md:p-11',
       bg: '#7A5FFF',
       fg: 'white',
       accent: 'rgba(255,255,255,0.62)',
@@ -565,14 +590,19 @@ export default function Home() {
 
           <ul className="grid sm:grid-cols-2 gap-4 sm:gap-5" role="list">
             {naturally.map((feat, i) => (
-              <RevealV2 key={feat.title} index={i} className={feat.tall ? 'sm:row-span-2' : ''}>
+              <RevealV2 key={feat.title} index={i}>
                 <li className="h-full list-none">
+                  {/* Deux colonnes, deux rangées, aucun bloc à cheval: à
+                      gauche le noir puis un blanc, à droite un blanc puis le
+                      violet (demande utilisateur). Les hauteurs doubles
+                      d'avant poussaient les deux blancs côte à côte dans la
+                      même colonne. */}
                   <article
-                    className="rounded-3xl p-6 md:p-8 h-full flex flex-col"
+                    className={`rounded-3xl h-full flex flex-col ${feat.pad}`}
                     style={{
                       background: feat.bg,
                       color: feat.fg,
-                      minHeight: feat.tall ? 280 : 220,
+                      minHeight: 240,
                     }}
                   >
                     <span

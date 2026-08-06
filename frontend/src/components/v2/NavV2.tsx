@@ -10,6 +10,7 @@ import type { LucideIcon } from '../icons';
 import QwillioLogo from '../QwillioLogo';
 import LangToggle from '../LangToggle';
 import ThemeToggle from './ThemeToggle';
+import { useTheme } from '../../stores/themeStore';
 import { useLang } from '../../stores/langStore';
 import { EASE_OUT_EXPO } from './motion/reducedMotion';
 import { useGlow } from './motion/GlowCard';
@@ -247,6 +248,9 @@ function NavPanel({ label, links, aside, open, hovered, onDark, onOpen, onClose,
 export default function NavV2() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
+  /* Le thème est une dépendance de l'écouteur ci-dessous: sans lui, basculer
+     clair/sombre ne repeindrait la barre qu'au premier scroll suivant. */
+  const { theme } = useTheme();
   const [detached, setDetached] = useState(false);
   const [overDark, setOverDark] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -276,18 +280,30 @@ export default function NavV2() {
          la fenêtre du hero porte une capture de dashboard sombre et laissait
          la barre en version claire, texte foncé sur fond noir. Toute surface
          qui veut ce basculement se marque donc `data-nav-dark`. */
-      const dark = Array.from(
-        document.querySelectorAll('[data-register="drenched"],[data-nav-dark]'),
-      ).some((el) => {
-        const r = el.getBoundingClientRect();
-        return r.top < BAND && r.bottom > 0;
-      });
+      /* En thème sombre, TOUTE la page est sombre: la barre doit être en
+         version sombre partout, pas seulement au-dessus d'une section
+         drenched. Sans ça elle restait en verre clair sur un fond noir, d'où
+         la plaque grise. */
+      const themeDark =
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        (!document.documentElement.hasAttribute('data-theme') &&
+          typeof matchMedia !== 'undefined' &&
+          matchMedia('(prefers-color-scheme: dark)').matches);
+
+      const dark =
+        themeDark ||
+        Array.from(
+          document.querySelectorAll('[data-register="drenched"],[data-nav-dark]'),
+        ).some((el) => {
+          const r = el.getBoundingClientRect();
+          return r.top < BAND && r.bottom > 0;
+        });
       setOverDark(dark);
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [theme]);
 
   /* Fermeture des panneaux au clic extérieur */
   useEffect(() => {
@@ -599,14 +615,18 @@ export default function NavV2() {
               /* Teintes abaissées (retour utilisateur : la bulle était grise et
                  pas assez transparente). Le verre garde sa matière par le flou,
                  la couleur ne fait plus que l'adoucir. */
+              /* Sur fond sombre la teinte partait du GRIS (24,26,30 à 48 %),
+                 et la barre se lisait comme une plaque grise posée sur du noir
+                 (retour utilisateur). Elle part maintenant du noir de la
+                 marque et reste basse: c'est le flou qui donne la matière. */
               tint={
                 overDark
-                  ? 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(8,9,10,0.14) 100%)'
+                  ? 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(8,9,10,0.10) 100%)'
                   : 'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 100%)'
               }
               tintFallback={
                 overDark
-                  ? 'linear-gradient(180deg, rgba(24,26,30,0.48) 0%, rgba(8,9,10,0.58) 100%)'
+                  ? 'linear-gradient(180deg, rgba(8,9,10,0.42) 0%, rgba(8,9,10,0.52) 100%)'
                   : 'linear-gradient(180deg, rgba(255,255,255,0.52) 0%, rgb(var(--q2-canvas) / 0.40) 100%)'
               }
               style={{ zIndex: -1 }}

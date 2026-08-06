@@ -50,7 +50,25 @@ export function GlassFilter() {
 export function useLiquidGlassSupport() {
   const [supported, setSupported] = useState(false);
   useEffect(() => {
+    /* `CSS.supports` ne suffit pas: WebKit ANALYSE `backdrop-filter: url(#…)`
+       et répond « oui », puis n'applique rien. Résultat sur iPhone: la barre
+       ne floutait pas du tout et on lisait le titre au travers, net. Le repli
+       n'était jamais choisi puisque le navigateur s'était déclaré capable.
+
+       WebKit est donc écarté explicitement. Sur Safari et sur tous les
+       navigateurs iOS (qui utilisent tous WebKit, Chrome iOS compris), c'est
+       le flou classique qui s'applique — moins spectaculaire, mais réel. */
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isWebKit =
+      /iPad|iPhone|iPod/.test(ua) ||
+      (/Safari/.test(ua) && !/Chrome|Chromium|Android/.test(ua)) ||
+      // iPadOS 13+ se présente comme un Mac, seul le tactile le trahit.
+      (typeof navigator !== 'undefined' &&
+        navigator.platform === 'MacIntel' &&
+        (navigator as Navigator & { maxTouchPoints?: number }).maxTouchPoints > 1);
+
     const ok =
+      !isWebKit &&
       typeof CSS !== 'undefined' &&
       typeof CSS.supports === 'function' &&
       CSS.supports('backdrop-filter', `url("#${GLASS_FILTER_ID}")`);
