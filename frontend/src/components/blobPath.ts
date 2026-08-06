@@ -61,25 +61,119 @@ export function blobPath(cx: number, cy: number, r: number, radii: number[]): st
 }
 
 /**
- * A sequence of outlines for one bubble, from arrival to rest.
+ * A small deterministic generator.
  *
- * The amplitude decays across the sequence and the last frame is a perfect
- * circle, because the shape has to hand over to the real logo without a jump.
- * `seed` offsets the phase so the two bubbles never deform in unison — twins
- * are the fastest way to make something look computed.
+ * The deformation has to look random — a sine wave, however layered, reads as a
+ * pulse once you have watched it twice — but it must be the same on every
+ * launch and in every test, so a seeded generator rather than Math.random.
  */
-export function blobKeyframes(cx: number, cy: number, r: number, seed: number): string[] {
-  const amplitudes = [0.17, 0.13, 0.09, 0.055, 0.025, 0];
+function rng(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-  return amplitudes.map((amplitude, step) => {
-    const radii = Array.from({ length: BLOB_POINTS }, (_, i) => {
-      // Two waves of different frequency, drifting apart as the steps advance:
-      // one wave alone gives a shape that visibly rotates rather than settles.
-      const phase = seed + step * 1.7;
-      const slow = Math.sin((i / BLOB_POINTS) * Math.PI * 2 + phase);
-      const fast = Math.sin((i / BLOB_POINTS) * Math.PI * 4 + phase * 1.9);
-      return 1 + amplitude * (slow * 0.72 + fast * 0.28);
-    });
-    return blobPath(cx, cy, r, radii);
+/**
+ * One bubble's whole journey, as outlines.
+ *
+ * The travel is in the path data, not in a transform. That is the difference
+ * between a shape being *carried* across the screen and a shape *making its own
+ * way* across it: a translated blob is a sticker sliding, while a blob whose
+ * every vertex is redrawn a little further along flows. Nothing here is
+ * animated but `d`.
+ *
+ * The last frame is a circle centred on the lobe, because the mark has to take
+ * over without a jump.
+ */
+export function blobJourney(params: {
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  /** Radius at rest. It arrives a little larger and settles. */
+  r: number;
+  seed: number;
+  steps?: number;
+}): string[] {
+  const { from, to, r, seed, steps = 7 } = params;
+  const random = rng(seed);
+  const frames: string[] = [];
+
+  for (let step = 0; step < steps; step++) {
+    const progress = step / (steps - 1);
+    // Ease-out on the path: most of the ground is covered early, so the last
+    // frames are the settling rather than more travel.
+    const eased = 1 - Math.pow(1 - progress, 2.2);
+
+    const cx = from.x + (to.x - from.x) * eased;
+    const cy = from.y + (to.y - from.y) * eased;
+
+    // Deformation dies away as it arrives; the final frame is exactly round.
+    const amplitude = 0.26 * Math.pow(1 - progress, 1.6);
+    const radii = Array.from({ length: BLOB_POINTS }, () => 1 + (random() - 0.5) * 2 * amplitude);
+
+    frames.push(blobPath(cx, cy, r * (1 + 0.18 * (1 - eased)), radii));
+  }
+  return frames;
+}
+
+/**
+ * Move and resize a path without touching its shape.
+ *
+ * Every number in these paths is a coordinate — they are only M, C and Z — so a
+ * uniform scale about a centre plus a translation can be applied number pair by
+ * number pair. Doing it here rather than with a `transform` attribute is the
+ * whole point: the travel has to live in the path data, or the shape is being
+ * carried rather than making its own way.
+ */
+export function placePath(d: string, from: { x: number; y: number }, to: { x: number; y: number }, k: number): string {
+  let index = 0;
+  return d.replace(/-?\d+(\.\d+)?/g, match => {
+    const value = Number(match);
+    const axis = index++ % 2 === 0 ? 'x' : 'y';
+    const moved = (value - from[axis]) * k + to[axis];
+    return moved.toFixed(2);
   });
+}
+
+/**
+ * One bubble's journey, drawn with the reference outlines.
+ *
+ * Each frame is the Lottie's own shape, placed a little further along the way
+ * in — so what crosses the screen is the artwork, deforming as it goes, and the
+ * travel is in the coordinates rather than in a transform. The last frame is a
+ * circle on the lobe, because the mark has to take over without a jump.
+ */
+export function lottieJourney(params: {
+  frames: string[];
+  circle: string;
+  /** Centre and half-size of the source shapes, from the extraction. */
+  source: { x: number; y: number; half: number };
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  /** Radius of the lobe the bubble comes to rest on. */
+  r: number;
+  /** Where in the loop to start, so two bubbles are never in the same pose. */
+  offset?: number;
+}): string[] {
+  const { frames, circle, source, from, to, r, offset = 0 } = params;
+  const ordered = [...frames.slice(offset), ...frames.slice(0, offset)];
+  const steps = ordered.length;
+
+  const journey = ordered.map((frame, step) => {
+    const progress = step / steps;
+    // Ease-out: most of the ground is covered early, so the end of the sequence
+    // is the shape settling rather than still travelling.
+    const eased = 1 - Math.pow(1 - progress, 2.2);
+    const scale = (r / source.half) * (1.45 - 0.45 * eased);
+    return placePath(frame, source, {
+      x: from.x + (to.x - from.x) * eased,
+      y: from.y + (to.y - from.y) * eased,
+    }, scale);
+  });
+
+  journey.push(placePath(circle, source, to, r / source.half));
+  return journey;
 }

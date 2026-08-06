@@ -1,22 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import QwillioLogo from './QwillioLogo';
-import { blobKeyframes } from './blobPath';
+import { lottieJourney } from './blobPath';
 import { BLOB_FRAMES, BLOB_CIRCLE, BLOB_CENTRE } from './lottieBlob';
 
 /**
  * Launch animation for the installed app.
  *
- * The two lobes of the mark arrive from opposite ends of the screen — the left
- * one falling, the right one rising — drift for a moment as if settling, and
- * come to rest as the logo, which then holds with the wordmark for a beat.
+ * Two shapes in the mark's own colours make their way in from opposite corners
+ * — one from the top left, one from the bottom right — deforming as they come,
+ * meet in the middle, merge, and resolve into the logo, which holds with the
+ * wordmark for a beat.
  *
- * Everything that moves here moves by transform, never by geometry or by size.
- * Animating an SVG `cy` re-lays-out the shape on every frame, and animating the
- * scale of a blurred layer re-rasterises the blur on every frame; both look
- * fine on a laptop and stutter on a phone, which is what "it must be much
- * smoother" was about. Transforms are composited, so the whole sequence is one
- * GPU job.
+ * Nothing is translated. The travel is in the outline: every vertex is redrawn
+ * a little further along, so each shape makes its own way across instead of
+ * being slid across by a transform. That is the difference between a blob and a
+ * sticker, and it is the whole reason this file generates paths rather than
+ * animating a `style`.
  *
  * The hold is also the point: the dashboard loads underneath, so the fade ends
  * on a screen that is already populated instead of one that starts fetching.
@@ -39,17 +39,6 @@ const BLOB = {
 };
 
 /**
- * The bubbles arrive at roughly the size they will end at — the mark's own
- * lobes, give or take the breathing. Blowing them up to the width of a phone
- * and shrinking them down again made every frame a full-screen composite, and
- * that is what the stutter was.
- */
-const TRAVEL_SCALE = 1.12;
-
-/** The scale over the journey: a little large on arrival, settling to exact. */
-const SETTLE = [TRAVEL_SCALE, TRAVEL_SCALE * 1.04, 1.03, 0.99, 1];
-
-/**
  * The box the outlines are drawn in. Wide enough that a bubble can swell and
  * still have room, and it is the same coordinate space as the mark's own 512
  * box scaled to LOGO, so a resting bubble sits exactly on its lobe.
@@ -57,118 +46,72 @@ const SETTLE = [TRAVEL_SCALE, TRAVEL_SCALE * 1.04, 1.03, 0.99, 1];
 const BOX = LOGO * 1.9;
 const CENTRE = BOX / 2;
 
-/**
- * The droplets that get swallowed. A satellite caught by the surface it is
- * falling towards is the clearest single sign that the thing is liquid — they
- * vanish into the mass rather than fading, which under the filter looks like
- * being drunk by it.
- */
-const SATELLITE = {
-  times: [0, 0.5, 0.72, 1],
-  scale: [1, 0.85, 0.4, 0],
-};
-
 interface Drop {
   key: string;
-  /** Outline keyframes, from arrival wobble to a circle at rest. */
+  /** The whole journey as outlines: the travel is in the path, not in a transform. */
   shapes: string[];
-  /**
-   * Where the outline is drawn. The Lottie's paths live in their own 72-unit
-   * box, so they are placed by transform rather than by rewriting every
-   * coordinate — which would also break the interpolation the frames exist for.
-   */
-  place?: string;
-  stops: Array<{ offset: string; color: string }>;
-  from: string;
-  travel: string[];
-  delay: number;
-  satellite?: boolean;
+  /** Flat brand colour. A gradient reads as a reflection, and a bubble in a
+   *  logo animation is the logo's own colour, not a rendered sphere. */
+  fill: string;
 }
 
 const R = px(ORB.r);
 
 /**
- * Put a Lottie outline on a lobe: scale its 72-unit box down to the lobe's
- * radius, then move its centre onto the lobe's centre.
+ * How far outside the box each bubble starts. Well past a phone's diagonal, so
+ * the shape is genuinely off-screen at the first frame rather than parked in a
+ * corner waiting to be noticed.
  */
-function lottiePlacement(cx: number, cy: number): string {
-  const k = R / BLOB_CENTRE.r;
-  return `translate(${(cx - BLOB_CENTRE.x * k).toFixed(2)} ${(cy - BLOB_CENTRE.y * k).toFixed(2)}) scale(${k.toFixed(4)})`;
-}
+const REACH = BOX * 2.2;
 
 const LOBE_LEFT = CENTRE - (LOGO / 2 - BLOB.leftX - R);
 const LOBE_RIGHT = CENTRE + (BLOB.rightX + R - LOGO / 2);
 const LOBE_Y = CENTRE + (BLOB.top + R - LOGO / 2);
 
 /**
- * Painted in the mark's own order: violet first, indigo over it. The left lobe
- * is on top in the logo, so it is on top here for the whole journey.
+ * Painted in the mark's own order: violet first, indigo over it, so the left
+ * lobe is in front for the whole journey as it is in the logo.
  *
- * Each gradient is light gathered off-centre, a saturated body and a darker far
- * side — the shading is in the material rather than painted on top of it.
+ * The outlines are the reference file's own — wide shapes with deep concave
+ * notches, sampled off its played timeline rather than off its six keyframes, so
+ * the deformation is the one the reference actually shows. A perturbed circle
+ * cannot be any of these: no amount of nudging a radius produces a silhouette
+ * that folds back into itself.
+ *
+ * Flat fills. A gradient on these reads as a reflection on a rendered sphere,
+ * and what arrives has to be the logo's own colour — it is about to *become*
+ * the logo.
  */
 const DROPS: Drop[] = [
   {
-    key: 'satellite-right',
-    shapes: blobKeyframes(LOBE_RIGHT + R * 1.5, LOBE_Y + R * 0.85, R * 0.26, 2.2),
-    stops: [
-      { offset: '0%', color: '#EFB2FF' },
-      { offset: '55%', color: '#CD6BFB' },
-      { offset: '100%', color: '#9B37D0' },
-    ],
-    from: '86vh',
-    travel: ['86vh', '16vh', '3vh', '0vh'],
-    delay: 0.04,
-    satellite: true,
-  },
-  {
     key: 'right',
-    // The reference Lottie's own outline, ending on a circle so the mark can
-    // take over without a cut. Played from its second frame so the two lobes
-    // are never in the same pose.
-    shapes: [...BLOB_FRAMES.slice(1), ...BLOB_FRAMES.slice(0, 1), BLOB_CIRCLE],
-    place: lottiePlacement(LOBE_RIGHT, LOBE_Y),
-    stops: [
-      { offset: '0%', color: '#F6C8FF' },
-      { offset: '26%', color: '#E08BFF' },
-      { offset: '55%', color: '#CD6BFB' },
-      { offset: '100%', color: '#8E2FC6' },
-    ],
-    from: '76vh',
-    // Rises from below the fold, overshoots the meeting point, and drifts back.
-    travel: ['76vh', '16vh', '1.5vh', '-0.6vh', '0.2vh', '0vh', '0vh'],
-    // Slightly behind the left one: two objects arriving on the exact same
-    // frame read as one object, not as a meeting.
-    delay: 0.09,
-  },
-  {
-    key: 'satellite-left',
-    shapes: blobKeyframes(LOBE_LEFT - R * 1.35, LOBE_Y - R * 0.6, R * 0.22, 4.1),
-    stops: [
-      { offset: '0%', color: '#C3B6FF' },
-      { offset: '55%', color: '#7A5FFF' },
-      { offset: '100%', color: '#4A32C4' },
-    ],
-    from: '-84vh',
-    travel: ['-84vh', '-15vh', '-2.5vh', '0vh'],
-    delay: 0,
-    satellite: true,
+    // Enters from the bottom right, far outside the box — the SVG does not
+    // clip, so "outside the box" is off the screen on any phone.
+    shapes: lottieJourney({
+      frames: BLOB_FRAMES,
+      circle: BLOB_CIRCLE,
+      source: BLOB_CENTRE,
+      from: { x: BOX + REACH, y: BOX + REACH },
+      to: { x: LOBE_RIGHT, y: LOBE_Y },
+      r: R,
+      // Two bubbles in the same pose at the same moment read as one object
+      // duplicated, so this one starts a third of the way into the loop.
+      offset: 8,
+    }),
+    fill: '#CD6BFB',
   },
   {
     key: 'left',
-    // A different phase from the right one: twins deforming in unison are the
-    // fastest way to make something look computed.
-    shapes: [...BLOB_FRAMES, BLOB_CIRCLE],
-    place: lottiePlacement(LOBE_LEFT, LOBE_Y),
-    stops: [
-      { offset: '0%', color: '#D8D0FF' },
-      { offset: '26%', color: '#9E8CFF' },
-      { offset: '55%', color: '#7A5FFF' },
-      { offset: '100%', color: '#452BC0' },
-    ],
-    from: '-76vh',
-    travel: ['-76vh', '-16vh', '-1.5vh', '0.6vh', '-0.2vh', '0vh', '0vh'],
-    delay: 0,
+    // From the top left, and painted over the other, as in the mark.
+    shapes: lottieJourney({
+      frames: BLOB_FRAMES,
+      circle: BLOB_CIRCLE,
+      source: BLOB_CENTRE,
+      from: { x: -REACH, y: -REACH },
+      to: { x: LOBE_LEFT, y: LOBE_Y },
+      r: R,
+    }),
+    fill: '#7A5FFF',
   },
 ];
 
@@ -296,61 +239,24 @@ export default function SplashScreen({
                   viewBox={`0 0 ${BOX} ${BOX}`}
                   className="absolute inset-0 h-full w-full overflow-visible"
                 >
-                  <defs>
-                    {DROPS.map(drop => (
-                      <radialGradient key={`g-${drop.key}`} id={`qw-fill-${drop.key}`} cx="34%" cy="28%" r="78%">
-                        {drop.stops.map(stop => (
-                          <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
-                        ))}
-                      </radialGradient>
-                    ))}
-                  </defs>
                   {DROPS.map(drop => (
-                    /*
-                      Two elements, deliberately. framer-motion writes its
-                      transform into `style`, and a CSS transform overrides the
-                      `transform` attribute entirely — so the travel and the
-                      placement have to live on different nodes or the outline
-                      lands in the corner of the box.
-                    */
-                    <motion.g
+                    <motion.path
                       key={drop.key}
-                      style={{ willChange: 'transform' }}
-                      initial={{
-                        y: reduced ? 0 : drop.from,
-                        scale: reduced ? 1 : drop.satellite ? SATELLITE.scale[0] : TRAVEL_SCALE,
-                        opacity: reduced && drop.satellite ? 0 : 1,
-                      }}
+                      fill={drop.fill}
+                      style={{ willChange: 'd' }}
+                      initial={{ d: drop.shapes[0] }}
                       animate={{
-                        y: reduced ? 0 : drop.travel,
-                        scale: reduced ? 1 : drop.satellite ? SATELLITE.scale : SETTLE,
-                        opacity: drop.satellite && reduced ? 0 : 1,
+                        // The only thing animated in the whole layer. The
+                        // journey lives in the outline: every vertex is redrawn
+                        // a little further along, so the shape makes its own way
+                        // across rather than being slid across by a transform.
+                        d: reduced ? drop.shapes[drop.shapes.length - 1] : drop.shapes,
                       }}
                       transition={{
-                        duration: t.travel + t.settle,
-                        delay: reduced ? 0 : drop.delay,
-                        times: reduced ? undefined : drop.satellite ? SATELLITE.times : undefined,
-                        ease: EASE_OUT_EXPO,
+                        duration: reduced ? 0.2 : t.travel + t.settle,
+                        ease: 'easeInOut',
                       }}
-                    >
-                      <motion.path
-                        transform={drop.place}
-                        fill={`url(#qw-fill-${drop.key})`}
-                        style={{ willChange: 'd' }}
-                        initial={{ d: drop.shapes[0] }}
-                        animate={{
-                          // The outline itself, vertex by vertex — the point of
-                          // the reference file, and what a corner radius cannot
-                          // express: one side swelling while another flattens.
-                          d: reduced ? drop.shapes[drop.shapes.length - 1] : drop.shapes,
-                        }}
-                        transition={{
-                          duration: t.travel + t.settle,
-                          delay: reduced ? 0 : drop.delay,
-                          ease: 'easeInOut',
-                        }}
-                      />
-                    </motion.g>
+                    />
                   ))}
                 </svg>
               </motion.div>
