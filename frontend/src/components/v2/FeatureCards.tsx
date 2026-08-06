@@ -48,10 +48,15 @@ const FEATURES: Feature[] = [
     height: 1196,
     titleFr: 'Ce qui cloche se corrige en parlant',
     titleEn: 'What needs fixing gets fixed by talking',
+    /* Formulation calée sur le code : receptionist-learning.service.ts tourne
+       tous les dimanches (bot-loop.ts, cron 0 2 * * 0) et sort ces constats,
+       mais il alerte NOTRE équipe, pas le client : aucune route ni page ne les
+       expose. Donc « elle vous dit » serait faux. « Agenda déconnecté » n'est
+       pas non plus un constat du service et disparaît. */
     descFr:
-      'Chaque semaine, elle vous dit ce qui coince : réponses trop longues, agenda déconnecté, questions absentes de votre FAQ. Vous le réglez dans le chat, en une phrase.',
+      'Chaque semaine, vos appels sont analysés : réponses trop longues, questions restées sans réponse dans sa base, appelants agacés. On vous prévient, et vous le réglez dans le chat, en une phrase.',
     descEn:
-      'Every week she tells you what is stuck: answers too long, calendar disconnected, questions missing from your FAQ. You fix it in the chat, in one sentence.',
+      'Every week your calls are analysed: answers running long, questions her knowledge base could not answer, callers getting annoyed. We flag it to you, and you fix it in the chat, in one sentence.',
     altFr: 'Chat de configuration du réceptionniste Qwillio',
     altEn: 'Qwillio receptionist configuration chat',
   },

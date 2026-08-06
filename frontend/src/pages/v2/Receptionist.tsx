@@ -305,8 +305,8 @@ export default function Receptionist() {
           body: 'Résumé, sentiment, lead scoré. Le client final reçoit son SMS de confirmation, et un rappel 24 h avant le rendez-vous sur les plans Pro et Enterprise.',
         },
         {
-          title: 'Chaque semaine, il vous dit ce qui cloche',
-          body: 'Trop bavard, agenda déconnecté, questions revenues sans réponse dans la FAQ. Il signale et vous décidez, il ne se réécrit pas tout seul.',
+          title: 'Chaque semaine, ses appels sont passés au crible',
+          body: 'Trop bavard, questions revenues sans réponse dans sa base, appelants agacés. Nous vous le signalons, vous décidez : il ne se réécrit pas tout seul.',
         },
       ]
     : [
@@ -323,8 +323,8 @@ export default function Receptionist() {
           body: 'Summary, sentiment, scored lead. The customer gets their confirmation text, plus a reminder 24 h before the appointment on Pro and Enterprise plans.',
         },
         {
-          title: 'Every week it tells you what is off',
-          body: 'Too talkative, calendar disconnected, questions that keep coming back with no FAQ answer. It reports and you decide, it does not rewrite itself.',
+          title: 'Every week its calls go under review',
+          body: 'Too talkative, questions its knowledge base could not answer, callers getting annoyed. We flag it to you, you decide: it does not rewrite itself.',
         },
       ];
 
