@@ -113,18 +113,13 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
 
   return (
     <div ref={wrapRef} className="relative mt-10 sm:mt-14 md:mt-20" style={{ perspective: '1800px' }}>
-      {/* Deux nappes: une large et froide qui décolle la capture du fond, une
-          plus resserrée sous son bord bas qui fait office d'assise lumineuse.
-          Aucune ombre portée n'est ajoutée, la profondeur vient de la lueur. */}
+      {/* Une seule nappe, large et froide, qui décolle la capture du fond. La
+          lueur mauve qui traînait sous le bord bas a sauté (retour
+          utilisateur). Aucune ombre portée: la profondeur vient de la lueur. */}
       <div
         aria-hidden="true"
         className="q2-halo -inset-x-4 sm:-inset-x-16 -top-10 bottom-0 rounded-[64px]"
         style={halo(0.2)}
-      />
-      <div
-        aria-hidden="true"
-        className="q2-halo q2-halo-violet inset-x-1/4 -bottom-10 h-24"
-        style={halo(0.22)}
       />
       <div
         ref={frameRef}
@@ -184,16 +179,19 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
         {/* Le bas de la fenêtre ne se dissout pas en transparence (on voyait
             encore son arête sur ce qui passait derrière) : il est RECOUVERT
             par la couleur de la page. Cotes de l'image : Déconnexion à 91 %,
-            bord bas de la fenêtre à 93,2 %. Le voile part donc de 74 %,
-            devient opaque à 90 %, et tout ce qui est en dessous, arête et
-            ombre comprises, est un aplat de canvas. */}
+            bord bas de la fenêtre à 93,2 %.
+            Le voile ne fait plus que 9 % de haut, donc il DÉMARRE à
+            Déconnexion (retour utilisateur : il montait jusqu'au graphique et
+            mangeait la capture). Il devient opaque à 24 % de sa course, soit
+            juste avant l'arête basse, si bien que l'arête et son ombre
+            restent couvertes par un aplat de canvas. */}
         <div
           aria-hidden="true"
           className="absolute inset-x-0 bottom-0 pointer-events-none"
           style={{
-            height: '22%',
+            height: '9%',
             background:
-              'linear-gradient(to bottom, rgba(253,252,252,0) 0%, rgba(253,252,252,0.88) 55%, #FDFCFC 68%, #FDFCFC 100%)',
+              'linear-gradient(to bottom, rgba(253,252,252,0) 0%, rgba(253,252,252,0.72) 14%, #FDFCFC 24%, #FDFCFC 100%)',
           }}
         />
       </div>
