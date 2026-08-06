@@ -14,9 +14,6 @@ interface BillingOverview {
   minutesLimit: number;
   trialEndsAt: string | null;
   isTrial: boolean;
-  /* Ce que le forfait inclut, tel que le backend le renvoie déjà. Le champ
-     était consommé par l'accueil; il l'est désormais ici, où il a sa place. */
-  planFeatures?: string[];
 }
 
 interface Payment {
@@ -264,15 +261,20 @@ export default function ClientBilling() {
 
         {/* Ce que le plan inclut: sa place est ici, à côté du plan et de la
             consommation, et non sur l'accueil où treize lignes cochées
-            repoussaient tout le reste sous la ligne de flottaison. On la lit
-            au moment de comparer les forfaits, pas chaque matin. */}
-        {overview?.planFeatures && overview.planFeatures.length > 0 && (
+            repoussaient tout le reste sous la ligne de flottaison.
+
+            La source est `PLANS`, le catalogue déjà présent dans ce fichier,
+            et NON la réponse de `/my-dashboard/billing`: cette route renvoie
+            un tableau de paiements, pas un aperçu, donc un `planFeatures` lu
+            dessus n'aurait jamais rien affiché — la liste aurait disparu sans
+            la moindre erreur. */}
+        {currentPlan.features.length > 0 && (
           <div className="mt-5 pt-5 border-t border-white/[0.06]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#A1A1A8] mb-3">
               Ce que votre plan inclut
             </p>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-              {overview.planFeatures.map((f) => (
+              {currentPlan.features.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-[13px] text-[#D4D4D8]">
                   <Check size={13} className="mt-[3px] flex-shrink-0" style={{ color: '#b9a8ff' }} aria-hidden="true" />
                   <span>{f}</span>
