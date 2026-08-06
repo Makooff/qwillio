@@ -109,7 +109,11 @@ export function CircularCarousel({
     if (!el || typeof ResizeObserver === 'undefined') return;
     const measure = () => {
       const w = el.clientWidth;
-      if (w > 0) setK(Math.min(1, (w / 2 - 12) / (RADIUS_X + 56)));
+      /* Plancher à 0,58: sur un téléphone la formule tombait à ~0,33 et
+         l'anneau devenait une miniature illisible. Sous le plancher, les
+         cartes extrêmes dépassent un peu de la piste, mais le masque de bord
+         les efface déjà — mieux vaut une carte coupée qu'un jeu de vignettes. */
+      if (w > 0) setK(Math.max(0.58, Math.min(1, (w / 2 - 12) / (RADIUS_X + 56))));
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -266,6 +270,11 @@ export function CircularCarousel({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+        /* Le compteur vit HORS du groupe mis à l'échelle: sans cette
+           transformation il restait à 48 px pendant que les cartes
+           rétrécissaient d'un tiers, et le « 04 » écrasait l'anneau sur
+           téléphone (retour utilisateur). */
+        style={{ transform: `scale(${k})` }}
       >
         <span className="text-5xl font-light tracking-tight text-q2-ink/90 tabular-nums">
           {String(activeIndex + 1).padStart(2, '0')}

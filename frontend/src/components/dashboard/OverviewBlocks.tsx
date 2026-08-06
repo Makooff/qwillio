@@ -73,7 +73,12 @@ export function KpiSplit({ items }: { items: KpiCell[] }) {
   const cols = items.length === 4
     // On mobile the 4-cell grid wraps 2x2: suppress the divider that DOM-order
     // divide-x would paint on the first cell of the second row.
-    ? 'grid-cols-2 sm:grid-cols-4 [&>*:nth-child(2n+1)]:border-l-0 sm:[&>*:nth-child(2n+1)]:border-l'
+    /* La 3e cellule ouvre la 2e rangée en 2 colonnes: comme la 1re, elle doit
+       coller au bord. `first:pl-0` ne visait qu'elle, si bien que « Taux
+       positif » était décalé de 12 px sous « Total appels » (retour
+       utilisateur). Le retrait revient dès 4 colonnes, où elle est en milieu
+       de rangée. Même raisonnement que le filet ci-dessous, même cellule. */
+    ? 'grid-cols-2 sm:grid-cols-4 [&>*:nth-child(2n+1)]:border-l-0 sm:[&>*:nth-child(2n+1)]:border-l [&>*:nth-child(3)]:pl-0 sm:[&>*:nth-child(3)]:pl-6'
     : 'grid-cols-3';
   return (
     <div className={`grid ${cols} gap-y-4 divide-x divide-white/[0.06]`}>

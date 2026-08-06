@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowUp, Mic, Square, AudioLines, Plus,
@@ -133,7 +134,7 @@ function VoiceViz({ isFr, analyser }: { isFr: boolean; analyser: AnalyserNode | 
 export default function AssistantChat({
   isFr = true, onConfigChanged, initialMode = 'config', lockMode = false, onCompleted,
   businessName, planLabel, isTrial = false, phone, quota, showHeader = true,
-  setupComplete = true, onItemsExtracted,
+  setupComplete = true, onItemsExtracted, numberBadge,
 }: {
   isFr?: boolean;
   onConfigChanged?: () => void;
@@ -148,6 +149,10 @@ export default function AssistantChat({
   planLabel?: string;
   isTrial?: boolean;
   phone?: string | null;
+  /* Pastille posée à GAUCHE de l'icône « copier », sur la ligne du numéro.
+     L'état du transfert appartient à la page, pas au chat: le chat se
+     contente de lui prêter la place où on le cherche des yeux. */
+  numberBadge?: ReactNode;
   /** Included-minutes gauge. Receptionist-specific, so it lives here and nowhere else. */
   quota?: { used: number; total: number };
   /**
@@ -577,9 +582,12 @@ export default function AssistantChat({
             className="sm:hidden flex w-full items-center justify-between gap-2 h-9 px-3 rounded-xl border border-white/[0.08] bg-white/[0.03] active:scale-[0.99] transition-transform"
           >
             <span className="text-[12.5px] font-mono font-medium text-[#E5E5EA] tabular-nums">{phone}</span>
-            {copied
-              ? <Check size={13} className="text-emerald-400" aria-hidden="true" />
-              : <Copy size={13} className="text-[#9A9AA5]" aria-hidden="true" />}
+            <span className="ml-auto flex items-center gap-2.5">
+              {numberBadge}
+              {copied
+                ? <Check size={13} className="text-emerald-400" aria-hidden="true" />
+                : <Copy size={13} className="text-[#9A9AA5]" aria-hidden="true" />}
+            </span>
           </button>
         )}
 

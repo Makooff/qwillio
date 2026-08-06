@@ -367,6 +367,24 @@ export default function ClientReceptionist() {
           numéro copiable, l'appel test live et la jauge de minutes, pour que
           tout ce qui décrit la réceptionniste soit au même endroit. */}
       <AssistantChat
+        /* L'état du transfert, posé sur la ligne du numéro: même sujet, même
+           endroit. « Transfert » plutôt que « Transfert d'appel »: à côté du
+           numéro, le mot suffit. */
+        numberBadge={
+          fwdVerified && transferNumber ? (
+            <span className="flex items-center gap-1 text-[11px] text-emerald-400 flex-shrink-0">
+              <CheckCircle2 size={12} aria-hidden="true" /> Transfert
+            </span>
+          ) : fwdStatus === 'pending' ? (
+            <span className="flex items-center gap-1 text-[11px] text-amber-400 flex-shrink-0">
+              <Clock size={12} aria-hidden="true" /> Transfert
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-[11px] text-[#6B6B75] flex-shrink-0">
+              <XCircle size={12} aria-hidden="true" /> Transfert
+            </span>
+          )
+        }
         isFr={agentLanguage !== 'en'}
         onConfigChanged={load}
         businessName={client.businessName || businessName}
@@ -399,20 +417,11 @@ export default function ClientReceptionist() {
           </motion.div>
         )}
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-          className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <PhoneForwarded size={13} className="text-[#9A9AA5] flex-shrink-0" />
-            <span className="text-[12px] text-[#9A9AA5] truncate">Transfert d'appel</span>
-          </div>
-          {fwdVerified && transferNumber ? (
-            <span className="flex items-center gap-1 text-[11px] text-emerald-400 flex-shrink-0"><CheckCircle2 size={12} /> Vérifié</span>
-          ) : fwdStatus === 'pending' ? (
-            <span className="flex items-center gap-1 text-[11px] text-amber-400 flex-shrink-0"><Clock size={12} /> En attente</span>
-          ) : (
-            <span className="flex items-center gap-1 text-[11px] text-[#6B6B75] flex-shrink-0"><XCircle size={12} /> Non configuré</span>
-          )}
-        </motion.div>
+        {/* La rangée « Transfert d'appel » à elle seule est partie: elle
+            occupait une bande entière pour un mot et une pastille. L'état vit
+            désormais sur la ligne du numéro, à gauche de l'icône « copier »
+            (retour utilisateur) — c'est là qu'on le cherche, puisque c'est le
+            même sujet. */}
       </div>
 
       {/* —— Agent identity —— */}
@@ -495,32 +504,32 @@ export default function ClientReceptionist() {
           </div>
         )}
 
-        {/* —— Ton (affinage optionnel) + personnalisation libre —— */}
-        <div className="mt-6">
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-3">
-            Ton (affinage optionnel)
+        {/* —— Ton: un menu déroulant, posé sous la description du personnage ——
+            Six cartes de la taille d'un pouce occupaient une demi-page pour un
+            réglage à un seul choix, alors que le ton est DÉJÀ affiché sous le
+            personnage (retour utilisateur). Un menu tient sur une ligne et dit
+            la même chose; la description du ton retenu s'affiche dessous, donc
+            rien de ce que les cartes portaient n'est perdu. */}
+        <div className="mt-5">
+          <label
+            htmlFor="tone-select"
+            className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2"
+          >
+            Ton
           </label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {PERSONALITY_PRESETS.map(p => {
-              const sel = personalityPreset === p.v;
-              return (
-                <button
-                  key={p.v}
-                  type="button"
-                  onClick={() => setPersonalityPreset(p.v)}
-                  className="text-left p-3 rounded-xl border transition-colors"
-                  style={{
-                    background: sel ? 'rgba(122,95,255,0.10)' : '#0A0A0C',
-                    borderColor: sel ? 'rgba(122,95,255,0.55)' : 'rgba(255,255,255,0.08)',
-                    color: sel ? '#7349fe' : '#F2F2F2',
-                  }}
-                >
-                  <p className="text-[13px] font-semibold">{p.l}</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: sel ? 'rgba(122,95,255,0.85)' : '#8B8BA7' }}>{p.d}</p>
-                </button>
-              );
-            })}
-          </div>
+          <select
+            id="tone-select"
+            value={personalityPreset}
+            onChange={e => setPersonalityPreset(e.target.value)}
+            className={inputCls}
+          >
+            {PERSONALITY_PRESETS.map(p => (
+              <option key={p.v} value={p.v}>{p.l}</option>
+            ))}
+          </select>
+          <p className="mt-1.5 text-[11.5px] leading-relaxed" style={{ color: '#8B8BA7' }}>
+            {PERSONALITY_PRESETS.find(p => p.v === personalityPreset)?.d}
+          </p>
         </div>
 
         <div className="mt-4">
