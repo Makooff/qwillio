@@ -128,6 +128,19 @@ describe('priming during the launch animation', () => {
     expect(get).toHaveBeenCalledTimes(2);
   });
 
+  it('warms a heavy key without putting it on the poller', async () => {
+    // Analytique opens from the cache like everything else, but two of the
+    // heaviest queries in the app have no business running every 25 seconds for
+    // a tab nobody has opened.
+    get.mockReturnValue(ok({ days: 30 }));
+    await primeLive(['/heavy'], { live: false });
+    expect(peekLive('/heavy')).toEqual({ days: 30 });
+
+    get.mockClear();
+    refreshAllLive();
+    expect(get).not.toHaveBeenCalled();
+  });
+
   it('never lets one failing endpoint hold up the launch', async () => {
     get.mockImplementation((url: string) =>
       (url === '/a' ? Promise.reject(new Error('down')) : ok({ ok: 1 })));

@@ -96,10 +96,20 @@ export function subscribeLive<T = unknown>(key: string, onUpdate: (data: T) => v
   return () => { e.listeners.delete(listener); };
 }
 
-/** Warm a set of keys without subscribing — used while the splash is up. */
-export async function primeLive(keys: string[]): Promise<void> {
+/**
+ * Warm a set of keys without subscribing — used while the splash is up.
+ *
+ * `live` decides whether the background loop keeps the key fresh afterwards.
+ * Warm-but-not-live is for the screens whose numbers do not move minute to
+ * minute: they still open instantly from the cache, and the page's own fetch
+ * corrects them if what is held has gone stale. Polling every warmed endpoint
+ * would put the heaviest queries on a 25-second timer for a tab nobody has
+ * opened.
+ */
+export async function primeLive(keys: string[], opts: { live?: boolean } = {}): Promise<void> {
+  const live = opts.live ?? true;
   await Promise.all(keys.map(key => {
-    entry(key).live = true;
+    entry(key).live = live;
     return fetchLive(key).catch(() => undefined);
   }));
 }
