@@ -486,7 +486,11 @@ export default function Home() {
       </Section>
 
       {/* ── AU NATUREL, bento: colonne collante + quatre blocs décalés ── */}
-      <Section aria-labelledby="conv-heading" hairline className="relative overflow-hidden">
+      {/* Pas d'`overflow-hidden` ici: il fait d'une section un conteneur de
+          défilement, et `position: sticky` cesse alors de tenir la colonne de
+          gauche. Les formes se découpent toutes seules, leur calque est déjà
+          en `absolute inset-0 overflow-hidden`. */}
+      <Section aria-labelledby="conv-heading" hairline className="relative">
         {/* Formes de marque en grand, en parallaxe: elles occupent le vide sous
             la colonne de gauche et derrière le bento, jamais le texte. */}
         <ShapeDrift
@@ -500,7 +504,7 @@ export default function Home() {
           {/* La colonne reste au regard pendant que les blocs défilent: c'est
               ce qui fait tenir la comparaison entre le titre et les quatre
               comportements. */}
-          <div className="lg:sticky lg:top-28">
+          <div className="lg:sticky lg:top-28 lg:self-start">
             <RevealV2>
               <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
                 {isFr ? 'Au naturel' : 'Naturally'}
@@ -571,7 +575,7 @@ export default function Home() {
       </Section>
 
       {/* ── CONFIGUREZ-LA EN LUI PARLANT ── */}
-      <Section aria-labelledby="setup-heading" className="relative overflow-hidden">
+      <Section aria-labelledby="setup-heading" className="relative">
         <ShapeDrift
           className="hidden md:block"
           shapes={[
