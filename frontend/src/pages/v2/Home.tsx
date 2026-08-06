@@ -190,7 +190,10 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
           aria-hidden="true"
           className="absolute inset-x-0 bottom-0 pointer-events-none"
           style={{
-            height: '9%',
+            /* 9 % de la hauteur du cadre, plus un centimètre demandé en plus:
+               exprimé en `cm` et non converti en pixels, pour que ce soit la
+               mesure de l'utilisateur qui reste lisible dans le code. */
+            height: 'calc(9% + 1cm)',
             background:
               'linear-gradient(to bottom, rgba(253,252,252,0) 0%, rgba(253,252,252,0.72) 14%, #FDFCFC 24%, #FDFCFC 100%)',
           }}
@@ -397,7 +400,14 @@ export default function Home() {
       </Section>
 
       {/* ── PENDANT L'APPEL, scène au scroll: titre épinglé, actes qui s'allument ── */}
-      <Section variant="band" hairline aria-labelledby="during-heading">
+      {/* Une seule forme par section, éparpillées sur toute la page plutôt
+          qu'entassées à deux endroits (retour utilisateur). Toutes sous la
+          fenêtre du hero, jamais dedans. */}
+      <Section variant="band" hairline aria-labelledby="during-heading" className="relative">
+        <ShapeDrift
+          className="hidden md:block"
+          shapes={[{ kind: 'column', x: '-7%', y: '18%', size: 260, drift: -170, opacity: 0.42 }]}
+        />
         <Container>
           <PinnedScene
             aside={
@@ -452,7 +462,11 @@ export default function Home() {
       </Section>
 
       {/* ── VOS RÉCEPTIONNISTES, galerie de presets ── */}
-      <Section aria-labelledby="team-heading">
+      <Section aria-labelledby="team-heading" className="relative">
+        <ShapeDrift
+          className="hidden lg:block"
+          shapes={[{ kind: 'twin', x: '84%', y: '-10%', size: 380, rotate: 10, drift: 180, opacity: 0.3 }]}
+        />
         <Container>
           <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
             <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
@@ -491,14 +505,9 @@ export default function Home() {
           gauche. Les formes se découpent toutes seules, leur calque est déjà
           en `absolute inset-0 overflow-hidden`. */}
       <Section aria-labelledby="conv-heading" hairline className="relative">
-        {/* Formes de marque en grand, en parallaxe: elles occupent le vide sous
-            la colonne de gauche et derrière le bento, jamais le texte. */}
         <ShapeDrift
           className="hidden lg:block"
-          shapes={[
-            { kind: 'column', x: '-6%', y: '30%', size: 300, drift: -190, opacity: 0.5 },
-            { kind: 'twin', x: '78%', y: '-14%', size: 420, rotate: 8, drift: 150, opacity: 0.28 },
-          ]}
+          shapes={[{ kind: 'quarters', x: '-8%', y: '52%', size: 320, rotate: -8, drift: 150, opacity: 0.34 }]}
         />
         <Container className="relative grid lg:grid-cols-[1fr_1.6fr] gap-10 md:gap-16 lg:gap-24 items-start">
           {/* La colonne reste au regard pendant que les blocs défilent: c'est
@@ -578,10 +587,7 @@ export default function Home() {
       <Section aria-labelledby="setup-heading" className="relative">
         <ShapeDrift
           className="hidden md:block"
-          shapes={[
-            { kind: 'quarters', x: '72%', y: '-18%', size: 380, rotate: -10, drift: 200, opacity: 0.32 },
-            { kind: 'twinMirror', x: '-10%', y: '58%', size: 340, rotate: 14, drift: -140, opacity: 0.34 },
-          ]}
+          shapes={[{ kind: 'twinMirror', x: '80%', y: '58%', size: 300, rotate: 14, drift: -160, opacity: 0.32 }]}
         />
         <Container className="relative grid lg:grid-cols-[1fr_1.4fr] gap-9 sm:gap-12 items-start">
           <RevealV2>
@@ -635,6 +641,10 @@ export default function Home() {
       {/* overflow-hidden: le halo ambiant de HeroPhone3D fait 420px de large et
           dépasserait la colonne sur un écran de 390px */}
       <Section aria-labelledby="pocket-heading" className="relative overflow-hidden">
+        <ShapeDrift
+          className="hidden lg:block"
+          shapes={[{ kind: 'column', x: '46%', y: '-24%', size: 220, rotate: 6, drift: 200, opacity: 0.26 }]}
+        />
         <Container className="grid lg:grid-cols-[1fr_1fr] gap-8 sm:gap-14 lg:gap-20 items-center [&>*]:min-w-0">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
@@ -673,6 +683,10 @@ export default function Home() {
 
       {/* ── APRÈS L'APPEL + CONFIANCE, bande taupe ── */}
       <Section variant="band" hairline aria-labelledby="after-heading" className="relative">
+        <ShapeDrift
+          className="hidden lg:block"
+          shapes={[{ kind: 'twin', x: '-9%', y: '64%', size: 300, rotate: -12, drift: -150, opacity: 0.3 }]}
+        />
         <Container>
           <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
             <Eyebrow tone="neutral" className="mb-3 sm:mb-4">
@@ -719,7 +733,11 @@ export default function Home() {
       </Section>
 
       {/* ── CE À QUOI ELLE EST BRANCHÉE, orbite d'intégrations ── */}
-      <Section aria-labelledby="integrations-heading">
+      <Section aria-labelledby="integrations-heading" className="relative">
+        <ShapeDrift
+          className="hidden lg:block"
+          shapes={[{ kind: 'quarters', x: '86%', y: '-16%', size: 260, rotate: 16, drift: 170, opacity: 0.28 }]}
+        />
         <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-9 sm:gap-14 items-center [&>*]:min-w-0">
           <RevealV2 className="max-w-[440px]">
             <Eyebrow tone="violet" className="mb-3 sm:mb-4">
