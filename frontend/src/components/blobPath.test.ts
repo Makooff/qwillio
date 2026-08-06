@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { blobPath, blobKeyframes, BLOB_POINTS } from './blobPath';
+import { blobPath, blobJourney, BLOB_POINTS } from './blobPath';
 
 const commands = (d: string) => d.trim().split(/(?=[MCZ])/).map(part => part.trim()[0]);
 const numbers = (d: string) => (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
@@ -35,13 +35,21 @@ describe('the outline', () => {
   });
 });
 
-describe('the keyframes', () => {
-  const frames = blobKeyframes(100, 100, 30, 1.2);
+describe('the journey', () => {
+  const frames = blobJourney({ from: { x: -300, y: -300 }, to: { x: 100, y: 100 }, r: 30, seed: 7 });
+
+  const centre = (d: string) => {
+    const points = numbers(d);
+    const xs: number[] = [];
+    const ys: number[] = [];
+    for (let i = 0; i < points.length; i += 2) { xs.push(points[i]); ys.push(points[i + 1]); }
+    return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
+  };
 
   it('every frame has the same structure, or nothing can interpolate', () => {
-    // This is the constraint that decides the whole design: an animation
-    // between two outlines is only possible when they carry the same points in
-    // the same order.
+    // The constraint that decides the whole design: an animation between two
+    // outlines is only possible when they carry the same points in the same
+    // order.
     const shape = commands(frames[0]);
     const count = numbers(frames[0]).length;
     for (const frame of frames) {
@@ -50,30 +58,50 @@ describe('the keyframes', () => {
     }
   });
 
+  it('carries the travel in the path, not in a transform', () => {
+    // This is what makes the shape move by itself rather than be slid across:
+    // the outline is somewhere different in each frame, on its own coordinates.
+    const first = centre(frames[0]);
+    const last = centre(frames[frames.length - 1]);
+    expect(first.x).toBeLessThan(-100);
+    expect(last.x).toBeCloseTo(100, 0);
+    expect(last.y).toBeCloseTo(100, 0);
+  });
+
+  it('covers most of the ground early, then settles', () => {
+    const distance = (d: string) => Math.hypot(centre(d).x - 100, centre(d).y - 100);
+    const half = frames[Math.floor(frames.length / 2)];
+    // Past the midpoint it should be much closer to the target than to home.
+    expect(distance(half)).toBeLessThan(distance(frames[0]) * 0.35);
+  });
+
   it('calms down rather than wobbling for ever', () => {
     const spread = (d: string) => {
+      const c = centre(d);
       const points = numbers(d);
       const radii: number[] = [];
-      for (let i = 0; i < points.length; i += 2) {
-        radii.push(Math.hypot(points[i] - 100, points[i + 1] - 100));
-      }
+      for (let i = 0; i < points.length; i += 2) radii.push(Math.hypot(points[i] - c.x, points[i + 1] - c.y));
       return Math.max(...radii) - Math.min(...radii);
     };
     expect(spread(frames[0])).toBeGreaterThan(spread(frames[frames.length - 1]));
   });
 
   it('ends on a circle, so the handover to the real logo has no jump', () => {
-    const shapes = blobKeyframes(0, 0, 10, 0.7);
-    const last = shapes[shapes.length - 1];
+    const last = frames[frames.length - 1];
+    const c = centre(last);
     const points = numbers(last);
     for (let i = 0; i < points.length; i += 2) {
-      expect(Math.hypot(points[i], points[i + 1])).toBeLessThanOrEqual(10.6);
+      // Vertices are exact; control points sit outside, hence the loose bound.
+      expect(Math.hypot(points[i] - c.x, points[i + 1] - c.y)).toBeLessThanOrEqual(31.8);
     }
   });
 
-  it('gives two bubbles different shapes at the same moment', () => {
-    // Twins deforming in unison are the fastest way to make something look
-    // computed.
-    expect(blobKeyframes(0, 0, 10, 0)[0]).not.toBe(blobKeyframes(0, 0, 10, 3.4)[0]);
+  it('is random-looking but identical on every launch', () => {
+    // A sine wave reads as a pulse once you have watched it twice; Math.random
+    // would give a different splash every time and an untestable one.
+    const again = blobJourney({ from: { x: -300, y: -300 }, to: { x: 100, y: 100 }, r: 30, seed: 7 });
+    expect(again).toEqual(frames);
+    const other = blobJourney({ from: { x: -300, y: -300 }, to: { x: 100, y: 100 }, r: 30, seed: 8 });
+    expect(other[0]).not.toBe(frames[0]);
   });
 });
