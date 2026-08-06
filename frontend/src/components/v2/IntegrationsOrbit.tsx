@@ -78,11 +78,22 @@ interface Geometry {
   paths: string[];
 }
 
-/* Course d'un éclat, du bord du hub au bord de la pastille. */
-const TRAVEL_S = 1.9;
-/* Temps mort avant que le même fil reparte. */
-const REST_S = 1.15;
-/* Décalage entre deux départs: les quatre ne partent pas en rang d'oignons. */
+/* Le courant est un TRAIN d'éclats, pas un éclat isolé.
+   `pathLength=100` rend la mesure indépendante de la longueur réelle de la
+   courbe, donc les quatre fils débitent à la même vitesse malgré des tracés
+   inégaux. Le motif vaut 50 et divise donc 100 exactement: quand l'offset a
+   avancé d'un motif, le tracé est visuellement identique — la boucle ne se
+   voit pas, et un éclat atteint le nœud pile à la fin de chaque cycle. */
+const DASH = 7;
+const GAP = 43;
+const PATTERN = DASH + GAP;
+/* Durée d'un cycle: le temps qu'un éclat mette pour prendre la place du
+   suivant, donc aussi l'intervalle entre deux arrivées. */
+const CYCLE_S = 1.35;
+/* Part du cycle occupée par l'onde qui repart du nœud; le reste est la montée
+   pendant laquelle l'éclat suivant approche. */
+const WAVE_RATIO = 0.34;
+/* Décalage entre deux fils: les quatre ne débitent pas en rang d'oignons. */
 const DEPART_GAP_S = 0.62;
 
 export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
@@ -160,46 +171,69 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
         scrollTrigger: { trigger: stage, start: 'top 82%', end: 'center 52%', scrub: 0.6 },
       });
 
-      /* Le courant, un nœud à la fois.
-         Chaque trait porte un second tracé réduit à un tiret court
-         (`pathLength=100` rend la mesure indépendante de la longueur réelle,
-         donc les quatre éclats filent à la même vitesse malgré des courbes
-         inégales). L'offset qui décroît pousse le tiret du hub vers le nœud :
-         le courant part de Qwillio, il n'y revient pas.
+      /* Le courant coule SANS INTERRUPTION (retour utilisateur: « toujours de
+         l'électricité en boucle, pas de pause »).
 
-         Deux corrections de la première version:
-           - l'éclat NAÎT au départ et MEURT à l'arrivée (opacité menée dans la
-             timeline). Sans ça, un tiret restait posé à l'entrée du fil entre
-             deux passages, immobile, et se lisait comme un défaut de tracé;
-           - l'anneau du nœud ne bat plus dans son coin: il est déclenché à
-             l'instant où l'éclat le touche. C'est ce décalage qui raconte que
-             quelque chose est ARRIVÉ, au lieu de deux animations qui tournent
-             en parallèle sans rapport l'une avec l'autre. */
+         La première version envoyait un éclat unique, puis attendait un temps
+         mort avant de recommencer: le fil restait éteint plus d'une seconde
+         sur trois, ce qui se lit comme une panne et non comme un flux. Ici le
+         tracé porte un motif de tirets répété, et seul l'offset avance: il y a
+         toujours deux éclats sur chaque fil, et la boucle est invisible parce
+         qu'un cycle avance exactement d'un motif.
+
+         L'offset DÉCROÎT: le courant part de Qwillio vers le nœud, jamais
+         l'inverse. */
       NODES.forEach((n, i) => {
         const spark = stage.querySelector(`[data-orbit-current="${n.id}"]`);
         const ring = stage.querySelector(`[data-orbit-pulse="${n.id}"]`);
         if (!spark) return;
 
-        /* L'éclat touche le bord de la pastille un cheveu avant la fin de sa
-           course: c'est là que le nœud s'allume, pas à la fin de la timeline. */
-        const ARRIVAL = TRAVEL_S - 0.18;
+        const delay = i * DEPART_GAP_S;
+
+        gsap.fromTo(
+          spark,
+          { strokeDashoffset: 0 },
+          {
+            strokeDashoffset: -PATTERN,
+            duration: CYCLE_S,
+            ease: 'none',
+            repeat: -1,
+            delay,
+          },
+        );
+
+        if (!ring) return;
+
+        /* L'impulsion autour de la pastille MONTE avec l'approche (retour
+           utilisateur: « apparaît petit à petit, plus le courant approche plus
+           l'opacité augmente »). Elle est en phase avec le train: même durée
+           de cycle, même départ, donc l'onde part à l'instant précis où un
+           éclat touche le nœud, cycle après cycle.
+
+           `power2.in` sur la montée: presque rien tant que l'éclat est loin,
+           l'essentiel dans le dernier tiers. Une montée linéaire donnerait un
+           anneau allumé en permanence à mi-teinte, qui ne raconte pas
+           l'approche.
+
+           L'onde reste AUTOUR de la pastille, rien à l'intérieur: un halo sur
+           le disque écrasait l'icône. */
+        const wave = CYCLE_S * WAVE_RATIO;
+
+        /* Le premier cycle n'a pas encore d'arrivée à célébrer: il ne fait que
+           monter. Sans ce préalable, l'onde partirait une fois dans le vide,
+           au chargement, avant qu'aucun éclat n'ait touché le nœud. */
+        gsap.fromTo(
+          ring,
+          { scale: 1, opacity: 0 },
+          { opacity: 0.9, duration: CYCLE_S, ease: 'power2.in', delay },
+        );
 
         gsap
-          .timeline({ repeat: -1, repeatDelay: REST_S, delay: i * DEPART_GAP_S })
-          .set(spark, { strokeDashoffset: 0, opacity: 0 })
-          .to(spark, { opacity: 1, duration: 0.22, ease: 'none' }, 0)
-          .to(spark, { strokeDashoffset: -100, duration: TRAVEL_S, ease: 'none' }, 0)
-          .to(spark, { opacity: 0, duration: 0.26, ease: 'none' }, TRAVEL_S - 0.26)
-          /* Une impulsion AUTOUR de la pastille, rien à l'intérieur (retour
-             utilisateur): l'anneau part du bord et s'éloigne en s'effaçant,
-             comme une onde. Le halo radial qui éclairait le disque a sauté, il
-             écrasait l'icône. */
-          .fromTo(
-            ring,
-            { scale: 1, opacity: 0.95 },
-            { scale: 1.9, opacity: 0, duration: 1.05, ease: 'power2.out' },
-            ARRIVAL,
-          );
+          .timeline({ repeat: -1, delay: delay + CYCLE_S })
+          .set(ring, { scale: 1, opacity: 0.9 }, 0)
+          .to(ring, { scale: 1.9, opacity: 0, duration: wave, ease: 'power2.out' }, 0)
+          .set(ring, { scale: 1 }, wave)
+          .to(ring, { opacity: 0.9, duration: CYCLE_S - wave, ease: 'power2.in' }, wave);
       });
     }, stage);
     return () => ctx.revert();
@@ -242,9 +276,11 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
                   stroke="rgba(150, 122, 255, 0.95)"
                   strokeWidth={1.9}
                   strokeLinecap="round"
-                  strokeDasharray="9 91"
+                  strokeDasharray={`${DASH} ${GAP}`}
                   strokeDashoffset={0}
-                  style={{ opacity: 0, filter: 'drop-shadow(0 0 4px rgba(122,95,255,0.8))' }}
+                  /* Plus d'opacité menée par éclat: le fil débite en continu,
+                     c'est le groupe qui s'allume une fois les traits tracés. */
+                  style={{ filter: 'drop-shadow(0 0 4px rgba(122,95,255,0.8))' }}
                 />
               ) : null,
             )}
