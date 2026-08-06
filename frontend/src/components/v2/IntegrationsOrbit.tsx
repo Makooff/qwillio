@@ -78,6 +78,13 @@ interface Geometry {
   paths: string[];
 }
 
+/* Course d'un éclat, du bord du hub au bord de la pastille. */
+const TRAVEL_S = 1.9;
+/* Temps mort avant que le même fil reparte. */
+const REST_S = 1.15;
+/* Décalage entre deux départs: les quatre ne partent pas en rang d'oignons. */
+const DEPART_GAP_S = 0.62;
+
 export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const hubRef = useRef<HTMLDivElement>(null);
@@ -145,33 +152,55 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
           scrollTrigger: { trigger: stage, start: 'top 82%', end: 'center 52%', scrub: 0.6 },
         },
       );
-      gsap.to('[data-orbit-pulse]', {
-        scale: 1.6,
-        opacity: 0,
-        duration: 2.2,
-        ease: 'power2.out',
-        repeat: -1,
-        stagger: 0.45,
-      });
-
-      /* Le courant. Chaque trait porte un second tracé réduit à un tiret court
-         (`pathLength=100` rend la mesure indépendante de la longueur réelle,
-         donc les quatre éclats filent à la même vitesse malgré des courbes
-         inégales). L'offset qui décroît pousse le tiret du hub vers le nœud :
-         le courant part de Qwillio, il n'y revient pas. */
-      gsap.to('[data-orbit-current]', {
-        strokeDashoffset: -100,
-        duration: 2.6,
-        ease: 'none',
-        repeat: -1,
-        stagger: 0.55,
-      });
-      /* Il ne s'allume qu'une fois le trait tracé : un éclat qui court sur un
-         fil pas encore dessiné se lit comme un bug. */
-      gsap.to('[data-orbit-current]', {
+      /* Le groupe entier ne s'allume qu'une fois les fils tracés : un éclat qui
+         court sur un trait pas encore dessiné se lit comme un bug. */
+      gsap.to('[data-orbit-current-group]', {
         opacity: 1,
         ease: 'none',
         scrollTrigger: { trigger: stage, start: 'top 82%', end: 'center 52%', scrub: 0.6 },
+      });
+
+      /* Le courant, un nœud à la fois.
+         Chaque trait porte un second tracé réduit à un tiret court
+         (`pathLength=100` rend la mesure indépendante de la longueur réelle,
+         donc les quatre éclats filent à la même vitesse malgré des courbes
+         inégales). L'offset qui décroît pousse le tiret du hub vers le nœud :
+         le courant part de Qwillio, il n'y revient pas.
+
+         Deux corrections de la première version:
+           - l'éclat NAÎT au départ et MEURT à l'arrivée (opacité menée dans la
+             timeline). Sans ça, un tiret restait posé à l'entrée du fil entre
+             deux passages, immobile, et se lisait comme un défaut de tracé;
+           - l'anneau du nœud ne bat plus dans son coin: il est déclenché à
+             l'instant où l'éclat le touche. C'est ce décalage qui raconte que
+             quelque chose est ARRIVÉ, au lieu de deux animations qui tournent
+             en parallèle sans rapport l'une avec l'autre. */
+      NODES.forEach((n, i) => {
+        const spark = stage.querySelector(`[data-orbit-current="${n.id}"]`);
+        const ring = stage.querySelector(`[data-orbit-pulse="${n.id}"]`);
+        const glow = stage.querySelector(`[data-orbit-glow="${n.id}"]`);
+        if (!spark) return;
+
+        /* L'éclat touche le bord de la pastille un cheveu avant la fin de sa
+           course: c'est là que le nœud s'allume, pas à la fin de la timeline. */
+        const ARRIVAL = TRAVEL_S - 0.18;
+
+        gsap
+          .timeline({ repeat: -1, repeatDelay: REST_S, delay: i * DEPART_GAP_S })
+          .set(spark, { strokeDashoffset: 0, opacity: 0 })
+          .to(spark, { opacity: 1, duration: 0.22, ease: 'none' }, 0)
+          .to(spark, { strokeDashoffset: -100, duration: TRAVEL_S, ease: 'none' }, 0)
+          .to(spark, { opacity: 0, duration: 0.26, ease: 'none' }, TRAVEL_S - 0.26)
+          .fromTo(
+            ring,
+            { scale: 1, opacity: 0.9 },
+            { scale: 1.65, opacity: 0, duration: 0.85, ease: 'power2.out' },
+            ARRIVAL,
+          )
+          /* Le halo monte vite et redescend lentement: une pastille qui reçoit
+             du courant, pas une pastille qui clignote. */
+          .to(glow, { opacity: 1, duration: 0.18, ease: 'power2.out' }, ARRIVAL)
+          .to(glow, { opacity: 0, duration: 1.1, ease: 'power2.out' }, ARRIVAL + 0.18);
       });
     }, stage);
     return () => ctx.revert();
@@ -202,23 +231,26 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
         )}
         {/* Le courant qui passe : un éclat court posé sur le même tracé. En
             reduced-motion il n'existe pas, les quatre fils restent des fils. */}
-        {!reduced &&
-          geo?.paths.map((d, i) =>
-            d ? (
-              <path
-                key={`current-${NODES[i].id}`}
-                data-orbit-current
-                d={d}
-                pathLength={100}
-                stroke="rgba(150, 122, 255, 0.95)"
-                strokeWidth={1.9}
-                strokeLinecap="round"
-                strokeDasharray="9 91"
-                strokeDashoffset={0}
-                style={{ opacity: 0, filter: 'drop-shadow(0 0 4px rgba(122,95,255,0.8))' }}
-              />
-            ) : null,
-          )}
+        {!reduced && (
+          <g data-orbit-current-group style={{ opacity: 0 }}>
+            {geo?.paths.map((d, i) =>
+              d ? (
+                <path
+                  key={`current-${NODES[i].id}`}
+                  data-orbit-current={NODES[i].id}
+                  d={d}
+                  pathLength={100}
+                  stroke="rgba(150, 122, 255, 0.95)"
+                  strokeWidth={1.9}
+                  strokeLinecap="round"
+                  strokeDasharray="9 91"
+                  strokeDashoffset={0}
+                  style={{ opacity: 0, filter: 'drop-shadow(0 0 4px rgba(122,95,255,0.8))' }}
+                />
+              ) : null,
+            )}
+          </g>
+        )}
       </svg>
 
       {/* Lueur du centre: le hub est la source, les traits en partent */}
@@ -241,13 +273,27 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
           data-orbit-node={n.id}
           className={`q2-lit absolute ${n.corner} w-[120px] sm:w-[168px] rounded-[18px] bg-q2-canvas border border-q2-plate px-3 py-3 shadow-[var(--q2-shadow-whisper)]`}
         >
-          <span className="relative inline-flex items-center justify-center w-8 h-8 rounded-full bg-q2-band shadow-[0_0_12px_-2px_rgba(122,95,255,0.55)]">
-            <n.icon size={15} className="text-q2-indigo" aria-hidden="true" />
+          {/* La pastille est éteinte au repos (retour utilisateur : les quatre
+              halos allumés en permanence ne voulaient rien dire). Le halo et
+              l'anneau sont réveillés par la timeline du fil correspondant, à la
+              seconde où l'éclat arrive. */}
+          <span className="relative inline-flex items-center justify-center w-8 h-8 rounded-full bg-q2-band">
             <span
-              data-orbit-pulse
+              data-orbit-glow={n.id}
+              aria-hidden="true"
+              className="absolute -inset-1.5 rounded-full"
+              style={{
+                opacity: 0,
+                background: 'radial-gradient(closest-side, rgba(122,95,255,0.55), rgba(122,95,255,0) 100%)',
+                willChange: 'opacity',
+              }}
+            />
+            <n.icon size={15} className="relative text-q2-indigo" aria-hidden="true" />
+            <span
+              data-orbit-pulse={n.id}
               aria-hidden="true"
               className="absolute inset-0 rounded-full border border-q2-indigo/40 shadow-[0_0_10px_0_rgba(122,95,255,0.35)]"
-              style={{ willChange: 'transform, opacity' }}
+              style={{ opacity: 0, willChange: 'transform, opacity' }}
             />
           </span>
           <p className="mt-2.5 text-[13px] font-medium text-q2-ink leading-tight">{n.label}</p>
