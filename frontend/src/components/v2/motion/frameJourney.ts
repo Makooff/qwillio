@@ -137,7 +137,30 @@ export function framePath(box: FrameBox, radius: number): string {
  *   - RESPIRATION DES BORDS. Un léger renflement perpendiculaire, maximal à
  *     mi-parcours et nul aux deux bouts, pour que les côtés ne restent pas des
  *     droites pendant que les coins travaillent.
+ *   - PINCEMENT PAR LE COIN DE SORTIE. Le cadre RAPETISSE en passant par le
+ *     coin tourné vers l'arrivée, puis REGRANDIT depuis le coin d'entrée de la
+ *     boîte suivante. C'est ce que l'utilisateur a décrit: « rapetisse en
+ *     passant par son point droit et s'agrandit pour faire le fond de la
+ *     deuxième carte », puis par le bas gauche pour la troisième. Le coin de
+ *     sortie n'est jamais choisi à la main: il découle du sens du trajet, donc
+ *     l'alternance gauche/droite/gauche/droite vient toute seule de la mise en
+ *     page alternée.
  */
+
+/**
+ * Coin de la boîte tourné vers la direction donnée.
+ *
+ * Sur un trajet purement vertical (`ux` nul), `Math.sign(0)` vaut 0 et le point
+ * retombe au milieu du bord: c'est le bon comportement, une colonne unique doit
+ * pincer par le bord et non par un coin arbitraire.
+ */
+function cornerToward(box: FrameBox, ux: number, uy: number): { x: number; y: number } {
+  return {
+    x: box.x + box.w / 2 + Math.sign(ux) * (box.w / 2),
+    y: box.y + box.h / 2 + Math.sign(uy) * (box.h / 2),
+  };
+}
+
 export function frameJourney(params: {
   from: FrameBox;
   to: FrameBox;
@@ -147,8 +170,10 @@ export function frameJourney(params: {
   lead?: number;
   /** Renflement des bords à mi-parcours, en pixels. */
   swell?: number;
+  /** Rétrécissement à mi-parcours, en fraction de la taille (0 = aucun). */
+  pinch?: number;
 }): string {
-  const { from, to, radius, lead = 0.22, swell = 10 } = params;
+  const { from, to, radius, lead = 0.22, swell = 10, pinch = 0.6 } = params;
   const p = Math.max(0, Math.min(1, params.progress));
 
   const dx = to.x + to.w / 2 - (from.x + from.w / 2);
@@ -160,6 +185,17 @@ export function frameJourney(params: {
   /* Nul aux deux bouts, maximal au milieu: le cadre arrive net sur l'étape,
      il ne s'y pose pas encore tordu. */
   const tension = Math.sin(p * Math.PI);
+
+  /* Le pivot du rétrécissement glisse du coin de SORTIE de la boîte de départ
+     vers le coin d'ENTRÉE de la boîte d'arrivée. Un pivot fixe ferait rentrer
+     la forme dans un coin puis ressortir du même, ce qui se lit comme un
+     rebond; en le faisant glisser, la forme traverse vraiment. */
+  const exit = cornerToward(from, ux, uy);
+  const entry = cornerToward(to, -ux, -uy);
+  const pivotX = exit.x + (entry.x - exit.x) * p;
+  const pivotY = exit.y + (entry.y - exit.y) * p;
+  /* Nul aux deux bouts: le cadre se pose à taille pleine sur chaque étape. */
+  const shrink = 1 - pinch * tension;
 
   const points = Array.from({ length: FRAME_POINTS }, (_, i) => {
     const t = i / FRAME_POINTS;
@@ -180,7 +216,15 @@ export function frameJourney(params: {
     /* Renflement perpendiculaire au déplacement, alterné le long du tour pour
        que les quatre côtés ne gonflent pas ensemble. */
     const wobble = Math.sin(t * Math.PI * 2 + p * Math.PI) * swell * tension;
-    return { x: x + -uy * wobble, y: y + ux * wobble };
+    const wx = x + -uy * wobble;
+    const wy = y + ux * wobble;
+
+    /* Rétrécissement appliqué EN DERNIER, autour du pivot: il doit emporter la
+       déformation des coins et le renflement, pas se faire écraser par eux. */
+    return {
+      x: pivotX + (wx - pivotX) * shrink,
+      y: pivotY + (wy - pivotY) * shrink,
+    };
   });
 
   return smoothClosedPath(points);
