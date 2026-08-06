@@ -57,10 +57,10 @@ beforeEach(() => {
 });
 
 describe('ce que reçoit le propriétaire', () => {
-  it('envoie un SMS par défaut, sans qu’il ait rien à régler', async () => {
+  it('envoie SMS et courriel par défaut, sans qu’il ait rien à régler', async () => {
     const r = await callNotificationService.notify(CLIENT, CALL);
 
-    expect(r.sms).toBe(true);
+    expect(r).toEqual({ sms: true, email: true });
     expect(sendSMS.mock.calls[0][0]).toBe('+32471221088');
     expect(sendSMS.mock.calls[0][2]).toMatchObject({ messageType: 'call_notification', clientId: 'client_1' });
   });
@@ -155,13 +155,14 @@ describe('quand un canal tombe', () => {
 });
 
 describe('les préférences', () => {
-  it('valent SMS, tout appel, 30 par jour quand rien n’est réglé', () => {
-    expect(readPrefs(CLIENT)).toEqual({ channel: 'sms', leadsAndBookingsOnly: false, dailySmsCap: 30 });
+  it('valent TOUT ACTIF, tout appel, 30 par jour quand rien n’est réglé', () => {
+    // Décision produit: les deux canaux d'emblée, le client coupe ce qu'il veut.
+    expect(readPrefs(CLIENT)).toEqual({ channel: 'both', leadsAndBookingsOnly: false, dailySmsCap: 30 });
   });
 
   it('ignore une valeur de canal inconnue plutôt que de se taire', () => {
     const client = { ...CLIENT, vapiConfig: { callNotify: { channel: 'pigeon' } } };
 
-    expect(readPrefs(client).channel).toBe('sms');
+    expect(readPrefs(client).channel).toBe('both');
   });
 });

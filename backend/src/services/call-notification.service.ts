@@ -35,9 +35,12 @@ export interface CallNotifyPrefs {
 }
 
 const DEFAULT_PREFS: CallNotifyPrefs = {
-  /* Par défaut le SMS, parce que c'est la promesse du site: « une notification
-     à chaque appel », lisible sans ouvrir quoi que ce soit. */
-  channel: 'sms',
+  /* Tout actif par défaut (décision utilisateur): le SMS pour lire l'essentiel
+     sans rien ouvrir, le courriel pour retrouver le détail ensuite. Chaque
+     client reste libre de couper l'un, l'autre ou les deux depuis ses
+     paramètres, et le plafond quotidien continue de borner la facture Twilio
+     quoi qu'il arrive. */
+  channel: 'both',
   leadsAndBookingsOnly: false,
   dailySmsCap: 30,
 };

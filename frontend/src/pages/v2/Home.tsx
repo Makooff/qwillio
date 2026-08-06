@@ -25,6 +25,7 @@ import GlowCard from '../../components/v2/motion/GlowCard';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import PixelBlushBackdrop from '../../components/v2/motion/PixelBlushBackdrop';
 import ShapeDrift from '../../components/v2/motion/ShapeDrift';
+import StepFrame from '../../components/v2/motion/StepFrame';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -209,6 +210,8 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
 
 export default function Home() {
   const { lang } = useLang();
+  /* Repère du cadre qui passe d'une étape à l'autre dans « Pendant l'appel ». */
+  const duringRef = useRef<HTMLDivElement>(null);
   const isFr = lang === 'fr';
 
   useSEO({
@@ -408,7 +411,14 @@ export default function Home() {
           className="hidden md:block"
           shapes={[{ kind: 'column', x: '-7%', y: '18%', size: 260, drift: -170, opacity: 0.42 }]}
         />
+        {/* Le cadre voyage dans CE repère: il est posé en absolu sur le
+            conteneur et mesure les étapes qui s'y trouvent. */}
         <Container>
+          {/* Un div porteur plutôt qu'une ref sur Container: la primitive est
+              partagée par toute la V2, lui ajouter forwardRef pour un seul
+              appelant la complique pour tous les autres. */}
+          <div ref={duringRef} className="relative">
+          <StepFrame scope={duringRef} className="hidden md:block" />
           <PinnedScene
             aside={
               <RevealV2 className="max-w-[420px]">
@@ -439,7 +449,8 @@ export default function Home() {
             {during.map((item, i) => (
               <div
                 key={item.title}
-                className="grid md:grid-cols-[56px_1fr] gap-4 md:gap-8 py-6 sm:py-8 md:py-9 items-start"
+                data-step-frame
+                className="relative grid md:grid-cols-[56px_1fr] gap-4 md:gap-8 py-6 sm:py-8 md:py-9 items-start"
               >
                 <div className="flex md:flex-col items-center md:items-start gap-3">
                   <span className="w-11 h-11 rounded-full bg-q2-canvas border border-q2-plate flex items-center justify-center">
@@ -458,6 +469,7 @@ export default function Home() {
               </div>
             ))}
           </PinnedScene>
+          </div>
         </Container>
       </Section>
 
