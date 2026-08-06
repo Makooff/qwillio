@@ -451,7 +451,11 @@ export default function AppShell({
           data-scroll-root
           className="flex-1 overflow-y-auto px-3.5 md:px-8 py-4 md:py-6 pb-[124px] md:pb-8"
         >
-          <div key={location.pathname} className="q2p-page max-w-[1100px]">
+          {/* Plus de gouttière de 1100 px sur grand écran (demande
+              utilisateur): les pages occupent la largeur disponible comme
+              l'accueil du site. Le plafond de 1600 px reste, sinon un tableau
+              sur un écran ultra-large étire ses colonnes jusqu'à l'illisible. */}
+          <div key={location.pathname} className="q2p-page max-w-[1600px]">
             <Outlet />
           </div>
         </main>
