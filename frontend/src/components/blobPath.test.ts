@@ -150,6 +150,31 @@ describe('the reference outlines', () => {
     }
   });
 
+  it('samples the played timeline rather than the stored keyframes', () => {
+    // The file holds six keyframes far apart, each with its own easing. Blending
+    // those six linearly is a different, lumpier motion than the one the
+    // reference plays.
+    expect(BLOB_FRAMES.length).toBeGreaterThan(12);
+  });
+
+  it('hands over to a circle wound the same way as the shapes', () => {
+    // Vertex k has to stay vertex k through the handover. Wound the other way,
+    // every point would cross the whole shape to reach its place and the last
+    // moment of the animation would be a scramble.
+    const area = (d: string) => {
+      const points = numbers(d);
+      const vertices: number[][] = [[points[0], points[1]]];
+      for (let i = 2; i + 5 < points.length; i += 6) vertices.push([points[i + 4], points[i + 5]]);
+      let sum = 0;
+      for (let i = 0; i < vertices.length; i++) {
+        const next = vertices[(i + 1) % vertices.length];
+        sum += vertices[i][0] * next[1] - next[0] * vertices[i][1];
+      }
+      return sum;
+    };
+    expect(Math.sign(area(BLOB_CIRCLE))).toBe(Math.sign(area(BLOB_FRAMES[0])));
+  });
+
   it('carries the travel in the path, not in a transform', () => {
     expect(bounds(journey[0]).x).toBeLessThan(-200);
     const last = bounds(journey[journey.length - 1]);

@@ -73,8 +73,10 @@ const LOBE_Y = CENTRE + (BLOB.top + R - LOGO / 2);
  * lobe is in front for the whole journey as it is in the logo.
  *
  * The outlines are the reference file's own — wide shapes with deep concave
- * notches. A perturbed circle cannot be one of these: no amount of nudging a
- * radius produces a silhouette that folds back into itself.
+ * notches, sampled off its played timeline rather than off its six keyframes, so
+ * the deformation is the one the reference actually shows. A perturbed circle
+ * cannot be any of these: no amount of nudging a radius produces a silhouette
+ * that folds back into itself.
  *
  * Flat fills. A gradient on these reads as a reflection on a rendered sphere,
  * and what arrives has to be the logo's own colour — it is about to *become*
@@ -93,8 +95,8 @@ const DROPS: Drop[] = [
       to: { x: LOBE_RIGHT, y: LOBE_Y },
       r: R,
       // Two bubbles in the same pose at the same moment read as one object
-      // duplicated, so this one starts three frames into the loop.
-      offset: 3,
+      // duplicated, so this one starts a third of the way into the loop.
+      offset: 8,
     }),
     fill: '#CD6BFB',
   },
