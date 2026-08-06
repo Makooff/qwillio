@@ -22,6 +22,11 @@ import { useGlow } from './motion/GlowCard';
      compacte (ressort framer réversible), et le fond de la bulle est
      TRANSPARENT FLOU (verre : backdrop-blur + teinte crème très légère),
      plus jamais blanc. Le voile de repos s'efface pendant que la bulle vit.
+   - AU-DESSUS D'UNE SECTION SOMBRE : la teinte crème et le filet clair
+     dessinaient un anneau blanc sur le drenched. Le verre passe alors en
+     sombre. Les sections concernées se signalent déjà elles-mêmes par
+     `data-register="drenched"` (Primitives.tsx), il suffit de regarder si l'une
+     d'elles croise la bande de l'entête.
 
    Exception glassmorphism assumée et bornée: le `backdrop-blur` n'existe QUE
    sur ce chrome de nav. Le ban reste entier partout ailleurs
@@ -104,12 +109,13 @@ interface NavPanelProps {
   aside: ReactNode;
   open: boolean;
   hovered: boolean;
+  onDark: boolean;
   onOpen: () => void;
   onClose: () => void;
   onHover: () => void;
 }
 
-function NavPanel({ label, links, aside, open, hovered, onOpen, onClose, onHover }: NavPanelProps) {
+function NavPanel({ label, links, aside, open, hovered, onDark, onOpen, onClose, onHover }: NavPanelProps) {
   const id = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const reduced = useReducedMotion();
@@ -149,7 +155,7 @@ function NavPanel({ label, links, aside, open, hovered, onOpen, onClose, onHover
         <motion.span
           layoutId="q2-nav-pill"
           aria-hidden="true"
-          className="absolute inset-0 rounded-full bg-q2-band"
+          className={`absolute inset-0 rounded-full ${onDark ? 'bg-white/10' : 'bg-q2-band'}`}
           style={{ zIndex: -1 }}
           transition={reduced ? { duration: 0 } : PILL_SPRING}
         />
@@ -162,7 +168,11 @@ function NavPanel({ label, links, aside, open, hovered, onOpen, onClose, onHover
         aria-haspopup="true"
         aria-expanded={open}
         aria-controls={id}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-q2-graphite hover:text-q2-ink transition-colors duration-150 focus:outline-none focus-visible:text-q2-ink"
+        className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors duration-150 focus:outline-none ${
+          onDark
+            ? 'text-white/75 hover:text-white focus-visible:text-white'
+            : 'text-q2-graphite hover:text-q2-ink focus-visible:text-q2-ink'
+        }`}
       >
         {label}
         <ChevronDown
@@ -208,6 +218,7 @@ export default function NavV2() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
   const [detached, setDetached] = useState(false);
+  const [overDark, setOverDark] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [openPanel, setOpenPanel] = useState<PanelKey | null>(null);
   const [hovered, setHovered] = useState<HoverKey | null>(null);
@@ -225,9 +236,16 @@ export default function NavV2() {
   }, [location.pathname]);
 
   useEffect(() => {
+    /* Hauteur de la bande occupée par l'entête, bulle flottante comprise */
+    const BAND = 72;
     const onScroll = () => {
       const y = window.scrollY;
       setDetached((was) => (was ? y > REATTACH_AT : y > DETACH_AT));
+      const dark = Array.from(document.querySelectorAll('[data-register="drenched"]')).some((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top < BAND && r.bottom > 0;
+      });
+      setOverDark(dark);
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -489,8 +507,9 @@ export default function NavV2() {
             WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
             maskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
             WebkitMaskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
-            background:
-              'linear-gradient(to bottom, rgba(253, 252, 252, 0.4), rgba(253, 252, 252, 0.12) 55%, rgba(253, 252, 252, 0))',
+            background: overDark
+              ? 'linear-gradient(to bottom, rgba(8, 9, 10, 0.5), rgba(8, 9, 10, 0.16) 55%, rgba(8, 9, 10, 0))'
+              : 'linear-gradient(to bottom, rgba(253, 252, 252, 0.4), rgba(253, 252, 252, 0.12) 55%, rgba(253, 252, 252, 0))',
           }}
         />
         <motion.nav
@@ -505,13 +524,15 @@ export default function NavV2() {
              (teinte, bord, ombre) glisse en CSS. Fond transparent flouté,
              jamais blanc. */
           style={{
-            boxShadow: floating ? 'var(--q2-shadow-whisper)' : 'none',
+            boxShadow: floating && !overDark ? 'var(--q2-shadow-whisper)' : 'none',
             transition:
               'background-color 260ms cubic-bezier(0.16, 1, 0.3, 1), border-color 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1)',
           }}
           className={`relative mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 border ${
             floating
-              ? 'bg-white/20 backdrop-blur-2xl border-q2-plate/70'
+              ? overDark
+                ? 'bg-black/25 backdrop-blur-2xl border-white/10'
+                : 'bg-white/20 backdrop-blur-2xl border-q2-plate/70'
               : 'bg-transparent border-transparent'
           }`}
         >
@@ -520,7 +541,7 @@ export default function NavV2() {
             className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-md"
           >
             <QwillioLogo size={26} />
-            <span className="text-[15px] font-semibold tracking-tight text-q2-ink">Qwillio</span>
+            <span className={`text-[15px] font-semibold tracking-tight transition-colors duration-200 ${overDark ? 'text-white' : 'text-q2-ink'}`}>Qwillio</span>
           </Link>
 
           <div
@@ -534,6 +555,7 @@ export default function NavV2() {
               aside={productAside}
               open={openPanel === 'product'}
               hovered={hovered === 'product'}
+              onDark={overDark}
               onOpen={() => openNow('product')}
               onClose={closePanel}
               onHover={() => setHovered('product')}
@@ -544,6 +566,7 @@ export default function NavV2() {
               aside={companyAside}
               open={openPanel === 'company'}
               hovered={hovered === 'company'}
+              onDark={overDark}
               onOpen={() => openNow('company')}
               onClose={closePanel}
               onHover={() => setHovered('company')}
@@ -559,14 +582,16 @@ export default function NavV2() {
                 <motion.span
                   layoutId="q2-nav-pill"
                   aria-hidden="true"
-                  className="absolute inset-0 rounded-full bg-q2-band"
+                  className={`absolute inset-0 rounded-full ${overDark ? 'bg-white/10' : 'bg-q2-band'}`}
                   style={{ zIndex: -1 }}
                   transition={reduced ? { duration: 0 } : PILL_SPRING}
                 />
               )}
               <Link
                 to="/pricing"
-                className="block px-3 py-1.5 text-sm text-q2-graphite hover:text-q2-ink transition-colors duration-150"
+                className={`block px-3 py-1.5 text-sm transition-colors duration-150 ${
+                  overDark ? 'text-white/75 hover:text-white' : 'text-q2-graphite hover:text-q2-ink'
+                }`}
               >
                 {isFr ? 'Tarifs' : 'Pricing'}
               </Link>
@@ -574,16 +599,21 @@ export default function NavV2() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <LangToggle />
+            <LangToggle onDark={overDark} />
             <Link
               to="/login"
-              className="text-sm text-q2-graphite hover:text-q2-ink transition-colors duration-150 px-2"
+              className={`text-sm transition-colors duration-150 px-2 ${
+                overDark ? 'text-white/75 hover:text-white' : 'text-q2-graphite hover:text-q2-ink'
+              }`}
             >
               {isFr ? 'Connexion' : 'Log in'}
             </Link>
             <Link
               to="/register"
-              className="q2-pill inline-flex items-center rounded-full bg-q2-ink text-white text-sm font-medium px-5 py-2 hover:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2"
+              /* Sur fond sombre la pilule encre disparaîtrait : elle s'inverse */
+              className={`q2-pill inline-flex items-center rounded-full text-sm font-medium px-5 py-2 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2 ${
+                overDark ? 'bg-white text-q2-ink hover:bg-white/90' : 'bg-q2-ink text-white hover:bg-black'
+              }`}
             >
               {isFr ? 'Essayer' : 'Try it'}
             </Link>
@@ -595,7 +625,9 @@ export default function NavV2() {
             onClick={() => setMenuOpen(!menuOpen)}
             aria-expanded={menuOpen}
             aria-label={menuOpen ? (isFr ? 'Fermer le menu' : 'Close menu') : isFr ? 'Ouvrir le menu' : 'Open menu'}
-            className="md:hidden inline-flex items-center justify-center w-11 h-11 rounded-full text-q2-ink hover:bg-q2-band transition-colors duration-150"
+            className={`md:hidden inline-flex items-center justify-center w-11 h-11 rounded-full transition-colors duration-150 ${
+              overDark ? 'text-white hover:bg-white/10' : 'text-q2-ink hover:bg-q2-band'
+            }`}
           >
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>

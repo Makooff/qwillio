@@ -24,17 +24,17 @@ interface Preset {
   descEn: string;
 }
 
+/* Six visages, un par ton, trois voix féminines et trois masculines. Le
+   carrousel du fichier 21st est calibré pour six cartes : au-delà, sa géométrie
+   se casse. Le catalogue produit, lui, en compte toujours dix — c'est ce que
+   compte la section des chiffres, et cette section-ci n'annonce aucun nombre. */
 const PRESETS: Preset[] = [
   { id: 'marie', name: 'Marie', personalityFr: 'Chaleureuse', personalityEn: 'Warm', descFr: 'Accueillante, le sourire dans la voix. Celle qui met vos clients à l’aise dès la première seconde.', descEn: 'Welcoming, a smile in her voice. She puts your customers at ease from the first second.' },
   { id: 'camille', name: 'Camille', personalityFr: 'Premium', personalityEn: 'Premium', descFr: 'Soignée et raffinée, pour une image haut de gamme au téléphone.', descEn: 'Polished and refined, for an upscale image on the phone.' },
-  { id: 'lea', name: 'Léa', personalityFr: 'Énergique', personalityEn: 'Energetic', descFr: 'Dynamique et enthousiaste, elle donne du rythme à chaque appel.', descEn: 'Dynamic and enthusiastic, she keeps every call moving.' },
-  { id: 'sofia', name: 'Sofia', personalityFr: 'Décontractée', personalityEn: 'Casual', descFr: 'Naturelle, conversationnelle. On oublie qu’on parle à un accueil.', descEn: 'Natural and conversational. Callers forget they reached a front desk.' },
   { id: 'nour', name: 'Nour', personalityFr: 'Bienveillante', personalityEn: 'Caring', descFr: 'Douce et attentive, pour les métiers où l’on appelle parfois inquiet.', descEn: 'Gentle and attentive, for trades where callers are sometimes worried.' },
   { id: 'lucas', name: 'Lucas', personalityFr: 'Professionnel', personalityEn: 'Professional', descFr: 'Posé et direct, rassurant. Le ton d’un cabinet qui inspire confiance.', descEn: 'Calm and direct, reassuring. The tone of a practice that inspires trust.' },
-  { id: 'adrien', name: 'Adrien', personalityFr: 'Chaleureux', personalityEn: 'Warm', descFr: 'Avenant, il met à l’aise tout de suite et laisse l’appelant finir ses phrases.', descEn: 'Approachable, he puts callers at ease at once and lets them finish their sentences.' },
-  { id: 'hugo', name: 'Hugo', personalityFr: 'Décontracté', personalityEn: 'Casual', descFr: 'Détendu et direct, comme un collègue au comptoir. Réponses nettes, rendez-vous vite calé.', descEn: 'Relaxed and direct, like a colleague at the desk. Crisp answers, a quickly booked slot.' },
   { id: 'theo', name: 'Théo', personalityFr: 'Énergique', personalityEn: 'Energetic', descFr: 'Motivé et concret, ça s’entend au téléphone. Il aime les appels qui aboutissent.', descEn: 'Driven and concrete, you can hear it on the line. He likes calls that get somewhere.' },
-  { id: 'julien', name: 'Julien', personalityFr: 'Premium', personalityEn: 'Premium', descFr: 'Distingué et posé, le sens du détail et des formules, pour une maison haut de gamme.', descEn: 'Distinguished and composed, a sense of detail and phrasing, for a high-end house.' },
+  { id: 'hugo', name: 'Hugo', personalityFr: 'Décontracté', personalityEn: 'Casual', descFr: 'Détendu et direct, comme un collègue au comptoir. Réponses nettes, rendez-vous vite calé.', descEn: 'Relaxed and direct, like a colleague at the desk. Crisp answers, a quickly booked slot.' },
 ];
 
 /* URL du clip public (mêmes voix que le dashboard, cache serveur + ETag) et

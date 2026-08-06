@@ -43,17 +43,13 @@ export interface CircularCarouselProps {
   className?: string;
 }
 
-/* VISIBLE_COUNT est LE paramètre de dimensionnement du fichier : il fixe le pas
-   angulaire (180/VISIBLE_COUNT) et la fenêtre visible (|adj| <= half*2).
-   Calé sur 5 pour les 6 cartes de la démo 21st, où l'écart maximal atteint 108
-   degrés : une seule carte dépasse le sommet, l'arc reste lisible.
-   Avec nos 10 visages, un VISIBLE_COUNT trop bas fait tourner les cartes
-   lointaines SOUS l'ellipse : deux d'entre elles retombent au même x (angles
-   symétriques autour de 90 degrés) et se chevauchent, en masquant au passage le
-   compteur central. Réglé sur 11 (nombre d'items + 1) : pas de 16.4 degrés,
-   écart maximal 82 degrés, les dix se répartissent sur le seul arc supérieur,
-   aucune collision, centre dégagé. Tout le reste du fichier est intouché. */
-const VISIBLE_COUNT = 11;
+/* Constantes du fichier, telles quelles. VISIBLE_COUNT fixe le pas angulaire
+   (180/VISIBLE_COUNT) et la fenêtre visible : à 5, l'écart maximal atteint 108
+   degrés, une seule carte dépasse le sommet, l'arc reste lisible. C'est le
+   calibrage de la démo d'origine, prévue pour SIX cartes — d'où les six visages
+   côté appelant. Vouloir en faire tenir dix ici déformait tout : les cartes
+   lointaines passaient sous l'ellipse et se chevauchaient. */
+const VISIBLE_COUNT = 5;
 const RADIUS_X = 220;
 const RADIUS_Y = 100;
 
@@ -169,14 +165,14 @@ export function CircularCarousel({
       )}
     >
       {/* Circular track */}
-      {/* Piste élargie par rapport au fichier (max-w-lg, h-[280px]) : les dix
-          visages atteignent x = ±218, l'orbite sortait du cadre. Hauteur et
-          ligne d'ancrage calées sur l'empan réel de l'arc (de -156 à +42 autour
-          de l'ancre) : rien n'est découpé en haut, pas de vide en bas.
-          Géométrie du conteneur, pas de l'animation. */}
-      <div ref={trackRef} className="relative w-full max-w-2xl" style={{ height: 220 * k }}>
+      {/* Hauteur du fichier (280). Deux ajustements de cadre seulement : un cran
+          de largeur en plus (la carte extrême est à x = ±209, le fichier la
+          rognait) et l'ancre à 164, parce que l'empan réel de l'arc va de -164 à
+          +95 autour d'elle une fois les cartes centrées sur leur point
+          d'orbite. Géométrie du conteneur, pas de l'animation. */}
+      <div ref={trackRef} className="relative w-full max-w-xl" style={{ height: 280 * k }}>
         <div
-          className="absolute inset-x-0 top-0 h-[220px]"
+          className="absolute inset-x-0 top-0 h-[280px]"
           style={{ transform: `scale(${k})`, transformOrigin: 'top center' }}
         >
         <AnimatePresence mode="popLayout">
@@ -207,7 +203,7 @@ export function CircularCarousel({
                 aria-label={item.title}
                 aria-current={isActive}
                 className={cn(
-                  'absolute left-1/2 top-[160px] flex h-28 w-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-q2-plate bg-q2-canvas p-2 transition-shadow duration-300',
+                  'absolute left-1/2 top-[164px] flex h-28 w-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-q2-plate bg-q2-canvas p-2 transition-shadow duration-300',
                   isActive
                     ? 'shadow-[0_20px_60px_-12px_rgba(20,16,50,0.28)]'
                     : 'shadow-[0_8px_24px_-4px_rgba(20,16,50,0.12)] hover:shadow-[0_12px_32px_-4px_rgba(20,16,50,0.18)]',
