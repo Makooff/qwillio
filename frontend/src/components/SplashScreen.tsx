@@ -168,29 +168,13 @@ export default function SplashScreen({
         <motion.div
           key="splash"
           className="fixed inset-0 z-[100] grid place-items-center overflow-hidden"
-          style={{ background: '#08070B' }}
+          style={{ background: '#000' }}
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: reduced ? 1 : 1.04 }}
           transition={{ duration: t.out, ease: EASE_DRAWER }}
           role="status"
           aria-label="Qwillio"
         >
-          {/*
-            The field the mark sits in: mauve gathered towards the top left,
-            near-black at the bottom right. Painted once and never animated —
-            a moving gradient of this size is a full-screen repaint per frame.
-          */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                'radial-gradient(120% 90% at 8% 4%, rgba(148,116,255,0.32) 0%, rgba(96,72,190,0.13) 38%, transparent 70%),'
-                + 'radial-gradient(95% 80% at 92% 96%, rgba(0,0,0,0.92) 0%, rgba(4,4,7,0.6) 45%, transparent 78%),'
-                + 'linear-gradient(148deg, rgba(36,26,64,0.75) 0%, rgba(12,10,20,0.9) 52%, #050507 100%)',
-            }}
-          />
-
           {/*
             The shapes, in screen coordinates.
 
