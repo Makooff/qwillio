@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import QwillioLogo from './QwillioLogo';
 import { blobKeyframes } from './blobPath';
+import { BLOB_FRAMES, BLOB_CIRCLE, BLOB_CENTRE } from './lottieBlob';
 
 /**
  * Launch animation for the installed app.
@@ -71,6 +72,12 @@ interface Drop {
   key: string;
   /** Outline keyframes, from arrival wobble to a circle at rest. */
   shapes: string[];
+  /**
+   * Where the outline is drawn. The Lottie's paths live in their own 72-unit
+   * box, so they are placed by transform rather than by rewriting every
+   * coordinate — which would also break the interpolation the frames exist for.
+   */
+  place?: string;
   stops: Array<{ offset: string; color: string }>;
   from: string;
   travel: string[];
@@ -79,6 +86,16 @@ interface Drop {
 }
 
 const R = px(ORB.r);
+
+/**
+ * Put a Lottie outline on a lobe: scale its 72-unit box down to the lobe's
+ * radius, then move its centre onto the lobe's centre.
+ */
+function lottiePlacement(cx: number, cy: number): string {
+  const k = R / BLOB_CENTRE.r;
+  return `translate(${(cx - BLOB_CENTRE.x * k).toFixed(2)} ${(cy - BLOB_CENTRE.y * k).toFixed(2)}) scale(${k.toFixed(4)})`;
+}
+
 const LOBE_LEFT = CENTRE - (LOGO / 2 - BLOB.leftX - R);
 const LOBE_RIGHT = CENTRE + (BLOB.rightX + R - LOGO / 2);
 const LOBE_Y = CENTRE + (BLOB.top + R - LOGO / 2);
@@ -106,7 +123,11 @@ const DROPS: Drop[] = [
   },
   {
     key: 'right',
-    shapes: blobKeyframes(LOBE_RIGHT, LOBE_Y, R, 0),
+    // The reference Lottie's own outline, ending on a circle so the mark can
+    // take over without a cut. Played from its second frame so the two lobes
+    // are never in the same pose.
+    shapes: [...BLOB_FRAMES.slice(1), ...BLOB_FRAMES.slice(0, 1), BLOB_CIRCLE],
+    place: lottiePlacement(LOBE_RIGHT, LOBE_Y),
     stops: [
       { offset: '0%', color: '#F6C8FF' },
       { offset: '26%', color: '#E08BFF' },
@@ -137,7 +158,8 @@ const DROPS: Drop[] = [
     key: 'left',
     // A different phase from the right one: twins deforming in unison are the
     // fastest way to make something look computed.
-    shapes: blobKeyframes(LOBE_LEFT, LOBE_Y, R, 3.4),
+    shapes: [...BLOB_FRAMES, BLOB_CIRCLE],
+    place: lottiePlacement(LOBE_LEFT, LOBE_Y),
     stops: [
       { offset: '0%', color: '#D8D0FF' },
       { offset: '26%', color: '#9E8CFF' },
@@ -284,23 +306,23 @@ export default function SplashScreen({
                     ))}
                   </defs>
                   {DROPS.map(drop => (
-                    <motion.path
+                    /*
+                      Two elements, deliberately. framer-motion writes its
+                      transform into `style`, and a CSS transform overrides the
+                      `transform` attribute entirely — so the travel and the
+                      placement have to live on different nodes or the outline
+                      lands in the corner of the box.
+                    */
+                    <motion.g
                       key={drop.key}
-                      fill={`url(#qw-fill-${drop.key})`}
-                      style={{ willChange: 'transform, d' }}
+                      style={{ willChange: 'transform' }}
                       initial={{
                         y: reduced ? 0 : drop.from,
-                        d: drop.shapes[0],
                         scale: reduced ? 1 : drop.satellite ? SATELLITE.scale[0] : TRAVEL_SCALE,
                         opacity: reduced && drop.satellite ? 0 : 1,
                       }}
                       animate={{
                         y: reduced ? 0 : drop.travel,
-                        // The outline itself is animated, vertex by vertex —
-                        // the whole point of the reference: a shape that
-                        // bulges on one side while flattening on another,
-                        // which no corner radius can express.
-                        d: reduced ? drop.shapes[drop.shapes.length - 1] : drop.shapes,
                         scale: reduced ? 1 : drop.satellite ? SATELLITE.scale : SETTLE,
                         opacity: drop.satellite && reduced ? 0 : 1,
                       }}
@@ -310,7 +332,25 @@ export default function SplashScreen({
                         times: reduced ? undefined : drop.satellite ? SATELLITE.times : undefined,
                         ease: EASE_OUT_EXPO,
                       }}
-                    />
+                    >
+                      <motion.path
+                        transform={drop.place}
+                        fill={`url(#qw-fill-${drop.key})`}
+                        style={{ willChange: 'd' }}
+                        initial={{ d: drop.shapes[0] }}
+                        animate={{
+                          // The outline itself, vertex by vertex — the point of
+                          // the reference file, and what a corner radius cannot
+                          // express: one side swelling while another flattens.
+                          d: reduced ? drop.shapes[drop.shapes.length - 1] : drop.shapes,
+                        }}
+                        transition={{
+                          duration: t.travel + t.settle,
+                          delay: reduced ? 0 : drop.delay,
+                          ease: 'easeInOut',
+                        }}
+                      />
+                    </motion.g>
                   ))}
                 </svg>
               </motion.div>
