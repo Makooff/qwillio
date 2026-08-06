@@ -24,6 +24,7 @@ import Magnetic from '../../components/v2/motion/Magnetic';
 import GlowCard from '../../components/v2/motion/GlowCard';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import PixelBlushBackdrop from '../../components/v2/motion/PixelBlushBackdrop';
+import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -486,6 +487,15 @@ export default function Home() {
 
       {/* ── AU NATUREL, bento: colonne collante + quatre blocs décalés ── */}
       <Section aria-labelledby="conv-heading" hairline className="relative overflow-hidden">
+        {/* Formes de marque en grand, en parallaxe: elles occupent le vide sous
+            la colonne de gauche et derrière le bento, jamais le texte. */}
+        <ShapeDrift
+          className="hidden lg:block"
+          shapes={[
+            { kind: 'column', x: '-6%', y: '30%', size: 300, drift: -190, opacity: 0.5 },
+            { kind: 'twin', x: '78%', y: '-14%', size: 420, rotate: 8, drift: 150, opacity: 0.28 },
+          ]}
+        />
         <Container className="relative grid lg:grid-cols-[1fr_1.6fr] gap-10 md:gap-16 lg:gap-24 items-start">
           {/* La colonne reste au regard pendant que les blocs défilent: c'est
               ce qui fait tenir la comparaison entre le titre et les quatre
@@ -562,6 +572,13 @@ export default function Home() {
 
       {/* ── CONFIGUREZ-LA EN LUI PARLANT ── */}
       <Section aria-labelledby="setup-heading" className="relative overflow-hidden">
+        <ShapeDrift
+          className="hidden md:block"
+          shapes={[
+            { kind: 'quarters', x: '72%', y: '-18%', size: 380, rotate: -10, drift: 200, opacity: 0.32 },
+            { kind: 'twinMirror', x: '-10%', y: '58%', size: 340, rotate: 14, drift: -140, opacity: 0.34 },
+          ]}
+        />
         <Container className="relative grid lg:grid-cols-[1fr_1.4fr] gap-9 sm:gap-12 items-start">
           <RevealV2>
             <Eyebrow tone="violet" className="mb-3 sm:mb-4">
