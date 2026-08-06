@@ -466,9 +466,12 @@ function MobileBottomNav({
         <div
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
-            background: 'linear-gradient(180deg, oklch(30% 0.01 265 / 0.20) 0%, oklch(16% 0.01 265 / 0.28) 100%)',
-            backdropFilter: 'blur(30px) saturate(1.8)',
-            WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
+            /* Voile dense : le flou seul ne suffit pas à rendre le fond
+               illisible (mesuré, même à 80 px le texte se relit), donc la
+               matière tient d'abord au voile, le flou l'adoucit. */
+            background: 'linear-gradient(180deg, oklch(24% 0.012 265 / 0.94) 0%, oklch(12% 0.012 265 / 0.97) 100%)',
+            backdropFilter: 'blur(30px) saturate(1.7)',
+            WebkitBackdropFilter: 'blur(30px) saturate(1.7)',
             /* Indispensable : sans cet indice, le navigateur photographie le
                fond au montage et ne le refait jamais, parce que le contenu
                défile dans un scroller imbriqué (<main data-scroll-root>) alors

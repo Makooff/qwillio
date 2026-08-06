@@ -503,13 +503,14 @@ export default function NavV2() {
             height: '160%',
             opacity: floating || menuOpen ? 0 : 1,
             transition: 'opacity 320ms cubic-bezier(0.16, 1, 0.3, 1)',
-            backdropFilter: 'blur(24px) saturate(1.4)',
-            WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+            backdropFilter: 'blur(30px) saturate(1.5)',
+            WebkitBackdropFilter: 'blur(30px) saturate(1.5)',
+            willChange: 'backdrop-filter',
             maskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
             WebkitMaskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
             background: overDark
-              ? 'linear-gradient(to bottom, rgba(8, 9, 10, 0.5), rgba(8, 9, 10, 0.16) 55%, rgba(8, 9, 10, 0))'
-              : 'linear-gradient(to bottom, rgba(253, 252, 252, 0.4), rgba(253, 252, 252, 0.12) 55%, rgba(253, 252, 252, 0))',
+              ? 'linear-gradient(to bottom, rgba(8, 9, 10, 0.72), rgba(8, 9, 10, 0.26) 55%, rgba(8, 9, 10, 0))'
+              : 'linear-gradient(to bottom, rgba(253, 252, 252, 0.72), rgba(253, 252, 252, 0.22) 55%, rgba(253, 252, 252, 0))',
           }}
         />
         <motion.nav
@@ -526,8 +527,8 @@ export default function NavV2() {
              du dashboard : flou large et saturé, voile de 14 à 22 %, filet
              lumineux en haut du verre. */
           style={{
-            backdropFilter: floating ? 'blur(30px) saturate(1.8)' : undefined,
-            WebkitBackdropFilter: floating ? 'blur(30px) saturate(1.8)' : undefined,
+            backdropFilter: floating ? 'blur(30px) saturate(1.7)' : undefined,
+            WebkitBackdropFilter: floating ? 'blur(30px) saturate(1.7)' : undefined,
             /* Sans cet indice, le navigateur photographie le fond une fois au
                montage et ne le refait jamais : la barre reste transparente
                au-dessus du contenu qui défile. Mesuré, pas supposé. */
@@ -543,8 +544,8 @@ export default function NavV2() {
           className={`relative mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 border ${
             floating
               ? overDark
-                ? 'bg-black/[0.22] border-white/10'
-                : 'bg-white/[0.14] border-white/40'
+                ? 'bg-black/[0.88] border-white/10'
+                : 'bg-white/[0.86] border-white/60'
               : 'bg-transparent border-transparent'
           }`}
         >
