@@ -178,7 +178,6 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
       NODES.forEach((n, i) => {
         const spark = stage.querySelector(`[data-orbit-current="${n.id}"]`);
         const ring = stage.querySelector(`[data-orbit-pulse="${n.id}"]`);
-        const glow = stage.querySelector(`[data-orbit-glow="${n.id}"]`);
         if (!spark) return;
 
         /* L'éclat touche le bord de la pastille un cheveu avant la fin de sa
@@ -191,16 +190,16 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
           .to(spark, { opacity: 1, duration: 0.22, ease: 'none' }, 0)
           .to(spark, { strokeDashoffset: -100, duration: TRAVEL_S, ease: 'none' }, 0)
           .to(spark, { opacity: 0, duration: 0.26, ease: 'none' }, TRAVEL_S - 0.26)
+          /* Une impulsion AUTOUR de la pastille, rien à l'intérieur (retour
+             utilisateur): l'anneau part du bord et s'éloigne en s'effaçant,
+             comme une onde. Le halo radial qui éclairait le disque a sauté, il
+             écrasait l'icône. */
           .fromTo(
             ring,
-            { scale: 1, opacity: 0.9 },
-            { scale: 1.65, opacity: 0, duration: 0.85, ease: 'power2.out' },
+            { scale: 1, opacity: 0.95 },
+            { scale: 1.9, opacity: 0, duration: 1.05, ease: 'power2.out' },
             ARRIVAL,
-          )
-          /* Le halo monte vite et redescend lentement: une pastille qui reçoit
-             du courant, pas une pastille qui clignote. */
-          .to(glow, { opacity: 1, duration: 0.18, ease: 'power2.out' }, ARRIVAL)
-          .to(glow, { opacity: 0, duration: 1.1, ease: 'power2.out' }, ARRIVAL + 0.18);
+          );
       });
     }, stage);
     return () => ctx.revert();
@@ -278,17 +277,7 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
               l'anneau sont réveillés par la timeline du fil correspondant, à la
               seconde où l'éclat arrive. */}
           <span className="relative inline-flex items-center justify-center w-8 h-8 rounded-full bg-q2-band">
-            <span
-              data-orbit-glow={n.id}
-              aria-hidden="true"
-              className="absolute -inset-1.5 rounded-full"
-              style={{
-                opacity: 0,
-                background: 'radial-gradient(closest-side, rgba(122,95,255,0.55), rgba(122,95,255,0) 100%)',
-                willChange: 'opacity',
-              }}
-            />
-            <n.icon size={15} className="relative text-q2-indigo" aria-hidden="true" />
+            <n.icon size={15} className="text-q2-indigo" aria-hidden="true" />
             <span
               data-orbit-pulse={n.id}
               aria-hidden="true"
