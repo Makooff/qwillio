@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, Play, Phone, CalendarCheck, PhoneForwarded, UserCheck,
@@ -14,6 +15,7 @@ import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
 import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import VoiceCard, { type VoiceData } from '../../components/landing/VoiceCard';
+import StepFrame from '../../components/v2/motion/StepFrame';
 
 /* Réceptionniste V2 « Papier & Signal » (DA/v2-direction.md).
    Récit: un réceptionniste qui agit pendant l'appel. Indigo = ce qui décroche
@@ -47,6 +49,7 @@ function Panel({ label, children }: { label: string; children: ReactNode }) {
 export default function Receptionist() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
+  const pillarsRef = useRef<HTMLDivElement>(null);
 
   useSEO({
     title: isFr
@@ -447,7 +450,12 @@ export default function Receptionist() {
             </div>
           </RevealV2>
 
-          <div className="border-t border-q2-plate">
+          {/* Le cadre voyage d'un panneau à l'autre en se déformant par les
+              coins: panneau à droite, puis en bas à gauche, et ainsi de suite.
+              Il est posé en absolu sur CE conteneur, qui doit donc être son
+              repère (`relative`). */}
+          <div ref={pillarsRef} className="relative border-t border-q2-plate">
+            <StepFrame scope={pillarsRef} radius={30} pad={14} className="hidden lg:block" />
             {pillars.map((pillar, i) => {
               const flip = i % 2 === 1;
               return (
@@ -465,7 +473,7 @@ export default function Receptionist() {
                         {pillar.body}
                       </p>
                     </div>
-                    <div className={flip ? 'lg:order-1' : ''}>
+                    <div data-step-frame className={flip ? 'lg:order-1' : ''}>
                       <Panel label={pillar.panelLabel}>
                         <ul className="divide-y divide-q2-plate" role="list">
                           {pillar.panelRows.map((row) => (

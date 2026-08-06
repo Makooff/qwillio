@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { framePath, frameJourney, type FrameBox } from './frameJourney';
 import { prefersReducedMotion } from './reducedMotion';
-
-gsap.registerPlugin(ScrollTrigger);
+import { onScrollFrame, sceneAt, sceneStarted } from './sceneProgress';
 
 /**
  * Un cadre arrondi posé derrière les étapes, qui passe de l'une à l'autre au
@@ -21,6 +18,11 @@ gsap.registerPlugin(ScrollTrigger);
  * Une translation garderait la silhouette rigide, or c'est précisément la
  * déformation qui est demandée.
  *
+ * L'avancée vient de `sceneProgress`, la même règle que celle qui allume
+ * l'étape courante: un scrub autonome donnait un cadre en avance de deux
+ * étapes sur le texte, et deux animations qui racontent la même chose ne
+ * peuvent pas la raconter différemment.
+ *
  * En reduced-motion le composant disparaît: c'est du décor, il n'a rien à dire
  * à qui coupe les animations.
  */
@@ -28,16 +30,26 @@ export default function StepFrame({
   /** Sélecteur des éléments à encadrer, dans le conteneur parent. */
   scope,
   radius = 22,
+  /**
+   * Marge autour de la boîte encadrée.
+   *
+   * À zéro le cadre épouse l'élément, ce qui le fait disparaître derrière un
+   * panneau opaque. Une marge le fait ressortir tout autour, comme un halo qui
+   * désigne l'étape en cours.
+   */
+  pad = 0,
   className = '',
 }: {
   scope: React.RefObject<HTMLElement | null>;
   radius?: number;
+  pad?: number;
   className?: string;
 }) {
   const [reduced] = useState(prefersReducedMotion);
   const svgRef = useRef<SVGSVGElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const [ready, setReady] = useState(false);
   const boxesRef = useRef<FrameBox[]>([]);
 
   /* Les boîtes sont relatives au conteneur, pas à la fenêtre: le cadre est
@@ -51,20 +63,38 @@ export default function StepFrame({
     const nodes = Array.from(root.querySelectorAll<HTMLElement>('[data-step-frame]'));
     boxesRef.current = nodes.map(node => {
       const b = node.getBoundingClientRect();
-      return { x: b.left - rootBox.left, y: b.top - rootBox.top, w: b.width, h: b.height };
+      return {
+        x: b.left - rootBox.left - pad,
+        y: b.top - rootBox.top - pad,
+        w: b.width + pad * 2,
+        h: b.height + pad * 2,
+      };
     });
     setSize({ w: rootBox.width, h: rootBox.height });
-  }, [scope]);
+  }, [pad, scope]);
 
   useLayoutEffect(() => {
     if (reduced) return;
+
+    /* La ref du conteneur appartient au PARENT, et React la pose après avoir
+       exécuté les effets de mise en page de ses enfants: à la première passe,
+       `scope.current` est encore nul. Sans cette reprise à la frame suivante,
+       la mesure ne se faisait jamais, `size` restait nul, et le composant
+       rendait `null` — le cadre n'a jamais été à l'écran. */
+    if (!scope.current) {
+      const id = requestAnimationFrame(() => setReady(true));
+      return () => cancelAnimationFrame(id);
+    }
+
     measure();
-    const root = scope.current;
-    if (!root || typeof ResizeObserver === 'undefined') return;
+    if (typeof ResizeObserver === 'undefined') return;
+    /* Les images et polices arrivent après le premier rendu et déplacent les
+       étapes: sans cet observateur, le cadre resterait calé sur des positions
+       périmées. */
     const ro = new ResizeObserver(() => measure());
-    ro.observe(root);
+    ro.observe(scope.current);
     return () => ro.disconnect();
-  }, [measure, reduced, scope]);
+  }, [measure, ready, reduced, scope]);
 
   useEffect(() => {
     const root = scope.current;
@@ -73,45 +103,23 @@ export default function StepFrame({
     const boxes = boxesRef.current;
     if (boxes.length < 2) return;
 
-    const ctx = gsap.context(() => {
-      /* Une seule valeur pilotée par le scroll: la position CONTINUE dans la
-         liste (0 = première étape, n-1 = dernière). Un trigger par étape
-         donnerait des sauts au raccord, là où une seule valeur donne un trajet
-         d'un bout à l'autre. */
-      const state = { at: 0 };
-      const last = boxes.length - 1;
+    const nodes = Array.from(root.querySelectorAll<HTMLElement>('[data-step-frame]'));
+    const aside = root.querySelector<HTMLElement>('[data-scene-aside]');
+    const last = boxes.length - 1;
 
-      const draw = () => {
-        const at = Math.max(0, Math.min(last, state.at));
-        const i = Math.min(last - 1, Math.floor(at));
-        const local = at - i;
-        path.setAttribute('d', frameJourney({
-          from: boxes[i],
-          to: boxes[i + 1],
-          radius,
-          progress: local,
-        }));
-      };
-
-      draw();
-
-      gsap.to(state, {
-        at: last,
-        ease: 'none',
-        onUpdate: draw,
-        scrollTrigger: {
-          trigger: root,
-          /* Le cadre se pose sur la première étape quand elle arrive au tiers
-             haut, et a fini son voyage quand la dernière y est: le trajet suit
-             la lecture, il ne la précède pas. */
-          start: 'top 62%',
-          end: 'bottom 72%',
-          scrub: 0.7,
-        },
-      });
-    }, root);
-
-    return () => ctx.revert();
+    return onScrollFrame(() => {
+      /* Tant que la colonne de titre descend encore, le cadre reste posé sur
+         la première étape: il ne part pas avant que la scène commence. */
+      const raw = sceneStarted(aside) ? sceneAt(nodes) : 0;
+      const at = Math.max(0, Math.min(last, raw));
+      const i = Math.min(last - 1, Math.floor(at));
+      path.setAttribute('d', frameJourney({
+        from: boxes[i],
+        to: boxes[i + 1],
+        radius,
+        progress: at - i,
+      }));
+    });
   }, [radius, reduced, size, scope]);
 
   if (reduced || !size) return null;
@@ -123,10 +131,14 @@ export default function StepFrame({
       width={size.w}
       height={size.h}
       viewBox={`0 0 ${size.w} ${size.h}`}
+      /* `overflow: visible`: avec une marge, le cadre déborde du conteneur
+         mesuré et un SVG le rognerait par défaut. */
+      style={{ overflow: 'visible' }}
       className={`pointer-events-none absolute left-0 top-0 ${className}`}
     >
       <path
         ref={pathRef}
+        data-frame-path
         d={boxesRef.current[0] ? framePath(boxesRef.current[0], radius) : ''}
         fill="rgba(122, 95, 255, 0.07)"
         stroke="rgba(122, 95, 255, 0.22)"

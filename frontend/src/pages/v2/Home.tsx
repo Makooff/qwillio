@@ -450,13 +450,26 @@ export default function Home() {
               <div
                 key={item.title}
                 data-step-frame
-                className="relative grid md:grid-cols-[56px_1fr] gap-4 md:gap-8 py-6 sm:py-8 md:py-9 items-start"
+                /* `min-h` en vh sur grand écran: sans ça les quatre étapes
+                   tiennent ensemble dans une fenêtre de 900 px et franchissent
+                   la ligne de lecture d'un bloc — le compteur passait de 01 à
+                   04 sans s'arrêter. Chaque étape a maintenant sa propre
+                   distance de défilement. */
+                className="relative grid md:grid-cols-[56px_1fr] gap-4 md:gap-8 py-6 sm:py-8 md:py-9 items-start lg:min-h-[32vh] lg:content-center"
               >
+                {/* L'étape courante ne se contente pas d'être moins pâle: sa
+                    pastille se remplit et son numéro passe à l'indigo. Une
+                    différence d'opacité seule se lit mal quand quatre étapes
+                    tiennent à l'écran en même temps. */}
                 <div className="flex md:flex-col items-center md:items-start gap-3">
-                  <span className="w-11 h-11 rounded-full bg-q2-canvas border border-q2-plate flex items-center justify-center">
-                    <item.icon size={17} className="text-q2-indigo" aria-hidden="true" />
+                  <span className="w-11 h-11 rounded-full bg-q2-canvas border border-q2-plate flex items-center justify-center transition-colors duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[active=true]:bg-q2-indigo group-data-[active=true]:border-q2-indigo">
+                    <item.icon
+                      size={17}
+                      className="text-q2-indigo transition-colors duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[active=true]:text-white"
+                      aria-hidden="true"
+                    />
                   </span>
-                  <span className="q2-eyebrow text-q2-faint tabular-nums">
+                  <span className="q2-eyebrow text-q2-faint tabular-nums transition-colors duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[active=true]:text-q2-indigo">
                     {String(i + 1).padStart(2, '0')}
                   </span>
                 </div>
