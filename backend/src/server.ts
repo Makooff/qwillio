@@ -31,6 +31,7 @@ if (env.SENTRY_DSN) {
 
 // Routes
 import authRoutes from './routes/auth.routes';
+import publicApiRoutes from './routes/public-api.routes';
 import prospectsRoutes from './routes/prospects.routes';
 import clientsRoutes from './routes/clients.routes';
 import dashboardRoutes from './routes/dashboard.routes';
@@ -131,6 +132,9 @@ app.use((req, _res, next) => {
 });
 
 // ─── Routes ──────────────────────────────────────────────
+/* API publique, authentifiée par clé et non par JWT. Montée avant les
+   routes applicatives pour qu'aucun middleware de session ne s'y applique. */
+app.use('/api/v1', publicApiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/prospects', prospectsRoutes);
 app.use('/api/clients', clientsRoutes);

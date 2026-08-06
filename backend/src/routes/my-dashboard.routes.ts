@@ -67,6 +67,12 @@ router.get('/characters/:id/preview', (req, res) => clientDashboardController.ch
 // the catalog over and over.
 router.post('/characters/warm', extractLimiter, (req, res) => clientDashboardController.warmCharacterPreviews(req, res));
 router.get('/voices', (req, res) => clientDashboardController.listVoices(req, res));
+
+/* Clés d'API, réservées au forfait qui les annonce. La clé complète n'est
+   renvoyée qu'à la création: la liste ne montre que le nom et l'usage. */
+router.get('/api-keys', (req, res) => clientDashboardController.listApiKeys(req, res));
+router.post('/api-keys', (req, res) => clientDashboardController.createApiKey(req, res));
+router.delete('/api-keys/:id', (req, res) => clientDashboardController.revokeApiKey(req, res));
 // Voice cloning. Same budget as dictation — a multi-megabyte body going to a
 // paid API, and a retry loop here would both bill the account and litter it
 // with dead voices.
