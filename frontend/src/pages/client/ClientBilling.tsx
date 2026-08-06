@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, AlertTriangle, Shield, Phone, FileText, Download } from 'lucide-react';
+import { Check, AlertTriangle, Shield, Phone, FileText, Download } from '../../components/icons';
 import api from '../../services/api';
 import { formatDate } from '../../utils/format';
 

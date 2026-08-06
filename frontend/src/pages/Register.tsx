@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { ArrowRight, Mail, Check, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Mail, Check, Eye, EyeOff } from '../components/icons';
 import QwillioLogo from '../components/QwillioLogo';
 import GoogleAuthButton from '../components/GoogleAuthButton';
 import { useSEO } from '../hooks/useSEO';

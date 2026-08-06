@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, Check, Users, Wallet, Clock, ArrowLeft } from 'lucide-react';
+import { Copy, Check, Users, Wallet, Clock, ArrowLeft } from '../components/icons';
 import api from '../services/api';
 import { useLang } from '../stores/langStore';
 import { useSEO } from '../hooks/useSEO';

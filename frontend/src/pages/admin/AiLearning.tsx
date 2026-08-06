@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { Brain, Clock, BarChart3, ChevronDown, ChevronUp, Zap, RefreshCw } from 'lucide-react';
+import { Brain, Clock, BarChart3, ChevronDown, ChevronUp, Zap, RefreshCw } from '../../components/icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import api from '../../services/api';

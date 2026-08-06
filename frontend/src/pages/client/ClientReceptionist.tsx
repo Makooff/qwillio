@@ -6,13 +6,16 @@ import {
   Volume2, Languages, Building2, MapPin, Settings,
   ChevronDown, ChevronRight, CheckCircle2, XCircle,
   BookOpen, Tag, HelpCircle, Clock3, Plus, X,
-} from 'lucide-react';
+} from '../../components/icons';
 import api from '../../services/api';
+/* Le cache `liveData` vient de master, le carrousel vient d'ici: les deux se
+   cumulent. CharacterPicker (la grille) n'est plus importé, c'est le carrousel
+   qui a pris sa place dans le rendu. */
 import { invalidateLive, fetchLive, peekLive } from '../../services/liveData';
-import CharacterPicker, { type Character } from '../../components/client/CharacterPicker';
+import { type Character } from '../../components/client/CharacterPicker';
+import CharacterCarousel from '../../components/v2/app/CharacterCarousel';
 import AssistantChat from '../../components/client/AssistantChat';
 import VoiceCloner, { type CustomVoice } from '../../components/client/VoiceCloner';
-import VoicePicker from '../../components/client/VoicePicker';
 
 /**
  * The endpoints this tab reads, as the cache knows them.
@@ -461,25 +464,26 @@ export default function ClientReceptionist() {
             <p className="text-[12px] text-[#8B8BA7] mb-3 leading-relaxed">
               Choisissez la voix et le caractère qui répond à vos appels. Cliquez sur ▶ pour un aperçu.
             </p>
-            <CharacterPicker
+            {/* Carrousel plutôt que grille (demande utilisateur): un visage à la
+                fois, son nom au-dessus, sa voix en dessous, écoute et crayon à
+                portée. Le crayon ouvre le menu en verre, qui porte à la fois
+                les personnages et les voix ElevenLabs à jour, avec recherche et
+                filtres. `VoicePicker`, qui doublait ce rôle sous la grille,
+                disparaît: c'était deux listes pour un seul choix. */}
+            <CharacterCarousel
               characters={characters}
               value={characterId}
               // The character carries a tone of its own; selecting one applies
               // it, and the tone buttons below stay available to override it.
-              onChange={c => { setCharacterId(c.id); setPersonalityPreset(c.personaKey); }}
+              onChange={id => {
+                const c = characters.find(x => x.id === id);
+                setCharacterId(id);
+                if (c) setPersonalityPreset(c.personaKey);
+              }}
               isFr={agentLanguage !== 'en'}
-              overrideVoice={customVoice}
+              override={customVoice}
+              onOverride={setCustomVoice}
             />
-            {selectedCharacter && (
-              <VoicePicker
-                characterId={selectedCharacter.id}
-                characterVoiceName={selectedCharacter.name}
-                value={customVoice}
-                onChange={setCustomVoice}
-                sampleText={agentLanguage === 'en' ? selectedCharacter.previewEn : selectedCharacter.previewFr}
-                isFr={agentLanguage !== 'en'}
-              />
-            )}
             <VoiceCloner
               voice={customVoice}
               isFr={agentLanguage !== 'en'}

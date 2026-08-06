@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Calendar, ClipboardList } from 'lucide-react';
+import { Calendar, ClipboardList } from '../../components/icons';
 import api from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';

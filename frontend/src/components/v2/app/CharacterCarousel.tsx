@@ -1,0 +1,291 @@
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { Check, ChevronLeft, ChevronRight, Mic, Pencil, Play, Square } from '../../icons';
+import api from '../../../services/api';
+import { previewUrl, type Character } from './CharacterPickerV2';
+import { useVoicePreview } from '../../client/useVoicePreview';
+import VoiceMenu from './VoiceMenu';
+import VoiceBars from './VoiceBars';
+import type { SelectedVoice } from '../../client/VoicePicker';
+
+/* Carrousel de personnages, registre produit V2 « instrument ». Une seule bulle
+   ronde au centre, nom au-dessus, voix en dessous, flèches de part et d'autre.
+   La grille (CharacterPickerV2) reste en place dans l'onboarding : elle sert à
+   comparer, ce carrousel sert à choisir une fois que le choix est fait.
+
+   Un personnage n'a plus de langue : il parle français et anglais, et l'aperçu
+   suit celle du client. L'accent affiché décrit le timbre, rien d'autre. */
+
+const ACCENT_LABEL: Record<string, string> = { FR: 'FR', BE: 'Belgique', US: 'EN' };
+
+/** Portrait rond. Chaque personnage du catalogue porte son webp ; la voix
+    clonée, elle, n'a pas de visage et prend l'icône micro, qui dit ce qu'elle
+    est plutôt que d'emprunter un portrait. La pastille à l'initiale ne sert
+    plus que de repli si une image manque. */
+function Bubble({ c, big = false }: { c: Character; big?: boolean }) {
+  const [broken, setBroken] = useState(false);
+  const size = big
+    ? 'w-[120px] h-[120px] sm:w-[150px] sm:h-[150px]'
+    : 'w-9 h-9';
+  const shell = `${size} shrink-0 rounded-full bg-q2-obsidian border border-q2-graphite-d`;
+
+  if (c.id === 'custom') {
+    return (
+      <span aria-hidden="true" className={`${shell} grid place-items-center`}>
+        <Mic size={big ? 34 : 14} className="text-q2-lift" />
+      </span>
+    );
+  }
+
+  if (broken) {
+    return (
+      <span
+        aria-hidden="true"
+        className={`${shell} grid place-items-center font-light text-q2-lift ${big ? 'text-[44px]' : 'text-[13px]'}`}
+      >
+        {c.name.charAt(0).toUpperCase()}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={c.avatar || `/characters/${c.id}.webp`}
+      alt=""
+      loading="lazy"
+      onError={() => setBroken(true)}
+      className={`${shell} object-cover`}
+    />
+  );
+}
+
+function voiceLabel(c: Character, isFr: boolean) {
+  const accent = ACCENT_LABEL[c.accent] || c.accent;
+  const gender = c.gender === 'f' ? (isFr ? 'Femme' : 'Female') : (isFr ? 'Homme' : 'Male');
+  return `${c.name} · ${accent} · ${gender}`;
+}
+
+export default function CharacterCarousel({
+  characters, value, onChange, isFr = true, override = null, onOverride,
+}: {
+  characters: Character[];
+  value: string;
+  onChange: (id: string) => void;
+  isFr?: boolean;
+  /* Voix qui remplace celle du personnage. Le personnage garde son visage et
+     son ton: seul le timbre change. */
+  override?: SelectedVoice | null;
+  onOverride?: (v: SelectedVoice | null) => void;
+}) {
+  const reduce = useReducedMotion();
+  const { playing, notice, line, toggle, prefetch, debug } = useVoicePreview(isFr);
+  const [dir, setDir] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const index = Math.max(0, characters.findIndex(c => c.id === value));
+  const current = characters[index];
+
+  // Le serveur synthétise le catalogue pendant que la page se lit. Les clips
+  // sont identiques d'une fois sur l'autre : la seule raison pour laquelle la
+  // lecture attendait, c'est que personne ne les avait encore demandés.
+  useEffect(() => {
+    void api.post('/my-dashboard/characters/warm').catch(() => undefined);
+  }, []);
+
+  // Le personnage affiché est celui qu'on écoutera : son clip est téléchargé
+  // d'avance, la pression suivante ne coûte plus rien.
+  const currentUrl = current ? previewUrl(current.id) : null;
+  useEffect(() => {
+    if (currentUrl) prefetch(currentUrl);
+  }, [currentUrl, prefetch]);
+
+  // Le menu se ferme au clic dehors et à Échap : il recouvre la bulle, le
+  // laisser ouvert bloquerait la navigation par flèches.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  if (!characters.length || !current) return null;
+
+  const go = (delta: number) => {
+    if (characters.length < 2) return;
+    setDir(delta);
+    const next = (index + delta + characters.length) % characters.length;
+    onChange(characters[next].id);
+  };
+
+  const tagline = isFr ? current.taglineFr : current.taglineEn;
+  const offset = reduce ? 0 : 44;
+  // `custom` sur AnimatePresence : sans lui, l'élément qui sort garde la
+  // direction du rendu précédent et repart du mauvais côté.
+  const slide = {
+    enter: (d: number) => ({ opacity: 0, x: d >= 0 ? offset : -offset }),
+    center: { opacity: 1, x: 0 },
+    exit: (d: number) => ({ opacity: 0, x: d >= 0 ? -offset : offset }),
+  };
+
+  return (
+    <>
+      {notice && (
+        <p
+          role="status"
+          className="mb-3 rounded-lg border border-q2-indigo/30 bg-q2-indigo/10 px-3 py-2 text-[11.5px] leading-snug text-q2-lift"
+        >
+          {notice}
+        </p>
+      )}
+
+      <div
+        role="group"
+        aria-roledescription={isFr ? 'carrousel de personnages' : 'character carousel'}
+        aria-label={isFr ? 'Personnage de la réceptionniste' : 'Receptionist character'}
+        tabIndex={0}
+        onKeyDown={e => {
+          if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+          if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+        }}
+        className="rounded-xl border border-q2-graphite-d bg-q2-obsidian px-3 py-6 sm:px-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+      >
+        <span className="sr-only" aria-live="polite">
+          {current.name}, {voiceLabel(current, isFr)}. {tagline}
+        </span>
+
+        <div className="flex items-center justify-center gap-2 sm:gap-5">
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            disabled={characters.length < 2}
+            aria-label={isFr ? 'Personnage précédent' : 'Previous character'}
+            className="w-9 h-9 shrink-0 rounded-full grid place-items-center border border-q2-graphite-d text-q2-mist hover:border-q2-smoke-d hover:text-white transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 disabled:opacity-30"
+          >
+            <ChevronLeft size={16} aria-hidden="true" />
+          </button>
+
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <AnimatePresence initial={false} mode="wait" custom={dir}>
+              <motion.div
+                key={current.id}
+                custom={dir}
+                variants={slide}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center gap-3"
+              >
+                <p className="text-[16px] font-medium text-white text-center truncate max-w-full">
+                  {current.name}
+                </p>
+                <Bubble c={current} big />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => go(1)}
+            disabled={characters.length < 2}
+            aria-label={isFr ? 'Personnage suivant' : 'Next character'}
+            className="w-9 h-9 shrink-0 rounded-full grid place-items-center border border-q2-graphite-d text-q2-mist hover:border-q2-smoke-d hover:text-white transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50 disabled:opacity-30"
+          >
+            <ChevronRight size={16} aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Le diagramme réactif à l'audio, demandé par l'utilisateur: il est
+            branché sur l'analyseur du lecteur, donc il suit la voix et non un
+            simple état « ça joue ». */}
+        <VoiceBars active={playing === current.id} className="mt-4" />
+
+        {/* Voix courante et bascule vers le catalogue complet */}
+        <div ref={menuRef} className="relative mt-4 flex items-center justify-center gap-2">
+          <span className="text-[12.5px] text-q2-mist truncate">
+            {override ? `${current.name} · ${override.name}` : voiceLabel(current, isFr)}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => toggle(current.id, previewUrl(current.id), (isFr ? current.previewFr : current.previewEn) || undefined)}
+            aria-label={isFr ? `Écouter ${current.name}` : `Preview ${current.name}`}
+            className="w-7 h-7 shrink-0 rounded-full grid place-items-center bg-q2-indigo/15 text-q2-lift hover:bg-q2-indigo/25 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+          >
+            {playing === current.id
+              ? <Square size={12} aria-hidden="true" />
+              : <Play size={12} aria-hidden="true" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen(o => !o)}
+            aria-expanded={menuOpen}
+            aria-haspopup="listbox"
+            aria-label={isFr ? 'Changer de voix' : 'Change voice'}
+            className="w-7 h-7 shrink-0 rounded-full grid place-items-center border border-q2-graphite-d text-q2-fog hover:text-white hover:border-q2-smoke-d transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+          >
+            <Pencil size={12} aria-hidden="true" />
+          </button>
+
+          <AnimatePresence>
+            {menuOpen && (
+              <VoiceMenu
+                characters={characters}
+                characterId={current.id}
+                onCharacter={id => {
+                  const target = characters.findIndex(x => x.id === id);
+                  setDir(target >= index ? 1 : -1);
+                  onChange(id);
+                  setMenuOpen(false);
+                }}
+                override={override}
+                onOverride={v => { onOverride?.(v); setMenuOpen(false); }}
+                playing={playing}
+                onToggle={toggle}
+                previewUrlFor={previewUrl}
+                isFr={isFr}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Pendant la lecture, la phrase enregistrée remplace la accroche: on
+            lit exactement ce que la voix est en train de dire. */}
+        {playing === current.id && line ? (
+          <p className="mt-2 text-center text-[11.5px] italic text-q2-mist q2-body-text">« {line} »</p>
+        ) : tagline ? (
+          <p className="mt-2 text-center text-[11.5px] text-q2-fog q2-body-text">{tagline}</p>
+        ) : null}
+
+        {debug && (
+          // Seulement après une pression : « aucune erreur, aucun son » n'est
+          // autrement pas rapportable par la personne qui tient le téléphone.
+          <p className="mt-3 text-center text-[10px] font-mono text-q2-fog">{debug}</p>
+        )}
+
+        {/* Repères de position : lire « 3 sur 10 » sans compter les points */}
+        {characters.length > 1 && (
+          <div className="mt-4 flex items-center justify-center gap-1.5" aria-hidden="true">
+            {characters.map((c, i) => (
+              <span
+                key={c.id}
+                className={`h-1 rounded-full transition-colors duration-150 ${
+                  i === index ? 'w-4 bg-q2-lift' : 'w-1 bg-q2-graphite-d'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

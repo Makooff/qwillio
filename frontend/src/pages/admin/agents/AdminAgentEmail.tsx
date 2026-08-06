@@ -1,4 +1,4 @@
-import { Mail } from 'lucide-react';
+import { Mail } from '../../../components/icons';
 import { AgentDetailShell } from '../../../components/admin/AgentDetailShell';
 
 export default function AdminAgentEmail() {

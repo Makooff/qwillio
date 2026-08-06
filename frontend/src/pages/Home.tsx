@@ -6,7 +6,7 @@ import {
   Phone, Bot, ArrowRight, Play, Clock, Mic, Calendar, MessageSquare,
   Users, Mail, Receipt, Package, Wallet, CreditCard, Gift, FileText, Headphones,
   type LucideIcon,
-} from 'lucide-react';
+} from '../components/icons';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';

@@ -1,5 +1,5 @@
 import { ReactNode, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X } from '../icons';
 import { t } from '../../styles/admin-theme';
 
 interface Props {

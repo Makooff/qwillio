@@ -718,6 +718,138 @@ export class ClientDashboardController {
     }
   }
 
+  // ── Clés d'API ────────────────────────────────────────────────────────
+  // « Accès API complet » est vendu sur Enterprise: la porte est donc ouverte
+  // là, et nulle part ailleurs. Le contrôle est refait à chaque requête de
+  // l'API elle-même, celui-ci ne fait qu'éviter de créer une clé inutilisable.
+
+  private async requireApiPlan(req: any, res: Response): Promise<{ userId: string } | null> {
+    const client = await prisma.client.findUnique({
+      where: { id: req.clientId },
+      select: { userId: true, planType: true },
+    });
+    if (!client?.userId) {
+      res.status(404).json({ error: 'client_not_found' });
+      return null;
+    }
+    if ((client.planType || '').toLowerCase() !== 'enterprise') {
+      res.status(403).json({ error: 'plan_required', message: "L'API est incluse au forfait Enterprise." });
+      return null;
+    }
+    return { userId: client.userId };
+  }
+
+  async listApiKeys(req: any, res: Response) {
+    try {
+      const ok = await this.requireApiPlan(req, res);
+      if (!ok) return;
+      const { agencyService } = await import('../services/agency.service');
+      res.json({ keys: await agencyService.listApiKeys(ok.userId) });
+    } catch (error: any) {
+      logger.error('[api-keys] liste impossible:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async createApiKey(req: any, res: Response) {
+    try {
+      const ok = await this.requireApiPlan(req, res);
+      if (!ok) return;
+      const name = String(req.body?.name || '').trim().slice(0, 120) || 'Clé sans nom';
+      const { agencyService } = await import('../services/agency.service');
+      const created = await agencyService.createApiKey(ok.userId, name, ['read']);
+      /* La clé complète n'est montrée QU'ICI. La liste ne la renvoie jamais:
+         une clé qu'on peut relire à volonté n'est plus un secret. */
+      res.status(201).json({ id: created.id, name: created.name, key: created.key, createdAt: created.createdAt });
+    } catch (error: any) {
+      logger.error('[api-keys] création impossible:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async revokeApiKey(req: any, res: Response) {
+    try {
+      const ok = await this.requireApiPlan(req, res);
+      if (!ok) return;
+      const { agencyService } = await import('../services/agency.service');
+      const r = await agencyService.revokeApiKey(String(req.params.id), ok.userId);
+      if (!r.count) return res.status(404).json({ error: 'key_not_found' });
+      res.json({ revoked: true });
+    } catch (error: any) {
+      logger.error('[api-keys] révocation impossible:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // ── Lignes supplémentaires (multi-sites) ──────────────────────────────
+  // « Multi-sites & numéros multiples » est vendu sur Enterprise. Le numéro
+  // principal du client reste sur son enregistrement: celles-ci s'y ajoutent.
+
+  async listPhoneNumbers(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { vapiPhoneNumber: true, phoneNumbers: { orderBy: { createdAt: 'asc' } } },
+      });
+      res.json({ primary: client?.vapiPhoneNumber || null, numbers: client?.phoneNumbers ?? [] });
+    } catch (error: any) {
+      logger.error('[phone-numbers] liste impossible:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async addPhoneNumber(req: any, res: Response) {
+    try {
+      const ok = await this.requireApiPlan(req, res);
+      if (!ok) return;
+
+      const number = String(req.body?.number || '').trim();
+      /* Au moins huit chiffres, comme le routage entrant: en accepter moins
+         créerait une ligne qui ne pourra jamais correspondre à un appel. */
+      if (number.replace(/\D/g, '').length < 8) {
+        return res.status(400).json({ error: 'invalid_number' });
+      }
+
+      /* Un même numéro chez deux clients rend l'appel non routable (le service
+         de routage refuse alors de deviner). Autant le refuser ici, où l'on
+         peut encore l'expliquer. */
+      const digits = number.replace(/\D/g, '');
+      const [taken, others] = await Promise.all([
+        prisma.client.findMany({ select: { id: true, vapiPhoneNumber: true } }),
+        prisma.clientPhoneNumber.findMany({ select: { clientId: true, number: true } }),
+      ]);
+      const clash =
+        taken.some(c => c.id !== req.clientId && (c.vapiPhoneNumber || '').replace(/\D/g, '') === digits) ||
+        others.some(p => p.clientId !== req.clientId && p.number.replace(/\D/g, '') === digits);
+      if (clash) return res.status(409).json({ error: 'number_already_routed' });
+
+      const created = await prisma.clientPhoneNumber.create({
+        data: {
+          clientId: req.clientId,
+          number,
+          label: req.body?.label ? String(req.body.label).trim().slice(0, 120) : null,
+        },
+      });
+      res.status(201).json({ number: created });
+    } catch (error: any) {
+      logger.error('[phone-numbers] ajout impossible:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async removePhoneNumber(req: any, res: Response) {
+    try {
+      const r = await prisma.clientPhoneNumber.deleteMany({
+        where: { id: String(req.params.id), clientId: req.clientId },
+      });
+      if (!r.count) return res.status(404).json({ error: 'number_not_found' });
+      res.json({ removed: true });
+    } catch (error: any) {
+      logger.error('[phone-numbers] suppression impossible:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // GET /my-dashboard/voices — the voices available on the ElevenLabs account,
   // so a voice is chosen after being heard instead of pasted as an opaque id.
   async listVoices(_req: any, res: Response) {

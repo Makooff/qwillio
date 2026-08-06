@@ -4,7 +4,7 @@ import {
   Link2, Unlink, RefreshCw, CheckCircle2, XCircle,
   ArrowLeftRight, ArrowRight, Clock, Database,
   TestTube, Loader2, AlertTriangle, ChevronDown, ChevronUp, MapPin
-} from 'lucide-react';
+} from '../../components/icons';
 import api from '../../services/api';
 
 interface Integration {

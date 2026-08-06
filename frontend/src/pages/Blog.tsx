@@ -1,4 +1,4 @@
-﻿import { ArrowRight, Clock, BookOpen } from 'lucide-react';
+﻿import { ArrowRight, Clock, BookOpen } from '../components/icons';
 import { Link } from 'react-router-dom';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';

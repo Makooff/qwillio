@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Square, Trash2, Upload, Loader2 } from 'lucide-react';
+import { Mic, Square, Trash2, Upload, Loader2 } from '../icons';
 import api from '../../services/api';
 
 export interface CustomVoice {

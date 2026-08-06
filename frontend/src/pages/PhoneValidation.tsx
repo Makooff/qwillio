@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
-import { RefreshCw, Phone, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { RefreshCw, Phone, CheckCircle, XCircle, AlertCircle } from '../components/icons';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { StatCardSkeleton, ChartSkeleton } from '../components/ui/Skeleton';
 import StatCard from '../components/ui/StatCard';

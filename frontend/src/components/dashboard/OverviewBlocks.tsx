@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, ArrowDownRight, ChevronRight, type LucideIcon } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, ChevronRight, type LucideIcon } from '../icons';
 import {
   AreaChart, Area, ResponsiveContainer, Tooltip, CartesianGrid, XAxis, YAxis,
 } from 'recharts';

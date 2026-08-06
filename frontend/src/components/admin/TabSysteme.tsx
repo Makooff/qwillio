@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { CSSProperties } from 'react';
-import { RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle2, XCircle } from '../icons';
 import api from '../../services/api';
 import { pro } from '../../styles/pro-theme';
 import { Card as ProCard, SectionHead as ProSectionHead } from '../pro/ProBlocks';

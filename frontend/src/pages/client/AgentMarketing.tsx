@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Megaphone, RefreshCw, Send } from 'lucide-react';
+import { Megaphone, RefreshCw, Send } from '../../components/icons';
 import api from '../../services/api';
 import { pro } from '../../styles/pro-theme';
 import { Card, PageHeader, SectionHead, PrimaryBtn, Pill, Stat } from '../../components/pro/ProBlocks';

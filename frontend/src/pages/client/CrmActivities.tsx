@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Phone, Mail, FileText, TrendingUp, MessageSquare, Calendar, Loader2 } from 'lucide-react';
+import { Phone, Mail, FileText, TrendingUp, MessageSquare, Calendar, Loader2 } from '../../components/icons';
 import api from '../../services/api';
 
 type ActivityType = 'call' | 'email' | 'note' | 'deal_update' | 'sms';

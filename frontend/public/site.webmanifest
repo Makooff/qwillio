@@ -2,7 +2,7 @@
   "name": "Qwillio – AI Receptionist & Business Automation",
   "short_name": "Qwillio",
   "description": "Your AI receptionist that answers every call, books appointments, and never sleeps. CRM, billing, follow-up SMS — all automated.",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#0A0A0C",
   "theme_color": "#0A0A0C",
@@ -33,5 +33,11 @@
       "purpose": "any"
     }
   ],
-  "categories": ["business", "productivity", "utilities"]
+  "categories": [
+    "business",
+    "productivity",
+    "utilities"
+  ],
+  "id": "/",
+  "scope": "/"
 }

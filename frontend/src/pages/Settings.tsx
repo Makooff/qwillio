@@ -5,7 +5,7 @@ import {
   Bot, Zap, Play, Square, Loader2,
   Bot as BotIcon, Mic2, Search,
   Clock, MapPin, ChevronDown, ChevronUp, Radio,
-} from 'lucide-react';
+} from '../components/icons';
 import { type SaveStatus, inputCls, selectCls, ConfigSection, Field, TagInput } from '../components/settings/SettingsUI';
 
 // ── Constants ──────────────────────────────────────────────────────────────

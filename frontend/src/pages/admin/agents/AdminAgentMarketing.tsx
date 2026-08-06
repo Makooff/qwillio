@@ -1,4 +1,4 @@
-import { Megaphone } from 'lucide-react';
+import { Megaphone } from '../../../components/icons';
 import { AgentDetailShell } from '../../../components/admin/AgentDetailShell';
 
 export default function AdminAgentMarketing() {

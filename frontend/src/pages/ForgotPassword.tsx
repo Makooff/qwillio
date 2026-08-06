@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, MailCheck } from 'lucide-react';
+import { ArrowRight, MailCheck } from '../components/icons';
 import api from '../services/api';
 import QwillioLogo from '../components/QwillioLogo';
 import { useSEO } from '../hooks/useSEO';

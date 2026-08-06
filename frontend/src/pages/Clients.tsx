@@ -1,6 +1,6 @@
 ﻿// === FILE: Clients.tsx ===
 import { useEffect, useState } from 'react';
-import { RefreshCw, Search, Plus, ArrowRight, TrendingUp, Loader2 } from 'lucide-react';
+import { RefreshCw, Search, Plus, ArrowRight, TrendingUp, Loader2 } from '../components/icons';
 import Modal from '../components/ui/Modal';
 import SlideSheet from '../components/ui/SlideSheet';
 import ToastContainer from '../components/ui/Toast';

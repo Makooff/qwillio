@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { differenceInDays, format } from 'date-fns';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle, Clock } from './icons';
 import api from '../services/api';
 
 interface TrialInfo {

@@ -31,6 +31,7 @@ if (env.SENTRY_DSN) {
 
 // Routes
 import authRoutes from './routes/auth.routes';
+import publicApiRoutes from './routes/public-api.routes';
 import prospectsRoutes from './routes/prospects.routes';
 import clientsRoutes from './routes/clients.routes';
 import dashboardRoutes from './routes/dashboard.routes';
@@ -41,6 +42,7 @@ import clientPortalRoutes from './routes/client-portal.routes';
 import onboardingRoutes from './routes/onboarding.routes';
 import adminAnalyticsRoutes from './routes/admin-analytics.routes';
 import myDashboardRoutes from './routes/my-dashboard.routes';
+import publicCharactersRoutes from './routes/public-characters.routes';
 import trialRoutes from './routes/trial.routes';
 import agentRoutes from './routes/agent.routes';
 import crmRoutes from './routes/crm.routes';
@@ -130,6 +132,9 @@ app.use((req, _res, next) => {
 });
 
 // ─── Routes ──────────────────────────────────────────────
+/* API publique, authentifiée par clé et non par JWT. Montée avant les
+   routes applicatives pour qu'aucun middleware de session ne s'y applique. */
+app.use('/api/v1', publicApiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/prospects', prospectsRoutes);
 app.use('/api/clients', clientsRoutes);
@@ -141,6 +146,7 @@ app.use('/api/client-portal', clientPortalRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/admin-analytics', adminAnalyticsRoutes);
 app.use('/api/my-dashboard', myDashboardRoutes);
+app.use('/api/public', publicCharactersRoutes);
 app.use('/api/trial', trialRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/crm', crmRoutes);

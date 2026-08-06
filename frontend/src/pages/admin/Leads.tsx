@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import {
   RefreshCw, Search, X, Zap, Star, SlidersHorizontal, Bookmark,
   ClipboardList, Palette, Phone, Loader2, Copy, Check, UserPlus, Trash2,
-} from 'lucide-react';
+} from '../../components/icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import api from '../../services/api';

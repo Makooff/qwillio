@@ -5,7 +5,7 @@ import {
   Phone, Calendar, Users, BarChart3, Clock, TrendingUp,
   ChevronDown, ChevronUp, Star, ArrowRight,
   RefreshCw, AlertCircle, CheckCircle2
-} from 'lucide-react';
+} from '../components/icons';
 import {
   ResponsiveContainer, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip

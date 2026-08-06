@@ -10,13 +10,13 @@ test.describe('Public marketing surface — smoke', () => {
   test('pricing page renders and shows all four tiers', async ({ page }) => {
     await page.goto('/pricing');
     await expect(page).toHaveTitle(/Pricing|Tarifs/i);
-    // Solo banner (EUR entry) + Starter + Pro + Enterprise
+    // Solo + Starter + Pro + Enterprise
     await expect(page.getByRole('heading', { name: /^Solo$/ })).toBeVisible();
     await expect(page.getByRole('heading', { name: /^Starter$/ })).toBeVisible();
     await expect(page.getByRole('heading', { name: /^Pro$/ })).toBeVisible();
     await expect(page.getByRole('heading', { name: /^Enterprise$/ })).toBeVisible();
-    // Solo tier displays EUR
-    await expect(page.getByText(/149\s*€/)).toBeVisible();
+    // Solo tier displays EUR (entry price from backend/src/config/plans.ts)
+    await expect(page.getByText(/99\s*€/).first()).toBeVisible();
   });
 
   test('blog page lists the published articles as links', async ({ page }) => {
@@ -76,9 +76,9 @@ test.describe('Public marketing surface — smoke', () => {
 
   test('pricing toggle Monthly ↔ Annual updates displayed price', async ({ page }) => {
     await page.goto('/pricing');
-    // Starter shows 497 in monthly; 398 in annual (497 * 0.80 rounded)
-    await expect(page.getByText('$497').first()).toBeVisible();
+    // Starter shows 249 € monthly; 199 € in annual (249 * 0.80 rounded)
+    await expect(page.getByText(/249\s*€/).first()).toBeVisible();
     await page.getByRole('button', { name: /Annual|Annuel/ }).click();
-    await expect(page.getByText('$398').first()).toBeVisible();
+    await expect(page.getByText(/199\s*€/).first()).toBeVisible();
   });
 });

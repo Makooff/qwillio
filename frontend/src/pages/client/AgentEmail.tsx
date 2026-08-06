@@ -4,7 +4,7 @@ import {
   Mail, Chrome, AlertCircle, Calendar, CreditCard,
   Trash2, Info, ToggleLeft, ToggleRight, CheckCircle2,
   Clock, Edit3, Send, Bell, ChevronRight, X, Plus
-} from 'lucide-react';
+} from '../../components/icons';
 
 type Tab = 'urgent' | 'appointment' | 'payment' | 'spam' | 'info';
 

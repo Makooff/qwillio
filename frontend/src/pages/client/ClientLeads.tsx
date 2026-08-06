@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3, Search,
-} from 'lucide-react';
+} from '../../components/icons';
 import { fetchLive, peekLive } from '../../services/liveData';
 import api from '../../services/api';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';

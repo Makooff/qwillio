@@ -5,7 +5,7 @@ import {
   Phone, Bot, Settings, ChevronRight, AlertCircle,
   Headphones, Sparkles, PhoneForwarded, Pause,
   ChevronDown, Calendar, SlidersHorizontal,
-} from 'lucide-react';
+} from '../../components/icons';
 import { useAuthStore } from '../../stores/authStore';
 import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
 import { daysUntil } from '../../utils/format';

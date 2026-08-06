@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { CSSProperties } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw } from '../icons';
 import api from '../../services/api';
 import { pro } from '../../styles/pro-theme';
 import { Card as ProCard, SectionHead as ProSectionHead, Pill } from '../pro/ProBlocks';

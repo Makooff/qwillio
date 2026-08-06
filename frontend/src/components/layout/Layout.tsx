@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Phone, Zap, Settings, ExternalLink,
-} from 'lucide-react';
+} from '../icons';
 import { t } from '../../styles/admin-theme';
 import CommandPalette from '../ui/CommandPalette';
 import DashboardShell, { NavItem } from './DashboardShell';

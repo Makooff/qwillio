@@ -4,7 +4,7 @@ import ToastContainer from '../components/ui/Toast';
 import {
   AlertCircle, Calendar, ChevronDown, SlidersHorizontal,
   Sparkles,
-} from 'lucide-react';
+} from '../components/icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { pro } from '../styles/pro-theme';

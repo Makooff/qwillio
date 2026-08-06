@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Play } from 'lucide-react';
+import { Play } from '../icons';
 import Card3D from '../ui/Card3D';
 
 /* ── Voice card (showcase) ────────────────────────────────────────────────── */

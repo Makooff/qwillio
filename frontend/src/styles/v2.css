@@ -1,0 +1,472 @@
+/* ============================================================
+   Design V2 « Papier & Signal », couche additive, ne touche pas
+   aux tokens V1 de globals.css. Voir DA/v2-direction.md.
+   Clair: DA/references/elevenlabs.md · Drenched: DA/references/linear.md
+   ============================================================ */
+
+/* Les sept jetons de SURFACE et de TEXTE sont écrits en canaux RVB séparés,
+   pas en hexadécimal: c'est ce qui permet à Tailwind de composer
+   `rgb(var(--q2-canvas) / <alpha-value>)` et donc de garder les modificateurs
+   d'opacité (`border-q2-plate/70`, `bg-q2-plate/50`, présents partout dans la
+   V2) tout en rendant la valeur basculable. Un `var()` contenant un
+   hexadécimal casserait tous ces modificateurs.
+
+   Seuls ces sept basculent. Le mauve de marque, lui, ne change pas avec le
+   thème: une marque qui change de couleur selon l'heure n'est plus une
+   marque. */
+:root {
+  /* Registre clair */
+  --q2-canvas: 253 252 252;
+  --q2-band: 245 243 241;
+  --q2-plate: 235 232 228;
+  --q2-ink: 29 29 31;
+  --q2-graphite: 68 64 59;
+  --q2-body: 119 113 105;
+  --q2-faint: 165 159 151;
+
+  /* Marque (DA/couleurs.md) */
+  --q2-indigo: #7a5fff;
+  --q2-violet: #cd6bfb;
+  --q2-deep: #7349fe;
+  --q2-lift: #b9a8ff;
+
+  /* Registre drenched */
+  --q2-void: #08090a;
+  --q2-carbon: #0f1011;
+  --q2-obsidian: #161718;
+  --q2-border-d: #23252a;
+  --q2-mist: #d0d6e0;
+  --q2-fog: #8a8f98;
+  /* Voile de marque: le noir Qwillio n'est jamais neutre */
+  --q2-void-tint: oklch(10% 0.015 285);
+
+  /* Ombres, la seule autorisée sur clair est diffuse et teintée */
+  --q2-shadow-whisper: rgba(0, 0, 0, 0.4) 0 0 1px, rgba(0, 0, 0, 0.04) 0 1px 1px,
+    rgba(0, 0, 0, 0.04) 0 2px 4px;
+  --q2-shadow-hover: 0 30px 80px rgba(20, 16, 50, 0.1);
+
+  /* États sur registre clair (erreur/succès des écrans auth) */
+  --q2-bad-ink: #b42318;
+  --q2-bad-bg: #fdf4f3;
+  --q2-bad-brd: #f0d3cf;
+  --q2-ok-ink: #1a7f52;
+  --q2-ok-bg: #f4faf6;
+  --q2-ok-brd: #cfe4d7;
+
+  --q2-hairline: 1px solid rgb(var(--q2-plate));
+  --q2-hairline-d: 1px solid #23252a;
+}
+
+/* ============================================================
+   Registre sombre du SITE.
+
+   À ne pas confondre avec les sections « drenched », qui sont sombres dans les
+   deux thèmes: elles restent le point d'orgue du récit, et gardent donc leurs
+   valeurs Linear. Le fond sombre du site est posé un cran AU-DESSUS du void
+   drenched (#0E0F11 contre #08090A), sans quoi les deux registres se
+   confondraient et la page perdrait son rythme.
+
+   Les teintes gardent la dérive indigo de la marque (le noir Qwillio n'est
+   jamais neutre, DA/couleurs.md): les gris tirent vers le bleu-violet, pas
+   vers le vert.
+   ============================================================ */
+:root[data-theme='dark'] {
+  --q2-canvas: 14 15 17;
+  --q2-band: 19 20 23;
+  --q2-plate: 35 37 41;
+  --q2-ink: 245 244 242;
+  --q2-graphite: 201 198 193;
+  --q2-body: 152 148 142;
+  --q2-faint: 107 104 98;
+
+  /* Sur fond sombre l'élévation vient des bordures, pas des ombres (Linear).
+     L'ombre « whisper », calibrée pour du noir sur crème, ne se voit plus et
+     ne fait qu'assombrir: elle disparaît. */
+  --q2-shadow-whisper: 0 0 0 1px rgb(var(--q2-plate));
+  --q2-shadow-hover: 0 30px 80px rgba(0, 0, 0, 0.45);
+
+  /* États: fonds sourds, encre claire, pour rester lisibles sans éblouir. */
+  --q2-bad-ink: #ffb4ab;
+  --q2-bad-bg: #24120f;
+  --q2-bad-brd: #52251f;
+  --q2-ok-ink: #8ee0b4;
+  --q2-ok-bg: #0f1f17;
+  --q2-ok-brd: #1f4433;
+}
+
+/* Le thème suit le système tant que personne n'a tranché. Dès qu'un choix est
+   fait, `data-theme` est posé sur la racine et prime sur la requête média. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --q2-canvas: 14 15 17;
+    --q2-band: 19 20 23;
+    --q2-plate: 35 37 41;
+    --q2-ink: 245 244 242;
+    --q2-graphite: 201 198 193;
+    --q2-body: 152 148 142;
+    --q2-faint: 107 104 98;
+    --q2-shadow-whisper: 0 0 0 1px rgb(var(--q2-plate));
+    --q2-shadow-hover: 0 30px 80px rgba(0, 0, 0, 0.45);
+    --q2-bad-ink: #ffb4ab;
+    --q2-bad-bg: #24120f;
+    --q2-bad-brd: #52251f;
+    --q2-ok-ink: #8ee0b4;
+    --q2-ok-bg: #0f1f17;
+    --q2-ok-brd: #1f4433;
+  }
+}
+
+/* Le basculement se voit sur les grandes surfaces, sinon il claque. Les
+   composants gardent leurs transitions ciblées; c'est le fond de page qui
+   porte le fondu. */
+html {
+  transition: background-color 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --- Typographie whisper (signature V2) ---
+   Les planchers des clamp sont posés pour le petit écran: sous 640px un
+   display de 44px mangeait deux tiers de la hauteur utile avant même la
+   première phrase. Au-delà de 690px la courbe est celle d'origine. */
+.q2-display {
+  font-weight: 300;
+  font-size: clamp(2.35rem, 6.5vw, 5.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.q2-h2 {
+  font-weight: 300;
+  font-size: clamp(1.75rem, 4.5vw, 3.4rem);
+  line-height: 1.13;
+  letter-spacing: -0.02em;
+}
+
+.q2-h3 {
+  font-weight: 400;
+  font-size: clamp(1.3rem, 3.4vw, 1.5rem);
+  line-height: 1.33;
+  letter-spacing: -0.012em;
+}
+
+.q2-lead {
+  font-weight: 400;
+  font-size: clamp(1.0625rem, 3.4vw, 1.25rem);
+  line-height: 1.35;
+}
+
+.q2-price {
+  font-weight: 300;
+  font-size: clamp(2.2rem, 3.2vw, 3rem);
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Un mot serif italic système par titre, en couleur pleine (DA/typographie.md) */
+.q2-serif-word {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.q2-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Corps: tracking légèrement positif (contraste voulu avec le display négatif) */
+.q2-body-text {
+  letter-spacing: 0.01em;
+}
+
+/* --- Surfaces --- */
+.q2-hairline {
+  border-top: var(--q2-hairline);
+}
+
+.q2-card-hover {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) {
+  .q2-card-hover:hover {
+    transform: translateY(-2px);
+    /* Le liseré mauve de 1px double l'ombre diffuse: la surface s'allume
+       au lieu de simplement décoller. */
+    box-shadow: var(--q2-shadow-hover), 0 0 0 1px rgba(122, 95, 255, 0.13);
+  }
+}
+
+/* Fond drenched avec voile indigo (dégradé, jamais un aplat neutre) */
+.q2-drenched {
+  background: linear-gradient(180deg, var(--q2-void) 0%, var(--q2-void-tint) 100%);
+}
+
+/* Variante violette: même noir, voile tiré vers la teinte du cercle W */
+.q2-drenched-violet {
+  background: linear-gradient(180deg, var(--q2-void) 0%, oklch(10% 0.015 320) 100%);
+}
+
+/* --- Entrées (RevealV2 s'appuie sur framer-motion; keyframes de secours CSS) --- */
+@keyframes q2In {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Orbes du logo (LogoOrbs), respiration lente, décorative */
+@keyframes q2OrbDrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0) scale(1.015);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q2-card-hover:hover {
+    transform: none;
+  }
+}
+
+/* ============================================================
+   Couche motion V2 (components/v2/motion/). Transform et opacity
+   uniquement, chaque effet retombe à plat en reduced-motion.
+   ============================================================ */
+
+/* Halo indigo qui suit le pointeur (GlowCard, CardV2 `glow`, actes de
+   PinnedScene). Les coordonnées arrivent en variables CSS écrites une fois
+   par frame en JS, donc aucun re-render.
+   z-index -1 + isolation: le halo se peint au-dessus du fond de la surface
+   et sous son contenu, sans avoir à repositionner les enfants. */
+.q2-glow {
+  position: relative;
+  isolation: isolate;
+}
+
+.q2-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--q2-glow-o, 0);
+  transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  background: radial-gradient(
+    240px circle at var(--q2-glow-x, 50%) var(--q2-glow-y, 50%),
+    rgba(122, 95, 255, 0.08),
+    rgba(122, 95, 255, 0) 68%
+  );
+}
+
+/* Pilules: relance de 1px au survol, retour à plat au press.
+   Le scale(0.97) global (globals.css) reste la sensation de clic, on le
+   compose ici avec la translation pour qu'il ne soit pas écrasé. */
+.q2-pill {
+  transition: background-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Action principale: au survol elle s'allume (lueur mauve portée) plutôt
+   que de changer de teinte. Réservé au CTA d'une section, jamais posé sur
+   deux pilules voisines. */
+@media (hover: hover) {
+  .q2-pill-lit:hover {
+    box-shadow: 0 0 0 1px rgba(122, 95, 255, 0.24), 0 12px 34px -10px rgba(122, 95, 255, 0.55);
+  }
+}
+
+@media (hover: hover) {
+  .q2-pill:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.q2-pill:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* La flèche de fin de pilule glisse de 2px: le mouvement dit la direction. */
+.q2-pill > svg:last-child {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) {
+  .q2-pill:hover > svg:last-child {
+    transform: translateX(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q2-pill:hover,
+  .q2-pill:hover > svg:last-child {
+    transform: none;
+  }
+}
+
+/* ============================================================
+   Finitions « lueur ». La profondeur de la V2 vient de halos mauves
+   très dilués posés derrière les éléments clés, jamais d'ombres
+   portées, de verre dépoli ni de texte en dégradé. Sur le registre
+   clair les valeurs restent sous 0.20 d'alpha: on doit le sentir
+   sans pouvoir le nommer. Tout est statique, donc rien à neutraliser
+   en reduced-motion.
+   ============================================================ */
+
+/* Halo décoratif, enfant aria-hidden d'un parent positionné. Le
+   dégradé closest-side est déjà doux: aucun filter: blur à payer. */
+.q2-halo {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  background: radial-gradient(
+    closest-side,
+    rgba(122, 95, 255, var(--q2-halo-o, 0.16)),
+    rgba(122, 95, 255, 0) 100%
+  );
+}
+
+.q2-halo-violet {
+  background: radial-gradient(
+    closest-side,
+    rgba(205, 107, 251, var(--q2-halo-o, 0.15)),
+    rgba(205, 107, 251, 0) 100%
+  );
+}
+
+/* Sur drenched le halo porte plus loin: le noir absorbe. */
+.q2-halo-dark {
+  background: radial-gradient(
+    closest-side,
+    rgba(122, 95, 255, var(--q2-halo-o, 0.3)),
+    rgba(122, 95, 255, 0) 100%
+  );
+}
+
+/* Liseré lumineux au survol d'une surface déjà bordée (panneaux du
+   registre drenched, cadres de captures). */
+.q2-lit {
+  transition: border-color 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) {
+  .q2-lit:hover {
+    border-color: rgba(122, 95, 255, 0.34);
+    box-shadow: 0 0 0 1px rgba(122, 95, 255, 0.12);
+  }
+}
+
+/* Hairline qui s'éclaire vers son milieu, pour ouvrir une section
+   drenched sans y poser une arête franche. */
+.q2-hairline-lit {
+  border: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(35, 37, 42, 0) 0%,
+    rgba(122, 95, 255, 0.34) 50%,
+    rgba(35, 37, 42, 0) 100%
+  );
+}
+
+/* ============================================================
+   Registre PRODUIT (dashboard client), « instrument » Linear.
+   Surfaces void/carbon/obsidian + bordures hairline, zéro ombre.
+   États système: signal, jamais décoration (DA/couleurs.md).
+   ============================================================ */
+:root {
+  --q2p-ok: oklch(72% 0.18 145);
+  --q2p-warn: oklch(78% 0.18 75);
+  --q2p-bad: oklch(65% 0.22 25);
+  --q2p-info: oklch(70% 0.18 240);
+}
+
+/* Titre de page produit (rendu par AppShell, jamais par les pages) */
+.q2p-page-title {
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+}
+
+/* Entrée de page produit: discrète et rapide (fréquent = presque pas d'animation) */
+@keyframes q2pPageIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.q2p-page {
+  animation: q2pPageIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Touche clavier (palette de commandes, hints de raccourcis) */
+.q2p-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 2px 6px;
+  border: 1px solid var(--q2-border-d);
+  border-radius: 6px;
+  background: var(--q2-obsidian);
+  color: var(--q2-fog);
+  font-size: 11px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Voile de chargement des squelettes: traverse la surface, jamais de pulsation */
+@keyframes q2pShimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.q2p-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.q2p-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.045) 50%, transparent 100%);
+  animation: q2pShimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q2p-page {
+    animation: none;
+  }
+
+  .q2p-shimmer::after {
+    animation: none;
+    opacity: 0;
+  }
+}

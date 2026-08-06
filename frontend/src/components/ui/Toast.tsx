@@ -1,4 +1,4 @@
-import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Info, X } from '../icons';
 import { Toast as ToastType } from '../../hooks/useToast';
 import { t } from '../../styles/admin-theme';
 

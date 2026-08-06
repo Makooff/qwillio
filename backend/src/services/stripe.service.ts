@@ -4,7 +4,7 @@ import { stripe } from '../config/stripe';
 import { logger } from '../config/logger';
 import { affiliateService } from './affiliate.service';
 import { env } from '../config/env';
-import { getPlan } from '../config/plans';
+import { getPlan, annualPriceEur, type BillingPeriod } from '../config/plans';
 import { discordService } from './discord.service';
 import { emailService } from './email.service';
 import { onboardingService } from './onboarding.service';
@@ -79,6 +79,10 @@ export class StripeService {
     }
 
     const planType = session.metadata?.planType || user.planType || 'pro';
+    /* La période vient de la session Stripe, pas d'une supposition: c'est elle
+       qui décide du montant réellement prélevé et de ce que la facturation
+       affiche ensuite. */
+    const billingPeriod: BillingPeriod = session.metadata?.billingPeriod === 'annual' ? 'annual' : 'monthly';
     const businessName = session.metadata?.businessName || user.businessName || 'My Business';
     const businessPhone = session.metadata?.businessPhone || user.businessPhone || null;
     const industry = session.metadata?.industry || user.industry || 'other';
@@ -100,7 +104,10 @@ export class StripeService {
         country: 'BE',
         planType,
         setupFee: 0,
-        monthlyFee: plan.monthlyPriceEur,
+        /* En annuel, la mensualité EFFECTIVE est remisée de 20 %: reporter le
+           tarif mensuel plein ici gonflerait le revenu récurrent de ce client
+           d'un cinquième dans tous les tableaux de bord. */
+        monthlyFee: billingPeriod === 'annual' ? Math.round(annualPriceEur(plan) / 12) : plan.monthlyPriceEur,
         currency: 'EUR',
         dashboardToken,
         onboardingStatus: 'pending',
@@ -111,6 +118,7 @@ export class StripeService {
         monthlyMinutesQuota: plan.includedMinutes,
         stripeCustomerId: session.customer || null,
         stripeSubscriptionId: session.subscription || null,
+        vapiConfig: { billingPeriod },
       },
     });
 
@@ -467,9 +475,10 @@ export class StripeService {
     planType: string,
     businessName: string,
     industry?: string | null,
+    period: BillingPeriod = 'monthly',
   ): Promise<string | null> {
     const plan = getPlan(planType);
-    const priceId = await this.resolveMonthlyPriceId(planType);
+    const priceId = await this.resolvePriceId(planType, period);
     if (!priceId) throw new Error(`No Stripe price configured for plan: ${planType}`);
 
     const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
@@ -477,7 +486,7 @@ export class StripeService {
       mode: 'subscription',
       customer_email: user.email,
       line_items: [{ price: priceId, quantity: 1 }],
-      subscription_data: { trial_period_days: plan.trialDays },
+      subscription_data: { trial_period_days: plan.trialDays, metadata: { billingPeriod: period } },
       payment_method_collection: 'always',
       success_url: `${frontendUrl}/onboard?payment=success`,
       cancel_url: `${frontendUrl}/subscribe?payment=cancelled`,
@@ -486,6 +495,9 @@ export class StripeService {
         source: 'self-onboarding',
         userId: user.id,
         planType: plan.id,
+        // Repris par le webhook pour retenir la période choisie: sans ça, un
+        // abonnement annuel serait indiscernable d'un mensuel côté Qwillio.
+        billingPeriod: period,
         businessName,
         industry: industry || 'other',
       },
@@ -496,7 +508,11 @@ export class StripeService {
   }
 
   async createUpgradeCheckout(client: any, planType: string): Promise<string | null> {
-    const priceId = await this.resolveMonthlyPriceId(planType);
+    /* Un client déjà annuel qui change de forfait RESTE annuel. Résoudre le
+       prix en mensuel d'office le ferait basculer sans rien lui demander, et
+       lui ferait perdre sa remise au passage. */
+    const period: BillingPeriod = client.vapiConfig?.billingPeriod === 'annual' ? 'annual' : 'monthly';
+    const priceId = await this.resolvePriceId(planType, period);
     if (!priceId) throw new Error(`No Stripe price configured for plan: ${planType}`);
 
     // Paid client with active subscription → update subscription directly, no checkout
@@ -566,35 +582,56 @@ export class StripeService {
    * STRIPE_PRICE_<PLAN>_MONTHLY env var, if set, overrides this.
    */
   private async resolveMonthlyPriceId(planType: string): Promise<string> {
+    return this.resolvePriceId(planType, 'monthly');
+  }
+
+  /**
+   * Same, for either period.
+   *
+   * The annual Price is created with the SAME mechanism as the monthly one,
+   * from `config/plans.ts`: 12 × monthly × 0.8, charged once a year. Before
+   * this, the pricing page offered an annual toggle that no Stripe Price
+   * backed, so picking "annual" silently subscribed the customer monthly at
+   * full rate. The env override only ever covered the monthly price, so it is
+   * deliberately ignored for the annual one rather than mapped to a monthly
+   * Price id, which would re-create exactly that bug.
+   */
+  private async resolvePriceId(planType: string, period: BillingPeriod): Promise<string> {
     const plan = getPlan(planType);
     const planId = plan.id;
 
-    const override = this.envPriceOverride(planId);
-    if (override) return override;
+    if (period === 'monthly') {
+      const override = this.envPriceOverride(planId);
+      if (override) return override;
+    }
 
-    const cached = this.priceIdCache.get(planId);
+    const cacheKey = `${planId}_${period}`;
+    const cached = this.priceIdCache.get(cacheKey);
     if (cached) return cached;
 
-    const lookupKey = `qwillio_${planId}_monthly_eur`;
+    const lookupKey = `qwillio_${planId}_${period}_eur`;
 
     // 1. Reuse an existing Price with our lookup key (created on a prior boot).
     const existing = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
     if (existing.data[0]?.id) {
-      this.priceIdCache.set(planId, existing.data[0].id);
+      this.priceIdCache.set(cacheKey, existing.data[0].id);
       return existing.data[0].id;
     }
 
-    // 2. Otherwise create it from the plan definition (EUR, monthly recurring).
+    // 2. Otherwise create it from the plan definition (EUR).
+    const amountEur = period === 'annual' ? annualPriceEur(plan) : plan.monthlyPriceEur;
     const price = await stripe.prices.create({
       currency: 'eur',
-      unit_amount: Math.round(plan.monthlyPriceEur * 100),
-      recurring: { interval: 'month' },
+      unit_amount: Math.round(amountEur * 100),
+      recurring: { interval: period === 'annual' ? 'year' : 'month' },
       lookup_key: lookupKey,
       transfer_lookup_key: true,
       product_data: { name: `Qwillio ${plan.name}` },
     });
-    this.priceIdCache.set(planId, price.id);
-    logger.info(`Auto-created Stripe Price ${price.id} for plan ${planId} (${plan.monthlyPriceEur}€/mo)`);
+    this.priceIdCache.set(cacheKey, price.id);
+    logger.info(
+      `Auto-created Stripe Price ${price.id} for plan ${planId} (${amountEur}€/${period === 'annual' ? 'an' : 'mo'})`
+    );
     return price.id;
   }
 }

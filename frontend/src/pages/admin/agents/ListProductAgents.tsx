@@ -5,7 +5,7 @@ import {
   Megaphone, Star, CalendarClock, LifeBuoy,
   Users, FileText, MapPin, Crosshair, LineChart,
   ChevronRight, RefreshCw,
-} from 'lucide-react';
+} from '../../../components/icons';
 import api from '../../../services/api';
 import { pro } from '../../../styles/pro-theme';
 import { Card, PageHeader, SectionHead, Pill } from '../../../components/pro/ProBlocks';

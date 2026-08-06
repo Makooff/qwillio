@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Loader2, LogOut, RefreshCw } from 'lucide-react';
+import { Mail, Loader2, LogOut, RefreshCw } from '../components/icons';
 import QwillioLogo from '../components/QwillioLogo';
 import LangToggle from '../components/LangToggle';
 import { useLang } from '../stores/langStore';

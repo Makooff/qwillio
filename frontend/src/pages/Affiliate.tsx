@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronDown, Share2, Wallet, UserPlus } from 'lucide-react';
+import { ArrowRight, ChevronDown, Share2, Wallet, UserPlus } from '../components/icons';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';

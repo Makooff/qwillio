@@ -341,11 +341,16 @@ export class AuthController {
       // client on load, which breaks every test that touches this controller
       // without a STRIPE_SECRET_KEY.
       const { stripeService } = await import('../services/stripe.service');
+      /* La page tarifs propose mensuel ou annuel. Tout ce qui n'est pas
+         explicitement « annual » reste mensuel: sur une valeur inattendue, on
+         prélève moins souvent, jamais douze mois d'un coup par accident. */
+      const billingPeriod = req.body?.billingPeriod === 'annual' ? 'annual' : 'monthly';
       const checkoutUrl = await stripeService.createSelfOnboardingCheckout(
         { id: user.id, email: user.email },
         plan.id,
         businessName,
         industry,
+        billingPeriod,
       );
       if (!checkoutUrl) return res.status(502).json({ error: 'checkout_unavailable' });
 

@@ -2,6 +2,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { discordService } from './discord.service';
 import { smsService } from './sms.service';
+import { callNotificationService } from './call-notification.service';
 import { googleCalendarService } from './google-calendar.service';
 import { spamDetectionService } from './spam-detection.service';
 
@@ -149,6 +150,24 @@ export class ClientCallService {
         logger.error('Failed to create booking record:', err);
       }
     }
+
+    /* Prévenir le propriétaire, tout de suite. Jamais attendu: la fin d'appel
+       n'a pas à dépendre de Twilio ni de Resend. Le spam est déjà sorti plus
+       haut, il ne réveille donc personne. */
+    void callNotificationService
+      .notify(client, {
+        id: clientCall.id,
+        callerNumber: clientCall.callerNumber,
+        callerName: clientCall.callerName,
+        summary: clientCall.summary,
+        outcome: clientCall.outcome,
+        sentiment: clientCall.sentiment,
+        durationSeconds: clientCall.durationSeconds,
+        isSpam: clientCall.isSpam,
+        isLead: clientCall.isLead,
+        bookingRequested: clientCall.bookingRequested,
+      })
+      .catch(err => logger.warn('[CallNotify] notification échouée:', err));
 
     // Update client total calls
     await prisma.client.update({

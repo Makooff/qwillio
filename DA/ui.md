@@ -76,3 +76,21 @@ Le vocabulaire des réglages est dans `frontend/src/pages/client/ClientAccount.t
 - Contraste AA sur tout texte
 - Pas de modale à l'ouverture d'une page : une carte en ligne, refermable, se lit dans l'ordre et ne piège pas le focus
 - Les états d'erreur s'affichent. Un échec silencieux se lit comme un produit cassé.
+
+## Iconographie (2026-08-05)
+
+Le site et le produit utilisent **coolicons** (paquet `react-coolicons`, 442 icônes,
+licence MIT), à la demande de l'utilisateur, partout : marketing, tableau de bord,
+navigation, administration.
+
+L'accès passe par une façade unique, `frontend/src/components/icons.tsx` :
+- elle garde les NOMS et l'API de lucide (`size`, `className`, `strokeWidth`,
+  `color`), donc aucun appel n'a changé, seul le chemin d'import a bougé ;
+- elle documente, pour chaque icône, le glyphe coolicons retenu. Là où lucide
+  avait un glyphe absent du set (éclair, cerveau, fiole, robot, micro), le choix
+  s'est fait par le SENS de l'usage dans le produit, pas par le nom.
+
+Le logo Qwillio n'est pas concerné : il reste `QwillioLogo` /
+`public/qwillio-logo-512.svg`, avec les trois mauves de `DA/couleurs.md`.
+
+Pour changer une correspondance : éditer `icons.tsx`, rien d'autre.

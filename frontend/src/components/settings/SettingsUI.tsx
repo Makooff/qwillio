@@ -1,5 +1,5 @@
 import type { ReactNode, KeyboardEvent } from 'react';
-import { Save, RotateCcw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Save, RotateCcw, CheckCircle2, AlertCircle } from '../icons';
 
 /* Shared form UI primitives for the Settings page(s). */
 

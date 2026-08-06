@@ -57,6 +57,42 @@ function resumeWithin(ctx: AudioContext, ms: number): Promise<void> {
  */
 let sharedCtx: AudioContext | null = null;
 
+/**
+ * Un analyseur par contexte, gardé d'une lecture à l'autre.
+ *
+ * `fftSize` bas (64): on veut un NIVEAU, pas un spectre. Trente-deux bandes
+ * suffisent largement à faire vivre une dizaine de barres, et la lecture est
+ * assez courte pour tenir dans une frame sans peser.
+ */
+let sharedAnalyser: AnalyserNode | null = null;
+let analyserOwner: AudioContext | null = null;
+
+function liveAnalyser(ctx: AudioContext): AnalyserNode {
+  if (sharedAnalyser && analyserOwner === ctx) return sharedAnalyser;
+  const node = ctx.createAnalyser();
+  node.fftSize = 64;
+  node.smoothingTimeConstant = 0.72;
+  sharedAnalyser = node;
+  analyserOwner = ctx;
+  return node;
+}
+
+/**
+ * Le niveau courant, entre 0 et 1, ou 0 si rien ne joue.
+ *
+ * Exporté plutôt que passé en prop: le lecteur est un singleton de module, et
+ * les barres peuvent vivre n'importe où dans l'arbre sans qu'on ait à faire
+ * descendre un noeud audio jusqu'à elles.
+ */
+export function currentLevel(): number {
+  if (!sharedAnalyser) return 0;
+  const bins = new Uint8Array(sharedAnalyser.frequencyBinCount);
+  sharedAnalyser.getByteFrequencyData(bins);
+  let sum = 0;
+  for (let i = 0; i < bins.length; i++) sum += bins[i];
+  return Math.min(1, sum / bins.length / 160);
+}
+
 function liveContext(): AudioContext | null {
   const Ctor = audioContextCtor();
   if (!Ctor) return null;
@@ -70,6 +106,8 @@ function liveContext(): AudioContext | null {
 function replaceContext(): AudioContext | null {
   const dead = sharedCtx;
   sharedCtx = null;
+  sharedAnalyser = null;
+  analyserOwner = null;
   if (dead) void dead.close().catch(() => undefined);
   return liveContext();
 }
@@ -114,27 +152,6 @@ export const __audio = {
   markThawed: () => { thawed = true; },
   isThawed: () => thawed,
 };
-
-// Browser TTS, the last resort. A rough preview only.
-//
-// The timeout is not belt and braces: on iOS `speak()` regularly fires neither
-// `onend` nor `onerror`, and the button then sits on ■ for ever, which reads as
-// "the app is broken" rather than "this device will not speak".
-function speak(text: string, lang: 'fr' | 'en', onEnd: () => void) {
-  if (typeof window === 'undefined' || !window.speechSynthesis) { onEnd(); return; }
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang === 'fr' ? 'fr-FR' : 'en-US';
-  const match = window.speechSynthesis.getVoices()
-    .find(v => v.lang?.toLowerCase().startsWith(u.lang.toLowerCase().slice(0, 2)));
-  if (match) u.voice = match;
-  let done = false;
-  const finish = () => { if (!done) { done = true; onEnd(); } };
-  u.onend = finish;
-  u.onerror = finish;
-  setTimeout(finish, Math.min(20_000, 3_000 + text.length * 70));
-  window.speechSynthesis.speak(u);
-}
 
 /**
  * Downloaded clips, by URL. Module-level so they survive a re-render, a remount
@@ -205,7 +222,11 @@ export interface VoicePreview {
   /** Why the real voice could not be played, in the client's language. */
   notice: string | null;
   /** Click handler: starts the clip, or stops it when it is the one playing. */
-  toggle: (key: string, url: string, fallbackText: string) => void;
+  /**
+   * Le troisième paramètre n'est plus une phrase à PRONONCER (le repli
+   * navigateur a disparu) mais la phrase enregistrée à AFFICHER.
+   */
+  toggle: (key: string, url: string, spokenLine?: string) => void;
   /** Download a clip before it is asked for, so ▶ plays with no wait. */
   prefetch: (url: string) => void;
   /**
@@ -214,6 +235,8 @@ export interface VoicePreview {
    * cannot see the difference between a muted device and a broken player.
    */
   debug: string | null;
+  /** Phrase enregistrée en cours de lecture, ou null. */
+  line: string | null;
   stop: () => void;
 }
 
@@ -221,6 +244,8 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
   const [playing, setPlaying] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [debug, setDebug] = useState<string | null>(null);
+  /* La phrase exacte que l'on entend, pour l'écrire sous le personnage. */
+  const [line, setLine] = useState<string | null>(null);
   const elementRef = useRef<HTMLAudioElement | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const guardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -263,9 +288,15 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
       const buffer = await ctx.decodeAudioData(bytes.slice().buffer);
       if (tokenRef.current !== token) return true;
 
+      /* L'analyseur s'insère entre la source et la sortie: c'est lui qui rend
+         les barres RÉELLEMENT réactives à la voix, au lieu d'une animation
+         décorative jouée pendant la lecture. Il ne modifie pas le signal, il
+         l'observe. */
+      const analyser = liveAnalyser(ctx);
       const source = ctx.createBufferSource();
       source.buffer = buffer;
-      source.connect(ctx.destination);
+      source.connect(analyser);
+      analyser.connect(ctx.destination);
       source.onended = () => {
         if (tokenRef.current !== token) return;
         if (guardRef.current) { clearTimeout(guardRef.current); guardRef.current = null; }
@@ -297,12 +328,12 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
     }
   }, []);
 
-  const toggle = useCallback((key: string, url: string, fallbackText: string) => {
-    if (playing === key) { stop(); setPlaying(null); return; }
+  const toggle = useCallback((key: string, url: string, spokenLine?: string) => {
+    if (playing === key) { stop(); setPlaying(null); setLine(null); return; }
     stop();
     setPlaying(key);
+    setLine(spokenLine ?? null);
 
-    const lang = isFr ? 'fr' : 'en';
     const token = ++tokenRef.current;
     preferPlaybackSession();
 
@@ -326,11 +357,15 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
       if (ctx) void resumeWithin(ctx, 2_500);
     }
 
+    /* Abandonner, c'est le DIRE, pas jouer autre chose. L'ancienne version se
+       rabattait ici sur speechSynthesis: sur Safari, une voix de lecture
+       système qui ne ressemble à aucune voix du produit. L'aperçu mentait donc
+       sur ce que l'appelant entendra, ce qui est pire que pas d'aperçu. */
     const giveUp = (message: string) => {
       if (tokenRef.current !== token) return;
       if (guardRef.current) { clearTimeout(guardRef.current); guardRef.current = null; }
       setNotice(message);
-      speak(fallbackText, lang, () => setPlaying(null));
+      setPlaying(null);
     };
 
     /** Element playback. Must stay synchronous to keep the gesture alive. */
@@ -447,5 +482,5 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
   // reports the reason properly.
   const prefetch = useCallback((url: string) => { void fetchClip(url).catch(() => undefined); }, []);
 
-  return { playing, notice, toggle, prefetch, debug, stop };
+  return { playing, notice, toggle, prefetch, debug, line, stop };
 }

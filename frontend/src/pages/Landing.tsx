@@ -3,7 +3,7 @@ import { useSEO } from '../hooks/useSEO';
 import {
   Phone, Mic, Calendar, MessageSquare, ArrowRight, Play, Check,
   Shield, Bot, Headphones, Zap, Languages,
-} from 'lucide-react';
+} from '../components/icons';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import { useLang } from '../stores/langStore';

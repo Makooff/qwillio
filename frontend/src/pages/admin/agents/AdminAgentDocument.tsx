@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-react';
+import { FileText } from '../../../components/icons';
 import { AgentDetailShell } from '../../../components/admin/AgentDetailShell';
 
 export default function AdminAgentDocument() {

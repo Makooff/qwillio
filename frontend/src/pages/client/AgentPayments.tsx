@@ -4,7 +4,7 @@ import {
   CreditCard, TrendingUp, DollarSign, Percent, Download,
   ToggleLeft, ToggleRight, CheckCircle2, Clock, AlertCircle,
   ChevronDown, ExternalLink, Bell, MessageSquare
-} from 'lucide-react';
+} from '../../components/icons';
 
 interface Payment {
   id: string;

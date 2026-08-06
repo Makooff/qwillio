@@ -3,7 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone, Download, Search, Play, Pause, CheckCircle2, Filter,
   ArrowUpDown, ArrowUp, ArrowDown, X, Clock, Users, ChevronRight,
-} from 'lucide-react';
+/* Icônes: la façade coolicons, pas lucide-react en direct (le dashboard est
+   passé aux coolicons partout). Données: le cache `liveData` arrivé sur master,
+   qui sert la page depuis la mémoire pendant que l'animation joue. Les deux
+   changements sont orthogonaux, on garde les deux. */
+} from '../../components/icons';
 import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';

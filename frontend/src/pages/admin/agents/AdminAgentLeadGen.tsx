@@ -1,4 +1,4 @@
-import { Crosshair } from 'lucide-react';
+import { Crosshair } from '../../../components/icons';
 import { AgentDetailShell } from '../../../components/admin/AgentDetailShell';
 
 export default function AdminAgentLeadGen() {

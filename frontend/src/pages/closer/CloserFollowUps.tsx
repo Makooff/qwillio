@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Clock, Trash2, Filter } from 'lucide-react';
+import { Check, Clock, Trash2, Filter } from '../../components/icons';
 import api from '../../services/api';
 import OrbsLoader from '../../components/OrbsLoader';
 import { pro } from '../../styles/pro-theme';

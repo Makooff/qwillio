@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, RefreshCw, TrendingUp } from 'lucide-react';
+import { Users, RefreshCw, TrendingUp } from '../../components/icons';
 import api from '../../services/api';
 import { pro } from '../../styles/pro-theme';
 import { Card, PageHeader, SectionHead, PrimaryBtn, Pill, Stat } from '../../components/pro/ProBlocks';

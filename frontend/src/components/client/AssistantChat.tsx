@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowUp, Mic, Square, AudioLines, Plus,
   Loader2, Bot, Copy, Check, PhoneCall, X, Lightbulb,
-} from 'lucide-react';
+} from '../icons';
 import api from '../../services/api';
 import VapiLiveCall from './VapiLiveCall';
 
