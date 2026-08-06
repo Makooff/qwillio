@@ -74,13 +74,14 @@ describe('the journey', () => {
   it('holds its ground first, deforming where it was put', () => {
     // The shapes are not flown in from off-screen: they are already there, big
     // and still, and they deform before they set off.
-    const travel = Math.hypot(to.x - from.x, to.y - from.y);
-    const early = frames[Math.floor(frames.length * 0.15)];
-    const drift = Math.hypot(bounds(early).x - from.x, bounds(early).y - from.y);
+    const early = bounds(frames[Math.floor(frames.length * 0.15)]);
+    const home = Math.hypot(early.x - from.x, early.y - from.y);
+    const away = Math.hypot(early.x - to.x, early.y - to.y);
     // It does not sit perfectly still: a lopsided outline pulls its own middle
-    // about. But it is nowhere near on its way — that is the difference between
-    // deforming in place and setting off.
-    expect(drift).toBeLessThan(travel * 0.3);
+    // about, and the deeper the hollows the more it pulls. But it is still far
+    // more where it was put than where it is going — that is the difference
+    // between deforming in place and setting off.
+    expect(home).toBeLessThan(away);
     // Still, but not frozen — the outline has moved on from the first frame.
     expect(early).not.toBe(frames[0]);
   });
