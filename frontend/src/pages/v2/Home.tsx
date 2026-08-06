@@ -129,9 +129,13 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
           willChange: 'transform',
           /* Le bas de la fenêtre se dissout dans la page au lieu de s'arrêter
              net (demande utilisateur). Le masque porte sur le conteneur, donc
-             le cadre ET la capture s'effacent ensemble. */
-          maskImage: 'linear-gradient(to bottom, black 0%, black 58%, rgba(0,0,0,0.55) 82%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 58%, rgba(0,0,0,0.55) 82%, transparent 100%)',
+             le cadre ET la capture s'effacent ensemble.
+             Cotes relevées dans la composition : le bouton « Déconnexion » de
+             la barre latérale tombe à 91 % de la hauteur du cadre. Le fondu
+             démarre donc à 86 %, juste au-dessus de lui, et atteint zéro au
+             tout dernier pixel. Rien ne s'efface plus haut. */
+          maskImage: 'linear-gradient(to bottom, black 0%, black 86%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 86%, transparent 100%)',
         }}
       >
         <img
