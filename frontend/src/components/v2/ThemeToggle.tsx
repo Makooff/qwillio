@@ -63,7 +63,13 @@ export default function ThemeToggle({ onDark = false }: { onDark?: boolean }) {
       <span
         aria-hidden="true"
         className={`relative z-10 flex items-center justify-center w-[17px] h-[17px] ml-[2px] rounded-full transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          onDark ? 'bg-white text-q2-ink' : 'bg-q2-ink text-q2-canvas'
+          /* Sur fond sombre le curseur était `bg-white text-q2-ink`, et c'est
+             exactement le piège du thème sombre: l'encre y est CLAIRE, donc
+             une lune blanche sur un rond blanc, invisible. Rond noir, icône
+             blanche, et un filet pour le décoller du verre. */
+          onDark
+            ? 'bg-q2-void text-white ring-1 ring-white/25'
+            : 'bg-q2-ink text-q2-canvas'
         }`}
         style={{ transform: dark ? 'translateX(19px)' : 'translateX(0)' }}
       >

@@ -327,11 +327,22 @@ export default function Home() {
     },
   ];
 
+  /* Trois étapes, et surtout trois hauteurs.
+   *
+   * C'étaient trois lignes de même gabarit empilées, ce que la charte range
+   * parmi les grilles de cartes identiques. Chacune porte donc son propre
+   * rythme: la respiration s'allonge en descendant, le retrait se creuse, et la
+   * mesure du texte se resserre. Ce n'est pas de l'irrégularité décorative,
+   * c'est la durée de chaque étape: la première est une phrase, la dernière est
+   * un appel. */
   const setup = [
     {
       icon: MessageSquare,
       label: isFr ? '« Ouvre le samedi de 9 h à 13 h »' : '“Open Saturdays from 9 to 1”',
       desc: isFr ? 'Dites-le dans le chat, c’est réglé.' : 'Say it in the chat, it is done.',
+      pad: 'py-5 sm:py-6',
+      indent: '',
+      measure: 'max-w-[34ch]',
     },
     {
       icon: Camera,
@@ -339,6 +350,9 @@ export default function Home() {
       desc: isFr
         ? 'Elle en extrait vos tarifs, vous confirmez, rien n’est stocké.'
         : 'She extracts your prices, you confirm, nothing is stored.',
+      pad: 'py-8 sm:py-11',
+      indent: 'sm:pl-8',
+      measure: 'max-w-[42ch]',
     },
     {
       icon: Mic2,
@@ -346,6 +360,9 @@ export default function Home() {
       desc: isFr
         ? 'Un vrai appel test dans le navigateur, avec sa vraie voix et votre vraie config.'
         : 'A real test call in the browser, with her real voice and your real setup.',
+      pad: 'py-11 sm:py-16',
+      indent: 'sm:pl-16',
+      measure: 'max-w-[38ch]',
     },
   ];
 
@@ -662,17 +679,26 @@ export default function Home() {
           </RevealV2>
           <RevealV2 index={1}>
             <div className="border-t border-q2-plate">
-              {setup.map((s) => (
+              {setup.map((s, i) => (
                 <GlowCard
                   key={s.label}
-                  className="border-b border-q2-plate py-5 sm:py-7 grid sm:grid-cols-[44px_1fr] gap-3.5 sm:gap-4 items-start"
+                  className={`border-b border-q2-plate grid sm:grid-cols-[44px_1fr] gap-3.5 sm:gap-4 items-start ${s.pad} ${s.indent}`}
                 >
-                  <span className="w-10 h-10 rounded-full bg-q2-band flex items-center justify-center">
+                  <span className="relative w-10 h-10 rounded-full bg-q2-band flex items-center justify-center">
                     <s.icon size={16} className="text-q2-violet" aria-hidden="true" />
+                    {/* Le rang, en petit, contre la pastille: c'est lui qui
+                        explique le décalage de chaque ligne. Sans repère, un
+                        retrait qui augmente passe pour un défaut. */}
+                    <span
+                      aria-hidden="true"
+                      className="absolute -left-1 -top-1 text-[10px] font-medium tabular-nums text-q2-faint"
+                    >
+                      {i + 1}
+                    </span>
                   </span>
                   <div>
                     <p className="text-[17px] font-medium text-q2-ink mb-1">{s.label}</p>
-                    <p className="text-q2-body text-sm leading-relaxed q2-body-text">{s.desc}</p>
+                    <p className={`text-q2-body text-sm leading-relaxed q2-body-text ${s.measure}`}>{s.desc}</p>
                   </div>
                 </GlowCard>
               ))}
