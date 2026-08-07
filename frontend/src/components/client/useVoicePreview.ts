@@ -407,7 +407,9 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
       if (ctx) void resumeWithin(ctx, 2_500);
     }
 
-    /* Abandonner, c'est le DIRE, pas jouer autre chose. L'ancienne version se
+    /* Abandonner, c'est le DIRE, pas jouer autre chose. Les messages
+       annonçaient encore « Aperçu joué avec la voix du navigateur » alors que
+       ce repli a été retiré: ils promettaient un son que plus rien ne produit. L'ancienne version se
        rabattait ici sur speechSynthesis: sur Safari, une voix de lecture
        système qui ne ressemble à aucune voix du produit. L'aperçu mentait donc
        sur ce que l'appelant entendra, ce qui est pire que pas d'aperçu. */
@@ -470,8 +472,8 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
         if (played || tokenRef.current !== token) return;
         if (await playDecoded(bytes, token)) return;
         giveUp(isFr
-          ? "Le navigateur a bloqué l'audio. Aperçu joué avec la voix du navigateur — touchez ▶ à nouveau pour la vraie voix."
-          : 'The browser blocked audio. Playing the browser voice — tap ▶ again for the real one.');
+          ? "Le navigateur a bloqué l'audio. Touchez ▶ à nouveau, et vérifiez l'interrupteur silence de votre téléphone."
+          : 'The browser blocked audio. Tap ▶ again, and check your phone\u2019s silent switch.');
       });
       return;
     }
@@ -486,8 +488,8 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
         if (tokenRef.current !== token) return;
         if (await playDecoded(payload, token)) return;
         giveUp(isFr
-          ? "Le navigateur a bloqué l'audio. Aperçu joué avec la voix du navigateur — touchez ▶ à nouveau pour la vraie voix."
-          : 'The browser blocked audio. Playing the browser voice — tap ▶ again for the real one.');
+          ? "Le navigateur a bloqué l'audio. Touchez ▶ à nouveau, et vérifiez l'interrupteur silence de votre téléphone."
+          : 'The browser blocked audio. Tap ▶ again, and check your phone\u2019s silent switch.');
       } catch (err) {
         if (tokenRef.current !== token) return;
 
@@ -498,8 +500,8 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
           // refused it.
           const ko = Math.round((payload?.byteLength ?? 0) / 1024);
           giveUp(isFr
-            ? `Le fichier audio reçu n'a pas pu être décodé (${ko} ko). Aperçu joué avec la voix du navigateur.`
-            : `The audio file could not be decoded (${ko} kB). Playing the browser voice instead.`);
+            ? `Le fichier audio reçu n'a pas pu être décodé (${ko} ko).`
+            : `The audio file could not be decoded (${ko} kB).`);
           return;
         }
 
@@ -521,11 +523,11 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
         giveUp(
           res?.status === 503
             ? (isFr
-              ? "Voix réelles indisponibles : la clé ElevenLabs n'est pas configurée sur le serveur. Aperçu joué avec la voix du navigateur."
-              : 'Real voices unavailable: the ElevenLabs key is not configured on the server. Playing the browser voice instead.')
+              ? "Voix réelles indisponibles : la clé ElevenLabs n'est pas configurée sur le serveur."
+              : 'Real voices unavailable: the ElevenLabs key is not configured on the server.')
             : (isFr
-              ? `Aperçu ElevenLabs indisponible (${detail}). Aperçu joué avec la voix du navigateur.`
-              : `ElevenLabs preview unavailable (${detail}). Playing the browser voice instead.`),
+              ? `Aperçu ElevenLabs indisponible (${detail}).`
+              : `ElevenLabs preview unavailable (${detail}).`),
         );
       }
     })();

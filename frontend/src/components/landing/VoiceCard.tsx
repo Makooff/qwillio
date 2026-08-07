@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
 import { Play } from '../icons';
 import Card3D from '../ui/Card3D';
+import { useVoicePreview } from '../client/useVoicePreview';
 
 /* ── Voice card (showcase) ────────────────────────────────────────────────── */
 export interface VoiceData {
@@ -12,42 +12,24 @@ export interface VoiceData {
   initials: string;
   lang: string;
   sample: string;
+  /** Identifiant du personnage au catalogue, pour aller chercher SA voix. */
+  id: string;
 }
 
+/* Cette carte jouait `/voices/<nom>.mp3`, un dossier QUI N'EXISTE PAS dans
+   `public/`. La lecture echouait donc a tous les coups, et le `onerror`
+   basculait sur speechSynthesis: la voix de lecture du systeme, qui ne
+   ressemble a aucune voix du produit. L'apercu mentait sur ce que l'appelant
+   entendra, ce qui est pire que pas d'apercu du tout.
+
+   On passe par le meme chemin que le reste du site: les VRAIS clips
+   ElevenLabs, via l'endpoint public et le hook partage. Plus de repli
+   navigateur nulle part, et quand ca echoue on le DIT. */
 export default function VoiceCard({ v, large = false }: { v: VoiceData; large?: boolean }) {
-  const [playing, setPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  function speak() {
-    if (playing) {
-      audioRef.current?.pause();
-      window.speechSynthesis?.cancel();
-      setPlaying(false);
-      return;
-    }
-
-    const audio = new Audio(`/voices/${v.name.toLowerCase()}.mp3`);
-    audioRef.current = audio;
-
-    audio.onplay = () => setPlaying(true);
-    audio.onended = () => setPlaying(false);
-    audio.onerror = () => {
-      if (!window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
-      const utt = new SpeechSynthesisUtterance(v.sample);
-      utt.lang = v.lang;
-      utt.rate = 0.95;
-      const voices = window.speechSynthesis.getVoices();
-      const match = voices.find((vx) => vx.lang.startsWith(v.lang.split('-')[0]));
-      if (match) utt.voice = match;
-      utt.onstart = () => setPlaying(true);
-      utt.onend = () => setPlaying(false);
-      utt.onerror = () => setPlaying(false);
-      window.speechSynthesis.speak(utt);
-    };
-
-    audio.play().catch(() => audio.dispatchEvent(new Event('error')));
-  }
+  const isFr = v.lang.startsWith('fr');
+  const { playing, notice, toggle, prefetch } = useVoicePreview(isFr);
+  const url = `/public/characters/${v.id}/preview?lang=${isFr ? 'fr' : 'en'}`;
+  const isPlaying = playing === v.id;
 
   return (
     <Card3D intensity={4}>
@@ -72,6 +54,12 @@ export default function VoiceCard({ v, large = false }: { v: VoiceData; large?: 
             <span className="text-[11px] text-[#86868b]">{v.accent}</span>
           </figcaption>
           <p className="text-[13px] text-[#525257] leading-relaxed">{v.vibe}</p>
+          {isPlaying && (
+            <p className="mt-2 text-[12px] italic text-[#86868b] leading-snug">« {v.sample} »</p>
+          )}
+          {notice && (
+            <p role="status" className="mt-2 text-[12px] text-[#b45309] leading-snug">{notice}</p>
+          )}
         </div>
       </div>
 
@@ -96,11 +84,12 @@ export default function VoiceCard({ v, large = false }: { v: VoiceData; large?: 
       <button
         type="button"
         aria-label={`${v.name} preview`}
-        onClick={speak}
+        onClick={() => toggle(v.id, url, v.sample)}
+        onPointerEnter={() => prefetch(url)}
         className="absolute top-5 right-5 w-9 h-9 rounded-full text-white flex items-center justify-center transition-colors"
-        style={{ background: playing ? v.swatch : '#1d1d1f' }}
+        style={{ background: isPlaying ? v.swatch : '#1d1d1f' }}
       >
-        {playing ? (
+        {isPlaying ? (
           <span className="flex items-end gap-[2px] h-3" aria-hidden="true">
             {[0, 1, 2].map((i) => (
               <span

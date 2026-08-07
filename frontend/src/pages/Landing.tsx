@@ -28,6 +28,7 @@ export default function Landing() {
 
   const voices: VoiceData[] = [
     {
+      id: 'camille',
       name: 'Ashley',
       accent: isFr ? 'Anglais · États-Unis' : 'English · United States',
       vibe: isFr
@@ -40,6 +41,7 @@ export default function Landing() {
       sample: "Hey, Bright Dental, this is Ashley. How can I help you today?",
     },
     {
+      id: 'marie',
       name: 'Marie',
       accent: isFr ? 'Français · France & Québec' : 'French · France & Quebec',
       vibe: isFr

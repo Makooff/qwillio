@@ -63,6 +63,7 @@ export default function Receptionist() {
 
   const voices: VoiceData[] = [
     {
+      id: 'marie',
       name: 'Marie',
       accent: isFr ? 'Français · France et Belgique' : 'French · France and Belgium',
       vibe: isFr
@@ -77,6 +78,7 @@ export default function Receptionist() {
         : 'Hello, thanks for calling! How can I help you today?',
     },
     {
+      id: 'lucas',
       name: 'Lucas',
       accent: isFr ? 'Français · France et Belgique' : 'French · France and Belgium',
       vibe: isFr
