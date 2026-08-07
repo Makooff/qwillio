@@ -62,6 +62,35 @@ export function isMicDenied(e: unknown): boolean {
   return false;
 }
 
+/**
+ * Cet échec vient-il de NOTRE compte chez le fournisseur, et non de l'appareil ?
+ *
+ * Vapi répond « Your Wallet Balance is 0 » avec un 400 quand le crédit est
+ * épuisé. Sans ce tri, le message générique envoyait l'utilisateur vérifier son
+ * micro et sa connexion pour un problème de facturation qui ne le concerne pas,
+ * et le détail brut affichait notre état de compte, en clair, y compris sur la
+ * page d'essai publique où le lecteur est un prospect.
+ */
+const PROVIDER_FAULT = /wallet\s*balance|purchase more credits|upgrade your plan|insufficient (funds|credits)|out of credits|quota exceeded/i;
+
+export function isProviderFault(e: unknown): boolean {
+  if (!e) return false;
+  // Le message utile est parfois imbriqué sous `message.message`, ce que
+  // `errorText` refuse de lire par sécurité: on inspecte donc la charge entière.
+  try {
+    const seen = new WeakSet();
+    const json = JSON.stringify(e, (_k, v) => {
+      if (typeof v === 'object' && v !== null) {
+        if (seen.has(v)) return '[circular]';
+        seen.add(v);
+      }
+      return v;
+    });
+    if (json && PROVIDER_FAULT.test(json)) return true;
+  } catch { /* charge non sérialisable */ }
+  return typeof e === 'string' && PROVIDER_FAULT.test(e);
+}
+
 export function errorText(e: unknown): string | null {
   if (typeof e === 'string') return e.trim() || null;
   if (!e || typeof e !== 'object') return null;
@@ -119,6 +148,19 @@ export default function VapiLiveCall({
 
   const vapiRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const onSite = tone === 'site';
+
+  /* Deux publics, deux messages. Le gérant peut agir sur le crédit Vapi, donc
+     on le lui dit; le visiteur du site n'a aucune prise dessus et ne doit pas
+     lire l'état de notre compte. */
+  const providerFaultMessage = onSite
+    ? (isFr
+      ? "L'essai en direct est momentanément indisponible. Réessayez dans un moment."
+      : 'The live trial is temporarily unavailable. Please try again shortly.')
+    : (isFr
+      ? 'Appel impossible : le crédit Vapi est épuisé. Rechargez le solde du compte Vapi.'
+      : 'Call unavailable: the Vapi credit is exhausted. Top up the Vapi account balance.');
 
   /**
    * The dial config, fetched on mount rather than on press.
@@ -206,23 +248,31 @@ export default function VapiLiveCall({
       vapi.on('error', (e: any) => {
         // Vapi routinely emits errors with no message. Saying "Erreur appel"
         // and nothing else sends the user looking in the wrong place.
-        const detail = errorDetail(e);
+        const stop = () => {
+          setState('idle');
+          if (timerRef.current) clearInterval(timerRef.current);
+        };
         if (isMicDenied(e)) {
           setError(isFr
             ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
             : 'Microphone denied. Allow the microphone for this site, then start again.');
-          setState('idle');
-          if (timerRef.current) clearInterval(timerRef.current);
-          return;
+          return stop();
         }
+        if (isProviderFault(e)) {
+          setError(providerFaultMessage);
+          return stop();
+        }
+        // Le détail brut n'a de sens que sur le tableau de bord, où il a été
+        // ajouté faute de devtools sur un téléphone. Sur le site public, le
+        // lecteur est un prospect: il n'a rien à faire de notre charge JSON.
+        const detail = onSite ? null : errorDetail(e);
         setError(errorText(e) || [
           isFr
             ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
             : 'The call dropped. Check the microphone and connection, then try again.',
           detail,
         ].filter(Boolean).join(' — '));
-        setState('idle');
-        if (timerRef.current) clearInterval(timerRef.current);
+        stop();
       });
 
       await vapi.start(data.assistant);
@@ -235,7 +285,9 @@ export default function VapiLiveCall({
           ? (isFr
             ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
             : 'Microphone denied. Allow the microphone for this site, then start again.')
-          : e?.response?.status === 503
+          : isProviderFault(e)
+            ? providerFaultMessage
+            : e?.response?.status === 503
             ? (isFr ? 'Appel live non configuré (clé Vapi).' : 'Live call not configured (Vapi key).')
             : (errorText(e) || (isFr ? 'Impossible de démarrer l’appel.' : 'Could not start the call.')),
       );
@@ -246,8 +298,6 @@ export default function VapiLiveCall({
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
   const active = state === 'active';
-
-  const onSite = tone === 'site';
 
   return (
     <div

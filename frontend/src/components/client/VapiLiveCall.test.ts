@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { errorText, isMicDenied } from './VapiLiveCall';
+import { errorText, isMicDenied, isProviderFault } from './VapiLiveCall';
 
 describe('isMicDenied', () => {
   it('recognises the DOMException the browser throws on refusal', () => {
@@ -57,5 +57,43 @@ describe('errorText', () => {
     for (const bad of [null, undefined, 42, [], {}, { message: '' }, { message: '   ' }, { message: 7 }]) {
       expect(errorText(bad)).toBeNull();
     }
+  });
+});
+
+describe('isProviderFault', () => {
+  it('recognises the payload Vapi sends when the wallet is empty', () => {
+    // Charge relevée sur un vrai appareil: le message utile est imbriqué sous
+    // `message.message`, là où `errorText` refuse d'aller.
+    const real = {
+      type: 'start-method-error',
+      stage: 'unknown',
+      error: {
+        message: {
+          message: 'Your Wallet Balance is 0. Please Purchase More Credits or Upgrade Your Plan Before Proceeding.',
+          error: 'Bad Request',
+          statusCode: 400,
+        },
+      },
+    };
+    expect(isProviderFault(real)).toBe(true);
+  });
+
+  it('recognises the other ways a provider says the same thing', () => {
+    expect(isProviderFault({ message: 'Insufficient credits' })).toBe(true);
+    expect(isProviderFault('Quota exceeded')).toBe(true);
+  });
+
+  it('never blames the account for a device or network failure', () => {
+    // Sinon un micro refusé afficherait « rechargez le solde », et personne ne
+    // penserait plus à regarder ses autorisations.
+    for (const bad of [null, undefined, {}, 'meeting ended', { name: 'NotAllowedError' }, { message: 'ejected' }]) {
+      expect(isProviderFault(bad)).toBe(false);
+    }
+  });
+
+  it('survives a circular payload', () => {
+    const loop: any = { a: 1 };
+    loop.self = loop;
+    expect(isProviderFault(loop)).toBe(false);
   });
 });
