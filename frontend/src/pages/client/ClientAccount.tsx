@@ -6,11 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Lock, Check, Bell, LogOut, Eye, EyeOff, ChevronRight,
   CreditCard, Bot, HelpCircle, Sparkles, Shield, Globe,
+  Building2, MapPin,
   LucideIcon,
 } from '../../components/icons';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../services/api';
-import { fetchLive } from '../../services/liveData';
+import { fetchLive, invalidateLive } from '../../services/liveData';
 
 const C = {
   bg:       '#0A0A0C',
@@ -112,6 +113,26 @@ const PLAN_LABELS: Record<PlanType, string> = {
   enterprise: 'Enterprise',
 };
 
+/**
+ * Les métiers proposés. La liste vit ici parce que c'est ici qu'on la choisit
+ * désormais; elle était sur Réceptionniste, avec les mêmes valeurs.
+ */
+const BUSINESS_TYPES: { value: string; label: string }[] = [
+  { value: '',              label: 'Sélectionner...' },
+  { value: 'dental',        label: 'Dentaire' },
+  { value: 'medical',       label: 'Médical' },
+  { value: 'law',           label: 'Juridique' },
+  { value: 'salon',         label: 'Salon' },
+  { value: 'restaurant',    label: 'Restaurant' },
+  { value: 'garage',        label: 'Garage auto' },
+  { value: 'hotel',         label: 'Hôtel' },
+  { value: 'home_services', label: 'Services maison' },
+  { value: 'other',         label: 'Autre' },
+];
+
+const selectCls =
+  'w-full px-3.5 py-2.5 text-[13px] rounded-xl border bg-white/[0.03] text-[#F5F5F7] focus:outline-none transition-colors appearance-none';
+
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function ClientAccount() {
@@ -135,6 +156,31 @@ export default function ClientAccount() {
   const [notifLeads, setNotifLeads] = useState(true);
   const [notifQuota, setNotifQuota] = useState(true);
 
+  /**
+   * L'entreprise et ses coordonnées.
+   *
+   * Elles vivaient sur Réceptionniste, entre la voix de l'agent et ses scripts,
+   * alors qu'elles ne décrivent pas l'agent: elles décrivent le client. Elles
+   * sont ici, et ELLES NE SONT PLUS ENVOYÉES PAR RÉCEPTIONNISTE — les deux vont
+   * ensemble. Cette page et l'autre écrivent sur la même route, dont le PUT est
+   * partiel: si Réceptionniste continuait à poster sa copie de `businessName`,
+   * son autosave réécrirait par-dessus ce qui vient d'être tapé ici, avec une
+   * valeur figée au chargement de sa page. Rien ne s'afficherait de travers, la
+   * donnée disparaîtrait simplement.
+   */
+  const [agentLanguage, setAgentLanguage] = useState('fr');
+  const [businessName, setBusinessName] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  /* Non modifiables ici: ils viennent du contrat, pas des préférences. */
+  const [readOnly, setReadOnly] = useState<{ contactName?: string; contactEmail?: string; country?: string }>({});
+  const [bizSaving, setBizSaving] = useState(false);
+  const [bizSaved, setBizSaved] = useState(false);
+  const [bizError, setBizError] = useState('');
+
   useEffect(() => {
     // Same settings the Réceptionniste tab reads, warmed at launch: from the
     // cache it is already there, so the toggles never render at their defaults
@@ -152,8 +198,46 @@ export default function ClientAccount() {
         if (typeof notif.notifLeads  === 'boolean') setNotifLeads(notif.notifLeads);
         if (typeof notif.notifQuota  === 'boolean') setNotifQuota(notif.notifQuota);
       }
+      if (data?.agentLanguage) setAgentLanguage(data.agentLanguage);
+      setBusinessName(data?.businessName || '');
+      setBusinessType(data?.businessType || '');
+      setContactPhone(data?.contactPhone || '');
+      setAddress(data?.address || '');
+      setCity(data?.city || '');
+      setPostalCode(data?.postalCode || '');
+      setReadOnly({ contactName: data?.contactName, contactEmail: data?.contactEmail, country: data?.country });
     }).catch(() => { /* keep defaults */ });
   }, []);
+
+  /**
+   * Enregistrement explicite, au bouton, et non en autosave.
+   *
+   * Réceptionniste sauvegarde toute seule 900 ms après la dernière frappe. Ici
+   * on écrit le nom de l'entreprise et la langue de l'agent: deux valeurs qui
+   * partent droit dans le prompt de l'assistant et déclenchent une resync Vapi
+   * côté serveur. Les enregistrer à chaque lettre tapée ferait resynchroniser
+   * l'assistant une fois par caractère.
+   */
+  const saveBusiness = async () => {
+    setBizSaving(true);
+    setBizError('');
+    try {
+      // Charge utile partielle: uniquement les champs de cette page. Le PUT
+      // côté serveur ne touche que ce qu'il reçoit, donc les scripts, horaires
+      // et voix réglés sur Réceptionniste ne sont pas concernés.
+      await api.put('/my-dashboard/settings', {
+        agentLanguage, businessName, businessType,
+        contactPhone, address, city, postalCode,
+      });
+      invalidateLive('/my-dashboard/');
+      setBizSaved(true);
+      setTimeout(() => setBizSaved(false), 2000);
+    } catch {
+      setBizError("L'enregistrement a échoué. Réessayez dans un instant.");
+    } finally {
+      setBizSaving(false);
+    }
+  };
 
   const saveNotifications = useCallback((vals: {
     notifEmail: boolean; notifWeekly: boolean; notifLeads: boolean; notifQuota: boolean;
@@ -342,6 +426,115 @@ export default function ClientAccount() {
                       <Toggle checked={n.checked} onChange={n.set} />
                     </div>
                   ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
+      </section>
+
+      {/* ─── Entreprise ─── */}
+      <section>
+        <SectionHead title="Entreprise" />
+        <Card>
+          <Row icon={Building2} label="Identité de l'entreprise" hint={businessName || 'Nom, métier, langue de l’agent'}
+               onClick={() => toggle('business')} />
+          <AnimatePresence initial={false}>
+            {open === 'business' && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18 }} className="overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
+                <div className="p-5 space-y-3">
+                  <div>
+                    <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Nom de l'entreprise</label>
+                    <input type="text" value={businessName} onChange={e => setBusinessName(e.target.value)}
+                      placeholder="Ex: Plomberie Dupont"
+                      className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
+                    <p className="text-[11px] mt-1" style={{ color: C.textTer }}>C'est sous ce nom que l'IA se présente au téléphone.</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Métier</label>
+                      <select value={businessType} onChange={e => setBusinessType(e.target.value)}
+                        className={selectCls + ' mt-1.5'} style={{ borderColor: C.border }}>
+                        {BUSINESS_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                      <p className="text-[11px] mt-1" style={{ color: C.textTer }}>Il décide des questions que l'IA sait poser.</p>
+                    </div>
+                    <div>
+                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Langue de l'agent</label>
+                      <select value={agentLanguage} onChange={e => setAgentLanguage(e.target.value)}
+                        className={selectCls + ' mt-1.5'} style={{ borderColor: C.border }}>
+                        <option value="fr">Français (Marie)</option>
+                        <option value="en">Anglais (Ashley)</option>
+                      </select>
+                      <p className="text-[11px] mt-1" style={{ color: C.textTer }}>La langue parlée à vos appelants.</p>
+                    </div>
+                  </div>
+                  {bizError && <p className="text-[12px]" style={{ color: C.bad }}>{bizError}</p>}
+                  <div className="flex items-center gap-3 pt-2">
+                    <button type="button" onClick={saveBusiness} disabled={bizSaving}
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
+                      style={{ background: C.text, color: '#0B0B0D' }}>
+                      {bizSaving ? 'Enregistrement…' : 'Sauvegarder'}
+                    </button>
+                    {bizSaved && <span className="text-[12px] flex items-center gap-1" style={{ color: C.ok }}><Check size={13} /> Sauvegardé</span>}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div style={{ borderTop: `1px solid ${C.border}` }} />
+          <Row icon={MapPin} label="Coordonnées" hint={[city, postalCode].filter(Boolean).join(' ') || 'Adresse et téléphone de contact'}
+               onClick={() => toggle('contact')} />
+          <AnimatePresence initial={false}>
+            {open === 'contact' && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18 }} className="overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
+                <div className="p-5 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Téléphone de contact</label>
+                      <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)}
+                        placeholder="+32 470 00 00 00" className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
+                    </div>
+                    <div>
+                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Adresse</label>
+                      <input type="text" value={address} onChange={e => setAddress(e.target.value)}
+                        placeholder="123 Rue Principale" className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
+                    </div>
+                    <div>
+                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Ville</label>
+                      <input type="text" value={city} onChange={e => setCity(e.target.value)}
+                        placeholder="Bruxelles" className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
+                    </div>
+                    <div>
+                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Code postal</label>
+                      <input type="text" value={postalCode} onChange={e => setPostalCode(e.target.value)}
+                        placeholder="1000" className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
+                    </div>
+                  </div>
+                  <div className="pt-1 space-y-1.5">
+                    {([
+                      ['Contact principal', readOnly.contactName],
+                      ['Email', readOnly.contactEmail],
+                      ['Pays', readOnly.country],
+                    ] as const).map(([label, value]) => (
+                      <div key={label} className="flex items-center justify-between text-[12.5px]">
+                        <span style={{ color: C.textTer }}>{label}</span>
+                        <span style={{ color: C.textSec }}>{value || '—'}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {bizError && <p className="text-[12px]" style={{ color: C.bad }}>{bizError}</p>}
+                  <div className="flex items-center gap-3 pt-2">
+                    <button type="button" onClick={saveBusiness} disabled={bizSaving}
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
+                      style={{ background: C.text, color: '#0B0B0D' }}>
+                      {bizSaving ? 'Enregistrement…' : 'Sauvegarder'}
+                    </button>
+                    {bizSaved && <span className="text-[12px] flex items-center gap-1" style={{ color: C.ok }}><Check size={13} /> Sauvegardé</span>}
+                  </div>
                 </div>
               </motion.div>
             )}

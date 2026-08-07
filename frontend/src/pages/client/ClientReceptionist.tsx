@@ -1,9 +1,10 @@
 ﻿import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Bot, PhoneForwarded, AlertCircle,
   Activity, Power, Globe, User, Clock, Shield, Calendar,
-  Volume2, Languages, Building2, MapPin, Settings,
+  Volume2, Languages, Building2, Settings,
   ChevronDown, ChevronRight, CheckCircle2, XCircle,
   BookOpen, Tag, HelpCircle, Clock3, Plus, X,
 } from '../../components/icons';
@@ -39,6 +40,22 @@ interface KbItem { id: string; category: string; name: string; price: string; }
 interface DayHours { open: boolean; from: string; to: string; }
 type WeekDay = 'monday'|'tuesday'|'wednesday'|'thursday'|'friday'|'saturday'|'sunday';
 type WeekHours = Record<WeekDay, DayHours>;
+
+/**
+ * Pour AFFICHER le métier, pas pour le choisir: le choix est dans Paramètres,
+ * qui porte la liste. Ici on ne fait que traduire la valeur enregistrée.
+ */
+const BUSINESS_TYPE_LABELS: Record<string, string> = {
+  dental: 'Dentaire',
+  medical: 'Médical',
+  law: 'Juridique',
+  salon: 'Salon',
+  restaurant: 'Restaurant',
+  garage: 'Garage auto',
+  hotel: 'Hôtel',
+  home_services: 'Services maison',
+  other: 'Autre',
+};
 
 const ITEM_CATEGORIES: { v: string; l: string }[] = [
   { v: 'service',    l: 'Service' },
@@ -147,15 +164,14 @@ export default function ClientReceptionist() {
   const [error, setError] = useState<string | null>(null);
 
   // Editable fields
+  /* Lus, jamais écrits ici: ils se règlent dans Paramètres. Cette page en a
+     encore besoin pour parler la bonne langue dans les aperçus de voix et pour
+     savoir si la configuration de départ est complète. */
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
+  const [agentLanguage, setAgentLanguage] = useState('en');
   const [transferNumber, setTransferNumber] = useState('');
   const [agentName, setAgentName] = useState('');
-  const [agentLanguage, setAgentLanguage] = useState('en');
-  const [contactPhone, setContactPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [postalCode, setPostalCode] = useState('');
   const [forwardingType, setForwardingType] = useState('');
   const [googleCalendarId, setGoogleCalendarId] = useState('');
   // Google Calendar OAuth integration
@@ -210,10 +226,6 @@ export default function ClientReceptionist() {
       setTransferNumber(s?.transferNumber || '');
       setAgentName(s?.agentName || '');
       setAgentLanguage(s?.agentLanguage || 'en');
-      setContactPhone(s?.contactPhone || '');
-      setAddress(s?.address || '');
-      setCity(s?.city || '');
-      setPostalCode(s?.postalCode || '');
       setForwardingType(s?.forwardingType || '');
       setGoogleCalendarId(s?.googleCalendarId || '');
       // Items: stored as array; if backend still has the legacy string, ignore.
@@ -298,9 +310,13 @@ export default function ClientReceptionist() {
 
   const autoSave = useCallback(async () => {
     try {
+      // Ce que cette page envoie, c'est ce qu'elle laisse modifier, et rien de
+      // plus. L'entreprise (nom, métier, langue) et les coordonnées se règlent
+      // dans Paramètres: les poster ici aussi ferait écraser, 900 ms après la
+      // moindre frappe, ce que le client vient d'y saisir — par la copie que
+      // cette page a chargée au montage. Une perte de données sans symptôme.
       await api.put('/my-dashboard/settings', {
-        businessName, businessType, transferNumber, agentName,
-        agentLanguage, contactPhone, address, city, postalCode,
+        transferNumber, agentName,
         forwardingType, googleCalendarId,
         items: items.filter(i => i.name.trim()),
         hours: weekHours,
@@ -314,8 +330,7 @@ export default function ClientReceptionist() {
       // the instant this call returns.
       invalidateLive('/my-dashboard/');
     } catch { /* silent — the next edit retries */ }
-  }, [businessName, businessType, transferNumber, agentName, agentLanguage,
-      contactPhone, address, city, postalCode, forwardingType, googleCalendarId,
+  }, [transferNumber, agentName, forwardingType, googleCalendarId,
       items, weekHours, faq, personalityPreset, personalityNotes, characterId, customVoice]);
 
   // Auto-save: debounce after any edit. Skips the initial hydration from load()
@@ -425,44 +440,27 @@ export default function ClientReceptionist() {
       </div>
 
       {/* —— Agent identity —— */}
-      <Section title="Identité de l'agent" hint="Nom, langue, voix et caractère" id="identite" openId={openId} setOpenId={setOpenId} icon={Bot}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Nom de l'agent</label>
-            <input type="text" value={agentName} onChange={e => setAgentName(e.target.value)}
-              placeholder="Ex: Ashley, Marie..." className={inputCls} />
-            <p className="text-[10px] text-[#8B8BA7] mt-1">Le prénom utilisé par l'IA pour se présenter</p>
-          </div>
-          <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Langue</label>
-            <select value={agentLanguage} onChange={e => setAgentLanguage(e.target.value)} className={selectCls}>
-              <option value="en">Anglais (Ashley)</option>
-              <option value="fr">Français (Marie)</option>
-            </select>
-            <p className="text-[10px] text-[#8B8BA7] mt-1">Langue parlée par votre réceptionniste IA</p>
-          </div>
-          <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Nom de l'entreprise</label>
-            <input type="text" value={businessName} onChange={e => setBusinessName(e.target.value)}
-              placeholder="Ex: Plomberie Dupont" className={inputCls} />
-            <p className="text-[10px] text-[#8B8BA7] mt-1">Utilisé par l'IA pour se présenter au téléphone</p>
-          </div>
-          <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Type d'entreprise</label>
-            <select value={businessType} onChange={e => setBusinessType(e.target.value)} className={selectCls}>
-              <option value="">Sélectionner...</option>
-              <option value="dental">Dentaire</option>
-              <option value="medical">Médical</option>
-              <option value="law">Juridique</option>
-              <option value="salon">Salon</option>
-              <option value="restaurant">Restaurant</option>
-              <option value="garage">Garage auto</option>
-              <option value="hotel">Hôtel</option>
-              <option value="home_services">Services maison</option>
-              <option value="other">Autre</option>
-            </select>
-          </div>
+      <Section title="Identité de l'agent" hint="Nom, voix et caractère" id="identite" openId={openId} setOpenId={setOpenId} icon={Bot}>
+        <div>
+          <label className="text-xs text-[#8B8BA7] mb-1.5 block">Nom de l'agent</label>
+          <input type="text" value={agentName} onChange={e => setAgentName(e.target.value)}
+            placeholder="Ex: Ashley, Marie..." className={inputCls} />
+          <p className="text-[10px] text-[#8B8BA7] mt-1">Le prénom utilisé par l'IA pour se présenter</p>
         </div>
+
+        {/* Le nom de l'entreprise, le métier et la langue décrivent le client,
+            pas son agent: ils sont dans Paramètres. On les rappelle ici parce
+            qu'ils changent ce que la voix dit, et on y renvoie plutôt que d'en
+            garder une seconde copie modifiable. */}
+        <p className="mt-3 text-[11.5px] leading-relaxed text-[#8B8BA7]">
+          {businessName || 'Votre entreprise'}
+          {businessType ? ` · ${BUSINESS_TYPE_LABELS[businessType] ?? businessType}` : ''}
+          {` · ${agentLanguage === 'en' ? 'Anglais' : 'Français'}`}
+          {' — '}
+          <Link to="/dashboard/account" className="underline underline-offset-2 hover:text-[#F8F8FF] transition-colors">
+            modifier dans Paramètres
+          </Link>
+        </p>
 
         {/* —— Personnage (voix + personnalité) —— */}
         {characters.length > 0 && (
@@ -701,36 +699,10 @@ export default function ClientReceptionist() {
       </Section>
       </div>
 
-      {/* —— Contact & adresse —— */}
-      <Section title="Coordonnées" hint="Adresse et téléphone de contact" id="coordonnees" openId={openId} setOpenId={setOpenId} icon={MapPin}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Téléphone de contact</label>
-            <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)}
-              placeholder="+1 (555) 000-0000" className={inputCls} />
-          </div>
-          <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Adresse</label>
-            <input type="text" value={address} onChange={e => setAddress(e.target.value)}
-              placeholder="123 Rue Principale" className={inputCls} />
-          </div>
-          <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Ville</label>
-            <input type="text" value={city} onChange={e => setCity(e.target.value)}
-              placeholder="Montréal" className={inputCls} />
-          </div>
-          <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Code postal</label>
-            <input type="text" value={postalCode} onChange={e => setPostalCode(e.target.value)}
-              placeholder="H2X 1Y4" className={inputCls} />
-          </div>
-        </div>
-        <div className="mt-3 pt-3 border-t border-white/[0.04]">
-          <Row l="Contact principal" v={settings?.contactName || client.contactName || '—'} />
-          <Row l="Email" v={settings?.contactEmail || client.contactEmail || '—'} />
-          <Row l="Pays" v={settings?.country || client.country || '—'} />
-        </div>
-      </Section>
+      {/* La section « Coordonnées » est partie dans Paramètres, avec l'identité
+          de l'entreprise: adresse, ville, code postal et téléphone de contact
+          décrivent le client, et n'avaient rien à faire au milieu des réglages
+          de sa réceptionniste. */}
 
       {/* —— Intégrations —— */}
       <Section title="Intégrations" hint="Agenda et outils connectés" id="integrations" openId={openId} setOpenId={setOpenId} icon={Calendar}>
