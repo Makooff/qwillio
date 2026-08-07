@@ -67,6 +67,7 @@ function voiceLabel(c: Character, isFr: boolean) {
 
 export default function CharacterCarousel({
   characters, value, onChange, isFr = true, override = null, onOverride,
+  agentName, onAgentName,
 }: {
   characters: Character[];
   value: string;
@@ -76,12 +77,39 @@ export default function CharacterCarousel({
      son ton: seul le timbre change. */
   override?: SelectedVoice | null;
   onOverride?: (v: SelectedVoice | null) => void;
+  /* Le prénom sous lequel l'agent se présente. Optionnel: la grille
+     d'onboarding monte ce carrousel sans agent nommé, et affiche alors le nom
+     du personnage, comme avant. */
+  agentName?: string;
+  onAgentName?: (v: string) => void;
 }) {
   const reduce = useReducedMotion();
   const { playing, notice, line, toggle, prefetch } = useVoicePreview(isFr);
   const [dir, setDir] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  /* Renommage sur place. Le brouillon est local et n'est remonté qu'à la
+     validation: le parent enregistre tout seul 900 ms après le dernier
+     changement, et lui envoyer chaque frappe ferait resynchroniser l'assistant
+     Vapi une fois par lettre. Échap rend la valeur d'origine. */
+  const [renaming, setRenaming] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const canRename = typeof onAgentName === 'function';
+
+  useEffect(() => {
+    if (renaming) nameInputRef.current?.select();
+  }, [renaming]);
+
+  const startRename = () => { setDraftName(agentName ?? ''); setRenaming(true); };
+  const commitRename = () => {
+    const next = draftName.trim();
+    setRenaming(false);
+    // Un nom vide n'est pas un effacement, c'est un abandon: l'agent doit bien
+    // se présenter sous un prénom.
+    if (next && next !== agentName) onAgentName?.(next);
+  };
 
   const index = Math.max(0, characters.findIndex(c => c.id === value));
   const current = characters[index];
@@ -161,6 +189,44 @@ export default function CharacterCarousel({
           {current.name}, {voiceLabel(current, isFr)}. {tagline}
         </span>
 
+        {/* Le nom vit AU-DESSUS du bloc animé, et non dedans comme le nom de
+            personnage qu'il remplace: c'est le nom de l'agent, pas celui du
+            visage, et le laisser dans l'animation le ferait remonter à chaque
+            flèche, en fermant le champ au milieu d'une saisie. */}
+        {canRename && (
+          <div className="mb-4 flex items-center justify-center gap-2">
+            {renaming ? (
+              <input
+                ref={nameInputRef}
+                value={draftName}
+                onChange={e => setDraftName(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+                  if (e.key === 'Escape') { e.preventDefault(); setRenaming(false); }
+                }}
+                aria-label={isFr ? "Nom de l'agent" : 'Agent name'}
+                maxLength={40}
+                className="w-[180px] rounded-lg border border-q2-indigo/50 bg-q2-void px-3 py-1 text-center text-[16px] font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+              />
+            ) : (
+              <>
+                <p className="text-[16px] font-medium text-white truncate max-w-[220px]">
+                  {agentName || current.name}
+                </p>
+                <button
+                  type="button"
+                  onClick={startRename}
+                  aria-label={isFr ? "Renommer l'agent" : 'Rename the agent'}
+                  className="w-7 h-7 shrink-0 rounded-full grid place-items-center border border-q2-graphite-d text-q2-fog hover:text-white hover:border-q2-smoke-d transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                >
+                  <Pencil size={12} aria-hidden="true" />
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center justify-center gap-2 sm:gap-5">
           <button
             type="button"
@@ -184,9 +250,14 @@ export default function CharacterCarousel({
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 className="flex flex-col items-center gap-3"
               >
-                <p className="text-[16px] font-medium text-white text-center truncate max-w-full">
-                  {current.name}
-                </p>
+                {/* Sans agent nommé, la place du nom revient au personnage,
+                    comme avant. Avec, il est déjà écrit au-dessus, et le
+                    répéter dirait deux fois la même chose. */}
+                {!canRename && (
+                  <p className="text-[16px] font-medium text-white text-center truncate max-w-full">
+                    {current.name}
+                  </p>
+                )}
                 <Bubble c={current} big />
               </motion.div>
             </AnimatePresence>

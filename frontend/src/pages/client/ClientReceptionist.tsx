@@ -515,6 +515,8 @@ export default function ClientReceptionist() {
             <CharacterCarousel
               characters={characters}
               value={characterId}
+              agentName={agentName}
+              onAgentName={setAgentName}
               // The character carries a tone of its own; selecting one applies
               // it, and the tone buttons below stay available to override it.
               onChange={id => {
