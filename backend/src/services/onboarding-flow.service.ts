@@ -8,6 +8,7 @@ import { PACKAGES } from '../types';
 import crypto from 'crypto';
 import { resend } from '../config/resend';
 import { getWelcomeEmailHtml } from '../templates/welcome-email';
+import { resolveNiche } from '../config/niches';
 
 // ═══════════════════════════════════════════════════════════
 // ONBOARDING FLOW SERVICE
@@ -106,9 +107,13 @@ export class OnboardingFlowService {
   // INDUSTRY-SPECIFIC FORM FIELDS
   // ═══════════════════════════════════════════════════════════
   private getIndustryFormFields(businessType: string): FormField[] {
-    const type = businessType.toLowerCase();
+    // Le metier est resolu par `resolveNiche`, et plus par une suite de
+    // `type.includes(...)` propre a ce fichier: c'est la meme lecture qui sert
+    // aux presets du tableau de bord, donc un client ne peut plus obtenir les
+    // questions d'un metier et les presets d'un autre.
+    const niche = resolveNiche(businessType);
 
-    if (type.includes('restaurant') || type.includes('café') || type.includes('cafe') || type.includes('food') || type.includes('bar') || type.includes('bistro') || type.includes('pizzeria')) {
+    if (niche === 'restaurant') {
       return [
         { id: 'menuHighlights', label: 'Menu highlights & popular dishes', type: 'textarea', required: true, placeholder: 'List your most popular dishes, price ranges, and any signature items', section: 'industry' },
         { id: 'dietaryOptions', label: 'Dietary accommodations', type: 'multiselect', required: false, options: ['Vegetarian', 'Vegan', 'Gluten-free', 'Nut-free', 'Halal', 'Kosher', 'Dairy-free'], section: 'industry' },
@@ -119,7 +124,7 @@ export class OnboardingFlowService {
       ];
     }
 
-    if (type.includes('dental') || type.includes('dentist') || type.includes('orthodont')) {
+    if (niche === 'dental') {
       return [
         { id: 'servicesDetailed', label: 'Dental services offered', type: 'multiselect', required: true, options: ['Cleaning', 'Whitening', 'Fillings', 'Crowns', 'Root canals', 'Implants', 'Invisalign', 'Veneers', 'Extractions', 'Emergency care', 'Pediatric dentistry', 'Cosmetic dentistry'], section: 'industry' },
         { id: 'insuranceAccepted', label: 'Insurance providers accepted', type: 'textarea', required: true, placeholder: 'List insurance providers: Delta Dental, Cigna, Aetna, etc.', section: 'industry' },
@@ -129,7 +134,7 @@ export class OnboardingFlowService {
       ];
     }
 
-    if (type.includes('medical') || type.includes('doctor') || type.includes('clinic') || type.includes('physician') || type.includes('health')) {
+    if (niche === 'medical') {
       return [
         { id: 'specialties', label: 'Medical specialties', type: 'textarea', required: true, placeholder: 'e.g. Family medicine, Pediatrics, Internal medicine', section: 'industry' },
         { id: 'insuranceAccepted', label: 'Insurance accepted', type: 'textarea', required: true, placeholder: 'List insurance providers', section: 'industry' },
@@ -140,7 +145,7 @@ export class OnboardingFlowService {
       ];
     }
 
-    if (type.includes('salon') || type.includes('spa') || type.includes('beauty') || type.includes('hair') || type.includes('barber') || type.includes('nail')) {
+    if (niche === 'salon') {
       return [
         { id: 'servicesMenu', label: 'Full service menu with durations & prices', type: 'textarea', required: true, placeholder: 'Women\'s Haircut - 45min - $65\nMen\'s Cut - 30min - $35\nHighlights - 2hrs - $150+\n...', section: 'industry' },
         { id: 'stylists', label: 'Stylists/therapists (names & specialties)', type: 'textarea', required: false, placeholder: 'Sarah - Color specialist\nMike - Men\'s cuts & beard styling\nLisa - Massage therapist', section: 'industry' },
@@ -150,7 +155,7 @@ export class OnboardingFlowService {
       ];
     }
 
-    if (type.includes('law') || type.includes('legal') || type.includes('attorney') || type.includes('lawyer')) {
+    if (niche === 'law') {
       return [
         { id: 'practiceAreas', label: 'Practice areas', type: 'multiselect', required: true, options: ['Family Law', 'Personal Injury', 'Criminal Defense', 'Business/Corporate', 'Estate Planning', 'Immigration', 'Real Estate', 'Bankruptcy', 'Employment Law', 'Intellectual Property'], section: 'industry' },
         { id: 'consultationPolicy', label: 'Initial consultation policy', type: 'textarea', required: true, placeholder: 'e.g. Free 30-minute phone consultation. In-person consultations $150/hour.', section: 'industry' },
@@ -159,7 +164,7 @@ export class OnboardingFlowService {
       ];
     }
 
-    if (type.includes('real estate') || type.includes('realty') || type.includes('property') || type.includes('immobilier')) {
+    if (niche === 'real_estate') {
       return [
         { id: 'serviceAreas', label: 'Service areas / neighborhoods', type: 'textarea', required: true, placeholder: 'List areas/neighborhoods you serve', section: 'industry' },
         { id: 'agents', label: 'Agents (names & specialties)', type: 'textarea', required: true, placeholder: 'John - Luxury homes\nSarah - First-time buyers\nMike - Commercial', section: 'industry' },
@@ -168,7 +173,7 @@ export class OnboardingFlowService {
       ];
     }
 
-    if (type.includes('auto') || type.includes('car') || type.includes('mechanic') || type.includes('garage') || type.includes('dealer')) {
+    if (niche === 'auto') {
       return [
         { id: 'servicesOfferedDetailed', label: 'Services offered (with estimated prices)', type: 'textarea', required: true, placeholder: 'Oil Change - $45-$75\nBrake Inspection - $50\nTire Rotation - $30\n...', section: 'industry' },
         { id: 'brandsServiced', label: 'Vehicle brands serviced', type: 'textarea', required: false, placeholder: 'All makes & models, or specific: Honda, Toyota, BMW...', section: 'industry' },
@@ -178,7 +183,7 @@ export class OnboardingFlowService {
       ];
     }
 
-    if (type.includes('plumb') || type.includes('hvac') || type.includes('electric') || type.includes('contractor') || type.includes('handyman') || type.includes('cleaning')) {
+    if (niche === 'home_services') {
       return [
         { id: 'serviceArea', label: 'Service area (cities/zip codes)', type: 'textarea', required: true, placeholder: 'List cities or zip codes you serve', section: 'industry' },
         { id: 'emergencyAvailability', label: 'Emergency/after-hours availability', type: 'select', required: true, options: ['24/7 emergency service', 'Emergency during business hours only', 'No emergency service'], section: 'industry' },
@@ -187,7 +192,7 @@ export class OnboardingFlowService {
       ];
     }
 
-    if (type.includes('vet') || type.includes('animal') || type.includes('pet')) {
+    if (niche === 'veterinary') {
       return [
         { id: 'animalsServed', label: 'Animals served', type: 'multiselect', required: true, options: ['Dogs', 'Cats', 'Birds', 'Reptiles', 'Small mammals (hamsters, rabbits)', 'Horses', 'Exotic animals'], section: 'industry' },
         { id: 'servicesDetailed', label: 'Services offered', type: 'multiselect', required: true, options: ['Wellness exams', 'Vaccinations', 'Surgery', 'Dental care', 'X-ray/imaging', 'Emergency care', 'Boarding', 'Grooming', 'Microchipping', 'Nutrition counseling'], section: 'industry' },

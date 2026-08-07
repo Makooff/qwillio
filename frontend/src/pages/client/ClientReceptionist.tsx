@@ -37,6 +37,20 @@ const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.
 const compactInputCls = 'h-9 px-3 text-[13px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#6B6B75] focus:outline-none focus:border-[#7349fe]/50 transition-colors disabled:opacity-50';
 
 interface KbItem { id: string; category: string; name: string; price: string; }
+interface FaqEntry { q: string; a: string; }
+/**
+ * Ce que le serveur propose pour le métier du client.
+ *
+ * Le type est ici, le CONTENU vient de `/my-dashboard/settings`. C'est
+ * volontaire: quatre tables de niches existaient déjà côté backend et ne
+ * s'accordaient pas. En poser une cinquième dans le front aurait garanti qu'un
+ * client voie les questions d'un métier et les présets d'un autre.
+ */
+interface KnowledgePresets {
+  itemCategories: { v: string; l: string }[];
+  fields: { id: string; label: string; placeholder: string; multiline?: boolean }[];
+  faq: FaqEntry[];
+}
 interface DayHours { open: boolean; from: string; to: string; }
 type WeekDay = 'monday'|'tuesday'|'wednesday'|'thursday'|'friday'|'saturday'|'sunday';
 type WeekHours = Record<WeekDay, DayHours>;
@@ -180,7 +194,15 @@ export default function ClientReceptionist() {
   // Knowledge base (stored inside vapiConfig JSON, exposed top-level)
   const [items, setItems] = useState<KbItem[]>([]);
   const [weekHours, setWeekHours] = useState<WeekHours>(DEFAULT_HOURS);
-  const [faq, setFaq] = useState('');
+  /* La FAQ en paires, plus une zone de texte. Le serveur rend le texte que
+     l'agent lit a partir de ces entrees: une seule source, et la mise en forme
+     ne depend plus de la discipline du client a ecrire « Q : » puis « R : ». */
+  const [faqEntries, setFaqEntries] = useState<FaqEntry[]>([]);
+  /* Les champs nommes du metier, par identifiant de preset. */
+  const [knowledge, setKnowledge] = useState<Record<string, string>>({});
+  /* Ce que le serveur propose pour ce metier. Null tant que rien n'est charge:
+     la page n'invente aucune liste de niches de son cote. */
+  const [presets, setPresets] = useState<KnowledgePresets | null>(null);
   const [personalityPreset, setPersonalityPreset] = useState<string>('warm');
   const [personalityNotes, setPersonalityNotes] = useState('');
   const [characterId, setCharacterId] = useState<string>('marie');
@@ -196,6 +218,16 @@ export default function ClientReceptionist() {
       else localStorage.removeItem('qw.receptionistSection');
     } catch { /* nothing worth breaking the page over */ }
   }, [openId]);
+
+  /* Les catégories du métier quand il y en a, la liste générique sinon. */
+  const itemCategories = presets?.itemCategories?.length ? presets.itemCategories : ITEM_CATEGORIES;
+
+  /* On ne propose que ce qui n'est pas déjà là: reproposer une question que le
+     client vient d'ajouter fait douter qu'elle ait été prise. */
+  const suggestedFaq = useMemo(() => {
+    const asked = new Set(faqEntries.map(e => e.q.trim().toLowerCase()));
+    return (presets?.faq ?? []).filter(s => !asked.has(s.q.trim().toLowerCase()));
+  }, [presets, faqEntries]);
 
   const selectedCharacter = useMemo<Character | null>(
     () => characters.find(c => c.id === characterId) || characters[0] || null,
@@ -242,7 +274,9 @@ export default function ClientReceptionist() {
       } else {
         setWeekHours(DEFAULT_HOURS);
       }
-      setFaq(s?.faq || '');
+      setFaqEntries(Array.isArray(s?.faqEntries) ? s.faqEntries : []);
+      setKnowledge(s?.knowledge && typeof s.knowledge === 'object' ? s.knowledge : {});
+      setPresets(s?.knowledgePresets || null);
       setPersonalityPreset(s?.personalityPreset || 'warm');
       setPersonalityNotes(s?.personalityNotes || '');
       setCharacterId(s?.characterId || 'marie');
@@ -320,7 +354,8 @@ export default function ClientReceptionist() {
         forwardingType, googleCalendarId,
         items: items.filter(i => i.name.trim()),
         hours: weekHours,
-        faq,
+        faqEntries,
+        knowledge,
         personalityPreset,
         personalityNotes,
         characterId,
@@ -331,7 +366,7 @@ export default function ClientReceptionist() {
       invalidateLive('/my-dashboard/');
     } catch { /* silent — the next edit retries */ }
   }, [transferNumber, agentName, forwardingType, googleCalendarId,
-      items, weekHours, faq, personalityPreset, personalityNotes, characterId, customVoice]);
+      items, weekHours, faqEntries, knowledge, personalityPreset, personalityNotes, characterId, customVoice]);
 
   // Auto-save: debounce after any edit. Skips the initial hydration from load()
   // so we never fire a redundant save on mount.
@@ -574,7 +609,7 @@ export default function ClientReceptionist() {
                   onChange={e => setItems(arr => arr.map(x => x.id === it.id ? { ...x, category: e.target.value } : x))}
                   className={`${compactInputCls} col-span-3`}
                 >
-                  {ITEM_CATEGORIES.map(c => <option key={c.v} value={c.v}>{c.l}</option>)}
+                  {itemCategories.map(c => <option key={c.v} value={c.v}>{c.l}</option>)}
                 </select>
                 <input
                   value={it.name}
@@ -651,19 +686,123 @@ export default function ClientReceptionist() {
           </div>
         </div>
 
+        {/* —— Ce que votre métier doit préciser ——
+
+            Des champs NOMMÉS, et non le pavé de texte libre d'avant. La zone
+            libre demandait au client de deviner ce que sa réceptionniste avait
+            besoin de savoir; ici la question est posée. La liste vient du
+            serveur, résolue depuis son métier: la page ne porte aucune liste de
+            niches, et ne peut donc pas diverger de celle du backend. */}
+        {presets?.fields?.length ? (
+          <div className="mb-6">
+            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-1">
+              <BookOpen size={12} /> Précisions {businessType ? `« ${BUSINESS_TYPE_LABELS[businessType] ?? businessType} »` : 'métier'}
+            </label>
+            <p className="text-[11.5px] text-[#6B6B75] mb-3 leading-relaxed">
+              Ce que vos appelants demandent le plus souvent. Laissez vide ce qui ne vous concerne pas.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {presets.fields.map(f => (
+                <div key={f.id} className={f.multiline ? 'md:col-span-2' : undefined}>
+                  <label className="text-xs text-[#8B8BA7] mb-1.5 block">{f.label}</label>
+                  {f.multiline ? (
+                    <textarea
+                      value={knowledge[f.id] ?? ''}
+                      onChange={e => setKnowledge(k => ({ ...k, [f.id]: e.target.value }))}
+                      rows={2} placeholder={f.placeholder}
+                      className={`${inputCls} resize-y leading-relaxed`}
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={knowledge[f.id] ?? ''}
+                      onChange={e => setKnowledge(k => ({ ...k, [f.id]: e.target.value }))}
+                      placeholder={f.placeholder}
+                      className={inputCls}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {/* —— FAQ —— */}
         <div className="mb-6">
-          <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
-            <HelpCircle size={12} /> FAQ
-          </label>
-          <textarea
-            value={faq}
-            onChange={e => setFaq(e.target.value)}
-            rows={6}
-            placeholder="Q : Faut-il réserver ?&#10;R : Oui, on privilégie le rendez-vous mais on accepte les walk-ins si le créneau est libre."
-            className={`${inputCls} resize-y leading-relaxed`}
-            style={{ minHeight: 140 }}
-          />
+          <div className="flex items-center justify-between mb-2">
+            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5]">
+              <HelpCircle size={12} /> FAQ
+            </label>
+            <span className="text-[11px] text-[#6B6B75]">{faqEntries.length} question{faqEntries.length > 1 ? 's' : ''}</span>
+          </div>
+          <p className="text-[11.5px] text-[#6B6B75] mb-3 leading-relaxed">
+            Une question, sa réponse. C'est mot pour mot ce que l'IA répondra.
+          </p>
+
+          <div className="space-y-2">
+            {faqEntries.length === 0 && (
+              <div className="rounded-xl border border-dashed border-white/[0.08] p-4 text-center">
+                <p className="text-[12px] text-[#6B6B75]">Aucune question. Ajoutez-en une, ou piochez ci-dessous.</p>
+              </div>
+            )}
+            {faqEntries.map((entry, i) => (
+              <div key={i} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                <div className="flex items-start gap-2">
+                  <input
+                    type="text"
+                    value={entry.q}
+                    onChange={e => setFaqEntries(list => list.map((x, j) => j === i ? { ...x, q: e.target.value } : x))}
+                    placeholder="Faut-il réserver ?"
+                    className={`${inputCls} font-medium`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFaqEntries(list => list.filter((_, j) => j !== i))}
+                    aria-label={`Supprimer la question « ${entry.q || 'sans titre'} »`}
+                    className="mt-1.5 flex-shrink-0 text-[#6B6B75] hover:text-[#EF4444] transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <textarea
+                  value={entry.a}
+                  onChange={e => setFaqEntries(list => list.map((x, j) => j === i ? { ...x, a: e.target.value } : x))}
+                  rows={2}
+                  placeholder="Oui, on privilégie le rendez-vous, mais on accepte les passages si le créneau est libre."
+                  className={`${inputCls} mt-2 resize-y leading-relaxed`}
+                />
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setFaqEntries(list => [...list, { q: '', a: '' }])}
+            className="mt-2 flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium rounded-lg text-[#C6C6D0] bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+          >
+            <Plus size={13} /> Ajouter une question
+          </button>
+
+          {/* Les suggestions du métier. Elles arrivent avec une réponse par
+              défaut plausible, que le client corrige: partir d'une phrase à
+              rectifier demande moins que partir d'un champ vide. */}
+          {suggestedFaq.length > 0 && (
+            <div className="mt-4">
+              <p className="text-[11px] text-[#6B6B75] mb-2">Suggestions pour votre métier</p>
+              <div className="flex flex-wrap gap-1.5">
+                {suggestedFaq.map(s => (
+                  <button
+                    key={s.q}
+                    type="button"
+                    onClick={() => setFaqEntries(list => [...list, { q: s.q, a: s.a }])}
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-[11.5px] rounded-lg text-[#9A9AA5] bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.07] hover:text-[#F8F8FF] transition-colors"
+                  >
+                    <Plus size={11} /> {s.q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
       </Section>
