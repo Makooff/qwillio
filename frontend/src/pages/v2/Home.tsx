@@ -210,6 +210,36 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
           </text>
         </svg>
       </div>
+
+      {/* Le bas de la fenêtre: dégradé ET flou (demande utilisateur).
+          Le masque seul effaçait déjà l'arête, mais il laissait une image
+          NETTE jusqu'au dernier pixel visible, si bien qu'on lisait encore la
+          fin d'une ligne de dashboard juste avant qu'elle disparaisse. Le flou
+          dissout ce qui reste, et il n'y a plus de délimitation du tout.
+
+          DEUX éléments, jamais un seul: sur WebKit, un `-webkit-backdrop-filter`
+          posé sur un élément qui porte aussi un `-webkit-mask-image` n'est pas
+          rendu. Le masque reste donc au parent, le filtre descend à l'enfant.
+          Même correction que le voile de la nav. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[22%] overflow-hidden"
+        style={{
+          maskImage: 'linear-gradient(to bottom, transparent 0%, #000 62%, #000 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 62%, #000 100%)',
+        }}
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            /* Promotion par transform: Safari ne lit pas
+               `will-change: backdrop-filter`, et la couche resterait figée. */
+            transform: 'translateZ(0)',
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -327,11 +357,22 @@ export default function Home() {
     },
   ];
 
+  /* Trois étapes, et surtout trois hauteurs.
+   *
+   * C'étaient trois lignes de même gabarit empilées, ce que la charte range
+   * parmi les grilles de cartes identiques. Chacune porte donc son propre
+   * rythme: la respiration s'allonge en descendant, le retrait se creuse, et la
+   * mesure du texte se resserre. Ce n'est pas de l'irrégularité décorative,
+   * c'est la durée de chaque étape: la première est une phrase, la dernière est
+   * un appel. */
   const setup = [
     {
       icon: MessageSquare,
       label: isFr ? '« Ouvre le samedi de 9 h à 13 h »' : '“Open Saturdays from 9 to 1”',
       desc: isFr ? 'Dites-le dans le chat, c’est réglé.' : 'Say it in the chat, it is done.',
+      pad: 'py-5 sm:py-6',
+      indent: '',
+      measure: 'max-w-[34ch]',
     },
     {
       icon: Camera,
@@ -339,6 +380,9 @@ export default function Home() {
       desc: isFr
         ? 'Elle en extrait vos tarifs, vous confirmez, rien n’est stocké.'
         : 'She extracts your prices, you confirm, nothing is stored.',
+      pad: 'py-8 sm:py-11',
+      indent: 'sm:pl-8',
+      measure: 'max-w-[42ch]',
     },
     {
       icon: Mic2,
@@ -346,6 +390,9 @@ export default function Home() {
       desc: isFr
         ? 'Un vrai appel test dans le navigateur, avec sa vraie voix et votre vraie config.'
         : 'A real test call in the browser, with her real voice and your real setup.',
+      pad: 'py-11 sm:py-16',
+      indent: 'sm:pl-16',
+      measure: 'max-w-[38ch]',
     },
   ];
 
@@ -375,6 +422,29 @@ export default function Home() {
         <HeroVideoBackdrop />
         {/* Les blobs pixel blush dérivent par-dessus le voile, sous le texte */}
         <PixelBlushBackdrop />
+
+        {/* VIGNETTE DU HERO (référence Mosa AI: la photo de champ cerclée d'un
+            fondu). Elle passe PAR-DESSUS le dégradé, la vidéo et les blobs, et
+            couvre tout le fond du haut de la page jusque sous la fenêtre
+            Safari, où le hero se termine.
+
+            La couleur n'est écrite nulle part: le fondu ferme sur
+            `rgb(var(--q2-canvas))`, donc il est crème en thème clair et noir
+            en sombre, par construction. Un blanc littéral aurait repeint la
+            page en clair par-dessus le canvas basculé, qui est le piège que
+            CLAUDE.md documente.
+
+            Posée AVANT le `Container`: les deux sont positionnés, donc le
+            contenu, qui vient après, peint au-dessus et rien n'est voilé. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(125% 92% at 50% 40%, transparent 42%, rgb(var(--q2-canvas) / 0.5) 74%, rgb(var(--q2-canvas)) 100%)',
+          }}
+        />
+
         <Container className="relative [&>*]:min-w-0">
           <RevealV2>
             <div className="max-w-[860px]">
@@ -406,7 +476,7 @@ export default function Home() {
                   </PillLink>
                 </Magnetic>
                 <Magnetic strength={4}>
-                  <PillLink to="/demo.html" variant="outline" size="lg">
+                  <PillLink to="/demo" variant="outline" size="lg">
                     <Play size={13} fill="currentColor" aria-hidden="true" />
                     {isFr ? 'L’entendre décrocher' : 'Hear her answer'}
                   </PillLink>
@@ -662,17 +732,26 @@ export default function Home() {
           </RevealV2>
           <RevealV2 index={1}>
             <div className="border-t border-q2-plate">
-              {setup.map((s) => (
+              {setup.map((s, i) => (
                 <GlowCard
                   key={s.label}
-                  className="border-b border-q2-plate py-5 sm:py-7 grid sm:grid-cols-[44px_1fr] gap-3.5 sm:gap-4 items-start"
+                  className={`border-b border-q2-plate grid sm:grid-cols-[44px_1fr] gap-3.5 sm:gap-4 items-start ${s.pad} ${s.indent}`}
                 >
-                  <span className="w-10 h-10 rounded-full bg-q2-band flex items-center justify-center">
+                  <span className="relative w-10 h-10 rounded-full bg-q2-band flex items-center justify-center">
                     <s.icon size={16} className="text-q2-violet" aria-hidden="true" />
+                    {/* Le rang, en petit, contre la pastille: c'est lui qui
+                        explique le décalage de chaque ligne. Sans repère, un
+                        retrait qui augmente passe pour un défaut. */}
+                    <span
+                      aria-hidden="true"
+                      className="absolute -left-1 -top-1 text-[10px] font-medium tabular-nums text-q2-faint"
+                    >
+                      {i + 1}
+                    </span>
                   </span>
                   <div>
                     <p className="text-[17px] font-medium text-q2-ink mb-1">{s.label}</p>
-                    <p className="text-q2-body text-sm leading-relaxed q2-body-text">{s.desc}</p>
+                    <p className={`text-q2-body text-sm leading-relaxed q2-body-text ${s.measure}`}>{s.desc}</p>
                   </div>
                 </GlowCard>
               ))}

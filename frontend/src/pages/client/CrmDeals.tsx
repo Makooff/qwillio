@@ -45,7 +45,7 @@ interface RawDeal {
 }
 
 interface NewDealState {
-  contactName: string;
+  contactId: string;
   title: string;
   value: string;
   probability: string;
@@ -53,7 +53,7 @@ interface NewDealState {
   stage: DealStage;
 }
 
-type NewDealTextField = 'contactName' | 'title' | 'value' | 'closeDate';
+type NewDealTextField = 'title' | 'value' | 'closeDate';
 
 const STAGES: { key: DealStage; label: string; color: string; bgLight: string; border: string }[] = [
   { key: 'new',         label: 'New',         color: '#3b82f6', bgLight: 'bg-primary-50',    border: 'border-primary-200' },
@@ -65,7 +65,6 @@ const STAGES: { key: DealStage; label: string; color: string; bgLight: string; b
 ];
 
 const MODAL_FIELDS: Array<{ label: string; key: NewDealTextField; type: string; placeholder: string }> = [
-  { label: 'Contact Name *', key: 'contactName', type: 'text',   placeholder: 'Jane Smith' },
   { label: 'Deal Title *',   key: 'title',       type: 'text',   placeholder: 'AI Receptionist Setup' },
   { label: 'Value ($)',      key: 'value',       type: 'number', placeholder: '2500' },
   { label: 'Close Date',    key: 'closeDate',   type: 'text',   placeholder: 'Apr 15' },
@@ -186,9 +185,10 @@ export default function CrmDeals() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newDeal, setNewDeal] = useState<NewDealState>({
-    contactName: '', title: '', value: '', probability: '50', closeDate: '', stage: 'new',
+    contactId: '', title: '', value: '', probability: '50', closeDate: '', stage: 'new',
   });
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
+  const [contacts, setContacts] = useState<{ id: string; name: string }[]>([]);
   const [overStage, setOverStage] = useState<DealStage | null>(null);
 
   const sensors = useSensors(
@@ -199,7 +199,11 @@ export default function CrmDeals() {
     try {
       setLoading(true);
       const { data } = await api.get('/crm/deals');
-      const mapped = (data.deals || []).map((d: RawDeal): Deal => ({
+      // La route repond par un TABLEAU. Deballer `data.deals` donnait toujours
+      // undefined, donc un pipeline vide meme avec des affaires en base: le
+      // symptome exact d'un CRM « qui ne se remplit pas ».
+      const rows: RawDeal[] = Array.isArray(data) ? data : (data?.deals || []);
+      const mapped = rows.map((d: RawDeal): Deal => ({
         id: d.id,
         contactName: d.contact?.name || d.contactName || 'Unknown',
         title: d.title || '',
@@ -218,6 +222,13 @@ export default function CrmDeals() {
   };
 
   useEffect(() => { fetchDeals(); }, []);
+
+  /* Une affaire appartient a un contact: le selecteur a besoin de la liste. */
+  useEffect(() => {
+    api.get('/crm/contacts', { params: { limit: 100 } })
+      .then(({ data }) => setContacts(data?.contacts || []))
+      .catch(() => { /* le selecteur reste vide et le dit */ });
+  }, []);
 
   const stageDeals = (stage: DealStage) => deals.filter(d => d.stage === stage);
   const stageTotal = (stage: DealStage) => stageDeals(stage).reduce((s, d) => s + d.value, 0);
@@ -270,16 +281,20 @@ export default function CrmDeals() {
   };
 
   const handleAddDeal = async () => {
-    if (!newDeal.title || !newDeal.contactName) return;
+    if (!newDeal.title || !newDeal.contactId) return;
     try {
+      // `contactId` est exige par la route. Le formulaire envoyait un nom libre
+      // qui n'etait meme pas transmis: chaque creation repartait en 400, avale
+      // par un catch muet, et le bouton semblait ne rien faire.
       await api.post('/crm/deals', {
+        contactId: newDeal.contactId,
         title: newDeal.title,
         stage: newDeal.stage,
         value: parseFloat(newDeal.value) || 0,
         probability: parseInt(newDeal.probability) || 50,
         closeDate: newDeal.closeDate || null,
       });
-      setNewDeal({ contactName: '', title: '', value: '', probability: '50', closeDate: '', stage: 'new' });
+      setNewDeal({ contactId: '', title: '', value: '', probability: '50', closeDate: '', stage: 'new' });
       setShowAddModal(false);
       fetchDeals();
     } catch { /* silent */ }
@@ -375,6 +390,22 @@ export default function CrmDeals() {
                 </button>
               </div>
               <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-[#86868b] mb-1 block">Contact *</label>
+                  <select
+                    value={newDeal.contactId}
+                    onChange={e => setNewDeal(p => ({ ...p, contactId: e.target.value }))}
+                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 transition-colors"
+                  >
+                    <option value="">Choisir un contact...</option>
+                    {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  {contacts.length === 0 && (
+                    <p className="text-[11px] text-[#86868b] mt-1">
+                      Aucun contact pour l'instant. Ils apparaissent tout seuls apres vos premiers appels.
+                    </p>
+                  )}
+                </div>
                 {MODAL_FIELDS.map(f => (
                   <div key={f.key}>
                     <label className="text-xs font-medium text-[#86868b] mb-1 block">{f.label}</label>

@@ -78,6 +78,52 @@ function liveAnalyser(ctx: AudioContext): AnalyserNode {
 }
 
 /**
+ * L'élément branché sur l'analyseur, et lequel.
+ *
+ * `createMediaElementSource` est DÉFINITIF: une fois l'élément routé dans le
+ * contexte, son son ne sort plus que par là. C'est pourquoi on ne le fait
+ * jamais à l'aveugle. Voir `observeElement`.
+ */
+let elementSource: MediaElementAudioSourceNode | null = null;
+let elementSourceOwner: HTMLAudioElement | null = null;
+
+/**
+ * Faire passer l'élément par l'analyseur, pour que les barres suivent la voix.
+ *
+ * Le diagramme était mort parce que le chemin normal est l'élément `<audio>`,
+ * et qu'un élément nu n'expose aucun niveau: seul `playDecoded`, le REPLI,
+ * avait un analyseur. D'où des barres immobiles alors que le son sortait.
+ *
+ * Le piège: router l'élément dans le contexte, c'est confier un son qui marche
+ * au sous-système qui, sur iOS, est précisément celui qui tombe. On ne le fait
+ * donc qu'à deux conditions, et jamais autrement:
+ *   1. le contexte existe et tourne DÉJÀ (`running`), pas « en cours de
+ *      reprise » — un contexte suspendu avalerait la lecture en silence;
+ *   2. la lecture est déjà confirmée à l'oreille du code (l'horloge de
+ *      l'élément a avancé), donc on sait ce qu'on branche.
+ * Si l'une des deux manque, on renonce à l'analyseur et on garde le son: des
+ * barres plates valent mieux qu'un aperçu muet.
+ */
+function observeElement(el: HTMLAudioElement): void {
+  if (elementSourceOwner === el && elementSource) return;
+  const ctx = sharedCtx;
+  if (!ctx || ctx.state !== 'running') return;
+  try {
+    const source = ctx.createMediaElementSource(el);
+    const analyser = liveAnalyser(ctx);
+    source.connect(analyser);
+    // Sans cette ligne l'élément est routé mais ne rejoint jamais les
+    // haut-parleurs: l'analyseur seul est un cul-de-sac, et le son disparaît.
+    analyser.connect(ctx.destination);
+    elementSource = source;
+    elementSourceOwner = el;
+  } catch {
+    // Déjà routé (deuxième appel sur le même élément), ou contexte qui refuse.
+    // Dans les deux cas le son continue de sortir, ce qui est l'essentiel.
+  }
+}
+
+/**
  * Le niveau courant, entre 0 et 1, ou 0 si rien ne joue.
  *
  * Exporté plutôt que passé en prop: le lecteur est un singleton de module, et
@@ -108,6 +154,10 @@ function replaceContext(): AudioContext | null {
   sharedCtx = null;
   sharedAnalyser = null;
   analyserOwner = null;
+  // La source appartenait au contexte qu'on jette: la garder ferait croire que
+  // l'élément est déjà routé, et il ne serait jamais rebranché sur le nouveau.
+  elementSource = null;
+  elementSourceOwner = null;
   if (dead) void dead.close().catch(() => undefined);
   return liveContext();
 }
@@ -357,7 +407,9 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
       if (ctx) void resumeWithin(ctx, 2_500);
     }
 
-    /* Abandonner, c'est le DIRE, pas jouer autre chose. L'ancienne version se
+    /* Abandonner, c'est le DIRE, pas jouer autre chose. Les messages
+       annonçaient encore « Aperçu joué avec la voix du navigateur » alors que
+       ce repli a été retiré: ils promettaient un son que plus rien ne produit. L'ancienne version se
        rabattait ici sur speechSynthesis: sur Safari, une voix de lecture
        système qui ne ressemble à aucune voix du produit. L'aperçu mentait donc
        sur ce que l'appelant entendra, ce qui est pire que pas d'aperçu. */
@@ -397,8 +449,11 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
           await wait(700);
           if (tokenRef.current !== token) return true;
           if (el.currentTime > 0.05 && !el.paused) {
+            // Le son est confirmé: c'est le seul moment où l'on accepte de le
+            // faire passer par l'analyseur. Voir `observeElement`.
+            observeElement(el);
             setNotice(null);
-            setDebug(`${Math.round(bytes.byteLength / 1024)} ko · lecteur audio · ${el.currentTime.toFixed(1)} s`);
+            setDebug(`${Math.round(bytes.byteLength / 1024)} ko · lecteur audio${elementSourceOwner === el ? ' · analysé' : ''} · ${el.currentTime.toFixed(1)} s`);
             return true;
           }
           try { el.pause(); } catch { /* not playing */ }
@@ -417,8 +472,8 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
         if (played || tokenRef.current !== token) return;
         if (await playDecoded(bytes, token)) return;
         giveUp(isFr
-          ? "Le navigateur a bloqué l'audio. Aperçu joué avec la voix du navigateur — touchez ▶ à nouveau pour la vraie voix."
-          : 'The browser blocked audio. Playing the browser voice — tap ▶ again for the real one.');
+          ? "Le navigateur a bloqué l'audio. Touchez ▶ à nouveau, et vérifiez l'interrupteur silence de votre téléphone."
+          : 'The browser blocked audio. Tap ▶ again, and check your phone\u2019s silent switch.');
       });
       return;
     }
@@ -433,8 +488,8 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
         if (tokenRef.current !== token) return;
         if (await playDecoded(payload, token)) return;
         giveUp(isFr
-          ? "Le navigateur a bloqué l'audio. Aperçu joué avec la voix du navigateur — touchez ▶ à nouveau pour la vraie voix."
-          : 'The browser blocked audio. Playing the browser voice — tap ▶ again for the real one.');
+          ? "Le navigateur a bloqué l'audio. Touchez ▶ à nouveau, et vérifiez l'interrupteur silence de votre téléphone."
+          : 'The browser blocked audio. Tap ▶ again, and check your phone\u2019s silent switch.');
       } catch (err) {
         if (tokenRef.current !== token) return;
 
@@ -445,8 +500,8 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
           // refused it.
           const ko = Math.round((payload?.byteLength ?? 0) / 1024);
           giveUp(isFr
-            ? `Le fichier audio reçu n'a pas pu être décodé (${ko} ko). Aperçu joué avec la voix du navigateur.`
-            : `The audio file could not be decoded (${ko} kB). Playing the browser voice instead.`);
+            ? `Le fichier audio reçu n'a pas pu être décodé (${ko} ko).`
+            : `The audio file could not be decoded (${ko} kB).`);
           return;
         }
 
@@ -468,11 +523,11 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
         giveUp(
           res?.status === 503
             ? (isFr
-              ? "Voix réelles indisponibles : la clé ElevenLabs n'est pas configurée sur le serveur. Aperçu joué avec la voix du navigateur."
-              : 'Real voices unavailable: the ElevenLabs key is not configured on the server. Playing the browser voice instead.')
+              ? "Voix réelles indisponibles : la clé ElevenLabs n'est pas configurée sur le serveur."
+              : 'Real voices unavailable: the ElevenLabs key is not configured on the server.')
             : (isFr
-              ? `Aperçu ElevenLabs indisponible (${detail}). Aperçu joué avec la voix du navigateur.`
-              : `ElevenLabs preview unavailable (${detail}). Playing the browser voice instead.`),
+              ? `Aperçu ElevenLabs indisponible (${detail}).`
+              : `ElevenLabs preview unavailable (${detail}).`),
         );
       }
     })();

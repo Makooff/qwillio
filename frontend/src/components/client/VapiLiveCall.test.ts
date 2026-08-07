@@ -1,5 +1,33 @@
 import { describe, it, expect } from 'vitest';
-import { errorText } from './VapiLiveCall';
+import { errorText, isMicDenied } from './VapiLiveCall';
+
+describe('isMicDenied', () => {
+  it('recognises the DOMException the browser throws on refusal', () => {
+    const denied = Object.assign(new Error('Permission denied'), { name: 'NotAllowedError' });
+    expect(isMicDenied(denied)).toBe(true);
+  });
+
+  it('recognises a refusal the SDK wrapped one level down', () => {
+    expect(isMicDenied({ error: { name: 'NotReadableError' } })).toBe(true);
+  });
+
+  it('recognises a device that is missing or held by another app', () => {
+    expect(isMicDenied({ message: 'NotFoundError: no audio input' })).toBe(true);
+  });
+
+  it('never blames the microphone for an HTTP failure', () => {
+    // The config route returns JSON that legitimately mentions the microphone;
+    // reading a 503 as a permission problem would send the user into iOS
+    // settings for a server that is simply unconfigured.
+    expect(isMicDenied({ response: { status: 503, data: { error: 'microphone' } } })).toBe(false);
+  });
+
+  it('rejects everything unrelated', () => {
+    for (const bad of [null, undefined, 42, [], {}, 'meeting ended', { message: 'ejected' }]) {
+      expect(isMicDenied(bad)).toBe(false);
+    }
+  });
+});
 
 describe('errorText', () => {
   it('returns a plain string message', () => {

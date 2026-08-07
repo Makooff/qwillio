@@ -91,6 +91,55 @@ export class ClientCallService {
       return clientCall;
     }
 
+    // ── CRM: l'appel devient un contact et une ligne de son historique ──
+    //
+    // Le CRM existait, cloisonné par client, avec ses routes et son écran, et
+    // RIEN ne le remplissait: `createOrMerge` n'avait aucun appelant. Un client
+    // ouvrait ses contacts et trouvait une page vide, quel que soit le nombre
+    // d'appels reçus. C'est ici que le lien manquait, et nulle part ailleurs:
+    // c'est le seul endroit du dépôt où une ligne `clientCall` est créée.
+    //
+    // Après le court-circuit spam, volontairement: un robot qui appelle ne doit
+    // pas se retrouver dans le carnet d'adresses du client.
+    //
+    // Best-effort et isolé: un CRM qui échoue ne doit pas faire perdre l'appel,
+    // sa réservation ni sa notification, qui sont le produit.
+    try {
+      const { crmDedupService } = await import('./crm-dedup.service');
+      const contactId = await crmDedupService.createOrMerge(clientId, {
+        // `name` est obligatoire côté schéma, et l'IA ne récupère pas toujours
+        // un prénom. Le numéro fait un bien meilleur repli qu'un rejet: le
+        // client reconnaît son appelant, et corrigera le nom lui-même.
+        name: analysis.callerName || callerNumber || 'Appelant inconnu',
+        // Sans prénom, ce qui remplit `name` est le numéro, et rapprocher deux
+        // numéros par ressemblance de texte fusionnerait des appelants
+        // différents. Le numéro et l'email restent des critères, eux.
+        matchByName: !!analysis.callerName,
+        email: analysis.emailCollected || undefined,
+        phone: callerNumber || undefined,
+        // Le métier du client, pas celui de l'appelant: c'est ce que la colonne
+        // porte déjà pour les contacts créés à la main.
+        niche: client.businessType || undefined,
+        leadScore: analysis.isLead ? analysis.leadScore : undefined,
+        tags: analysis.tags || [],
+        notes: analysis.summary || undefined,
+      });
+
+      await prisma.activity.create({
+        data: {
+          clientId,
+          contactId,
+          type: 'call',
+          description: analysis.summary || null,
+          // Ce qui relie la fiche contact à l'appel dont elle vient: sans lui,
+          // l'historique dirait « appel » sans pouvoir en montrer un seul.
+          callId: clientCall.id,
+        },
+      });
+    } catch (error: any) {
+      logger.warn(`[CRM] Contact non enregistré pour l'appel ${clientCall.id}: ${error.message}`);
+    }
+
     // If booking was made, create booking record
     if (analysis.bookingRequested && analysis.bookingDate) {
       try {

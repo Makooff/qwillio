@@ -1,6 +1,7 @@
-﻿import { useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import api from '../../services/api';
 import {
   ArrowLeft, Phone, Mail, MapPin, Globe, Star, Edit2, Tag,
   Phone as PhoneIcon, Mail as MailIcon, FileText, TrendingUp, MessageSquare,
@@ -53,51 +54,11 @@ interface Deal {
   closeDate: string;
 }
 
-const DEMO_CONTACTS: Record<string, Contact> = {
-  '1': {
-    id: '1', name: 'Sarah Mitchell', email: 'sarah@brighthomerealty.com', phone: '+1 (555) 201-4892',
-    status: 'client', leadScore: 9, company: 'Bright Home Realty', tags: ['VIP', 'Real Estate'],
-    address: '4820 Oak Street, Phoenix, AZ 85001', website: 'brighthomerealty.com',
-    rating: 4.8, createdAt: 'Feb 14, 2026', lastActivity: '2 hours ago',
-    suggestedAction: 'Schedule quarterly check-in – Sarah is a top client. Upsell opportunity for analytics add-on.',
-    enrichment: { employees: '12–50', industry: 'Real Estate', annualRevenue: '$2.4M', timezone: 'MST' },
-    notes: 'Very responsive. Prefers Zoom calls. Referred 2 clients already. VIP treatment always.',
-  },
-  '2': {
-    id: '2', name: 'James Kowalski', email: 'james.k@automax.net', phone: '+1 (555) 384-7120',
-    status: 'prospect', leadScore: 7, company: 'AutoMax', tags: ['Auto', 'Hot Lead'],
-    address: '901 Commerce Blvd, Dallas, TX 75201', website: 'automax.net',
-    rating: 4.2, createdAt: 'Mar 10, 2026', lastActivity: '5 hours ago',
-    suggestedAction: 'Follow up by Friday – James is waiting on GM approval. Send a 1-page ROI summary to close.',
-    enrichment: { employees: '50–200', industry: 'Automotive Dealerships', annualRevenue: '$8.1M', timezone: 'CST' },
-    notes: 'Decision requires GM sign-off. Budget approved. Very interested in the lead qualifier feature.',
-  },
-};
-
 const FALLBACK_CONTACT: Contact = {
-  id: '?', name: 'Contact Not Found', email: 'unknown@example.com', phone: 'N/A',
-  status: 'prospect', leadScore: 5, company: 'Unknown', tags: [],
-  address: '', website: '', rating: 0, createdAt: 'N/A', lastActivity: 'N/A',
-  suggestedAction: 'No data available.', enrichment: {}, notes: '',
-};
-
-const DEMO_TIMELINE: Record<string, TimelineEntry[]> = {
-  '1': [
-    { id: 't1', type: 'call',        description: 'Inbound call – discussed renewal. Very happy with the service.', timestamp: '10:32 AM', date: 'Mar 22' },
-    { id: 't2', type: 'deal_update', description: 'Renewal deal created: $4,200 for Year 2.', timestamp: '10:45 AM', date: 'Mar 22' },
-    { id: 't3', type: 'email',       description: 'Sent renewal proposal with updated pricing.', timestamp: '11:00 AM', date: 'Mar 20' },
-    { id: 't4', type: 'note',        description: 'Sarah referred Linda Park. Added to CRM.', timestamp: '2:00 PM', date: 'Mar 18' },
-  ],
-  '2': [
-    { id: 't5', type: 'call',        description: 'Discovery call – 18 min. Strong interest.', timestamp: '3:22 PM', date: 'Mar 21' },
-    { id: 't6', type: 'email',       description: 'Sent follow-up proposal email.', timestamp: '8:50 AM', date: 'Mar 22' },
-    { id: 't7', type: 'note',        description: 'GM approval expected by end of week.', timestamp: '2:10 PM', date: 'Mar 21' },
-  ],
-};
-
-const DEMO_DEALS: Record<string, Deal[]> = {
-  '1': [{ id: 'd1', title: 'Realty AI Assistant', value: 4200, stage: 'client', probability: 90, closeDate: 'Mar 28' }],
-  '2': [{ id: 'd2', title: 'Auto Dealership Agent', value: 5100, stage: 'appointment', probability: 70, closeDate: 'Apr 5' }],
+  id: '?', name: 'Contact introuvable', email: '', phone: '',
+  status: 'prospect', leadScore: 0, company: '', tags: [],
+  address: '', website: '', rating: 0, createdAt: '', lastActivity: '',
+  suggestedAction: '', enrichment: {}, notes: '',
 };
 
 const TYPE_CONFIG: Record<ActivityType, { icon: React.ElementType; bg: string; iconColor: string; label: string }> = {
@@ -129,15 +90,89 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'timeline',  label: 'Timeline' },
 ];
 
+/**
+ * La fiche telle que la route la renvoie, traduite vers la forme que cet ecran
+ * affiche deja.
+ *
+ * Les champs sans equivalent en base (note, site, enrichissement, action
+ * suggeree) restent VIDES plutot que remplis d'a-peu-pres: le rendu les cache
+ * quand ils le sont, et une fiche muette vaut mieux qu'une fiche qui invente.
+ */
+function toContact(row: any): Contact {
+  return {
+    id: row.id,
+    name: row.name || 'Sans nom',
+    email: row.email || '',
+    phone: row.phone || '',
+    status: row.status || 'new',
+    leadScore: row.leadScore ?? 0,
+    company: row.niche || '',
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    address: row.address || '',
+    website: '',
+    rating: 0,
+    createdAt: row.createdAt ? new Date(row.createdAt).toLocaleDateString('fr-FR') : '',
+    lastActivity: row.updatedAt ? new Date(row.updatedAt).toLocaleDateString('fr-FR') : '',
+    suggestedAction: '',
+    enrichment: (row.enrichedData && typeof row.enrichedData === 'object') ? row.enrichedData : {},
+    notes: row.notes || '',
+  };
+}
+
+function toTimeline(rows: any[]): TimelineEntry[] {
+  return (rows || []).map((a: any) => {
+    const at = a.createdAt ? new Date(a.createdAt) : null;
+    return {
+      id: a.id,
+      type: (['call', 'email', 'note', 'deal_update', 'sms'].includes(a.type) ? a.type : 'note') as ActivityType,
+      description: a.description || '',
+      timestamp: at ? at.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
+      date: at ? at.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '',
+    };
+  });
+}
+
 export default function CrmContactDetail() {
   const { id } = useParams<{ id: string }>();
-  const contact: Contact = (id && DEMO_CONTACTS[id]) ? DEMO_CONTACTS[id] : { ...FALLBACK_CONTACT, id: id || '?' };
-  const timeline: TimelineEntry[] = (id && DEMO_TIMELINE[id]) ? DEMO_TIMELINE[id] : [];
-  const deals: Deal[] = (id && DEMO_DEALS[id]) ? DEMO_DEALS[id] : [];
+
+  /* Cet ecran affichait deux contacts en dur, Sarah Mitchell et James
+     Kowalski, et n'importait meme pas `api`. Tant que le CRM etait vide, la
+     demo ne genait personne; maintenant que les appels le remplissent, cliquer
+     sur un vrai contact montrait la fiche d'un inconnu. */
+  const [contact, setContact] = useState<Contact>({ ...FALLBACK_CONTACT, id: id || '?' });
+  const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [editing, setEditing] = useState(false);
-  const [notes, setNotes] = useState(contact.notes || '');
+  const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    // La route renvoie deja le contact avec ses activites et ses affaires: une
+    // seule requete, pas trois.
+    api.get(`/crm/contacts/${id}`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const mapped = toContact(data);
+        setContact(mapped);
+        setNotes(mapped.notes);
+        setTimeline(toTimeline(data.activities));
+        setDeals((data.deals || []).map((d: any) => ({
+          id: d.id,
+          title: d.title || '',
+          value: Number(d.value) || 0,
+          stage: d.stage || 'new',
+          probability: d.probability ?? 50,
+          closeDate: d.closeDate ? new Date(d.closeDate).toLocaleDateString('fr-FR') : '',
+        })));
+      })
+      .catch(() => { /* la fiche de repli dit deja qu'on n'a rien trouve */ })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [id]);
 
   const sc = STATUS_COLORS[contact.status] || STATUS_COLORS.prospect;
 
@@ -145,6 +180,16 @@ export default function CrmContactDetail() {
     if (score >= 8) return 'text-emerald-600 bg-emerald-50';
     if (score >= 5) return 'text-amber-600 bg-amber-50';
     return 'text-red-500 bg-red-50';
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6" aria-busy="true">
+        <div className="h-4 w-32 rounded bg-black/[0.06] animate-pulse" />
+        <div className="h-40 rounded-2xl bg-black/[0.04] animate-pulse" />
+        <div className="h-64 rounded-2xl bg-black/[0.04] animate-pulse" />
+      </div>
+    );
   }
 
   return (

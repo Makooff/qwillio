@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { toE164 } from '../utils/phone';
 
 /**
  * CRM Contact Deduplication Service
@@ -19,6 +20,16 @@ export class CrmDedupService {
     phone?: string | null;
     email?: string | null;
     name?: string | null;
+    /**
+     * Chercher aussi par ressemblance de nom. Vrai par defaut, comme avant.
+     *
+     * Le pipeline d'appels le met a faux quand il n'a PAS de prenom et se
+     * rabat sur le numero pour remplir la colonne `name`, qui est obligatoire.
+     * Sans cela, deux numeros voisins (+32470123456 et +32470123457) ont une
+     * distance de 1 sur 12, soit 0,083, donc sous le seuil de 0,15: deux
+     * appelants differents fusionnaient en un seul contact.
+     */
+    matchByName?: boolean;
   }): Promise<string | null> {
     // 1. Check by phone (E.164 normalized)
     if (data.phone) {
@@ -47,7 +58,7 @@ export class CrmDedupService {
     }
 
     // 3. Check by name fuzzy match
-    if (data.name) {
+    if (data.name && data.matchByName !== false) {
       const contacts = await prisma.contact.findMany({
         where: { clientId, name: { not: null } },
         select: { id: true, name: true },
@@ -73,6 +84,7 @@ export class CrmDedupService {
    * Create or merge contact — never duplicates
    */
   async createOrMerge(clientId: string, data: {
+    matchByName?: boolean;
     name?: string | null;
     email?: string | null;
     phone?: string | null;
@@ -132,17 +144,11 @@ export class CrmDedupService {
    * Normalize phone to E.164 format
    */
   private normalizePhone(phone: string): string {
-    let cleaned = phone.replace(/[\s\-().]/g, '');
-    if (!cleaned.startsWith('+')) {
-      if (cleaned.startsWith('1') && cleaned.length === 11) {
-        cleaned = '+' + cleaned;
-      } else if (cleaned.length === 10) {
-        cleaned = '+1' + cleaned;
-      } else {
-        cleaned = '+' + cleaned;
-      }
-    }
-    return cleaned;
+    // `toE164` plutot que la normalisation maison qui vivait ici: celle-ci
+    // prefixait en +1 tout numero de dix chiffres, donc un 0470 12 34 56 belge
+    // saisi a la main devenait +10470123456 et ne dedupliquait jamais contre le
+    // +32470123456 que le telephone remonte. Le marche est BE/FR.
+    return toE164(phone, 'BE') || toE164(phone) || phone.replace(/[\s\-().]/g, '');
   }
 
   /**

@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Phone, Users, BarChart3, CreditCard,
-  Bot, UserCircle, HelpCircle, Settings,
+  Bot, UserCircle, HelpCircle, Settings, Contact,
 } from '../icons';
 import AiStatusPill from '../AiStatusPill';
 import DashboardShell, { NavItem } from './DashboardShell';
@@ -10,6 +10,10 @@ const PRIMARY_NAV: NavItem[] = [
   { path: '/dashboard/calls',        icon: Phone,           label: 'Appels' },
   { path: '/dashboard/leads',        icon: Users,           label: 'Leads' },
   { path: '/dashboard/analytics',    icon: BarChart3,       label: 'Analytique' },
+  // Le CRM etait route et atteignable en tapant l'URL, mais absent du menu:
+  // personne ne pouvait le trouver. Il se remplit desormais tout seul depuis
+  // les appels, donc il a quelque chose a montrer.
+  { path: '/dashboard/crm',          icon: Contact,         label: 'Contacts' },
   { path: '/dashboard/receptionist', icon: Bot,             label: 'Réceptionniste IA' },
 ];
 
@@ -33,6 +37,9 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/leads':        'Leads',
   '/dashboard/analytics':    'Analytique',
   '/dashboard/receptionist': 'Réceptionniste IA',
+  '/dashboard/crm':            'Contacts',
+  '/dashboard/crm/deals':      'Pipeline',
+  '/dashboard/crm/activities': 'Activité',
   '/dashboard/account':      'Compte',
   '/dashboard/billing':      'Facturation',
   '/dashboard/support':      'Support',

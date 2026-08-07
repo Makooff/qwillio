@@ -6,8 +6,14 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Cross-Origin-Opener-Policy", "value": "unsafe-none" },
-        { "key": "Cross-Origin-Embedder-Policy", "value": "unsafe-none" }
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "unsafe-none"
+        },
+        {
+          "key": "Cross-Origin-Embedder-Policy",
+          "value": "unsafe-none"
+        }
       ]
     }
   ],
@@ -15,16 +21,40 @@
     {
       "source": "/(.*)",
       "destination": "https://qwillio.com/$1",
-      "has": [{ "type": "host", "value": "www.qwillio.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "www.qwillio.com"
+        }
+      ],
+      "permanent": true
+    },
+    {
+      "source": "/demo.html",
+      "destination": "/demo",
       "permanent": true
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://qwillio.onrender.com/api/$1" },
-    { "source": "/demo.html", "destination": "/demo.html" },
-    { "source": "/demo-marie.html", "destination": "/demo-marie.html" },
-    { "source": "/onboarding.html", "destination": "/onboarding.html" },
-    { "source": "/client-portal.html", "destination": "/client-portal.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "https://qwillio.onrender.com/api/$1"
+    },
+    {
+      "source": "/demo-marie.html",
+      "destination": "/demo-marie.html"
+    },
+    {
+      "source": "/onboarding.html",
+      "destination": "/onboarding.html"
+    },
+    {
+      "source": "/client-portal.html",
+      "destination": "/client-portal.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

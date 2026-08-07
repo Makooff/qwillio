@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildVapiConfigPatch } from '../client-config.service';
+import { buildVapiConfigPatch, parseFaq } from '../client-config.service';
 import { CUSTOM_CHARACTER_ID } from '../../config/voice-characters';
 
 const prev = {};
@@ -105,5 +105,71 @@ describe('buildVapiConfigPatch — customVoice', () => {
   it('leaves the override untouched when the patch does not mention it', () => {
     const existing = { customVoice: { voiceId: 'v_1', name: 'Grave', createdAt: 'x' } };
     expect(buildVapiConfigPatch(existing, { faq: 'hello' }).customVoice).toEqual(existing.customVoice);
+  });
+});
+
+describe('parseFaq', () => {
+  it('reads the shape the placeholder taught clients to type', () => {
+    const entries = parseFaq('Q : Faut-il réserver ?\nR : Oui, on privilégie le rendez-vous.');
+    expect(entries).toEqual([{ q: 'Faut-il réserver ?', a: 'Oui, on privilégie le rendez-vous.' }]);
+  });
+
+  it('reads several pairs, and English markers too', () => {
+    const entries = parseFaq('Q: Parking?\nA: Yes, free.\n\nQuestion : Terrasse ?\nRéponse : En été.');
+    expect(entries).toHaveLength(2);
+    expect(entries[1]).toEqual({ q: 'Terrasse ?', a: 'En été.' });
+  });
+
+  it('keeps a multi-line answer whole', () => {
+    // A client who pressed Enter inside an answer has not started a new one.
+    const entries = parseFaq('Q : Horaires ?\nR : Lundi au vendredi.\nSamedi sur rendez-vous.');
+    expect(entries[0].a).toBe('Lundi au vendredi.\nSamedi sur rendez-vous.');
+  });
+
+  it('keeps a question that has no answer yet', () => {
+    // Dropping it would erase what the client wrote. It shows up empty, and
+    // they finish it.
+    expect(parseFaq('Q : Livrez-vous ?')).toEqual([{ q: 'Livrez-vous ?', a: '' }]);
+  });
+
+  it('ignores prose that is not a pair', () => {
+    expect(parseFaq('Voici nos questions fréquentes.')).toEqual([]);
+    expect(parseFaq('')).toEqual([]);
+  });
+});
+
+describe('buildVapiConfigPatch — faqEntries and knowledge', () => {
+  it('renders the text the agent reads from the entries', () => {
+    // `faq` is what every downstream reader consumes. It must never be typed
+    // and rendered at the same time, or the two disagree.
+    const next = buildVapiConfigPatch(prev, {
+      faqEntries: [{ q: 'Ouvert le dimanche ?', a: 'Non.' }],
+    });
+    expect(next.faq).toBe('Q : Ouvert le dimanche ?\nR : Non.');
+    expect(next.faqEntries).toHaveLength(1);
+  });
+
+  it('lets the entries win over a text posted in the same call', () => {
+    const next = buildVapiConfigPatch(prev, {
+      faq: 'texte périmé',
+      faqEntries: [{ q: 'Parking ?', a: 'Oui.' }],
+    });
+    expect(next.faq).toBe('Q : Parking ?\nR : Oui.');
+  });
+
+  it('drops an entry with no question', () => {
+    expect(buildVapiConfigPatch(prev, { faqEntries: [{ q: '  ', a: 'Oui.' }] }).faqEntries).toEqual([]);
+  });
+
+  it('keeps only non-empty named fields, under sanitised ids', () => {
+    const next = buildVapiConfigPatch(prev, {
+      knowledge: { emergencyProtocol: 'Appeler le 112.', cancellationPolicy: '   ', 'bad key!': 'x' },
+    });
+    expect(next.knowledge).toEqual({ emergencyProtocol: 'Appeler le 112.', badkey: 'x' });
+  });
+
+  it('leaves the knowledge alone when the patch does not mention it', () => {
+    const existing = { knowledge: { emergencyProtocol: 'Appeler le 112.' } };
+    expect(buildVapiConfigPatch(existing, { faq: 'x' }).knowledge).toEqual(existing.knowledge);
   });
 });

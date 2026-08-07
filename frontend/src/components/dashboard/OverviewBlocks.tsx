@@ -78,7 +78,13 @@ export function KpiSplit({ items }: { items: KpiCell[] }) {
        positif » était décalé de 12 px sous « Total appels » (retour
        utilisateur). Le retrait revient dès 4 colonnes, où elle est en milieu
        de rangée. Même raisonnement que le filet ci-dessous, même cellule. */
-    ? 'grid-cols-2 sm:grid-cols-4 [&>*:nth-child(2n+1)]:border-l-0 sm:[&>*:nth-child(2n+1)]:border-l [&>*:nth-child(3)]:pl-0 sm:[&>*:nth-child(3)]:pl-6'
+    /* `:not(:first-child)` sur le filet rendu en `sm`. `nth-child(2n+1)` vise
+       les cellules 1, 3, 5..., donc AUSSI la première, à qui `divide-x`
+       n'en donne jamais: la rangée s'ouvrait sur une barre verticale à gauche
+       de « Total appels », contre le bord de la page (retour utilisateur, et
+       le bandeau latéral en accent est banni par la charte). La cellule 3, la
+       seule que cette règle devait rattraper, garde le sien. */
+    ? 'grid-cols-2 sm:grid-cols-4 [&>*:nth-child(2n+1)]:border-l-0 sm:[&>*:nth-child(2n+1):not(:first-child)]:border-l [&>*:nth-child(3)]:pl-0 sm:[&>*:nth-child(3)]:pl-6'
     : 'grid-cols-3';
   return (
     <div className={`grid ${cols} gap-y-4 divide-x divide-white/[0.06]`}>

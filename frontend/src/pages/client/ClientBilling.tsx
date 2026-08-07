@@ -9,7 +9,8 @@ import { formatDate } from '../../utils/format';
 interface BillingOverview {
   plan: string;
   status: string;
-  renewalDate: string;
+  /** Absent tant que Stripe ne donne pas de date: on n'en invente pas. */
+  renewalDate: string | null;
   minutesUsed: number;
   minutesLimit: number;
   trialEndsAt: string | null;
@@ -124,27 +125,48 @@ export default function ClientBilling() {
   const [showCancel, setShowCancel] = useState(false);
   const [cancelInput, setCancelInput] = useState('');
   const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([
+    // `allSettled`, et non `all`: les deux requêtes sont indépendantes, et
+    // `all` les liait au point qu'une seule qui échoue effaçait l'autre. C'est
+    // ce qui se passait, `/payments` n'existant pas côté serveur: l'aperçu
+    // arrivait bien, puis était jeté avec, et la page repartait sur ses
+    // valeurs par défaut sans que rien ne le signale.
+    Promise.allSettled([
       api.get('/my-dashboard/billing'),
       api.get('/my-dashboard/payments'),
     ])
       .then(([billingRes, paymentsRes]) => {
-        setOverview(billingRes.data);
-        setPayments(paymentsRes.data?.data || paymentsRes.data || []);
+        if (billingRes.status === 'fulfilled') setOverview(billingRes.value.data);
+        else setLoadError("Impossible de charger votre abonnement. Rechargez la page, ou contactez-nous si cela persiste.");
+        if (paymentsRes.status === 'fulfilled') {
+          const body = paymentsRes.value.data;
+          setPayments(body?.data || body || []);
+        }
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const handleUpgrade = async (planId: string) => {
     setUpgrading(planId);
+    setLoadError(null);
     try {
-      await api.post('/my-dashboard/upgrade', { plan: planId });
-      window.location.reload();
-    } catch {
-      // silent — UX handled via disabled state
+      // `planType`, et non `plan`: c'est la clé que le serveur lit. Avec
+      // l'ancienne, il ne voyait aucun plan, répondait 400 « Invalid plan », et
+      // la page rechargeait comme si de rien n'était — un bouton qui ne pouvait
+      // pas marcher et ne le disait pas.
+      const { data } = await api.post('/my-dashboard/upgrade', { planType: planId });
+      // Le paiement se fait chez Stripe. Recharger la page à la place, c'est
+      // ramener le client sur son ancien plan sans lui avoir rien demandé.
+      if (data?.checkoutUrl) window.location.href = data.checkoutUrl;
+      else window.location.reload();
+    } catch (e: any) {
+      setLoadError(
+        e?.response?.data?.error === 'Already on this plan'
+          ? 'Vous êtes déjà sur ce plan.'
+          : "Le changement de plan n'a pas pu démarrer. Réessayez dans un instant.",
+      );
     } finally {
       setUpgrading(null);
     }
@@ -185,6 +207,19 @@ export default function ClientBilling() {
         <h1 className="text-[22px] font-semibold text-[#F5F5F7] tracking-tight">Facturation</h1>
         <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">Gérez votre abonnement et vos factures</p>
       </motion.div>
+
+      {/* Une page de facturation qui se trompe en silence est pire qu'une page
+          qui s'excuse: le client croit connaître son plan. */}
+      {loadError && (
+        <div
+          className="flex items-start gap-3 rounded-xl border px-5 py-4"
+          style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.25)' }}
+          role="alert"
+        >
+          <AlertTriangle size={18} className="text-[#f87171] mt-0.5 shrink-0" />
+          <p className="text-[13px] text-[#F5F5F7]">{loadError}</p>
+        </div>
+      )}
 
       {/* Trial banner */}
       {overview?.isTrial && (
@@ -263,11 +298,11 @@ export default function ClientBilling() {
             consommation, et non sur l'accueil où treize lignes cochées
             repoussaient tout le reste sous la ligne de flottaison.
 
-            La source est `PLANS`, le catalogue déjà présent dans ce fichier,
-            et NON la réponse de `/my-dashboard/billing`: cette route renvoie
-            un tableau de paiements, pas un aperçu, donc un `planFeatures` lu
-            dessus n'aurait jamais rien affiché — la liste aurait disparu sans
-            la moindre erreur. */}
+            La source reste `PLANS`, le catalogue de ce fichier: ce sont des
+            libellés de packaging, pas des données du client. `/my-dashboard/
+            billing` renvoie désormais un vrai aperçu (plan, statut, quota,
+            essai) — c'est de là que viennent le plan affiché et la jauge, et
+            de nulle part ailleurs. */}
         {currentPlan.features.length > 0 && (
           <div className="mt-5 pt-5 border-t border-white/[0.06]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#A1A1A8] mb-3">

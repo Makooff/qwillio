@@ -38,6 +38,30 @@ export function errorDetail(e: unknown): string | null {
   }
 }
 
+/**
+ * Whether this failure is the user (or the OS) withholding the microphone.
+ *
+ * Now that the SDK asks for the device itself, the refusal arrives as whatever
+ * the SDK chose to wrap the DOMException in, so the name is matched wherever it
+ * can hide. Getting this wrong costs the one sentence that tells the user what
+ * to actually do, so it errs on the side of recognising too much: every string
+ * below only ever appears on a permission failure.
+ */
+const MIC_DENIED = /notallowed|permission\s*denied|notfound|notreadable|mic_denied|microphone/i;
+
+export function isMicDenied(e: unknown): boolean {
+  if (!e) return false;
+  if (typeof e === 'string') return MIC_DENIED.test(e);
+  if (typeof e !== 'object') return false;
+  const o = e as Record<string, unknown>;
+  // An HTTP failure is never a microphone failure, whatever its body says.
+  if (o.response || o.request) return false;
+  for (const candidate of [o.name, o.message, o.errorMsg, (o.error as Record<string, unknown> | undefined)?.name, (o.error as Record<string, unknown> | undefined)?.message, o.error]) {
+    if (typeof candidate === 'string' && MIC_DENIED.test(candidate)) return true;
+  }
+  return false;
+}
+
 export function errorText(e: unknown): string | null {
   if (typeof e === 'string') return e.trim() || null;
   if (!e || typeof e !== 'object') return null;
@@ -62,11 +86,28 @@ export default function VapiLiveCall({
    * between the two agents belongs on the server, not in two copies of this.
    */
   endpoint = '/my-dashboard/voice/live-config',
+  /**
+   * Corps de requête. Absent, la config se lit en GET (le cas du tableau de
+   * bord, où le serveur connaît déjà le client). Présent, elle se demande en
+   * POST et se REDEMANDE à chaque changement: c'est le cas de la démo
+   * publique, où le visiteur choisit son personnage et son entreprise juste
+   * avant d'appeler.
+   */
+  body,
+  /**
+   * Le registre visuel. `product` est celui du tableau de bord, en dur et
+   * sombre; `site` prend les tokens q2, donc il suit le thème clair comme
+   * sombre. Sans ce choix, poser ce composant sur une page marketing y
+   * plantait un rectangle noir au milieu du crème.
+   */
+  tone = 'product',
   autoStart = false,
   onEnded,
 }: {
   isFr?: boolean;
   endpoint?: string;
+  body?: Record<string, unknown>;
+  tone?: 'product' | 'site';
   autoStart?: boolean;
   onEnded?: () => void;
 }) {
@@ -78,6 +119,39 @@ export default function VapiLiveCall({
 
   const vapiRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /**
+   * The dial config, fetched on mount rather than on press.
+   *
+   * This is what removes the microphone probe. The probe existed because
+   * `api.get(endpoint)` sat between the press and `vapi.start()`, and an await
+   * closes the gesture window the browser needs to grant the microphone. So the
+   * component asked for the device itself, first thing, then released it — on
+   * the belief that the grant outlives the track. It does on Chrome. It does NOT
+   * on iOS Safari, which releases the permission with the track, so every call
+   * prompted again, and the probe and the SDK ended up fighting over the device
+   * ("Micro indisponible").
+   *
+   * With the config already in hand there is nothing to await: `vapi.start()`
+   * runs inside the click and the SDK asks for the microphone once, itself, and
+   * keeps the stream for as long as the call lasts.
+   */
+  const configRef = useRef<Promise<any> | null>(null);
+
+  /* Sérialisé pour servir de dépendance: un objet littéral change d'identité à
+     chaque rendu du parent et relancerait la requête en boucle. */
+  const bodyKey = body ? JSON.stringify(body) : '';
+
+  useEffect(() => {
+    // Failures are swallowed here: `start()` awaits the same promise and reports
+    // the reason where the user can see it. A red banner on a page nobody has
+    // pressed anything on would be noise.
+    const load = bodyKey
+      ? api.post(endpoint, JSON.parse(bodyKey)).then(r => r.data)
+      : api.get(endpoint).then(r => r.data);
+    configRef.current = load;
+    load.catch(() => undefined);
+  }, [endpoint, bodyKey]);
 
   useEffect(() => () => {
     // Cleanup on unmount: stop any active call.
@@ -100,20 +174,16 @@ export default function VapiLiveCall({
     setError(null);
     setState('connecting');
     try {
-      // Ask for the microphone FIRST, before any await. Browsers only grant it
-      // from inside a user gesture, and a network round-trip closes that window
-      // — the SDK would then fail with an error object carrying no message,
-      // which surfaces as a bare "Erreur appel" nobody can act on.
-      // The tracks are stopped straight away: the grant persists for the page,
-      // and holding an open stream would leave the recording indicator on.
-      try {
-        const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
-        probe.getTracks().forEach(t => t.stop());
-      } catch {
-        throw new Error('mic_denied');
+      // Already resolved in the common case, so this await returns on a
+      // microtask and the click is still the current gesture when `vapi.start()`
+      // asks for the microphone. Only a press during the very first seconds of
+      // the page pays for the round-trip.
+      if (!configRef.current) {
+        configRef.current = bodyKey
+          ? api.post(endpoint, JSON.parse(bodyKey)).then(r => r.data)
+          : api.get(endpoint).then(r => r.data);
       }
-
-      const { data } = await api.get(endpoint);
+      const data = await configRef.current;
       if (!data?.publicKey) throw new Error('missing key');
 
       const vapi = new Vapi(data.publicKey);
@@ -137,6 +207,14 @@ export default function VapiLiveCall({
         // Vapi routinely emits errors with no message. Saying "Erreur appel"
         // and nothing else sends the user looking in the wrong place.
         const detail = errorDetail(e);
+        if (isMicDenied(e)) {
+          setError(isFr
+            ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
+            : 'Microphone denied. Allow the microphone for this site, then start again.');
+          setState('idle');
+          if (timerRef.current) clearInterval(timerRef.current);
+          return;
+        }
         setError(errorText(e) || [
           isFr
             ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
@@ -149,8 +227,11 @@ export default function VapiLiveCall({
 
       await vapi.start(data.assistant);
     } catch (e: any) {
+      // A rejected config must not be cached: the next press would fail on the
+      // stale rejection instead of retrying the request.
+      if (e?.response || e?.request) configRef.current = null;
       setError(
-        errorText(e) === 'mic_denied'
+        isMicDenied(e)
           ? (isFr
             ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
             : 'Microphone denied. Allow the microphone for this site, then start again.')
@@ -166,35 +247,72 @@ export default function VapiLiveCall({
   const ss = String(secs % 60).padStart(2, '0');
   const active = state === 'active';
 
+  const onSite = tone === 'site';
+
   return (
     <div
-      className="rounded-2xl border p-3 flex items-center gap-3"
-      style={{ borderColor: active ? 'rgba(20,184,166,0.5)' : 'rgba(255,255,255,0.10)', background: '#0D0D10' }}
+      className={`rounded-2xl border p-3 flex items-center gap-3 ${
+        onSite ? 'bg-q2-band border-q2-plate' : ''
+      }`}
+      style={onSite
+        ? (active ? { borderColor: 'color-mix(in srgb, var(--q2-indigo) 50%, transparent)' } : undefined)
+        : { borderColor: active ? 'rgba(20,184,166,0.5)' : 'rgba(255,255,255,0.10)', background: '#0D0D10' }}
     >
-      <button
-        type="button"
-        onClick={active || state === 'connecting' ? stop : start}
-        disabled={state === 'ending'}
-        aria-label={active ? (isFr ? 'Raccrocher' : 'Hang up') : (isFr ? 'Appeler ma réceptionniste' : 'Call my receptionist')}
-        className="flex-shrink-0 w-11 h-11 rounded-full grid place-items-center transition-colors"
-        style={active || state === 'connecting'
-          ? { background: '#dc2626', color: '#fff' }
-          : { background: '#14b8a6', color: '#04231f' }}
-      >
-        {state === 'connecting'
-          ? <Loader2 size={18} className="animate-spin" />
-          : active ? <PhoneOff size={18} /> : <PhoneCall size={18} />}
-      </button>
+      {/* Le bouton, et l'anneau qui respire avec la voix.
+          Le turquoise a disparu des deux registres: il n'appartient pas à la
+          marque (indigo + violet), et l'icône y était vert foncé sur vert, donc
+          peu lisible. Fond indigo, icône blanche. */}
+      <span className="relative flex-shrink-0 w-11 h-11">
+        {/* L'anneau suit `volume-level`, que le SDK émet pour la voix de
+            l'AGENT: il grossit quand elle parle et retombe quand elle écoute.
+            Rien d'aléatoire ici — une animation décorative jouée « pendant
+            l'appel » ne dirait pas qui parle, ce qui est la seule chose que
+            cet anneau a à raconter. `scale` et `opacity` seulement: les deux
+            se composent, donc rien ne déclenche de mise en page. */}
+        {active && (
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 rounded-full pointer-events-none"
+            style={{
+              background: onSite ? 'var(--q2-indigo)' : '#dc2626',
+              transform: `scale(${1 + Math.min(level, 1) * 0.85})`,
+              opacity: 0.10 + Math.min(level, 1) * 0.3,
+              transition: 'transform 90ms linear, opacity 90ms linear',
+            }}
+          />
+        )}
+        <button
+          type="button"
+          onClick={active || state === 'connecting' ? stop : start}
+          disabled={state === 'ending'}
+          aria-label={active ? (isFr ? 'Raccrocher' : 'Hang up') : (isFr ? 'Appeler ma réceptionniste' : 'Call my receptionist')}
+          className="relative w-11 h-11 rounded-full grid place-items-center transition-colors"
+          /* Fond BLANC, icône noire (demande utilisateur). Le filet n'est pas
+             décoratif: sur la bande crème du thème clair, un rond blanc sans
+             bord n'a plus de contour du tout. Raccrocher reste rouge, c'est
+             la seule couleur qui doit se distinguer d'un coup d'oeil. */
+          style={active || state === 'connecting'
+            ? { background: '#dc2626', color: '#fff' }
+            : { background: '#fff', color: '#0B0B0D', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.10)' }}
+        >
+          {state === 'connecting'
+            ? <Loader2 size={18} className="animate-spin" />
+            : active ? <PhoneOff size={18} /> : <PhoneCall size={18} />}
+        </button>
+      </span>
 
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold text-[#F2F2F2]">
+        <p className={`text-[13px] font-semibold ${onSite ? 'text-q2-ink' : 'text-[#F2F2F2]'}`}>
           {active
             ? (isFr ? 'En appel avec votre réceptionniste' : 'On a call with your receptionist')
             : state === 'connecting'
               ? (isFr ? 'Connexion…' : 'Connecting…')
               : (isFr ? 'Tester en live (vraie voix)' : 'Test live (real voice)')}
         </p>
-        <p className="text-[11px]" style={{ color: error ? '#f87171' : '#8B8BA7' }}>
+        <p
+          className={`text-[11px] ${onSite && !error ? 'text-q2-body' : ''}`}
+          style={error ? { color: '#dc2626' } : onSite ? undefined : { color: '#8B8BA7' }}
+        >
           {error
             ? error
             : active
@@ -205,14 +323,19 @@ export default function VapiLiveCall({
 
       {active && (
         <div className="flex items-end gap-0.5 h-6 flex-shrink-0" aria-hidden="true">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {/* Les barres portaient un `Math.random()`: elles s'agitaient dès que
+              quelqu'un parlait, quelle que soit l'intensité, donc elles ne
+              montraient rien. Chacune a maintenant un poids FIXE appliqué au
+              niveau réel: le profil reste stable, seule la hauteur bouge, et
+              elle bouge avec la voix. */}
+          {[0.55, 0.8, 1, 0.8, 0.55].map((weight, i) => (
             <span
               key={i}
               className="w-0.5 rounded-full"
               style={{
-                height: `${Math.max(15, Math.min(100, level * 140 + (speaking ? Math.random() * 40 : 0)))}%`,
-                background: '#14b8a6',
-                transition: 'height 0.1s',
+                height: `${Math.max(12, Math.min(100, level * 150 * weight))}%`,
+                background: 'var(--q2-indigo)',
+                transition: 'height 90ms linear',
               }}
             />
           ))}

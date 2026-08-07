@@ -1,8 +1,80 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { planFeatures } from '../config/plan-features';
+import { getPlan } from '../config/plans';
 
 export class ClientDashboardService {
+
+  // ═══════════════════════════════════════════════════════════
+  // BILLING OVERVIEW - The plan, the quota and the minutes really used
+  // ═══════════════════════════════════════════════════════════
+  /**
+   * What the billing page needs, and nothing else.
+   *
+   * It exists because the page had no such source: it read
+   * `GET /my-dashboard/billing`, which returns a LIST OF PAYMENTS. Every field
+   * it asked that array for — `plan`, `minutesUsed`, `isTrial`, `status` — came
+   * back `undefined`, so the page fell through to its own defaults and showed
+   * every client the Starter plan with a quota bar at zero. Nothing looked
+   * broken, which is why it went unnoticed: the defaults were plausible.
+   *
+   * Minutes are derived, not stored: the quota is consumed by the sum of real
+   * call durations for the current month, the same aggregate the overview and
+   * the quota alerts use. Spam calls are excluded, as they are everywhere else
+   * — a blocked call must not eat the quota it was blocked to protect.
+   */
+  async getBillingOverview(clientId: string) {
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) throw new Error('Client not found');
+
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const minutesAgg = await prisma.clientCall.aggregate({
+      where: { clientId, isSpam: false, startedAt: { gte: startOfMonth } },
+      _sum: { durationSeconds: true },
+    });
+    const minutesUsed = Math.round((minutesAgg._sum.durationSeconds ?? 0) / 60);
+
+    const plan = getPlan(client.planType);
+
+    return {
+      plan: client.planType || plan.id,
+      status: client.subscriptionStatus,
+      // Nothing on `Client` stores the next charge date, so it comes from
+      // Stripe or not at all. A plausible-looking guess (activation date plus a
+      // month) is exactly the kind of invented figure this method exists to
+      // remove, so `null` is returned and the page hides the line.
+      renewalDate: await this.nextRenewalDate(client),
+      minutesUsed,
+      // The client's own quota wins: it can be negotiated away from the plan's
+      // standard allowance, and the catalogue is only the fallback.
+      minutesLimit: client.monthlyMinutesQuota || plan.includedMinutes,
+      trialEndsAt: client.trialEndDate,
+      isTrial: client.isTrial,
+    };
+  }
+
+  /**
+   * The next charge date, straight from Stripe, or null.
+   *
+   * A trial has no Stripe period yet, so its end date IS the next billing
+   * moment and is the honest answer. Any failure here is silent on purpose:
+   * a Stripe outage must not take the whole billing page down with it.
+   */
+  private async nextRenewalDate(client: any): Promise<Date | null> {
+    if (client.isTrial && client.trialEndDate) return client.trialEndDate;
+    if (!client.stripeSubscriptionId) return null;
+    try {
+      const { stripe } = await import('../config/stripe');
+      const sub: any = await stripe.subscriptions.retrieve(client.stripeSubscriptionId);
+      return sub?.current_period_end ? new Date(sub.current_period_end * 1000) : null;
+    } catch (error: any) {
+      logger.warn(`[BILLING] Stripe renewal date unavailable for ${client.id}: ${error.message}`);
+      return null;
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════
   // CLIENT OVERVIEW - Main dashboard stats for a specific client

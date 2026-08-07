@@ -242,7 +242,7 @@ export default function PublicNavbar() {
               {isFr ? 'Connexion' : 'Login'}
             </Link>
             <a
-              href="/demo.html"
+              href="/demo"
               className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-sm font-medium pl-4 pr-5 py-2 rounded-full hover:bg-[#7a5fff] transition-colors"
             >
               <Play size={13} fill="currentColor" aria-hidden="true" />
@@ -293,7 +293,7 @@ export default function PublicNavbar() {
           {/* RIGHT: Try it pill + hamburger bubble */}
           <div className="absolute right-4 top-0 bottom-0 flex items-center gap-1.5 pointer-events-auto">
             <a
-              href="/demo.html"
+              href="/demo"
               aria-label={isFr ? 'Essayer la démo' : 'Try the demo'}
               className={`flex items-center justify-center bg-[#1d1d1f] text-white text-sm font-medium rounded-full overflow-hidden whitespace-nowrap transition-colors duration-500 ease-in-out min-w-[44px] h-11 ${
                 menuOpen

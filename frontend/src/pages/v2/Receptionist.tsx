@@ -63,6 +63,7 @@ export default function Receptionist() {
 
   const voices: VoiceData[] = [
     {
+      id: 'marie',
       name: 'Marie',
       accent: isFr ? 'Français · France et Belgique' : 'French · France and Belgium',
       vibe: isFr
@@ -77,6 +78,7 @@ export default function Receptionist() {
         : 'Hello, thanks for calling! How can I help you today?',
     },
     {
+      id: 'lucas',
       name: 'Lucas',
       accent: isFr ? 'Français · France et Belgique' : 'French · France and Belgium',
       vibe: isFr
@@ -384,7 +386,7 @@ export default function Receptionist() {
               </Lead>
 
               <div className="flex flex-wrap items-center gap-3 mb-8 sm:mb-12">
-                <PillLink to="/demo.html" variant="primary" size="lg" className="q2-pill-lit">
+                <PillLink to="/demo" variant="primary" size="lg" className="q2-pill-lit">
                   <Play size={13} fill="currentColor" aria-hidden="true" />
                   {isFr ? 'Écouter une démo' : 'Hear a demo'}
                 </PillLink>
@@ -906,7 +908,7 @@ export default function Receptionist() {
                 {isFr ? 'Créer un compte' : 'Create an account'}
                 <ArrowRight size={16} aria-hidden="true" />
               </PillLink>
-              <PillLink to="/demo.html" variant="onDark" size="lg">
+              <PillLink to="/demo" variant="onDark" size="lg">
                 <Phone size={14} aria-hidden="true" />
                 {isFr ? 'Appeler la démo' : 'Call the demo'}
               </PillLink>

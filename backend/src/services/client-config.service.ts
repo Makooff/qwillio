@@ -12,6 +12,24 @@ export interface VapiConfigPatch {
   items?: Array<{ id?: string; category?: string; name?: string; price?: string }>;
   hours?: Record<string, unknown> | null;
   faq?: string;
+  /**
+   * La FAQ en questions/réponses séparées, plutôt qu'un bloc de texte libre.
+   *
+   * `faq` reste la forme que TOUT lit en aval (le prompt de l'assistant, la
+   * sync Vapi, le chat). Elle n'est plus saisie: elle est rendue à partir de
+   * ces entrées. Une seule source, donc, et la mise en forme cesse de dépendre
+   * de la discipline du client à écrire « Q : » puis « R : ».
+   */
+  faqEntries?: Array<{ q?: string; a?: string }>;
+  /**
+   * Les champs nommés du métier, par identifiant de preset.
+   *
+   * Avant, tout ce qui n'était ni un service ni un horaire finissait dans une
+   * zone de texte libre, et le client devait deviner ce que sa réceptionniste
+   * avait besoin de savoir. Ici la question est posée (« Mutuelles acceptées »,
+   * « Protocole d'urgence ») et la réponse est rangée sous son identifiant.
+   */
+  knowledge?: Record<string, unknown>;
   personalityPreset?: string;
   personalityNotes?: string;
   characterId?: string;
@@ -24,6 +42,62 @@ export interface VapiConfigPatch {
 }
 
 const PERSONA_KEYS = new Set(Object.keys(PERSONALITY_PROMPTS));
+
+export interface FaqEntry { q: string; a: string }
+
+/**
+ * Rendre les entrées en texte, dans la forme que le prompt lit déjà.
+ *
+ * C'est la seule écriture de `faq` quand des entrées existent: rien d'autre ne
+ * doit la composer, sinon les deux formes divergent et personne ne sait
+ * laquelle l'agent a réellement en tête.
+ */
+export function renderFaq(entries: FaqEntry[]): string {
+  return entries
+    .map(e => `Q : ${e.q}\nR : ${e.a}`)
+    .join('\n\n')
+    .slice(0, 8000);
+}
+
+/**
+ * Relire un ancien bloc de texte comme des questions/réponses.
+ *
+ * Les clients existants ont tapé leur FAQ à la main, en suivant plus ou moins
+ * l'exemple affiché. Sans cette lecture, passer à la forme structurée leur
+ * présenterait une liste vide au-dessus d'un texte qu'ils ne verraient plus:
+ * la donnée serait là, et perdue pour eux.
+ *
+ * Volontairement permissif sur le marqueur (Q, R, A, question, réponse, avec ou
+ * sans accent, deux-points ou point). Ce qui précède la première question est
+ * ignoré, et une réponse peut tenir sur plusieurs lignes.
+ */
+export function parseFaq(text: string): FaqEntry[] {
+  if (typeof text !== 'string' || !text.trim()) return [];
+  const isQ = (l: string) => /^\s*(q|question)\s*[:.\-)]/i.test(l);
+  const isA = (l: string) => /^\s*(r|a|r[ée]ponse|answer)\s*[:.\-)]/i.test(l);
+  const strip = (l: string) => l.replace(/^\s*[a-zé]+\s*[:.\-)]\s*/i, '').trim();
+
+  const entries: FaqEntry[] = [];
+  let current: FaqEntry | null = null;
+  let inAnswer = false;
+
+  for (const line of text.split('\n')) {
+    if (isQ(line)) {
+      if (current?.q) entries.push(current);
+      current = { q: strip(line), a: '' };
+      inAnswer = false;
+    } else if (isA(line) && current) {
+      current.a = strip(line);
+      inAnswer = true;
+    } else if (inAnswer && current && line.trim()) {
+      current.a = `${current.a}\n${line.trim()}`.trim();
+    }
+  }
+  if (current?.q) entries.push(current);
+  // Une question sans réponse reste une question: le client la voit et la
+  // complète. La jeter serait effacer ce qu'il a écrit.
+  return entries.filter(e => e.q);
+}
 
 /**
  * Merge a validated patch into an existing vapiConfig object. Pure — no I/O —
@@ -62,6 +136,40 @@ export function buildVapiConfigPatch(
   }
   if (patch.faq !== undefined) {
     next.faq = typeof patch.faq === 'string' ? patch.faq.slice(0, 8000) : '';
+    // L'assistant conversationnel écrit encore la FAQ en texte. Sans cette
+    // relecture, ses ajouts resteraient invisibles dans la liste du tableau de
+    // bord, puis seraient écrasés par le premier enregistrement de celle-ci.
+    // Les entrées postées explicitement corrigent ceci juste en dessous.
+    next.faqEntries = parseFaq(next.faq);
+  }
+  // Après `faq`, et non avant: quand les deux arrivent ensemble, ce sont les
+  // entrées qui font foi, et le texte rendu remplace celui qui a été posté.
+  if (patch.faqEntries !== undefined) {
+    const arr = Array.isArray(patch.faqEntries) ? patch.faqEntries : [];
+    next.faqEntries = arr
+      .slice(0, 60)
+      .map((e: any) => ({
+        q: String(e?.q ?? '').trim().slice(0, 300),
+        a: String(e?.a ?? '').trim().slice(0, 1500),
+      }))
+      .filter((e: FaqEntry) => e.q !== '');
+    next.faq = renderFaq(next.faqEntries);
+  }
+  if (patch.knowledge !== undefined) {
+    const src = patch.knowledge && typeof patch.knowledge === 'object' && !Array.isArray(patch.knowledge)
+      ? patch.knowledge as Record<string, unknown>
+      : {};
+    const out: Record<string, string> = {};
+    for (const key of Object.keys(src).slice(0, 40)) {
+      // Les identifiants viennent des presets, donc d'un catalogue fermé. On
+      // les borne quand même: la route est publique, et un client peut poster
+      // ce qu'il veut.
+      const id = key.replace(/[^A-Za-z0-9_]/g, '').slice(0, 60);
+      if (!id) continue;
+      const value = String(src[key] ?? '').trim().slice(0, 2000);
+      if (value) out[id] = value;
+    }
+    next.knowledge = out;
   }
   if (patch.personalityPreset !== undefined) {
     const v = String(patch.personalityPreset || '');

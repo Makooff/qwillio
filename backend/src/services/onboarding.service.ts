@@ -10,6 +10,8 @@ import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
 import { realtimeContextService } from './voice/realtime-context.service';
 import { greetingAudioService } from './voice/greeting-audio.service';
 import { toE164 } from '../utils/phone';
+import { resolveNiche } from '../config/niches';
+import { knowledgePreset } from '../config/knowledge-presets';
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2000; // 2s, 4s, 8s exponential backoff
@@ -399,6 +401,20 @@ export class OnboardingService {
 
     if (cfg.faq) clientKnowledgeBlocks.push(`FAQ (answer these with the given answers):\n${cfg.faq}`);
 
+    // Les champs nommés du métier (mutuelles acceptées, protocole d'urgence,
+    // politique d'annulation…). Sans ce bloc ils seraient saisis, stockés, et
+    // jamais dits: c'est le seul endroit qui les fait exister pour l'agent.
+    // Le libellé vient du preset du métier, pas de l'identifiant brut, sinon le
+    // modèle lirait « emergencyProtocol » et devrait le deviner.
+    if (cfg.knowledge && typeof cfg.knowledge === 'object') {
+      const preset = knowledgePreset(client.businessType);
+      const labels = new Map(preset.fields.map(f => [f.id, f.label]));
+      const lines = Object.entries(cfg.knowledge as Record<string, string>)
+        .filter(([, v]) => typeof v === 'string' && v.trim())
+        .map(([id, v]) => `- ${labels.get(id) || id}: ${v}`);
+      if (lines.length) clientKnowledgeBlocks.push(`BUSINESS DETAILS:\n${lines.join('\n')}`);
+    }
+
     const clientKnowledge = clientKnowledgeBlocks.length
       ? '\n' + clientKnowledgeBlocks.join('\n\n') + '\n'
       : '';
@@ -485,10 +501,10 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
   // Custom prompts for each business type
   // ═══════════════════════════════════════════════════════════
   private getIndustryKnowledge(businessType: string): string {
-    const type = businessType.toLowerCase();
+    const niche = resolveNiche(businessType);
 
     // Restaurant / Food Service
-    if (type.includes('restaurant') || type.includes('café') || type.includes('cafe') || type.includes('bistro') || type.includes('pizzeria') || type.includes('food') || type.includes('dining') || type.includes('bar') || type.includes('grill') || type.includes('sushi') || type.includes('bakery') || type.includes('boulangerie')) {
+    if (niche === 'restaurant') {
       return `INDUSTRY EXPERTISE - RESTAURANT/FOOD SERVICE:
 - Know common questions: hours, menu options, specials, dietary accommodations (vegan, gluten-free, allergies)
 - Handle reservation requests: date, time, party size, special occasions, seating preferences (indoor/outdoor/private room)
@@ -498,7 +514,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
 
     // Dental / Orthodontics
-    if (type.includes('dental') || type.includes('dentist') || type.includes('orthodont') || type.includes('oral')) {
+    if (niche === 'dental') {
       return `INDUSTRY EXPERTISE - DENTAL PRACTICE:
 - Know appointment types: cleaning, check-up, emergency, whitening, extraction, crown, filling, root canal, implant, Invisalign consultation
 - Handle insurance questions: ask for insurance provider name, direct them to verify coverage
@@ -509,7 +525,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
 
     // Medical / Doctor / Clinic
-    if (type.includes('medical') || type.includes('doctor') || type.includes('clinic') || type.includes('physician') || type.includes('health') || type.includes('urgent care') || type.includes('pediatr')) {
+    if (niche === 'medical') {
       return `INDUSTRY EXPERTISE - MEDICAL PRACTICE:
 - Know appointment types: annual physical, sick visit, follow-up, lab work, vaccination, consultation
 - Triage basics: if caller describes chest pain, difficulty breathing, severe bleeding → advise calling 911 immediately
@@ -520,7 +536,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
 
     // Salon / Spa / Beauty
-    if (type.includes('salon') || type.includes('spa') || type.includes('beauty') || type.includes('hair') || type.includes('barber') || type.includes('nail') || type.includes('aesthetic') || type.includes('massage') || type.includes('wax')) {
+    if (niche === 'salon') {
       return `INDUSTRY EXPERTISE - SALON/SPA/BEAUTY:
 - Know service categories: haircut, color, highlights, balayage, blowout, extensions, keratin treatment
 - Spa services: massage (Swedish, deep tissue, hot stone), facial, body wrap, manicure, pedicure, waxing
@@ -532,7 +548,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
 
     // Law Firm / Legal
-    if (type.includes('law') || type.includes('legal') || type.includes('attorney') || type.includes('avocat') || type.includes('lawyer')) {
+    if (niche === 'law') {
       return `INDUSTRY EXPERTISE - LAW FIRM:
 - Know practice areas: family law, personal injury, criminal defense, business law, estate planning, immigration, real estate
 - Initial intake: collect name, brief description of legal issue, timeline urgency, how they heard about the firm
@@ -544,7 +560,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
 
     // Real Estate
-    if (type.includes('real estate') || type.includes('realty') || type.includes('property') || type.includes('immobilier')) {
+    if (niche === 'real_estate') {
       return `INDUSTRY EXPERTISE - REAL ESTATE:
 - Know inquiry types: buying, selling, renting, property management, commercial leasing
 - For buyers: ask about budget range, preferred areas, property type (house, condo, townhouse), bedrooms/bathrooms
@@ -556,7 +572,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
 
     // Auto / Mechanic / Car Dealer
-    if (type.includes('auto') || type.includes('car') || type.includes('mechanic') || type.includes('garage') || type.includes('dealer') || type.includes('vehicle') || type.includes('tire') || type.includes('body shop')) {
+    if (niche === 'auto') {
       return `INDUSTRY EXPERTISE - AUTOMOTIVE:
 - Know service types: oil change, tire rotation, brake inspection, engine diagnostics, AC repair, transmission, alignment
 - For repairs: ask about vehicle year/make/model, symptoms, warning lights, mileage
@@ -568,7 +584,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
 
     // Fitness / Gym
-    if (type.includes('gym') || type.includes('fitness') || type.includes('yoga') || type.includes('pilates') || type.includes('crossfit') || type.includes('martial') || type.includes('boxing') || type.includes('training')) {
+    if (niche === 'fitness') {
       return `INDUSTRY EXPERTISE - FITNESS/GYM:
 - Know offerings: membership plans, class schedules, personal training, group classes
 - Trial/guest passes: offer free trial visit or day pass to new callers
@@ -580,7 +596,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
 
     // Plumbing / HVAC / Electrician / Home Services
-    if (type.includes('plumb') || type.includes('hvac') || type.includes('electric') || type.includes('heating') || type.includes('cooling') || type.includes('roofing') || type.includes('contractor') || type.includes('handyman') || type.includes('cleaning') || type.includes('landscap') || type.includes('pest') || type.includes('locksmith')) {
+    if (niche === 'home_services') {
       return `INDUSTRY EXPERTISE - HOME SERVICES:
 - Emergency handling: water leaks, no heat/AC, electrical hazards, gas smell → mark as emergency dispatch
 - Service requests: collect address, describe issue, preferred time window, access instructions
@@ -592,7 +608,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
 
     // Accounting / Financial
-    if (type.includes('account') || type.includes('cpa') || type.includes('tax') || type.includes('bookkeep') || type.includes('financial') || type.includes('wealth') || type.includes('insurance')) {
+    if (niche === 'financial') {
       return `INDUSTRY EXPERTISE - ACCOUNTING/FINANCIAL:
 - Know service types: tax preparation, bookkeeping, audit, payroll, business formation, financial planning
 - Seasonal awareness: tax season (Jan-Apr) is busiest, extension deadlines (Oct 15)
@@ -604,7 +620,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
 
     // Veterinary / Pet
-    if (type.includes('vet') || type.includes('animal') || type.includes('pet') || type.includes('veterinar')) {
+    if (niche === 'veterinary') {
       return `INDUSTRY EXPERTISE - VETERINARY/PET:
 - Know appointment types: wellness check, vaccination, sick visit, surgery, dental cleaning, spay/neuter, emergency
 - Emergency handling: difficulty breathing, poisoning, seizures, trauma → direct to emergency vet if after hours
@@ -628,16 +644,16 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
   // BOOKING INSTRUCTIONS PER INDUSTRY
   // ═══════════════════════════════════════════════════════════
   private getBookingInstructions(businessType: string): string {
-    const type = businessType.toLowerCase();
+    const niche = resolveNiche(businessType);
 
-    if (type.includes('restaurant') || type.includes('café') || type.includes('cafe') || type.includes('food') || type.includes('dining') || type.includes('bar') || type.includes('bistro')) {
+    if (niche === 'restaurant') {
       return `1. For reservations: collect date, time, party size, name, phone number, any special requests (birthday, allergies, high chair)
 2. Confirm availability for the requested time, suggest alternatives if fully booked
 3. Mention any specials or events happening on that date
 4. For large parties (8+): mention that a deposit or pre-fixed menu may be required`;
     }
 
-    if (type.includes('dental') || type.includes('medical') || type.includes('doctor') || type.includes('clinic') || type.includes('health') || type.includes('vet')) {
+    if (niche === 'dental' || niche === 'medical' || niche === 'veterinary') {
       return `1. For appointments: collect patient/pet name, date of birth, reason for visit, insurance info, preferred date/time
 2. Ask if they are a new or existing patient
 3. For new patients: mention to arrive 15 minutes early for paperwork
@@ -645,7 +661,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 5. Mention any preparation needed (fasting, bringing records, etc.)`;
     }
 
-    if (type.includes('salon') || type.includes('spa') || type.includes('beauty') || type.includes('hair') || type.includes('barber') || type.includes('nail')) {
+    if (niche === 'salon') {
       return `1. For appointments: collect name, service type, preferred stylist/therapist, date/time, phone number
 2. Ask about service duration needs (e.g., color + cut = 2-3 hours)
 3. For new clients: suggest a consultation for major changes (color transformation, extensions)
@@ -653,7 +669,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 5. Remind about cancellation policy (usually 24 hours notice)`;
     }
 
-    if (type.includes('law') || type.includes('legal') || type.includes('attorney') || type.includes('lawyer')) {
+    if (niche === 'law') {
       return `1. For consultations: collect name, phone, email, brief case description, urgency level
 2. Ask about the legal area (family, personal injury, criminal, business, estate)
 3. Mention if initial consultation is free or paid, and typical duration
@@ -661,7 +677,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 5. Never provide legal advice - schedule them with an attorney`;
     }
 
-    if (type.includes('plumb') || type.includes('hvac') || type.includes('electric') || type.includes('contractor') || type.includes('handyman') || type.includes('cleaning') || type.includes('locksmith')) {
+    if (niche === 'home_services') {
       return `1. For service calls: collect name, address, phone, describe the issue, urgency level, preferred time window
 2. For emergencies (leaks, no heat, electrical hazards): mark as urgent for same-day dispatch
 3. Ask about property type (house, apartment, commercial) and access instructions

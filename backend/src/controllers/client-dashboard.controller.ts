@@ -7,7 +7,8 @@ import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN, CUSTOM_CHARACTER_ID } from '../config/voice-characters';
-import { buildVapiConfigPatch } from '../services/client-config.service';
+import { buildVapiConfigPatch, parseFaq } from '../services/client-config.service';
+import { knowledgePreset } from '../config/knowledge-presets';
 
 // OAuth state: per-user, signed, short-lived — the callback verifies it was
 // minted for the same client that finishes the flow (CSRF protection).
@@ -248,6 +249,14 @@ export class ClientDashboardController {
         faq:               cfg.faq               ?? '',
         personalityPreset: cfg.personalityPreset ?? 'warm',
         personalityNotes:  cfg.personalityNotes  ?? cfg.specialNotes ?? '',
+        knowledge:         cfg.knowledge && typeof cfg.knowledge === 'object' ? cfg.knowledge : {},
+        // Relues depuis le texte quand elles n'ont jamais ete saisies sous
+        // forme d'entrees: sans cela, un client qui a tape sa FAQ a la main
+        // verrait une liste vide au-dessus d'une donnee qui existe toujours.
+        faqEntries:        Array.isArray(cfg.faqEntries) ? cfg.faqEntries : parseFaq(cfg.faq ?? ''),
+        // Les presets de son metier, resolus par la meme lecture que le reste
+        // du backend, pour que la page n'ait pas a porter sa propre liste.
+        knowledgePresets:  knowledgePreset(client.businessType),
         characterId:       cfg.characterId ?? (isFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN),
         // Null rather than absent: the UI shows either the recorder or the
         // cloned-voice card, and "not loaded yet" must not look like "none".
@@ -295,6 +304,8 @@ export class ClientDashboardController {
         body.items !== undefined ||
         body.hours !== undefined ||
         body.faq !== undefined ||
+        body.faqEntries !== undefined ||
+        body.knowledge !== undefined ||
         body.personalityPreset !== undefined ||
         body.personalityNotes !== undefined ||
         body.characterId !== undefined ||
@@ -309,6 +320,8 @@ export class ClientDashboardController {
           items:             body.items,
           hours:             body.hours,
           faq:               body.faq,
+          faqEntries:        body.faqEntries,
+          knowledge:         body.knowledge,
           personalityPreset: body.personalityPreset,
           personalityNotes:  body.personalityNotes,
           characterId:       body.characterId,
@@ -1058,7 +1071,25 @@ export class ClientDashboardController {
   }
 
   // GET /my-dashboard/billing
+  /**
+   * The billing OVERVIEW — plan, status, quota, trial.
+   *
+   * This route used to answer with the payment list, which is why the billing
+   * page displayed its own defaults as if they were the client's real plan.
+   * The payments moved to `/my-dashboard/payments`, which the page was already
+   * calling and which did not exist.
+   */
   async getBilling(req: any, res: Response) {
+    try {
+      const overview = await clientDashboardService.getBillingOverview(req.clientId);
+      res.json(overview);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // GET /my-dashboard/payments
+  async getPayments(req: any, res: Response) {
     try {
       const payments = await prisma.payment.findMany({
         where: { clientId: req.clientId },
