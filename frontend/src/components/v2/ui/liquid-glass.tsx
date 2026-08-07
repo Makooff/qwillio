@@ -142,9 +142,12 @@ export default function GlassSkin({
           background,
           backdropFilter: backdrop,
           WebkitBackdropFilter: backdrop,
-          /* Sans cet indice, la couche est photographiée une fois au montage
-             et ne se rafraîchit jamais quand le contenu défile dessous. */
-          willChange: 'backdrop-filter',
+          /* Sans promotion, la couche est photographiée une fois au montage et
+             ne se rafraîchit jamais quand le contenu défile dessous.
+             `translateZ(0)` et non `will-change: backdrop-filter`: Safari ne
+             reconnaît pas cette propriété comme indice, donc sur iPhone la
+             couche restait justement figée. */
+          transform: 'translateZ(0)',
         }}
       />
       <span

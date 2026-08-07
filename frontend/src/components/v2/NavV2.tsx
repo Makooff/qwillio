@@ -559,26 +559,45 @@ export default function NavV2() {
         {/* Voile de repos : flou progressif permanent sur la bande d'entête,
             très flou en haut, qui s'estompe en descendant et déborde sous la
             barre. Aucune surface blanche : juste le contenu qui fond. */}
+        {/* DEUX éléments, et c'est le fond du problème iOS.
+            Le masque et le `backdrop-filter` vivaient sur la MÊME boîte. Sur
+            WebKit, un `-webkit-backdrop-filter` pose sur un élément qui porte
+            aussi un `-webkit-mask-image` n'est pas rendu: le voile devenait
+            une teinte plate, sans flou, ce qu'on lisait comme « le flou de la
+            nav ne marche pas sur iPhone ». Blink s'en accommode, d'où un bug
+            invisible au développement.
+            Le masque reste donc sur le parent, qui ne filtre rien, et le
+            filtre descend sur un enfant qui ne masque rien. Le rendu est le
+            même partout, le dégradé du bord est conservé. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0"
+          className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden"
           style={{
             height: '160%',
             opacity: floating || menuOpen ? 0 : 1,
             transition: 'opacity 320ms cubic-bezier(0.16, 1, 0.3, 1)',
-            backdropFilter: restVeil,
-            WebkitBackdropFilter: restVeil,
-            willChange: 'backdrop-filter',
-            /* Le masque reste : c'est lui qui évite le bord franc sous
-               l'entête. La COULEUR, elle, ne se dégrade plus (demande
-               utilisateur) : teinte unie, c'est le verre qui travaille. */
+            /* Le masque évite le bord franc sous l'entête. La COULEUR, elle,
+               ne se dégrade pas (demande utilisateur) : teinte unie, c'est le
+               verre qui travaille. */
             maskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
             WebkitMaskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
-            background: liquid
-              ? (overDark ? 'rgba(8, 9, 10, 0.12)' : 'rgb(var(--q2-canvas) / 0.12)')
-              : (overDark ? 'rgba(8, 9, 10, 0.58)' : 'rgb(var(--q2-canvas) / 0.56)'),
           }}
-        />
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              backdropFilter: restVeil,
+              WebkitBackdropFilter: restVeil,
+              /* `translateZ(0)` plutôt que `will-change: backdrop-filter`:
+                 Safari ne connaît pas cette valeur comme indice et la couche
+                 restait photographiée au montage, donc figée au défilement. */
+              transform: 'translateZ(0)',
+              background: liquid
+                ? (overDark ? 'rgba(8, 9, 10, 0.12)' : 'rgb(var(--q2-canvas) / 0.12)')
+                : (overDark ? 'rgba(8, 9, 10, 0.58)' : 'rgb(var(--q2-canvas) / 0.56)'),
+            }}
+          />
+        </div>
         <motion.nav
           aria-label={isFr ? 'Navigation principale' : 'Main navigation'}
           animate={{

@@ -61,6 +61,22 @@ const RADIUS_Y = 100;
    avant, donc rien ne disparaît d'un coup, et le saut se fait à zéro. */
 const FADE_OUT = 3.6;
 
+/* De quoi l'anneau doit tenir compte pour se mettre à l'échelle: la position
+   et la demi-largeur de la carte de l'écart 2, la dernière que l'oeil lit
+   vraiment. Écrit à partir des mêmes constantes que `getItemPosition`, pour
+   qu'un changement de VISIBLE_COUNT ou de rayon ne laisse pas ce cadrage en
+   arrière. */
+const OUTER_X = Math.sin((2 / VISIBLE_COUNT) * Math.PI) * RADIUS_X;
+/* 56 = demi-largeur d'une carte; son échelle à l'écart 2 vaut
+   (1 - 2/maxDistance * 0,3) * 0,55, avec maxDistance = 4. */
+const OUTER_CARD_HALF = 56 * (1 - (2 / (Math.floor(VISIBLE_COUNT / 2) + 1)) * 0.3) * 0.55;
+
+/* Hauteur reellement occupee par l'arc, mesuree: les cartes s'arretent a 165
+   dans la boite de 280 du fichier. Garder 280 laissait 98 px de vide sous
+   l'anneau en 390 px, et c'est cette bande qui separait le compteur des
+   fleches. 178 rend les 13 px d'air qu'il faut sous la derniere carte. */
+const ARC_CONTENT_H = 178;
+
 function getItemPosition(index: number, activeIndex: number, total: number) {
   const offset = index - activeIndex;
   const half = Math.floor(total / 2);
@@ -109,11 +125,17 @@ export function CircularCarousel({
     if (!el || typeof ResizeObserver === 'undefined') return;
     const measure = () => {
       const w = el.clientWidth;
-      /* Plancher à 0,58: sur un téléphone la formule tombait à ~0,33 et
-         l'anneau devenait une miniature illisible. Sous le plancher, les
-         cartes extrêmes dépassent un peu de la piste, mais le masque de bord
-         les efface déjà — mieux vaut une carte coupée qu'un jeu de vignettes. */
-      if (w > 0) setK(Math.max(0.58, Math.min(1, (w / 2 - 12) / (RADIUS_X + 56))));
+      if (w <= 0) return;
+      /* L'échelle se calait sur la carte de l'écart 3 (x = ±214) plus une
+         demi-carte pleine, soit un demi-empan de 276. En 390 px cela donnait
+         0,60: tout l'anneau, compteur compris, rétrécissait de 40 % pour
+         faire tenir DEUX CARTES QUI SONT DÉJÀ PRESQUE TRANSPARENTES (opacité
+         0,21 à cet écart, et le masque de bord les efface par-dessus).
+         On dimensionne donc sur l'écart 2, la dernière carte réellement
+         lisible, et les fantômes du bord restent au masque, dont c'est le
+         travail. En 390 px l'échelle passe de 0,60 à ~0,87. */
+      const half = w / 2 - 6;
+      setK(Math.max(0.72, Math.min(1, half / (OUTER_X + OUTER_CARD_HALF))));
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -170,7 +192,7 @@ export function CircularCarousel({
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
       className={cn(
-        'relative flex flex-col items-center justify-center gap-8 outline-none',
+        'relative flex flex-col items-center justify-center gap-5 sm:gap-8 outline-none',
         className,
       )}
     >
@@ -180,7 +202,7 @@ export function CircularCarousel({
           rognait) et l'ancre à 164, parce que l'empan réel de l'arc va de -164 à
           +95 autour d'elle une fois les cartes centrées sur leur point
           d'orbite. Géométrie du conteneur, pas de l'animation. */}
-      <div ref={trackRef} className="relative w-full max-w-xl" style={{ height: 280 * k }}>
+      <div ref={trackRef} className="relative w-full max-w-xl" style={{ height: ARC_CONTENT_H * k }}>
         <div
           className="absolute inset-x-0 top-0 h-[280px]"
           style={{
@@ -261,22 +283,24 @@ export function CircularCarousel({
         </AnimatePresence>
         </div>
       </div>
-
-      {/* Center content (position du fichier : centré sur le bloc entier, donc
-          sous la carte active, pas derrière elle) */}
+      {/* Le compteur est un ELEMENT DE FLUX, sous l'arc.
+          Il etait `absolute inset-0` sur le bloc entier, donc centre sur
+          piste + gouttiere + controles: sa position ne tenait qu'a la hauteur
+          de la piste, et resserrer celle-ci le ramenait sur le visage. Place
+          dans le flux, il est sous les cartes parce qu'on l'y a mis. */}
       <motion.div
         key={activeItem.id}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+        className="flex flex-col items-center pointer-events-none -my-1"
         /* Le compteur vit HORS du groupe mis à l'échelle: sans cette
            transformation il restait à 48 px pendant que les cartes
            rétrécissaient d'un tiers, et le « 04 » écrasait l'anneau sur
            téléphone (retour utilisateur). */
         style={{ transform: `scale(${k})` }}
       >
-        <span className="text-5xl font-light tracking-tight text-q2-ink/90 tabular-nums">
+        <span className="text-4xl font-light tracking-tight text-q2-ink/80 tabular-nums">
           {String(activeIndex + 1).padStart(2, '0')}
         </span>
         {/* « of 10 » du fichier remplacé par « / 10 » : le site est FR et EN,
@@ -285,6 +309,7 @@ export function CircularCarousel({
           / {String(total).padStart(2, '0')}
         </span>
       </motion.div>
+
 
       {/* Controls */}
       <div className="flex items-center gap-4">
