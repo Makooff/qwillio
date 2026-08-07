@@ -68,6 +68,8 @@ function voiceLabel(c: Character, isFr: boolean) {
 export default function CharacterCarousel({
   characters, value, onChange, isFr = true, override = null, onOverride,
   agentName, onAgentName,
+  previewUrlFor = previewUrl,
+  warmEndpoint = '/my-dashboard/characters/warm',
 }: {
   characters: Character[];
   value: string;
@@ -82,6 +84,15 @@ export default function CharacterCarousel({
      du personnage, comme avant. */
   agentName?: string;
   onAgentName?: (v: string) => void;
+  /**
+   * D'où viennent les clips. Par défaut la route du tableau de bord, qui est
+   * derrière un JWT. La page d'essai publique passe la route publique: sans
+   * cette bascule, chaque aperçu y répondait 401 et AUCUNE voix ne sortait,
+   * alors que le carrousel s'affichait normalement.
+   */
+  previewUrlFor?: (id: string) => string;
+  /** Préchauffage serveur du catalogue. `null` quand la route n'est pas ouverte. */
+  warmEndpoint?: string | null;
 }) {
   const reduce = useReducedMotion();
   const { playing, notice, line, toggle, prefetch } = useVoicePreview(isFr);
@@ -118,12 +129,13 @@ export default function CharacterCarousel({
   // sont identiques d'une fois sur l'autre : la seule raison pour laquelle la
   // lecture attendait, c'est que personne ne les avait encore demandés.
   useEffect(() => {
-    void api.post('/my-dashboard/characters/warm').catch(() => undefined);
-  }, []);
+    if (!warmEndpoint) return;
+    void api.post(warmEndpoint).catch(() => undefined);
+  }, [warmEndpoint]);
 
   // Le personnage affiché est celui qu'on écoutera : son clip est téléchargé
   // d'avance, la pression suivante ne coûte plus rien.
-  const currentUrl = current ? previewUrl(current.id) : null;
+  const currentUrl = current ? previewUrlFor(current.id) : null;
   useEffect(() => {
     if (currentUrl) prefetch(currentUrl);
   }, [currentUrl, prefetch]);
@@ -287,7 +299,7 @@ export default function CharacterCarousel({
 
           <button
             type="button"
-            onClick={() => toggle(current.id, previewUrl(current.id), (isFr ? current.previewFr : current.previewEn) || undefined)}
+            onClick={() => toggle(current.id, previewUrlFor(current.id), (isFr ? current.previewFr : current.previewEn) || undefined)}
             aria-label={isFr ? `Écouter ${current.name}` : `Preview ${current.name}`}
             className="w-7 h-7 shrink-0 rounded-full grid place-items-center bg-q2-indigo/15 text-q2-lift hover:bg-q2-indigo/25 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
           >
@@ -322,7 +334,7 @@ export default function CharacterCarousel({
                 onOverride={v => { onOverride?.(v); setMenuOpen(false); }}
                 playing={playing}
                 onToggle={toggle}
-                previewUrlFor={previewUrl}
+                previewUrlFor={previewUrlFor}
                 isFr={isFr}
               />
             )}

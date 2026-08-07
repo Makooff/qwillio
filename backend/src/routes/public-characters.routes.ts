@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { Response } from 'express';
 import rateLimit from 'express-rate-limit';
-import { CHARACTERS, isValidCharacterId } from '../config/voice-characters';
+import { CHARACTERS, isValidCharacterId, listCharacters } from '../config/voice-characters';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 
@@ -26,6 +26,29 @@ const previewLimiter = rateLimit({
 });
 
 const router = Router();
+
+/* Le CATALOGUE, sans la voix.
+ *
+ * La page d'essai monte le même carrousel que le tableau de bord, qui attend
+ * cette liste. Elle ne contient que ce qui s'affiche (nom, accent, genre,
+ * accroche, phrase de l'aperçu): jamais le `voiceId` ElevenLabs, qui reste au
+ * serveur et n'a rien à faire dans une page publique. */
+router.get('/characters', (_req, res: Response) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.json(
+    listCharacters().map(c => ({
+      id: c.id,
+      name: c.name,
+      accent: c.accent,
+      gender: c.gender,
+      personaKey: c.personaKey,
+      taglineFr: c.taglineFr,
+      taglineEn: c.taglineEn,
+      previewFr: c.previewFr,
+      previewEn: c.previewEn,
+    })),
+  );
+});
 
 router.get('/characters/:id/preview', previewLimiter, async (req: any, res: Response) => {
   try {

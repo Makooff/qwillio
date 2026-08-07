@@ -423,7 +423,7 @@ export default function Home() {
                   </PillLink>
                 </Magnetic>
                 <Magnetic strength={4}>
-                  <PillLink to="/demo.html" variant="outline" size="lg">
+                  <PillLink to="/demo" variant="outline" size="lg">
                     <Play size={13} fill="currentColor" aria-hidden="true" />
                     {isFr ? 'L’entendre décrocher' : 'Hear her answer'}
                   </PillLink>

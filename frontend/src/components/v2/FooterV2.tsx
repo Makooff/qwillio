@@ -21,7 +21,7 @@ export default function FooterV2() {
         { to: '/receptionist', label: 'Receptionist AI' },
         { to: '/agent', label: 'Qwillio Agent' },
         { to: '/pricing', label: isFr ? 'Tarifs' : 'Pricing' },
-        { to: '/demo.html', label: isFr ? 'Démo' : 'Demo', external: true },
+        { to: '/demo', label: isFr ? 'Démo' : 'Demo' },
       ],
     },
     {
