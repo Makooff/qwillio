@@ -1058,7 +1058,25 @@ export class ClientDashboardController {
   }
 
   // GET /my-dashboard/billing
+  /**
+   * The billing OVERVIEW — plan, status, quota, trial.
+   *
+   * This route used to answer with the payment list, which is why the billing
+   * page displayed its own defaults as if they were the client's real plan.
+   * The payments moved to `/my-dashboard/payments`, which the page was already
+   * calling and which did not exist.
+   */
   async getBilling(req: any, res: Response) {
+    try {
+      const overview = await clientDashboardService.getBillingOverview(req.clientId);
+      res.json(overview);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // GET /my-dashboard/payments
+  async getPayments(req: any, res: Response) {
     try {
       const payments = await prisma.payment.findMany({
         where: { clientId: req.clientId },

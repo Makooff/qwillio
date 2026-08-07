@@ -98,6 +98,7 @@ router.post('/resume', (req, res) => clientDashboardController.resumeAgent(req, 
 router.put('/profile', (req, res) => clientDashboardController.updateProfile(req, res));
 router.put('/password', (req, res) => clientDashboardController.changePassword(req, res));
 router.get('/billing', (req, res) => clientDashboardController.getBilling(req, res));
+router.get('/payments', (req, res) => clientDashboardController.getPayments(req, res));
 router.post('/cancel', (req, res) => clientDashboardController.cancelSubscription(req, res));
 router.post('/upgrade', billingLimiter, (req, res) => clientDashboardController.upgradeSubscription(req, res));
 

@@ -38,6 +38,30 @@ export function errorDetail(e: unknown): string | null {
   }
 }
 
+/**
+ * Whether this failure is the user (or the OS) withholding the microphone.
+ *
+ * Now that the SDK asks for the device itself, the refusal arrives as whatever
+ * the SDK chose to wrap the DOMException in, so the name is matched wherever it
+ * can hide. Getting this wrong costs the one sentence that tells the user what
+ * to actually do, so it errs on the side of recognising too much: every string
+ * below only ever appears on a permission failure.
+ */
+const MIC_DENIED = /notallowed|permission\s*denied|notfound|notreadable|mic_denied|microphone/i;
+
+export function isMicDenied(e: unknown): boolean {
+  if (!e) return false;
+  if (typeof e === 'string') return MIC_DENIED.test(e);
+  if (typeof e !== 'object') return false;
+  const o = e as Record<string, unknown>;
+  // An HTTP failure is never a microphone failure, whatever its body says.
+  if (o.response || o.request) return false;
+  for (const candidate of [o.name, o.message, o.errorMsg, (o.error as Record<string, unknown> | undefined)?.name, (o.error as Record<string, unknown> | undefined)?.message, o.error]) {
+    if (typeof candidate === 'string' && MIC_DENIED.test(candidate)) return true;
+  }
+  return false;
+}
+
 export function errorText(e: unknown): string | null {
   if (typeof e === 'string') return e.trim() || null;
   if (!e || typeof e !== 'object') return null;
@@ -79,6 +103,32 @@ export default function VapiLiveCall({
   const vapiRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  /**
+   * The dial config, fetched on mount rather than on press.
+   *
+   * This is what removes the microphone probe. The probe existed because
+   * `api.get(endpoint)` sat between the press and `vapi.start()`, and an await
+   * closes the gesture window the browser needs to grant the microphone. So the
+   * component asked for the device itself, first thing, then released it — on
+   * the belief that the grant outlives the track. It does on Chrome. It does NOT
+   * on iOS Safari, which releases the permission with the track, so every call
+   * prompted again, and the probe and the SDK ended up fighting over the device
+   * ("Micro indisponible").
+   *
+   * With the config already in hand there is nothing to await: `vapi.start()`
+   * runs inside the click and the SDK asks for the microphone once, itself, and
+   * keeps the stream for as long as the call lasts.
+   */
+  const configRef = useRef<Promise<any> | null>(null);
+
+  useEffect(() => {
+    // Failures are swallowed here: `start()` awaits the same promise and reports
+    // the reason where the user can see it. A red banner on a page nobody has
+    // pressed anything on would be noise.
+    configRef.current = api.get(endpoint).then(r => r.data);
+    configRef.current.catch(() => undefined);
+  }, [endpoint]);
+
   useEffect(() => () => {
     // Cleanup on unmount: stop any active call.
     try { vapiRef.current?.stop?.(); } catch { /* noop */ }
@@ -100,20 +150,12 @@ export default function VapiLiveCall({
     setError(null);
     setState('connecting');
     try {
-      // Ask for the microphone FIRST, before any await. Browsers only grant it
-      // from inside a user gesture, and a network round-trip closes that window
-      // — the SDK would then fail with an error object carrying no message,
-      // which surfaces as a bare "Erreur appel" nobody can act on.
-      // The tracks are stopped straight away: the grant persists for the page,
-      // and holding an open stream would leave the recording indicator on.
-      try {
-        const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
-        probe.getTracks().forEach(t => t.stop());
-      } catch {
-        throw new Error('mic_denied');
-      }
-
-      const { data } = await api.get(endpoint);
+      // Already resolved in the common case, so this await returns on a
+      // microtask and the click is still the current gesture when `vapi.start()`
+      // asks for the microphone. Only a press during the very first seconds of
+      // the page pays for the round-trip.
+      if (!configRef.current) configRef.current = api.get(endpoint).then(r => r.data);
+      const data = await configRef.current;
       if (!data?.publicKey) throw new Error('missing key');
 
       const vapi = new Vapi(data.publicKey);
@@ -137,6 +179,14 @@ export default function VapiLiveCall({
         // Vapi routinely emits errors with no message. Saying "Erreur appel"
         // and nothing else sends the user looking in the wrong place.
         const detail = errorDetail(e);
+        if (isMicDenied(e)) {
+          setError(isFr
+            ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
+            : 'Microphone denied. Allow the microphone for this site, then start again.');
+          setState('idle');
+          if (timerRef.current) clearInterval(timerRef.current);
+          return;
+        }
         setError(errorText(e) || [
           isFr
             ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
@@ -149,8 +199,11 @@ export default function VapiLiveCall({
 
       await vapi.start(data.assistant);
     } catch (e: any) {
+      // A rejected config must not be cached: the next press would fail on the
+      // stale rejection instead of retrying the request.
+      if (e?.response || e?.request) configRef.current = null;
       setError(
-        errorText(e) === 'mic_denied'
+        isMicDenied(e)
           ? (isFr
             ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
             : 'Microphone denied. Allow the microphone for this site, then start again.')
