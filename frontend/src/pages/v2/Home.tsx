@@ -210,6 +210,36 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
           </text>
         </svg>
       </div>
+
+      {/* Le bas de la fenêtre: dégradé ET flou (demande utilisateur).
+          Le masque seul effaçait déjà l'arête, mais il laissait une image
+          NETTE jusqu'au dernier pixel visible, si bien qu'on lisait encore la
+          fin d'une ligne de dashboard juste avant qu'elle disparaisse. Le flou
+          dissout ce qui reste, et il n'y a plus de délimitation du tout.
+
+          DEUX éléments, jamais un seul: sur WebKit, un `-webkit-backdrop-filter`
+          posé sur un élément qui porte aussi un `-webkit-mask-image` n'est pas
+          rendu. Le masque reste donc au parent, le filtre descend à l'enfant.
+          Même correction que le voile de la nav. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[22%] overflow-hidden"
+        style={{
+          maskImage: 'linear-gradient(to bottom, transparent 0%, #000 62%, #000 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 62%, #000 100%)',
+        }}
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            /* Promotion par transform: Safari ne lit pas
+               `will-change: backdrop-filter`, et la couche resterait figée. */
+            transform: 'translateZ(0)',
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -392,6 +422,29 @@ export default function Home() {
         <HeroVideoBackdrop />
         {/* Les blobs pixel blush dérivent par-dessus le voile, sous le texte */}
         <PixelBlushBackdrop />
+
+        {/* VIGNETTE DU HERO (référence Mosa AI: la photo de champ cerclée d'un
+            fondu). Elle passe PAR-DESSUS le dégradé, la vidéo et les blobs, et
+            couvre tout le fond du haut de la page jusque sous la fenêtre
+            Safari, où le hero se termine.
+
+            La couleur n'est écrite nulle part: le fondu ferme sur
+            `rgb(var(--q2-canvas))`, donc il est crème en thème clair et noir
+            en sombre, par construction. Un blanc littéral aurait repeint la
+            page en clair par-dessus le canvas basculé, qui est le piège que
+            CLAUDE.md documente.
+
+            Posée AVANT le `Container`: les deux sont positionnés, donc le
+            contenu, qui vient après, peint au-dessus et rien n'est voilé. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(125% 92% at 50% 40%, transparent 42%, rgb(var(--q2-canvas) / 0.5) 74%, rgb(var(--q2-canvas)) 100%)',
+          }}
+        />
+
         <Container className="relative [&>*]:min-w-0">
           <RevealV2>
             <div className="max-w-[860px]">
