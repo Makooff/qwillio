@@ -199,8 +199,8 @@ export default function CrmContactDetail() {
           dans une carte peinte pour un fond CLAIR (`bg-white`, `#f5f5f7`)
           posée sur la coque sombre: un rectangle blanc au milieu du noir. */}
       <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-5">
-        <Link to="/dashboard/crm" className="inline-flex items-center gap-1.5 text-sm text-[#A1A1A8] hover:text-[#7349fe] transition-colors">
-          <ArrowLeft size={14} aria-hidden="true" /> Retour aux contacts
+        <Link to="/dashboard/leads" className="inline-flex items-center gap-1.5 text-sm text-[#A1A1A8] hover:text-[#7349fe] transition-colors">
+          <ArrowLeft size={14} aria-hidden="true" /> Retour aux leads
         </Link>
       </motion.div>
 

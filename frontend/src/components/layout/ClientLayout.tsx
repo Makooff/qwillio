@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Phone, Users, BarChart3, CreditCard,
-  Bot, UserCircle, HelpCircle, Settings, Contact,
+  Bot, UserCircle, HelpCircle,
 } from '../icons';
 import AiStatusPill from '../AiStatusPill';
 import DashboardShell, { NavItem } from './DashboardShell';
@@ -10,10 +10,10 @@ const PRIMARY_NAV: NavItem[] = [
   { path: '/dashboard/calls',        icon: Phone,           label: 'Appels' },
   { path: '/dashboard/leads',        icon: Users,           label: 'Leads' },
   { path: '/dashboard/analytics',    icon: BarChart3,       label: 'Analytique' },
-  // Le CRM etait route et atteignable en tapant l'URL, mais absent du menu:
-  // personne ne pouvait le trouver. Il se remplit desormais tout seul depuis
-  // les appels, donc il a quelque chose a montrer.
-  { path: '/dashboard/crm',          icon: Contact,         label: 'Contacts' },
+  /* « Contacts » a disparu du menu: les leads et les contacts sont les mêmes
+     personnes, puisqu'un contact naît de l'appel qui a produit le lead. Deux
+     entrées pour une réalité, avec deux vocabulaires d'état, faisaient croire
+     à deux répertoires. La fiche de contact reste, comme détail d'une ligne. */
   { path: '/dashboard/receptionist', icon: Bot,             label: 'Réceptionniste IA' },
 ];
 
@@ -28,16 +28,20 @@ const MOBILE_NAV: NavItem[] = [
   { icon: Phone,           label: 'Appels', path: '/dashboard/calls' },
   { icon: Users,           label: 'Leads',  path: '/dashboard/leads' },
   { icon: Bot,             label: 'IA',     path: '/dashboard/receptionist' },
-  { icon: Settings,        label: 'Params', path: '/dashboard/account' },
+  /* Analytique prend la place des paramètres (demande utilisateur): on
+     consulte ses chiffres tous les jours, on règle son compte deux fois par
+     an. Les réglages restent atteignables par l'avatar, en haut à droite,
+     qui mène désormais quelque part. */
+  { icon: BarChart3,       label: 'Analytique', path: '/dashboard/analytics' },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard':              'Vue d\'ensemble',
   '/dashboard/calls':        'Appels',
-  '/dashboard/leads':        'Leads',
+  '/dashboard/leads':        'Leads et contacts',
   '/dashboard/analytics':    'Analytique',
   '/dashboard/receptionist': 'Réceptionniste IA',
-  '/dashboard/crm':            'Contacts',
+  '/dashboard/crm/:id':        'Contact',
   '/dashboard/crm/deals':      'Pipeline',
   '/dashboard/crm/activities': 'Activité',
   '/dashboard/account':      'Compte',

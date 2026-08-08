@@ -102,6 +102,10 @@ export default function DashboardShell(props: DashboardShellProps) {
     user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     ?? userFallbackInitials;
   const settingsActive = (settingsSub || []).some(i => isActive(i.path));
+  /* Où mène l'avatar: la première entrée des réglages, qui est le compte.
+     Sans sous-menu de réglages (l'admin), il retombe sur la racine du scope,
+     plutôt que sur une adresse inventée qui rendrait un 404. */
+  const settingsPath = settingsSub?.[0]?.path ?? primaryNav[0]?.path ?? '/';
 
   const SidebarLink = ({ item }: { item: NavItem }) => {
     const active = isActive(item.path, item.exact);
@@ -427,12 +431,20 @@ export default function DashboardShell(props: DashboardShellProps) {
               teaches people the app cannot be trusted.
             */}
 
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center"
+            {/* L'avatar MÈNE aux réglages.
+                Il était décoratif, et c'était sans conséquence tant que la
+                barre du bas portait « Params ». Depuis qu'Analytique y a pris
+                sa place, c'est le seul chemin vers le compte, la facturation
+                et la déconnexion sur téléphone: une pastille inerte y
+                laisserait le client enfermé. */}
+            <Link
+              to={settingsPath}
+              aria-label="Compte et réglages"
+              className="w-8 h-8 rounded-full flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               style={{ background: t.accentGrad }}
             >
               <span className="text-xs font-bold" style={{ color: '#fff' }}>{initials}</span>
-            </div>
+            </Link>
           </div>
         </header>
 
