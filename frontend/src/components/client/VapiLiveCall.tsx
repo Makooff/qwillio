@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import Vapi from '@vapi-ai/web';
 import { PhoneCall, PhoneOff, Loader2 } from '../icons';
 import api from '../../services/api';
 
@@ -180,6 +179,22 @@ export default function VapiLiveCall({
    */
   const configRef = useRef<Promise<any> | null>(null);
 
+  /**
+   * Le SDK, importé à la demande et préchargé au montage.
+   *
+   * `import Vapi from '@vapi-ai/web'` en tête de fichier tirait daily-js, sa
+   * couche WebRTC, dans le paquet d'entrée: 764 ko que TOUT visiteur de la
+   * page d'accueil téléchargeait avant le premier pixel, pour un appel que la
+   * plupart ne lanceront jamais.
+   *
+   * Préchargé ici et non au clic, pour la même raison que la config: au
+   * moment de la pression le module est déjà résolu, donc l'`await` rend la
+   * main sur une microtâche et le geste tient encore quand le SDK demande le
+   * micro. Un import dynamique fait AU clic rouvrirait le défaut qu'on vient
+   * de fermer.
+   */
+  const sdkRef = useRef<Promise<any> | null>(null);
+
   /* Sérialisé pour servir de dépendance: un objet littéral change d'identité à
      chaque rendu du parent et relancerait la requête en boucle. */
   const bodyKey = body ? JSON.stringify(body) : '';
@@ -194,6 +209,11 @@ export default function VapiLiveCall({
     configRef.current = load;
     load.catch(() => undefined);
   }, [endpoint, bodyKey]);
+
+  useEffect(() => {
+    sdkRef.current = import('@vapi-ai/web').then(m => m.default);
+    sdkRef.current.catch(() => undefined);
+  }, []);
 
   useEffect(() => () => {
     // Cleanup on unmount: stop any active call.
@@ -225,7 +245,8 @@ export default function VapiLiveCall({
           ? api.post(endpoint, JSON.parse(bodyKey)).then(r => r.data)
           : api.get(endpoint).then(r => r.data);
       }
-      const data = await configRef.current;
+      if (!sdkRef.current) sdkRef.current = import('@vapi-ai/web').then(m => m.default);
+      const [data, Vapi] = await Promise.all([configRef.current, sdkRef.current]);
       if (!data?.publicKey) throw new Error('missing key');
 
       const vapi = new Vapi(data.publicKey);

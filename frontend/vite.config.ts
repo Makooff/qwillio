@@ -60,6 +60,17 @@ export default defineConfig({
             return 'vendor-motion';
           if (id.includes('node_modules/@react-oauth/') || id.includes('node_modules/oauth'))
             return 'vendor-auth';
+          /* La pile d'appel (Vapi + daily-js, sa couche WebRTC) pesait 764 ko
+             au fond de `vendor-misc`, et `vendor-misc` est preload depuis
+             index.html: tout visiteur de la page d'accueil telechargeait le
+             moteur d'appel video AVANT le premier pixel. Elle a son propre
+             morceau, tire uniquement par la page qui appelle. */
+          if (id.includes('node_modules/@daily-co/') || id.includes('node_modules/@vapi-ai/'))
+            return 'vendor-voice';
+          /* Meme raison: gsap n'est utilise que par des routes chargees en
+             lazy, il n'a rien a faire dans le paquet d'entree. */
+          if (id.includes('node_modules/gsap'))
+            return 'vendor-gsap';
           if (id.includes('node_modules/'))
             return 'vendor-misc';
         },

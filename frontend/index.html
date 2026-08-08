@@ -4,6 +4,35 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
+
+    <!-- Le thEME et le FOND, avant tout le reste.
+         `bootTheme()` vit dans le paquet JS: jusqu'a son execution la page
+         n'avait ni attribut `data-theme` ni couleur de fond, donc un ecran
+         vide pendant tout le telechargement. Ces quelques lignes sont
+         inlinees exprES: elles ne coutent aucune requete et s'appliquent au
+         premier octet. La logique est celle de `stores/themeStore.ts`, y
+         compris le mode systEme, qui RETIRE l'attribut pour laisser la
+         requete media trancher. -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('qwillio.theme');
+          if (raw === 'light' || raw === 'dark') document.documentElement.setAttribute('data-theme', raw);
+        } catch (e) { /* navigation privee: la requete media decide */ }
+      })();
+    </script>
+    <style>
+      /* Les memes valeurs que les tokens `q2-canvas` et `q2-ink`, ecrites ici
+         parce que la feuille de styles arrive plus tard. Elles ne font que
+         peindre le fond: tout le reste attend le vrai CSS. */
+      html { background: #FDFCFC; color: #1D1D1F; }
+      html[data-theme="dark"] { background: #0E0F11; color: #F5F4F2; }
+      @media (prefers-color-scheme: dark) {
+        html:not([data-theme="light"]) { background: #0E0F11; color: #F5F4F2; }
+      }
+      body { margin: 0; background: inherit; }
+    </style>
+
     <!-- ═══ Primary SEO ═══ -->
     <title>Qwillio – Réceptionniste IA en Belgique & France · AI Receptionist</title>
     <meta name="description" content="Qwillio, le meilleur réceptionniste IA francophone pour la Belgique et la France : répond à chaque appel 24/7, prend les rendez-vous, hébergement UE et RGPD. Your bilingual AI receptionist that answers every call, books appointments, and never sleeps." />
@@ -360,7 +389,22 @@
     <!-- ═══ Fonts ═══ -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" />
+    <!-- La feuille Google Fonts BLOQUAIT le rendu. Tant qu'elle n'a pas
+         repondu, le navigateur ne peint rien: sur un reseau mobile lent, ou
+         quand fonts.googleapis.com est injoignable, la page reste noire
+         plusieurs secondes pour une police. Mesure ici: 16,7 s contre 4,2 s.
+         `media="print"` la sort du chemin critique, `onload` la remet en jeu
+         des qu'elle arrive, et `display=swap` fait que le texte s'affiche
+         d'abord dans la police de repli. Le <noscript> couvre le cas sans JS. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" />
+    </noscript>
 
     <!-- ═══ Schema.org JSON-LD – Product ═══ -->
     <script type="application/ld+json">
