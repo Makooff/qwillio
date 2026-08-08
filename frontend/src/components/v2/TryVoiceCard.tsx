@@ -215,8 +215,8 @@ export default function TryVoiceCard({
 
               <p className="mt-3 text-center text-[11px] leading-relaxed text-q2-faint">
                 {isFr
-                  ? 'Elle utilise le micro de cet appareil. Rien n’est enregistré, l’essai s’arrête au bout de cinq minutes.'
-                  : 'She uses this device’s microphone. Nothing is recorded, the trial stops after five minutes.'}
+                  ? 'Elle utilise le micro de cet appareil. Rien n’est enregistré, et l’essai est limité à deux minutes par jour.'
+                  : 'She uses this device’s microphone. Nothing is recorded, and the trial is capped at two minutes a day.'}
               </p>
             </motion.div>
           </motion.div>

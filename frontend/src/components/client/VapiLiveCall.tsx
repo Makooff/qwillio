@@ -319,6 +319,16 @@ export default function VapiLiveCall({
           ? (isFr
             ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
             : 'Microphone denied. Allow the microphone for this site, then start again.')
+          : e?.response?.status === 429
+            /* Quota de demo epuise. Ce n'est pas une panne: le dire comme tel,
+               sinon le visiteur reessaie en boucle. */
+            ? (e?.response?.data?.error === 'demo_daily_quota'
+              ? (isFr
+                ? 'Vous avez utilisé vos deux minutes d’essai du jour. Revenez demain, ou créez un compte pour appeler sans limite.'
+                : 'You have used your two trial minutes for today. Come back tomorrow, or create an account to call without limits.')
+              : (isFr
+                ? 'Trop d’essais coup sur coup. Patientez une minute, puis réessayez.'
+                : 'Too many attempts in a row. Wait a minute, then try again.'))
           : isProviderFault(e)
             ? providerFaultMessage
             : e?.response?.status === 503

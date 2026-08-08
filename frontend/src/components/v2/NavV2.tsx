@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowRight, Building2, ChevronDown, Handshake, Headphones, HelpCircle,
-  Mail, Menu, Newspaper, Sparkles, Tag, X,
+  Mail, Menu, Newspaper, Play, Sparkles, Tag, X,
 } from '../icons';
 import type { LucideIcon } from '../icons';
 import QwillioLogo from '../QwillioLogo';
@@ -15,6 +15,7 @@ import { useLang } from '../../stores/langStore';
 import { EASE_OUT_EXPO } from './motion/reducedMotion';
 import { useGlow } from './motion/GlowCard';
 import GlassSkin, { GLASS_FILTER_ID, GlassFilter, useLiquidGlassSupport } from './ui/liquid-glass';
+import TryVoiceButton from './TryVoiceButton';
 
 /* Nav V2 (demande utilisateur, deux états) :
    - AU REPOS (haut de page) : aucune surface blanche sous le logo/menu.
@@ -734,6 +735,20 @@ export default function NavV2() {
               {isFr ? 'Essayer' : 'Try it'}
             </Link>
           </div>
+
+          {/* L'essai, sur mobile: l'icone seule sur un rond, a cote du burger.
+              Son fond s'agrandit jusqu'a devenir celui de la carte. Il etait
+              absent de la barre mobile, ou il ne restait que le burger: la
+              seule action de la page d'accueil y etait donc invisible. */}
+          <span className="md:hidden mr-1">
+            <TryVoiceButton
+              shape="round"
+              variant={overDark ? 'onDark' : 'outline'}
+              label={isFr ? 'Essayer la voix' : 'Try the voice'}
+            >
+              <Play size={15} fill="currentColor" aria-hidden="true" />
+            </TryVoiceButton>
+          </span>
 
           <button
             ref={burgerRef}
