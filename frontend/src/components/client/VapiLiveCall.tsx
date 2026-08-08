@@ -129,6 +129,17 @@ export default function VapiLiveCall({
    * plantait un rectangle noir au milieu du crème.
    */
   tone = 'product',
+  /**
+   * Le niveau de la voix de l'agent, remonté au parent.
+   *
+   * La carte d'essai dessine son propre diagramme, bien plus grand que les
+   * cinq barres d'ici. Plutôt que de lui faire refaire le branchement du SDK
+   * (et de rouvrir le piège du geste utilisateur), elle reçoit le niveau que
+   * ce composant reçoit déjà de `volume-level`.
+   */
+  onLevel,
+  /** Les petites barres n'ont pas lieu d'être quand le parent en dessine. */
+  showBars = true,
   autoStart = false,
   onEnded,
 }: {
@@ -136,6 +147,8 @@ export default function VapiLiveCall({
   endpoint?: string;
   body?: Record<string, unknown>;
   tone?: 'product' | 'site';
+  onLevel?: (level: number, speaking: boolean) => void;
+  showBars?: boolean;
   autoStart?: boolean;
   onEnded?: () => void;
 }) {
@@ -316,6 +329,8 @@ export default function VapiLiveCall({
     }
   };
 
+  useEffect(() => { onLevel?.(level, speaking); }, [level, speaking, onLevel]);
+
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
   const active = state === 'active';
@@ -375,10 +390,14 @@ export default function VapiLiveCall({
       <div className="flex-1 min-w-0">
         <p className={`text-[13px] font-semibold ${onSite ? 'text-q2-ink' : 'text-[#F2F2F2]'}`}>
           {active
-            ? (isFr ? 'En appel avec votre réceptionniste' : 'On a call with your receptionist')
+            ? (isFr ? 'En ligne' : 'On the line')
             : state === 'connecting'
               ? (isFr ? 'Connexion…' : 'Connecting…')
-              : (isFr ? 'Tester en live (vraie voix)' : 'Test live (real voice)')}
+              /* Le tableau de bord parle au gérant de SON agent; la carte
+                 publique s'adresse a un visiteur qui n'en a pas encore. */
+              : onSite
+                ? (isFr ? 'Démarrer l’appel' : 'Start the call')
+                : (isFr ? 'Tester en live (vraie voix)' : 'Test live (real voice)')}
         </p>
         <p
           className={`text-[11px] ${onSite && !error ? 'text-q2-body' : ''}`}
@@ -388,11 +407,13 @@ export default function VapiLiveCall({
             ? error
             : active
               ? `${mm}:${ss} · ${speaking ? (isFr ? 'elle parle…' : 'she’s speaking…') : (isFr ? 'à vous' : 'your turn')}`
-              : (isFr ? 'Parlez à votre agent comme un client au téléphone.' : 'Talk to your agent like a caller.')}
+              : onSite
+                ? (isFr ? 'Elle décroche, parlez-lui normalement.' : 'She picks up, just talk to her.')
+                : (isFr ? 'Parlez à votre agent comme un client au téléphone.' : 'Talk to your agent like a caller.')}
         </p>
       </div>
 
-      {active && (
+      {active && showBars && (
         <div className="flex items-end gap-0.5 h-6 flex-shrink-0" aria-hidden="true">
           {/* Les barres portaient un `Math.random()`: elles s'agitaient dès que
               quelqu'un parlait, quelle que soit l'intensité, donc elles ne

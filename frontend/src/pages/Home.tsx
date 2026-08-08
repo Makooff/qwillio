@@ -317,7 +317,7 @@ export default function Home() {
 
               <div className="flex flex-wrap items-center gap-3 mb-10">
                 <a
-                  href="/demo"
+                  href="/"
                   className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#7a5fff] transition-colors"
                 >
                   <Play size={14} fill="currentColor" aria-hidden="true" />

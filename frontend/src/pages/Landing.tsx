@@ -179,7 +179,7 @@ export default function Landing() {
               <Reveal delay={0.24}>
                 <div className="flex flex-wrap items-center gap-3 mb-10">
                   <a
-                    href="/demo"
+                    href="/"
                     className="inline-flex items-center gap-2 bg-[#1d1d1f] text-white text-[15px] font-medium pl-5 pr-6 py-3.5 rounded-full hover:bg-[#7a5fff] transition-colors duration-300"
                   >
                     <Play size={14} fill="currentColor" aria-hidden="true" />
@@ -761,7 +761,7 @@ export default function Landing() {
                       <ArrowRight size={16} aria-hidden="true" />
                     </Link>
                     <a
-                      href="/demo"
+                      href="/"
                       className="inline-flex items-center gap-2 text-base font-medium text-[#1d1d1f] pl-5 pr-2 py-4 underline decoration-[#7a5fff]/30 decoration-2 underline-offset-8 hover:decoration-[#7a5fff] transition-colors"
                     >
                       <Phone size={14} aria-hidden="true" />
