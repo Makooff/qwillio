@@ -10,6 +10,7 @@ import { useAuthStore } from '../../stores/authStore';
 import QwillioLogo from '../QwillioLogo';
 import { t } from '../../styles/admin-theme';
 import GlassSkin, { GlassFilter } from '../v2/ui/liquid-glass';
+import { DARK_GLASS } from '../v2/ui/glassTints';
 
 /**
  * Shared dashboard shell — sidebar, top bar, mobile bottom nav.
@@ -474,16 +475,27 @@ function MobileBottomNav({
   return (
     <div className="fixed bottom-5 left-0 right-0 z-50 flex md:hidden flex-col items-center gap-2 px-4">
       <GlassFilter />
-      <div className="relative w-full flex items-center py-1.5">
-        {/* Barre en verre liquide : le fond est déformé par le filtre SVG
-            (porté du composant que l'utilisateur a envoyé), pas seulement
-            flouté, et le biseau vient de ses inset box-shadow. Teinte unie,
-            plus aucun dégradé. Sur WebKit, repli flou + teinte plus dense. */}
+      {/* Le filet du bord vit sur la BOITE, pas sur le verre: `GlassSkin` est
+          une couche en `inset-0` a laquelle un bord serait pose sans rayon,
+          donc carre autour d'une pilule ronde. */}
+      <div
+        className="relative w-full flex items-center py-1.5 rounded-full border"
+        style={{ borderColor: DARK_GLASS.border }}
+      >
+        {/* Barre en verre liquide : le fond est déformé par le filtre SVG,
+            pas seulement flouté, et le biseau vient de ses inset box-shadow.
+
+            La teinte est celle de la barre du SITE sur fond sombre, au
+            caractère près (demande utilisateur): les deux barres sont le même
+            objet et n'ont aucune raison d'avoir deux recettes. Celle d'ici
+            partait d'un gris bleuté dense, exactement l'erreur déjà corrigée
+            sur le site, où la barre se lisait comme une plaque grise posée sur
+            du noir. Le filet du bord vient de la même source. */}
         <GlassSkin
           onDark
           radius={9999}
-          tint="linear-gradient(180deg, oklch(30% 0.01 265 / 0.14) 0%, oklch(14% 0.012 265 / 0.24) 100%)"
-          tintFallback="linear-gradient(180deg, oklch(26% 0.012 265 / 0.60) 0%, oklch(12% 0.012 265 / 0.74) 100%)"
+          tint={DARK_GLASS.tint}
+          tintFallback={DARK_GLASS.tintFallback}
         />
 
         {/* Water-drop bubble — wobbly spring travel + continuous liquid morph */}
