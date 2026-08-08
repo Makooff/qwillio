@@ -15,6 +15,7 @@ import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
 import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import VoiceCard, { type VoiceData } from '../../components/landing/VoiceCard';
+import TryVoiceButton from '../../components/v2/TryVoiceButton';
 import StepFrame from '../../components/v2/motion/StepFrame';
 
 /* Réceptionniste V2 « Papier & Signal » (DA/v2-direction.md).
@@ -386,10 +387,10 @@ export default function Receptionist() {
               </Lead>
 
               <div className="flex flex-wrap items-center gap-3 mb-8 sm:mb-12">
-                <PillLink to="/demo" variant="primary" size="lg" className="q2-pill-lit">
+                <TryVoiceButton variant="chromatic">
                   <Play size={13} fill="currentColor" aria-hidden="true" />
                   {isFr ? 'Écouter une démo' : 'Hear a demo'}
-                </PillLink>
+                </TryVoiceButton>
                 <PillLink to="/register" variant="outline" size="lg">
                   {isFr ? 'Essayer gratuitement' : 'Try it free'}
                   <ArrowRight size={15} aria-hidden="true" />
@@ -908,10 +909,10 @@ export default function Receptionist() {
                 {isFr ? 'Créer un compte' : 'Create an account'}
                 <ArrowRight size={16} aria-hidden="true" />
               </PillLink>
-              <PillLink to="/demo" variant="onDark" size="lg">
+              <TryVoiceButton variant="onDark">
                 <Phone size={14} aria-hidden="true" />
                 {isFr ? 'Appeler la démo' : 'Call the demo'}
-              </PillLink>
+              </TryVoiceButton>
             </div>
           </RevealV2>
         </Container>

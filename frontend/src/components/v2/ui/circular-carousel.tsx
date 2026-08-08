@@ -204,7 +204,14 @@ export function CircularCarousel({
           d'orbite. Géométrie du conteneur, pas de l'animation. */}
       <div ref={trackRef} className="relative w-full max-w-xl" style={{ height: ARC_CONTENT_H * k }}>
         <div
-          className="absolute inset-x-0 top-0 h-[280px]"
+          /* `overflow-hidden`, et ce n'est pas cosmetique: les cartes des ecarts
+             lointains sortent de la piste, et un masque CACHE des pixels sans
+             COUPER la mise en page. Elles ajoutaient donc 8 px a la largeur du
+             document en 390 px, d'ou une bande noire a droite et une page qui
+             glisse lateralement sur iOS. Pire, hors de la boite elles n'etaient
+             meme plus masquees, donc peintes en clair. Coupees au bord, elles
+             disparaissent la ou le masque les a deja effacees. */
+          className="absolute inset-x-0 top-0 h-[280px] overflow-hidden"
           style={{
             transform: `scale(${k})`,
             transformOrigin: 'top center',

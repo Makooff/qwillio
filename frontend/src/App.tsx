@@ -19,7 +19,6 @@ import ConfirmEmail from './pages/v2/auth/ConfirmEmail';
 // restent dans pages/ pour rollback, seules les routes pointent vers v2/.
 const Landing = lazy(() => import('./pages/v2/Receptionist'));
 const Home = lazy(() => import('./pages/v2/Home'));
-const Demo = lazy(() => import('./pages/v2/Demo'));
 // Admin pages (lazy loaded)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const AdminClients = lazy(() => import('./pages/Clients'));
@@ -323,9 +322,6 @@ export default function App() {
         <Route path="/fr/about" element={<Suspense fallback={<PublicSpinner />}><About /></Suspense>} />
         <Route path="/fr/contact" element={<Suspense fallback={<PublicSpinner />}><Contact /></Suspense>} />
         <Route path="/receptionist" element={<Suspense fallback={<PublicSpinner />}><Landing /></Suspense>} />
-        {/* L'essai live: une vraie page de l'app, plus le fichier statique
-            demo.html qui vivait hors du design system et hors du theme. */}
-        <Route path="/demo" element={<Suspense fallback={<PublicSpinner />}><Demo /></Suspense>} />
         {/* Qwillio Agent, page marketing V2 réactivée */}
         {/* Qwillio Agent n'est pas ouvert au public (décision utilisateur): la
             page existe dans le dépôt mais n'est plus routée, et le menu se

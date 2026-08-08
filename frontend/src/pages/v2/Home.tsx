@@ -13,6 +13,7 @@ import PublicShell from '../../components/v2/PublicShell';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
+import TryVoiceButton from '../../components/v2/TryVoiceButton';
 import CardV2 from '../../components/v2/CardV2';
 import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import CircularReceptionists from '../../components/v2/CircularReceptionists';
@@ -476,10 +477,13 @@ export default function Home() {
                   </PillLink>
                 </Magnetic>
                 <Magnetic strength={4}>
-                  <PillLink to="/demo" variant="outline" size="lg">
+                  {/* Plus de page a visiter: la carte d'essai nait de ce
+                      bouton. Un formulaire avant d'entendre la voix etait un
+                      peage que personne ne franchit pour une demonstration. */}
+                  <TryVoiceButton variant="outline">
                     <Play size={13} fill="currentColor" aria-hidden="true" />
                     {isFr ? 'L’entendre décrocher' : 'Hear her answer'}
-                  </PillLink>
+                  </TryVoiceButton>
                 </Magnetic>
               </div>
             </div>
