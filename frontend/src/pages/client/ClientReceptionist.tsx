@@ -506,7 +506,31 @@ export default function ClientReceptionist() {
               isFr={agentLanguage !== 'en'}
               override={customVoice}
               onOverride={setCustomVoice}
-            />
+              /* Le ton se règle DANS la fiche, sous le visage: c'est là qu'il
+                 est décrit, et il n'a plus de section à lui. */
+              toneId={personalityPreset}
+              onTone={setPersonalityPreset}
+              tones={PERSONALITY_PRESETS}
+            >
+              {/* La personnalisation descend dans la fiche (demande
+                  utilisateur): elle précise ce que dit CE personnage, avec CE
+                  ton, et se lisait jusqu'ici comme un réglage de page. */}
+              <label
+                htmlFor="perso-notes"
+                className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2"
+              >
+                Personnalisation
+              </label>
+              <textarea
+                id="perso-notes"
+                value={personalityNotes}
+                onChange={e => setPersonalityNotes(e.target.value)}
+                rows={4}
+                placeholder="Précisez ce qui vous est propre : promotions en cours, mots à utiliser, à éviter, formule d'accueil…"
+                className={`${inputCls} resize-y leading-relaxed`}
+                style={{ minHeight: 100 }}
+              />
+            </CharacterCarousel>
             <VoiceCloner
               voice={customVoice}
               isFr={agentLanguage !== 'en'}
@@ -518,47 +542,6 @@ export default function ClientReceptionist() {
           </div>
         )}
 
-        {/* —— Ton: un menu déroulant, posé sous la description du personnage ——
-            Six cartes de la taille d'un pouce occupaient une demi-page pour un
-            réglage à un seul choix, alors que le ton est DÉJÀ affiché sous le
-            personnage (retour utilisateur). Un menu tient sur une ligne et dit
-            la même chose; la description du ton retenu s'affiche dessous, donc
-            rien de ce que les cartes portaient n'est perdu. */}
-        <div className="mt-5">
-          <label
-            htmlFor="tone-select"
-            className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2"
-          >
-            Ton
-          </label>
-          <select
-            id="tone-select"
-            value={personalityPreset}
-            onChange={e => setPersonalityPreset(e.target.value)}
-            className={inputCls}
-          >
-            {PERSONALITY_PRESETS.map(p => (
-              <option key={p.v} value={p.v}>{p.l}</option>
-            ))}
-          </select>
-          <p className="mt-1.5 text-[11.5px] leading-relaxed" style={{ color: '#8B8BA7' }}>
-            {PERSONALITY_PRESETS.find(p => p.v === personalityPreset)?.d}
-          </p>
-        </div>
-
-        <div className="mt-4">
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
-            Personnalisation
-          </label>
-          <textarea
-            value={personalityNotes}
-            onChange={e => setPersonalityNotes(e.target.value)}
-            rows={4}
-            placeholder="Précisez ce qui vous est propre : promotions en cours, mots à utiliser, à éviter, formule d'accueil…"
-            className={`${inputCls} resize-y leading-relaxed`}
-            style={{ minHeight: 100 }}
-          />
-        </div>
       </Section>
 
       {/* —— Connaissances IA — items list + week schedule —— */}
