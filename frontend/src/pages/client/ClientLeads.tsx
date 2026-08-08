@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3, Search,
+  Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3,
 } from '../../components/icons';
 import { fetchLive, peekLive } from '../../services/liveData';
 import api from '../../services/api';
@@ -9,7 +9,7 @@ import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import { formatDateTime } from '../../utils/format';
-import { SubPageHeader } from '../../components/dashboard/OverviewBlocks';
+import PageHeader from '../../components/dashboard/PageHeader';
 
 type ViewMode = 'table' | 'kanban';
 type LeadStatus = '' | 'new' | 'contacted' | 'converted' | 'lost';
@@ -140,7 +140,7 @@ export default function ClientLeads() {
 
   return (
     <div>
-      <SubPageHeader
+      <PageHeader
         title="Leads"
         subtitle={`${pagination.total} leads qualifiés`}
         action={
@@ -157,51 +157,41 @@ export default function ClientLeads() {
             </button>
           </div>
         }
+        /* Le pipeline reste propre a la page: ses cellules FILTRENT, elles ne
+           font pas qu'afficher. La rangee standard ne saurait pas cliquer. */
+        stats={
+          <div className="grid grid-cols-5 divide-x divide-white/[0.06]" role="group" aria-label="Pipeline">
+            {[
+              { label: 'Total', value: statCounts.total, filter: '' as LeadStatus, color: undefined as string | undefined },
+              { label: 'Nouveau', value: statCounts.new, filter: 'new' as LeadStatus, color: '#60a5fa' },
+              { label: 'Contacté', value: statCounts.contacted, filter: 'contacted' as LeadStatus, color: '#7349fe' },
+              { label: 'Converti', value: statCounts.converted, filter: 'converted' as LeadStatus, color: '#34d399' },
+              { label: 'Perdu', value: statCounts.lost, filter: 'lost' as LeadStatus, color: '#f87171' },
+            ].map((s, i) => (
+              <button
+                key={i}
+                onClick={() => setStatusFilter(s.filter)}
+                aria-pressed={statusFilter === s.filter}
+                className={`px-3 py-1 text-left first:pl-0 last:pr-0 transition-opacity ${statusFilter === s.filter ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
+              >
+                <p className="text-[26px] font-semibold tabular-nums leading-none" style={{ color: s.color || '#F5F5F7' }}>
+                  {s.value}
+                </p>
+                <p className="text-[11px] text-[#A1A1A8] mt-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusFilter === s.filter ? (s.color || '#F5F5F7') : 'transparent', boxShadow: statusFilter === s.filter ? 'none' : `inset 0 0 0 1px ${s.color || '#3a3a3a'}` }} />
+                  {s.label}
+                </p>
+              </button>
+            ))}
+          </div>
+        }
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: 'Rechercher un lead par nom, téléphone…',
+          label: 'Rechercher dans les leads',
+        }}
       />
-
-      {/* Pipeline — frameless figures split by hairlines, click to filter */}
-      <motion.section
-        aria-label="Pipeline"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="grid grid-cols-5 divide-x divide-white/[0.06] pb-6 mb-6 border-b border-white/[0.06]"
-      >
-        {[
-          { label: 'Total', value: statCounts.total, filter: '' as LeadStatus, color: undefined as string | undefined },
-          { label: 'Nouveau', value: statCounts.new, filter: 'new' as LeadStatus, color: '#60a5fa' },
-          { label: 'Contacté', value: statCounts.contacted, filter: 'contacted' as LeadStatus, color: '#7349fe' },
-          { label: 'Converti', value: statCounts.converted, filter: 'converted' as LeadStatus, color: '#34d399' },
-          { label: 'Perdu', value: statCounts.lost, filter: 'lost' as LeadStatus, color: '#f87171' },
-        ].map((s, i) => (
-          <button
-            key={i}
-            onClick={() => setStatusFilter(s.filter)}
-            aria-pressed={statusFilter === s.filter}
-            className={`px-3 py-1 text-left first:pl-0 last:pr-0 transition-opacity ${statusFilter === s.filter ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
-          >
-            <p className="text-[26px] font-semibold tabular-nums leading-none" style={{ color: s.color || '#F5F5F7' }}>
-              {s.value}
-            </p>
-            <p className="text-[11px] text-[#A1A1A8] mt-1.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusFilter === s.filter ? (s.color || '#F5F5F7') : 'transparent', boxShadow: statusFilter === s.filter ? 'none' : `inset 0 0 0 1px ${s.color || '#3a3a3a'}` }} />
-              {s.label}
-            </p>
-          </button>
-        ))}
-      </motion.section>
-
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A8]" />
-        <input
-          type="text"
-          placeholder="Rechercher des leads..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors"
-        />
-      </div>
 
       {loading ? (
         <div role="status" aria-label="Chargement" aria-busy="true">

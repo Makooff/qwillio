@@ -2,10 +2,11 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
+import PageHeader from '../../components/dashboard/PageHeader';
 import {
-  ArrowLeft, Phone, Mail, MapPin, Globe, Star, Edit2, Tag,
+  ArrowLeft, Phone, Mail, MapPin, Globe, Star, Edit2,
   Phone as PhoneIcon, Mail as MailIcon, FileText, TrendingUp, MessageSquare,
-  Building2, Calendar, Clock, CheckCircle, AlertCircle, Zap
+  Calendar, Clock, CheckCircle, AlertCircle, Zap
 } from '../../components/icons';
 
 type TabKey = 'overview' | 'calls' | 'emails' | 'deals' | 'notes' | 'timeline';
@@ -194,79 +195,59 @@ export default function CrmContactDetail() {
 
   return (
     <div>
-      {/* Back link */}
+      {/* Retour, puis l'entête commune. La fiche portait un titre à elle,
+          dans une carte peinte pour un fond CLAIR (`bg-white`, `#f5f5f7`)
+          posée sur la coque sombre: un rectangle blanc au milieu du noir. */}
       <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-5">
-        <Link to="/dashboard/crm" className="inline-flex items-center gap-1.5 text-sm text-[#86868b] hover:text-[#7349fe] transition-colors">
-          <ArrowLeft size={14} /> Back to Contacts
+        <Link to="/dashboard/crm" className="inline-flex items-center gap-1.5 text-sm text-[#A1A1A8] hover:text-[#7349fe] transition-colors">
+          <ArrowLeft size={14} aria-hidden="true" /> Retour aux contacts
         </Link>
       </motion.div>
 
-      {/* Contact header card */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-6 mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#7349fe] to-[#7349fe] flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xl font-bold">{contact.name.charAt(0)}</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f]">{contact.name}</h1>
-              {contact.company && (
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <Building2 size={13} className="text-[#86868b]" />
-                  <span className="text-sm text-[#86868b]">{contact.company}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc.bg} ${sc.text}`}>
-                  {contact.status.toUpperCase()}
-                </span>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${scoreColor(contact.leadScore)}`}>
-                  <Star size={10} className="inline mr-0.5" />{contact.leadScore}/10
-                </span>
-                {contact.tags.map((tag: string) => (
-                  <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-[#f5f5f7] text-[#86868b] font-medium">{tag}</span>
-                ))}
-              </div>
-            </div>
-          </div>
+      <PageHeader
+        title={contact.name}
+        subtitle={contact.company || undefined}
+        action={
           <button
             type="button"
             onClick={() => setEditing(!editing)}
-            aria-label={editing ? 'Cancel editing contact' : 'Edit contact'}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors flex-shrink-0">
-            <Edit2 size={13} /> Edit
+            aria-label={editing ? 'Annuler la modification' : 'Modifier le contact'}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-xl border border-white/[0.07] bg-white/[0.03] text-[#A1A1A8] hover:text-[#F5F5F7] transition-colors"
+          >
+            <Edit2 size={13} aria-hidden="true" /> {editing ? 'Annuler' : 'Modifier'}
           </button>
-        </div>
-
-        {/* Contact info pills */}
-        <div className="flex flex-wrap gap-2 mt-4">
-          {contact.email && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f5f5f7] text-sm">
-              <Mail size={13} className="text-[#86868b]" />
-              <span className="text-[#1d1d1f]">{contact.email}</span>
+        }
+        /* Ce qui identifie le contact tient lieu de rangée de chiffres: statut,
+           score, étiquettes, puis ses coordonnées. */
+        stats={
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc.bg} ${sc.text}`}>
+                {contact.status.toUpperCase()}
+              </span>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${scoreColor(contact.leadScore)}`}>
+                <Star size={10} className="inline mr-0.5" aria-hidden="true" />{contact.leadScore}/10
+              </span>
+              {contact.tags.map((tag: string) => (
+                <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] text-[#A1A1A8] font-medium">{tag}</span>
+              ))}
             </div>
-          )}
-          {contact.phone && contact.phone !== 'N/A' && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f5f5f7] text-sm">
-              <Phone size={13} className="text-[#86868b]" />
-              <span className="text-[#1d1d1f]">{contact.phone}</span>
+            <div className="flex flex-wrap gap-2">
+              {([
+                [contact.email, Mail],
+                [contact.phone && contact.phone !== 'N/A' ? contact.phone : '', Phone],
+                [contact.website, Globe],
+                [contact.address, MapPin],
+              ] as [string, typeof Mail][]).filter(([v]) => v).map(([v, Icon], i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm">
+                  <Icon size={13} className="text-[#A1A1A8]" aria-hidden="true" />
+                  <span className="text-[#F5F5F7]">{v}</span>
+                </div>
+              ))}
             </div>
-          )}
-          {contact.website && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f5f5f7] text-sm">
-              <Globe size={13} className="text-[#86868b]" />
-              <span className="text-[#1d1d1f]">{contact.website}</span>
-            </div>
-          )}
-          {contact.address && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f5f5f7] text-sm">
-              <MapPin size={13} className="text-[#86868b]" />
-              <span className="text-[#1d1d1f]">{contact.address}</span>
-            </div>
-          )}
-        </div>
-      </motion.div>
+          </div>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex items-center gap-1 bg-[#f5f5f7] rounded-xl p-1 mb-6 overflow-x-auto">

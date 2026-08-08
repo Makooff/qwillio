@@ -1,11 +1,12 @@
 ﻿import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Users, Search, Plus, X, Phone, Mail, Tag, Star, Trash2,
-  Download, ChevronLeft, ChevronRight, Filter, CheckSquare,
+  Users, Plus, X, Phone, Mail, Tag, Star, Trash2,
+  Download, ChevronLeft, ChevronRight, CheckSquare,
   Square, MoreHorizontal, Loader2
 } from '../../components/icons';
 import api from '../../services/api';
+import PageHeader from '../../components/dashboard/PageHeader';
 
 type ContactStatus = 'active' | 'prospect' | 'client' | 'inactive' | 'lost';
 
@@ -81,6 +82,7 @@ const FIELD_CONFIGS: Array<{ label: string; key: NewContactField; type: string; 
 
 export default function CrmContacts() {
   const [search, setSearch] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState<ContactStatus | ''>('');
   const [tagFilter, setTagFilter] = useState('');
   const [minScore, setMinScore] = useState('');
@@ -136,7 +138,7 @@ export default function CrmContacts() {
   const toggleSelect = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
@@ -176,82 +178,110 @@ export default function CrmContacts() {
 
   return (
     <div>
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">CRM Contacts</h1>
-          <p className="text-sm text-[#86868b]">{total} contacts in your pipeline</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#7349fe] text-white text-sm font-medium rounded-xl hover:bg-[#7349fe] transition-colors"
-        >
-          <Plus size={16} /> Add Contact
-        </button>
-      </motion.div>
-
-      {/* Stat pills */}
-      <div className="grid grid-cols-5 gap-2 mb-6">
-        {(['', 'active', 'prospect', 'client', 'lost'] as const).map((s, i) => {
-          const labels = ['All', 'Active', 'Prospect', 'Client', 'Lost'];
-          const colors = ['#1d1d1f', '#10b981', '#3b82f6', '#7349fe', '#ef4444'];
-          return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => { setStatusFilter(s); setPage(1); }}
-              className={`rounded-xl p-3 text-center transition-colors border ${
-                statusFilter === s ? 'border-[#7349fe]/30 bg-[#7349fe]/5' : 'border-[#d2d2d7]/60 bg-white hover:bg-[#f5f5f7]'
-              }`}
-            >
-              <p className="text-xl font-bold" style={{ color: colors[i] }}>
-                {s === '' ? total : contacts.filter(c => c.status === s).length}
-              </p>
-              <p className="text-[10px] text-[#86868b] font-medium">{labels[i]}</p>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]" />
-          <input
-            type="text" placeholder="Search contacts..."
-            value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 transition-colors"
-          />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={e => { setStatusFilter(e.target.value as ContactStatus | ''); setPage(1); }}
-          className="px-3 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 text-[#1d1d1f]"
-        >
-          <option value="">All Statuses</option>
-          {(['active','prospect','client','inactive','lost'] as ContactStatus[]).map(s => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-          ))}
-        </select>
-        <select value={tagFilter} onChange={e => { setTagFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 text-[#1d1d1f]">
-          <option value="">All Tags</option>
-          {ALL_TAGS.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <div className="flex items-center gap-1">
-          <Filter size={14} className="text-[#86868b]" />
-          <input type="number" placeholder="Min" min={1} max={10} value={minScore}
-            onChange={e => { setMinScore(e.target.value); setPage(1); }}
-            className="w-20 px-2 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30"
-          />
-          <span className="text-[#86868b] text-sm">-</span>
-          <input type="number" placeholder="Max" min={1} max={10} value={maxScore}
-            onChange={e => { setMaxScore(e.target.value); setPage(1); }}
-            className="w-20 px-2 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30"
-          />
-        </div>
-      </div>
+      {/* Entête commune (Analytiques). La page portait la sienne, et surtout
+          elle était encore peinte pour un fond CLAIR (`bg-white`,
+          `border-[#d2d2d7]`) alors qu'elle vit dans la coque sombre: les
+          champs y étaient des rectangles blancs sur du noir. */}
+      <PageHeader
+        title="Contacts"
+        subtitle={`${total} contacts dans votre pipeline`}
+        action={
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-[#7349fe] bg-[#7349fe]/10 hover:bg-[#7349fe]/20 rounded-xl transition-colors"
+          >
+            <Plus size={15} aria-hidden="true" /> Ajouter
+          </button>
+        }
+        /* Comme le pipeline des leads: ces chiffres filtrent la liste. */
+        stats={
+          <div className="grid grid-cols-5 divide-x divide-white/[0.06]" role="group" aria-label="Statuts">
+            {(['', 'active', 'prospect', 'client', 'lost'] as const).map((st, i) => {
+              const labels = ['Tous', 'Actif', 'Prospect', 'Client', 'Perdu'];
+              const colors = [undefined, '#34d399', '#60a5fa', '#7349fe', '#f87171'];
+              const on = statusFilter === st;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => { setStatusFilter(st); setPage(1); }}
+                  aria-pressed={on}
+                  className={`px-3 py-1 text-left first:pl-0 last:pr-0 transition-opacity ${on ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
+                >
+                  <p className="text-[26px] font-semibold tabular-nums leading-none" style={{ color: colors[i] || '#F5F5F7' }}>
+                    {st === '' ? total : contacts.filter(c => c.status === st).length}
+                  </p>
+                  <p className="text-[11px] text-[#A1A1A8] mt-1.5 flex items-center gap-1.5">
+                    <span
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{
+                        background: on ? (colors[i] || '#F5F5F7') : 'transparent',
+                        boxShadow: on ? 'none' : `inset 0 0 0 1px ${colors[i] || '#3a3a3a'}`,
+                      }}
+                    />
+                    {labels[i]}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        }
+        search={{
+          value: search,
+          onChange: v => { setSearch(v); setPage(1); },
+          placeholder: 'Rechercher par nom, email, téléphone…',
+          label: 'Rechercher dans les contacts',
+        }}
+        filters={{
+          open: showFilters,
+          onToggle: () => setShowFilters(o => !o),
+          count: [tagFilter, minScore, maxScore].filter(Boolean).length,
+          children: (
+            <div className="flex flex-wrap items-end gap-4">
+              <div>
+                <label htmlFor="crm-tag" className="text-xs text-[#A1A1A8] mb-1.5 block">Étiquette</label>
+                <select
+                  id="crm-tag"
+                  value={tagFilter}
+                  onChange={e => { setTagFilter(e.target.value); setPage(1); }}
+                  className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-[#7349fe]/50"
+                >
+                  <option value="">Toutes</option>
+                  {ALL_TAGS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <fieldset>
+                <legend className="text-xs text-[#A1A1A8] mb-1.5">Score</legend>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number" placeholder="Min" min={1} max={10} value={minScore}
+                    aria-label="Score minimum"
+                    onChange={e => { setMinScore(e.target.value); setPage(1); }}
+                    className="w-20 px-2 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-[#7349fe]/50"
+                  />
+                  <span className="text-[#A1A1A8] text-xs">-</span>
+                  <input
+                    type="number" placeholder="Max" min={1} max={10} value={maxScore}
+                    aria-label="Score maximum"
+                    onChange={e => { setMaxScore(e.target.value); setPage(1); }}
+                    className="w-20 px-2 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-[#7349fe]/50"
+                  />
+                </div>
+              </fieldset>
+              {(tagFilter || minScore || maxScore) && (
+                <button
+                  type="button"
+                  onClick={() => { setTagFilter(''); setMinScore(''); setMaxScore(''); setPage(1); }}
+                  className="text-xs text-[#7349fe] hover:underline flex items-center gap-1"
+                >
+                  <X size={12} aria-hidden="true" /> Effacer les filtres
+                </button>
+              )}
+            </div>
+          ),
+        }}
+      />
 
       {/* Bulk actions */}
       {selected.size > 0 && (
