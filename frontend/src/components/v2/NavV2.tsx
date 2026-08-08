@@ -524,6 +524,12 @@ export default function NavV2() {
      rattache le temps de son ouverture */
   const floating = detached && !menuOpen;
 
+  /* Menu ouvert, la barre n'est plus posee sur la page mais sur le voile en
+     `q2-canvas`. Garder `overDark` y peindrait la croix et le logo en blanc
+     par-dessus la creme, en theme clair, au-dessus d'une section sombre. La
+     branche claire est juste dans les DEUX themes, puisque `q2-ink` bascule. */
+  const chromeDark = overDark && !menuOpen;
+
   const mobileGroups = [
     { label: isFr ? 'Produit' : 'Product', links: product },
     { label: isFr ? 'Société' : 'Company', links: company },
@@ -657,7 +663,7 @@ export default function NavV2() {
             className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-md"
           >
             <QwillioLogo size={26} />
-            <span className={`text-[15px] font-semibold tracking-tight transition-colors duration-200 ${overDark ? 'text-white' : 'text-q2-ink'}`}>Qwillio</span>
+            <span className={`text-[15px] font-semibold tracking-tight transition-colors duration-200 ${chromeDark ? 'text-white' : 'text-q2-ink'}`}>Qwillio</span>
           </Link>
 
           <div
@@ -744,17 +750,29 @@ export default function NavV2() {
               Essai et burger sont dans UN groupe: la barre est en
               `justify-between`, donc deux enfants separes se seraient repartis
               sur la largeur et l'icone aurait flotte au milieu de la bande. */}
-          <div className="md:hidden flex items-center gap-1">
-            <TryVoiceButton
-              shape="round"
-              variant={overDark ? 'onDark' : 'outline'}
-              /* Le fond suit la barre: rien en haut de page, blanc des que la
-                 pilule se detache. */
-              showSurface={floating}
-              label={isFr ? 'Essayer la voix' : 'Try the voice'}
-            >
-              <Play size={15} fill="currentColor" aria-hidden="true" />
-            </TryVoiceButton>
+          <div className="md:hidden flex items-center gap-2">
+            {/* Menu ouvert, la langue et le theme prennent la place de l'essai,
+                a cote de la croix (demande utilisateur). Ils vivaient en bas de
+                la liste, la ou personne ne descend pour changer de langue, et
+                l'essai n'a rien a faire ici puisque la barre d'actions en bas
+                le propose deja en grand. */}
+            {menuOpen ? (
+              <>
+                <ThemeToggle onDark={chromeDark} />
+                <LangToggle onDark={chromeDark} />
+              </>
+            ) : (
+              <TryVoiceButton
+                shape="round"
+                variant={overDark ? 'onDark' : 'outline'}
+                /* Le fond suit la barre: rien en haut de page, blanc des que la
+                   pilule se detache. */
+                showSurface={floating}
+                label={isFr ? 'Essayer la voix' : 'Try the voice'}
+              >
+                <Play size={15} fill="currentColor" aria-hidden="true" />
+              </TryVoiceButton>
+            )}
 
             <button
               ref={burgerRef}
@@ -763,7 +781,7 @@ export default function NavV2() {
               aria-expanded={menuOpen}
               aria-label={menuOpen ? (isFr ? 'Fermer le menu' : 'Close menu') : isFr ? 'Ouvrir le menu' : 'Open menu'}
               className={`inline-flex items-center justify-center w-11 h-11 rounded-full transition-colors duration-150 ${
-                overDark ? 'text-white hover:bg-white/10' : 'text-q2-ink hover:bg-q2-band'
+                chromeDark ? 'text-white hover:bg-white/10' : 'text-q2-ink hover:bg-q2-band'
               }`}
             >
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -781,7 +799,11 @@ export default function NavV2() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={reduced ? { duration: 0 } : { duration: 0.2, ease: EASE_OUT_EXPO }}
-            className="fixed inset-0 z-40 bg-q2-canvas md:hidden pt-20 px-6 overflow-y-auto"
+            /* La barre d'actions est posee par-dessus, en `fixed`: le contenu
+               doit donc pouvoir defiler jusque SOUS elle, d'ou la reserve en
+               bas. Sans elle le dernier lien reste inatteignable, cache
+               derriere les pilules. */
+            className="fixed inset-0 z-40 bg-q2-canvas md:hidden pt-20 px-6 overflow-y-auto pb-[136px]"
           >
             <nav aria-label={isFr ? 'Menu mobile' : 'Mobile menu'} className="flex flex-col pb-4">
               {mobileGroups.map((group, g) => (
@@ -823,28 +845,55 @@ export default function NavV2() {
               ))}
             </nav>
 
+            {/* Les deux actions restent SOUS LE POUCE, posees par-dessus la
+                liste (demande utilisateur).
+                Elles etaient en fin de liste: sur un menu qui defile, il
+                fallait descendre jusqu'au bout pour s'inscrire ou se
+                connecter, c'est-a-dire cacher la seule chose qu'on veut voir.
+                Elles occupent maintenant toute la largeur, a parts egales, et
+                le contenu passe DERRIERE: le degrade vers le bas dit qu'il y a
+                encore quelque chose dessous, sans poser une barre opaque qui
+                couperait la page en deux. */}
             <motion.div
-              className="flex items-center gap-3 mt-10 pb-12"
+              className="fixed inset-x-0 bottom-0 z-10 px-6 pt-10 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
               initial={reduced ? false : { opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={
                 reduced ? { duration: 0 } : { duration: 0.42, ease: EASE_OUT_EXPO, delay: 0.44 }
               }
             >
-              <Link
-                to="/register"
-                className="q2-pill flex-1 inline-flex items-center justify-center rounded-full bg-q2-ink text-q2-canvas text-[15px] font-medium px-6 py-3.5"
-              >
-                {isFr ? 'Essayer' : 'Try it'}
-              </Link>
-              <Link
-                to="/login"
-                className="q2-pill flex-1 inline-flex items-center justify-center rounded-full border border-q2-plate text-q2-ink text-[15px] font-medium px-6 py-3.5"
-              >
-                {isFr ? 'Connexion' : 'Log in'}
-              </Link>
-              <ThemeToggle />
-              <LangToggle />
+              {/* Le flou et le fond sont sur une couche a part, masquee en
+                  degrade: le poser sur le conteneur flouterait aussi les
+                  pilules, qui sont ses enfants. */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  backdropFilter: 'blur(18px) saturate(150%)',
+                  WebkitBackdropFilter: 'blur(18px) saturate(150%)',
+                  transform: 'translateZ(0)',
+                  background:
+                    'linear-gradient(to bottom, rgb(var(--q2-canvas) / 0) 0%, rgb(var(--q2-canvas) / 0.72) 38%, rgb(var(--q2-canvas) / 0.94) 100%)',
+                  maskImage: 'linear-gradient(to bottom, transparent 0%, black 34%)',
+                  WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 34%)',
+                }}
+              />
+              <div className="relative mx-auto flex w-full max-w-[420px] items-center gap-3">
+                <Link
+                  to="/register"
+                  onClick={() => setMenuOpen(false)}
+                  className="q2-pill flex-1 inline-flex items-center justify-center rounded-full bg-q2-ink text-q2-canvas text-[16px] font-medium px-6 py-4"
+                >
+                  {isFr ? 'Essayer' : 'Try it'}
+                </Link>
+                <Link
+                  to="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="q2-pill flex-1 inline-flex items-center justify-center rounded-full border border-q2-plate bg-q2-canvas text-q2-ink text-[16px] font-medium px-6 py-4"
+                >
+                  {isFr ? 'Connexion' : 'Log in'}
+                </Link>
+              </div>
             </motion.div>
           </motion.div>
         )}

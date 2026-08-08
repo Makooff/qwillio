@@ -107,183 +107,192 @@ export default function VoiceMenu({
   const empty = !shownCharacters.length && !shownVoices.length;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: reduce ? 0 : -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: reduce ? 0 : -6 }}
-      transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-      role="dialog"
-      aria-label={isFr ? 'Choisir une voix' : 'Choose a voice'}
-      /* Verre: le flou est ce qui distingue un menu posé AU-DESSUS de la page
-         d'un panneau qui en fait partie. Teinte très basse, la matière vient
-         du flou et de la saturation, pas de la couleur. */
-      className="absolute top-full left-1/2 -translate-x-1/2 z-30 mt-2 w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.75)] overflow-hidden"
-      style={{
-        background: 'rgba(18, 19, 22, 0.62)',
-        backdropFilter: 'blur(22px) saturate(160%)',
-        WebkitBackdropFilter: 'blur(22px) saturate(160%)',
-      }}
-    >
-      {/* Recherche */}
-      <div className="p-2 pb-1.5">
-        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/25 px-2.5 py-1.5">
-          <Search size={13} className="shrink-0 text-q2-fog" aria-hidden="true" />
-          <input
-            ref={searchRef}
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder={isFr ? 'Chercher une voix' : 'Search a voice'}
-            aria-label={isFr ? 'Chercher une voix' : 'Search a voice'}
-            className="flex-1 min-w-0 bg-transparent text-[12.5px] text-white placeholder:text-q2-fog focus:outline-none"
-          />
-        </div>
+    /* Le placement est sur ce conteneur, l'animation sur son enfant.
+       Les deux vivaient sur la MÊME boîte, et c'est ce qui décalait le menu
+       hors de l'écran sur téléphone: framer écrit un `transform` en style
+       inline pour animer `y`, qui écrase la classe `-translate-x-1/2`. Le
+       menu n'était donc jamais recentré sur son ancre, il partait de son bord
+       gauche vers la droite et débordait. Deux boîtes, deux responsabilités,
+       et le centrage redevient du CSS que rien ne réécrit. */
+    <div className="absolute top-full left-1/2 -translate-x-1/2 z-30 mt-2 w-[min(340px,calc(100vw-1.5rem))]">
+      <motion.div
+        initial={{ opacity: 0, y: reduce ? 0 : -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: reduce ? 0 : -6 }}
+        transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+        role="dialog"
+        aria-label={isFr ? 'Choisir une voix' : 'Choose a voice'}
+        /* Verre: le flou est ce qui distingue un menu posé AU-DESSUS de la page
+           d'un panneau qui en fait partie. Teinte très basse, la matière vient
+           du flou et de la saturation, pas de la couleur. */
+        className="rounded-2xl border border-white/10 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.75)] overflow-hidden"
+        style={{
+          background: 'rgba(18, 19, 22, 0.62)',
+          backdropFilter: 'blur(22px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(22px) saturate(160%)',
+        }}
+      >
+        {/* Recherche */}
+        <div className="p-2 pb-1.5">
+          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/25 px-2.5 py-1.5">
+            <Search size={13} className="shrink-0 text-q2-fog" aria-hidden="true" />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder={isFr ? 'Chercher une voix' : 'Search a voice'}
+              aria-label={isFr ? 'Chercher une voix' : 'Search a voice'}
+              className="flex-1 min-w-0 bg-transparent py-1 text-[16px] sm:text-[13px] text-white placeholder:text-q2-fog focus:outline-none"
+            />
+          </div>
 
-        {/* Filtres */}
-        <div className="mt-1.5 flex items-center gap-1">
-          {([
-            ['all', isFr ? 'Toutes' : 'All'],
-            ['f', isFr ? 'Femmes' : 'Female'],
-            ['m', isFr ? 'Hommes' : 'Male'],
-          ] as [GenderFilter, string][]).map(([v, label]) => (
+          {/* Filtres */}
+          <div className="mt-1.5 flex items-center gap-1">
+            {([
+              ['all', isFr ? 'Toutes' : 'All'],
+              ['f', isFr ? 'Femmes' : 'Female'],
+              ['m', isFr ? 'Hommes' : 'Male'],
+            ] as [GenderFilter, string][]).map(([v, label]) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setGender(v)}
+                aria-pressed={gender === v}
+                className={`rounded-full px-3 py-1.5 text-[12px] transition-colors duration-150 ${
+                  gender === v ? 'bg-q2-indigo/25 text-white' : 'text-q2-fog hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
             <button
-              key={v}
               type="button"
-              onClick={() => setGender(v)}
-              aria-pressed={gender === v}
-              className={`rounded-full px-2.5 py-1 text-[11px] transition-colors duration-150 ${
-                gender === v ? 'bg-q2-indigo/25 text-white' : 'text-q2-fog hover:text-white'
+              onClick={() => setClonedOnly(o => !o)}
+              aria-pressed={clonedOnly}
+              className={`ml-auto rounded-full px-3 py-1.5 text-[12px] transition-colors duration-150 ${
+                clonedOnly ? 'bg-q2-indigo/25 text-white' : 'text-q2-fog hover:text-white'
               }`}
             >
-              {label}
+              {isFr ? 'Clonées' : 'Cloned'}
             </button>
-          ))}
+          </div>
+        </div>
+
+        <div className="max-h-[min(58vh,340px)] overflow-y-auto overscroll-contain px-1.5 pb-1.5">
+          {/* Personnages */}
+          {shownCharacters.length > 0 && (
+            <>
+              <p className="px-1.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-q2-fog">
+                {isFr ? 'Personnages' : 'Characters'}
+              </p>
+              {shownCharacters.map(c => {
+                const sel = c.id === characterId && !override;
+                return (
+                  <div key={c.id} className={`flex items-center gap-2 rounded-xl px-1.5 py-2 ${sel ? 'bg-white/[0.06]' : ''}`}>
+                    <button
+                      type="button"
+                      aria-pressed={sel}
+                      onClick={() => { onCharacter(c.id); onOverride(null); }}
+                      className="flex-1 min-w-0 text-left rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                    >
+                      <p className="text-[12.5px] font-medium text-white truncate">{c.name}</p>
+                      <p className="text-[11px] text-q2-fog truncate">
+                        {ACCENT_LABEL[c.accent] || c.accent} · {c.gender === 'f' ? 'F' : (isFr ? 'H' : 'M')}
+                      </p>
+                    </button>
+                    {sel && <Check size={13} className="shrink-0 text-q2-lift" aria-hidden="true" />}
+                    <button
+                      type="button"
+                          onClick={() => onToggle(c.id, previewUrlFor(c.id), (isFr ? c.previewFr : c.previewEn) || '')}
+                      aria-label={isFr ? `Écouter ${c.name}` : `Preview ${c.name}`}
+                      className="w-9 h-9 shrink-0 rounded-full grid place-items-center bg-q2-indigo/20 text-q2-lift hover:bg-q2-indigo/30 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                    >
+                      {playing === c.id ? <Square size={13} aria-hidden="true" /> : <Play size={13} aria-hidden="true" />}
+                    </button>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {/* Voix du compte */}
+          <p className="px-1.5 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-q2-fog">
+            {isFr ? 'Voix du compte' : 'Account voices'}
+          </p>
+
+          {voices === null && !failed && (
+            <p className="flex items-center gap-2 px-1.5 py-2 text-[11.5px] text-q2-fog">
+              <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+              {isFr ? 'Chargement des voix' : 'Loading voices'}
+            </p>
+          )}
+
+          {failed && (
+            <p className="px-1.5 py-2 text-[11.5px] text-q2-fog">
+              {isFr
+                ? 'Voix indisponibles pour le moment. Les personnages restent utilisables.'
+                : 'Voices unavailable right now. Characters still work.'}
+            </p>
+          )}
+
+          {voices !== null && !failed && shownVoices.map(v => {
+            const sel = override?.voiceId === v.voiceId;
+            return (
+              <div key={v.voiceId} className={`flex items-center gap-2 rounded-xl px-1.5 py-2 ${sel ? 'bg-white/[0.06]' : ''}`}>
+                <button
+                  type="button"
+                  aria-pressed={sel}
+                  /* Une voix ne remplace QUE le timbre: le personnage, son visage
+                     et son ton restent ceux qui sont choisis dans le carrousel. */
+                  onClick={() => onOverride({ voiceId: v.voiceId, name: v.name, cloned: v.cloned })}
+                  className="flex-1 min-w-0 text-left rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                >
+                  <p className="text-[12.5px] font-medium text-white truncate">
+                    {v.name}
+                    {v.cloned && (
+                      <span className="ml-1.5 rounded-full bg-q2-indigo/25 px-1.5 py-0.5 text-[9.5px] align-middle text-q2-lift">
+                        {isFr ? 'clonée' : 'cloned'}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-[11px] text-q2-fog truncate">
+                    {[v.accent, v.description].filter(Boolean).join(' · ') || (isFr ? 'Sans description' : 'No description')}
+                  </p>
+                </button>
+                {sel && <Check size={13} className="shrink-0 text-q2-lift" aria-hidden="true" />}
+                <button
+                  type="button"
+                  /* Une voix du compte n'a pas de texte d'exemple à nous: son
+                     extrait ElevenLabs est déjà un enregistrement. */
+                  onClick={() => onToggle(`voice:${v.voiceId}`, v.previewUrl ?? '', '')}
+                  disabled={!v.previewUrl}
+                  aria-label={isFr ? `Écouter ${v.name}` : `Preview ${v.name}`}
+                  className="w-9 h-9 shrink-0 rounded-full grid place-items-center bg-q2-indigo/20 text-q2-lift hover:bg-q2-indigo/30 transition-colors duration-150 disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                >
+                  {playing === `voice:${v.voiceId}` ? <Square size={13} aria-hidden="true" /> : <Play size={13} aria-hidden="true" />}
+                </button>
+              </div>
+            );
+          })}
+
+          {empty && voices !== null && (
+            <p className="px-1.5 py-3 text-center text-[11.5px] text-q2-fog">
+              {isFr ? 'Rien ne correspond.' : 'Nothing matches.'}
+            </p>
+          )}
+        </div>
+
+        {/* Retour à la voix du personnage, visible seulement quand il y a de quoi revenir */}
+        {override && (
           <button
             type="button"
-            onClick={() => setClonedOnly(o => !o)}
-            aria-pressed={clonedOnly}
-            className={`ml-auto rounded-full px-2.5 py-1 text-[11px] transition-colors duration-150 ${
-              clonedOnly ? 'bg-q2-indigo/25 text-white' : 'text-q2-fog hover:text-white'
-            }`}
+            onClick={() => onOverride(null)}
+            className="w-full border-t border-white/10 px-3 py-3 text-left text-[12.5px] text-q2-fog hover:text-white transition-colors duration-150"
           >
-            {isFr ? 'Clonées' : 'Cloned'}
+            {isFr ? 'Revenir à la voix du personnage' : 'Back to the character’s own voice'}
           </button>
-        </div>
-      </div>
-
-      <div className="max-h-[300px] overflow-y-auto px-1.5 pb-1.5">
-        {/* Personnages */}
-        {shownCharacters.length > 0 && (
-          <>
-            <p className="px-1.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-q2-fog">
-              {isFr ? 'Personnages' : 'Characters'}
-            </p>
-            {shownCharacters.map(c => {
-              const sel = c.id === characterId && !override;
-              return (
-                <div key={c.id} className={`flex items-center gap-2 rounded-xl px-1.5 py-1.5 ${sel ? 'bg-white/[0.06]' : ''}`}>
-                  <button
-                    type="button"
-                    aria-pressed={sel}
-                    onClick={() => { onCharacter(c.id); onOverride(null); }}
-                    className="flex-1 min-w-0 text-left rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
-                  >
-                    <p className="text-[12.5px] font-medium text-white truncate">{c.name}</p>
-                    <p className="text-[11px] text-q2-fog truncate">
-                      {ACCENT_LABEL[c.accent] || c.accent} · {c.gender === 'f' ? 'F' : (isFr ? 'H' : 'M')}
-                    </p>
-                  </button>
-                  {sel && <Check size={13} className="shrink-0 text-q2-lift" aria-hidden="true" />}
-                  <button
-                    type="button"
-                        onClick={() => onToggle(c.id, previewUrlFor(c.id), (isFr ? c.previewFr : c.previewEn) || '')}
-                    aria-label={isFr ? `Écouter ${c.name}` : `Preview ${c.name}`}
-                    className="w-7 h-7 shrink-0 rounded-full grid place-items-center bg-q2-indigo/20 text-q2-lift hover:bg-q2-indigo/30 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
-                  >
-                    {playing === c.id ? <Square size={11} aria-hidden="true" /> : <Play size={11} aria-hidden="true" />}
-                  </button>
-                </div>
-              );
-            })}
-          </>
         )}
-
-        {/* Voix du compte */}
-        <p className="px-1.5 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-q2-fog">
-          {isFr ? 'Voix du compte' : 'Account voices'}
-        </p>
-
-        {voices === null && !failed && (
-          <p className="flex items-center gap-2 px-1.5 py-2 text-[11.5px] text-q2-fog">
-            <Loader2 size={12} className="animate-spin" aria-hidden="true" />
-            {isFr ? 'Chargement des voix' : 'Loading voices'}
-          </p>
-        )}
-
-        {failed && (
-          <p className="px-1.5 py-2 text-[11.5px] text-q2-fog">
-            {isFr
-              ? 'Voix indisponibles pour le moment. Les personnages restent utilisables.'
-              : 'Voices unavailable right now. Characters still work.'}
-          </p>
-        )}
-
-        {voices !== null && !failed && shownVoices.map(v => {
-          const sel = override?.voiceId === v.voiceId;
-          return (
-            <div key={v.voiceId} className={`flex items-center gap-2 rounded-xl px-1.5 py-1.5 ${sel ? 'bg-white/[0.06]' : ''}`}>
-              <button
-                type="button"
-                aria-pressed={sel}
-                /* Une voix ne remplace QUE le timbre: le personnage, son visage
-                   et son ton restent ceux qui sont choisis dans le carrousel. */
-                onClick={() => onOverride({ voiceId: v.voiceId, name: v.name, cloned: v.cloned })}
-                className="flex-1 min-w-0 text-left rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
-              >
-                <p className="text-[12.5px] font-medium text-white truncate">
-                  {v.name}
-                  {v.cloned && (
-                    <span className="ml-1.5 rounded-full bg-q2-indigo/25 px-1.5 py-0.5 text-[9.5px] align-middle text-q2-lift">
-                      {isFr ? 'clonée' : 'cloned'}
-                    </span>
-                  )}
-                </p>
-                <p className="text-[11px] text-q2-fog truncate">
-                  {[v.accent, v.description].filter(Boolean).join(' · ') || (isFr ? 'Sans description' : 'No description')}
-                </p>
-              </button>
-              {sel && <Check size={13} className="shrink-0 text-q2-lift" aria-hidden="true" />}
-              <button
-                type="button"
-                /* Une voix du compte n'a pas de texte d'exemple à nous: son
-                   extrait ElevenLabs est déjà un enregistrement. */
-                onClick={() => onToggle(`voice:${v.voiceId}`, v.previewUrl ?? '', '')}
-                disabled={!v.previewUrl}
-                aria-label={isFr ? `Écouter ${v.name}` : `Preview ${v.name}`}
-                className="w-7 h-7 shrink-0 rounded-full grid place-items-center bg-q2-indigo/20 text-q2-lift hover:bg-q2-indigo/30 transition-colors duration-150 disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
-              >
-                {playing === `voice:${v.voiceId}` ? <Square size={11} aria-hidden="true" /> : <Play size={11} aria-hidden="true" />}
-              </button>
-            </div>
-          );
-        })}
-
-        {empty && voices !== null && (
-          <p className="px-1.5 py-3 text-center text-[11.5px] text-q2-fog">
-            {isFr ? 'Rien ne correspond.' : 'Nothing matches.'}
-          </p>
-        )}
-      </div>
-
-      {/* Retour à la voix du personnage, visible seulement quand il y a de quoi revenir */}
-      {override && (
-        <button
-          type="button"
-          onClick={() => onOverride(null)}
-          className="w-full border-t border-white/10 px-3 py-2 text-left text-[11.5px] text-q2-fog hover:text-white transition-colors duration-150"
-        >
-          {isFr ? 'Revenir à la voix du personnage' : 'Back to the character’s own voice'}
-        </button>
-      )}
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }

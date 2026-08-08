@@ -1,5 +1,4 @@
 ﻿import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Bot, PhoneForwarded, AlertCircle,
@@ -476,36 +475,16 @@ export default function ClientReceptionist() {
 
       {/* —— Agent identity —— */}
       <Section title="Identité de l'agent" hint="Nom, voix et caractère" id="identite" openId={openId} setOpenId={setOpenId} icon={Bot}>
-        <div>
-          <label className="text-xs text-[#8B8BA7] mb-1.5 block">Nom de l'agent</label>
-          <input type="text" value={agentName} onChange={e => setAgentName(e.target.value)}
-            placeholder="Ex: Ashley, Marie..." className={inputCls} />
-          <p className="text-[10px] text-[#8B8BA7] mt-1">Le prénom utilisé par l'IA pour se présenter</p>
-        </div>
-
-        {/* Le nom de l'entreprise, le métier et la langue décrivent le client,
-            pas son agent: ils sont dans Paramètres. On les rappelle ici parce
-            qu'ils changent ce que la voix dit, et on y renvoie plutôt que d'en
-            garder une seconde copie modifiable. */}
-        <p className="mt-3 text-[11.5px] leading-relaxed text-[#8B8BA7]">
-          {businessName || 'Votre entreprise'}
-          {businessType ? ` · ${BUSINESS_TYPE_LABELS[businessType] ?? businessType}` : ''}
-          {` · ${agentLanguage === 'en' ? 'Anglais' : 'Français'}`}
-          {' — '}
-          <Link to="/dashboard/account" className="underline underline-offset-2 hover:text-[#F8F8FF] transition-colors">
-            modifier dans Paramètres
-          </Link>
-        </p>
+        {/* Le champ « Nom de l'agent », le rappel entreprise/métier/langue et
+            le titre du personnage sont partis (demande utilisateur). Chacun
+            disait deux fois la même chose: le nom se change au crayon, sur le
+            carrousel, à côté du visage qui le porte; l'entreprise et la langue
+            s'éditent dans Paramètres, qui en est la source; et un carrousel de
+            visages n'a pas besoin qu'on annonce que ce sont des visages. */}
 
         {/* —— Personnage (voix + personnalité) —— */}
         {characters.length > 0 && (
-          <div className="mt-2">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-3">
-              Personnage de la réceptionniste
-            </label>
-            <p className="text-[12px] text-[#8B8BA7] mb-3 leading-relaxed">
-              Choisissez la voix et le caractère qui répond à vos appels. Cliquez sur ▶ pour un aperçu.
-            </p>
+          <div>
             {/* Carrousel plutôt que grille (demande utilisateur): un visage à la
                 fois, son nom au-dessus, sa voix en dessous, écoute et crayon à
                 portée. Le crayon ouvre le menu en verre, qui porte à la fois
