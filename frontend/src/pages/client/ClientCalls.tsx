@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Phone, Download, Search, Play, Pause, CheckCircle2, Filter,
+  Phone, Download, Play, Pause, CheckCircle2,
   ArrowUpDown, ArrowUp, ArrowDown, X, Clock, Users, ChevronRight,
 /* Icônes: la façade coolicons, pas lucide-react en direct (le dashboard est
    passé aux coolicons partout). Données: le cache `liveData` arrivé sur master,
@@ -13,7 +13,7 @@ import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import { formatDuration, formatDateTime, exportToCSV } from '../../utils/format';
-import { KpiSplit } from '../../components/dashboard/OverviewBlocks';
+import PageHeader from '../../components/dashboard/PageHeader';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -185,94 +185,11 @@ export default function ClientCalls() {
       : 0;
   const leadsMonth = overview?.leads?.thisMonth ?? 0;
 
-  return (
-    <div>
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between mb-6"
-      >
-        <div>
-          <h1 className="text-[22px] font-semibold text-[#F5F5F7] tracking-tight">Appels</h1>
-          <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">{pagination.total} appels au total</p>
-        </div>
-        <button
-          type="button"
-          onClick={handleExport}
-          disabled={calls.length === 0}
-          aria-label="Exporter les appels en CSV"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-[#7349fe] bg-[#7349fe]/10 hover:bg-[#7349fe]/20 rounded-xl transition-colors disabled:opacity-40"
-        >
-          <Download size={15} aria-hidden="true" />
-          Exporter CSV
-        </button>
-      </motion.div>
-
-      {/* Stats — frameless figures split by hairlines (Overview style) */}
-      <motion.section
-        aria-label="Statistiques"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="pb-6 mb-6 border-b border-white/[0.06]"
-      >
-        <KpiSplit items={[
-          { label: 'Total appels', value: totalCalls.toLocaleString('fr-FR') },
-          { label: 'Durée moy.', value: formatDuration(avgDuration) },
-          { label: 'Taux positif', value: `${positiveRate}%` },
-          { label: 'Leads ce mois', value: leadsMonth.toLocaleString('fr-FR') },
-        ]} />
-      </motion.section>
-
-      {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A8]" aria-hidden="true" />
-          <input
-            type="search"
-            placeholder="Rechercher par nom, téléphone, résumé…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Rechercher dans les appels"
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowFilters(!showFilters)}
-          aria-expanded={showFilters}
-          aria-label="Filtres avancés"
-          className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium rounded-xl border transition-colors ${
-            showFilters || hasActiveFilters
-              ? 'bg-[#7349fe]/10 border-[#7349fe]/30 text-[#7349fe]'
-              : 'bg-white/[0.03] border-white/[0.07] text-[#A1A1A8] hover:text-[#F5F5F7]'
-          }`}
-        >
-          <Filter size={14} aria-hidden="true" />
-          Filtres
-          {hasActiveFilters && (
-            <span
-              className="w-5 h-5 rounded-full bg-[#7349fe] text-white text-[10px] flex items-center justify-center font-bold"
-              aria-label={`${[sentimentFilter, dateFrom, dateTo].filter(Boolean).length} filtre(s) actif(s)`}
-            >
-              {[sentimentFilter, dateFrom, dateTo].filter(Boolean).length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Expanded filters */}
-      <AnimatePresence>
-        {showFilters && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden mb-4"
-          >
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-4 space-y-4">
-              <div className="flex flex-wrap gap-4">
+  /* Le contenu du panneau de filtres. Son enveloppe (depliage, carte, bord)
+     appartient a l'entete commune: seule la page sait ce qu'elle filtre. */
+  const FILTER_PANEL = (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-4">
                 <fieldset>
                   <legend className="text-xs text-[#A1A1A8] mb-1.5">Sentiment</legend>
                   <div className="flex gap-1">
@@ -323,10 +240,48 @@ export default function ClientCalls() {
                   <X size={12} aria-hidden="true" /> Effacer les filtres
                 </button>
               )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Entête commune (Analytiques): titre, chiffres, recherche, filtres.
+          La page en portait une écrite à la main, avec ses propres animations
+          et sa propre hauteur de barre de recherche. */}
+      <PageHeader
+        title="Appels"
+        subtitle={`${pagination.total} appels au total`}
+        action={
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={calls.length === 0}
+            aria-label="Exporter les appels en CSV"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-[#7349fe] bg-[#7349fe]/10 hover:bg-[#7349fe]/20 rounded-xl transition-colors disabled:opacity-40"
+          >
+            <Download size={15} aria-hidden="true" />
+            Exporter CSV
+          </button>
+        }
+        kpis={[
+          { label: 'Total appels', value: totalCalls.toLocaleString('fr-FR') },
+          { label: 'Durée moy.', value: formatDuration(avgDuration) },
+          { label: 'Taux positif', value: `${positiveRate}%` },
+          { label: 'Leads ce mois', value: leadsMonth.toLocaleString('fr-FR') },
+        ]}
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: 'Rechercher par nom, téléphone, résumé…',
+          label: 'Rechercher dans les appels',
+        }}
+        filters={{
+          open: showFilters,
+          onToggle: () => setShowFilters(!showFilters),
+          count: [sentimentFilter, dateFrom, dateTo].filter(Boolean).length,
+          children: FILTER_PANEL,
+        }}
+      />
 
       {/* Content */}
       {loading ? (

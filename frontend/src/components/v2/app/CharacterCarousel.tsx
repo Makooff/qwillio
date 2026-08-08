@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Check, ChevronLeft, ChevronRight, Mic, Pencil, Play, Square } from '../../icons';
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Mic, Pencil, Play, Square } from '../../icons';
 import api from '../../../services/api';
 import { previewUrl, type Character } from './CharacterPickerV2';
 import { useVoicePreview } from '../../client/useVoicePreview';
@@ -68,6 +69,8 @@ function voiceLabel(c: Character, isFr: boolean) {
 export default function CharacterCarousel({
   characters, value, onChange, isFr = true, override = null, onOverride,
   agentName, onAgentName,
+  toneId, onTone, tones = [],
+  children,
   previewUrlFor = previewUrl,
   warmEndpoint = '/my-dashboard/characters/warm',
 }: {
@@ -85,6 +88,18 @@ export default function CharacterCarousel({
   agentName?: string;
   onAgentName?: (v: string) => void;
   /**
+   * Le ton retenu, et la liste où le choisir.
+   *
+   * Optionnels: la grille d'onboarding monte le même carrousel sans réglage de
+   * ton. Sans eux, la ligne sous le visage reste l'accroche du personnage,
+   * comme avant.
+   */
+  toneId?: string;
+  onTone?: (v: string) => void;
+  tones?: { v: string; l: string; d: string }[];
+  /** Posé dans la fiche, sous les repères de position. */
+  children?: ReactNode;
+  /**
    * D'où viennent les clips. Par défaut la route du tableau de bord, qui est
    * derrière un JWT. La page d'essai publique passe la route publique: sans
    * cette bascule, chaque aperçu y répondait 401 et AUCUNE voix ne sortait,
@@ -99,6 +114,8 @@ export default function CharacterCarousel({
   const [dir, setDir] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const [toneOpen, setToneOpen] = useState(false);
+  const toneRef = useRef<HTMLDivElement | null>(null);
 
   /* Renommage sur place. Le brouillon est local et n'est remonté qu'à la
      validation: le parent enregistre tout seul 900 ms après le dernier
@@ -156,6 +173,22 @@ export default function CharacterCarousel({
     };
   }, [menuOpen]);
 
+  /* Même sort pour la liste des tons: elle recouvre les repères de position,
+     et la laisser ouverte garderait la fiche à moitié masquée. */
+  useEffect(() => {
+    if (!toneOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (toneRef.current && !toneRef.current.contains(e.target as Node)) setToneOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setToneOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [toneOpen]);
+
   if (!characters.length || !current) return null;
 
   const go = (delta: number) => {
@@ -166,6 +199,7 @@ export default function CharacterCarousel({
   };
 
   const tagline = isFr ? current.taglineFr : current.taglineEn;
+  const tone = tones.find(t => t.v === toneId) ?? null;
   const offset = reduce ? 0 : 44;
   // `custom` sur AnimatePresence : sans lui, l'élément qui sort garde la
   // direction du rendu précédent et repart du mauvais côté.
@@ -345,6 +379,75 @@ export default function CharacterCarousel({
             lit exactement ce que la voix est en train de dire. */}
         {playing === current.id && line ? (
           <p className="mt-2 text-center text-[11.5px] italic text-q2-mist q2-body-text">« {line} »</p>
+        ) : tone ? (
+          /* Le TON se choisit ici, sous le visage (demande utilisateur).
+             Il occupait une section à part, plus bas, alors qu'il est déjà
+             décrit sous le personnage: on lisait le ton à un endroit et on le
+             changeait à un autre. Le chevron ouvre la liste, et la phrase
+             affichée est la description du ton retenu, pas l'accroche du
+             personnage: ce qu'on lit est ce qui est réglé. */
+          <div ref={toneRef} className="relative mt-2 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setToneOpen(o => !o)}
+              aria-expanded={toneOpen}
+              aria-haspopup="listbox"
+              aria-label={isFr ? 'Changer le ton' : 'Change the tone'}
+              className="inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] text-q2-fog hover:text-white transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+            >
+              <span className="truncate q2-body-text">{tone.d}</span>
+              <ChevronDown
+                size={13}
+                aria-hidden="true"
+                className={`shrink-0 transition-transform duration-200 ${toneOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {toneOpen && (
+                /* Même partage que le menu des voix: le placement sur la boîte
+                   extérieure, l'animation sur l'intérieure. Framer écrit un
+                   `transform` inline pour animer `y`, qui effacerait le
+                   centrage porté par une classe. */
+                <div className="absolute top-full left-1/2 -translate-x-1/2 z-30 mt-1.5 w-[min(260px,calc(100vw-2rem))]">
+                  <motion.ul
+                    role="listbox"
+                    aria-label={isFr ? 'Ton' : 'Tone'}
+                    initial={{ opacity: 0, y: reduce ? 0 : -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: reduce ? 0 : -6 }}
+                    transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden rounded-2xl border border-white/10 p-1 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.75)]"
+                    style={{
+                      background: 'rgba(18, 19, 22, 0.62)',
+                      backdropFilter: 'blur(22px) saturate(160%)',
+                      WebkitBackdropFilter: 'blur(22px) saturate(160%)',
+                    }}
+                  >
+                    {tones.map(t => (
+                      <li key={t.v}>
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={t.v === tone.v}
+                          onClick={() => { onTone?.(t.v); setToneOpen(false); }}
+                          className={`flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 ${
+                            t.v === tone.v ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[12.5px] font-medium text-white">{t.l}</span>
+                            <span className="block text-[11px] leading-snug text-q2-fog q2-body-text">{t.d}</span>
+                          </span>
+                          {t.v === tone.v && <Check size={13} className="mt-0.5 shrink-0 text-q2-lift" aria-hidden="true" />}
+                        </button>
+                      </li>
+                    ))}
+                  </motion.ul>
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
         ) : tagline ? (
           <p className="mt-2 text-center text-[11.5px] text-q2-fog q2-body-text">{tagline}</p>
         ) : null}
@@ -367,6 +470,12 @@ export default function CharacterCarousel({
             ))}
           </div>
         )}
+
+        {/* Ce que le parent veut poser DANS la fiche, sous le personnage: la
+            personnalisation y est descendue (demande utilisateur), parce
+            qu'elle décrit la même chose que le ton et le visage juste
+            au-dessus, et non un réglage séparé de la page. */}
+        {children && <div className="mt-5 border-t border-q2-graphite-d pt-4">{children}</div>}
       </div>
     </>
   );

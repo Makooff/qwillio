@@ -1,5 +1,4 @@
 ﻿import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Bot, PhoneForwarded, AlertCircle,
@@ -476,36 +475,16 @@ export default function ClientReceptionist() {
 
       {/* —— Agent identity —— */}
       <Section title="Identité de l'agent" hint="Nom, voix et caractère" id="identite" openId={openId} setOpenId={setOpenId} icon={Bot}>
-        <div>
-          <label className="text-xs text-[#8B8BA7] mb-1.5 block">Nom de l'agent</label>
-          <input type="text" value={agentName} onChange={e => setAgentName(e.target.value)}
-            placeholder="Ex: Ashley, Marie..." className={inputCls} />
-          <p className="text-[10px] text-[#8B8BA7] mt-1">Le prénom utilisé par l'IA pour se présenter</p>
-        </div>
-
-        {/* Le nom de l'entreprise, le métier et la langue décrivent le client,
-            pas son agent: ils sont dans Paramètres. On les rappelle ici parce
-            qu'ils changent ce que la voix dit, et on y renvoie plutôt que d'en
-            garder une seconde copie modifiable. */}
-        <p className="mt-3 text-[11.5px] leading-relaxed text-[#8B8BA7]">
-          {businessName || 'Votre entreprise'}
-          {businessType ? ` · ${BUSINESS_TYPE_LABELS[businessType] ?? businessType}` : ''}
-          {` · ${agentLanguage === 'en' ? 'Anglais' : 'Français'}`}
-          {' — '}
-          <Link to="/dashboard/account" className="underline underline-offset-2 hover:text-[#F8F8FF] transition-colors">
-            modifier dans Paramètres
-          </Link>
-        </p>
+        {/* Le champ « Nom de l'agent », le rappel entreprise/métier/langue et
+            le titre du personnage sont partis (demande utilisateur). Chacun
+            disait deux fois la même chose: le nom se change au crayon, sur le
+            carrousel, à côté du visage qui le porte; l'entreprise et la langue
+            s'éditent dans Paramètres, qui en est la source; et un carrousel de
+            visages n'a pas besoin qu'on annonce que ce sont des visages. */}
 
         {/* —— Personnage (voix + personnalité) —— */}
         {characters.length > 0 && (
-          <div className="mt-2">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-3">
-              Personnage de la réceptionniste
-            </label>
-            <p className="text-[12px] text-[#8B8BA7] mb-3 leading-relaxed">
-              Choisissez la voix et le caractère qui répond à vos appels. Cliquez sur ▶ pour un aperçu.
-            </p>
+          <div>
             {/* Carrousel plutôt que grille (demande utilisateur): un visage à la
                 fois, son nom au-dessus, sa voix en dessous, écoute et crayon à
                 portée. Le crayon ouvre le menu en verre, qui porte à la fois
@@ -527,7 +506,31 @@ export default function ClientReceptionist() {
               isFr={agentLanguage !== 'en'}
               override={customVoice}
               onOverride={setCustomVoice}
-            />
+              /* Le ton se règle DANS la fiche, sous le visage: c'est là qu'il
+                 est décrit, et il n'a plus de section à lui. */
+              toneId={personalityPreset}
+              onTone={setPersonalityPreset}
+              tones={PERSONALITY_PRESETS}
+            >
+              {/* La personnalisation descend dans la fiche (demande
+                  utilisateur): elle précise ce que dit CE personnage, avec CE
+                  ton, et se lisait jusqu'ici comme un réglage de page. */}
+              <label
+                htmlFor="perso-notes"
+                className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2"
+              >
+                Personnalisation
+              </label>
+              <textarea
+                id="perso-notes"
+                value={personalityNotes}
+                onChange={e => setPersonalityNotes(e.target.value)}
+                rows={4}
+                placeholder="Précisez ce qui vous est propre : promotions en cours, mots à utiliser, à éviter, formule d'accueil…"
+                className={`${inputCls} resize-y leading-relaxed`}
+                style={{ minHeight: 100 }}
+              />
+            </CharacterCarousel>
             <VoiceCloner
               voice={customVoice}
               isFr={agentLanguage !== 'en'}
@@ -539,47 +542,6 @@ export default function ClientReceptionist() {
           </div>
         )}
 
-        {/* —— Ton: un menu déroulant, posé sous la description du personnage ——
-            Six cartes de la taille d'un pouce occupaient une demi-page pour un
-            réglage à un seul choix, alors que le ton est DÉJÀ affiché sous le
-            personnage (retour utilisateur). Un menu tient sur une ligne et dit
-            la même chose; la description du ton retenu s'affiche dessous, donc
-            rien de ce que les cartes portaient n'est perdu. */}
-        <div className="mt-5">
-          <label
-            htmlFor="tone-select"
-            className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2"
-          >
-            Ton
-          </label>
-          <select
-            id="tone-select"
-            value={personalityPreset}
-            onChange={e => setPersonalityPreset(e.target.value)}
-            className={inputCls}
-          >
-            {PERSONALITY_PRESETS.map(p => (
-              <option key={p.v} value={p.v}>{p.l}</option>
-            ))}
-          </select>
-          <p className="mt-1.5 text-[11.5px] leading-relaxed" style={{ color: '#8B8BA7' }}>
-            {PERSONALITY_PRESETS.find(p => p.v === personalityPreset)?.d}
-          </p>
-        </div>
-
-        <div className="mt-4">
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
-            Personnalisation
-          </label>
-          <textarea
-            value={personalityNotes}
-            onChange={e => setPersonalityNotes(e.target.value)}
-            rows={4}
-            placeholder="Précisez ce qui vous est propre : promotions en cours, mots à utiliser, à éviter, formule d'accueil…"
-            className={`${inputCls} resize-y leading-relaxed`}
-            style={{ minHeight: 100 }}
-          />
-        </div>
       </Section>
 
       {/* —— Connaissances IA — items list + week schedule —— */}

@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { motion } from 'framer-motion';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useLang } from '../../stores/langStore';
 import TryVoiceCard from './TryVoiceCard';
 
@@ -30,6 +30,16 @@ export default function TryVoiceButton({
   /** `round` est la version mobile: l'icône seule, sur un rond. */
   shape = 'pill',
   label,
+  /**
+   * Le fond n'existe que quand la nav est detachee.
+   *
+   * En haut de page la barre n'a AUCUNE surface, c'est sa regle: y poser un
+   * rond blanc en ferait la seule tache de la bande. L'icone reste donc nue, et
+   * la surface apparait avec la pilule flottante, en meme temps que celle de la
+   * nav. Le `layoutId` reste porte dans les deux cas: sans surface visible, la
+   * carte grandit quand meme depuis la bonne position.
+   */
+  showSurface = true,
 }: {
   children: ReactNode;
   className?: string;
@@ -37,6 +47,7 @@ export default function TryVoiceButton({
   shape?: 'pill' | 'round';
   /** Obligatoire en `round`, où il n'y a pas de texte à lire. */
   label?: string;
+  showSurface?: boolean;
 }) {
   const { lang } = useLang();
   const isFr = lang === 'fr';
@@ -53,8 +64,38 @@ export default function TryVoiceButton({
         ? 'bg-white'
         : 'bg-q2-canvas border border-q2-plate';
 
-  const text =
-    variant === 'chromatic' ? 'text-white' : variant === 'onDark' ? 'text-q2-void' : 'text-q2-ink';
+  /* En `round`, le rond ne se peint pas: il floute (demande utilisateur).
+     Un disque blanc opaque posé sur la barre en verre était la seule surface
+     pleine de la bande, et il se lisait comme une pastille collée dessus.
+     Le flou est PLUS FORT que celui de la barre (30 px au repos): à flou égal
+     le rond disparaîtrait dans son fond, et c'est justement l'écart qui le
+     détache. Teinte très basse, la matière vient du flou. */
+  const glass: CSSProperties | undefined =
+    shape === 'round'
+      ? {
+          backdropFilter: 'blur(38px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(38px) saturate(180%)',
+          // Safari ne compose pas le filtre sans couche propre.
+          transform: 'translateZ(0)',
+          background:
+            variant === 'onDark' ? 'rgba(255,255,255,0.14)' : 'rgb(var(--q2-canvas) / 0.30)',
+          boxShadow:
+            variant === 'onDark'
+              ? 'inset 0 0 0 1px rgba(255,255,255,0.16)'
+              : 'inset 0 0 0 1px rgb(var(--q2-ink) / 0.10)',
+        }
+      : undefined;
+
+  /* L'icone contraste avec la PAGE des que rien d'opaque n'est peint dessous:
+     ni sans surface, ni sur le verre, qui laisse passer le fond. `onDark`
+     donnait sinon du noir sur du noir, invisible dans les deux cas. */
+  const text = !showSurface || glass
+    ? (variant === 'onDark' ? 'text-white' : 'text-q2-ink')
+    : variant === 'chromatic'
+      ? 'text-white'
+      : variant === 'onDark'
+        ? 'text-q2-void'
+        : 'text-q2-ink';
 
   const box =
     shape === 'round'
@@ -76,7 +117,8 @@ export default function TryVoiceButton({
           <motion.span
             layoutId={layoutId}
             aria-hidden="true"
-            className={`absolute inset-0 rounded-full ${surface}`}
+            className={`absolute inset-0 rounded-full ${showSurface && !glass ? surface : ''}`}
+            style={showSurface ? glass : undefined}
             transition={{ type: 'spring', stiffness: 380, damping: 34, mass: 0.8 }}
           />
         )}

@@ -14,7 +14,7 @@ import { formatDuration, formatShortDate } from '../../utils/format';
 /** The cache key for a period. Must match what the boot warms, character for
  *  character, or the first visit spins for data it already has. */
 const analyticsKey = (days: number) => `/my-dashboard/analytics?days=${days}`;
-import { SubPageHeader } from '../../components/dashboard/OverviewBlocks';
+import PageHeader from '../../components/dashboard/PageHeader';
 
 const TOOLTIP_STYLE = {
   background: '#12121A',
@@ -204,7 +204,9 @@ export default function ClientAnalytics() {
   return (
     <main className="space-y-6">
       {/* Header */}
-      <SubPageHeader
+      {/* Même entête que les autres pages: c'est celle-ci qui sert de
+          référence, elle passe simplement par le composant partagé. */}
+      <PageHeader
         title="Analytiques"
         subtitle="Performances de votre réceptionniste IA"
         action={
@@ -220,12 +222,10 @@ export default function ClientAnalytics() {
                 {d}j
               </button>
             ))}
-          </div>
-        }
-      />
-
-      {/* KPI strip — frameless figures split by hairlines */}
-      <div className="pb-6 border-b border-white/[0.06]">
+          </div>}
+        /* La rangée d'ici porte des icônes et des variations: la rangée
+           standard ne sait afficher ni l'une ni l'autre. */
+        stats={
         <div className="grid grid-cols-4 divide-x divide-white/[0.06]">
           {kpis.map((kpi, i) => (
             <div key={i} className="px-3 sm:px-6 py-1 first:pl-0 last:pr-0">
@@ -243,7 +243,8 @@ export default function ClientAnalytics() {
             </div>
           ))}
         </div>
-      </div>
+        }
+      />
 
       {/* Area chart – full width */}
       <section className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-6">

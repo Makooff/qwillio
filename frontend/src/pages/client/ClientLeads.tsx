@@ -1,7 +1,8 @@
-﻿import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3, Search,
+  Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3,
 } from '../../components/icons';
 import { fetchLive, peekLive } from '../../services/liveData';
 import api from '../../services/api';
@@ -9,24 +10,16 @@ import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import { formatDateTime } from '../../utils/format';
-import { SubPageHeader } from '../../components/dashboard/OverviewBlocks';
+import PageHeader from '../../components/dashboard/PageHeader';
+import { LEAD_STATUS_ORDER, leadStatusStyle } from '../../components/dashboard/leadStatus';
+import { mergeLeadsAndContacts, leadStatusOf, type ContactLike, type LeadRow } from '../../components/dashboard/leadRows';
 
 type ViewMode = 'table' | 'kanban';
 type LeadStatus = '' | 'new' | 'contacted' | 'converted' | 'lost';
 
-const STATUS_STYLES: Record<string, { pill: string; border: string }> = {
-  new:       { pill: 'bg-primary-400/10 text-primary-400',    border: 'border-primary-400/20' },
-  contacted: { pill: 'bg-[#7349fe]/10 text-[#7349fe]', border: 'border-[#7349fe]/20' },
-  converted: { pill: 'bg-emerald-400/10 text-emerald-400', border: 'border-emerald-400/20' },
-  lost:      { pill: 'bg-red-400/10 text-red-400',      border: 'border-red-400/20' },
-};
-
-const KANBAN_COLS = [
-  { key: 'new',       label: 'Nouveau',   color: '#60a5fa' },
-  { key: 'contacted', label: 'Contacté',  color: '#7349fe' },
-  { key: 'converted', label: 'Converti',  color: '#34d399' },
-  { key: 'lost',      label: 'Perdu',     color: '#f87171' },
-];
+/* Les couleurs et les libellés viennent d'un seul endroit, partagé avec le
+   reste du tableau de bord: ils étaient écrits ici ET dans le CRM. */
+const KANBAN_COLS = LEAD_STATUS_ORDER;
 
 interface Lead {
   id: string;
@@ -52,12 +45,14 @@ interface PaginationState {
 }
 
 export default function ClientLeads() {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [pagination, setPagination] = useState<PaginationState>({ total: 0, page: 1, limit: 50, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewMode>('table');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus>('');
+  const [contacts, setContacts] = useState<ContactLike[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [noteText, setNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);
@@ -87,6 +82,28 @@ export default function ClientLeads() {
 
   useEffect(() => { fetchLeads(1); }, [fetchLeads]);
 
+  /* Les contacts du CRM, rapatriés ici.
+   *
+   * « Contacts » et « Leads » listaient les MÊMES personnes: un lead est un
+   * appel qualifié, et le contact est créé depuis ce même appel. Deux entrées
+   * de menu, deux vocabulaires d'état, une seule réalité. Le CRM n'est donc
+   * plus une page: il est cette liste-ci, et sa fiche reste le détail.
+   *
+   * L'appariement se fait sur le TÉLÉPHONE réduit à ses chiffres. C'est la clé
+   * que le dédoublonnage backend emploie déjà; le nom ne marcherait pas
+   * (« M. Dupont » et « Dupont ») et l'e-mail manque une fois sur deux.
+   */
+  useEffect(() => {
+    let alive = true;
+    api.get('/crm/contacts', { params: { limit: 200 } })
+      .then(({ data }) => { if (alive) setContacts(Array.isArray(data?.data) ? data.data : []); })
+      /* Silencieux: le CRM est un PLUS sur cette page. S'il tombe, la liste
+         des leads reste juste, et une bannière d'erreur ne dirait rien
+         d'actionnable au client. */
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, []);
+
   const handleStatusChange = async (leadId: string, status: string) => {
     try {
       await api.put(`/my-dashboard/leads/${leadId}/status`, { status });
@@ -111,38 +128,39 @@ export default function ClientLeads() {
     }
   };
 
-  const getLeadStatus = (lead: Lead): string => {
-    if (lead.leadStatus) return lead.leadStatus;
-    if (lead.tags?.includes('converted')) return 'converted';
-    if (lead.tags?.includes('contacted')) return 'contacted';
-    if (lead.tags?.includes('lost')) return 'lost';
-    return 'new';
-  };
 
-  const filteredLeads = leads.filter(l => {
+  /* La liste unique: les leads, enrichis de leur contact, PUIS les contacts
+     qui n'ont pas d'appel à eux (saisis à la main, importés). Sans ce second
+     paquet, fermer la page Contacts les ferait simplement disparaître. */
+  const rows: LeadRow<Lead>[] = useMemo(() => mergeLeadsAndContacts(leads, contacts), [leads, contacts]);
+
+  const filteredLeads = rows.filter(r => {
     if (search) {
       const q = search.toLowerCase();
-      if (!(l.callerName || '').toLowerCase().includes(q) &&
-          !(l.callerNumber || '').toLowerCase().includes(q) &&
-          !(l.emailCollected || '').toLowerCase().includes(q)) return false;
+      if (!r.name.toLowerCase().includes(q) &&
+          !r.phone.toLowerCase().includes(q) &&
+          !r.email.toLowerCase().includes(q) &&
+          !r.tags.some(t => t.toLowerCase().includes(q))) return false;
     }
-    if (statusFilter && getLeadStatus(l) !== statusFilter) return false;
+    if (statusFilter && r.status !== statusFilter) return false;
     return true;
   });
 
   const statCounts = {
-    total: leads.length,
-    new: leads.filter(l => getLeadStatus(l) === 'new').length,
-    contacted: leads.filter(l => getLeadStatus(l) === 'contacted').length,
-    converted: leads.filter(l => getLeadStatus(l) === 'converted').length,
-    lost: leads.filter(l => getLeadStatus(l) === 'lost').length,
+    total: rows.length,
+    new: rows.filter(r => r.status === 'new').length,
+    contacted: rows.filter(r => r.status === 'contacted').length,
+    converted: rows.filter(r => r.status === 'converted').length,
+    lost: rows.filter(r => r.status === 'lost').length,
   };
 
   return (
     <div>
-      <SubPageHeader
-        title="Leads"
-        subtitle={`${pagination.total} leads qualifiés`}
+      <PageHeader
+        title="Leads et contacts"
+        /* Le compte porte sur les LIGNES, pas sur la pagination des seuls
+           appels: la liste contient aussi les fiches sans appel. */
+        subtitle={`${rows.length} personne${rows.length > 1 ? 's' : ''}, appels qualifiés et fiches`}
         action={
           <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1">
             <button onClick={() => setView('table')} aria-label="Vue liste"
@@ -157,51 +175,43 @@ export default function ClientLeads() {
             </button>
           </div>
         }
+        /* Le pipeline reste propre a la page: ses cellules FILTRENT, elles ne
+           font pas qu'afficher. La rangee standard ne saurait pas cliquer. */
+        stats={
+          <div className="grid grid-cols-5 divide-x divide-white/[0.06]" role="group" aria-label="Pipeline">
+            {[
+              { label: 'Total', value: statCounts.total, filter: '' as LeadStatus, color: undefined as string | undefined },
+              ...LEAD_STATUS_ORDER.map(st => ({
+                label: st.label,
+                value: statCounts[st.key],
+                filter: st.key as LeadStatus,
+                color: st.color as string | undefined,
+              })),
+            ].map((s, i) => (
+              <button
+                key={i}
+                onClick={() => setStatusFilter(s.filter)}
+                aria-pressed={statusFilter === s.filter}
+                className={`px-3 py-1 text-left first:pl-0 last:pr-0 transition-opacity ${statusFilter === s.filter ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
+              >
+                <p className="text-[26px] font-semibold tabular-nums leading-none" style={{ color: s.color || '#F5F5F7' }}>
+                  {s.value}
+                </p>
+                <p className="text-[11px] text-[#A1A1A8] mt-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusFilter === s.filter ? (s.color || '#F5F5F7') : 'transparent', boxShadow: statusFilter === s.filter ? 'none' : `inset 0 0 0 1px ${s.color || '#3a3a3a'}` }} />
+                  {s.label}
+                </p>
+              </button>
+            ))}
+          </div>
+        }
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: 'Rechercher un lead par nom, téléphone…',
+          label: 'Rechercher dans les leads',
+        }}
       />
-
-      {/* Pipeline — frameless figures split by hairlines, click to filter */}
-      <motion.section
-        aria-label="Pipeline"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="grid grid-cols-5 divide-x divide-white/[0.06] pb-6 mb-6 border-b border-white/[0.06]"
-      >
-        {[
-          { label: 'Total', value: statCounts.total, filter: '' as LeadStatus, color: undefined as string | undefined },
-          { label: 'Nouveau', value: statCounts.new, filter: 'new' as LeadStatus, color: '#60a5fa' },
-          { label: 'Contacté', value: statCounts.contacted, filter: 'contacted' as LeadStatus, color: '#7349fe' },
-          { label: 'Converti', value: statCounts.converted, filter: 'converted' as LeadStatus, color: '#34d399' },
-          { label: 'Perdu', value: statCounts.lost, filter: 'lost' as LeadStatus, color: '#f87171' },
-        ].map((s, i) => (
-          <button
-            key={i}
-            onClick={() => setStatusFilter(s.filter)}
-            aria-pressed={statusFilter === s.filter}
-            className={`px-3 py-1 text-left first:pl-0 last:pr-0 transition-opacity ${statusFilter === s.filter ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
-          >
-            <p className="text-[26px] font-semibold tabular-nums leading-none" style={{ color: s.color || '#F5F5F7' }}>
-              {s.value}
-            </p>
-            <p className="text-[11px] text-[#A1A1A8] mt-1.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusFilter === s.filter ? (s.color || '#F5F5F7') : 'transparent', boxShadow: statusFilter === s.filter ? 'none' : `inset 0 0 0 1px ${s.color || '#3a3a3a'}` }} />
-              {s.label}
-            </p>
-          </button>
-        ))}
-      </motion.section>
-
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A8]" />
-        <input
-          type="text"
-          placeholder="Rechercher des leads..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors"
-        />
-      </div>
 
       {loading ? (
         <div role="status" aria-label="Chargement" aria-busy="true">
@@ -217,41 +227,55 @@ export default function ClientLeads() {
           ))}
         </div>
       ) : filteredLeads.length === 0 ? (
-        <EmptyState icon={Users} title="Aucun lead trouvé" description="Les leads apparaîtront une fois que votre IA qualifie les appelants" />
+        <EmptyState icon={Users} title="Personne pour l'instant" description="Les leads apparaîtront une fois que votre IA qualifie les appelants, avec leur fiche." />
       ) : view === 'table' ? (
         <>
           <div>
-            {filteredLeads.map((lead, idx) => {
-              const status = getLeadStatus(lead);
-              const sc = STATUS_STYLES[status] || STATUS_STYLES.new;
+            {filteredLeads.map((r, idx) => {
+              const sc = leadStatusStyle(r.status);
               return (
-                <motion.div key={lead.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx * 0.02, 0.3), ease: [0.16, 1, 0.3, 1] }}
+                <motion.div key={r.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx * 0.02, 0.3), ease: [0.16, 1, 0.3, 1] }}
                   className="border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] cursor-pointer group transition-colors rounded-lg"
-                  onClick={() => { setSelectedLead(lead); setNoteText(lead.notes || ''); }}
+                  /* Un appel ouvre son panneau (notes, statut, résumé). Une
+                     fiche sans appel ouvre le détail CRM, qui est le seul
+                     endroit où elle existe. */
+                  onClick={() => {
+                    if (r.lead) { setSelectedLead(r.lead); setNoteText(r.lead.notes || ''); }
+                    else if (r.contactId) navigate(`/dashboard/crm/${r.contactId}`);
+                  }}
                 >
                   <div className="flex items-center gap-3 px-5 py-3.5">
-                    <div className="w-9 h-9 rounded-lg bg-amber-400/10 flex items-center justify-center flex-shrink-0">
-                      <Users size={16} className="text-amber-400" />
+                    <div
+                      className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: `${sc.color}1a` }}
+                    >
+                      <Users size={16} style={{ color: sc.color }} aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[#F5F5F7] truncate">{lead.callerName || lead.nameCollected || 'Inconnu'}</p>
-                      <p className="text-[11px] text-[#A1A1A8]">
-                        {lead.callerNumber || lead.phoneCollected || ''}
-                        {lead.emailCollected && ` · ${lead.emailCollected}`}
+                      <p className="text-sm font-semibold text-[#F5F5F7] truncate">{r.name}</p>
+                      <p className="text-[11px] text-[#A1A1A8] truncate">
+                        {r.phone}
+                        {r.email && ` · ${r.email}`}
+                        {/* D'où vient la ligne: sans ça, une fiche saisie à la
+                            main se lit comme un appel qu'on n'a jamais reçu. */}
+                        {!r.lead && ' · fiche'}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
+                      {r.tags.slice(0, 2).map(t => (
+                        <span key={t} className="hidden lg:inline text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] text-[#A1A1A8] font-medium">{t}</span>
+                      ))}
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc.pill}`}>
-                        {status.toUpperCase()}
+                        {sc.label.toUpperCase()}
                       </span>
-                      {lead.leadScore != null && (
+                      {r.score != null && (
                         <div className="hidden sm:flex items-center gap-1">
-                          <Star size={12} className="text-[#7349fe]" />
-                          <span className="text-xs font-bold text-[#7349fe]">{lead.leadScore}/10</span>
+                          <Star size={12} className="text-[#7349fe]" aria-hidden="true" />
+                          <span className="text-xs font-bold text-[#7349fe]">{r.score}/10</span>
                         </div>
                       )}
-                      <SentimentBadge sentiment={lead.sentiment} />
-                      <span className="text-[10px] text-[#A1A1A8] hidden lg:inline">{formatDateTime(lead.createdAt)}</span>
+                      {r.lead && <SentimentBadge sentiment={r.lead.sentiment} />}
+                      {r.createdAt && <span className="text-[10px] text-[#A1A1A8] hidden lg:inline">{formatDateTime(r.createdAt)}</span>}
                       <ChevronRight size={14} className="text-white/20 group-hover:text-[#7349fe] transition-colors" />
                     </div>
                   </div>
@@ -269,7 +293,7 @@ export default function ClientLeads() {
         /* Kanban */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {KANBAN_COLS.map(col => {
-            const items = filteredLeads.filter(l => getLeadStatus(l) === col.key);
+            const items = filteredLeads.filter(r => r.status === col.key);
             return (
               <div key={col.key}>
                 <div className="flex items-center gap-2 mb-3 px-1">
@@ -278,23 +302,26 @@ export default function ClientLeads() {
                   <span className="text-xs text-[#A1A1A8] bg-white/[0.06] px-2 py-0.5 rounded-full">{items.length}</span>
                 </div>
                 <div className="space-y-2 min-h-[200px] rounded-xl bg-white/[0.02] border border-white/[0.04] p-2">
-                  {items.map(lead => (
-                    <motion.div key={lead.id} layout
+                  {items.map(r => (
+                    <motion.div key={r.id} layout
                       className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-3.5 cursor-pointer hover:border-white/[0.12] transition-colors"
-                      onClick={() => { setSelectedLead(lead); setNoteText(lead.notes || ''); }}
+                      onClick={() => {
+                        if (r.lead) { setSelectedLead(r.lead); setNoteText(r.lead.notes || ''); }
+                        else if (r.contactId) navigate(`/dashboard/crm/${r.contactId}`);
+                      }}
                     >
-                      <p className="text-sm font-semibold text-[#F5F5F7] truncate mb-1">{lead.callerName || lead.nameCollected || 'Inconnu'}</p>
-                      <p className="text-[11px] text-[#A1A1A8] mb-2">{lead.callerNumber || ''}</p>
+                      <p className="text-sm font-semibold text-[#F5F5F7] truncate mb-1">{r.name}</p>
+                      <p className="text-[11px] text-[#A1A1A8] mb-2 truncate">{r.phone}</p>
                       <div className="flex items-center justify-between">
-                        <SentimentBadge sentiment={lead.sentiment} />
-                        {lead.leadScore != null && (
-                          <span className="text-[10px] font-bold text-[#7349fe]">{lead.leadScore}/10</span>
+                        {r.lead ? <SentimentBadge sentiment={r.lead.sentiment} /> : <span className="text-[10px] text-[#A1A1A8]">fiche</span>}
+                        {r.score != null && (
+                          <span className="text-[10px] font-bold text-[#7349fe]">{r.score}/10</span>
                         )}
                       </div>
                     </motion.div>
                   ))}
                   {items.length === 0 && (
-                    <p className="text-xs text-[#A1A1A8] text-center py-8">Aucun lead</p>
+                    <p className="text-xs text-[#A1A1A8] text-center py-8">Personne ici</p>
                   )}
                 </div>
               </div>
@@ -372,8 +399,8 @@ export default function ClientLeads() {
                   <p className="text-xs text-[#A1A1A8] mb-2">Statut pipeline</p>
                   <div className="grid grid-cols-2 gap-2">
                     {KANBAN_COLS.map(col => {
-                      const isActive = getLeadStatus(selectedLead) === col.key;
-                      const sc = STATUS_STYLES[col.key];
+                      const isActive = leadStatusOf(selectedLead) === col.key;
+                      const sc = col;
                       return (
                         <button key={col.key} onClick={() => handleStatusChange(selectedLead.id, col.key)}
                           className={`px-3 py-2 text-xs font-medium rounded-xl border transition-colors ${

@@ -57,7 +57,6 @@ const AgentLocalSeo = lazy(() => import('./pages/client/AgentLocalSeo'));
 const AgentLeadGen = lazy(() => import('./pages/client/AgentLeadGen'));
 const AgentAnalytics = lazy(() => import('./pages/client/AgentAnalytics'));
 // CRM pages (lazy loaded)
-const CrmContacts = lazy(() => import('./pages/client/CrmContacts'));
 const CrmDeals = lazy(() => import('./pages/client/CrmDeals'));
 const CrmActivities = lazy(() => import('./pages/client/CrmActivities'));
 const CrmContactDetail = lazy(() => import('./pages/client/CrmContactDetail'));
@@ -416,7 +415,10 @@ export default function App() {
           <Route path="agent/*" element={<Navigate to="/dashboard" replace />} />
 
           {/* CRM */}
-          <Route path="crm" element={<Suspense fallback={<Spinner />}><CrmContacts /></Suspense>} />
+          {/* Contacts et Leads ont fusionné: la liste unique vit sur Leads,
+              qui rapatrie les fiches CRM. L'ancienne adresse redirige plutôt
+              que de disparaître, elle est dans des favoris et des liens. */}
+          <Route path="crm" element={<Navigate to="/dashboard/leads" replace />} />
           <Route path="crm/deals" element={<Suspense fallback={<Spinner />}><CrmDeals /></Suspense>} />
           <Route path="crm/activities" element={<Suspense fallback={<Spinner />}><CrmActivities /></Suspense>} />
           <Route path="crm/:id" element={<Suspense fallback={<Spinner />}><CrmContactDetail /></Suspense>} />

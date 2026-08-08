@@ -221,7 +221,10 @@ export function CircularCarousel({
             WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 16%, black 84%, transparent 100%)',
           }}
         >
-        <AnimatePresence mode="popLayout">
+        {/* Plus de `popLayout`: aucune carte ne se demonte jamais (les dix
+            restent montees, seule leur position change), et ce mode sortait
+            les elements du flux pour rien, en ajoutant sa propre saccade. */}
+        <AnimatePresence>
           {items.map((item, i) => {
             const pos = getItemPosition(i, activeIndex, total);
             if (!pos) return null;
@@ -231,7 +234,12 @@ export function CircularCarousel({
             return (
               <motion.button
                 key={item.id}
-                layout
+                /* `layout` a saute, et c'est LUI qui rendait le passage sec.
+                   Les cartes sont posees en absolu et leur place vient d'un
+                   `transform` (x, y); `layout` fait mesurer a Framer une
+                   position de MISE EN PAGE qui, elle, ne bouge jamais. Les
+                   deux systemes se contredisaient a chaque pas, d'ou un saut
+                   au lieu d'un glissement. */
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{
                   x: pos.x,
@@ -241,9 +249,19 @@ export function CircularCarousel({
                   zIndex: pos.zIndex,
                 }}
                 exit={{ opacity: 0, scale: 0.8 }}
+                /* Ressort plutot que duree fixe: sur une orbite, chaque carte
+                   part d'une vitesse differente selon la distance qu'elle a a
+                   parcourir, et c'est ce qui donne un mouvement continu plutot
+                   qu'un fondu de dix elements cales sur le meme chrono.
+                   L'opacite garde une duree, elle: un ressort sur une valeur
+                   qui n'a pas d'inertie physique se lit comme un clignotement. */
                 transition={{
-                  duration: 0.65,
-                  ease: [0.22, 1, 0.36, 1],
+                  type: 'spring',
+                  stiffness: 105,
+                  damping: 20,
+                  mass: 0.9,
+                  opacity: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+                  zIndex: { duration: 0 },
                 }}
                 onClick={() => goTo(i)}
                 aria-label={item.title}
