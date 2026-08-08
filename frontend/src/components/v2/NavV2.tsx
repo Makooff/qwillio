@@ -753,10 +753,12 @@ export default function NavV2() {
           {/* Gouttiere du glyphe, pas de la boite.
               Les boutons font 44 px pour le doigt, le glyphe n'en fait que 20:
               a `px-6`, le trait du burger tombait donc a 36 px du bord quand le
-              logo touche a 24. `-mr-3` rend les 12 px de marge interne, et
-              `gap-3` pose les memes 24 px entre le rond de l'essai et le trait
-              du burger. Ce qu'on aligne, c'est ce qu'on voit. */}
-          <div className="md:hidden flex items-center gap-3 -mr-3">
+              logo touche a 24. `-mr-3` rend les 12 px de marge interne.
+              L'essai se rapproche du menu (demande utilisateur): a 24 px il
+              flottait au milieu de la bande plutot que de faire paire avec le
+              burger. Les deux sont maintenant a 8 px l'un de l'autre, soit le
+              tiers de la gouttiere du bord: on les lit comme un groupe. */}
+          <div className="md:hidden flex items-center gap-0 -mr-3">
             {/* Menu ouvert, la langue et le theme prennent la place de l'essai,
                 a cote de la croix (demande utilisateur). Ils vivaient en bas de
                 la liste, la ou personne ne descend pour changer de langue, et
