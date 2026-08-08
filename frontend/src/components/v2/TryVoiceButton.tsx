@@ -30,6 +30,16 @@ export default function TryVoiceButton({
   /** `round` est la version mobile: l'icône seule, sur un rond. */
   shape = 'pill',
   label,
+  /**
+   * Le fond n'existe que quand la nav est detachee.
+   *
+   * En haut de page la barre n'a AUCUNE surface, c'est sa regle: y poser un
+   * rond blanc en ferait la seule tache de la bande. L'icone reste donc nue, et
+   * la surface apparait avec la pilule flottante, en meme temps que celle de la
+   * nav. Le `layoutId` reste porte dans les deux cas: sans surface visible, la
+   * carte grandit quand meme depuis la bonne position.
+   */
+  showSurface = true,
 }: {
   children: ReactNode;
   className?: string;
@@ -37,6 +47,7 @@ export default function TryVoiceButton({
   shape?: 'pill' | 'round';
   /** Obligatoire en `round`, où il n'y a pas de texte à lire. */
   label?: string;
+  showSurface?: boolean;
 }) {
   const { lang } = useLang();
   const isFr = lang === 'fr';
@@ -53,8 +64,16 @@ export default function TryVoiceButton({
         ? 'bg-white'
         : 'bg-q2-canvas border border-q2-plate';
 
-  const text =
-    variant === 'chromatic' ? 'text-white' : variant === 'onDark' ? 'text-q2-void' : 'text-q2-ink';
+  /* Sans fond, l'icone contraste avec la PAGE et non avec une surface qui
+     n'est pas la. `onDark` sur fond sombre donnait sinon une icone noire sur du
+     noir: invisible, exactement dans l'etat ou elle est nue. */
+  const text = !showSurface
+    ? (variant === 'onDark' ? 'text-white' : 'text-q2-ink')
+    : variant === 'chromatic'
+      ? 'text-white'
+      : variant === 'onDark'
+        ? 'text-q2-void'
+        : 'text-q2-ink';
 
   const box =
     shape === 'round'
@@ -76,7 +95,7 @@ export default function TryVoiceButton({
           <motion.span
             layoutId={layoutId}
             aria-hidden="true"
-            className={`absolute inset-0 rounded-full ${surface}`}
+            className={`absolute inset-0 rounded-full ${showSurface ? surface : ''}`}
             transition={{ type: 'spring', stiffness: 380, damping: 34, mass: 0.8 }}
           />
         )}

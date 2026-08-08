@@ -739,29 +739,36 @@ export default function NavV2() {
           {/* L'essai, sur mobile: l'icone seule sur un rond, a cote du burger.
               Son fond s'agrandit jusqu'a devenir celui de la carte. Il etait
               absent de la barre mobile, ou il ne restait que le burger: la
-              seule action de la page d'accueil y etait donc invisible. */}
-          <span className="md:hidden mr-1">
+              seule action de la page d'accueil y etait donc invisible.
+
+              Essai et burger sont dans UN groupe: la barre est en
+              `justify-between`, donc deux enfants separes se seraient repartis
+              sur la largeur et l'icone aurait flotte au milieu de la bande. */}
+          <div className="md:hidden flex items-center gap-1">
             <TryVoiceButton
               shape="round"
               variant={overDark ? 'onDark' : 'outline'}
+              /* Le fond suit la barre: rien en haut de page, blanc des que la
+                 pilule se detache. */
+              showSurface={floating}
               label={isFr ? 'Essayer la voix' : 'Try the voice'}
             >
               <Play size={15} fill="currentColor" aria-hidden="true" />
             </TryVoiceButton>
-          </span>
 
-          <button
-            ref={burgerRef}
-            type="button"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-expanded={menuOpen}
-            aria-label={menuOpen ? (isFr ? 'Fermer le menu' : 'Close menu') : isFr ? 'Ouvrir le menu' : 'Open menu'}
-            className={`md:hidden inline-flex items-center justify-center w-11 h-11 rounded-full transition-colors duration-150 ${
-              overDark ? 'text-white hover:bg-white/10' : 'text-q2-ink hover:bg-q2-band'
-            }`}
-          >
-            {menuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+            <button
+              ref={burgerRef}
+              type="button"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-expanded={menuOpen}
+              aria-label={menuOpen ? (isFr ? 'Fermer le menu' : 'Close menu') : isFr ? 'Ouvrir le menu' : 'Open menu'}
+              className={`inline-flex items-center justify-center w-11 h-11 rounded-full transition-colors duration-150 ${
+                overDark ? 'text-white hover:bg-white/10' : 'text-q2-ink hover:bg-q2-band'
+              }`}
+            >
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </motion.nav>
       </motion.header>
 
