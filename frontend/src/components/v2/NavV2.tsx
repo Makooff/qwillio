@@ -15,6 +15,7 @@ import { useLang } from '../../stores/langStore';
 import { EASE_OUT_EXPO } from './motion/reducedMotion';
 import { useGlow } from './motion/GlowCard';
 import GlassSkin, { GLASS_FILTER_ID, GlassFilter, useLiquidGlassSupport } from './ui/liquid-glass';
+import { DARK_GLASS, LIGHT_GLASS } from './ui/glassTints';
 import TryVoiceButton from './TryVoiceButton';
 
 /* Nav V2 (demande utilisateur, deux états) :
@@ -645,16 +646,11 @@ export default function NavV2() {
                  et la barre se lisait comme une plaque grise posée sur du noir
                  (retour utilisateur). Elle part maintenant du noir de la
                  marque et reste basse: c'est le flou qui donne la matière. */
-              tint={
-                overDark
-                  ? 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(8,9,10,0.10) 100%)'
-                  : 'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 100%)'
-              }
-              tintFallback={
-                overDark
-                  ? 'linear-gradient(180deg, rgba(8,9,10,0.42) 0%, rgba(8,9,10,0.52) 100%)'
-                  : 'linear-gradient(180deg, rgba(255,255,255,0.52) 0%, rgb(var(--q2-canvas) / 0.40) 100%)'
-              }
+              /* Les valeurs vivent dans `glassTints`: la barre du tableau de
+                 bord est le meme objet et doit lire la meme recette, sans quoi
+                 les deux derivent, ce qui est deja arrive une fois. */
+              tint={(overDark ? DARK_GLASS : LIGHT_GLASS).tint}
+              tintFallback={(overDark ? DARK_GLASS : LIGHT_GLASS).tintFallback}
               style={{ zIndex: -1 }}
             />
           )}
