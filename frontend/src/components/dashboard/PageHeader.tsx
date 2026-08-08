@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { Search, Filter } from '../icons';
-import { KpiSplit, type KpiCell } from './OverviewBlocks';
+import StatStrip, { type StatCell } from './StatStrip';
 
 /**
  * L'entête des pages du tableau de bord, celle d'Analytiques pour tout le monde.
@@ -60,9 +60,10 @@ export interface PageHeaderProps {
   subtitle?: ReactNode;
   /** À droite du titre: période, bascule de vue, export, ajout. */
   action?: ReactNode;
-  /** La rangée de chiffres standard, sans cadre. */
-  kpis?: KpiCell[];
-  /** Une rangée de chiffres propre à la page (cellules cliquables, couleurs). */
+  /** La rangée de chiffres, la même partout. Les cellules peuvent filtrer. */
+  kpis?: StatCell[];
+  /** Une rangée entièrement à la main. À n'employer que si `kpis` ne suffit
+      pas: c'est par là que les trois grammaires de rangée étaient revenues. */
   stats?: ReactNode;
   search?: PageHeaderSearch;
   filters?: PageHeaderFilters;
@@ -71,7 +72,7 @@ export interface PageHeaderProps {
 export default function PageHeader({
   title, subtitle, action, kpis, stats, search, filters,
 }: PageHeaderProps) {
-  const strip = stats ?? (kpis && kpis.length ? <KpiSplit items={kpis} /> : null);
+  const strip = stats ?? (kpis && kpis.length ? <StatStrip items={kpis} /> : null);
   const count = filters?.count ?? 0;
 
   return (

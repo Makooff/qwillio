@@ -264,10 +264,10 @@ export default function ClientCalls() {
           </button>
         }
         kpis={[
-          { label: 'Total appels', value: totalCalls.toLocaleString('fr-FR') },
-          { label: 'Durée moy.', value: formatDuration(avgDuration) },
-          { label: 'Taux positif', value: `${positiveRate}%` },
-          { label: 'Leads ce mois', value: leadsMonth.toLocaleString('fr-FR') },
+          { label: 'Total appels', value: totalCalls.toLocaleString('fr-FR'), icon: Phone },
+          { label: 'Durée moy.', value: formatDuration(avgDuration), icon: Clock },
+          { label: 'Taux positif', value: `${positiveRate}%`, icon: CheckCircle2 },
+          { label: 'Leads ce mois', value: leadsMonth.toLocaleString('fr-FR'), icon: Users },
         ]}
         search={{
           value: search,

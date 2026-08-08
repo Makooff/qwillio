@@ -1,7 +1,7 @@
 ﻿// === FILE: ClientAnalytics.tsx ===
 import { useEffect, useState, useCallback } from 'react';
 import {
-  BarChart3, Phone, Users, Clock, Zap, ArrowUp, ArrowDown,
+  BarChart3, Phone, Users, Clock, Zap,
   DollarSign, Calculator,
 } from '../../components/icons';
 import {
@@ -223,27 +223,7 @@ export default function ClientAnalytics() {
               </button>
             ))}
           </div>}
-        /* La rangée d'ici porte des icônes et des variations: la rangée
-           standard ne sait afficher ni l'une ni l'autre. */
-        stats={
-        <div className="grid grid-cols-4 divide-x divide-white/[0.06]">
-          {kpis.map((kpi, i) => (
-            <div key={i} className="px-3 sm:px-6 py-1 first:pl-0 last:pr-0">
-              <div className="flex items-center justify-between mb-2">
-                <kpi.icon size={14} className="text-white/30" />
-                {kpi.delta !== undefined && kpi.delta !== 0 && (
-                  <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${kpi.delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {kpi.delta > 0 ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
-                    {Math.abs(kpi.delta)}%
-                  </span>
-                )}
-              </div>
-              <p className="text-[19px] sm:text-[26px] font-bold tabular-nums text-white/90 leading-none">{kpi.value}</p>
-              <p className="text-[10px] sm:text-[11px] text-white/40 mt-1.5 leading-tight">{kpi.label}</p>
-            </div>
-          ))}
-        </div>
-        }
+        kpis={kpis}
       />
 
       {/* Area chart – full width */}

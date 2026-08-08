@@ -77,12 +77,17 @@ export default function TryVoiceButton({
           WebkitBackdropFilter: 'blur(38px) saturate(180%)',
           // Safari ne compose pas le filtre sans couche propre.
           transform: 'translateZ(0)',
+          /* Teinte SOMBRE, pas claire (demande utilisateur). Un voile de
+             `q2-canvas` éclaircissait le rond, qui se lisait encore comme un
+             disque blanc, en plus pâle. Le voile part maintenant de l'encre:
+             sur la crème, le rond s'assombrit, et l'icône noire garde un fond
+             à elle au lieu de flotter sur le hero. */
           background:
-            variant === 'onDark' ? 'rgba(255,255,255,0.14)' : 'rgb(var(--q2-canvas) / 0.30)',
+            variant === 'onDark' ? 'rgba(8,9,10,0.28)' : 'rgb(var(--q2-ink) / 0.10)',
           boxShadow:
             variant === 'onDark'
-              ? 'inset 0 0 0 1px rgba(255,255,255,0.16)'
-              : 'inset 0 0 0 1px rgb(var(--q2-ink) / 0.10)',
+              ? 'inset 0 0 0 1px rgba(255,255,255,0.12)'
+              : 'inset 0 0 0 1px rgb(var(--q2-ink) / 0.12)',
         }
       : undefined;
 
