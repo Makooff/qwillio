@@ -27,12 +27,15 @@ const MOBILE_NAV: NavItem[] = [
   { icon: LayoutDashboard, label: 'Home',   path: '/dashboard',           exact: true },
   { icon: Phone,           label: 'Appels', path: '/dashboard/calls' },
   { icon: Users,           label: 'Leads',  path: '/dashboard/leads' },
-  { icon: Bot,             label: 'IA',     path: '/dashboard/receptionist' },
-  /* Analytique prend la place des paramètres (demande utilisateur): on
+  /* Analytique a pris la place des paramètres (demande utilisateur): on
      consulte ses chiffres tous les jours, on règle son compte deux fois par
      an. Les réglages restent atteignables par l'avatar, en haut à droite,
-     qui mène désormais quelque part. */
+     qui mène désormais quelque part.
+     L'IA passe tout à droite, au bout de la barre: c'est là que le pouce
+     tombe, et c'est la seule entrée où l'on va pour AGIR sur l'agent, les
+     quatre autres ne font que regarder ce qu'il a produit. */
   { icon: BarChart3,       label: 'Analytique', path: '/dashboard/analytics' },
+  { icon: Bot,             label: 'IA',     path: '/dashboard/receptionist' },
 ];
 
 const PAGE_TITLES: Record<string, string> = {

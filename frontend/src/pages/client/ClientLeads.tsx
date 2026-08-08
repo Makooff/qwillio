@@ -175,36 +175,19 @@ export default function ClientLeads() {
             </button>
           </div>
         }
-        /* Le pipeline reste propre a la page: ses cellules FILTRENT, elles ne
-           font pas qu'afficher. La rangee standard ne saurait pas cliquer. */
-        stats={
-          <div className="grid grid-cols-5 divide-x divide-white/[0.06]" role="group" aria-label="Pipeline">
-            {[
-              { label: 'Total', value: statCounts.total, filter: '' as LeadStatus, color: undefined as string | undefined },
-              ...LEAD_STATUS_ORDER.map(st => ({
-                label: st.label,
-                value: statCounts[st.key],
-                filter: st.key as LeadStatus,
-                color: st.color as string | undefined,
-              })),
-            ].map((s, i) => (
-              <button
-                key={i}
-                onClick={() => setStatusFilter(s.filter)}
-                aria-pressed={statusFilter === s.filter}
-                className={`px-3 py-1 text-left first:pl-0 last:pr-0 transition-opacity ${statusFilter === s.filter ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
-              >
-                <p className="text-[26px] font-semibold tabular-nums leading-none" style={{ color: s.color || '#F5F5F7' }}>
-                  {s.value}
-                </p>
-                <p className="text-[11px] text-[#A1A1A8] mt-1.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusFilter === s.filter ? (s.color || '#F5F5F7') : 'transparent', boxShadow: statusFilter === s.filter ? 'none' : `inset 0 0 0 1px ${s.color || '#3a3a3a'}` }} />
-                  {s.label}
-                </p>
-              </button>
-            ))}
-          </div>
-        }
+        /* Le pipeline passe par la MEME rangee que les autres pages: ses
+           cellules filtrent, ce que la rangee sait faire, au lieu d'etre une
+           grammaire de plus. */
+        kpis={[
+          { label: 'Total', value: statCounts.total, icon: Users, onClick: () => setStatusFilter(''), active: statusFilter === '' },
+          ...LEAD_STATUS_ORDER.map(st => ({
+            label: st.label,
+            value: statCounts[st.key],
+            color: st.color,
+            onClick: () => setStatusFilter(st.key as LeadStatus),
+            active: statusFilter === st.key,
+          })),
+        ]}
         search={{
           value: search,
           onChange: setSearch,

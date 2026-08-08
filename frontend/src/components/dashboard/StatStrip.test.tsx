@@ -1,0 +1,56 @@
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import StatStrip from './StatStrip';
+
+afterEach(cleanup);
+
+describe('StatStrip', () => {
+  it('affiche chaque chiffre avec son libellé', () => {
+    render(<StatStrip items={[{ label: 'Total appels', value: 12 }, { label: 'Durée moy.', value: '2:30' }]} />);
+    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('Total appels')).toBeInTheDocument();
+    expect(screen.getByText('2:30')).toBeInTheDocument();
+  });
+
+  it('montre une variation, avec son signe', () => {
+    const { container } = render(<StatStrip items={[{ label: 'Appels', value: 4, delta: -12 }]} />);
+    // Le signe est porté par la couleur et la flèche; le nombre reste absolu.
+    expect(screen.getByText('12%')).toBeInTheDocument();
+    expect(container.querySelector('.text-red-400')).not.toBeNull();
+  });
+
+  /* Une variation nulle n'est pas une information: l'afficher mettrait une
+     flèche verte sur « 0% » à côté de chaque chiffre stable. */
+  it('tait une variation nulle', () => {
+    render(<StatStrip items={[{ label: 'Appels', value: 4, delta: 0 }]} />);
+    expect(screen.queryByText('0%')).not.toBeInTheDocument();
+  });
+
+  /* La seule variation admise entre pages: une cellule qui filtre. Elle doit
+     rester une cellule, pas devenir une autre grammaire de rangée. */
+  it('rend une cellule qui filtre en bouton, et remonte le clic', () => {
+    const onClick = vi.fn();
+    render(<StatStrip items={[{ label: 'Nouveau', value: 3, onClick, active: true }]} />);
+    const cell = screen.getByRole('button', { pressed: true });
+    fireEvent.click(cell);
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it('n’est pas un bouton quand elle ne filtre rien', () => {
+    render(<StatStrip items={[{ label: 'Total appels', value: 12 }]} />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  /* Quatre ou cinq cellules tiennent en largeur: c'est le libellé qui
+     rétrécit, jamais la grille qui se replie en 2×2, ce qui décalait la
+     troisième cellule sous la première. */
+  it('garde une seule rangée, quel que soit le nombre de cellules', () => {
+    const cell = (n: number) => ({ label: `L${n}`, value: n });
+    const { container: c4 } = render(<StatStrip items={[1, 2, 3, 4].map(cell)} />);
+    expect(c4.firstElementChild?.className).toContain('grid-cols-4');
+    cleanup();
+    const { container: c5 } = render(<StatStrip items={[1, 2, 3, 4, 5].map(cell)} />);
+    expect(c5.firstElementChild?.className).toContain('grid-cols-5');
+  });
+});
