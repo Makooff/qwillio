@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { motion } from 'framer-motion';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useLang } from '../../stores/langStore';
 import TryVoiceCard from './TryVoiceCard';
 
@@ -64,10 +64,32 @@ export default function TryVoiceButton({
         ? 'bg-white'
         : 'bg-q2-canvas border border-q2-plate';
 
-  /* Sans fond, l'icone contraste avec la PAGE et non avec une surface qui
-     n'est pas la. `onDark` sur fond sombre donnait sinon une icone noire sur du
-     noir: invisible, exactement dans l'etat ou elle est nue. */
-  const text = !showSurface
+  /* En `round`, le rond ne se peint pas: il floute (demande utilisateur).
+     Un disque blanc opaque posé sur la barre en verre était la seule surface
+     pleine de la bande, et il se lisait comme une pastille collée dessus.
+     Le flou est PLUS FORT que celui de la barre (30 px au repos): à flou égal
+     le rond disparaîtrait dans son fond, et c'est justement l'écart qui le
+     détache. Teinte très basse, la matière vient du flou. */
+  const glass: CSSProperties | undefined =
+    shape === 'round'
+      ? {
+          backdropFilter: 'blur(38px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(38px) saturate(180%)',
+          // Safari ne compose pas le filtre sans couche propre.
+          transform: 'translateZ(0)',
+          background:
+            variant === 'onDark' ? 'rgba(255,255,255,0.14)' : 'rgb(var(--q2-canvas) / 0.30)',
+          boxShadow:
+            variant === 'onDark'
+              ? 'inset 0 0 0 1px rgba(255,255,255,0.16)'
+              : 'inset 0 0 0 1px rgb(var(--q2-ink) / 0.10)',
+        }
+      : undefined;
+
+  /* L'icone contraste avec la PAGE des que rien d'opaque n'est peint dessous:
+     ni sans surface, ni sur le verre, qui laisse passer le fond. `onDark`
+     donnait sinon du noir sur du noir, invisible dans les deux cas. */
+  const text = !showSurface || glass
     ? (variant === 'onDark' ? 'text-white' : 'text-q2-ink')
     : variant === 'chromatic'
       ? 'text-white'
@@ -95,7 +117,8 @@ export default function TryVoiceButton({
           <motion.span
             layoutId={layoutId}
             aria-hidden="true"
-            className={`absolute inset-0 rounded-full ${showSurface ? surface : ''}`}
+            className={`absolute inset-0 rounded-full ${showSurface && !glass ? surface : ''}`}
+            style={showSurface ? glass : undefined}
             transition={{ type: 'spring', stiffness: 380, damping: 34, mass: 0.8 }}
           />
         )}
