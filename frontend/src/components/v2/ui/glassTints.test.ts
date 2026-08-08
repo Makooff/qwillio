@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { DARK_GLASS, LIGHT_GLASS } from './glassTints';
-
-const read = (p: string) => readFileSync(join(process.cwd(), 'src', p), 'utf8');
+/* Les deux fichiers sont lus par le bundler, pas par `node:fs`: ce paquet est
+   compile par `tsc -b` avec le reste de `src`, ou les types de Node n'existent
+   pas. Un test qui casse le build de production n'est pas un test. */
+import navSource from '../NavV2.tsx?raw';
+import shellSource from '../../layout/DashboardShell.tsx?raw';
 
 /* Ces deux barres sont le même objet: une pilule flottante en verre, l'une sur
    le site, l'autre dans le tableau de bord. Elles avaient deux recettes, et
@@ -32,8 +33,7 @@ describe('la teinte du verre sombre', () => {
   });
 
   it('sert les DEUX barres, qui ne réécrivent pas la valeur chez elles', () => {
-    for (const f of ['components/v2/NavV2.tsx', 'components/layout/DashboardShell.tsx']) {
-      const src = read(f);
+    for (const src of [navSource, shellSource]) {
       expect(src).toContain('glassTints');
       // Aucun dégradé de teinte écrit à la main dans le fichier.
       expect(src).not.toMatch(/tint(Fallback)?=["']linear-gradient/);
