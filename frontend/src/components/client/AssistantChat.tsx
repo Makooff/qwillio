@@ -112,7 +112,8 @@ function TranscribingCard({ isFr, reduceMotion }: { isFr: boolean; reduceMotion:
         className="w-[72%] px-3.5 py-2.5"
         style={{
           borderRadius: 16,
-          background: 'rgba(255,255,255,0.045)',
+          // Même gris que les cartes de messages: c'en est une, en attente.
+          background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.07)',
         }}
       >
@@ -654,15 +655,22 @@ export default function AssistantChat({
      * d'adresse, ce qui rajoutait la hauteur de cette barre à l'erreur.
      * Le plancher garde la carte utilisable sur un petit écran en paysage. */
     <div
-      className="rounded-2xl border border-white/[0.08] bg-[#0A0A0C] overflow-hidden flex flex-col"
+      /* Le fond du chat est celui de la PAGE (demande utilisateur): la carte
+         ne se distingue plus par sa valeur mais par son filet. C'est ce qui
+         permet aux cartes de messages, elles, de prendre le gris des rangées
+         du hub juste en dessous: deux gris différents pour deux niveaux, au
+         lieu de trois valeurs qui se disputaient la même profondeur. */
+      className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden flex flex-col"
       style={{
         height: showHeader
-          /* Raccourci pour que la première rangée du hub dépasse (demande
-             utilisateur): on retire ~112 px de plus, soit la hauteur d'un
-             intitulé de groupe et d'une rangée. Le chat garde de quoi lire
-             trois échanges, et la page annonce ce qui vient après au lieu de
-             s'arrêter net. */
-          ? 'clamp(320px, calc(100dvh - 344px), 520px)'
+          /* Le chat prend l'écran, et la barre du bas s'arrête pile au-dessus
+             de « L'AGENT » (demande utilisateur).
+             Le compte: 68 px d'entête réservés en haut de `main`, 84 px pour
+             la barre flottante (20 px de marge + 64 px de haut), 8 px de
+             respiration. Le titre du groupe suivant tombe alors DERRIÈRE la
+             barre, ce qui est exactement l'effet demandé: on sait qu'il y a
+             une suite sans qu'elle prenne de la place. */
+          ? 'clamp(320px, calc(100dvh - 160px), 720px)'
           : 480,
       }}
     >
@@ -881,7 +889,11 @@ export default function AssistantChat({
                 className="max-w-[82%] px-3.5 py-2.5 text-[15px] leading-[1.38] whitespace-pre-wrap"
                 style={{
                   borderRadius: 16,
-                  background: mine ? '#EDEDF2' : 'rgba(255,255,255,0.045)',
+                  /* Le gris est celui des rangées du hub, en dessous
+                     (« Identité de l'agent »), à la valeur près: le fil de la
+                     conversation et la liste des réglages sont deux fois le
+                     même objet, une carte posée sur la page. */
+                  background: mine ? '#EDEDF2' : 'rgba(255,255,255,0.03)',
                   color: mine ? '#141417' : '#E9E9EC',
                   /* Le filet ne sert qu'à la carte sombre: sans lui elle se
                      confondrait avec le fond du panneau, qui est presque la
