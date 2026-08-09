@@ -12,10 +12,32 @@ interface State {
   error: Error | null;
 }
 
-// A lazily-imported route chunk failing to load almost always means the user
-// has a stale index.html from before a deploy (Vite renames hashed chunks each
-// build). Reloading fetches the fresh index.html and the new chunk names.
-const CHUNK_ERROR_RE = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Loading chunk [\d]+ failed/i;
+/**
+ * Un morceau de route qui ne se charge pas veut presque toujours dire que
+ * l'onglet tient un `index.html` d'avant le dernier déploiement: Vite renomme
+ * les fichiers à chaque build, et les anciens ne sont plus servis. Recharger
+ * ramène le nouvel index et les nouveaux noms.
+ *
+ * La liste couvre les DEUX familles de message, et c'est ce qui manquait:
+ *  - l'échec de récupération, dit à peu près pareil partout;
+ *  - l'échec de TYPE, quand le serveur répond bien mais avec du HTML. Une SPA
+ *    réécrit tout vers `index.html`, donc un fichier `.js` disparu revient en
+ *    page HTML, et le navigateur refuse de l'exécuter. WebKit dit alors
+ *    « 'text/html' is not a valid JavaScript MIME type », Blink « Expected a
+ *    JavaScript module script but the server responded with a MIME type of
+ *    text/html ». Aucun des deux ne contient « dynamically imported module »,
+ *    si bien que le rechargement automatique ne partait pas et que l'écran
+ *    rouge s'affichait à sa place (retour utilisateur, sur iPhone).
+ */
+const CHUNK_ERROR_RE = new RegExp([
+  'Failed to fetch dynamically imported module',
+  'error loading dynamically imported module',
+  'Importing a module script failed',
+  'Loading chunk [\\d]+ failed',
+  'is not a valid JavaScript MIME type',
+  'Expected a JavaScript module script',
+  'Failed to load module script',
+].join('|'), 'i');
 
 function isChunkLoadError(error?: Error | null): boolean {
   return !!error && CHUNK_ERROR_RE.test(error.message || '');

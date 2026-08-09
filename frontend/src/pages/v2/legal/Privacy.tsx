@@ -39,21 +39,25 @@ export default function Privacy() {
       },
       { id: 'sub-processors', label: isFr ? '3. Sous-traitants' : '3. Sub-processors' },
       {
+        id: 'google-user-data',
+        label: isFr ? '4. Données Google' : '4. Google user data',
+      },
+      {
         id: 'data-retention',
-        label: isFr ? '4. Conservation' : '4. Data retention',
+        label: isFr ? '5. Conservation' : '5. Data retention',
       },
       {
         id: 'international',
-        label: isFr ? '5. Transferts internationaux' : '5. International transfers',
+        label: isFr ? '6. Transferts internationaux' : '6. International transfers',
       },
       {
         id: 'outbound-calling',
-        label: isFr ? '6. Démarchage téléphonique' : '6. Outbound calling',
+        label: isFr ? '7. Démarchage téléphonique' : '7. Outbound calling',
       },
-      { id: 'rights', label: isFr ? '7. Vos droits' : '7. Your rights' },
-      { id: 'cookies', label: isFr ? '8. Cookies' : '8. Cookies' },
-      { id: 'changes', label: isFr ? '9. Modifications' : '9. Changes' },
-      { id: 'contact', label: isFr ? '10. Contact' : '10. Contact' },
+      { id: 'rights', label: isFr ? '8. Vos droits' : '8. Your rights' },
+      { id: 'cookies', label: isFr ? '9. Cookies' : '9. Cookies' },
+      { id: 'changes', label: isFr ? '10. Modifications' : '10. Changes' },
+      { id: 'contact', label: isFr ? '11. Contact' : '11. Contact' },
     ],
     [isFr],
   );
@@ -215,6 +219,70 @@ export default function Privacy() {
           ]}
           rows={subProcessors.map((sp) => [sp.name, sp.purpose, sp.region])}
         />
+      </LegalSection>
+
+      {/* Exigée par Google pour la validation OAuth, et pas seulement pour la
+          forme: la politique doit dire QUELLES données Google sont lues, POUR
+          QUOI, avec QUI elles sont partagées, et rappeler l'usage limité
+          (« Limited Use »). Sans cette section, la demande est refusée sans
+          même être instruite. */}
+      <LegalSection
+        id="google-user-data"
+        title={isFr ? 'Données Google (Google Calendar)' : 'Google user data (Google Calendar)'}
+      >
+        <LegalP className="mb-6">
+          {isFr
+            ? "Si vous connectez votre Google Calendar, Qwillio y accède pour deux gestes, et deux seulement : lire vos disponibilités afin que la réceptionniste ne propose jamais un créneau déjà pris, et créer l'événement correspondant au rendez-vous qu'un appelant vient de prendre."
+            : 'If you connect your Google Calendar, Qwillio accesses it for two actions, and two only: reading your availability so the receptionist never offers a slot that is already taken, and creating the event for an appointment a caller has just booked.'}
+        </LegalP>
+
+        <LegalTable
+          caption={isFr ? 'Autorisations demandées' : 'Requested scopes'}
+          head={[
+            isFr ? 'Autorisation' : 'Scope',
+            isFr ? 'Ce qu’elle permet' : 'What it allows',
+            isFr ? 'Pourquoi elle est nécessaire' : 'Why it is needed',
+          ]}
+          rows={[
+            [
+              'calendar.readonly',
+              isFr ? 'Lire les événements de votre agenda' : 'Read the events in your calendar',
+              isFr
+                ? 'Connaître les créneaux occupés avant de proposer une heure à un appelant.'
+                : 'Know which slots are busy before offering a time to a caller.',
+            ],
+            [
+              'calendar.events',
+              isFr ? 'Créer et modifier des événements' : 'Create and update events',
+              isFr
+                ? 'Inscrire le rendez-vous pris pendant l’appel, puis le déplacer ou l’annuler si l’appelant rappelle.'
+                : 'Write the appointment booked during the call, then move or cancel it if the caller calls back.',
+            ],
+          ]}
+        />
+
+        <LegalList
+          items={[
+            isFr
+              ? 'Ce que nous conservons : un jeton de rafraîchissement chiffré et l’identifiant des événements que nous avons créés. Le contenu de vos autres événements n’est ni copié ni stocké.'
+              : 'What we keep: an encrypted refresh token and the ids of the events we created. The contents of your other events are never copied or stored.',
+            isFr
+              ? 'Ce que nous ne faisons jamais : vendre, louer ou transmettre des données Google à un tiers, les utiliser à des fins publicitaires, ou les employer pour entraîner un modèle d’intelligence artificielle.'
+              : 'What we never do: sell, rent or pass Google data to a third party, use it for advertising, or use it to train any artificial intelligence model.',
+            isFr
+              ? 'Qui y accède : personne. Aucun employé ne lit vos données d’agenda, sauf accord écrit de votre part pour résoudre un incident que vous avez signalé, ou obligation légale.'
+              : 'Who reads it: nobody. No employee reads your calendar data, except with your written consent to resolve an incident you reported, or where the law requires it.',
+            isFr
+              ? 'Comment couper : le bouton « Déconnecter » révoque le jeton et efface immédiatement ce que nous en gardons. Vous pouvez aussi retirer l’accès depuis votre compte Google.'
+              : 'How to stop: the “Disconnect” button revokes the token and immediately erases what we hold. You can also remove access from your Google account.',
+          ]}
+        />
+
+        <LegalP className="mt-6">
+          {isFr
+            ? 'L’usage que Qwillio fait des données reçues des API Google respecte la Google API Services User Data Policy, y compris ses exigences d’usage limité (Limited Use).'
+            : 'Qwillio’s use of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.'}
+        </LegalP>
       </LegalSection>
 
       <LegalSection id="data-retention" title={isFr ? 'Conservation des données' : 'Data retention'}>

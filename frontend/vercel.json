@@ -45,6 +45,7 @@
     { "source": "/demo-marie.html", "destination": "/demo-marie.html" },
     { "source": "/onboarding.html", "destination": "/onboarding.html" },
     { "source": "/client-portal.html", "destination": "/client-portal.html" },
+    { "source": "/assets/(.*)", "destination": "/assets/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

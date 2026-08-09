@@ -48,7 +48,22 @@ export const env = {
   VAPI_STABILITY: parseFloat(process.env.VAPI_STABILITY || '0.45'),
   VAPI_SIMILARITY_BOOST: parseFloat(process.env.VAPI_SIMILARITY_BOOST || '0.82'),
   VAPI_STYLE: parseFloat(process.env.VAPI_STYLE || '0.35'),
-  VAPI_OPTIMIZE_LATENCY: parseInt(process.env.VAPI_OPTIMIZE_LATENCY || '4', 10),
+  /**
+   * `optimize_streaming_latency` d'ElevenLabs, et c'est un compromis, pas un
+   * curseur de vitesse.
+   *
+   * À 3 et au-dessus, ElevenLabs COUPE le normaliseur de texte. Le modèle
+   * reçoit alors le texte brut et doit deviner comment prononcer ce qui n'est
+   * pas un mot: « 99 € », « +32 477 », « 14h30 », « Dr », « 1er ». C'est
+   * exactement le symptôme rapporté, une voix qui fourche et dit des choses
+   * bizarres, et il porte surtout sur les chiffres, dont un accueil
+   * téléphonique est plein.
+   *
+   * On redescend à 2: on garde les optimisations de flux, on récupère le
+   * normaliseur. Ça coûte quelques dizaines de millisecondes sur le premier
+   * son, et ça évite qu'un prix soit annoncé de travers.
+   */
+  VAPI_OPTIMIZE_LATENCY: Math.min(2, parseInt(process.env.VAPI_OPTIMIZE_LATENCY || '2', 10)),
   VAPI_INTERRUPTION_THRESHOLD: parseInt(process.env.VAPI_INTERRUPTION_THRESHOLD || '200', 10),
   VAPI_SILENCE_TIMEOUT: Math.max(10, parseInt(process.env.VAPI_SILENCE_TIMEOUT || '10', 10)),
   VAPI_MAX_DURATION: parseInt(process.env.VAPI_MAX_DURATION || '480', 10), // 8 minutes

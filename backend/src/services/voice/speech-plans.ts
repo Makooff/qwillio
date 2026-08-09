@@ -128,7 +128,14 @@ export function buildVoice(opts: {
     provider: '11labs',
     voiceId: opts.voiceId,
     model: 'eleven_flash_v2_5',
-    stability: opts.stability ?? 0.22,
+    /* Plancher de stabilité.
+     *
+     * 0,22 était le défaut, et sous ~0,35 le modèle Flash articule mal: il
+     * gagne en expressivité ce qu'il perd en diction, avec des syllabes
+     * avalées et des mots écrasés. Un personnage peut demander plus bas, on
+     * remonte quand même: une réceptionniste qu'on ne comprend pas ne remplit
+     * aucun de ses rôles. */
+    stability: Math.max(0.35, opts.stability ?? 0.45),
     similarityBoost: opts.similarityBoost ?? 0.65,
     style: opts.style ?? 0.7,
     useSpeakerBoost: true,
