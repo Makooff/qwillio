@@ -62,12 +62,21 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
   return {
     waitSeconds: env.VOICE_START_WAIT_SECONDS,
     smartEndpointingEnabled: true,
-    smartEndpointingPlan: {
-      provider: 'livekit',
-      // LiveKit turn detector only ships an English model; French falls back to
-      // Vapi's built-in endpointing, which is why the wait floor stays non-zero.
-      ...(lang === 'en' ? { waitFunction: '2000 / (1 + exp(-10 * (x - 0.5)))' } : {}),
-    },
+    /* Le détecteur de fin de tour, choisi par LANGUE.
+     *
+     * Le commentaire précédent disait que le français « retombait » sur la
+     * détection interne de Vapi. C'était faux: le code posait `livekit` dans
+     * les deux cas, et le modèle de LiveKit n'existe qu'en anglais. Le
+     * français tournait donc sur un détecteur entraîné sur une autre langue —
+     * autrement dit, sur la syntaxe qui décide si la phrase est finie, il
+     * devinait. C'est exactement ce qui produit les deux défauts qu'on ressent
+     * comme « robotique »: elle coupe la parole, ou elle laisse un blanc.
+     *
+     * Vapi documente son propre modèle comme celui à employer hors anglais.
+     * `waitFunction` reste réservée à LiveKit, dont elle module la courbe. */
+    smartEndpointingPlan: lang === 'en'
+      ? { provider: 'livekit', waitFunction: '2000 / (1 + exp(-10 * (x - 0.5)))' }
+      : { provider: 'vapi' },
     transcriptionEndpointingPlan: {
       onPunctuationSeconds: 0.1,
       onNoPunctuationSeconds: 1.0,

@@ -82,6 +82,23 @@ describe('parole-à-parole', () => {
     expect(buildRealtimePlans('fr', false)).toHaveProperty('transcriber');
   });
 
+  /**
+   * Le détecteur de fin de tour doit suivre la LANGUE.
+   *
+   * Le modèle de LiveKit n'existe qu'en anglais. L'employer en français, c'est
+   * faire juger la complétude d'une phrase française par la syntaxe d'une
+   * autre langue: elle coupe la parole, ou elle laisse un blanc. Les deux
+   * défauts qu'on entend comme « robotique ». Ce test est là parce que
+   * l'erreur était invisible: le code marchait, il devinait simplement mal.
+   */
+  it('choisit le détecteur de fin de tour selon la langue', async () => {
+    const { buildStartSpeakingPlan } = await load({});
+    expect(buildStartSpeakingPlan('en').smartEndpointingPlan.provider).toBe('livekit');
+    expect(buildStartSpeakingPlan('fr').smartEndpointingPlan.provider).toBe('vapi');
+    // `waitFunction` module la courbe de LiveKit: elle n'a pas de sens ailleurs.
+    expect(buildStartSpeakingPlan('fr').smartEndpointingPlan).not.toHaveProperty('waitFunction');
+  });
+
   /* Les outils survivent au changement de mode: sans eux la réceptionniste ne
      peut plus consulter l'agenda ni transférer, c'est-à-dire plus travailler. */
   it('garde les outils et la consigne système', async () => {
