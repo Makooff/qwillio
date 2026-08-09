@@ -35,10 +35,12 @@ const MOBILE_NAV: NavItem[] = [
      tombe, et c'est la seule entrée où l'on va pour AGIR sur l'agent, les
      quatre autres ne font que regarder ce qu'il a produit. */
   { icon: BarChart3,       label: 'Analytique', path: '/dashboard/analytics' },
-  /* Vers l'identité DIRECTEMENT (demande utilisateur): le fragment ouvre le
-     panneau, plutôt que de déposer sur le hub d'où il faut encore viser une
-     rangée. Le retour du panneau ramène au hub, donc rien n'est perdu. */
-  { icon: Bot,             label: 'IA',     path: '/dashboard/receptionist#identite' },
+  /* Vers la PAGE, pas vers un panneau (demande utilisateur): on arrive sur le
+     hub, donc sur le chat, qui est ce qu'on vient faire ici neuf fois sur dix.
+     La machinerie de fragment reste en place côté page: un lien peut viser
+     `#identite` pour ouvrir un panneau directement, mais la barre ne le fait
+     plus. */
+  { icon: Bot,             label: 'IA',     path: '/dashboard/receptionist' },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
