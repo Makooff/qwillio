@@ -200,16 +200,19 @@ export default function ClientReceptionist() {
   const [characterId, setCharacterId] = useState<string>('marie');
   const [characters, setCharacters] = useState<Character[]>([]);
   const [customVoice, setCustomVoice] = useState<CustomVoice | null>(null);
-  // One section open at a time, remembered so a reload lands where you were.
-  const [openId, setOpenId] = useState<string | null>(() => {
-    try { return localStorage.getItem('qw.receptionistSection') || 'identite'; } catch { return 'identite'; }
-  });
+  /* Un seul panneau ouvert à la fois, et AUCUN à l'arrivée.
+   *
+   * Cet état était initialisé à `'identite'` et mémorisé dans `localStorage`:
+   * la page ouvrait donc un panneau dès qu'on y arrivait, quel que soit le
+   * chemin emprunté pour venir. C'est ce qui faisait que l'onglet de la barre
+   * du bas semblait mener droit à « Identité de l'agent » alors qu'il vise la
+   * page. On arrive sur le hub, avec le chat: le reste se choisit. */
+  const [openId, setOpenId] = useState<string | null>(null);
   useEffect(() => {
-    try {
-      if (openId) localStorage.setItem('qw.receptionistSection', openId);
-      else localStorage.removeItem('qw.receptionistSection');
-    } catch { /* nothing worth breaking the page over */ }
-  }, [openId]);
+    // Reste des versions précédentes: sans ça, la clé traîne dans le
+    // navigateur de ceux qui ont déjà ouvert la page.
+    try { localStorage.removeItem('qw.receptionistSection'); } catch { /* sans conséquence */ }
+  }, []);
 
   /* Les catégories du métier quand il y en a, la liste générique sinon. */
   const itemCategories = presets?.itemCategories?.length ? presets.itemCategories : ITEM_CATEGORIES;
@@ -285,12 +288,12 @@ export default function ClientReceptionist() {
 
   useEffect(() => { load(); }, [load]);
 
-  /* Le fragment de l'URL ouvre un panneau.
-   *
-   * La barre du bas vise `#identite`, pour tomber sur l'identité de l'agent
-   * plutôt que sur le hub. On écoute aussi `hashchange`: appuyer une seconde
-   * fois sur l'onglet ne change pas de route, React Router ne rend donc rien,
-   * et sans cet écouteur le panneau refermé ne se rouvrirait jamais. */
+  /* Le fragment de l'URL ouvre un panneau, pour qui en vise un explicitement
+   * (`/dashboard/receptionist#integrations` depuis un email, par exemple). La
+   * barre du bas, elle, ne porte plus de fragment: elle mène à la page.
+   * On écoute `hashchange` parce qu'un même lien suivi deux fois ne change pas
+   * de route: React Router ne rend rien, et sans cet écouteur le panneau
+   * refermé ne se rouvrirait jamais. */
   useEffect(() => {
     const open = () => {
       const id = window.location.hash.replace('#', '');
