@@ -400,28 +400,65 @@ export default function DashboardShell(props: DashboardShellProps) {
         className="flex-1 flex flex-col min-w-0 overflow-hidden md:rounded-tl-[45px] md:border-l-2 md:border-t-2 border-white/[0.08]"
         style={{ background: t.panel }}
       >
-        <header
-          className="md:hidden sticky top-0 z-30 h-14 flex items-center gap-4 px-4"
-          style={{
-            background: 'rgba(10,10,10,0.85)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            borderBottom: '1px solid oklch(24% 0 0 / 0.4)',
-          }}
-        >
+        {/* Entête mobile en VIGNETTE (demande utilisateur).
+         *
+         * Elle portait une plaque opaque à 85 % et un filet en bas: deux traits
+         * qui la découpaient du contenu et donnaient une barre posée dessus.
+         * Elle n'a plus ni fond ni bord. À la place, un voile qui s'estompe:
+         * très flou tout en haut, plus rien à mi-hauteur, si bien que le
+         * contenu se dissout en montant au lieu de buter sur une ligne.
+         *
+         * DEUX éléments, et c'est le point technique. Sur WebKit, un
+         * `-webkit-backdrop-filter` posé sur un élément qui porte aussi un
+         * `-webkit-mask-image` n'est pas rendu: le voile devient une teinte
+         * plate, sans flou. Le masque reste donc sur le parent, qui ne filtre
+         * rien, et le filtre descend sur un enfant qui ne masque rien. Même
+         * leçon que la barre du site, même correctif. */}
+        <header className="md:hidden sticky top-0 z-30 h-14 flex items-center gap-4 px-4">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden"
+            style={{
+              /* Déborde SOUS la barre: c'est ce débordement qui fait la
+                 dissolution. Un voile qui s'arrête à 56 px rendrait le bord
+                 qu'on vient d'enlever. */
+              height: '190%',
+              maskImage: 'linear-gradient(to bottom, black 34%, rgba(0,0,0,0.45) 66%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, black 34%, rgba(0,0,0,0.45) 66%, transparent 100%)',
+            }}
+          >
+            <div
+              className="absolute inset-0"
+              style={{
+                backdropFilter: 'blur(22px) saturate(140%)',
+                WebkitBackdropFilter: 'blur(22px) saturate(140%)',
+                /* `translateZ(0)` plutôt que `will-change: backdrop-filter`:
+                   Safari ne connaît pas cette valeur comme indice et gardait la
+                   couche photographiée au montage, donc figée au défilement. */
+                transform: 'translateZ(0)',
+                /* Une teinte basse, pas une plaque: elle empêche seulement le
+                   texte de la page de traverser en clair. */
+                background: 'rgba(10,10,10,0.42)',
+              }}
+            />
+          </div>
+
+          {/* `relative` sur ce qui doit rester LISIBLE: le voile est un
+              élément positionné, donc peint au-dessus du contenu en flux. Sans
+              ça, la grille, le titre et l'avatar passeraient dessous. */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden"
+            className="md:hidden relative"
             style={{ color: t.textSec }}
           >
             <LayoutDashboard className="w-5 h-5" />
           </button>
 
-          <div className="hidden md:block">
+          <div className="hidden md:block relative">
             <h1 className="text-sm font-semibold" style={{ color: t.text }}>{pageTitle}</h1>
           </div>
 
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="relative flex items-center gap-2 ml-auto">
             {topBarExtras}
 
             {/*
@@ -465,9 +502,15 @@ export default function DashboardShell(props: DashboardShellProps) {
 function MobileBottomNav({
   items, pathname, scope, onTap,
 }: { items: NavItem[]; pathname: string; scope: string; onTap?: () => void }) {
-  const activeIdx = items.findIndex(item =>
-    item.exact ? pathname === item.path : pathname.startsWith(item.path)
-  );
+  /* Le fragment ne fait pas partie du chemin.
+     Une entrée peut viser un panneau (`/dashboard/receptionist#identite`), et
+     `pathname` ne contient jamais le `#`: comparer les chaînes telles quelles
+     rendait l'onglet inactif et la bulle disparaissait alors qu'on est bien
+     dessus. */
+  const activeIdx = items.findIndex(item => {
+    const base = item.path.split('#')[0];
+    return item.exact ? pathname === base : pathname.startsWith(base);
+  });
   const itemPct = 100 / items.length;
   const showBubble = activeIdx >= 0;
   const reduceMotion = useReducedMotion();

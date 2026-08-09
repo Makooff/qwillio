@@ -511,7 +511,12 @@ export default function AssistantChat({
       className="rounded-2xl border border-white/[0.08] bg-[#0A0A0C] overflow-hidden flex flex-col"
       style={{
         height: showHeader
-          ? 'clamp(360px, calc(100dvh - 232px), 640px)'
+          /* Raccourci pour que la première rangée du hub dépasse (demande
+             utilisateur): on retire ~112 px de plus, soit la hauteur d'un
+             intitulé de groupe et d'une rangée. Le chat garde de quoi lire
+             trois échanges, et la page annonce ce qui vient après au lieu de
+             s'arrêter net. */
+          ? 'clamp(320px, calc(100dvh - 344px), 520px)'
           : 480,
       }}
     >
@@ -674,43 +679,53 @@ export default function AssistantChat({
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {/* iMessage bubbles: full 18px radius with a tail on the last of a run,
-            no timestamps and no sender labels — exactly the iOS treatment. */}
+        {/* Des CARTES, plus des bulles (demande utilisateur).
+         *
+         * C'était le traitement iOS: rayon plein et une queue sur le dernier
+         * message d'une suite. La queue est ce qui faisait « messagerie », et
+         * elle jurait avec le reste du tableau de bord, qui n'est fait que de
+         * cartes et de filets. Elle disparaît, le rayon reste franc, et le
+         * message redevient un objet de la page.
+         *
+         * La hiérarchie s'inverse aussi: la réceptionniste parle sur un fond
+         * SOMBRE, presque celui de la page, et ce que vous tapez ressort sur un
+         * fond clair. C'est vous qui relisez ce que vous venez d'écrire; ses
+         * réponses, elles, se lisent en continu et n'ont pas besoin de crier.
+         *
+         * Chaque carte prend la largeur de son texte, bornée à 82 %: une suite
+         * de cartes toutes identiques se lit comme un tableau, pas comme une
+         * conversation. */}
         {messages.map((m, i) => {
           const mine = m.role === 'user';
-          const endsRun = messages[i + 1]?.role !== m.role;
           return (
-            <div key={i} className={cn('flex', mine ? 'justify-end' : 'justify-start', !endsRun && '-mb-1.5')}>
+            <div key={i} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
               <div
-                className="relative max-w-[78%] px-3.5 py-2 text-[15px] leading-[1.32] whitespace-pre-wrap"
+                className="max-w-[82%] px-3.5 py-2.5 text-[15px] leading-[1.38] whitespace-pre-wrap"
                 style={{
-                  borderRadius: 18,
-                  background: mine ? activeColor : '#26262A',
-                  color: mine ? '#fff' : '#F2F2F2',
+                  borderRadius: 16,
+                  background: mine ? '#EDEDF2' : 'rgba(255,255,255,0.045)',
+                  color: mine ? '#141417' : '#E9E9EC',
+                  /* Le filet ne sert qu'à la carte sombre: sans lui elle se
+                     confondrait avec le fond du panneau, qui est presque la
+                     même valeur. La claire se détache toute seule. */
+                  border: mine ? 'none' : '1px solid rgba(255,255,255,0.07)',
                 }}
               >
                 {m.content}
-                {endsRun && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute bottom-0 h-[15px] w-[18px]"
-                    style={{
-                      [mine ? 'right' : 'left']: -6,
-                      background: mine ? activeColor : '#26262A',
-                      WebkitMaskImage: `radial-gradient(circle at ${mine ? '100%' : '0%'} 0, transparent 15px, black 15.5px)`,
-                      maskImage: `radial-gradient(circle at ${mine ? '100%' : '0%'} 0, transparent 15px, black 15.5px)`,
-                      borderBottomLeftRadius: mine ? 0 : 4,
-                      borderBottomRightRadius: mine ? 4 : 0,
-                    }}
-                  />
-                )}
               </div>
             </div>
           );
         })}
         {(sending || transcribing) && (
           <div className="flex justify-start">
-            <div className="px-3.5 py-2.5" style={{ background: '#26262A', borderRadius: 18 }}>
+            <div
+              className="px-3.5 py-2.5"
+              style={{
+                background: 'rgba(255,255,255,0.045)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 16,
+              }}
+            >
               <Loader2 size={14} className="animate-spin" style={{ color: '#8B8BA7' }} />
             </div>
           </div>
