@@ -4,7 +4,7 @@ import {
   Bot, PhoneForwarded, AlertCircle,
   Activity, Power, Globe, User, Clock, Shield, Calendar,
   Volume2, Languages, Building2, Settings,
-  ChevronDown, ChevronRight, CheckCircle2, XCircle,
+  CheckCircle2, XCircle,
   BookOpen, Tag, HelpCircle, Clock3, Plus, X,
 } from '../../components/icons';
 import api from '../../services/api';
@@ -16,6 +16,7 @@ import { type Character } from '../../components/client/CharacterPicker';
 import CharacterCarousel from '../../components/v2/app/CharacterCarousel';
 import AssistantChat from '../../components/client/AssistantChat';
 import VoiceCloner, { type CustomVoice } from '../../components/client/VoiceCloner';
+import { HubGroup, HubRow, HubPanel } from '../../components/client/SettingsHub';
 
 /**
  * The endpoints this tab reads, as the cache knows them.
@@ -111,16 +112,18 @@ const PERSONALITY_PRESETS: { v: string; l: string; d: string }[] = [
 ];
 
 /**
- * One section, on the vocabulary of the account settings page: a 58px row with
- * a 32px icon tile, a label, a hint, and a chevron.
+ * Une rangée du hub, et son panneau.
  *
- * They open one at a time rather than all at once. Sub-pages were the other
- * option, but the whole form shares one autosave effect, so routing would have
- * meant either lifting every field or loading the settings once per page. An
- * accordion gives the same "one thing at a time" reading without splitting
- * state that has no reason to be split.
+ * C'était un accordéon. Sur un téléphone, ouvert, le contenu poussait tout ce
+ * qui suit hors de l'écran et on perdait le fil entre le réglage modifié et la
+ * liste parcourue; fermé, la page n'était que cinq titres empilés.
+ *
+ * L'argument d'origine tient toujours: la sauvegarde automatique est une seule
+ * chose pour toute la page, et des sous-pages routées l'auraient coupée en
+ * cinq. Le panneau le respecte, puisque c'est le MÊME arbre React — même état,
+ * même sauvegarde — simplement posé au-dessus au lieu d'être déplié.
  */
-function Section({ title, hint, icon: Icon, children, id, openId, setOpenId }: {
+function Section({ title, hint, icon, children, id, openId, setOpenId, right }: {
   title: string;
   hint?: string;
   icon: React.ElementType;
@@ -129,31 +132,16 @@ function Section({ title, hint, icon: Icon, children, id, openId, setOpenId }: {
   id: string;
   openId: string | null;
   setOpenId: (v: string | null) => void;
+  right?: React.ReactNode;
 }) {
   const open = openId === id;
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-      <button
-        type="button"
-        onClick={() => setOpenId(open ? null : id)}
-        aria-expanded={open}
-        className="w-full flex items-center gap-3.5 px-4 h-[58px] text-left group transition-colors hover:bg-white/[0.02]">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-             style={{ background: 'rgba(255,255,255,0.05)' }}>
-          <Icon size={14} className="text-[#F5F5F7]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium text-[#F5F5F7] truncate">{title}</p>
-          {hint && <p className="text-[11.5px] text-[#6B6B75] truncate">{hint}</p>}
-        </div>
-        {open
-          ? <ChevronDown size={14} className="text-[#6B6B75] flex-shrink-0" />
-          : <ChevronRight size={14} className="text-[#6B6B75] opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0" />}
-      </button>
-      {open && <div className="px-4 pb-5 pt-1 border-t border-white/[0.05]">{children}</div>}
-    </motion.div>
+    <>
+      <HubRow title={title} hint={hint} icon={icon} right={right} onOpen={() => setOpenId(id)} />
+      <HubPanel open={open} onClose={() => setOpenId(null)} title={title} hint={hint}>
+        {children}
+      </HubPanel>
+    </>
   );
 }
 
@@ -190,6 +178,11 @@ export default function ClientReceptionist() {
   // Google Calendar OAuth integration
   const [gcal, setGcal] = useState<{ connected: boolean; revoked?: boolean; upcoming?: { id: string; summary: string; start: string | null }[] } | null>(null);
   const [gcalBusy, setGcalBusy] = useState(false);
+  /* Lue une fois au montage: elle n'est écrite qu'avant un départ vers Google,
+     et la page est rechargée au retour. */
+  const [gcalRedirectUri] = useState<string | null>(
+    () => sessionStorage.getItem('gcalRedirectUri'),
+  );
   // Knowledge base (stored inside vapiConfig JSON, exposed top-level)
   const [items, setItems] = useState<KbItem[]>([]);
   const [weekHours, setWeekHours] = useState<WeekHours>(DEFAULT_HOURS);
@@ -310,6 +303,11 @@ export default function ClientReceptionist() {
     setGcalBusy(true);
     try {
       const { data } = await api.get('/my-dashboard/integrations/google-calendar/auth-url');
+      /* On retient l'adresse de retour AVANT de partir chez Google.
+         Si Google refuse (`redirect_uri_mismatch`), il ne dit jamais quelle
+         adresse a été envoyée, et le retour se fait sur sa page à lui: on ne
+         peut plus rien afficher. Gardée ici, elle est lisible au retour. */
+      if (data.redirectUri) sessionStorage.setItem('gcalRedirectUri', data.redirectUri);
       window.location.href = data.url;
     } catch {
       setError('OAuth Google non configuré côté serveur');
@@ -410,7 +408,7 @@ export default function ClientReceptionist() {
   })();
 
   return (
-    <div className="max-w-3xl space-y-4">
+    <div className="max-w-3xl space-y-4 pb-2">
       {/* Assistant conversationnel : parler pour configurer et onboarder.
           Il porte aussi l'identité de la page (titre, entreprise, plan), le
           numéro copiable, l'appel test live et la jauge de minutes, pour que
@@ -473,7 +471,11 @@ export default function ClientReceptionist() {
             même sujet. */}
       </div>
 
-      {/* —— Agent identity —— */}
+      {/* Des rangées groupées, comme la page Paramètres: l'agent d'abord, ce
+          qu'il fait des appels ensuite, le compte à la fin. Trois groupes de
+          deux, deux et une: on lit une intention par groupe au lieu de cinq
+          titres à la file. */}
+      <HubGroup label="L'agent">
       <Section title="Identité de l'agent" hint="Nom, voix et caractère" id="identite" openId={openId} setOpenId={setOpenId} icon={Bot}>
         {/* Le champ « Nom de l'agent », le rappel entreprise/métier/langue et
             le titre du personnage sont partis (demande utilisateur). Chacun
@@ -771,7 +773,10 @@ export default function ClientReceptionist() {
 
       </Section>
 
+      </HubGroup>
+
       {/* —— Transfert d'appel —— */}
+      <HubGroup label="Les appels">
       <div id="transfer" style={{ scrollMarginTop: 80 }}>
       <Section title="Transfert d'appel" hint="Vers qui basculer, et quand" id="transfert" openId={openId} setOpenId={setOpenId} icon={PhoneForwarded}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -852,6 +857,22 @@ export default function ClientReceptionist() {
               </p>
             )}
 
+            {/* L'adresse de retour, en toutes lettres.
+                « Erreur 400 : redirect_uri_mismatch » est le refus le plus
+                opaque de Google: il ne dit pas QUELLE adresse a été envoyée,
+                alors que la comparaison se fait caractère par caractère — un
+                `www`, un slash final, un `http` suffisent. L'afficher ici
+                permet de la coller telle quelle dans la console Google au lieu
+                de deviner ce que le serveur a en mémoire. */}
+            {!gcal?.connected && gcalRedirectUri && (
+              <p className="mt-2 text-[10.5px] leading-snug text-[#6B6B75] break-all">
+                Adresse de retour envoyée à Google :{' '}
+                <span className="font-mono text-[#8B8BA7]">{gcalRedirectUri}</span>
+                <br />
+                Elle doit figurer, à l'identique, dans « URI de redirection autorisés » de la console Google.
+              </p>
+            )}
+
             {/* Read proof: next events from the connected calendar */}
             {gcal?.connected && (gcal.upcoming?.length ?? 0) > 0 && (
               <div className="mt-3 pt-3 border-t border-white/[0.04] space-y-1.5">
@@ -897,6 +918,9 @@ export default function ClientReceptionist() {
       </Section>
 
       {/* —— Subscription info —— */}
+      </HubGroup>
+
+      <HubGroup label="Le compte">
       <Section title="Abonnement" hint="Plan, minutes et facturation" id="abonnement" openId={openId} setOpenId={setOpenId} icon={Shield}>
         <Row l="Plan" v={planName} c="#7349fe" />
         <Row l="Statut" v={
@@ -912,6 +936,7 @@ export default function ClientReceptionist() {
         {settings?.activationDate && <Row l="Activé le" v={new Date(settings.activationDate).toLocaleDateString('fr-FR')} />}
         {settings?.lastCallDate && <Row l="Dernier appel" v={new Date(settings.lastCallDate).toLocaleDateString('fr-FR')} />}
       </Section>
+      </HubGroup>
 
       {/* —— Info box —— */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}

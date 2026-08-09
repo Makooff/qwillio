@@ -496,11 +496,24 @@ export default function AssistantChat({
   const activeColor = '#7A5FFF';
 
   return (
-    // Height follows the viewport: the header now carries identity, number and
-    // quota, so a fixed 480px would starve the message list on short screens.
+    /* La hauteur se déduit de la place DISPONIBLE, pas d'une fraction de
+       l'écran.
+     *
+     * `76vh` mesurait l'écran entier, sans rien retirer de ce qui l'occupe
+     * déjà: l'entête collante en haut, la barre flottante en bas, les marges de
+     * la page. La carte dépassait donc, et son composeur — la seule chose qu'on
+     * vient y faire — se retrouvait sous la barre du bas (retour utilisateur).
+     *
+     * `dvh` et non `vh`: sur iOS, `vh` compte la zone cachée par la barre
+     * d'adresse, ce qui rajoutait la hauteur de cette barre à l'erreur.
+     * Le plancher garde la carte utilisable sur un petit écran en paysage. */
     <div
       className="rounded-2xl border border-white/[0.08] bg-[#0A0A0C] overflow-hidden flex flex-col"
-      style={{ height: showHeader ? 'min(76vh, 640px)' : 480 }}
+      style={{
+        height: showHeader
+          ? 'clamp(360px, calc(100dvh - 232px), 640px)'
+          : 480,
+      }}
     >
       {/* Header: who you are talking to, the AI number, and the live test call.
           This is the page's identity block, kept here so the panel is

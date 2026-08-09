@@ -1244,7 +1244,15 @@ export class ClientDashboardController {
       }
       const state = GCAL_STATE_PREFIX + jwt.sign({ gcal: req.clientId }, env.JWT_SECRET, { expiresIn: '15m' });
       const url = googleCalendarService.getConnectUrl(state);
-      res.json({ url });
+      /* On renvoie AUSSI l'adresse de retour employee.
+       *
+       * `redirect_uri_mismatch` est le refus le plus opaque de Google: il ne
+       * dit jamais QUELLE adresse a ete envoyee, seulement qu'elle n'est pas
+       * dans la console. Or c'est une comparaison caractere par caractere, ou
+       * un `www`, un slash final ou un `http` suffisent. La renvoyer permet de
+       * l'afficher a l'ecran et de la coller telle quelle dans la console, au
+       * lieu de deviner ce que le serveur a en memoire. */
+      res.json({ url, redirectUri: env.GOOGLE_OAUTH_REDIRECT_URI });
     } catch (error: any) {
       logger.error('GCal auth-url error:', error);
       res.status(500).json({ error: error.message });
