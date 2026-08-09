@@ -74,6 +74,31 @@ describe('l’entête mobile en vignette', () => {
     expect(parseInt(masked.style.height, 10)).toBeGreaterThan(100);
   });
 
+  /* Une entrée de la barre peut viser un panneau, donc porter un fragment
+     (`/dashboard/receptionist#identite`). `pathname` ne contient jamais le
+     `#`: comparer les chaînes telles quelles rendait l'onglet inactif et
+     faisait disparaître la bulle alors qu'on est bien dessus. */
+  it('reconnaît l’onglet actif même quand son chemin porte un fragment', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/dashboard/receptionist']}>
+        <DashboardShell
+          primaryNav={[{ path: '/dashboard', icon: LayoutDashboard, label: 'Accueil' }]}
+          pageTitles={{}}
+          mobileNav={[
+            { path: '/dashboard', icon: LayoutDashboard, label: 'Home', exact: true },
+            { path: '/dashboard/receptionist#identite', icon: LayoutDashboard, label: 'IA' },
+          ]}
+          scope="test"
+          userFallbackName="Client"
+          userFallbackInitials="CL"
+        />
+      </MemoryRouter>,
+    );
+    const ia = container.querySelector('a[href*="receptionist"]')!;
+    // Actif = pleine opacité; inactif = 40 %.
+    expect((ia as HTMLElement).style.color).toContain('255, 255, 255');
+  });
+
   /* Le voile est un élément positionné: il se peint au-dessus du contenu en
      flux. Sans `relative` sur ce qui doit rester lisible, la grille et l'avatar
      passeraient dessous. */

@@ -285,6 +285,34 @@ export default function ClientReceptionist() {
 
   useEffect(() => { load(); }, [load]);
 
+  /* Le fragment de l'URL ouvre un panneau.
+   *
+   * La barre du bas vise `#identite`, pour tomber sur l'identité de l'agent
+   * plutôt que sur le hub. On écoute aussi `hashchange`: appuyer une seconde
+   * fois sur l'onglet ne change pas de route, React Router ne rend donc rien,
+   * et sans cet écouteur le panneau refermé ne se rouvrirait jamais. */
+  useEffect(() => {
+    const open = () => {
+      const id = window.location.hash.replace('#', '');
+      if (id) setOpenId(id);
+    };
+    open();
+    window.addEventListener('hashchange', open);
+    return () => window.removeEventListener('hashchange', open);
+  }, []);
+
+  /* Fermer le panneau efface le fragment.
+     Sans ça, l'URL reste `#identite` panneau fermé: réappuyer sur l'onglet IA
+     mène à la MÊME adresse, aucun événement n'est émis, et le panneau ne se
+     rouvre jamais. `replaceState` plutôt que `location.hash = ''`: il ne
+     déclenche pas `hashchange`, donc pas de boucle avec l'effet ci-dessus, et
+     il n'ajoute pas une entrée dans l'historique à chaque fermeture. */
+  useEffect(() => {
+    if (openId === null && window.location.hash) {
+      window.history.replaceState({}, '', window.location.pathname + window.location.search);
+    }
+  }, [openId]);
+
   // Google OAuth redirect lands back here with ?code=&state= — finish the handshake
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

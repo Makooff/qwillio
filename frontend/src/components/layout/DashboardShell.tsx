@@ -502,9 +502,15 @@ export default function DashboardShell(props: DashboardShellProps) {
 function MobileBottomNav({
   items, pathname, scope, onTap,
 }: { items: NavItem[]; pathname: string; scope: string; onTap?: () => void }) {
-  const activeIdx = items.findIndex(item =>
-    item.exact ? pathname === item.path : pathname.startsWith(item.path)
-  );
+  /* Le fragment ne fait pas partie du chemin.
+     Une entrée peut viser un panneau (`/dashboard/receptionist#identite`), et
+     `pathname` ne contient jamais le `#`: comparer les chaînes telles quelles
+     rendait l'onglet inactif et la bulle disparaissait alors qu'on est bien
+     dessus. */
+  const activeIdx = items.findIndex(item => {
+    const base = item.path.split('#')[0];
+    return item.exact ? pathname === base : pathname.startsWith(base);
+  });
   const itemPct = 100 / items.length;
   const showBubble = activeIdx >= 0;
   const reduceMotion = useReducedMotion();

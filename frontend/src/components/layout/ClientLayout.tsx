@@ -35,7 +35,10 @@ const MOBILE_NAV: NavItem[] = [
      tombe, et c'est la seule entrée où l'on va pour AGIR sur l'agent, les
      quatre autres ne font que regarder ce qu'il a produit. */
   { icon: BarChart3,       label: 'Analytique', path: '/dashboard/analytics' },
-  { icon: Bot,             label: 'IA',     path: '/dashboard/receptionist' },
+  /* Vers l'identité DIRECTEMENT (demande utilisateur): le fragment ouvre le
+     panneau, plutôt que de déposer sur le hub d'où il faut encore viser une
+     rangée. Le retour du panneau ramène au hub, donc rien n'est perdu. */
+  { icon: Bot,             label: 'IA',     path: '/dashboard/receptionist#identite' },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
