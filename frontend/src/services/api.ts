@@ -3,6 +3,12 @@ import axios from 'axios';
 const rawUrl = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/$/, '');
 const baseURL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
 
+/* Exportée pour les réponses lues en FLUX.
+   Axios rend le corps une fois complet: il ne peut pas servir un flux. Ces
+   appels-là passent par `fetch`, et n'ont aucune raison de recalculer l'adresse
+   de l'API dans leur coin. */
+export const apiBaseUrl = baseURL;
+
 const api = axios.create({
   baseURL,
   timeout: 20000,

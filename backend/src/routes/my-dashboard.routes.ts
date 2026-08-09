@@ -84,6 +84,7 @@ router.delete('/phone-numbers/:id', (req, res) => clientDashboardController.remo
 router.post('/voice-clone', transcribeLimiter, (req, res) => clientDashboardController.createVoiceClone(req, res));
 router.delete('/voice-clone', (req, res) => clientDashboardController.deleteVoiceClone(req, res));
 router.post('/assistant/chat', (req, res) => clientDashboardController.assistantChat(req, res));
+router.post('/assistant/chat/stream', (req, res) => clientDashboardController.assistantChatStream(req, res));
 router.post('/assistant/transcribe', transcribeLimiter, (req, res) => clientDashboardController.assistantTranscribe(req, res));
 // Vision costs more per call than transcription, hence the tighter budget.
 router.post('/assistant/extract-items', extractLimiter, (req, res) => clientDashboardController.assistantExtractItems(req, res));

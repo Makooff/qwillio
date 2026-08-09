@@ -464,6 +464,9 @@ export default function ClientReceptionist() {
           )
         }
         isFr={agentLanguage !== 'en'}
+        /* Le portrait du personnage choisi, pour que l'entête du chat dise à
+           qui l'on parle. Il vient de la même source que le carrousel. */
+        avatarUrl={selectedCharacter?.avatar || null}
         onConfigChanged={load}
         businessName={client.businessName || businessName}
         planLabel={planName}
