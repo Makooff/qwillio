@@ -4,7 +4,7 @@ import { logger } from '../../config/logger';
 import { env } from '../../config/env';
 import { realtimeContextService, type ClientVoiceProfile } from './realtime-context.service';
 import { callSessionStore } from './call-session.store';
-import { buildRealtimePlans, buildVoice } from './speech-plans';
+import { buildRealtimePlans, buildSpeech } from './speech-plans';
 import { buildVoiceTools } from './voice-tools';
 import { buildSystemPrompt, firstMessageVariants } from './system-prompt';
 import { greetingAudioService } from './greeting-audio.service';
@@ -80,8 +80,6 @@ class RealtimeOrchestratorService {
       ? businessMemoryService.promptBlock(await businessMemoryService.all(clientId), profile.language)
       : '';
 
-    const firstMessage = await this.resolveFirstMessage(profile, caller.knownName);
-
     if (vapiCallId) {
       callSessionStore.start({ vapiCallId, clientId, callerNumber, language: profile.language });
     }
@@ -93,42 +91,34 @@ class RealtimeOrchestratorService {
       customVoice: profile.customVoice,
     });
 
-    // Custom-LLM moves the turn loop into this backend, which is what lets the
-    // intent router actually skip the model on a backchannel and route the rest
-    // to the cheapest model that can answer. Opt-in per client, because it also
-    // puts this service in the audio path of every turn.
-    const model = profile.customLlm
-      ? {
-          provider: 'custom-llm',
-          url: `${env.API_BASE_URL}/api/webhooks/vapi/llm/${clientId}`,
-          model: env.VAPI_MODEL,
-          temperature: 0.6,
-          maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
-          messages: [{ role: 'system', content: buildSystemPrompt(profile, caller, knowledgeBlock) }],
-          tools: buildVoiceTools(profile),
-        }
-      : {
-          provider: 'openai',
-          model: env.VAPI_MODEL,
-          temperature: 0.6,
-          // Cap the completion: a receptionist turn that runs past ~60 tokens is
-          // a monologue, and long completions are the other half of TTS latency.
-          maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
-          messages: [{ role: 'system', content: buildSystemPrompt(profile, caller, knowledgeBlock) }],
-          tools: buildVoiceTools(profile),
-        };
+    /* Le modèle et la voix viennent d'un seul endroit (`buildSpeech`), partagé
+       avec l'appel test et la démo: c'est ce qui garantit que la réceptionniste
+       est la même partout.
+       Custom-LLM ramène la boucle de tour dans ce backend, ce qui permet au
+       routeur d'intention de sauter le modèle sur un simple acquiescement.
+       Il ne vaut que pour la chaîne classique: en parole-à-parole, le modèle
+       tient la conversation lui-même et il n'y a pas de tour de texte à
+       intercepter. */
+    const { model, voice, speechToSpeech } = buildSpeech({
+      lang: profile.language,
+      systemPrompt: buildSystemPrompt(profile, caller, knowledgeBlock),
+      tools: buildVoiceTools(profile),
+      character,
+      hasCustomVoice: !!profile.customVoice,
+      customLlmUrl: profile.customLlm
+        ? `${env.API_BASE_URL}/api/webhooks/vapi/llm/${clientId}`
+        : undefined,
+    });
+
+    // Après `buildSpeech`: l'accueil dépend du mode retenu.
+    const firstMessage = await this.resolveFirstMessage(profile, caller.knownName, speechToSpeech);
 
     const assistant = {
       name: `Receptionist - ${profile.businessName}`,
       model,
-      voice: buildVoice({
-        voiceId: character.voiceId,
-        stability: character.stability,
-        similarityBoost: character.similarityBoost,
-        style: character.style,
-      }),
+      voice,
       firstMessage,
-      ...buildRealtimePlans(profile.language),
+      ...buildRealtimePlans(profile.language, speechToSpeech),
       serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${clientId}`,
       recordingEnabled: true,
       endCallFunctionEnabled: true,
@@ -149,11 +139,20 @@ class RealtimeOrchestratorService {
    * saved TTS milliseconds — those greetings cannot be pre-generated because
    * they depend on who is ringing, so they stay text.
    */
-  private async resolveFirstMessage(profile: ClientVoiceProfile, knownName: string | null): Promise<string> {
+  private async resolveFirstMessage(
+    profile: ClientVoiceProfile,
+    knownName: string | null,
+    /* En parole-à-parole, l'accueil pré-synthétisé est un piège: il a été
+       fabriqué avec la voix ElevenLabs du personnage, alors que la suite de
+       l'appel sera dite par le modèle. L'appelant entendrait une voix
+       l'accueillir et une autre lui répondre. On renonce donc aux quelques
+       millisecondes gagnées et on laisse le modèle dire lui-même sa phrase. */
+    speechToSpeech = false,
+  ): Promise<string> {
     const variants = firstMessageVariants(profile, knownName);
     const pick = Math.floor(Math.random() * variants.length);
 
-    if (!knownName) {
+    if (!knownName && !speechToSpeech) {
       const audio = await greetingAudioService.available(profile.clientId);
       // Match on the exact text: a greeting generated before a rename would
       // otherwise introduce the agent under the old name.

@@ -161,6 +161,91 @@ export function buildVoice(opts: {
 }
 
 /**
+ * Les voix du modèle temps réel.
+ *
+ * La liste est courte et FERMÉE: Vapi rejette l'assistant entier sur une voix
+ * inconnue, et six voix d'OpenAI (ash, ballad, coral, fable, onyx, nova) ne
+ * sont pas servies par les modèles temps réel. `marin` et `cedar` sont les deux
+ * qui leur sont propres, et de loin les plus naturelles.
+ *
+ * Le personnage choisi ne détermine donc plus le timbre exact, seulement le
+ * genre. C'est la contrepartie honnête du mode: le modèle fabrique sa voix, il
+ * n'en emprunte pas une.
+ */
+const REALTIME_VOICE: Record<'f' | 'm', string> = { f: 'marin', m: 'cedar' };
+
+/**
+ * Le mode parole-à-parole s'applique-t-il à CE client ?
+ *
+ * Une voix clonée l'emporte toujours. Un client qui a enregistré la sienne a
+ * demandé précisément cette voix-là; la remplacer par celle d'OpenAI, si
+ * naturelle soit-elle, ne serait pas une amélioration mais la perte de ce
+ * qu'il était venu chercher. La règle est automatique, jamais un réglage à ne
+ * pas oublier.
+ */
+export function useSpeechToSpeech(opts: { hasCustomVoice?: boolean }): boolean {
+  return env.VOICE_SPEECH_TO_SPEECH && !opts.hasCustomVoice;
+}
+
+/**
+ * Le couple modèle + voix, choisi d'un seul endroit.
+ *
+ * Les trois appelants (l'appel entrant réel, l'appel test du tableau de bord,
+ * la démo publique) assemblaient chacun leur `model` et leur `voice`. Trois
+ * copies d'un choix, c'est trois occasions de diverger, et le client a déjà
+ * demandé que la réceptionniste soit la même partout. Le branchement vit ici.
+ */
+export function buildSpeech(opts: {
+  lang: VoiceLanguage;
+  systemPrompt: string;
+  tools: any[];
+  character: { voiceId: string; gender: 'f' | 'm'; stability?: number; similarityBoost?: number; style?: number };
+  hasCustomVoice?: boolean;
+  /** L'option « LLM personnalisé » de l'appel entrant, qui ramène la boucle ici. */
+  customLlmUrl?: string;
+  temperature?: number;
+}): { model: any; voice: any; speechToSpeech: boolean } {
+  const speechToSpeech = useSpeechToSpeech({ hasCustomVoice: opts.hasCustomVoice });
+
+  if (speechToSpeech) {
+    return {
+      speechToSpeech,
+      model: {
+        provider: 'openai',
+        model: env.VOICE_REALTIME_MODEL,
+        temperature: opts.temperature ?? 0.6,
+        maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
+        messages: [{ role: 'system', content: opts.systemPrompt }],
+        tools: opts.tools,
+      },
+      voice: { provider: 'openai', voiceId: REALTIME_VOICE[opts.character.gender] },
+    };
+  }
+
+  return {
+    speechToSpeech,
+    model: {
+      ...(opts.customLlmUrl
+        ? { provider: 'custom-llm', url: opts.customLlmUrl }
+        : { provider: 'openai' }),
+      model: env.VAPI_MODEL,
+      temperature: opts.temperature ?? 0.6,
+      // Cap the completion: a receptionist turn that runs past ~60 tokens is
+      // a monologue, and long completions are the other half of TTS latency.
+      maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
+      messages: [{ role: 'system', content: opts.systemPrompt }],
+      tools: opts.tools,
+    },
+    voice: buildVoice({
+      voiceId: opts.character.voiceId,
+      stability: opts.character.stability,
+      similarityBoost: opts.character.similarityBoost,
+      style: opts.character.style,
+    }),
+  };
+}
+
+/**
  * Backchannels — the assistant saying "mm-hmm" WHILE the caller is talking.
  *
  * This is the largest remaining humanity gap, and it is independent of latency:
@@ -197,9 +282,13 @@ export function buildBackchannelPlan(lang: VoiceLanguage) {
  * outbound call overrides. Everything here is latency- or interruption-related;
  * business config (prompt, tools, first message) is layered on by the caller.
  */
-export function buildRealtimePlans(lang: VoiceLanguage) {
+export function buildRealtimePlans(lang: VoiceLanguage, speechToSpeech = false) {
   return {
-    transcriber: buildTranscriber(lang),
+    /* Le modèle parole-à-parole entend l'audio lui-même: lui adjoindre un
+       transcripteur, c'est payer une étape dont plus personne ne lit la
+       sortie, et fixer la latence sur elle. Vapi le documente comme inutile
+       dans ce mode. */
+    ...(speechToSpeech ? {} : { transcriber: buildTranscriber(lang) }),
     startSpeakingPlan: buildStartSpeakingPlan(lang),
     stopSpeakingPlan: buildStopSpeakingPlan(),
     backchannelingEnabled: env.VOICE_BACKCHANNEL_ENABLED,

@@ -82,6 +82,19 @@ export const env = {
   VOICE_BARGE_IN_BACKOFF_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_BACKOFF_SECONDS || '1.0'),
   /** First TTS chunk size — smaller means audio starts sooner. */
   VOICE_TTS_MIN_CHUNK_CHARS: parseInt(process.env.VOICE_TTS_MIN_CHUNK_CHARS || '20', 10),
+  /* Parole-à-parole (le mode « voix de ChatGPT »).
+   *
+   * La chaîne classique transcrit, puis fait écrire un modèle, puis synthétise:
+   * trois étapes, trois latences, et une voix qui lit un texte. Le modèle
+   * temps réel d'OpenAI prend l'audio et rend l'audio, sans passer par le
+   * texte: c'est de là que viennent à la fois le délai le plus court et les
+   * intonations, les hésitations, le rire.
+   *
+   * Mis à 'off' dans Render, tout retombe sur ElevenLabs sans redéploiement:
+   * c'est le seul interrupteur à connaître si le rendu déplaît ou si la minute
+   * coûte trop cher. */
+  VOICE_SPEECH_TO_SPEECH: (process.env.VOICE_SPEECH_TO_SPEECH || 'on').toLowerCase() !== 'off',
+  VOICE_REALTIME_MODEL: process.env.VOICE_REALTIME_MODEL || 'gpt-realtime-2025-08-28',
   /** Cap on a single assistant turn; long completions are long silences. */
   VOICE_MAX_COMPLETION_TOKENS: parseInt(process.env.VOICE_MAX_COMPLETION_TOKENS || '120', 10),
   /** How long a running tool waits before the second filler line fires. */
