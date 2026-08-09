@@ -391,6 +391,49 @@ export class ClientDashboardController {
     }
   }
 
+  // POST /my-dashboard/assistant/chat/stream — la même conversation, en flux.
+  //
+  // Un POST et non un `EventSource`: l'historique du fil ne tient pas dans une
+  // URL, et `EventSource` ne sait pas porter l'en-tête d'autorisation. Le
+  // client lit donc le corps de la réponse au fur et à mesure.
+  async assistantChatStream(req: any, res: Response) {
+    const raw = Array.isArray(req.body?.messages) ? req.body.messages : [];
+    const messages = raw
+      .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .slice(-20)
+      .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 4000) }));
+    if (!messages.length) return res.status(400).json({ error: 'messages required' });
+
+    const allowedModes = ['config', 'onboarding', 'receptionist'] as const;
+    const mode = allowedModes.includes(req.body?.mode) ? req.body.mode : 'config';
+
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    // Render met un proxy devant le service, et un proxy qui met en tampon
+    // rend le flux inutile: tout arriverait d'un coup, à la fin.
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    const send = (payload: any) => res.write(`data: ${JSON.stringify(payload)}\n\n`);
+
+    try {
+      const { assistantChatService } = await import('../services/assistant-chat.service');
+      const result = await assistantChatService.chatStream(
+        req.clientId, messages, mode,
+        (delta) => send({ delta }),
+      );
+      send({ done: true, configChanged: result.configChanged, completed: result.completed });
+    } catch (error: any) {
+      logger.error('assistantChatStream failed:', error);
+      // Les en-têtes sont déjà partis: on ne peut plus répondre 500, l'erreur
+      // doit voyager dans le flux lui-même pour que la page puisse le dire.
+      send({ error: error.message || 'stream_failed' });
+    } finally {
+      res.end();
+    }
+  }
+
   // POST /my-dashboard/assistant/transcribe: speech-to-text for the chat's
   // dictation button. Audio arrives base64-encoded in JSON so no multipart
   // dependency is needed; clips are seconds long and stay far under the 10mb

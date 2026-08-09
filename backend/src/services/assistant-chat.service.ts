@@ -98,8 +98,58 @@ const TOOLS = [
   },
 ];
 
+/**
+ * Yields the payload of each `data:` line of an SSE body.
+ *
+ * Le point délicat n'est pas le format, c'est le DÉCOUPAGE: un chunk réseau ne
+ * s'aligne sur rien, il coupe volontiers un événement en deux et en apporte
+ * trois à la fois. On garde donc le reliquat entre deux chunks et on ne traite
+ * que ce qui est terminé par un saut de ligne. Découper naïvement chunk par
+ * chunk produit du JSON tronqué, une exception par-ci par-là, et des mots
+ * manquants dans la réponse.
+ */
+export async function* readSseEvents(body: AsyncIterable<Uint8Array>): AsyncGenerator<string> {
+  const decoder = new TextDecoder();
+  let buffer = '';
+  for await (const chunk of body) {
+    buffer += decoder.decode(chunk, { stream: true });
+    let nl: number;
+    while ((nl = buffer.indexOf('\n')) !== -1) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (line.startsWith('data:')) yield line.slice(5).trim();
+    }
+  }
+  const rest = buffer.trim();
+  if (rest.startsWith('data:')) yield rest.slice(5).trim();
+}
+
 export class AssistantChatService {
+  /**
+   * Non-streaming call, kept for every caller that wants one object back.
+   *
+   * It DELEGATES to the streaming path with a no-op sink rather than keeping a
+   * second copy of the tool loop: two loops would have drifted apart the first
+   * time a tool was added on one side only.
+   */
   async chat(clientId: string, messages: ChatMessage[], mode: ChatMode = 'config'): Promise<ChatResult> {
+    return this.chatStream(clientId, messages, mode, () => { /* discarded */ });
+  }
+
+  /**
+   * Same conversation, delivered token by token.
+   *
+   * The typed assistant used to wait for the whole answer before showing
+   * anything: several seconds of spinner on a reply that starts arriving after
+   * a few hundred milliseconds. `onDelta` is called with each fragment as it
+   * comes, so the page can write it as it is spoken.
+   */
+  async chatStream(
+    clientId: string,
+    messages: ChatMessage[],
+    mode: ChatMode = 'config',
+    onDelta: (text: string) => void = () => { /* noop */ },
+  ): Promise<ChatResult> {
     if (!env.OPENAI_API_KEY) {
       return {
         reply: "L'assistant conversationnel n'est pas encore configuré (clé OpenAI manquante).",
@@ -132,17 +182,18 @@ export class AssistantChatService {
 
     let reply = '';
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const res = await this.callOpenAI(convo, mode);
-      if (!res) break;
-      const msg = res.choices?.[0]?.message;
+      const msg = await this.streamOpenAI(convo, mode, onDelta);
       if (!msg) break;
       convo.push(msg);
 
       const toolCalls = msg.tool_calls || [];
-      if (!toolCalls.length) {
-        reply = msg.content || '';
-        break;
-      }
+      /* Le texte de CHAQUE tour compte, pas seulement celui du dernier.
+         L'ancienne boucle ne retenait que le tour sans appel d'outil: une
+         phrase dite avant un `update_config` était perdue de la réponse
+         rendue. Maintenant qu'elle est déjà partie sur le fil, la jeter
+         laisserait le rendu et le flux en désaccord. */
+      if (msg.content) reply += (reply ? '\n' : '') + msg.content;
+      if (!toolCalls.length) break;
 
       for (const call of toolCalls) {
         // Only onboarding mode may declare itself finished, so a chat in config
@@ -303,7 +354,22 @@ export class AssistantChatService {
     return this.systemPrompt(client, isFr, 'config');
   }
 
-  private async callOpenAI(messages: any[], mode: ChatMode): Promise<any | null> {
+  /**
+   * One round, streamed, reassembled into the message object the tool loop
+   * already knew how to read.
+   *
+   * Two things arrive in pieces and have to be put back together differently.
+   * The text is simply concatenated, and forwarded as it comes. The tool calls
+   * arrive as fragments keyed by `index`: the id and the name land on the first
+   * fragment, the JSON arguments in as many pieces as the model felt like. They
+   * are accumulated per index, never per position in the array, because the
+   * fragments of two calls interleave.
+   */
+  private async streamOpenAI(
+    messages: any[],
+    mode: ChatMode,
+    onDelta: (text: string) => void,
+  ): Promise<any | null> {
     try {
       // Receptionist (test) mode is a pure roleplay — no config tools.
       const useTools = mode !== 'receptionist';
@@ -316,13 +382,45 @@ export class AssistantChatService {
           ...(useTools ? { tools: TOOLS, tool_choice: 'auto' } : {}),
           temperature: mode === 'receptionist' ? 0.7 : 0.4,
           max_tokens: 500,
+          stream: true,
         }),
       });
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
         logger.error(`[AssistantChat] OpenAI ${res.status}: ${(await res.text()).slice(0, 200)}`);
         return null;
       }
-      return await res.json();
+
+      let content = '';
+      const calls = new Map<number, { id: string; type: 'function'; function: { name: string; arguments: string } }>();
+
+      for await (const event of readSseEvents(res.body as any)) {
+        if (event === '[DONE]') break;
+        let payload: any;
+        try { payload = JSON.parse(event); } catch { continue; }
+        const delta = payload.choices?.[0]?.delta;
+        if (!delta) continue;
+
+        if (typeof delta.content === 'string' && delta.content) {
+          content += delta.content;
+          onDelta(delta.content);
+        }
+        for (const part of delta.tool_calls || []) {
+          const idx = part.index ?? 0;
+          const acc = calls.get(idx)
+            || { id: '', type: 'function' as const, function: { name: '', arguments: '' } };
+          if (part.id) acc.id = part.id;
+          if (part.function?.name) acc.function.name = part.function.name;
+          if (part.function?.arguments) acc.function.arguments += part.function.arguments;
+          calls.set(idx, acc);
+        }
+      }
+
+      const toolCalls = [...calls.entries()].sort((a, b) => a[0] - b[0]).map(([, c]) => c);
+      return {
+        role: 'assistant',
+        content: content || null,
+        ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
+      };
     } catch (err) {
       logger.error('[AssistantChat] OpenAI call failed:', err);
       return null;

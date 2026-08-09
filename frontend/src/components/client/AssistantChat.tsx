@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
-  ArrowUp, Mic, Square, AudioLines, Plus,
+  ArrowUp, Mic, AudioLines, Plus,
   Loader2, Bot, Copy, Check, PhoneCall, X, Lightbulb,
 } from '../icons';
-import api from '../../services/api';
+import api, { apiBaseUrl } from '../../services/api';
 import VapiLiveCall from './VapiLiveCall';
 
 const cn = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
@@ -60,6 +60,86 @@ function blobToBase64(blob: Blob): Promise<string> {
     r.onerror = () => reject(r.error);
     r.readAsDataURL(blob);
   });
+}
+
+/**
+ * Le temps mort avant le premier mot.
+ *
+ * Trois points qui respirent, DANS la carte de réponse déjà posée, plutôt
+ * qu'un rouet dans une carte à part. La différence n'est pas décorative: le
+ * rouet annonçait « attendez », les points disent « elle écrit », et la carte
+ * qu'ils occupent est celle que le texte va remplir, sans remplacement.
+ *
+ * Une boucle, donc des keyframes: c'est le seul cas où elles valent mieux
+ * qu'une transition, puisque rien ici n'est interruptible par l'utilisateur.
+ */
+function ThinkingDots({ reduceMotion }: { reduceMotion: boolean }) {
+  return (
+    <span className="flex items-center gap-1 py-1" aria-label="…">
+      {[0, 1, 2].map(i => (
+        <motion.span
+          key={i}
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ background: '#8B8BA7' }}
+          animate={reduceMotion ? { opacity: 0.6 } : { opacity: [0.25, 1, 0.25] }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 1.1, repeat: Infinity, ease: 'easeInOut', delay: i * 0.14 }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/**
+ * La transcription, montrée pour ce qu'elle est: des mots qui s'écrivent.
+ *
+ * C'était un rouet, qui ne disait ni ce qu'on attendait ni combien il en
+ * restait. Trois traits de longueurs inégales, balayés par une lueur qui
+ * avance de gauche à droite, donnent la seule chose vraie qu'on puisse
+ * montrer: du texte en train de se former, dans le sens de la lecture.
+ */
+function TranscribingCard({ isFr, reduceMotion }: { isFr: boolean; reduceMotion: boolean }) {
+  const widths = ['62%', '86%', '44%'];
+  return (
+    <motion.div
+      className="flex justify-start"
+      initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+      style={{ transformOrigin: 'bottom left' }}
+      aria-live="polite"
+    >
+      <div
+        className="w-[72%] px-3.5 py-2.5"
+        style={{
+          borderRadius: 16,
+          // Même gris que les cartes de messages: c'en est une, en attente.
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.07)',
+        }}
+      >
+        <div className="flex items-center gap-1.5 mb-2">
+          <Mic size={12} style={{ color: '#8B8BA7' }} aria-hidden="true" />
+          <span className="text-[11px]" style={{ color: '#8B8BA7' }}>
+            {isFr ? 'Transcription…' : 'Transcribing…'}
+          </span>
+        </div>
+        <div className="space-y-1.5" aria-hidden="true">
+          {widths.map((w, i) => (
+            <div key={i} className="h-2 rounded-full overflow-hidden" style={{ width: w, background: 'rgba(255,255,255,0.07)' }}>
+              {!reduceMotion && (
+                <motion.div
+                  className="h-full w-1/2"
+                  style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.30), transparent)' }}
+                  animate={{ x: ['-100%', '300%'] }}
+                  transition={{ duration: 1.25, repeat: Infinity, ease: 'linear', delay: i * 0.12 }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
 /**
@@ -134,7 +214,7 @@ function VoiceViz({ isFr, analyser }: { isFr: boolean; analyser: AnalyserNode | 
 export default function AssistantChat({
   isFr = true, onConfigChanged, initialMode = 'config', lockMode = false, onCompleted,
   businessName, planLabel, isTrial = false, phone, quota, showHeader = true,
-  setupComplete = true, onItemsExtracted, numberBadge,
+  setupComplete = true, onItemsExtracted, numberBadge, avatarUrl,
 }: {
   isFr?: boolean;
   onConfigChanged?: () => void;
@@ -144,6 +224,8 @@ export default function AssistantChat({
   lockMode?: boolean;
   /** Onboarding mode: the assistant considers first-time setup finished. */
   onCompleted?: () => void;
+  /** Portrait du personnage choisi, affiché à la place de l'icône générique. */
+  avatarUrl?: string | null;
   /** Identity shown in the chat header, so the panel says who you are talking to. */
   businessName?: string;
   planLabel?: string;
@@ -173,6 +255,7 @@ export default function AssistantChat({
    */
   onItemsExtracted?: (items: { category: string; name: string; price: string }[]) => void;
 }) {
+  const reduceMotion = !!useReducedMotion();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: greetingFor(initialMode, isFr) }]);
   const [input, setInput] = useState('');
@@ -270,25 +353,89 @@ export default function AssistantChat({
     ));
   };
 
+  /**
+   * L'envoi, en flux.
+   *
+   * La réponse arrivait d'un bloc: plusieurs secondes de rouet sur un texte qui
+   * commence pourtant à sortir au bout de quelques centaines de millisecondes.
+   * La carte de réponse est donc posée VIDE tout de suite, à l'instant du
+   * tap, et se remplit mot à mot. Il n'y a plus d'attente à signaler puisqu'il
+   * n'y a plus d'attente: la place de la réponse est prise avant qu'elle
+   * existe, ce que font Gemini et ChatGPT.
+   *
+   * `fetch` et non axios: axios rend le corps une fois complet, il ne sait pas
+   * servir un flux.
+   */
   const send = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
     const next: Msg[] = [...messages, { role: 'user', content: trimmed }];
-    setMessages(next);
+    // La carte vide EST l'indicateur d'attente. Elle est déjà à sa place, à sa
+    // largeur minimale, et le texte l'agrandit au lieu de la remplacer.
+    setMessages([...next, { role: 'assistant', content: '' }]);
     setInput('');
     if (taRef.current) taRef.current.style.height = 'auto';
     setSending(true);
+
+    /* On ne réécrit que la DERNIÈRE carte, et seulement si elle est bien celle
+       de la réceptionniste: entre deux fragments, l'utilisateur a pu déclencher
+       autre chose qui ajoute un message. */
+    const appendToLast = (fn: (current: string) => string) => setMessages(m => {
+      const i = m.length - 1;
+      if (i < 0 || m[i].role !== 'assistant') return m;
+      const copy = m.slice();
+      copy[i] = { ...copy[i], content: fn(copy[i].content) };
+      return copy;
+    });
+
+    let received = false;
     try {
-      const res = await api.post('/my-dashboard/assistant/chat', {
-        mode,
-        messages: next.filter(m => m.role === 'user' || m.role === 'assistant'),
+      const res = await fetch(`${apiBaseUrl}/my-dashboard/assistant/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: JSON.stringify({ mode, messages: next }),
       });
-      const reply = res.data?.reply || (isFr ? 'Désolée, je n’ai pas compris.' : 'Sorry, I didn’t catch that.');
-      setMessages(m => [...m, { role: 'assistant', content: reply }]);
-      if (res.data?.configChanged) onConfigChanged?.();
-      if (res.data?.completed) onCompleted?.();
+      if (!res.ok || !res.body) throw new Error('stream_unavailable');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      /* Le reliquat entre deux chunks: un chunk réseau coupe volontiers un
+         événement en deux. Sans ce tampon, on perd des mots au hasard. */
+      let buffer = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buffer.indexOf('\n')) !== -1) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (!line.startsWith('data:')) continue;
+          let payload: any;
+          try { payload = JSON.parse(line.slice(5)); } catch { continue; }
+          if (payload.error) throw new Error(payload.error);
+          if (typeof payload.delta === 'string' && payload.delta) {
+            received = true;
+            appendToLast(c => c + payload.delta);
+          }
+          if (payload.done) {
+            if (payload.configChanged) onConfigChanged?.();
+            if (payload.completed) onCompleted?.();
+          }
+        }
+      }
+      if (!received) {
+        appendToLast(c => c || (isFr ? 'Désolée, je n’ai pas compris.' : 'Sorry, I didn’t catch that.'));
+      }
     } catch {
-      setMessages(m => [...m, { role: 'assistant', content: isFr ? 'Une erreur est survenue. Réessayez.' : 'Something went wrong. Please try again.' }]);
+      // La carte vide resterait vide, donc muette. On y écrit l'échec plutôt
+      // que d'en ajouter une seconde sous une bulle sans contenu.
+      appendToLast(c => c || (isFr
+        ? 'Une erreur est survenue. Réessayez.'
+        : 'Something went wrong. Please try again.'));
     } finally {
       setSending(false);
     }
@@ -508,15 +655,22 @@ export default function AssistantChat({
      * d'adresse, ce qui rajoutait la hauteur de cette barre à l'erreur.
      * Le plancher garde la carte utilisable sur un petit écran en paysage. */
     <div
-      className="rounded-2xl border border-white/[0.08] bg-[#0A0A0C] overflow-hidden flex flex-col"
+      /* Le fond du chat est celui de la PAGE (demande utilisateur): la carte
+         ne se distingue plus par sa valeur mais par son filet. C'est ce qui
+         permet aux cartes de messages, elles, de prendre le gris des rangées
+         du hub juste en dessous: deux gris différents pour deux niveaux, au
+         lieu de trois valeurs qui se disputaient la même profondeur. */
+      className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden flex flex-col"
       style={{
         height: showHeader
-          /* Raccourci pour que la première rangée du hub dépasse (demande
-             utilisateur): on retire ~112 px de plus, soit la hauteur d'un
-             intitulé de groupe et d'une rangée. Le chat garde de quoi lire
-             trois échanges, et la page annonce ce qui vient après au lieu de
-             s'arrêter net. */
-          ? 'clamp(320px, calc(100dvh - 344px), 520px)'
+          /* Le chat prend l'écran, et la barre du bas s'arrête pile au-dessus
+             de « L'AGENT » (demande utilisateur).
+             Le compte: 68 px d'entête réservés en haut de `main`, 84 px pour
+             la barre flottante (20 px de marge + 64 px de haut), 8 px de
+             respiration. Le titre du groupe suivant tombe alors DERRIÈRE la
+             barre, ce qui est exactement l'effet demandé: on sait qu'il y a
+             une suite sans qu'elle prenne de la place. */
+          ? 'clamp(320px, calc(100dvh - 160px), 720px)'
           : 480,
       }}
     >
@@ -527,11 +681,24 @@ export default function AssistantChat({
       <div className="px-4 py-3 border-b border-white/[0.06] space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
+            {/* Le VISAGE de l'agent, plus une icône générique (demande
+                utilisateur). Ce bloc dit à qui l'on parle: le portrait que le
+                client a choisi le dit, un pictogramme de robot ne dit rien, et
+                surtout rien de personnel. L'icône reste en recours tant que la
+                liste des personnages n'est pas chargée, ou si l'image manque. */}
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0"
               style={{ background: 'rgba(255,255,255,0.05)' }}
             >
-              <Bot size={17} className="text-[#E5E5EA]" aria-hidden="true" />
+              {avatarUrl
+                ? <img
+                    src={avatarUrl}
+                    alt=""
+                    aria-hidden="true"
+                    className="w-full h-full object-cover"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                : <Bot size={17} className="text-[#E5E5EA]" aria-hidden="true" />}
             </div>
             <div className="min-w-0">
               <h2 className="text-[15px] font-semibold text-[#F2F2F2] tracking-tight truncate">
@@ -697,13 +864,36 @@ export default function AssistantChat({
          * conversation. */}
         {messages.map((m, i) => {
           const mine = m.role === 'user';
+          const awaiting = !mine && !m.content && sending;
           return (
-            <div key={i} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
+            /* La carte NAÎT du bouton (demande utilisateur).
+             *
+             * Elle entre en montant de quelques pixels et en s'ouvrant depuis
+             * son coin bas: à droite pour vous, du côté du bouton d'envoi que
+             * vous venez de toucher, à gauche pour elle, du côté où ses cartes
+             * s'alignent. C'est la continuité spatiale, pas un effet: l'objet
+             * apparaît là où le geste l'a produit.
+             *
+             * 200 ms et une courbe de sortie: en dessous on ne voit rien, au
+             * dessus la conversation traîne. `transform` et `opacity`
+             * seulement, jamais la géométrie. */
+            <motion.div
+              key={i}
+              className={cn('flex', mine ? 'justify-end' : 'justify-start')}
+              initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              style={{ transformOrigin: mine ? 'bottom right' : 'bottom left' }}
+            >
               <div
                 className="max-w-[82%] px-3.5 py-2.5 text-[15px] leading-[1.38] whitespace-pre-wrap"
                 style={{
                   borderRadius: 16,
-                  background: mine ? '#EDEDF2' : 'rgba(255,255,255,0.045)',
+                  /* Le gris est celui des rangées du hub, en dessous
+                     (« Identité de l'agent »), à la valeur près: le fil de la
+                     conversation et la liste des réglages sont deux fois le
+                     même objet, une carte posée sur la page. */
+                  background: mine ? '#EDEDF2' : 'rgba(255,255,255,0.03)',
                   color: mine ? '#141417' : '#E9E9EC',
                   /* Le filet ne sert qu'à la carte sombre: sans lui elle se
                      confondrait avec le fond du panneau, qui est presque la
@@ -711,25 +901,14 @@ export default function AssistantChat({
                   border: mine ? 'none' : '1px solid rgba(255,255,255,0.07)',
                 }}
               >
-                {m.content}
+                {/* Rien à charger: la carte est déjà là, elle respire le temps
+                    que le premier mot arrive, puis le texte la remplit. */}
+                {awaiting ? <ThinkingDots reduceMotion={reduceMotion} /> : m.content}
               </div>
-            </div>
+            </motion.div>
           );
         })}
-        {(sending || transcribing) && (
-          <div className="flex justify-start">
-            <div
-              className="px-3.5 py-2.5"
-              style={{
-                background: 'rgba(255,255,255,0.045)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 16,
-              }}
-            >
-              <Loader2 size={14} className="animate-spin" style={{ color: '#8B8BA7' }} />
-            </div>
-          </div>
-        )}
+        {transcribing && <TranscribingCard isFr={isFr} reduceMotion={reduceMotion} />}
       </div>
 
       {/* Confirmation before anything is written to the configuration. */}
@@ -909,15 +1088,28 @@ export default function AssistantChat({
                 </button>
               )}
 
-              {/* Stop the take and transcribe it. */}
+              {/* Arr\u00eater la prise et la transcrire.
+                  Un MICRO, pas un carr\u00e9 (demande utilisateur): pendant qu'on
+                  parle, le bouton doit dire ce qui se passe, et ce qui se passe
+                  c'est qu'on enregistre. Le halo qui bat en est la preuve
+                  vivante; le carr\u00e9, lui, ne parlait que de l'arr\u00eat. */}
               {listening && (
                 <button
                   type="button"
                   onClick={() => stopRecording()}
                   aria-label={isFr ? 'Arr\u00eater et transcrire' : 'Stop and transcribe'}
-                  className="h-9 w-9 rounded-full grid place-items-center text-[#E5E5EA] transition-colors hover:bg-white/[0.06] active:scale-[0.97]"
+                  className="relative h-9 w-9 rounded-full grid place-items-center text-[#E5E5EA] transition-colors hover:bg-white/[0.06] active:scale-[0.97]"
                 >
-                  <Square size={15} />
+                  {!reduceMotion && (
+                    <motion.span
+                      aria-hidden="true"
+                      className="absolute inset-0 rounded-full"
+                      style={{ border: '1px solid rgba(239,68,68,0.55)' }}
+                      animate={{ scale: [1, 1.35], opacity: [0.65, 0] }}
+                      transition={{ duration: 1.4, repeat: Infinity, ease: 'easeOut' }}
+                    />
+                  )}
+                  <Mic size={16} className="relative" style={{ color: '#F87171' }} />
                 </button>
               )}
 
@@ -963,7 +1155,9 @@ export default function AssistantChat({
                     transform: hasContent || listening ? 'scale(1)' : 'scale(0.7)',
                   }}
                 >
-                  {sending ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={17} />}
+                  {/* Plus de rouet ici: la réponse s'écrit dans le fil, il n'y
+                      a donc plus d'attente à annoncer sur le bouton. */}
+                  <ArrowUp size={17} />
                 </span>
                 <span
                   className="absolute inset-0 grid place-items-center transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)]"
