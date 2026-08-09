@@ -397,7 +397,7 @@ export default function DashboardShell(props: DashboardShellProps) {
 
       {/* Main — inset rounded panel against the darker sidebar gutter */}
       <div
-        className="flex-1 flex flex-col min-w-0 overflow-hidden md:rounded-tl-[45px] md:border-l-2 md:border-t-2 border-white/[0.08]"
+        className="relative flex-1 flex flex-col min-w-0 overflow-hidden md:rounded-tl-[45px] md:border-l-2 md:border-t-2 border-white/[0.08]"
         style={{ background: t.panel }}
       >
         {/* Entête mobile en VIGNETTE (demande utilisateur).
@@ -413,8 +413,18 @@ export default function DashboardShell(props: DashboardShellProps) {
          * `-webkit-mask-image` n'est pas rendu: le voile devient une teinte
          * plate, sans flou. Le masque reste donc sur le parent, qui ne filtre
          * rien, et le filtre descend sur un enfant qui ne masque rien. Même
-         * leçon que la barre du site, même correctif. */}
-        <header className="md:hidden sticky top-0 z-30 h-14 flex items-center gap-4 px-4">
+         * leçon que la barre du site, même correctif.
+         *
+         * Et elle est POSÉE SUR le contenu, pas au-dessus de lui.
+         * `sticky` ne servait à rien ici: l'entête était la sœur de `<main>`,
+         * qui est la zone de défilement. Le contenu commençait donc SOUS elle
+         * et ne passait jamais derrière. Un voile qui n'a rien à dissoudre ne
+         * se voit pas: on ne floutait que le fond plat du panneau, ce qui
+         * revenait à ne rien faire, et la page butait sur un bord franc.
+         * En `absolute`, le contenu glisse dessous et s'y efface, ce qui est
+         * tout l'objet de la vignette. `<main>` réserve la hauteur en padding
+         * pour que le haut de page reste lisible à l'arrêt. */}
+        <header className="md:hidden absolute inset-x-0 top-0 z-30 h-14 flex items-center gap-4 px-4">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden"
@@ -486,7 +496,10 @@ export default function DashboardShell(props: DashboardShellProps) {
           </div>
         </header>
 
-        <main ref={mainRef} data-scroll-root className="flex-1 p-4 md:p-8 pb-32 md:pb-8 overflow-auto">
+        {/* `pt-[68px]`: les 56 px de l'entête, plus une respiration. C'est du
+            padding et non une marge, donc le contenu défile bien SOUS le
+            voile au lieu de s'arrêter à son bord. */}
+        <main ref={mainRef} data-scroll-root className="flex-1 p-4 pt-[68px] md:p-8 pb-32 md:pb-8 overflow-auto">
           <Outlet />
         </main>
       </div>

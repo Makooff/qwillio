@@ -74,6 +74,27 @@ describe('l’entête mobile en vignette', () => {
     expect(parseInt(masked.style.height, 10)).toBeGreaterThan(100);
   });
 
+  /**
+   * La régression qui a fait croire que la vignette n'avait jamais été posée.
+   *
+   * Le voile et son masque étaient corrects, mais l'entête était la SŒUR de
+   * `<main>`, qui est la zone de défilement. Le contenu commençait donc sous
+   * elle et ne passait jamais derrière: on ne floutait que le fond plat du
+   * panneau. Visuellement, rien, et un bord franc en haut de page.
+   *
+   * Deux conditions, indissociables: l'entête recouvre (`absolute`), et
+   * `<main>` réserve sa hauteur en PADDING — une marge remettrait le contenu
+   * en butée sous le voile au lieu de le laisser glisser dessous.
+   */
+  it('recouvre la zone de défilement au lieu de la surmonter', () => {
+    const { container } = mount();
+    expect(header(container).className).toContain('absolute');
+
+    const main = container.querySelector('main')!;
+    expect(main.className).toMatch(/\bpt-\[\d+px\]/);
+    expect(main.className).toContain('overflow-auto');
+  });
+
   /* Une entrée de la barre peut viser un panneau, donc porter un fragment
      (`/dashboard/receptionist#identite`). `pathname` ne contient jamais le
      `#`: comparer les chaînes telles quelles rendait l'onglet inactif et
