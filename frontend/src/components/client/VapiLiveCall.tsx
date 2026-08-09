@@ -262,52 +262,68 @@ export default function VapiLiveCall({
       const [data, Vapi] = await Promise.all([configRef.current, sdkRef.current]);
       if (!data?.publicKey) throw new Error('missing key');
 
-      const vapi = new Vapi(data.publicKey);
-      vapiRef.current = vapi;
+      /* UNE seule instance pour toute la vie du composant.
+       *
+       * Elle était recréée à chaque appel, et l'ancienne n'était que
+       * `stop()`ée: le SDK garde alors son objet Daily vivant, si bien que le
+       * second essai en fabriquait un deuxième et que WebRTC refusait —
+       * « Duplicate DailyIframe instances are not allowed » (retour
+       * utilisateur, systématique au deuxième appel). Un appel n'a pas besoin
+       * d'un SDK neuf: `start()` et `stop()` suffisent, et les écouteurs se
+       * posent donc une fois, avec l'instance.
+       */
+      let vapi = vapiRef.current;
+      const isNew = !vapi;
+      if (!vapi) {
+        vapi = new Vapi(data.publicKey);
+        vapiRef.current = vapi;
+      }
 
-      vapi.on('call-start', () => {
-        setState('active');
-        setSecs(0);
-        timerRef.current = setInterval(() => setSecs(s => s + 1), 1000);
-      });
-      vapi.on('call-end', () => {
-        setState('idle');
-        setSpeaking(false);
-        if (timerRef.current) clearInterval(timerRef.current);
-        onEnded?.();
-      });
-      vapi.on('speech-start', () => setSpeaking(true));
-      vapi.on('speech-end', () => setSpeaking(false));
-      vapi.on('volume-level', (l: number) => setLevel(l));
-      vapi.on('error', (e: any) => {
-        // Vapi routinely emits errors with no message. Saying "Erreur appel"
-        // and nothing else sends the user looking in the wrong place.
-        const stop = () => {
+      if (isNew) {
+        vapi.on('call-start', () => {
+          setState('active');
+          setSecs(0);
+          timerRef.current = setInterval(() => setSecs(s => s + 1), 1000);
+        });
+        vapi.on('call-end', () => {
           setState('idle');
+          setSpeaking(false);
           if (timerRef.current) clearInterval(timerRef.current);
-        };
-        if (isMicDenied(e)) {
-          setError(isFr
-            ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
-            : 'Microphone denied. Allow the microphone for this site, then start again.');
-          return stop();
-        }
-        if (isProviderFault(e)) {
-          setError(providerFaultMessage);
-          return stop();
-        }
-        // Le détail brut n'a de sens que sur le tableau de bord, où il a été
-        // ajouté faute de devtools sur un téléphone. Sur le site public, le
-        // lecteur est un prospect: il n'a rien à faire de notre charge JSON.
-        const detail = onSite ? null : errorDetail(e);
-        setError(errorText(e) || [
-          isFr
-            ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
-            : 'The call dropped. Check the microphone and connection, then try again.',
-          detail,
-        ].filter(Boolean).join(' — '));
-        stop();
-      });
+          onEnded?.();
+        });
+        vapi.on('speech-start', () => setSpeaking(true));
+        vapi.on('speech-end', () => setSpeaking(false));
+        vapi.on('volume-level', (l: number) => setLevel(l));
+        vapi.on('error', (e: any) => {
+          // Vapi routinely emits errors with no message. Saying "Erreur appel"
+          // and nothing else sends the user looking in the wrong place.
+          const stop = () => {
+            setState('idle');
+            if (timerRef.current) clearInterval(timerRef.current);
+          };
+          if (isMicDenied(e)) {
+            setError(isFr
+              ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
+              : 'Microphone denied. Allow the microphone for this site, then start again.');
+            return stop();
+          }
+          if (isProviderFault(e)) {
+            setError(providerFaultMessage);
+            return stop();
+          }
+          // Le détail brut n'a de sens que sur le tableau de bord, où il a été
+          // ajouté faute de devtools sur un téléphone. Sur le site public, le
+          // lecteur est un prospect: il n'a rien à faire de notre charge JSON.
+          const detail = onSite ? null : errorDetail(e);
+          setError(errorText(e) || [
+            isFr
+              ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
+              : 'The call dropped. Check the microphone and connection, then try again.',
+            detail,
+          ].filter(Boolean).join(' — '));
+          stop();
+        });
+      }
 
       await vapi.start(data.assistant);
     } catch (e: any) {

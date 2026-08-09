@@ -208,7 +208,10 @@ export default function ClientAnalytics() {
           référence, elle passe simplement par le composant partagé. */}
       <PageHeader
         title="Analytiques"
-        subtitle="Performances de votre réceptionniste IA"
+        /* Espace INSÉCABLE avant « IA »: le sous-titre passait à la ligne
+           juste avant, laissant deux lettres seules sur la seconde ligne
+           (retour utilisateur). */
+        subtitle={'Performances de votre réceptionniste\u00a0IA'}
         action={
           <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.06] rounded-xl p-1">
             {([7, 30, 90] as Period[]).map(d => (

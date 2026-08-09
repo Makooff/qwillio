@@ -24,7 +24,11 @@ describe('buildVapiCallPayload', () => {
     const v = buildVapiCallPayload(input).assistantOverrides.voice;
     expect(v.provider).toBe('11labs');
     expect(v.model).toBe('eleven_flash_v2_5');
-    expect(v.stability).toBe(0.22);
+    /* 0,22 laissait le modèle Flash avaler des syllabes: la voix était
+       expressive et mal comprise. Le défaut remonte à 0,45, et un plancher à
+       0,35 empêche un personnage de redescendre sous le seuil d'articulation
+       (voir `speech-plans.buildVoice`). */
+    expect(v.stability).toBe(0.45);
     expect(v.similarityBoost).toBe(0.65);
     expect(v.style).toBe(0.70);
     expect(v.useSpeakerBoost).toBe(true);
