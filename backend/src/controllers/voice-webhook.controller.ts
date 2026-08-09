@@ -209,7 +209,11 @@ export class VoiceWebhookController {
       recordingUrl,
     );
 
-    await realtimeOrchestratorService.persistMetrics(vapiCallId, finalized.metrics as Record<string, unknown> | null);
+    await realtimeOrchestratorService.persistMetrics(
+      vapiCallId,
+      finalized.metrics as Record<string, unknown> | null,
+      finalized.billing as Record<string, unknown> | null,
+    );
 
     // Caller memory last: it reads the ClientCall row the analysis just wrote.
     await realtimeOrchestratorService.persistMemory({

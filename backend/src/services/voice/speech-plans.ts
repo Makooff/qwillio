@@ -192,8 +192,17 @@ const REALTIME_VOICE: Record<'f' | 'm', string> = { f: 'marin', m: 'cedar' };
  * qu'il était venu chercher. La règle est automatique, jamais un réglage à ne
  * pas oublier.
  */
-export function useSpeechToSpeech(opts: { hasCustomVoice?: boolean }): boolean {
-  return env.VOICE_SPEECH_TO_SPEECH && !opts.hasCustomVoice;
+export function useSpeechToSpeech(opts: {
+  hasCustomVoice?: boolean;
+  /** `auto` suit le réglage global; les deux autres l'emportent. */
+  voiceMode?: 'auto' | 'realtime' | 'classic';
+}): boolean {
+  // La voix clonée passe avant TOUT, y compris un `realtime` explicite: le
+  // client a enregistré cette voix-là, la lui retirer n'est pas un réglage.
+  if (opts.hasCustomVoice) return false;
+  if (opts.voiceMode === 'realtime') return true;
+  if (opts.voiceMode === 'classic') return false;
+  return env.VOICE_SPEECH_TO_SPEECH;
 }
 
 /**
@@ -210,11 +219,13 @@ export function buildSpeech(opts: {
   tools: any[];
   character: { voiceId: string; gender: 'f' | 'm'; stability?: number; similarityBoost?: number; style?: number };
   hasCustomVoice?: boolean;
+  /** Le mode choisi pour ce client; `auto` suit le réglage global. */
+  voiceMode?: 'auto' | 'realtime' | 'classic';
   /** L'option « LLM personnalisé » de l'appel entrant, qui ramène la boucle ici. */
   customLlmUrl?: string;
   temperature?: number;
 }): { model: any; voice: any; speechToSpeech: boolean } {
-  const speechToSpeech = useSpeechToSpeech({ hasCustomVoice: opts.hasCustomVoice });
+  const speechToSpeech = useSpeechToSpeech({ hasCustomVoice: opts.hasCustomVoice, voiceMode: opts.voiceMode });
 
   if (speechToSpeech) {
     return {

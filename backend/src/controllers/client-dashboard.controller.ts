@@ -574,6 +574,9 @@ export class ClientDashboardController {
         tools,
         character,
         hasCustomVoice: !!profile.customVoice,
+        // L'appel test suit le mode du client, sinon il teste autre chose que
+        // ce que l'appelant entendra.
+        voiceMode: profile.voiceMode,
       });
 
       res.json({

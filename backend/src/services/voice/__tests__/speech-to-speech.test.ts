@@ -63,6 +63,42 @@ describe('parole-à-parole', () => {
     expect(voice.voiceId).toBe('el-marie');
   });
 
+  /**
+   * L'ordre de priorité, qui est tout l'intérêt du réglage par client.
+   *
+   * Il faut pouvoir comparer les deux chaînes sur UN compte sans engager la
+   * production entière, dans les deux sens: allumer chez soi quand le global
+   * est éteint, et éteindre chez un client quand le global est allumé.
+   */
+  it('laisse le réglage du client l’emporter sur le global, dans les deux sens', async () => {
+    const { buildSpeech: whenGlobalOff } = await load({ VOICE_SPEECH_TO_SPEECH: 'off' });
+    expect(whenGlobalOff({
+      lang: 'fr', systemPrompt: 'p', tools: [], character: CHARACTER_F, voiceMode: 'realtime',
+    }).speechToSpeech).toBe(true);
+
+    const { buildSpeech: whenGlobalOn } = await load({ VOICE_SPEECH_TO_SPEECH: 'on' });
+    expect(whenGlobalOn({
+      lang: 'fr', systemPrompt: 'p', tools: [], character: CHARACTER_F, voiceMode: 'classic',
+    }).speechToSpeech).toBe(false);
+
+    // `auto` ne décide de rien: il rend la main au réglage global.
+    expect(whenGlobalOn({
+      lang: 'fr', systemPrompt: 'p', tools: [], character: CHARACTER_F, voiceMode: 'auto',
+    }).speechToSpeech).toBe(true);
+  });
+
+  /* La voix clonée passe avant un `realtime` explicite. Sinon un réglage posé
+     une fois retirerait sans bruit la voix que le client a enregistrée. */
+  it('fait passer la voix clonée avant un realtime explicite', async () => {
+    const { buildSpeech } = await load({ VOICE_SPEECH_TO_SPEECH: 'on' });
+    const { speechToSpeech, voice } = buildSpeech({
+      lang: 'fr', systemPrompt: 'p', tools: [], character: CHARACTER_F,
+      voiceMode: 'realtime', hasCustomVoice: true,
+    });
+    expect(speechToSpeech).toBe(false);
+    expect(voice.provider).toBe('11labs');
+  });
+
   it('se coupe entièrement depuis Render, sans redéploiement', async () => {
     const { buildSpeech } = await load({ VOICE_SPEECH_TO_SPEECH: 'off' });
     const { model, voice, speechToSpeech } = buildSpeech({

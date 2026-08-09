@@ -4,7 +4,7 @@ import { logger } from '../../config/logger';
 import { env } from '../../config/env';
 import { realtimeContextService, type ClientVoiceProfile } from './realtime-context.service';
 import { callSessionStore } from './call-session.store';
-import { buildRealtimePlans, buildSpeech } from './speech-plans';
+import { buildRealtimePlans, buildSpeech, useSpeechToSpeech } from './speech-plans';
 import { buildVoiceTools } from './voice-tools';
 import { buildSystemPrompt, firstMessageVariants } from './system-prompt';
 import { greetingAudioService } from './greeting-audio.service';
@@ -105,6 +105,7 @@ class RealtimeOrchestratorService {
       tools: buildVoiceTools(profile),
       character,
       hasCustomVoice: !!profile.customVoice,
+      voiceMode: profile.voiceMode,
       customLlmUrl: profile.customLlm
         ? `${env.API_BASE_URL}/api/webhooks/vapi/llm/${clientId}`
         : undefined,
@@ -384,7 +385,28 @@ class RealtimeOrchestratorService {
       }
     }
 
-    return { transcript, durationSeconds, callerNumber: callerNumberOf(event), metrics };
+    /* Le coût RÉEL de l'appel, tel que Vapi le facture.
+     *
+     * Sans lui, toute décision de tarif repose sur des tarifs publics
+     * additionnés à la main, c'est-à-dire sur une estimation. Vapi envoie le
+     * montant et son détail par fournisseur dans ce même rapport: il ne coûte
+     * rien à prendre, et il vaut mieux que n'importe quel calcul.
+     *
+     * Le mode de voix l'accompagne, sinon les deux chaînes se mélangent dans
+     * la moyenne et le chiffre ne répond plus à la seule question qui compte:
+     * combien coûte la minute en parole-à-parole PLUTÔT qu'en classique. */
+    const profile = await realtimeContextService.getClientProfile(clientId).catch(() => null);
+    const billing = {
+      costUsd: typeof msg.cost === 'number' ? msg.cost : null,
+      costBreakdown: msg.costBreakdown ?? msg.costs ?? null,
+      durationSeconds,
+      voiceMode: profile
+        ? (useSpeechToSpeech({ hasCustomVoice: !!profile.customVoice, voiceMode: profile.voiceMode })
+            ? 'realtime' : 'classic')
+        : null,
+    };
+
+    return { transcript, durationSeconds, callerNumber: callerNumberOf(event), metrics, billing };
   }
 
   /**
@@ -443,8 +465,15 @@ class RealtimeOrchestratorService {
    * Attach the per-call metrics to the persisted ClientCall row. Runs after the
    * existing analysis pipeline has created it, so the row already exists.
    */
-  async persistMetrics(vapiCallId: string, metrics: Record<string, unknown> | null): Promise<void> {
-    if (!metrics) return;
+  async persistMetrics(
+    vapiCallId: string,
+    metrics: Record<string, unknown> | null,
+    /* Séparé des métriques: celles-ci n'existent que si la session vivait
+       encore en mémoire. Le coût, lui, arrive dans le rapport de Vapi et doit
+       être gardé même après un redémarrage du processus. */
+    billing?: Record<string, unknown> | null,
+  ): Promise<void> {
+    if (!metrics && !billing) return;
     try {
       const existing = await prisma.clientCall.findUnique({
         where: { vapiCallId },
@@ -456,7 +485,8 @@ class RealtimeOrchestratorService {
         data: {
           metadata: {
             ...((existing.metadata as Record<string, unknown>) || {}),
-            realtime: metrics,
+            ...(metrics ? { realtime: metrics } : {}),
+            ...(billing ? { billing } : {}),
           } as Prisma.InputJsonObject,
         },
       });
