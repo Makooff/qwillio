@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { toE164 } from '../utils/phone';
@@ -59,8 +58,12 @@ export class CrmDedupService {
 
     // 3. Check by name fuzzy match
     if (data.name && data.matchByName !== false) {
+      /* Pas de filtre `name: { not: null }`: la colonne est obligatoire au
+         schéma, le filtre ne retirait donc jamais rien et faisait seulement
+         croire à une protection. Ce qui existe vraiment, c'est le nom VIDE,
+         écrit quand l'IA n'a pas saisi de prénom. */
       const contacts = await prisma.contact.findMany({
-        where: { clientId, name: { not: null } },
+        where: { clientId, name: { not: '' } },
         select: { id: true, name: true },
       });
 
@@ -125,7 +128,13 @@ export class CrmDedupService {
     const contact = await prisma.contact.create({
       data: {
         clientId,
-        name: data.name,
+        /* `name` est obligatoire au schéma, et l'appelant peut ne rien avoir:
+           l'IA ne récupère pas toujours un prénom. Sans ce repli, Prisma
+           refusait la création au moment de l'appel — donc le contact était
+           perdu, en silence, dans un bloc best-effort. Le numéro est un bien
+           meilleur repli qu'une absence de fiche: le client reconnaît son
+           appelant et corrigera le nom lui-même. */
+        name: data.name || data.phone || 'Contact inconnu',
         email: data.email ? data.email.toLowerCase().trim() : null,
         phone: data.phone ? this.normalizePhone(data.phone) : null,
         niche: data.niche,

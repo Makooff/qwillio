@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Router, Request, Response } from 'express';
 import { authMiddleware, clientMiddleware } from '../middleware/auth.middleware';
 import { prisma } from '../config/database';
@@ -130,7 +129,7 @@ router.post('/contacts', async (req: Request, res: Response) => {
 router.get('/contacts/:id', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const id = req.params.id as string;
+    const id = String(req.params.id);
 
     const contact = await prisma.contact.findFirst({
       where: { id, clientId },
@@ -159,7 +158,7 @@ router.get('/contacts/:id', async (req: Request, res: Response) => {
 router.put('/contacts/:id', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const id = req.params.id as string;
+    const id = String(req.params.id);
     const { name, email, phone, address, niche, leadScore, status, tags, notes, externalIds, enrichedData } = req.body;
 
     const existing = await prisma.contact.findFirst({ where: { id, clientId } });
@@ -194,7 +193,7 @@ router.put('/contacts/:id', async (req: Request, res: Response) => {
 router.delete('/contacts/:id', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const id = req.params.id as string;
+    const id = String(req.params.id);
 
     const existing = await prisma.contact.findFirst({ where: { id, clientId } });
     if (!existing) {
@@ -279,7 +278,13 @@ router.post('/deals', async (req: Request, res: Response) => {
 router.put('/deals/:id', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const { id } = req.params;
+    /* `String(...)` et non une assertion de type: Express rend
+       `string | string[]` parce qu'un client PEUT envoyer `?id[]=a&id[]=b`.
+       Mentir au compilateur avec `as string` laisserait un tableau descendre
+       jusqu'à Prisma, qui refuserait la requête en cours d'appel plutôt qu'à
+       l'entrée. On coerce, la valeur devient inoffensive, et la recherche par
+       identifiant ne trouve simplement rien. */
+    const id = String(req.params.id);
     const { title, stage, value, probability, closeDate } = req.body;
 
     const existing = await prisma.deal.findFirst({ where: { id, clientId } });
@@ -313,7 +318,13 @@ router.put('/deals/:id', async (req: Request, res: Response) => {
 router.delete('/deals/:id', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const { id } = req.params;
+    /* `String(...)` et non une assertion de type: Express rend
+       `string | string[]` parce qu'un client PEUT envoyer `?id[]=a&id[]=b`.
+       Mentir au compilateur avec `as string` laisserait un tableau descendre
+       jusqu'à Prisma, qui refuserait la requête en cours d'appel plutôt qu'à
+       l'entrée. On coerce, la valeur devient inoffensive, et la recherche par
+       identifiant ne trouve simplement rien. */
+    const id = String(req.params.id);
 
     const existing = await prisma.deal.findFirst({ where: { id, clientId } });
     if (!existing) {
@@ -443,7 +454,13 @@ router.get('/integrations', async (req: Request, res: Response) => {
 router.post('/integrations/:provider/connect', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const { provider } = req.params;
+    /* `String(...)` et non une assertion de type: Express rend
+       `string | string[]` parce qu'un client PEUT envoyer `?id[]=a&id[]=b`.
+       Mentir au compilateur avec `as string` laisserait un tableau descendre
+       jusqu'à Prisma, qui refuserait la requête en cours d'appel plutôt qu'à
+       l'entrée. On coerce, la valeur devient inoffensive, et la recherche par
+       identifiant ne trouve simplement rien. */
+    const provider = String(req.params.provider);
     const { accessToken, refreshToken, config } = req.body;
 
     /* Une URL de webhook n'est pas un jeton.
@@ -513,7 +530,13 @@ router.post('/integrations/:provider/connect', async (req: Request, res: Respons
 router.post('/integrations/:provider/disconnect', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const { provider } = req.params;
+    /* `String(...)` et non une assertion de type: Express rend
+       `string | string[]` parce qu'un client PEUT envoyer `?id[]=a&id[]=b`.
+       Mentir au compilateur avec `as string` laisserait un tableau descendre
+       jusqu'à Prisma, qui refuserait la requête en cours d'appel plutôt qu'à
+       l'entrée. On coerce, la valeur devient inoffensive, et la recherche par
+       identifiant ne trouve simplement rien. */
+    const provider = String(req.params.provider);
 
     const existing = await prisma.crmIntegration.findUnique({
       where: { clientId_provider: { clientId, provider } },
@@ -537,7 +560,13 @@ router.post('/integrations/:provider/disconnect', async (req: Request, res: Resp
 router.post('/integrations/:provider/sync', async (req: Request, res: Response) => {
   try {
     const clientId = (req as any).clientId as string;
-    const { provider } = req.params;
+    /* `String(...)` et non une assertion de type: Express rend
+       `string | string[]` parce qu'un client PEUT envoyer `?id[]=a&id[]=b`.
+       Mentir au compilateur avec `as string` laisserait un tableau descendre
+       jusqu'à Prisma, qui refuserait la requête en cours d'appel plutôt qu'à
+       l'entrée. On coerce, la valeur devient inoffensive, et la recherche par
+       identifiant ne trouve simplement rien. */
+    const provider = String(req.params.provider);
 
     const integration = await prisma.crmIntegration.findUnique({
       where: { clientId_provider: { clientId, provider } },
