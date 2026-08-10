@@ -132,6 +132,9 @@ function HeroVideoBackdrop() {
             transition: 'opacity 900ms cubic-bezier(0.23, 1, 0.32, 1)',
           }}
         >
+          {/* WebM d'abord, MP4 ensuite: l'ordre décide, le navigateur prend le
+              premier qu'il sait lire. Le H.264 reste indispensable, c'est le
+              seul que lisent Safari et iOS. */}
           <source src="/hero-loop.webm" type="video/webm" />
           <source src="/hero-loop.mp4" type="video/mp4" />
         </video>
