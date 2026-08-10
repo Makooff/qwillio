@@ -66,21 +66,36 @@ const MOCKUP = {
    `playsInline` + `muted` sont indispensables pour qu'iOS accepte la lecture
    automatique ; `preload="metadata"` évite de tirer le fichier avant que la
    page soit utilisable. Deux voiles la calment ensuite. */
+/**
+ * Le décor du hero.
+ *
+ * C'était une boucle vidéo (`/hero-loop.mp4`) que le dépôt ne contient pas: le
+ * `onError` la faisait disparaître et le hero s'en passait. C'est désormais une
+ * IMAGE, plus légère, sans lecture à démarrer et sans le cas iOS où l'autoplay
+ * est refusé.
+ *
+ * Le fichier attendu: `public/hero-backdrop.webp`. S'il manque, `onError`
+ * masque la couche et il ne reste que le dégradé de la page — exactement le
+ * comportement d'avant, donc rien ne casse tant qu'il n'est pas déposé.
+ *
+ * Le voile par-dessus n'est pas décoratif: le titre est en encre presque noire,
+ * et un décor saturé sous lui ferait tomber le contraste sous le seuil lisible.
+ * Il ferme sur `rgb(var(--q2-canvas))`, donc il est crème en clair et noir en
+ * sombre, sans qu'aucune couleur ne soit écrite ici — un blanc littéral
+ * repeindrait la page en clair par-dessus le canvas basculé, ce que CLAUDE.md
+ * documente comme piège.
+ */
 function HeroVideoBackdrop() {
-  const [reduced] = useState(prefersReducedMotion);
   const [failed, setFailed] = useState(false);
-  if (reduced || failed) return null;
+  if (failed) return null;
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      <video
-        src="/hero-loop.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
+      <img
+        src="/hero-backdrop.webp"
+        alt=""
+        aria-hidden="true"
         onError={() => setFailed(true)}
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 w-full h-full object-cover select-none"
         style={{ opacity: 0.5 }}
       />
       <div
