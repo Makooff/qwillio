@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3,
+  UserPlus, PhoneCall, CheckCircle2, XCircle,
 } from '../../components/icons';
 import { fetchLive, peekLive } from '../../services/liveData';
 import api from '../../services/api';
@@ -11,7 +12,7 @@ import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import { formatDateTime } from '../../utils/format';
 import PageHeader from '../../components/dashboard/PageHeader';
-import { LEAD_STATUS_ORDER, leadStatusStyle } from '../../components/dashboard/leadStatus';
+import { LEAD_STATUS_ORDER, leadStatusStyle, type LeadStatusKey } from '../../components/dashboard/leadStatus';
 import { mergeLeadsAndContacts, leadStatusOf, type ContactLike, type LeadRow } from '../../components/dashboard/leadRows';
 
 type ViewMode = 'table' | 'kanban';
@@ -20,6 +21,17 @@ type LeadStatus = '' | 'new' | 'contacted' | 'converted' | 'lost';
 /* Les couleurs et les libellés viennent d'un seul endroit, partagé avec le
    reste du tableau de bord: ils étaient écrits ici ET dans le CRM. */
 const KANBAN_COLS = LEAD_STATUS_ORDER;
+
+/* L'icône de chaque état pour la rangée de chiffres. Elle vit ICI et non dans
+   `leadStatus.ts`: ce module est une table de COULEURS et de libellés, partagée
+   avec le CRM et les badges de rangée, où aucune icône n'est rendue. La lui
+   ajouter obligerait tous ses consommateurs à en dépendre pour rien. */
+const LEAD_STAT_ICON: Record<LeadStatusKey, typeof UserPlus> = {
+  new: UserPlus,
+  contacted: PhoneCall,
+  converted: CheckCircle2,
+  lost: XCircle,
+};
 
 interface Lead {
   id: string;
@@ -184,6 +196,14 @@ export default function ClientLeads() {
             label: st.label,
             value: statCounts[st.key],
             color: st.color,
+            /* Chaque cellule porte son icône (demande utilisateur): seule
+               « Total » en avait une, et une rangée où une cellule sur cinq
+               est illustrée se lit comme une erreur, pas comme une hiérarchie.
+               Les quatre disent l'ÉTAPE, pas l'objet: on entre (UserPlus), on
+               appelle (PhoneCall), ça aboutit (CheckCircle2) ou non (XCircle).
+               Le vocabulaire est déjà celui du reste de l'app: le vert du
+               transfert vérifié, le rouge de la déconnexion. */
+            icon: LEAD_STAT_ICON[st.key as LeadStatusKey],
             onClick: () => setStatusFilter(st.key as LeadStatus),
             active: statusFilter === st.key,
           })),

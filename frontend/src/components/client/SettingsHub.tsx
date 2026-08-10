@@ -58,6 +58,7 @@ export function HubRow({ title, hint, icon: Icon, right, onOpen }: HubRowProps) 
       onClick={onOpen}
       /* 62 px: la rangée doit rester confortable au pouce. `active:` plutôt que
          `hover:`, qui piège les doigts dans un état survolé. */
+      data-radius="keep"
       className="w-full flex items-center gap-3.5 px-4 h-[62px] text-left transition-colors active:bg-white/[0.05] sm:hover:bg-white/[0.02]"
     >
       <span

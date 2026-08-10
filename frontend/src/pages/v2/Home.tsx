@@ -84,12 +84,12 @@ const MOCKUP = {
  * page soit utilisable, et en mouvement réduit on ne monte pas la vidéo du
  * tout: on ne se contente pas de la mettre en pause, on ne la télécharge pas.
  *
- * Les voiles par-dessus ne sont pas décoratifs: le titre est en encre presque
- * noire, et un décor saturé sous lui ferait tomber le contraste sous le seuil
- * lisible. Ils ferment sur `rgb(var(--q2-canvas))`, donc crème en clair et
- * noir en sombre, sans qu'aucune couleur ne soit écrite ici — un blanc
- * littéral repeindrait la page en clair par-dessus le canvas basculé, ce que
- * CLAUDE.md documente comme piège.
+ * Aucun voile n'est posé par-dessus (demande utilisateur): le décor se voit
+ * plein, et la seule retenue est `--q2-hero-media`, l'opacité de la média
+ * elle-même. Elle vaut 1 en thème clair et 0,5 en sombre, parce que la vidéo
+ * est une image CLAIRE: sur le crème elle assombrit et le titre en encre tient
+ * largement, sur le noir elle éclaircit et le titre crème s'y dissout. Le
+ * détail des mesures est dans v2.css, à côté de la variable.
  */
 function HeroVideoBackdrop() {
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -112,7 +112,7 @@ function HeroVideoBackdrop() {
           /* Elle s'efface quand la vidéo prend le relais: superposées, deux
              couches à demi transparentes s'additionnent et assombrissent. */
           style={{
-            opacity: playing ? 0 : 'var(--q2-hero-photo)',
+            opacity: playing ? 0 : 'var(--q2-hero-media)',
             transition: 'opacity 900ms cubic-bezier(0.23, 1, 0.32, 1)',
           }}
         />
@@ -128,33 +128,29 @@ function HeroVideoBackdrop() {
           onPlaying={() => setPlaying(true)}
           className="absolute inset-0 w-full h-full object-cover select-none"
           style={{
-            opacity: playing ? 'var(--q2-hero-photo)' : 0,
+            opacity: playing ? 'var(--q2-hero-media)' : 0,
+            /* Le cadrage remonte de 2 cm (demande utilisateur). 2 cm valent
+               76 px à 96 ppp, l'unité de référence du CSS. `object-position`
+               déplace l'image DANS son cadre, sans toucher au cadre ni à la
+               vignette qui s'y accroche: une translation aurait décollé la
+               vidéo d'un bord et laissé une bande vide. */
+            objectPosition: 'center calc(50% - 76px)',
             transition: 'opacity 900ms cubic-bezier(0.23, 1, 0.32, 1)',
           }}
         >
+          {/* WebM d'abord, MP4 ensuite: l'ordre décide, le navigateur prend le
+              premier qu'il sait lire. Le H.264 reste indispensable, c'est le
+              seul que lisent Safari et iOS. */}
           <source src="/hero-loop.webm" type="video/webm" />
           <source src="/hero-loop.mp4" type="video/mp4" />
         </video>
       )}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, rgb(var(--q2-canvas) / var(--q2-hero-veil-top)) 0%, rgb(var(--q2-band) / var(--q2-hero-veil-mid)) 55%, rgb(var(--q2-canvas)) 100%)',
-        }}
-      />
-      {/* Le texte occupe la COLONNE GAUCHE, la crête le côté droit. Ce second
-          voile n'assombrit donc que la moitié où l'on lit, et laisse la photo
-          respirer là où rien ne la recouvre. Sans lui, il fallait épaissir le
-          voile vertical partout, ce qui effaçait la montagne pour protéger un
-          texte qui n'est même pas dessous. */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(90deg, rgb(var(--q2-canvas) / 0.55) 0%, rgb(var(--q2-canvas) / 0.28) 38%, transparent 62%)',
-        }}
-      />
+      {/* Aucun voile ici, et pas de vignette non plus (demande utilisateur):
+          la vidéo se voit pleine. La vignette du hero existe DÉJÀ un cran
+          au-dessus, au niveau de la section, et elle couvre toute la zone
+          jusque sous la fenêtre Safari. En poser une seconde ici revenait à
+          l'appliquer deux fois et à assombrir le décor deux fois plus que
+          demandé. Signalé en revue. */}
     </div>
   );
 }
@@ -532,8 +528,13 @@ export default function Home() {
           aria-hidden="true"
           className="absolute inset-0 pointer-events-none"
           style={{
+            /* Le point de départ du fondu est la SEULE valeur réglable, et il
+               sort d'une mesure de contraste (voir `--q2-hero-vignette` dans
+               v2.css): la vidéo est claire, donc en thème sombre c'est cette
+               vignette, et elle seule, qui ramène le fond vers le noir sous le
+               texte. */
             background:
-              'radial-gradient(125% 92% at 50% 40%, transparent 42%, rgb(var(--q2-canvas) / 0.5) 74%, rgb(var(--q2-canvas)) 100%)',
+              'radial-gradient(125% 92% at 50% 40%, transparent var(--q2-hero-vignette), rgb(var(--q2-canvas) / 0.5) 74%, rgb(var(--q2-canvas)) 100%)',
           }}
         />
 

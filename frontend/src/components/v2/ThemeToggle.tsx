@@ -63,12 +63,18 @@ export default function ThemeToggle({ onDark = false }: { onDark?: boolean }) {
       <span
         aria-hidden="true"
         className={`relative z-10 flex items-center justify-center w-[17px] h-[17px] ml-[2px] rounded-full transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          /* Sur fond sombre le curseur était `bg-white text-q2-ink`, et c'est
-             exactement le piège du thème sombre: l'encre y est CLAIRE, donc
-             une lune blanche sur un rond blanc, invisible. Rond noir, icône
-             blanche, et un filet pour le décoller du verre. */
+          /* En sombre, le curseur ne porte plus de fond (demande utilisateur):
+             il est TRANSPARENT et FLOU comme le verre de la barre, et c'est
+             son seul contour qui dit où l'on est. Le disque noir plein qui
+             était là faisait une pastille opaque au milieu d'une barre en
+             verre, donc deux matières pour un même objet.
+             Le `backdrop-blur` est admis ici sans déroger au bandissement du
+             glassmorphisme: CLAUDE.md en excepte explicitement le chrome de la
+             barre, et c'est précisément lui.
+             Le filet monte à 45 %: sans fond pour porter le contraste, c'est
+             lui seul qui doit rester lisible sur le verre. */
           onDark
-            ? 'bg-q2-void text-white ring-1 ring-white/25'
+            ? 'bg-white/[0.06] backdrop-blur-md text-white ring-1 ring-white/45'
             : 'bg-q2-ink text-q2-canvas'
         }`}
         style={{ transform: dark ? 'translateX(19px)' : 'translateX(0)' }}

@@ -2,6 +2,8 @@
 import { motion } from 'framer-motion';
 import { Phone, Mail, FileText, TrendingUp, MessageSquare, Calendar, Loader2 } from '../../components/icons';
 import api from '../../services/api';
+import PageHeader from '../../components/dashboard/PageHeader';
+import EmptyState from '../../components/client-dashboard/EmptyState';
 
 type ActivityType = 'call' | 'email' | 'note' | 'deal_update' | 'sms';
 
@@ -24,12 +26,20 @@ interface RawActivity {
   contact?: { name?: string };
 }
 
+/* Les teintes par type. Elles etaient en palette CLAIRE (`bg-amber-50`,
+   `text-emerald-700`, ...): sur le noir du portail, la pastille active
+   ressortait en aplat lumineux avec une encre sombre dessus, illisible.
+   Chaque type garde son sens, mais en voile a 12 % avec l'encre a pleine
+   teinte, la meme grammaire que les etats de la page Leads.
+   Le vocabulaire suit aussi la marque: l'appel et l'email prennent les deux
+   mauves Qwillio au lieu d'un bleu et d'un violet Tailwind qui
+   n'appartenaient a rien. */
 const TYPE_CONFIG: Record<ActivityType, { label: string; icon: React.ElementType; bg: string; text: string; iconColor: string }> = {
-  call:        { label: 'Appel',       icon: Phone,         bg: 'bg-primary-50',    text: 'text-primary-700',    iconColor: 'text-primary-500' },
-  email:       { label: 'Email',       icon: Mail,          bg: 'bg-primary-50',  text: 'text-primary-700',  iconColor: 'text-[#7349fe]' },
-  note:        { label: 'Note',        icon: FileText,      bg: 'bg-amber-50',   text: 'text-amber-700',   iconColor: 'text-amber-500' },
-  deal_update: { label: 'Affaire',     icon: TrendingUp,    bg: 'bg-emerald-50', text: 'text-emerald-700', iconColor: 'text-emerald-500' },
-  sms:         { label: 'SMS',         icon: MessageSquare, bg: 'bg-violet-300',  text: 'text-violet-700',  iconColor: 'text-violet-500' },
+  call:        { label: 'Appel',   icon: Phone,         bg: 'bg-[#7a5fff]/12', text: 'text-[#7a5fff]', iconColor: 'text-[#7a5fff]' },
+  email:       { label: 'Email',   icon: Mail,          bg: 'bg-[#cd6bfb]/12', text: 'text-[#cd6bfb]', iconColor: 'text-[#cd6bfb]' },
+  note:        { label: 'Note',    icon: FileText,      bg: 'bg-[#f59e0b]/12', text: 'text-[#f59e0b]', iconColor: 'text-[#f59e0b]' },
+  deal_update: { label: 'Affaire', icon: TrendingUp,    bg: 'bg-[#34d399]/12', text: 'text-[#34d399]', iconColor: 'text-[#34d399]' },
+  sms:         { label: 'SMS',     icon: MessageSquare, bg: 'bg-[#38bdf8]/12', text: 'text-[#38bdf8]', iconColor: 'text-[#38bdf8]' },
 };
 
 export default function CrmActivities() {
@@ -77,21 +87,24 @@ export default function CrmActivities() {
 
   return (
     <div>
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Activity Feed</h1>
-          <p className="text-sm text-[#86868b]">{activities.length} activities logged</p>
-        </div>
-      </motion.div>
+      {/* La MEME entete que le reste du portail: titre en 22px semibold, et
+          non plus un `text-2xl font-bold` propre a cette page. */}
+      <PageHeader
+        title="Activité"
+        subtitle={`${activities.length} activité${activities.length > 1 ? 's' : ''} enregistrée${activities.length > 1 ? 's' : ''}`}
+      />
 
-      {/* Type stat pills */}
+      {/* Les types restent des PASTILLES et ne passent pas par la rangee de
+          chiffres partagee: ils sont six avec « Tout », or cette rangee se
+          cale sur cinq colonnes au maximum et le sixieme retomberait seul a
+          la ligne. Une pastille filtre, un chiffre se compare: ce ne sont pas
+          les memes objets. */}
       <div className="flex flex-wrap gap-2 mb-6">
         <button
           type="button"
           onClick={() => setTypeFilter('')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
-            typeFilter === '' ? 'bg-[#7349fe] text-white border-[#7349fe]' : 'bg-white border-[#d2d2d7]/60 text-[#86868b] hover:bg-[#f5f5f7]'
+            typeFilter === '' ? 'bg-[#7349fe] text-white border-[#7349fe]' : 'bg-white/[0.04] border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.08]'
           }`}
         >
           Tout ({activities.length})
@@ -105,7 +118,7 @@ export default function CrmActivities() {
               type="button"
               onClick={() => setTypeFilter(t)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
-                typeFilter === t ? `${cfg.bg} ${cfg.text} border-current` : 'bg-white border-[#d2d2d7]/60 text-[#86868b] hover:bg-[#f5f5f7]'
+                typeFilter === t ? `${cfg.bg} ${cfg.text} border-current` : 'bg-white/[0.04] border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.08]'
               }`}
             >
               <Icon size={12} /> {cfg.label} ({typeCounts[t] || 0})
@@ -118,28 +131,32 @@ export default function CrmActivities() {
       {loading ? (
         <div className="py-16 text-center">
           <Loader2 size={24} className="mx-auto text-[#7349fe] animate-spin mb-3" />
-          <p className="text-sm text-[#86868b]">Chargement de l’activité…</p>
+          <p className="text-sm text-[#A1A1A8]">Chargement de l’activité…</p>
         </div>
       ) : Object.keys(grouped).length === 0 ? (
-        <div className="py-16 text-center">
-          <Calendar size={36} className="mx-auto text-[#d2d2d7] mb-3" />
-          <p className="text-sm text-[#86868b]">Aucune activité pour l’instant</p>
-        </div>
+        /* Le meme etat vide que les autres pages: une icone, un titre, une
+           phrase qui dit ce qui le remplira. Ici il n'y avait qu'une ligne
+           grise, sans dire d'ou vient l'activite. */
+        <EmptyState
+          icon={Calendar}
+          title="Aucune activité pour l’instant"
+          description="Les appels, emails et notes de vos contacts s’afficheront ici, du plus récent au plus ancien."
+        />
       ) : (
         <div className="space-y-8">
           {Object.entries(grouped).map(([date, items]) => (
             <div key={date}>
               {/* Date separator */}
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-px flex-1 bg-[#d2d2d7]/40" />
-                <span className="text-xs font-semibold text-[#86868b] px-2">{date}</span>
-                <div className="h-px flex-1 bg-[#d2d2d7]/40" />
+                <div className="h-px flex-1 bg-white/[0.08]" />
+                <span className="text-xs font-semibold text-[#A1A1A8] px-2">{date}</span>
+                <div className="h-px flex-1 bg-white/[0.08]" />
               </div>
 
               {/* Activity items */}
               <div className="relative pl-6">
                 {/* Timeline line */}
-                <div className="absolute left-3 top-0 bottom-0 w-px bg-[#d2d2d7]/40" />
+                <div className="absolute left-3 top-0 bottom-0 w-px bg-white/[0.08]" />
 
                 <div className="space-y-3">
                   {items.map((activity, idx) => {
@@ -159,17 +176,17 @@ export default function CrmActivities() {
                         </div>
 
                         {/* Content card */}
-                        <div className="flex-1 rounded-2xl border border-[#d2d2d7]/60 bg-white px-4 py-3 hover:shadow-sm hover:border-[#d2d2d7] transition-colors">
+                        <div className="flex-1 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-4 py-3 hover:bg-white/[0.05] hover:border-white/[0.12] transition-colors">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
                                 {cfg.label.toUpperCase()}
                               </span>
-                              <span className="text-sm font-semibold text-[#1d1d1f]">{activity.contactName}</span>
+                              <span className="text-sm font-semibold text-[#F5F5F7]">{activity.contactName}</span>
                             </div>
-                            <span className="text-[11px] text-[#86868b] flex-shrink-0">{activity.timestamp}</span>
+                            <span className="text-[11px] text-[#A1A1A8] flex-shrink-0">{activity.timestamp}</span>
                           </div>
-                          <p className="text-[12px] text-[#86868b] leading-relaxed">{activity.description}</p>
+                          <p className="text-[12px] text-[#A1A1A8] leading-relaxed">{activity.description}</p>
                         </div>
                       </motion.div>
                     );

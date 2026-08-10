@@ -13,6 +13,11 @@ import { ArrowUp, ArrowDown } from '../icons';
  * nombre en grand, libellé en petit dessous, cellules séparées par des filets
  * et jamais par des cadres.
  *
+ * La COULEUR ne touche jamais le nombre: elle vit sur une pastille posée à
+ * gauche du libellé (demande utilisateur). Un nombre se compare à ses voisins,
+ * et cinq nombres de cinq teintes ne se comparent plus; un libellé, lui, nomme
+ * un état, et c'est bien l'état que la couleur qualifie.
+ *
  * Une cellule peut CLIQUER (le pipeline des leads, les statuts du CRM filtrent
  * la liste). C'est la seule variation admise, et elle ne change que l'élément
  * rendu — bouton au lieu de division — pas la géométrie: deux rangées qui se
@@ -60,13 +65,24 @@ export default function StatStrip({ items, label }: { items: StatCell[]; label?:
                 </span>
               )}
             </div>
-            <p
-              className="text-[19px] sm:text-[26px] font-bold tabular-nums leading-none"
-              style={{ color: k.color ?? 'rgba(255,255,255,0.9)' }}
-            >
+            {/* Le nombre est BLANC, toujours (demande utilisateur). La teinte
+                d'état descend sur la pastille du libellé: c'est le libellé qui
+                nomme l'état, donc c'est lui que la couleur doit qualifier. Le
+                nombre, lui, se compare d'une cellule à l'autre, et cinq
+                nombres de cinq couleurs différentes ne se comparent pas. */}
+            <p className="text-[19px] sm:text-[26px] font-bold tabular-nums leading-none text-white/90">
               {k.value}
             </p>
-            <p className="text-[10px] sm:text-[11px] text-white/40 mt-1.5 leading-tight">{k.label}</p>
+            <p className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-white/40 mt-1.5 leading-tight">
+              {k.color && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: k.color }}
+                  aria-hidden="true"
+                />
+              )}
+              {k.label}
+            </p>
           </>
         );
 
@@ -78,6 +94,7 @@ export default function StatStrip({ items, label }: { items: StatCell[]; label?:
             type="button"
             onClick={k.onClick}
             aria-pressed={!!k.active}
+            data-radius="keep"
             className={`${box} transition-opacity ${k.active ? 'opacity-100' : 'opacity-55 hover:opacity-100'}`}
           >
             {inner}
