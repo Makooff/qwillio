@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 

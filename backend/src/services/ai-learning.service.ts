@@ -1,4 +1,15 @@
-// @ts-nocheck
+/**
+ * ATTENTION: ce service n'a AUCUN appelant.
+ *
+ * Il compile de nouveau — il portait un `@ts-nocheck` qui masquait des
+ * colonnes inexistantes: `prospect.industry` (la colonne s'appelle `sector`)
+ * et `NicheBestTime.hour` (elle s'appelle `hourUtc`). En l'état, la première
+ * requête aurait échoué à l'exécution.
+ *
+ * Les noms sont corrigés, la logique n'est ni testée ni exercée. Avant de le
+ * brancher, écrire des tests: il écrit dans `NicheBestTime` et fait muter des
+ * scripts de vente, ce sont des effets qu'on ne découvre pas en production.
+ */
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 
@@ -87,7 +98,7 @@ Return JSON: { "dropOffPoint": "...", "confidence": N, "reason": "..." }`,
     // Query calls via prospect relation to filter by niche
     const failedCalls = await prisma.call.findMany({
       where: {
-        prospect: { industry: niche },
+        prospect: { sector: niche },
         interestLevel: { lt: 4 },
         scriptDropOffPoint: { not: null },
       },
@@ -135,9 +146,9 @@ Return JSON: { "dropOffPoint": "...", "confidence": N, "reason": "..." }`,
     }
 
     // Calculate current conversion rate
-    const totalCalls = await prisma.call.count({ where: { prospect: { industry: niche } } });
+    const totalCalls = await prisma.call.count({ where: { prospect: { sector: niche } } });
     const convertedCalls = await prisma.call.count({
-      where: { prospect: { industry: niche }, interestLevel: { gte: 7 } },
+      where: { prospect: { sector: niche }, interestLevel: { gte: 7 } },
     });
     const conversionBefore = totalCalls > 0 ? convertedCalls / totalCalls : 0;
 
@@ -235,7 +246,7 @@ Return JSON: { "change": "the new text to use", "reason": "why this should impro
     for (const mutation of testingMutations) {
       const callsAfter = await prisma.call.count({
         where: {
-          prospect: { industry: mutation.niche },
+          prospect: { sector: mutation.niche },
           createdAt: { gte: mutation.date },
         },
       });
@@ -244,7 +255,7 @@ Return JSON: { "change": "the new text to use", "reason": "why this should impro
 
       const convertedAfter = await prisma.call.count({
         where: {
-          prospect: { industry: mutation.niche },
+          prospect: { sector: mutation.niche },
           createdAt: { gte: mutation.date },
           interestLevel: { gte: 7 },
         },
@@ -311,7 +322,7 @@ Return JSON: { "change": "the new text to use", "reason": "why this should impro
 
         const failedCalls = await prisma.call.findMany({
           where: {
-            prospect: { industry: niche },
+            prospect: { sector: niche },
             interestLevel: { lt: 4 },
             scriptDropOffPoint: 'objection_handling',
           },
@@ -447,7 +458,7 @@ Return JSON: { "improvements": [{ "objection": "...", "newResponse": "...", "con
 
     for (const niche of niches) {
       const calls = await prisma.call.findMany({
-        where: { prospect: { industry: niche } },
+        where: { prospect: { sector: niche } },
         select: { createdAt: true, interestLevel: true },
       });
 
@@ -475,7 +486,7 @@ Return JSON: { "improvements": [{ "objection": "...", "newResponse": "...", "con
           create: {
             niche,
             dayOfWeek,
-            hour,
+            hourUtc: hour,
             conversionRate,
             sampleSize: bucketData.total,
           },
@@ -498,17 +509,17 @@ Return JSON: { "improvements": [{ "objection": "...", "newResponse": "...", "con
     const niches = ['dental', 'medical', 'law', 'salon', 'restaurant', 'garage', 'hotel'];
 
     for (const niche of niches) {
-      const callCount = await prisma.call.count({ where: { prospect: { industry: niche } } });
+      const callCount = await prisma.call.count({ where: { prospect: { sector: niche } } });
       if (callCount < 200) continue;
 
       const converted = await prisma.call.findMany({
-        where: { prospect: { industry: niche }, interestLevel: { gte: 7 } },
+        where: { prospect: { sector: niche }, interestLevel: { gte: 7 } },
         select: { durationSeconds: true, interestLevel: true, scriptDropOffPoint: true },
         take: 100,
       });
 
       const notConverted = await prisma.call.findMany({
-        where: { prospect: { industry: niche }, interestLevel: { lt: 4 } },
+        where: { prospect: { sector: niche }, interestLevel: { lt: 4 } },
         select: { durationSeconds: true, interestLevel: true, scriptDropOffPoint: true },
         take: 100,
       });
