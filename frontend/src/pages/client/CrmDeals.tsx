@@ -56,22 +56,22 @@ interface NewDealState {
 type NewDealTextField = 'title' | 'value' | 'closeDate';
 
 const STAGES: { key: DealStage; label: string; color: string; bgLight: string; border: string }[] = [
-  { key: 'new',         label: 'New',         color: '#3b82f6', bgLight: 'bg-primary-50',    border: 'border-primary-200' },
-  { key: 'qualified',   label: 'Qualified',   color: '#7349fe', bgLight: 'bg-violet-300',  border: 'border-violet-300' },
-  { key: 'appointment', label: 'Appointment', color: '#f59e0b', bgLight: 'bg-amber-50',   border: 'border-amber-200' },
+  { key: 'new',         label: 'Nouveau',     color: '#3b82f6', bgLight: 'bg-primary-50',    border: 'border-primary-200' },
+  { key: 'qualified',   label: 'Qualifié',    color: '#7349fe', bgLight: 'bg-violet-300',  border: 'border-violet-300' },
+  { key: 'appointment', label: 'Rendez-vous', color: '#f59e0b', bgLight: 'bg-amber-50',   border: 'border-amber-200' },
   { key: 'client',      label: 'Client',      color: '#10b981', bgLight: 'bg-emerald-50', border: 'border-emerald-200' },
-  { key: 'inactive',    label: 'Inactive',    color: '#6b7280', bgLight: 'bg-gray-50',    border: 'border-gray-200' },
-  { key: 'lost',        label: 'Lost',        color: '#ef4444', bgLight: 'bg-red-50',     border: 'border-red-200' },
+  { key: 'inactive',    label: 'Inactif',     color: '#6b7280', bgLight: 'bg-gray-50',    border: 'border-gray-200' },
+  { key: 'lost',        label: 'Perdu',       color: '#ef4444', bgLight: 'bg-red-50',     border: 'border-red-200' },
 ];
 
 const MODAL_FIELDS: Array<{ label: string; key: NewDealTextField; type: string; placeholder: string }> = [
-  { label: 'Deal Title *',   key: 'title',       type: 'text',   placeholder: 'AI Receptionist Setup' },
-  { label: 'Value ($)',      key: 'value',       type: 'number', placeholder: '2500' },
-  { label: 'Close Date',    key: 'closeDate',   type: 'text',   placeholder: 'Apr 15' },
+  { label: 'Intitulé *',     key: 'title',       type: 'text',   placeholder: 'Installation réceptionniste' },
+  { label: 'Montant (€)',    key: 'value',       type: 'number', placeholder: '2500' },
+  { label: 'Date de clôture', key: 'closeDate',  type: 'text',   placeholder: '15 avril' },
 ];
 
 function fmt(n: number) {
-  return n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n}`;
+  return n >= 1000 ? `${(n / 1000).toFixed(1)} k€` : `${n} €`;
 }
 
 // --- Sortable deal card ---
@@ -170,7 +170,7 @@ function StageColumn({
           ))}
           {deals.length === 0 && (
             <p className="text-[11px] text-[#86868b] text-center py-6">
-              {isOver ? 'Drop here' : 'No deals'}
+              {isOver ? 'Déposer ici' : 'Aucune affaire'}
             </p>
           )}
         </div>
@@ -205,11 +205,11 @@ export default function CrmDeals() {
       const rows: RawDeal[] = Array.isArray(data) ? data : (data?.deals || []);
       const mapped = rows.map((d: RawDeal): Deal => ({
         id: d.id,
-        contactName: d.contact?.name || d.contactName || 'Unknown',
+        contactName: d.contact?.name || d.contactName || 'Contact inconnu',
         title: d.title || '',
         value: Number(d.value) || 0,
         probability: d.probability ?? 50,
-        closeDate: d.closeDate ? new Date(d.closeDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD',
+        closeDate: d.closeDate ? new Date(d.closeDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : 'À définir',
         stage: (d.stage || 'new') as DealStage,
         company: d.contact?.niche || '',
       }));
@@ -315,24 +315,24 @@ export default function CrmDeals() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Deal Pipeline</h1>
-          <p className="text-sm text-[#86868b]">{deals.length} deals · ${totalPipeline.toLocaleString()} total pipeline</p>
+          <h1 className="text-2xl font-bold tracking-tight">Pipeline</h1>
+          <p className="text-sm text-[#86868b]">{deals.length} affaire{deals.length > 1 ? 's' : ''} · {totalPipeline.toLocaleString('fr-FR')} € au total</p>
         </div>
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-[#7349fe] text-white text-sm font-medium rounded-xl hover:bg-[#7349fe] transition-colors"
         >
-          <Plus size={16} /> Add Deal
+          <Plus size={16} /> Nouvelle affaire
         </button>
       </motion.div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { label: 'Total Pipeline', value: `$${totalPipeline.toLocaleString()}`, sub: `${deals.filter(d => d.stage !== 'lost').length} active deals`, color: '#7349fe' },
-          { label: 'Won (Clients)',   value: `$${wonValue.toLocaleString()}`,       sub: `${stageDeals('client').length} closed`,                          color: '#10b981' },
-          { label: 'Lost',           value: `$${stageTotal('lost').toLocaleString()}`, sub: `${stageDeals('lost').length} lost deals`,                    color: '#ef4444' },
+          { label: 'Pipeline total', value: `${totalPipeline.toLocaleString('fr-FR')} €`, sub: `${deals.filter(d => d.stage !== 'lost').length} affaire(s) en cours`, color: '#7349fe' },
+          { label: 'Gagné',          value: `${wonValue.toLocaleString('fr-FR')} €`,       sub: `${stageDeals('client').length} conclue(s)`,                 color: '#10b981' },
+          { label: 'Perdu',          value: `${stageTotal('lost').toLocaleString('fr-FR')} €`, sub: `${stageDeals('lost').length} affaire(s) perdue(s)`,   color: '#ef4444' },
         ].map((s, i) => (
           <div key={i} className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-4">
             <p className="text-xs text-[#86868b] mb-1">{s.label}</p>
@@ -380,7 +380,7 @@ export default function CrmDeals() {
               className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
               onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-semibold">Add Deal</h2>
+                <h2 className="text-lg font-semibold">Nouvelle affaire</h2>
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -397,12 +397,12 @@ export default function CrmDeals() {
                     onChange={e => setNewDeal(p => ({ ...p, contactId: e.target.value }))}
                     className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 transition-colors"
                   >
-                    <option value="">Choisir un contact...</option>
+                    <option value="">Choisir un contact…</option>
                     {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                   {contacts.length === 0 && (
                     <p className="text-[11px] text-[#86868b] mt-1">
-                      Aucun contact pour l'instant. Ils apparaissent tout seuls apres vos premiers appels.
+                      Aucun contact pour l’instant. Ils apparaissent tout seuls après vos premiers appels.
                     </p>
                   )}
                 </div>
@@ -419,7 +419,7 @@ export default function CrmDeals() {
                   </div>
                 ))}
                 <div>
-                  <label className="text-xs font-medium text-[#86868b] mb-1 block">Probability: {newDeal.probability}%</label>
+                  <label className="text-xs font-medium text-[#86868b] mb-1 block">Probabilité : {newDeal.probability} %</label>
                   <input
                     type="range"
                     min={0}
@@ -430,7 +430,7 @@ export default function CrmDeals() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-[#86868b] mb-1 block">Stage</label>
+                  <label className="text-xs font-medium text-[#86868b] mb-1 block">Étape</label>
                   <select
                     value={newDeal.stage}
                     onChange={e => setNewDeal(p => ({ ...p, stage: e.target.value as DealStage }))}
@@ -446,14 +446,14 @@ export default function CrmDeals() {
                   onClick={() => setShowAddModal(false)}
                   className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors"
                 >
-                  Cancel
+                  Annuler
                 </button>
                 <button
                   type="button"
                   onClick={handleAddDeal}
                   className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#7349fe] rounded-xl hover:bg-[#7349fe] transition-colors"
                 >
-                  Add Deal
+                  Ajouter
                 </button>
               </div>
             </motion.div>

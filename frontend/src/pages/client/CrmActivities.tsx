@@ -25,10 +25,10 @@ interface RawActivity {
 }
 
 const TYPE_CONFIG: Record<ActivityType, { label: string; icon: React.ElementType; bg: string; text: string; iconColor: string }> = {
-  call:        { label: 'Call',        icon: Phone,         bg: 'bg-primary-50',    text: 'text-primary-700',    iconColor: 'text-primary-500' },
+  call:        { label: 'Appel',       icon: Phone,         bg: 'bg-primary-50',    text: 'text-primary-700',    iconColor: 'text-primary-500' },
   email:       { label: 'Email',       icon: Mail,          bg: 'bg-primary-50',  text: 'text-primary-700',  iconColor: 'text-[#7349fe]' },
   note:        { label: 'Note',        icon: FileText,      bg: 'bg-amber-50',   text: 'text-amber-700',   iconColor: 'text-amber-500' },
-  deal_update: { label: 'Deal Update', icon: TrendingUp,    bg: 'bg-emerald-50', text: 'text-emerald-700', iconColor: 'text-emerald-500' },
+  deal_update: { label: 'Affaire',     icon: TrendingUp,    bg: 'bg-emerald-50', text: 'text-emerald-700', iconColor: 'text-emerald-500' },
   sms:         { label: 'SMS',         icon: MessageSquare, bg: 'bg-violet-300',  text: 'text-violet-700',  iconColor: 'text-violet-500' },
 };
 
@@ -49,11 +49,11 @@ export default function CrmActivities() {
           return {
             id: a.id,
             type: (a.type || 'note') as ActivityType,
-            contactName: a.contactName || a.contact?.name || 'Unknown',
+            contactName: a.contactName || a.contact?.name || 'Contact inconnu',
             description: a.description || '',
-            timestamp: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-            date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            month: d.toLocaleDateString('en-US', { month: 'long' }),
+            timestamp: d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+            date: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+            month: d.toLocaleDateString('fr-FR', { month: 'long' }),
           };
         });
         setActivities(mapped);
@@ -94,7 +94,7 @@ export default function CrmActivities() {
             typeFilter === '' ? 'bg-[#7349fe] text-white border-[#7349fe]' : 'bg-white border-[#d2d2d7]/60 text-[#86868b] hover:bg-[#f5f5f7]'
           }`}
         >
-          All ({activities.length})
+          Tout ({activities.length})
         </button>
         {(Object.keys(TYPE_CONFIG) as ActivityType[]).map(t => {
           const cfg = TYPE_CONFIG[t];
@@ -118,12 +118,12 @@ export default function CrmActivities() {
       {loading ? (
         <div className="py-16 text-center">
           <Loader2 size={24} className="mx-auto text-[#7349fe] animate-spin mb-3" />
-          <p className="text-sm text-[#86868b]">Loading activities...</p>
+          <p className="text-sm text-[#86868b]">Chargement de l’activité…</p>
         </div>
       ) : Object.keys(grouped).length === 0 ? (
         <div className="py-16 text-center">
           <Calendar size={36} className="mx-auto text-[#d2d2d7] mb-3" />
-          <p className="text-sm text-[#86868b]">No activities yet</p>
+          <p className="text-sm text-[#86868b]">Aucune activité pour l’instant</p>
         </div>
       ) : (
         <div className="space-y-8">

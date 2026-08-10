@@ -10,7 +10,6 @@ import {
 } from '../../components/icons';
 
 type ModuleStatus = 'active' | 'setup_required' | 'paused';
-type ActivityType = 'email' | 'payment' | 'accounting' | 'inventory';
 
 interface Module {
   id: string;
@@ -26,14 +25,6 @@ interface Module {
   comingSoon?: boolean;
 }
 
-interface ActivityItem {
-  id: number;
-  module: string;
-  action: string;
-  time: string;
-  type: ActivityType;
-}
-
 interface SavedModule {
   id: string;
   enabled: boolean;
@@ -43,14 +34,6 @@ interface DashboardSettings {
   vapiConfig?: {
     agentModules?: SavedModule[];
   };
-}
-
-interface StatItem {
-  label: string;
-  value: string;
-  sub: string;
-  icon: React.ElementType;
-  iconStyle: { color: string; background: string };
 }
 
 const ICON_STYLES: Record<string, { color: string; background: string }> = {
@@ -65,7 +48,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'email',
     name: 'Email AI',
-    description: 'Classifies, auto-replies, and triages your inbox. Handles appointment and payment emails autonomously.',
+    description: 'Trie votre boîte de réception, répond seul et gère les emails de rendez-vous et de paiement.',
     icon: Mail,
     iconStyle: ICON_STYLES.blue,
     status: 'setup_required',
@@ -76,7 +59,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'payments',
     name: 'Payments AI',
-    description: 'Sends deposit requests, tracks payment status, and triggers SMS reminders automatically.',
+    description: 'Envoie les demandes d’acompte, suit les paiements et relance par SMS automatiquement.',
     icon: CreditCard,
     iconStyle: ICON_STYLES.emerald,
     status: 'setup_required',
@@ -87,7 +70,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'accounting',
     name: 'Accounting AI',
-    description: 'Generates invoices, tracks revenue vs expenses, and sends overdue reminders on schedule.',
+    description: 'Génère les factures, suit recettes et dépenses, et relance les impayés à échéance.',
     icon: BookOpen,
     iconStyle: ICON_STYLES.violet,
     status: 'paused',
@@ -98,7 +81,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'inventory',
     name: 'Inventory AI',
-    description: 'Monitors stock levels, triggers low-stock alerts, and can auto-order from suppliers.',
+    description: 'Surveille les stocks, alerte avant la rupture et peut commander seul chez vos fournisseurs.',
     icon: Package,
     iconStyle: ICON_STYLES.amber,
     status: 'setup_required',
@@ -109,7 +92,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'marketing',
     name: 'Marketing AI',
-    description: 'Generates on-brand social posts, campaign emails, and ad copy tailored to your niche.',
+    description: 'Rédige vos publications, vos emails de campagne et vos annonces, dans le ton de votre métier.',
     icon: Megaphone,
     iconStyle: ICON_STYLES.indigo,
     status: 'setup_required',
@@ -120,7 +103,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'reputation',
     name: 'Reputation AI',
-    description: 'Monitors Google and Facebook reviews, drafts replies, escalates low ratings.',
+    description: 'Surveille les avis Google et Facebook, propose les réponses, signale les mauvaises notes.',
     icon: Star,
     iconStyle: ICON_STYLES.amber,
     status: 'setup_required',
@@ -131,7 +114,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'scheduling',
     name: 'Scheduling AI',
-    description: 'Optimizes appointment slots, cuts no-shows via reminders, recommends best times.',
+    description: 'Optimise vos créneaux, réduit les absences par des rappels, conseille les meilleures heures.',
     icon: CalendarClock,
     iconStyle: ICON_STYLES.violet,
     status: 'setup_required',
@@ -142,7 +125,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'support',
     name: 'Support AI',
-    description: 'Triages inbound tickets, drafts replies, escalates urgent issues to humans.',
+    description: 'Trie les demandes entrantes, rédige les réponses, transmet les urgences à un humain.',
     icon: LifeBuoy,
     iconStyle: ICON_STYLES.emerald,
     status: 'setup_required',
@@ -153,7 +136,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'crm',
     name: 'CRM AI',
-    description: 'Pipeline management, HubSpot sync, lost-deal analysis and revenue forecast.',
+    description: 'Suivi du pipeline, synchronisation HubSpot, analyse des affaires perdues et prévision de chiffre.',
     icon: Users,
     iconStyle: ICON_STYLES.indigo,
     /* Le seul module OUVERT à ce jour. Sa page est routée et ses appels lisent
@@ -168,7 +151,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'document',
     name: 'Document AI',
-    description: 'Generates quotes, contracts and estimates from your inputs, ready for signature.',
+    description: 'Génère devis, contrats et estimations à partir de vos éléments, prêts à signer.',
     icon: FileText,
     iconStyle: ICON_STYLES.violet,
     status: 'setup_required',
@@ -179,7 +162,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'local_seo',
     name: 'Local SEO AI',
-    description: 'Google Business posts, local keyword suggestions, listing audit, ranking tracking.',
+    description: 'Publications Google Business, mots-clés locaux, audit de fiche et suivi de position.',
     icon: MapPin,
     iconStyle: ICON_STYLES.amber,
     status: 'setup_required',
@@ -190,7 +173,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'lead_gen',
     name: 'Lead Gen AI',
-    description: 'Discovers targeted prospects and runs personalized multi-touch outreach sequences.',
+    description: 'Trouve des prospects ciblés et déroule des séquences de prise de contact personnalisées.',
     icon: Crosshair,
     iconStyle: ICON_STYLES.blue,
     status: 'setup_required',
@@ -201,7 +184,7 @@ const INITIAL_MODULES: Module[] = [
   {
     id: 'analytics',
     name: 'Analytics AI',
-    description: 'Weekly business digest, anomaly detection, forecast and cross-module recommendations.',
+    description: 'Bilan hebdomadaire, détection d’anomalies, prévisions et recommandations transverses.',
     icon: LineChart,
     iconStyle: ICON_STYLES.emerald,
     status: 'setup_required',
@@ -211,47 +194,11 @@ const INITIAL_MODULES: Module[] = [
   },
 ];
 
-const ACTIVITY_FEED: ActivityItem[] = [
-  { id: 1,  module: 'Email AI',       action: 'Auto-replied to appointment inquiry from sarah@email.com',             time: '2 min ago',  type: 'email'      },
-  { id: 2,  module: 'Email AI',       action: 'Classified 3 emails as Urgent — moved to review queue',               time: '8 min ago',  type: 'email'      },
-  { id: 3,  module: 'Payments AI',    action: 'Deposit reminder sent via SMS to +1 (555) 234-5678',                  time: '15 min ago', type: 'payment'    },
-  { id: 4,  module: 'Email AI',       action: 'Spam detected and moved: "Win a prize now!"',                         time: '22 min ago', type: 'email'      },
-  { id: 5,  module: 'Accounting AI',  action: 'Invoice #1042 generated for Johnson & Co. — $850.00',                 time: '1 hr ago',   type: 'accounting' },
-  { id: 6,  module: 'Inventory AI',   action: 'Low stock alert: "Massage Oil 500ml" below threshold (3 units)',      time: '2 hr ago',   type: 'inventory'  },
-  { id: 7,  module: 'Email AI',       action: 'Daily digest compiled — 12 emails processed overnight',               time: '8 hr ago',   type: 'email'      },
-  { id: 8,  module: 'Payments AI',    action: 'No-show fee of $50 charged to client ID #2201',                       time: '9 hr ago',   type: 'payment'    },
-  { id: 9,  module: 'Accounting AI',  action: 'Overdue reminder (14d) sent to Martinez LLC — $1,200 outstanding',   time: '10 hr ago',  type: 'accounting' },
-  { id: 10, module: 'Email AI',       action: 'Auto-reply sent: payment confirmation to mike@domain.com',            time: '11 hr ago',  type: 'email'      },
-  { id: 11, module: 'Inventory AI',   action: 'Auto-order placed: "Lavender Candles x24" from GreenSupply Co.',     time: '12 hr ago',  type: 'inventory'  },
-  { id: 12, module: 'Accounting AI',  action: 'Monthly P&L exported to QuickBooks — March 2026',                    time: '1 day ago',  type: 'accounting' },
-];
-
 const STATUS_CONFIG: Record<ModuleStatus, { label: string; dotColor: string; labelColor: string; bgColor: string }> = {
-  active:         { label: 'Active',         dotColor: 'oklch(65% 0.17 162)',        labelColor: 'oklch(65% 0.17 162)',        bgColor: 'oklch(65% 0.17 162 / 0.10)' },
-  setup_required: { label: 'Setup Required', dotColor: 'oklch(75% 0.18 85)',         labelColor: 'oklch(75% 0.18 85)',         bgColor: 'oklch(75% 0.18 85 / 0.10)'  },
-  paused:         { label: 'Paused',         dotColor: 'oklch(55% 0.00 0)',          labelColor: 'oklch(60% 0.00 0)',          bgColor: 'oklch(55% 0.00 0 / 0.10)'   },
+  active:         { label: 'Actif',          dotColor: 'oklch(65% 0.17 162)',        labelColor: 'oklch(65% 0.17 162)',        bgColor: 'oklch(65% 0.17 162 / 0.10)' },
+  setup_required: { label: 'À configurer',   dotColor: 'oklch(75% 0.18 85)',         labelColor: 'oklch(75% 0.18 85)',         bgColor: 'oklch(75% 0.18 85 / 0.10)'  },
+  paused:         { label: 'En pause',       dotColor: 'oklch(55% 0.00 0)',          labelColor: 'oklch(60% 0.00 0)',          bgColor: 'oklch(55% 0.00 0 / 0.10)'   },
 };
-
-const ACTIVITY_ICON_MAP: Record<ActivityType, React.ElementType> = {
-  email:      Mail,
-  payment:    CreditCard,
-  accounting: BookOpen,
-  inventory:  Package,
-};
-
-const ACTIVITY_ICON_STYLES: Record<ActivityType, { color: string; background: string }> = {
-  email:      ICON_STYLES.blue,
-  payment:    ICON_STYLES.emerald,
-  accounting: ICON_STYLES.violet,
-  inventory:  ICON_STYLES.amber,
-};
-
-const STATS: StatItem[] = [
-  { label: 'Emails handled',     value: '1,284',  sub: 'this month', icon: Mail,       iconStyle: ICON_STYLES.blue    },
-  { label: 'Payments collected', value: '$14,320', sub: 'this month', icon: CreditCard, iconStyle: ICON_STYLES.emerald },
-  { label: 'Invoices generated', value: '47',      sub: 'this month', icon: BookOpen,   iconStyle: ICON_STYLES.violet  },
-  { label: 'Stock alerts',       value: '6',       sub: 'this month', icon: Package,    iconStyle: ICON_STYLES.amber   },
-];
 
 const SURFACE  = 'oklch(8% 0.009 265)';
 const CARD_BG  = 'rgba(255,255,255,0.025)';
@@ -308,12 +255,12 @@ export default function AgentDashboard() {
               AI Agent Hub
             </h1>
             <p className="text-[13px]" style={{ color: TEXT_SECONDARY }}>
-              Manage your autonomous AI modules
+              Vos modules autonomes
             </p>
           </div>
           <Link
             to="/dashboard/billing"
-            aria-label="Add new AI module"
+            aria-label="Ajouter un module"
             className="inline-flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             style={{
               background: INDIGO,
@@ -323,49 +270,21 @@ export default function AgentDashboard() {
             onMouseLeave={e => (e.currentTarget.style.background = INDIGO)}
           >
             <Plus size={15} aria-hidden="true" />
-            Add Module
+            Ajouter un module
           </Link>
         </div>
       </motion.div>
 
-      {/* Monthly Stats */}
-      <section aria-label="Monthly statistics">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {STATS.map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="rounded-2xl p-5 transition-colors"
-              style={{ background: CARD_BG, border: `1px solid ${CARD_BORDER}` }}
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
-                style={{ background: s.iconStyle.background }}
-                aria-hidden="true"
-              >
-                <s.icon size={18} style={{ color: s.iconStyle.color }} />
-              </div>
-              <p
-                className="text-[22px] font-semibold tracking-tight tabular-nums"
-                style={{ color: TEXT_PRIMARY }}
-              >
-                {s.value}
-              </p>
-              <p className="text-[12px] mt-1" style={{ color: TEXT_SECONDARY }}>
-                {s.label}
-              </p>
-              <p className="text-[11px] mt-0.5" style={{ color: 'oklch(55% 0.00 0)' }}>
-                {s.sub}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+      {/* Les quatre chiffres du mois ont été RETIRÉS.
+          « 1 284 emails traités », « 14 320 $ encaissés », « 47 factures » :
+          c'étaient des constantes écrites dans le fichier, présentées comme
+          les chiffres du client. Un tableau de bord qui invente ses chiffres
+          est pire qu'un tableau de bord vide, parce qu'on le croit. Ils
+          reviendront branchés sur les vraies tables le jour où les modules
+          qu'ils décrivent tourneront. */}
 
       {/* Module Cards */}
-      <section aria-label="AI modules" className="mb-8">
+      <section aria-label="Modules" className="mb-8">
         <h2
           className="text-[13px] font-semibold uppercase tracking-wider mb-4"
           style={{ color: TEXT_SECONDARY }}
@@ -406,7 +325,7 @@ export default function AgentDashboard() {
                         <span
                           className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
                           style={{ background: 'oklch(67% 0.03 265 / 0.12)', color: 'oklch(67% 0.03 265)' }}
-                          aria-label="Statut : Bientôt disponible"
+                          aria-label="Statut : bientôt disponible"
                         >
                           Bientôt disponible
                         </span>
@@ -429,7 +348,7 @@ export default function AgentDashboard() {
                   {!mod.comingSoon && (
                     <button
                       onClick={() => toggleModule(mod.id)}
-                      aria-label={mod.enabled ? `Disable ${mod.name}` : `Enable ${mod.name}`}
+                      aria-label={mod.enabled ? `Désactiver ${mod.name}` : `Activer ${mod.name}`}
                       aria-pressed={mod.enabled}
                       className="transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 rounded"
                       style={{ color: mod.enabled ? INDIGO : TEXT_SECONDARY }}
@@ -457,11 +376,11 @@ export default function AgentDashboard() {
                 ) : (
                   <Link
                     to={mod.href}
-                    aria-label={`Configure ${mod.name}`}
+                    aria-label={`Configurer ${mod.name}`}
                     className="inline-flex items-center gap-1 text-[12px] font-medium hover:underline focus:outline-none focus-visible:ring-2 rounded"
                     style={{ color: INDIGO }}
                   >
-                    Configure <ChevronRight size={12} aria-hidden="true" />
+                    Configurer <ChevronRight size={12} aria-hidden="true" />
                   </Link>
                 )}
               </motion.article>
@@ -470,74 +389,12 @@ export default function AgentDashboard() {
         </div>
       </section>
 
-      {/* Activity Feed */}
-      <section
-        aria-label="Recent AI actions"
-        className="rounded-2xl p-6"
-        style={{ background: CARD_BG, border: `1px solid ${CARD_BORDER}` }}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2
-              className="text-[13px] font-semibold flex items-center gap-2"
-              style={{ color: TEXT_PRIMARY }}
-            >
-              <Activity size={15} style={{ color: INDIGO }} aria-hidden="true" />
-              Recent AI Actions
-            </h2>
-            <p className="text-[12px] mt-0.5" style={{ color: TEXT_SECONDARY }}>
-              Last 20 autonomous actions across all modules
-            </p>
-          </div>
-          <span
-            className="text-[11px] font-medium px-2 py-0.5 rounded-full"
-            style={{ background: 'oklch(65% 0.17 162 / 0.12)', color: 'oklch(65% 0.17 162)' }}
-            aria-label="Live feed"
-          >
-            Live
-          </span>
-        </div>
-        <ol aria-label="Activity log" className="space-y-0.5">
-          {ACTIVITY_FEED.map((item, i) => {
-            const Icon = ACTIVITY_ICON_MAP[item.type] ?? Zap;
-            const iconStyle = ACTIVITY_ICON_STYLES[item.type] ?? ICON_STYLES.blue;
-            return (
-              <motion.li
-                key={item.id}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.025 }}
-                className="flex items-center gap-3 py-2.5 px-3 rounded-xl transition-colors"
-                style={{ background: 'transparent' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: iconStyle.background }}
-                  aria-hidden="true"
-                >
-                  <Icon size={14} style={{ color: iconStyle.color }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium" style={{ color: TEXT_SECONDARY }}>
-                    {item.module}
-                  </p>
-                  <p className="text-[13px] truncate" style={{ color: TEXT_PRIMARY }}>
-                    {item.action}
-                  </p>
-                </div>
-                <time
-                  className="text-[11px] whitespace-nowrap flex-shrink-0"
-                  style={{ color: TEXT_SECONDARY }}
-                >
-                  {item.time}
-                </time>
-              </motion.li>
-            );
-          })}
-        </ol>
-      </section>
+      {/* Le flux « Actions récentes de l'IA » a été RETIRÉ, pour la même
+          raison et en pire: douze entrées écrites en dur (« Facture #1042
+          générée pour Johnson & Co. », « Rappel d'acompte envoyé au
+          +1 (555) 234-5678 »), sous une pastille « Live ». Elles décrivaient
+          l'activité de modules qui, par construction, ne tournent pas. */}
+
     </main>
   );
 }

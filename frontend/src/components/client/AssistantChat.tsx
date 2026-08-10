@@ -290,11 +290,17 @@ export default function AssistantChat({
    */
   /** Spoken configuration session, opened from the composer's voice button. */
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [dictationLang, setDictationLang] = useState<'fr' | 'en'>(() => {
-    if (typeof localStorage === 'undefined') return 'fr';
-    return localStorage.getItem('qw.dictationLang') === 'en' ? 'en' : 'fr';
-  });
-  useEffect(() => { localStorage.setItem('qw.dictationLang', dictationLang); }, [dictationLang]);
+  /* La langue de dictée SUIT LE COMPTE (demande utilisateur).
+   *
+   * C'était un réglage à part, avec son bouton « FR / EN » dans la barre
+   * d'actions et sa mémoire par navigateur. L'argument d'origine — on peut
+   * configurer un agent anglophone en parlant français — décrit un cas de
+   * figure que personne ne rencontre: on parle la langue de son entreprise, et
+   * c'est celle que le compte porte déjà.
+   * Le bouton coûtait donc une décision à chaque visite pour un cas rare, et
+   * une mauvaise valeur retenue faisait transcrire du français en anglais.
+   * Une donnée qu'on peut déduire ne se demande pas. */
+  const dictationLang: 'fr' | 'en' = isFr ? 'fr' : 'en';
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -1100,22 +1106,6 @@ export default function AssistantChat({
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Dictation language. Separate from the agent's caller-facing
-                  language on purpose: you may configure an English agent while
-                  speaking French. */}
-              {!listening && !hasContent && micSupported && (
-                <button
-                  type="button"
-                  onClick={() => setDictationLang(l => (l === 'fr' ? 'en' : 'fr'))}
-                  aria-label={isFr
-                    ? `Langue de dict\u00e9e : ${dictationLang === 'fr' ? 'fran\u00e7ais' : 'anglais'}. Changer.`
-                    : `Dictation language: ${dictationLang === 'fr' ? 'French' : 'English'}. Change.`}
-                  className="h-9 px-2.5 rounded-full text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF] hover:text-[#E5E5EA] hover:bg-white/[0.06] transition-colors active:scale-[0.97]"
-                >
-                  {dictationLang}
-                </button>
-              )}
-
               {/* Dictate into the field. Distinct from the voice button beside
                   it: this one produces text you can still edit, that one opens
                   a spoken conversation. */}
