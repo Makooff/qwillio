@@ -118,7 +118,11 @@ export default function ShapeDrift({
         gsap.to(el, {
           y: amount,
           ease: 'none',
-          scrollTrigger: { trigger: root, start: 'top bottom', end: 'bottom top', scrub: 0.7 },
+          /* `scrub: 1` comme la fenêtre du hero: le scrub est le lissage, et
+             deux valeurs différentes sur la même page se voient — les formes
+             rattrapaient le doigt plus vite que la capture, ce qui donnait
+             deux vitesses de glissement dans le même mouvement. */
+          scrollTrigger: { trigger: root, start: 'top bottom', end: 'bottom top', scrub: 1 },
         });
         /* Respiration: jamais la même durée d'une forme à l'autre, sinon les
            quatre repartent ensemble et le décor se met à battre la mesure. */

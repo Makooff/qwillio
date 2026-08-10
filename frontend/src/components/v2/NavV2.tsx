@@ -729,9 +729,14 @@ export default function NavV2() {
             </Link>
             <Link
               to="/register"
-              /* Sur fond sombre la pilule encre disparaîtrait : elle s'inverse */
+              /* Sur fond sombre la pilule encre disparaîtrait : elle s'inverse.
+                 `text-q2-void` et NON `text-q2-ink` sur la pilule blanche:
+                 l'encre S'ÉCLAIRCIT en thème sombre (c'est le piège que
+                 CLAUDE.md documente), si bien que le libellé passait en
+                 #F5F4F2 sur un fond blanc — invisible. `q2-void` ne bascule
+                 pas avec le thème, il est noir dans les deux. */
               className={`q2-pill inline-flex items-center rounded-full text-sm font-medium px-5 py-2 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2 ${
-                overDark ? 'bg-white text-q2-ink hover:bg-white/90' : 'bg-q2-ink text-q2-canvas hover:opacity-90'
+                overDark ? 'bg-white text-q2-void hover:bg-white/90' : 'bg-q2-ink text-q2-canvas hover:opacity-90'
               }`}
             >
               {isFr ? 'Essayer' : 'Try it'}

@@ -32,12 +32,30 @@
 }
 
 /* ─── Global Reset ─── */
-html {
-  background-color: #0a0a0a;
-}
+/* Pas de `background-color` sur `html` ici.
+ *
+ * Il valait `#0a0a0a`, hérité de la palette V1, et cette feuille étant chargée
+ * APRÈS le `<style>` de `index.html`, elle gagnait: le mode clair affichait un
+ * fond noir alors que `--q2-canvas` valait bien le crème. Le défaut ne se
+ * voyait que là où le fond de page transparaît, donc pas sur les écrans
+ * d'application, qui peignent le leur.
+ *
+ * `index.html` gère les trois états (clair, sombre, système) avant le premier
+ * rendu, pour éviter le flash. C'est la seule place où cette couleur se
+ * décide. */
 body {
   font-family: 'Outfit', system-ui, -apple-system, sans-serif;
-  background-color: #0a0a0a;
+  /* HÉRITÉ, plus peint en dur.
+   *
+   * `#0a0a0a` venait de la palette V1 et écrasait le thème: en mode clair,
+   * `--q2-canvas` valait bien le crème mais le fond de page restait noir,
+   * parce que cette règle passe après celle de `index.html`.
+   * `index.html` gère déjà les trois états (clair, sombre, système) avant même
+   * le premier rendu, pour éviter le flash blanc. Hériter, c'est le suivre.
+   *
+   * Sans risque pour l'admin et le portail: leur coquille est en `100dvh` avec
+   * son propre fond, le corps de page n'y est jamais visible. */
+  background-color: inherit;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding-top: env(safe-area-inset-top);
