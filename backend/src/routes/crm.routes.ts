@@ -446,7 +446,31 @@ router.post('/integrations/:provider/connect', async (req: Request, res: Respons
     const { provider } = req.params;
     const { accessToken, refreshToken, config } = req.body;
 
-    if (!accessToken) {
+    /* Une URL de webhook n'est pas un jeton.
+     *
+     * Exiger `accessToken` fermait la porte aux seules intégrations que le
+     * client peut brancher SEUL: Slack, Zapier, Make, n8n se connectent en
+     * collant une URL, il n'y a pas d'OAuth ni de clé à obtenir. Elles
+     * restaient donc affichées « bientôt » alors que le service de synchro
+     * savait déjà les servir.
+     *
+     * L'URL est validée AVANT d'être enregistrée: sans ça, une adresse
+     * pointant sur le réseau interne serait acceptée ici puis appelée toutes
+     * les quinze minutes par le cron, depuis notre propre serveur. */
+    const URL_PROVIDERS = ['webhook', 'zapier', 'make', 'n8n', 'slack'];
+    const webhookUrl = (config as Record<string, unknown> | undefined)?.webhookUrl;
+
+    if (URL_PROVIDERS.includes(provider)) {
+      if (typeof webhookUrl !== 'string' || !webhookUrl.trim()) {
+        return res.status(400).json({ error: 'webhookUrl is required' });
+      }
+      try {
+        const { crmSyncService } = await import('../services/crm-sync.service');
+        crmSyncService.validateWebhookUrl(webhookUrl);
+      } catch (e: any) {
+        return res.status(400).json({ error: e.message });
+      }
+    } else if (!accessToken) {
       return res.status(400).json({ error: 'accessToken is required' });
     }
 
@@ -455,13 +479,15 @@ router.post('/integrations/:provider/connect', async (req: Request, res: Respons
       create: {
         clientId,
         provider,
-        accessToken,
+        // Colonne obligatoire au schéma; ces intégrations n'ont pas de jeton,
+        // leur secret est l'URL elle-même.
+        accessToken: accessToken ?? '',
         refreshToken: refreshToken ?? null,
         config: config ?? null,
         syncStatus: 'connected',
       },
       update: {
-        accessToken,
+        ...(accessToken !== undefined && { accessToken }),
         ...(refreshToken !== undefined && { refreshToken }),
         ...(config !== undefined && { config }),
         syncStatus: 'connected',

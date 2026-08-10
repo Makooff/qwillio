@@ -19,8 +19,19 @@ export class CrmSyncService {
     const since = integration.lastSync ?? new Date(0);
 
     switch (integration.provider) {
+      /* Zapier, Make et n8n ne sont pas trois intégrations: ce sont trois noms
+         commerciaux du MÊME mécanisme, une URL qui reçoit du JSON. Les traiter
+         séparément aurait produit trois copies du même code, et trois endroits
+         où corriger le prochain défaut. Le nom sert à l'affichage, rien de
+         plus. */
       case 'webhook':
+      case 'zapier':
+      case 'make':
+      case 'n8n':
         await this.syncWebhook(integration, since);
+        break;
+      case 'slack':
+        await this.syncSlack(integration, since);
         break;
       case 'hubspot':
         await this.syncHubspot(integration, since);
@@ -31,7 +42,7 @@ export class CrmSyncService {
   }
 
   // ─── SSRF guard — blocks private/internal network targets ──
-  private validateWebhookUrl(url: string): void {
+  validateWebhookUrl(url: string): void {
     let parsed: URL;
     try { parsed = new URL(url); } catch { throw new Error('Invalid webhook URL'); }
     if (parsed.protocol !== 'https:') throw new Error('Webhook URL must use HTTPS');
@@ -91,6 +102,54 @@ export class CrmSyncService {
 
     if (!res.ok) throw new Error(`Webhook returned HTTP ${res.status}`);
     logger.debug(`[CrmSync] Webhook synced — ${contacts.length} contacts, ${calls.length} calls, ${deals.length} deals`);
+  }
+
+  // ─── Slack ───────────────────────────────────────────────
+  /**
+   * Une URL de webhook entrant Slack, et rien d'autre.
+   *
+   * Slack n'attend pas nos objets: il attend `{ text }`. Lui envoyer le même
+   * corps que Zapier afficherait un bloc de JSON dans le canal, ce que
+   * personne ne lit. On n'envoie donc que ce qui mérite une notification —
+   * les appels qui ont produit un lead — et on l'écrit en français.
+   *
+   * Le silence est voulu quand il n'y a rien: une intégration qui écrit
+   * « 0 nouveau lead » toutes les quinze minutes se fait couper au bout d'un
+   * jour, et emporte avec elle les notifications qui comptaient.
+   */
+  private async syncSlack(integration: any, since: Date): Promise<void> {
+    const cfg = (integration.config ?? {}) as Record<string, unknown>;
+    const webhookUrl = cfg.webhookUrl as string | undefined;
+    if (!webhookUrl) return;
+    this.validateWebhookUrl(webhookUrl);
+
+    const leads = await prisma.clientCall.findMany({
+      where: { clientId: integration.clientId, isLead: true, isSpam: false, createdAt: { gte: since } },
+      orderBy: { createdAt: 'asc' },
+      take: 20,
+      select: {
+        nameCollected: true, phoneCollected: true, callerNumber: true,
+        emailCollected: true, summary: true, createdAt: true,
+      },
+    });
+    if (leads.length === 0) return;
+
+    const lines = leads.map(l => {
+      const who = l.nameCollected || l.phoneCollected || l.callerNumber || 'Appelant inconnu';
+      const contact = [l.phoneCollected || l.callerNumber, l.emailCollected].filter(Boolean).join(' · ');
+      const summary = (l.summary || '').replace(/\s+/g, ' ').slice(0, 200);
+      return `• *${who}*${contact ? ` — ${contact}` : ''}${summary ? `\n  ${summary}` : ''}`;
+    });
+
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: `${leads.length} nouveau${leads.length > 1 ? 'x' : ''} lead${leads.length > 1 ? 's' : ''} au téléphone\n${lines.join('\n')}`,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) throw new Error(`Slack returned HTTP ${res.status}`);
   }
 
   // ─── HubSpot provider ────────────────────────────────────

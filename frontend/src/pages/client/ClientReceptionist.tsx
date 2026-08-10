@@ -154,6 +154,118 @@ function Row({ l, v, c }: { l: string; v: string; c?: string }) {
   );
 }
 
+/**
+ * Une intégration qui se branche en collant une URL.
+ *
+ * Slack, Zapier, Make et n8n n'ont pas d'OAuth: leur URL EST le secret. C'est
+ * ce qui les rend brancharbles par le client tout seul, et c'est pourquoi
+ * elles étaient les seules à mériter d'être ouvertes avant les autres.
+ *
+ * Le champ est de type `password`: cette URL donne le droit d'écrire dans le
+ * canal Slack de l'entreprise, elle ne se laisse pas lire par-dessus l'épaule.
+ */
+function WebhookIntegration({
+  icon: Icon, provider, name, desc, help, connected, onChanged,
+}: {
+  icon: React.ElementType;
+  provider: string;
+  name: string;
+  desc: string;
+  help: string;
+  connected: { provider: string; syncStatus?: string; lastSync?: string | null }[];
+  onChanged: () => void;
+}) {
+  const existing = connected.find(i => i.provider === provider);
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const connect = async () => {
+    setBusy(true); setErr(null);
+    try {
+      await api.post(`/crm/integrations/${provider}/connect`, { config: { webhookUrl: url.trim() } });
+      setUrl(''); setOpen(false);
+      onChanged();
+    } catch (e: any) {
+      // Le message du serveur, pas un générique: c'est lui qui dit « HTTPS
+      // obligatoire » ou « réseau interne », donc ce qu'il faut corriger.
+      setErr(e?.response?.data?.error || 'Connexion impossible');
+    } finally { setBusy(false); }
+  };
+
+  const disconnect = async () => {
+    setBusy(true);
+    try {
+      await api.post(`/crm/integrations/${provider}/disconnect`);
+      onChanged();
+    } catch { /* l'état reste, le client peut réessayer */ }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+      <div className="flex items-center gap-3">
+        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/[0.06]">
+          <Icon size={16} className="text-white/60" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-[#F8F8FF]">{name}</p>
+          <p className="text-[11px] text-[#8B8BA7] leading-snug">{desc}</p>
+        </div>
+        {existing ? (
+          <button
+            type="button" onClick={disconnect} disabled={busy}
+            className="flex-shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-medium text-[#8B8BA7] transition-colors hover:bg-white/[0.06] hover:text-[#F8F8FF] disabled:opacity-40"
+          >
+            Déconnecter
+          </button>
+        ) : (
+          <button
+            type="button" onClick={() => setOpen(o => !o)}
+            className="flex-shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-semibold"
+            style={{ background: 'rgba(122,95,255,0.16)', color: '#b9a8ff' }}
+          >
+            {open ? 'Annuler' : 'Connecter'}
+          </button>
+        )}
+      </div>
+
+      {existing && (
+        /* La dernière synchro, parce qu'une intégration « connectée » qui
+           n'a rien envoyé depuis trois jours n'est pas connectée. */
+        <p className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-400">
+          <CheckCircle2 size={12} aria-hidden="true" />
+          Connecté
+          <span className="text-[#8B8BA7]">
+            {existing.lastSync
+              ? `· dernière synchro le ${new Date(existing.lastSync).toLocaleDateString('fr-FR')}`
+              : '· première synchro dans les 15 minutes'}
+          </span>
+        </p>
+      )}
+
+      {open && !existing && (
+        <div className="mt-3 space-y-2">
+          <input
+            type="password" value={url} onChange={e => setUrl(e.target.value)}
+            placeholder="https://…" autoComplete="off" className={compactInputCls + ' w-full'}
+          />
+          <p className="text-[11px] leading-snug text-[#8B8BA7]">{help}</p>
+          {err && <p className="text-[11px] text-red-400">{err}</p>}
+          <button
+            type="button" onClick={connect} disabled={busy || !url.trim()}
+            className="rounded-lg px-3 py-1.5 text-[11px] font-semibold disabled:opacity-40"
+            style={{ background: '#7A5FFF', color: '#fff' }}
+          >
+            {busy ? 'Connexion…' : 'Enregistrer'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ClientReceptionist() {
   const [overview, setOverview] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
@@ -176,6 +288,7 @@ export default function ClientReceptionist() {
   const [forwardingType, setForwardingType] = useState('');
   const [googleCalendarId, setGoogleCalendarId] = useState('');
   // Google Calendar OAuth integration
+  const [integrations, setIntegrations] = useState<{ provider: string; syncStatus?: string; lastSync?: string | null }[]>([]);
   const [gcal, setGcal] = useState<{ connected: boolean; revoked?: boolean; upcoming?: { id: string; summary: string; start: string | null }[] } | null>(null);
   const [gcalBusy, setGcalBusy] = useState(false);
   /* Lue une fois au montage: elle n'est écrite qu'avant un départ vers Google,
@@ -286,7 +399,14 @@ export default function ClientReceptionist() {
     }
   }, []);
 
+  const loadIntegrations = useCallback(() => {
+    api.get('/crm/integrations')
+      .then(({ data }) => setIntegrations(Array.isArray(data) ? data : []))
+      .catch(() => setIntegrations([]));
+  }, []);
+
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadIntegrations(); }, [loadIntegrations]);
 
   /* Le fragment de l'URL ouvre un panneau, pour qui en vise un explicitement
    * (`/dashboard/receptionist#integrations` depuis un email, par exemple). La
@@ -923,13 +1043,35 @@ export default function ClientReceptionist() {
             )}
           </div>
 
-          {/* Coming-soon integrations, same card format */}
+          {/* Les intégrations qui se branchent avec une URL.
+              Elles étaient affichées « Bientôt » alors que le service de
+              synchronisation savait déjà les servir, et que le cron tourne
+              toutes les quinze minutes: il manquait la porte, pas la pièce. */}
+          <WebhookIntegration
+            icon={Activity}
+            provider="slack"
+            name="Slack"
+            desc="Chaque nouveau lead annoncé dans votre canal"
+            help="Slack → Applications → Incoming Webhooks → Ajouter. Copiez l'URL qui commence par https://hooks.slack.com/."
+            connected={integrations}
+            onChanged={loadIntegrations}
+          />
+          <WebhookIntegration
+            icon={Settings}
+            provider="zapier"
+            name="Zapier, Make ou n8n"
+            desc="Vos contacts, appels et affaires envoyés vers 6000+ outils"
+            help="Créez un déclencheur « Webhooks by Zapier → Catch Hook » (ou un webhook Make / n8n) et collez l'URL fournie."
+            connected={integrations}
+            onChanged={loadIntegrations}
+          />
+
+          {/* Ce qui reste réellement à faire. Ces trois-là demandent un
+              parcours OAuth complet chez le fournisseur, pas une URL. */}
           {([
             { icon: Clock3,     name: 'Calendly',            desc: 'Synchronisez vos liens de réservation' },
             { icon: Globe,      name: 'Outlook / Microsoft 365', desc: 'Agenda et contacts Microsoft' },
             { icon: Tag,        name: 'Stripe',              desc: 'Encaissements et factures liés aux appels' },
-            { icon: Activity,   name: 'Slack',               desc: 'Notification instantanée de chaque lead' },
-            { icon: Settings,   name: 'Zapier',              desc: 'Reliez Qwillio à 6000+ outils' },
           ] as { icon: typeof Calendar; name: string; desc: string }[]).map(intg => (
             <div key={intg.name} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 opacity-70">
               <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/[0.06]">
