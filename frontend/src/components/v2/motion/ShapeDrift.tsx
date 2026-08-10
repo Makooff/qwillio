@@ -5,79 +5,81 @@ import { prefersReducedMotion } from './reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* Décor géométrique, d'après les quatre compositions fournies par
-   l'utilisateur.
+/* Décor géométrique, d'après les compositions fournies par l'utilisateur.
  *
  * Elles sont REDESSINÉES en SVG plutôt qu'embarquées en PNG: ce sont des
  * aplats de demi-disques, donc quelques centaines d'octets au lieu de plusieurs
  * mégaoctets, nettes à n'importe quelle taille, et surtout tenues par nos
- * variables de marque au lieu des couleurs du fichier d'origine.
+ * violets de marque au lieu des couleurs du fichier d'origine.
  *
- * Deux mouvements se superposent: une parallaxe au scroll (la forme traverse la
- * section pendant qu'on la dépasse) et une respiration lente. Rien ne bouge en
- * reduced-motion, où la couche disparaît: c'est du décor, il n'a rien à dire à
- * qui coupe les animations. */
+ * DEUX formes, et deux seulement (demande utilisateur): la colonne de
+ * demi-disques alternés, et le grand disque pâle qui déborde du cadre. Les
+ * compositions composites d'avant (`twin`, `twinMirror`, `quarters`) sont
+ * parties: quatre motifs différents sur une même page, ce n'est plus un motif,
+ * c'est une collection.
+ *
+ * Elles sont DROITES (demande utilisateur): plus de `rotate` au montage, et
+ * plus de respiration en rotation lente. Un demi-disque incliné n'est plus un
+ * demi-disque, c'est une forme quelconque; c'est l'aplomb qui fait lire la
+ * géométrie. Il ne reste donc qu'un seul mouvement, la parallaxe, qui est
+ * exactement ce qui a été demandé.
+ *
+ * Rien ne bouge en reduced-motion, où la couche disparaît: c'est du décor, il
+ * n'a rien à dire à qui coupe les animations. */
 
-/* Les trois valeurs relevées dans les fichiers, transposées sur nos violets. */
-const DEEP = '#5B4BF5';
-const MID = '#7B6FF7';
-const PALE = '#BDB6FD';
-const PALEST = '#D8D5FE';
+/* Les valeurs du décor viennent des COULEURS DE MARQUE (demande utilisateur),
+   plus des paliers pris sur le dégradé qui va de l'indigo au violet. Les
+   teintes relevées dans les fichiers d'origine (#5B4BF5, #7B6FF7, #BDB6FD)
+   étaient proches sans être les nôtres, et un décor qui frôle la marque sans
+   la toucher se lit comme une erreur d'impression.
 
-export type ShapeKind = 'twin' | 'twinMirror' | 'column' | 'quarters';
+   Les deux bornes sont les jetons de `v2.css`, écrits en `var()` pour rester
+   liés: si la marque bouge, le décor suit.
+
+   Les paliers intermédiaires sont CALCULÉS entre l'indigo `#7A5FFF` et le
+   violet `#CD6BFB`, pas choisis à l'oeil, c'est ce qui garantit qu'ils tombent
+   sur le dégradé et non à côté:
+     25 % → #8F62FE   50 % → #A465FD   75 % → #B868FC
+   Les deux pâles sont le `lift` de marque (#B9A8FF) éclairci vers le blanc,
+   à 35 % et 62 %: la même famille, assez claire pour rester du fond. */
+const DEEP = 'var(--q2-deep)';      /* #7349FE */
+const MID = '#A465FD';              /* mi-chemin indigo → violet */
+const VIOLET = 'var(--q2-violet)';  /* #CD6BFB */
+const PALE = '#D2C6FF';
+const PALEST = '#E4DEFF';
+
+export type ShapeKind = 'column' | 'disc';
 
 /** Ratio hauteur/largeur de chaque composition, pour réserver la bonne place. */
 const RATIO: Record<ShapeKind, number> = {
-  twin: 1,
-  twinMirror: 1,
   column: 2,
-  quarters: 1.34,
+  disc: 1,
 };
 
 function Shape({ kind }: { kind: ShapeKind }) {
   switch (kind) {
-    /* Grand demi-disque pâle à gauche, demi-disque profond à droite, et un
-       petit demi-disque très clair posé sur la couture. */
-    case 'twin':
-      return (
-        <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
-          <path d="M50 0a50 50 0 0 0 0 100Z" fill={PALE} />
-          <path d="M56 0a50 50 0 0 1 0 100Z" fill={DEEP} />
-          <path d="M50 25a25 25 0 0 1 0 50Z" fill={PALEST} />
-          <path d="M50 25a25 25 0 0 0 0 50Z" fill={PALEST} />
-        </svg>
-      );
-
-    /* La même, retournée: le plein passe à gauche. */
-    case 'twinMirror':
-      return (
-        <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
-          <path d="M44 0a50 50 0 0 0 0 100Z" fill={DEEP} />
-          <path d="M50 0a50 50 0 0 1 0 100Z" fill={PALE} />
-          <path d="M50 25a25 25 0 0 0 0 50Z" fill={PALEST} />
-          <path d="M50 25a25 25 0 0 1 0 50Z" fill={PALEST} />
-        </svg>
-      );
-
-    /* Colonne de quatre demi-disques alternés, ventre en haut puis en bas. */
+    /* La COLONNE: quatre demi-disques empilés, ventre en haut puis en bas.
+       Les valeurs descendent le DÉGRADÉ de la marque dans l'ordre, du plus
+       pâle au violet en passant par le profond et le mi-chemin: c'est cet
+       ordre qui fait lire une progression plutôt qu'un empilement. Prises au
+       hasard, les mêmes quatre teintes donneraient quatre rondelles. */
     case 'column':
       return (
         <svg viewBox="0 0 100 200" className="w-full h-full" preserveAspectRatio="none">
-          <path d="M0 50a50 50 0 0 1 100 0Z" fill={PALE} />
+          <path d="M0 50a50 50 0 0 1 100 0Z" fill={PALEST} />
           <path d="M0 50a50 50 0 0 0 100 0Z" fill={DEEP} />
           <path d="M0 150a50 50 0 0 1 100 0Z" fill={MID} />
-          <path d="M0 150a50 50 0 0 0 100 0Z" fill={PALE} />
+          <path d="M0 150a50 50 0 0 0 100 0Z" fill={VIOLET} />
         </svg>
       );
 
-    /* Grand demi-disque pâle coupé net en son milieu, quart profond en bas à
-       gauche, demi-disque moyen détaché à droite. */
-    case 'quarters':
+    /* Le DISQUE: un rond pâle plein, posé pour déborder du cadre. Il ne porte
+       aucun détail, et c'est son rôle: il remplit un vide sans y ajouter de
+       lecture, là où la colonne, elle, attire l'oeil. */
+    case 'disc':
       return (
-        <svg viewBox="0 0 100 134" className="w-full h-full" preserveAspectRatio="none">
-          <path d="M67 0a67 67 0 0 0 0 134Z" fill={PALE} />
-          <path d="M0 67h67a33.5 33.5 0 0 1-67 0Z" fill={DEEP} />
-          <path d="M67 34a33.5 33.5 0 0 1 0 67Z" fill={MID} />
+        <svg viewBox="0 0 100 100" className="w-full h-full">
+          <circle cx="50" cy="50" r="50" fill={PALE} />
         </svg>
       );
   }
@@ -90,7 +92,6 @@ export interface DriftedShape {
   y: string;
   /** Largeur en pixels; la hauteur suit le ratio de la composition. */
   size: number;
-  rotate?: number;
   /** Amplitude de la parallaxe, en pixels. Négatif = remonte au scroll. */
   drift?: number;
   opacity?: number;
@@ -111,7 +112,7 @@ export default function ShapeDrift({
     if (!root || reduced) return;
     const ctx = gsap.context(() => {
       const items = gsap.utils.toArray<HTMLElement>('[data-drift]');
-      items.forEach((el, i) => {
+      items.forEach((el) => {
         const amount = Number(el.dataset.driftAmount ?? 120);
         /* Parallaxe: c'est le mouvement que l'utilisateur a demandé, il est
            donc franc (jusqu'à deux cents pixels) plutôt que suggéré. */
@@ -123,15 +124,6 @@ export default function ShapeDrift({
              rattrapaient le doigt plus vite que la capture, ce qui donnait
              deux vitesses de glissement dans le même mouvement. */
           scrollTrigger: { trigger: root, start: 'top bottom', end: 'bottom top', scrub: 1 },
-        });
-        /* Respiration: jamais la même durée d'une forme à l'autre, sinon les
-           quatre repartent ensemble et le décor se met à battre la mesure. */
-        gsap.to(el, {
-          rotate: `+=${i % 2 ? 6 : -6}`,
-          duration: 12 + i * 2.3,
-          ease: 'sine.inOut',
-          repeat: -1,
-          yoyo: true,
         });
       });
     }, root);
@@ -158,7 +150,6 @@ export default function ShapeDrift({
             width: s.size,
             height: s.size * RATIO[s.kind],
             opacity: s.opacity ?? 0.4,
-            transform: `rotate(${s.rotate ?? 0}deg)`,
             willChange: 'transform',
           }}
         >

@@ -528,13 +528,51 @@ export default function Home() {
           aria-hidden="true"
           className="absolute inset-0 pointer-events-none"
           style={{
-            /* Le point de départ du fondu est la SEULE valeur réglable, et il
-               sort d'une mesure de contraste (voir `--q2-hero-vignette` dans
-               v2.css): la vidéo est claire, donc en thème sombre c'est cette
-               vignette, et elle seule, qui ramène le fond vers le noir sous le
-               texte. */
-            background:
+            /* TROIS fondus empilés dans un seul calque (demande utilisateur:
+               bas, haut et coins, en dégradé et flou). Un seul calque et non
+               trois: c'est cette même vignette qui avait déjà été dédoublée
+               une fois, et deux couches qui ferment sur la même couleur
+               s'additionnent au lieu de se relayer.
+
+               L'ordre compte, le premier déclaré peint au-dessus:
+                 1. le HAUT, pour que la barre de navigation se détache;
+                 2. le BAS, le plus long, parce que c'est là que la page
+                    continue et que la vidéo doit avoir disparu avant;
+                 3. les COINS, en ellipse, qui referment le cadre.
+
+               Le flou ne vient pas d'un `filter`, qui ne ferait rien sur un
+               dégradé: il vient de l'ÉCART entre les arrêts de couleur. Des
+               arrêts espacés de 30 à 40 % donnent un fondu long, donc doux;
+               resserrés, ils dessineraient une arête nette.
+
+               Aucune couleur n'est écrite: tout ferme sur
+               `rgb(var(--q2-canvas))`, donc blanc en clair et noir en sombre
+               par construction. Un blanc littéral repeindrait la page en clair
+               par-dessus le canvas basculé, le piège que CLAUDE.md documente.
+
+               Le point de départ du fondu des coins reste `--q2-hero-vignette`,
+               qui sort d'une mesure de contraste (voir v2.css). */
+            background: [
+              /* HAUT: court, juste de quoi détacher la barre de navigation. */
+              'linear-gradient(to bottom, rgb(var(--q2-canvas)) 0%, rgb(var(--q2-canvas) / 0.55) 9%, transparent 26%)',
+              /* BAS: calé sur la fenêtre Safari, et les cotes sont MESURÉES
+                 dans le rendu, pas estimées. La fenêtre occupe 49,2 % à 95,7 %
+                 de la hauteur du hero, et son propre masque (`MASK_V`) éteint
+                 son arête basse entre 89,3 % et 92,7 % de cette même hauteur.
+                 Le fondu de la vidéo est donc totalement fermé à 7 % du bas,
+                 soit 93 %: la vidéo a disparu juste avant que la fenêtre ne
+                 s'éteigne, et les deux dégradés se rejoignent au lieu de se
+                 croiser (demande utilisateur). Il démarre haut, à 45 %, pour
+                 rester long, donc doux. */
+              'linear-gradient(to top, rgb(var(--q2-canvas)) 0%, rgb(var(--q2-canvas)) 7%, rgb(var(--q2-canvas) / 0.55) 18%, transparent 45%)',
+              /* FLANCS: les deux bords, courts. Assez pour décoller la vidéo
+                 du cadre, trop peu pour mordre sur la colonne de texte, qui
+                 commence après le premier quart. */
+              'linear-gradient(to right, rgb(var(--q2-canvas)) 0%, transparent 14%)',
+              'linear-gradient(to left, rgb(var(--q2-canvas)) 0%, transparent 14%)',
+              /* COINS: l'ellipse qui referme le cadre. */
               'radial-gradient(125% 92% at 50% 40%, transparent var(--q2-hero-vignette), rgb(var(--q2-canvas) / 0.5) 74%, rgb(var(--q2-canvas)) 100%)',
+            ].join(', '),
           }}
         />
 
@@ -673,7 +711,7 @@ export default function Home() {
       <Section aria-labelledby="team-heading" className="relative">
         <ShapeDrift
           className="hidden lg:block"
-          shapes={[{ kind: 'twin', x: '84%', y: '-10%', size: 380, rotate: 10, drift: 180, opacity: 0.3 }]}
+          shapes={[{ kind: 'column', x: '86%', y: '-14%', size: 190, drift: 180, opacity: 0.3 }]}
         />
         <Container>
           <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
@@ -715,7 +753,7 @@ export default function Home() {
       <Section aria-labelledby="conv-heading" hairline className="relative">
         <ShapeDrift
           className="hidden lg:block"
-          shapes={[{ kind: 'quarters', x: '-8%', y: '52%', size: 320, rotate: -8, drift: 150, opacity: 0.34 }]}
+          shapes={[{ kind: 'disc', x: '-12%', y: '46%', size: 340, drift: 150, opacity: 0.3 }]}
         />
         <Container className="relative grid lg:grid-cols-[1fr_1.6fr] gap-10 md:gap-16 lg:gap-24 items-start">
           {/* La colonne reste au regard pendant que les blocs défilent: c'est
@@ -800,7 +838,7 @@ export default function Home() {
       <Section aria-labelledby="setup-heading" className="relative">
         <ShapeDrift
           className="hidden md:block"
-          shapes={[{ kind: 'twinMirror', x: '80%', y: '58%', size: 300, rotate: 14, drift: -160, opacity: 0.32 }]}
+          shapes={[{ kind: 'column', x: '82%', y: '40%', size: 170, drift: -160, opacity: 0.28 }]}
         />
         <Container className="relative grid lg:grid-cols-[1fr_1.4fr] gap-9 sm:gap-12 items-start">
           <RevealV2>
@@ -865,7 +903,7 @@ export default function Home() {
       <Section aria-labelledby="pocket-heading" className="relative overflow-hidden">
         <ShapeDrift
           className="hidden lg:block"
-          shapes={[{ kind: 'column', x: '46%', y: '-24%', size: 220, rotate: 6, drift: 200, opacity: 0.26 }]}
+          shapes={[{ kind: 'column', x: '46%', y: '-26%', size: 200, drift: 200, opacity: 0.24 }]}
         />
         <Container className="grid lg:grid-cols-[1fr_1fr] gap-8 sm:gap-14 lg:gap-20 items-center [&>*]:min-w-0">
           <RevealV2>
@@ -907,7 +945,7 @@ export default function Home() {
       <Section variant="band" hairline aria-labelledby="after-heading" className="relative">
         <ShapeDrift
           className="hidden lg:block"
-          shapes={[{ kind: 'twin', x: '-9%', y: '64%', size: 300, rotate: -12, drift: -150, opacity: 0.3 }]}
+          shapes={[{ kind: 'disc', x: '-11%', y: '58%', size: 300, drift: -150, opacity: 0.28 }]}
         />
         <Container>
           <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
@@ -958,7 +996,7 @@ export default function Home() {
       <Section aria-labelledby="integrations-heading" className="relative">
         <ShapeDrift
           className="hidden lg:block"
-          shapes={[{ kind: 'quarters', x: '86%', y: '-16%', size: 260, rotate: 16, drift: 170, opacity: 0.28 }]}
+          shapes={[{ kind: 'column', x: '88%', y: '-18%', size: 165, drift: 170, opacity: 0.26 }]}
         />
         <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-9 sm:gap-14 items-center [&>*]:min-w-0">
           <RevealV2 className="max-w-[440px]">
