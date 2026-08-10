@@ -92,25 +92,31 @@ const MOCKUP = {
  * CLAUDE.md documente comme piège.
  */
 function HeroVideoBackdrop() {
-  const [failed, setFailed] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
   const [playing, setPlaying] = useState(false);
   const still = prefersReducedMotion();
-  if (failed && !playing) return null;
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      <img
-        src="/hero-backdrop.webp"
-        alt=""
-        aria-hidden="true"
-        onError={() => setFailed(true)}
-        className="absolute inset-0 w-full h-full object-cover select-none"
-        /* Elle s'efface quand la vidéo prend le relais: superposées, deux
-           couches à demi transparentes s'additionnent et assombrissent. */
-        style={{
-          opacity: playing ? 0 : 'var(--q2-hero-photo)',
-          transition: 'opacity 900ms cubic-bezier(0.23, 1, 0.32, 1)',
-        }}
-      />
+      {/* Seule la PHOTO disparaît quand elle échoue, jamais le bloc entier.
+          Démonter le tout serait un blocage: la vidéo partirait avec, donc
+          `onPlaying` ne pourrait plus jamais se produire, et un hero dont
+          seule la photo manque n'afficherait plus rien alors que la vidéo,
+          elle, était parfaitement jouable. */}
+      {!photoFailed && (
+        <img
+          src="/hero-backdrop.webp"
+          alt=""
+          aria-hidden="true"
+          onError={() => setPhotoFailed(true)}
+          className="absolute inset-0 w-full h-full object-cover select-none"
+          /* Elle s'efface quand la vidéo prend le relais: superposées, deux
+             couches à demi transparentes s'additionnent et assombrissent. */
+          style={{
+            opacity: playing ? 0 : 'var(--q2-hero-photo)',
+            transition: 'opacity 900ms cubic-bezier(0.23, 1, 0.32, 1)',
+          }}
+        />
+      )}
       {!still && (
         <video
           autoPlay
