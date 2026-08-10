@@ -59,50 +59,100 @@ const MOCKUP = {
   },
 } as const;
 
-/* Fond vidéo du hero : la boucle de marque, PAS le film publicitaire
-   (`qwillio-ad.mp4`), qui n'a rien à faire ici. Tant que `/hero-loop.mp4`
-   n'existe pas, le composant s'efface de lui-même (onError) et le hero garde
-   son dégradé et ses blobs : aucune zone vide, aucun cadre cassé.
-   `playsInline` + `muted` sont indispensables pour qu'iOS accepte la lecture
-   automatique ; `preload="metadata"` évite de tirer le fichier avant que la
-   page soit utilisable. Deux voiles la calment ensuite. */
 /**
- * Le décor du hero.
+ * Le décor du hero: une PHOTO, et par-dessus une VIDÉO quand il y en a une.
  *
- * C'était une boucle vidéo (`/hero-loop.mp4`) que le dépôt ne contient pas: le
- * `onError` la faisait disparaître et le hero s'en passait. C'est désormais une
- * IMAGE, plus légère, sans lecture à démarrer et sans le cas iOS où l'autoplay
- * est refusé.
+ * Les deux couches coexistent, et c'est le point de la construction. La photo
+ * (`/hero-backdrop.webp`, le lac brumeux) est le plancher: elle est là au
+ * premier rendu, sans lecture à démarrer. La vidéo (`/hero-loop.mp4`) se pose
+ * dessus et n'apparaît qu'une fois qu'elle a de quoi jouer.
  *
- * Le fichier attendu: `public/hero-backdrop.webp`. S'il manque, `onError`
- * masque la couche et il ne reste que le dégradé de la page — exactement le
- * comportement d'avant, donc rien ne casse tant qu'il n'est pas déposé.
+ * Ce que ça évite, et qui était le vrai défaut de la version vidéo précédente:
+ * elle s'effaçait en cas d'échec et ne laissait RIEN. Or une vidéo de fond
+ * échoue souvent, et jamais bruyamment — fichier absent, codec refusé, lecture
+ * automatique bloquée par l'économiseur de batterie iOS, « données réduites »
+ * activé. Avec la photo dessous, tous ces cas rendent la même image fixe au
+ * lieu d'un trou, sans qu'on ait à les détecter un par un.
  *
- * Le voile par-dessus n'est pas décoratif: le titre est en encre presque noire,
- * et un décor saturé sous lui ferait tomber le contraste sous le seuil lisible.
- * Il ferme sur `rgb(var(--q2-canvas))`, donc il est crème en clair et noir en
- * sombre, sans qu'aucune couleur ne soit écrite ici — un blanc littéral
- * repeindrait la page en clair par-dessus le canvas basculé, ce que CLAUDE.md
- * documente comme piège.
+ * D'où aussi l'absence de `onError` sur la vidéo: elle n'a rien à signaler.
+ * Si elle ne joue pas, elle ne monte jamais en opacité, et la photo reste
+ * visible. C'est la même raison qui rend `<source>` sans danger ici, alors
+ * qu'il est connu pour ne pas propager ses erreurs à l'élément parent.
+ *
+ * `muted` + `playsInline` sont ce qu'iOS EXIGE pour accepter la lecture
+ * automatique, `preload="metadata"` évite de tirer le fichier avant que la
+ * page soit utilisable, et en mouvement réduit on ne monte pas la vidéo du
+ * tout: on ne se contente pas de la mettre en pause, on ne la télécharge pas.
+ *
+ * Les voiles par-dessus ne sont pas décoratifs: le titre est en encre presque
+ * noire, et un décor saturé sous lui ferait tomber le contraste sous le seuil
+ * lisible. Ils ferment sur `rgb(var(--q2-canvas))`, donc crème en clair et
+ * noir en sombre, sans qu'aucune couleur ne soit écrite ici — un blanc
+ * littéral repeindrait la page en clair par-dessus le canvas basculé, ce que
+ * CLAUDE.md documente comme piège.
  */
 function HeroVideoBackdrop() {
-  const [failed, setFailed] = useState(false);
-  if (failed) return null;
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const still = prefersReducedMotion();
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      <img
-        src="/hero-backdrop.webp"
-        alt=""
-        aria-hidden="true"
-        onError={() => setFailed(true)}
-        className="absolute inset-0 w-full h-full object-cover select-none"
-        style={{ opacity: 0.5 }}
-      />
+      {/* Seule la PHOTO disparaît quand elle échoue, jamais le bloc entier.
+          Démonter le tout serait un blocage: la vidéo partirait avec, donc
+          `onPlaying` ne pourrait plus jamais se produire, et un hero dont
+          seule la photo manque n'afficherait plus rien alors que la vidéo,
+          elle, était parfaitement jouable. */}
+      {!photoFailed && (
+        <img
+          src="/hero-backdrop.webp"
+          alt=""
+          aria-hidden="true"
+          onError={() => setPhotoFailed(true)}
+          className="absolute inset-0 w-full h-full object-cover select-none"
+          /* Elle s'efface quand la vidéo prend le relais: superposées, deux
+             couches à demi transparentes s'additionnent et assombrissent. */
+          style={{
+            opacity: playing ? 0 : 'var(--q2-hero-photo)',
+            transition: 'opacity 900ms cubic-bezier(0.23, 1, 0.32, 1)',
+          }}
+        />
+      )}
+      {!still && (
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster="/hero-backdrop.webp"
+          onPlaying={() => setPlaying(true)}
+          className="absolute inset-0 w-full h-full object-cover select-none"
+          style={{
+            opacity: playing ? 'var(--q2-hero-photo)' : 0,
+            transition: 'opacity 900ms cubic-bezier(0.23, 1, 0.32, 1)',
+          }}
+        >
+          <source src="/hero-loop.webm" type="video/webm" />
+          <source src="/hero-loop.mp4" type="video/mp4" />
+        </video>
+      )}
       <div
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgb(var(--q2-canvas) / 0.62) 0%, rgb(var(--q2-band) / 0.72) 55%, rgb(var(--q2-canvas)) 100%)',
+            'linear-gradient(180deg, rgb(var(--q2-canvas) / var(--q2-hero-veil-top)) 0%, rgb(var(--q2-band) / var(--q2-hero-veil-mid)) 55%, rgb(var(--q2-canvas)) 100%)',
+        }}
+      />
+      {/* Le texte occupe la COLONNE GAUCHE, la crête le côté droit. Ce second
+          voile n'assombrit donc que la moitié où l'on lit, et laisse la photo
+          respirer là où rien ne la recouvre. Sans lui, il fallait épaissir le
+          voile vertical partout, ce qui effaçait la montagne pour protéger un
+          texte qui n'est même pas dessous. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(90deg, rgb(var(--q2-canvas) / 0.55) 0%, rgb(var(--q2-canvas) / 0.28) 38%, transparent 62%)',
         }}
       />
     </div>
