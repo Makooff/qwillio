@@ -75,7 +75,11 @@ export default function ThemeToggle({ onDark = false }: { onDark?: boolean }) {
              lui seul qui doit rester lisible sur le verre. */
           onDark
             ? 'bg-white/[0.06] backdrop-blur-md text-white ring-1 ring-white/45'
-            : 'bg-q2-ink text-q2-canvas'
+            /* Sur clair aussi (retour utilisateur): le curseur était un disque
+               NOIR plein, une pastille opaque au milieu d'une barre en verre.
+               Même traitement que sur sombre, avec les valeurs inversées: un
+               voile d'encre à 6 %, un filet d'encre, et l'icône en encre. */
+            : 'bg-q2-ink/[0.06] backdrop-blur-md text-q2-ink ring-1 ring-q2-ink/25'
         }`}
         style={{ transform: dark ? 'translateX(19px)' : 'translateX(0)' }}
       >

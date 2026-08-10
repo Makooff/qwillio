@@ -427,7 +427,7 @@ export default function Receptionist() {
 
       {/* PILIERS 1 à 4, rangées éditoriales alternées (jamais une grille de cards identiques) */}
       <Section hairline aria-labelledby="pillars-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'column', x: '88%', y: '18%', size: 150, drift: 90, opacity: 0.26 }]} />
+        <ShapeDrift shapes={[{ kind: 'disc', x: '-11%', y: '26%', size: 265, drift: -80, opacity: 0.22 }]} />
         <Container>
           <RevealV2 className="mb-4 md:mb-10">
             <div className="grid lg:grid-cols-[1fr_1fr] gap-6 sm:gap-8 lg:gap-16 items-end">
@@ -813,7 +813,7 @@ export default function Receptionist() {
 
       {/* PILIERS 7 à 9, bande taupe: ce qui revient au patron et ce qui est cadré */}
       <Section variant="band" hairline aria-labelledby="after-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'disc', x: '-10%', y: '30%', size: 260, drift: -90, opacity: 0.24 }]} />
+        <ShapeDrift shapes={[{ kind: 'discCut', x: '87%', y: '44%', size: 185, drift: 75, opacity: 0.2 }]} />
         <Container className="grid lg:grid-cols-[1.5fr_1fr] gap-9 sm:gap-12 lg:gap-20 items-start">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-3 sm:mb-4">

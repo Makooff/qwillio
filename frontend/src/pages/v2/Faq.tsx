@@ -154,7 +154,7 @@ export default function Faq() {
   return (
     <PublicShell>
       <Section aria-label={isFr ? 'Questions fréquentes' : 'Frequently asked questions'} className="relative !pt-16 md:!pt-24 !pb-0">
-        <ShapeDrift shapes={[{ kind: 'column', x: '88%', y: '18%', size: 150, drift: 90, opacity: 0.26 }]} />
+        <ShapeDrift shapes={[{ kind: 'pair', x: '-7%', y: '24%', size: 165, drift: -75, opacity: 0.22 }]} />
         <Container className="grid lg:grid-cols-[1.2fr_1fr] gap-10 lg:gap-20 items-end">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-6">

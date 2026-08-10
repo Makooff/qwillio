@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, AlertTriangle, Shield, Phone, FileText, Download } from '../../components/icons';
+import { Check, AlertTriangle, Shield, Phone, FileText, Download, CreditCard } from '../../components/icons';
 import api from '../../services/api';
 import { formatDate } from '../../utils/format';
 
@@ -125,6 +125,7 @@ export default function ClientBilling() {
   const [showCancel, setShowCancel] = useState(false);
   const [cancelInput, setCancelInput] = useState('');
   const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -169,6 +170,30 @@ export default function ClientBilling() {
       );
     } finally {
       setUpgrading(null);
+    }
+  };
+
+  /* Le portail Stripe, ouvert dans le MÊME onglet.
+     Un `window.open` serait bloqué par le navigateur: la réponse arrive après
+     un aller-retour réseau, donc hors du geste de l'utilisateur, et le bloqueur
+     de fenêtres ne fait pas la différence avec une publicité. */
+  const openBillingPortal = async () => {
+    setOpeningPortal(true);
+    setLoadError(null);
+    try {
+      const { data } = await api.post('/my-dashboard/billing-portal');
+      if (data?.url) window.location.href = data.url;
+      else setLoadError("Le portail n'a pas pu s'ouvrir. Réessayez dans un instant.");
+    } catch (e: any) {
+      /* Le serveur répond 409 avec une phrase déjà écrite pour l'écran quand
+         aucun dossier Stripe n'existe: on l'affiche telle quelle plutôt que de
+         la remplacer par un message générique qui en dirait moins. */
+      setLoadError(
+        e?.response?.data?.error
+          ?? "Le portail n'a pas pu s'ouvrir. Réessayez dans un instant.",
+      );
+    } finally {
+      setOpeningPortal(false);
     }
   };
 
@@ -460,6 +485,39 @@ export default function ClientBilling() {
             </table>
           </div>
         )}
+      </motion.div>
+
+      {/* Moyen de paiement.
+          C'est ce qui manquait: la ligne « Moyens de paiement » des Paramètres
+          menait bien ici, mais la page ne proposait AUCUN moyen de voir ou de
+          changer la carte enregistrée.
+          Le bouton part vers le portail Stripe plutôt que vers un formulaire
+          maison: saisir un numéro de carte, c'est entrer dans le périmètre PCI,
+          et le seul moyen sûr de ne pas y entrer est de ne jamais voir le
+          numéro. */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.18 }}
+        className="rounded-xl border p-6"
+        style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.025)' }}
+      >
+        <h2 className="text-sm font-semibold text-[#F5F5F7] mb-1 flex items-center gap-2">
+          <CreditCard size={15} style={{ color: '#7349fe' }} />
+          Moyen de paiement
+        </h2>
+        <p className="text-xs text-[#A1A1A8] mb-4">
+          Votre carte est conservée par Stripe, notre prestataire de paiement. Le portail permet de la
+          remplacer, de mettre à jour l'adresse de facturation et de télécharger vos factures.
+        </p>
+        <button
+          type="button"
+          onClick={openBillingPortal}
+          disabled={openingPortal}
+          className="px-4 py-2 text-sm font-medium rounded-full bg-[#7349fe] text-white hover:bg-[#8560ff] disabled:opacity-40 transition-colors"
+        >
+          {openingPortal ? 'Ouverture…' : 'Gérer mon moyen de paiement'}
+        </button>
       </motion.div>
 
       {/* Danger zone — cancel */}

@@ -132,7 +132,7 @@ export default function About() {
 
       {/* HISTOIRE: deux colonnes, intitulé à gauche, récit à droite */}
       <Section variant="band" hairline aria-labelledby="story-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'column', x: '88%', y: '18%', size: 150, drift: 90, opacity: 0.26 }]} />
+        <ShapeDrift shapes={[{ kind: 'discCut', x: '85%', y: '18%', size: 210, drift: 80, opacity: 0.22 }]} />
         <Container className="grid lg:grid-cols-[1fr_1.5fr] gap-10 lg:gap-20 items-start">
           <RevealV2>
             <Eyebrow tone="neutral" className="mb-4">
@@ -236,7 +236,7 @@ export default function About() {
 
       {/* MOT DU FONDATEUR: bande taupe, prose éditoriale */}
       <Section variant="band" hairline aria-labelledby="founder-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'disc', x: '-10%', y: '30%', size: 260, drift: -90, opacity: 0.24 }]} />
+        <ShapeDrift shapes={[{ kind: 'column', x: '-6%', y: '34%', size: 145, drift: -85, opacity: 0.22 }]} />
         <Container className="grid lg:grid-cols-[1fr_1.5fr] gap-10 lg:gap-20 items-start">
           <RevealV2>
             <Eyebrow tone="violet" className="mb-4">

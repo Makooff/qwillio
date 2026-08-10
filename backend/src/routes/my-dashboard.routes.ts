@@ -102,6 +102,10 @@ router.get('/billing', (req, res) => clientDashboardController.getBilling(req, r
 router.get('/payments', (req, res) => clientDashboardController.getPayments(req, res));
 router.post('/cancel', (req, res) => clientDashboardController.cancelSubscription(req, res));
 router.post('/upgrade', billingLimiter, (req, res) => clientDashboardController.upgradeSubscription(req, res));
+/* Sous le MEME limiteur que l'upgrade: la route crée une session chez Stripe à
+   chaque appel, donc elle coûte un aller-retour externe et mérite le même
+   garde-fou que les autres routes de facturation. */
+router.post('/billing-portal', billingLimiter, (req, res) => clientDashboardController.createBillingPortal(req, res));
 
 // ─── Agent modules ──────────────────────────────────────
 router.put('/agent-modules', (req, res) => clientDashboardController.updateAgentModules(req, res));

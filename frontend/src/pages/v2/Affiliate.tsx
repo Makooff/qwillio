@@ -134,7 +134,7 @@ export default function Affiliate() {
 
       {/* FONCTIONNEMENT: rangées hairline numérotées */}
       <Section variant="band" hairline aria-labelledby="how-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'column', x: '88%', y: '18%', size: 150, drift: 90, opacity: 0.26 }]} />
+        <ShapeDrift shapes={[{ kind: 'quarters', x: '86%', y: '26%', size: 220, drift: 80, opacity: 0.22 }]} />
         <Container>
           <RevealV2 className="mb-14">
             <Eyebrow tone="neutral" className="mb-4">

@@ -559,6 +559,36 @@ export class StripeService {
     return session.url;
   }
 
+  /**
+   * Le portail de facturation Stripe, pour que le client gère SA carte.
+   *
+   * Le portail est hébergé par Stripe, et c'est tout l'intérêt: changer une
+   * carte veut dire saisir un numéro de carte, donc entrer dans le périmètre
+   * PCI. En redirigeant vers Stripe, aucun numéro ne touche jamais nos pages
+   * ni nos serveurs. Reconstruire un formulaire de carte côté Qwillio serait
+   * la seule vraie mauvaise réponse à ce besoin.
+   *
+   * Renvoie `null` quand le client n'a pas de `stripeCustomerId`: c'est le cas
+   * d'un compte créé à la main ou d'un essai jamais passé par Stripe. Il n'y a
+   * alors aucun moyen de paiement à gérer, et l'appelant doit le dire plutôt
+   * que d'ouvrir un portail vide.
+   */
+  async createBillingPortalSession(client: { stripeCustomerId: string | null }): Promise<string | null> {
+    if (!client.stripeCustomerId) return null;
+
+    /* Même découpe que les autres redirections: `FRONTEND_URL` peut contenir
+       plusieurs origines séparées par des virgules, et Stripe refuse une URL
+       de retour qui en contiendrait deux. */
+    const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: client.stripeCustomerId,
+      return_url: `${frontendUrl}/dashboard/billing`,
+    });
+
+    return session.url;
+  }
+
   // Optional manual override per plan (kept for backward compat). When set, it
   // wins over auto-provisioning so the founder can still pin a specific Price.
   private envPriceOverride(planId: string): string {
