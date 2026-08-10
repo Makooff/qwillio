@@ -94,6 +94,7 @@ export default function StatStrip({ items, label }: { items: StatCell[]; label?:
             type="button"
             onClick={k.onClick}
             aria-pressed={!!k.active}
+            data-radius="keep"
             className={`${box} transition-opacity ${k.active ? 'opacity-100' : 'opacity-55 hover:opacity-100'}`}
           >
             {inner}

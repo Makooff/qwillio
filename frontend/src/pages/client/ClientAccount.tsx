@@ -81,7 +81,7 @@ function Row({ icon: Icon, label, hint, badge, onClick, to, danger }: RowProps) 
     </div>
   );
   if (to) return <Link to={to} className="block">{inner}</Link>;
-  return <button type="button" onClick={onClick} className="w-full text-left">{inner}</button>;
+  return <button type="button" data-radius="keep" onClick={onClick} className="w-full text-left">{inner}</button>;
 }
 
 interface ToggleProps {

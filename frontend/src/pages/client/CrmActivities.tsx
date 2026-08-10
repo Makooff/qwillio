@@ -2,6 +2,8 @@
 import { motion } from 'framer-motion';
 import { Phone, Mail, FileText, TrendingUp, MessageSquare, Calendar, Loader2 } from '../../components/icons';
 import api from '../../services/api';
+import PageHeader from '../../components/dashboard/PageHeader';
+import EmptyState from '../../components/client-dashboard/EmptyState';
 
 type ActivityType = 'call' | 'email' | 'note' | 'deal_update' | 'sms';
 
@@ -24,12 +26,20 @@ interface RawActivity {
   contact?: { name?: string };
 }
 
+/* Les teintes par type. Elles etaient en palette CLAIRE (`bg-amber-50`,
+   `text-emerald-700`, ...): sur le noir du portail, la pastille active
+   ressortait en aplat lumineux avec une encre sombre dessus, illisible.
+   Chaque type garde son sens, mais en voile a 12 % avec l'encre a pleine
+   teinte, la meme grammaire que les etats de la page Leads.
+   Le vocabulaire suit aussi la marque: l'appel et l'email prennent les deux
+   mauves Qwillio au lieu d'un bleu et d'un violet Tailwind qui
+   n'appartenaient a rien. */
 const TYPE_CONFIG: Record<ActivityType, { label: string; icon: React.ElementType; bg: string; text: string; iconColor: string }> = {
-  call:        { label: 'Appel',       icon: Phone,         bg: 'bg-primary-50',    text: 'text-primary-700',    iconColor: 'text-primary-500' },
-  email:       { label: 'Email',       icon: Mail,          bg: 'bg-primary-50',  text: 'text-primary-700',  iconColor: 'text-[#7349fe]' },
-  note:        { label: 'Note',        icon: FileText,      bg: 'bg-amber-50',   text: 'text-amber-700',   iconColor: 'text-amber-500' },
-  deal_update: { label: 'Affaire',     icon: TrendingUp,    bg: 'bg-emerald-50', text: 'text-emerald-700', iconColor: 'text-emerald-500' },
-  sms:         { label: 'SMS',         icon: MessageSquare, bg: 'bg-violet-300',  text: 'text-violet-700',  iconColor: 'text-violet-500' },
+  call:        { label: 'Appel',   icon: Phone,         bg: 'bg-[#7a5fff]/12', text: 'text-[#7a5fff]', iconColor: 'text-[#7a5fff]' },
+  email:       { label: 'Email',   icon: Mail,          bg: 'bg-[#cd6bfb]/12', text: 'text-[#cd6bfb]', iconColor: 'text-[#cd6bfb]' },
+  note:        { label: 'Note',    icon: FileText,      bg: 'bg-[#f59e0b]/12', text: 'text-[#f59e0b]', iconColor: 'text-[#f59e0b]' },
+  deal_update: { label: 'Affaire', icon: TrendingUp,    bg: 'bg-[#34d399]/12', text: 'text-[#34d399]', iconColor: 'text-[#34d399]' },
+  sms:         { label: 'SMS',     icon: MessageSquare, bg: 'bg-[#38bdf8]/12', text: 'text-[#38bdf8]', iconColor: 'text-[#38bdf8]' },
 };
 
 export default function CrmActivities() {
@@ -77,15 +87,18 @@ export default function CrmActivities() {
 
   return (
     <div>
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#F5F5F7]">Activité</h1>
-          <p className="text-sm text-[#A1A1A8]">{activities.length} activité{activities.length > 1 ? 's' : ''} enregistrée{activities.length > 1 ? 's' : ''}</p>
-        </div>
-      </motion.div>
+      {/* La MEME entete que le reste du portail: titre en 22px semibold, et
+          non plus un `text-2xl font-bold` propre a cette page. */}
+      <PageHeader
+        title="Activité"
+        subtitle={`${activities.length} activité${activities.length > 1 ? 's' : ''} enregistrée${activities.length > 1 ? 's' : ''}`}
+      />
 
-      {/* Type stat pills */}
+      {/* Les types restent des PASTILLES et ne passent pas par la rangee de
+          chiffres partagee: ils sont six avec « Tout », or cette rangee se
+          cale sur cinq colonnes au maximum et le sixieme retomberait seul a
+          la ligne. Une pastille filtre, un chiffre se compare: ce ne sont pas
+          les memes objets. */}
       <div className="flex flex-wrap gap-2 mb-6">
         <button
           type="button"
@@ -121,10 +134,14 @@ export default function CrmActivities() {
           <p className="text-sm text-[#A1A1A8]">Chargement de l’activité…</p>
         </div>
       ) : Object.keys(grouped).length === 0 ? (
-        <div className="py-16 text-center">
-          <Calendar size={36} className="mx-auto text-white/20 mb-3" />
-          <p className="text-sm text-[#A1A1A8]">Aucune activité pour l’instant</p>
-        </div>
+        /* Le meme etat vide que les autres pages: une icone, un titre, une
+           phrase qui dit ce qui le remplira. Ici il n'y avait qu'une ligne
+           grise, sans dire d'ou vient l'activite. */
+        <EmptyState
+          icon={Calendar}
+          title="Aucune activité pour l’instant"
+          description="Les appels, emails et notes de vos contacts s’afficheront ici, du plus récent au plus ancien."
+        />
       ) : (
         <div className="space-y-8">
           {Object.entries(grouped).map(([date, items]) => (

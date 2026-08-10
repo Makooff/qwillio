@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, DollarSign, Calendar, TrendingUp, User, Loader2, GripVertical } from '../../components/icons';
+import { Plus, X, DollarSign, Calendar, TrendingUp, User, Loader2, GripVertical, CheckCircle2, XCircle } from '../../components/icons';
 import {
   DndContext,
   DragOverlay,
@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import api from '../../services/api';
+import PageHeader from '../../components/dashboard/PageHeader';
 
 type DealStage = 'new' | 'qualified' | 'appointment' | 'client' | 'inactive' | 'lost';
 
@@ -318,35 +319,32 @@ export default function CrmDeals() {
 
   return (
     <div>
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#F5F5F7]">Pipeline</h1>
-          <p className="text-sm text-[#A1A1A8]">{deals.length} affaire{deals.length > 1 ? 's' : ''} · {totalPipeline.toLocaleString('fr-FR')} € au total</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#7349fe] text-white text-sm font-medium rounded-xl hover:bg-[#7349fe] transition-colors"
-        >
-          <Plus size={16} /> Nouvelle affaire
-        </button>
-      </motion.div>
-
-      {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        {[
-          { label: 'Pipeline total', value: `${totalPipeline.toLocaleString('fr-FR')} €`, sub: `${deals.filter(d => d.stage !== 'lost').length} affaire${deals.filter(d => d.stage !== 'lost').length > 1 ? 's' : ''} en cours`, color: '#7349fe' },
-          { label: 'Gagné',          value: `${wonValue.toLocaleString('fr-FR')} €`,       sub: `${stageDeals('client').length} conclue${stageDeals('client').length > 1 ? 's' : ''}`,                 color: '#10b981' },
-          { label: 'Perdu',          value: `${stageTotal('lost').toLocaleString('fr-FR')} €`, sub: `${stageDeals('lost').length} affaire${stageDeals('lost').length > 1 ? 's' : ''} perdue${stageDeals('lost').length > 1 ? 's' : ''}`,   color: '#ef4444' },
-        ].map((s, i) => (
-          <div key={i} className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
-            <p className="text-xs text-[#A1A1A8] mb-1">{s.label}</p>
-            <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
-            <p className="text-[11px] text-[#A1A1A8] mt-0.5">{s.sub}</p>
-          </div>
-        ))}
-      </div>
+      {/* La MÊME entête que les autres pages du portail, et non plus la sienne.
+          Elle portait un titre en `text-2xl font-bold` là où le reste du
+          dashboard est en `22px semibold`, et trois cartes encadrées là où les
+          autres pages posent une rangée de chiffres séparée par des filets.
+          Deux grammaires pour la même chose: on lisait deux produits. */}
+      <PageHeader
+        title="Pipeline"
+        subtitle={`${deals.length} affaire${deals.length > 1 ? 's' : ''} · ${totalPipeline.toLocaleString('fr-FR')} € au total`}
+        action={
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#7349fe] text-white text-sm font-medium rounded-xl hover:bg-[#8560ff] transition-colors"
+          >
+            <Plus size={16} /> Nouvelle affaire
+          </button>
+        }
+        /* Les montants passent par la rangée partagée: nombre en blanc, teinte
+           sur la pastille du libellé. Trois cellules, donc `grid-cols-3` côté
+           composant, sans rien à régler ici. */
+        kpis={[
+          { label: 'Pipeline total', value: `${totalPipeline.toLocaleString('fr-FR')} €`, icon: TrendingUp,  color: '#7349fe' },
+          { label: 'Gagné',          value: `${wonValue.toLocaleString('fr-FR')} €`,      icon: CheckCircle2, color: '#10b981' },
+          { label: 'Perdu',          value: `${stageTotal('lost').toLocaleString('fr-FR')} €`, icon: XCircle,  color: '#ef4444' },
+        ]}
+      />
 
       {/* Kanban board with drag-and-drop */}
       <DndContext

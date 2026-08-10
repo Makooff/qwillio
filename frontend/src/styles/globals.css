@@ -264,6 +264,76 @@ textarea:focus-visible,
   outline: none;
 }
 
+/* ============================================================
+   Les menus déroulants du portail.
+
+   Un `<select>` laissé nu est dessiné par le SYSTÈME, pas par la page: sur
+   macOS il sort blanc, bombé, avec la double flèche de sélecteur, au milieu
+   d'une interface noire. Il y en a 37 répartis dans 25 fichiers; les habiller
+   un par un, c'est 37 occasions de diverger, d'où cette règle unique.
+
+   Trois déclarations, et chacune couvre un cas que les autres ne couvrent pas:
+
+   `appearance: none` reprend le dessin du contrôle FERMÉ (fond, bordure,
+   flèche). Sans elle, aucune couleur ne s'applique sur macOS.
+
+   `background-image` redonne une flèche, puisque la précédente a supprimé
+   celle du système. Une chevron simple vers le bas, en SVG inline: pas de
+   fichier à charger, et elle suit `--q-text-2` puisque la couleur est écrite
+   dans le tracé.
+
+   `color-scheme: dark` est la seule qui agisse sur la LISTE OUVERTE, que le
+   système dessine hors de la page et qu'aucune règle CSS ne peut atteindre.
+   Sans elle, le contrôle est noir mais la liste qui se déplie reste blanche,
+   ce qui est le défaut le plus visible des deux.
+   ============================================================ */
+/* ============================================================
+   L'ARRONDI des commandes, sur tout le portail.
+
+   La référence est le bouton « Try it » de la barre du site public: un
+   `PillLink`, donc `rounded-full`. Tout ce sur quoi on CLIQUE ou on TAPE prend
+   donc la gélule: boutons, champs de recherche, filtres, menus déroulants.
+
+   Écrit ici et pas dans les pages: il y a des dizaines de commandes réparties
+   dans le portail, et les reprendre une par une, c'est autant d'occasions
+   d'écrire trois arrondis différents. Une règle, une valeur.
+
+   `data-radius="keep"` est la porte de sortie, et elle sert à un cas précis:
+   les éléments qui SONT des boutons sans en avoir la forme. Une rangée de
+   réglage pleine largeur, une cellule de la rangée de chiffres: les arrondir
+   en gélule dessinerait une pilule de 800 px de large. Ils gardent leur
+   géométrie.
+   ============================================================ */
+[data-dashboard] :is(button, select, input[type='search']):not([data-radius='keep']) {
+  border-radius: 9999px;
+}
+
+[data-dashboard] select {
+  appearance: none;
+  -webkit-appearance: none;
+  color-scheme: dark;
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--q-text);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* La place de la flèche, sinon un intitulé long passerait dessous. */
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394949f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+}
+
+[data-dashboard] select:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Les `<option>` ne sont stylables que sur une partie des navigateurs; là où
+   elles le sont, autant qu'elles s'accordent au contrôle plutôt que de
+   laisser un blanc résiduel. Ailleurs, `color-scheme` fait le travail. */
+[data-dashboard] select option {
+  background-color: #16161a;
+  color: var(--q-text);
+}
+
 /* ─── Prefers-reduced-motion ─── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

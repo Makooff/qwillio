@@ -329,7 +329,11 @@ export default function DashboardShell(props: DashboardShellProps) {
   );
 
   return (
-    <div className="h-screen md:h-screen flex overflow-hidden" style={{ height: '100dvh', background: t.inset, color: t.text }}>
+    /* `data-dashboard` est le point d'accroche des styles qui doivent valoir
+       pour TOUT le portail et rien d'autre (voir globals.css, bloc des menus
+       déroulants). Le site public partage la même feuille: sans ce garde-fou,
+       une règle écrite pour le sombre repeindrait aussi ses formulaires. */
+    <div data-dashboard className="h-screen md:h-screen flex overflow-hidden" style={{ height: '100dvh', background: t.inset, color: t.text }}>
       {/* Desktop Sidebar */}
       <aside
         className={`sidebar-surface hidden md:flex flex-col h-screen sticky top-0 flex-shrink-0
