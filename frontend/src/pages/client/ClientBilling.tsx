@@ -514,7 +514,7 @@ export default function ClientBilling() {
           type="button"
           onClick={openBillingPortal}
           disabled={openingPortal}
-          className="px-4 py-2 text-sm font-medium rounded-full bg-[#7349fe] text-white hover:bg-[#8560ff] disabled:opacity-40 transition-colors"
+          className="px-4 py-2 text-sm font-medium rounded-full bg-[#7349fe] text-white hover:bg-[#8560ff] disabled:opacity-40 transition-colors active:scale-[0.97]"
         >
           {openingPortal ? 'Ouverture…' : 'Gérer mon moyen de paiement'}
         </button>

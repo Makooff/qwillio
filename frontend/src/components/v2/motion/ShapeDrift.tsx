@@ -12,11 +12,14 @@ gsap.registerPlugin(ScrollTrigger);
  * mégaoctets, nettes à n'importe quelle taille, et surtout tenues par nos
  * violets de marque au lieu des couleurs du fichier d'origine.
  *
- * DEUX formes, et deux seulement (demande utilisateur): la colonne de
- * demi-disques alternés, et le grand disque pâle qui déborde du cadre. Les
- * compositions composites d'avant (`twin`, `twinMirror`, `quarters`) sont
- * parties: quatre motifs différents sur une même page, ce n'est plus un motif,
- * c'est une collection.
+ * DIX compositions, une par image fournie (demande utilisateur), et une de
+ * chaque sur la page d'accueil. Les autres pages en reçoivent une ou deux,
+ * toujours différentes: le reproche portait sur la répétition, pas sur le
+ * nombre.
+ * Elles forment une seule famille, pas une collection: le même demi-disque
+ * partout, décliné en colonne, en paire, en disque plein, en disque coupé, et
+ * en compositions carrées. Deux motifs étrangers se disputent une page; dix
+ * variations d'un même geste se répondent.
  *
  * Elles sont DROITES (demande utilisateur): plus de `rotate` au montage, et
  * plus de respiration en rotation lente. Un demi-disque incliné n'est plus un
@@ -33,13 +36,16 @@ gsap.registerPlugin(ScrollTrigger);
    j'avais calculés entre l'indigo et le violet sont partis avec: ils tombaient
    bien sur le dégradé, mais ils ajoutaient des teintes que le logo ne porte
    pas, et une gamme se reconnaît autant à ce qu'elle exclut.
-   Seul `PALEST` n'a pas de jeton: c'est le `lift` éclairci vers le blanc, la
-   valeur qu'il faut pour qu'un aplat reste du FOND et non une forme de plus. */
+   `PALEST` est le `lift` éclairci vers le blanc, la valeur qu'il faut pour
+   qu'un aplat reste du FOND et non une forme de plus. Il a son jeton lui aussi
+   (`--q2-lift-soft`, signalé en revue): une teinte écrite en dur dans un
+   composant est une teinte que personne ne retrouvera le jour où la marque
+   bougera. */
 const DEEP = 'var(--q2-deep)';      /* #7349FE, le cercle de gauche du logo */
 const MID = 'var(--q2-indigo)';     /* #7A5FFF, l'indigo de marque */
 const VIOLET = 'var(--q2-violet)';  /* #CD6BFB, le cercle de droite */
 const PALE = 'var(--q2-lift)';      /* #B9A8FF, le mauve clair de marque */
-const PALEST = '#D8D0FF';           /* le lift éclairci, seul palier hors jeton */
+const PALEST = 'var(--q2-lift-soft)';/* le lift éclairci, jeton de v2.css */
 
 export type ShapeKind =
   | 'column' | 'columnAlt' | 'pair' | 'disc' | 'discCut'

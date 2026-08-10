@@ -1202,7 +1202,17 @@ export class ClientDashboardController {
       }
       res.json({ url });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      /* Le message d'erreur RESTE au serveur (signalé en revue). Celui que
+         lèvent Prisma ou Stripe porte des détails d'infrastructure — nom de
+         table, identifiant de compte, raison interne d'un refus — et la page
+         de facturation affiche `data.error` tel quel. Le renvoyer, c'était le
+         peindre à l'écran du client.
+         La phrase rendue est donc fixe. Elle ne dit pas moins: elle dit ce que
+         le client peut faire, et le reste part au journal, où il sert. */
+      logger.error('createBillingPortal failed', error);
+      res.status(500).json({
+        error: 'Le portail de facturation est momentanément indisponible. Réessayez dans un instant.',
+      });
     }
   }
 
