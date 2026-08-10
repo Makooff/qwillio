@@ -526,7 +526,10 @@ export default function ClientReceptionist() {
   }, [autoSave]);
 
   if (loading) return (
-    <div className="max-w-3xl space-y-4" aria-busy="true">
+    /* Même largeur que la page chargée: à `max-w-3xl`, le squelette se
+       recadrait au moment où le contenu arrivait, et la page sautait sous
+       l'oeil du client. Signalé en revue. */
+    <div className="max-w-6xl space-y-4" aria-busy="true">
       <div className="space-y-2"><div className="h-6 w-48 rounded-lg bg-white/[0.06] animate-pulse" /><div className="h-4 w-64 rounded bg-white/[0.05] animate-pulse" /></div>
       <div className="h-40 rounded-2xl bg-white/[0.04] animate-pulse" />
       <div className="h-40 rounded-2xl bg-white/[0.04] animate-pulse" />

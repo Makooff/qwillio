@@ -55,13 +55,19 @@ interface NewDealState {
 
 type NewDealTextField = 'title' | 'value' | 'closeDate';
 
+/* Les entetes de colonne portaient des aplats PASTEL (`bg-amber-50`,
+   `bg-violet-300`, ...) heriteés d'un theme clair: sur le noir du portail ils
+   ressortaient comme des bandes lumineuses, et le libelle colore posé dessus
+   devenait illisible. Chaque etape garde donc SA teinte, mais en voile: le
+   fond a 10 % et le filet a 20 % de la meme couleur, ce que la page Leads fait
+   deja pour ses etats. */
 const STAGES: { key: DealStage; label: string; color: string; bgLight: string; border: string }[] = [
-  { key: 'new',         label: 'Nouveau',     color: '#3b82f6', bgLight: 'bg-primary-50',    border: 'border-primary-200' },
-  { key: 'qualified',   label: 'Qualifié',    color: '#7349fe', bgLight: 'bg-violet-300',  border: 'border-violet-300' },
-  { key: 'appointment', label: 'Rendez-vous', color: '#f59e0b', bgLight: 'bg-amber-50',   border: 'border-amber-200' },
-  { key: 'client',      label: 'Client',      color: '#10b981', bgLight: 'bg-emerald-50', border: 'border-emerald-200' },
-  { key: 'inactive',    label: 'Inactif',     color: '#6b7280', bgLight: 'bg-gray-50',    border: 'border-gray-200' },
-  { key: 'lost',        label: 'Perdu',       color: '#ef4444', bgLight: 'bg-red-50',     border: 'border-red-200' },
+  { key: 'new',         label: 'Nouveau',     color: '#3b82f6', bgLight: 'bg-[#3b82f6]/10', border: 'border-[#3b82f6]/20' },
+  { key: 'qualified',   label: 'Qualifié',    color: '#7349fe', bgLight: 'bg-[#7349fe]/10', border: 'border-[#7349fe]/20' },
+  { key: 'appointment', label: 'Rendez-vous', color: '#f59e0b', bgLight: 'bg-[#f59e0b]/10', border: 'border-[#f59e0b]/20' },
+  { key: 'client',      label: 'Client',      color: '#10b981', bgLight: 'bg-[#10b981]/10', border: 'border-[#10b981]/20' },
+  { key: 'inactive',    label: 'Inactif',     color: '#9ca3af', bgLight: 'bg-white/[0.06]', border: 'border-white/[0.10]' },
+  { key: 'lost',        label: 'Perdu',       color: '#ef4444', bgLight: 'bg-[#ef4444]/10', border: 'border-[#ef4444]/20' },
 ];
 
 const MODAL_FIELDS: Array<{ label: string; key: NewDealTextField; type: string; placeholder: string }> = [
@@ -86,24 +92,24 @@ function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof 
 
   const card = (
     <div
-      className={`bg-white rounded-xl border border-[#d2d2d7]/60 p-3.5 transition-colors group
-        ${overlay ? 'shadow-2xl rotate-1 scale-[1.02]' : 'hover:shadow-sm hover:border-[#d2d2d7]'}`}
+      className={`bg-white/[0.04] rounded-xl border border-white/[0.07] p-3.5 transition-colors group
+        ${overlay ? 'shadow-2xl rotate-1 scale-[1.02]' : 'hover:bg-white/[0.06] hover:border-white/[0.14]'}`}
     >
       <div className="flex items-start gap-2">
         <button
           type="button"
           {...(overlay ? {} : listeners)}
           {...(overlay ? {} : attributes)}
-          className="mt-0.5 cursor-grab active:cursor-grabbing text-[#d2d2d7] hover:text-[#86868b] transition-colors flex-shrink-0"
+          className="mt-0.5 cursor-grab active:cursor-grabbing text-white/25 hover:text-[#A1A1A8] transition-colors flex-shrink-0"
           tabIndex={-1}
         >
           <GripVertical size={14} />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-semibold text-[#1d1d1f] mb-0.5 truncate">{deal.title}</p>
+          <p className="text-[11px] font-semibold text-[#F5F5F7] mb-0.5 truncate">{deal.title}</p>
           <div className="flex items-center gap-1 mb-2">
-            <User size={10} className="text-[#86868b]" />
-            <p className="text-[10px] text-[#86868b] truncate">{deal.contactName}</p>
+            <User size={10} className="text-[#A1A1A8]" />
+            <p className="text-[10px] text-[#A1A1A8] truncate">{deal.contactName}</p>
           </div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1">
@@ -115,12 +121,12 @@ function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof 
               <span className="text-[10px] font-semibold text-[#cd6afb]">{deal.probability}%</span>
             </div>
           </div>
-          <div className="h-1 bg-[#f5f5f7] rounded-full overflow-hidden mb-2">
+          <div className="h-1 bg-white/[0.08] rounded-full overflow-hidden mb-2">
             <div className="h-full rounded-full" style={{ width: `${deal.probability}%`, background: stage.color }} />
           </div>
           <div className="flex items-center gap-1">
-            <Calendar size={10} className="text-[#86868b]" />
-            <span className="text-[10px] text-[#86868b]">{deal.closeDate}</span>
+            <Calendar size={10} className="text-[#A1A1A8]" />
+            <span className="text-[10px] text-[#A1A1A8]">{deal.closeDate}</span>
           </div>
         </div>
       </div>
@@ -154,22 +160,22 @@ function StageColumn({
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ background: stage.color }} />
           <span className="text-xs font-semibold" style={{ color: stage.color }}>{stage.label}</span>
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-white/60 text-[#86868b]">{deals.length}</span>
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-white/[0.08] text-[#A1A1A8]">{deals.length}</span>
         </div>
-        <span className="text-xs font-bold text-[#1d1d1f]">{fmt(total)}</span>
+        <span className="text-xs font-bold text-[#F5F5F7]">{fmt(total)}</span>
       </div>
 
       <SortableContext items={deals.map(d => d.id)} strategy={verticalListSortingStrategy}>
         <div
           className={`space-y-2 min-h-[120px] rounded-2xl p-2 transition-colors
-            ${isOver ? 'bg-[#7349fe]/[0.06] ring-1 ring-[#7349fe]/30' : 'bg-[#f5f5f7]/50'}`}
+            ${isOver ? 'bg-[#7349fe]/[0.06] ring-1 ring-[#7349fe]/30' : 'bg-white/[0.02]'}`}
           data-stage={stage.key}
         >
           {deals.map(deal => (
             <DealCard key={deal.id} deal={deal} stage={stage} />
           ))}
           {deals.length === 0 && (
-            <p className="text-[11px] text-[#86868b] text-center py-6">
+            <p className="text-[11px] text-[#A1A1A8] text-center py-6">
               {isOver ? 'Déposer ici' : 'Aucune affaire'}
             </p>
           )}
@@ -315,8 +321,8 @@ export default function CrmDeals() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pipeline</h1>
-          <p className="text-sm text-[#86868b]">{deals.length} affaire{deals.length > 1 ? 's' : ''} · {totalPipeline.toLocaleString('fr-FR')} € au total</p>
+          <h1 className="text-2xl font-bold tracking-tight text-[#F5F5F7]">Pipeline</h1>
+          <p className="text-sm text-[#A1A1A8]">{deals.length} affaire{deals.length > 1 ? 's' : ''} · {totalPipeline.toLocaleString('fr-FR')} € au total</p>
         </div>
         <button
           type="button"
@@ -330,14 +336,14 @@ export default function CrmDeals() {
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { label: 'Pipeline total', value: `${totalPipeline.toLocaleString('fr-FR')} €`, sub: `${deals.filter(d => d.stage !== 'lost').length} affaire(s) en cours`, color: '#7349fe' },
-          { label: 'Gagné',          value: `${wonValue.toLocaleString('fr-FR')} €`,       sub: `${stageDeals('client').length} conclue(s)`,                 color: '#10b981' },
-          { label: 'Perdu',          value: `${stageTotal('lost').toLocaleString('fr-FR')} €`, sub: `${stageDeals('lost').length} affaire(s) perdue(s)`,   color: '#ef4444' },
+          { label: 'Pipeline total', value: `${totalPipeline.toLocaleString('fr-FR')} €`, sub: `${deals.filter(d => d.stage !== 'lost').length} affaire${deals.filter(d => d.stage !== 'lost').length > 1 ? 's' : ''} en cours`, color: '#7349fe' },
+          { label: 'Gagné',          value: `${wonValue.toLocaleString('fr-FR')} €`,       sub: `${stageDeals('client').length} conclue${stageDeals('client').length > 1 ? 's' : ''}`,                 color: '#10b981' },
+          { label: 'Perdu',          value: `${stageTotal('lost').toLocaleString('fr-FR')} €`, sub: `${stageDeals('lost').length} affaire${stageDeals('lost').length > 1 ? 's' : ''} perdue${stageDeals('lost').length > 1 ? 's' : ''}`,   color: '#ef4444' },
         ].map((s, i) => (
-          <div key={i} className="rounded-2xl border border-[#d2d2d7]/60 bg-white p-4">
-            <p className="text-xs text-[#86868b] mb-1">{s.label}</p>
+          <div key={i} className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
+            <p className="text-xs text-[#A1A1A8] mb-1">{s.label}</p>
             <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
-            <p className="text-[11px] text-[#86868b] mt-0.5">{s.sub}</p>
+            <p className="text-[11px] text-[#A1A1A8] mt-0.5">{s.sub}</p>
           </div>
         ))}
       </div>
@@ -377,49 +383,49 @@ export default function CrmDeals() {
             className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4"
             onClick={() => setShowAddModal(false)}>
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+              className="bg-[#141416] border border-white/[0.08] rounded-2xl shadow-2xl w-full max-w-md p-6"
               onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-semibold">Nouvelle affaire</h2>
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="w-8 h-8 rounded-lg bg-[#f5f5f7] flex items-center justify-center hover:bg-[#e8e8ed]"
+                  className="w-8 h-8 rounded-lg bg-white/[0.06] text-[#A1A1A8] flex items-center justify-center hover:bg-white/[0.10]"
                 >
                   <X size={16} />
                 </button>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-medium text-[#86868b] mb-1 block">Contact *</label>
+                  <label className="text-xs font-medium text-[#A1A1A8] mb-1 block">Contact *</label>
                   <select
                     value={newDeal.contactId}
                     onChange={e => setNewDeal(p => ({ ...p, contactId: e.target.value }))}
-                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 transition-colors"
+                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-white/[0.04] text-[#F5F5F7] placeholder:text-[#6B6B75] focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 transition-colors"
                   >
                     <option value="">Choisir un contact…</option>
                     {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                   {contacts.length === 0 && (
-                    <p className="text-[11px] text-[#86868b] mt-1">
+                    <p className="text-[11px] text-[#A1A1A8] mt-1">
                       Aucun contact pour l’instant. Ils apparaissent tout seuls après vos premiers appels.
                     </p>
                   )}
                 </div>
                 {MODAL_FIELDS.map(f => (
                   <div key={f.key}>
-                    <label className="text-xs font-medium text-[#86868b] mb-1 block">{f.label}</label>
+                    <label className="text-xs font-medium text-[#A1A1A8] mb-1 block">{f.label}</label>
                     <input
                       type={f.type}
                       placeholder={f.placeholder}
                       value={newDeal[f.key]}
                       onChange={e => setNewDeal(p => ({ ...p, [f.key]: e.target.value }))}
-                      className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 transition-colors"
+                      className="w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-white/[0.04] text-[#F5F5F7] placeholder:text-[#6B6B75] focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 transition-colors"
                     />
                   </div>
                 ))}
                 <div>
-                  <label className="text-xs font-medium text-[#86868b] mb-1 block">Probabilité : {newDeal.probability} %</label>
+                  <label className="text-xs font-medium text-[#A1A1A8] mb-1 block">Probabilité : {newDeal.probability} %</label>
                   <input
                     type="range"
                     min={0}
@@ -430,11 +436,11 @@ export default function CrmDeals() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-[#86868b] mb-1 block">Étape</label>
+                  <label className="text-xs font-medium text-[#A1A1A8] mb-1 block">Étape</label>
                   <select
                     value={newDeal.stage}
                     onChange={e => setNewDeal(p => ({ ...p, stage: e.target.value as DealStage }))}
-                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#d2d2d7]/60 focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 bg-white"
+                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-white/[0.04] text-[#F5F5F7] focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30"
                   >
                     {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                   </select>
@@ -444,7 +450,7 @@ export default function CrmDeals() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors"
+                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl border border-white/[0.08] text-[#A1A1A8] hover:bg-white/[0.06] transition-colors"
                 >
                   Annuler
                 </button>

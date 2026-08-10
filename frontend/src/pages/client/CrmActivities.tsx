@@ -80,8 +80,8 @@ export default function CrmActivities() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Activity Feed</h1>
-          <p className="text-sm text-[#86868b]">{activities.length} activities logged</p>
+          <h1 className="text-2xl font-bold tracking-tight text-[#F5F5F7]">Activité</h1>
+          <p className="text-sm text-[#A1A1A8]">{activities.length} activité{activities.length > 1 ? 's' : ''} enregistrée{activities.length > 1 ? 's' : ''}</p>
         </div>
       </motion.div>
 
@@ -91,7 +91,7 @@ export default function CrmActivities() {
           type="button"
           onClick={() => setTypeFilter('')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
-            typeFilter === '' ? 'bg-[#7349fe] text-white border-[#7349fe]' : 'bg-white border-[#d2d2d7]/60 text-[#86868b] hover:bg-[#f5f5f7]'
+            typeFilter === '' ? 'bg-[#7349fe] text-white border-[#7349fe]' : 'bg-white/[0.04] border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.08]'
           }`}
         >
           Tout ({activities.length})
@@ -105,7 +105,7 @@ export default function CrmActivities() {
               type="button"
               onClick={() => setTypeFilter(t)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
-                typeFilter === t ? `${cfg.bg} ${cfg.text} border-current` : 'bg-white border-[#d2d2d7]/60 text-[#86868b] hover:bg-[#f5f5f7]'
+                typeFilter === t ? `${cfg.bg} ${cfg.text} border-current` : 'bg-white/[0.04] border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.08]'
               }`}
             >
               <Icon size={12} /> {cfg.label} ({typeCounts[t] || 0})
@@ -118,12 +118,12 @@ export default function CrmActivities() {
       {loading ? (
         <div className="py-16 text-center">
           <Loader2 size={24} className="mx-auto text-[#7349fe] animate-spin mb-3" />
-          <p className="text-sm text-[#86868b]">Chargement de l’activité…</p>
+          <p className="text-sm text-[#A1A1A8]">Chargement de l’activité…</p>
         </div>
       ) : Object.keys(grouped).length === 0 ? (
         <div className="py-16 text-center">
-          <Calendar size={36} className="mx-auto text-[#d2d2d7] mb-3" />
-          <p className="text-sm text-[#86868b]">Aucune activité pour l’instant</p>
+          <Calendar size={36} className="mx-auto text-white/20 mb-3" />
+          <p className="text-sm text-[#A1A1A8]">Aucune activité pour l’instant</p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -131,15 +131,15 @@ export default function CrmActivities() {
             <div key={date}>
               {/* Date separator */}
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-px flex-1 bg-[#d2d2d7]/40" />
-                <span className="text-xs font-semibold text-[#86868b] px-2">{date}</span>
-                <div className="h-px flex-1 bg-[#d2d2d7]/40" />
+                <div className="h-px flex-1 bg-white/[0.08]" />
+                <span className="text-xs font-semibold text-[#A1A1A8] px-2">{date}</span>
+                <div className="h-px flex-1 bg-white/[0.08]" />
               </div>
 
               {/* Activity items */}
               <div className="relative pl-6">
                 {/* Timeline line */}
-                <div className="absolute left-3 top-0 bottom-0 w-px bg-[#d2d2d7]/40" />
+                <div className="absolute left-3 top-0 bottom-0 w-px bg-white/[0.08]" />
 
                 <div className="space-y-3">
                   {items.map((activity, idx) => {
@@ -159,17 +159,17 @@ export default function CrmActivities() {
                         </div>
 
                         {/* Content card */}
-                        <div className="flex-1 rounded-2xl border border-[#d2d2d7]/60 bg-white px-4 py-3 hover:shadow-sm hover:border-[#d2d2d7] transition-colors">
+                        <div className="flex-1 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-4 py-3 hover:bg-white/[0.05] hover:border-white/[0.12] transition-colors">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
                                 {cfg.label.toUpperCase()}
                               </span>
-                              <span className="text-sm font-semibold text-[#1d1d1f]">{activity.contactName}</span>
+                              <span className="text-sm font-semibold text-[#F5F5F7]">{activity.contactName}</span>
                             </div>
-                            <span className="text-[11px] text-[#86868b] flex-shrink-0">{activity.timestamp}</span>
+                            <span className="text-[11px] text-[#A1A1A8] flex-shrink-0">{activity.timestamp}</span>
                           </div>
-                          <p className="text-[12px] text-[#86868b] leading-relaxed">{activity.description}</p>
+                          <p className="text-[12px] text-[#A1A1A8] leading-relaxed">{activity.description}</p>
                         </div>
                       </motion.div>
                     );
