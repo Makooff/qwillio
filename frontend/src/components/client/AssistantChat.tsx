@@ -984,7 +984,10 @@ export default function AssistantChat({
 
       {voiceOpen && (
         <div className="p-3">
-          <div className="rounded-3xl border border-white/10 bg-[#111114] p-3">
+          <div
+            className="rounded-3xl border p-3"
+            style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}
+          >
             <div className="flex items-center justify-between pb-2">
               <span className="text-[12px] font-medium text-[#9CA3AF]">
                 {isFr ? 'Configuration \u00e0 la voix' : 'Voice setup'}
@@ -1016,8 +1019,15 @@ export default function AssistantChat({
       {/* Input box (redesigned) */}
       <div className={cn('p-3', voiceOpen && 'hidden')}>
         <div
-          className={cn('rounded-3xl border bg-[#111114] p-2 transition-colors')}
-          style={{ borderColor: listening ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.10)' }}
+          /* Le fond est celui des rangées du hub (« Identité de l'agent »),
+             pas une valeur à lui: la zone de saisie est une carte posée sur la
+             page comme les autres, et un gris propre en faisait un troisième
+             niveau de profondeur qui ne correspondait à rien. */
+          className={cn('rounded-3xl border p-2 transition-colors')}
+          style={{
+            background: 'rgba(255,255,255,0.03)',
+            borderColor: listening ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.07)',
+          }}
         >
           {listening ? (
             <VoiceViz isFr={isFr} analyser={analyser} />

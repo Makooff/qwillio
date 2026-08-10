@@ -167,6 +167,31 @@ function icon(Glyph: ComponentType<SVGProps<SVGSVGElement>>, name: string): Luci
   return Icon;
 }
 
+/**
+ * Le micro, dessiné ici parce que coolicons n'en a pas.
+ *
+ * Le jeu ne propose que `UserVoice`, une silhouette entourée d'ondes, sur
+ * laquelle `Mic` pointait faute de mieux. Le sens s'en trouvait faussé: sur le
+ * bouton de dictée, une personne qui parle se lit comme « appeler quelqu'un »
+ * ou « changer de voix », pas comme « enregistrer ». Un micro se reconnaît
+ * sans qu'on ait à l'apprendre.
+ *
+ * Dessiné dans la grille de coolicons (24×24, trait de 2, `currentColor`,
+ * bouts arrondis) pour qu'il ne détonne pas à côté des autres, et posé DANS la
+ * façade: le jour où le jeu d'icônes change, ce fichier reste le seul à
+ * modifier, ce qui est toute sa raison d'être.
+ */
+function MicGlyph(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+         strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="9" y="2" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0" />
+      <path d="M12 18v3" />
+    </svg>
+  );
+}
+
 export const Activity = icon(CiChartLine, 'Activity');
 export const AlertCircle = icon(CiCircleWarning, 'AlertCircle');
 export const AlertTriangle = icon(CiTriangleWarning, 'AlertTriangle');
@@ -263,8 +288,11 @@ export const Menu = icon(CiHamburgerMd, 'Menu');
 export const MessageCircle = icon(CiChatCircle, 'MessageCircle');
 export const MessageSquare = icon(CiChat, 'MessageSquare');
 export const MessagesSquare = icon(CiChatConversation, 'MessagesSquare');
-export const Mic = icon(CiUserVoice, 'Mic');
-export const Mic2 = icon(CiUserVoice, 'Mic2');
+export const Mic = icon(MicGlyph, 'Mic');
+export const Mic2 = icon(MicGlyph, 'Mic2');
+/* La silhouette entourée d'ondes garde un usage: dire QUI parle (le
+   personnage, l'appelant), là où le micro dit qu'on enregistre. */
+export const UserVoice = icon(CiUserVoice, 'UserVoice');
 export const Minus = icon(CiRemoveMinus, 'Minus');
 export const MinusCircle = icon(CiRemoveMinusCircle, 'MinusCircle');
 export const MoreHorizontal = icon(CiMoreHorizontal, 'MoreHorizontal');
