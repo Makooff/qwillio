@@ -21,7 +21,7 @@ export default function Landing() {
   useSEO({
     title: isFr ? 'Réceptionniste IA en français, Belgique et France' : 'AI Receptionist',
     description: isFr
-      ? "Le meilleur réceptionniste IA francophone pour la Belgique et la France : répond à chaque appel en moins d'une seconde, prend les rendez-vous et qualifie vos leads 24h/24. Hébergement UE, RGPD."
+      ? "Le meilleur réceptionniste IA francophone pour la Belgique et la France : répond à chaque appel en moins d'une seconde, prend les rendez-vous et qualifie vos leads 24h/24. Conforme RGPD."
       : 'The Qwillio AI receptionist answers every call in under a second, books appointments, and qualifies leads, around the clock.',
     canonical: 'https://qwillio.com/receptionist',
   });

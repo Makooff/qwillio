@@ -301,6 +301,11 @@ export default function AssistantChat({
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  /* Le flux de la sonde d'autorisation, gardé OUVERT pour la session.
+     Distinct de `streamRef`, qui est celui de la dictée: les deux peuvent
+     coexister, et confondre les deux ferait couper la dictée en fermant
+     l'appel. Relâché à la fermeture du panneau et au démontage. */
+  const micStreamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   // Set when the user cancels, so onstop discards instead of transcribing.
   const abortRef = useRef(false);
@@ -444,6 +449,23 @@ export default function AssistantChat({
   /** Surface a problem in the thread. Silence was the old behaviour and it read as "broken". */
   const notify = (fr: string, en: string) =>
     setMessages(m => [...m, { role: 'assistant', content: isFr ? fr : en }]);
+
+  /* Fermer l'appel relâche le micro tenu depuis le clic.
+     Sans ça, la pastille d'enregistrement du téléphone resterait allumée après
+     la fin de l'appel: une autorisation gardée sans raison visible est, à
+     juste titre, ce qui inquiète le plus un utilisateur. */
+  const closeLiveCall = () => {
+    micStreamRef.current?.getTracks().forEach(t => t.stop());
+    micStreamRef.current = null;
+    setLiveCall(false);
+  };
+
+  // Le démontage compte autant que la fermeture: changer de page pendant un
+  // appel laisserait le micro ouvert pour toute la durée de la session.
+  useEffect(() => () => {
+    micStreamRef.current?.getTracks().forEach(t => t.stop());
+    micStreamRef.current = null;
+  }, []);
 
   const releaseMic = () => {
     streamRef.current?.getTracks().forEach(t => t.stop());
@@ -729,15 +751,25 @@ export default function AssistantChat({
             <button
               type="button"
               onClick={async () => {
-                if (liveCall) { setLiveCall(false); return; }
-                // The browser only grants the microphone from inside a user
-                // gesture. The panel dials on its own once open, and by then we
-                // are past the gesture — so the permission is asked for here,
-                // synchronously on the click, while it can still be granted.
-                // Tracks are released immediately; the grant outlives them.
+                if (liveCall) { closeLiveCall(); return; }
+                /* Le navigateur n'accorde le micro que depuis un geste de
+                 * l'utilisateur. Le panneau compose tout seul une fois ouvert,
+                 * et à ce moment-là le geste est consommé: l'autorisation se
+                 * demande donc ici, sur le clic.
+                 *
+                 * Ce qui a changé: on NE COUPE PLUS les pistes.
+                 *
+                 * Le commentaire précédent affirmait que « l'autorisation
+                 * survit aux pistes ». C'est vrai sur Chrome. C'est FAUX sur
+                 * Safari iOS, qui relâche l'autorisation avec la dernière
+                 * piste: la sonde rendait donc le micro juste avant que le SDK
+                 * le redemande, d'où l'invite à chaque appel et les « micro
+                 * indisponible » quand les deux se disputaient le périphérique.
+                 * Le flux reste ouvert pour la durée de la session et n'est
+                 * relâché qu'à la fermeture du panneau. */
                 try {
-                  const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
-                  probe.getTracks().forEach(t => t.stop());
+                  micStreamRef.current?.getTracks().forEach(t => t.stop());
+                  micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
                 } catch {
                   // Opening anyway: the panel asks again and reports the refusal
                   // in words, which beats a button that silently does nothing.
@@ -815,7 +847,7 @@ export default function AssistantChat({
           reason: the call is over, there is nothing left to show. */}
       {liveCall && (
         <div className="px-3 pt-3">
-          <VapiLiveCall isFr={isFr} autoStart onEnded={() => setLiveCall(false)} />
+          <VapiLiveCall isFr={isFr} autoStart onEnded={closeLiveCall} />
         </div>
       )}
 

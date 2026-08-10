@@ -58,15 +58,15 @@ export default function Pricing() {
       name: 'Solo',
       flag: isFr ? 'Nouveau : Belgique & France' : 'New: Belgium & France',
       note: isFr
-        ? 'PME, artisans, professions libérales (français, hébergement UE).'
-        : 'Small businesses, tradespeople, liberal professions (French, EU hosting).',
+        ? 'PME, artisans, professions libérales (français, conforme RGPD).'
+        : 'Small businesses, tradespeople, liberal professions (French, GDPR compliant).',
       monthly: 99,
       minutes: 250,
       overage: 0.45,
       description: isFr ? 'Pour un indépendant' : 'For a solo operator',
       features: isFr
-        ? ['250 minutes incluses par mois', 'IA 24/7 en français', 'Prise de RDV + agenda', 'Transfert des urgences', 'Bouclier anti-spam inclus', 'Hébergement UE, RGPD', 'Support email']
-        : ['250 minutes included per month', '24/7 AI in French', 'Booking + calendar sync', 'Urgency transfer', 'Spam shield included', 'EU hosting, GDPR', 'Email support'],
+        ? ['250 minutes incluses par mois', 'IA 24/7 en français', 'Prise de RDV + agenda', 'Transfert des urgences', 'Bouclier anti-spam inclus', 'Conforme RGPD', 'Support email']
+        : ['250 minutes included per month', '24/7 AI in French', 'Booking + calendar sync', 'Urgency transfer', 'Spam shield included', 'GDPR compliant', 'Email support'],
       cta: isFr ? 'Commencer' : 'Start',
       popular: false,
     },
@@ -252,7 +252,7 @@ export default function Pricing() {
       yelda: no,
     },
     {
-      label: isFr ? 'Hébergement UE / RGPD' : 'EU hosting / GDPR',
+      label: isFr ? 'Conformité RGPD' : 'GDPR compliant',
       qwillio: yes,
       rosie: no,
       smith: no,

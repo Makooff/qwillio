@@ -833,8 +833,8 @@ export default function Home() {
             <p className="text-[15px] text-q2-graphite leading-relaxed q2-body-text border-t border-q2-plate pt-5 max-w-[640px]">
               <ShieldCheck size={14} className="inline mr-1.5 -mt-0.5 text-q2-indigo" aria-hidden="true" />
               {isFr
-                ? 'Hébergement UE, annonce d’enregistrement conforme RGPD, et le spam est filtré sans entamer votre quota.'
-                : 'EU hosting, GDPR-compliant recording notice, and spam is filtered without touching your quota.'}
+                ? 'Annonce d’enregistrement conforme RGPD, sous-traitants encadrés par des clauses contractuelles types, et le spam est filtré sans entamer votre quota.'
+                : 'GDPR-compliant recording notice, sub-processors covered by standard contractual clauses, and spam is filtered without touching your quota.'}
             </p>
           </RevealV2>
 
