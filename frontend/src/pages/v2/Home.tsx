@@ -96,7 +96,31 @@ function HeroVideoBackdrop() {
   const [playing, setPlaying] = useState(false);
   const still = prefersReducedMotion();
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div
+      className="absolute inset-0 overflow-hidden pointer-events-none"
+      aria-hidden="true"
+      /* VIGNETTE DE LENTILLE, en MASQUE et non en couche peinte par-dessus
+         (retour utilisateur: « les dégradés sont trop visibles »).
+         C'est le fond du problème: peindre la couleur du canvas au-dessus de la
+         vidéo, c'est poser un aplat qui doit tomber PILE sur le fond de la page.
+         Au moindre écart, entre le crème du canvas et la moyenne de l'image,
+         la bordure du dégradé se voit, et elle se voyait — sur les flancs et
+         dans la marge.
+         Le masque, lui, ne peint rien: il rend la vidéo TRANSPARENTE sur ses
+         bords, donc c'est la page elle-même qui reparaît, exactement de sa
+         couleur. Il n'y a plus de raccord à réussir, et il marche dans les deux
+         thèmes sans qu'une seule couleur soit écrite.
+         L'ellipse est arrondie par construction: haut, bas, flancs et coins
+         s'éteignent d'un seul geste, ce qui est l'effet de lentille demandé.
+         Les arrêts sont espacés (opaque jusqu'à 42 %, éteint à 96 %) pour que
+         le fondu reste long, donc invisible. */
+      style={{
+        WebkitMaskImage:
+          'radial-gradient(ellipse 82% 78% at 50% 44%, #000 42%, rgba(0,0,0,0.55) 72%, transparent 96%)',
+        maskImage:
+          'radial-gradient(ellipse 82% 78% at 50% 44%, #000 42%, rgba(0,0,0,0.55) 72%, transparent 96%)',
+      }}
+    >
       {/* Seule la PHOTO disparaît quand elle échoue, jamais le bloc entier.
           Démonter le tout serait un blocage: la vidéo partirait avec, donc
           `onPlaying` ne pourrait plus jamais se produire, et un hero dont
@@ -511,70 +535,15 @@ export default function Home() {
         {/* Les blobs pixel blush dérivent par-dessus le voile, sous le texte */}
         <PixelBlushBackdrop />
 
-        {/* VIGNETTE DU HERO (référence Mosa AI: la photo de champ cerclée d'un
-            fondu). Elle passe PAR-DESSUS le dégradé, la vidéo et les blobs, et
-            couvre tout le fond du haut de la page jusque sous la fenêtre
-            Safari, où le hero se termine.
-
-            La couleur n'est écrite nulle part: le fondu ferme sur
-            `rgb(var(--q2-canvas))`, donc il est crème en thème clair et noir
-            en sombre, par construction. Un blanc littéral aurait repeint la
-            page en clair par-dessus le canvas basculé, qui est le piège que
-            CLAUDE.md documente.
-
-            Posée AVANT le `Container`: les deux sont positionnés, donc le
-            contenu, qui vient après, peint au-dessus et rien n'est voilé. */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            /* TROIS fondus empilés dans un seul calque (demande utilisateur:
-               bas, haut et coins, en dégradé et flou). Un seul calque et non
-               trois: c'est cette même vignette qui avait déjà été dédoublée
-               une fois, et deux couches qui ferment sur la même couleur
-               s'additionnent au lieu de se relayer.
-
-               L'ordre compte, le premier déclaré peint au-dessus:
-                 1. le HAUT, pour que la barre de navigation se détache;
-                 2. le BAS, le plus long, parce que c'est là que la page
-                    continue et que la vidéo doit avoir disparu avant;
-                 3. les COINS, en ellipse, qui referment le cadre.
-
-               Le flou ne vient pas d'un `filter`, qui ne ferait rien sur un
-               dégradé: il vient de l'ÉCART entre les arrêts de couleur. Des
-               arrêts espacés de 30 à 40 % donnent un fondu long, donc doux;
-               resserrés, ils dessineraient une arête nette.
-
-               Aucune couleur n'est écrite: tout ferme sur
-               `rgb(var(--q2-canvas))`, donc blanc en clair et noir en sombre
-               par construction. Un blanc littéral repeindrait la page en clair
-               par-dessus le canvas basculé, le piège que CLAUDE.md documente.
-
-               Le point de départ du fondu des coins reste `--q2-hero-vignette`,
-               qui sort d'une mesure de contraste (voir v2.css). */
-            background: [
-              /* HAUT: court, juste de quoi détacher la barre de navigation. */
-              'linear-gradient(to bottom, rgb(var(--q2-canvas)) 0%, rgb(var(--q2-canvas) / 0.55) 9%, transparent 26%)',
-              /* BAS: calé sur la fenêtre Safari, et les cotes sont MESURÉES
-                 dans le rendu, pas estimées. La fenêtre occupe 49,2 % à 95,7 %
-                 de la hauteur du hero, et son propre masque (`MASK_V`) éteint
-                 son arête basse entre 89,3 % et 92,7 % de cette même hauteur.
-                 Le fondu de la vidéo est donc totalement fermé à 7 % du bas,
-                 soit 93 %: la vidéo a disparu juste avant que la fenêtre ne
-                 s'éteigne, et les deux dégradés se rejoignent au lieu de se
-                 croiser (demande utilisateur). Il démarre haut, à 45 %, pour
-                 rester long, donc doux. */
-              'linear-gradient(to top, rgb(var(--q2-canvas)) 0%, rgb(var(--q2-canvas)) 7%, rgb(var(--q2-canvas) / 0.55) 18%, transparent 45%)',
-              /* FLANCS: les deux bords, courts. Assez pour décoller la vidéo
-                 du cadre, trop peu pour mordre sur la colonne de texte, qui
-                 commence après le premier quart. */
-              'linear-gradient(to right, rgb(var(--q2-canvas)) 0%, transparent 14%)',
-              'linear-gradient(to left, rgb(var(--q2-canvas)) 0%, transparent 14%)',
-              /* COINS: l'ellipse qui referme le cadre. */
-              'radial-gradient(125% 92% at 50% 40%, transparent var(--q2-hero-vignette), rgb(var(--q2-canvas) / 0.5) 74%, rgb(var(--q2-canvas)) 100%)',
-            ].join(', '),
-          }}
-        />
+        {/* Plus de vignette PEINTE ici (retour utilisateur: « les dégradés
+            sont trop visibles »). Elle posait la couleur du canvas par-dessus
+            la vidéo, et cet aplat devait tomber pile sur le fond de la page:
+            au moindre écart, sa bordure se voyait, sur les flancs comme dans
+            la marge.
+            Le fondu est désormais un MASQUE porté par la couche du décor
+            (voir `HeroVideoBackdrop`): la vidéo devient transparente sur ses
+            bords, donc c'est la page qui reparaît, exactement de sa couleur.
+            Aucun raccord à réussir, et rien à redéfinir par thème. */}
 
         <Container className="relative [&>*]:min-w-0">
           <RevealV2>
@@ -631,7 +600,7 @@ export default function Home() {
       <Section variant="band" hairline aria-labelledby="during-heading" className="relative">
         <ShapeDrift
           className="hidden md:block"
-          shapes={[{ kind: 'column', x: '-7%', y: '18%', size: 260, drift: -170, opacity: 0.42 }]}
+          shapes={[{ kind: 'column', x: '-7%', y: '16%', size: 175, drift: -95, opacity: 0.34 }]}
         />
         {/* Le cadre voyage dans CE repère: il est posé en absolu sur le
             conteneur et mesure les étapes qui s'y trouvent. */}
@@ -711,7 +680,8 @@ export default function Home() {
       <Section aria-labelledby="team-heading" className="relative">
         <ShapeDrift
           className="hidden lg:block"
-          shapes={[{ kind: 'column', x: '86%', y: '-14%', size: 190, drift: 180, opacity: 0.3 }]}
+          shapes={[{ kind: 'quarters', x: '86%', y: '14%', size: 235, drift: 90, opacity: 0.28 },
+            { kind: 'core', x: '-8%', y: '58%', size: 200, drift: -70, opacity: 0.2 }]}
         />
         <Container>
           <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
@@ -753,7 +723,7 @@ export default function Home() {
       <Section aria-labelledby="conv-heading" hairline className="relative">
         <ShapeDrift
           className="hidden lg:block"
-          shapes={[{ kind: 'disc', x: '-12%', y: '46%', size: 340, drift: 150, opacity: 0.3 }]}
+          shapes={[{ kind: 'disc', x: '-12%', y: '32%', size: 300, drift: 85, opacity: 0.26 }]}
         />
         <Container className="relative grid lg:grid-cols-[1fr_1.6fr] gap-10 md:gap-16 lg:gap-24 items-start">
           {/* La colonne reste au regard pendant que les blocs défilent: c'est
@@ -838,7 +808,8 @@ export default function Home() {
       <Section aria-labelledby="setup-heading" className="relative">
         <ShapeDrift
           className="hidden md:block"
-          shapes={[{ kind: 'column', x: '82%', y: '40%', size: 170, drift: -160, opacity: 0.28 }]}
+          shapes={[{ kind: 'twinMirror', x: '83%', y: '30%', size: 225, drift: -85, opacity: 0.26 },
+            { kind: 'pair', x: '-6%', y: '8%', size: 155, drift: 70, opacity: 0.2 }]}
         />
         <Container className="relative grid lg:grid-cols-[1fr_1.4fr] gap-9 sm:gap-12 items-start">
           <RevealV2>
@@ -903,7 +874,7 @@ export default function Home() {
       <Section aria-labelledby="pocket-heading" className="relative overflow-hidden">
         <ShapeDrift
           className="hidden lg:block"
-          shapes={[{ kind: 'column', x: '46%', y: '-26%', size: 200, drift: 200, opacity: 0.24 }]}
+          shapes={[{ kind: 'columnAlt', x: '46%', y: '10%', size: 150, drift: 95, opacity: 0.2 }]}
         />
         <Container className="grid lg:grid-cols-[1fr_1fr] gap-8 sm:gap-14 lg:gap-20 items-center [&>*]:min-w-0">
           <RevealV2>
@@ -945,7 +916,8 @@ export default function Home() {
       <Section variant="band" hairline aria-labelledby="after-heading" className="relative">
         <ShapeDrift
           className="hidden lg:block"
-          shapes={[{ kind: 'disc', x: '-11%', y: '58%', size: 300, drift: -150, opacity: 0.28 }]}
+          shapes={[{ kind: 'twin', x: '-9%', y: '38%', size: 240, drift: -80, opacity: 0.26 },
+            { kind: 'discCut', x: '84%', y: '8%', size: 185, drift: 85, opacity: 0.2 }]}
         />
         <Container>
           <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
@@ -996,7 +968,7 @@ export default function Home() {
       <Section aria-labelledby="integrations-heading" className="relative">
         <ShapeDrift
           className="hidden lg:block"
-          shapes={[{ kind: 'column', x: '88%', y: '-18%', size: 165, drift: 170, opacity: 0.26 }]}
+          shapes={[{ kind: 'quartersMirror', x: '85%', y: '20%', size: 225, drift: 80, opacity: 0.24 }]}
         />
         <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-9 sm:gap-14 items-center [&>*]:min-w-0">
           <RevealV2 className="max-w-[440px]">

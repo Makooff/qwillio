@@ -323,7 +323,7 @@ export default function Pricing() {
 
       {/* TARIFS: Pro en grande card, les trois autres en rangées hairline */}
       <Section aria-label={isFr ? 'Plans tarifaires' : 'Pricing plans'} className="relative !pt-0">
-        <ShapeDrift shapes={[{ kind: 'column', x: '88%', y: '18%', size: 150, drift: 90, opacity: 0.26 }]} />
+        <ShapeDrift shapes={[{ kind: 'twin', x: '86%', y: '16%', size: 230, drift: 85, opacity: 0.24 }]} />
         <Container>
           {/* Le sélecteur est fréquent: il ne s'anime pas (DA motion) */}
           <div
@@ -517,7 +517,7 @@ export default function Pricing() {
 
       {/* COMPARATIF: groupes repliables, table sémantique */}
       <Section aria-labelledby="compare-heading" hairline className="relative">
-        <ShapeDrift shapes={[{ kind: 'disc', x: '-10%', y: '30%', size: 260, drift: -90, opacity: 0.24 }]} />
+        <ShapeDrift shapes={[{ kind: 'columnAlt', x: '-6%', y: '30%', size: 145, drift: -80, opacity: 0.22 }]} />
         <Container>
           <RevealV2 className="mb-10">
             <H2 id="compare-heading" className="max-w-[640px]">

@@ -90,7 +90,7 @@ export default function Contact() {
     <PublicShell>
       {/* HERO: titre whisper asymétrique */}
       <Section aria-label="Contact" className="relative !pt-16 md:!pt-24 !pb-12 md:!pb-16">
-        <ShapeDrift shapes={[{ kind: 'column', x: '88%', y: '18%', size: 150, drift: 90, opacity: 0.26 }]} />
+        <ShapeDrift shapes={[{ kind: 'twinMirror', x: '84%', y: '22%', size: 225, drift: 80, opacity: 0.22 }]} />
         <Container className="grid lg:grid-cols-[1.4fr_1fr] gap-10 lg:gap-16 items-end">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-6">

@@ -29,6 +29,10 @@
   --q2-violet: #cd6bfb;
   --q2-deep: #7349fe;
   --q2-lift: #b9a8ff;
+  /* Le `lift` éclairci vers le blanc, pour les aplats de décor qui doivent
+     rester du FOND. Il vit ici et non en dur dans `ShapeDrift`: une teinte
+     écrite dans un composant est une teinte que personne ne retrouvera. */
+  --q2-lift-soft: #d8d0ff;
 
   /* Registre drenched */
   --q2-void: #08090a;
@@ -56,22 +60,10 @@
   --q2-hairline: 1px solid rgb(var(--q2-plate));
   --q2-hairline-d: 1px solid #23252a;
 
-  /* Le décor du hero est désormais montré PLEIN, sans voile par-dessus
-     (demande utilisateur): il ne reste qu'une vignette, et elle n'a pas besoin
-     d'un réglage par thème parce qu'elle ferme sur `--q2-canvas`, qui bascule
-     déjà tout seul. Blanche en clair, noire en sombre, une seule écriture.
-     Les trois variables d'opacité et de voile qui vivaient ici ont disparu
-     avec les dégradés qu'elles pilotaient. */
-  /* Où commence le fondu de la vignette de section. 42 % est sa valeur
-     d'origine, gardée: ouvrir la vignette ne rattrape PAS le contraste, c'est
-     mesuré. De 42 % à 0 %, le titre en thème sombre ne monte que de 2,00:1 à
-     2,78:1, sans jamais atteindre le plancher de 3:1. La vignette éclaircit ou
-     assombrit les BORDS; le texte, lui, est posé au centre, là où elle est
-     transparente par définition. C'est `--q2-hero-media` qui règle le
-     problème, pas celle-ci. */
-  --q2-hero-vignette: 42%;
-
   /* Le décor du hero se voit PLEIN en thème clair: 1, aucune retenue.
+     Aucun voile n'est posé par-dessus, et il ne reste plus de vignette peinte
+     non plus: le fondu des bords est un MASQUE porté par la couche du décor
+     (voir `HeroVideoBackdrop`), donc il ne coûte aucune variable de couleur.
      Voir le bloc sombre pour la raison de l'unique exception. */
   --q2-hero-media: 1;
 }

@@ -1172,6 +1172,50 @@ export class ClientDashboardController {
   // ═══ Billing ═══
 
   // POST /my-dashboard/upgrade
+  /**
+   * POST /my-dashboard/billing-portal
+   *
+   * Ouvre le portail Stripe du client. C'est le chaînon qui manquait: la ligne
+   * « Moyens de paiement » menait bien à Facturation, mais la page n'offrait
+   * AUCUN moyen de voir ou de changer la carte enregistrée.
+   *
+   * Le client est relu depuis `req.clientId`, jamais depuis le corps de la
+   * requête: c'est ce qui empêche d'ouvrir le portail de quelqu'un d'autre en
+   * postant son identifiant.
+   */
+  async createBillingPortal(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { stripeCustomerId: true },
+      });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+
+      const { stripeService } = await import('../services/stripe.service');
+      const url = await stripeService.createBillingPortalSession(client);
+      if (!url) {
+        /* 409 et non 500: rien n'a échoué, il n'y a simplement pas de dossier
+           Stripe à ouvrir. Le message part tel quel vers l'interface. */
+        return res.status(409).json({
+          error: "Aucun moyen de paiement enregistré. Il apparaîtra ici après votre premier règlement.",
+        });
+      }
+      res.json({ url });
+    } catch (error: any) {
+      /* Le message d'erreur RESTE au serveur (signalé en revue). Celui que
+         lèvent Prisma ou Stripe porte des détails d'infrastructure — nom de
+         table, identifiant de compte, raison interne d'un refus — et la page
+         de facturation affiche `data.error` tel quel. Le renvoyer, c'était le
+         peindre à l'écran du client.
+         La phrase rendue est donc fixe. Elle ne dit pas moins: elle dit ce que
+         le client peut faire, et le reste part au journal, où il sert. */
+      logger.error('createBillingPortal failed', error);
+      res.status(500).json({
+        error: 'Le portail de facturation est momentanément indisponible. Réessayez dans un instant.',
+      });
+    }
+  }
+
   async upgradeSubscription(req: any, res: Response) {
     try {
       const { planType } = req.body;

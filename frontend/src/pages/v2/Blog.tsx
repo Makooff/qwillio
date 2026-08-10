@@ -71,7 +71,7 @@ export default function Blog() {
     <PublicShell>
       {/* Hero éditorial asymétrique */}
       <Section aria-label={isFr ? 'Blog Qwillio' : 'Qwillio Blog'} className="relative !pt-16 md:!pt-24">
-        <ShapeDrift shapes={[{ kind: 'column', x: '88%', y: '18%', size: 150, drift: 90, opacity: 0.26 }]} />
+        <ShapeDrift shapes={[{ kind: 'columnAlt', x: '87%', y: '18%', size: 145, drift: 85, opacity: 0.22 }]} />
         <Container className="grid lg:grid-cols-[1.3fr_1fr] gap-10 lg:gap-20 items-end">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-6">
@@ -145,7 +145,7 @@ export default function Blog() {
 
       {/* Billets historiques: pas encore de page dédiée, donc pas de lien */}
       <Section aria-labelledby="all-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'disc', x: '-10%', y: '30%', size: 260, drift: -90, opacity: 0.24 }]} />
+        <ShapeDrift shapes={[{ kind: 'twin', x: '-9%', y: '46%', size: 215, drift: -75, opacity: 0.2 }]} />
         <Container>
           <RevealV2 className="mb-12">
             <H2 id="all-heading">{isFr ? 'Tous les articles' : 'All articles'}</H2>
