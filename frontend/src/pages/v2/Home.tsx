@@ -96,13 +96,25 @@ function HeroVideoBackdrop() {
         aria-hidden="true"
         onError={() => setFailed(true)}
         className="absolute inset-0 w-full h-full object-cover select-none"
-        style={{ opacity: 0.5 }}
+        style={{ opacity: 'var(--q2-hero-photo)' }}
       />
       <div
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgb(var(--q2-canvas) / 0.62) 0%, rgb(var(--q2-band) / 0.72) 55%, rgb(var(--q2-canvas)) 100%)',
+            'linear-gradient(180deg, rgb(var(--q2-canvas) / var(--q2-hero-veil-top)) 0%, rgb(var(--q2-band) / var(--q2-hero-veil-mid)) 55%, rgb(var(--q2-canvas)) 100%)',
+        }}
+      />
+      {/* Le texte occupe la COLONNE GAUCHE, la crête le côté droit. Ce second
+          voile n'assombrit donc que la moitié où l'on lit, et laisse la photo
+          respirer là où rien ne la recouvre. Sans lui, il fallait épaissir le
+          voile vertical partout, ce qui effaçait la montagne pour protéger un
+          texte qui n'est même pas dessous. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(90deg, rgb(var(--q2-canvas) / 0.55) 0%, rgb(var(--q2-canvas) / 0.28) 38%, transparent 62%)',
         }}
       />
     </div>

@@ -55,6 +55,17 @@
 
   --q2-hairline: 1px solid rgb(var(--q2-plate));
   --q2-hairline-d: 1px solid #23252a;
+
+  /* Le décor du hero (la photo de lac brumeux) et le voile qui la referme.
+     Trois réglages plutôt qu'un seul jeu de valeurs en dur, parce que la même
+     photo ne se comporte pas pareil dans les deux thèmes: c'est une image
+     SOMBRE. Sur le crème elle assombrit, donc un voile épais la réduit à une
+     bouillie grise et la crête disparaît; sur le noir elle éclaircit, et le
+     même voile épais est exactement ce qui garde le texte lisible.
+     D'où un voile PLUS LÉGER en clair, ce qui est contre-intuitif. */
+  --q2-hero-photo: 0.5;
+  --q2-hero-veil-top: 0.4;
+  --q2-hero-veil-mid: 0.58;
 }
 
 /* ============================================================
@@ -92,6 +103,12 @@
   --q2-ok-ink: #8ee0b4;
   --q2-ok-bg: #0f1f17;
   --q2-ok-brd: #1f4433;
+
+  /* Voir le commentaire du bloc clair: sur le noir, la photo ÉCLAIRCIT, et
+     c'est ce voile épais qui tient le texte lisible par-dessus la crête. */
+  --q2-hero-photo: 0.5;
+  --q2-hero-veil-top: 0.62;
+  --q2-hero-veil-mid: 0.72;
 }
 
 /* Le thème suit le système tant que personne n'a tranché. Dès qu'un choix est
@@ -113,6 +130,9 @@
     --q2-ok-ink: #8ee0b4;
     --q2-ok-bg: #0f1f17;
     --q2-ok-brd: #1f4433;
+    --q2-hero-photo: 0.5;
+    --q2-hero-veil-top: 0.62;
+    --q2-hero-veil-mid: 0.72;
   }
 }
 
