@@ -51,8 +51,8 @@ export default function Pricing() {
       overage: 0.45,
       description: isFr ? 'Pour un indépendant' : 'For a solo operator',
       features: isFr
-        ? ['250 minutes incluses par mois', 'IA 24/7 en français', 'Prise de RDV + agenda', 'Transfert des urgences', 'Bouclier anti-spam inclus', 'Hébergement UE, RGPD', 'Support email']
-        : ['250 minutes included per month', '24/7 AI in French', 'Booking + calendar sync', 'Urgency transfer', 'Spam shield included', 'EU hosting, GDPR', 'Email support'],
+        ? ['250 minutes incluses par mois', 'IA 24/7 en français', 'Prise de RDV + agenda', 'Transfert des urgences', 'Bouclier anti-spam inclus', 'Conforme RGPD', 'Support email']
+        : ['250 minutes included per month', '24/7 AI in French', 'Booking + calendar sync', 'Urgency transfer', 'Spam shield included', 'GDPR compliant', 'Email support'],
       cta: isFr ? 'Commencer' : 'Start',
       popular: false,
     },
@@ -597,7 +597,7 @@ export default function Pricing() {
                         ],
                         [isFr ? 'Français natif' : 'French native', yes, no, no, yes],
                         [isFr ? 'Bilingue sur un même appel' : 'Bilingual on the same call', yes, no, no, no],
-                        [isFr ? 'Hébergement UE / RGPD' : 'EU hosting / GDPR', yes, no, no, yes],
+                        [isFr ? 'Conformité RGPD' : 'GDPR compliant', yes, no, no, yes],
                         [isFr ? 'CRM natif inclus' : 'Native CRM included', yes, isFr ? 'Zapier' : 'Zapier', yes, isFr ? 'Sur-mesure' : 'Custom'],
                         [isFr ? 'Prise de RDV agenda native' : 'Native calendar booking', yes, isFr ? 'Tier sup.' : 'Higher tier', yes, isFr ? 'Sur-mesure' : 'Custom'],
                         [isFr ? 'Onboarding self-serve' : 'Self-serve onboarding', <>{yes} <span className="text-[11px] text-[#6e6e73]">15 min</span></>, yes, isFr ? 'Partiel' : 'Partial', no],

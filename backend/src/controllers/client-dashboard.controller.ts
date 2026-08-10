@@ -532,7 +532,7 @@ export class ClientDashboardController {
       const { realtimeContextService } = await import('../services/voice/realtime-context.service');
       const { businessMemoryService } = await import('../services/voice/business-memory.service');
       const { buildSystemPrompt, firstMessageVariants } = await import('../services/voice/system-prompt');
-      const { buildRealtimePlans, buildVoice } = await import('../services/voice/speech-plans');
+      const { buildRealtimePlans, buildSpeech } = await import('../services/voice/speech-plans');
       const { buildVoiceTools } = await import('../services/voice/voice-tools');
 
       const profile = await realtimeContextService.getClientProfile(req.clientId);
@@ -547,6 +547,12 @@ export class ClientDashboardController {
         characterId: profile.characterId,
         isFrench: profile.language === 'fr',
         country: profile.country,
+        /* La voix clonée était OUBLIÉE ici, alors que l'appel entrant réel la
+           passe. Le client qui avait enregistré la sienne l'entendait sur les
+           vrais appels et pas dans son propre test: le test ne testait donc
+           pas ce qu'il annonçait. Le mode parole-à-parole rend l'écart
+           visible, puisqu'il se décide sur cette même voix clonée. */
+        customVoice: profile.customVoice,
       });
 
       // Reading tools stay: an owner testing the agent should hear it check a
@@ -560,26 +566,27 @@ export class ClientDashboardController {
 
       const variants = firstMessageVariants(profile, null);
 
+      // Même source que l'appel entrant réel: l'appel test doit sonner comme ce
+      // que l'appelant entendra, sinon il ne teste rien.
+      const { model, voice, speechToSpeech } = buildSpeech({
+        lang: profile.language,
+        systemPrompt: buildSystemPrompt(profile, caller, knowledgeBlock) + testNotice,
+        tools,
+        character,
+        hasCustomVoice: !!profile.customVoice,
+        // L'appel test suit le mode du client, sinon il teste autre chose que
+        // ce que l'appelant entendra.
+        voiceMode: profile.voiceMode,
+      });
+
       res.json({
         publicKey: env.VAPI_PUBLIC_KEY,
         assistant: {
           name: `${character.name} — ${profile.businessName}`,
-          model: {
-            provider: 'openai',
-            model: env.VAPI_MODEL,
-            temperature: 0.6,
-            maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
-            messages: [{ role: 'system', content: buildSystemPrompt(profile, caller, knowledgeBlock) + testNotice }],
-            tools,
-          },
-          voice: buildVoice({
-            voiceId: character.voiceId,
-            stability: character.stability,
-            similarityBoost: character.similarityBoost,
-            style: character.style,
-          }),
+          model,
+          voice,
           firstMessage: variants[Math.floor(Math.random() * variants.length)],
-          ...buildRealtimePlans(profile.language),
+          ...buildRealtimePlans(profile.language, speechToSpeech),
           backgroundSound: 'office',
         },
       });

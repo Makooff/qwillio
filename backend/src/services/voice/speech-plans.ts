@@ -62,12 +62,21 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
   return {
     waitSeconds: env.VOICE_START_WAIT_SECONDS,
     smartEndpointingEnabled: true,
-    smartEndpointingPlan: {
-      provider: 'livekit',
-      // LiveKit turn detector only ships an English model; French falls back to
-      // Vapi's built-in endpointing, which is why the wait floor stays non-zero.
-      ...(lang === 'en' ? { waitFunction: '2000 / (1 + exp(-10 * (x - 0.5)))' } : {}),
-    },
+    /* Le détecteur de fin de tour, choisi par LANGUE.
+     *
+     * Le commentaire précédent disait que le français « retombait » sur la
+     * détection interne de Vapi. C'était faux: le code posait `livekit` dans
+     * les deux cas, et le modèle de LiveKit n'existe qu'en anglais. Le
+     * français tournait donc sur un détecteur entraîné sur une autre langue —
+     * autrement dit, sur la syntaxe qui décide si la phrase est finie, il
+     * devinait. C'est exactement ce qui produit les deux défauts qu'on ressent
+     * comme « robotique »: elle coupe la parole, ou elle laisse un blanc.
+     *
+     * Vapi documente son propre modèle comme celui à employer hors anglais.
+     * `waitFunction` reste réservée à LiveKit, dont elle module la courbe. */
+    smartEndpointingPlan: lang === 'en'
+      ? { provider: 'livekit', waitFunction: '2000 / (1 + exp(-10 * (x - 0.5)))' }
+      : { provider: 'vapi' },
     transcriptionEndpointingPlan: {
       onPunctuationSeconds: 0.1,
       onNoPunctuationSeconds: 1.0,
@@ -161,6 +170,102 @@ export function buildVoice(opts: {
 }
 
 /**
+ * Les voix du modèle temps réel.
+ *
+ * La liste est courte et FERMÉE: Vapi rejette l'assistant entier sur une voix
+ * inconnue, et six voix d'OpenAI (ash, ballad, coral, fable, onyx, nova) ne
+ * sont pas servies par les modèles temps réel. `marin` et `cedar` sont les deux
+ * qui leur sont propres, et de loin les plus naturelles.
+ *
+ * Le personnage choisi ne détermine donc plus le timbre exact, seulement le
+ * genre. C'est la contrepartie honnête du mode: le modèle fabrique sa voix, il
+ * n'en emprunte pas une.
+ */
+const REALTIME_VOICE: Record<'f' | 'm', string> = { f: 'marin', m: 'cedar' };
+
+/**
+ * Le mode parole-à-parole s'applique-t-il à CE client ?
+ *
+ * Une voix clonée l'emporte toujours. Un client qui a enregistré la sienne a
+ * demandé précisément cette voix-là; la remplacer par celle d'OpenAI, si
+ * naturelle soit-elle, ne serait pas une amélioration mais la perte de ce
+ * qu'il était venu chercher. La règle est automatique, jamais un réglage à ne
+ * pas oublier.
+ */
+export function useSpeechToSpeech(opts: {
+  hasCustomVoice?: boolean;
+  /** `auto` suit le réglage global; les deux autres l'emportent. */
+  voiceMode?: 'auto' | 'realtime' | 'classic';
+}): boolean {
+  // La voix clonée passe avant TOUT, y compris un `realtime` explicite: le
+  // client a enregistré cette voix-là, la lui retirer n'est pas un réglage.
+  if (opts.hasCustomVoice) return false;
+  if (opts.voiceMode === 'realtime') return true;
+  if (opts.voiceMode === 'classic') return false;
+  return env.VOICE_SPEECH_TO_SPEECH;
+}
+
+/**
+ * Le couple modèle + voix, choisi d'un seul endroit.
+ *
+ * Les trois appelants (l'appel entrant réel, l'appel test du tableau de bord,
+ * la démo publique) assemblaient chacun leur `model` et leur `voice`. Trois
+ * copies d'un choix, c'est trois occasions de diverger, et le client a déjà
+ * demandé que la réceptionniste soit la même partout. Le branchement vit ici.
+ */
+export function buildSpeech(opts: {
+  lang: VoiceLanguage;
+  systemPrompt: string;
+  tools: any[];
+  character: { voiceId: string; gender: 'f' | 'm'; stability?: number; similarityBoost?: number; style?: number };
+  hasCustomVoice?: boolean;
+  /** Le mode choisi pour ce client; `auto` suit le réglage global. */
+  voiceMode?: 'auto' | 'realtime' | 'classic';
+  /** L'option « LLM personnalisé » de l'appel entrant, qui ramène la boucle ici. */
+  customLlmUrl?: string;
+  temperature?: number;
+}): { model: any; voice: any; speechToSpeech: boolean } {
+  const speechToSpeech = useSpeechToSpeech({ hasCustomVoice: opts.hasCustomVoice, voiceMode: opts.voiceMode });
+
+  if (speechToSpeech) {
+    return {
+      speechToSpeech,
+      model: {
+        provider: 'openai',
+        model: env.VOICE_REALTIME_MODEL,
+        temperature: opts.temperature ?? 0.6,
+        maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
+        messages: [{ role: 'system', content: opts.systemPrompt }],
+        tools: opts.tools,
+      },
+      voice: { provider: 'openai', voiceId: REALTIME_VOICE[opts.character.gender] },
+    };
+  }
+
+  return {
+    speechToSpeech,
+    model: {
+      ...(opts.customLlmUrl
+        ? { provider: 'custom-llm', url: opts.customLlmUrl }
+        : { provider: 'openai' }),
+      model: env.VAPI_MODEL,
+      temperature: opts.temperature ?? 0.6,
+      // Cap the completion: a receptionist turn that runs past ~60 tokens is
+      // a monologue, and long completions are the other half of TTS latency.
+      maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
+      messages: [{ role: 'system', content: opts.systemPrompt }],
+      tools: opts.tools,
+    },
+    voice: buildVoice({
+      voiceId: opts.character.voiceId,
+      stability: opts.character.stability,
+      similarityBoost: opts.character.similarityBoost,
+      style: opts.character.style,
+    }),
+  };
+}
+
+/**
  * Backchannels — the assistant saying "mm-hmm" WHILE the caller is talking.
  *
  * This is the largest remaining humanity gap, and it is independent of latency:
@@ -197,9 +302,13 @@ export function buildBackchannelPlan(lang: VoiceLanguage) {
  * outbound call overrides. Everything here is latency- or interruption-related;
  * business config (prompt, tools, first message) is layered on by the caller.
  */
-export function buildRealtimePlans(lang: VoiceLanguage) {
+export function buildRealtimePlans(lang: VoiceLanguage, speechToSpeech = false) {
   return {
-    transcriber: buildTranscriber(lang),
+    /* Le modèle parole-à-parole entend l'audio lui-même: lui adjoindre un
+       transcripteur, c'est payer une étape dont plus personne ne lit la
+       sortie, et fixer la latence sur elle. Vapi le documente comme inutile
+       dans ce mode. */
+    ...(speechToSpeech ? {} : { transcriber: buildTranscriber(lang) }),
     startSpeakingPlan: buildStartSpeakingPlan(lang),
     stopSpeakingPlan: buildStopSpeakingPlan(),
     backchannelingEnabled: env.VOICE_BACKCHANNEL_ENABLED,

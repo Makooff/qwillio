@@ -39,6 +39,14 @@ export interface VapiConfigPatch {
    * character's own voice".
    */
   customVoice?: { voiceId?: string; name?: string; cloned?: boolean } | null;
+  /**
+   * Quelle chaîne vocale sert cet agent.
+   *
+   * `auto` suit le réglage global, `realtime` force le parole-à-parole,
+   * `classic` force la chaîne ElevenLabs. Réglable par compte, pour pouvoir
+   * comparer les deux à l'oreille sans engager tous les clients d'un coup.
+   */
+  voiceMode?: 'auto' | 'realtime' | 'classic';
 }
 
 const PERSONA_KEYS = new Set(Object.keys(PERSONALITY_PROMPTS));
@@ -154,6 +162,14 @@ export function buildVapiConfigPatch(
       }))
       .filter((e: FaqEntry) => e.q !== '');
     next.faq = renderFaq(next.faqEntries);
+  }
+  if (patch.voiceMode !== undefined) {
+    // Une valeur inconnue vaut `auto` plutôt que d'être écrite telle quelle:
+    // une faute de frappe ne doit pas décider en silence de ce que l'appelant
+    // entend, ni faire tomber un assistant refusé par Vapi.
+    next.voiceMode = ['auto', 'realtime', 'classic'].includes(String(patch.voiceMode))
+      ? patch.voiceMode
+      : 'auto';
   }
   if (patch.knowledge !== undefined) {
     const src = patch.knowledge && typeof patch.knowledge === 'object' && !Array.isArray(patch.knowledge)

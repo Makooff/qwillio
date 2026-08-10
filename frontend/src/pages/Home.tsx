@@ -242,7 +242,7 @@ export default function Home() {
       ? 'Meilleur réceptionniste IA en Belgique et en France'
       : 'AI Receptionist for Businesses',
     description: isFr
-      ? 'Qwillio, le réceptionniste IA francophone n°1 pour la Belgique et la France : répond à chaque appel 24/7, prend les rendez-vous, hébergement UE et conforme RGPD. Sans engagement, 7 jours d’essai gratuit.'
+      ? 'Qwillio, le réceptionniste IA francophone n°1 pour la Belgique et la France : répond à chaque appel 24/7, prend les rendez-vous, conforme RGPD. Sans engagement, 7 jours d’essai gratuit.'
       : 'Qwillio is your AI receptionist that answers every call 24/7, books appointments, and never sleeps. Bilingual French / English, EU-hosted, GDPR-friendly.',
     canonical: 'https://qwillio.com/',
   });

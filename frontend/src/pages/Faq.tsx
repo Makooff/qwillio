@@ -24,7 +24,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Combien ça coûte ?',
-    a: "Le plan Solo est à 99 € par mois : 250 minutes incluses, soit environ 100 appels, en français, hébergement UE. Au-delà, les minutes supplémentaires sont à 0,45 €. Les plans supérieurs ajoutent du volume et des fonctions avancées : Starter 249 € (750 min), Pro 599 € (2 000 min), Enterprise 1 290 € (5 000 min). 7 jours d’essai gratuit, résiliable au mois, remise de 20 % en annuel.",
+    a: "Le plan Solo est à 99 € par mois : 250 minutes incluses, soit environ 100 appels, en français. Au-delà, les minutes supplémentaires sont à 0,45 €. Les plans supérieurs ajoutent du volume et des fonctions avancées : Starter 249 € (750 min), Pro 599 € (2 000 min), Enterprise 1 290 € (5 000 min). 7 jours d’essai gratuit, résiliable au mois, remise de 20 % en annuel.",
   },
   {
     q: 'Est-ce que Qwillio prend les rendez-vous dans mon agenda ?',
@@ -75,7 +75,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'How much does it cost?',
-    a: 'The Solo plan is €99 per month: 250 minutes included, roughly 100 calls, French, EU hosting. Beyond that, extra minutes are €0.45. Higher plans add volume and advanced features: Starter €249 (750 min), Pro €599 (2,000 min), Enterprise €1,290 (5,000 min). 7-day free trial, cancel monthly, 20% off annually.',
+    a: 'The Solo plan is €99 per month: 250 minutes included, roughly 100 calls, French. Beyond that, extra minutes are €0.45. Higher plans add volume and advanced features: Starter €249 (750 min), Pro €599 (2,000 min), Enterprise €1,290 (5,000 min). 7-day free trial, cancel monthly, 20% off annually.',
   },
   {
     q: 'Does Qwillio book appointments into my calendar?',

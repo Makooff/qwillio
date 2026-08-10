@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Phone, Users, BarChart3, CreditCard,
-  Bot, UserCircle, HelpCircle,
+  Bot, UserCircle, HelpCircle, Target, Activity,
 } from '../icons';
 import AiStatusPill from '../AiStatusPill';
 import DashboardShell, { NavItem } from './DashboardShell';
@@ -15,6 +15,14 @@ const PRIMARY_NAV: NavItem[] = [
      entrées pour une réalité, avec deux vocabulaires d'état, faisaient croire
      à deux répertoires. La fiche de contact reste, comme détail d'une ligne. */
   { path: '/dashboard/receptionist', icon: Bot,             label: 'Réceptionniste IA' },
+  /* Pipeline et Activité étaient ROUTÉS mais sans aucun lien: on ne pouvait y
+     arriver qu'en tapant l'adresse à la main. Deux écrans entretenus que
+     personne ne pouvait voir.
+     Ils ont désormais de quoi s'afficher: chaque appel crée un contact et
+     l'activité qui va avec. Le pipeline, lui, se remplit à la main, ce qui est
+     le propre d'un pipeline: c'est le client qui décide qu'une affaire existe. */
+  { path: '/dashboard/crm/deals',      icon: Target,          label: 'Pipeline' },
+  { path: '/dashboard/crm/activities', icon: Activity,        label: 'Activité' },
 ];
 
 const SETTINGS_SUB: NavItem[] = [

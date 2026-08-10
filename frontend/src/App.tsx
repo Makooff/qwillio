@@ -8,7 +8,6 @@ const Layout = lazy(() => import('./components/layout/Layout'));
 // Portail client V2 « instrument » (DA/v2-direction.md, addendum produit)
 const ClientLayout = lazy(() => import('./components/layout/ClientLayout'));
 const CloserLayout = lazy(() => import('./components/layout/CloserLayout'));
-import ComingSoon from './components/client/ComingSoon';
 // Eager-loaded entry points (Login, Register, ConfirmEmail), accès clients V2
 import Login from './pages/v2/auth/Login';
 import Register from './pages/v2/auth/Register';
@@ -45,8 +44,8 @@ const ClientAnalytics = lazy(() => import('./pages/client/ClientAnalytics'));
 const ClientBilling = lazy(() => import('./pages/client/ClientBilling'));
 // Agent IA pages (lazy loaded)
 const AgentDashboard = lazy(() => import('./pages/client/AgentDashboard'));
-// Email / Payments / Accounting / Inventory agent pages are not functional yet
-// (no backend), their routes render a ComingSoon notice instead of the mock UI.
+// Ces pages ONT un backend (`/api/agent/<module>/*`, monté et cloisonné par
+// client). Ce qui manquait était la route côté navigateur, pas le serveur.
 const AgentMarketing = lazy(() => import('./pages/client/AgentMarketing'));
 const AgentReputation = lazy(() => import('./pages/client/AgentReputation'));
 const AgentScheduling = lazy(() => import('./pages/client/AgentScheduling'));
@@ -409,9 +408,17 @@ export default function App() {
           <Route path="setup/call-forwarding" element={<Suspense fallback={<Spinner />}><ClientSetupForwarding /></Suspense>} />
           <Route path="setup/customize"       element={<Suspense fallback={<Spinner />}><ClientSetupCustomize /></Suspense>} />
           <Route path="support" element={<Suspense fallback={<Spinner />}><ClientSupport /></Suspense>} />
-          {/* Agent IA — fermé. Les modules ne sont pas accessibles, y compris
-              par URL directe: tant qu'ils ne sont pas ouverts, y accéder
-              donnerait des écrans à moitié branchés. */}
+          {/* Agent IA — OUVERT module par module, jamais en bloc.
+              Le catch-all renvoyait tout vers le tableau de bord: la carte
+              « CRM AI » existait, sa page existait, ses neuf routes serveur
+              existaient, et cliquer dessus vous ramenait à l'accueil. Le
+              module n'était pas cassé, il était inatteignable.
+              Le CRM s'ouvre parce que ses deux appels (`/agent/crm/dashboard`
+              et `/agent/crm/activity`) lisent des tables réelles. Les autres
+              restent fermés tant que je ne les ai pas vérifiés un par un:
+              ouvrir treize écrans à l'aveugle est ce qui a produit ce
+              catch-all. */}
+          <Route path="agent/crm" element={<Suspense fallback={<Spinner />}><AgentCrm /></Suspense>} />
           <Route path="agent/*" element={<Navigate to="/dashboard" replace />} />
 
           {/* CRM */}

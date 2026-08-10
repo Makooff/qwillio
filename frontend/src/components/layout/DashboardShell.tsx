@@ -446,9 +446,18 @@ export default function DashboardShell(props: DashboardShellProps) {
                    Safari ne connaît pas cette valeur comme indice et gardait la
                    couche photographiée au montage, donc figée au défilement. */
                 transform: 'translateZ(0)',
-                /* Une teinte basse, pas une plaque: elle empêche seulement le
-                   texte de la page de traverser en clair. */
-                background: 'rgba(10,10,10,0.42)',
+                /* La teinte est un DÉGRADÉ, pas une valeur unique.
+                 *
+                 * À 0,42 partout, le texte de la page restait lisible à
+                 * travers: on lisait « Volume d'appels » derrière la pastille,
+                 * et l'entête avait l'air de défiler avec la page au lieu de
+                 * la couvrir. Le flou seul ne suffit pas sur du texte clair
+                 * posé sur du noir, il en garde le contraste.
+                 * Opaque en haut, là où le contenu doit disparaître pour de
+                 * bon, puis rendu au fur et à mesure. Le masque au-dessus
+                 * continue d'effacer le bord. */
+                background:
+                  'linear-gradient(to bottom, rgba(10,10,10,0.97) 0%, rgba(10,10,10,0.88) 42%, rgba(10,10,10,0.45) 72%, rgba(10,10,10,0) 100%)',
               }}
             />
           </div>

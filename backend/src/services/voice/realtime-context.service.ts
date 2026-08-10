@@ -79,6 +79,15 @@ export interface ClientVoiceProfile {
    * still be pinned off with `vapiConfig.customLlm === false`.
    */
   customLlm: boolean;
+  /**
+   * Le mode de voix, par client.
+   *
+   * `auto` suit le réglage global (`VOICE_SPEECH_TO_SPEECH`). Les deux autres
+   * l'emportent, dans un sens comme dans l'autre. C'est ce qui permet de
+   * comparer les deux chaînes sur un compte sans engager la production
+   * entière, et plus tard d'attacher le mode au plan payé.
+   */
+  voiceMode: 'auto' | 'realtime' | 'classic';
   /** Whether any active knowledge entry exists — gates the lookup tool. */
   hasKnowledgeBase: boolean;
 }
@@ -246,6 +255,9 @@ class RealtimeContextService {
       // An explicit per-client false wins over the global default, so one
       // problematic tenant can be pinned back to Vapi's own OpenAI path.
       customLlm: vapiConfig.customLlm === false ? false : vapiConfig.customLlm === true || env.VOICE_CUSTOM_LLM_DEFAULT,
+      // Toute valeur inconnue vaut `auto`: un réglage mal orthographié ne doit
+      // pas décider en silence de la voix que l'appelant entend.
+      voiceMode: ['realtime', 'classic'].includes(vapiConfig.voiceMode) ? vapiConfig.voiceMode : 'auto',
       hasKnowledgeBase: knowledgeCount > 0,
     };
 
