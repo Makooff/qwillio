@@ -559,7 +559,20 @@ export default function ClientReceptionist() {
   })();
 
   return (
-    <div className="max-w-3xl space-y-4 pb-2">
+    /* Deux colonnes à partir de `lg`: le chat À DROITE sur deux tiers, les
+       réglages À GAUCHE sur un tiers (demande utilisateur).
+       La largeur passe de `max-w-3xl` à `max-w-6xl`, sinon la mise en colonnes
+       RÉTRÉCIRAIT le chat: deux tiers de 768 px valent moins que les 768 px
+       qu'il occupe aujourd'hui. À 1152 px, ses deux tiers font exactement les
+       768 px d'avant, et la colonne de réglages est prise en plus, pas prise
+       au chat.
+       Le chat reste PREMIER dans le DOM: c'est ce qu'on vient faire ici neuf
+       fois sur dix, donc il doit rester en tête au clavier et en haut sur
+       mobile, où la grille retombe à une colonne. `order` ne déplace que le
+       rendu, à partir de `lg`. */
+    <div className="max-w-6xl pb-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+      <div className="lg:order-2 lg:col-span-2">
       {/* Assistant conversationnel : parler pour configurer et onboarder.
           Il porte aussi l'identité de la page (titre, entreprise, plan), le
           numéro copiable, l'appel test live et la jauge de minutes, pour que
@@ -603,6 +616,11 @@ export default function ClientReceptionist() {
           ...rows.map(r => ({ id: newId(), category: r.category, name: r.name, price: r.price })),
         ])}
       />
+      </div>
+
+      {/* La colonne des réglages. Tout ce qui se règle vit ici, à gauche du
+          chat sur grand écran, et sous lui sur mobile. */}
+      <div className="lg:order-1 lg:col-span-1 space-y-4">
 
       {/* Bande d'état. Le numéro, le plan et la jauge de minutes sont
           désormais dans l'entête du chat ; les compteurs d'appels et de leads
@@ -1121,6 +1139,8 @@ export default function ClientReceptionist() {
           <span className="text-[#7349fe] font-medium">Besoin d'aide ?</span> — Pour modifier la voix, le script personnalisé, ou les paramètres VAPI avancés de votre IA, contactez notre équipe via le Support. Nous nous occupons de tout en moins de 24h.
         </p>
       </motion.div>
+      </div>
+      </div>
     </div>
   );
 }

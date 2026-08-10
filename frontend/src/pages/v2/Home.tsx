@@ -112,7 +112,7 @@ function HeroVideoBackdrop() {
           /* Elle s'efface quand la vidéo prend le relais: superposées, deux
              couches à demi transparentes s'additionnent et assombrissent. */
           style={{
-            opacity: playing ? 0 : 'var(--q2-hero-photo)',
+            opacity: playing ? 0 : 1,
             transition: 'opacity 900ms cubic-bezier(0.23, 1, 0.32, 1)',
           }}
         />
@@ -128,7 +128,13 @@ function HeroVideoBackdrop() {
           onPlaying={() => setPlaying(true)}
           className="absolute inset-0 w-full h-full object-cover select-none"
           style={{
-            opacity: playing ? 'var(--q2-hero-photo)' : 0,
+            opacity: playing ? 1 : 0,
+            /* Le cadrage remonte de 2 cm (demande utilisateur). 2 cm valent
+               76 px à 96 ppp, l'unité de référence du CSS. `object-position`
+               déplace l'image DANS son cadre, sans toucher au cadre ni à la
+               vignette qui s'y accroche: une translation aurait décollé la
+               vidéo d'un bord et laissé une bande vide. */
+            objectPosition: 'center calc(50% - 76px)',
             transition: 'opacity 900ms cubic-bezier(0.23, 1, 0.32, 1)',
           }}
         >
@@ -139,23 +145,21 @@ function HeroVideoBackdrop() {
           <source src="/hero-loop.mp4" type="video/mp4" />
         </video>
       )}
+      {/* La VIGNETTE, et rien d'autre (demande utilisateur). Les deux voiles
+          qui couvraient le décor sont partis: la vidéo se voit pleine.
+          Elle ferme sur `rgb(var(--q2-canvas))`, donc elle est blanche en
+          clair et noire en sombre sans qu'aucune couleur ne soit écrite ici,
+          et sans qu'il faille la redéfinir par thème. Un blanc littéral
+          repeindrait la page en clair par-dessus le canvas basculé, ce que
+          CLAUDE.md documente comme piège.
+          Elle est ELLIPTIQUE et non circulaire: le hero est bien plus large
+          que haut, et un cercle mordrait le haut et le bas du cadre bien
+          avant d'avoir atteint les bords gauche et droit. */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgb(var(--q2-canvas) / var(--q2-hero-veil-top)) 0%, rgb(var(--q2-band) / var(--q2-hero-veil-mid)) 55%, rgb(var(--q2-canvas)) 100%)',
-        }}
-      />
-      {/* Le texte occupe la COLONNE GAUCHE, la crête le côté droit. Ce second
-          voile n'assombrit donc que la moitié où l'on lit, et laisse la photo
-          respirer là où rien ne la recouvre. Sans lui, il fallait épaissir le
-          voile vertical partout, ce qui effaçait la montagne pour protéger un
-          texte qui n'est même pas dessous. */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(90deg, rgb(var(--q2-canvas) / 0.55) 0%, rgb(var(--q2-canvas) / 0.28) 38%, transparent 62%)',
+            'radial-gradient(ellipse 75% 75% at 50% 50%, transparent var(--q2-hero-vignette), rgb(var(--q2-canvas)) 100%)',
         }}
       />
     </div>

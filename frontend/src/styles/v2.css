@@ -56,16 +56,23 @@
   --q2-hairline: 1px solid rgb(var(--q2-plate));
   --q2-hairline-d: 1px solid #23252a;
 
-  /* Le décor du hero (la photo de lac brumeux) et le voile qui la referme.
-     Trois réglages plutôt qu'un seul jeu de valeurs en dur, parce que la même
-     photo ne se comporte pas pareil dans les deux thèmes: c'est une image
-     SOMBRE. Sur le crème elle assombrit, donc un voile épais la réduit à une
-     bouillie grise et la crête disparaît; sur le noir elle éclaircit, et le
-     même voile épais est exactement ce qui garde le texte lisible.
-     D'où un voile PLUS LÉGER en clair, ce qui est contre-intuitif. */
-  --q2-hero-photo: 0.5;
-  --q2-hero-veil-top: 0.4;
-  --q2-hero-veil-mid: 0.58;
+  /* Le décor du hero est désormais montré PLEIN, sans voile par-dessus
+     (demande utilisateur): il ne reste qu'une vignette, et elle n'a pas besoin
+     d'un réglage par thème parce qu'elle ferme sur `--q2-canvas`, qui bascule
+     déjà tout seul. Blanche en clair, noire en sombre, une seule écriture.
+     Les trois variables d'opacité et de voile qui vivaient ici ont disparu
+     avec les dégradés qu'elles pilotaient. */
+  /* 10 %, et c'est mesuré, pas choisi à l'œil: la vidéo est CLAIRE (lavande),
+     donc en thème sombre le texte crème se pose sur elle sans contraste. Le
+     titre tombe à 2,70:1 avec une vignette fermée à 46 %, sous le plancher de
+     3:1 valable même pour du très gros texte. En ouvrant la vignette, elle
+     couvre plus de surface et ramène le fond vers le noir du canvas:
+     46 % → 2,70:1, 30 % → 3,37, 18 % → 3,93, 8 % → 4,48, 0 % → 4,92.
+     10 % est le point où le titre repasse le seuil sans que la vignette
+     dévore l'image. En thème clair la question ne se pose pas: le titre est
+     encre sur fond clair, il tient de 8,67:1 à 10,45:1 quelle que soit la
+     valeur. */
+  --q2-hero-vignette: 10%;
 }
 
 /* ============================================================
@@ -104,11 +111,8 @@
   --q2-ok-bg: #0f1f17;
   --q2-ok-brd: #1f4433;
 
-  /* Voir le commentaire du bloc clair: sur le noir, la photo ÉCLAIRCIT, et
-     c'est ce voile épais qui tient le texte lisible par-dessus la crête. */
-  --q2-hero-photo: 0.5;
-  --q2-hero-veil-top: 0.62;
-  --q2-hero-veil-mid: 0.72;
+  /* Rien à redéfinir ici pour le hero: la vignette ferme sur `--q2-canvas`,
+     qui vient de basculer au noir juste au-dessus. */
 }
 
 /* Le thème suit le système tant que personne n'a tranché. Dès qu'un choix est
@@ -130,9 +134,6 @@
     --q2-ok-ink: #8ee0b4;
     --q2-ok-bg: #0f1f17;
     --q2-ok-brd: #1f4433;
-    --q2-hero-photo: 0.5;
-    --q2-hero-veil-top: 0.62;
-    --q2-hero-veil-mid: 0.72;
   }
 }
 
