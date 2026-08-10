@@ -211,6 +211,12 @@ const INDIGO_HOVER = 'oklch(50% 0.02 265)';
 export default function AgentDashboard() {
   const [modules, setModules] = useState<Module[]>(INITIAL_MODULES);
 
+  /* Ouvert = une page routée derrière la carte. `comingSoon` porte déjà cette
+     information, et c'est la seule source: un module dont la route existe mais
+     qui reste marqué fermé n'apparaîtrait pas, ce qui est le bon défaut. */
+  const openModules = modules.filter(m => !m.comingSoon);
+  const closedModules = modules.filter(m => m.comingSoon);
+
   useEffect(() => {
     api.get('/my-dashboard/settings').then((res) => {
       const saved = (res.data as DashboardSettings)?.vapiConfig?.agentModules;
@@ -289,10 +295,10 @@ export default function AgentDashboard() {
           className="text-[13px] font-semibold uppercase tracking-wider mb-4"
           style={{ color: TEXT_SECONDARY }}
         >
-          Your Modules
+          Vos modules
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {modules.map((mod, i) => {
+          {openModules.map((mod, i) => {
             const Icon = mod.icon;
             const statusCfg = STATUS_CONFIG[mod.status];
             return (
@@ -321,15 +327,11 @@ export default function AgentDashboard() {
                       >
                         {mod.name}
                       </h3>
-                      {mod.comingSoon ? (
-                        <span
-                          className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                          style={{ background: 'oklch(67% 0.03 265 / 0.12)', color: 'oklch(67% 0.03 265)' }}
-                          aria-label="Statut : bientôt disponible"
-                        >
-                          Bientôt disponible
-                        </span>
-                      ) : (
+                      {/* Plus de branche « bientôt » ici: la grille ne contient
+                          que des modules ouverts, la ligne en dessous porte les
+                          autres. Une branche qu'on ne peut plus atteindre est un
+                          piège pour qui relira. */}
+                      {(
                         <span
                           className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
                           style={{ background: statusCfg.bgColor, color: statusCfg.labelColor }}
@@ -345,7 +347,7 @@ export default function AgentDashboard() {
                       )}
                     </div>
                   </div>
-                  {!mod.comingSoon && (
+                  {(
                     <button
                       onClick={() => toggleModule(mod.id)}
                       aria-label={mod.enabled ? `Désactiver ${mod.name}` : `Activer ${mod.name}`}
@@ -366,14 +368,7 @@ export default function AgentDashboard() {
                 >
                   {mod.description}
                 </p>
-                {mod.comingSoon ? (
-                  <span
-                    className="inline-flex items-center gap-1 text-[12px] font-medium"
-                    style={{ color: TEXT_SECONDARY }}
-                  >
-                    Bientôt disponible
-                  </span>
-                ) : (
+                {(
                   <Link
                     to={mod.href}
                     aria-label={`Configurer ${mod.name}`}
@@ -387,6 +382,23 @@ export default function AgentDashboard() {
             );
           })}
         </div>
+
+        {/* Les modules encore fermés tiennent en UNE ligne.
+         *
+         * Ils occupaient douze cartes de la même taille que le module qui
+         * fonctionne, chacune avec son icône, sa description et sa pastille
+         * « Bientôt ». Le client comptait donc douze promesses et une
+         * livraison, et le seul module utilisable se noyait dans le lot.
+         *
+         * Ils ne disparaissent pas — les cacher serait mentir dans l'autre
+         * sens, et la feuille de route intéresse un client. Ils cessent
+         * simplement d'occuper la place de ce qui marche. */}
+        {closedModules.length > 0 && (
+          <p className="mt-4 text-[12px]" style={{ color: TEXT_SECONDARY }}>
+            {closedModules.length} autres modules en préparation :{' '}
+            {closedModules.map(m => m.name.replace(/ AI$/, '')).join(', ')}.
+          </p>
+        )}
       </section>
 
       {/* Le flux « Actions récentes de l'IA » a été RETIRÉ, pour la même
