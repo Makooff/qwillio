@@ -39,6 +39,17 @@ jobs:
       - name: Test
         run: npm test
 
+      # Les parcours de bout en bout, sur le bundle qui vient d'être construit.
+      # Ils tournent APRÈS le build parce qu'ils servent `dist` par `preview`:
+      # c'est le fichier livré qui est testé, pas le serveur de développement,
+      # dont le comportement diffère justement sur les points qui cassent
+      # (découpage des modules, réécritures de routes, variables d'env).
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end (Playwright)
+        run: npm run e2e
+
       - name: Lint (non-blocking)
         run: npm run lint
         continue-on-error: true
