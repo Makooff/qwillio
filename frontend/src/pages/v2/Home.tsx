@@ -45,6 +45,10 @@ const MOCKUP = {
   src: '/mockups/safari-big-sur-dark.png',
   width: 2760,
   height: 1768,
+  /* La marge transparente du fichier, de chaque côté de la fenêtre. Même
+     valeur que `screen.left` parce que c'est la même arête: le bord gauche du
+     PNG au bord gauche du chrome Safari. */
+  bleed: '3.6232%',
   screen: {
     left: '3.6232%',
     top: '10.5204%',
@@ -98,8 +102,6 @@ function HeroVideoBackdrop() {
    plus court: assez pour décoller les flancs du bord, trop peu pour rogner le
    contenu du dashboard. */
 const MASK_V = 'linear-gradient(to bottom, #000 0%, #000 calc(91% - 1cm), rgba(0,0,0,0) 93.5%)';
-const MASK_H =
-  'linear-gradient(to right, rgba(0,0,0,0) 0%, #000 5%, #000 95%, rgba(0,0,0,0) 100%)';
 
 function HeroDashboardShot({ isFr }: { isFr: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -111,15 +113,26 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
     if (!wrap || !frame || prefersReducedMotion()) return;
     const ctx = gsap.context(() => {
       gsap.from(frame, { y: 46, opacity: 0, duration: 0.9, ease: 'expo.out', delay: 0.2 });
-      gsap.fromTo(
-        frame,
-        { rotateX: 4 },
-        {
-          rotateX: 0,
-          ease: 'none',
-          scrollTrigger: { trigger: wrap, start: 'top 94%', end: 'top 44%', scrub: 0.6 },
-        },
-      );
+
+      /* Le redressement, et le PARALLAXE (demande utilisateur).
+       *
+       * Trois changements, tous sur la même timeline pour qu'ils partagent une
+       * seule lecture du scroll — trois `scrollTrigger` séparés se
+       * recalculeraient chacun de leur côté et se décaleraient d'une image.
+       *
+       * `scrub: 1` plutôt que `0.6`: le scrub EST le lissage. Il dit en
+       * combien de secondes l'animation rattrape la position du scroll, et
+       * c'est ce délai qui donne le glissé au lieu du collé-au-doigt. Au
+       * dessus de ~1,5 s on décroche du geste et ça flotte.
+       *
+       * La fenêtre remonte plus lentement que la page (`yPercent: -6`): c'est
+       * tout le parallaxe. Il reste petit à dessein — le hero n'a pas de
+       * profondeur à raconter, il a juste à ne pas être plat. */
+      gsap.timeline({
+        scrollTrigger: { trigger: wrap, start: 'top 92%', end: 'bottom 30%', scrub: 1 },
+      })
+        .fromTo(frame, { rotateX: 4 }, { rotateX: 0, ease: 'none' }, 0)
+        .fromTo(frame, { yPercent: 0 }, { yPercent: -6, ease: 'none' }, 0);
     }, wrap);
     return () => ctx.revert();
   }, []);
@@ -141,6 +154,18 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
            survole, sinon on lit du texte foncé sur la capture du dashboard. */
         data-nav-dark=""
         style={{
+          /* Le PNG porte sa propre marge transparente autour de la fenêtre —
+             3,62 %, la même cote que `screen.left`, c'est la même arête. Sans
+             la compenser, la fenêtre visible tombe 40 px à droite du titre
+             alors que les deux vivent dans le même conteneur: l'alignement
+             était juste, c'est le fichier qui mentait sur sa largeur.
+             Le débordement est posé sur le CADRE et non sur l'image: tout ce
+             qu'il contient est positionné en pourcentage de lui (la capture,
+             le patch de barre d'adresse), donc élargir l'image seule les
+             décalait — la barre affichait « figma.com » à côté de la nôtre. */
+          width: `calc(100% + 2 * ${MOCKUP.bleed})`,
+          marginLeft: `-${MOCKUP.bleed}`,
+          maxWidth: 'none',
           transformOrigin: 'center top',
           willChange: 'transform',
           /* Le bas de la fenêtre s'EFFACE, il n'est plus recouvert.
@@ -154,16 +179,17 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
              la fenêtre à 93,2 %. Le fondu démarre un centimètre plus haut
              (mesure demandée, laissée en `cm` pour rester lisible) et il est
              fini à 93,5 %, si bien que l'arête et son ombre disparaissent. */
-          /* VIGNETTE: le fondu ne descend plus seulement, il fait le tour.
-             Deux masques composés en `intersect` — le vertical efface le bas,
-             l'horizontal adoucit les deux flancs — si bien que la fenêtre est
-             posée dans la page au lieu d'y être découpée. Le haut reste net:
-             c'est là que se lisent la barre d'adresse et les pastilles, les
-             effacer donnerait un mockup abîmé, pas une vignette. */
-          WebkitMaskImage: `${MASK_V}, ${MASK_H}`,
-          maskImage: `${MASK_V}, ${MASK_H}`,
-          WebkitMaskComposite: 'source-in',
-          maskComposite: 'intersect',
+          /* Le fondu descend, il ne fait plus le tour (demande utilisateur).
+             Un second masque adoucissait les deux flancs sur 5 % de la
+             largeur. Il coûtait deux choses: la fenêtre paraissait plus
+             étroite qu'elle n'est, et surtout son arête gauche ne tombait plus
+             sur celle du titre — les deux vivent pourtant dans le MÊME
+             conteneur, donc l'alignement était déjà juste et c'est le fondu
+             qui le cachait. Il ne reste que le fondu du bas, qui a un autre
+             rôle: raccorder la fenêtre au dégradé de la page sans y peindre
+             une bande de couleur. */
+          WebkitMaskImage: MASK_V,
+          maskImage: MASK_V,
         }}
       >
         <img
