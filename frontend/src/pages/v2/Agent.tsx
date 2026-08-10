@@ -10,6 +10,7 @@ import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../..
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
+import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 
 /* Qwillio Agent V2 « Papier & Signal » (DA/v2-direction.md).
    Sémantique violet: ce qui sort. Copie FR/EN portée de la V1 (pages/Agent.tsx),
@@ -191,8 +192,9 @@ export default function Agent() {
       {/* HERO, asymétrique: titre whisper à gauche, panneau agent sombre à droite */}
       <Section
         aria-label={isFr ? 'Qwillio Agent, modules IA' : 'Qwillio Agent, AI modules'}
-        className="!pt-16 md:!pt-24 overflow-hidden"
+        className="relative !pt-16 md:!pt-24 overflow-hidden"
       >
+        <ShapeDrift shapes={[{ kind: 'column', x: '88%', y: '18%', size: 150, drift: 90, opacity: 0.26 }]} />
         <Container className="grid lg:grid-cols-[1.15fr_1fr] gap-14 lg:gap-20 items-center">
           <RevealV2>
             <div>
@@ -326,7 +328,8 @@ export default function Agent() {
       </Section>
 
       {/* TARIF, snapshot: prix unitaire à gauche et suite complète en card sombre */}
-      <Section variant="band" hairline aria-labelledby="agent-pricing-heading">
+      <Section variant="band" hairline aria-labelledby="agent-pricing-heading" className="relative">
+        <ShapeDrift shapes={[{ kind: 'disc', x: '-10%', y: '30%', size: 260, drift: -90, opacity: 0.24 }]} />
         <Container className="grid lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-20 items-center">
           <RevealV2>
             <Eyebrow tone="violet" className="mb-4">

@@ -5,6 +5,7 @@ import { BLOG_ARTICLES } from '../../content/blogArticles';
 import PublicShell from '../../components/v2/PublicShell';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import RevealV2 from '../../components/v2/RevealV2';
+import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 
 /* Blog V2 « Papier & Signal », voir DA/v2-direction.md.
    Liste éditoriale hairline au lieu de la grille de cards sombres de la V1.
@@ -69,7 +70,8 @@ export default function Blog() {
   return (
     <PublicShell>
       {/* Hero éditorial asymétrique */}
-      <Section aria-label={isFr ? 'Blog Qwillio' : 'Qwillio Blog'} className="!pt-16 md:!pt-24">
+      <Section aria-label={isFr ? 'Blog Qwillio' : 'Qwillio Blog'} className="relative !pt-16 md:!pt-24">
+        <ShapeDrift shapes={[{ kind: 'column', x: '88%', y: '18%', size: 150, drift: 90, opacity: 0.26 }]} />
         <Container className="grid lg:grid-cols-[1.3fr_1fr] gap-10 lg:gap-20 items-end">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-6">
@@ -142,7 +144,8 @@ export default function Blog() {
       </Section>
 
       {/* Billets historiques: pas encore de page dédiée, donc pas de lien */}
-      <Section aria-labelledby="all-heading">
+      <Section aria-labelledby="all-heading" className="relative">
+        <ShapeDrift shapes={[{ kind: 'disc', x: '-10%', y: '30%', size: 260, drift: -90, opacity: 0.24 }]} />
         <Container>
           <RevealV2 className="mb-12">
             <H2 id="all-heading">{isFr ? 'Tous les articles' : 'All articles'}</H2>

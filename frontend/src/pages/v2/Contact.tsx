@@ -7,6 +7,7 @@ import { Container, Section, Eyebrow, Display, SerifWord } from '../../component
 import { PillButton } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
+import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 
 /* Contact V2 « Papier & Signal », voir DA/v2-direction.md.
    Le formulaire contrôlé et le fallback mailto sont portés tels quels de la V1
@@ -88,7 +89,8 @@ export default function Contact() {
   return (
     <PublicShell>
       {/* HERO: titre whisper asymétrique */}
-      <Section aria-label="Contact" className="!pt-16 md:!pt-24 !pb-12 md:!pb-16">
+      <Section aria-label="Contact" className="relative !pt-16 md:!pt-24 !pb-12 md:!pb-16">
+        <ShapeDrift shapes={[{ kind: 'column', x: '88%', y: '18%', size: 150, drift: 90, opacity: 0.26 }]} />
         <Container className="grid lg:grid-cols-[1.4fr_1fr] gap-10 lg:gap-16 items-end">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-6">
