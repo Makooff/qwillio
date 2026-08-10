@@ -114,6 +114,7 @@ const INITIAL_MODULES: Module[] = [
     iconStyle: ICON_STYLES.indigo,
     status: 'setup_required',
     enabled: false,
+    comingSoon: true,
     href: '/dashboard/agent/marketing',
   },
   {
@@ -124,6 +125,7 @@ const INITIAL_MODULES: Module[] = [
     iconStyle: ICON_STYLES.amber,
     status: 'setup_required',
     enabled: false,
+    comingSoon: true,
     href: '/dashboard/agent/reputation',
   },
   {
@@ -134,6 +136,7 @@ const INITIAL_MODULES: Module[] = [
     iconStyle: ICON_STYLES.violet,
     status: 'setup_required',
     enabled: false,
+    comingSoon: true,
     href: '/dashboard/agent/scheduling',
   },
   {
@@ -144,6 +147,7 @@ const INITIAL_MODULES: Module[] = [
     iconStyle: ICON_STYLES.emerald,
     status: 'setup_required',
     enabled: false,
+    comingSoon: true,
     href: '/dashboard/agent/support',
   },
   {
@@ -152,8 +156,13 @@ const INITIAL_MODULES: Module[] = [
     description: 'Pipeline management, HubSpot sync, lost-deal analysis and revenue forecast.',
     icon: Users,
     iconStyle: ICON_STYLES.indigo,
-    status: 'setup_required',
-    enabled: false,
+    /* Le seul module OUVERT à ce jour. Sa page est routée et ses appels lisent
+       des tables réelles. Les autres portent `comingSoon` non par prudence
+       commerciale mais par honnêteté: leur lien « Configure » menait à une
+       redirection vers l'accueil, ce qui se lit comme un produit cassé alors
+       que la page n'avait simplement jamais été ouverte. */
+    status: 'active',
+    enabled: true,
     href: '/dashboard/agent/crm',
   },
   {
@@ -164,6 +173,7 @@ const INITIAL_MODULES: Module[] = [
     iconStyle: ICON_STYLES.violet,
     status: 'setup_required',
     enabled: false,
+    comingSoon: true,
     href: '/dashboard/agent/document',
   },
   {
@@ -174,6 +184,7 @@ const INITIAL_MODULES: Module[] = [
     iconStyle: ICON_STYLES.amber,
     status: 'setup_required',
     enabled: false,
+    comingSoon: true,
     href: '/dashboard/agent/local-seo',
   },
   {
@@ -184,6 +195,7 @@ const INITIAL_MODULES: Module[] = [
     iconStyle: ICON_STYLES.blue,
     status: 'setup_required',
     enabled: false,
+    comingSoon: true,
     href: '/dashboard/agent/lead-gen',
   },
   {
@@ -194,6 +206,7 @@ const INITIAL_MODULES: Module[] = [
     iconStyle: ICON_STYLES.emerald,
     status: 'setup_required',
     enabled: false,
+    comingSoon: true,
     href: '/dashboard/agent/analytics',
   },
 ];
