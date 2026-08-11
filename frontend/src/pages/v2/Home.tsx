@@ -112,10 +112,14 @@ const HERO_MASK_V =
    Les deux teintes sont transparentes jusqu'à 55 %, donc elles ne touchent pas
    le milieu: c'est cette valeur, et elle seule, qui garantit « la vidéo brute
    au centre ». */
-const HERO_TOP_TINT =
-  'linear-gradient(to bottom, rgba(122,95,255,0.46) 0%, rgba(122,95,255,0.30) 38%, rgba(205,107,251,0.14) 68%, rgba(205,107,251,0.04) 86%, transparent 100%)';
-const HERO_BOTTOM_TINT =
-  'linear-gradient(to bottom, transparent 0%, transparent 55%, rgba(205,107,251,0.10) 68%, rgba(205,107,251,0.20) 79%, rgba(122,95,255,0.26) 89%, rgba(122,95,255,0.30) 100%)';
+/* Les couleurs viennent des JETONS, pas de valeurs recopiées: `--q2-indigo` et
+   `--q2-violet` sont des hexadécimaux, donc l'opacité se pose avec `color-mix`
+   plutôt qu'avec `rgba()`. Recopier « 122,95,255 » ici, c'était une seconde
+   définition de la marque qui aurait cessé de suivre la première. */
+const tint = (token: string, a: number) =>
+  `color-mix(in srgb, var(${token}) ${Math.round(a * 100)}%, transparent)`;
+const HERO_TOP_TINT = `linear-gradient(to bottom, ${tint('--q2-indigo', 0.46)} 0%, ${tint('--q2-indigo', 0.3)} 38%, ${tint('--q2-violet', 0.14)} 68%, ${tint('--q2-violet', 0.04)} 86%, transparent 100%)`;
+const HERO_BOTTOM_TINT = `linear-gradient(to bottom, transparent 0%, transparent 55%, ${tint('--q2-violet', 0.1)} 68%, ${tint('--q2-violet', 0.2)} 79%, ${tint('--q2-indigo', 0.26)} 89%, ${tint('--q2-indigo', 0.3)} 100%)`;
 /* Le fondu de flou du HAUT: plein sous la nav, éteint plus bas. Comme le voile
    des bords, il ne peint rien, il ne fait que brouiller ce qui passe dessous:
    la vidéo reste visible derrière le menu, en diffus, au lieu d'être remplacée
@@ -222,6 +226,13 @@ function HeroBackdrop() {
           playsInline
           preload="metadata"
           onPlaying={() => setPlaying(true)}
+          /* La photo REVIENT si la lecture s'arrête. `onPlaying` seul ne se
+             défait jamais: une vidéo qui cale ou qui échoue après avoir
+             démarré laissait le décor entièrement transparent, c'est-à-dire un
+             hero sans image. */
+          onPause={() => setPlaying(false)}
+          onError={() => setPlaying(false)}
+          onStalled={() => setPlaying(false)}
           style={{ opacity: playing ? 1 : 0 }}
         >
           {/* TROIS DÉFINITIONS, et chaque écran ne télécharge QUE la sienne.
@@ -256,12 +267,12 @@ function HeroBackdrop() {
           <source media="(min-width: 1600px)" src="/hero-lake-2560.webm" type="video/webm" />
           <source media="(min-width: 1600px)" src="/hero-lake-2560.mp4" type="video/mp4" />
           <source
-            media="(min-width: 900px), (min-resolution: 2dppx)"
+            media="(min-width: 900px), (min-width: 450px) and (min-resolution: 2dppx)"
             src="/hero-lake-1920.webm"
             type="video/webm"
           />
           <source
-            media="(min-width: 900px), (min-resolution: 2dppx)"
+            media="(min-width: 900px), (min-width: 450px) and (min-resolution: 2dppx)"
             src="/hero-lake-1920.mp4"
             type="video/mp4"
           />
@@ -430,7 +441,7 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
               : 'Qwillio dashboard: the day’s calls, their outcome and their transcript'
           }
           width={2560}
-          height={1600}
+          height={1462}
           className="absolute block object-cover"
           style={MOCKUP.screen}
         />

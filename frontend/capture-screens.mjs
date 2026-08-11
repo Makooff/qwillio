@@ -204,11 +204,16 @@ const CHAT_TURNS = [
   },
 ];
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+/* Le chemin du navigateur est une OPTION, pas une constante: sur l'intégration
+   continue, Playwright installe le sien et /opt/pw-browsers n'existe pas. Sans
+   valeur, on laisse donc Playwright résoudre le sien. */
+const browser = await chromium.launch(
+  process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {},
+);
 
 /* Chaque page est demandée deux fois par le portail (cache + rafraîchissement),
    donc la route reste posée pour toute la session du contexte. */
-async function shoot({ name, path, width, height, scale, statusBar, prepare, webp, clipTo, clip }) {
+async function shoot({ name, path, width, height, scale, statusBar, prepare, webp, clipTo }) {
   const context = await browser.newContext({
     viewport: { width, height },
     deviceScaleFactor: scale,
@@ -259,8 +264,6 @@ async function shoot({ name, path, width, height, scale, statusBar, prepare, web
        la raison pour laquelle ces visuels avaient dû être redessinés à la
        main; recadrer règle le problème sans quitter le vrai produit. */
     await page.locator(clipTo).first().screenshot({ path: file });
-  } else if (clip) {
-    await page.screenshot({ path: file, clip });
   } else {
     await page.screenshot({ path: file, clip: { x: 0, y: 0, width, height } });
   }
@@ -294,21 +297,37 @@ await shoot({ name: 'mac-appels', path: '/dashboard/calls', ...mac });
    Même portail, même faux backend: la page d'accueil montre donc l'écran que
    le client verra, et non un dessin qui lui ressemble. */
 const site = { width: 1440, height: 900, scale: 2, statusBar: 0 };
+/* La capture d'entête va dans l'écran de la maquette Safari, qui fait
+   2560x1462: la prendre en 16/10 obligeait `object-cover` à en couper 138 px
+   en hauteur, donc l'entête du tableau de bord. On la prend au rapport de
+   l'écran, et il n'y a plus rien à rogner. */
+const heroShot = { width: 1440, height: 822, scale: 2, statusBar: 0 };
+/* Les deux panneaux qui tiennent TOUTE la hauteur de la fenêtre (la fiche
+   d'appel, la carte du chat) sont pris dans une fenêtre plus basse. Leur
+   hauteur suit celle de l'écran: prise en 982, la carte arrive avec 500 px de
+   vide sous son contenu, et c'est ce vide, pas le contenu, qui dicterait la
+   taille de la carte du site. Rien n'est rogné pour autant: on photographie la
+   même carte, dans une fenêtre à sa mesure. */
+const panelShot = { width: 1512, height: 560, scale: 2, statusBar: 0 };
+const chatShot = { width: 1512, height: 820, scale: 2, statusBar: 0 };
 
 await shoot({
-  name: 'site-apercu', path: '/dashboard', ...site,
+  name: 'site-apercu', path: '/dashboard', ...heroShot,
   webp: { name: 'hero-dashboard', width: 2560 },
 });
 
 await shoot({
   name: 'site-appels', path: '/dashboard/calls', ...site,
-  /* La liste elle-même, sans la colonne de menu ni les filtres. */
-  clip: { x: 330, y: 230, width: 900, height: 500 },
+  /* LA CARTE, pas un rectangle découpé dedans (demande utilisateur: « ne
+     rogne pas les sections »). Un recadrage à la main coupe ses voisines en
+     deux et fait entrer dans l'image des moitiés d'éléments; viser l'élément
+     rend la carte entière, avec son filet et ses coins. */
+  clipTo: 'main div:has(> [role="list"][aria-label="Liste des appels"])',
   webp: { name: 'appels', width: 1350 },
 });
 
 await shoot({
-  name: 'site-fiche-appel', path: '/dashboard/calls', ...site,
+  name: 'site-fiche-appel', path: '/dashboard/calls', ...panelShot,
   /* La FICHE, pas la liste: c'est elle qui porte le résumé, le transcript et
      l'enregistrement dont parle le texte de la carte. Elle s'ouvre au clic sur
      une ligne, il faut donc cliquer. */
@@ -317,20 +336,21 @@ await shoot({
     await page.waitForTimeout(1200);
   },
   clipTo: '[role="dialog"][aria-modal="true"]',
-  webp: { name: 'fiche-appel', width: 1100 },
+  /* Exportée à sa taille RÉELLE (448 pt de large en densité 2), jamais
+     agrandie: monter à 1100 px aurait gonflé la hauteur d'autant. */
+  webp: { name: 'fiche-appel', width: 896 },
 });
 
 await shoot({
   name: 'site-analytique', path: '/dashboard/analytics', ...site,
-  /* Le haut du contenu: les quatre chiffres et la courbe. Le bas de la page
-     porte des graphiques secondaires qui, réduits, ne sont plus que des
-     taches. */
-  clip: { x: 300, y: 44, width: 880, height: 560 },
+  /* La carte « Volume d'appels », entière. C'est l'élément que le texte
+     illustre, parmi les autres de la page. */
+  clipTo: 'main section:has(h3:text-is("Volume d\'appels"))',
   webp: { name: 'analytique', width: 1320 },
 });
 
 await shoot({
-  name: 'site-chat', path: '/dashboard/receptionist', ...site,
+  name: 'site-chat', path: '/dashboard/receptionist', ...chatShot,
   /* Une conversation, pas une fenêtre vide: on lui parle vraiment, et les
      réponses viennent du flux simulé plus haut. */
   prepare: async page => {
@@ -341,8 +361,8 @@ await shoot({
       await page.waitForTimeout(2200);
     }
   },
-  /* La conversation seule: c'est ce qu'on vient y lire. */
-  clip: { x: 268, y: 214, width: 736, height: 452 },
+  /* La carte du chat, entière: son entête, le fil, le composeur. */
+  clipTo: 'main div.rounded-2xl:has(textarea)',
   webp: { name: 'chat-config', width: 1180 },
 });
 

@@ -485,7 +485,6 @@ export default function NavV2() {
         <ScreenShot
           name="appels"
           alt={isFr ? 'La liste des appels dans le portail.' : 'The call list in the portal.'}
-          aspect="aspect-[16/9]"
         />
       </div>
       <p className="q2-eyebrow text-q2-graphite mt-3">{isFr ? 'Appels' : 'Calls'}</p>

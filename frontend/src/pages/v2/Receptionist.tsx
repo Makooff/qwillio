@@ -611,7 +611,6 @@ export default function Receptionist() {
                   alt={isFr
                     ? 'La conversation de configuration dans le portail: on lui dit de fermer le mercredi après-midi, elle confirme le nouvel horaire.'
                     : 'The setup conversation in the portal: told to close Wednesday afternoons, she confirms the new hours.'}
-                  aspect="aspect-[16/10]"
                 />
               </div>
               <figcaption className="relative mt-3 px-1 text-[12.5px] text-q2-fog q2-body-text">

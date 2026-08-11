@@ -6,18 +6,21 @@
  * backend et le photographie. Les régénérer après un changement d'interface est
  * une commande, et la promesse « voici ce que vous verrez » reste vraie.
  *
- * Ce composant ne fait qu'une chose de plus qu'une balise `<img>`, mais elle
- * compte: il PLACE le cadrage. Une capture de 1800 px rendue dans 700 devient
- * illisible si on la montre en entier; on en montre donc le haut, à l'échelle,
- * et le bas sort du cadre. D'où `object-cover` avec une origine réglable, et
- * un rapport imposé par l'appelant plutôt que par le fichier.
+ * Par défaut, l'image est montrée ENTIÈRE, à son propre rapport (demande
+ * utilisateur: « ne rogne pas les sections »). C'est le pendant de la règle de
+ * capture: on photographie la carte, pas un rectangle découpé dedans, et on ne
+ * lui redécoupe pas ensuite les bords à l'affichage. La lisibilité vient du
+ * cadrage à la prise de vue, jamais d'un recadrage au rendu.
+ *
+ * `aspect` reste possible quand une place fixe est nécessaire; le rognage est
+ * alors explicite, et son origine réglable.
  */
 interface ScreenShotProps {
   /** Nom du fichier dans `public/screens`, sans extension. */
   name: string;
   /** Ce que la capture montre, pour qui ne la voit pas. */
   alt: string;
-  /** Rapport du cadre, en classe Tailwind (`aspect-[16/10]` par défaut). */
+  /** Rapport IMPOSÉ, en classe Tailwind. Sans lui, l'image garde le sien. */
   aspect?: string;
   /** Origine du cadrage (`object-top` par défaut). */
   position?: string;
@@ -29,19 +32,23 @@ interface ScreenShotProps {
 export default function ScreenShot({
   name,
   alt,
-  aspect = 'aspect-[16/10]',
+  aspect,
   position = 'object-top',
   className = '',
   loading = 'lazy',
 }: ScreenShotProps) {
   return (
-    <div className={`${aspect} overflow-hidden bg-q2-void ${className}`}>
+    <div className={`overflow-hidden bg-q2-void ${aspect ?? ''} ${className}`}>
       <img
         src={`/screens/${name}.webp`}
         alt={alt}
         loading={loading}
         decoding="async"
-        className={`w-full h-full object-cover ${position} select-none`}
+        className={
+          aspect
+            ? `w-full h-full object-cover ${position} select-none`
+            : 'block w-full h-auto select-none'
+        }
       />
     </div>
   );
