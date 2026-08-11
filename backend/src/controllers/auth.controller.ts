@@ -95,6 +95,12 @@ export class AuthController {
         expiresIn: env.JWT_EXPIRES_IN,
       });
 
+      /* L'échec d'envoi était journalisé puis avalé: l'inscrit recevait un 201,
+         arrivait sur /verify-email, et attendait un message qui ne partirait
+         jamais. On le dit désormais dans la réponse, pour que la page propose un
+         renvoi (POST /auth/resend-confirmation) au lieu d'une attente sans fin. */
+      let confirmationEmailSent = autoConfirm;
+
       // Send confirmation email (skip if auto-confirmed)
       if (!autoConfirm) {
         const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
@@ -106,6 +112,7 @@ export class AuthController {
             confirmUrl,
             lang: req.body?.language === 'en' ? 'en' : 'fr',
           });
+          confirmationEmailSent = true;
           logger.info(`Confirmation email sent to ${email}`);
         } catch (emailErr) {
           logger.error('Failed to send confirmation email:', emailErr);
@@ -116,6 +123,7 @@ export class AuthController {
 
       res.status(201).json({
         token,
+        confirmationEmailSent,
         user: {
           id: user.id,
           email: user.email,

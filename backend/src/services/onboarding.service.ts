@@ -12,6 +12,8 @@ import { greetingAudioService } from './voice/greeting-audio.service';
 import { toE164 } from '../utils/phone';
 import { resolveNiche } from '../config/niches';
 import { knowledgePreset } from '../config/knowledge-presets';
+import { allocateInboundNumber } from './voice/phone-allocation.service';
+import { clientPortalUrl } from '../utils/urls';
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2000; // 2s, 4s, 8s exponential backoff
@@ -101,14 +103,33 @@ export class OnboardingService {
 
       logger.info(`VAPI assistant created: ${assistant.id}`);
 
-      // ── STEP 2: Use SHARED phone number (no purchase needed!) ──
-      // All clients share the same VAPI number. Routing is done via
-      // the assistant's serverUrl which contains the client ID.
-      // This saves $1-2/mo per client on Twilio number fees.
-      const sharedPhoneNumber = env.VAPI_PHONE_NUMBER;
-      const sharedPhoneNumberId = env.VAPI_PHONE_NUMBER_ID;
+      /* ── ÉTAPE 2: réserver la ligne entrante ──
+         Le numéro n'est plus recopié aveuglément dans chaque client. Il l'était,
+         au motif que le routage passerait par l'URL de webhook de l'assistant:
+         vrai en SORTANT, faux en ENTRANT, où le numéro composé est la seule
+         chose qui dise quelle entreprise a été appelée. Deux clients sur la même
+         ligne rendaient donc les DEUX injoignables.
+         Un client qui n'obtient rien n'a pas de ligne entrante, et c'est dit
+         fort: c'est un numéro à acheter, pas une panne à découvrir par un
+         appelant. Le reste de son installation (assistant, portail, sortant)
+         fonctionne. */
+      const allocation = await allocateInboundNumber(clientId);
+      const sharedPhoneNumber = allocation.kind === 'allocated' ? allocation.number : null;
+      const sharedPhoneNumberId = allocation.kind === 'allocated' ? allocation.numberId : null;
 
-      logger.info(`Using shared phone number: ${sharedPhoneNumber}`);
+      if (allocation.kind === 'allocated') {
+        logger.info(`Ligne entrante attribuée: ${sharedPhoneNumber}`);
+      } else {
+        const why =
+          allocation.reason === 'already_taken'
+            ? `la ligne ${env.VAPI_PHONE_NUMBER} appartient déjà à « ${allocation.heldBy} »`
+            : 'aucun numéro VAPI_PHONE_NUMBER n\'est configuré';
+        logger.error(`[Onboarding] ${client.businessName} reste sans ligne entrante: ${why}`);
+        await discordService.notify(
+          `⚠️ PAS DE LIGNE ENTRANTE\n\nClient: ${client.businessName}\nRaison: ${why}\n` +
+            'Acheter un numéro et le poser sur la fiche client, sinon ce client ne recevra aucun appel.',
+        );
+      }
 
       // ── STEP 3: Verify assistant is reachable (retry once before proceeding) ──
       let isHealthy = await this.verifyAssistantHealth(assistant.id);
@@ -149,8 +170,9 @@ export class OnboardingService {
         contactName: client.contactName,
         businessName: client.businessName,
         planType: client.planType,
-        vapiPhoneNumber: sharedPhoneNumber,
-        dashboardUrl: `${env.FRONTEND_URL}/client-dashboard/${client.id}`,
+        // Sans ligne attribuée, on ne promet pas un numéro à appeler.
+        vapiPhoneNumber: sharedPhoneNumber ?? '',
+        dashboardUrl: clientPortalUrl(client.id, client.dashboardToken),
         lang: this.isFrenchClient(client) ? 'fr' : 'en',
       });
 
@@ -160,7 +182,7 @@ export class OnboardingService {
         : `MRR: $${client.monthlyFee} + Setup: $${client.setupFee}`;
 
       await discordService.notify(
-        `🎉 ${client.isTrial ? 'FREE TRIAL ACTIVATED' : 'NEW PAYING CLIENT'}!\n\nClient: ${client.businessName}\nPackage: ${client.planType.toUpperCase()}\n${revenueLabel}\nAI Phone: ${sharedPhoneNumber}\nVAPI Assistant: ${assistant.id} ✅\nHealth Check: ${isHealthy ? '✅ Passed' : '⚠️ Skipped'}`
+        `🎉 ${client.isTrial ? 'FREE TRIAL ACTIVATED' : 'NEW PAYING CLIENT'}!\n\nClient: ${client.businessName}\nPackage: ${client.planType.toUpperCase()}\n${revenueLabel}\nAI Phone: ${sharedPhoneNumber ?? 'AUCUNE LIGNE'}\nVAPI Assistant: ${assistant.id} ✅\nHealth Check: ${isHealthy ? '✅ Passed' : '⚠️ Skipped'}`
       );
 
       // Pre-synthesise the greetings so the very first caller already skips the

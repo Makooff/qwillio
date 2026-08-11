@@ -5,7 +5,7 @@ import LangToggle from '../../../components/LangToggle';
 import { useLang } from '../../../stores/langStore';
 import { useAuthStore } from '../../../stores/authStore';
 import api from '../../../services/api';
-import AuthShell, { AUTH_ICON_PLATE, AUTH_NOTICE, AUTH_OUTLINE, AUTH_SUBMIT } from './AuthShell';
+import AuthShell, { AUTH_ALERT, AUTH_ICON_PLATE, AUTH_NOTICE, AUTH_OUTLINE, AUTH_SUBMIT } from './AuthShell';
 
 /**
  * First gate of sign-up. Registration hands out a JWT immediately, so this is
@@ -20,16 +20,23 @@ export default function VerifyEmail() {
 
   const [resending, setResending] = useState(false);
   const [resendOk, setResendOk] = useState(false);
+  const [resendError, setResendError] = useState(false);
   const [checking, setChecking] = useState(false);
 
   const resend = async () => {
     setResending(true);
     setResendOk(false);
+    setResendError(false);
     try {
       await api.post('/auth/resend-confirmation');
       setResendOk(true);
       setTimeout(() => setResendOk(false), 5000);
-    } catch { /* silent, the user can just try again */ } finally {
+    } catch {
+      /* L'échec était silencieux: on cliquait, rien ne bougeait. C'est
+         exactement l'écran où l'on est déjà en train d'attendre un email qui
+         n'arrive pas, donc le seul où le silence est insupportable. */
+      setResendError(true);
+    } finally {
       setResending(false);
     }
   };
@@ -74,6 +81,14 @@ export default function VerifyEmail() {
         {resendOk && (
           <p role="status" className={AUTH_NOTICE}>
             {isFr ? 'Email renvoyé.' : 'Email sent again.'}
+          </p>
+        )}
+
+        {resendError && (
+          <p role="alert" className={AUTH_ALERT}>
+            {isFr
+              ? "L'envoi a échoué. Réessayez dans un instant, ou écrivez-nous à contact@qwillio.com."
+              : 'Sending failed. Try again shortly, or email us at contact@qwillio.com.'}
           </p>
         )}
 

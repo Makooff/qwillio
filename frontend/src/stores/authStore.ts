@@ -7,7 +7,10 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  /* Renvoie si l'email de confirmation est réellement parti. L'échec d'envoi
+     était avalé côté serveur, et l'inscrit attendait un message qui ne
+     viendrait jamais: l'écran d'activation doit pouvoir le dire. */
+  register: (email: string, password: string, name: string) => Promise<{ confirmationEmailSent: boolean }>;
   googleLogin: (token: string, type?: 'credential' | 'token') => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
@@ -51,6 +54,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     const { data } = await api.post('/auth/register', { email, password, name });
     localStorage.setItem('token', data.token);
     set({ user: data.user, token: data.token, isLoading: false });
+    // `!== false` et non `=== true`: un backend antérieur au champ ne doit pas
+    // faire croire à une panne d'envoi.
+    return { confirmationEmailSent: data.confirmationEmailSent !== false };
   },
 
   googleLogin: async (token: string, type: 'credential' | 'token' = 'credential') => {

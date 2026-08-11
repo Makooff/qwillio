@@ -14,7 +14,11 @@ const router = Router();
  */
 async function clientPortalAuth(req: Request, res: Response, next: NextFunction) {
   const clientId = req.params.clientId as string;
-  const headerToken = req.headers['x-client-token'];
+  /* Trois écritures acceptées, parce que la page envoie `x-portal-token` et que
+     le backend ne lisait que les deux autres: le portail répondait donc 401 à
+     tous les coups. Plutôt que d'en imposer une et de casser d'anciens liens,
+     on lit la première présente. */
+  const headerToken = req.headers['x-portal-token'] ?? req.headers['x-client-token'];
   const token = (req.query.token as string) || (typeof headerToken === 'string' ? headerToken : undefined);
 
   if (!token) {

@@ -343,9 +343,26 @@ export class StripeService {
     logger.info(`Subscription updated: ${subscription.id} → ${subscription.status}`);
     const client = await prisma.client.findFirst({ where: { stripeSubscriptionId: subscription.id } });
     if (!client) return;
+    const status = subscription.status === 'active' ? 'active'
+      : subscription.status === 'past_due' ? 'past_due'
+      : subscription.status;
+
+    /* Un abonnement qui passe à `active` met fin à l'essai, et personne ne le
+       disait: `isTrial` restait vrai après conversion. Le client apparaissait
+       donc en essai dans le portail, continuait de recevoir les relances de fin
+       d'essai, et surtout restait à portée du cron d'expiration, qui pouvait
+       supprimer l'assistant Vapi d'un client qui venait de payer. */
+    const converting = status === 'active' && client.isTrial;
+    if (converting) {
+      logger.info(`[Stripe] essai converti pour ${client.businessName}`);
+    }
+
     await prisma.client.update({
       where: { id: client.id },
-      data: { subscriptionStatus: subscription.status === 'active' ? 'active' : subscription.status === 'past_due' ? 'past_due' : subscription.status },
+      data: {
+        subscriptionStatus: status,
+        ...(converting ? { isTrial: false, trialConvertedAt: new Date() } : {}),
+      },
     });
   }
 

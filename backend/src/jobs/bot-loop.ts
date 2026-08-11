@@ -287,6 +287,20 @@ class BotLoop {
         });
 
         for (const client of expiredTrials) {
+          /* Relecture juste avant de couper. La liste a été bâtie plus haut, et
+             entre les deux un paiement a pu arriver: supprimer l'assistant Vapi
+             d'un client qui vient de payer est irréversible pour lui (ses appels
+             tombent) et coûteux pour nous (il résilie). Une lecture de plus vaut
+             mieux que ce risque. */
+          const fresh = await prisma.client.findUnique({
+            where: { id: client.id },
+            select: { isTrial: true, subscriptionStatus: true },
+          });
+          if (!fresh || !fresh.isTrial || fresh.subscriptionStatus !== 'trialing') {
+            logger.info(`Trial expiry skipped: ${client.businessName} n'est plus en essai`);
+            continue;
+          }
+
           logger.info(`Trial expired (cron catch): ${client.businessName}`);
 
           // Deactivate VAPI assistant + release phone number

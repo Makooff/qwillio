@@ -57,6 +57,7 @@ import closerRoutes from './routes/closer.routes';
 import aiAgentsRoutes from './routes/ai-agents.routes';
 import agencyRoutes from './routes/agency.routes';
 import affiliateRoutes from './routes/affiliate.routes';
+import { clientPortalUrl } from './utils/urls';
 
 const app = express();
 
@@ -405,6 +406,29 @@ async function runBootstrap() {
           const existingClient = await prisma.client.findUnique({ where: { userId: user.id } });
           const dashboardToken = existingClient?.dashboardToken ?? crypto.randomBytes(24).toString('hex');
           const now = new Date();
+          /* Le compte de test ne s'empare plus de la ligne partagée.
+             Il la recopiait à chaque démarrage, si bien qu'un vrai client
+             activé ensuite se retrouvait à deux sur le même numéro: les DEUX
+             devenaient injoignables. Le compte de test n'a pas besoin de
+             recevoir des appels entrants pour remplir son rôle, qui est de
+             donner un portail peuplé. */
+          const lineHeldByRealClient = env.VAPI_PHONE_NUMBER
+            ? await prisma.client.findFirst({
+                where: {
+                  userId: { not: user.id },
+                  vapiPhoneNumber: env.VAPI_PHONE_NUMBER,
+                  subscriptionStatus: { in: ['active', 'trialing'] },
+                },
+                select: { id: true },
+              })
+            : null;
+          const bootstrapPhone = lineHeldByRealClient ? null : (env.VAPI_PHONE_NUMBER || null);
+          if (lineHeldByRealClient) {
+            logger.warn(
+              `[bootstrap] ${env.VAPI_PHONE_NUMBER} appartient à un client réel — ` +
+                'le compte de test reste sans ligne entrante.',
+            );
+          }
           const onboardingDataSeed = {
             businessType: user.industry ?? 'home_services',
             services: ['Appointment booking', '24/7 call answering', 'Lead capture'],
@@ -442,7 +466,7 @@ async function runBootstrap() {
               transferNumber:        user.businessPhone ?? null,
               onboardingData:        onboardingDataSeed,
               vapiAssistantId:       env.VAPI_ASSISTANT_ID || null,
-              vapiPhoneNumber:       env.VAPI_PHONE_NUMBER || null,
+              vapiPhoneNumber:       bootstrapPhone,
               // Forwarding "verified" only makes sense when an actual transfer
               // number exists. Otherwise leave it null so the UI shows
               // "Non configuré" and the banner links to the config page.
@@ -462,14 +486,14 @@ async function runBootstrap() {
               stripeCustomerId:      'cus_bootstrap_test',
               stripeSubscriptionId:  'sub_bootstrap_test',
               vapiAssistantId:       env.VAPI_ASSISTANT_ID || undefined,
-              vapiPhoneNumber:       env.VAPI_PHONE_NUMBER || undefined,
+              vapiPhoneNumber:       bootstrapPhone ?? undefined,
               forwardingStatus:      user.businessPhone ? 'verified' : undefined,
               forwardingVerifiedAt:  user.businessPhone ? now : undefined,
             },
           });
           logger.info(`[bootstrap] ✅ Test-activated client ${bootstrapEmail} (plan=${bootstrapPlan})`);
           logger.info(`[bootstrap] Client ID: ${client.id}`);
-          logger.info(`[bootstrap] Dashboard URL: ${env.FRONTEND_URL.split(',')[0]}/portal/${dashboardToken}`);
+          logger.info(`[bootstrap] Dashboard URL: ${clientPortalUrl(client.id, dashboardToken)}`);
         }
       } catch (err) {
         logger.warn('[bootstrap] Test-activate failed (non-fatal):', err);
