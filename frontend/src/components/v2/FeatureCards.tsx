@@ -1,14 +1,20 @@
+import type { ComponentType } from 'react';
 import RevealV2 from './RevealV2';
+import { CallRecordIllustration, WeeklyDigestIllustration } from './FeatureIllustrations';
 
 /* Rangées « produit » du registre clair: plus de grille de deux cartes
    étroites côte à côte. Chaque rangée occupe toute la largeur, le texte tient
    sur environ 40 pour cent et la capture sur environ 60, le côté de
    l'illustration s'inverse d'une rangée à l'autre.
 
-   L'illustration se pose sur une plate douce (radius 28) dont le cadre de la
-   capture DÉBORDE par le haut, et par le côté extérieur au-delà de lg: le
-   visuel sort de son conteneur au lieu d'y être enfermé. Les visuels sont de
-   VRAIES captures recadrées du dashboard (public/screens/).
+   L'illustration se pose sur une plate douce (radius 28) dont le cadre
+   DÉBORDE par le haut, et par le côté extérieur au-delà de lg: le visuel sort
+   de son conteneur au lieu d'y être enfermé.
+
+   Le visuel n'est plus une CAPTURE mais du BALISAGE, repris des vrais écrans
+   du dashboard (voir FeatureIllustrations.tsx). Une capture de 1600 px rendue
+   dans 350 est illisible sur un téléphone, et la sienne ne montrait plus ce
+   dont le texte parlait.
 
    La section d'accueil est déjà une bande taupe: la plate prend donc le ton
    au-dessus (bg-q2-plate), sinon elle disparaîtrait dans le fond.
@@ -16,16 +22,13 @@ import RevealV2 from './RevealV2';
    Mobile: texte puis image empilés, image pleine largeur. */
 
 interface Feature {
-  src: string;
-  /* Ratio réel du fichier, réservé pour éviter tout décalage au chargement */
-  width: number;
-  height: number;
+  /** Clé de rendu, et non un fichier: le visuel est un composant. */
+  key: string;
+  Illustration: ComponentType<{ isFr: boolean }>;
   titleFr: string;
   titleEn: string;
   descFr: string;
   descEn: string;
-  altFr: string;
-  altEn: string;
 }
 
 const FEATURES: Feature[] = [
@@ -33,22 +36,22 @@ const FEATURES: Feature[] = [
     /* La fiche d'appel, pas la liste: c'est elle qui porte le résumé, le
        transcript et le lecteur d'enregistrement dont parle le texte. La liste
        ne montrait qu'appelant, durée et sentiment (retour utilisateur). */
-    src: '/screens/suivi-appel.webp',
-    width: 1600,
-    height: 930,
+    key: 'call-record',
+    Illustration: CallRecordIllustration,
     titleFr: 'Chaque appel documenté',
     titleEn: 'Every call documented',
     descFr:
       'Résumé, transcript, enregistrement, lead qualifié : tout arrive dans votre dashboard à la seconde où l’appel se termine. Rien ne se perd, rien n’est à ressaisir.',
     descEn:
       'Summary, transcript, recording, qualified lead: everything lands in your dashboard the second the call ends. Nothing gets lost, nothing needs retyping.',
-    altFr: 'Liste des appels dans le dashboard Qwillio',
-    altEn: 'Call list in the Qwillio dashboard',
   },
   {
-    src: '/screens/crop-chat.webp',
-    width: 1600,
-    height: 1196,
+    key: 'weekly-digest',
+    /* Le visuel montrait la fenêtre de configuration, c'est-à-dire le sujet
+       d'une AUTRE section: le paragraphe parlait du constat hebdomadaire et
+       l'image d'autre chose (retour utilisateur: « sélectionne bien le contenu
+       qui correspond au texte »). */
+    Illustration: WeeklyDigestIllustration,
     /* Le titre ne parle plus de « corriger en parlant »: la section « Mise en
        route » de la Home dit déjà exactement ça, et les deux se répondaient en
        écho (retour utilisateur). Ici, le sujet est le CONSTAT qui vous arrive
@@ -64,8 +67,6 @@ const FEATURES: Feature[] = [
       'Réponses trop longues, agenda déconnecté, questions absentes de sa base : le constat arrive sur votre courriel et votre téléphone, sans que vous ayez à ouvrir quoi que ce soit.',
     descEn:
       'Answers running long, calendar disconnected, questions missing from her knowledge base: the findings land in your inbox and on your phone, without you opening anything.',
-    altFr: 'Chat de configuration du réceptionniste Qwillio',
-    altEn: 'Qwillio receptionist configuration chat',
   },
 ];
 
@@ -75,7 +76,7 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
       {FEATURES.map((f, i) => {
         const flipped = i % 2 === 1;
         return (
-          <RevealV2 key={f.src} index={i}>
+          <RevealV2 key={f.key} index={i}>
             <article
               className={`grid items-center gap-7 sm:gap-10 lg:gap-16 ${
                 flipped
@@ -83,7 +84,7 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
                   : 'lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)]'
               }`}
             >
-              <div className={flipped ? 'lg:order-2' : ''}>
+              <div className={`min-w-0 ${flipped ? 'lg:order-2' : ''}`}>
                 <h3 className="text-[22px] lg:text-[24px] leading-[1.2] tracking-[-0.01em] text-q2-ink mb-4">
                   {isFr ? f.titleFr : f.titleEn}
                 </h3>
@@ -92,9 +93,9 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
                 </p>
               </div>
 
-              {/* La plate, et la capture qui en sort par le haut */}
+              {/* La plate, et le cadre qui en sort par le haut */}
               <div
-                className={`q2-card-hover rounded-[24px] sm:rounded-[28px] bg-q2-plate px-4 pb-4 pt-0 sm:px-8 sm:pb-8 lg:px-10 lg:pb-10 ${
+                className={`q2-card-hover min-w-0 rounded-[24px] sm:rounded-[28px] bg-q2-plate px-4 pb-4 pt-0 sm:px-8 sm:pb-8 lg:px-10 lg:pb-10 ${
                   flipped ? 'lg:order-1' : ''
                 }`}
               >
@@ -103,14 +104,7 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
                     flipped ? 'lg:-ml-6' : 'lg:-mr-6'
                   }`}
                 >
-                  <img
-                    src={f.src}
-                    alt={isFr ? f.altFr : f.altEn}
-                    loading="lazy"
-                    width={f.width}
-                    height={f.height}
-                    className="block w-full h-auto"
-                  />
+                  <f.Illustration isFr={isFr} />
                 </div>
               </div>
             </article>
