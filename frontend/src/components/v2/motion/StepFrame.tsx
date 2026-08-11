@@ -196,6 +196,37 @@ export default function StepFrame({
           masque se cale sur la boîte de son utilisateur avec 10 % de marge, ce
           qui couperait le cadre quand il déborde du conteneur mesuré (`pad`). */}
       <defs>
+        {/* ARRONDIR LES ANGLES QUE LE MASQUE CRÉE.
+            Ces angles ne sont pas les coins du trou, ce sont les JONCTIONS
+            entre le bord droit de la forme et la courbe du trou: deux tracés
+            qui se croisent font un sommet, et aucun rayon posé sur l'un ou sur
+            l'autre ne l'arrondit. Il faut donc arrondir la forme APRÈS la
+            découpe.
+            La recette est celle du « goo »: flouter, puis remonter l'alpha à
+            la verticale. Le flou émousse tous les sommets, convexes comme
+            concaves, et le seuil rend la silhouette à nouveau franche. Ce n'est
+            pas un dégradé: la sortie est un aplat à bord net, avec des coins
+            ronds. Le rayon obtenu vaut à peu près 2,5 fois l'écart-type, d'où
+            11 pour retomber sur les 28 px de la carte.
+            L'ordre compte: le filtre est porté par le GROUPE et le masque par
+            le tracé. Sur un même élément, SVG applique le filtre d'abord et le
+            masque ensuite, ce qui rendrait la coupe anguleuse à nouveau. */}
+        <filter
+          id={`${maskId}-round`}
+          x={-400}
+          y={-400}
+          width={size.w + 800}
+          height={size.h + 800}
+          filterUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur stdDeviation={11} result="soft" />
+          <feColorMatrix
+            in="soft"
+            type="matrix"
+            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 26 -13"
+          />
+        </filter>
         <mask
           id={maskId}
           maskUnits="userSpaceOnUse"
@@ -206,9 +237,8 @@ export default function StepFrame({
         >
           <rect x={-400} y={-400} width={size.w + 800} height={size.h + 800} fill="#fff" />
           {/* Coupe NETTE, et volontairement (retour utilisateur: « je ne veux
-              pas de dégradé »). Un flou avait été essayé ici, et retiré: ce qui
-              gênait n'était pas la franchise de la coupe mais ses angles, qui
-              étaient droits. Ils suivent maintenant le contour de la carte. */}
+              pas de dégradé »). Les angles que la coupe crée sont arrondis
+              ailleurs, par le filtre ci-dessous, et non ici. */}
           {holes.map(h => (
             <rect
               key={`${h.x},${h.y}`}
@@ -222,6 +252,7 @@ export default function StepFrame({
           ))}
         </mask>
       </defs>
+      <g filter={`url(#${maskId}-round)`}>
       <path
         mask={`url(#${maskId})`}
         ref={pathRef}
@@ -238,6 +269,7 @@ export default function StepFrame({
            de l'animation au lieu d'une surface qui se déplace. La forme n'est
            plus qu'un aplat, de la même matière que le panneau d'en face. */
       />
+      </g>
     </svg>
   );
 }
