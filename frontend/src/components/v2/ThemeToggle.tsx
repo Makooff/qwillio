@@ -42,7 +42,11 @@ export default function ThemeToggle({ onDark = false }: { onDark?: boolean }) {
       aria-label={dark ? 'Passer en thème clair' : 'Passer en thème sombre'}
       onClick={toggle}
       className={`relative inline-flex items-center w-[42px] h-[23px] rounded-full border transition-colors duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 ${
-        onDark ? 'border-white/20 hover:border-white/35' : 'border-q2-plate hover:border-q2-faint'
+        /* Contour transparent au repos (retour utilisateur): sur le verre de
+           la barre, `border-q2-plate` dessinait un anneau clair qui se lisait
+           comme une tache blanche. Le filet n'apparaît qu'au survol, pour dire
+           que c'est cliquable. */
+        onDark ? 'border-transparent hover:border-white/25' : 'border-transparent hover:border-q2-plate'
       }`}
     >
       {/* Les deux repères restent en place, très bas, sous le curseur. */}
