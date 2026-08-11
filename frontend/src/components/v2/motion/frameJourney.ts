@@ -127,6 +127,9 @@ export function frameJourney(params: {
 
   /* Le rayon suit la taille: un rayon fixe sur une boîte rapetissée ferait des
      coins proportionnellement plus ronds au milieu du trajet, donc une forme qui
-     change de caractère alors qu'elle ne doit que changer de taille. */
+     change de caractère alors qu'elle ne doit que changer de taille.
+     Essayé une fois en valeur absolue, et repris: la demande d'arrondir « les
+     angles pendant la transition » ne portait pas sur la silhouette, qui
+     convient, mais sur les angles que le MASQUE lui découpe (voir StepFrame). */
   return { path: framePath(box, radius * shrink), radius: radius * shrink };
 }

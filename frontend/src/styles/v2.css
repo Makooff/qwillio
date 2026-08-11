@@ -68,7 +68,11 @@
      qui ramène le pire cas au-dessus de 4,5:1 en clair.
      Aucun voile n'est peint par-dessus: le fondu des bords est un MASQUE porté
      par la couche du décor, donc il ne coûte aucune variable de couleur. */
-  --q2-hero-media: 0.45;
+  /* Plus discret qu'avant (0,45): un fondu ne se voit pas parce qu'il est
+     court, il se voit parce que ce qu'il efface est trop present. Baisser le
+     decor rapproche les deux bouts de la rampe, donc la rampe disparait
+     (retour utilisateur: « les degrades se voient trop »). */
+  --q2-hero-media: 0.34;
 }
 
 /* ============================================================
@@ -119,7 +123,7 @@
      C'est la MÉDIA qu'on retient, pas un voile posé dessus: un voile est une
      couche de plus entre l'oeil et l'image, là où l'opacité laisse la vidéo
      seule à l'écran. */
-  --q2-hero-media: 0.5;
+  --q2-hero-media: 0.4;
 }
 
 /* Le thème suit le système tant que personne n'a tranché. Dès qu'un choix est
@@ -142,7 +146,7 @@
     --q2-ok-bg: #0f1f17;
     --q2-ok-brd: #1f4433;
     /* Voir le bloc `[data-theme='dark']`: même mesure, même valeur. */
-    --q2-hero-media: 0.5;
+    --q2-hero-media: 0.4;
   }
 }
 
