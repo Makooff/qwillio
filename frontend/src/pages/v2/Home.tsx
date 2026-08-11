@@ -250,31 +250,46 @@ function HeroBackdrop() {
             `backdrop-filter` plutôt qu'une seconde copie floutée du média: la
             copie ferait décoder la vidéo deux fois pour un voile que l'on ne
             regarde pas. Là où le navigateur refuse le filtre, il ne reste que
-            les fondus, c'est-à-dire l'état précédent: aucune régression. */}
+            les fondus, c'est-à-dire l'état précédent: aucune régression.
+            DEUX éléments, et c'est indispensable: le masque est porté par le
+            parent, le filtre par l'enfant. Sur les deux au même endroit, Safari
+            renonce simplement à peindre le flou — donc sur iPhone, précisément
+            l'appareil pour lequel ce voile a été demandé, il n'existait pas.
+            `translateZ(0)` force une couche de composition, ce dont le filtre a
+            besoin pour être pris en compte. */}
         <div
           className="absolute inset-0"
-          style={{
-            WebkitMaskImage: HERO_MASK_LENS_INVERSE,
-            maskImage: HERO_MASK_LENS_INVERSE,
-            WebkitBackdropFilter: 'blur(14px)',
-            backdropFilter: 'blur(14px)',
-          }}
-        />
+          style={{ WebkitMaskImage: HERO_MASK_LENS_INVERSE, maskImage: HERO_MASK_LENS_INVERSE }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              WebkitBackdropFilter: 'blur(14px)',
+              backdropFilter: 'blur(14px)',
+              transform: 'translateZ(0)',
+            }}
+          />
+        </div>
 
         {/* LE FONDU DE FLOU SOUS LA NAV (demande utilisateur).
             Il remplace la bande de couleur qu'il y avait là: le décor n'est plus
             effacé sous le menu, il est brouillé, et le flou s'éteint en
             descendant. La hauteur suit la barre de nav (64 px) plus de quoi
-            laisser la transition respirer. */}
+            laisser la transition respirer. Même découpage en deux éléments, pour
+            la même raison. */}
         <div
           className="absolute inset-x-0 top-0 h-[168px] sm:h-[196px]"
-          style={{
-            WebkitMaskImage: HERO_TOP_HAZE,
-            maskImage: HERO_TOP_HAZE,
-            WebkitBackdropFilter: 'blur(22px)',
-            backdropFilter: 'blur(22px)',
-          }}
-        />
+          style={{ WebkitMaskImage: HERO_TOP_HAZE, maskImage: HERO_TOP_HAZE }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              WebkitBackdropFilter: 'blur(22px)',
+              backdropFilter: 'blur(22px)',
+              transform: 'translateZ(0)',
+            }}
+          />
+        </div>
       </div>
     </div>
   );
