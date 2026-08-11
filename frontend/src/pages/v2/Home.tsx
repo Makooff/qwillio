@@ -97,9 +97,13 @@ const MOCKUP = {
    diffus au lieu d'être franc et court. Les valeurs de fin sont aussi plus
    douces, le décor s'éteint plus tôt et plus lentement. */
 const HERO_MASK_V =
-  'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 5%, rgba(0,0,0,0.30) 11%, rgba(0,0,0,0.62) 18%, rgba(0,0,0,0.88) 26%, #000 34%, #000 56%, rgba(0,0,0,0.88) 68%, rgba(0,0,0,0.60) 78%, rgba(0,0,0,0.28) 88%, rgba(0,0,0,0.08) 95%, transparent 100%)';
+  'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.06) 6%, rgba(0,0,0,0.24) 13%, rgba(0,0,0,0.52) 21%, rgba(0,0,0,0.78) 29%, rgba(0,0,0,0.92) 36%, rgba(0,0,0,0.92) 54%, rgba(0,0,0,0.80) 65%, rgba(0,0,0,0.56) 75%, rgba(0,0,0,0.30) 85%, rgba(0,0,0,0.10) 93%, transparent 100%)';
+/* Le flanc DROIT s'éteint sur un quart de la largeur au lieu d'un huitième, et
+   ne monte plus jamais à l'opacité pleine près du bord: c'est la pente, et non
+   la longueur, qui trahissait le dégradé (retour utilisateur: « ils se voient
+   trop sur les côtés »). */
 const HERO_MASK_H =
-  'linear-gradient(to right, transparent 0%, transparent 40%, rgba(0,0,0,0.06) 50%, rgba(0,0,0,0.18) 58%, rgba(0,0,0,0.38) 66%, rgba(0,0,0,0.60) 74%, rgba(0,0,0,0.80) 82%, #000 88%, rgba(0,0,0,0.74) 94%, rgba(0,0,0,0.32) 98%, transparent 100%)';
+  'linear-gradient(to right, transparent 0%, transparent 38%, rgba(0,0,0,0.05) 48%, rgba(0,0,0,0.16) 56%, rgba(0,0,0,0.34) 64%, rgba(0,0,0,0.56) 72%, rgba(0,0,0,0.74) 79%, rgba(0,0,0,0.86) 85%, rgba(0,0,0,0.78) 90%, rgba(0,0,0,0.56) 94%, rgba(0,0,0,0.28) 97%, rgba(0,0,0,0.08) 99%, transparent 100%)';
 /* LA LENTILLE (demande utilisateur): net au centre, éteint dans les quatre
    coins. Une ellipse tient les coins tout seuls — c'est sa géométrie qui les
    atteint en dernier, il n'y a aucun réglage par coin à écrire. */

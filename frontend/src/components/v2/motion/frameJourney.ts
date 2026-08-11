@@ -125,8 +125,15 @@ export function frameJourney(params: {
     h: moving.h * shrink,
   };
 
-  /* Le rayon suit la taille: un rayon fixe sur une boîte rapetissée ferait des
-     coins proportionnellement plus ronds au milieu du trajet, donc une forme qui
-     change de caractère alors qu'elle ne doit que changer de taille. */
-  return { path: framePath(box, radius * shrink), radius: radius * shrink };
+  /* LE RAYON NE SUIT PAS LA TAILLE, et c'est voulu (demande utilisateur:
+     « arrondis les angles de la forme pendant la transition »).
+     Il suivait: le cadre gardait alors des coins proportionnellement identiques
+     du départ à l'arrivée, ce qui est juste sur le papier mais donne une forme
+     qui reste anguleuse au moment précis où elle est la plus petite, là où l'oeil
+     la regarde le plus. Le rayon reste donc celui de la carte, en valeur absolue:
+     la boîte rapetissant, la forme s'arrondit d'elle-même à mi-chemin, puis
+     retrouve exactement les coins de la carte d'arrivée en s'y posant.
+     `framePath` borne déjà le rayon à la moitié du plus petit côté, donc une
+     boîte très rapetissée devient une pastille au lieu de se croiser. */
+  return { path: framePath(box, radius), radius };
 }
