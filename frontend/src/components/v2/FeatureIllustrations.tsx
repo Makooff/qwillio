@@ -259,3 +259,72 @@ export function ConfigChatIllustration({ isFr }: { isFr: boolean }) {
     </div>
   );
 }
+
+/**
+ * La liste des appels, telle qu'elle se remplit.
+ *
+ * Sert l'aperçu du menu Produit, où une capture 1600x930 était réduite à une
+ * vignette de 240 px: à cette taille, une liste devient une trame grise.
+ *
+ * Les appelants sont ceux du compte de démonstration (`prisma/seed-demo.ts`) et
+ * les numéros sont BELGES, comme le produit.
+ */
+export function CallListIllustration({ isFr, rows = 5 }: { isFr: boolean; rows?: number }) {
+  const calls = [
+    { name: 'Camille Dubois', at: '14:56', dur: '52 s', tag: isFr ? 'RDV pris' : 'Booked', ok: true },
+    { name: 'Marc Lefèvre', at: '14:47', dur: '74 s', tag: 'Lead', ok: true },
+    { name: `${isFr ? 'Inconnu' : 'Unknown'} · +32 471 12 34 56`, at: '14:38', dur: '31 s', tag: isFr ? 'Transféré' : 'Transferred', ok: false },
+    { name: 'Sofia Mertens', at: '14:29', dur: '45 s', tag: isFr ? 'Rappel' : 'Callback', ok: false },
+    { name: 'Cabinet Morel', at: '14:11', dur: '63 s', tag: isFr ? 'RDV pris' : 'Booked', ok: true },
+    { name: 'Inès Peeters', at: '14:02', dur: '58 s', tag: 'Lead', ok: true },
+  ].slice(0, rows);
+
+  const stats = [
+    { label: isFr ? 'Aujourd’hui' : 'Today', value: '31' },
+    { label: isFr ? 'Durée moy.' : 'Avg.', value: '1 min 42' },
+    { label: isFr ? 'Répondus' : 'Answered', value: '98 %' },
+  ];
+
+  return (
+    <div className="p-4 sm:p-5" aria-hidden="true">
+      <div className="flex items-baseline justify-between gap-3 mb-3">
+        <p className="text-[13.5px] font-semibold text-[#F5F5F7]">{isFr ? 'Appels' : 'Calls'}</p>
+        <span className="text-[11px] text-[#A1A1A8] tabular-nums whitespace-nowrap">
+          {isFr ? '433 au total' : '433 in total'}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {stats.map(s => (
+          <div key={s.label} className={`${SURFACE} px-2.5 py-2`}>
+            <p className="text-[9.5px] uppercase tracking-[0.12em] text-[#A1A1A8] mb-0.5 truncate">{s.label}</p>
+            <p className="text-[12.5px] font-medium text-[#F5F5F7] tabular-nums">{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <ul role="list" className="divide-y divide-white/[0.06]">
+        {calls.map(c => (
+          <li key={c.name} className="flex items-center gap-2.5 py-2.5">
+            <span className="w-7 h-7 rounded-lg bg-white/[0.05] flex items-center justify-center flex-shrink-0">
+              <Phone size={12} className="text-[#A1A1A8]" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[12.5px] text-[#F5F5F7]/90 truncate">{c.name}</span>
+              <span className="block text-[10.5px] text-[#A1A1A8] tabular-nums">
+                {c.at} · {c.dur}
+              </span>
+            </span>
+            <span
+              className={`ml-auto flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap ${
+                c.ok ? 'bg-[#5FD08A]/10 text-[#5FD08A]' : 'bg-white/[0.06] text-[#A1A1A8]'
+              }`}
+            >
+              {c.tag}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

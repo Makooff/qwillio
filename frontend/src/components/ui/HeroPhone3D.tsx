@@ -20,23 +20,29 @@ import QwillioLogo from '../QwillioLogo';
 /* ── Scripted call feed ─────────────────────────────────────────────────────── */
 interface CallEvt { id: string; name: string; outcome: 'lead' | 'transfer' | 'booked' | 'callback'; dur: number }
 
+/* Les appelants sont ceux du compte de démonstration (`prisma/seed-demo.ts`,
+   « Clinique Lumen »): mêmes prénoms, et des numéros BELGES.
+   Le catalogue d'avant était américain — « Bright Dental », « Rivera HVAC »,
+   « +1 555 0102 » — sur un produit vendu en Belgique, et il restait en anglais
+   dans la version française. Un prospect qui regarde cette animation pendant un
+   appel de vente y lit un produit fait pour quelqu'un d'autre. */
 const POOL_FR: CallEvt[] = [
-  { id: 'a', name: 'Sarah · Bright Dental',    outcome: 'booked',   dur: 52 },
-  { id: 'b', name: 'Marc · Rivera HVAC',        outcome: 'lead',     dur: 74 },
-  { id: 'c', name: 'Inconnu · 06 12 34 56 78', outcome: 'transfer', dur: 31 },
-  { id: 'd', name: 'Larsson Law',               outcome: 'callback', dur: 45 },
+  { id: 'a', name: 'Camille Dubois',            outcome: 'booked',   dur: 52 },
+  { id: 'b', name: 'Marc Lefèvre',              outcome: 'lead',     dur: 74 },
+  { id: 'c', name: 'Inconnu · +32 471 12 34 56', outcome: 'transfer', dur: 31 },
+  { id: 'd', name: 'Sofia Mertens',             outcome: 'callback', dur: 45 },
   { id: 'e', name: 'Plomberie Express',         outcome: 'transfer', dur: 28 },
   { id: 'f', name: 'Cabinet Morel',             outcome: 'booked',   dur: 63 },
-  { id: 'g', name: 'Mme Nguyen · Optique',      outcome: 'lead',     dur: 58 },
+  { id: 'g', name: 'Inès Peeters',              outcome: 'lead',     dur: 58 },
 ];
 const POOL_EN: CallEvt[] = [
-  { id: 'a', name: 'Sarah · Bright Dental',    outcome: 'booked',   dur: 52 },
-  { id: 'b', name: 'Marc · Rivera HVAC',        outcome: 'lead',     dur: 74 },
-  { id: 'c', name: 'Unknown · +1 555 0102',     outcome: 'transfer', dur: 31 },
-  { id: 'd', name: 'Larsson Law',               outcome: 'callback', dur: 45 },
+  { id: 'a', name: 'Camille Dubois',            outcome: 'booked',   dur: 52 },
+  { id: 'b', name: 'Marc Lefèvre',              outcome: 'lead',     dur: 74 },
+  { id: 'c', name: 'Unknown · +32 471 12 34 56', outcome: 'transfer', dur: 31 },
+  { id: 'd', name: 'Sofia Mertens',             outcome: 'callback', dur: 45 },
   { id: 'e', name: 'Plumbing Express',          outcome: 'transfer', dur: 28 },
-  { id: 'f', name: 'Morel & Associates',        outcome: 'booked',   dur: 63 },
-  { id: 'g', name: 'Nguyen Optical',            outcome: 'lead',     dur: 58 },
+  { id: 'f', name: 'Morel practice',            outcome: 'booked',   dur: 63 },
+  { id: 'g', name: 'Inès Peeters',              outcome: 'lead',     dur: 58 },
 ];
 
 const OUTCOME_FR: Record<CallEvt['outcome'], string> = { lead: 'Lead', transfer: 'Transféré', booked: 'RDV pris', callback: 'Rappel' };
@@ -122,16 +128,16 @@ function SceneHome({ isFr }: { isFr: boolean }) {
     : now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const notifs = isFr
     ? [
-        { title: 'Nouveau lead qualifié', body: 'Marc · Rivera HVAC', time: 'il y a 2 min' },
-        { title: 'Rendez-vous confirmé', body: 'Sarah · Bright Dental', time: '11:26 AM' },
+        { title: 'Nouveau lead qualifié', body: 'Marc Lefèvre', time: 'il y a 2 min' },
+        { title: 'Rendez-vous confirmé', body: 'Camille Dubois', time: '11 h 26' },
         { title: 'Appel transféré', body: 'Urgence vers Sophie', time: 'hier 11:53 PM' },
-        { title: 'Rappel programmé', body: 'Larsson Law — mardi', time: 'hier 7:09 PM' },
+        { title: 'Rappel programmé', body: 'Sofia Mertens — mardi', time: 'hier 19 h 09' },
       ]
     : [
-        { title: 'New qualified lead', body: 'Marc · Rivera HVAC', time: '2 min ago' },
-        { title: 'Appointment confirmed', body: 'Sarah · Bright Dental', time: '11:26 AM' },
+        { title: 'New qualified lead', body: 'Marc Lefèvre', time: '2 min ago' },
+        { title: 'Appointment confirmed', body: 'Camille Dubois', time: '11:26 AM' },
         { title: 'Call transferred', body: 'Urgent case to Sophie', time: 'yest. 11:53 PM' },
-        { title: 'Callback scheduled', body: 'Larsson Law — Tuesday', time: 'yest. 7:09 PM' },
+        { title: 'Callback scheduled', body: 'Sofia Mertens — Tuesday', time: 'yest. 7:09 PM' },
       ];
 
   return (
@@ -527,7 +533,7 @@ function SceneCalls({ isFr, callsMonth }: { isFr: boolean; callsMonth: number })
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[8px] font-medium leading-tight text-white/90">
-                  {isFr ? 'Inconnu · 07 44 21 90 12' : 'Unknown · +1 555 0176'}
+                  {isFr ? 'Inconnu · +32 471 90 12 34' : 'Unknown · +32 471 90 12 34'}
                 </span>
                 <span className="block text-[6.5px] leading-tight text-white/30">
                   {liveState === 'live' ? (isFr ? 'L\'IA est en ligne…' : 'AI on the line…') : (isFr ? 'À l\'instant · 41s' : 'Just now · 41s')}
