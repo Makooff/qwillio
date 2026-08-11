@@ -96,8 +96,21 @@ const MOCKUP = {
    si bien que la pente ne change jamais d'un coup: le fondu devient long et
    diffus au lieu d'être franc et court. Les valeurs de fin sont aussi plus
    douces, le décor s'éteint plus tôt et plus lentement. */
+/* PLUS DE FONDU EN HAUT, et c'est une correction, pas un oubli.
+   Il en portait un, qui effaçait le décor sur les 36 premiers pour cent: sous la
+   barre de nav il ne restait donc que la couleur de la page, c'est-à-dire une
+   bande blanche en clair et noire en sombre (retour utilisateur). Le décor monte
+   maintenant jusqu'au bord haut, et ce qui le sépare de la nav n'est plus un
+   aplat mais un FONDU DE FLOU (voir `HERO_TOP_HAZE`). Seul le bas se dissout
+   encore, parce qu'il doit rejoindre la suite de la page. */
 const HERO_MASK_V =
-  'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.06) 6%, rgba(0,0,0,0.24) 13%, rgba(0,0,0,0.52) 21%, rgba(0,0,0,0.78) 29%, rgba(0,0,0,0.92) 36%, rgba(0,0,0,0.92) 54%, rgba(0,0,0,0.80) 65%, rgba(0,0,0,0.56) 75%, rgba(0,0,0,0.30) 85%, rgba(0,0,0,0.10) 93%, transparent 100%)';
+  'linear-gradient(to bottom, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.92) 54%, rgba(0,0,0,0.80) 65%, rgba(0,0,0,0.56) 75%, rgba(0,0,0,0.30) 85%, rgba(0,0,0,0.10) 93%, transparent 100%)';
+/* Le fondu de flou du HAUT: plein sous la nav, éteint plus bas. Comme le voile
+   des bords, il ne peint rien, il ne fait que brouiller ce qui passe dessous:
+   la vidéo reste visible derrière le menu, en diffus, au lieu d'être remplacée
+   par un aplat. */
+const HERO_TOP_HAZE =
+  'linear-gradient(to bottom, #000 0%, #000 34%, rgba(0,0,0,0.82) 52%, rgba(0,0,0,0.52) 70%, rgba(0,0,0,0.22) 86%, transparent 100%)';
 /* Le flanc DROIT s'éteint sur un quart de la largeur au lieu d'un huitième, et
    ne monte plus jamais à l'opacité pleine près du bord: c'est la pente, et non
    la longueur, qui trahissait le dégradé (retour utilisateur: « ils se voient
@@ -245,6 +258,21 @@ function HeroBackdrop() {
             maskImage: HERO_MASK_LENS_INVERSE,
             WebkitBackdropFilter: 'blur(14px)',
             backdropFilter: 'blur(14px)',
+          }}
+        />
+
+        {/* LE FONDU DE FLOU SOUS LA NAV (demande utilisateur).
+            Il remplace la bande de couleur qu'il y avait là: le décor n'est plus
+            effacé sous le menu, il est brouillé, et le flou s'éteint en
+            descendant. La hauteur suit la barre de nav (64 px) plus de quoi
+            laisser la transition respirer. */}
+        <div
+          className="absolute inset-x-0 top-0 h-[168px] sm:h-[196px]"
+          style={{
+            WebkitMaskImage: HERO_TOP_HAZE,
+            maskImage: HERO_TOP_HAZE,
+            WebkitBackdropFilter: 'blur(22px)',
+            backdropFilter: 'blur(22px)',
           }}
         />
       </div>
