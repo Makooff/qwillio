@@ -60,60 +60,30 @@ const MOCKUP = {
 } as const;
 
 /**
- * Le décor du hero: une PHOTO, et par-dessus une VIDÉO quand il y en a une.
+ * Le décor du hero: une PHOTO.
  *
- * Les deux couches coexistent, et c'est le point de la construction. La photo
- * (`/hero-backdrop.webp`, le lac brumeux) est le plancher: elle est là au
- * premier rendu, sans lecture à démarrer. La vidéo (`/hero-loop.mp4`) se pose
- * dessus et n'apparaît qu'une fois qu'elle a de quoi jouer.
+ * Une boucle vidéo se posait par-dessus et effaçait la photo dès qu'elle
+ * démarrait. C'est cet état-là qui a été refusé: la photo était préférée. La
+ * couche vidéo est donc retirée, et il ne reste que le plancher — présent au
+ * premier rendu, sans lecture à démarrer, sans codec à négocier, sans échec
+ * silencieux possible.
  *
- * Ce que ça évite, et qui était le vrai défaut de la version vidéo précédente:
- * elle s'effaçait en cas d'échec et ne laissait RIEN. Or une vidéo de fond
- * échoue souvent, et jamais bruyamment — fichier absent, codec refusé, lecture
- * automatique bloquée par l'économiseur de batterie iOS, « données réduites »
- * activé. Avec la photo dessous, tous ces cas rendent la même image fixe au
- * lieu d'un trou, sans qu'on ait à les détecter un par un.
- *
- * D'où aussi l'absence de `onError` sur la vidéo: elle n'a rien à signaler.
- * Si elle ne joue pas, elle ne monte jamais en opacité, et la photo reste
- * visible. C'est la même raison qui rend `<source>` sans danger ici, alors
- * qu'il est connu pour ne pas propager ses erreurs à l'élément parent.
- *
- * `muted` + `playsInline` sont ce qu'iOS EXIGE pour accepter la lecture
- * automatique, `preload="metadata"` évite de tirer le fichier avant que la
- * page soit utilisable, et en mouvement réduit on ne monte pas la vidéo du
- * tout: on ne se contente pas de la mettre en pause, on ne la télécharge pas.
- *
- * Aucun voile n'est posé par-dessus (demande utilisateur): le décor se voit
- * plein, et la seule retenue est `--q2-hero-media`, l'opacité de la média
- * elle-même. Elle vaut 1 en thème clair et 0,5 en sombre, parce que la vidéo
- * est une image CLAIRE: sur le crème elle assombrit et le titre en encre tient
- * largement, sur le noir elle éclaircit et le titre crème s'y dissout. Le
- * détail des mesures est dans v2.css, à côté de la variable.
+ * Le fondu des bords est un MASQUE, jamais une couche peinte: voir le
+ * commentaire dans le composant.
  */
-function HeroVideoBackdrop() {
+function HeroBackdrop() {
   const [photoFailed, setPhotoFailed] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const still = prefersReducedMotion();
   return (
     <div
       className="absolute inset-0 overflow-hidden pointer-events-none"
       aria-hidden="true"
-      /* VIGNETTE DE LENTILLE, en MASQUE et non en couche peinte par-dessus
-         (retour utilisateur: « les dégradés sont trop visibles »).
-         C'est le fond du problème: peindre la couleur du canvas au-dessus de la
-         vidéo, c'est poser un aplat qui doit tomber PILE sur le fond de la page.
-         Au moindre écart, entre le crème du canvas et la moyenne de l'image,
-         la bordure du dégradé se voit, et elle se voyait — sur les flancs et
-         dans la marge.
-         Le masque, lui, ne peint rien: il rend la vidéo TRANSPARENTE sur ses
-         bords, donc c'est la page elle-même qui reparaît, exactement de sa
-         couleur. Il n'y a plus de raccord à réussir, et il marche dans les deux
-         thèmes sans qu'une seule couleur soit écrite.
-         L'ellipse est arrondie par construction: haut, bas, flancs et coins
-         s'éteignent d'un seul geste, ce qui est l'effet de lentille demandé.
-         Les arrêts sont espacés (opaque jusqu'à 42 %, éteint à 96 %) pour que
-         le fondu reste long, donc invisible. */
+      /* VIGNETTE DE LENTILLE, en MASQUE et non en couche peinte par-dessus.
+         Peindre la couleur du canvas au-dessus de la photo, c'est poser un
+         aplat qui doit tomber PILE sur le fond de la page: au moindre écart le
+         raccord se voit. Le masque, lui, ne peint rien, il rend la photo
+         TRANSPARENTE sur ses bords, donc c'est la page qui reparaît, exactement
+         de sa couleur, et dans les deux thèmes sans qu'aucune couleur soit
+         écrite ici. */
       style={{
         WebkitMaskImage:
           'radial-gradient(ellipse 82% 78% at 50% 44%, #000 42%, rgba(0,0,0,0.55) 72%, transparent 96%)',
@@ -121,11 +91,15 @@ function HeroVideoBackdrop() {
           'radial-gradient(ellipse 82% 78% at 50% 44%, #000 42%, rgba(0,0,0,0.55) 72%, transparent 96%)',
       }}
     >
-      {/* Seule la PHOTO disparaît quand elle échoue, jamais le bloc entier.
-          Démonter le tout serait un blocage: la vidéo partirait avec, donc
-          `onPlaying` ne pourrait plus jamais se produire, et un hero dont
-          seule la photo manque n'afficherait plus rien alors que la vidéo,
-          elle, était parfaitement jouable. */}
+      {/* La PHOTO seule (retour utilisateur: « enlève la vidéo, remets la
+          photo »). La boucle vidéo se posait par-dessus et l'effaçait dès
+          qu'elle démarrait; c'est cet état-là qui ne plaisait pas. Retirer la
+          couche vidéo suffit: la photo était déjà le plancher, elle est là au
+          premier rendu, sans lecture à démarrer ni décodage à attendre.
+
+          `hero-loop.mp4` et `hero-loop.webm` restent dans `public/`: aucun
+          autre écran ne les sert, mais les supprimer serait un aller sans
+          retour si la vidéo revenait un jour. */}
       {!photoFailed && (
         <img
           src="/hero-backdrop.webp"
@@ -133,48 +107,16 @@ function HeroVideoBackdrop() {
           aria-hidden="true"
           onError={() => setPhotoFailed(true)}
           className="absolute inset-0 w-full h-full object-cover select-none"
-          /* Elle s'efface quand la vidéo prend le relais: superposées, deux
-             couches à demi transparentes s'additionnent et assombrissent. */
+          /* Le cadrage remonte de 2 cm, réglage repris de la vidéo pour que le
+             décor garde le même centre. 2 cm valent 76 px à 96 ppp, l'unité de
+             référence du CSS. `object-position` déplace l'image DANS son cadre,
+             sans toucher au cadre ni à la vignette qui s'y accroche. */
           style={{
-            opacity: playing ? 0 : 'var(--q2-hero-media)',
-            transition: 'opacity 900ms cubic-bezier(0.23, 1, 0.32, 1)',
+            opacity: 'var(--q2-hero-media)',
+            objectPosition: 'center calc(50% - 76px)',
           }}
         />
       )}
-      {!still && (
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          poster="/hero-backdrop.webp"
-          onPlaying={() => setPlaying(true)}
-          className="absolute inset-0 w-full h-full object-cover select-none"
-          style={{
-            opacity: playing ? 'var(--q2-hero-media)' : 0,
-            /* Le cadrage remonte de 2 cm (demande utilisateur). 2 cm valent
-               76 px à 96 ppp, l'unité de référence du CSS. `object-position`
-               déplace l'image DANS son cadre, sans toucher au cadre ni à la
-               vignette qui s'y accroche: une translation aurait décollé la
-               vidéo d'un bord et laissé une bande vide. */
-            objectPosition: 'center calc(50% - 76px)',
-            transition: 'opacity 900ms cubic-bezier(0.23, 1, 0.32, 1)',
-          }}
-        >
-          {/* WebM d'abord, MP4 ensuite: l'ordre décide, le navigateur prend le
-              premier qu'il sait lire. Le H.264 reste indispensable, c'est le
-              seul que lisent Safari et iOS. */}
-          <source src="/hero-loop.webm" type="video/webm" />
-          <source src="/hero-loop.mp4" type="video/mp4" />
-        </video>
-      )}
-      {/* Aucun voile ici, et pas de vignette non plus (demande utilisateur):
-          la vidéo se voit pleine. La vignette du hero existe DÉJÀ un cran
-          au-dessus, au niveau de la section, et elle couvre toute la zone
-          jusque sous la fenêtre Safari. En poser une seconde ici revenait à
-          l'appliquer deux fois et à assombrir le décor deux fois plus que
-          demandé. Signalé en revue. */}
     </div>
   );
 }
@@ -531,17 +473,17 @@ export default function Home() {
             contrôles : c'est une texture, pas un média. Elle passe sous un
             voile crème pour que le titre garde son contraste, et disparaît en
             reduced-motion, où le dégradé ci-dessus suffit. */}
-        <HeroVideoBackdrop />
+        <HeroBackdrop />
         {/* Les blobs pixel blush dérivent par-dessus le voile, sous le texte */}
         <PixelBlushBackdrop />
 
         {/* Plus de vignette PEINTE ici (retour utilisateur: « les dégradés
             sont trop visibles »). Elle posait la couleur du canvas par-dessus
-            la vidéo, et cet aplat devait tomber pile sur le fond de la page:
+            le décor, et cet aplat devait tomber pile sur le fond de la page:
             au moindre écart, sa bordure se voyait, sur les flancs comme dans
             la marge.
             Le fondu est désormais un MASQUE porté par la couche du décor
-            (voir `HeroVideoBackdrop`): la vidéo devient transparente sur ses
+            (voir `HeroBackdrop`): la photo devient transparente sur ses
             bords, donc c'est la page qui reparaît, exactement de sa couleur.
             Aucun raccord à réussir, et rien à redéfinir par thème. */}
 
