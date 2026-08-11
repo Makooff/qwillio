@@ -82,6 +82,11 @@ const MOCKUP = {
 function HeroBackdrop() {
   const [photoFailed, setPhotoFailed] = useState(false);
   const [playing, setPlaying] = useState(false);
+  /* Une boucle qui tourne sans fin est exactement ce que `prefers-reduced-motion`
+     demande d'éteindre, et les règles CSS du projet ne coupent que les
+     animations et les transitions: la vidéo continuerait de jouer dessous.
+     Sans elle, la photo reste, et le hero garde son décor. */
+  const [reduced] = useState(prefersReducedMotion);
 
   return (
     <div
@@ -155,6 +160,7 @@ function HeroBackdrop() {
           />
         )}
 
+        {!reduced && (
         <video
           className="absolute inset-0 w-full h-full object-cover select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
           /* `muted` et `playsInline` ne sont pas décoratifs: sans les deux, iOS
@@ -173,6 +179,7 @@ function HeroBackdrop() {
           <source src="/hero-lake.webm" type="video/webm" />
           <source src="/hero-lake.mp4" type="video/mp4" />
         </video>
+        )}
       </div>
       </div>
     </div>
