@@ -69,6 +69,13 @@ export default function StepFrame({
   const pathRef = useRef<SVGPathElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [holes, setHoles] = useState<FrameBox[]>([]);
+  /* LE RAYON DES TROUS, et c'est tout le sujet des « angles du masque ».
+     Un trou gonflé de 76 px autour d'une carte de 28 px de rayon n'a PAS 28 px
+     de rayon: un contour parallèle s'éloigne d'autant en ligne droite que dans
+     les coins, donc son rayon vaut celui de la carte PLUS le gonflement. Avec
+     28, les coins du masque paraissaient carrés et découpaient la forme à
+     l'équerre (retour utilisateur). */
+  const [holeRadius, setHoleRadius] = useState(0);
   const [ready, setReady] = useState(false);
   const boxesRef = useRef<FrameBox[]>([]);
   const maskId = useId();
@@ -113,9 +120,10 @@ export default function StepFrame({
     }
     grow = Math.max(0, grow);
     setHoles(masked.map(b => ({ x: b.x - grow, y: b.y - grow, w: b.w + grow * 2, h: b.h + grow * 2 })));
+    setHoleRadius(radius + grow);
 
     setSize({ w: rootBox.width, h: rootBox.height });
-  }, [maskPad, pad, scope]);
+  }, [maskPad, pad, radius, scope]);
 
   useLayoutEffect(() => {
     if (reduced) return;
@@ -188,9 +196,6 @@ export default function StepFrame({
           masque se cale sur la boîte de son utilisateur avec 10 % de marge, ce
           qui couperait le cadre quand il déborde du conteneur mesuré (`pad`). */}
       <defs>
-        <filter id={`${maskId}-soft`} x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation={16} />
-        </filter>
         <mask
           id={maskId}
           maskUnits="userSpaceOnUse"
@@ -200,23 +205,21 @@ export default function StepFrame({
           height={size.h + 800}
         >
           <rect x={-400} y={-400} width={size.w + 800} height={size.h + 800} fill="#fff" />
-          {/* Les trous sont FLOUS, sinon le masque tranche le cadre net et l'on
-              voit un rectangle coupé à l'équerre au lieu d'une forme qui s'en
-              va. Le flou ne porte que sur le masque: la forme, elle, reste
-              nette là où elle est visible. */}
-          <g filter={`url(${`#${maskId}-soft`})`}>
-            {holes.map(h => (
-              <rect
-                key={`${h.x},${h.y}`}
-                x={h.x}
-                y={h.y}
-                width={h.w}
-                height={h.h}
-                rx={radius}
-                fill="#000"
-              />
-            ))}
-          </g>
+          {/* Coupe NETTE, et volontairement (retour utilisateur: « je ne veux
+              pas de dégradé »). Un flou avait été essayé ici, et retiré: ce qui
+              gênait n'était pas la franchise de la coupe mais ses angles, qui
+              étaient droits. Ils suivent maintenant le contour de la carte. */}
+          {holes.map(h => (
+            <rect
+              key={`${h.x},${h.y}`}
+              x={h.x}
+              y={h.y}
+              width={h.w}
+              height={h.h}
+              rx={holeRadius}
+              fill="#000"
+            />
+          ))}
         </mask>
       </defs>
       <path
