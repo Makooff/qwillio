@@ -12,6 +12,7 @@ import PublicShell from '../../components/v2/PublicShell';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
+import { ConfigChatIllustration } from '../../components/v2/FeatureIllustrations';
 import CardV2 from '../../components/v2/CardV2';
 import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import VoiceCard, { type VoiceData } from '../../components/landing/VoiceCard';
@@ -589,7 +590,10 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            {/* Vraie capture du chat de configuration du dashboard */}
+            {/* Le chat de configuration, en BALISAGE et non en capture: une
+                image de dashboard réduite à 350 px sur un téléphone se lit
+                comme une grille de gris, donc la preuve ne prouvait rien
+                (retour utilisateur). Voir FeatureIllustrations.tsx. */}
             <figure className="relative">
               {/* Même traitement que le suivi d'appel sur la Home: la capture
                   est posée dans une lueur, jamais découpée dans le noir */}
@@ -599,19 +603,12 @@ export default function Receptionist() {
                 style={halo(0.24)}
               />
               <div className="relative q2-lit rounded-xl overflow-hidden border border-q2-graphite-d bg-q2-carbon">
-                <img
-                  src="/screens/chat-config.webp"
-                  alt={
-                    isFr
-                      ? 'Le chat de configuration du dashboard Qwillio : un horaire modifié en une phrase'
-                      : 'The Qwillio dashboard configuration chat: an opening hour changed in one sentence'
-                  }
-                  loading="lazy"
-                  className="w-full h-auto block"
-                />
+                <ConfigChatIllustration isFr={isFr} />
               </div>
               <figcaption className="relative mt-3 px-1 text-[12.5px] text-q2-fog q2-body-text">
-                {isFr ? 'Capture du dashboard, compte de démonstration.' : 'Dashboard screenshot, demo account.'}
+                {isFr
+                  ? 'Le chat de configuration du dashboard, compte de démonstration.'
+                  : 'The dashboard configuration chat, demo account.'}
               </figcaption>
             </figure>
           </RevealV2>
