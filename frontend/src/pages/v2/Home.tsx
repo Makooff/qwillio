@@ -109,8 +109,11 @@ const HERO_MASK_LENS =
    l'inverse de la lentille: rien au centre, plein aux bords. Le fondu ne tombe
    plus sur une image nette, il tombe sur une image déjà diffuse, et c'est ce qui
    enlève l'arête. */
+/* La couronne commence plus loin du centre qu'avant (48 % au lieu de 34 %):
+   le cadre s'étant resserré autour du média, une couronne large mangeait une
+   part bien plus grande de ce que l'on voit, et le rush passait pour flou. */
 const HERO_MASK_LENS_INVERSE =
-  'radial-gradient(118% 96% at 50% 40%, transparent 0%, transparent 34%, rgba(0,0,0,0.22) 52%, rgba(0,0,0,0.52) 68%, rgba(0,0,0,0.80) 82%, #000 100%)';
+  'radial-gradient(118% 96% at 50% 40%, transparent 0%, transparent 48%, rgba(0,0,0,0.18) 62%, rgba(0,0,0,0.46) 74%, rgba(0,0,0,0.76) 86%, #000 100%)';
 
 function HeroBackdrop() {
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -125,8 +128,24 @@ function HeroBackdrop() {
     <div
       /* Le décor est INSÉRÉ, pas collé aux bords: c'est ce qui laisse voir des
          angles arrondis (demande utilisateur). Collé à `inset-0`, un rayon de
-         bordure tomberait hors de l'écran et ne se verrait jamais. */
-      className="absolute inset-x-3 sm:inset-x-6 lg:inset-x-10 top-0 bottom-0 rounded-[28px] sm:rounded-[40px] overflow-hidden pointer-events-none"
+         bordure tomberait hors de l'écran et ne se verrait jamais.
+         Sa HAUTEUR EST BORNÉE, et c'est le correctif du cadrage sur iPhone.
+         Il couvrait toute la hauteur du hero, soit plus de 1200 px sur un
+         téléphone, pour un rush en 3:2: en `object-contain` l'image se réduisait
+         à un bandeau de 244 px collé en haut, lequel tombait tout entier dans la
+         rampe d'entrée du fondu vertical ET dans la couronne de flou. On ne
+         voyait donc qu'une tache floue en haut à droite (retour utilisateur:
+         « très mauvaise qualité, très mal cadrée »). Le cadre suit désormais une
+         fraction de la fenêtre, proche du 3:2 du fichier à toutes les tailles.
+         La largeur est PLAFONNÉE, et c'est le second correctif, celui de la
+         définition. Le rush d'origine mesure 1440x1080, dont 122 px de bande
+         noire, soit 1440x958 utiles, encodés en 1280x852. Étalé sur toute la
+         largeur d'un grand écran, il est agrandi deux fois, et un agrandissement
+         de deux ne se rattrape pas: c'est lui que l'on lit comme « très mauvaise
+         qualité ». Le plafond ci-dessous garde le facteur sous 1,2 en CSS.
+         Au-delà, il faut un export du montage en 1920 ou 2560 de large: aucun
+         réglage ici n'invente les pixels manquants. */
+      className="absolute top-0 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] sm:w-[calc(100%-3rem)] lg:w-[calc(100%-5rem)] max-w-[1180px] h-[46vh] sm:h-[56vh] lg:h-[64vh] max-h-[720px] rounded-[28px] sm:rounded-[40px] overflow-hidden pointer-events-none"
       aria-hidden="true"
       /* VIGNETTE, en MASQUE et non en couche peinte par-dessus.
          Peindre la couleur du canvas au-dessus du décor, c'est poser un aplat
@@ -177,19 +196,23 @@ function HeroBackdrop() {
             alt=""
             aria-hidden="true"
             onError={() => setPhotoFailed(true)}
-            className="absolute inset-0 w-full h-full object-contain object-top select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="absolute inset-0 w-full h-full object-cover object-top select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{ opacity: playing ? 0 : 'var(--q2-hero-media)' }}
           />
         )}
 
         {!reduced && (
         <video
-          /* `contain` et non `cover`: `cover` AGRANDIT l'image jusqu'à remplir
-             puis coupe ce qui dépasse, et sur un rush de 1280 px de large c'est
-             ce grossissement qui faisait ressortir le manque de définition
-             (retour utilisateur: « trop zoomée, ne rogne pas dedans »). En
-             `contain` l'image entre entière, à sa taille, et rien n'est coupé. */
-          className="absolute inset-0 w-full h-full object-contain object-top select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          /* `cover`, et ce n'est PAS un retour en arrière sur « ne rogne pas
+             dedans ». Ce qui grossissait l'image, ce n'était pas `cover`, c'était
+             le cadre: haut de plus de 1200 px pour un rush en 3:2, il forçait un
+             agrandissement de 40 % pour être rempli. Le cadre est maintenant
+             proche du 3:2 du fichier, donc `cover` ne fait quasiment plus que
+             rogner quelques pour cent sur un bord, sans agrandir. Et `contain`
+             ne convient plus: dans un cadre qui n'est jamais exactement au ratio
+             du fichier, il laisserait deux bandes vides à l'intérieur du cadre
+             arrondi. */
+          className="absolute inset-0 w-full h-full object-cover object-top select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
           /* `muted` et `playsInline` ne sont pas décoratifs: sans les deux, iOS
              refuse la lecture automatique et le décor resterait figé. */
           autoPlay
@@ -216,8 +239,8 @@ function HeroBackdrop() {
           style={{
             WebkitMaskImage: HERO_MASK_LENS_INVERSE,
             maskImage: HERO_MASK_LENS_INVERSE,
-            WebkitBackdropFilter: 'blur(18px)',
-            backdropFilter: 'blur(18px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            backdropFilter: 'blur(14px)',
           }}
         />
       </div>
