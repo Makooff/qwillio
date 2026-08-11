@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { CallListIllustration } from './FeatureIllustrations';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -478,14 +479,10 @@ export default function NavV2() {
   const productAside = (
     <div ref={asideRef} className="q2-glow hidden sm:flex flex-col rounded-2xl bg-q2-band p-3">
       <div className="rounded-xl overflow-hidden border border-q2-graphite-d bg-q2-carbon">
-        <img
-          src="/screens/appels.webp"
-          alt=""
-          loading="lazy"
-          width={1600}
-          height={930}
-          className="w-full block aspect-[16/9] object-cover object-top"
-        />
+        {/* Du BALISAGE, plus une capture: réduite à la vignette du menu, une
+            liste d'appels de 1600 px devenait une trame grise. Trois lignes
+            suffisent ici, l'aperçu n'a pas à raconter la page entière. */}
+        <CallListIllustration isFr={isFr} rows={3} />
       </div>
       <p className="q2-eyebrow text-q2-graphite mt-3">{isFr ? 'Appels' : 'Calls'}</p>
       <p className="mt-1 text-[12px] leading-snug text-q2-body q2-body-text">
