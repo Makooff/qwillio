@@ -10,7 +10,10 @@ interface SEOProps {
 
 const BASE = 'Qwillio';
 const DEFAULT_DESC = 'Your AI receptionist that answers every call, books appointments, and never sleeps. Automate your business 24/7.';
-const DEFAULT_IMAGE = 'https://qwillio.com/og-image.svg';
+/* PNG et non SVG: LinkedIn, Slack, WhatsApp et Teams n'affichent aucun aperçu
+   pour une vignette en SVG. Le lien du site partait donc nu partout où il se
+   partage, c'est-à-dire partout où il compte. 1200x630, le format attendu. */
+const DEFAULT_IMAGE = 'https://qwillio.com/og-image.png';
 
 export function useSEO({ title, description, canonical, ogImage, noindex }: SEOProps) {
   useEffect(() => {

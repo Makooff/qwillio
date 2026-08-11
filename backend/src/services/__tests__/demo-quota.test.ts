@@ -4,26 +4,31 @@ import {
   remainingDemoSeconds,
   __resetDemoQuota,
   DEMO_DAILY_SECONDS,
+  DEMO_MAX_CALL_SECONDS,
 } from '../demo-quota.service';
 
 beforeEach(() => __resetDemoQuota());
 
 describe('quota de la démo publique', () => {
-  it('accorde les deux minutes au premier appel', () => {
-    expect(reserveDemoSeconds('1.2.3.4')).toBe(DEMO_DAILY_SECONDS);
+  it("n'accorde qu'un appel au premier essai, pas le quota du jour", () => {
+    // Le premier clic prenait la journée entière, même raccroché aussitôt: la
+    // démonstration, qui est l'outil de conversion du site, se fermait au
+    // premier essai.
+    expect(reserveDemoSeconds('1.2.3.4')).toBe(DEMO_MAX_CALL_SECONDS);
+    expect(remainingDemoSeconds('1.2.3.4')).toBe(DEMO_DAILY_SECONDS - DEMO_MAX_CALL_SECONDS);
   });
 
-  it('refuse le deuxième appel du même visiteur le même jour', () => {
+  it('laisse trois essais, puis refuse', () => {
     // Le decompte se fait a l'octroi: raccrocher tot ne rend pas le temps, et
     // c'est le seul cote ou l'erreur ne coute pas d'argent.
-    reserveDemoSeconds('1.2.3.4');
+    for (let i = 0; i < 3; i++) expect(reserveDemoSeconds('1.2.3.4')).toBe(DEMO_MAX_CALL_SECONDS);
     expect(reserveDemoSeconds('1.2.3.4')).toBe(0);
     expect(remainingDemoSeconds('1.2.3.4')).toBe(0);
   });
 
   it('compte chaque visiteur séparément', () => {
     reserveDemoSeconds('1.2.3.4');
-    expect(reserveDemoSeconds('5.6.7.8')).toBe(DEMO_DAILY_SECONDS);
+    expect(remainingDemoSeconds('5.6.7.8')).toBe(DEMO_DAILY_SECONDS);
   });
 
   it('annonce le quota entier à qui n’a rien consommé', () => {

@@ -26,7 +26,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Reconnaît-il un client qui rappelle ?',
-    a: "Oui. Un appelant déjà connu est salué par son prénom, et ce qui a été dit lors du précédent appel est disponible dès le décrochage, tout comme son rendez-vous à venir. Il ne redemande pas ce qu'il sait déjà. Cette mémoire se limite à ce qui sert l'appel suivant, reste hébergée dans l'Union européenne, et peut être effacée sur demande, conformément au RGPD.",
+    a: "Oui. Un appelant déjà connu est salué par son prénom, et ce qui a été dit lors du précédent appel est disponible dès le décrochage, tout comme son rendez-vous à venir. Il ne redemande pas ce qu'il sait déjà. Cette mémoire se limite à ce qui sert l'appel suivant, n'est ni vendue ni utilisée pour entraîner des modèles, et peut être effacée sur demande, conformément au RGPD.",
   },
   {
     q: 'Puis-je importer mes tarifs depuis une photo ?',
@@ -77,7 +77,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'Does it recognise a customer calling back?',
-    a: "Yes. A known caller is greeted by first name, and what was said on the previous call is available from pickup, along with their upcoming appointment. It does not ask again for what it already knows. That memory is limited to what serves the next call, stays hosted in the European Union, and can be erased on request, in line with GDPR.",
+    a: "Yes. A known caller is greeted by first name, and what was said on the previous call is available from pickup, along with their upcoming appointment. It does not ask again for what it already knows. That memory is limited to what serves the next call, is never sold and never used to train models, and can be erased on request, in line with GDPR.",
   },
   {
     q: 'Can I import my rates from a photo?',

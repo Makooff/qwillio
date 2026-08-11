@@ -19,8 +19,11 @@ export default function FooterV2() {
       heading: isFr ? 'Produit' : 'Product',
       links: [
         { to: '/receptionist', label: 'Receptionist AI' },
-        { to: '/agent', label: 'Qwillio Agent' },
+        /* Plus de lien vers /agent: la route redirige vers l'accueil (App.tsx),
+           donc le pied de page proposait un produit qui n'ouvre rien. Un lien
+           mort dans le pied de page se remarque, et il se remarque mal. */
         { to: '/pricing', label: isFr ? 'Tarifs' : 'Pricing' },
+        { to: '/vs/rosie', label: isFr ? 'Comparatifs' : 'Comparisons' },
       ],
     },
     {

@@ -157,8 +157,8 @@ export default function About() {
               </p>
               <p>
                 {isFr
-                  ? 'Qwillio répond aujourd\'hui aux appels de cliniques, garages, salons, restaurants et cabinets d\'avocats. Notre engagement reste le même : un outil qui marche, sans engagement, sans surprise.'
-                  : 'Qwillio answers calls today for clinics, garages, salons, restaurants and law firms. Our commitment stays the same: a tool that works, no lock-in, no surprises.'}
+                  ? 'Qwillio est conçu pour les cliniques, garages, salons, restaurants et cabinets d\'avocats, avec un script propre à chaque métier. Nous sommes en tout début de lancement, et l\'engagement est simple : un outil qui marche, sans engagement, sans surprise.'
+                  : 'Qwillio is built for clinics, garages, salons, restaurants and law firms, with a script of its own for each trade. We are very early in launch, and the commitment is simple: a tool that works, no lock-in, no surprises.'}
               </p>
             </div>
           </RevealV2>

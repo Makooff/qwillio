@@ -167,9 +167,20 @@ app.use('/api/affiliate', affiliateRoutes);
 // ─── Contact Form ─────────────────────────────────────
 app.post('/api/contact', contactLimiter, async (req, res) => {
   try {
-    const { name, email, subject, message } = req.body;
+    const { name, email, subject, message, website } = req.body;
     if (!name || !email || !message) {
       res.status(400).json({ error: 'Missing required fields' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+      res.status(400).json({ error: 'Invalid email' });
+      return;
+    }
+    /* Champ leurre, invisible pour un humain. On répond 200 sans rien envoyer:
+       un robot qui voit une erreur réessaie. */
+    if (website) {
+      logger.info('Contact form ignored (honeypot filled)');
+      res.json({ success: true });
       return;
     }
     // Escape user input before embedding in the notification email's HTML

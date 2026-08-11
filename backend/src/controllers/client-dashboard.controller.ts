@@ -1306,7 +1306,10 @@ export class ClientDashboardController {
       // Try to send email via Resend
       try {
         const { emailService } = await import('../services/email.service');
-        await (emailService as any).sendRaw?.({
+        /* `send`, pas `sendRaw`: cette dernière n'existe pas sur le service.
+           Appelée en `?.()`, elle ne levait rien et ne partait pas: aucune
+           demande de support n'a jamais atteint la boîte. */
+        await emailService.send({
           to: env.RESEND_REPLY_TO || 'contact@qwillio.com',
           subject: `[Support] ${subject} — ${client?.businessName || user?.email}`,
           html: `

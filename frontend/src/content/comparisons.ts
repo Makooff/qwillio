@@ -44,7 +44,7 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
             ['Entrée de gamme', '99 €/mois (250 min)', '~49 €/mois'],
             ['Français', 'Oui', 'Oui'],
             ['Anglais sur le même appel', 'Oui', 'Non'],
-            ['Hébergement', 'Union européenne', 'À vérifier auprès d\'eux'],
+            ['Conformité RGPD', 'Oui, effacement sur demande', 'À vérifier auprès d\'eux'],
             ['CRM inclus', 'Oui, natif', 'Non'],
             ['Prise de rendez-vous agenda', 'Incluse', 'Selon formule'],
             ['Facturation', 'À la minute, minutes incluses', 'Par formule'],
@@ -77,7 +77,7 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
             ['Entry price', '€99/month (250 min)', '~€49/month'],
             ['French', 'Yes', 'Yes'],
             ['English on the same call', 'Yes', 'No'],
-            ['Hosting', 'European Union', 'Check with them'],
+            ['GDPR compliance', 'Yes, erasure on request', 'Check with them'],
             ['CRM included', 'Yes, native', 'No'],
             ['Calendar booking', 'Included', 'Depends on tier'],
             ['Billing', 'Per minute, minutes included', 'Per tier'],
@@ -134,7 +134,7 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
         { type: 'h2', text: 'Ce qui se passe après l\'appel' },
         { type: 'p', text: "Un appel décroché n'est pas un client gagné. Chez Qwillio, l'appel produit une fiche, un score, et une relance si le devis reste sans réponse. C'est là que se joue la différence de résultat, davantage que sur la qualité de la voix." },
         { type: 'h2', text: 'Bilingue, si vous êtes en Belgique' },
-        { type: 'p', text: "Nerolia cible la France. En Belgique, où une part des appels arrive en néerlandais ou en anglais, le bilingue sur un même appel change la nature du service." },
+        { type: 'p', text: "Nerolia cible la France. En Belgique, où une part des appels arrive en anglais, le français et l'anglais sur un même appel changent la nature du service." },
         {
           type: 'verdict',
           tone: 'neutral',
@@ -162,7 +162,7 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
         { type: 'h2', text: 'What happens after the call' },
         { type: 'p', text: 'An answered call is not a won customer. With Qwillio the call produces a record, a score, and a follow-up if the quote goes quiet. That is where the difference in outcome sits, more than in voice quality.' },
         { type: 'h2', text: 'Bilingual, if you are in Belgium' },
-        { type: 'p', text: 'Nerolia targets France. In Belgium, where a share of calls arrives in Dutch or English, bilingual handling on one call changes what the service is.' },
+        { type: 'p', text: 'Nerolia targets France. In Belgium, where a share of calls arrives in English, French and English on one call changes what the service is.' },
         {
           type: 'verdict',
           tone: 'neutral',
@@ -252,7 +252,7 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
           ['Réservation agenda (Google, Cal.com)', 'Oui', 'Oui'],
           ['Sync CRM (HubSpot, Salesforce)', 'Oui', 'Oui'],
           ['Add-ons facturation natifs (Stripe)', 'Non', 'Oui'],
-          ['Hébergement compatible RGPD', 'Non (US)', 'Oui (UE)'],
+          ['Interface et support en français', 'Non', 'Oui'],
           ['Onboarding self-serve', 'Partiel', 'Oui (15 min)'],
           ['7 jours d’essai', 'Au cas par cas', 'Oui, essai 7 jours'],
         ]},
@@ -468,14 +468,14 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
       fr: 'Qwillio vs Ruby Receptionists : IA contre réception humaine en 2026',
     },
     subtitle: {
-      en: 'Ruby is a premium US human virtual receptionist service. Qwillio is bilingual AI, EU-hosted, flat-priced. Here is where each one wins.',
-      fr: "Ruby est un service premium de réceptionnistes humaines aux États-Unis. Qwillio est une IA bilingue, hébergée en UE, à prix fixe. Voici où chacun l'emporte.",
+      en: 'Ruby is a premium US human virtual receptionist service. Qwillio is bilingual AI, flat-priced, GDPR-aligned. Here is where each one wins.',
+      fr: "Ruby est un service premium de réceptionnistes humaines aux États-Unis. Qwillio est une IA bilingue, à prix fixe, alignée RGPD. Voici où chacun l'emporte.",
     },
     updated: '2026-07-18',
     content: {
       en: [
         { type: 'p', text: 'Ruby (formerly Ruby Receptionists) is one of the most established virtual receptionist brands in the United States. It uses trained human receptionists to answer calls, take messages and route callers for small US businesses, with a strong reputation for warmth and brand voice. Pricing is premium and built around monthly receptionist-minute allowances that scale up quickly with volume.' },
-        { type: 'p', text: 'Qwillio takes a different route: pure conversational AI that answers every call itself, in French and English, books appointments, and runs on European hosting. Pricing is a monthly plan with included minutes, billed by the minute beyond that — without the cost of Ruby\'s human minutes — from a 99 EUR Solo tier up to Enterprise.' },
+        { type: 'p', text: 'Qwillio takes a different route: pure conversational AI that answers every call itself, in French and English, books appointments, and is built for GDPR from the start. Pricing is a monthly plan with included minutes, billed by the minute beyond that — without the cost of Ruby\'s human minutes — from a 99 EUR Solo tier up to Enterprise.' },
         { type: 'h2', text: 'The core trade-off' },
         { type: 'p', text: 'Ruby sells a human on the line. That is a genuine strength for businesses whose brand depends on a warm human voice and who are happy to pay for it. The cost is that human minutes are metered and expensive, and Ruby operates in English for a US market. Qwillio sells always-on capacity at a flat price, in two languages, GDPR aligned, at the cost of being AI rather than a person.' },
         { type: 'table', head: ['Dimension', 'Ruby', 'Qwillio'], rows: [
@@ -491,7 +491,7 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
       ],
       fr: [
         { type: 'p', text: "Ruby (anciennement Ruby Receptionists) est l'une des marques de réception virtuelle les plus établies aux États-Unis. Elle utilise des réceptionnistes humaines formées pour répondre aux appels, prendre les messages et router les appelants des petites entreprises américaines, avec une réputation de chaleur et de voix de marque. La tarification est premium et construite autour d'allocations mensuelles de minutes de réceptionniste qui montent vite avec le volume." },
-        { type: 'p', text: "Qwillio prend une autre voie : une IA conversationnelle pure qui répond elle-même à chaque appel, en français et en anglais, pose les rendez-vous et tourne sur un hébergement européen. La tarification est un forfait mensuel avec minutes incluses, facturé à la minute au-delà — sans le coût des minutes humaines de Ruby — d'un plan Solo à 99 € jusqu'à Enterprise." },
+        { type: 'p', text: "Qwillio prend une autre voie : une IA conversationnelle pure qui répond elle-même à chaque appel, en français et en anglais, pose les rendez-vous et est pensée pour le RGPD dès l'origine. La tarification est un forfait mensuel avec minutes incluses, facturé à la minute au-delà — sans le coût des minutes humaines de Ruby — d'un plan Solo à 99 € jusqu'à Enterprise." },
         { type: 'h2', text: "Le compromis central" },
         { type: 'p', text: "Ruby vend un humain au bout du fil. C'est une vraie force pour les entreprises dont la marque dépend d'une voix humaine chaleureuse et qui acceptent de payer pour. Le coût : les minutes humaines sont comptées et chères, et Ruby opère en anglais pour un marché américain. Qwillio vend une capacité always-on à prix fixe, en deux langues, conforme au RGPD, au prix d'être une IA plutôt qu'une personne." },
         { type: 'table', head: ['Dimension', 'Ruby', 'Qwillio'], rows: [

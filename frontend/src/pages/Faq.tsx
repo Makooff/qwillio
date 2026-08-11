@@ -32,7 +32,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Mes données sont-elles protégées ?',
-    a: "Oui. Hébergement européen, conforme au RGPD, aucune donnée personnelle transférée hors de l'Espace économique européen. Le consentement à l'enregistrement est demandé au décrochage.",
+    a: "Oui. Conforme au RGPD : les transferts hors EEE sont couverts par les Clauses Contractuelles Types, la liste des sous-traitants est publique, et rien n'est vendu ni utilisé pour entraîner des modèles. Le consentement à l'enregistrement est demandé au décrochage.",
   },
   {
     q: 'Que se passe-t-il en cas d\'urgence ?',
@@ -48,7 +48,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Pourquoi payer 99 € quand certains sont à 49 € ?',
-    a: "Parce que ce n'est pas le même produit. À 49 €, vous avez le décrochage en français. Qwillio parle français et anglais sur le même appel sans que l'appelant ait à choisir, héberge vos données dans l'Union européenne, et inclut le CRM et la prise de rendez-vous. Si le français seul vous suffit et que vous n'avez pas besoin de CRM, prenez l'offre la moins chère, franchement. Le bon repère n'est pas un autre logiciel : c'est ce que coûte une secrétaire à mi-temps.",
+    a: "Parce que ce n'est pas le même produit. À 49 €, vous avez le décrochage en français. Qwillio parle français et anglais sur le même appel sans que l'appelant ait à choisir, efface vos données sur demande, et inclut le CRM et la prise de rendez-vous. Si le français seul vous suffit et que vous n'avez pas besoin de CRM, prenez l'offre la moins chère, franchement. Le bon repère n'est pas un autre logiciel : c'est ce que coûte une secrétaire à mi-temps.",
   },
   {
     q: 'Puis-je résilier facilement ?',
@@ -83,7 +83,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'Is my data protected?',
-    a: 'Yes. European hosting, GDPR compliant, no personal data transferred outside the European Economic Area. Consent to recording is asked at pickup.',
+    a: 'Yes. GDPR compliant: transfers outside the EEA are covered by Standard Contractual Clauses, the list of processors is public, and nothing is sold or used to train models. Consent to recording is asked at pickup.',
   },
   {
     q: 'What happens in an emergency?',
@@ -99,7 +99,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'Why pay €99 when some charge €49?',
-    a: 'Because it is not the same product. At €49 you get answering in French. Qwillio speaks French and English on the same call without the caller picking an option, hosts your data in the European Union, and includes the CRM and calendar booking. If French-only covers you and you do not need a CRM, take the cheaper option, honestly. The right yardstick is not another piece of software: it is what a part-time receptionist costs.',
+    a: 'Because it is not the same product. At €49 you get answering in French. Qwillio speaks French and English on the same call without the caller picking an option, erases your data on request, and includes the CRM and calendar booking. If French-only covers you and you do not need a CRM, take the cheaper option, honestly. The right yardstick is not another piece of software: it is what a part-time receptionist costs.',
   },
   {
     q: 'Can I cancel easily?',

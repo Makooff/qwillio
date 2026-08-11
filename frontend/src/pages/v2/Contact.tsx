@@ -8,6 +8,7 @@ import { PillButton } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
 import ShapeDrift from '../../components/v2/motion/ShapeDrift';
+import api from '../../services/api';
 
 /* Contact V2 « Papier & Signal », voir DA/v2-direction.md.
    Le formulaire contrôlé et le fallback mailto sont portés tels quels de la V1
@@ -31,6 +32,8 @@ export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  // Champ leurre pour les robots, masqué à l'écran et hors du parcours clavier.
+  const [honeypot, setHoneypot] = useState('');
 
   useSEO({
     title: isFr ? 'Contact · Qwillio' : 'Contact · Qwillio',
@@ -47,12 +50,26 @@ export default function Contact() {
     }
     setSending(true);
     try {
-      const subject = encodeURIComponent(`[Contact] ${name}${company ? ' · ' + company : ''}`);
-      const body = encodeURIComponent(`${message}\n\n--\n${name}\n${email}${company ? '\n' + company : ''}`);
-      window.location.href = `mailto:hello@qwillio.com?subject=${subject}&body=${body}`;
+      /* Un vrai POST, et non plus un `mailto:` suivi d'une confirmation
+         immédiate. Le visiteur sans client mail configuré, c'est-à-dire la
+         plupart sur mobile et sur un poste d'entreprise, lisait « Message
+         envoyé » pour un message qui n'était jamais parti: un prospect perdu en
+         silence, à l'endroit précis où il demandait à être rappelé.
+         `honeypot` reste vide chez un humain: le champ est masqué. */
+      await api.post('/contact', {
+        name: name.trim(),
+        email: email.trim(),
+        subject: company.trim() || 'Site',
+        message: message.trim(),
+        website: honeypot,
+      });
       setSubmitted(true);
     } catch {
-      setError(isFr ? 'Une erreur est survenue. Réessayez.' : 'Something went wrong. Try again.');
+      setError(
+        isFr
+          ? "L'envoi a échoué. Réessayez, ou écrivez-nous directement à hello@qwillio.com."
+          : 'Sending failed. Try again, or email us directly at hello@qwillio.com.',
+      );
     } finally {
       setSending(false);
     }
@@ -220,6 +237,22 @@ export default function Contact() {
                         required
                         rows={5}
                         className={inputCls + ' resize-none'}
+                      />
+                    </div>
+
+                    {/* Leurre à robots: hors flux, hors tabulation, annoncé
+                        comme décoratif aux lecteurs d'écran. Un humain ne peut
+                        pas le remplir, un robot remplit tout. */}
+                    <div className="absolute -left-[9999px]" aria-hidden="true">
+                      <label htmlFor="contact-website">Site web</label>
+                      <input
+                        id="contact-website"
+                        name="website"
+                        type="text"
+                        tabIndex={-1}
+                        autoComplete="off"
+                        value={honeypot}
+                        onChange={(e) => setHoneypot(e.target.value)}
                       />
                     </div>
 
