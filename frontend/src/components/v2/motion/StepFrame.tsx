@@ -5,7 +5,8 @@ import { onScrollFrame, sceneAt, sceneStarted } from './sceneProgress';
 
 /**
  * Un cadre arrondi posé derrière les étapes, qui passe de l'une à l'autre au
- * scroll en se déformant par les coins.
+ * scroll en rapetissant par son coin de sortie puis en regrandissant depuis le
+ * coin d'entrée de la suivante.
  *
  * Les boîtes sont MESURÉES dans le DOM (`[data-step-frame]`), jamais écrites en
  * dur: les étapes n'ont pas la même hauteur selon la langue et la largeur de
@@ -13,10 +14,12 @@ import { onScrollFrame, sceneAt, sceneStarted } from './sceneProgress';
  * texte plus long. Un `ResizeObserver` reprend les mesures quand la mise en
  * page bouge.
  *
- * Le trajet vit dans l'attribut `d`, pas dans un `transform`: c'est la
- * différence entre une forme qu'on TRANSPORTE et une forme qui SE DÉPLACE.
- * Une translation garderait la silhouette rigide, or c'est précisément la
- * déformation qui est demandée.
+ * Le trajet vit dans l'attribut `d` et non dans un `transform`, parce que la
+ * TAILLE change en chemin et qu'un `scale` sur un tracé étirerait aussi son
+ * filet: un cadre qui rapetisse aurait un contour plus fin au milieu du trajet.
+ * Le tracé est recalculé, donc le filet garde son épaisseur du début à la fin.
+ * La silhouette, elle, reste un rectangle arrondi tout du long: la déformation
+ * qu'il y avait ici rendait le passage mou (retour utilisateur).
  *
  * L'avancée vient de `sceneProgress`, la même règle que celle qui allume
  * l'étape courante: un scrub autonome donnait un cadre en avance de deux
@@ -113,12 +116,13 @@ export default function StepFrame({
       const raw = sceneStarted(aside) ? sceneAt(nodes) : 0;
       const at = Math.max(0, Math.min(last, raw));
       const i = Math.min(last - 1, Math.floor(at));
-      path.setAttribute('d', frameJourney({
+      const { path: d } = frameJourney({
         from: boxes[i],
         to: boxes[i + 1],
         radius,
         progress: at - i,
-      }));
+      });
+      path.setAttribute('d', d);
     });
   }, [radius, reduced, size, scope]);
 
@@ -140,8 +144,13 @@ export default function StepFrame({
         ref={pathRef}
         data-frame-path
         d={boxesRef.current[0] ? framePath(boxesRef.current[0], radius) : ''}
-        fill="rgba(122, 95, 255, 0.07)"
-        stroke="rgba(122, 95, 255, 0.22)"
+        /* MÊME matière que le panneau d'en face, qui est un `CardV2` en
+           `bg-q2-band` cerné de `q2-plate`. Le cadre était en voile mauve, si
+           bien que les deux colonnes d'une même ligne n'avaient pas le même
+           fond (retour utilisateur). Il ne désigne plus l'étape par sa couleur
+           mais par sa seule présence. */
+        fill="rgb(var(--q2-band))"
+        stroke="rgb(var(--q2-plate))"
         strokeWidth={1}
       />
     </svg>
