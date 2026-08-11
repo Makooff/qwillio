@@ -563,7 +563,7 @@ export default function ClientReceptionist() {
 
   return (
     /* Deux colonnes à partir de `lg`: le chat À DROITE sur deux tiers, les
-       réglages À GAUCHE sur un tiers (demande utilisateur).
+       réglages À DROITE sur un tiers (demande utilisateur).
        La largeur passe de `max-w-3xl` à `max-w-6xl`, sinon la mise en colonnes
        RÉTRÉCIRAIT le chat: deux tiers de 768 px valent moins que les 768 px
        qu'il occupe aujourd'hui. À 1152 px, ses deux tiers font exactement les
@@ -575,7 +575,11 @@ export default function ClientReceptionist() {
        rendu, à partir de `lg`. */
     <div className="max-w-6xl pb-2">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-      <div className="lg:order-2 lg:col-span-2">
+      {/* LE CHAT À GAUCHE, les réglages à droite (demande utilisateur: c'était
+          l'inverse). Il est aussi COLLANT: à pleine hauteur, il resterait
+          autrement à défiler avec une colonne de réglages bien plus longue que
+          lui, et on perdrait de vue ce qu'on est venu faire. */}
+      <div className="lg:order-1 lg:col-span-2 lg:sticky lg:top-2">
       {/* Assistant conversationnel : parler pour configurer et onboarder.
           Il porte aussi l'identité de la page (titre, entreprise, plan), le
           numéro copiable, l'appel test live et la jauge de minutes, pour que
@@ -621,9 +625,9 @@ export default function ClientReceptionist() {
       />
       </div>
 
-      {/* La colonne des réglages. Tout ce qui se règle vit ici, à gauche du
+      {/* La colonne des réglages. Tout ce qui se règle vit ici, à droite du
           chat sur grand écran, et sous lui sur mobile. */}
-      <div className="lg:order-1 lg:col-span-1 space-y-4">
+      <div className="lg:order-2 lg:col-span-1 space-y-4">
 
       {/* Bande d'état. Le numéro, le plan et la jauge de minutes sont
           désormais dans l'entête du chat ; les compteurs d'appels et de leads

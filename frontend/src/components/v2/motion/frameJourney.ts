@@ -125,11 +125,13 @@ export function frameJourney(params: {
     h: moving.h * shrink,
   };
 
-  /* Le rayon suit la taille: un rayon fixe sur une boîte rapetissée ferait des
-     coins proportionnellement plus ronds au milieu du trajet, donc une forme qui
-     change de caractère alors qu'elle ne doit que changer de taille.
-     Essayé une fois en valeur absolue, et repris: la demande d'arrondir « les
-     angles pendant la transition » ne portait pas sur la silhouette, qui
-     convient, mais sur les angles que le MASQUE lui découpe (voir StepFrame). */
-  return { path: framePath(box, radius * shrink), radius: radius * shrink };
+  /* LE RAYON RESTE CELUI DE LA CARTE, en valeur absolue (demande utilisateur:
+     les coins doivent garder l'arrondi de la carte pendant la transformation).
+     S'il suivait la taille, la forme rapetissée gardait des coins
+     proportionnellement identiques, ce qui est juste sur le papier et faux à
+     l'oeil: au milieu du trajet, là où la boîte est la plus petite, les angles
+     paraissaient droits.
+     `framePath` borne déjà le rayon à la moitié du plus petit côté, donc une
+     boîte très réduite devient une pastille au lieu de se croiser. */
+  return { path: framePath(box, radius), radius };
 }
