@@ -101,6 +101,25 @@ const MOCKUP = {
    arete. Elle atteint zero a 99 %, donc la forme du cadre ne se lit plus. */
 const HERO_MASK_V =
   'linear-gradient(to bottom, #000 0%, #000 56%, rgba(0,0,0,0.95) 64%, rgba(0,0,0,0.86) 71%, rgba(0,0,0,0.70) 78%, rgba(0,0,0,0.50) 84%, rgba(0,0,0,0.30) 89%, rgba(0,0,0,0.13) 93%, rgba(0,0,0,0.03) 97%, transparent 100%)';
+/* LES DEUX MONTAGES, AUX COULEURS DU LOGO (demande utilisateur), et le milieu
+   n'en reçoit aucun: la vidéo y est brute, sans voile ni teinte.
+   Ce sont des couches PEINTES, contrairement au fondu ci-dessus qui reste un
+   masque. Les deux jouent ensemble et chacun fait ce que l'autre ne sait pas:
+   le masque dissout le décor pour que la page reparaisse de sa propre couleur
+   dans les deux thèmes, la teinte donne à cette dissolution la couleur de la
+   marque au lieu d'un simple gris. Peindre seul demanderait de tomber pile sur
+   le fond de la page, masquer seul rendrait le raccord incolore.
+   Les deux teintes sont transparentes jusqu'à 55 %, donc elles ne touchent pas
+   le milieu: c'est cette valeur, et elle seule, qui garantit « la vidéo brute
+   au centre ». */
+/* Les couleurs viennent des JETONS, pas de valeurs recopiées: `--q2-indigo` et
+   `--q2-violet` sont des hexadécimaux, donc l'opacité se pose avec `color-mix`
+   plutôt qu'avec `rgba()`. Recopier « 122,95,255 » ici, c'était une seconde
+   définition de la marque qui aurait cessé de suivre la première. */
+const tint = (token: string, a: number) =>
+  `color-mix(in srgb, var(${token}) ${Math.round(a * 100)}%, transparent)`;
+const HERO_TOP_TINT = `linear-gradient(to bottom, ${tint('--q2-indigo', 0.46)} 0%, ${tint('--q2-indigo', 0.3)} 38%, ${tint('--q2-violet', 0.14)} 68%, ${tint('--q2-violet', 0.04)} 86%, transparent 100%)`;
+const HERO_BOTTOM_TINT = `linear-gradient(to bottom, transparent 0%, transparent 55%, ${tint('--q2-violet', 0.1)} 68%, ${tint('--q2-violet', 0.2)} 79%, ${tint('--q2-indigo', 0.26)} 89%, ${tint('--q2-indigo', 0.3)} 100%)`;
 /* Le fondu de flou du HAUT: plein sous la nav, éteint plus bas. Comme le voile
    des bords, il ne peint rien, il ne fait que brouiller ce qui passe dessous:
    la vidéo reste visible derrière le menu, en diffus, au lieu d'être remplacée
@@ -125,24 +144,21 @@ function HeroBackdrop() {
          Les angles arrondis partent avec: un rayon n'a de sens que sur une
          forme qui a des bords, et de bord il n'y en a plus que deux, en haut et
          en bas, tous deux traités par le fondu et par le voile de flou.
-         Le plafond de largeur ne manque pas: les trois définitions couvrent
-         jusqu'à 2560, donc un grand écran reste servi sans agrandissement.
-         La HAUTEUR monte à 84vh et le fondu ne commence qu'à 56 % de celle-ci,
-         soit à peu près la mi-hauteur de la fenêtre (demande utilisateur: « le
-         dégradé du bas cache trop la vidéo, il doit être au niveau de la moitié
-         de la page »). Avant, il démarrait au tiers.
-         Sa HAUTEUR EST BORNÉE, et c'est le correctif du cadrage sur iPhone.
-         Il couvrait toute la hauteur du hero, soit plus de 1200 px sur un
-         téléphone, pour un rush en 3:2: en `object-contain` l'image se réduisait
-         à un bandeau de 244 px collé en haut, lequel tombait tout entier dans la
-         rampe d'entrée du fondu vertical ET dans la couronne de flou. On ne
-         voyait donc qu'une tache floue en haut à droite (retour utilisateur:
-         « très mauvaise qualité, très mal cadrée »). Le cadre suit désormais une
-         fraction de la fenêtre, proche du 3:2 du fichier à toutes les tailles.
-         Le nouveau master fait 3528x2348 et le décor est servi en 1280, 1920 ou
-         2560 selon l'écran (voir les `<source media>` plus bas), donc il prend
-         toute la largeur sans être agrandi. */
-      className="absolute inset-x-0 top-0 h-[56vh] sm:h-[68vh] lg:h-[84vh] max-h-[900px] overflow-hidden pointer-events-none"
+         LA HAUTEUR N'EST PLUS CHOISIE, ELLE EST DÉDUITE (demande utilisateur:
+         « ne rogne pas du tout la vidéo »). Le cadre porte exactement le rapport
+         du fichier, 3528x2348, donc la largeur pleine détermine la hauteur et
+         il ne reste plus rien à rogner: aucun bord ne sort du cadre, aucune
+         bande vide ne se forme dedans. C'était le dernier endroit où un recadrage
+         pouvait naître: une hauteur en `vh` ne tombe au rapport du fichier que
+         pour une fenêtre, et `object-cover` mangeait la différence partout
+         ailleurs.
+         Le fondu du bas commence à 56 % de cette hauteur, la moitié de l'image
+         (demande utilisateur: « le dégradé du bas cache trop la vidéo »).
+         Le décor est servi en 1280, 1920, 2560 ou en 3528, sa définition
+         native (voir les `<source media>` plus bas): à sa largeur d'écran, chacun
+         reçoit donc au moins autant de pixels qu'il en affiche, y compris un
+         écran retina, et l'image n'est jamais agrandie. */
+      className="absolute inset-x-0 top-0 aspect-[3528/2348] overflow-hidden pointer-events-none"
       aria-hidden="true"
       /* VIGNETTE, en MASQUE et non en couche peinte par-dessus.
          Peindre la couleur du canvas au-dessus du décor, c'est poser un aplat
@@ -181,23 +197,27 @@ function HeroBackdrop() {
             alt=""
             aria-hidden="true"
             onError={() => setPhotoFailed(true)}
-            className="absolute inset-0 w-full h-full object-cover object-top select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
-            style={{ opacity: playing ? 0 : 'var(--q2-hero-media)' }}
+            className="absolute inset-0 w-full h-full object-contain object-top select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{ opacity: playing ? 0 : 1 }}
           />
         )}
 
         {!reduced && (
         <video
-          /* `cover`, et ce n'est PAS un retour en arrière sur « ne rogne pas
-             dedans ». Ce qui grossissait l'image, ce n'était pas `cover`, c'était
-             le cadre: haut de plus de 1200 px pour un rush en 3:2, il forçait un
-             agrandissement de 40 % pour être rempli. Le cadre est maintenant
-             proche du 3:2 du fichier, donc `cover` ne fait quasiment plus que
-             rogner quelques pour cent sur un bord, sans agrandir. Et `contain`
-             ne convient plus: dans un cadre qui n'est jamais exactement au ratio
-             du fichier, il laisserait deux bandes vides à l'intérieur du cadre
-             arrondi. */
-          className="absolute inset-0 w-full h-full object-cover object-top select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          /* `contain`, et c'est la garantie du « ne rogne pas du tout »: le
+             cadre porte déjà le rapport du fichier, donc `contain` le remplit
+             sans laisser de bande, et si un arrondi de calcul faisait
+             différer les deux d'un pixel, c'est une ligne transparente qui
+             apparaîtrait, pas une tranche d'image coupée. `cover` prenait le
+             pari inverse, et c'est le mauvais quand la consigne est de tout
+             montrer.
+             OPACITÉ PLEINE: la vidéo est brute (demande utilisateur: « le
+             milieu doit être sans effet »). Elle passait auparavant sous
+             `--q2-hero-media`, un voile de 0,26 qui la rendait fantomatique.
+             Ce que ce voile protégeait, c'était le contraste du texte du hero;
+             ce rôle revient maintenant au montage teinté du haut, qui couvre la
+             bande où le texte commence. */
+          className="absolute inset-0 w-full h-full object-contain object-top select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
           /* `muted` et `playsInline` ne sont pas décoratifs: sans les deux, iOS
              refuse la lecture automatique et le décor resterait figé. */
           autoPlay
@@ -206,7 +226,14 @@ function HeroBackdrop() {
           playsInline
           preload="metadata"
           onPlaying={() => setPlaying(true)}
-          style={{ opacity: playing ? 'var(--q2-hero-media)' : 0 }}
+          /* La photo REVIENT si la lecture s'arrête. `onPlaying` seul ne se
+             défait jamais: une vidéo qui cale ou qui échoue après avoir
+             démarré laissait le décor entièrement transparent, c'est-à-dire un
+             hero sans image. */
+          onPause={() => setPlaying(false)}
+          onError={() => setPlaying(false)}
+          onStalled={() => setPlaying(false)}
+          style={{ opacity: playing ? 1 : 0 }}
         >
           {/* TROIS DÉFINITIONS, et chaque écran ne télécharge QUE la sienne.
               L'attribut `media` d'une `<source>` est évalué une fois, au
@@ -219,11 +246,36 @@ function HeroBackdrop() {
               avant MP4, car il pèse un tiers de moins là où il est lu. Safari,
               qui ignore le VP9 ici, tombe sur le MP4 juste en dessous.
               Les cotes sont celles du fichier livré: master 3528x2348 en 24 i/s,
-              aller-retour de 30 s, sans son. */}
+              aller-retour de 30 s, sans son.
+              LA DÉFINITION NATIVE EST SERVIE (demande utilisateur: « n'impacte
+              pas la qualité, garde la max qualité »), et sa condition compte la
+              DENSITÉ autant que la largeur: un portable retina de 1200 px
+              affiche 2400 pixels réels, donc il reçoit le fichier natif alors
+              qu'un moniteur de 1600 px non retina se contente du 1920. Sans le
+              `min-resolution`, c'est précisément l'écran le plus fin qui aurait
+              hérité de l'image la plus grossière. */}
+          <source
+            media="(min-width: 2000px), (min-width: 1100px) and (min-resolution: 2dppx)"
+            src="/hero-lake-3528.webm"
+            type="video/webm"
+          />
+          <source
+            media="(min-width: 2000px), (min-width: 1100px) and (min-resolution: 2dppx)"
+            src="/hero-lake-3528.mp4"
+            type="video/mp4"
+          />
           <source media="(min-width: 1600px)" src="/hero-lake-2560.webm" type="video/webm" />
           <source media="(min-width: 1600px)" src="/hero-lake-2560.mp4" type="video/mp4" />
-          <source media="(min-width: 900px)" src="/hero-lake-1920.webm" type="video/webm" />
-          <source media="(min-width: 900px)" src="/hero-lake-1920.mp4" type="video/mp4" />
+          <source
+            media="(min-width: 900px), (min-width: 450px) and (min-resolution: 2dppx)"
+            src="/hero-lake-1920.webm"
+            type="video/webm"
+          />
+          <source
+            media="(min-width: 900px), (min-width: 450px) and (min-resolution: 2dppx)"
+            src="/hero-lake-1920.mp4"
+            type="video/mp4"
+          />
           <source src="/hero-lake-1280.webm" type="video/webm" />
           <source src="/hero-lake-1280.mp4" type="video/mp4" />
         </video>
@@ -252,7 +304,25 @@ function HeroBackdrop() {
               transform: 'translateZ(0)',
             }}
           />
+          {/* LA TEINTE DU HAUT, indigo de la marque (demande utilisateur:
+              « met les montages à mes couleurs de logo »). Elle est POSÉE SUR
+              LE FLOU, pas à sa place: le flou décide de la netteté, la teinte
+              de la couleur, et l'ordre importe, une couleur sous un flou serait
+              elle-même brouillée et perdrait sa franchise.
+              Elle porte aussi le contraste du titre, qui commence dans cette
+              bande: c'est la contrepartie de la vidéo brute au centre. */}
+          <div className="absolute inset-0" style={{ background: HERO_TOP_TINT }} />
         </div>
+
+        {/* LE MONTAGE DU BAS, violet de la marque. Il est transparent jusqu'à
+            55 %, donc il ne touche pas au milieu, et il se fond avec le masque
+            du conteneur: là où le masque efface le décor, cette teinte est
+            déjà en train de le colorer, si bien que la vidéo ne s'éteint pas en
+            gris mais dans la couleur du logo. */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: HERO_BOTTOM_TINT }}
+        />
     </div>
   );
 }
@@ -370,8 +440,8 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
               ? 'Dashboard Qwillio : les appels du jour, leur issue et leur transcript'
               : 'Qwillio dashboard: the day’s calls, their outcome and their transcript'
           }
-          width={1600}
-          height={914}
+          width={2560}
+          height={1462}
           className="absolute block object-cover"
           style={MOCKUP.screen}
         />
@@ -669,13 +739,27 @@ export default function Home() {
                 className="mb-5 sm:mb-7 !text-[clamp(2.2rem,4.6vw,4rem)]"
                 id="hero-heading"
               >
+                {/* UNE PHRASE PAR LIGNE, et la coupure est ÉCRITE, pas espérée
+                    (demande utilisateur: « met « elle » et l'autre « elle » à
+                    l'autre ligne »). Un `<br/>` ferait la même chose à cette
+                    largeur et se romprait à la première autre: le titre garde
+                    alors deux lignes ici et en fait trois ailleurs. Deux blocs
+                    donnent DEUX LIGNES quoi qu'il arrive, chacun libre de se
+                    replier sur un téléphone étroit sans mélanger les deux
+                    phrases. */}
                 {isFr ? (
                   <>
-                    Elle ne prend pas de messages. Elle prend des <SerifWord>rendez-vous.</SerifWord>
+                    <span className="block">Elle ne prend pas de messages.</span>
+                    <span className="block">
+                      Elle prend des <SerifWord>rendez-vous.</SerifWord>
+                    </span>
                   </>
                 ) : (
                   <>
-                    She doesn't take messages. She books <SerifWord>appointments.</SerifWord>
+                    <span className="block">She doesn't take messages.</span>
+                    <span className="block">
+                      She books <SerifWord>appointments.</SerifWord>
+                    </span>
                   </>
                 )}
               </Display>

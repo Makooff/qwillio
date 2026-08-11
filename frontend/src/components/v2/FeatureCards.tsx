@@ -1,20 +1,25 @@
-import type { ComponentType } from 'react';
 import RevealV2 from './RevealV2';
-import { CallRecordIllustration, WeeklyDigestIllustration } from './FeatureIllustrations';
+import ScreenShot from './ScreenShot';
 
 /* Rangées « produit » du registre clair: plus de grille de deux cartes
    étroites côte à côte. Chaque rangée occupe toute la largeur, le texte tient
    sur environ 40 pour cent et la capture sur environ 60, le côté de
    l'illustration s'inverse d'une rangée à l'autre.
 
-   L'illustration se pose sur une plate douce (radius 28) dont le cadre
-   DÉBORDE par le haut, et par le côté extérieur au-delà de lg: le visuel sort
-   de son conteneur au lieu d'y être enfermé.
+   L'illustration se pose sur une plate douce (radius 28) dont le cadre déborde
+   par le côté extérieur au-delà de lg: le visuel sort de son conteneur au lieu
+   d'y être enfermé. Il débordait aussi PAR LE HAUT; ce débordement-là est
+   retiré, parce qu'il mangeait les quarante premiers pixels de l'image,
+   c'est-à-dire le titre de la carte photographiée (« Volume d'appels »). Un
+   geste graphique ne vaut pas la perte de ce que le visuel doit montrer.
 
-   Le visuel n'est plus une CAPTURE mais du BALISAGE, repris des vrais écrans
-   du dashboard (voir FeatureIllustrations.tsx). Une capture de 1600 px rendue
-   dans 350 est illisible sur un téléphone, et la sienne ne montrait plus ce
-   dont le texte parlait.
+   Le visuel est une CAPTURE DU VRAI PORTAIL (demande utilisateur: « met le
+   vrai design quand tu utilises des écrans »). Il a été un temps du balisage
+   redessiné, parce que les anciennes captures étaient périmées et illisibles
+   une fois réduites; ce n'est plus le bon compromis depuis que les captures
+   sont RÉGÉNÉRÉES depuis le portail livré et cadrées sur leur haut (voir
+   ScreenShot.tsx et capture-screens.mjs). Un dessin, même fidèle, dérive du
+   produit à la première évolution; une capture, non.
 
    La section d'accueil est déjà une bande taupe: la plate prend donc le ton
    au-dessus (bg-q2-plate), sinon elle disparaîtrait dans le fond.
@@ -22,9 +27,10 @@ import { CallRecordIllustration, WeeklyDigestIllustration } from './FeatureIllus
    Mobile: texte puis image empilés, image pleine largeur. */
 
 interface Feature {
-  /** Clé de rendu, et non un fichier: le visuel est un composant. */
+  /** Nom du fichier dans `public/screens`, sans extension. */
   key: string;
-  Illustration: ComponentType<{ isFr: boolean }>;
+  altFr: string;
+  altEn: string;
   titleFr: string;
   titleEn: string;
   descFr: string;
@@ -36,8 +42,9 @@ const FEATURES: Feature[] = [
     /* La fiche d'appel, pas la liste: c'est elle qui porte le résumé, le
        transcript et le lecteur d'enregistrement dont parle le texte. La liste
        ne montrait qu'appelant, durée et sentiment (retour utilisateur). */
-    key: 'call-record',
-    Illustration: CallRecordIllustration,
+    key: 'fiche-appel',
+    altFr: 'La fiche d’un appel dans le portail: résumé, score du lead, coordonnées.',
+    altEn: 'A call record in the portal: summary, lead score, contact details.',
     titleFr: 'Chaque appel documenté',
     titleEn: 'Every call documented',
     descFr:
@@ -46,12 +53,16 @@ const FEATURES: Feature[] = [
       'Summary, transcript, recording, qualified lead: everything lands in your dashboard the second the call ends. Nothing gets lost, nothing needs retyping.',
   },
   {
-    key: 'weekly-digest',
-    /* Le visuel montrait la fenêtre de configuration, c'est-à-dire le sujet
-       d'une AUTRE section: le paragraphe parlait du constat hebdomadaire et
-       l'image d'autre chose (retour utilisateur: « sélectionne bien le contenu
-       qui correspond au texte »). */
-    Illustration: WeeklyDigestIllustration,
+    key: 'analytique',
+    altFr: 'La page Analytique du portail: volume d’appels, sentiment, heures de pointe.',
+    altEn: 'The portal analytics page: call volume, sentiment, peak hours.',
+    /* La page Analytique, parce que c'est LÀ que se lisent les constats dont
+       parle le texte: volume, sentiment, heures de pointe. Le visuel a montré
+       un temps la fenêtre de configuration, c'est-à-dire le sujet d'une autre
+       section (retour utilisateur: « sélectionne bien le contenu qui
+       correspond au texte »). Le constat hebdomadaire lui-même part par
+       courriel et par SMS: il n'a pas d'écran, et en inventer un serait
+       montrer une chose qui n'existe pas. */
     /* Le titre ne parle plus de « corriger en parlant »: la section « Mise en
        route » de la Home dit déjà exactement ça, et les deux se répondaient en
        écho (retour utilisateur). Ici, le sujet est le CONSTAT qui vous arrive
@@ -95,16 +106,16 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
 
               {/* La plate, et le cadre qui en sort par le haut */}
               <div
-                className={`q2-card-hover min-w-0 rounded-[24px] sm:rounded-[28px] bg-q2-plate px-4 pb-4 pt-0 sm:px-8 sm:pb-8 lg:px-10 lg:pb-10 ${
+                className={`q2-card-hover min-w-0 rounded-[24px] sm:rounded-[28px] bg-q2-plate p-4 sm:p-8 lg:p-10 ${
                   flipped ? 'lg:order-1' : ''
                 }`}
               >
                 <div
-                  className={`-mt-6 lg:-mt-10 rounded-[16px] border border-q2-plate bg-q2-carbon overflow-hidden shadow-[var(--q2-shadow-whisper)] ${
+                  className={`rounded-[16px] border border-q2-plate bg-q2-carbon overflow-hidden shadow-[var(--q2-shadow-whisper)] ${
                     flipped ? 'lg:-ml-6' : 'lg:-mr-6'
                   }`}
                 >
-                  <f.Illustration isFr={isFr} />
+                  <ScreenShot name={f.key} alt={isFr ? f.altFr : f.altEn} />
                 </div>
               </div>
             </article>

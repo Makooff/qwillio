@@ -58,6 +58,30 @@ const inputCls = [
   'placeholder-[#8B8BA7] focus:border-[#7349fe]/50',
 ].join(' ');
 
+/* Le résultat de l'appel est une valeur de base, pas une phrase: la fiche
+   affichait « Lead_captured » tel quel, souligne comprise, dans une page
+   française. La liste des valeurs vient de client-call.service.ts. */
+function outcomeLabel(outcome: string | null | undefined): string {
+  /* Les valeurs sont EXACTEMENT celles que le service demande au modèle
+     (client-call.service.ts): les inventer laisserait passer la valeur brute
+     pour les cas les plus courants. `booking_made` est le rendez-vous PRIS;
+     une demande de rendez-vous, elle, vit dans `bookingRequested` et n'est pas
+     un résultat d'appel. */
+  const map: Record<string, string> = {
+    booking_made: 'Rendez-vous pris',
+    info_provided: 'Renseignement donné',
+    message_taken: 'Message pris',
+    transferred: 'Transféré',
+    complaint: 'Réclamation',
+    missed: 'Appel manqué',
+    other: 'Autre',
+    spam: 'Indésirable',
+    lead_captured: 'Lead qualifié',
+  };
+  if (!outcome) return 'Non renseigné';
+  return map[outcome] || outcome.replace(/_/g, ' ');
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function ClientCalls() {
@@ -498,11 +522,14 @@ export default function ClientCalls() {
                   {[
                     { label: 'Durée', value: formatDuration(selectedCall.durationSeconds) },
                     { label: 'Date', value: formatDateTime(selectedCall.createdAt) },
-                    { label: 'Résultat', value: selectedCall.outcome || 'N/A' },
+                    { label: 'Résultat', value: outcomeLabel(selectedCall.outcome) },
                   ].map((m) => (
                     <div key={m.label} className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-3">
                       <p className="text-[10px] text-[#A1A1A8] uppercase tracking-wide mb-1">{m.label}</p>
-                      <p className="text-sm font-medium text-[#F5F5F7] capitalize">{m.value}</p>
+                      {/* Plus de `capitalize`: les libellés sont désormais des
+                        phrases françaises, et la règle les rendait
+                        « Rendez-Vous Pris ». */}
+                    <p className="text-sm font-medium text-[#F5F5F7]">{m.value}</p>
                     </div>
                   ))}
                   <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-3">

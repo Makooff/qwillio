@@ -258,6 +258,21 @@ export default function AssistantChat({
   const reduceMotion = !!useReducedMotion();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: greetingFor(initialMode, isFr) }]);
+  /* LA SALUTATION SUIT LA LANGUE, même quand celle-ci arrive après le premier
+     rendu. `isFr` vient de la langue de l'agent, elle-même lue dans les
+     réglages: au montage elle vaut donc « anglais » par défaut, et un état
+     initial fige cette valeur pour toujours. Un client francophone ouvrait la
+     page sur « What would you like to set up? » suivi d'une conversation en
+     français.
+     La réécriture ne vise QUE le fil intact: dès qu'on lui a parlé, la
+     conversation appartient à l'utilisateur et rien n'y est réécrit. */
+  useEffect(() => {
+    setMessages(m => (
+      m.length === 1 && m[0].role === 'assistant'
+        ? [{ role: 'assistant', content: greetingFor(mode, isFr) }]
+        : m
+    ));
+  }, [isFr, mode]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [listening, setListening] = useState(false);
