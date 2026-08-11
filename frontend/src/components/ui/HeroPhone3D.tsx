@@ -22,8 +22,8 @@ interface CallEvt { id: string; name: string; outcome: 'lead' | 'transfer' | 'bo
 
 /* Les appelants sont ceux du compte de démonstration (`prisma/seed-demo.ts`,
    « Clinique Lumen »): mêmes prénoms, et des numéros BELGES.
-   Le catalogue d'avant était américain — « Bright Dental », « Rivera HVAC »,
-   « +1 555 0102 » — sur un produit vendu en Belgique, et il restait en anglais
+   Le catalogue d'avant était américain (« Bright Dental », « Rivera HVAC »,
+   « +1 555 0102 ») sur un produit vendu en Belgique, et il restait en anglais
    dans la version française. Un prospect qui regarde cette animation pendant un
    appel de vente y lit un produit fait pour quelqu'un d'autre. */
 const POOL_FR: CallEvt[] = [
@@ -130,14 +130,14 @@ function SceneHome({ isFr }: { isFr: boolean }) {
     ? [
         { title: 'Nouveau lead qualifié', body: 'Marc Lefèvre', time: 'il y a 2 min' },
         { title: 'Rendez-vous confirmé', body: 'Camille Dubois', time: '11 h 26' },
-        { title: 'Appel transféré', body: 'Urgence vers Sophie', time: 'hier 11:53 PM' },
-        { title: 'Rappel programmé', body: 'Sofia Mertens — mardi', time: 'hier 19 h 09' },
+        { title: 'Appel transféré', body: 'Urgence vers Sophie', time: 'hier 23 h 53' },
+        { title: 'Rappel programmé', body: 'Sofia Mertens, mardi', time: 'hier 19 h 09' },
       ]
     : [
         { title: 'New qualified lead', body: 'Marc Lefèvre', time: '2 min ago' },
         { title: 'Appointment confirmed', body: 'Camille Dubois', time: '11:26 AM' },
         { title: 'Call transferred', body: 'Urgent case to Sophie', time: 'yest. 11:53 PM' },
-        { title: 'Callback scheduled', body: 'Sofia Mertens — Tuesday', time: 'yest. 7:09 PM' },
+        { title: 'Callback scheduled', body: 'Sofia Mertens, Tuesday', time: 'yest. 7:09 PM' },
       ];
 
   return (
