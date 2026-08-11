@@ -13,9 +13,18 @@ export default function SentimentBadge({ sentiment, size = 'sm' }: SentimentBadg
   const cls = styles[s] || styles.neutral;
   const sizeClass = size === 'md' ? 'px-3 py-1 text-sm' : 'px-2.5 py-0.5 text-xs';
 
+  /* La pastille affichait la valeur BRUTE de la base, en anglais et en
+     minuscules: « positive », « neutral », au milieu d'une page française.
+     Le sentiment est une donnée technique, son libellé est de l'interface. */
+  const labels: Record<string, string> = {
+    positive: 'Positif',
+    negative: 'Négatif',
+    neutral: 'Neutre',
+  };
+
   return (
     <span className={`inline-flex items-center rounded-full font-medium border ${cls} ${sizeClass}`}>
-      {sentiment || 'Neutral'}
+      {labels[s] || labels.neutral}
     </span>
   );
 }
