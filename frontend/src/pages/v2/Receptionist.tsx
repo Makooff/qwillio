@@ -459,12 +459,19 @@ export default function Receptionist() {
               coins: panneau à droite, puis en bas à gauche, et ainsi de suite.
               Il est posé en absolu sur CE conteneur, qui doit donc être son
               repère (`relative`). */}
-          <div ref={pillarsRef} className="relative border-t border-q2-plate">
+          {/* `isolate`: le cadre et les etapes sont ranges dans CE conteneur et
+              nulle part ailleurs, sinon un z-index negatif passerait derriere
+              le fond de la section. */}
+          <div ref={pillarsRef} className="relative isolate border-t border-q2-plate">
             <StepFrame scope={pillarsRef} radius={30} pad={14} className="hidden lg:block" />
             {pillars.map((pillar, i) => {
               const flip = i % 2 === 1;
               return (
-                <RevealV2 key={pillar.num} as="article" className="border-b border-q2-plate">
+                /* `relative z-10`: le cadre est un FOND. Il est en `absolute`,
+                   donc sans cette couche il passait par-dessus le texte et,
+                   depuis qu'il est opaque comme le panneau d'en face, il le
+                   masquait entierement. */
+                <RevealV2 key={pillar.num} as="article" className="relative z-10 border-b border-q2-plate">
                   <div className="grid lg:grid-cols-2 gap-7 sm:gap-10 lg:gap-20 items-center py-8 sm:py-12 md:py-20">
                     {/* Le cadre encadre le TEXTE, pas le panneau: le texte
                         change de côté d'un pilier à l'autre, donc le cadre

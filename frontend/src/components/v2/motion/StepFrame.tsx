@@ -138,7 +138,10 @@ export default function StepFrame({
       /* `overflow: visible`: avec une marge, le cadre déborde du conteneur
          mesuré et un SVG le rognerait par défaut. */
       style={{ overflow: 'visible' }}
-      className={`pointer-events-none absolute left-0 top-0 ${className}`}
+      /* z-0 explicite: le cadre est le FOND des etapes, qui montent en z-10.
+         Sans ordre ecrit, un element positionne passe au-dessus de ses freres
+         statiques, et un fond opaque masque alors tout le texte. */
+      className={`pointer-events-none absolute left-0 top-0 z-0 ${className}`}
     >
       <path
         ref={pathRef}
