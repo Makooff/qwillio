@@ -9,9 +9,9 @@ import { ArrowUp, ArrowDown } from '../icons';
  * repliait en 2×2 sur téléphone, Leads alignait de gros nombres colorés avec
  * une pastille. Même information, trois grammaires; on lisait trois produits.
  *
- * Celle-ci est la forme d'Analytiques, qui est la référence: icône discrète,
- * nombre en grand, libellé en petit dessous, cellules séparées par des filets
- * et jamais par des cadres.
+ * Celle-ci est la forme d'Analytiques, qui est la référence: icône discrète
+ * COLLÉE À GAUCHE du nombre, libellé en petit dessous, cellules séparées par
+ * des filets et jamais par des cadres.
  *
  * La COULEUR ne touche jamais le nombre: elle vit sur une pastille posée à
  * gauche du libellé (demande utilisateur). Un nombre se compare à ses voisins,
@@ -56,23 +56,39 @@ export default function StatStrip({ items, label }: { items: StatCell[]; label?:
       {items.map((k, i) => {
         const inner = (
           <>
-            <div className="flex items-center justify-between mb-2 min-h-[14px]">
-              {k.icon ? <k.icon size={14} className="text-white/30" aria-hidden="true" /> : <span />}
+            {/* L'icône est SUR LA MÊME LIGNE que le nombre, à sa gauche
+                (demande utilisateur). Elle était au-dessus, ce qui coûtait une
+                ligne entière de hauteur par cellule pour un signe de 14 px, et
+                laissait la rangée bien plus haute que ce qu'elle dit. Côte à
+                côte, l'icône devient ce qu'elle est: la marque du nombre, pas
+                un titre. */}
+            <div className="flex items-baseline gap-1.5 sm:gap-2">
+              {k.icon && (
+                <k.icon
+                  size={13}
+                  /* `translate-y` et non `items-center`: aligner sur la LIGNE DE
+                     BASE ferait flotter l'icône, l'aligner au centre la
+                     décalerait vers le bas des chiffres. Ce demi-pixel la pose
+                     sur la hauteur d'x. */
+                  className="text-white/30 flex-shrink-0 translate-y-[-1px] self-center"
+                  aria-hidden="true"
+                />
+              )}
+              {/* Le nombre est BLANC, toujours (demande utilisateur). La teinte
+                  d'état descend sur la pastille du libellé: c'est le libellé qui
+                  nomme l'état, donc c'est lui que la couleur doit qualifier. Le
+                  nombre, lui, se compare d'une cellule à l'autre, et cinq
+                  nombres de cinq couleurs différentes ne se comparent pas. */}
+              <p className="text-[18px] sm:text-[26px] font-bold tabular-nums leading-none text-white/90">
+                {k.value}
+              </p>
               {k.delta !== undefined && k.delta !== 0 && (
-                <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${k.delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`flex items-center gap-0.5 text-[10px] font-semibold self-center ${k.delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {k.delta > 0 ? <ArrowUp size={10} aria-hidden="true" /> : <ArrowDown size={10} aria-hidden="true" />}
                   {Math.abs(k.delta)}%
                 </span>
               )}
             </div>
-            {/* Le nombre est BLANC, toujours (demande utilisateur). La teinte
-                d'état descend sur la pastille du libellé: c'est le libellé qui
-                nomme l'état, donc c'est lui que la couleur doit qualifier. Le
-                nombre, lui, se compare d'une cellule à l'autre, et cinq
-                nombres de cinq couleurs différentes ne se comparent pas. */}
-            <p className="text-[19px] sm:text-[26px] font-bold tabular-nums leading-none text-white/90">
-              {k.value}
-            </p>
             <p className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-white/40 mt-1.5 leading-tight">
               {k.color && (
                 <span

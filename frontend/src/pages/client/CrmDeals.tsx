@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, DollarSign, Calendar, TrendingUp, User, Loader2, GripVertical, CheckCircle2, XCircle } from '../../components/icons';
+import { Plus, X, Calendar, TrendingUp, User, Loader2, GripVertical, CheckCircle2, XCircle, ChevronDown } from '../../components/icons';
 import {
   DndContext,
   DragOverlay,
@@ -113,10 +113,9 @@ function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof 
             <p className="text-[10px] text-[#A1A1A8] truncate">{deal.contactName}</p>
           </div>
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1">
-              <DollarSign size={11} className="text-[#7349fe]" />
-              <span className="text-xs font-bold text-[#7349fe]">{fmt(deal.value)}</span>
-            </div>
+            {/* Pas d'icone dollar devant un montant en euros: `fmt` porte deja
+                le symbole, et ce n'etait pas le bon. */}
+            <span className="text-xs font-bold text-[#7349fe]">{fmt(deal.value)}</span>
             <div className="flex items-center gap-1">
               <TrendingUp size={11} className="text-[#cd6afb]" />
               <span className="text-[10px] font-semibold text-[#cd6afb]">{deal.probability}%</span>
@@ -139,6 +138,129 @@ function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof 
   return (
     <div ref={setNodeRef} style={style}>
       {card}
+    </div>
+  );
+}
+
+/**
+ * La repartition du pipeline, d'un coup d'oeil.
+ *
+ * Le kanban demandait de faire defiler six colonnes pour savoir ou en est
+ * l'argent: on ne voyait jamais l'ensemble, ni sur telephone ni sur ordinateur.
+ * Une barre empilee tient la reponse sur une ligne, et chaque segment est
+ * proportionnel a la VALEUR de son etape, pas au nombre d'affaires: c'est la
+ * valeur qui se pilote.
+ *
+ * « Perdu » est exclu: additionner du perdu au pipeline en cours ferait une
+ * barre qui grandit quand les affaires echouent.
+ */
+function StageBar({ rows, total }: { rows: { key: DealStage; label: string; color: string; value: number }[]; total: number }) {
+  if (total <= 0) return null;
+  const live = rows.filter(r => r.key !== 'lost' && r.value > 0);
+  if (live.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <div
+        className="flex h-2 rounded-full overflow-hidden bg-white/[0.05]"
+        role="img"
+        aria-label={live.map(r => `${r.label}: ${fmt(r.value)}`).join(', ')}
+      >
+        {live.map(r => (
+          <div
+            key={r.key}
+            className="h-full first:rounded-l-full last:rounded-r-full"
+            style={{ width: `${(r.value / total) * 100}%`, background: r.color }}
+          />
+        ))}
+      </div>
+      {/* Pas de legende sous la barre: la liste d'etapes juste en dessous porte
+          deja la meme pastille, le meme libelle et le meme montant. Deux fois
+          la meme information, c'est une de trop, et c'est la hauteur qui la
+          paie. La barre ne dit que la PROPORTION. */}
+    </div>
+  );
+}
+
+/**
+ * Le pipeline sur telephone: une etape par ligne, repliee.
+ *
+ * Le kanban est une grammaire d'ORDINATEUR. Sur un ecran de 390 px il donnait
+ * une colonne et demie, et il fallait faire defiler pour decouvrir qu'il en
+ * existait six: on ne savait meme pas ce qu'on ne voyait pas. Six lignes
+ * tiennent dans un ecran, l'etat complet se lit sans un geste, et on ouvre
+ * celle qui interesse.
+ *
+ * Le glisser-deposer disparait ici, et c'est un gain: sur tactile il se dispute
+ * le geste avec le defilement de la page. Un selecteur d'etape le remplace, ce
+ * qui est aussi la seule facon d'y arriver au clavier.
+ */
+function StageAccordion({
+  stages, dealsByStage, openStage, onToggle, onMove,
+}: {
+  stages: typeof STAGES;
+  dealsByStage: (s: DealStage) => Deal[];
+  openStage: DealStage | null;
+  onToggle: (s: DealStage) => void;
+  onMove: (dealId: string, stage: DealStage) => void;
+}) {
+  return (
+    <div className="lg:hidden divide-y divide-white/[0.06] border-y border-white/[0.06]">
+      {stages.map(stage => {
+        const rows = dealsByStage(stage.key);
+        const total = rows.reduce((s, d) => s + d.value, 0);
+        const open = openStage === stage.key;
+
+        return (
+          <div key={stage.key}>
+            <button
+              type="button"
+              onClick={() => onToggle(stage.key)}
+              aria-expanded={open}
+              data-radius="keep"
+              className="w-full flex items-center gap-3 py-3.5 text-left"
+            >
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} aria-hidden="true" />
+              <span className="text-[13px] font-medium text-[#F5F5F7] flex-1 min-w-0 truncate">{stage.label}</span>
+              <span className="text-[11px] tabular-nums text-white/40">{rows.length}</span>
+              <span className="text-[13px] font-semibold tabular-nums text-white/80 w-[72px] text-right">{fmt(total)}</span>
+              <ChevronDown
+                size={15}
+                className={`text-white/30 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                aria-hidden="true"
+              />
+            </button>
+
+            {open && (
+              <div className="pb-3 space-y-2">
+                {rows.length === 0 ? (
+                  <p className="text-[12px] text-white/35 py-2">Aucune affaire à cette étape.</p>
+                ) : rows.map(deal => (
+                  <div key={deal.id} className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-3.5 py-3">
+                    <p className="text-[13px] font-medium text-[#F5F5F7] truncate">{deal.title}</p>
+                    <p className="text-[11px] text-[#A1A1A8] mt-0.5 truncate">{deal.contactName}</p>
+                    <div className="flex items-center justify-between mt-2.5 gap-3">
+                      <span className="text-[13px] font-semibold tabular-nums text-[#7349fe]">{fmt(deal.value)}</span>
+                      <span className="text-[11px] text-white/35 tabular-nums">{deal.closeDate}</span>
+                    </div>
+                    <label className="sr-only" htmlFor={`stage-${deal.id}`}>Étape de {deal.title}</label>
+                    <select
+                      id={`stage-${deal.id}`}
+                      value={deal.stage}
+                      onChange={e => onMove(deal.id, e.target.value as DealStage)}
+                      className="mt-3 w-full text-[12px] py-2 px-3"
+                    >
+                      {STAGES.map(s => (
+                        <option key={s.key} value={s.key}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -197,6 +319,9 @@ export default function CrmDeals() {
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
   const [contacts, setContacts] = useState<{ id: string; name: string }[]>([]);
   const [overStage, setOverStage] = useState<DealStage | null>(null);
+  /* Sur telephone, une seule etape ouverte a la fois: c'est ce qui garde les
+     six lignes visibles au-dessus de celle qu'on lit. */
+  const [openStage, setOpenStage] = useState<DealStage | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -275,15 +400,21 @@ export default function CrmDeals() {
       : (STAGES.find(s => s.key === over.id)?.key ?? draggedDeal.stage) as DealStage;
 
     if (draggedDeal.stage === targetStage) return;
+    await moveDeal(draggedDeal.id, targetStage);
+  };
 
-    // Optimistic update
-    setDeals(prev => prev.map(d => d.id === draggedDeal.id ? { ...d, stage: targetStage } : d));
+  /* Le changement d'etape, une seule fois: le glisser-deposer de l'ordinateur
+     et le selecteur du telephone doivent ecrire pareil, y compris le retour en
+     arriere quand le serveur refuse. */
+  const moveDeal = async (dealId: string, targetStage: DealStage) => {
+    const current = deals.find(d => d.id === dealId);
+    if (!current || current.stage === targetStage) return;
 
+    setDeals(prev => prev.map(d => d.id === dealId ? { ...d, stage: targetStage } : d));
     try {
-      await api.put(`/crm/deals/${draggedDeal.id}`, { stage: targetStage });
+      await api.put(`/crm/deals/${dealId}`, { stage: targetStage });
     } catch {
-      // Revert on failure
-      setDeals(prev => prev.map(d => d.id === draggedDeal.id ? { ...d, stage: draggedDeal.stage } : d));
+      setDeals(prev => prev.map(d => d.id === dealId ? { ...d, stage: current.stage } : d));
     }
   };
 
@@ -346,7 +477,24 @@ export default function CrmDeals() {
         ]}
       />
 
-      {/* Kanban board with drag-and-drop */}
+      {/* La repartition d'abord, quel que soit l'ecran: c'est la reponse a
+          « ou en est le pipeline », et elle ne demandait aucun defilement. */}
+      <StageBar
+        rows={STAGES.map(st => ({ key: st.key, label: st.label, color: st.color, value: stageTotal(st.key) }))}
+        total={totalPipeline}
+      />
+
+      <StageAccordion
+        stages={STAGES}
+        dealsByStage={stageDeals}
+        openStage={openStage}
+        onToggle={(st) => setOpenStage(prev => (prev === st ? null : st))}
+        onMove={moveDeal}
+      />
+
+      {/* Kanban, ORDINATEUR seulement. C'est une grammaire de grand ecran: a
+          390 px il donnait une colonne et demie et cachait l'existence des
+          quatre autres. */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -354,7 +502,7 @@ export default function CrmDeals() {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="overflow-x-auto pb-4">
+        <div className="hidden lg:block overflow-x-auto pb-4">
           <div className="flex gap-3 min-w-max">
             {STAGES.map(stage => (
               <StageColumn
