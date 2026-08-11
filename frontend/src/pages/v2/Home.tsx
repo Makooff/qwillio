@@ -154,15 +154,14 @@ function HeroBackdrop() {
          voyait donc qu'une tache floue en haut à droite (retour utilisateur:
          « très mauvaise qualité, très mal cadrée »). Le cadre suit désormais une
          fraction de la fenêtre, proche du 3:2 du fichier à toutes les tailles.
-         La largeur est PLAFONNÉE, et c'est le second correctif, celui de la
-         définition. Le rush d'origine mesure 1440x1080, dont 122 px de bande
-         noire, soit 1440x958 utiles, encodés en 1280x852. Étalé sur toute la
-         largeur d'un grand écran, il est agrandi deux fois, et un agrandissement
-         de deux ne se rattrape pas: c'est lui que l'on lit comme « très mauvaise
-         qualité ». Le plafond ci-dessous garde le facteur sous 1,2 en CSS.
-         Au-delà, il faut un export du montage en 1920 ou 2560 de large: aucun
-         réglage ici n'invente les pixels manquants. */
-      className="absolute top-0 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] sm:w-[calc(100%-3rem)] lg:w-[calc(100%-5rem)] max-w-[1180px] h-[46vh] sm:h-[56vh] lg:h-[64vh] max-h-[720px] rounded-[28px] sm:rounded-[40px] overflow-hidden pointer-events-none"
+         La largeur n'est PLUS plafonnée à 1180 px. Ce plafond n'existait que
+         parce que le rush ne faisait que 1280 de large et qu'il fallait brider
+         l'agrandissement. Le nouveau master fait 3528x2348 et le décor est servi
+         en 1280, 1920 ou 2560 selon l'écran (voir les `<source media>` plus
+         bas), donc il peut reprendre toute la largeur sans être agrandi.
+         Le plafond de 1560 qui reste n'est pas une question de définition mais
+         de composition: au-delà, le décor cesse d'être un décor. */
+      className="absolute top-0 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] sm:w-[calc(100%-3rem)] lg:w-[calc(100%-5rem)] max-w-[1560px] h-[46vh] sm:h-[56vh] lg:h-[64vh] max-h-[760px] rounded-[28px] sm:rounded-[40px] overflow-hidden pointer-events-none"
       aria-hidden="true"
       /* VIGNETTE, en MASQUE et non en couche peinte par-dessus.
          Peindre la couleur du canvas au-dessus du décor, c'est poser un aplat
@@ -240,8 +239,24 @@ function HeroBackdrop() {
           onPlaying={() => setPlaying(true)}
           style={{ opacity: playing ? 'var(--q2-hero-media)' : 0 }}
         >
-          <source src="/hero-lake.webm" type="video/webm" />
-          <source src="/hero-lake.mp4" type="video/mp4" />
+          {/* TROIS DÉFINITIONS, et chaque écran ne télécharge QUE la sienne.
+              L'attribut `media` d'une `<source>` est évalué une fois, au
+              chargement: un téléphone ne tire donc jamais le fichier de 2560, et
+              un grand écran n'hérite plus d'un rush trop petit qu'il faudrait
+              agrandir. C'est ce compromis, et lui seul, qui permet d'avoir de la
+              définition sur un 27 pouces sans plomber la 4G.
+              L'ordre compte deux fois: `media` du plus grand au plus petit, car
+              le navigateur prend la PREMIÈRE source qui correspond; et WebM
+              avant MP4, car il pèse un tiers de moins là où il est lu. Safari,
+              qui ignore le VP9 ici, tombe sur le MP4 juste en dessous.
+              Les cotes sont celles du fichier livré: master 3528x2348 en 24 i/s,
+              aller-retour de 30 s, sans son. */}
+          <source media="(min-width: 1600px)" src="/hero-lake-2560.webm" type="video/webm" />
+          <source media="(min-width: 1600px)" src="/hero-lake-2560.mp4" type="video/mp4" />
+          <source media="(min-width: 900px)" src="/hero-lake-1920.webm" type="video/webm" />
+          <source media="(min-width: 900px)" src="/hero-lake-1920.mp4" type="video/mp4" />
+          <source src="/hero-lake-1280.webm" type="video/webm" />
+          <source src="/hero-lake-1280.mp4" type="video/mp4" />
         </video>
         )}
       </div>
