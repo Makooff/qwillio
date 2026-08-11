@@ -463,7 +463,15 @@ export default function Receptionist() {
               nulle part ailleurs, sinon un z-index negatif passerait derriere
               le fond de la section. */}
           <div ref={pillarsRef} className="relative isolate border-t border-q2-plate">
-            <StepFrame scope={pillarsRef} radius={30} pad={14} className="hidden lg:block" />
+            {/* `pad={0}` et `radius={28}`: le cadre ne se calcule plus une boîte
+                à lui, il reprend EXACTEMENT celle du panneau d'en face. Le
+                bloc de texte porte désormais la même respiration (`p-6 sm:p-8`)
+                et le même rayon qu'un `CardV2 large`, et la rangée est en
+                `items-stretch`, si bien que les deux colonnes ont la même
+                hauteur. Avant, une marge de 14 px autour d'un texte nu contre
+                32 px de respiration en face donnait deux boîtes de tailles
+                différentes sur une même ligne (retour utilisateur). */}
+            <StepFrame scope={pillarsRef} radius={28} pad={0} className="hidden lg:block" />
             {pillars.map((pillar, i) => {
               const flip = i % 2 === 1;
               return (
@@ -472,13 +480,26 @@ export default function Receptionist() {
                    depuis qu'il est opaque comme le panneau d'en face, il le
                    masquait entierement. */
                 <RevealV2 key={pillar.num} as="article" className="relative z-10 border-b border-q2-plate">
-                  <div className="grid lg:grid-cols-2 gap-7 sm:gap-10 lg:gap-20 items-center py-8 sm:py-12 md:py-20">
+                  {/* `items-stretch` (le défaut) et non `items-center`: c'est
+                      lui qui donne aux deux colonnes la même hauteur, donc au
+                      cadre la même boîte que le panneau. En `items-center`, le
+                      `h-full` du panneau ne s'appliquait à rien. */}
+                  <div className="grid lg:grid-cols-2 gap-7 sm:gap-10 lg:gap-20 py-8 sm:py-12 md:py-20">
                     {/* Le cadre encadre le TEXTE, pas le panneau: le texte
                         change de côté d'un pilier à l'autre, donc le cadre
                         traverse la scène en diagonale et se déforme sur tout
                         le trajet. Autour du panneau il n'aurait fait que
                         descendre. */}
-                    <div data-step-frame className={flip ? 'lg:order-2' : ''}>
+                    {/* Même respiration qu'un `CardV2 large` (`p-6 sm:p-8`), et
+                        le texte centré: le cadre a ainsi le même écart au-dessus
+                        et au-dessous de son contenu que le panneau d'en face.
+                        Sous `lg` le cadre n'est pas rendu, la marge y est donc
+                        retirée pour ne pas décaler un texte qui n'a plus de
+                        cadre autour de lui. */}
+                    <div
+                      data-step-frame
+                      className={`lg:p-8 flex flex-col justify-center ${flip ? 'lg:order-2' : ''}`}
+                    >
                       <div className="flex items-center gap-3 mb-4 sm:mb-6">
                         <span className="w-11 h-11 rounded-full bg-q2-plate flex items-center justify-center">
                           <pillar.icon size={18} className="text-q2-indigo" aria-hidden="true" />
@@ -490,7 +511,10 @@ export default function Receptionist() {
                         {pillar.body}
                       </p>
                     </div>
-                    <div className={flip ? 'lg:order-1' : ''}>
+                    {/* `data-step-mask`: le cadre s'efface dans une bande autour
+                        de ce panneau au lieu de le frôler en travers de la
+                        scène (demande utilisateur). */}
+                    <div data-step-mask className={flip ? 'lg:order-1' : ''}>
                       <Panel label={pillar.panelLabel}>
                         <ul className="divide-y divide-q2-plate" role="list">
                           {pillar.panelRows.map((row) => (
