@@ -83,54 +83,30 @@ const MOCKUP = {
    c'est la page qui reparaît, exactement de sa couleur. Noir en sombre, blanc
    en clair, sans qu'aucune couleur ne soit écrite ici et sans un aplat par
    thème à faire tomber pile sur le fond.
-   Verticalement le HAUT et le BAS se dissolvent (demande utilisateur), pas
-   seulement le bas: le décor passe sous la barre de nav, et une arête franche
-   s'y verrait. Horizontalement les DEUX flancs, le gauche plus long que le
-   droit parce que la colonne de texte vit à gauche et que le contraste y a été
-   mesuré à 1,0:1 quand l'image y montait. */
-/* Les rampes portent BEAUCOUP de paliers, et c'est tout le correctif.
-   Un dégradé CSS à trois paliers s'interpole linéairement entre eux: l'oeil ne
-   voit pas la rampe, il voit les CASSURES de pente à chaque palier, et c'est
-   exactement ce qui se lisait comme « les dégradés sur les côtés sont trop
-   forts » (retour utilisateur). Les paliers ci-dessous suivent une courbe en S,
-   si bien que la pente ne change jamais d'un coup: le fondu devient long et
-   diffus au lieu d'être franc et court. Les valeurs de fin sont aussi plus
-   douces, le décor s'éteint plus tôt et plus lentement. */
-/* PLUS DE FONDU EN HAUT, et c'est une correction, pas un oubli.
-   Il en portait un, qui effaçait le décor sur les 36 premiers pour cent: sous la
-   barre de nav il ne restait donc que la couleur de la page, c'est-à-dire une
-   bande blanche en clair et noire en sombre (retour utilisateur). Le décor monte
-   maintenant jusqu'au bord haut, et ce qui le sépare de la nav n'est plus un
-   aplat mais un FONDU DE FLOU (voir `HERO_TOP_HAZE`). Seul le bas se dissout
-   encore, parce qu'il doit rejoindre la suite de la page. */
+   Les paliers suivent une courbe en S. Un dégradé à trois paliers s'interpole
+   linéairement entre eux: l'oeil ne voit pas la rampe, il voit les CASSURES de
+   pente à chaque palier, et c'est ce qui se lisait comme un dégradé « trop
+   fort ». */
+/* LE SEUL FONDU, et il ne joue que sur le HAUT et le BAS (demande utilisateur).
+   Il y en avait trois qui se cumulaient: celui-ci, un fondu des deux flancs, et
+   une lentille elliptique qui eteignait les quatre coins. Empiles, ils ne
+   laissaient voir la video qu'au centre droit, et a une opacite basse par-dessus:
+   d'ou « pas assez visible ». Les deux autres sont supprimes, le decor va
+   maintenant d'un flanc a l'autre.
+   Plein a 100 % du haut jusqu'a la moitie, puis dissous vers le bas: il doit
+   rejoindre la suite de la page, et le haut est deja traite par le voile de flou
+   sous la nav.
+   La rampe est longue et elle s'eteint AVANT le bord: a 95 % il restait 12 %
+   d'opacite, assez pour que la decoupe arrondie du cadre se voie comme une
+   arete. Elle atteint zero a 99 %, donc la forme du cadre ne se lit plus. */
 const HERO_MASK_V =
-  'linear-gradient(to bottom, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.92) 54%, rgba(0,0,0,0.80) 65%, rgba(0,0,0,0.56) 75%, rgba(0,0,0,0.30) 85%, rgba(0,0,0,0.10) 93%, transparent 100%)';
+  'linear-gradient(to bottom, #000 0%, #000 52%, rgba(0,0,0,0.94) 60%, rgba(0,0,0,0.84) 67%, rgba(0,0,0,0.68) 74%, rgba(0,0,0,0.48) 81%, rgba(0,0,0,0.28) 87%, rgba(0,0,0,0.12) 92%, rgba(0,0,0,0.03) 96%, transparent 99%)';
 /* Le fondu de flou du HAUT: plein sous la nav, éteint plus bas. Comme le voile
    des bords, il ne peint rien, il ne fait que brouiller ce qui passe dessous:
    la vidéo reste visible derrière le menu, en diffus, au lieu d'être remplacée
    par un aplat. */
 const HERO_TOP_HAZE =
   'linear-gradient(to bottom, #000 0%, #000 34%, rgba(0,0,0,0.82) 52%, rgba(0,0,0,0.52) 70%, rgba(0,0,0,0.22) 86%, transparent 100%)';
-/* Le flanc DROIT s'éteint sur un quart de la largeur au lieu d'un huitième, et
-   ne monte plus jamais à l'opacité pleine près du bord: c'est la pente, et non
-   la longueur, qui trahissait le dégradé (retour utilisateur: « ils se voient
-   trop sur les côtés »). */
-const HERO_MASK_H =
-  'linear-gradient(to right, transparent 0%, transparent 38%, rgba(0,0,0,0.05) 48%, rgba(0,0,0,0.16) 56%, rgba(0,0,0,0.34) 64%, rgba(0,0,0,0.56) 72%, rgba(0,0,0,0.74) 79%, rgba(0,0,0,0.86) 85%, rgba(0,0,0,0.78) 90%, rgba(0,0,0,0.56) 94%, rgba(0,0,0,0.28) 97%, rgba(0,0,0,0.08) 99%, transparent 100%)';
-/* LA LENTILLE (demande utilisateur): net au centre, éteint dans les quatre
-   coins. Une ellipse tient les coins tout seuls — c'est sa géométrie qui les
-   atteint en dernier, il n'y a aucun réglage par coin à écrire. */
-const HERO_MASK_LENS =
-  'radial-gradient(118% 96% at 50% 40%, #000 0%, #000 42%, rgba(0,0,0,0.92) 58%, rgba(0,0,0,0.70) 72%, rgba(0,0,0,0.40) 84%, rgba(0,0,0,0.14) 93%, transparent 100%)';
-/* Le FLOU va SOUS le dégradé (demande utilisateur), donc son masque est
-   l'inverse de la lentille: rien au centre, plein aux bords. Le fondu ne tombe
-   plus sur une image nette, il tombe sur une image déjà diffuse, et c'est ce qui
-   enlève l'arête. */
-/* La couronne commence plus loin du centre qu'avant (48 % au lieu de 34 %):
-   le cadre s'étant resserré autour du média, une couronne large mangeait une
-   part bien plus grande de ce que l'on voit, et le rush passait pour flou. */
-const HERO_MASK_LENS_INVERSE =
-  'radial-gradient(118% 96% at 50% 40%, transparent 0%, transparent 48%, rgba(0,0,0,0.18) 62%, rgba(0,0,0,0.46) 74%, rgba(0,0,0,0.76) 86%, #000 100%)';
 
 function HeroBackdrop() {
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -180,30 +156,18 @@ function HeroBackdrop() {
         maskImage: HERO_MASK_V,
       }}
     >
-      {/* FONDU DE GAUCHE, et c'est le plus important des trois.
-          Mesure faite sur le rendu: sous le paragraphe du hero, le rapport de
-          contraste tombait à 1,0:1 — le texte disparaissait dans la forêt. Et
-          aucune opacité ne le sauvait: même à 30 % le pire cas plafonnait à
-          2,6:1, sous les 4,5:1 exigés. Ce n'est pas un réglage d'intensité,
-          c'est une question de PLACE: le décor doit s'effacer là où le texte
-          vit, et rester entier là où il n'y a rien. La colonne de texte occupe
-          la gauche, le décor commence donc à droite.
-          Le masque est PLEINEMENT transparent jusqu'à 50 %, un peu au-delà du
-          paragraphe: un simple affaiblissement ne suffisait pas, il restait
-          assez d'image pour retenir le contraste sous les 4,5:1. Réserve
-          connue: `q2-body` sur `q2-canvas` plafonne de toute façon à 4,54:1,
-          donc la marge est mince et toute décoration ajoutée ici la reprendra. */}
-      <div
-        className="absolute inset-0"
-        style={{ WebkitMaskImage: HERO_MASK_H, maskImage: HERO_MASK_H }}
-      >
-      {/* LA LENTILLE. Elle porte le média, et elle seule: le voile de flou est
-          son frère, pas son enfant, sinon la lentille l'effacerait précisément
-          là où il doit agir. */}
-      <div
-        className="absolute inset-0"
-        style={{ WebkitMaskImage: HERO_MASK_LENS, maskImage: HERO_MASK_LENS }}
-      >
+      {/* PLUS DE FONDU LATÉRAL NI DE LENTILLE (demande utilisateur: garder le
+          haut et le bas seulement). Il y en avait un de chaque, et ils
+          coûtaient cher: le fondu de gauche effaçait le décor sur toute la
+          moitié gauche, la lentille éteignait les quatre coins, et la vidéo ne
+          se voyait plus que dans un quart de son cadre.
+          Réserve connue et surveillée: c'est ce fondu de gauche qui protégeait
+          le contraste du titre et du paragraphe, mesuré une fois à 1,0:1 quand
+          l'image montait dessous. Le décor est donc descendu en opacité pour
+          compenser, et les quatre contrastes sont remesurés à chaque
+          changement. Si l'un repasse sous le seuil, c'est l'opacité qu'il faut
+          reprendre, pas le fondu. */}
+      <div className="absolute inset-0">
         {/* Le plancher. Retiré seulement si l'IMAGE échoue: le retirer parce que
             la vidéo joue enlèverait le seul décor du cas où la vidéo s'arrête. */}
         {!photoFailed && (
@@ -261,30 +225,9 @@ function HeroBackdrop() {
         )}
       </div>
 
-        {/* LE FLOU DES BORDS, posé PAR-DESSUS le média et SOUS le fondu.
-            `backdrop-filter` plutôt qu'une seconde copie floutée du média: la
-            copie ferait décoder la vidéo deux fois pour un voile que l'on ne
-            regarde pas. Là où le navigateur refuse le filtre, il ne reste que
-            les fondus, c'est-à-dire l'état précédent: aucune régression.
-            DEUX éléments, et c'est indispensable: le masque est porté par le
-            parent, le filtre par l'enfant. Sur les deux au même endroit, Safari
-            renonce simplement à peindre le flou — donc sur iPhone, précisément
-            l'appareil pour lequel ce voile a été demandé, il n'existait pas.
-            `translateZ(0)` force une couche de composition, ce dont le filtre a
-            besoin pour être pris en compte. */}
-        <div
-          className="absolute inset-0"
-          style={{ WebkitMaskImage: HERO_MASK_LENS_INVERSE, maskImage: HERO_MASK_LENS_INVERSE }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{
-              WebkitBackdropFilter: 'blur(14px)',
-              backdropFilter: 'blur(14px)',
-              transform: 'translateZ(0)',
-            }}
-          />
-        </div>
+        {/* La couronne de flou des bords est retirée avec la lentille dont elle
+            était l'inverse: elle brouillait aussi les flancs, qui n'ont plus de
+            fondu à adoucir. Seul reste le voile du haut, sous la nav. */}
 
         {/* LE FONDU DE FLOU SOUS LA NAV (demande utilisateur).
             Il remplace la bande de couleur qu'il y avait là: le décor n'est plus
@@ -305,7 +248,6 @@ function HeroBackdrop() {
             }}
           />
         </div>
-      </div>
     </div>
   );
 }
