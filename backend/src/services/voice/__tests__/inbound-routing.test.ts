@@ -136,6 +136,10 @@ describe('multi-sites', () => {
       multiSite('c2', '+3223334455', []),
     ]);
 
-    expect((await inboundRoutingService.resolveClient('+3223334455')).kind).toBe('resolved');
+    /* Les deux fixtures ont la MEME date: c'est le cas d'egalite, et il doit
+       rester stable. Sans le departage par identifiant, l'ordre venait de la
+       base et le meme appelant pouvait tomber ailleurs a l'appel suivant. */
+    expect(await inboundRoutingService.resolveClient('+3223334455'))
+      .toMatchObject({ kind: 'resolved', clientId: 'c1' });
   });
 });

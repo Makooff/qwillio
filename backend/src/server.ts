@@ -58,6 +58,7 @@ import aiAgentsRoutes from './routes/ai-agents.routes';
 import agencyRoutes from './routes/agency.routes';
 import affiliateRoutes from './routes/affiliate.routes';
 import { clientPortalUrl } from './utils/urls';
+import { allocateInboundNumber } from './services/voice/phone-allocation.service';
 
 const app = express();
 
@@ -422,21 +423,17 @@ async function runBootstrap() {
              activé ensuite se retrouvait à deux sur le même numéro: les DEUX
              devenaient injoignables. Le compte de test n'a pas besoin de
              recevoir des appels entrants pour remplir son rôle, qui est de
-             donner un portail peuplé. */
-          const lineHeldByRealClient = env.VAPI_PHONE_NUMBER
-            ? await prisma.client.findFirst({
-                where: {
-                  userId: { not: user.id },
-                  vapiPhoneNumber: env.VAPI_PHONE_NUMBER,
-                  subscriptionStatus: { in: ['active', 'trialing'] },
-                },
-                select: { id: true },
-              })
-            : null;
-          const bootstrapPhone = lineHeldByRealClient ? null : (env.VAPI_PHONE_NUMBER || null);
-          if (lineHeldByRealClient) {
+             donner un portail peuplé.
+             L'attribution passe par le MEME service que l'onboarding: un second
+             contrôle écrit ici finirait par diverger de celui qui fait foi. Le
+             client de test n'existe pas encore au premier démarrage, d'où
+             l'identifiant vide qui n'exclut personne. */
+          const bootstrapAllocation = await allocateInboundNumber(existingClient?.id ?? '');
+          const bootstrapPhone =
+            bootstrapAllocation.kind === 'allocated' ? bootstrapAllocation.number : null;
+          if (!bootstrapPhone) {
             logger.warn(
-              `[bootstrap] ${env.VAPI_PHONE_NUMBER} appartient à un client réel — ` +
+              `[bootstrap] ${env.VAPI_PHONE_NUMBER || '(aucun numéro)'} indisponible — ` +
                 'le compte de test reste sans ligne entrante.',
             );
           }
@@ -497,7 +494,9 @@ async function runBootstrap() {
               stripeCustomerId:      'cus_bootstrap_test',
               stripeSubscriptionId:  'sub_bootstrap_test',
               vapiAssistantId:       env.VAPI_ASSISTANT_ID || undefined,
-              vapiPhoneNumber:       bootstrapPhone ?? undefined,
+              // `null` et non `undefined`: si la ligne est passée à un vrai
+              // client, le compte de test doit la relâcher, pas la conserver.
+              vapiPhoneNumber:       bootstrapPhone,
               forwardingStatus:      user.businessPhone ? 'verified' : undefined,
               forwardingVerifiedAt:  user.businessPhone ? now : undefined,
             },

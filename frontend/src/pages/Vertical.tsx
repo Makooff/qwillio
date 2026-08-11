@@ -55,8 +55,8 @@ const SECTORS: Record<string, Sector> = {
         titleFr: 'Conforme RGPD',
         titleEn: 'GDPR compliant',
         bodyFr:
-          "Vous traitez les données de vos clients. Le consentement à l'enregistrement est demandé au décrochage, et rien n'est vendu ni utilisé pour entraîner des modèles.",
-        bodyEn: 'You handle your clients\' data. Consent to recording is asked at pickup, and nothing is sold or used to train models.',
+          "Vous traitez les données de vos clients. L'enregistrement est annoncé au décrochage, et rien n'est vendu ni utilisé pour entraîner un modèle externe sans votre accord.",
+        bodyEn: 'You handle your clients\' data. Recording is announced at pickup, and nothing is sold or used to train an external model without your consent.',
       },
       {
         titleFr: 'Un revenu récurrent en plus',
@@ -171,8 +171,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Conforme RGPD',
         titleEn: 'GDPR compliant',
-        bodyFr: "Consentement demandé au décrochage, aucune donnée vendue ni utilisée pour l'entraînement.",
-        bodyEn: 'Consent asked at pickup, no data sold or used for training.',
+        bodyFr: "Enregistrement annoncé au décrochage, aucune donnée vendue ni utilisée pour entraîner un modèle externe sans votre accord.",
+        bodyEn: 'Recording announced at pickup, no data sold or used to train an external model without your consent.',
       },
     ],
     plan: 'pro',
@@ -273,8 +273,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Confidentiel',
         titleEn: 'Confidential',
-        bodyFr: 'RGPD, consentement demandé à chaque appel, effacement sur demande.',
-        bodyEn: 'GDPR, consent asked on every call, erasure on request.',
+        bodyFr: 'RGPD, enregistrement annoncé à chaque appel, effacement sur demande.',
+        bodyEn: 'GDPR, recording announced on every call, erasure on request.',
       },
       {
         titleFr: 'Filtrage',

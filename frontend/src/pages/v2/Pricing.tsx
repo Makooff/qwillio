@@ -20,6 +20,12 @@ import ShapeDrift from '../../components/v2/motion/ShapeDrift';
    en affichait deux différents à cinq écrans d'intervalle. */
 export const HUMAN_PART_TIME_MONTHLY = 2300;
 
+/* Les tarifs mensuels affichés, exportés parce que la page Partenaires calcule
+   ses commissions dessus. Elle en gardait sa propre copie, et cette copie avait
+   dérivé (149 € et 470 €): elle promettait donc une commission qui n'aurait
+   jamais été versée. */
+export const PLAN_MONTHLY_EUR = { solo: 99, starter: 249, pro: 599, enterprise: 1290 } as const;
+
 interface Tier {
   id: string;
   name: string;

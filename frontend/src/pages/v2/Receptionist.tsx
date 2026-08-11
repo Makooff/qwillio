@@ -338,14 +338,14 @@ export default function Receptionist() {
   const guarantees = isFr
     ? [
         'Annonce d’enregistrement au décrochage, conforme RGPD',
-        'Vos données ne sont ni vendues ni utilisées pour entraîner des modèles',
+        'Vos données ne sont ni vendues ni utilisées pour entraîner un modèle externe sans votre accord',
         'Les appels spam sont écartés et ne comptent pas dans vos minutes',
         'Disponible 24/7, français et anglais sur le même appel',
         `À partir de 99${NB}€ par mois, sans engagement`,
       ]
     : [
         'Recording announced at pickup, GDPR compliant',
-        'Your data is never sold, never used to train models',
+        'Your data is never sold, never used to train an external model without your consent',
         'Spam calls are filtered out and never counted against your minutes',
         'Available 24/7, French and English on the same call',
         'From €99 a month, no commitment',

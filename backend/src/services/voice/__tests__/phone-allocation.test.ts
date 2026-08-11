@@ -48,6 +48,17 @@ describe('allocateInboundNumber', () => {
     expect((await allocateInboundNumber('c1')).kind).toBe('none');
   });
 
+  it("le dit quand aucun numéro n'est configuré", async () => {
+    /* Branche visible par l'exploitant: `onboarding.service.ts` en tire un autre
+       message d'alerte que celui d'une ligne déjà prise. */
+    vi.resetModules();
+    vi.doMock('../../../config/env', () => ({ env: { VAPI_PHONE_NUMBER: '', VAPI_PHONE_NUMBER_ID: '' } }));
+    const mod = await import('../phone-allocation.service');
+    expect(await mod.allocateInboundNumber('c1')).toEqual({ kind: 'none', reason: 'not_configured' });
+    vi.doUnmock('../../../config/env');
+    vi.resetModules();
+  });
+
   it("n'interroge que les clients vivants, et jamais le client lui-même", async () => {
     findMany.mockResolvedValue([]);
     await allocateInboundNumber('c1');

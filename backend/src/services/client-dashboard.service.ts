@@ -143,8 +143,14 @@ export class ClientDashboardService {
        un prospect à qui on montre l'écran voit une invention.
        Le regroupement se fait en mémoire: Prisma ne sait pas grouper par jour
        sans SQL brut, et trente jours d'appels d'un client tiennent largement. */
-    const seriesStart = new Date(today);
-    seriesStart.setDate(seriesStart.getDate() - 29);
+    /* UTC de bout en bout: la borne etait posee a minuit LOCAL alors que les
+       cles sont derivees de `toISOString()`, donc en UTC. Sur un hote qui n'est
+       pas en UTC, la serie commencait un jour trop tot et perdait les appels du
+       jour courant. */
+    const seriesEnd = new Date();
+    seriesEnd.setUTCHours(0, 0, 0, 0);
+    const seriesStart = new Date(seriesEnd);
+    seriesStart.setUTCDate(seriesStart.getUTCDate() - 29);
     const seriesCalls = await prisma.clientCall.findMany({
       where: { clientId, isSpam: false, createdAt: { gte: seriesStart } },
       select: { createdAt: true },
@@ -159,7 +165,7 @@ export class ClientDashboardService {
     const dailyCalls: { date: string; count: number }[] = [];
     for (let i = 0; i < 30; i++) {
       const d = new Date(seriesStart);
-      d.setDate(seriesStart.getDate() + i);
+      d.setUTCDate(seriesStart.getUTCDate() + i);
       const key = d.toISOString().slice(0, 10);
       dailyCalls.push({ date: key, count: perDay.get(key) ?? 0 });
     }

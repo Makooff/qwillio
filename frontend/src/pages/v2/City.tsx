@@ -115,7 +115,7 @@ export default function City() {
     ? [
         { icon: Phone, title: '24/7, bilingue', body: 'Décroche en français et en anglais, jour et nuit, sans jamais mettre en attente.' },
         { icon: CalendarDays, title: 'RDV dans votre agenda', body: 'Prend les rendez-vous, sync Google Calendar, envoie la confirmation par SMS.' },
-        { icon: ShieldCheck, title: 'Conformité RGPD', body: 'Transferts encadrés par des clauses contractuelles types, anti-spam inclus, consentement demandé au décrochage.' },
+        { icon: ShieldCheck, title: 'Conformité RGPD', body: 'Transferts encadrés par des clauses contractuelles types, anti-spam inclus, enregistrement annoncé au décrochage.' },
       ]
     : [
         { icon: Phone, title: '24/7, bilingual', body: 'Answers in French and English, day and night, never puts callers on hold.' },

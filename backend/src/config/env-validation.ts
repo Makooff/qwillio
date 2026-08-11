@@ -47,7 +47,9 @@ export function validateEnv(e: EnvLike): { errors: string[]; warnings: string[] 
      toujours. Un serveur qui ne peut ni répondre au téléphone ni inscrire
      personne ne doit pas se déclarer prêt: il vaut mieux un démarrage refusé,
      visible dans Render, qu'une production silencieusement inutile. */
-  const degradedAllowed = e.ALLOW_DEGRADED_BOOT === '1' || e.ALLOW_DEGRADED_BOOT === 'true';
+  /* Uniquement '1', la valeur documentee. Accepter 'true' en plus offrait une
+     seconde facon, non ecrite, de demarrer sans les secrets. */
+  const degradedAllowed = e.ALLOW_DEGRADED_BOOT === '1';
   /* La soupape existe pour qu'un oubli ne puisse jamais immobiliser un déploiement
      d'urgence: poser ALLOW_DEGRADED_BOOT=1 dans Render fait redescendre ces deux
      points en avertissements. Sans elle, un correctif sans rapport deviendrait

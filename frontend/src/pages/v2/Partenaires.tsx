@@ -5,6 +5,7 @@ import PublicShell from '../../components/v2/PublicShell';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
+import { PLAN_MONTHLY_EUR } from './Pricing';
 
 /* Partenaires fiduciaires V2 « Papier & Signal », voir DA/v2-direction.md.
    Copie FR/EN, useSEO, calculs de commission et CTA mailto portés de la V1
@@ -56,11 +57,11 @@ export default function Partenaires() {
         ['4', 'Tracking is automatic. Commission paid the following month.'],
       ];
 
-  /* Les VRAIS tarifs des forfaits (voir pages/v2/Pricing.tsx). La page comptait
-     sur 149 € et 470 €, si bien qu'elle promettait aux partenaires une
+  /* Les tarifs viennent de la page Tarifs, ils ne sont plus recopiés ici: la
+     copie avait dérivé (149 € et 470 €) et promettait aux partenaires une
      commission qui n'aurait jamais été versée. */
-  const solo = 99;
-  const starter = 249;
+  const solo = PLAN_MONTHLY_EUR.solo;
+  const starter = PLAN_MONTHLY_EUR.starter;
   const commission = (price: number) => Math.round(price * 0.15);
 
   const scenarios = isFr
@@ -68,34 +69,34 @@ export default function Partenaires() {
         {
           title: '10 clients Solo',
           detail: `${10 * commission(solo)} € / mois soit ${10 * commission(solo) * 12} € / an`,
-          math: `10 × ${solo} € × 15 %`,
+          math: `10 × ${commission(solo)} € (15 % de ${solo} €)`,
         },
         {
           title: '10 clients Starter',
           detail: `${10 * commission(starter)} € / mois soit ${10 * commission(starter) * 12} € / an`,
-          math: `10 × ${starter} € × 15 %`,
+          math: `10 × ${commission(starter)} € (15 % de ${starter} €)`,
         },
         {
           title: 'Mix 5 Solo + 5 Starter',
           detail: `${5 * commission(solo) + 5 * commission(starter)} € / mois soit ${(5 * commission(solo) + 5 * commission(starter)) * 12} € / an`,
-          math: `5 × ${solo} € + 5 × ${starter} €, tous à 15 %`,
+          math: `5 × ${commission(solo)} € + 5 × ${commission(starter)} €`,
         },
       ]
     : [
         {
           title: '10 Solo clients',
           detail: `${10 * commission(solo)} EUR / month, ${10 * commission(solo) * 12} EUR / year`,
-          math: `10 × ${solo} EUR × 15%`,
+          math: `10 × ${commission(solo)} EUR (15% of ${solo} EUR)`,
         },
         {
           title: '10 Starter clients',
           detail: `${10 * commission(starter)} EUR / month, ${10 * commission(starter) * 12} EUR / year`,
-          math: `10 × ${starter} EUR × 15%`,
+          math: `10 × ${commission(starter)} EUR (15% of ${starter} EUR)`,
         },
         {
           title: 'Mix 5 Solo + 5 Starter',
           detail: `${5 * commission(solo) + 5 * commission(starter)} EUR / month, ${(5 * commission(solo) + 5 * commission(starter)) * 12} EUR / year`,
-          math: `5 × ${solo} EUR + 5 × ${starter} EUR, all at 15%`,
+          math: `5 × ${commission(solo)} EUR + 5 × ${commission(starter)} EUR`,
         },
       ];
 

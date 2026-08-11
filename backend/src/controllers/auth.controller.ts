@@ -561,7 +561,7 @@ export class AuthController {
           createdAt: true,
           emailConfirmed: true,
           onboardingCompleted: true,
-          client: { select: { id: true, stripeSubscriptionId: true } },
+          client: { select: { id: true, stripeSubscriptionId: true, planType: true } },
         },
       });
 
@@ -574,6 +574,10 @@ export class AuthController {
       res.json({
         ...rest,
         clientId: client?.id || null,
+        /* Le forfait REEL du client. Sans lui, la page Compte lisait
+           `user.planType`, absent de cette reponse, et affichait « Non défini »
+           a tout le monde. C'est la fiche client qui fait foi. */
+        planType: client?.planType || null,
         // Drives the sign-up gate in the router. Existing customers reach the
         // dashboard on `onboardingCompleted` alone, so a legacy client with no
         // Stripe subscription is never bounced back to the card step.

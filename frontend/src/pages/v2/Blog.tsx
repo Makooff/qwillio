@@ -33,7 +33,9 @@ export default function Blog() {
   /* Seule page publique qui n'avait pas de SEO: pas de titre propre, pas de
      description, pas de canonique, donc invisible là où le blog sert. */
   useSEO({
-    title: isFr ? 'Blog · Qwillio' : 'Blog · Qwillio',
+    // `useSEO` ajoute lui-même « – Qwillio »: le porter ici donnerait
+    // « Blog · Qwillio – Qwillio » dans l'onglet.
+    title: 'Blog',
     description: isFr
       ? "Articles et guides sur la réceptionniste IA: appels manqués, prise de rendez-vous, RGPD, coûts réels."
       : 'Articles and guides on AI receptionists: missed calls, appointment booking, GDPR, real costs.',

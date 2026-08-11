@@ -117,6 +117,11 @@ export class OnboardingService {
       const sharedPhoneNumber = allocation.kind === 'allocated' ? allocation.number : null;
       const sharedPhoneNumberId = allocation.kind === 'allocated' ? allocation.numberId : null;
 
+      /* Ce que le client A vraiment au bout du compte: la ligne attribuee, ou
+         celle qu'un exploitant a deja posee a la main sur sa fiche. C'est cette
+         valeur-la qui part dans l'email et dans l'alerte. */
+      const effectivePhoneNumber = sharedPhoneNumber ?? client.vapiPhoneNumber ?? null;
+
       if (allocation.kind === 'allocated') {
         logger.info(`Ligne entrante attribuée: ${sharedPhoneNumber}`);
       } else {
@@ -150,11 +155,16 @@ export class OnboardingService {
         where: { id: clientId },
         data: {
           vapiAssistantId: assistant.id,
-          vapiPhoneNumber: sharedPhoneNumber,
+          /* Sans attribution, on ne TOUCHE PAS au champ. L'alerte Discord
+             ci-dessus demande a l'exploitant d'acheter un numero et de le poser
+             sur la fiche; ecrire `null` ici l'effacerait au premier passage du
+             cron de reprise, et le client redeviendrait injoignable sans
+             qu'aucune trace ne le dise. */
+          ...(sharedPhoneNumber ? { vapiPhoneNumber: sharedPhoneNumber } : {}),
           vapiConfig: {
             assistant_id: assistant.id,
-            phone_number: sharedPhoneNumber,
-            phone_number_id: sharedPhoneNumberId,
+            phone_number: effectivePhoneNumber,
+            phone_number_id: sharedPhoneNumberId ?? (client.vapiConfig as any)?.phone_number_id ?? null,
             webhook_url: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
             healthy: isHealthy,
             onboarded_at: new Date().toISOString(),
@@ -171,7 +181,7 @@ export class OnboardingService {
         businessName: client.businessName,
         planType: client.planType,
         // Sans ligne attribuée, on ne promet pas un numéro à appeler.
-        vapiPhoneNumber: sharedPhoneNumber ?? '',
+        vapiPhoneNumber: effectivePhoneNumber ?? '',
         dashboardUrl: clientPortalUrl(client.id, client.dashboardToken),
         lang: this.isFrenchClient(client) ? 'fr' : 'en',
       });
@@ -182,7 +192,7 @@ export class OnboardingService {
         : `MRR: $${client.monthlyFee} + Setup: $${client.setupFee}`;
 
       await discordService.notify(
-        `🎉 ${client.isTrial ? 'FREE TRIAL ACTIVATED' : 'NEW PAYING CLIENT'}!\n\nClient: ${client.businessName}\nPackage: ${client.planType.toUpperCase()}\n${revenueLabel}\nAI Phone: ${sharedPhoneNumber ?? 'AUCUNE LIGNE'}\nVAPI Assistant: ${assistant.id} ✅\nHealth Check: ${isHealthy ? '✅ Passed' : '⚠️ Skipped'}`
+        `🎉 ${client.isTrial ? 'FREE TRIAL ACTIVATED' : 'NEW PAYING CLIENT'}!\n\nClient: ${client.businessName}\nPackage: ${client.planType.toUpperCase()}\n${revenueLabel}\nAI Phone: ${effectivePhoneNumber ?? 'AUCUNE LIGNE'}\nVAPI Assistant: ${assistant.id} ✅\nHealth Check: ${isHealthy ? '✅ Passed' : '⚠️ Skipped'}`
       );
 
       // Pre-synthesise the greetings so the very first caller already skips the
@@ -348,7 +358,11 @@ export class OnboardingService {
     const businessName = client?.businessName || (isFrClient ? 'notre entreprise' : 'our business');
     const noticeSuppressed = cfg.disableRecordingNotice === true;
     const noticeFr = 'Pour améliorer notre service, cet appel peut être enregistré.';
-    const noticeEn = 'This call may be recorded for quality and training purposes.';
+    /* Plus de « training purposes »: le site promet que les données ne servent
+       pas à entraîner un modèle externe sans accord, et l'annonce disait le
+       contraire à l'appelant lui-même. La version française n'en parlait déjà
+       pas. */
+    const noticeEn = 'To improve our service, this call may be recorded.';
 
     if (isFrClient) {
       const greeting = `Bonjour, merci d'appeler ${businessName}.`;

@@ -1334,15 +1334,24 @@ export class ClientDashboardController {
         /* `send`, pas `sendRaw`: cette dernière n'existe pas sur le service.
            Appelée en `?.()`, elle ne levait rien et ne partait pas: aucune
            demande de support n'a jamais atteint la boîte. */
+        /* TOUT ce qui vient du client est echappe, pas seulement le message:
+           le nom de l'entreprise et le nom du contact sont eux aussi saisis par
+           l'utilisateur, et ils partaient bruts dans un email de confiance. */
+        const esc = (v: unknown) => String(v ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+
         await emailService.send({
           to: env.RESEND_REPLY_TO || 'contact@qwillio.com',
           subject: `[Support] ${subject} — ${client?.businessName || user?.email}`,
           html: `
-            <h3>Support request from ${user?.name} (${user?.email})</h3>
-            <p><strong>Business:</strong> ${client?.businessName}</p>
-            <p><strong>Plan:</strong> ${client?.planType}</p>
+            <h3>Support request from ${esc(user?.name)} (${esc(user?.email)})</h3>
+            <p><strong>Business:</strong> ${esc(client?.businessName)}</p>
+            <p><strong>Plan:</strong> ${esc(client?.planType)}</p>
             <hr/>
-            <p>${message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g, '<br/>')}</p>
+            <p>${esc(message).replace(/\n/g, '<br/>')}</p>
           `,
         });
       } catch {

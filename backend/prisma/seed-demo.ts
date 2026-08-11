@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 /**
  * Compte de démonstration: « Clinique Lumen », un mois d'activité.
@@ -15,15 +16,23 @@ import bcrypt from 'bcryptjs';
  *
  * Les données sont plausibles, pas flatteuses: des appels raccrochés, du spam,
  * des leads perdus. Un tableau de bord où tout réussit ne se croit pas.
+ *
+ * Le tirage est déterministe, la FENÊTRE ne l'est pas: elle se termine
+ * aujourd'hui, donc les jours de semaine tombent différemment d'une exécution à
+ * l'autre. C'est voulu, un tableau de bord doit montrer le mois écoulé; deux
+ * captures prises à deux jours d'intervalle ne sont donc pas superposables.
  */
 
 const prisma = new PrismaClient();
 
 const DEMO_EMAIL = 'demo@qwillio.com';
-const DEMO_PASSWORD = 'DemoQwillio2026!';
+/* Ni mot de passe ni jeton en clair dans le dépôt: un identifiant commité est
+   un identifiant public, et ce compte a le rôle `client`. Tirés à chaque
+   exécution, affichés une seule fois à qui lance la commande. */
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || crypto.randomBytes(12).toString('base64url');
+const DEMO_DASHBOARD_TOKEN = crypto.randomBytes(32).toString('hex');
 
-/* Générateur déterministe: deux exécutions donnent le même jeu, donc une
-   capture d'écran reste comparable d'une fois sur l'autre. */
+/* Générateur déterministe: à date égale, deux exécutions donnent le même jeu. */
 let seedState = 42;
 function rand(): number {
   seedState = (seedState * 1103515245 + 12345) % 2147483648;
@@ -64,6 +73,14 @@ async function main() {
       'seed-demo refuse de tourner en production: ces données ne doivent jamais côtoyer celles d\'un vrai client.',
     );
   }
+  /* `NODE_ENV` ne suffit pas: une commande lancée à la main l'omet le plus
+     souvent, et la garde ci-dessus laisse alors passer, vers ce que
+     `DATABASE_URL` désigne. On exige un accord explicite. */
+  if (process.env.ALLOW_DEMO_SEED !== '1') {
+    throw new Error(
+      'seed-demo: relancer avec ALLOW_DEMO_SEED=1 après avoir vérifié DATABASE_URL.',
+    );
+  }
 
   console.log('Compte de démonstration: création…');
 
@@ -88,7 +105,9 @@ async function main() {
 
   const client = await prisma.client.upsert({
     where: { userId: user.id },
-    update: {},
+    // Le jeton tourne à chaque exécution: un lien de portail issu d'une
+    // démonstration passée cesse d'ouvrir le compte.
+    update: { dashboardToken: DEMO_DASHBOARD_TOKEN },
     create: {
       userId: user.id,
       businessName: 'Clinique Lumen',
@@ -116,7 +135,7 @@ async function main() {
       // Volontairement SANS numéro entrant: la ligne appartient au vrai client.
       // Voir services/voice/phone-allocation.service.ts.
       vapiPhoneNumber: null,
-      dashboardToken: 'demo-dashboard-token',
+      dashboardToken: DEMO_DASHBOARD_TOKEN,
     },
   });
 
@@ -254,7 +273,8 @@ async function main() {
 
   console.log(`Client de démonstration: ${client.businessName} (${client.id})`);
   console.log(`  ${callIds.length} appels, ${leadCount} leads, 8 rendez-vous, 12 contacts`);
-  console.log(`  Connexion: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
+  console.log(`  Connexion: ${DEMO_EMAIL}`);
+  console.log(`  Mot de passe (affiché une seule fois): ${DEMO_PASSWORD}`);
 }
 
 main()

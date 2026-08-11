@@ -364,6 +364,15 @@ export class StripeService {
         ...(converting ? { isTrial: false, trialConvertedAt: new Date() } : {}),
       },
     });
+
+    /* Meme geste que `handleTrialConversion`: sans lui, un client qui vient de
+       payer continue de recevoir les relances de fin d'essai. */
+    if (converting) {
+      await prisma.reminder.updateMany({
+        where: { targetId: client.id, targetType: 'client', status: 'pending' },
+        data: { status: 'canceled' },
+      });
+    }
   }
 
   async handleSubscriptionDeleted(subscription: any) {

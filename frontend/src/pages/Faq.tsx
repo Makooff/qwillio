@@ -32,7 +32,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Mes données sont-elles protégées ?',
-    a: "Oui. Conforme au RGPD : les transferts hors EEE sont couverts par les Clauses Contractuelles Types, la liste des sous-traitants est publique, et rien n'est vendu ni utilisé pour entraîner des modèles. Le consentement à l'enregistrement est demandé au décrochage.",
+    a: "Oui. Conforme au RGPD : les transferts hors EEE sont couverts par les Clauses Contractuelles Types, la liste des sous-traitants est publique, et rien n'est vendu ni utilisé pour entraîner un modèle externe sans votre accord. L'enregistrement est annoncé au décrochage.",
   },
   {
     q: 'Que se passe-t-il en cas d\'urgence ?',
@@ -83,7 +83,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'Is my data protected?',
-    a: 'Yes. GDPR compliant: transfers outside the EEA are covered by Standard Contractual Clauses, the list of processors is public, and nothing is sold or used to train models. Consent to recording is asked at pickup.',
+    a: 'Yes. GDPR compliant: transfers outside the EEA are covered by Standard Contractual Clauses, the list of processors is public, and nothing is sold or used to train an external model without your consent. Recording is announced at pickup.',
   },
   {
     q: 'What happens in an emergency?',

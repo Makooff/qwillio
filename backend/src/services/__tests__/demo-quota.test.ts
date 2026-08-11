@@ -5,6 +5,7 @@ import {
   __resetDemoQuota,
   DEMO_DAILY_SECONDS,
   DEMO_MAX_CALL_SECONDS,
+  __setDemoUsed,
 } from '../demo-quota.service';
 
 beforeEach(() => __resetDemoQuota());
@@ -29,6 +30,17 @@ describe('quota de la démo publique', () => {
   it('compte chaque visiteur séparément', () => {
     reserveDemoSeconds('1.2.3.4');
     expect(remainingDemoSeconds('5.6.7.8')).toBe(DEMO_DAILY_SECONDS);
+  });
+
+  it("n'accorde que ce qu'il reste quand c'est moins d'un appel", () => {
+    // Ce cas ne se produit pas avec les constantes actuelles (le quota est un
+    // multiple exact d'un appel), mais il existe dans le code: sans ce test,
+    // changer l'une des deux constantes livrerait un comportement jamais joué.
+    reserveDemoSeconds('7.7.7.7');
+    reserveDemoSeconds('7.7.7.7');
+    __setDemoUsed('7.7.7.7', DEMO_DAILY_SECONDS - 20);
+    expect(reserveDemoSeconds('7.7.7.7')).toBe(20);
+    expect(remainingDemoSeconds('7.7.7.7')).toBe(0);
   });
 
   it('annonce le quota entier à qui n’a rien consommé', () => {

@@ -60,8 +60,8 @@ const SECTORS: Record<string, Sector> = {
         titleFr: 'Conforme RGPD',
         titleEn: 'GDPR compliant',
         bodyFr:
-          "Vous traitez les données de vos clients. Le consentement à l'enregistrement est demandé au décrochage, rien n'est vendu ni utilisé pour entraîner des modèles, et tout s'efface sur demande.",
-        bodyEn: 'You handle your clients\' data. Consent to recording is asked at pickup, nothing is sold or used to train models, and everything is erased on request.',
+          "Vous traitez les données de vos clients. L'enregistrement est annoncé au décrochage, rien n'est vendu ni utilisé pour entraîner un modèle externe sans votre accord, et tout s'efface sur demande.",
+        bodyEn: 'You handle your clients\' data. Recording is announced at pickup, nothing is sold or used to train an external model without your consent, and everything is erased on request.',
       },
       {
         titleFr: 'Un revenu récurrent en plus',
@@ -176,8 +176,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Conforme RGPD',
         titleEn: 'GDPR compliant',
-        bodyFr: "Consentement demandé au décrochage, aucune donnée vendue ni utilisée pour l'entraînement, effacement sur demande.",
-        bodyEn: 'Consent asked at pickup, no data sold or used for training, erasure on request.',
+        bodyFr: "Enregistrement annoncé au décrochage, aucune donnée vendue ni utilisée pour entraîner un modèle externe sans votre accord, effacement sur demande.",
+        bodyEn: 'Recording announced at pickup, no data sold or used to train an external model without your consent, erasure on request.',
       },
     ],
     plan: 'pro',
@@ -278,8 +278,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Confidentiel',
         titleEn: 'Confidential',
-        bodyFr: 'RGPD, consentement demandé à chaque appel, effacement sur demande.',
-        bodyEn: 'GDPR, consent asked on every call, erasure on request.',
+        bodyFr: 'RGPD, enregistrement annoncé à chaque appel, effacement sur demande.',
+        bodyEn: 'GDPR, recording announced on every call, erasure on request.',
       },
       {
         titleFr: 'Filtrage',

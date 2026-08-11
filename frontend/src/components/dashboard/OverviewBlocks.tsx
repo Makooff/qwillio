@@ -145,8 +145,11 @@ export function HeroTrendPanel({
   /* Plus de courbe inventée. Une série vide affichait `buildDemoSeries()`, une
      progression montante écrite en dur, servie à tous les clients: un client
      paie pour voir SES appels, et un prospect à qui l'on montre l'écran voyait
-     une fiction. Sans donnée, on le dit. */
-  const empty = series.length === 0;
+     une fiction. Sans donnée, on le dit.
+     « Vide » couvre AUSSI une série entièrement à zéro: le serveur renvoie
+     toujours trente entrées, une par jour, donc `length === 0` ne se produit
+     jamais et un client sans appel aurait vu une ligne plate au ras de l'axe. */
+  const empty = series.length === 0 || series.every(p => p.value === 0);
 
   return (
     <div className="py-6">

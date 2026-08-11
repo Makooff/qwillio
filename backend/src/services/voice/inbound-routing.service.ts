@@ -1,5 +1,6 @@
 import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
+import { normalizeNumber } from './phone-allocation.service';
 
 /**
  * Which client an inbound call belongs to (`assistant-request` routing).
@@ -21,12 +22,10 @@ export type InboundResolution =
   | { kind: 'resolved'; clientId: string; businessName: string; lineLabel?: string }
   | { kind: 'unknown'; dialed: string | null };
 
-/** Digits only, so "+1 (607) 354-8569" and "+16073548569" compare equal. */
-function normalizeNumber(raw: unknown): string | null {
-  if (typeof raw !== 'string') return null;
-  const digits = raw.replace(/\D/g, '');
-  return digits.length >= 8 ? digits : null;
-}
+/* `normalizeNumber` vient de l'attribution, et non d'une copie locale: l'un
+   decide de la PROPRIETE d'une ligne, l'autre de son ROUTAGE. Deux definitions
+   qui divergeraient enverraient les appels chez un client qui n'a jamais tenu
+   le numero. */
 
 class InboundRoutingService {
   /**
@@ -95,11 +94,15 @@ class InboundRoutingService {
          d'exploitation, à corriger en achetant une ligne, pas un cas normal.
          `allocateInboundNumber` empêche désormais cette situation de naître; ce
          bloc ne couvre que les fiches posées à la main ou héritées. */
-      const ranked = [...matches].sort(
-        (a, b) =>
+      const ranked = [...matches].sort((a, b) => {
+        const delta =
           (b.activationDate?.getTime() ?? b.createdAt.getTime()) -
-          (a.activationDate?.getTime() ?? a.createdAt.getTime()),
-      );
+          (a.activationDate?.getTime() ?? a.createdAt.getTime());
+        /* A dates egales, l'identifiant tranche. Sans ce second critere le
+           comparateur rend 0 et l'ordre vient de la base: le MEME appelant
+           pouvait tomber sur une entreprise differente d'un appel a l'autre. */
+        return delta !== 0 ? delta : a.id.localeCompare(b.id);
+      });
       const chosen = ranked[0];
       logger.error(
         `[InboundRouting] ${matches.length} clients partagent ${dialed} ` +

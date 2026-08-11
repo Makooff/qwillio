@@ -287,16 +287,19 @@ class BotLoop {
         });
 
         for (const client of expiredTrials) {
-          /* Relecture juste avant de couper. La liste a été bâtie plus haut, et
-             entre les deux un paiement a pu arriver: supprimer l'assistant Vapi
-             d'un client qui vient de payer est irréversible pour lui (ses appels
-             tombent) et coûteux pour nous (il résilie). Une lecture de plus vaut
-             mieux que ce risque. */
-          const fresh = await prisma.client.findUnique({
-            where: { id: client.id },
-            select: { isTrial: true, subscriptionStatus: true },
+          /* Une RESERVATION, pas une relecture. La liste a été bâtie plus haut,
+             et entre les deux un paiement a pu arriver: supprimer l'assistant
+             Vapi d'un client qui vient de payer est irréversible pour lui (ses
+             appels tombent) et coûteux pour nous (il résilie). Une simple
+             lecture laisserait la fenêtre ouverte entre le contrôle et la
+             coupure; l'écriture conditionnelle la ferme, parce que c'est la
+             base qui arbitre. Zéro ligne touchée signifie « quelqu'un est passé
+             avant », et on n'y touche pas. */
+          const claimed = await prisma.client.updateMany({
+            where: { id: client.id, isTrial: true, subscriptionStatus: 'trialing' },
+            data: { subscriptionStatus: 'trial_expired', cancellationDate: new Date() },
           });
-          if (!fresh || !fresh.isTrial || fresh.subscriptionStatus !== 'trialing') {
+          if (claimed.count === 0) {
             logger.info(`Trial expiry skipped: ${client.businessName} n'est plus en essai`);
             continue;
           }
@@ -309,14 +312,6 @@ class BotLoop {
           } catch (err) {
             logger.warn(`Could not deactivate VAPI for ${client.businessName}:`, err);
           }
-
-          await prisma.client.update({
-            where: { id: client.id },
-            data: {
-              subscriptionStatus: 'trial_expired',
-              cancellationDate: new Date(),
-            },
-          });
 
           await discordService.notify(
             `⏰ TRIAL EXPIRED (auto-check)\n\nClient: ${client.businessName}\nVAPI Assistant deleted\nShared number preserved`

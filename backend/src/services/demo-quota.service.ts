@@ -98,3 +98,8 @@ if (process.env.NODE_ENV !== 'test') {
 export function __resetDemoQuota(): void {
   buckets.clear();
 }
+
+/** Réservé aux tests: place un visiteur à un reste arbitraire. */
+export function __setDemoUsed(key: string, used: number): void {
+  buckets.set(key, { used, day: today() });
+}
