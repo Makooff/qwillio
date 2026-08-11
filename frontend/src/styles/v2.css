@@ -60,12 +60,15 @@
   --q2-hairline: 1px solid rgb(var(--q2-plate));
   --q2-hairline-d: 1px solid #23252a;
 
-  /* Le décor du hero se voit PLEIN en thème clair: 1, aucune retenue.
-     Aucun voile n'est posé par-dessus, et il ne reste plus de vignette peinte
-     non plus: le fondu des bords est un MASQUE porté par la couche du décor
-     (voir `HeroVideoBackdrop`), donc il ne coûte aucune variable de couleur.
-     Voir le bloc sombre pour la raison de l'unique exception. */
-  --q2-hero-media: 1;
+  /* Intensité du décor du hero.
+     Elle valait 1 quand le décor était une PHOTO pâle. La boucle vidéo est une
+     forêt sombre, et le contraste mesuré sous le paragraphe du hero tombait à
+     1,0:1 — le texte disparaissait. La place est réglée par les masques (voir
+     `HeroBackdrop`); cette variable règle ce qui reste, et 0,45 est la valeur
+     qui ramène le pire cas au-dessus de 4,5:1 en clair.
+     Aucun voile n'est peint par-dessus: le fondu des bords est un MASQUE porté
+     par la couche du décor, donc il ne coûte aucune variable de couleur. */
+  --q2-hero-media: 0.45;
 }
 
 /* ============================================================
