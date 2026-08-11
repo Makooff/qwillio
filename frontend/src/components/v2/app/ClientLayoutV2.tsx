@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Phone, Users, BarChart3, CreditCard,
-  Bot, UserCircle, HelpCircle, Settings, Contact, Plug, PhoneForwarded,
-  SlidersHorizontal, Sparkles, PhoneCall, Mic,
+  Bot, UserCircle, HelpCircle, Settings, Contact, PhoneForwarded,
+  SlidersHorizontal, PhoneCall, Mic,
 } from '../../icons';
 import AiStatusPill from '../../AiStatusPill';
 import AppShell, { type ShellNavItem } from './AppShell';
@@ -39,7 +39,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/analytics': 'Analytique',
   '/dashboard/receptionist': 'Réceptionniste IA',
   '/dashboard/account': 'Compte',
-  '/dashboard/account/integrations': 'Intégrations',
   '/dashboard/billing': 'Facturation',
   '/dashboard/support': 'Support',
   '/dashboard/setup/call-forwarding': "Renvoi d'appel",
@@ -52,7 +51,6 @@ const PAGE_TITLES: Record<string, string> = {
    Les routes restantes de PAGE_TITLES sont ajoutées automatiquement par AppShell. */
 const COMMANDS: CommandItem[] = [
   { id: 'page-crm', label: 'CRM', to: '/dashboard/crm', group: 'Pages', icon: Contact, keywords: 'contacts deals pipeline' },
-  { id: 'page-integrations', label: 'Intégrations', to: '/dashboard/account/integrations', group: 'Pages', icon: Plug, keywords: 'google calendar api webhook' },
   /* Qwillio Agent est fermé: le proposer dans la palette conduirait à une
      redirection, ce qui se lit comme une panne. */
   { id: 'page-forwarding', label: "Renvoi d'appel", to: '/dashboard/setup/call-forwarding', group: 'Pages', icon: PhoneForwarded, keywords: 'numero transfert setup' },

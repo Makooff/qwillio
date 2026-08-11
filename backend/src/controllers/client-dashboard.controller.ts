@@ -1152,6 +1152,31 @@ export class ClientDashboardController {
     }
   }
 
+  // GET /my-dashboard/payments/:id/invoice
+  /* Renvoie l'adresse de la facture chez Stripe. Le portail pointait vers une
+     route inexistante, et chaque ligne de l'historique donnait un 404. */
+  async getInvoiceUrl(req: any, res: Response) {
+    try {
+      const payment = await prisma.payment.findFirst({
+        // Le filtre par client est ce qui empêche de lire la facture d'autrui
+        // en devinant un identifiant.
+        where: { id: req.params.id, clientId: req.clientId },
+        select: { stripeInvoiceId: true },
+      });
+      if (!payment) return res.status(404).json({ error: 'Paiement introuvable' });
+      if (!payment.stripeInvoiceId) {
+        return res.status(409).json({ error: 'Aucune facture Stripe pour ce paiement' });
+      }
+      const { stripeService } = await import('../services/stripe.service');
+      const url = await stripeService.getInvoiceUrl(payment.stripeInvoiceId);
+      if (!url) return res.status(404).json({ error: 'Facture indisponible' });
+      res.json({ url });
+    } catch (error) {
+      logger.error('getInvoiceUrl failed', error);
+      res.status(500).json({ error: 'Facture indisponible pour le moment.' });
+    }
+  }
+
   // POST /my-dashboard/cancel
   async cancelSubscription(req: any, res: Response) {
     try {

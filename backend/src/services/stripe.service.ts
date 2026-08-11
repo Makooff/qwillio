@@ -606,6 +606,19 @@ export class StripeService {
     return session.url;
   }
 
+  /**
+   * L'adresse de la facture hébergée par Stripe, pour un paiement donné.
+   *
+   * Le portail proposait un lien « PDF » vers `/api/invoices/:id/pdf`, une route
+   * qui n'existe pas: chaque ligne de l'historique portait donc un 404. Stripe
+   * héberge déjà la facture et son PDF, et c'est la seule version qui fasse foi
+   * comptablement; on renvoie donc la sienne plutôt que d'en imprimer une.
+   */
+  async getInvoiceUrl(stripeInvoiceId: string): Promise<string | null> {
+    const invoice = await stripe.invoices.retrieve(stripeInvoiceId);
+    return invoice.hosted_invoice_url ?? invoice.invoice_pdf ?? null;
+  }
+
   // Optional manual override per plan (kept for backward compat). When set, it
   // wins over auto-provisioning so the founder can still pin a specific Price.
   private envPriceOverride(planId: string): string {

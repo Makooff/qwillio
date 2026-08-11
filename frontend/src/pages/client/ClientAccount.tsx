@@ -105,9 +105,10 @@ function Toggle({ checked, onChange }: ToggleProps) {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type PlanType = 'starter' | 'pro' | 'enterprise';
+type PlanType = 'solo' | 'starter' | 'pro' | 'enterprise';
 
 const PLAN_LABELS: Record<PlanType, string> = {
+  solo:       'Solo',
   starter:    'Starter',
   pro:        'Pro',
   enterprise: 'Enterprise',
@@ -276,9 +277,14 @@ export default function ClientAccount() {
   };
 
   const initials = (user?.name ?? 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
-  const rawPlan  = (user as unknown as Record<string, unknown> | undefined)?.planType;
-  const planType: PlanType = (rawPlan === 'starter' || rawPlan === 'enterprise') ? rawPlan : 'pro';
-  const planLabel = PLAN_LABELS[planType];
+  /* Tout ce qui n'était ni `starter` ni `enterprise` retombait sur « PRO »,
+     y compris SOLO, le forfait d'entrée: le client d'entrée de gamme lisait
+     donc le nom d'un forfait plus cher que le sien sur sa page de compte.
+     Le libellé vient du forfait quand on le connaît, et de rien sinon. */
+  const rawPlan = (user as unknown as Record<string, unknown> | undefined)?.planType;
+  const planType: PlanType | null =
+    typeof rawPlan === 'string' && rawPlan in PLAN_LABELS ? (rawPlan as PlanType) : null;
+  const planLabel = planType ? PLAN_LABELS[planType] : 'Non défini';
 
   return (
     <div className="max-w-[720px] space-y-6">

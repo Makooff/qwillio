@@ -100,6 +100,9 @@ router.put('/profile', (req, res) => clientDashboardController.updateProfile(req
 router.put('/password', (req, res) => clientDashboardController.changePassword(req, res));
 router.get('/billing', (req, res) => clientDashboardController.getBilling(req, res));
 router.get('/payments', (req, res) => clientDashboardController.getPayments(req, res));
+/* Adresse de la facture chez Stripe. Sous le limiteur de facturation: chaque
+   appel interroge Stripe. */
+router.get('/payments/:id/invoice', billingLimiter, (req, res) => clientDashboardController.getInvoiceUrl(req, res));
 router.post('/cancel', (req, res) => clientDashboardController.cancelSubscription(req, res));
 router.post('/upgrade', billingLimiter, (req, res) => clientDashboardController.upgradeSubscription(req, res));
 /* Sous le MEME limiteur que l'upgrade: la route crée une session chez Stripe à
