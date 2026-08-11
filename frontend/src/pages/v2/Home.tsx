@@ -60,63 +60,121 @@ const MOCKUP = {
 } as const;
 
 /**
- * Le décor du hero: une PHOTO.
+ * Le décor du hero: une boucle vidéo en ALLER-RETOUR, posée sur une photo.
  *
- * Une boucle vidéo se posait par-dessus et effaçait la photo dès qu'elle
- * démarrait. C'est cet état-là qui a été refusé: la photo était préférée. La
- * couche vidéo est donc retirée, et il ne reste que le plancher — présent au
- * premier rendu, sans lecture à démarrer, sans codec à négocier, sans échec
- * silencieux possible.
+ * La photo reste le PLANCHER: elle est là au premier rendu, sans lecture à
+ * démarrer ni codec à négocier. La vidéo se fond par-dessus quand elle joue
+ * vraiment (`onPlaying`), si bien qu'un appareil qui refuse de la lire garde le
+ * décor au lieu d'un trou.
+ *
+ * L'ALLER-RETOUR est dans le FICHIER, pas dans le code: le montage est suivi de
+ * son propre reflet, donc un `loop` ordinaire suffit à repartir en arrière puis
+ * en avant, indéfiniment. Le faire en JavaScript demanderait un `playbackRate`
+ * négatif, que les navigateurs ne savent pas lire.
+ *
+ * La bande noire du bas du rush est COUPÉE au montage (recadrage 1440x958):
+ * la laisser aurait demandé de la masquer à l'écran, ce qui revient à corriger
+ * dans le navigateur un défaut qui appartient au fichier.
  *
  * Le fondu des bords est un MASQUE, jamais une couche peinte: voir le
  * commentaire dans le composant.
  */
 function HeroBackdrop() {
   const [photoFailed, setPhotoFailed] = useState(false);
+  const [playing, setPlaying] = useState(false);
+
   return (
     <div
       className="absolute inset-0 overflow-hidden pointer-events-none"
       aria-hidden="true"
-      /* VIGNETTE DE LENTILLE, en MASQUE et non en couche peinte par-dessus.
-         Peindre la couleur du canvas au-dessus de la photo, c'est poser un
-         aplat qui doit tomber PILE sur le fond de la page: au moindre écart le
-         raccord se voit. Le masque, lui, ne peint rien, il rend la photo
-         TRANSPARENTE sur ses bords, donc c'est la page qui reparaît, exactement
-         de sa couleur, et dans les deux thèmes sans qu'aucune couleur soit
-         écrite ici. */
+      /* VIGNETTE, en MASQUE et non en couche peinte par-dessus.
+         Peindre la couleur du canvas au-dessus du décor, c'est poser un aplat
+         qui doit tomber PILE sur le fond de la page: au moindre écart le
+         raccord se voit, et il faudrait deux aplats, un par thème. Le masque ne
+         peint rien: il rend le décor TRANSPARENT sur ses bords, donc c'est la
+         page qui reparaît, exactement de sa couleur. Blanc en clair, noir en
+         sombre, sans qu'aucune couleur ne soit écrite ici, et surtout aucune
+         couleur de marque (demande utilisateur: « pas couleur Qwillio »).
+         Ce premier masque est le FONDU DU BAS, celui qui fait disparaître le
+         bord inférieur de la vidéo dans le dégradé de la page. Il est porté par
+         un conteneur distinct du masque de lentille: deux masques sur un seul
+         élément demanderaient `mask-composite`, mal soutenu par Safari. */
       style={{
-        WebkitMaskImage:
-          'radial-gradient(ellipse 82% 78% at 50% 44%, #000 42%, rgba(0,0,0,0.55) 72%, transparent 96%)',
-        maskImage:
-          'radial-gradient(ellipse 82% 78% at 50% 44%, #000 42%, rgba(0,0,0,0.55) 72%, transparent 96%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 58%, transparent 96%)',
+        maskImage: 'linear-gradient(to bottom, #000 0%, #000 58%, transparent 96%)',
       }}
     >
-      {/* La PHOTO seule (retour utilisateur: « enlève la vidéo, remets la
-          photo »). La boucle vidéo se posait par-dessus et l'effaçait dès
-          qu'elle démarrait; c'est cet état-là qui ne plaisait pas. Retirer la
-          couche vidéo suffit: la photo était déjà le plancher, elle est là au
-          premier rendu, sans lecture à démarrer ni décodage à attendre.
+      {/* FONDU DE GAUCHE, et c'est le plus important des trois.
+          Mesure faite sur le rendu: sous le paragraphe du hero, le rapport de
+          contraste tombait à 1,0:1 — le texte disparaissait dans la forêt. Et
+          aucune opacité ne le sauvait: même à 30 % le pire cas plafonnait à
+          2,6:1, sous les 4,5:1 exigés. Ce n'est pas un réglage d'intensité,
+          c'est une question de PLACE: le décor doit s'effacer là où le texte
+          vit, et rester entier là où il n'y a rien. La colonne de texte occupe
+          la gauche, le décor commence donc à droite.
+          Le masque est PLEINEMENT transparent jusqu'à 50 %, un peu au-delà du
+          paragraphe: un simple affaiblissement ne suffisait pas, il restait
+          assez d'image pour retenir le contraste sous les 4,5:1. Réserve
+          connue: `q2-body` sur `q2-canvas` plafonne de toute façon à 4,54:1,
+          donc la marge est mince et toute décoration ajoutée ici la reprendra. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          WebkitMaskImage:
+            'linear-gradient(to right, transparent 0%, transparent 50%, rgba(0,0,0,0.35) 68%, #000 88%)',
+          maskImage:
+            'linear-gradient(to right, transparent 0%, transparent 50%, rgba(0,0,0,0.35) 68%, #000 88%)',
+        }}
+      >
+      <div
+        className="absolute inset-0"
+        /* Vignette de lentille: les quatre coins et les flancs se dissolvent. */
+        style={{
+          WebkitMaskImage:
+            'radial-gradient(ellipse 82% 78% at 50% 44%, #000 42%, rgba(0,0,0,0.55) 72%, transparent 96%)',
+          maskImage:
+            'radial-gradient(ellipse 82% 78% at 50% 44%, #000 42%, rgba(0,0,0,0.55) 72%, transparent 96%)',
+        }}
+      >
+        {/* Le plancher. Retiré seulement si l'IMAGE échoue: le retirer parce que
+            la vidéo joue enlèverait le seul décor du cas où la vidéo s'arrête. */}
+        {!photoFailed && (
+          <img
+            src="/hero-backdrop.webp"
+            alt=""
+            aria-hidden="true"
+            onError={() => setPhotoFailed(true)}
+            className="absolute inset-0 w-full h-full object-cover select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            /* Le cadrage remonte de 2 cm, réglage repris de la vidéo pour que le
+               décor garde le même centre. 2 cm valent 76 px à 96 ppp, l'unité de
+               référence du CSS. */
+            style={{
+              opacity: playing ? 0 : 'var(--q2-hero-media)',
+              objectPosition: 'center calc(50% - 76px)',
+            }}
+          />
+        )}
 
-          `hero-loop.mp4` et `hero-loop.webm` restent dans `public/`: aucun
-          autre écran ne les sert, mais les supprimer serait un aller sans
-          retour si la vidéo revenait un jour. */}
-      {!photoFailed && (
-        <img
-          src="/hero-backdrop.webp"
-          alt=""
-          aria-hidden="true"
-          onError={() => setPhotoFailed(true)}
-          className="absolute inset-0 w-full h-full object-cover select-none"
-          /* Le cadrage remonte de 2 cm, réglage repris de la vidéo pour que le
-             décor garde le même centre. 2 cm valent 76 px à 96 ppp, l'unité de
-             référence du CSS. `object-position` déplace l'image DANS son cadre,
-             sans toucher au cadre ni à la vignette qui s'y accroche. */
+        <video
+          className="absolute inset-0 w-full h-full object-cover select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          /* `muted` et `playsInline` ne sont pas décoratifs: sans les deux, iOS
+             refuse la lecture automatique et le décor resterait figé. */
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          onPlaying={() => setPlaying(true)}
           style={{
-            opacity: 'var(--q2-hero-media)',
+            opacity: playing ? 'var(--q2-hero-media)' : 0,
             objectPosition: 'center calc(50% - 76px)',
           }}
-        />
-      )}
+        >
+          <source src="/hero-lake.webm" type="video/webm" />
+          <source src="/hero-lake.mp4" type="video/mp4" />
+        </video>
+      </div>
+      </div>
     </div>
   );
 }
