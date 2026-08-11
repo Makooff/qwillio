@@ -698,7 +698,12 @@ export default function AssistantChat({
              respiration. Le titre du groupe suivant tombe alors DERRIÈRE la
              barre, ce qui est exactement l'effet demandé: on sait qu'il y a
              une suite sans qu'elle prenne de la place. */
-          ? 'clamp(320px, calc(100dvh - 160px), 720px)'
+          /* Plus de plafond de 720 px (demande utilisateur: « le chat plein
+             écran jusqu'en bas »). Il bridait la carte sur un grand écran, où
+             elle s'arrêtait à mi-hauteur pendant que la colonne d'à côté
+             continuait. Le plancher reste, il garde la carte utilisable sur un
+             petit écran en paysage. */
+          ? 'max(320px, calc(100dvh - 160px))'
           : 480,
       }}
     >

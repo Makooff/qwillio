@@ -233,8 +233,10 @@ export default function StepFrame({
            fond (retour utilisateur). Il ne désigne plus l'étape par sa couleur
            mais par sa seule présence. */
         fill="rgb(var(--q2-band))"
-        stroke="rgb(var(--q2-plate))"
-        strokeWidth={1}
+        /* Aucun contour (demande utilisateur). Le filet dessinait la silhouette
+           en mouvement, y compris là où le masque la coupe: on lisait le tracé
+           de l'animation au lieu d'une surface qui se déplace. La forme n'est
+           plus qu'un aplat, de la même matière que le panneau d'en face. */
       />
     </svg>
   );

@@ -100,7 +100,7 @@ const MOCKUP = {
    d'opacite, assez pour que la decoupe arrondie du cadre se voie comme une
    arete. Elle atteint zero a 99 %, donc la forme du cadre ne se lit plus. */
 const HERO_MASK_V =
-  'linear-gradient(to bottom, #000 0%, #000 52%, rgba(0,0,0,0.94) 60%, rgba(0,0,0,0.84) 67%, rgba(0,0,0,0.68) 74%, rgba(0,0,0,0.48) 81%, rgba(0,0,0,0.28) 87%, rgba(0,0,0,0.12) 92%, rgba(0,0,0,0.03) 96%, transparent 99%)';
+  'linear-gradient(to bottom, #000 0%, #000 56%, rgba(0,0,0,0.95) 64%, rgba(0,0,0,0.86) 71%, rgba(0,0,0,0.70) 78%, rgba(0,0,0,0.50) 84%, rgba(0,0,0,0.30) 89%, rgba(0,0,0,0.13) 93%, rgba(0,0,0,0.03) 97%, transparent 100%)';
 /* Le fondu de flou du HAUT: plein sous la nav, éteint plus bas. Comme le voile
    des bords, il ne peint rien, il ne fait que brouiller ce qui passe dessous:
    la vidéo reste visible derrière le menu, en diffus, au lieu d'être remplacée
@@ -127,6 +127,10 @@ function HeroBackdrop() {
          en bas, tous deux traités par le fondu et par le voile de flou.
          Le plafond de largeur ne manque pas: les trois définitions couvrent
          jusqu'à 2560, donc un grand écran reste servi sans agrandissement.
+         La HAUTEUR monte à 84vh et le fondu ne commence qu'à 56 % de celle-ci,
+         soit à peu près la mi-hauteur de la fenêtre (demande utilisateur: « le
+         dégradé du bas cache trop la vidéo, il doit être au niveau de la moitié
+         de la page »). Avant, il démarrait au tiers.
          Sa HAUTEUR EST BORNÉE, et c'est le correctif du cadrage sur iPhone.
          Il couvrait toute la hauteur du hero, soit plus de 1200 px sur un
          téléphone, pour un rush en 3:2: en `object-contain` l'image se réduisait
@@ -138,7 +142,7 @@ function HeroBackdrop() {
          Le nouveau master fait 3528x2348 et le décor est servi en 1280, 1920 ou
          2560 selon l'écran (voir les `<source media>` plus bas), donc il prend
          toute la largeur sans être agrandi. */
-      className="absolute inset-x-0 top-0 h-[46vh] sm:h-[56vh] lg:h-[64vh] max-h-[820px] overflow-hidden pointer-events-none"
+      className="absolute inset-x-0 top-0 h-[56vh] sm:h-[68vh] lg:h-[84vh] max-h-[900px] overflow-hidden pointer-events-none"
       aria-hidden="true"
       /* VIGNETTE, en MASQUE et non en couche peinte par-dessus.
          Peindre la couleur du canvas au-dessus du décor, c'est poser un aplat
@@ -646,11 +650,25 @@ export default function Home() {
 
         <Container className="relative [&>*]:min-w-0">
           <RevealV2>
-            <div className="max-w-[860px]">
+            <div className="max-w-[1120px]">
               <Eyebrow tone="indigo" className="mb-4 sm:mb-6">
                 {isFr ? 'Réceptionniste IA nouvelle génération' : 'Next-generation AI receptionist'}
               </Eyebrow>
-              <Display className="mb-5 sm:mb-7" id="hero-heading">
+              {/* Taille BORNÉE pour ce titre, et pour lui seul (demande
+                  utilisateur: « que ça tienne en deux lignes »). `q2-display`
+                  sert sur toutes les pages de la V2, alors que la contrainte
+                  vient d'une phrase précise: la version française fait 57
+                  signes et tombait sur QUATRE lignes en 1440 px. La mesure du
+                  bloc passe donc de 860 à 1120 px, et le corps plafonne plus
+                  bas que le barème commun.
+                  Le `!` n'est pas de la paresse: `.q2-display` est déclarée
+                  dans v2.css, donc APRÈS les utilitaires Tailwind dans la
+                  feuille finale. À spécificité égale, c'est elle qui gagnait, et
+                  la taille écrite ici n'avait aucun effet. */}
+              <Display
+                className="mb-5 sm:mb-7 !text-[clamp(2.2rem,4.6vw,4rem)]"
+                id="hero-heading"
+              >
                 {isFr ? (
                   <>
                     Elle ne prend pas de messages. Elle prend des <SerifWord>rendez-vous.</SerifWord>
@@ -661,7 +679,17 @@ export default function Home() {
                   </>
                 )}
               </Display>
-              <Lead className="max-w-[500px] mb-7 sm:mb-10 q2-body-text">
+              {/* Couleur RENFORCÉE pour ce paragraphe, et pour lui seul. Le
+                  fondu du décor commence maintenant à mi-hauteur de la fenêtre
+                  (demande utilisateur), donc cette phrase se lit par-dessus
+                  l'image à pleine intensité: mesurée à 3,82:1 en clair, soit
+                  au-dessous du seuil. Baisser l'opacité du décor n'y faisait
+                  presque rien (3,90 à 0,19 contre 3,82 à 0,26): le facteur
+                  limitant n'est pas le décor, c'est le gris clair du texte sur
+                  un ciel clair. `q2-graphite` est le cran plus foncé du barème,
+                  il vaut dans les deux thèmes, et il ne touche aucune autre
+                  page. */}
+              <Lead className="max-w-[500px] mb-7 sm:mb-10 q2-body-text !text-q2-graphite">
                 {isFr
                   ? 'Elle décroche 24/7, vérifie votre agenda pendant l’appel et confirme le rendez-vous par SMS. Dès 99 € par mois.'
                   : 'She answers 24/7, checks your calendar during the call and confirms the booking by SMS. From €99 a month.'}
