@@ -24,7 +24,6 @@ import TextReveal from '../../components/v2/motion/TextReveal';
 import Magnetic from '../../components/v2/motion/Magnetic';
 import GlowCard from '../../components/v2/motion/GlowCard';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
-import PixelBlushBackdrop from '../../components/v2/motion/PixelBlushBackdrop';
 import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
@@ -79,6 +78,21 @@ const MOCKUP = {
  * Le fondu des bords est un MASQUE, jamais une couche peinte: voir le
  * commentaire dans le composant.
  */
+/* Les fondus du décor du hero, en MASQUE.
+   Un masque ne peint rien: il rend le décor TRANSPARENT sur ses bords, donc
+   c'est la page qui reparaît, exactement de sa couleur. Noir en sombre, blanc
+   en clair, sans qu'aucune couleur ne soit écrite ici et sans un aplat par
+   thème à faire tomber pile sur le fond.
+   Verticalement le HAUT et le BAS se dissolvent (demande utilisateur), pas
+   seulement le bas: le décor passe sous la barre de nav, et une arête franche
+   s'y verrait. Horizontalement les DEUX flancs, le gauche plus long que le
+   droit parce que la colonne de texte vit à gauche et que le contraste y a été
+   mesuré à 1,0:1 quand l'image y montait. */
+const HERO_MASK_V =
+  'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.6) 7%, #000 20%, #000 58%, transparent 96%)';
+const HERO_MASK_H =
+  'linear-gradient(to right, transparent 0%, transparent 46%, rgba(0,0,0,0.4) 66%, #000 84%, #000 94%, transparent 100%)';
+
 function HeroBackdrop() {
   const [photoFailed, setPhotoFailed] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -90,7 +104,10 @@ function HeroBackdrop() {
 
   return (
     <div
-      className="absolute inset-0 overflow-hidden pointer-events-none"
+      /* Le décor est INSÉRÉ, pas collé aux bords: c'est ce qui laisse voir des
+         angles arrondis (demande utilisateur). Collé à `inset-0`, un rayon de
+         bordure tomberait hors de l'écran et ne se verrait jamais. */
+      className="absolute inset-x-3 sm:inset-x-6 lg:inset-x-10 top-0 bottom-0 rounded-[28px] sm:rounded-[40px] overflow-hidden pointer-events-none"
       aria-hidden="true"
       /* VIGNETTE, en MASQUE et non en couche peinte par-dessus.
          Peindre la couleur du canvas au-dessus du décor, c'est poser un aplat
@@ -105,8 +122,8 @@ function HeroBackdrop() {
          un conteneur distinct du masque de lentille: deux masques sur un seul
          élément demanderaient `mask-composite`, mal soutenu par Safari. */
       style={{
-        WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 58%, transparent 96%)',
-        maskImage: 'linear-gradient(to bottom, #000 0%, #000 58%, transparent 96%)',
+        WebkitMaskImage: HERO_MASK_V,
+        maskImage: HERO_MASK_V,
       }}
     >
       {/* FONDU DE GAUCHE, et c'est le plus important des trois.
@@ -124,23 +141,9 @@ function HeroBackdrop() {
           donc la marge est mince et toute décoration ajoutée ici la reprendra. */}
       <div
         className="absolute inset-0"
-        style={{
-          WebkitMaskImage:
-            'linear-gradient(to right, transparent 0%, transparent 50%, rgba(0,0,0,0.35) 68%, #000 88%)',
-          maskImage:
-            'linear-gradient(to right, transparent 0%, transparent 50%, rgba(0,0,0,0.35) 68%, #000 88%)',
-        }}
+        style={{ WebkitMaskImage: HERO_MASK_H, maskImage: HERO_MASK_H }}
       >
-      <div
-        className="absolute inset-0"
-        /* Vignette de lentille: les quatre coins et les flancs se dissolvent. */
-        style={{
-          WebkitMaskImage:
-            'radial-gradient(ellipse 82% 78% at 50% 44%, #000 42%, rgba(0,0,0,0.55) 72%, transparent 96%)',
-          maskImage:
-            'radial-gradient(ellipse 82% 78% at 50% 44%, #000 42%, rgba(0,0,0,0.55) 72%, transparent 96%)',
-        }}
-      >
+      <div className="absolute inset-0">
         {/* Le plancher. Retiré seulement si l'IMAGE échoue: le retirer parce que
             la vidéo joue enlèverait le seul décor du cas où la vidéo s'arrête. */}
         {!photoFailed && (
@@ -149,20 +152,19 @@ function HeroBackdrop() {
             alt=""
             aria-hidden="true"
             onError={() => setPhotoFailed(true)}
-            className="absolute inset-0 w-full h-full object-cover select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
-            /* Le cadrage remonte de 2 cm, réglage repris de la vidéo pour que le
-               décor garde le même centre. 2 cm valent 76 px à 96 ppp, l'unité de
-               référence du CSS. */
-            style={{
-              opacity: playing ? 0 : 'var(--q2-hero-media)',
-              objectPosition: 'center calc(50% - 76px)',
-            }}
+            className="absolute inset-0 w-full h-full object-contain object-top select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{ opacity: playing ? 0 : 'var(--q2-hero-media)' }}
           />
         )}
 
         {!reduced && (
         <video
-          className="absolute inset-0 w-full h-full object-cover select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          /* `contain` et non `cover`: `cover` AGRANDIT l'image jusqu'à remplir
+             puis coupe ce qui dépasse, et sur un rush de 1280 px de large c'est
+             ce grossissement qui faisait ressortir le manque de définition
+             (retour utilisateur: « trop zoomée, ne rogne pas dedans »). En
+             `contain` l'image entre entière, à sa taille, et rien n'est coupé. */
+          className="absolute inset-0 w-full h-full object-contain object-top select-none transition-opacity duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
           /* `muted` et `playsInline` ne sont pas décoratifs: sans les deux, iOS
              refuse la lecture automatique et le décor resterait figé. */
           autoPlay
@@ -171,10 +173,7 @@ function HeroBackdrop() {
           playsInline
           preload="metadata"
           onPlaying={() => setPlaying(true)}
-          style={{
-            opacity: playing ? 'var(--q2-hero-media)' : 0,
-            objectPosition: 'center calc(50% - 76px)',
-          }}
+          style={{ opacity: playing ? 'var(--q2-hero-media)' : 0 }}
         >
           <source src="/hero-lake.webm" type="video/webm" />
           <source src="/hero-lake.mp4" type="video/mp4" />
@@ -539,8 +538,10 @@ export default function Home() {
             voile crème pour que le titre garde son contraste, et disparaît en
             reduced-motion, où le dégradé ci-dessus suffit. */}
         <HeroBackdrop />
-        {/* Les blobs pixel blush dérivent par-dessus le voile, sous le texte */}
-        <PixelBlushBackdrop />
+        {/* Les blobs « pixel blush » ne dérivent plus par-dessus le décor
+            (retour utilisateur: « enlève les dégradés de mauve »). C'était la
+            seule couleur de marque posée en filtre sur la vidéo, et elle
+            teintait une image que l'on veut voir telle quelle. */}
 
         {/* Plus de vignette PEINTE ici (retour utilisateur: « les dégradés
             sont trop visibles »). Elle posait la couleur du canvas par-dessus
