@@ -1,6 +1,5 @@
-import type { ComponentType } from 'react';
 import RevealV2 from './RevealV2';
-import { CallRecordIllustration, WeeklyDigestIllustration } from './FeatureIllustrations';
+import ScreenShot from './ScreenShot';
 
 /* Rangées « produit » du registre clair: plus de grille de deux cartes
    étroites côte à côte. Chaque rangée occupe toute la largeur, le texte tient
@@ -11,10 +10,13 @@ import { CallRecordIllustration, WeeklyDigestIllustration } from './FeatureIllus
    DÉBORDE par le haut, et par le côté extérieur au-delà de lg: le visuel sort
    de son conteneur au lieu d'y être enfermé.
 
-   Le visuel n'est plus une CAPTURE mais du BALISAGE, repris des vrais écrans
-   du dashboard (voir FeatureIllustrations.tsx). Une capture de 1600 px rendue
-   dans 350 est illisible sur un téléphone, et la sienne ne montrait plus ce
-   dont le texte parlait.
+   Le visuel est une CAPTURE DU VRAI PORTAIL (demande utilisateur: « met le
+   vrai design quand tu utilises des écrans »). Il a été un temps du balisage
+   redessiné, parce que les anciennes captures étaient périmées et illisibles
+   une fois réduites; ce n'est plus le bon compromis depuis que les captures
+   sont RÉGÉNÉRÉES depuis le portail livré et cadrées sur leur haut (voir
+   ScreenShot.tsx et capture-screens.mjs). Un dessin, même fidèle, dérive du
+   produit à la première évolution; une capture, non.
 
    La section d'accueil est déjà une bande taupe: la plate prend donc le ton
    au-dessus (bg-q2-plate), sinon elle disparaîtrait dans le fond.
@@ -22,9 +24,10 @@ import { CallRecordIllustration, WeeklyDigestIllustration } from './FeatureIllus
    Mobile: texte puis image empilés, image pleine largeur. */
 
 interface Feature {
-  /** Clé de rendu, et non un fichier: le visuel est un composant. */
+  /** Nom du fichier dans `public/screens`, sans extension. */
   key: string;
-  Illustration: ComponentType<{ isFr: boolean }>;
+  altFr: string;
+  altEn: string;
   titleFr: string;
   titleEn: string;
   descFr: string;
@@ -36,8 +39,9 @@ const FEATURES: Feature[] = [
     /* La fiche d'appel, pas la liste: c'est elle qui porte le résumé, le
        transcript et le lecteur d'enregistrement dont parle le texte. La liste
        ne montrait qu'appelant, durée et sentiment (retour utilisateur). */
-    key: 'call-record',
-    Illustration: CallRecordIllustration,
+    key: 'fiche-appel',
+    altFr: 'La fiche d’un appel dans le portail: résumé, score du lead, coordonnées.',
+    altEn: 'A call record in the portal: summary, lead score, contact details.',
     titleFr: 'Chaque appel documenté',
     titleEn: 'Every call documented',
     descFr:
@@ -46,12 +50,16 @@ const FEATURES: Feature[] = [
       'Summary, transcript, recording, qualified lead: everything lands in your dashboard the second the call ends. Nothing gets lost, nothing needs retyping.',
   },
   {
-    key: 'weekly-digest',
-    /* Le visuel montrait la fenêtre de configuration, c'est-à-dire le sujet
-       d'une AUTRE section: le paragraphe parlait du constat hebdomadaire et
-       l'image d'autre chose (retour utilisateur: « sélectionne bien le contenu
-       qui correspond au texte »). */
-    Illustration: WeeklyDigestIllustration,
+    key: 'analytique',
+    altFr: 'La page Analytique du portail: volume d’appels, sentiment, heures de pointe.',
+    altEn: 'The portal analytics page: call volume, sentiment, peak hours.',
+    /* La page Analytique, parce que c'est LÀ que se lisent les constats dont
+       parle le texte: volume, sentiment, heures de pointe. Le visuel a montré
+       un temps la fenêtre de configuration, c'est-à-dire le sujet d'une autre
+       section (retour utilisateur: « sélectionne bien le contenu qui
+       correspond au texte »). Le constat hebdomadaire lui-même part par
+       courriel et par SMS: il n'a pas d'écran, et en inventer un serait
+       montrer une chose qui n'existe pas. */
     /* Le titre ne parle plus de « corriger en parlant »: la section « Mise en
        route » de la Home dit déjà exactement ça, et les deux se répondaient en
        écho (retour utilisateur). Ici, le sujet est le CONSTAT qui vous arrive
@@ -104,7 +112,7 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
                     flipped ? 'lg:-ml-6' : 'lg:-mr-6'
                   }`}
                 >
-                  <f.Illustration isFr={isFr} />
+                  <ScreenShot name={f.key} alt={isFr ? f.altFr : f.altEn} />
                 </div>
               </div>
             </article>

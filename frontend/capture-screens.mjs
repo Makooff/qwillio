@@ -14,7 +14,10 @@ import { mkdirSync } from 'node:fs';
 
 const BASE = process.env.BASE || 'http://localhost:4188';
 const OUT = process.env.OUT || '/tmp/screens';
+/* Les visuels servis par le site, versionnés avec lui. */
+const SITE = new URL('./public/screens/', import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
+mkdirSync(SITE, { recursive: true });
 
 /* Bande réservée à l'heure, au réseau et à la batterie, en points CSS.
    59 pt sur un iPhone 15 Pro, 0 sur un Mac où la barre est hors de l'écran. */
@@ -33,7 +36,7 @@ const CALLS = [
     id: 'c1', callerName: 'Camille Dubois', callerNumber: '+32 471 12 34 56',
     startedAt: iso(0, 9, 12), createdAt: iso(0, 9, 12), durationSeconds: 168,
     status: 'completed', sentiment: 'positive', outcome: 'lead_captured', isLead: true,
-    leadScore: 88, bookingRequested: true, bookingDate: iso(-2, 14, 30),
+    leadScore: 9, bookingRequested: true, bookingDate: iso(-2, 14, 30),
     summary: 'Détartrage et contrôle. Rendez-vous fixé jeudi 14 h 30, confirmation envoyée par SMS.',
     nameCollected: 'Camille Dubois', phoneCollected: '+32 471 12 34 56',
     emailCollected: 'camille.dubois@proton.me', tags: ['new'], isSpam: false, direction: 'inbound',
@@ -50,7 +53,7 @@ const CALLS = [
     id: 'c3', callerName: 'Sofia Mertens', callerNumber: '+32 495 66 07 18',
     startedAt: iso(1, 18, 53), createdAt: iso(1, 18, 53), durationSeconds: 214,
     status: 'completed', sentiment: 'positive', outcome: 'lead_captured', isLead: true,
-    leadScore: 76, bookingRequested: true, bookingDate: iso(-4, 11, 0),
+    leadScore: 8, bookingRequested: true, bookingDate: iso(-4, 11, 0),
     summary: 'Urgence, douleur molaire. Créneau de lundi 11 h proposé et accepté.',
     nameCollected: 'Sofia Mertens', phoneCollected: '+32 495 66 07 18',
     emailCollected: 'sofia.mertens@gmail.com', tags: ['contacted'], isSpam: false, direction: 'inbound',
@@ -59,7 +62,7 @@ const CALLS = [
     id: 'c4', callerName: 'Inès Peeters', callerNumber: '+32 470 33 89 02',
     startedAt: iso(1, 15, 27), createdAt: iso(1, 15, 27), durationSeconds: 132,
     status: 'completed', sentiment: 'positive', outcome: 'lead_captured', isLead: true,
-    leadScore: 64,
+    leadScore: 6,
     summary: 'Devis pour un blanchiment. Rappel demandé en fin de semaine.',
     nameCollected: 'Inès Peeters', phoneCollected: '+32 470 33 89 02',
     tags: ['new'], isSpam: false, direction: 'inbound',
@@ -75,7 +78,7 @@ const CALLS = [
     id: 'c6', callerName: 'Aline Grosjean', callerNumber: '+32 493 71 40 55',
     startedAt: iso(2, 9, 22), createdAt: iso(2, 9, 22), durationSeconds: 187,
     status: 'completed', sentiment: 'positive', outcome: 'lead_captured', isLead: true,
-    leadScore: 71, bookingRequested: true, bookingDate: iso(-6, 9, 30),
+    leadScore: 7, bookingRequested: true, bookingDate: iso(-6, 9, 30),
     summary: 'Première visite, mutuelle Partenamut. Rendez-vous fixé mercredi 9 h 30.',
     nameCollected: 'Aline Grosjean', phoneCollected: '+32 493 71 40 55',
     tags: ['converted'], isSpam: false, direction: 'inbound',
@@ -150,23 +153,76 @@ function mockFor(pathname, search) {
       voiceId: 'fr-charlotte', transferNumber: '+32 2 512 44 11',
     };
   }
+  if (p === '/my-dashboard/settings') {
+    /* `agentLanguage` commande la langue du panneau de conversation, pas
+       seulement celle de la voix: absent, la console sort en anglais au milieu
+       d'une page française. */
+    return {
+      businessName: 'Clinique Dentaire Léopold', businessType: 'dentiste',
+      agentName: 'Camille', agentLanguage: 'fr', transferNumber: '+32 2 512 44 11',
+      forwardingType: 'unconditional', googleCalendarId: 'agenda@clinique-leopold.be',
+      items: [
+        { id: 'i1', category: 'service', name: 'Détartrage', price: '75 €' },
+        { id: 'i2', category: 'service', name: 'Blanchiment', price: '290 €' },
+      ],
+    };
+  }
+  if (p.startsWith('/my-dashboard/integrations/google-calendar/status')) {
+    return { connected: true, calendarId: 'agenda@clinique-leopold.be' };
+  }
+  if (p.startsWith('/my-dashboard/analytics')) {
+    return {
+      summary: { totalCalls: 138, totalLeads: 47, conversionRate: 34, avgCallDuration: 152, satisfactionScore: 4.6 },
+      daily: dailyCalls.map(d => ({ date: d.date, calls: d.count, leads: Math.round(d.count * 0.34) })),
+      sentiment: { positive: 246, neutral: 128, negative: 21 },
+      peakHours: { '8': 11, '9': 24, '10': 19, '11': 16, '12': 7, '14': 18, '15': 21, '16': 14, '17': 8 },
+      peakDays: { lundi: 32, mardi: 27, mercredi: 21, jeudi: 29, vendredi: 24, samedi: 5 },
+    };
+  }
   if (p.startsWith('/my-dashboard/status')) return { active: true, status: 'active' };
   return {};
 }
+
+/* La réponse de l'assistante, servie telle que le composant la lit: un flux
+   d'événements `data:` avec un `delta` par morceau. Le composant refuse une
+   réponse sans corps lisible et écrirait « une erreur est survenue » à la
+   place, ce qui se verrait sur la capture. */
+function sse(text) {
+  const chunks = text.match(/.{1,28}/g) || [text];
+  return chunks.map(c => `data: ${JSON.stringify({ delta: c })}`).join('\n')
+    + `\ndata: ${JSON.stringify({ done: true, configChanged: true })}\n`;
+}
+
+const CHAT_TURNS = [
+  {
+    user: 'On ferme le mercredi après-midi à partir de septembre.',
+    assistant: 'C’est noté: mercredi 8 h – 13 h à partir du 1er septembre. Je préviendrai les appelants qui demandent un rendez-vous mercredi après-midi et je proposerai le jeudi matin à la place.',
+  },
+  {
+    user: 'Ajoute le détartrage à 75 € et le blanchiment à 290 €.',
+    assistant: 'Ajoutés à ses tarifs. Elle les annoncera si on lui demande le prix, sans jamais engager la clinique sur un devis: elle propose un rendez-vous d’évaluation.',
+  },
+];
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 
 /* Chaque page est demandée deux fois par le portail (cache + rafraîchissement),
    donc la route reste posée pour toute la session du contexte. */
-async function shoot({ name, path, width, height, scale, statusBar }) {
+async function shoot({ name, path, width, height, scale, statusBar, prepare, webp, clipTo, clip }) {
   const context = await browser.newContext({
     viewport: { width, height },
     deviceScaleFactor: scale,
     locale: 'fr-BE',
     timezoneId: 'Europe/Brussels',
   });
+  let turn = 0;
   await context.route('**/api/**', async route => {
     const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/assistant/chat/stream')) {
+      const t = CHAT_TURNS[Math.min(turn++, CHAT_TURNS.length - 1)];
+      await route.fulfill({ status: 200, contentType: 'text/event-stream', body: sse(t.assistant) });
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -183,6 +239,7 @@ async function shoot({ name, path, width, height, scale, statusBar }) {
   const page = await context.newPage();
   await page.goto(BASE + path, { waitUntil: 'networkidle' });
   await page.waitForTimeout(2500);
+  if (prepare) await prepare(page);
   if (statusBar) {
     await page.addStyleTag({
       /* La bande réservée doit être de la couleur de l'application, pas de
@@ -194,8 +251,30 @@ async function shoot({ name, path, width, height, scale, statusBar }) {
     await page.waitForTimeout(400);
   }
   const file = `${OUT}/${name}.png`;
-  await page.screenshot({ path: file, clip: { x: 0, y: 0, width, height } });
+  if (clipTo) {
+    /* UN PANNEAU, PAS LA PAGE, et ce n'est pas un détail de cadrage: une page
+       de 1440 px rendue dans une carte de 590 ramène un texte de 14 px à 5 px,
+       c'est-à-dire à une trame grise. En ne gardant que la zone qui porte le
+       sens, la même carte affiche le même texte à 15 px, donc lisible. C'est
+       la raison pour laquelle ces visuels avaient dû être redessinés à la
+       main; recadrer règle le problème sans quitter le vrai produit. */
+    await page.locator(clipTo).first().screenshot({ path: file });
+  } else if (clip) {
+    await page.screenshot({ path: file, clip });
+  } else {
+    await page.screenshot({ path: file, clip: { x: 0, y: 0, width, height } });
+  }
   console.log(name, `${width * scale}x${height * scale}`, file);
+  /* Les visuels du SITE partent en WebP dans `public/screens`: ce sont eux que
+     la page d'accueil et la page Réceptionniste affichent, et un PNG de deux
+     mégaoctets par carte se paierait sur chaque visite. Les rendus de maquette,
+     eux, restent en PNG: ils vont dans Figma, pas sur le web. */
+  if (webp) {
+    const { execFileSync } = await import('node:child_process');
+    execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', file, '-vf', `scale=${webp.width}:-2:flags=lanczos`,
+      '-quality', '84', '-compression_level', '6', `${SITE}/${webp.name}.webp`]);
+    console.log('  →', `${SITE}/${webp.name}.webp`);
+  }
   await context.close();
 }
 
@@ -210,5 +289,61 @@ await shoot({ name: 'iphone-leads', path: '/dashboard/leads', ...phone });
 await shoot({ name: 'iphone-receptionniste', path: '/dashboard/receptionist', ...phone });
 await shoot({ name: 'mac-apercu', path: '/dashboard', ...mac });
 await shoot({ name: 'mac-appels', path: '/dashboard/calls', ...mac });
+
+/* ── Les visuels du site public ───────────────────────────────────────────
+   Même portail, même faux backend: la page d'accueil montre donc l'écran que
+   le client verra, et non un dessin qui lui ressemble. */
+const site = { width: 1440, height: 900, scale: 2, statusBar: 0 };
+
+await shoot({
+  name: 'site-apercu', path: '/dashboard', ...site,
+  webp: { name: 'hero-dashboard', width: 2560 },
+});
+
+await shoot({
+  name: 'site-appels', path: '/dashboard/calls', ...site,
+  /* La liste elle-même, sans la colonne de menu ni les filtres. */
+  clip: { x: 330, y: 230, width: 900, height: 500 },
+  webp: { name: 'appels', width: 1350 },
+});
+
+await shoot({
+  name: 'site-fiche-appel', path: '/dashboard/calls', ...site,
+  /* La FICHE, pas la liste: c'est elle qui porte le résumé, le transcript et
+     l'enregistrement dont parle le texte de la carte. Elle s'ouvre au clic sur
+     une ligne, il faut donc cliquer. */
+  prepare: async page => {
+    await page.getByText('Camille Dubois').first().click();
+    await page.waitForTimeout(1200);
+  },
+  clipTo: '[role="dialog"][aria-modal="true"]',
+  webp: { name: 'fiche-appel', width: 1100 },
+});
+
+await shoot({
+  name: 'site-analytique', path: '/dashboard/analytics', ...site,
+  /* Le haut du contenu: les quatre chiffres et la courbe. Le bas de la page
+     porte des graphiques secondaires qui, réduits, ne sont plus que des
+     taches. */
+  clip: { x: 300, y: 44, width: 880, height: 560 },
+  webp: { name: 'analytique', width: 1320 },
+});
+
+await shoot({
+  name: 'site-chat', path: '/dashboard/receptionist', ...site,
+  /* Une conversation, pas une fenêtre vide: on lui parle vraiment, et les
+     réponses viennent du flux simulé plus haut. */
+  prepare: async page => {
+    const box = page.getByPlaceholder(/crivez|Type or speak|parlez/i).first();
+    for (const t of CHAT_TURNS) {
+      await box.fill(t.user);
+      await box.press('Enter');
+      await page.waitForTimeout(2200);
+    }
+  },
+  /* La conversation seule: c'est ce qu'on vient y lire. */
+  clip: { x: 268, y: 214, width: 736, height: 452 },
+  webp: { name: 'chat-config', width: 1180 },
+});
 
 await browser.close();

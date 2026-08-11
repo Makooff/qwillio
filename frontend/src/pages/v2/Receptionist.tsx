@@ -12,7 +12,7 @@ import PublicShell from '../../components/v2/PublicShell';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
-import { ConfigChatIllustration } from '../../components/v2/FeatureIllustrations';
+import ScreenShot from '../../components/v2/ScreenShot';
 import CardV2 from '../../components/v2/CardV2';
 import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import VoiceCard, { type VoiceData } from '../../components/landing/VoiceCard';
@@ -590,10 +590,13 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            {/* Le chat de configuration, en BALISAGE et non en capture: une
-                image de dashboard réduite à 350 px sur un téléphone se lit
-                comme une grille de gris, donc la preuve ne prouvait rien
-                (retour utilisateur). Voir FeatureIllustrations.tsx. */}
+            {/* Le chat de configuration, en CAPTURE DU VRAI PORTAIL (demande
+                utilisateur). La conversation qu'on y lit a réellement eu lieu
+                contre le composant livré, réponses comprises: voir
+                capture-screens.mjs. Ce fut un temps du balisage redessiné,
+                parce qu'une capture réduite à 350 px se lisait comme une
+                grille de gris; le cadrage sur le haut de l'image règle ce
+                point sans avoir à redessiner l'écran. */}
             <figure className="relative">
               {/* Même traitement que le suivi d'appel sur la Home: la capture
                   est posée dans une lueur, jamais découpée dans le noir */}
@@ -603,7 +606,13 @@ export default function Receptionist() {
                 style={halo(0.24)}
               />
               <div className="relative q2-lit rounded-xl overflow-hidden border border-q2-graphite-d bg-q2-carbon">
-                <ConfigChatIllustration isFr={isFr} />
+                <ScreenShot
+                  name="chat-config"
+                  alt={isFr
+                    ? 'La conversation de configuration dans le portail: on lui dit de fermer le mercredi après-midi, elle confirme le nouvel horaire.'
+                    : 'The setup conversation in the portal: told to close Wednesday afternoons, she confirms the new hours.'}
+                  aspect="aspect-[16/10]"
+                />
               </div>
               <figcaption className="relative mt-3 px-1 text-[12.5px] text-q2-fog q2-body-text">
                 {isFr

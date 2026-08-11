@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { CallListIllustration } from './FeatureIllustrations';
+import ScreenShot from './ScreenShot';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -482,7 +482,11 @@ export default function NavV2() {
         {/* Du BALISAGE, plus une capture: réduite à la vignette du menu, une
             liste d'appels de 1600 px devenait une trame grise. Trois lignes
             suffisent ici, l'aperçu n'a pas à raconter la page entière. */}
-        <CallListIllustration isFr={isFr} rows={3} />
+        <ScreenShot
+          name="appels"
+          alt={isFr ? 'La liste des appels dans le portail.' : 'The call list in the portal.'}
+          aspect="aspect-[16/9]"
+        />
       </div>
       <p className="q2-eyebrow text-q2-graphite mt-3">{isFr ? 'Appels' : 'Calls'}</p>
       <p className="mt-1 text-[12px] leading-snug text-q2-body q2-body-text">

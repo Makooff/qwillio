@@ -58,6 +58,24 @@ const inputCls = [
   'placeholder-[#8B8BA7] focus:border-[#7349fe]/50',
 ].join(' ');
 
+/* Le résultat de l'appel est une valeur de base, pas une phrase: la fiche
+   affichait « Lead_captured » tel quel, souligne comprise, dans une page
+   française. La liste des valeurs vient de client-call.service.ts. */
+function outcomeLabel(outcome: string | null | undefined): string {
+  const map: Record<string, string> = {
+    lead_captured: 'Lead qualifié',
+    transferred: 'Transféré',
+    booking: 'Rendez-vous pris',
+    booked: 'Rendez-vous pris',
+    informed: 'Renseigné',
+    voicemail: 'Messagerie',
+    spam: 'Indésirable',
+    no_answer: 'Sans réponse',
+  };
+  if (!outcome) return 'Non renseigné';
+  return map[outcome] || outcome.replace(/_/g, ' ');
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function ClientCalls() {
@@ -498,7 +516,7 @@ export default function ClientCalls() {
                   {[
                     { label: 'Durée', value: formatDuration(selectedCall.durationSeconds) },
                     { label: 'Date', value: formatDateTime(selectedCall.createdAt) },
-                    { label: 'Résultat', value: selectedCall.outcome || 'N/A' },
+                    { label: 'Résultat', value: outcomeLabel(selectedCall.outcome) },
                   ].map((m) => (
                     <div key={m.label} className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-3">
                       <p className="text-[10px] text-[#A1A1A8] uppercase tracking-wide mb-1">{m.label}</p>

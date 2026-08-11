@@ -429,8 +429,8 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
               ? 'Dashboard Qwillio : les appels du jour, leur issue et leur transcript'
               : 'Qwillio dashboard: the day’s calls, their outcome and their transcript'
           }
-          width={1600}
-          height={914}
+          width={2560}
+          height={1600}
           className="absolute block object-cover"
           style={MOCKUP.screen}
         />
