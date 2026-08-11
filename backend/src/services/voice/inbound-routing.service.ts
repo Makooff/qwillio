@@ -1,5 +1,6 @@
 import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
+import { normalizeNumber } from './phone-allocation.service';
 
 /**
  * Which client an inbound call belongs to (`assistant-request` routing).
@@ -9,24 +10,22 @@ import { logger } from '../../config/logger';
  * be resolved from the call itself. The dialed number is the only thing that
  * identifies it.
  *
- * That works when a client owns their number. It cannot work when several
- * clients share one: the same number then maps to several tenants and nothing
- * in the call distinguishes them. This module makes that ambiguity explicit and
- * loud rather than silently answering as the wrong business, which is the worst
- * possible failure — one client's caller hearing another client's agent.
+ * That works when a client owns their number. It degrades when several clients
+ * share one: nothing in the call distinguishes them. Ce module tranche alors par
+ * le plus récemment activé et hurle dans les journaux, parce qu'un appel
+ * raccroché est perdu pour de bon là où un mauvais aiguillage se corrige.
+ * L'attribution exclusive vit dans `phone-allocation.service.ts`, qui empêche ce
+ * cas de se produire pour les clients créés par l'onboarding.
  */
 
 export type InboundResolution =
   | { kind: 'resolved'; clientId: string; businessName: string; lineLabel?: string }
-  | { kind: 'unknown'; dialed: string | null }
-  | { kind: 'ambiguous'; dialed: string; candidates: number };
+  | { kind: 'unknown'; dialed: string | null };
 
-/** Digits only, so "+1 (607) 354-8569" and "+16073548569" compare equal. */
-function normalizeNumber(raw: unknown): string | null {
-  if (typeof raw !== 'string') return null;
-  const digits = raw.replace(/\D/g, '');
-  return digits.length >= 8 ? digits : null;
-}
+/* `normalizeNumber` vient de l'attribution, et non d'une copie locale: l'un
+   decide de la PROPRIETE d'une ligne, l'autre de son ROUTAGE. Deux definitions
+   qui divergeraient enverraient les appels chez un client qui n'a jamais tenu
+   le numero. */
 
 class InboundRoutingService {
   /**
@@ -56,6 +55,9 @@ class InboundRoutingService {
         id: true,
         businessName: true,
         vapiPhoneNumber: true,
+        // Servent uniquement à départager un numéro partagé, plus bas.
+        activationDate: true,
+        createdAt: true,
         phoneNumbers: { where: { isActive: true }, select: { number: true, label: true } },
       },
     });
@@ -83,13 +85,38 @@ class InboundRoutingService {
     }
 
     if (matches.length > 1) {
-      // Shared number with several live tenants. Answering as any one of them
-      // is a coin flip that a real caller pays for, so we refuse instead.
+      /* Plusieurs clients vivants sur la même ligne. On refusait de trancher, et
+         l'appelant entendait « ligne non configurée »: le deuxième client cassait
+         donc aussi le premier. Raccrocher est pourtant le pire des deux maux, un
+         appel manqué étant définitif là où un mauvais aiguillage se rattrape.
+         On départage par le plus récemment activé, qui est le seul ordre non
+         arbitraire disponible, et on crie dans les journaux: c'est une anomalie
+         d'exploitation, à corriger en achetant une ligne, pas un cas normal.
+         `allocateInboundNumber` empêche désormais cette situation de naître; ce
+         bloc ne couvre que les fiches posées à la main ou héritées. */
+      const ranked = [...matches].sort((a, b) => {
+        const delta =
+          (b.activationDate?.getTime() ?? b.createdAt.getTime()) -
+          (a.activationDate?.getTime() ?? a.createdAt.getTime());
+        /* A dates egales, l'identifiant tranche. Sans ce second critere le
+           comparateur rend 0 et l'ordre vient de la base: le MEME appelant
+           pouvait tomber sur une entreprise differente d'un appel a l'autre. */
+        return delta !== 0 ? delta : a.id.localeCompare(b.id);
+      });
+      const chosen = ranked[0];
       logger.error(
-        `[InboundRouting] ${matches.length} clients share ${dialed} — cannot tell which one was called. ` +
-          'Give each client their own Vapi number.'
+        `[InboundRouting] ${matches.length} clients partagent ${dialed} ` +
+          `(${matches.map(c => c.businessName).join(', ')}). ` +
+          `Appel routé vers « ${chosen.businessName} », le plus récemment activé. ` +
+          'Donner une ligne propre à chaque client.',
       );
-      return { kind: 'ambiguous', dialed, candidates: matches.length };
+      const line = (chosen.phoneNumbers ?? []).find(p => normalizeNumber(p.number) === dialed);
+      return {
+        kind: 'resolved',
+        clientId: chosen.id,
+        businessName: chosen.businessName,
+        ...(line?.label ? { lineLabel: line.label } : {}),
+      };
     }
 
     logger.warn(`[InboundRouting] no active client owns ${dialed}`);

@@ -39,10 +39,9 @@ describe('validateEnv — production secret guards', () => {
   });
 
   it('warns (not errors) when money-critical keys are empty in production', () => {
-    const { errors, warnings } = validateEnv(baseEnv({ STRIPE_SECRET_KEY: '', RESEND_API_KEY: '' }));
+    const { errors, warnings } = validateEnv(baseEnv({ STRIPE_SECRET_KEY: '' }));
     expect(errors).toEqual([]);
     expect(warnings.some((w) => w.includes('STRIPE_SECRET_KEY'))).toBe(true);
-    expect(warnings.some((w) => w.includes('RESEND_API_KEY'))).toBe(true);
   });
 
   it('does not enforce secret rules outside production', () => {
@@ -50,9 +49,26 @@ describe('validateEnv — production secret guards', () => {
     expect(errors).toEqual([]);
   });
 
-  it('warns (not errors) when VAPI_WEBHOOK_SECRET is empty in production', () => {
-    const { errors, warnings } = validateEnv(baseEnv({ VAPI_WEBHOOK_SECRET: '' }));
+  /* Ces deux clés provoquent des pannes MUETTES et totales: aucun appel traité,
+     aucune inscription possible. Un démarrage refusé se voit dans Render, une
+     production silencieusement inutile ne se voit nulle part. */
+  it('refuse de démarrer sans VAPI_WEBHOOK_SECRET en production', () => {
+    const { errors } = validateEnv(baseEnv({ VAPI_WEBHOOK_SECRET: '' }));
+    expect(errors.some((e) => e.includes('VAPI_WEBHOOK_SECRET'))).toBe(true);
+  });
+
+  it('refuse de démarrer sans RESEND_API_KEY en production', () => {
+    const { errors } = validateEnv(baseEnv({ RESEND_API_KEY: '' }));
+    expect(errors.some((e) => e.includes('RESEND_API_KEY'))).toBe(true);
+  });
+
+  it('ALLOW_DEGRADED_BOOT fait redescendre ces deux points en avertissements', () => {
+    // La soupape: un oubli ne doit jamais immobiliser un déploiement d'urgence.
+    const { errors, warnings } = validateEnv(
+      baseEnv({ VAPI_WEBHOOK_SECRET: '', RESEND_API_KEY: '', ALLOW_DEGRADED_BOOT: '1' }),
+    );
     expect(errors).toEqual([]);
     expect(warnings.some((w) => w.includes('VAPI_WEBHOOK_SECRET'))).toBe(true);
+    expect(warnings.some((w) => w.includes('RESEND_API_KEY'))).toBe(true);
   });
 });

@@ -57,6 +57,8 @@ import closerRoutes from './routes/closer.routes';
 import aiAgentsRoutes from './routes/ai-agents.routes';
 import agencyRoutes from './routes/agency.routes';
 import affiliateRoutes from './routes/affiliate.routes';
+import { clientPortalUrl } from './utils/urls';
+import { allocateInboundNumber } from './services/voice/phone-allocation.service';
 
 const app = express();
 
@@ -166,9 +168,20 @@ app.use('/api/affiliate', affiliateRoutes);
 // ─── Contact Form ─────────────────────────────────────
 app.post('/api/contact', contactLimiter, async (req, res) => {
   try {
-    const { name, email, subject, message } = req.body;
+    const { name, email, subject, message, website } = req.body;
     if (!name || !email || !message) {
       res.status(400).json({ error: 'Missing required fields' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+      res.status(400).json({ error: 'Invalid email' });
+      return;
+    }
+    /* Champ leurre, invisible pour un humain. On répond 200 sans rien envoyer:
+       un robot qui voit une erreur réessaie. */
+    if (website) {
+      logger.info('Contact form ignored (honeypot filled)');
+      res.json({ success: true });
       return;
     }
     // Escape user input before embedding in the notification email's HTML
@@ -405,6 +418,25 @@ async function runBootstrap() {
           const existingClient = await prisma.client.findUnique({ where: { userId: user.id } });
           const dashboardToken = existingClient?.dashboardToken ?? crypto.randomBytes(24).toString('hex');
           const now = new Date();
+          /* Le compte de test ne s'empare plus de la ligne partagée.
+             Il la recopiait à chaque démarrage, si bien qu'un vrai client
+             activé ensuite se retrouvait à deux sur le même numéro: les DEUX
+             devenaient injoignables. Le compte de test n'a pas besoin de
+             recevoir des appels entrants pour remplir son rôle, qui est de
+             donner un portail peuplé.
+             L'attribution passe par le MEME service que l'onboarding: un second
+             contrôle écrit ici finirait par diverger de celui qui fait foi. Le
+             client de test n'existe pas encore au premier démarrage, d'où
+             l'identifiant vide qui n'exclut personne. */
+          const bootstrapAllocation = await allocateInboundNumber(existingClient?.id ?? '');
+          const bootstrapPhone =
+            bootstrapAllocation.kind === 'allocated' ? bootstrapAllocation.number : null;
+          if (!bootstrapPhone) {
+            logger.warn(
+              `[bootstrap] ${env.VAPI_PHONE_NUMBER || '(aucun numéro)'} indisponible — ` +
+                'le compte de test reste sans ligne entrante.',
+            );
+          }
           const onboardingDataSeed = {
             businessType: user.industry ?? 'home_services',
             services: ['Appointment booking', '24/7 call answering', 'Lead capture'],
@@ -442,7 +474,7 @@ async function runBootstrap() {
               transferNumber:        user.businessPhone ?? null,
               onboardingData:        onboardingDataSeed,
               vapiAssistantId:       env.VAPI_ASSISTANT_ID || null,
-              vapiPhoneNumber:       env.VAPI_PHONE_NUMBER || null,
+              vapiPhoneNumber:       bootstrapPhone,
               // Forwarding "verified" only makes sense when an actual transfer
               // number exists. Otherwise leave it null so the UI shows
               // "Non configuré" and the banner links to the config page.
@@ -462,14 +494,16 @@ async function runBootstrap() {
               stripeCustomerId:      'cus_bootstrap_test',
               stripeSubscriptionId:  'sub_bootstrap_test',
               vapiAssistantId:       env.VAPI_ASSISTANT_ID || undefined,
-              vapiPhoneNumber:       env.VAPI_PHONE_NUMBER || undefined,
+              // `null` et non `undefined`: si la ligne est passée à un vrai
+              // client, le compte de test doit la relâcher, pas la conserver.
+              vapiPhoneNumber:       bootstrapPhone,
               forwardingStatus:      user.businessPhone ? 'verified' : undefined,
               forwardingVerifiedAt:  user.businessPhone ? now : undefined,
             },
           });
           logger.info(`[bootstrap] ✅ Test-activated client ${bootstrapEmail} (plan=${bootstrapPlan})`);
           logger.info(`[bootstrap] Client ID: ${client.id}`);
-          logger.info(`[bootstrap] Dashboard URL: ${env.FRONTEND_URL.split(',')[0]}/portal/${dashboardToken}`);
+          logger.info(`[bootstrap] Dashboard URL: ${clientPortalUrl(client.id, dashboardToken)}`);
         }
       } catch (err) {
         logger.warn('[bootstrap] Test-activate failed (non-fatal):', err);

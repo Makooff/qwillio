@@ -41,6 +41,11 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendOk, setResendOk] = useState(false);
+  const [resendError, setResendError] = useState('');
+  /* Vrai quand le serveur dit que l'email n'est PAS parti. Sans ce signal,
+     l'écran promettait un message qui n'existait pas et l'inscrit attendait
+     indéfiniment. */
+  const [emailFailed, setEmailFailed] = useState(false);
 
   const { register } = useAuthStore();
   const navigate = useNavigate();
@@ -52,7 +57,8 @@ export default function Register() {
     if (password.length < 8) { setError('Le mot de passe doit contenir au moins 8 caractères.'); return; }
     setLoading(true);
     try {
-      await register(email.trim(), password, '');
+      const { confirmationEmailSent } = await register(email.trim(), password, '');
+      setEmailFailed(!confirmationEmailSent);
       const { user } = useAuthStore.getState();
       // Registration already handed out a JWT, so an unconfirmed account is
       // "logged in". Sending it to /subscribe would only get it bounced; the
@@ -69,18 +75,28 @@ export default function Register() {
   async function handleResend() {
     setResending(true);
     setResendOk(false);
+    setResendError('');
     try {
       await api.post('/auth/resend-confirmation');
       setResendOk(true);
+      setEmailFailed(false);
       setTimeout(() => setResendOk(false), 5000);
-    } catch { /* silent */ } finally { setResending(false); }
+    } catch {
+      // L'échec était silencieux: on cliquait, rien ne bougeait, rien ne le
+      // disait. Un renvoi qui échoue doit se voir.
+      setResendError("L'envoi a échoué. Réessayez dans un instant, ou écrivez-nous à contact@qwillio.com.");
+    } finally { setResending(false); }
   }
 
   if (step === 'activation') {
     return (
       <AuthShell
         title="Vérifiez votre email"
-        subtitle="Un lien d'activation a été envoyé à votre adresse."
+        subtitle={
+          emailFailed
+            ? "L'email n'a pas pu partir. Utilisez le bouton ci-dessous pour réessayer."
+            : "Un lien d'activation a été envoyé à votre adresse."
+        }
         footer={
           <Link to="/login" className={AUTH_LINK}>
             Retour à la connexion
@@ -94,6 +110,16 @@ export default function Register() {
             </span>
             <p className="text-[15px] font-medium text-q2-ink break-all">{email}</p>
           </div>
+
+          {emailFailed && !resendOk && (
+            <p className={AUTH_ALERT} role="alert">
+              Nous n'avons pas réussi à envoyer l'email d'activation. Réessayez ci-dessous.
+            </p>
+          )}
+
+          {resendError && (
+            <p className={AUTH_ALERT} role="alert">{resendError}</p>
+          )}
 
           {resendOk && (
             <p className={`${AUTH_NOTICE} flex items-center gap-1.5`} role="status">

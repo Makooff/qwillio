@@ -26,23 +26,23 @@ const SECTORS: Record<string, Sector> = {
     slug: 'fiduciaire',
     metierFr: 'cabinet comptable',
     metierEn: 'accounting firm',
-    headlineFr: "La réceptionniste IA des cabinets comptables, en français et en néerlandais",
-    headlineEn: 'The AI receptionist for accounting firms, in French and Dutch',
+    headlineFr: "La réceptionniste IA des cabinets comptables, en français et en anglais",
+    headlineEn: 'The AI receptionist for accounting firms, in French and English',
     painFr:
       "En période de déclarations, la ligne ne désemplit pas et l'équipe est sur les dossiers. Chaque appel manqué est un client qui rappelle trois fois, s'agace, puis demande à son voisin le nom d'un autre cabinet. Combien en ratez-vous par semaine à ce moment de l'année ?",
     painEn:
       'During filing season the line never stops and the team is heads-down on files. Every missed call is a client who rings three times, gets annoyed, then asks a neighbour for another firm. How many do you miss a week at that time of year?',
     scenarioFr:
-      "Un client appelle un mardi de mars pour une échéance TVA. Qwillio décroche en français ou en néerlandais selon lui, identifie le dossier, propose un créneau avec le bon collaborateur, et transfère immédiatement si c'est urgent.",
+      "Un client appelle un mardi de mars pour une échéance TVA. Qwillio décroche en français ou en anglais selon lui, identifie le dossier, propose un créneau avec le bon collaborateur, et transfère immédiatement si c'est urgent.",
     scenarioEn:
-      'A client calls on a Tuesday in March about a VAT deadline. Qwillio answers in French or Dutch depending on the caller, identifies the file, offers a slot with the right accountant, and transfers straight away when it is urgent.',
+      'A client calls on a Tuesday in March about a VAT deadline. Qwillio answers in French or English depending on the caller, identifies the file, offers a slot with the right accountant, and transfers straight away when it is urgent.',
     wins: [
       {
         titleFr: 'Bilingue sur le même appel',
         titleEn: 'Bilingual on one call',
         bodyFr:
-          "Français et néerlandais sans que l'appelant ait à choisir une touche. En Belgique, ce n'est pas un supplément, c'est la base.",
-        bodyEn: 'French and Dutch without the caller pressing a key. In Belgium that is not an extra, it is the baseline.',
+          "Français et anglais sur le même appel, sans que l'appelant ait à choisir une touche: s'il passe à l'anglais en cours de route, la réceptionniste suit.",
+        bodyEn: 'French and English on the same call, without the caller pressing a key: if they switch mid-conversation, the receptionist follows.',
       },
       {
         titleFr: 'Les pics de saison absorbés',
@@ -52,11 +52,11 @@ const SECTORS: Record<string, Sector> = {
         bodyEn: 'VAT and year-end deadlines triple call volume. Qwillio does not need a temp.',
       },
       {
-        titleFr: 'Hébergement européen',
-        titleEn: 'European hosting',
+        titleFr: 'Conforme RGPD',
+        titleEn: 'GDPR compliant',
         bodyFr:
-          "Vous traitez les données de vos clients. Tout reste dans l'Union européenne, et le consentement à l'enregistrement est demandé au décrochage.",
-        bodyEn: 'You handle your clients\' data. Everything stays in the European Union, and consent to recording is asked at pickup.',
+          "Vous traitez les données de vos clients. L'enregistrement est annoncé au décrochage, et rien n'est vendu ni utilisé pour entraîner un modèle externe sans votre accord.",
+        bodyEn: 'You handle your clients\' data. Recording is announced at pickup, and nothing is sold or used to train an external model without your consent.',
       },
       {
         titleFr: 'Un revenu récurrent en plus',
@@ -171,8 +171,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Conforme RGPD',
         titleEn: 'GDPR compliant',
-        bodyFr: 'Hébergement européen, aucune donnée hors EEE, consentement demandé au décrochage.',
-        bodyEn: 'European hosting, no data outside the EEA, consent asked at pickup.',
+        bodyFr: "Enregistrement annoncé au décrochage, aucune donnée vendue ni utilisée pour entraîner un modèle externe sans votre accord.",
+        bodyEn: 'Recording announced at pickup, no data sold or used to train an external model without your consent.',
       },
     ],
     plan: 'pro',
@@ -273,8 +273,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Confidentiel',
         titleEn: 'Confidential',
-        bodyFr: 'Hébergement européen, RGPD, consentement demandé à chaque appel.',
-        bodyEn: 'European hosting, GDPR, consent asked on every call.',
+        bodyFr: 'RGPD, enregistrement annoncé à chaque appel, effacement sur demande.',
+        bodyEn: 'GDPR, recording announced on every call, erasure on request.',
       },
       {
         titleFr: 'Filtrage',
@@ -526,7 +526,7 @@ export default function Vertical({ secteur: secteurProp }: { secteur?: string } 
                 'Email récap au patron après chaque appel',
                 'Transcript complet + sentiment',
                 'Routage urgences / commercial / spam',
-                'Hébergement européen, RGPD conforme',
+                'Conforme RGPD, effacement sur demande',
               ]
             : [
                 'French-native voice, Belgian or French accent',
@@ -536,7 +536,7 @@ export default function Vertical({ secteur: secteurProp }: { secteur?: string } 
                 'Email recap to the owner after each call',
                 'Full transcript + sentiment',
                 'Routing: emergencies / sales / spam',
-                'European hosting, GDPR compliant',
+                'GDPR compliant, erasure on request',
               ]
           ).map((line) => (
             <li key={line} className="flex items-start gap-2 text-sm text-neutral-700">

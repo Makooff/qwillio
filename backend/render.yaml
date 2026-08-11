@@ -29,6 +29,18 @@ services:
         sync: false
       - key: VAPI_PUBLIC_KEY
         sync: false
+      # Sans ce secret, /api/webhooks/vapi repond 401 a TOUT: aucun appel n'est
+      # traite, et rien ne le signale a part le refus de demarrer. Il doit valoir
+      # exactement le secret pose dans le tableau de bord Vapi.
+      - key: VAPI_WEBHOOK_SECRET
+        sync: false
+      # La ligne entrante, attribuee a UN client et un seul (voir
+      # phone-allocation.service.ts). Deux clients dessus et les deux deviennent
+      # injoignables.
+      - key: VAPI_PHONE_NUMBER
+        sync: false
+      - key: VAPI_PHONE_NUMBER_ID
+        sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
@@ -72,6 +84,18 @@ services:
       - key: VAPI_PRIVATE_KEY
         sync: false
       - key: VAPI_PUBLIC_KEY
+        sync: false
+      # Sans ce secret, /api/webhooks/vapi repond 401 a TOUT: aucun appel n'est
+      # traite, et rien ne le signale a part le refus de demarrer. Il doit valoir
+      # exactement le secret pose dans le tableau de bord Vapi.
+      - key: VAPI_WEBHOOK_SECRET
+        sync: false
+      # La ligne entrante, attribuee a UN client et un seul (voir
+      # phone-allocation.service.ts). Deux clients dessus et les deux deviennent
+      # injoignables.
+      - key: VAPI_PHONE_NUMBER
+        sync: false
+      - key: VAPI_PHONE_NUMBER_ID
         sync: false
       - key: STRIPE_SECRET_KEY
         sync: false

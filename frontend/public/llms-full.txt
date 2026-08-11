@@ -200,7 +200,7 @@ API:
 - No data is sold to third parties
 - No data is used to train external models without explicit consent
 - GDPR-compliant, HIPAA-ready (Enterprise, with signed BAA)
-- Data residency: EU (Belgium) by default, US (Virginia) on request
+- Hosting: Vercel (frontend) and Render (backend); transfers outside the EEA are covered by the European Commission's Standard Contractual Clauses. The full processor list is published at qwillio.com/legal/privacy
 - Call recordings require explicit caller consent per jurisdiction
 
 Data retention:
@@ -284,4 +284,4 @@ A: Yes. First month is completely free, no credit card required, full feature ac
 - LLM policy: https://qwillio.com/llms.txt
 - This file: https://qwillio.com/llms-full.txt
 - Logo SVG: https://qwillio.com/qwillio-logo-512.svg
-- OG image: https://qwillio.com/og-image.svg
+- OG image: https://qwillio.com/og-image.png

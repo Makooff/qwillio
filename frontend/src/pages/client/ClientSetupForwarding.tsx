@@ -24,12 +24,23 @@ export default function ClientSetupForwarding() {
   const [copied, setCopied] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
+  const [confirmError, setConfirmError] = useState('');
+
+  /* L'enregistrement pouvait échouer sans que rien ne le dise: on partait quand
+     même vers le tableau de bord, la case restait décochée dans la liste
+     d'installation, et le client croyait son renvoi enregistré. On ne quitte
+     l'écran que si le serveur a répondu. */
   const confirmForwarding = async () => {
     setConfirming(true);
+    setConfirmError('');
     try {
       await api.put('/my-dashboard/settings', { forwardingStatus: 'verified' });
-    } catch { /* non-blocking — still move on */ }
-    navigate('/dashboard');
+      navigate('/dashboard');
+    } catch {
+      setConfirmError("L'enregistrement a échoué. Réessayez dans un instant.");
+    } finally {
+      setConfirming(false);
+    }
   };
 
   useEffect(() => {
@@ -168,6 +179,9 @@ export default function ClientSetupForwarding() {
       </div>
 
       {/* Done */}
+      {confirmError && (
+        <p role="alert" className="text-[12.5px] text-red-400 mb-2 text-center">{confirmError}</p>
+      )}
       <button
         onClick={confirmForwarding}
         disabled={confirming}

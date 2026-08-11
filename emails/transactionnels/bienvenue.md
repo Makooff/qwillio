@@ -18,7 +18,7 @@ Bonjour ${data.contactName}, votre réceptionniste IA pour ${data.businessName} 
 
 ---
 
-Testez-la. Appelez le ${data.vapiPhoneNumber} et écoutez votre IA en action.
+Testez-la. Appelez le ${phone} et écoutez votre IA en action.
 
 ---
 
@@ -26,7 +26,7 @@ Personnalisez-la. Ouvrez le tableau de bord pour définir vos horaires, votre FA
 
 ---
 
-Redirigez vos appels. Transférez votre ligne principale vers le ${data.vapiPhoneNumber} quand vous êtes prêt.
+Redirigez vos appels. Transférez votre ligne principale vers le ${phone} quand vous êtes prêt.
 
 ---
 
@@ -38,7 +38,7 @@ Hi ${data.contactName}, your AI receptionist for ${data.businessName} is now ans
 
 ---
 
-Test it. Call ${data.vapiPhoneNumber} and hear your AI in action.
+Test it. Call ${phone} and hear your AI in action.
 
 ---
 
@@ -46,4 +46,4 @@ Customize it. Open the dashboard to set hours, FAQ and pricing.
 
 ---
 
-Forward your calls. Redirect your main line to ${data.vapiPhoneNumber} when you're ready.
+Forward your calls. Redirect your main line to ${phone} when you're ready.

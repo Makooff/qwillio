@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from '../../components/icons';
 import { useLang } from '../../stores/langStore';
+import { useSEO } from '../../hooks/useSEO';
 import { BLOG_ARTICLES } from '../../content/blogArticles';
 import PublicShell from '../../components/v2/PublicShell';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
@@ -25,41 +26,21 @@ const SEO_ARTICLES = BLOG_ARTICLES.map((a) => ({
   ready: true,
 }));
 
-interface LegacyPost {
-  title: string;
-  excerpt: string;
-  date: string;
-  tag: string;
-  ready: boolean;
-}
-
 export default function Blog() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
 
-  const legacyPosts: LegacyPost[] = [
-    {
-      title: isFr ? 'Comment l\'IA révolutionne la réception d\'appels' : 'How AI is revolutionizing call reception',
-      excerpt: isFr ? 'Découvrez comment les réceptionnistes IA permettent aux entreprises de ne plus jamais manquer un appel.' : 'Discover how AI receptionists help businesses never miss a call again.',
-      date: 'Mar 15, 2026',
-      tag: isFr ? 'IA & Automatisation' : 'AI & Automation',
-      ready: true,
-    },
-    {
-      title: isFr ? '5 erreurs qui font perdre des clients au téléphone' : '5 mistakes that lose clients on the phone',
-      excerpt: isFr ? 'La plupart des entreprises perdent 30% de leurs prospects à cause d\'appels manqués. Voici comment y remédier.' : 'Most businesses lose 30% of prospects due to missed calls. Here\'s how to fix it.',
-      date: 'Mar 8, 2026',
-      tag: isFr ? 'Conseils Business' : 'Business Tips',
-      ready: true,
-    },
-    {
-      title: isFr ? 'Qwillio Agent : automatisez votre comptabilité' : 'Qwillio Agent: automate your accounting',
-      excerpt: isFr ? 'Notre nouveau module Accounting AI génère vos factures et P&L automatiquement.' : 'Our new Accounting AI module generates your invoices and P&L automatically.',
-      date: 'Feb 28, 2026',
-      tag: isFr ? 'Produit' : 'Product',
-      ready: true,
-    },
-  ];
+  /* Seule page publique qui n'avait pas de SEO: pas de titre propre, pas de
+     description, pas de canonique, donc invisible là où le blog sert. */
+  useSEO({
+    // `useSEO` ajoute lui-même « – Qwillio »: le porter ici donnerait
+    // « Blog · Qwillio – Qwillio » dans l'onglet.
+    title: 'Blog',
+    description: isFr
+      ? "Articles et guides sur la réceptionniste IA: appels manqués, prise de rendez-vous, RGPD, coûts réels."
+      : 'Articles and guides on AI receptionists: missed calls, appointment booking, GDPR, real costs.',
+    canonical: 'https://qwillio.com/blog',
+  });
 
   const formatDate = (iso: string) => {
     return new Date(iso).toLocaleDateString(isFr ? 'fr-FR' : 'en-US', {
@@ -99,11 +80,13 @@ export default function Blog() {
         </Container>
       </Section>
 
-      {/* Articles à la une: rangées hairline, date à gauche, extrait au centre */}
+      {/* Les articles, tous cliquables. La section « Tous les articles » qui
+          suivait montrait trois billets sans page, donc trois liens morts, dont
+          un vantant un module d'agent qui ne s'ouvre pas. */}
       <Section variant="band" hairline aria-labelledby="featured-heading">
         <Container>
           <RevealV2 className="mb-12">
-            <H2 id="featured-heading">{isFr ? 'Articles à la une' : 'Featured articles'}</H2>
+            <H2 id="featured-heading">{isFr ? 'Articles' : 'Articles'}</H2>
           </RevealV2>
 
           <ol className="border-t border-q2-plate" role="list">
@@ -143,32 +126,6 @@ export default function Blog() {
         </Container>
       </Section>
 
-      {/* Billets historiques: pas encore de page dédiée, donc pas de lien */}
-      <Section aria-labelledby="all-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'twin', x: '-9%', y: '46%', size: 215, drift: -75, opacity: 0.2 }]} />
-        <Container>
-          <RevealV2 className="mb-12">
-            <H2 id="all-heading">{isFr ? 'Tous les articles' : 'All articles'}</H2>
-          </RevealV2>
-
-          <div className="border-t border-q2-plate">
-            {legacyPosts.map((post, i) => (
-              <RevealV2 key={post.title} index={i} as="article" className="border-b border-q2-plate">
-                <div className="grid md:grid-cols-[150px_1fr] gap-3 md:gap-10 py-8 md:py-10 items-start">
-                  <p className="text-sm text-q2-body md:pt-1.5">{post.date}</p>
-                  <div>
-                    <h3 className="q2-h3 text-q2-ink mb-2 max-w-[560px]">{post.title}</h3>
-                    <p className="text-[15px] leading-relaxed text-q2-body max-w-[560px] q2-body-text">
-                      {post.excerpt}
-                    </p>
-                    <p className="mt-4 q2-eyebrow text-q2-body">{post.tag}</p>
-                  </div>
-                </div>
-              </RevealV2>
-            ))}
-          </div>
-        </Container>
-      </Section>
     </PublicShell>
   );
 }

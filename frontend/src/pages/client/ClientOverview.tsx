@@ -4,7 +4,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   Phone, Bot, Settings, ChevronRight, AlertCircle,
   Headphones, Sparkles, PhoneForwarded, Pause,
-  ChevronDown, Calendar, SlidersHorizontal,
 } from '../../components/icons';
 import { useAuthStore } from '../../stores/authStore';
 import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
@@ -140,6 +139,18 @@ export default function ClientOverview() {
     : 0;
   const callsTodayDir: Dir = callsToday > callsYesterday ? 'up' : callsToday < callsYesterday ? 'down' : 'flat';
 
+  /* La courbe trace les VRAIS appels des 30 derniers jours (`dailyCalls`, ajouté
+     à l'aperçu côté serveur). Elle traçait jusqu'ici une progression écrite en
+     dur, la même pour tous les clients. Une série vide n'est pas un défaut à
+     masquer: le panneau affiche alors qu'il n'y a pas encore eu d'appel. */
+  const dailyCalls = ((data as Record<string, unknown> & {
+    dailyCalls?: { date: string; count: number }[];
+  })?.dailyCalls) ?? [];
+  const callSeries = dailyCalls.map((d) => ({
+    label: new Date(d.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+    value: d.count,
+  }));
+
   // Per-minute billing: the quota gauge tracks INCLUDED MINUTES, not calls.
   const minutes_ = (data as Record<string, unknown> & { minutes?: Record<string, number> })?.minutes ?? {};
   const quotaUsed = (minutes_ as Record<string, number>).used ?? 0;
@@ -261,32 +272,19 @@ export default function ClientOverview() {
             </span>
           </p>
         </div>
-        <div className="hidden md:flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-[13px] font-medium text-white/90 transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-            style={{ background: '#161616', border: '1px solid oklch(24% 0 0 / 0.55)' }}
-          >
-            30 derniers jours <ChevronDown size={14} className="text-white/45" />
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-[13px] font-medium text-white/60 transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-            style={{ background: '#161616', border: '1px solid oklch(24% 0 0 / 0.55)' }}
-          >
-            <Calendar size={14} />
-            {new Date(Date.now() - 29 * 864e5).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-            {' – '}
-            {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl text-[13px] font-medium text-white/60 transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-            style={{ background: '#161616', border: '1px solid oklch(24% 0 0 / 0.55)' }}
-          >
-            <SlidersHorizontal size={14} /> Personnaliser
-          </button>
-        </div>
+        {/* Trois boutons vivaient ici: un sélecteur « 30 derniers jours », une
+            plage de dates et « Personnaliser ». Aucun n'avait de `onClick`: on
+            cliquait, rien ne se passait. Trois boutons morts en haut de la
+            première page du portail, c'est-à-dire au premier écran d'une
+            démonstration. La période est fixe (l'aperçu serveur renvoie trente
+            jours), alors elle est écrite, pas offerte au clic. */}
+        <p className="hidden md:block text-[12.5px] tabular-nums text-white/45">
+          {new Date(Date.now() - 29 * 864e5).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+          {' – '}
+          {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+          <span className="mx-1.5 text-white/20">·</span>
+          30 derniers jours
+        </p>
       </section>
 
       {/* Onboarding */}
@@ -307,7 +305,7 @@ export default function ClientOverview() {
             label="Appels traités ce mois"
             delta={callsTodayPct > 0 ? { pct: callsTodayPct, dir: callsTodayDir } : undefined}
             deltaSuffix="sur 24 h"
-            series={[]}
+            series={callSeries}
             unit="appels"
           />
 

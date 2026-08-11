@@ -126,6 +126,7 @@ export default function ClientBilling() {
   const [cancelInput, setCancelInput] = useState('');
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
+  const [invoiceOpening, setInvoiceOpening] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -194,6 +195,26 @@ export default function ClientBilling() {
       );
     } finally {
       setOpeningPortal(false);
+    }
+  };
+
+  /* La facture, chez Stripe. Le tableau proposait `/api/invoices/:id/pdf`, une
+     route qui n'existe pas: chaque ligne de l'historique donnait un 404. Même
+     mécanique que le portail, et pour la même raison: l'adresse arrive après un
+     aller-retour, donc `window.open` serait bloqué. */
+  const openInvoice = async (paymentId: string) => {
+    setInvoiceOpening(paymentId);
+    setLoadError(null);
+    try {
+      const { data } = await api.get(`/my-dashboard/payments/${paymentId}/invoice`);
+      if (data?.url) window.location.href = data.url;
+      else setLoadError("La facture n'est pas disponible pour ce paiement.");
+    } catch (e: any) {
+      setLoadError(
+        e?.response?.data?.error ?? "La facture n'est pas disponible pour ce paiement.",
+      );
+    } finally {
+      setInvoiceOpening(null);
     }
   };
 
@@ -469,15 +490,15 @@ export default function ClientBilling() {
                       {formatDate(p.createdAt)}
                     </td>
                     <td className="py-3">
-                      <a
-                        href={`/api/invoices/${p.id}/pdf`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1 text-xs hover:underline"
+                      <button
+                        type="button"
+                        onClick={() => openInvoice(p.id)}
+                        disabled={invoiceOpening === p.id}
+                        className="flex items-center gap-1 text-xs hover:underline disabled:opacity-50 active:scale-[0.97] transition-transform"
                         style={{ color: '#7349fe' }}
                       >
-                        <Download size={11} /> PDF
-                      </a>
+                        <Download size={11} /> {invoiceOpening === p.id ? 'Ouverture…' : 'Facture'}
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -15,6 +15,8 @@ interface EnvLike {
   VAPI_PRIVATE_KEY: string;
   VAPI_WEBHOOK_SECRET: string;
   RESEND_API_KEY: string;
+  /** Soupape: laisse démarrer malgré les manques ci-dessous. Voir plus bas. */
+  ALLOW_DEGRADED_BOOT?: string;
 }
 
 const DEFAULT_JWT_SECRET = 'change-me-in-production';
@@ -37,24 +39,45 @@ export function validateEnv(e: EnvLike): { errors: string[]; warnings: string[] 
     errors.push('DATABASE_URL is not set in production.');
   }
 
+  /* ── Erreurs — sans ces deux clés, le produit ne rend AUCUN service ──
+     Elles étaient de simples avertissements, et les deux pannes qu'elles
+     provoquent sont muettes: sans VAPI_WEBHOOK_SECRET, tous les webhooks Vapi
+     répondent 401 et pas un appel n'est traité; sans RESEND_API_KEY, l'email de
+     vérification ne part pas et l'inscrit reste bloqué sur /verify-email pour
+     toujours. Un serveur qui ne peut ni répondre au téléphone ni inscrire
+     personne ne doit pas se déclarer prêt: il vaut mieux un démarrage refusé,
+     visible dans Render, qu'une production silencieusement inutile. */
+  /* Uniquement '1', la valeur documentee. Accepter 'true' en plus offrait une
+     seconde facon, non ecrite, de demarrer sans les secrets. */
+  const degradedAllowed = e.ALLOW_DEGRADED_BOOT === '1';
+  /* La soupape existe pour qu'un oubli ne puisse jamais immobiliser un déploiement
+     d'urgence: poser ALLOW_DEGRADED_BOOT=1 dans Render fait redescendre ces deux
+     points en avertissements. Sans elle, un correctif sans rapport deviendrait
+     impossible à livrer un jour de panne. */
+  const blocking = degradedAllowed ? warnings : errors;
+
+  if (!e.VAPI_WEBHOOK_SECRET) {
+    blocking.push(
+      'VAPI_WEBHOOK_SECRET is missing in production — /api/webhooks/vapi would reject every ' +
+        'event (401) and no call would ever be answered. Set the same secret here and in the ' +
+        'VAPI dashboard webhook settings.',
+    );
+  }
+  if (!e.RESEND_API_KEY) {
+    blocking.push(
+      'RESEND_API_KEY is missing in production — no verification or welcome email can be sent, ' +
+        'so every new signup stays stuck on /verify-email.',
+    );
+  }
+
   // ── Warnings — money-critical features fail silently if unset ──
   const moneyCritical: Array<[string, string]> = [
     ['STRIPE_SECRET_KEY', e.STRIPE_SECRET_KEY],
     ['STRIPE_WEBHOOK_SECRET', e.STRIPE_WEBHOOK_SECRET],
     ['VAPI_PRIVATE_KEY', e.VAPI_PRIVATE_KEY],
-    ['RESEND_API_KEY', e.RESEND_API_KEY],
   ];
   for (const [key, value] of moneyCritical) {
     if (!value) warnings.push(`${key} is empty — the related feature will silently fail in production.`);
-  }
-
-  // Security — the VAPI webhook endpoints fail closed without this secret, so an
-  // unset value means inbound call events are rejected (401) in production.
-  if (!e.VAPI_WEBHOOK_SECRET) {
-    warnings.push(
-      'VAPI_WEBHOOK_SECRET is empty — /api/webhooks/vapi will reject all events (401) ' +
-        'in production. Set the same secret here and in the VAPI dashboard webhook settings.',
-    );
   }
 
   return { errors, warnings };

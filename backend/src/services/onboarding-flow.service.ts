@@ -1,4 +1,5 @@
 import { prisma } from '../config/database';
+import { clientPortalUrl, onboardingFormUrl } from '../utils/urls';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { emailService } from './email.service';
@@ -40,8 +41,8 @@ export class OnboardingFlowService {
       },
     });
 
-    const formUrl = `${env.FRONTEND_URL}/onboarding/${clientId}?token=${dashboardToken}`;
-    const dashboardUrl = `${env.FRONTEND_URL}/client-portal/${clientId}?token=${dashboardToken}`;
+    const formUrl = onboardingFormUrl(clientId, dashboardToken);
+    const dashboardUrl = clientPortalUrl(clientId, dashboardToken);
 
     // Send the comprehensive welcome + onboarding email
     await emailService.sendOnboardingEmail({
@@ -294,7 +295,7 @@ export class OnboardingFlowService {
         to: client.contactEmail,
         contactName: client.contactName,
         businessName: client.businessName,
-        dashboardUrl: `${env.FRONTEND_URL}/client-portal/${clientId}?token=${client.dashboardToken}`,
+        dashboardUrl: clientPortalUrl(clientId, client.dashboardToken),
         lang: (client as any).language === 'en' ? 'en' : 'fr',
       });
 
@@ -478,7 +479,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       monthlyPrice: pkg.monthlyFee,
       setupPrice: pkg.setupFee,
       paymentLink: `${paymentLink}?client_reference_id=${client.id}`,
-      dashboardUrl: `${env.FRONTEND_URL}/client-portal/${clientId}?token=${client.dashboardToken}`,
+      dashboardUrl: clientPortalUrl(clientId, client.dashboardToken),
       trialStats: await this.getTrialSummaryStats(clientId),
       lang: (client as any).language === 'en' ? 'en' : 'fr',
     });

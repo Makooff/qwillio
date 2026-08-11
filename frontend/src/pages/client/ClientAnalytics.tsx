@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   BarChart3, Phone, Users, Clock, Zap,
-  DollarSign, Calculator,
+  Calculator,
 } from '../../components/icons';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -179,7 +179,11 @@ export default function ClientAnalytics() {
     ? Object.entries(data.peakDays).map(([d, v]) => ({ day: dayNames[parseInt(d)] ?? d, calls: v }))
     : [];
 
-  const monthlyFee = (overview?.client as Record<string, number> | undefined)?.monthlyFee ?? 197;
+  /* Le vrai abonnement du client, ou rien. Le repli à 197 était un chiffre
+     inventé, et il n'existe dans aucun forfait: le ROI affiché ne parlait donc
+     pas du client qui le lisait. Sans montant connu, le calcul ne s'affiche
+     pas plutôt que de s'appuyer sur une invention. */
+  const monthlyFee = (overview?.client as Record<string, number> | undefined)?.monthlyFee ?? 0;
   const potentialRevenue = totalLeads * avgDealValue * (conversionRate / 100);
   const leadsValue = totalLeads * costPerLead;
   const roi = monthlyFee > 0 ? Math.round(((potentialRevenue - monthlyFee) / monthlyFee) * 100) : 0;
@@ -389,7 +393,9 @@ export default function ClientAnalytics() {
               <div key={label}>
                 <label className="text-[11px] text-white/40 mb-1.5 block">{label}</label>
                 <div className="flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3">
-                  <DollarSign size={13} className="text-white/30" />
+                  {/* L'euro, pas le dollar: tous les forfaits sont en euros et
+                      la clientèle est belge et française. */}
+                  <span className="text-[13px] text-white/30" aria-hidden="true">€</span>
                   <input
                     type="number"
                     value={value}
@@ -408,21 +414,33 @@ export default function ClientAnalytics() {
             </div>
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
               <p className="text-[10px] text-white/40 mb-1">Équivalent coût manuel</p>
-              <p className="text-xl font-bold tabular-nums text-white/90">${leadsValue.toLocaleString()}</p>
+              <p className="text-xl font-bold tabular-nums text-white/90">{leadsValue.toLocaleString('fr-FR')} €</p>
             </div>
           </div>
           {/* ROI result */}
           <div className="space-y-3">
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
               <p className="text-[10px] text-white/40 mb-1">Revenus potentiels</p>
-              <p className="text-xl font-bold tabular-nums text-white/90">${potentialRevenue.toLocaleString()}</p>
+              <p className="text-xl font-bold tabular-nums text-white/90">{Math.round(potentialRevenue).toLocaleString('fr-FR')} €</p>
             </div>
-            <div className={`rounded-xl p-4 border ${roi >= 0 ? 'bg-emerald-400/[0.07] border-emerald-400/20' : 'bg-red-400/[0.07] border-red-400/20'}`}>
-              <p className="text-[10px] text-white/40 mb-1">ROI estimé</p>
-              <p className={`text-2xl font-bold ${roi >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {roi >= 0 ? '+' : ''}{roi}%
-              </p>
-            </div>
+            {monthlyFee > 0 ? (
+              <div className={`rounded-xl p-4 border ${roi >= 0 ? 'bg-emerald-400/[0.07] border-emerald-400/20' : 'bg-red-400/[0.07] border-red-400/20'}`}>
+                <p className="text-[10px] text-white/40 mb-1">
+                  ROI estimé · abonnement {monthlyFee.toLocaleString('fr-FR')} €/mois
+                </p>
+                <p className={`text-2xl font-bold ${roi >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {roi >= 0 ? '+' : ''}{roi}%
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl p-4 border border-white/[0.07] bg-white/[0.02]">
+                <p className="text-[10px] text-white/40 mb-1">ROI estimé</p>
+                <p className="text-[12px] text-white/45 leading-relaxed">
+                  Disponible dès que votre abonnement est actif: le calcul se fait
+                  sur son montant réel.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </section>

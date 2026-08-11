@@ -343,10 +343,36 @@ export class StripeService {
     logger.info(`Subscription updated: ${subscription.id} → ${subscription.status}`);
     const client = await prisma.client.findFirst({ where: { stripeSubscriptionId: subscription.id } });
     if (!client) return;
+    const status = subscription.status === 'active' ? 'active'
+      : subscription.status === 'past_due' ? 'past_due'
+      : subscription.status;
+
+    /* Un abonnement qui passe à `active` met fin à l'essai, et personne ne le
+       disait: `isTrial` restait vrai après conversion. Le client apparaissait
+       donc en essai dans le portail, continuait de recevoir les relances de fin
+       d'essai, et surtout restait à portée du cron d'expiration, qui pouvait
+       supprimer l'assistant Vapi d'un client qui venait de payer. */
+    const converting = status === 'active' && client.isTrial;
+    if (converting) {
+      logger.info(`[Stripe] essai converti pour ${client.businessName}`);
+    }
+
     await prisma.client.update({
       where: { id: client.id },
-      data: { subscriptionStatus: subscription.status === 'active' ? 'active' : subscription.status === 'past_due' ? 'past_due' : subscription.status },
+      data: {
+        subscriptionStatus: status,
+        ...(converting ? { isTrial: false, trialConvertedAt: new Date() } : {}),
+      },
     });
+
+    /* Meme geste que `handleTrialConversion`: sans lui, un client qui vient de
+       payer continue de recevoir les relances de fin d'essai. */
+    if (converting) {
+      await prisma.reminder.updateMany({
+        where: { targetId: client.id, targetType: 'client', status: 'pending' },
+        data: { status: 'canceled' },
+      });
+    }
   }
 
   async handleSubscriptionDeleted(subscription: any) {
@@ -587,6 +613,19 @@ export class StripeService {
     });
 
     return session.url;
+  }
+
+  /**
+   * L'adresse de la facture hébergée par Stripe, pour un paiement donné.
+   *
+   * Le portail proposait un lien « PDF » vers `/api/invoices/:id/pdf`, une route
+   * qui n'existe pas: chaque ligne de l'historique portait donc un 404. Stripe
+   * héberge déjà la facture et son PDF, et c'est la seule version qui fasse foi
+   * comptablement; on renvoie donc la sienne plutôt que d'en imprimer une.
+   */
+  async getInvoiceUrl(stripeInvoiceId: string): Promise<string | null> {
+    const invoice = await stripe.invoices.retrieve(stripeInvoiceId);
+    return invoice.hosted_invoice_url ?? invoice.invoice_pdf ?? null;
   }
 
   // Optional manual override per plan (kept for backward compat). When set, it

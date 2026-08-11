@@ -136,6 +136,40 @@ export class ClientDashboardService {
 
     const minutesUsedThisMonth = Math.round((minutesThisMonthAgg._sum.durationSeconds ?? 0) / 60);
 
+    /* Série des 30 derniers jours, pour la courbe de l'aperçu.
+       Elle n'existait pas: le tableau de bord traçait `buildDemoSeries()`, une
+       courbe montante écrite en dur, à TOUS les clients. Le libellé disait bien
+       « données de démonstration », mais un client paie pour voir SES appels, et
+       un prospect à qui on montre l'écran voit une invention.
+       Le regroupement se fait en mémoire: Prisma ne sait pas grouper par jour
+       sans SQL brut, et trente jours d'appels d'un client tiennent largement. */
+    /* UTC de bout en bout: la borne etait posee a minuit LOCAL alors que les
+       cles sont derivees de `toISOString()`, donc en UTC. Sur un hote qui n'est
+       pas en UTC, la serie commencait un jour trop tot et perdait les appels du
+       jour courant. */
+    const seriesEnd = new Date();
+    seriesEnd.setUTCHours(0, 0, 0, 0);
+    const seriesStart = new Date(seriesEnd);
+    seriesStart.setUTCDate(seriesStart.getUTCDate() - 29);
+    const seriesCalls = await prisma.clientCall.findMany({
+      where: { clientId, isSpam: false, createdAt: { gte: seriesStart } },
+      select: { createdAt: true },
+    });
+    const perDay = new Map<string, number>();
+    for (const c of seriesCalls) {
+      const key = c.createdAt.toISOString().slice(0, 10);
+      perDay.set(key, (perDay.get(key) ?? 0) + 1);
+    }
+    /* Tous les jours, y compris les vides: sans eux la courbe raccourcirait les
+       périodes creuses et mentirait sur la tendance. */
+    const dailyCalls: { date: string; count: number }[] = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(seriesStart);
+      d.setUTCDate(seriesStart.getUTCDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      dailyCalls.push({ date: key, count: perDay.get(key) ?? 0 });
+    }
+
     const sentimentMap: Record<string, number> = {};
     sentimentBreakdown.forEach(s => {
       if (s.sentiment) sentimentMap[s.sentiment] = s._count.id;
@@ -205,6 +239,9 @@ export class ClientDashboardService {
       leads: {
         thisMonth: leadsThisMonth,
       },
+      // Trente jours d'appels réels, jour par jour. Vide tant qu'aucun appel
+      // n'est arrivé, et l'interface doit alors le dire plutôt qu'inventer.
+      dailyCalls,
       spam: {
         blockedThisMonth: spamBlockedThisMonth,
         blockedTotal: spamBlockedTotal,

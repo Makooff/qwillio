@@ -1,6 +1,7 @@
 import { logger } from '../config/logger';
 
-/* Plafond de la démonstration publique: deux minutes par jour et par visiteur.
+/* Plafond de la démonstration publique: trois minutes par jour et par visiteur,
+ * en trois appels d'une minute.
  *
  * Pourquoi c'est nécessaire: chaque minute de démo sort du solde Vapi, et la
  * carte d'essai est ouverte à tout le monde, sans inscription. Le rate-limit
@@ -15,9 +16,12 @@ import { logger } from '../config/logger';
  * - une durée rapportée par le navigateur serait la seule source, et elle est
  *   falsifiable dans le sens qui nous coûte de l'argent: annoncer deux secondes
  *   après en avoir consommé cent vingt.
- * Un visiteur qui raccroche au bout de dix secondes perd donc le reste de son
- * quota du jour. C'est le mauvais côté du marché, et c'est le bon choix: une
- * démonstration n'est pas un service à la minute.
+ * Un visiteur qui raccroche au bout de dix secondes perd donc le reste de SON
+ * APPEL, mais plus toute sa journée: un seul appel ne prend qu'un tiers du
+ * quota. C'était le défaut de la version précédente, où le plafond d'un appel
+ * valait le quota du jour: le premier clic, même raccroché aussitôt, fermait la
+ * démonstration jusqu'au lendemain. Or c'est l'outil de conversion du site, et
+ * un prospect essaie rarement une seule fois.
  *
  * Stockage en mémoire, avec purge. Un redémarrage remet les compteurs à zéro,
  * et deux instances compteraient chacune de leur côté. Assumé: la borne existe
@@ -27,10 +31,11 @@ import { logger } from '../config/logger';
  */
 
 /** Ce que chaque visiteur peut consommer par jour, en secondes. */
-export const DEMO_DAILY_SECONDS = 120;
+export const DEMO_DAILY_SECONDS = 180;
 
-/** Plafond d'un seul appel: il ne sert à rien de dépasser le quota du jour. */
-export const DEMO_MAX_CALL_SECONDS = DEMO_DAILY_SECONDS;
+/** Plafond d'un seul appel. Strictement inférieur au quota du jour: c'est ce
+ *  qui laisse une deuxième et une troisième tentative. */
+export const DEMO_MAX_CALL_SECONDS = 60;
 
 interface Bucket { used: number; day: string }
 
@@ -57,8 +62,10 @@ export function reserveDemoSeconds(key: string): number {
   }
   const left = Math.max(0, DEMO_DAILY_SECONDS - b.used);
   if (left <= 0) return 0;
-  b.used += left;
-  return left;
+  // On n'accorde jamais plus qu'un appel, même s'il reste davantage au compteur.
+  const granted = Math.min(left, DEMO_MAX_CALL_SECONDS);
+  b.used += granted;
+  return granted;
 }
 
 /** Ce qu'il reste à ce visiteur, sans rien réserver. */
@@ -90,4 +97,9 @@ if (process.env.NODE_ENV !== 'test') {
 /** Réservé aux tests: repart d'une table vide. */
 export function __resetDemoQuota(): void {
   buckets.clear();
+}
+
+/** Réservé aux tests: place un visiteur à un reste arbitraire. */
+export function __setDemoUsed(key: string, used: number): void {
+  buckets.set(key, { used, day: today() });
 }

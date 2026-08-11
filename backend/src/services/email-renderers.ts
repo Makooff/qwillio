@@ -183,6 +183,11 @@ export function renderWelcomeTemplate(data: {
   lang?: Lang;
 }): string {
   const lang = L(data.lang);
+  /* Un client peut n'avoir PAS ENCORE de ligne entrante (voir
+     phone-allocation.service.ts): le bloc « votre numéro » afficherait alors un
+     encadré vide, et les instructions demanderaient d'appeler le néant. Sans
+     numéro, on n'en parle pas. */
+  const phone = (data.vapiPhoneNumber || '').trim();
   if (lang === 'fr') {
     return brandWrap({
       title: 'Bienvenue chez Qwillio',
@@ -191,12 +196,12 @@ export function renderWelcomeTemplate(data: {
         brandTitle('Votre IA est en ligne'),
         brandText(`Bonjour ${data.contactName}, votre réceptionniste IA pour <strong>${data.businessName}</strong> répond maintenant aux appels 24 h/24.`),
         brandButton('Ouvrir mon tableau de bord', data.dashboardUrl),
-        brandHighlight('Votre numéro IA', data.vapiPhoneNumber, 22),
+        phone ? brandHighlight('Votre numéro IA', phone, 22) : '',
         brandText('Prochaine étape sur votre tableau de bord :'),
         brandList([
-          `<strong>Testez-la.</strong> Appelez le ${data.vapiPhoneNumber} et écoutez votre IA en action.`,
+          ...(phone ? [`<strong>Testez-la.</strong> Appelez le ${phone} et écoutez votre IA en action.`] : []),
           `<strong>Personnalisez-la.</strong> Ouvrez le tableau de bord pour définir vos horaires, votre FAQ et vos tarifs.`,
-          `<strong>Redirigez vos appels.</strong> Transférez votre ligne principale vers le ${data.vapiPhoneNumber} quand vous êtes prêt.`,
+          ...(phone ? [`<strong>Redirigez vos appels.</strong> Transférez votre ligne principale vers le ${phone} quand vous êtes prêt.`] : []),
         ]),
         brandSmall('Conseil — durant les 7 premiers jours, gardez votre système téléphonique actuel en parallèle pour une transition en douceur.'),
       ].join(''),
@@ -209,12 +214,12 @@ export function renderWelcomeTemplate(data: {
       brandTitle('Your AI is live'),
       brandText(`Hi ${data.contactName}, your AI receptionist for <strong>${data.businessName}</strong> is now answering calls 24/7.`),
       brandButton('Open my dashboard', data.dashboardUrl),
-      brandHighlight('Your AI phone number', data.vapiPhoneNumber, 22),
+      phone ? brandHighlight('Your AI phone number', phone, 22) : '',
       brandText('Next step on your dashboard:'),
       brandList([
-        `<strong>Test it.</strong> Call ${data.vapiPhoneNumber} and hear your AI in action.`,
+        ...(phone ? [`<strong>Test it.</strong> Call ${phone} and hear your AI in action.`] : []),
         `<strong>Customize it.</strong> Open the dashboard to set hours, FAQ and pricing.`,
-        `<strong>Forward your calls.</strong> Redirect your main line to ${data.vapiPhoneNumber} when you're ready.`,
+        ...(phone ? [`<strong>Forward your calls.</strong> Redirect your main line to ${phone} when you're ready.`] : []),
       ]),
       brandSmall('Tip — during the first 7 days, keep your current phone system running in parallel for a smooth transition.'),
     ].join(''),

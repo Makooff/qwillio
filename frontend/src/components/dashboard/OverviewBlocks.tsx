@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, ArrowDownRight, ChevronRight, type LucideIcon } from '../icons';
@@ -133,16 +132,6 @@ function HeroTooltip({ active, payload, label, unit }: {
   );
 }
 
-function buildDemoSeries(): SeriesPoint[] {
-  const shape = [62, 58, 65, 71, 68, 74, 70, 78, 82, 80, 86, 92];
-  const today = new Date();
-  return shape.map((v, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - (shape.length - 1 - i) * 3);
-    return { label: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }), value: v };
-  });
-}
-
 export function HeroTrendPanel({
   value, label, delta, deltaSuffix, series, unit,
 }: {
@@ -153,9 +142,14 @@ export function HeroTrendPanel({
   series: SeriesPoint[];
   unit?: string;
 }) {
-  const demo = series.length === 0;
-  const demoData = useMemo(buildDemoSeries, []);
-  const data = demo ? demoData : series;
+  /* Plus de courbe inventée. Une série vide affichait `buildDemoSeries()`, une
+     progression montante écrite en dur, servie à tous les clients: un client
+     paie pour voir SES appels, et un prospect à qui l'on montre l'écran voyait
+     une fiction. Sans donnée, on le dit.
+     « Vide » couvre AUSSI une série entièrement à zéro: le serveur renvoie
+     toujours trente entrées, une par jour, donc `length === 0` ne se produit
+     jamais et un client sans appel aurait vu une ligne plate au ras de l'axe. */
+  const empty = series.length === 0 || series.every(p => p.value === 0);
 
   return (
     <div className="py-6">
@@ -165,7 +159,7 @@ export function HeroTrendPanel({
             {value}
           </p>
           <p className="text-[12.5px] mt-2" style={{ color: pro.textSec }}>
-            {label}{demo ? ' · données de démonstration' : ''}
+            {label}
           </p>
         </div>
         {delta && (
@@ -176,8 +170,21 @@ export function HeroTrendPanel({
       </div>
 
       <div style={{ height: 230 }} className="mt-5">
+        {empty ? (
+          <div
+            className="h-full rounded-2xl flex flex-col items-center justify-center text-center px-6"
+            style={{ border: `1px dashed ${pro.border}` }}
+          >
+            <p className="text-[13px]" style={{ color: pro.textSec }}>
+              Aucun appel sur les 30 derniers jours.
+            </p>
+            <p className="text-[12px] mt-1.5 max-w-[320px]" style={{ color: pro.textTer }}>
+              La courbe se remplit dès le premier appel reçu par votre réceptionniste.
+            </p>
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 6, right: 6, left: -16, bottom: 0 }}>
+          <AreaChart data={series} margin={{ top: 6, right: 6, left: -16, bottom: 0 }}>
             <defs>
               <linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={LINE} stopOpacity={0.22} />
@@ -216,6 +223,7 @@ export function HeroTrendPanel({
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

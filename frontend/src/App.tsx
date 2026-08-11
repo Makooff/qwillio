@@ -59,7 +59,6 @@ const AgentAnalytics = lazy(() => import('./pages/client/AgentAnalytics'));
 const CrmDeals = lazy(() => import('./pages/client/CrmDeals'));
 const CrmActivities = lazy(() => import('./pages/client/CrmActivities'));
 const CrmContactDetail = lazy(() => import('./pages/client/CrmContactDetail'));
-const Integrations = lazy(() => import('./pages/client/Integrations'));
 // Legal pages (lazy loaded)
 const Privacy = lazy(() => import('./pages/v2/legal/Privacy'));
 const Terms = lazy(() => import('./pages/v2/legal/Terms'));
@@ -429,8 +428,6 @@ export default function App() {
           <Route path="crm/deals" element={<Suspense fallback={<Spinner />}><CrmDeals /></Suspense>} />
           <Route path="crm/activities" element={<Suspense fallback={<Spinner />}><CrmActivities /></Suspense>} />
           <Route path="crm/:id" element={<Suspense fallback={<Spinner />}><CrmContactDetail /></Suspense>} />
-          {/* Integrations */}
-          <Route path="account/integrations" element={<Suspense fallback={<Spinner />}><Integrations /></Suspense>} />
         </Route>
 
         {/* Client-facing routes (token-protected, no JWT needed) */}

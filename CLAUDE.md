@@ -244,8 +244,11 @@ Le PUT backend est **partiel** (`if (body.x !== undefined)`), donc Paramètres p
 2. retirer les clés correspondantes du payload de Réceptionniste **en même temps** que ses inputs, sinon son autosave réécrit par-dessus avec sa copie périmée ;
 3. ne jamais faire 2 sans 1 : le symptôme n'est pas visuel, c'est une perte de données silencieuse.
 
-### 3. Facturation : des valeurs de repli affichées comme réelles
-`ClientBilling` alimente `overview` avec `api.get('/my-dashboard/billing')`, mais cette route renvoie **un tableau de paiements**, pas un aperçu. Donc `overview.plan`, `overview.minutesUsed`, `overview.isTrial` sont `undefined` de longue date : le plan et la jauge de minutes affichés ne reflètent pas le client. La page tient grâce à ses valeurs par défaut.
+### 3. Facturation : corrigé (ne pas re-diagnostiquer)
+Cette entrée décrivait un aperçu de facturation vide. **Ce n'est plus vrai** : la
+route renvoie un aperçu réel. Ce qui restait, et qui est corrigé le 11/08 : le lien
+« PDF » de l'historique visait `/api/invoices/:id/pdf`, une route inexistante ; il
+passe désormais par la facture hébergée chez Stripe.
 
 ### 4. Personnalisation, base de connaissances et FAQ
 Aujourd'hui une zone de texte libre et des listes à plat : tout le travail retombe sur le client. Attendu : champs nommés, sous-catégories, et présets par niche. Les présets **existent déjà côté backend** sous une autre forme (prompts spécialisés par métier, scripts par verticale) : s'y brancher plutôt que créer une seconde liste de niches qui divergera.
@@ -256,4 +259,28 @@ Aujourd'hui une zone de texte libre et des listes à plat : tout le travail reto
 - Le flou de la nav sur iOS est corrigé mais **ne peut être validé que sur un vrai iPhone**.
 - Vidéo de fond du hero (`/hero-loop.mp4`) : absente, le hero s'en passe proprement.
 - Région Render : Oregon. Soit la basculer en UE, soit retirer la mention « Hébergement UE » du site.
-- CRM et pipeline : backend réel et cloisonné par client, mais **aucun lien dans le menu** et **rien ne les remplit** (aucun appel ni lead ne crée de contact). Les redessiner ne sert à rien avant de les relier.
+- CRM : **corrigé**, les appels remplissent bien les contacts, et les pages sont reliées au menu. Seul le **pipeline** reste alimenté à la main (« Nouvelle affaire ») : rien ne crée d'affaire automatiquement, et c'est assumé tant qu'on ne sait pas à quelle condition un lead en mérite une.
+
+---
+
+## Audit « prêt à vendre » du 11/08/2026
+
+Trois lots livrés (PR #118). Ce qu'il faut en retenir pour ne pas défaire le travail :
+
+- **Un numéro entrant appartient à UN client.** `services/voice/phone-allocation.service.ts`
+  est le seul endroit qui attribue une ligne. Recopier `VAPI_PHONE_NUMBER` dans une
+  fiche client rendrait de nouveau les deux clients injoignables.
+- **`VAPI_WEBHOOK_SECRET` et `RESEND_API_KEY` refusent le démarrage en production.**
+  Soupape : `ALLOW_DEGRADED_BOOT=1`.
+- **Tout lien public écrit par le backend passe par `utils/urls.ts`.** `FRONTEND_URL`
+  est une liste séparée par des virgules, et `/client-portal/:id` n'existe pas.
+- **Plus aucune donnée inventée dans le portail.** La courbe de l'aperçu trace
+  `dailyCalls`, et affiche un état vide plutôt qu'une progression écrite en dur.
+- **Le site ne promet plus d'hébergement UE** (Render est en Oregon). Basculer la
+  région rendrait la promesse ; d'ici là, ne pas la réécrire.
+- **Compte de démonstration** : `npm run db:seed:demo` (refuse de tourner en
+  production). C'est ce qui donne un tableau de bord peuplé pour une démonstration.
+
+Toujours à faire, et qui ne dépend pas du code : publier l'app Google en Production,
+acheter le numéro belge, passer deux appels de test (`realtime` et `classic`),
+et cliquer une première fois sur le portail Stripe.

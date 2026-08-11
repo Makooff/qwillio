@@ -7,10 +7,17 @@ vi.mock('../../../config/database', () => ({
 
 const { inboundRoutingService } = await import('../inbound-routing.service');
 
-const client = (id: string, number: string | null, businessName = `Biz ${id}`) => ({
+const client = (
+  id: string,
+  number: string | null,
+  businessName = `Biz ${id}`,
+  activationDate: Date | null = null,
+) => ({
   id,
   businessName,
   vapiPhoneNumber: number,
+  activationDate,
+  createdAt: new Date('2020-01-01'),
   phoneNumbers: [] as { number: string; label: string | null }[],
 });
 
@@ -37,11 +44,15 @@ describe('resolveClient', () => {
     expect(r.kind).toBe('resolved');
   });
 
-  it('refuses to guess when several live clients share the number', async () => {
-    // Answering as one of them is a coin flip a real caller pays for.
-    findMany.mockResolvedValue([client('c1', '+16073548569'), client('c2', '+16073548569')]);
+  it('route vers le plus récemment activé quand la ligne est partagée', async () => {
+    // Raccrocher était pire: le deuxième client cassait aussi le premier, et un
+    // appel manqué ne se rattrape pas. On tranche donc, bruyamment.
+    findMany.mockResolvedValue([
+      client('c1', '+16073548569', 'Ancien', new Date('2024-01-01')),
+      client('c2', '+16073548569', 'Récent', new Date('2026-01-01')),
+    ]);
     const r = await inboundRoutingService.resolveClient('+16073548569');
-    expect(r).toMatchObject({ kind: 'ambiguous', candidates: 2 });
+    expect(r).toMatchObject({ kind: 'resolved', clientId: 'c2' });
   });
 
   it('reports unknown when no client owns the number', async () => {
@@ -119,12 +130,16 @@ describe('multi-sites', () => {
     expect((await inboundRoutingService.resolveClient('+3223334455')).kind).toBe('resolved');
   });
 
-  it('refuse toujours quand la ligne est partagée par deux clients', async () => {
+  it('tranche aussi quand le partage vient d\'une ligne supplémentaire', async () => {
     findMany.mockResolvedValue([
       multiSite('c1', null, [{ number: '+3223334455', label: null }]),
       multiSite('c2', '+3223334455', []),
     ]);
 
-    expect((await inboundRoutingService.resolveClient('+3223334455')).kind).toBe('ambiguous');
+    /* Les deux fixtures ont la MEME date: c'est le cas d'egalite, et il doit
+       rester stable. Sans le departage par identifiant, l'ordre venait de la
+       base et le meme appelant pouvait tomber ailleurs a l'appel suivant. */
+    expect(await inboundRoutingService.resolveClient('+3223334455'))
+      .toMatchObject({ kind: 'resolved', clientId: 'c1' });
   });
 });

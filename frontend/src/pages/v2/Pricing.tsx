@@ -14,6 +14,18 @@ import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 /* Pricing V2 « Papier & Signal », voir DA/v2-direction.md.
    Copie FR/EN, tarifs et calcul ROI portés de la V1 (pages/Pricing.tsx). */
 
+/* Le coût d'un mi-temps chargé en Belgique, en euros par mois: brut, charges,
+   chèques repas, remplacement des absences, turnover, pour 20 h par semaine.
+   C'est LE chiffre de comparaison du site, et il ne doit exister qu'ici: la page
+   en affichait deux différents à cinq écrans d'intervalle. */
+export const HUMAN_PART_TIME_MONTHLY = 2300;
+
+/* Les tarifs mensuels affichés, exportés parce que la page Partenaires calcule
+   ses commissions dessus. Elle en gardait sa propre copie, et cette copie avait
+   dérivé (149 € et 470 €): elle promettait donc une commission qui n'aurait
+   jamais été versée. */
+export const PLAN_MONTHLY_EUR = { solo: 99, starter: 249, pro: 599, enterprise: 1290 } as const;
+
 interface Tier {
   id: string;
   name: string;
@@ -135,8 +147,10 @@ export default function Pricing() {
       ];
 
   /* Base de comparaison V1: un mi-temps humain chargé en Belgique face au tier
-     Starter, le sélecteur annuel étant honoré par priceFor(). */
-  const humanMonthly = 2300;
+     Starter, le sélecteur annuel étant honoré par priceFor().
+     UN SEUL chiffre pour toute la page: l'entête annonçait 1 200 € pendant que
+     ce bloc en annonçait 2 300, et un prospect qui fait défiler voit les deux. */
+  const humanMonthly = HUMAN_PART_TIME_MONTHLY;
   const qwillioMonthlyEur = priceFor(249);
   const monthlySavings = humanMonthly - qwillioMonthlyEur;
   const yearlySavings = monthlySavings * 12;
@@ -309,8 +323,8 @@ export default function Pricing() {
           <RevealV2 index={2}>
             <Lead className="max-w-[400px] q2-body-text">
               {isFr
-                ? 'Une secrétaire à mi-temps coûte environ 1 200 € par mois, charges comprises, et ne répond pas le samedi. Qwillio commence à 99 €.'
-                : 'A part-time receptionist costs around €1,200 a month all in, and does not answer on Saturday. Qwillio starts at €99.'}
+                ? `Une secrétaire à mi-temps coûte environ ${HUMAN_PART_TIME_MONTHLY.toLocaleString('fr-FR')} € par mois, charges comprises, et ne répond pas le samedi. Qwillio commence à 99 €.`
+                : `A part-time receptionist costs around €${HUMAN_PART_TIME_MONTHLY.toLocaleString('en-US')} a month all in, and does not answer on Saturday. Qwillio starts at €99.`}
             </Lead>
             <p className="text-q2-body text-[13px] leading-relaxed max-w-[400px] mt-4 q2-body-text">
               {isFr
