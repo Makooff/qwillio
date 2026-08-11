@@ -119,9 +119,14 @@ function HeroBackdrop() {
 
   return (
     <div
-      /* Le décor est INSÉRÉ, pas collé aux bords: c'est ce qui laisse voir des
-         angles arrondis (demande utilisateur). Collé à `inset-0`, un rayon de
-         bordure tomberait hors de l'écran et ne se verrait jamais.
+      /* PLEIN ÉCRAN en largeur (demande utilisateur: « je n'aime pas l'écart
+         sur les côtés »). Le décor était inséré de quelques rem et plafonné à
+         1560 px, ce qui laissait deux bandes de page nue à gauche et à droite.
+         Les angles arrondis partent avec: un rayon n'a de sens que sur une
+         forme qui a des bords, et de bord il n'y en a plus que deux, en haut et
+         en bas, tous deux traités par le fondu et par le voile de flou.
+         Le plafond de largeur ne manque pas: les trois définitions couvrent
+         jusqu'à 2560, donc un grand écran reste servi sans agrandissement.
          Sa HAUTEUR EST BORNÉE, et c'est le correctif du cadrage sur iPhone.
          Il couvrait toute la hauteur du hero, soit plus de 1200 px sur un
          téléphone, pour un rush en 3:2: en `object-contain` l'image se réduisait
@@ -130,14 +135,10 @@ function HeroBackdrop() {
          voyait donc qu'une tache floue en haut à droite (retour utilisateur:
          « très mauvaise qualité, très mal cadrée »). Le cadre suit désormais une
          fraction de la fenêtre, proche du 3:2 du fichier à toutes les tailles.
-         La largeur n'est PLUS plafonnée à 1180 px. Ce plafond n'existait que
-         parce que le rush ne faisait que 1280 de large et qu'il fallait brider
-         l'agrandissement. Le nouveau master fait 3528x2348 et le décor est servi
-         en 1280, 1920 ou 2560 selon l'écran (voir les `<source media>` plus
-         bas), donc il peut reprendre toute la largeur sans être agrandi.
-         Le plafond de 1560 qui reste n'est pas une question de définition mais
-         de composition: au-delà, le décor cesse d'être un décor. */
-      className="absolute top-0 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] sm:w-[calc(100%-3rem)] lg:w-[calc(100%-5rem)] max-w-[1560px] h-[46vh] sm:h-[56vh] lg:h-[64vh] max-h-[760px] rounded-[28px] sm:rounded-[40px] overflow-hidden pointer-events-none"
+         Le nouveau master fait 3528x2348 et le décor est servi en 1280, 1920 ou
+         2560 selon l'écran (voir les `<source media>` plus bas), donc il prend
+         toute la largeur sans être agrandi. */
+      className="absolute inset-x-0 top-0 h-[46vh] sm:h-[56vh] lg:h-[64vh] max-h-[820px] overflow-hidden pointer-events-none"
       aria-hidden="true"
       /* VIGNETTE, en MASQUE et non en couche peinte par-dessus.
          Peindre la couleur du canvas au-dessus du décor, c'est poser un aplat
