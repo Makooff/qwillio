@@ -76,8 +76,38 @@ interface NotifiableClient {
 }
 
 export function readPrefs(client: NotifiableClient): CallNotifyPrefs {
-  const raw = (client.vapiConfig as { callNotify?: Partial<CallNotifyPrefs> } | null | undefined)?.callNotify;
-  if (!raw) return DEFAULT_PREFS;
+  const cfg = client.vapiConfig as {
+    callNotify?: Partial<CallNotifyPrefs>;
+    notifications?: { notifEmail?: boolean; notifLeads?: boolean };
+  } | null | undefined;
+  const raw = cfg?.callNotify;
+
+  /* LES INTERRUPTEURS DE LA PAGE COMPTE SONT ENFIN ÉCOUTÉS.
+     Ils écrivent depuis toujours dans `vapiConfig.notifications`, alors que ce
+     service ne lisait que `vapiConfig.callNotify`, qu'aucune interface
+     n'alimente. Un client qui coupait « Notifications email » continuait donc
+     de tout recevoir, et rien dans l'écran ne le lui disait: le réglage était
+     décoratif.
+     `callNotify` garde la priorité quand il existe, parce qu'il est plus fin
+     (canal, plafond quotidien) et qu'il sert aux réglages posés à la main. */
+  if (!raw) {
+    const ui = cfg?.notifications;
+    if (ui && (ui.notifEmail !== undefined || ui.notifLeads !== undefined)) {
+      return {
+        ...DEFAULT_PREFS,
+        /* Pas d'interrupteur SMS dans cette page: couper l'email ne doit donc
+           pas couper le SMS, qui est le canal de l'urgence. */
+        channel: ui.notifEmail === false
+          ? (DEFAULT_PREFS.channel === 'both' ? 'sms' : DEFAULT_PREFS.channel === 'email' ? 'off' : DEFAULT_PREFS.channel)
+          : DEFAULT_PREFS.channel,
+        /* « Nouveaux leads » décoché veut dire « ne me préviens que pour ce qui
+           compte », pas « ne me préviens jamais »: le filtre reste sur les
+           leads et les rendez-vous. */
+        leadsAndBookingsOnly: ui.notifLeads === false ? true : DEFAULT_PREFS.leadsAndBookingsOnly,
+      };
+    }
+    return DEFAULT_PREFS;
+  }
   const channel: CallNotifyChannel =
     raw.channel === 'off' || raw.channel === 'email' || raw.channel === 'both' || raw.channel === 'sms'
       ? raw.channel
