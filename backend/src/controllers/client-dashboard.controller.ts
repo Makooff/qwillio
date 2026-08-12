@@ -215,6 +215,7 @@ export class ClientDashboardController {
           city: true,
           postalCode: true,
           country: true,
+          vatNumber: true,
           transferNumber: true,
           vapiPhoneNumber: true,
           vapiConfig: true,
@@ -292,6 +293,18 @@ export class ClientDashboardController {
         updateData.forwardingStatus = body.forwardingStatus || null;
         // forwardingVerifiedAt is set only by server-side verification, never by the client
       }
+      /* NUMÉRO DE TVA. Normalisé avant d'être gardé: les clients le tapent
+         avec des espaces et des points (« BE 0123.456.789 »), et Stripe refuse
+         tout ce qui n'est pas la forme compacte. Le format est vérifié ici,
+         parce qu'un numéro invalide ne se voit qu'au moment où la facture
+         part, c'est-à-dire trop tard. */
+      if (body.vatNumber !== undefined) {
+        const raw = String(body.vatNumber || '').replace(/[\s.\-]/g, '').toUpperCase();
+        if (raw && !/^[A-Z]{2}[A-Z0-9]{2,13}$/.test(raw)) {
+          return res.status(400).json({ error: 'Numéro de TVA invalide' });
+        }
+        updateData.vatNumber = raw || null;
+      }
       if (body.loomVideoUrl !== undefined) updateData.loomVideoUrl = body.loomVideoUrl || null;
       if (body.googleCalendarId !== undefined) updateData.googleCalendarId = body.googleCalendarId || null;
 
@@ -341,6 +354,31 @@ export class ClientDashboardController {
       if (body.characterId !== undefined || body.customVoice !== undefined) {
         const { realtimeContextService } = await import('../services/voice/realtime-context.service');
         await realtimeContextService.invalidateClient(req.clientId);
+      }
+
+      /* LE NUMÉRO DE TVA REMONTE CHEZ STRIPE, sinon il ne sert à rien: gardé
+         chez nous seulement, il ne figurerait sur aucune facture, et c'est la
+         facture que le comptable du client regarde.
+         Best-effort et isolé: une panne Stripe ne doit pas faire échouer
+         l'enregistrement des réglages, qui a déjà eu lieu.
+         Les anciens identifiants sont retirés d'abord: Stripe les empile, et
+         une facture portant deux numéros de TVA est pire que pas de numéro. */
+      if (updateData.vatNumber !== undefined && client.stripeCustomerId) {
+        try {
+          const { stripe } = await import('../config/stripe');
+          const existing = await stripe.customers.listTaxIds(client.stripeCustomerId, { limit: 20 });
+          for (const t of existing.data) {
+            await stripe.customers.deleteTaxId(client.stripeCustomerId, t.id);
+          }
+          if (updateData.vatNumber) {
+            await stripe.customers.createTaxId(client.stripeCustomerId, {
+              type: 'eu_vat',
+              value: updateData.vatNumber,
+            });
+          }
+        } catch (err: any) {
+          logger.warn(`[TVA] Numéro non transmis à Stripe pour ${client.id}: ${err.message}`);
+        }
       }
 
       // Auto-sync VAPI assistant within 60s of settings change
