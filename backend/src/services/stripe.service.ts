@@ -616,6 +616,54 @@ export class StripeService {
   }
 
   /**
+   * Résilier l'abonnement, CHEZ STRIPE.
+   *
+   * `POST /my-dashboard/cancel` ne faisait que basculer `subscriptionStatus`
+   * en base. Le client lisait « Résilié », et Stripe continuait de prélever le
+   * mois suivant: la pire panne possible, parce qu'elle est invisible des deux
+   * côtés jusqu'au relevé bancaire, et qu'elle se termine en litige.
+   *
+   * `cancel_at_period_end` et non une suppression immédiate: le mois est payé,
+   * il est dû. Le client garde sa réceptionniste jusqu'au terme, ce que dit
+   * d'ailleurs la page de facturation.
+   *
+   * `immediately` existe pour un seul appelant, la suppression de compte: on
+   * ne peut pas laisser courir un abonnement dont plus personne ne possède le
+   * compte.
+   *
+   * Renvoie la date de fin quand Stripe la donne, `null` quand il n'y a rien à
+   * résilier (compte créé à la main, essai jamais passé par Stripe). L'appelant
+   * doit savoir faire la différence entre « annulé » et « il n'y avait rien ».
+   */
+  async cancelSubscription(
+    client: { id: string; stripeSubscriptionId: string | null },
+    opts: { immediately?: boolean } = {},
+  ): Promise<{ cancelled: boolean; endsAt: Date | null }> {
+    if (!client.stripeSubscriptionId) return { cancelled: false, endsAt: null };
+
+    try {
+      const sub = opts.immediately
+        ? await stripe.subscriptions.cancel(client.stripeSubscriptionId)
+        : await stripe.subscriptions.update(client.stripeSubscriptionId, { cancel_at_period_end: true });
+
+      /* `current_period_end` est en secondes. Absent sur un abonnement déjà
+         terminé, d'où le repli sur `null` plutôt qu'une date de 1970. */
+      const end = (sub as any).current_period_end;
+      return { cancelled: true, endsAt: end ? new Date(end * 1000) : null };
+    } catch (error: any) {
+      /* Un abonnement déjà annulé chez Stripe n'est pas une erreur pour nous:
+         l'état voulu est atteint. Tout le reste remonte, parce qu'une
+         résiliation qu'on croit faite et qui ne l'est pas est exactement le
+         défaut qu'on corrige ici. */
+      if (error?.code === 'resource_missing') {
+        logger.warn(`[CANCEL] Abonnement ${client.stripeSubscriptionId} introuvable chez Stripe`);
+        return { cancelled: false, endsAt: null };
+      }
+      throw error;
+    }
+  }
+
+  /**
    * L'adresse de la facture hébergée par Stripe, pour un paiement donné.
    *
    * Le portail proposait un lien « PDF » vers `/api/invoices/:id/pdf`, une route

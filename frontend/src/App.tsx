@@ -14,6 +14,7 @@ import Register from './pages/v2/auth/Register';
 import ForgotPassword from './pages/v2/auth/ForgotPassword';
 import ResetPassword from './pages/v2/auth/ResetPassword';
 import ConfirmEmail from './pages/v2/auth/ConfirmEmail';
+import ConfirmEmailChange from './pages/v2/auth/ConfirmEmailChange';
 // Marketing V2 « Papier & Signal » (DA/v2-direction.md). Les pages V1
 // restent dans pages/ pour rollback, seules les routes pointent vers v2/.
 const Landing = lazy(() => import('./pages/v2/Receptionist'));
@@ -305,6 +306,10 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth/confirm" element={<ConfirmEmail />} />
+        {/* Confirmation d'un CHANGEMENT d'adresse. Publique: le lien s'ouvre
+            depuis une boîte mail, parfois sur un autre appareil que celui où la
+            session est ouverte. */}
+        <Route path="/auth/confirm-email-change" element={<ConfirmEmailChange />} />
         <Route path="/privacy" element={<Suspense fallback={<PublicSpinner />}><Privacy /></Suspense>} />
         <Route path="/terms" element={<Suspense fallback={<PublicSpinner />}><Terms /></Suspense>} />
         <Route path="/about" element={<Suspense fallback={<PublicSpinner />}><About /></Suspense>} />

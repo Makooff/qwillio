@@ -80,11 +80,21 @@ export function brandWrap(opts: {
   preheader?: string;
   body: string;
   unsubscribeHtml?: string;
+  /* La langue de l'email, pour le pied de page et l'attribut `lang` du
+     document. Elle manquait: un courriel entièrement rédigé en français se
+     terminait sur « AI receptionist for service businesses », et se déclarait
+     `lang="en"` aux lecteurs d'écran comme aux filtres anti-spam.
+     Par défaut l'anglais, pour ne rien changer aux appels qui ne la passent
+     pas encore. */
+  lang?: 'fr' | 'en';
 }): string {
-  const { title, preheader: ph, body, unsubscribeHtml = '' } = opts;
+  const { title, preheader: ph, body, unsubscribeHtml = '', lang = 'en' } = opts;
+  const tagline = lang === 'fr'
+    ? 'Qwillio — la réceptionniste IA des métiers de service'
+    : 'Qwillio — AI receptionist for service businesses';
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -120,7 +130,7 @@ export function brandWrap(opts: {
           <tr>
             <td style="padding:28px 4px 8px 4px;text-align:center;">
               <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:12px;color:${BRAND.textMuted};line-height:1.6;">
-                Qwillio — AI receptionist for service businesses<br>
+                ${tagline}<br>
                 <a href="${BRAND.homeUrl}" style="color:${BRAND.textMuted};text-decoration:underline;">qwillio.com</a>
                 · <a href="${BRAND.supportUrl}" style="color:${BRAND.textMuted};text-decoration:underline;">contact@qwillio.com</a>
               </p>

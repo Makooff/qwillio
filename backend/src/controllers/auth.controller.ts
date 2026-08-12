@@ -199,6 +199,66 @@ export class AuthController {
     }
   }
 
+  /**
+   * GET /auth/confirm-email-change/:token
+   *
+   * Le second temps du changement d'adresse: c'est ici seulement que `email`
+   * bascule. L'appel vient de la page `/auth/confirm-email-change`, ouverte
+   * depuis la boîte mail, donc SANS session ni en-tête d'authentification: le
+   * jeton fait foi, et lui seul. Il est à usage unique et expire en une heure.
+   *
+   * Elle rend du JSON et non une redirection, pour la même raison que
+   * `/auth/confirm/:token`: le lien de l'email passe par le frontend, qui seul
+   * connaît l'adresse de l'API. Le backend, lui, n'a aucune variable qui lui
+   * dise sous quel nom de domaine il est joignable.
+   *
+   * Le contrôle d'unicité est REFAIT ici: entre la demande et le clic, quelqu'un
+   * d'autre a pu s'inscrire avec cette adresse. Sans lui, la contrainte de la
+   * base ferait remonter une erreur brute.
+   */
+  async confirmEmailChange(req: Request, res: Response) {
+    try {
+      const token = String(req.params.token || '');
+      const user = await prisma.user.findFirst({ where: { pendingEmailToken: token } });
+      if (!user || !user.pendingEmail) {
+        return res.status(400).json({ error: 'Lien invalide ou déjà utilisé', reason: 'invalid' });
+      }
+
+      const clearPending = { pendingEmail: null, pendingEmailToken: null, pendingEmailExpiry: null };
+
+      if (!user.pendingEmailExpiry || user.pendingEmailExpiry.getTime() < Date.now()) {
+        await prisma.user.update({ where: { id: user.id }, data: clearPending });
+        return res.status(400).json({ error: 'Lien expiré. Refaites la demande.', reason: 'expired' });
+      }
+
+      const taken = await prisma.user.findFirst({ where: { email: user.pendingEmail } });
+      if (taken) {
+        await prisma.user.update({ where: { id: user.id }, data: clearPending });
+        return res.status(409).json({ error: 'Cette adresse a été prise entre-temps.', reason: 'taken' });
+      }
+
+      const newEmail = user.pendingEmail;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { email: newEmail, ...clearPending },
+      });
+
+      /* L'adresse de contact du client suit l'adresse de connexion: c'est elle
+         qui reçoit les factures et les notifications d'appel. Les laisser
+         diverger enverrait les factures à une boîte que le client a quittée. */
+      await prisma.client.updateMany({
+        where: { userId: user.id },
+        data: { contactEmail: newEmail },
+      });
+
+      logger.info(`[EMAIL-CHANGE] Adresse confirmée pour l'utilisateur ${user.id}`);
+      res.json({ success: true, email: newEmail });
+    } catch (error) {
+      logger.error('confirmEmailChange failed', error);
+      res.status(500).json({ error: 'Confirmation impossible pour le moment.', reason: 'error' });
+    }
+  }
+
   // ── FORGOT PASSWORD — issue a one-time reset link ────────
   async forgotPassword(req: Request, res: Response) {
     // Generic response in every branch — never reveal whether the email exists.

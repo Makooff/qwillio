@@ -328,6 +328,7 @@ class CallNotificationService {
     if (call.isLead) facts.push(fr ? '<strong>Lead qualifié</strong>' : '<strong>Qualified lead</strong>');
 
     const html = brandWrap({
+      lang: fr ? 'fr' : 'en',
       title: fr ? `Appel pris · ${client.businessName}` : `Call handled · ${client.businessName}`,
       preheader: (call.summary || '').slice(0, 140),
       body: [

@@ -10,6 +10,7 @@ import {
   renderTrialWelcomeTemplate, renderTrialEndingTemplate, renderTrialExpiredTemplate,
   renderCallback3MonthsTemplate, renderBookingReminderTemplate, renderRescheduleTemplate,
   renderPasswordResetTemplate,
+  renderEmailChangeTemplate,
   type Lang,
 } from './email-renderers';
 
@@ -337,6 +338,7 @@ export class EmailService {
       ? (() => {
           const planLabel = data.isTrial ? 'essai gratuit de 7 jours' : `forfait ${pkg.name}`;
           return brandWrap({
+            lang,
             title: 'Configurez votre réceptionniste IA',
             preheader: `Votre ${planLabel} pour ${data.businessName} est maintenant actif.`,
             body: [
@@ -360,6 +362,7 @@ export class EmailService {
       : (() => {
           const planLabel = data.isTrial ? '30-day free trial' : `${pkg.name} plan`;
           return brandWrap({
+            lang,
             title: 'Set up your AI receptionist',
             preheader: `Your ${planLabel} for ${data.businessName} is now active.`,
             body: [
@@ -400,6 +403,7 @@ export class EmailService {
     const lang = L(data.lang);
     const html = lang === 'fr'
       ? brandWrap({
+          lang,
           title: 'Votre configuration est terminée',
           preheader: 'Votre réceptionniste IA est entièrement personnalisée.',
           body: [
@@ -419,6 +423,7 @@ export class EmailService {
           ].join(''),
         })
       : brandWrap({
+          lang,
           title: 'Your setup is complete',
           preheader: 'Your AI receptionist is fully personalized.',
           body: [
@@ -462,6 +467,7 @@ export class EmailService {
     const total = data.monthlyPrice + data.setupPrice;
     const html = lang === 'fr'
       ? brandWrap({
+          lang,
           title: 'Vos résultats d\'essai et votre facture',
           preheader: `Bilan de fin d'essai pour ${data.businessName} + premier paiement.`,
           body: [
@@ -483,6 +489,7 @@ export class EmailService {
           ].join(''),
         })
       : brandWrap({
+          lang,
           title: 'Your trial results & invoice',
           preheader: `30-day recap for ${data.businessName} + first payment.`,
           body: [
@@ -522,6 +529,7 @@ export class EmailService {
     const reactivateMail = `mailto:${env.RESEND_REPLY_TO}?subject=${lang === 'fr' ? 'Reactivation' : 'Reactivate'}%20${encodeURIComponent(data.businessName)}`;
     const html = lang === 'fr'
       ? brandWrap({
+          lang,
           title: 'Compte désactivé',
           preheader: `Votre compte Qwillio pour ${data.businessName} a été désactivé.`,
           body: [
@@ -538,6 +546,7 @@ export class EmailService {
           ].join(''),
         })
       : brandWrap({
+          lang,
           title: 'Account deactivated',
           preheader: `Your Qwillio account for ${data.businessName} has been deactivated.`,
           body: [
@@ -579,6 +588,7 @@ export class EmailService {
     const total = data.setupFee + data.monthlyFee;
     const html = lang === 'fr'
       ? brandWrap({
+          lang,
           title: 'Contrat signé',
           preheader: `Une dernière étape pour activer ${data.businessName}.`,
           body: [
@@ -596,6 +606,7 @@ export class EmailService {
           ].join(''),
         })
       : brandWrap({
+          lang,
           title: 'Contract signed',
           preheader: `One last step to activate ${data.businessName}.`,
           body: [
@@ -630,6 +641,7 @@ export class EmailService {
     const lang = L(data.lang);
     const html = lang === 'fr'
       ? brandWrap({
+          lang,
           title: 'Problème de paiement',
           preheader: `Mettez à jour votre moyen de paiement pour garder ${data.businessName} actif.`,
           body: [
@@ -646,6 +658,7 @@ export class EmailService {
           ].join(''),
         })
       : brandWrap({
+          lang,
           title: 'Payment issue',
           preheader: `Update your payment method to keep ${data.businessName} active.`,
           body: [
@@ -747,6 +760,7 @@ export class EmailService {
     const demoUrl = `${env.FRONTEND_URL?.split(',')[0] || 'https://qwillio.com'}/demo.html`;
     const html = lang === 'fr'
       ? brandWrap({
+          lang,
           title: 'Merci pour votre échange avec Marie',
           preheader: `Votre démo Qwillio de 2 minutes pour ${data.businessName}.`,
           body: [
@@ -757,6 +771,7 @@ export class EmailService {
           ].join(''),
         })
       : brandWrap({
+          lang,
           title: 'Thanks for chatting with Ashley',
           preheader: `Your 2-minute Qwillio demo for ${data.businessName}.`,
           body: [
@@ -818,6 +833,39 @@ export class EmailService {
     }
   }
 
+  /**
+   * Le lien de confirmation d'un CHANGEMENT d'adresse, envoyé à la nouvelle.
+   *
+   * Le résultat est RENDU à l'appelant, pas avalé: la route doit pouvoir dire
+   * « nous n'avons pas pu envoyer le courriel » plutôt qu'un succès menteur qui
+   * laisserait le client attendre un lien qui n'arrivera jamais.
+   */
+  async sendEmailChangeEmail(data: {
+    to: string;
+    name: string;
+    confirmUrl: string;
+    lang?: Lang;
+  }): Promise<{ success: boolean }> {
+    const lang = L(data.lang);
+    const firstName = (data.name || '').split(' ')[0] || data.name;
+    const html = renderEmailChangeTemplate({ firstName, newEmail: data.to, confirmUrl: data.confirmUrl, lang });
+    try {
+      await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL,
+        to: data.to,
+        subject: lang === 'fr' ? 'Confirmez votre nouvelle adresse Qwillio' : 'Confirm your new Qwillio address',
+        html,
+        replyTo: env.RESEND_REPLY_TO,
+        tags: [{ name: 'campaign', value: 'email_change' }],
+      });
+      logger.info(`Email change confirmation sent to ${data.to}`);
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to send email change confirmation:', error);
+      return { success: false };
+    }
+  }
+
   async sendConfirmationEmail(data: {
     to: string;
     name: string;
@@ -829,6 +877,7 @@ export class EmailService {
 
     const html = lang === 'fr'
       ? brandWrap({
+          lang,
           title: 'Confirmez votre compte Qwillio',
           preheader: 'Un clic pour activer votre essai gratuit.',
           body: [
@@ -840,6 +889,7 @@ export class EmailService {
           ].join(''),
         })
       : brandWrap({
+          lang,
           title: 'Confirm your Qwillio account',
           preheader: 'One click to activate your free trial.',
           body: [
@@ -873,6 +923,9 @@ export class EmailService {
   async sendDigestEmail(data: { to: string; contactName: string; businessName: string; totalEmails: number; urgent: number; appointment: number; payment: number; autoReplied: number; needsReview: number }) {
     const dashboardUrl = `${env.FRONTEND_URL?.split(',')[0] || 'https://qwillio.com'}/dashboard/agent/email`;
     const rawHtml = brandWrap({
+      /* Ce courriel n'a pas de paramètre de langue et son corps est écrit en
+         français de bout en bout: le pied de page l'est donc aussi. */
+      lang: 'fr',
       title: `${data.businessName} — Daily Email Digest`,
       preheader: `Résumé des dernières 24h pour ${data.businessName}.`,
       body: [
@@ -914,6 +967,7 @@ export class EmailService {
       const planName = planNames[data.recommendedPlan] || 'Pro';
       const rawHtml = lang === 'fr'
         ? brandWrap({
+            lang,
             title: 'Votre réceptionniste IA est prête',
             preheader: `7 jours gratuits pour ${data.businessName}.`,
             body: [
@@ -926,6 +980,7 @@ export class EmailService {
             ].join(''),
           })
         : brandWrap({
+            lang,
             title: 'Your AI receptionist is ready',
             preheader: `7 days free for ${data.businessName}.`,
             body: [

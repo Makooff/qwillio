@@ -20,6 +20,13 @@ model User {
   confirmationToken   String?              @unique @map("confirmation_token") @db.VarChar(255)
   resetToken          String?              @unique @map("reset_token") @db.VarChar(255)
   resetTokenExpiry    DateTime?            @map("reset_token_expiry")
+  /* Changement d'adresse en DEUX temps. La nouvelle adresse attend ici, avec
+     son jeton, tant que son propriétaire n'a pas cliqué le lien qu'elle a reçu.
+     Écrire directement dans `email` fermerait le compte à la première faute de
+     frappe, sans aucun retour possible. */
+  pendingEmail        String?              @map("pending_email") @db.VarChar(255)
+  pendingEmailToken   String?              @unique @map("pending_email_token") @db.VarChar(255)
+  pendingEmailExpiry  DateTime?            @map("pending_email_expiry")
   emailConfirmed      Boolean              @default(false) @map("email_confirmed")
   onboardingCompleted Boolean              @default(false) @map("onboarding_completed")
   planType            String?              @map("plan_type") @db.VarChar(50)

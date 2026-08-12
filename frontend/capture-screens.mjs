@@ -359,10 +359,12 @@ await shoot({
        site promettait deux choses que l'image ne montrait pas.
        Ce n'est pas un recadrage: le panneau DÉFILE, on le photographie à une
        position de défilement, entier, avec son entête collante. */
-    await page.evaluate(() => {
-      const el = document.querySelector('[role="dialog"][aria-modal="true"]');
-      el.scrollTop = el.scrollHeight;
-    });
+    /* On ATTEND le panneau avant de le dérouler: après un simple délai fixe, il
+       peut ne pas être monté, et `el.scrollTop` sur `null` fait tomber tout le
+       script de capture au lieu de rendre une image. */
+    const drawer = page.locator('[role="dialog"][aria-modal="true"]').first();
+    await drawer.waitFor({ state: 'visible', timeout: 10_000 });
+    await drawer.evaluate(el => { el.scrollTop = el.scrollHeight; });
     await page.waitForTimeout(400);
   },
   clipTo: '[role="dialog"][aria-modal="true"]',

@@ -146,6 +146,7 @@ class ReceptionistDigestService {
     const name = client.contactName?.split(' ')[0] || (lang === 'fr' ? 'bonjour' : 'there');
     const isFr = lang === 'fr';
     const html = brandWrap({
+      lang,
       title: isFr ? 'Le point de la semaine' : 'This week on your receptionist',
       preheader: isFr
         ? `Ce qui a coincé chez ${client.businessName} cette semaine.`

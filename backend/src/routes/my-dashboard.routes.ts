@@ -98,6 +98,12 @@ router.post('/resume', (req, res) => clientDashboardController.resumeAgent(req, 
 // ─── Account ────────────────────────────────────────────
 router.put('/profile', (req, res) => clientDashboardController.updateProfile(req, res));
 router.put('/password', (req, res) => clientDashboardController.changePassword(req, res));
+/* Changement d'adresse de connexion, et suppression du compte. Les deux sont
+   sous le limiteur de facturation, le plus strict en place: ils touchent
+   l'abonnement Stripe et envoient un courriel, deux choses qu'on ne veut pas
+   voir marteler. */
+router.put('/email', billingLimiter, (req, res) => clientDashboardController.requestEmailChange(req, res));
+router.delete('/account', billingLimiter, (req, res) => clientDashboardController.deleteMyAccount(req, res));
 /* Export des données personnelles (RGPD art. 20). Sous le limiteur de
    facturation: la requête lit plusieurs tables en entier, et n'a aucune raison
    d'être appelée plus d'une poignée de fois par heure. */

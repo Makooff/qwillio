@@ -155,6 +155,10 @@ export default function ClientBilling() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCancel, setShowCancel] = useState(false);
+  /* L'erreur de résiliation vit À CÔTÉ du bouton, pas dans le bandeau du haut
+     de page: la boîte d'annulation est tout en bas, et un message affiché à
+     900 px au-dessus passe inaperçu au moment précis où il compte. */
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelInput, setCancelInput] = useState('');
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
@@ -275,13 +279,21 @@ export default function ClientBilling() {
   };
 
   const handleCancel = async () => {
+    setCancelError(null);
     try {
       await api.post('/my-dashboard/cancel');
       setOverview(prev => prev ? { ...prev, status: 'cancelled' } : prev);
       setShowCancel(false);
       setCancelInput('');
-    } catch {
-      // silent
+    } catch (e: any) {
+      /* Plus de silence ici: la route résilie désormais CHEZ STRIPE, et elle
+         échoue franchement quand Stripe refuse plutôt que d'écrire « résilié »
+         en base sur un abonnement toujours prélevé. Avaler cette erreur
+         laisserait le client croire qu'il a résilié. La fenêtre reste ouverte,
+         pour qu'il puisse réessayer. */
+      setCancelError(
+        e?.response?.data?.error ?? "La résiliation n'a pas pu être enregistrée. Réessayez, ou écrivez-nous.",
+      );
     }
   };
 
@@ -676,7 +688,11 @@ export default function ClientBilling() {
           Zone de danger
         </h2>
         <p className="text-xs text-[#A1A1A8] mb-4">
-          Une fois annulé, votre réceptionniste IA cessera de répondre aux appels. Cette action est irréversible.
+          {/* La résiliation prend effet AU TERME de la période déjà payée
+              (`cancel_at_period_end` chez Stripe), et non à la seconde du clic:
+              le mois est payé, il est dû, et le client garde sa réceptionniste
+              jusque-là. L'ancien texte annonçait une coupure immédiate. */}
+          Aucun nouveau prélèvement. Votre réceptionniste continue de répondre jusqu'à la fin de la période déjà payée, puis s'arrête.
         </p>
 
         {!showCancel ? (
@@ -722,6 +738,9 @@ export default function ClientBilling() {
                 </button>
               </div>
             </div>
+            {cancelError && (
+              <p className="text-[12.5px] text-[#f87171]" role="alert">{cancelError}</p>
+            )}
           </motion.div>
         )}
       </motion.div>
