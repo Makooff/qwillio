@@ -57,7 +57,7 @@ export class ClientDashboardService {
          jamais ce qui allait être débité: le client devait ouvrir le portail
          Stripe pour savoir quelle carte paie son abonnement. Chez Stripe,
          Linear ou ElevenLabs, cette ligne est toujours à l'écran. */
-      paymentMethod: await this.defaultPaymentMethod(client),
+      ...(await this.defaultPaymentMethod(client)),
     };
   }
 
@@ -73,9 +73,14 @@ export class ClientDashboardService {
    * Stripe ne doit pas emporter la page de facturation.
    */
   private async defaultPaymentMethod(client: any): Promise<{
-    brand: string; last4: string; expMonth: number; expYear: number;
-  } | null> {
-    if (!client.stripeCustomerId) return null;
+    paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null;
+    /* « Pas de carte » et « Stripe n'a pas répondu » ne se disent pas de la
+       même façon au client: le premier appelle une action de sa part, le
+       second n'en appelle aucune. Confondus, la page annonçait « aucune carte
+       enregistrée » à un client qui en a une, ce qui inquiète pour rien. */
+    paymentMethodUnavailable?: boolean;
+  }> {
+    if (!client.stripeCustomerId) return { paymentMethod: null };
     try {
       const { stripe } = await import('../config/stripe');
       const customer: any = await stripe.customers.retrieve(client.stripeCustomerId, {
@@ -91,16 +96,18 @@ export class ClientDashboardService {
         });
         pm = sub?.default_payment_method;
       }
-      if (!pm?.card) return null;
+      if (!pm?.card) return { paymentMethod: null };
       return {
-        brand: pm.card.brand,
-        last4: pm.card.last4,
-        expMonth: pm.card.exp_month,
-        expYear: pm.card.exp_year,
+        paymentMethod: {
+          brand: pm.card.brand,
+          last4: pm.card.last4,
+          expMonth: pm.card.exp_month,
+          expYear: pm.card.exp_year,
+        },
       };
     } catch (error: any) {
       logger.warn(`[BILLING] Stripe payment method unavailable for ${client.id}: ${error.message}`);
-      return null;
+      return { paymentMethod: null, paymentMethodUnavailable: true };
     }
   }
 

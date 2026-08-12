@@ -173,7 +173,11 @@ class CallNotificationService {
        demandé et non fixé se lit sur l'écran verrouillé, sans ouvrir le
        message, ce qui est le seul endroit où il sera vu à temps. */
     const alert = call.bookingRequested && !call.bookingConfirmed
-      ? (fr ? '⚠ RDV demandé, non fixé — à rappeler\n' : '⚠ Appointment requested, not booked — call back\n')
+      /* Sans « ⚠ » ni tiret cadratin, et ce n'est pas cosmétique: un seul
+         caractère hors GSM-7 bascule TOUT le SMS en UCS-2, où un segment ne
+         porte plus que 70 signes au lieu de 160. Le pictogramme aurait donc
+         coûté un segment entier à chaque notification. */
+      ? (fr ? 'RDV demande, non fixe: a rappeler\n' : 'Appointment requested, not booked: call back\n')
       : '';
 
     /* Le SMS reste sous deux segments: le résumé est coupé net plutôt que de

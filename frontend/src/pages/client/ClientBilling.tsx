@@ -18,6 +18,9 @@ interface BillingOverview {
   /** La carte enregistrée chez Stripe. Absente si aucune, ou si Stripe ne
       répond pas: la ligne disparaît alors au lieu d'inventer une carte. */
   paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null;
+  /** Vrai quand Stripe n'a pas répondu. À ne pas confondre avec « pas de
+      carte »: l'un appelle une action du client, l'autre non. */
+  paymentMethodUnavailable?: boolean;
 }
 
 /* « visa » devient « Visa », « amex » devient « American Express ». Stripe rend
@@ -142,6 +145,11 @@ export default function ClientBilling() {
      le lit donc à part, et l'écrit par le même PUT que le reste des réglages. */
   const [vatNumber, setVatNumber] = useState('');
   const [vatSaved, setVatSaved] = useState<string | null>(null);
+  /* Le CHARGEMENT a-t-il réussi, question distincte de « le numéro est-il
+     vide ». Sans elle, un échec de `GET /settings` laissait le champ vide et le
+     bouton actif: un clic effaçait alors un numéro de TVA qu'on n'avait jamais
+     réussi à lire. */
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [vatSaving, setVatSaving] = useState(false);
   const [vatError, setVatError] = useState<string | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -175,6 +183,7 @@ export default function ClientBilling() {
           const vat = settingsRes.value.data?.vatNumber || '';
           setVatNumber(vat);
           setVatSaved(vat);
+          setSettingsLoaded(true);
         }
       })
       .finally(() => setLoading(false));
@@ -592,6 +601,10 @@ export default function ClientBilling() {
               {String(overview.paymentMethod.expYear).slice(-2)}
             </span>
           </div>
+        ) : overview?.paymentMethodUnavailable ? (
+          <p className="text-xs text-[#A1A1A8] mb-4">
+            Votre carte n'a pas pu être lue à l'instant. Elle reste bien enregistrée ; le portail ci-dessous l'affiche.
+          </p>
         ) : (
           <p className="text-xs text-[#A1A1A8] mb-4">
             Aucune carte enregistrée pour le moment.
@@ -635,12 +648,17 @@ export default function ClientBilling() {
             <button
               type="button"
               onClick={saveVatNumber}
-              disabled={vatSaving || vatNumber === vatSaved}
+              disabled={vatSaving || !settingsLoaded || vatNumber === vatSaved}
               className="px-4 py-2 text-sm font-medium rounded-full border border-white/[0.12] text-[#F5F5F7] hover:bg-white/[0.06] disabled:opacity-40 transition-colors active:scale-[0.97]"
             >
               {vatSaving ? 'Enregistrement…' : vatNumber === vatSaved ? 'Enregistré' : 'Enregistrer'}
             </button>
           </div>
+          {!settingsLoaded && (
+            <p className="text-xs text-[#A1A1A8] mt-2">
+              Vos réglages n'ont pas pu être chargés. Rechargez la page avant de modifier ce champ.
+            </p>
+          )}
           {vatError && <p className="text-xs text-red-400 mt-2">{vatError}</p>}
         </div>
       </motion.div>

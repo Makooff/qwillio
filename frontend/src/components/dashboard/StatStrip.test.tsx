@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import StatStrip from './StatStrip';
+import { formatDuration } from '../../utils/format';
 
 afterEach(cleanup);
 
@@ -48,6 +49,21 @@ describe('StatStrip', () => {
      `grid-cols-4`, si bien que passer à des colonnes dimensionnées par leur
      contenu le cassait alors que la rangée restait unique. Ce qui compte,
      c'est qu'il y ait une cellule par chiffre et aucun repli. */
+  /* La valeur qui a causé la régression, telle qu'elle sort du formateur:
+     une durée insécable de six signes dans une cellule étroite. */
+  it('ne coupe pas une durée en deux', () => {
+    /* La requête passe par le DOM et non par `getByText`: la bibliothèque
+       normalise les espaces avant de comparer, si bien qu'une espace insécable
+       et une espace ordinaire lui paraissent identiques. C'est exactement la
+       distinction que ce test doit vérifier. */
+    const { container } = render(
+      <StatStrip items={[{ label: 'Durée moy.', value: formatDuration(152) }]} />,
+    );
+    const value = container.querySelector('p.whitespace-nowrap');
+    expect(value?.textContent).toBe(formatDuration(152));
+    expect(value?.textContent).not.toContain(' ');
+  });
+
   it('garde une seule rangée, quel que soit le nombre de cellules', () => {
     const cell = (n: number) => ({ label: `L${n}`, value: n });
     for (const n of [4, 5]) {

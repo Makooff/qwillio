@@ -299,7 +299,7 @@ export class ClientDashboardController {
          parce qu'un numéro invalide ne se voit qu'au moment où la facture
          part, c'est-à-dire trop tard. */
       if (body.vatNumber !== undefined) {
-        const raw = String(body.vatNumber || '').replace(/[\s.\-]/g, '').toUpperCase();
+        const raw = String(body.vatNumber || '').replace(/[\s.-]/g, '').toUpperCase();
         if (raw && !/^[A-Z]{2}[A-Z0-9]{2,13}$/.test(raw)) {
           return res.status(400).json({ error: 'Numéro de TVA invalide' });
         }
@@ -367,7 +367,11 @@ export class ClientDashboardController {
         try {
           const { stripe } = await import('../config/stripe');
           const existing = await stripe.customers.listTaxIds(client.stripeCustomerId, { limit: 20 });
-          for (const t of existing.data) {
+          /* SEULS les identifiants de TVA européenne sont retirés. Le client
+             peut porter d'autres enregistrements fiscaux chez Stripe (numéro
+             britannique, suisse, canadien), qui ne nous appartiennent pas et
+             qu'une boucle sans filtre effaçait au passage. */
+          for (const t of existing.data.filter((x: any) => x.type === 'eu_vat')) {
             await stripe.customers.deleteTaxId(client.stripeCustomerId, t.id);
           }
           if (updateData.vatNumber) {
