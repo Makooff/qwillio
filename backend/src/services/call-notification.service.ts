@@ -126,6 +126,33 @@ export function readPrefs(client: NotifiableClient): CallNotifyPrefs {
 const GSM7 =
   /^[@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-./0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà\n\r^{}\\[~\]|€]*$/;
 
+/* Dix signes du GSM-7 vivent dans une TABLE D'EXTENSION et coûtent deux
+   septets, pas un: le crochet, l'accolade, le tilde, la barre verticale,
+   l'antislash, l'accent circonflexe et l'euro. Compter les caractères plutôt
+   que les septets sous-estimait donc la longueur, et une adresse contenant un
+   tilde pouvait faire payer un segment de plus. */
+const GSM7_EXTENDED = /[\^{}\\[~\]|€]/;
+
+/** Longueur en SEPTETS, seule mesure qui décide du nombre de segments. */
+function gsmLength(text: string): number {
+  let n = 0;
+  for (const ch of text) n += GSM7_EXTENDED.test(ch) ? 2 : 1;
+  return n;
+}
+
+/**
+ * Raccourcit une valeur qui n'a pas à occuper tout le message.
+ *
+ * `businessName` accepte 500 signes en base, `callerName` 255: sans borne ici,
+ * un nom à rallonge remplissait le SMS à lui seul et le résumé se réduisait à
+ * « ... » sans que le plafond soit tenu pour autant. Ces champs sont des
+ * repères, pas le contenu.
+ */
+function clip(text: string, max: number): string {
+  const t = (text || '').trim();
+  return t.length <= max ? t : `${t.slice(0, max - 1)}…`;
+}
+
 /**
  * Coupe le résumé pour que le SMS ENTIER tienne dans son plafond de segments.
  *
@@ -145,15 +172,17 @@ const GSM7 =
  * de résumé dès qu'un « ô » apparaît.
  */
 function fitSummary(prefix: string, summary: string, suffix: string): string {
+  /* La mesure suit l'alphabet: septets en GSM-7, unités UTF-16 en UCS-2. */
+  const sizeOf = (text: string) => (GSM7.test(text) ? gsmLength(text) : text.length);
   const limitFor = (text: string) => (GSM7.test(text) ? 2 * 153 : 3 * 67);
-  const fixed = prefix.length + suffix.length;
+  const fixed = sizeOf(prefix) + sizeOf(suffix);
   let budget = limitFor(prefix + summary + suffix) - fixed;
-  if (summary.length <= budget) return summary;
+  if (sizeOf(summary) <= budget) return summary;
   /* Couper peut retirer le caractère qui imposait UCS-2, ce qui rouvre du
      budget: on recalcule une fois, jamais en boucle. */
   let short = `${summary.slice(0, Math.max(0, budget - 3))}...`;
   budget = limitFor(prefix + short + suffix) - fixed;
-  if (summary.length <= budget) return summary;
+  if (sizeOf(summary) <= budget) return summary;
   short = `${summary.slice(0, Math.max(0, budget - 3))}...`;
   return short;
 }
@@ -253,8 +282,11 @@ class CallNotificationService {
        message en UCS-2, où un segment ne porte plus que 67 signes au lieu de
        153. Trois points médians par SMS suffisaient à faire payer le double. */
     const sep = ' - ';
-    const line2 = `${who}${sep}${duration(call.durationSeconds, fr)}${sep}${outcomeLabel(call.outcome, fr)}`;
-    const prefix = `Qwillio${sep}${client.businessName}\n${alert}${line2}\n`;
+    /* Les champs libres sont BORNÉS avant d'entrer dans le message: la base
+       accepte 500 signes de raison sociale et 255 de nom d'appelant, de quoi
+       dépasser le plafond à eux seuls, quel que soit le sort du résumé. */
+    const line2 = `${clip(who, 32)}${sep}${duration(call.durationSeconds, fr)}${sep}${outcomeLabel(call.outcome, fr)}`;
+    const prefix = `Qwillio${sep}${clip(client.businessName, 40)}\n${alert}${line2}\n`;
     const suffix = `\n${link}`;
     const body = prefix + fitSummary(prefix, summary, suffix) + suffix;
 

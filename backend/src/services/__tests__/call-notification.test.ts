@@ -200,10 +200,15 @@ describe('les réglages de la page Compte', () => {
    Le plafond est de trois: l'en-tête seul dépasse deux segments en UCS-2, et
    viser deux reviendrait à ne plus envoyer de résumé. */
 describe('le coût réel du SMS', () => {
+  /* La mesure du test suit celle de la production, septets compris: dix signes
+     du GSM-7 en coûtent deux, et compter les caractères sous-estimerait la
+     facture exactement là où ce test doit la surveiller. */
   const segments = (body: string) => {
     const gsm7 = /^[@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-./0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà\n\r^{}\\[~\]|€]*$/.test(body);
-    const per = gsm7 ? 153 : 67;
-    return Math.ceil(body.length / per);
+    if (!gsm7) return Math.ceil(body.length / 67);
+    let septets = 0;
+    for (const ch of body) septets += /[\^{}\\[~\]|€]/.test(ch) ? 2 : 1;
+    return Math.ceil(septets / 153);
   };
 
   it('tient dans son plafond de segments, résumé bavard et accents compris', async () => {
@@ -211,14 +216,16 @@ describe('le coût réel du SMS', () => {
     smsCount.mockResolvedValue(0);
     sendEmail.mockResolvedValue(undefined);
 
+    const summary = 'Détartrage et contrôle : elle souhaitait jeudi 14 h 30, '
+      + 'mais l’agenda était complet ce jour-là. Elle demande à être rappelée '
+      + 'en fin de journée, de préférence après 17 h, sur son portable.';
+
     await callNotificationService.notify(
       { ...CLIENT, businessName: 'Clinique Dentaire Léopold' } as never,
       {
         ...CALL,
         callerName: 'Camille Dubois',
-        summary: 'Détartrage et contrôle : elle souhaitait jeudi 14 h 30, '
-          + 'mais l’agenda était complet ce jour-là. Elle demande à être rappelée '
-          + 'en fin de journée, de préférence après 17 h, sur son portable.',
+        summary,
         bookingRequested: true,
         bookingConfirmed: false,
       } as never,
@@ -227,7 +234,30 @@ describe('le coût réel du SMS', () => {
     const sent = sendSMS.mock.calls.at(-1)?.[1] as string;
     expect(sent).toBeTruthy();
     expect(segments(sent)).toBeLessThanOrEqual(3);
-    /* Et le résumé n'est pas sacrifié pour autant: il reste une phrase. */
-    expect(sent.length).toBeGreaterThan(150);
+    /* Et le RÉSUMÉ n'est pas sacrifié pour autant. Mesurer la longueur du
+       message ne le prouvait pas: l'en-tête seul dépasse 150 signes, donc
+       l'assertion passait même avec un résumé entièrement supprimé. */
+    expect(sent).toContain(summary.slice(0, 40));
+  });
+});
+
+
+/* Les champs libres viennent de la base, où ils acceptent 500 et 255 signes:
+   sans borne, ils remplissaient le SMS à eux seuls et le plafond sautait quel
+   que soit le sort du résumé. */
+describe('les champs à rallonge', () => {
+  it('tient le plafond même avec une raison sociale et un appelant démesurés', async () => {
+    sendSMS.mockResolvedValue({ success: true });
+    smsCount.mockResolvedValue(0);
+    sendEmail.mockResolvedValue(undefined);
+
+    await callNotificationService.notify(
+      { ...CLIENT, businessName: 'B'.repeat(500) } as never,
+      { ...CALL, callerName: 'C'.repeat(255), summary: 'Rappel demandé.' } as never,
+    );
+
+    const sent = sendSMS.mock.calls.at(-1)?.[1] as string;
+    const gsm7 = /^[@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-./0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà\n\r^{}\\[~\]|€]*$/.test(sent);
+    expect(Math.ceil(sent.length / (gsm7 ? 153 : 67))).toBeLessThanOrEqual(3);
   });
 });
