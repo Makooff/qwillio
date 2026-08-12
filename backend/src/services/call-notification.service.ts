@@ -56,6 +56,12 @@ interface NotifiableCall {
   isSpam: boolean;
   isLead: boolean;
   bookingRequested: boolean;
+  /* Le rendez-vous a-t-il ÉTÉ FIXÉ, et pas seulement demandé. La distinction
+     est tout ce qui sépare une bonne nouvelle d'un rappel à passer: un appelant
+     qui demande un créneau et repart sans, c'est le client qui doit décrocher
+     dans l'heure. La notification disait « Rendez-vous demandé » dans les deux
+     cas. */
+  bookingConfirmed?: boolean;
 }
 
 interface NotifiableClient {
@@ -162,13 +168,24 @@ class CallNotificationService {
 
     const who = call.callerName || call.callerNumber || (fr ? 'Numéro masqué' : 'Unknown number');
     const summary = (call.summary || '').replace(/\s+/g, ' ').trim();
+
+    /* La ligne qui appelle une action passe EN TÊTE du SMS: un rendez-vous
+       demandé et non fixé se lit sur l'écran verrouillé, sans ouvrir le
+       message, ce qui est le seul endroit où il sera vu à temps. */
+    const alert = call.bookingRequested && !call.bookingConfirmed
+      ? (fr ? '⚠ RDV demandé, non fixé — à rappeler\n' : '⚠ Appointment requested, not booked — call back\n')
+      : '';
+
     /* Le SMS reste sous deux segments: le résumé est coupé net plutôt que de
-       faire payer un troisième segment pour une demi-phrase. */
-    const short = summary.length > 190 ? `${summary.slice(0, 187)}...` : summary;
+       faire payer un troisième segment pour une demi-phrase.
+       Le budget se CALCULE, il n'est plus écrit en dur: la ligne d'alerte
+       s'ajoute devant, et un plafond fixe la faisait déborder d'autant. */
+    const budget = Math.max(40, 190 - alert.length);
+    const short = summary.length > budget ? `${summary.slice(0, budget - 3)}...` : summary;
 
     const body = fr
-      ? `Qwillio · ${client.businessName}\n${who} · ${duration(call.durationSeconds, true)} · ${outcomeLabel(call.outcome, true)}\n${short}\n${link}`
-      : `Qwillio · ${client.businessName}\n${who} · ${duration(call.durationSeconds, false)} · ${outcomeLabel(call.outcome, false)}\n${short}\n${link}`;
+      ? `Qwillio · ${client.businessName}\n${alert}${who} · ${duration(call.durationSeconds, true)} · ${outcomeLabel(call.outcome, true)}\n${short}\n${link}`
+      : `Qwillio · ${client.businessName}\n${alert}${who} · ${duration(call.durationSeconds, false)} · ${outcomeLabel(call.outcome, false)}\n${short}\n${link}`;
 
     try {
       const r = await smsService.sendSMS(client.contactPhone, body, {
@@ -196,7 +213,15 @@ class CallNotificationService {
       `${fr ? 'Durée' : 'Duration'} : ${duration(call.durationSeconds, fr)}`,
       `${fr ? 'Issue' : 'Outcome'} : ${outcomeLabel(call.outcome, fr)}`,
     ];
-    if (call.bookingRequested) facts.push(fr ? '<strong>Rendez-vous demandé</strong>' : '<strong>Appointment requested</strong>');
+    if (call.bookingRequested) {
+      facts.push(
+        call.bookingConfirmed
+          ? (fr ? '<strong>Rendez-vous fixé</strong>' : '<strong>Appointment booked</strong>')
+          : (fr
+            ? '<strong>Rendez-vous demandé, NON fixé</strong> : à rappeler'
+            : '<strong>Appointment requested, NOT booked</strong>: needs a call back'),
+      );
+    }
     if (call.isLead) facts.push(fr ? '<strong>Lead qualifié</strong>' : '<strong>Qualified lead</strong>');
 
     const html = brandWrap({

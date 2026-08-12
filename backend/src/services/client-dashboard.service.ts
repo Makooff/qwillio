@@ -53,7 +53,55 @@ export class ClientDashboardService {
       minutesLimit: client.monthlyMinutesQuota || plan.includedMinutes,
       trialEndsAt: client.trialEndDate,
       isTrial: client.isTrial,
+      /* LA CARTE ENREGISTRÉE. La page annonçait le forfait et son prix, mais
+         jamais ce qui allait être débité: le client devait ouvrir le portail
+         Stripe pour savoir quelle carte paie son abonnement. Chez Stripe,
+         Linear ou ElevenLabs, cette ligne est toujours à l'écran. */
+      paymentMethod: await this.defaultPaymentMethod(client),
     };
+  }
+
+  /**
+   * La carte par défaut du client, telle que Stripe la connaît.
+   *
+   * Rien n'est stocké chez nous, et c'est volontaire: un numéro tronqué et une
+   * date d'expiration recopiés en base seraient une seconde vérité, périmée dès
+   * que le client change de carte dans le portail. La source est Stripe, ou
+   * rien.
+   *
+   * L'échec est silencieux, comme pour la date de renouvellement: une panne
+   * Stripe ne doit pas emporter la page de facturation.
+   */
+  private async defaultPaymentMethod(client: any): Promise<{
+    brand: string; last4: string; expMonth: number; expYear: number;
+  } | null> {
+    if (!client.stripeCustomerId) return null;
+    try {
+      const { stripe } = await import('../config/stripe');
+      const customer: any = await stripe.customers.retrieve(client.stripeCustomerId, {
+        expand: ['invoice_settings.default_payment_method'],
+      });
+      let pm: any = customer?.invoice_settings?.default_payment_method;
+      /* Un client qui n'a jamais changé de carte n'a pas de moyen de paiement
+         « par défaut » posé sur sa fiche: la carte vit alors sur l'abonnement.
+         Sans ce repli, la ligne restait vide pour la majorité des clients. */
+      if (!pm && client.stripeSubscriptionId) {
+        const sub: any = await stripe.subscriptions.retrieve(client.stripeSubscriptionId, {
+          expand: ['default_payment_method'],
+        });
+        pm = sub?.default_payment_method;
+      }
+      if (!pm?.card) return null;
+      return {
+        brand: pm.card.brand,
+        last4: pm.card.last4,
+        expMonth: pm.card.exp_month,
+        expYear: pm.card.exp_year,
+      };
+    } catch (error: any) {
+      logger.warn(`[BILLING] Stripe payment method unavailable for ${client.id}: ${error.message}`);
+      return null;
+    }
   }
 
   /**

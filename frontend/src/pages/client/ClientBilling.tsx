@@ -15,7 +15,24 @@ interface BillingOverview {
   minutesLimit: number;
   trialEndsAt: string | null;
   isTrial: boolean;
+  /** La carte enregistrée chez Stripe. Absente si aucune, ou si Stripe ne
+      répond pas: la ligne disparaît alors au lieu d'inventer une carte. */
+  paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null;
 }
+
+/* « visa » devient « Visa », « amex » devient « American Express ». Stripe rend
+   la marque en minuscules et sans espace, ce qui se lit comme une valeur de
+   base au milieu d'une page soignée. */
+const CARD_BRANDS: Record<string, string> = {
+  visa: 'Visa',
+  mastercard: 'Mastercard',
+  amex: 'American Express',
+  discover: 'Discover',
+  diners: 'Diners Club',
+  jcb: 'JCB',
+  unionpay: 'UnionPay',
+  cartes_bancaires: 'Cartes Bancaires',
+};
 
 interface Payment {
   id: string;
@@ -527,6 +544,29 @@ export default function ClientBilling() {
           <CreditCard size={15} style={{ color: '#7349fe' }} />
           Moyen de paiement
         </h2>
+        {/* LA CARTE, ÉCRITE. Sans cette ligne, la page annonçait un prix sans
+            jamais dire ce qui allait être débité, et il fallait ouvrir le
+            portail Stripe pour le savoir. Les quatre derniers chiffres et la
+            date d'expiration suffisent à reconnaître sa carte; le reste ne
+            transite jamais par nous. */}
+        {overview?.paymentMethod ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-4">
+            <span className="text-sm font-medium text-[#F5F5F7]">
+              {CARD_BRANDS[overview.paymentMethod.brand] || overview.paymentMethod.brand}
+            </span>
+            <span className="text-sm text-[#F5F5F7] tabular-nums">
+              •••• {overview.paymentMethod.last4}
+            </span>
+            <span className="text-xs text-[#A1A1A8] tabular-nums">
+              expire {String(overview.paymentMethod.expMonth).padStart(2, '0')}/
+              {String(overview.paymentMethod.expYear).slice(-2)}
+            </span>
+          </div>
+        ) : (
+          <p className="text-xs text-[#A1A1A8] mb-4">
+            Aucune carte enregistrée pour le moment.
+          </p>
+        )}
         <p className="text-xs text-[#A1A1A8] mb-4">
           Votre carte est conservée par Stripe, notre prestataire de paiement. Le portail permet de la
           remplacer, de mettre à jour l'adresse de facturation et de télécharger vos factures.

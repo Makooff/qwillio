@@ -141,6 +141,11 @@ export class ClientCallService {
     }
 
     // If booking was made, create booking record
+    /* Le rendez-vous a-t-il ÉTÉ FIXÉ. `bookingRequested` dit seulement que
+       l'appelant en a demandé un; c'est la création de la réservation qui dit
+       s'il en repart avec. La notification a besoin des deux pour distinguer
+       une bonne nouvelle d'un rappel à passer dans l'heure. */
+    let bookingConfirmed = false;
     if (analysis.bookingRequested && analysis.bookingDate) {
       try {
         const booking = await prisma.clientBooking.create({
@@ -178,6 +183,11 @@ export class ClientCallService {
             }
           }).catch(err => logger.error('Booking confirmation SMS failed:', err));
         }
+        /* Posé DÈS que la réservation existe, avant les envois annexes: un
+           SMS de paiement ou une synchronisation d'agenda qui échoue ne rend
+           pas le rendez-vous inexistant. */
+        bookingConfirmed = true;
+
         // Auto-send payment SMS after booking
         try {
           const { agentPaymentsService } = await import('./agent-payments.service');
@@ -215,6 +225,7 @@ export class ClientCallService {
         isSpam: clientCall.isSpam,
         isLead: clientCall.isLead,
         bookingRequested: clientCall.bookingRequested,
+        bookingConfirmed,
       })
       .catch(err => logger.warn('[CallNotify] notification échouée:', err));
 
