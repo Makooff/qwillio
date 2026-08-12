@@ -42,15 +42,22 @@ describe('StatStrip', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  /* Quatre ou cinq cellules tiennent en largeur: c'est le libellé qui
-     rétrécit, jamais la grille qui se replie en 2×2, ce qui décalait la
-     troisième cellule sous la première. */
+  /* Quatre ou cinq cellules tiennent en largeur, sans jamais se replier en
+     2×2, ce qui décalait la troisième cellule sous la première.
+     Le test porte sur l'INTENTION et non sur la classe: il vérifiait
+     `grid-cols-4`, si bien que passer à des colonnes dimensionnées par leur
+     contenu le cassait alors que la rangée restait unique. Ce qui compte,
+     c'est qu'il y ait une cellule par chiffre et aucun repli. */
   it('garde une seule rangée, quel que soit le nombre de cellules', () => {
     const cell = (n: number) => ({ label: `L${n}`, value: n });
-    const { container: c4 } = render(<StatStrip items={[1, 2, 3, 4].map(cell)} />);
-    expect(c4.firstElementChild?.className).toContain('grid-cols-4');
-    cleanup();
-    const { container: c5 } = render(<StatStrip items={[1, 2, 3, 4, 5].map(cell)} />);
-    expect(c5.firstElementChild?.className).toContain('grid-cols-5');
+    for (const n of [4, 5]) {
+      const { container } = render(
+        <StatStrip items={Array.from({ length: n }, (_, i) => cell(i + 1))} />,
+      );
+      const row = container.firstElementChild as HTMLElement;
+      expect(row.children).toHaveLength(n);
+      expect(row.className).not.toContain('wrap');
+      cleanup();
+    }
   });
 });
