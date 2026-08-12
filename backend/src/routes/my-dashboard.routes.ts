@@ -98,6 +98,10 @@ router.post('/resume', (req, res) => clientDashboardController.resumeAgent(req, 
 // ─── Account ────────────────────────────────────────────
 router.put('/profile', (req, res) => clientDashboardController.updateProfile(req, res));
 router.put('/password', (req, res) => clientDashboardController.changePassword(req, res));
+/* Export des données personnelles (RGPD art. 20). Sous le limiteur de
+   facturation: la requête lit plusieurs tables en entier, et n'a aucune raison
+   d'être appelée plus d'une poignée de fois par heure. */
+router.get('/export', billingLimiter, (req, res) => clientDashboardController.exportMyData(req, res));
 router.get('/billing', (req, res) => clientDashboardController.getBilling(req, res));
 router.get('/payments', (req, res) => clientDashboardController.getPayments(req, res));
 /* Adresse de la facture chez Stripe. Sous le limiteur de facturation: chaque

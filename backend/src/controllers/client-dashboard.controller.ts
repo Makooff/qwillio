@@ -1176,6 +1176,71 @@ export class ClientDashboardController {
     }
   }
 
+  /**
+   * GET /my-dashboard/export — toutes les données du client, en un fichier.
+   *
+   * Le RGPD (art. 20) donne un droit à la portabilité, et la page RGPD du site
+   * le promet déjà: il n'existait aucun moyen de l'exercer autrement qu'en
+   * nous écrivant. Le format est du JSON, lisible par une machine comme le
+   * texte de l'article l'exige, et téléchargé sous un nom daté.
+   *
+   * Ce qui n'y est PAS: les enregistrements audio, qui vivent chez Vapi et
+   * dont les liens expirent, et les secrets (jetons Google, identifiants
+   * Stripe), qui ne sont pas des données personnelles du client mais des
+   * clés d'accès à des services tiers.
+   */
+  async exportMyData(req: any, res: Response) {
+    try {
+      const [client, calls, bookings, payments, contacts] = await Promise.all([
+        prisma.client.findUnique({
+          where: { id: req.clientId },
+          select: {
+            businessName: true, businessType: true, contactName: true,
+            contactEmail: true, contactPhone: true, address: true, city: true,
+            postalCode: true, country: true, vatNumber: true, planType: true,
+            subscriptionStatus: true, vapiPhoneNumber: true, transferNumber: true,
+            monthlyMinutesQuota: true, createdAt: true, activationDate: true,
+          },
+        }),
+        prisma.clientCall.findMany({
+          where: { clientId: req.clientId },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            createdAt: true, callerNumber: true, callerName: true,
+            durationSeconds: true, status: true, sentiment: true, outcome: true,
+            summary: true, transcript: true, isLead: true, leadScore: true,
+            bookingRequested: true, bookingDate: true, emailCollected: true,
+          },
+        }),
+        prisma.clientBooking.findMany({
+          where: { clientId: req.clientId },
+          orderBy: { bookingDate: 'desc' },
+        }),
+        prisma.payment.findMany({
+          where: { clientId: req.clientId },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.contact.findMany({ where: { clientId: req.clientId } }).catch(() => []),
+      ]);
+
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+
+      const stamp = new Date().toISOString().slice(0, 10);
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="qwillio-export-${stamp}.json"`);
+      res.json({
+        exportedAt: new Date().toISOString(),
+        client,
+        calls,
+        bookings,
+        payments,
+        contacts,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // GET /my-dashboard/payments
   async getPayments(req: any, res: Response) {
     try {
