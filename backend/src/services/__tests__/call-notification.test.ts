@@ -194,3 +194,40 @@ describe('les réglages de la page Compte', () => {
     expect(prefs.channel).toBe('sms');
   });
 });
+
+/* Le budget portait sur le seul résumé et ignorait tout le reste du message:
+   un SMS annoncé « sous deux segments » en coûtait cinq, ce test l'a mesuré.
+   Le plafond est de trois: l'en-tête seul dépasse deux segments en UCS-2, et
+   viser deux reviendrait à ne plus envoyer de résumé. */
+describe('le coût réel du SMS', () => {
+  const segments = (body: string) => {
+    const gsm7 = /^[@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-./0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà\n\r^{}\\[~\]|€]*$/.test(body);
+    const per = gsm7 ? 153 : 67;
+    return Math.ceil(body.length / per);
+  };
+
+  it('tient dans son plafond de segments, résumé bavard et accents compris', async () => {
+    sendSMS.mockResolvedValue({ success: true });
+    smsCount.mockResolvedValue(0);
+    sendEmail.mockResolvedValue(undefined);
+
+    await callNotificationService.notify(
+      { ...CLIENT, businessName: 'Clinique Dentaire Léopold' } as never,
+      {
+        ...CALL,
+        callerName: 'Camille Dubois',
+        summary: 'Détartrage et contrôle : elle souhaitait jeudi 14 h 30, '
+          + 'mais l’agenda était complet ce jour-là. Elle demande à être rappelée '
+          + 'en fin de journée, de préférence après 17 h, sur son portable.',
+        bookingRequested: true,
+        bookingConfirmed: false,
+      } as never,
+    );
+
+    const sent = sendSMS.mock.calls.at(-1)?.[1] as string;
+    expect(sent).toBeTruthy();
+    expect(segments(sent)).toBeLessThanOrEqual(3);
+    /* Et le résumé n'est pas sacrifié pour autant: il reste une phrase. */
+    expect(sent.length).toBeGreaterThan(150);
+  });
+});
