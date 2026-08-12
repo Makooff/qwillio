@@ -529,7 +529,9 @@ export default function ClientReceptionist() {
     /* Même largeur que la page chargée: à `max-w-3xl`, le squelette se
        recadrait au moment où le contenu arrivait, et la page sautait sous
        l'oeil du client. Signalé en revue. */
-    <div className="max-w-6xl space-y-4" aria-busy="true">
+    /* MÊME largeur que la page chargée: sinon elle s'élargit d'un coup à la
+       fin du chargement, sur un grand écran. */
+    <div className="max-w-[1600px] space-y-4" aria-busy="true">
       <div className="space-y-2"><div className="h-6 w-48 rounded-lg bg-white/[0.06] animate-pulse" /><div className="h-4 w-64 rounded bg-white/[0.05] animate-pulse" /></div>
       <div className="h-40 rounded-2xl bg-white/[0.04] animate-pulse" />
       <div className="h-40 rounded-2xl bg-white/[0.04] animate-pulse" />
@@ -564,22 +566,27 @@ export default function ClientReceptionist() {
   return (
     /* Deux colonnes à partir de `lg`: le chat À DROITE sur deux tiers, les
        réglages À DROITE sur un tiers (demande utilisateur).
-       La largeur passe de `max-w-3xl` à `max-w-6xl`, sinon la mise en colonnes
-       RÉTRÉCIRAIT le chat: deux tiers de 768 px valent moins que les 768 px
-       qu'il occupe aujourd'hui. À 1152 px, ses deux tiers font exactement les
-       768 px d'avant, et la colonne de réglages est prise en plus, pas prise
-       au chat.
+       La page prend la LARGEUR de la fenêtre, plus les 1152 px de `max-w-6xl`
+       (demande utilisateur: « met en plein écran le chat »). Le cap laissait
+       plus de 100 px de vide à droite sur un portable de 1512, pendant que le
+       chat, lui, restait à 763. Le plafond de 1600 px reste, non pour la
+       fenêtre mais pour la LIGNE: au delà, une bulle de conversation devient
+       une bande de texte qu'on ne relit plus.
        Le chat reste PREMIER dans le DOM: c'est ce qu'on vient faire ici neuf
        fois sur dix, donc il doit rester en tête au clavier et en haut sur
        mobile, où la grille retombe à une colonne. `order` ne déplace que le
        rendu, à partir de `lg`. */
-    <div className="max-w-6xl pb-2">
+    <div className="max-w-[1600px] pb-2">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
       {/* LE CHAT À GAUCHE, les réglages à droite (demande utilisateur: c'était
           l'inverse). Il est aussi COLLANT: à pleine hauteur, il resterait
           autrement à défiler avec une colonne de réglages bien plus longue que
           lui, et on perdrait de vue ce qu'on est venu faire. */}
-      <div className="lg:order-1 lg:col-span-2 lg:sticky lg:top-2">
+      {/* `lg:top-8` et non `top-2`: c'est la marge de `<main>` (`md:p-8`), donc
+          la position que la carte occupe DÉJÀ avant tout défilement. Avec
+          `top-2`, elle remontait de 24 px en se collant, et sa hauteur pleine
+          fenêtre lui faisait alors dépasser le bas de l'écran. */}
+      <div className="lg:order-1 lg:col-span-2 lg:sticky lg:top-8">
       {/* Assistant conversationnel : parler pour configurer et onboarder.
           Il porte aussi l'identité de la page (titre, entreprise, plan), le
           numéro copiable, l'appel test live et la jauge de minutes, pour que

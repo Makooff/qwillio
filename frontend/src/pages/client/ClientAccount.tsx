@@ -142,6 +142,21 @@ export default function ClientAccount() {
 
   const [name, setName] = useState(user?.name ?? '');
   const [profileSaving, setProfileSaving] = useState(false);
+  /* Changement d'adresse de connexion. L'ancien champ « Email » était
+     `disabled`: le compte n'offrait aucun moyen de changer d'adresse, et un
+     client qui quitte son fournisseur de messagerie perdait l'accès à son
+     propre tableau de bord. */
+  const [newEmail, setNewEmail] = useState('');
+  const [emailPw, setEmailPw] = useState('');
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailSent, setEmailSent] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState('');
+  /* Suppression du compte (RGPD art. 17). */
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deletePw, setDeletePw] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
 
   const [currentPw, setCurrentPw] = useState('');
@@ -262,6 +277,44 @@ export default function ClientAccount() {
     finally { setProfileSaving(false); }
   };
 
+  /* La bascule d'adresse ne se fait PAS ici: la route enregistre la demande et
+     envoie un lien à la NOUVELLE adresse. Tant qu'il n'est pas cliqué, la
+     connexion continue avec l'ancienne, et une faute de frappe reste sans
+     conséquence. La page dit donc « vérifiez votre boîte », jamais « c'est
+     changé ». */
+  const handleChangeEmail = async () => {
+    setEmailError('');
+    setEmailSent(null);
+    setEmailSaving(true);
+    try {
+      const { data } = await api.put('/my-dashboard/email', { newEmail: newEmail.trim(), currentPassword: emailPw });
+      setEmailSent(data?.pendingEmail || newEmail.trim());
+      setNewEmail('');
+      setEmailPw('');
+    } catch (e: any) {
+      setEmailError(e?.response?.data?.error || "La demande n'a pas abouti. Réessayez.");
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
+  /* La suppression est définitive et emporte l'abonnement: le nom exact de
+     l'entreprise est exigé, tapé à la main. Un « oui » se clique sans lire.
+     Au retour, on déconnecte: la session pointe sur un compte qui n'existe
+     plus, et toute requête suivante répondrait 401 sans rien expliquer. */
+  const handleDeleteAccount = async () => {
+    setDeleteError('');
+    setDeleting(true);
+    try {
+      await api.delete('/my-dashboard/account', { data: { password: deletePw, confirm: deleteConfirm } });
+      logout();
+    } catch (e: any) {
+      setDeleteError(e?.response?.data?.error || "La suppression n'a pas abouti. Réessayez, ou écrivez-nous.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   /* Le fichier est reçu en mémoire puis rendu téléchargeable, plutôt que
      d'ouvrir la route dans un onglet: elle est authentifiée par un en-tête que
      seule la couche `api` porte, et une navigation ordinaire repartirait avec
@@ -361,7 +414,7 @@ export default function ClientAccount() {
                       onBlur={e => e.currentTarget.style.borderColor = C.border} />
                   </div>
                   <div>
-                    <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Email</label>
+                    <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Email de connexion</label>
                     <input type="email" value={user?.email ?? ''} disabled
                       className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
                   </div>
@@ -376,6 +429,50 @@ export default function ClientAccount() {
                       {profileSaving ? 'Enregistrement…' : 'Sauvegarder'}
                     </button>
                     {profileSaved && <span className="text-[12px] flex items-center gap-1" style={{ color: C.ok }}><Check size={13} /> Sauvegardé</span>}
+                  </div>
+
+                  {/* CHANGER D'ADRESSE. En deux temps, volontairement: la
+                      nouvelle adresse reçoit un lien, et c'est lui qui fait
+                      basculer le compte. Le mot de passe est redemandé, parce
+                      qu'une session laissée ouverte sur un poste partagé ne
+                      doit pas suffire à détourner un compte. */}
+                  <div className="pt-4 space-y-3" style={{ borderTop: `1px solid ${C.border}` }}>
+                    <div>
+                      <p className="text-[12.5px]" style={{ color: C.text }}>Changer d'adresse</p>
+                      <p className="text-[12px] mt-0.5" style={{ color: C.textTer }}>
+                        Un lien part vers la nouvelle adresse. Tant qu'il n'est pas ouvert, vous vous connectez avec l'ancienne.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Nouvelle adresse</label>
+                        <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
+                          autoComplete="email" placeholder="vous@exemple.be"
+                          className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
+                      </div>
+                      <div>
+                        <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Mot de passe actuel</label>
+                        <input type="password" value={emailPw} onChange={e => setEmailPw(e.target.value)}
+                          autoComplete="current-password"
+                          className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
+                      </div>
+                    </div>
+                    {emailError && <p className="text-[12px]" style={{ color: C.bad }}>{emailError}</p>}
+                    {emailSent && (
+                      <p className="text-[12px] flex items-start gap-1.5" style={{ color: C.ok }}>
+                        <Check size={13} className="mt-0.5 flex-shrink-0" />
+                        <span>Lien envoyé à {emailSent}. Ouvrez-le pour confirmer.</span>
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleChangeEmail}
+                      disabled={emailSaving || !newEmail.trim() || !emailPw}
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
+                      style={{ border: `1px solid ${C.border}`, color: C.text }}
+                    >
+                      {emailSaving ? 'Envoi…' : 'Envoyer le lien de confirmation'}
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -455,6 +552,72 @@ export default function ClientAccount() {
                       {exporting ? 'Préparation…' : 'Télécharger mes données'}
                     </button>
                     {exportError && <p className="text-[12px] mt-2" style={{ color: C.bad }}>{exportError}</p>}
+                  </div>
+
+                  {/* SUPPRESSION DU COMPTE (RGPD art. 17). Le pendant de
+                      l'export, et pour la même raison: la page « Vos données »
+                      promet le droit à l'effacement, et il n'existait aucun
+                      moyen de l'exercer autrement qu'en nous écrivant.
+                      Elle est repliée par défaut: une action définitive ne
+                      s'offre pas au clic distrait, elle se demande. */}
+                  <div className="pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
+                    <p className="text-[12.5px] mb-1" style={{ color: C.text }}>Supprimer mon compte</p>
+                    <p className="text-[12px] mb-3" style={{ color: C.textTer }}>
+                      Votre abonnement est résilié, votre réceptionniste retirée, et toutes vos données effacées. Définitif.
+                    </p>
+                    {!showDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowDelete(true)}
+                        className="px-4 h-9 text-[12.5px] font-medium rounded-xl transition-colors"
+                        style={{ border: `1px solid ${C.bad}40`, color: C.bad }}
+                      >
+                        Supprimer mon compte
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>
+                              Nom de l'entreprise
+                            </label>
+                            <input type="text" value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)}
+                              placeholder={businessName || 'Nom exact'}
+                              className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
+                          </div>
+                          <div>
+                            <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Mot de passe</label>
+                            <input type="password" value={deletePw} onChange={e => setDeletePw(e.target.value)}
+                              autoComplete="current-password"
+                              className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
+                          </div>
+                        </div>
+                        {deleteError && <p className="text-[12px]" style={{ color: C.bad }}>{deleteError}</p>}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => { setShowDelete(false); setDeleteConfirm(''); setDeletePw(''); setDeleteError(''); }}
+                            className="px-4 h-9 text-[12.5px] font-medium rounded-xl transition-colors"
+                            style={{ border: `1px solid ${C.border}`, color: C.textSec }}
+                          >
+                            Annuler
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleDeleteAccount}
+                            /* Le bouton n'est actif qu'une fois le nom exact
+                               tapé: la comparaison est faite aussi côté
+                               serveur, celle-ci n'est là que pour éviter un
+                               aller-retour inutile. */
+                            disabled={deleting || !deleteConfirm.trim()}
+                            className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-40 transition-colors text-white"
+                            style={{ background: C.bad }}
+                          >
+                            {deleting ? 'Suppression…' : 'Supprimer définitivement'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>

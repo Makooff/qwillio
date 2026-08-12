@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { clientDashboardService } from '../services/client-dashboard.service';
@@ -1162,6 +1163,172 @@ export class ClientDashboardController {
     }
   }
 
+  /**
+   * PUT /my-dashboard/email — demander un changement d'adresse de connexion.
+   *
+   * Le compte n'offrait AUCUN moyen de changer son adresse: un client qui
+   * quitte son fournisseur de messagerie, ou dont l'employée qui a signé s'en
+   * va, perdait l'accès à son propre tableau de bord.
+   *
+   * Trois garde-fous, chacun pour un accident constaté ailleurs:
+   * 1. le mot de passe est redemandé — une session laissée ouverte sur un poste
+   *    partagé ne doit pas suffire à détourner un compte;
+   * 2. l'adresse ne bascule PAS tout de suite: elle attend dans `pendingEmail`
+   *    que le lien envoyé à la NOUVELLE adresse soit cliqué. Une faute de
+   *    frappe est donc sans conséquence, l'ancienne continue de fonctionner;
+   * 3. l'échec d'envoi est RENDU. Un « c'est envoyé » sur un courriel jamais
+   *    parti laisserait le client attendre indéfiniment.
+   */
+  async requestEmailChange(req: any, res: Response) {
+    try {
+      const newEmail = String(req.body?.newEmail || '').trim().toLowerCase();
+      const currentPassword = String(req.body?.currentPassword || '');
+      if (!newEmail || !currentPassword) {
+        return res.status(400).json({ error: 'Adresse et mot de passe requis' });
+      }
+      /* Validation volontairement simple: la seule preuve qu'une adresse existe
+         est le courriel qui y arrive, et c'est justement ce qu'on envoie. */
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(newEmail)) {
+        return res.status(400).json({ error: 'Adresse invalide' });
+      }
+
+      const user = await prisma.user.findUnique({ where: { id: req.userId } });
+      if (!user) return res.status(404).json({ error: 'Compte introuvable' });
+      if (newEmail === user.email.toLowerCase()) {
+        return res.status(400).json({ error: 'C’est déjà votre adresse' });
+      }
+      if (!user.passwordHash) {
+        return res.status(400).json({ error: 'Compte Google: changez l’adresse chez Google, la connexion suit.' });
+      }
+      if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
+        return res.status(401).json({ error: 'Mot de passe incorrect' });
+      }
+
+      const taken = await prisma.user.findFirst({ where: { email: newEmail } });
+      if (taken) return res.status(409).json({ error: 'Cette adresse est déjà utilisée' });
+
+      const token = crypto.randomBytes(32).toString('hex');
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          pendingEmail: newEmail,
+          pendingEmailToken: token,
+          pendingEmailExpiry: new Date(Date.now() + 60 * 60 * 1000),
+        },
+      });
+
+      const { emailService } = await import('../services/email.service');
+      const { frontendBaseUrl } = await import('../utils/urls');
+      /* Le lien passe par le FRONTEND, comme celui de la confirmation
+         d'inscription: le backend n'a aucune variable qui lui dise sous quel
+         nom de domaine il est joignable, et un lien vers `/api/...` du site
+         tomberait à côté. La page appelle ensuite l'API. */
+      const confirmUrl = `${frontendBaseUrl()}/auth/confirm-email-change?token=${token}`;
+      const sent = await emailService.sendEmailChangeEmail({
+        to: newEmail,
+        name: user.name,
+        confirmUrl,
+        lang: 'fr',
+      });
+      if (!sent.success) {
+        /* La demande est effacée: laisser un jeton vivant sur une adresse qui
+           n'a jamais reçu son lien, c'est une porte ouverte sans serrure. */
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { pendingEmail: null, pendingEmailToken: null, pendingEmailExpiry: null },
+        });
+        return res.status(502).json({ error: "Le courriel de confirmation n'a pas pu être envoyé. Réessayez." });
+      }
+
+      logger.info(`[EMAIL-CHANGE] Demande pour l'utilisateur ${user.id}`);
+      res.json({ success: true, pendingEmail: newEmail });
+    } catch (error: any) {
+      logger.error('requestEmailChange failed', error);
+      res.status(500).json({ error: 'Changement impossible pour le moment.' });
+    }
+  }
+
+  /**
+   * DELETE /my-dashboard/account — droit à l'effacement (RGPD, art. 17).
+   *
+   * La page « Vos données » du site le promet depuis toujours, et il n'existait
+   * aucun moyen de l'exercer autrement qu'en écrivant au support.
+   *
+   * L'ordre des opérations est le point délicat: l'abonnement est résilié CHEZ
+   * STRIPE avant tout effacement. Supprimer d'abord la ligne du client
+   * effacerait le `stripeSubscriptionId`, et l'abonnement continuerait de
+   * prélever une personne dont le compte n'existe plus, sans plus aucun moyen
+   * de faire le lien.
+   *
+   * L'assistant Vapi et le numéro sont retirés ensuite, pour qu'aucun appel
+   * n'arrive plus chez un client effacé. Ces deux étapes sont « au mieux »: si
+   * Vapi ne répond pas, l'effacement se poursuit, parce que le droit du client
+   * ne dépend pas de la disponibilité d'un tiers.
+   */
+  async deleteMyAccount(req: any, res: Response) {
+    try {
+      const password = String(req.body?.password || '');
+      const confirm = String(req.body?.confirm || '').trim();
+
+      const user = await prisma.user.findUnique({ where: { id: req.userId } });
+      if (!user) return res.status(404).json({ error: 'Compte introuvable' });
+
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { id: true, businessName: true, stripeSubscriptionId: true, vapiAssistantId: true },
+      });
+      if (!client) return res.status(404).json({ error: 'Client introuvable' });
+
+      /* Le nom de l'entreprise, tapé à la main. Un « oui » n'est pas une
+         confirmation pour une action définitive: il faut avoir lu. */
+      if (confirm.toLowerCase() !== client.businessName.trim().toLowerCase()) {
+        return res.status(400).json({ error: "Tapez le nom exact de l'entreprise pour confirmer" });
+      }
+      /* Le mot de passe reste exigé, sauf pour un compte Google qui n'en a
+         aucun: lui réclamer un mot de passe inexistant rendrait la suppression
+         impossible, ce qui reviendrait à refuser le droit. */
+      if (user.passwordHash) {
+        if (!password) return res.status(400).json({ error: 'Mot de passe requis' });
+        if (!(await bcrypt.compare(password, user.passwordHash))) {
+          return res.status(401).json({ error: 'Mot de passe incorrect' });
+        }
+      }
+
+      const { stripeService } = await import('../services/stripe.service');
+      try {
+        await stripeService.cancelSubscription(client, { immediately: true });
+      } catch (e) {
+        /* Stripe refuse: on n'efface RIEN. Un compte effacé dont l'abonnement
+           continue de prélever est le seul résultat pire que l'échec. */
+        logger.error(`[DELETE] Résiliation Stripe refusée pour ${client.id}`, e);
+        return res.status(502).json({
+          error: "Votre abonnement n'a pas pu être résilié, le compte n'a donc pas été supprimé. Écrivez-nous.",
+        });
+      }
+
+      if (client.vapiAssistantId) {
+        try {
+          const { vapiClient } = await import('../config/vapi');
+          await vapiClient.deleteAssistant(client.vapiAssistantId);
+        } catch (e) {
+          logger.warn(`[DELETE] Assistant Vapi ${client.vapiAssistantId} non supprimé`, e);
+        }
+      }
+
+      /* La ligne du client emporte ses appels, ses leads, ses rendez-vous et
+         ses numéros: toutes les relations portent `onDelete: Cascade`. La ligne
+         de l'utilisateur suit, et le compte n'existe plus nulle part. */
+      await prisma.client.delete({ where: { id: client.id } });
+      await prisma.user.delete({ where: { id: user.id } });
+
+      logger.info(`[DELETE] Compte supprimé: client ${client.id}, utilisateur ${user.id}`);
+      res.json({ success: true });
+    } catch (error: any) {
+      logger.error('deleteMyAccount failed', error);
+      res.status(500).json({ error: 'Suppression impossible pour le moment.' });
+    }
+  }
+
   // GET /my-dashboard/billing
   /**
    * The billing OVERVIEW — plan, status, quota, trial.
@@ -1284,20 +1451,47 @@ export class ClientDashboardController {
     }
   }
 
-  // POST /my-dashboard/cancel
+  /**
+   * POST /my-dashboard/cancel
+   *
+   * Résilie CHEZ STRIPE d'abord, en base ensuite. L'ordre compte: écrite
+   * d'abord, la base aurait affiché « Résilié » à un client que Stripe
+   * continuait de prélever, et personne n'aurait vu l'écart avant le relevé.
+   *
+   * L'abonnement court jusqu'au terme payé (`cancel_at_period_end`), et c'est
+   * cette date que la réponse porte: le portail peut alors dire « jusqu'au 12
+   * septembre » au lieu d'un « Résilié » qui laisse croire à une coupure
+   * immédiate.
+   */
   async cancelSubscription(req: any, res: Response) {
     try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { id: true, stripeSubscriptionId: true, subscriptionStatus: true },
+      });
+      if (!client) return res.status(404).json({ error: 'Client introuvable' });
+      if (['cancelled', 'canceled'].includes((client.subscriptionStatus || '').toLowerCase())) {
+        return res.json({ success: true, alreadyCancelled: true, endsAt: null });
+      }
+
+      const { stripeService } = await import('../services/stripe.service');
+      const { cancelled, endsAt } = await stripeService.cancelSubscription(client);
+
       await prisma.client.update({
         where: { id: req.clientId },
-        data: {
-          subscriptionStatus: 'cancelled',
-          cancellationDate: new Date(),
-        },
+        data: { subscriptionStatus: 'cancelled', cancellationDate: new Date() },
       });
-      logger.info(`[CANCEL] Client ${req.clientId} cancelled subscription`);
-      res.json({ success: true });
+
+      logger.info(
+        `[CANCEL] Client ${req.clientId} résilie${cancelled ? ` (Stripe, fin ${endsAt?.toISOString() ?? 'inconnue'})` : ' (aucun abonnement Stripe)'}`,
+      );
+      res.json({ success: true, stripeCancelled: cancelled, endsAt });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      /* La résiliation Stripe a échoué: la base n'est PAS touchée, et le client
+         voit une erreur. Un « Résilié » affiché sur un abonnement toujours actif
+         serait pire que le message d'échec. */
+      logger.error(`[CANCEL] Échec pour le client ${req.clientId}`, error);
+      res.status(502).json({ error: "La résiliation n'a pas pu être enregistrée. Réessayez, ou écrivez-nous." });
     }
   }
 

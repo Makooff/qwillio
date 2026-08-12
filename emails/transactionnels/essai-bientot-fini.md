@@ -31,6 +31,7 @@ brandSmall("Sans abonnement, votre réceptionniste IA sera désactivée à la fi
 }
 const dayWord = data.daysLeft > 1 ? 'days' : 'day';
 return brandWrap({
+lang,
 title: 'Your trial is ending',
 preheader:
 

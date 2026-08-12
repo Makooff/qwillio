@@ -29,6 +29,7 @@ brandSmall('Votre configuration est conservée 30 jours, puis supprimée défini
 });
 }
 return brandWrap({
+lang,
 title: 'Your free trial has ended',
 preheader:
 

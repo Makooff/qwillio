@@ -33,6 +33,7 @@ export function renderQuoteTemplate(data: {
   const name = data.contactName || (lang === 'fr' ? 'bonjour' : 'there');
   if (lang === 'fr') {
     return brandWrap({
+      lang,
       title: 'Votre devis Qwillio',
       preheader: `Devis personnalisé pour ${data.businessName}.`,
       body: [
@@ -49,6 +50,7 @@ export function renderQuoteTemplate(data: {
     });
   }
   return brandWrap({
+    lang,
     title: 'Your Qwillio quote',
     preheader: `Personalized quote for ${data.businessName}.`,
     body: [
@@ -80,6 +82,7 @@ export function renderFollowUpTemplate(data: {
   if (lang === 'fr') {
     if (data.type === 'day1') {
       return brandWrap({
+        lang,
         title: 'Votre offre est toujours disponible',
         preheader: `Petit suivi de votre proposition Qwillio pour ${data.businessName}.`,
         body: [
@@ -94,6 +97,7 @@ export function renderFollowUpTemplate(data: {
     }
     if (data.type === 'day3') {
       return brandWrap({
+        lang,
         title: 'Plus que 4 jours',
         preheader: `Votre offre Qwillio pour ${data.businessName} se termine bientôt.`,
         body: [
@@ -111,6 +115,7 @@ export function renderFollowUpTemplate(data: {
       });
     }
     return brandWrap({
+      lang,
       title: 'Dernière chance',
       preheader: `Votre offre Qwillio pour ${data.businessName} expire aujourd'hui.`,
       body: [
@@ -127,6 +132,7 @@ export function renderFollowUpTemplate(data: {
 
   if (data.type === 'day1') {
     return brandWrap({
+      lang,
       title: 'Your offer is still available',
       preheader: `Quick follow-up on your Qwillio proposal for ${data.businessName}.`,
       body: [
@@ -142,6 +148,7 @@ export function renderFollowUpTemplate(data: {
 
   if (data.type === 'day3') {
     return brandWrap({
+      lang,
       title: '4 days left',
       preheader: `Your Qwillio offer for ${data.businessName} closes soon.`,
       body: [
@@ -160,6 +167,7 @@ export function renderFollowUpTemplate(data: {
   }
 
   return brandWrap({
+    lang,
     title: 'Last chance',
     preheader: `Your Qwillio offer for ${data.businessName} expires today.`,
     body: [
@@ -190,6 +198,7 @@ export function renderWelcomeTemplate(data: {
   const phone = (data.vapiPhoneNumber || '').trim();
   if (lang === 'fr') {
     return brandWrap({
+      lang,
       title: 'Bienvenue chez Qwillio',
       preheader: `Votre réceptionniste IA pour ${data.businessName} est en ligne.`,
       body: [
@@ -208,6 +217,7 @@ export function renderWelcomeTemplate(data: {
     });
   }
   return brandWrap({
+    lang,
     title: 'Welcome to Qwillio',
     preheader: `Your AI receptionist for ${data.businessName} is live.`,
     body: [
@@ -237,6 +247,7 @@ export function renderTrialWelcomeTemplate(data: {
   const lang = L(data.lang);
   if (lang === 'fr') {
     return brandWrap({
+      lang,
       title: 'Votre essai gratuit est actif',
       preheader: `30 jours pour tester Qwillio pour ${data.businessName}.`,
       body: [
@@ -257,6 +268,7 @@ export function renderTrialWelcomeTemplate(data: {
     });
   }
   return brandWrap({
+    lang,
     title: 'Your free trial is active',
     preheader: `30 days to test Qwillio for ${data.businessName}.`,
     body: [
@@ -291,6 +303,7 @@ export function renderTrialEndingTemplate(data: {
   if (lang === 'fr') {
     const dayWord = data.daysLeft > 1 ? 'jours' : 'jour';
     return brandWrap({
+      lang,
       title: 'Votre essai se termine',
       preheader: `Votre essai gratuit pour ${data.businessName} se termine le ${formatDate(data.trialEndDate, 'fr')}.`,
       body: [
@@ -306,6 +319,7 @@ export function renderTrialEndingTemplate(data: {
   }
   const dayWord = data.daysLeft > 1 ? 'days' : 'day';
   return brandWrap({
+    lang,
     title: 'Your trial is ending',
     preheader: `Your free trial for ${data.businessName} ends ${formatDate(data.trialEndDate, 'en')}.`,
     body: [
@@ -331,6 +345,7 @@ export function renderTrialExpiredTemplate(data: {
   const lang = L(data.lang);
   if (lang === 'fr') {
     return brandWrap({
+      lang,
       title: 'Votre essai gratuit est terminé',
       preheader: `Réactivez votre réceptionniste IA pour ${data.businessName} en 2 minutes.`,
       body: [
@@ -344,6 +359,7 @@ export function renderTrialExpiredTemplate(data: {
     });
   }
   return brandWrap({
+    lang,
     title: 'Your free trial has ended',
     preheader: `Reactivate your AI receptionist for ${data.businessName} in 2 minutes.`,
     body: [
@@ -366,6 +382,7 @@ export function renderCallback3MonthsTemplate(data: {
   if (lang === 'fr') {
     const replyMail = `mailto:${env.RESEND_REPLY_TO}?subject=Suivi%20${encodeURIComponent(data.businessName)}`;
     return brandWrap({
+      lang,
       title: 'Des nouvelles de Qwillio',
       preheader: `Petit suivi pour ${data.businessName} — quelques nouveautés depuis notre dernier échange.`,
       body: [
@@ -384,6 +401,7 @@ export function renderCallback3MonthsTemplate(data: {
   }
   const replyMail = `mailto:${env.RESEND_REPLY_TO}?subject=Follow-up%20${encodeURIComponent(data.businessName)}`;
   return brandWrap({
+    lang,
     title: 'News from Qwillio',
     preheader: `Quick check-in for ${data.businessName} — a few new things since we last spoke.`,
     body: [
@@ -423,6 +441,7 @@ export function renderBookingReminderTemplate(data: {
     ];
     if (data.specialRequests) details.push(`<strong>Notes</strong> — ${data.specialRequests}`);
     return brandWrap({
+      lang,
       title: 'Rappel de rendez-vous',
       preheader: `Rappel de votre rendez-vous chez ${data.businessName}.`,
       body: [
@@ -444,6 +463,7 @@ export function renderBookingReminderTemplate(data: {
   ];
   if (data.specialRequests) details.push(`<strong>Notes</strong> — ${data.specialRequests}`);
   return brandWrap({
+    lang,
     title: 'Appointment reminder',
     preheader: `Reminder of your appointment at ${data.businessName}.`,
     body: [
@@ -468,6 +488,7 @@ export function renderPasswordResetTemplate(data: {
   const name = data.firstName || (lang === 'fr' ? 'à vous' : 'there');
   if (lang === 'fr') {
     return brandWrap({
+      lang,
       title: 'Réinitialisez votre mot de passe',
       preheader: 'Lien valable 1 heure pour réinitialiser votre mot de passe Qwillio.',
       body: [
@@ -480,6 +501,7 @@ export function renderPasswordResetTemplate(data: {
     });
   }
   return brandWrap({
+    lang,
     title: 'Reset your password',
     preheader: 'A link valid for 1 hour to reset your Qwillio password.',
     body: [
@@ -488,6 +510,50 @@ export function renderPasswordResetTemplate(data: {
       brandButton('Reset my password', data.resetUrl),
       brandSmall(`Or paste this link into your browser:<br><span style="word-break:break-all;color:#A855F7;">${data.resetUrl}</span>`),
       brandSmall("This link expires in 1 hour. If you didn't request this, ignore this email — your password stays unchanged."),
+    ].join(''),
+  });
+}
+
+/**
+ * Confirmation d'un CHANGEMENT d'adresse de connexion.
+ *
+ * Le lien part à la NOUVELLE adresse, jamais à l'ancienne: c'est ce qui prouve
+ * qu'elle existe et qu'elle appartient bien à la même personne. Tant qu'il n'est
+ * pas cliqué, la connexion continue de se faire avec l'ancienne, si bien qu'une
+ * faute de frappe ne ferme jamais le compte.
+ */
+export function renderEmailChangeTemplate(data: {
+  firstName: string;
+  newEmail: string;
+  confirmUrl: string;
+  lang?: Lang;
+}): string {
+  const lang = L(data.lang);
+  const name = data.firstName || (lang === 'fr' ? 'à vous' : 'there');
+  if (lang === 'fr') {
+    return brandWrap({
+      lang,
+      title: 'Confirmez votre nouvelle adresse',
+      preheader: 'Lien valable 1 heure pour confirmer votre nouvelle adresse Qwillio.',
+      body: [
+        brandTitle('Confirmez votre nouvelle adresse'),
+        brandText(`Bonjour ${name}, vous avez demandé à vous connecter désormais avec <strong>${data.newEmail}</strong>. Confirmez ci-dessous pour que le changement prenne effet.`),
+        brandButton('Confirmer mon adresse', data.confirmUrl),
+        brandSmall(`Ou collez ce lien dans votre navigateur :<br><span style="word-break:break-all;color:#A855F7;">${data.confirmUrl}</span>`),
+        brandSmall("Ce lien expire dans 1 heure. Tant qu'il n'est pas utilisé, votre ancienne adresse reste celle de votre compte. Si vous n'êtes pas à l'origine de cette demande, ignorez ce courriel."),
+      ].join(''),
+    });
+  }
+  return brandWrap({
+    lang,
+    title: 'Confirm your new address',
+    preheader: 'A link valid for 1 hour to confirm your new Qwillio address.',
+    body: [
+      brandTitle('Confirm your new address'),
+      brandText(`Hi ${name}, you asked to sign in with <strong>${data.newEmail}</strong> from now on. Confirm below to make the change effective.`),
+      brandButton('Confirm my address', data.confirmUrl),
+      brandSmall(`Or paste this link into your browser:<br><span style="word-break:break-all;color:#A855F7;">${data.confirmUrl}</span>`),
+      brandSmall("This link expires in 1 hour. Until it is used, your old address remains the one on the account. If you didn't request this, ignore this email."),
     ].join(''),
   });
 }
@@ -505,6 +571,7 @@ export function renderRescheduleTemplate(data: {
 
   if (lang === 'fr') {
     return brandWrap({
+      lang,
       title: 'Reprenons rendez-vous',
       preheader: `On vous a manqué chez ${data.businessName} — trouvons un nouveau moment.`,
       body: [
@@ -517,6 +584,7 @@ export function renderRescheduleTemplate(data: {
     });
   }
   return brandWrap({
+    lang,
     title: "Let's reschedule",
     preheader: `We missed you at ${data.businessName} — let's find a new time.`,
     body: [

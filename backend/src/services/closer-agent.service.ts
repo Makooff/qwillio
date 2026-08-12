@@ -218,7 +218,7 @@ function renderCloserEmail(opts: {
   lang: 'en' | 'fr';
   unsubscribeUrl: string;
 }): string {
-  const { agentName, bodyText, ctaLabel, ctaUrl, proofSnippet, unsubscribeUrl, subject } = opts;
+  const { agentName, bodyText, ctaLabel, ctaUrl, proofSnippet, unsubscribeUrl, subject, lang } = opts;
 
   // Convert plain text paragraphs → HTML paragraphs
   const bodyHtml = bodyText
@@ -243,6 +243,7 @@ function renderCloserEmail(opts: {
   `;
 
   return brandWrap({
+    lang,
     title: subject,
     preheader: subject,
     body,
