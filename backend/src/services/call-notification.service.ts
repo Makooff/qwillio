@@ -120,6 +120,73 @@ export function readPrefs(client: NotifiableClient): CallNotifyPrefs {
   };
 }
 
+/* L'alphabet GSM-7, celui qui tient 153 signes par segment. Tout ce qui en
+   sort, un « ô », un « ç », un point médian, fait basculer le message entier en
+   UCS-2 et divise la capacité par plus de deux. */
+const GSM7 =
+  /^[@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-./0-9:;<=>?¡A-ZÄÖÑÜ§¿a-zäöñüà\n\r^{}\\[~\]|€]*$/;
+
+/* Dix signes du GSM-7 vivent dans une TABLE D'EXTENSION et coûtent deux
+   septets, pas un: le crochet, l'accolade, le tilde, la barre verticale,
+   l'antislash, l'accent circonflexe et l'euro. Compter les caractères plutôt
+   que les septets sous-estimait donc la longueur, et une adresse contenant un
+   tilde pouvait faire payer un segment de plus. */
+const GSM7_EXTENDED = /[\^{}\\[~\]|€]/;
+
+/** Longueur en SEPTETS, seule mesure qui décide du nombre de segments. */
+function gsmLength(text: string): number {
+  let n = 0;
+  for (const ch of text) n += GSM7_EXTENDED.test(ch) ? 2 : 1;
+  return n;
+}
+
+/**
+ * Raccourcit une valeur qui n'a pas à occuper tout le message.
+ *
+ * `businessName` accepte 500 signes en base, `callerName` 255: sans borne ici,
+ * un nom à rallonge remplissait le SMS à lui seul et le résumé se réduisait à
+ * « ... » sans que le plafond soit tenu pour autant. Ces champs sont des
+ * repères, pas le contenu.
+ */
+function clip(text: string, max: number): string {
+  const t = (text || '').trim();
+  return t.length <= max ? t : `${t.slice(0, max - 1)}…`;
+}
+
+/**
+ * Coupe le résumé pour que le SMS ENTIER tienne dans son plafond de segments.
+ *
+ * Le budget portait sur le seul résumé et ignorait le nom du commerce, celui de
+ * l'appelant, la durée, l'issue et le lien: un message annoncé « sous deux
+ * segments » en coûtait cinq, mesuré par le test qui accompagne cette fonction.
+ *
+ * La limite dépend de l'alphabet, et l'alphabet dépend du texte: un résumé
+ * français contient presque toujours un signe absent du GSM-7 (« contrôle »,
+ * « ça »), donc 67 caractères par segment est le cas courant, pas l'exception.
+ *
+ * Le plafond dépend donc de l'alphabet, lui aussi: DEUX segments quand le texte
+ * tient en GSM-7, TROIS quand un accent le pousse en UCS-2. Ce n'est pas une
+ * faveur accordée au second cas, c'est une mesure: l'en-tête seul, nom du
+ * commerce, appelant, durée, issue et lien, pèse environ 150 signes, soit plus
+ * de deux segments UCS-2. Viser deux partout aurait voulu dire ne plus envoyer
+ * de résumé dès qu'un « ô » apparaît.
+ */
+function fitSummary(prefix: string, summary: string, suffix: string): string {
+  /* La mesure suit l'alphabet: septets en GSM-7, unités UTF-16 en UCS-2. */
+  const sizeOf = (text: string) => (GSM7.test(text) ? gsmLength(text) : text.length);
+  const limitFor = (text: string) => (GSM7.test(text) ? 2 * 153 : 3 * 67);
+  const fixed = sizeOf(prefix) + sizeOf(suffix);
+  let budget = limitFor(prefix + summary + suffix) - fixed;
+  if (sizeOf(summary) <= budget) return summary;
+  /* Couper peut retirer le caractère qui imposait UCS-2, ce qui rouvre du
+     budget: on recalcule une fois, jamais en boucle. */
+  let short = `${summary.slice(0, Math.max(0, budget - 3))}...`;
+  budget = limitFor(prefix + short + suffix) - fixed;
+  if (sizeOf(summary) <= budget) return summary;
+  short = `${summary.slice(0, Math.max(0, budget - 3))}...`;
+  return short;
+}
+
 function lang(client: NotifiableClient): 'fr' | 'en' {
   if (client.agentLanguage === 'fr') return 'fr';
   if (client.agentLanguage === 'en') return 'en';
@@ -202,24 +269,26 @@ class CallNotificationService {
     /* La ligne qui appelle une action passe EN TÊTE du SMS: un rendez-vous
        demandé et non fixé se lit sur l'écran verrouillé, sans ouvrir le
        message, ce qui est le seul endroit où il sera vu à temps. */
+    /* Les accents sont RENDUS: « é », « è », « à » appartiennent à l'alphabet
+       GSM-7, contrairement au pictogramme et au tiret cadratin qui, eux, sont
+       partis. Les retirer ne faisait donc rien gagner et donnait un français
+       fautif au client. */
     const alert = call.bookingRequested && !call.bookingConfirmed
-      /* Sans « ⚠ » ni tiret cadratin, et ce n'est pas cosmétique: un seul
-         caractère hors GSM-7 bascule TOUT le SMS en UCS-2, où un segment ne
-         porte plus que 70 signes au lieu de 160. Le pictogramme aurait donc
-         coûté un segment entier à chaque notification. */
-      ? (fr ? 'RDV demande, non fixe: a rappeler\n' : 'Appointment requested, not booked: call back\n')
+      ? (fr ? 'RDV demandé, non fixé : à rappeler\n' : 'Appointment requested, not booked: call back\n')
       : '';
 
-    /* Le SMS reste sous deux segments: le résumé est coupé net plutôt que de
-       faire payer un troisième segment pour une demi-phrase.
-       Le budget se CALCULE, il n'est plus écrit en dur: la ligne d'alerte
-       s'ajoute devant, et un plafond fixe la faisait déborder d'autant. */
-    const budget = Math.max(40, 190 - alert.length);
-    const short = summary.length > budget ? `${summary.slice(0, budget - 3)}...` : summary;
-
-    const body = fr
-      ? `Qwillio · ${client.businessName}\n${alert}${who} · ${duration(call.durationSeconds, true)} · ${outcomeLabel(call.outcome, true)}\n${short}\n${link}`
-      : `Qwillio · ${client.businessName}\n${alert}${who} · ${duration(call.durationSeconds, false)} · ${outcomeLabel(call.outcome, false)}\n${short}\n${link}`;
+    /* Le séparateur est un TIRET, plus le point médian: U+00B7 n'appartient pas
+       à l'alphabet GSM-7, et un seul caractère hors alphabet bascule TOUT le
+       message en UCS-2, où un segment ne porte plus que 67 signes au lieu de
+       153. Trois points médians par SMS suffisaient à faire payer le double. */
+    const sep = ' - ';
+    /* Les champs libres sont BORNÉS avant d'entrer dans le message: la base
+       accepte 500 signes de raison sociale et 255 de nom d'appelant, de quoi
+       dépasser le plafond à eux seuls, quel que soit le sort du résumé. */
+    const line2 = `${clip(who, 32)}${sep}${duration(call.durationSeconds, fr)}${sep}${outcomeLabel(call.outcome, fr)}`;
+    const prefix = `Qwillio${sep}${clip(client.businessName, 40)}\n${alert}${line2}\n`;
+    const suffix = `\n${link}`;
+    const body = prefix + fitSummary(prefix, summary, suffix) + suffix;
 
     try {
       const r = await smsService.sendSMS(client.contactPhone, body, {
