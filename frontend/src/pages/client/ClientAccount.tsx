@@ -149,6 +149,8 @@ export default function ClientAccount() {
   const [confirmPw, setConfirmPw] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [pwSaved, setPwSaved] = useState(false);
   const [pwError, setPwError] = useState('');
 
@@ -258,6 +260,31 @@ export default function ClientAccount() {
       setTimeout(() => setProfileSaved(false), 2000);
     } catch { /* silent */ }
     finally { setProfileSaving(false); }
+  };
+
+  /* Le fichier est reçu en mémoire puis rendu téléchargeable, plutôt que
+     d'ouvrir la route dans un onglet: elle est authentifiée par un en-tête que
+     seule la couche `api` porte, et une navigation ordinaire repartirait avec
+     un 401. L'URL temporaire est libérée derrière, sinon le fichier reste en
+     mémoire tant que l'onglet vit. */
+  const handleExport = async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const res = await api.get('/my-dashboard/export', { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `qwillio-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError('Export impossible pour le moment. Réessayez dans une minute.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -403,6 +430,31 @@ export default function ClientAccount() {
                       {pwSaving ? 'Changement…' : 'Changer le mot de passe'}
                     </button>
                     {pwSaved && <span className="text-[12px] flex items-center gap-1" style={{ color: C.ok }}><Check size={13} /> Changé</span>}
+                  </div>
+
+                  {/* EXPORT DE SES DONNÉES (RGPD art. 20). La page RGPD du site
+                      promet ce droit depuis toujours, et il n'existait aucun
+                      moyen de l'exercer autrement qu'en nous écrivant. Le
+                      fichier part en JSON, lisible par une machine comme le
+                      texte l'exige.
+                      Le téléchargement passe par un objet blob et non par un
+                      lien direct: la route est authentifiée par un en-tête, et
+                      une navigation ordinaire ne le porterait pas. */}
+                  <div className="pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
+                    <p className="text-[12.5px] mb-1" style={{ color: C.text }}>Vos données</p>
+                    <p className="text-[12px] mb-3" style={{ color: C.textTer }}>
+                      Appels, transcriptions, rendez-vous, contacts et paiements, dans un seul fichier.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleExport}
+                      disabled={exporting}
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
+                      style={{ border: `1px solid ${C.border}`, color: C.text }}
+                    >
+                      {exporting ? 'Préparation…' : 'Télécharger mes données'}
+                    </button>
+                    {exportError && <p className="text-[12px] mt-2" style={{ color: C.bad }}>{exportError}</p>}
                   </div>
                 </div>
               </motion.div>

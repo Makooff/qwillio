@@ -166,3 +166,31 @@ describe('les préférences', () => {
     expect(readPrefs(client).channel).toBe('both');
   });
 });
+
+/* Les interrupteurs de la page Compte écrivent dans `vapiConfig.notifications`,
+   et ce service ne lisait que `callNotify`: le réglage était décoratif. */
+describe('les réglages de la page Compte', () => {
+  const base = {
+    id: 'c1', businessName: 'Clinique', contactEmail: 'a@b.c', contactPhone: '+32470000000',
+    agentLanguage: 'fr', country: 'BE',
+  };
+
+  it('coupe l\'email quand le client a décoché « Notifications email »', () => {
+    const prefs = readPrefs({ ...base, vapiConfig: { notifications: { notifEmail: false } } } as never);
+    expect(prefs.channel).not.toBe('email');
+    expect(prefs.channel).not.toBe('both');
+  });
+
+  it('ne garde que les leads et les rendez-vous quand « Nouveaux leads » est décoché', () => {
+    const prefs = readPrefs({ ...base, vapiConfig: { notifications: { notifLeads: false } } } as never);
+    expect(prefs.leadsAndBookingsOnly).toBe(true);
+  });
+
+  it('laisse la priorité à callNotify quand il existe', () => {
+    const prefs = readPrefs({
+      ...base,
+      vapiConfig: { callNotify: { channel: 'sms' }, notifications: { notifEmail: false } },
+    } as never);
+    expect(prefs.channel).toBe('sms');
+  });
+});

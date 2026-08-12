@@ -39,17 +39,19 @@ export interface StatCell {
 }
 
 export default function StatStrip({ items, label }: { items: StatCell[]; label?: string }) {
-  /* Autant de colonnes que de cellules, sans repli.
-     Le repli en 2×2 d'Appels décalait la troisième cellule sous la première et
-     demandait trois règles de rattrapage pour ses filets. Quatre ou cinq
-     nombres courts tiennent en largeur sur un téléphone; c'est le libellé qui
-     rétrécit, pas la grille. */
-  const cols = items.length >= 5 ? 'grid-cols-5' : items.length === 3 ? 'grid-cols-3' : 'grid-cols-4';
+  /* Les colonnes prennent la LARGEUR DE LEUR CONTENU, elles ne sont plus
+     égales. Une grille à colonnes égales donne 87 px à chaque cellule sur un
+     téléphone, ce qui va pour « 412 » et pas pour « 2m 32s »: le nombre
+     débordait sur le filet et sur l'icône de la voisine (retour utilisateur).
+     Le contenu ne se laisse pas comprimer, c'est donc l'ESPACE ENTRE les
+     cellules qui absorbe la différence.
+     Pas de repli en 2×2 pour autant: il décalait la troisième cellule sous la
+     première et demandait trois règles de rattrapage pour les filets. */
   const filtering = items.some(i => i.onClick);
 
   return (
     <div
-      className={`grid ${cols} divide-x divide-white/[0.06]`}
+      className="flex items-stretch justify-between divide-x divide-white/[0.06]"
       role={filtering ? 'group' : undefined}
       aria-label={label}
     >
@@ -79,7 +81,15 @@ export default function StatStrip({ items, label }: { items: StatCell[]; label?:
                   nomme l'état, donc c'est lui que la couleur doit qualifier. Le
                   nombre, lui, se compare d'une cellule à l'autre, et cinq
                   nombres de cinq couleurs différentes ne se comparent pas. */}
-              <p className="text-[18px] sm:text-[26px] font-bold tabular-nums leading-none text-white/90">
+              {/* `whitespace-nowrap`: la cellule est étroite sur un téléphone,
+                  et une valeur en deux morceaux (« 2m 32s ») s'y coupait en
+                  deux lignes, ce qui décalait toute la rangée. La valeur d'une
+                  cellule est indivisible par nature.
+                  Le corps descend à 16 px sur téléphone, et c'est la
+                  contrepartie de cette insécabilité: une durée de six signes
+                  mesure 96 px en 18 px gras, pour une colonne de 87 px, et elle
+                  débordait sur l'icône de la cellule voisine. */}
+              <p className="text-[16px] sm:text-[26px] font-bold tabular-nums leading-none text-white/90 whitespace-nowrap">
                 {k.value}
               </p>
               {k.delta !== undefined && k.delta !== 0 && (

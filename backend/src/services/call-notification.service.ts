@@ -56,6 +56,12 @@ interface NotifiableCall {
   isSpam: boolean;
   isLead: boolean;
   bookingRequested: boolean;
+  /* Le rendez-vous a-t-il ÉTÉ FIXÉ, et pas seulement demandé. La distinction
+     est tout ce qui sépare une bonne nouvelle d'un rappel à passer: un appelant
+     qui demande un créneau et repart sans, c'est le client qui doit décrocher
+     dans l'heure. La notification disait « Rendez-vous demandé » dans les deux
+     cas. */
+  bookingConfirmed?: boolean;
 }
 
 interface NotifiableClient {
@@ -70,8 +76,38 @@ interface NotifiableClient {
 }
 
 export function readPrefs(client: NotifiableClient): CallNotifyPrefs {
-  const raw = (client.vapiConfig as { callNotify?: Partial<CallNotifyPrefs> } | null | undefined)?.callNotify;
-  if (!raw) return DEFAULT_PREFS;
+  const cfg = client.vapiConfig as {
+    callNotify?: Partial<CallNotifyPrefs>;
+    notifications?: { notifEmail?: boolean; notifLeads?: boolean };
+  } | null | undefined;
+  const raw = cfg?.callNotify;
+
+  /* LES INTERRUPTEURS DE LA PAGE COMPTE SONT ENFIN ÉCOUTÉS.
+     Ils écrivent depuis toujours dans `vapiConfig.notifications`, alors que ce
+     service ne lisait que `vapiConfig.callNotify`, qu'aucune interface
+     n'alimente. Un client qui coupait « Notifications email » continuait donc
+     de tout recevoir, et rien dans l'écran ne le lui disait: le réglage était
+     décoratif.
+     `callNotify` garde la priorité quand il existe, parce qu'il est plus fin
+     (canal, plafond quotidien) et qu'il sert aux réglages posés à la main. */
+  if (!raw) {
+    const ui = cfg?.notifications;
+    if (ui && (ui.notifEmail !== undefined || ui.notifLeads !== undefined)) {
+      return {
+        ...DEFAULT_PREFS,
+        /* Pas d'interrupteur SMS dans cette page: couper l'email ne doit donc
+           pas couper le SMS, qui est le canal de l'urgence. */
+        channel: ui.notifEmail === false
+          ? (DEFAULT_PREFS.channel === 'both' ? 'sms' : DEFAULT_PREFS.channel === 'email' ? 'off' : DEFAULT_PREFS.channel)
+          : DEFAULT_PREFS.channel,
+        /* « Nouveaux leads » décoché veut dire « ne me préviens que pour ce qui
+           compte », pas « ne me préviens jamais »: le filtre reste sur les
+           leads et les rendez-vous. */
+        leadsAndBookingsOnly: ui.notifLeads === false ? true : DEFAULT_PREFS.leadsAndBookingsOnly,
+      };
+    }
+    return DEFAULT_PREFS;
+  }
   const channel: CallNotifyChannel =
     raw.channel === 'off' || raw.channel === 'email' || raw.channel === 'both' || raw.channel === 'sms'
       ? raw.channel
@@ -162,13 +198,28 @@ class CallNotificationService {
 
     const who = call.callerName || call.callerNumber || (fr ? 'Numéro masqué' : 'Unknown number');
     const summary = (call.summary || '').replace(/\s+/g, ' ').trim();
+
+    /* La ligne qui appelle une action passe EN TÊTE du SMS: un rendez-vous
+       demandé et non fixé se lit sur l'écran verrouillé, sans ouvrir le
+       message, ce qui est le seul endroit où il sera vu à temps. */
+    const alert = call.bookingRequested && !call.bookingConfirmed
+      /* Sans « ⚠ » ni tiret cadratin, et ce n'est pas cosmétique: un seul
+         caractère hors GSM-7 bascule TOUT le SMS en UCS-2, où un segment ne
+         porte plus que 70 signes au lieu de 160. Le pictogramme aurait donc
+         coûté un segment entier à chaque notification. */
+      ? (fr ? 'RDV demande, non fixe: a rappeler\n' : 'Appointment requested, not booked: call back\n')
+      : '';
+
     /* Le SMS reste sous deux segments: le résumé est coupé net plutôt que de
-       faire payer un troisième segment pour une demi-phrase. */
-    const short = summary.length > 190 ? `${summary.slice(0, 187)}...` : summary;
+       faire payer un troisième segment pour une demi-phrase.
+       Le budget se CALCULE, il n'est plus écrit en dur: la ligne d'alerte
+       s'ajoute devant, et un plafond fixe la faisait déborder d'autant. */
+    const budget = Math.max(40, 190 - alert.length);
+    const short = summary.length > budget ? `${summary.slice(0, budget - 3)}...` : summary;
 
     const body = fr
-      ? `Qwillio · ${client.businessName}\n${who} · ${duration(call.durationSeconds, true)} · ${outcomeLabel(call.outcome, true)}\n${short}\n${link}`
-      : `Qwillio · ${client.businessName}\n${who} · ${duration(call.durationSeconds, false)} · ${outcomeLabel(call.outcome, false)}\n${short}\n${link}`;
+      ? `Qwillio · ${client.businessName}\n${alert}${who} · ${duration(call.durationSeconds, true)} · ${outcomeLabel(call.outcome, true)}\n${short}\n${link}`
+      : `Qwillio · ${client.businessName}\n${alert}${who} · ${duration(call.durationSeconds, false)} · ${outcomeLabel(call.outcome, false)}\n${short}\n${link}`;
 
     try {
       const r = await smsService.sendSMS(client.contactPhone, body, {
@@ -196,7 +247,15 @@ class CallNotificationService {
       `${fr ? 'Durée' : 'Duration'} : ${duration(call.durationSeconds, fr)}`,
       `${fr ? 'Issue' : 'Outcome'} : ${outcomeLabel(call.outcome, fr)}`,
     ];
-    if (call.bookingRequested) facts.push(fr ? '<strong>Rendez-vous demandé</strong>' : '<strong>Appointment requested</strong>');
+    if (call.bookingRequested) {
+      facts.push(
+        call.bookingConfirmed
+          ? (fr ? '<strong>Rendez-vous fixé</strong>' : '<strong>Appointment booked</strong>')
+          : (fr
+            ? '<strong>Rendez-vous demandé, NON fixé</strong> : à rappeler'
+            : '<strong>Appointment requested, NOT booked</strong>: needs a call back'),
+      );
+    }
     if (call.isLead) facts.push(fr ? '<strong>Lead qualifié</strong>' : '<strong>Qualified lead</strong>');
 
     const html = brandWrap({

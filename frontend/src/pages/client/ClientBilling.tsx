@@ -15,7 +15,27 @@ interface BillingOverview {
   minutesLimit: number;
   trialEndsAt: string | null;
   isTrial: boolean;
+  /** La carte enregistrée chez Stripe. Absente si aucune, ou si Stripe ne
+      répond pas: la ligne disparaît alors au lieu d'inventer une carte. */
+  paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null;
+  /** Vrai quand Stripe n'a pas répondu. À ne pas confondre avec « pas de
+      carte »: l'un appelle une action du client, l'autre non. */
+  paymentMethodUnavailable?: boolean;
 }
+
+/* « visa » devient « Visa », « amex » devient « American Express ». Stripe rend
+   la marque en minuscules et sans espace, ce qui se lit comme une valeur de
+   base au milieu d'une page soignée. */
+const CARD_BRANDS: Record<string, string> = {
+  visa: 'Visa',
+  mastercard: 'Mastercard',
+  amex: 'American Express',
+  discover: 'Discover',
+  diners: 'Diners Club',
+  jcb: 'JCB',
+  unionpay: 'UnionPay',
+  cartes_bancaires: 'Cartes Bancaires',
+};
 
 interface Payment {
   id: string;
@@ -120,6 +140,18 @@ function StatusPill({ status }: { status: string }) {
 
 export default function ClientBilling() {
   const [overview, setOverview] = useState<BillingOverview | null>(null);
+  /* Le numéro de TVA vit dans les réglages du client, pas dans l'aperçu de
+     facturation: c'est une donnée d'identité, pas un état d'abonnement. La page
+     le lit donc à part, et l'écrit par le même PUT que le reste des réglages. */
+  const [vatNumber, setVatNumber] = useState('');
+  const [vatSaved, setVatSaved] = useState<string | null>(null);
+  /* Le CHARGEMENT a-t-il réussi, question distincte de « le numéro est-il
+     vide ». Sans elle, un échec de `GET /settings` laissait le champ vide et le
+     bouton actif: un clic effaçait alors un numéro de TVA qu'on n'avait jamais
+     réussi à lire. */
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [vatSaving, setVatSaving] = useState(false);
+  const [vatError, setVatError] = useState<string | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCancel, setShowCancel] = useState(false);
@@ -138,13 +170,20 @@ export default function ClientBilling() {
     Promise.allSettled([
       api.get('/my-dashboard/billing'),
       api.get('/my-dashboard/payments'),
+      api.get('/my-dashboard/settings'),
     ])
-      .then(([billingRes, paymentsRes]) => {
+      .then(([billingRes, paymentsRes, settingsRes]) => {
         if (billingRes.status === 'fulfilled') setOverview(billingRes.value.data);
         else setLoadError("Impossible de charger votre abonnement. Rechargez la page, ou contactez-nous si cela persiste.");
         if (paymentsRes.status === 'fulfilled') {
           const body = paymentsRes.value.data;
           setPayments(body?.data || body || []);
+        }
+        if (settingsRes.status === 'fulfilled') {
+          const vat = settingsRes.value.data?.vatNumber || '';
+          setVatNumber(vat);
+          setVatSaved(vat);
+          setSettingsLoaded(true);
         }
       })
       .finally(() => setLoading(false));
@@ -178,6 +217,23 @@ export default function ClientBilling() {
      Un `window.open` serait bloqué par le navigateur: la réponse arrive après
      un aller-retour réseau, donc hors du geste de l'utilisateur, et le bloqueur
      de fenêtres ne fait pas la différence avec une publicité. */
+  /* L'enregistrement est explicite, pas automatique: un numéro de TVA
+     incomplet part chez Stripe à chaque frappe si on le sauve en continu, et
+     Stripe refuse alors la moitié des tentatives. */
+  const saveVatNumber = async () => {
+    setVatSaving(true);
+    setVatError(null);
+    try {
+      await api.put('/my-dashboard/settings', { vatNumber });
+      setVatSaved(vatNumber);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setVatError(msg || 'Enregistrement impossible. Réessayez.');
+    } finally {
+      setVatSaving(false);
+    }
+  };
+
   const openBillingPortal = async () => {
     setOpeningPortal(true);
     setLoadError(null);
@@ -527,6 +583,33 @@ export default function ClientBilling() {
           <CreditCard size={15} style={{ color: '#7349fe' }} />
           Moyen de paiement
         </h2>
+        {/* LA CARTE, ÉCRITE. Sans cette ligne, la page annonçait un prix sans
+            jamais dire ce qui allait être débité, et il fallait ouvrir le
+            portail Stripe pour le savoir. Les quatre derniers chiffres et la
+            date d'expiration suffisent à reconnaître sa carte; le reste ne
+            transite jamais par nous. */}
+        {overview?.paymentMethod ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-4">
+            <span className="text-sm font-medium text-[#F5F5F7]">
+              {CARD_BRANDS[overview.paymentMethod.brand] || overview.paymentMethod.brand}
+            </span>
+            <span className="text-sm text-[#F5F5F7] tabular-nums">
+              •••• {overview.paymentMethod.last4}
+            </span>
+            <span className="text-xs text-[#A1A1A8] tabular-nums">
+              expire {String(overview.paymentMethod.expMonth).padStart(2, '0')}/
+              {String(overview.paymentMethod.expYear).slice(-2)}
+            </span>
+          </div>
+        ) : overview?.paymentMethodUnavailable ? (
+          <p className="text-xs text-[#A1A1A8] mb-4">
+            Votre carte n'a pas pu être lue à l'instant. Elle reste bien enregistrée ; le portail ci-dessous l'affiche.
+          </p>
+        ) : (
+          <p className="text-xs text-[#A1A1A8] mb-4">
+            Aucune carte enregistrée pour le moment.
+          </p>
+        )}
         <p className="text-xs text-[#A1A1A8] mb-4">
           Votre carte est conservée par Stripe, notre prestataire de paiement. Le portail permet de la
           remplacer, de mettre à jour l'adresse de facturation et de télécharger vos factures.
@@ -539,6 +622,45 @@ export default function ClientBilling() {
         >
           {openingPortal ? 'Ouverture…' : 'Gérer mon moyen de paiement'}
         </button>
+
+        {/* NUMÉRO DE TVA. Il ne sert pas à nous: il sert à la facture, que le
+            comptable du client regarde. Sans lui, un assujetti belge ne peut
+            pas la porter en compte, et un client d'un autre État membre ne
+            bénéficie pas de l'autoliquidation. Le champ vit sous le moyen de
+            paiement parce que c'est la même question: à qui et comment on
+            facture. */}
+        <div className="mt-6 pt-6 border-t" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+          <label htmlFor="vat" className="block text-xs font-medium text-[#F5F5F7] mb-1">
+            Numéro de TVA
+          </label>
+          <p className="text-xs text-[#A1A1A8] mb-3">
+            Il apparaîtra sur vos factures. Laissez vide si vous n'êtes pas assujetti.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="vat"
+              value={vatNumber}
+              onChange={(e) => setVatNumber(e.target.value)}
+              placeholder="BE 0123.456.789"
+              spellCheck={false}
+              className="px-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors w-[220px]"
+            />
+            <button
+              type="button"
+              onClick={saveVatNumber}
+              disabled={vatSaving || !settingsLoaded || vatNumber === vatSaved}
+              className="px-4 py-2 text-sm font-medium rounded-full border border-white/[0.12] text-[#F5F5F7] hover:bg-white/[0.06] disabled:opacity-40 transition-colors active:scale-[0.97]"
+            >
+              {vatSaving ? 'Enregistrement…' : vatNumber === vatSaved ? 'Enregistré' : 'Enregistrer'}
+            </button>
+          </div>
+          {!settingsLoaded && (
+            <p className="text-xs text-[#A1A1A8] mt-2">
+              Vos réglages n'ont pas pu être chargés. Rechargez la page avant de modifier ce champ.
+            </p>
+          )}
+          {vatError && <p className="text-xs text-red-400 mt-2">{vatError}</p>}
+        </div>
       </motion.div>
 
       {/* Danger zone — cancel */}

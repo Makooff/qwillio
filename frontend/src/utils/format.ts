@@ -4,7 +4,13 @@ export function formatDuration(seconds: number | null | undefined): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   if (m === 0) return `${s}s`;
-  return `${m}m ${s}s`;
+  /* Espace INSÉCABLE: une durée est un seul nombre, et l'espace ordinaire
+     autorisait « 2m » puis « 32s » sur deux lignes dans une cellule étroite
+     (retour utilisateur, rangée de chiffres sur téléphone).
+     Écrite en ÉCHAPPEMENT et non en caractère: un U+00A0 posé tel quel dans la
+     source est invisible à la relecture, indistinguable d'une espace ordinaire,
+     et `no-irregular-whitespace` le refuse à juste titre. */
+  return `${m}m\u00a0${s}s`;
 }
 
 /** Format a date string or Date to locale string */

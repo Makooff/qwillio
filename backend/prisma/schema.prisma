@@ -254,6 +254,13 @@ model Client {
   contactEmail               String                    @map("contact_email") @db.VarChar(255)
   contactPhone               String?                   @map("contact_phone") @db.VarChar(50)
   address                    String?                   @db.VarChar(500)
+  /* Numéro de TVA intracommunautaire, tel que le client le déclare.
+     Sans lui, la facture Stripe sort sans mention de TVA: un client belge
+     assujetti ne peut pas la porter en compte, et un client d'un autre État
+     membre ne bénéficie pas de l'autoliquidation. C'est la première chose que
+     son comptable réclame. Stocké tel quel, sans espaces ni points, et poussé
+     chez Stripe en `tax_id` pour apparaître sur la facture elle-même. */
+  vatNumber                  String?                   @map("vat_number") @db.VarChar(32)
   city                       String?                   @db.VarChar(100)
   postalCode                 String?                   @map("postal_code") @db.VarChar(20)
   country                    String                    @default("BE") @db.VarChar(10)

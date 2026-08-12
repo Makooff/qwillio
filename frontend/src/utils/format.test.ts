@@ -12,10 +12,14 @@ describe('formatDuration', () => {
     expect(formatDuration(45)).toBe('45s');
   });
 
-  it('formats minute-plus durations as "Xm Ys"', () => {
-    expect(formatDuration(60)).toBe('1m 0s');
-    expect(formatDuration(90)).toBe('1m 30s');
-    expect(formatDuration(3661)).toBe('61m 1s');
+  /* L'espace est INSÉCABLE, et le test le dit explicitement: écrite avec une
+     espace ordinaire, l'attente passerait pour identique à l'oeil tout en
+     échouant, ce qui est la pire facon de casser. */
+  it('formats minute-plus durations as "Xm Ys", with a non-breaking space', () => {
+    expect(formatDuration(60)).toBe('1m\u00a00s');
+    expect(formatDuration(90)).toBe('1m\u00a030s');
+    expect(formatDuration(3661)).toBe('61m\u00a01s');
+    expect(formatDuration(152)).not.toContain(' ');
   });
 });
 
