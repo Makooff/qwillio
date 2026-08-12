@@ -703,24 +703,26 @@ export default function AssistantChat({
          permet aux cartes de messages, elles, de prendre le gris des rangées
          du hub juste en dessous: deux gris différents pour deux niveaux, au
          lieu de trois valeurs qui se disputaient la même profondeur. */
-      className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden flex flex-col"
-      style={{
-        height: showHeader
-          /* Le chat prend l'écran, et la barre du bas s'arrête pile au-dessus
-             de « L'AGENT » (demande utilisateur).
-             Le compte: 68 px d'entête réservés en haut de `main`, 84 px pour
+      className={`rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden flex flex-col ${
+        showHeader
+          /* Au TÉLÉPHONE: 68 px d'entête réservés en haut de `main`, 84 px pour
              la barre flottante (20 px de marge + 64 px de haut), 8 px de
              respiration. Le titre du groupe suivant tombe alors DERRIÈRE la
-             barre, ce qui est exactement l'effet demandé: on sait qu'il y a
-             une suite sans qu'elle prenne de la place. */
-          /* Plus de plafond de 720 px (demande utilisateur: « le chat plein
-             écran jusqu'en bas »). Il bridait la carte sur un grand écran, où
-             elle s'arrêtait à mi-hauteur pendant que la colonne d'à côté
-             continuait. Le plancher reste, il garde la carte utilisable sur un
-             petit écran en paysage. */
-          ? 'max(320px, calc(100dvh - 160px))'
-          : 480,
-      }}
+             barre, ce qui est exactement l'effet demandé: on sait qu'il y a une
+             suite sans qu'elle prenne de la place. Le plancher garde la carte
+             utilisable sur un petit écran en paysage.
+             À partir de `lg`: la carte descend JUSQU'EN BAS de la fenêtre
+             (demande utilisateur: « met en plein écran le chat »). Ni entête
+             mobile ni barre flottante à cette largeur, il ne reste que les
+             32 px de marge de `<main>` (`md:p-8`) en haut et en bas, d'où
+             `100dvh - 64px`. Le parent colle à `lg:top-8`, la MÊME valeur:
+             collée ou non, la carte occupe le même rectangle, et rien ne saute
+             au défilement.
+             En CLASSES et non en `style`: une hauteur par point de rupture,
+             ce qu'un style en ligne ne sait pas exprimer, et qu'il écraserait. */
+          ? 'h-[max(320px,calc(100dvh-160px))] lg:h-[calc(100dvh-64px)]'
+          : 'h-[480px]'
+      }`}
     >
       {/* Header: who you are talking to, the AI number, and the live test call.
           This is the page's identity block, kept here so the panel is

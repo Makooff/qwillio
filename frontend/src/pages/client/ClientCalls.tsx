@@ -14,6 +14,7 @@ import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import { formatDuration, formatDateTime, exportToCSV } from '../../utils/format';
 import PageHeader from '../../components/dashboard/PageHeader';
+import { parseTranscript } from '../../utils/transcript';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,11 @@ interface Call {
   emailCollected: string;
   leadScore: number | null;
   recordingUrl: string;
+  /* Le transcript est renvoyé par `/my-dashboard/calls` depuis toujours (la
+     requête ne pose aucun `select`, elle rend la ligne entière), mais aucun
+     écran ne l'affichait: le site promettait « résumé, transcript et
+     enregistrement », et le portail n'en montrait que deux sur trois. */
+  transcript: string | null;
 }
 
 interface Overview {
@@ -628,6 +634,39 @@ export default function ClientCalls() {
                           Votre navigateur ne supporte pas l'audio.
                         </audio>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Transcript. Il vient juste après l'enregistrement, parce que
+                    c'est le même geste: écouter, ou lire. Le bouton de l'email
+                    de notification dit d'ailleurs « Écouter et lire le
+                    transcript », et menait jusqu'ici à une page qui ne savait
+                    faire que la première moitié.
+                    La boîte DÉFILE au lieu de pousser: un appel de trois
+                    minutes fait quarante répliques, et le panneau se serait
+                    déroulé sur trois écrans, laissant le résumé et
+                    l'enregistrement hors de vue. */}
+                {selectedCall.transcript && (
+                  <div>
+                    <p className="text-xs text-[#A1A1A8] mb-2">Transcript</p>
+                    <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-4 max-h-[220px] overflow-y-auto space-y-2">
+                      {parseTranscript(selectedCall.transcript).map((line, i) => (
+                        <p key={i} className="text-sm leading-relaxed">
+                          {line.who && (
+                            /* Le locuteur en tête de réplique, pas une bulle:
+                               on lit un compte rendu, on ne rejoue pas la
+                               conversation. Deux couleurs suffisent à savoir
+                               qui parle sans relire l'étiquette. */
+                            <span className={`mr-2 text-[11px] font-semibold uppercase tracking-wide ${
+                              line.who === 'agent' ? 'text-[#7349fe]' : 'text-[#A1A1A8]'
+                            }`}>
+                              {line.who === 'agent' ? 'IA' : 'Appelant'}
+                            </span>
+                          )}
+                          <span className="text-[#F5F5F7]">{line.text}</span>
+                        </p>
+                      ))}
                     </div>
                   </div>
                 )}

@@ -40,6 +40,21 @@ const CALLS = [
     summary: 'Détartrage et contrôle. Rendez-vous fixé jeudi 14 h 30, confirmation envoyée par SMS.',
     nameCollected: 'Camille Dubois', phoneCollected: '+32 471 12 34 56',
     emailCollected: 'camille.dubois@proton.me', tags: ['new'], isSpam: false, direction: 'inbound',
+    /* La fiche d'appel du site doit montrer les TROIS choses que la page
+       d'accueil promet: le résumé, l'enregistrement et le transcript. Sans ces
+       deux champs, la capture n'en montrait qu'une, et la carte promettait ce
+       que l'image démentait. Le transcript garde le format que Vapi rend:
+       une réplique par ligne, préfixée du locuteur. */
+    recordingUrl: 'https://storage.vapi.ai/demo/c1.mp3',
+    transcript: [
+      'AI: Clinique Dentaire Léopold, bonjour. Que puis-je faire pour vous ?',
+      'User: Bonjour, je voudrais un rendez-vous pour un détartrage.',
+      'AI: Avec plaisir. Êtes-vous déjà patiente chez nous ?',
+      'User: Oui, je suis venue en janvier. Camille Dubois.',
+      'AI: Merci. J’ai jeudi 14 h 30 ou vendredi 10 h. Lequel vous arrange ?',
+      'User: Jeudi 14 h 30, c’est parfait.',
+      'AI: C’est noté pour jeudi 14 h 30. Vous recevez la confirmation par SMS dans un instant. Bonne journée.',
+    ].join('\n'),
   },
   {
     id: 'c2', callerName: 'Marc Lefèvre', callerNumber: '+32 478 90 21 44',
@@ -308,8 +323,12 @@ const heroShot = { width: 1440, height: 822, scale: 2, statusBar: 0 };
    vide sous son contenu, et c'est ce vide, pas le contenu, qui dicterait la
    taille de la carte du site. Rien n'est rogné pour autant: on photographie la
    même carte, dans une fenêtre à sa mesure. */
-const panelShot = { width: 1512, height: 560, scale: 2, statusBar: 0 };
-const chatShot = { width: 1512, height: 820, scale: 2, statusBar: 0 };
+const panelShot = { width: 1512, height: 640, scale: 2, statusBar: 0 };
+/* 700 et non 820: la carte du chat vaut désormais la hauteur de la fenêtre
+   moins les marges de `<main>` (`100dvh - 64px`), et non plus `100dvh - 160px`.
+   À 820, elle sortait avec 130 px de vide entre la dernière réponse et le
+   composeur. La fenêtre suit donc la carte, comme pour la fiche d'appel. */
+const chatShot = { width: 1512, height: 700, scale: 2, statusBar: 0 };
 
 await shoot({
   name: 'site-apercu', path: '/dashboard', ...heroShot,
@@ -334,6 +353,17 @@ await shoot({
   prepare: async page => {
     await page.getByText('Camille Dubois').first().click();
     await page.waitForTimeout(1200);
+    /* La fiche est DÉROULÉE jusqu'au bas (retour utilisateur: « sur le screen,
+       on ne voit pas les boutons pour lire l'enregistrement et le
+       transcript »). Prise en haut, elle s'arrêtait au résumé, et la carte du
+       site promettait deux choses que l'image ne montrait pas.
+       Ce n'est pas un recadrage: le panneau DÉFILE, on le photographie à une
+       position de défilement, entier, avec son entête collante. */
+    await page.evaluate(() => {
+      const el = document.querySelector('[role="dialog"][aria-modal="true"]');
+      el.scrollTop = el.scrollHeight;
+    });
+    await page.waitForTimeout(400);
   },
   clipTo: '[role="dialog"][aria-modal="true"]',
   /* Exportée à sa taille RÉELLE (448 pt de large en densité 2), jamais
