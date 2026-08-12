@@ -4,7 +4,10 @@ export function formatDuration(seconds: number | null | undefined): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   if (m === 0) return `${s}s`;
-  return `${m}m ${s}s`;
+  /* Espace INSÉCABLE: une durée est un seul nombre, et l'espace ordinaire
+     autorisait « 2m » puis « 32s » sur deux lignes dans une cellule étroite
+     (retour utilisateur, rangée de chiffres sur téléphone). */
+  return `${m}m ${s}s`;
 }
 
 /** Format a date string or Date to locale string */

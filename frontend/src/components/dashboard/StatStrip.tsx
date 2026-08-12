@@ -79,7 +79,15 @@ export default function StatStrip({ items, label }: { items: StatCell[]; label?:
                   nomme l'état, donc c'est lui que la couleur doit qualifier. Le
                   nombre, lui, se compare d'une cellule à l'autre, et cinq
                   nombres de cinq couleurs différentes ne se comparent pas. */}
-              <p className="text-[18px] sm:text-[26px] font-bold tabular-nums leading-none text-white/90">
+              {/* `whitespace-nowrap`: la cellule est étroite sur un téléphone,
+                  et une valeur en deux morceaux (« 2m 32s ») s'y coupait en
+                  deux lignes, ce qui décalait toute la rangée. La valeur d'une
+                  cellule est indivisible par nature.
+                  Le corps descend à 16 px sur téléphone, et c'est la
+                  contrepartie de cette insécabilité: une durée de six signes
+                  mesure 96 px en 18 px gras, pour une colonne de 87 px, et elle
+                  débordait sur l'icône de la cellule voisine. */}
+              <p className="text-[16px] sm:text-[26px] font-bold tabular-nums leading-none text-white/90 whitespace-nowrap">
                 {k.value}
               </p>
               {k.delta !== undefined && k.delta !== 0 && (
