@@ -53,6 +53,36 @@ describe('openAiTools', () => {
       expect(t).not.toHaveProperty('messages');
     }
   });
+
+  /* LE test qui manquait. `buildVoiceTools` pose le transfert en outil NATIF
+     Vapi, sans bloc `function`: le filtre le jetait, et le modèle ne voyait
+     jamais `transferCall`. Le scénario `fr-transfert-humain` exigeait donc un
+     appel d'outil qu'il n'avait aucun moyen d'émettre — il échouait toujours,
+     et il ne « passait » que les jours où le harnais sautait faute de clé.
+     Toute assertion `calls-tool` porte sur un outil RÉELLEMENT proposé: c'est
+     ce que les deux tests suivants garantissent. */
+  it('propose transferCall au modèle quand le client a un numéro de transfert', () => {
+    const profile = profileFor(SCENARIOS[0]);
+    expect(profile.transferNumber).toBeTruthy();
+    const names = (openAiTools(profile) as Array<{ function: { name: string } }>).map(t => t.function.name);
+    expect(names).toContain('transferCall');
+  });
+
+  it('ne le propose pas quand aucun numéro de transfert n\'est configuré', () => {
+    const profile = { ...profileFor(SCENARIOS[0]), transferNumber: null };
+    const names = (openAiTools(profile) as Array<{ function: { name: string } }>).map(t => t.function.name);
+    expect(names).not.toContain('transferCall');
+  });
+
+  it('chaque outil attendu par une assertion est bien proposé au modèle', () => {
+    for (const scenario of SCENARIOS) {
+      const names = (openAiTools(profileFor(scenario)) as Array<{ function: { name: string } }>)
+        .map(t => t.function.name);
+      for (const a of scenario.assertions) {
+        if (a.kind === 'calls-tool') expect(names, `${scenario.id} → ${a.value}`).toContain(a.value);
+      }
+    }
+  });
 });
 
 describe('checkAssertions', () => {

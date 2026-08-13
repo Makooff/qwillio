@@ -32,11 +32,41 @@ interface ModelAnswer {
   toolCalls: string[];
 }
 
-/** Les outils au format OpenAI: le `function` de Vapi, sans le transport Vapi. */
+/**
+ * Les outils au format OpenAI: le `function` de Vapi, sans le transport Vapi.
+ *
+ * Le transfert est le cas particulier qui rendait un scénario INTESTABLE.
+ * `buildVoiceTools` le pose en outil NATIF Vapi (`{ type: 'transferCall',
+ * destinations: [...] }`): il n'a pas de bloc `function`, donc le filtre le
+ * jetait, et le modèle n'avait jamais `transferCall` dans sa liste. Le scénario
+ * `fr-transfert-humain` exigeait alors un appel d'outil que le modèle n'avait
+ * aucun moyen d'émettre: il échouait toujours, et il ne passait que les jours
+ * où le harnais sautait faute de clé.
+ *
+ * En production, c'est Vapi qui présente ce même outil au modèle et qui exécute
+ * le pont téléphonique. On reconstitue donc ici sa DÉCLARATION, pas son
+ * transport: le modèle choisit ou non de transférer, ce qui est précisément ce
+ * que le scénario mesure, et c'est tout ce que cette couche peut mesurer.
+ */
 function openAiTools(profile: ReturnType<typeof profileFor>) {
-  return buildVoiceTools(profile)
+  const native = buildVoiceTools(profile);
+  const functions = native
     .filter(t => t.type === 'function' && t.function)
     .map(t => ({ type: 'function', function: t.function }));
+
+  if (native.some(t => t.type === 'transferCall')) {
+    functions.push({
+      type: 'function',
+      function: {
+        name: 'transferCall',
+        description:
+          'Transfer the call to a human on the team. Use it as soon as the caller asks for a person, a manager, or reports an emergency.',
+        parameters: { type: 'object', properties: {} },
+      },
+    } as (typeof functions)[number]);
+  }
+
+  return functions;
 }
 
 async function askModel(messages: ChatMessage[], tools: unknown[]): Promise<ModelAnswer> {
