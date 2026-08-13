@@ -124,24 +124,28 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   CLAUDE.md), et le test de recall sur 20 questions (dépend du harness 2.5).
 
 ### 2.4 Provisioning automatique de numéros par client
-- **Techno** : achat Twilio/Vapi à l'onboarding (`buyPhoneNumber` existe déjà,
-  `config/vapi.ts:61-69`, sans appelant) ; `ClientPhoneNumber` comme source de vérité ;
-  numéro BE.
-- **Impact** : **débloque la vente au-delà d'un client** — bloquant n°1.
-- **Effort** : M. **Dépendances** : compte Twilio provisionné, budget numéros,
-  adresse/bundle réglementaire BE pour l'achat de numéros belges.
-- **Done** : onboarding d'un 2e client de bout en bout avec sa propre ligne, sans
-  action manuelle.
+- [x] **Fait le 13/08/2026** (code ; activation = décision d'exploitation)
+- **Livré** : `phone-provisioning.service.ts` branché à l'onboarding — quand la
+  ligne partagée est prise, achat automatique via `buyPhoneNumber` (qui existait
+  sans appelant), numéro enregistré dans `ClientPhoneNumber`. Derrière
+  `PHONE_AUTO_PROVISION=1` strict, **off par défaut** : chaque activation achète
+  un numéro facturé. Échec ou flag off → chemin manuel existant inchangé.
+- **Dépendances restantes (externes)** : budget numéros, bundle réglementaire BE
+  (adresse locale + justificatifs) pour des numéros belges.
+- **Done** : 5 tests ; onboarding réel d'un 2e client à valider flag activé.
 
 ### 2.5 Évals : harness de simulation d'appels + régression de prompts
-- **Techno** : harness maison (les évals hébergées type Coval/Cekura = compte externe,
-  à décider) : corpus de scénarios FR/EN (puis NL) joués contre le custom-LLM en mode
-  texte (le chemin existe : `llm-stream.service`), assertions sur outils appelés,
-  divulgation prononcée, refus d'injection ; en CI sur chaque PR touchant `voice/`.
-- **Impact** : les prompts cessent de partir en prod à l'aveugle.
-- **Effort** : M. **Dépendances** : clé OpenAI de CI (coût ~centimes/run).
-- **Done** : ≥ 15 scénarios (dont barge-in simulé, bruit, injection) verts en CI ;
-  une régression de prompt casse la CI.
+- [x] **Fait le 13/08/2026** (harness + 9 scénarios ; extension continue)
+- **Livré** : `backend/src/evals/` — 9 scénarios FR/EN/NL joués contre le VRAI
+  prompt (`buildSystemPrompt`) et le VRAI contrat d'outils (`buildVoiceTools`)
+  via l'API OpenAI (`npm run evals`) : divulgation IA dans les 3 langues,
+  résistance à l'injection, discipline d'agenda (checkAvailability avant tout
+  créneau, bookAppointment après accord), consignes client (pas de prix),
+  transfert humain, bruit. Étape CI ajoutée, **skip propre sans le secret**
+  `OPENAI_API_KEY` — devient un garde-fou réel dès que le secret est posé.
+- **Dépendance externe** : poser le secret `OPENAI_API_KEY` sur le repo GitHub.
+- **Done partiel** : 7 tests unitaires du harness ; objectif ≥ 15 scénarios au
+  fil des incidents réels.
 
 ### 2.6 Tracing Langfuse (ou OTel) + coût LLM par appel
 - **Techno** : Langfuse cloud UE ou self-host ; instrumentation du custom-LLM path et
@@ -152,11 +156,14 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   dashboard P50/P95/P99 sur 7 jours.
 
 ### 2.7 Fallbacks multi-fournisseurs
-- **Techno** : `fallbackPlan` Vapi : transcriber secondaire, `model.fallbackModels`
-  (ex. gpt-4o → claude), voix de secours cross-provider (Azure/PlayHT).
-- **Impact** : plus de SPOF fournisseur.
-- **Effort** : M. **Dépendances** : clés fournisseurs secondaires.
-- **Done** : test de chaos (clé primaire invalide) → l'appel aboutit quand même.
+- [x] **Fait le 13/08/2026** (code ; activation après un appel de validation)
+- **Livré** : `transcriber.fallbackPlan` (`VOICE_STT_FALLBACK_PROVIDER`, ex.
+  `google`, langue BCP-47 automatique) et `model.fallbackModels`
+  (`VOICE_LLM_FALLBACK_MODELS`, chemin Vapi-OpenAI seulement). **Opt-in strict** :
+  variables vides = schéma envoyé à Vapi identique au bit près — un champ
+  inconnu rejette l'assistant entier (déjà vécu avec `backchannelPlan`).
+- **Done partiel** : tests de schéma ; reste le test de chaos sur un vrai appel
+  avant de poser les variables en prod. Voix cross-provider : différé.
 
 ---
 
@@ -184,14 +191,17 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   Twilio existe) — impact immédiat BE.
 
 ### 3.3 Outbound conforme (si l'outbound FR/BE doit vivre)
-- **Techno** : modèle `CallConsent` (source, date, preuve, conservation ≥ 3 ans),
-  champ `doNotCall`, consultation Bloctel/liste BE avant appel, divulgation IA
-  d'ouverture, fenêtre horaire légale ; à défaut : geler l'outbound FR/BE.
-- **Impact** : évite le risque légal le plus explosif du repo.
-- **Effort** : M. **Dépendances** : abonnement Bloctel (externe), position juridique
-  B2B vs B2C.
-- **Done** : aucun appel sortant sans consentement tracé ou base légale documentée ;
-  opt-out verbal persisté et respecté.
+- [~] **Première brique faite le 13/08/2026** : opt-out d'appel.
+  `Prospect.callOptedOut/-At/-Source` (migration), détection lexicale
+  conservatrice FR/EN/NL du « ne me rappelez plus » sur le transcript brut
+  (pas confiée au modèle : un opt-out raté est une infraction), gating du
+  moteur sortant, preuve source+date conservée (jamais purgée). La divulgation
+  IA d'ouverture est couverte par le quick win 1.
+- **Reste** : modèle `CallConsent` (opt-in positif tracé ≥ 3 ans), consultation
+  Bloctel/liste BE avant appel (dépendance externe : abonnement Bloctel),
+  position juridique B2B vs B2C. À défaut : geler l'outbound FR/BE.
+- **Done** : aucun appel sortant sans consentement tracé ou base légale
+  documentée ; opt-out verbal persisté et respecté ✅ (fait).
 
 ### 3.4 Industrialisation : queue + multi-instance + Stripe Meters + RLS
 - **Techno** : BullMQ + Redis (remplace 45 crons in-process), verrous distribués,
