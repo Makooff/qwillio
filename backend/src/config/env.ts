@@ -184,6 +184,13 @@ export const env = {
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
   STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY || '',
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
+  /* Configuration du portail de facturation (`bpc_…`). Vide = configuration
+     par défaut du compte Stripe, ce qui suffit tant qu'il n'y en a qu'une.
+     La poser épingle explicitement CELLE qu'on a réglée, pour qu'une seconde
+     configuration créée plus tard ne change pas le portail sans qu'on le
+     sache. ⚠️ L'identifiant appartient à un MODE: un `bpc_` de test avec une
+     clé live échoue. */
+  STRIPE_PORTAL_CONFIGURATION_ID: process.env.STRIPE_PORTAL_CONFIGURATION_ID || '',
   STRIPE_LINK_BASIC: process.env.STRIPE_LINK_BASIC || '',
   STRIPE_LINK_PRO: process.env.STRIPE_LINK_PRO || '',
   STRIPE_LINK_ENTERPRISE: process.env.STRIPE_LINK_ENTERPRISE || '',

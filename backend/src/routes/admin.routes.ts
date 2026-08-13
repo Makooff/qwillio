@@ -1004,12 +1004,20 @@ router.post('/test-activate-client', async (req: Request, res: Response) => {
 
     logger.warn(`[admin] Test-activated client ${email} (plan=${plan})`);
 
+    /* `/portal/<token>` n'existe pas: la route front est `/portal` et lit ses
+       deux paramètres dans la query (`?id=…&token=…`, `ClientPortal.tsx:42-44`).
+       Le lien renvoyé ici était donc mort à l'arrivée, et il lui manquait de
+       toute façon le clientId. On passe par `clientPortalUrl`, qui est le seul
+       endroit autorisé à fabriquer ce lien (règle du CLAUDE.md), et qui rend
+       une URL absolue directement ouvrable. */
+    const { clientPortalUrl } = await import('../utils/urls');
+
     return res.json({
       ok:           true,
       email,
       plan,
       clientId:     client.id,
-      dashboardUrl: `/portal/${dashboardToken}`,
+      dashboardUrl: clientPortalUrl(client.id, dashboardToken),
       dashboardToken,
     });
   } catch (err) {

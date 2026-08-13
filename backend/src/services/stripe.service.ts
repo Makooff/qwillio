@@ -619,9 +619,17 @@ export class StripeService {
        de retour qui en contiendrait deux. */
     const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
 
+    /* La configuration n'est envoyée QUE si elle est renseignée. Vide, Stripe
+       applique celle par défaut du compte — le comportement historique, qui
+       marche dès que le portail est activé. Renseignée, elle épingle celle
+       qu'on a réglée, pour qu'une seconde configuration créée plus tard ne
+       change pas le portail en silence. */
     const session = await stripe.billingPortal.sessions.create({
       customer: client.stripeCustomerId,
       return_url: `${frontendUrl}/dashboard/billing`,
+      ...(env.STRIPE_PORTAL_CONFIGURATION_ID
+        ? { configuration: env.STRIPE_PORTAL_CONFIGURATION_ID }
+        : {}),
     });
 
     return session.url;
