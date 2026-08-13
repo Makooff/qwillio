@@ -70,6 +70,27 @@ function blobToBase64(blob: Blob): Promise<string> {
  * rouet annonçait « attendez », les points disent « elle écrit », et la carte
  * qu'ils occupent est celle que le texte va remplir, sans remplacement.
  *
+ * Ils REBONDISSENT, l'un après l'autre (demande utilisateur). Le battement
+ * d'opacité qu'ils faisaient avant se lisait comme les trois points qui
+ * palpitent ensemble: une variation de valeur n'a pas de direction, donc
+ * l'œil ne voyait pas passer la vague, il voyait clignoter un bloc. Un
+ * déplacement, lui, se suit.
+ *
+ * Trois détails font la fluidité, et aucun n'est décoratif:
+ *
+ * 1. Le décalage de 0,14 s vaut moins que la durée d'un saut: quand le
+ *    deuxième point décolle, le premier redescend encore. C'est ce
+ *    chevauchement qui fait une vague; à décalage plus large on verrait trois
+ *    sauts séparés, à décalage nul un seul mouvement.
+ * 2. Deux courbes, pas une. La montée décélère (elle lutte contre la
+ *    pesanteur), la descente accélère puis se pose. Une seule courbe
+ *    symétrique donne le rebond en caoutchouc des chargeurs génériques.
+ * 3. Un temps mort en fin de cycle (les images-clés s'arrêtent à 78 % de la
+ *    durée) : sans lui la vague repart avant d'être finie et se brouille.
+ *
+ * `y` et `opacity` seulement: tous deux composés par le GPU, donc rien ne
+ * remonte au calcul de mise en page pendant que la réponse arrive en flux.
+ *
  * Une boucle, donc des keyframes: c'est le seul cas où elles valent mieux
  * qu'une transition, puisque rien ici n'est interruptible par l'utilisateur.
  */
@@ -81,8 +102,14 @@ function ThinkingDots({ reduceMotion }: { reduceMotion: boolean }) {
           key={i}
           className="h-1.5 w-1.5 rounded-full"
           style={{ background: '#8B8BA7' }}
-          animate={reduceMotion ? { opacity: 0.6 } : { opacity: [0.25, 1, 0.25] }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 1.1, repeat: Infinity, ease: 'easeInOut', delay: i * 0.14 }}
+          animate={reduceMotion ? { y: 0, opacity: 0.6 } : { y: [0, -5, 0], opacity: [0.4, 1, 0.4] }}
+          transition={reduceMotion ? { duration: 0 } : {
+            duration: 0.9,
+            times: [0, 0.42, 0.78],
+            ease: [[0.22, 1, 0.36, 1], [0.5, 0, 0.7, 1]],
+            repeat: Infinity,
+            delay: i * 0.14,
+          }}
         />
       ))}
     </span>
