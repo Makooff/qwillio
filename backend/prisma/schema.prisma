@@ -1810,7 +1810,13 @@ model ClientPhoneNumber {
 
 model ApiKey {
   id          String    @id @default(cuid())
+  /// En clair, conservé le temps de la bascule vers `keyHash`. Sera vidé puis
+  /// retiré par une seconde migration, une fois la production vérifiée.
   key         String    @unique
+  /// SHA-256 de la clé (`utils/api-key-hash.ts`). Nullable seulement pendant
+  /// la bascule: l'authentification le renseigne au vol si une ligne ancienne
+  /// n'en a pas.
+  keyHash     String?   @unique @map("key_hash")
   name        String
   userId      String    @map("user_id") @db.Uuid
   user        User      @relation(fields: [userId], references: [id])

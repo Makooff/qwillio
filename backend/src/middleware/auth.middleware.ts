@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { prisma } from '../config/database';
+import { isAdminSecretAuthorized } from '../utils/admin-secret';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -9,9 +10,9 @@ export interface AuthRequest extends Request {
 }
 
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
-  // Bypass JWT check if valid X-Admin-Secret is present
-  const adminSecret = env.ADMIN_SECRET;
-  if (adminSecret && req.headers['x-admin-secret'] === adminSecret) {
+  // Porte de service opérateur: comparaison à temps constant, longueur
+  // minimale imposée, et chaque franchissement laisse une trace.
+  if (isAdminSecretAuthorized(req, 'authMiddleware')) {
     req.userRole = 'admin';
     return next();
   }
@@ -64,8 +65,7 @@ export async function requireConfirmedEmail(req: AuthRequest, res: Response, nex
 
 export function adminMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   // Allow X-Admin-Secret header as alternative to JWT admin role
-  const adminSecret = env.ADMIN_SECRET;
-  if (adminSecret && req.headers['x-admin-secret'] === adminSecret) {
+  if (isAdminSecretAuthorized(req, 'adminMiddleware')) {
     return next();
   }
   if (req.userRole !== 'admin') {
@@ -79,13 +79,13 @@ export function adminMiddleware(req: AuthRequest, res: Response, next: NextFunct
  * Grants access if ANY of the following is true:
  *   1. JWT role === 'admin'
  *   2. JWT user email === ADMIN_EMAIL (makho.off@gmail.com)
- *   3. X-Admin-Secret header matches ADMIN_SECRET env var (non-empty)
+ *   3. X-Admin-Secret header matches ADMIN_SECRET (voir `utils/admin-secret`:
+ *      longueur minimale imposée, comparaison à temps constant, usage tracé)
  * Returns 401 if no valid token, 403 if authenticated but not admin.
  */
 export async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction) {
   // ── Option 3: secret header (no JWT needed) ───────────────
-  const adminSecret = env.ADMIN_SECRET;
-  if (adminSecret && req.headers['x-admin-secret'] === adminSecret) {
+  if (isAdminSecretAuthorized(req, 'requireAdmin')) {
     return next();
   }
 

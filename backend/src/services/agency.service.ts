@@ -1,6 +1,8 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import crypto from 'crypto';
+import { hashApiKey } from '../utils/api-key-hash';
+import { findApiKeyRecord } from '../middleware/api-key.middleware';
 
 export class AgencyService {
   async createAgency(ownerId: string, data: {
@@ -95,18 +97,23 @@ export class AgencyService {
 
   async createApiKey(userId: string, name: string, permissions: string[] = ['read']) {
     const key = `qw_${crypto.randomBytes(24).toString('hex')}`;
+    // Les deux colonnes sont écrites pendant la bascule. C'est le condensat qui
+    // authentifie; le clair ne sert plus qu'au retour arrière, jusqu'à la
+    // migration qui le retirera.
     return prisma.apiKey.create({
-      data: { key, name, userId, permissions },
+      data: { key, keyHash: hashApiKey(key), name, userId, permissions },
     });
   }
 
   async validateApiKey(key: string): Promise<{ userId: string; permissions: string[] } | null> {
-    const record = await prisma.apiKey.findUnique({ where: { key } });
+    const record = await findApiKeyRecord(key);
     if (!record) return null;
     if (record.expiresAt && record.expiresAt < new Date()) return null;
 
-    // Update lastUsedAt (non-blocking)
-    prisma.apiKey.update({ where: { key }, data: { lastUsedAt: new Date() } }).catch(() => {});
+    // Update lastUsedAt (non-blocking). Par `id`: le condensat a pu être
+    // rattrapé à l'instant, et viser la colonne en clair la re-nommerait comme
+    // critère alors qu'on cherche à s'en défaire.
+    prisma.apiKey.update({ where: { id: record.id }, data: { lastUsedAt: new Date() } }).catch(() => {});
 
     return { userId: record.userId, permissions: record.permissions };
   }

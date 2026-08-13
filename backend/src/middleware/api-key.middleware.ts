@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { hashApiKey } from '../utils/api-key-hash';
 
 /**
  * Authentification de l'API publique par clé.
@@ -38,6 +39,36 @@ function extractKey(req: Request): string | null {
   return null;
 }
 
+/**
+ * Retrouve une clé par son condensat, avec repli sur la colonne en clair.
+ *
+ * Le repli existe uniquement pour la fenêtre de bascule: la migration a
+ * rempli `key_hash` pour toutes les lignes existantes, mais une ligne écrite
+ * par une instance qui n'aurait pas encore redémarré n'en aurait pas. Quand le
+ * repli sert, il **rattrape la ligne au vol**, de sorte que la fenêtre se
+ * referme d'elle-même au lieu de dépendre d'un cron.
+ */
+export async function findApiKeyRecord(key: string) {
+  const byHash = await prisma.apiKey.findUnique({
+    where: { keyHash: hashApiKey(key) },
+    select: { id: true, userId: true, permissions: true, expiresAt: true },
+  });
+  if (byHash) return byHash;
+
+  const legacy = await prisma.apiKey.findUnique({
+    where: { key },
+    select: { id: true, userId: true, permissions: true, expiresAt: true },
+  });
+  if (legacy) {
+    // Non bloquant: authentifier ne doit pas échouer parce que le rattrapage
+    // a échoué (course entre deux instances sur le même index unique).
+    prisma.apiKey
+      .update({ where: { id: legacy.id }, data: { keyHash: hashApiKey(key) } })
+      .catch(() => {});
+  }
+  return legacy;
+}
+
 export async function apiKeyAuth(req: ApiKeyRequest, res: Response, next: NextFunction) {
   const key = extractKey(req);
   if (!key) {
@@ -45,10 +76,7 @@ export async function apiKeyAuth(req: ApiKeyRequest, res: Response, next: NextFu
   }
 
   try {
-    const record = await prisma.apiKey.findUnique({
-      where: { key },
-      select: { id: true, userId: true, permissions: true, expiresAt: true },
-    });
+    const record = await findApiKeyRecord(key);
 
     /* Clé inconnue et clé expirée renvoient la MÊME réponse: distinguer les
        deux dirait à qui essaie des clés au hasard laquelle a existé. */
