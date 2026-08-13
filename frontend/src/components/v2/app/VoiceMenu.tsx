@@ -222,7 +222,7 @@ export default function VoiceMenu({
 
           {voices === null && !failed && (
             <p className="flex items-center gap-2 px-1.5 py-2 text-[11.5px] text-q2-fog">
-              <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+              <Loader2 size={12} aria-hidden="true" />
               {isFr ? 'Chargement des voix' : 'Loading voices'}
             </p>
           )}

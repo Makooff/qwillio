@@ -1146,13 +1146,13 @@ export default function ClientReceptionist() {
       </Section>
       </HubGroup>
 
-      {/* —— Info box —— */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-        className="rounded-xl border border-[#7349fe]/15 bg-[#7349fe]/[0.04] p-4">
-        <p className="text-xs text-[#8B8BA7] leading-relaxed">
-          <span className="text-[#7349fe] font-medium">Besoin d'aide ?</span> — Pour modifier la voix, le script personnalisé, ou les paramètres VAPI avancés de votre IA, contactez notre équipe via le Support. Nous nous occupons de tout en moins de 24h.
-        </p>
-      </motion.div>
+      {/* Le pavé « Besoin d'aide ? » est parti (demande utilisateur). Il
+          invitait à écrire au support pour changer la voix et le script, deux
+          choses que la page fait elle-même désormais: le carrousel choisit la
+          voix, le chat modifie le script en parlant. Il renvoyait donc vers
+          nous pour ce qui est à portée de clic, et le mot « VAPI » nommait au
+          client un fournisseur dont il n'a pas à connaître l'existence.
+          Le Support reste dans le menu, à sa place. */}
       </div>
       </div>
     </div>

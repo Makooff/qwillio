@@ -177,7 +177,7 @@ export default function BrandingAgent() {
             <PrimaryBtn onClick={runAnalysis} disabled={analyzing}>
               {analyzing ? (
                 <>
-                  <Loader2 size={13} className="animate-spin" />
+                  <Loader2 size={13} />
                   Analyse…
                 </>
               ) : (

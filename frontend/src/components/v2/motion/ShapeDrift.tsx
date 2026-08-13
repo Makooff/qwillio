@@ -244,7 +244,15 @@ export default function ShapeDrift({
     <div
       ref={ref}
       aria-hidden="true"
-      className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
+      /* `z-0`, et les contenus passent en `z-10` (demande utilisateur: « mets
+         toutes les formes derrière les cards »). Sans cote de pile, l'ordre
+         dépendait du hasard du DOM: une forme posée en absolu passe AU-DESSUS
+         de tout frère non positionné, si bien qu'une section dont le conteneur
+         n'était pas `relative` voyait ses cartes traversées par le décor.
+         `z-0` plutôt que `-z-10`: un indice négatif sort la forme du contexte
+         d'empilement de la section et la fait passer sous son fond, où elle
+         n'est plus visible du tout. */
+      className={`pointer-events-none absolute inset-0 overflow-hidden z-0 ${className}`}
     >
       {shapes.map((s, i) => (
         <div

@@ -357,7 +357,7 @@ export default function Clients() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-400
                          text-[13px] text-white font-medium transition-colors disabled:opacity-40"
             >
-              {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {saving && <Loader2 className="w-3.5 h-3.5" />}
               Créer le client
             </button>
           </div>

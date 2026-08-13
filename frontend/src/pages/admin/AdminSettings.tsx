@@ -290,7 +290,7 @@ export default function AdminSettings() {
   if (loading) {
     return (
       <div className="max-w-[720px] py-20 text-center">
-        <Loader2 size={20} className="animate-spin mx-auto" style={{ color: pro.textTer }} />
+        <Loader2 size={20} className=" mx-auto" style={{ color: pro.textTer }} />
       </div>
     );
   }
@@ -308,7 +308,7 @@ export default function AdminSettings() {
           <div className="flex items-center gap-2">
             {isDirty && <span className="text-[12px]" style={{ color: pro.warn }}>Non sauvegardé</span>}
             <PrimaryBtn onClick={save} disabled={saving || !isDirty}>
-              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Sauvegarder
+              {saving ? <Loader2 size={13} /> : <Save size={13} />} Sauvegarder
             </PrimaryBtn>
           </div>
         }

@@ -361,3 +361,27 @@ textarea:focus-visible,
 @keyframes scroll-reel-exit {
   to { opacity: 0; transform: translateY(-10px); }
 }
+
+/* ─── LoadingDots — trois points qui rebondissent l'un après l'autre ───
+   Les images-clés vivent ici, et non dans le composant: une balise `<style>`
+   par instance en poserait autant que de boutons en attente sur la page.
+   `transform-box: fill-box` est indispensable sur un `<circle>` SVG: sans lui
+   l'origine des transformations est celle du système de coordonnées, pas celle
+   de la forme, et la translation resterait juste (elle l'est), mais toute mise
+   à l'échelle future partirait du coin du viewBox. */
+.qw-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: qw-dot-bounce 0.9s infinite;
+  will-change: transform;
+}
+.qw-dot--2 { animation-delay: 0.14s; }
+.qw-dot--3 { animation-delay: 0.28s; }
+
+@keyframes qw-dot-bounce {
+  0%   { transform: translateY(0); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  42%  { transform: translateY(-2.6px); animation-timing-function: cubic-bezier(0.5, 0, 0.7, 1); }
+  /* Le repos de fin de cycle: la vague a le temps de se terminer avant que le
+     premier point ne reparte. */
+  78%, 100% { transform: translateY(0); }
+}

@@ -64,7 +64,7 @@ export default function VoicePicker({
   if (loading) {
     return (
       <p className="mt-3 flex items-center gap-2 text-[12px] text-[#8B8BA7]">
-        <Loader2 size={13} className="animate-spin" />
+        <Loader2 size={13} />
         Chargement des voix…
       </p>
     );

@@ -22,7 +22,6 @@ import IntegrationsOrbit from '../../components/v2/IntegrationsOrbit';
 import ImpactStats from '../../components/v2/ImpactStats';
 import TextReveal from '../../components/v2/motion/TextReveal';
 import Magnetic from '../../components/v2/motion/Magnetic';
-import GlowCard from '../../components/v2/motion/GlowCard';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
@@ -101,25 +100,19 @@ const MOCKUP = {
    arete. Elle atteint zero a 99 %, donc la forme du cadre ne se lit plus. */
 const HERO_MASK_V =
   'linear-gradient(to bottom, #000 0%, #000 56%, rgba(0,0,0,0.95) 64%, rgba(0,0,0,0.86) 71%, rgba(0,0,0,0.70) 78%, rgba(0,0,0,0.50) 84%, rgba(0,0,0,0.30) 89%, rgba(0,0,0,0.13) 93%, rgba(0,0,0,0.03) 97%, transparent 100%)';
-/* LES DEUX MONTAGES, AUX COULEURS DU LOGO (demande utilisateur), et le milieu
-   n'en reçoit aucun: la vidéo y est brute, sans voile ni teinte.
-   Ce sont des couches PEINTES, contrairement au fondu ci-dessus qui reste un
-   masque. Les deux jouent ensemble et chacun fait ce que l'autre ne sait pas:
-   le masque dissout le décor pour que la page reparaisse de sa propre couleur
-   dans les deux thèmes, la teinte donne à cette dissolution la couleur de la
-   marque au lieu d'un simple gris. Peindre seul demanderait de tomber pile sur
-   le fond de la page, masquer seul rendrait le raccord incolore.
-   Les deux teintes sont transparentes jusqu'à 55 %, donc elles ne touchent pas
-   le milieu: c'est cette valeur, et elle seule, qui garantit « la vidéo brute
-   au centre ». */
-/* Les couleurs viennent des JETONS, pas de valeurs recopiées: `--q2-indigo` et
-   `--q2-violet` sont des hexadécimaux, donc l'opacité se pose avec `color-mix`
-   plutôt qu'avec `rgba()`. Recopier « 122,95,255 » ici, c'était une seconde
-   définition de la marque qui aurait cessé de suivre la première. */
-const tint = (token: string, a: number) =>
-  `color-mix(in srgb, var(${token}) ${Math.round(a * 100)}%, transparent)`;
-const HERO_TOP_TINT = `linear-gradient(to bottom, ${tint('--q2-indigo', 0.46)} 0%, ${tint('--q2-indigo', 0.3)} 38%, ${tint('--q2-violet', 0.14)} 68%, ${tint('--q2-violet', 0.04)} 86%, transparent 100%)`;
-const HERO_BOTTOM_TINT = `linear-gradient(to bottom, transparent 0%, transparent 55%, ${tint('--q2-violet', 0.1)} 68%, ${tint('--q2-violet', 0.2)} 79%, ${tint('--q2-indigo', 0.26)} 89%, ${tint('--q2-indigo', 0.3)} 100%)`;
+/* PLUS AUCUNE TEINTE DE MARQUE SUR LA VIDÉO (demande utilisateur: « enlève
+   les effets de couleurs sur la vidéo, garde l'effet lens vignette »).
+   Il y avait ici deux couches PEINTES, indigo en haut et violet en bas, qui
+   coloraient la dissolution du décor. Elles partent toutes les deux; ce qui
+   reste est le MASQUE (`HERO_MASK_V`), c'est-à-dire la vignette elle-même: il
+   ne peint rien, il rend le décor transparent sur ses bords, si bien que c'est
+   la page qui reparaît, exactement de sa couleur, blanche en clair et noire en
+   sombre. Le flou sous la nav reste aussi: il brouille, il ne colore pas.
+   Ce que cela coûte, et c'est mesuré: la teinte du haut portait le contraste du
+   titre, qui commence dans cette bande. Sans elle, le texte se lit sur la vidéo
+   nue, plus claire. Les valeurs relevées après ce changement sont dans le
+   message de commit; si l'une d'elles devient intenable, la réponse est une
+   bande NEUTRE derrière le texte, pas le retour des teintes de marque. */
 /* Le fondu de flou du HAUT: plein sous la nav, éteint plus bas. Comme le voile
    des bords, il ne peint rien, il ne fait que brouiller ce qui passe dessous:
    la vidéo reste visible derrière le menu, en diffus, au lieu d'être remplacée
@@ -304,25 +297,13 @@ function HeroBackdrop() {
               transform: 'translateZ(0)',
             }}
           />
-          {/* LA TEINTE DU HAUT, indigo de la marque (demande utilisateur:
-              « met les montages à mes couleurs de logo »). Elle est POSÉE SUR
-              LE FLOU, pas à sa place: le flou décide de la netteté, la teinte
-              de la couleur, et l'ordre importe, une couleur sous un flou serait
-              elle-même brouillée et perdrait sa franchise.
-              Elle porte aussi le contraste du titre, qui commence dans cette
-              bande: c'est la contrepartie de la vidéo brute au centre. */}
-          <div className="absolute inset-0" style={{ background: HERO_TOP_TINT }} />
+          {/* La teinte indigo qui se posait ici est retirée: sous la nav, il ne
+              reste que le FLOU, qui brouille sans colorer. */}
         </div>
 
-        {/* LE MONTAGE DU BAS, violet de la marque. Il est transparent jusqu'à
-            55 %, donc il ne touche pas au milieu, et il se fond avec le masque
-            du conteneur: là où le masque efface le décor, cette teinte est
-            déjà en train de le colorer, si bien que la vidéo ne s'éteint pas en
-            gris mais dans la couleur du logo. */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: HERO_BOTTOM_TINT }}
-        />
+        {/* La teinte violette du bas est retirée elle aussi. La disparition du
+            bord inférieur est entièrement l'affaire du masque du conteneur:
+            c'est lui la vignette, et il rend transparent au lieu de peindre. */}
     </div>
   );
 }
@@ -645,17 +626,15 @@ export default function Home() {
    * C'étaient trois lignes de même gabarit empilées, ce que la charte range
    * parmi les grilles de cartes identiques. Chacune porte donc son propre
    * rythme: la respiration s'allonge en descendant, le retrait se creuse, et la
-   * mesure du texte se resserre. Ce n'est pas de l'irrégularité décorative,
-   * c'est la durée de chaque étape: la première est une phrase, la dernière est
-   * un appel. */
+   * Les trois lignes avaient chacune leur propre respiration et leur propre
+   * retrait: c'est la SCÈNE qui règle cela maintenant, comme dans « Tout se
+   * passe en ligne », donc les clés de mise en forme sont parties avec la
+   * liste qu'elles habillaient. */
   const setup = [
     {
       icon: MessageSquare,
       label: isFr ? '« Ouvre le samedi de 9 h à 13 h »' : '“Open Saturdays from 9 to 1”',
       desc: isFr ? 'Dites-le dans le chat, c’est réglé.' : 'Say it in the chat, it is done.',
-      pad: 'py-5 sm:py-6',
-      indent: '',
-      measure: 'max-w-[34ch]',
     },
     {
       icon: Camera,
@@ -663,9 +642,6 @@ export default function Home() {
       desc: isFr
         ? 'Elle en extrait vos tarifs, vous confirmez, rien n’est stocké.'
         : 'She extracts your prices, you confirm, nothing is stored.',
-      pad: 'py-8 sm:py-11',
-      indent: 'sm:pl-8',
-      measure: 'max-w-[42ch]',
     },
     {
       icon: Mic2,
@@ -673,9 +649,6 @@ export default function Home() {
       desc: isFr
         ? 'Un vrai appel test dans le navigateur, avec sa vraie voix et votre vraie config.'
         : 'A real test call in the browser, with her real voice and your real setup.',
-      pad: 'py-11 sm:py-16',
-      indent: 'sm:pl-16',
-      measure: 'max-w-[38ch]',
     },
   ];
 
@@ -718,7 +691,7 @@ export default function Home() {
             bords, donc c'est la page qui reparaît, exactement de sa couleur.
             Aucun raccord à réussir, et rien à redéfinir par thème. */}
 
-        <Container className="relative [&>*]:min-w-0">
+        <Container className="relative z-10 [&>*]:min-w-0">
           <RevealV2>
             <div className="max-w-[1120px]">
               <Eyebrow tone="indigo" className="mb-4 sm:mb-6">
@@ -815,7 +788,7 @@ export default function Home() {
         />
         {/* Le cadre voyage dans CE repère: il est posé en absolu sur le
             conteneur et mesure les étapes qui s'y trouvent. */}
-        <Container>
+        <Container className="relative z-10">
           {/* Un div porteur plutôt qu'une ref sur Container: la primitive est
               partagée par toute la V2, lui ajouter forwardRef pour un seul
               appelant la complique pour tous les autres. */}
@@ -894,7 +867,7 @@ export default function Home() {
           shapes={[{ kind: 'quarters', x: '86%', y: '14%', size: 235, drift: 90, opacity: 0.28 },
             { kind: 'core', x: '-8%', y: '58%', size: 200, drift: -70, opacity: 0.2 }]}
         />
-        <Container>
+        <Container className="relative z-10">
           <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
             <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
               {isFr ? 'Vos réceptionnistes' : 'Your receptionists'}
@@ -936,7 +909,7 @@ export default function Home() {
           className="hidden lg:block"
           shapes={[{ kind: 'disc', x: '-12%', y: '32%', size: 300, drift: 85, opacity: 0.26 }]}
         />
-        <Container className="relative grid lg:grid-cols-[1fr_1.6fr] gap-10 md:gap-16 lg:gap-24 items-start">
+        <Container className="relative z-10 grid lg:grid-cols-[1fr_1.6fr] gap-10 md:gap-16 lg:gap-24 items-start">
           {/* La colonne reste au regard pendant que les blocs défilent: c'est
               ce qui fait tenir la comparaison entre le titre et les quatre
               comportements. */}
@@ -973,20 +946,23 @@ export default function Home() {
             </RevealV2>
           </div>
 
-          {/* `items-start`, et c'est LUI le correctif.
-              Par défaut une grille ÉTIRE ses blocs à la hauteur de la rangée:
-              deux voisins finissent donc toujours à la même ligne, quoi que
-              contienne chacun. En `items-start` chaque bloc garde la sienne, et
-              la colonne de droite descend d'un cran (`sm:mt-12`) pour que les
-              arêtes hautes ne s'alignent pas non plus.
-              La disposition voulue plus tôt tient toujours: à gauche le noir
-              puis un blanc, à droite un blanc puis le violet. */}
-          <ul className="grid sm:grid-cols-2 gap-4 sm:gap-5 items-start" role="list">
+          {/* UN SEUL ÉCART, 20 px, horizontal comme vertical (demande
+              utilisateur). Le décalage d'une carte sur deux (`sm:mt-12`) est
+              retiré: il valait 48 px, soit plus du double de l'écart de la
+              grille, si bien que les cartes ne semblaient plus séparées par une
+              gouttière mais par deux valeurs différentes selon le voisin
+              regardé.
+              `items-start` reste, et il compte toujours: sans lui la grille
+              ÉTIRE ses blocs à la hauteur de la rangée, et deux voisins de
+              contenu inégal se retrouvent forcés à la même hauteur. Chaque
+              carte garde donc la sienne; ce sont les ÉCARTS qui sont réguliers,
+              pas les hauteurs. */}
+          <ul className="grid sm:grid-cols-2 gap-5 items-start" role="list">
             {naturally.map((feat, i) => (
               <RevealV2
                 key={feat.title}
                 index={i}
-                className={`${feat.edge} ${i % 2 === 1 ? 'sm:mt-12' : ''}`}
+                className={feat.edge}
               >
                 <li className="list-none">
                   <article
@@ -1029,57 +1005,77 @@ export default function Home() {
           shapes={[{ kind: 'twinMirror', x: '83%', y: '30%', size: 225, drift: -85, opacity: 0.26 },
             { kind: 'pair', x: '-6%', y: '8%', size: 155, drift: 70, opacity: 0.2 }]}
         />
-        <Container className="relative grid lg:grid-cols-[1fr_1.4fr] gap-9 sm:gap-12 items-start">
-          <RevealV2>
-            <Eyebrow tone="violet" className="mb-3 sm:mb-4">
-              {isFr ? 'Mise en route' : 'Setup'}
-            </Eyebrow>
-            <H2 id="setup-heading">
-              <TextReveal>
-                {isFr ? (
-                  <>
-                    Configurez-la en lui <SerifWord>parlant.</SerifWord>
-                  </>
-                ) : (
-                  <>
-                    Set her up by <SerifWord>talking.</SerifWord>
-                  </>
-                )}
-              </TextReveal>
-            </H2>
-            <p className="text-q2-body text-base leading-relaxed mt-4 max-w-[380px] q2-body-text">
-              {isFr
-                ? 'Pas de formulaire interminable. Vous discutez, elle se règle. Des voix avec de vrais aperçus audio, ou la vôtre, clonée en 90 secondes d’enregistrement.'
-                : 'No endless forms. You chat, she adjusts. Voices with real audio previews, or your own, cloned from 90 seconds of recording.'}
-            </p>
-          </RevealV2>
-          <RevealV2 index={1}>
-            <div className="border-t border-q2-plate">
-              {setup.map((s, i) => (
-                <GlowCard
-                  key={s.label}
-                  className={`border-b border-q2-plate grid sm:grid-cols-[44px_1fr] gap-3.5 sm:gap-4 items-start ${s.pad} ${s.indent}`}
-                >
-                  <span className="relative w-10 h-10 rounded-full bg-q2-band flex items-center justify-center">
-                    <s.icon size={16} className="text-q2-violet" aria-hidden="true" />
-                    {/* Le rang, en petit, contre la pastille: c'est lui qui
-                        explique le décalage de chaque ligne. Sans repère, un
-                        retrait qui augmente passe pour un défaut. */}
-                    <span
+        {/* MÊME SCÈNE AU SCROLL que « Tout se passe en ligne » (demande
+            utilisateur): le titre reste épinglé à gauche pendant que les étapes
+            défilent à droite, et l'étape courante s'allume.
+            C'était ici une liste statique à filets, dont chaque ligne portait
+            son propre `pad` et son propre `indent` — trois espacements
+            différents entre trois cartes, et un retrait qui grandissait. Le
+            réglage se fait maintenant par la SCÈNE, comme dans l'autre section,
+            et il n'y a plus qu'une seule mécanique de défilement à entretenir
+            sur la page. */}
+        <Container className="relative z-10">
+          <div className="relative">
+          <PinnedScene
+            aside={
+              <RevealV2 className="max-w-[420px]">
+                <Eyebrow tone="violet" className="mb-4">
+                  {isFr ? 'Mise en route' : 'Setup'}
+                </Eyebrow>
+                <H2 id="setup-heading">
+                  <TextReveal>
+                    {isFr ? (
+                      <>
+                        Configurez-la en lui <SerifWord>parlant.</SerifWord>
+                      </>
+                    ) : (
+                      <>
+                        Set her up by <SerifWord>talking.</SerifWord>
+                      </>
+                    )}
+                  </TextReveal>
+                </H2>
+                <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
+                  {isFr
+                    ? 'Pas de formulaire interminable. Vous discutez, elle se règle. Des voix avec de vrais aperçus audio, ou la vôtre, clonée en 90 secondes d’enregistrement.'
+                    : 'No endless forms. You chat, she adjusts. Voices with real audio previews, or your own, cloned from 90 seconds of recording.'}
+                </p>
+              </RevealV2>
+            }
+          >
+            {setup.map((item, i) => (
+              <div
+                key={item.label}
+                data-step-frame
+                /* Exactement la mise en forme de l'autre scène: même gabarit de
+                   colonnes, même respiration, même hauteur minimale par étape.
+                   C'est cette hauteur qui donne à chaque étape sa propre
+                   distance de défilement; sans elle, trois étapes tiennent dans
+                   une fenêtre et le compteur saute de 01 à 03. */
+                className="relative grid md:grid-cols-[56px_1fr] gap-4 md:gap-8 py-6 sm:py-8 md:py-9 items-start lg:min-h-[32vh] lg:content-center"
+              >
+                <div className="flex md:flex-col items-center md:items-start gap-3">
+                  <span className="w-11 h-11 rounded-full bg-q2-canvas border border-q2-plate flex items-center justify-center transition-colors duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[active=true]:bg-q2-violet group-data-[active=true]:border-q2-violet">
+                    <item.icon
+                      size={17}
+                      className="text-q2-violet transition-colors duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[active=true]:text-white"
                       aria-hidden="true"
-                      className="absolute -left-1 -top-1 text-[10px] font-medium tabular-nums text-q2-faint"
-                    >
-                      {i + 1}
-                    </span>
+                    />
                   </span>
-                  <div>
-                    <p className="text-[17px] font-medium text-q2-ink mb-1">{s.label}</p>
-                    <p className={`text-q2-body text-sm leading-relaxed q2-body-text ${s.measure}`}>{s.desc}</p>
-                  </div>
-                </GlowCard>
-              ))}
-            </div>
-          </RevealV2>
+                  <span className="q2-eyebrow text-q2-faint tabular-nums transition-colors duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[active=true]:text-q2-violet">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="q2-h3 text-q2-ink mb-2">{item.label}</h3>
+                  <p className="text-q2-body text-[15px] leading-relaxed max-w-[560px] q2-body-text">
+                    {item.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </PinnedScene>
+          </div>
         </Container>
       </Section>
 
@@ -1094,7 +1090,7 @@ export default function Home() {
           className="hidden lg:block"
           shapes={[{ kind: 'columnAlt', x: '46%', y: '10%', size: 150, drift: 95, opacity: 0.2 }]}
         />
-        <Container className="grid lg:grid-cols-[1fr_1fr] gap-8 sm:gap-14 lg:gap-20 items-center [&>*]:min-w-0">
+        <Container className="relative z-10 grid lg:grid-cols-[1fr_1fr] gap-8 sm:gap-14 lg:gap-20 items-center [&>*]:min-w-0">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
               {isFr ? 'Sur mobile' : 'On mobile'}
@@ -1137,7 +1133,7 @@ export default function Home() {
           shapes={[{ kind: 'twin', x: '-9%', y: '38%', size: 240, drift: -80, opacity: 0.26 },
             { kind: 'discCut', x: '84%', y: '8%', size: 185, drift: 85, opacity: 0.2 }]}
         />
-        <Container>
+        <Container className="relative z-10">
           <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
             <Eyebrow tone="neutral" className="mb-3 sm:mb-4">
               {isFr ? 'Et après' : 'And after'}
@@ -1188,7 +1184,7 @@ export default function Home() {
           className="hidden lg:block"
           shapes={[{ kind: 'quartersMirror', x: '85%', y: '20%', size: 225, drift: 80, opacity: 0.24 }]}
         />
-        <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-9 sm:gap-14 items-center [&>*]:min-w-0">
+        <Container className="relative z-10 grid lg:grid-cols-[1fr_1.1fr] gap-9 sm:gap-14 items-center [&>*]:min-w-0">
           <RevealV2 className="max-w-[440px]">
             <Eyebrow tone="violet" className="mb-3 sm:mb-4">
               {isFr ? 'Intégrations' : 'Integrations'}
@@ -1232,7 +1228,7 @@ export default function Home() {
           className="q2-halo q2-halo-violet absolute left-1/2 -translate-x-1/2 -bottom-40 w-[760px] h-[320px]"
           style={halo(0.3)}
         />
-        <Container className="relative">
+        <Container className="relative z-10">
           <RevealV2 className="max-w-[720px] mb-10 sm:mb-16">
             <Eyebrow tone="violet" className="mb-4 sm:mb-6">
               {isFr ? 'Sans détour' : 'Straight up'}
@@ -1243,7 +1239,7 @@ export default function Home() {
                 : 'Qwillio is young, built in Brussels, and every first customer is onboarded personally. You will find no fake reviews or inflated numbers here: try her, she will do the convincing.'}
             </p>
           </RevealV2>
-          <Container className="!px-0 grid lg:grid-cols-[1.5fr_1fr] gap-8 sm:gap-10 items-end">
+          <Container className="relative z-10 !px-0 grid lg:grid-cols-[1.5fr_1fr] gap-8 sm:gap-10 items-end">
             <RevealV2 index={1}>
               <Display as="h2" onDark>
                 <TextReveal>

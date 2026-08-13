@@ -193,7 +193,7 @@ export default function BusinessPlanAgent() {
               <PrimaryBtn onClick={generatePitch} disabled={generating}>
                 {generating ? (
                   <>
-                    <Loader2 size={13} className="animate-spin" />
+                    <Loader2 size={13} />
                     Génération…
                   </>
                 ) : (

@@ -308,7 +308,7 @@ export default function Settings() {
             }}
           >
             {toggling
-              ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Chargement…</>
+              ? <><Loader2 className="w-4 h-4" aria-hidden="true" /> Chargement…</>
               : isActive
                 ? <><Square className="w-4 h-4" aria-hidden="true" /> Arrêter</>
                 : <><Play className="w-4 h-4" aria-hidden="true" /> Démarrer</>
@@ -438,7 +438,7 @@ export default function Settings() {
                 style={{ background: 'oklch(56% 0.02 265 / 0.12)', color: 'oklch(74% 0.02 265)' }}
               >
                 {triggerLoading === action
-                  ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                  ? <Loader2 className="w-4 h-4" aria-hidden="true" />
                   : icon
                 }
               </div>

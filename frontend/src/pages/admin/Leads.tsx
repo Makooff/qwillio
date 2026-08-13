@@ -544,7 +544,7 @@ export default function AdminLeads() {
       {/* Results */}
       <Card>
         {loading ? (
-          <div className="py-20 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: pro.textTer }} /></div>
+          <div className="py-20 text-center"><Loader2 size={20} className=" mx-auto" style={{ color: pro.textTer }} /></div>
         ) : leads.length === 0 ? (
           <div className="py-20 text-center">
             <p className="text-[14px]" style={{ color: pro.textSec }}>Aucun business ne correspond.</p>
@@ -639,7 +639,7 @@ export default function AdminLeads() {
         subtitle={brief?.city || undefined}
       >
         {briefLoading ? (
-          <div className="py-16 text-center"><Loader2 size={18} className="animate-spin mx-auto" style={{ color: pro.textTer }} /></div>
+          <div className="py-16 text-center"><Loader2 size={18} className=" mx-auto" style={{ color: pro.textTer }} /></div>
         ) : brief && (
           <div className="space-y-5">
             <div className="flex flex-wrap gap-2">
@@ -713,7 +713,7 @@ export default function AdminLeads() {
       >
         {scriptLoading ? (
           <div className="py-16 text-center">
-            <Loader2 size={18} className="animate-spin mx-auto" style={{ color: pro.textTer }} />
+            <Loader2 size={18} className=" mx-auto" style={{ color: pro.textTer }} />
             <p className="mt-3 text-[12.5px]" style={{ color: pro.textTer }}>Écriture du script…</p>
           </div>
         ) : script && (
@@ -764,7 +764,7 @@ export default function AdminLeads() {
           <div className="flex items-center justify-end gap-2">
             <GhostBtn onClick={() => setScrapeOpen(false)}>Annuler</GhostBtn>
             <PrimaryBtn onClick={runScrape} disabled={scraping}>
-              {scraping ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />} Lancer
+              {scraping ? <Loader2 size={13} /> : <Zap size={13} />} Lancer
             </PrimaryBtn>
           </div>
         }
@@ -809,7 +809,7 @@ export default function AdminLeads() {
           <div className="flex items-center justify-end gap-2">
             <GhostBtn onClick={() => setConvertFor(null)}>Annuler</GhostBtn>
             <PrimaryBtn onClick={submitConvert} disabled={converting}>
-              {converting && <Loader2 size={13} className="animate-spin" />} Créer le client
+              {converting && <Loader2 size={13} />} Créer le client
             </PrimaryBtn>
           </div>
         }

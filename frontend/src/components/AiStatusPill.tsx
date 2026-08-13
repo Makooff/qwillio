@@ -68,7 +68,7 @@ export default function AiStatusPill() {
         {isActive ? 'IA active' : isPaused ? 'En pause' : (status === 'canceled' ? 'Annulée' : status === 'past_due' ? 'Impayé' : 'IA')}
       </span>
       {toggling
-        ? <Loader2 className="w-3 h-3 animate-spin text-[#8B8BA7]" />
+        ? <Loader2 className="w-3 h-3 text-[#8B8BA7]" />
         : isActive
           ? <Pause className="w-3 h-3 text-[#8B8BA7]" />
           : <Play className="w-3 h-3 text-[#8B8BA7]" />

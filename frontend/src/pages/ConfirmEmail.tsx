@@ -63,7 +63,7 @@ export default function ConfirmEmail() {
 
         {status === 'loading' && (
           <>
-            <Loader2 size={48} className="mx-auto text-[#7a5fff] animate-spin mb-6" />
+            <Loader2 size={48} className="mx-auto text-[#7a5fff] mb-6" />
             <h1 className="text-2xl font-semibold tracking-tight mb-2">{t('confirm.loading')}</h1>
             <p className="text-[#86868b]">{t('confirm.wait')}</p>
           </>

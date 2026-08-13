@@ -91,7 +91,7 @@ export default function VerifyEmail() {
             disabled={checking}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1d1d1f] px-6 py-3.5 text-[15px] font-medium text-white transition-colors duration-300 hover:bg-[#7a5fff] disabled:opacity-50"
           >
-            {checking ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+            {checking ? <Loader2 size={15} /> : <RefreshCw size={15} />}
             {isFr ? "J'ai confirmé" : 'I confirmed'}
           </button>
           <button

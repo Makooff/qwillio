@@ -1136,7 +1136,7 @@ export default function AssistantChat({
                     aria-label={isFr ? 'Envoyer une photo de vos tarifs' : 'Send a photo of your prices'}
                     className="h-9 w-9 rounded-full grid place-items-center text-[#9CA3AF] transition-colors hover:bg-white/[0.06] hover:text-[#E5E5EA] disabled:opacity-40 active:scale-[0.97]"
                   >
-                    {extracting ? <Loader2 size={16} className="animate-spin" /> : <Plus size={18} />}
+                    {extracting ? <Loader2 size={16} /> : <Plus size={18} />}
                   </button>
                 </>
               )}
