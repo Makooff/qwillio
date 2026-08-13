@@ -65,6 +65,7 @@ const Privacy = lazy(() => import('./pages/v2/legal/Privacy'));
 const Terms = lazy(() => import('./pages/v2/legal/Terms'));
 const About = lazy(() => import('./pages/v2/About'));
 const Contact = lazy(() => import('./pages/v2/Contact'));
+const CallbackRequest = lazy(() => import('./pages/v2/CallbackRequest'));
 const Gdpr = lazy(() => import('./pages/v2/legal/Gdpr'));
 const Sla = lazy(() => import('./pages/v2/legal/Sla'));
 // Public pages (lazy loaded)
@@ -314,6 +315,9 @@ export default function App() {
         <Route path="/terms" element={<Suspense fallback={<PublicSpinner />}><Terms /></Suspense>} />
         <Route path="/about" element={<Suspense fallback={<PublicSpinner />}><About /></Suspense>} />
         <Route path="/contact" element={<Suspense fallback={<PublicSpinner />}><Contact /></Suspense>} />
+        {/* Demande de rappel: la seule porte publique du registre de consentement. */}
+        <Route path="/rappel" element={<Suspense fallback={<PublicSpinner />}><CallbackRequest /></Suspense>} />
+        <Route path="/callback" element={<Suspense fallback={<PublicSpinner />}><CallbackRequest /></Suspense>} />
         <Route path="/gdpr" element={<Suspense fallback={<PublicSpinner />}><Gdpr /></Suspense>} />
         <Route path="/sla" element={<Suspense fallback={<PublicSpinner />}><Sla /></Suspense>} />
         {/* French route aliases for legal pages */}

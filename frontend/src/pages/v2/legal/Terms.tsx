@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useSEO } from '../../../hooks/useSEO';
 import { useLang } from '../../../stores/langStore';
 import { SerifWord } from '../../../components/v2/Primitives';
+import { LEGAL_ENTITY, legalEntityName } from '../../../config/legal-entity';
 import LegalShell, {
   LEGAL_LINK,
   LegalCloser,
@@ -107,8 +108,8 @@ export default function Terms() {
       <LegalSection id="acceptance" title={isFr ? 'Acceptation' : 'Acceptance'}>
         <LegalP>
           {isFr
-            ? "En accédant ou en utilisant les services de Qwillio LLC (« Qwillio »), vous acceptez d'être lié par les présentes conditions. Si vous n'êtes pas d'accord, veuillez ne pas utiliser nos services."
-            : 'By accessing or using the services of Qwillio LLC ("Qwillio"), you agree to be bound by these terms. If you do not agree, please do not use our services.'}
+            ? `En accédant ou en utilisant les services de ${legalEntityName()} (« Qwillio »), vous acceptez d'être lié par les présentes conditions. Si vous n'êtes pas d'accord, veuillez ne pas utiliser nos services.`
+            : `By accessing or using the services of ${legalEntityName()} ("Qwillio"), you agree to be bound by these terms. If you do not agree, please do not use our services.`}
         </LegalP>
       </LegalSection>
 
@@ -249,8 +250,11 @@ export default function Terms() {
       <LegalSection id="governing-law" title={isFr ? 'Droit applicable' : 'Governing law'}>
         <LegalP>
           {isFr
-            ? "Pour les clients américains : ces conditions sont régies par les lois de l'État du Delaware, États-Unis. Pour les clients de l'UE : ces conditions sont régies par le droit belge, et tout litige sera soumis aux tribunaux de Bruxelles."
-            : 'For US customers: these terms are governed by the laws of the State of Delaware, United States. For EU customers: these terms are governed by Belgian law, and any disputes shall be submitted to the courts of Brussels.'}
+            /* Plus de mention du Delaware: il n'existe aucune entité américaine
+               à rattacher à ce droit. Le droit belge seul, cohérent avec le
+               marché visé et avec le responsable du traitement déclaré. */
+            ? LEGAL_ENTITY.governingLaw.fr
+            : LEGAL_ENTITY.governingLaw.en}
         </LegalP>
       </LegalSection>
 
@@ -264,11 +268,18 @@ export default function Terms() {
 
       <LegalSection id="contact" title={isFr ? 'Contact' : 'Contact'} last>
         <address className="not-italic">
-          <p className="font-medium text-q2-ink">Qwillio LLC</p>
+          <p className="font-medium text-q2-ink">{legalEntityName()}</p>
+          {LEGAL_ENTITY.companyNumber && (
+            <p className="text-q2-body">
+              {isFr ? "N° d'entreprise : " : 'Company number: '}
+              {LEGAL_ENTITY.companyNumber}
+            </p>
+          )}
+          {LEGAL_ENTITY.address && <p className="text-q2-body">{LEGAL_ENTITY.address}</p>}
           <p className="text-q2-body">
             {isFr ? 'E-mail : ' : 'Email: '}
-            <a href="mailto:hello@qwillio.com" className={LEGAL_LINK}>
-              hello@qwillio.com
+            <a href={`mailto:${LEGAL_ENTITY.email}`} className={LEGAL_LINK}>
+              {LEGAL_ENTITY.email}
             </a>
           </p>
         </address>

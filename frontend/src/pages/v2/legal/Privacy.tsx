@@ -4,6 +4,7 @@ import { ArrowUpRight } from '../../../components/icons';
 import { useSEO } from '../../../hooks/useSEO';
 import { useLang } from '../../../stores/langStore';
 import { SerifWord } from '../../../components/v2/Primitives';
+import { LEGAL_ENTITY, legalEntityName } from '../../../config/legal-entity';
 import LegalShell, {
   LEGAL_LINK,
   LegalCloser,
@@ -146,8 +147,8 @@ export default function Privacy() {
       <LegalSection id="introduction" title={isFr ? 'Introduction' : 'Introduction'}>
         <LegalP>
           {isFr
-            ? "Qwillio LLC (« Qwillio », « nous ») s'engage à protéger votre vie privée. Cette politique explique comment nous collectons, utilisons et protégeons vos données personnelles conformément au RGPD (UE) et au CCPA (Californie)."
-            : 'Qwillio LLC ("Qwillio", "we", "us") is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your personal data in compliance with the GDPR (EU) and CCPA (California).'}
+            ? `${legalEntityName()} (« Qwillio », « nous ») s'engage à protéger votre vie privée. Cette politique explique comment nous collectons, utilisons et protégeons vos données personnelles conformément au RGPD (UE).`
+            : `${legalEntityName()} ("Qwillio", "we", "us") is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your personal data in compliance with the GDPR (EU).`}
         </LegalP>
         <LegalP>
           {isFr ? 'Contact : ' : 'Contact: '}
@@ -391,12 +392,22 @@ export default function Privacy() {
       </LegalSection>
 
       <LegalSection id="contact" title={isFr ? 'Contact' : 'Contact'} last>
+        {/* Responsable du traitement au sens de l'art. 13 RGPD. Nom et adresse
+            viennent de `config/legal-entity.ts`, seul endroit à changer le jour
+            où une société existera. */}
         <address className="not-italic">
-          <p className="font-medium text-q2-ink">Qwillio LLC</p>
+          <p className="font-medium text-q2-ink">{legalEntityName()}</p>
+          {LEGAL_ENTITY.companyNumber && (
+            <p className="text-q2-body">
+              {isFr ? "N° d'entreprise : " : 'Company number: '}
+              {LEGAL_ENTITY.companyNumber}
+            </p>
+          )}
+          {LEGAL_ENTITY.address && <p className="text-q2-body">{LEGAL_ENTITY.address}</p>}
           <p className="text-q2-body">
             {isFr ? 'E-mail : ' : 'Email: '}
-            <a href="mailto:hello@qwillio.com" className={LEGAL_LINK}>
-              hello@qwillio.com
+            <a href={`mailto:${LEGAL_ENTITY.email}`} className={LEGAL_LINK}>
+              {LEGAL_ENTITY.email}
             </a>
           </p>
         </address>
