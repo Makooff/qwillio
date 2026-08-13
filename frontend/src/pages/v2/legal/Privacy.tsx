@@ -288,18 +288,24 @@ export default function Privacy() {
       <LegalSection id="data-retention" title={isFr ? 'Conservation des données' : 'Data retention'}>
         <LegalList
           items={
+            /* La durée des enregistrements n'est plus une valeur fixe: chaque
+               client la règle dans ses Paramètres, entre 30 jours et 5 ans, et
+               une purge quotidienne l'applique réellement. Annoncer « 90 jours »
+               tout court serait désormais faux dans les deux sens. */
             isFr
               ? [
-                  "Enregistrements d'appels et transcriptions : 90 jours après la création.",
+                  "Enregistrements d'appels et transcriptions : 90 jours par défaut, réglable par chaque client entre 30 jours et 5 ans dans ses Paramètres. Une purge automatique quotidienne applique la durée choisie, y compris chez notre fournisseur de téléphonie.",
                   "Données de compte : durée de l'abonnement + 30 jours après résiliation.",
                   'Signaux de fraude : conservés indéfiniment sous forme hachée.',
                   'Journaux de facturation : 7 ans (obligation légale).',
+                  "Preuves de consentement à être appelé : 3 ans, y compris après révocation, parce que la loi nous impose de pouvoir les produire.",
                 ]
               : [
-                  'Call recordings and transcripts: 90 days after creation.',
+                  'Call recordings and transcripts: 90 days by default, adjustable by each client between 30 days and 5 years in their Settings. A daily automatic purge enforces the chosen duration, including at our telephony provider.',
                   'Account data: subscription duration + 30 days after cancellation.',
                   'Fraud signals: retained indefinitely in hashed form.',
                   'Billing logs: 7 years (legal requirement).',
+                  'Proof of consent to be called: 3 years, including after revocation, because the law requires us to be able to produce it.',
                 ]
           }
         />
@@ -320,10 +326,21 @@ export default function Privacy() {
         id="outbound-calling"
         title={isFr ? 'Démarchage téléphonique' : 'Outbound calling disclosure'}
       >
+        {/* Cette section ne parlait que du TCPA et des listes DNC américaines,
+            à des lecteurs français et belges, sur une page en français. Elle
+            promettait donc une conformité au mauvais droit. Depuis le
+            11/08/2026 (loi n° 2025-594), la France est passée à l'opt-in et
+            Bloctel a cessé d'exister; la Belgique reste en opt-out. Le texte
+            décrit désormais ce que le produit fait réellement, par pays. */}
         <LegalP>
           {isFr
-            ? "Qwillio peut effectuer des appels sortants vers des lignes fixes professionnelles pour le compte de nos clients, en conformité avec le TCPA (Telephone Consumer Protection Act). Nous ne contactons jamais de numéros de téléphone mobiles ou personnels sans consentement préalable exprimé par écrit. Tous les appels sortants respectent les listes DNC (Do Not Call) fédérales et des États."
-            : 'Qwillio may place outbound calls to business landlines on behalf of our clients in compliance with the TCPA (Telephone Consumer Protection Act). We never contact mobile or personal phone numbers without prior express written consent. All outbound calls comply with federal and state Do Not Call (DNC) lists.'}
+            ? "France : depuis le 11 août 2026, nous n'appelons un numéro que si nous détenons la preuve d'un consentement préalable, libre, spécifique, éclairé et révocable. Cette preuve est conservée avec sa date, sa source et le libellé exact accepté. Les appels respectent les jours et horaires légaux : du lundi au vendredi, de 10 h à 13 h et de 14 h à 20 h, hors jours fériés, et quatre sollicitations par mois au maximum."
+            : 'France: since 11 August 2026, we only call a number when we hold proof of prior consent that was freely given, specific, informed and revocable. That proof is retained with its date, its source and the exact wording accepted. Calls respect the legal days and hours: Monday to Friday, 10am to 1pm and 2pm to 8pm, excluding public holidays, and at most four solicitations per month.'}
+        </LegalP>
+        <LegalP className="mt-4">
+          {isFr
+            ? "Belgique : le démarchage y reste autorisé sauf opposition, et nous respectons la liste « Ne m'appelez plus ! ». Dans les deux pays, un refus exprimé pendant l'appel est détecté, enregistré et définitif : le numéro n'est plus jamais rappelé, et tout consentement antérieur est révoqué. Vous pouvez aussi nous écrire à hello@qwillio.com pour être retiré de nos listes."
+            : 'Belgium: outbound calling remains permitted unless opted out, and we honour the "Ne m\'appelez plus!" list. In both countries, a refusal expressed during the call is detected, recorded and final: the number is never called again, and any earlier consent is revoked. You may also email hello@qwillio.com to be removed from our lists.'}
         </LegalP>
       </LegalSection>
 
