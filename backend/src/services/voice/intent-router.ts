@@ -63,21 +63,29 @@ const BACKCHANNEL: Record<VoiceLanguage, string[]> = {
     'right', 'sure', 'yeah', 'yep', 'yes', 'got it', 'i see', 'gotcha',
     'perfect', 'great', 'cool', 'alright', 'sounds good', 'exactly',
   ],
+  nl: [
+    'hm', 'hmm', 'mhm', 'euh', 'ah', 'ah ja', 'ok', 'oke', 'okay', 'ja',
+    'jaja', 'ja ja', 'jawel', 'goed', 'prima', 'perfect', 'super', 'juist',
+    'precies', 'in orde', 'begrepen', 'ik snap het', 'dat klopt', 'voila', 'top',
+  ],
 };
 
 const PRESENCE_CHECK: Record<VoiceLanguage, string[]> = {
   fr: ['allo', 'allo allo', 'vous etes la', 'vous m entendez', 'il y a quelqu un', 'bonjour'],
   en: ['hello', 'hello hello', 'are you there', 'can you hear me', 'anyone there', 'hi'],
+  nl: ['hallo', 'hallo hallo', 'bent u daar', 'hoort u mij', 'is er iemand', 'goeiedag', 'goedendag'],
 };
 
 const REPEAT_REQUEST: Record<VoiceLanguage, string[]> = {
   fr: ['pardon', 'comment', 'quoi', 'repetez', 'vous pouvez repeter', 'j ai pas compris', 'je n ai pas compris', 'excusez moi'],
   en: ['sorry', 'pardon', 'what', 'come again', 'say that again', 'can you repeat that', 'i didn t catch that', 'excuse me'],
+  nl: ['pardon', 'sorry', 'wat', 'wablief', 'kunt u dat herhalen', 'nog eens', 'ik heb het niet verstaan', 'excuseer'],
 };
 
 const FAREWELL: Record<VoiceLanguage, string[]> = {
   fr: ['au revoir', 'merci au revoir', 'bonne journee', 'bonne soiree', 'a bientot', 'salut', 'merci bonne journee'],
   en: ['bye', 'goodbye', 'bye bye', 'thanks bye', 'have a good day', 'have a nice day', 'take care', 'that s all thanks'],
+  nl: ['dag', 'daag', 'tot ziens', 'bedankt tot ziens', 'fijne dag', 'fijne dag nog', 'tot binnenkort', 'merci dag'],
 };
 
 /**
@@ -86,7 +94,7 @@ const FAREWELL: Record<VoiceLanguage, string[]> = {
  * the guard that keeps "ok book it" from being answered with "mhm".
  */
 const ESCALATE_MARKERS =
-  /\b(rendez[- ]?vous|rdv|reserv|dispo|disponib|annul|reporte|horaire|ouvert|ferme|prix|tarif|devis|adresse|urgen|probleme|commande|livraison|factur|rembours|parler|transfer|responsable|book|booking|appointment|schedul|availab|cancel|reschedul|open|close|hours|price|quote|cost|address|urgent|emergency|order|deliver|invoic|refund|speak|manager|human)\w*/i;
+  /\b(rendez[- ]?vous|rdv|reserv|dispo|disponib|annul|reporte|horaire|ouvert|ferme|prix|tarif|devis|adresse|urgen|probleme|commande|livraison|factur|rembours|parler|transfer|responsable|book|booking|appointment|schedul|availab|cancel|reschedul|open|close|hours|price|quote|cost|address|urgent|emergency|order|deliver|invoic|refund|speak|manager|human|afspraak|boeken|reservatie|annuleer|annulatie|verzet|openingsur|prijs|prijzen|offerte|adres|dringend|spoed|bestell|lever|factuur|terugbetal|spreken|doorverbind|verantwoordelijke|mens)\w*/i;
 
 /** Canned replies. Kept short — a long canned line reads as robotic. */
 const REPLIES: Record<VoiceLanguage, Record<Exclude<IntentKind, 'reasoning'>, string[]>> = {
@@ -102,6 +110,13 @@ const REPLIES: Record<VoiceLanguage, Record<Exclude<IntentKind, 'reasoning'>, st
     presence_check: ['Yes, I\'m here. Go ahead.', 'Yes, I\'m listening.'],
     repeat_request: ['Of course, let me repeat that.', 'No problem, I\'ll say it again.'],
     farewell: ['Thanks for calling, have a great day.', 'My pleasure, have a good one.'],
+    noise: [''],
+  },
+  nl: {
+    backchannel: [''],
+    presence_check: ['Ja, ik ben er. Zegt u maar.', 'Ja, ik luister.'],
+    repeat_request: ['Natuurlijk, ik herhaal het even.', 'Geen probleem, ik zeg het nog eens.'],
+    farewell: ['Bedankt voor uw telefoontje, nog een fijne dag.', 'Graag gedaan, fijne dag nog.'],
     noise: [''],
   },
 };

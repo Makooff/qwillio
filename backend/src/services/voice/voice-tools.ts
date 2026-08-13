@@ -52,6 +52,17 @@ const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: s
         'Just another moment, almost there.',
       ],
     },
+    nl: {
+      start: [
+        'Ik kijk het meteen even na.',
+        'Een momentje, ik bekijk de agenda.',
+        'Ik zoek dat even op voor u.',
+      ],
+      delayed: [
+        'Ik ben er nog mee bezig, een ogenblikje.',
+        'Nog heel even, de agenda laadt.',
+      ],
+    },
   },
   bookAppointment: {
     fr: {
@@ -62,6 +73,10 @@ const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: s
       start: ['Perfect, let me lock that in for you.', 'Great, I\'m booking that now.'],
       delayed: ['Just finishing the booking, one moment.'],
     },
+    nl: {
+      start: ['Perfect, ik leg dat voor u vast.', 'Prima, ik boek dat meteen in.'],
+      delayed: ['Ik rond de reservatie af, een ogenblikje.'],
+    },
   },
   captureLead: {
     fr: {
@@ -70,6 +85,10 @@ const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: s
     },
     en: {
       start: ['Got it, noting that down.'],
+      delayed: [],
+    },
+    nl: {
+      start: ['Genoteerd.'],
       delayed: [],
     },
   },
@@ -82,6 +101,10 @@ const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: s
       start: ['Let me find your booking.'],
       delayed: ['Still looking, one moment.'],
     },
+    nl: {
+      start: ['Ik zoek uw reservatie even op.'],
+      delayed: ['Ik ben nog aan het zoeken, een momentje.'],
+    },
   },
   lookupKnowledge: {
     fr: {
@@ -90,6 +113,10 @@ const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: s
     },
     en: {
       start: ['Let me check on that.', 'One sec, checking.'],
+      delayed: [],
+    },
+    nl: {
+      start: ['Ik kijk dat even na.', 'Momentje, ik zoek het op.'],
       delayed: [],
     },
   },

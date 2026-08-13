@@ -58,7 +58,7 @@ export interface ClientVoiceProfile {
   businessName: string;
   businessType: string;
   agentName: string;
-  language: 'fr' | 'en';
+  language: 'fr' | 'en' | 'nl';
   timezone: string;
   transferNumber: string | null;
   /** Free-text client instructions from onboarding ("never quote prices"). */
@@ -90,6 +90,22 @@ export interface ClientVoiceProfile {
   voiceMode: 'auto' | 'realtime' | 'classic';
   /** Whether any active knowledge entry exists — gates the lookup tool. */
   hasKnowledgeBase: boolean;
+  /**
+   * L'appel est-il enregistré ? Historiquement `disableRecordingNotice`
+   * supprimait la notice tout en laissant l'enregistrement actif — c'est-à-dire
+   * un enregistrement sans information, illégal en UE. La sémantique est
+   * inversée: refuser la notice, c'est refuser l'enregistrement. Le choix reste
+   * au client; la légalité n'est plus une option.
+   */
+  recordCalls: boolean;
+}
+
+/**
+ * Un profil encore en cache d'avant ce champ vaut « enregistré » (et donc
+ * « notice prononcée »): le défaut sûr des deux côtés de la loi.
+ */
+export function shouldRecord(profile: Pick<ClientVoiceProfile, 'recordCalls'>): boolean {
+  return profile.recordCalls !== false;
 }
 
 interface CacheEntry<T> {
@@ -230,16 +246,22 @@ class RealtimeContextService {
 
     const onboarding = (client.onboardingData as Record<string, any> | null) || {};
     const vapiConfig = (client.vapiConfig as Record<string, any> | null) || {};
-    const language: 'fr' | 'en' =
-      client.agentLanguage === 'fr' || ['FR', 'BE', 'LU', 'CH', 'MC'].includes(client.country)
-        ? 'fr'
-        : 'en';
+    /* Le néerlandais est un OPT-IN explicite (`agentLanguage: 'nl'`), jamais
+       une déduction: la Belgique reste par défaut en français — la moitié des
+       clients belges attend l'inverse, et ce choix-là appartient au client,
+       pas à une règle par pays. */
+    const language: 'fr' | 'en' | 'nl' =
+      client.agentLanguage === 'nl'
+        ? 'nl'
+        : client.agentLanguage === 'fr' || ['FR', 'BE', 'LU', 'CH', 'MC'].includes(client.country)
+          ? 'fr'
+          : 'en';
 
     const profile: ClientVoiceProfile = {
       clientId: client.id,
       businessName: client.businessName,
       businessType: client.businessType,
-      agentName: client.agentName || (language === 'fr' ? 'Camille' : 'Ashley'),
+      agentName: client.agentName || (language === 'fr' ? 'Camille' : language === 'nl' ? 'Lotte' : 'Ashley'),
       language,
       timezone: onboarding.timezone || (language === 'fr' ? 'Europe/Paris' : 'America/New_York'),
       transferNumber: client.transferNumber,
@@ -259,6 +281,7 @@ class RealtimeContextService {
       // pas décider en silence de la voix que l'appelant entend.
       voiceMode: ['realtime', 'classic'].includes(vapiConfig.voiceMode) ? vapiConfig.voiceMode : 'auto',
       hasKnowledgeBase: knowledgeCount > 0,
+      recordCalls: vapiConfig.disableRecordingNotice !== true && vapiConfig.recordCalls !== false,
     };
 
     await this.set(key, profile, PROFILE_TTL_MS);

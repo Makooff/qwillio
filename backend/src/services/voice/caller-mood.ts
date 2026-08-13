@@ -35,12 +35,14 @@ export interface MoodAssessment {
 const UPSET_MARKERS: Record<VoiceLanguage, RegExp> = {
   fr: /\b(inadmissible|inacceptable|scandaleux|honteux|ras le bol|marre|enerve|enervee|furieux|furieuse|colere|plainte|reclamation|jamais rappele|personne ne repond|troisieme fois|deuxieme fois|encore une fois|toujours pas|resilier|avocat|rembours)\w*/,
   en: /\b(unacceptable|ridiculous|outrageous|fed up|furious|angry|upset|complaint|complain|third time|second time|again|still no|nobody answers|never called back|cancel my|lawyer|refund)\w*/,
+  nl: /\b(onaanvaardbaar|schandalig|belachelijk|beu|boos|kwaad|woedend|klacht|derde keer|tweede keer|alweer|nog steeds niet|niemand neemt op|nooit teruggebeld|opzeggen|advocaat|terugbetal)\w*/,
 };
 
 /** Time pressure. Different problem, different fix: brevity, not apology. */
 const RUSHED_MARKERS: Record<VoiceLanguage, RegExp> = {
   fr: /\b(vite|rapidement|urgent|urgence|presse|pressee|pas le temps|deux minutes|je conduis|je suis en reunion|faites vite)\w*/,
   en: /\b(quick|quickly|hurry|urgent|emergency|in a rush|no time|two minutes|i m driving|in a meeting|make it fast)\w*/,
+  nl: /\b(snel|vlug|dringend|spoed|haast|geen tijd|twee minuten|ik rijd|ik zit in een vergadering|maak het kort)\w*/,
 };
 
 /** Turns after which mood stops being re-evaluated. */

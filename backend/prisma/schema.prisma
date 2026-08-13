@@ -123,6 +123,14 @@ model Prospect {
   emailUnsubscribedAt   DateTime?             @map("email_unsubscribed_at")
   smsOptedOut           Boolean               @default(false) @map("sms_opted_out")
   smsOptedOutAt         DateTime?             @map("sms_opted_out_at")
+  /// Opt-out d'APPEL — le canal qui n'en avait aucun. Un prospect qui dit
+  /// « ne me rappelez plus » doit être exclu du moteur sortant pour toujours,
+  /// pas jusqu'à l'épuisement des 3 tentatives. Champ conservé (jamais purgé):
+  /// c'est la preuve de l'opt-out, à garder ≥ 3 ans.
+  callOptedOut          Boolean               @default(false) @map("call_opted_out")
+  callOptedOutAt        DateTime?             @map("call_opted_out_at")
+  /// verbal (dit pendant l'appel) | manual (posé par un opérateur) | list (import DNC)
+  callOptOutSource      String?               @map("call_opt_out_source") @db.VarChar(20)
   carrier               String?               @db.VarChar(100)
   eligibleForCall       Boolean               @default(true) @map("eligible_for_call")
   isMobile              Boolean               @default(false) @map("is_mobile")
@@ -310,6 +318,11 @@ model Client {
   googleCalendarRefreshToken String?                   @map("google_calendar_refresh_token")
   agentLanguage              String                    @default("en") @map("agent_language") @db.VarChar(10)
   agentName                  String?                   @map("agent_name") @db.VarChar(100)
+  /// Durée de conservation des données d'appel (transcripts, enregistrements,
+  /// mémoire d'appelant), en jours. Null = défaut de la plateforme (90 j, la
+  /// durée promise par la politique de confidentialité). Bornée en service
+  /// entre 30 et 1825 j (5 ans, preuve).
+  retentionDays              Int?                      @map("retention_days")
   forwardingStatus           String?                   @map("forwarding_status") @db.VarChar(50)
   forwardingType             String?                   @map("forwarding_type") @db.VarChar(50)
   forwardingVerifiedAt       DateTime?                 @map("forwarding_verified_at")

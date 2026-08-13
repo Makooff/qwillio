@@ -57,6 +57,55 @@ describe('buildStartSpeakingPlan', () => {
       plan.transcriptionEndpointingPlan.onNoPunctuationSeconds
     );
   });
+
+  it('uses the LiveKit turn model for English, with its wait curve', () => {
+    const plan = buildStartSpeakingPlan('en');
+    expect(plan.smartEndpointingPlan.provider).toBe('livekit');
+    expect(plan.smartEndpointingPlan).toHaveProperty('waitFunction');
+  });
+
+  it('keeps the documented Vapi turn model for French by default', () => {
+    // The English-only LiveKit model degraded French turn-taking once already
+    // (see the comment in speech-plans.ts). Switching French back to LiveKit
+    // must stay an explicit env opt-in (VOICE_FR_ENDPOINTING_PROVIDER), never
+    // the silent default.
+    const plan = buildStartSpeakingPlan('fr');
+    expect(plan.smartEndpointingPlan.provider).toBe('vapi');
+  });
+
+  it('switches French to the LiveKit multilingual model on explicit env opt-in', async () => {
+    const { env } = await import('../../../config/env');
+    const previous = env.VOICE_FR_ENDPOINTING_PROVIDER;
+    (env as { VOICE_FR_ENDPOINTING_PROVIDER: string }).VOICE_FR_ENDPOINTING_PROVIDER = 'livekit';
+    try {
+      const plan = buildStartSpeakingPlan('fr');
+      expect(plan.smartEndpointingPlan.provider).toBe('livekit');
+      expect(plan.smartEndpointingPlan).toHaveProperty('waitFunction');
+    } finally {
+      (env as { VOICE_FR_ENDPOINTING_PROVIDER: string }).VOICE_FR_ENDPOINTING_PROVIDER = previous;
+    }
+  });
+});
+
+describe('fallbacks fournisseurs — opt-in strict', () => {
+  // Un champ inconnu rejette l'assistant ENTIER chez Vapi: tant que les
+  // variables d'env sont vides, le schéma doit être identique à l'existant.
+  it('sans env, aucun champ de fallback ne part vers Vapi', () => {
+    const t = buildTranscriber('fr') as Record<string, unknown>;
+    expect(t.fallbackPlan).toBeUndefined();
+  });
+
+  it('avec env, le transcriber déclare son secours dans la bonne langue', async () => {
+    const { env } = await import('../../../config/env');
+    const prev = env.VOICE_STT_FALLBACK_PROVIDER;
+    (env as { VOICE_STT_FALLBACK_PROVIDER: string }).VOICE_STT_FALLBACK_PROVIDER = 'google';
+    try {
+      const t = buildTranscriber('nl') as { fallbackPlan?: { transcribers: Array<{ provider: string; language: string }> } };
+      expect(t.fallbackPlan?.transcribers).toEqual([{ provider: 'google', language: 'nl-NL' }]);
+    } finally {
+      (env as { VOICE_STT_FALLBACK_PROVIDER: string }).VOICE_STT_FALLBACK_PROVIDER = prev;
+    }
+  });
 });
 
 describe('buildVoice', () => {

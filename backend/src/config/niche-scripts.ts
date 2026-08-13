@@ -174,7 +174,7 @@ export const NICHE_SCRIPTS: Record<string, NicheScript> = {
     ],
     objectionHandlers: {
       'too_expensive': `One repair job covers it. We can split setup into 3 payments — most shops prefer that.`,
-      'customers_want_humans': `The AI sounds completely natural — people don't know it's AI. Gathers all the info, schedules them in.`,
+      'customers_want_humans': `The AI introduces itself as an assistant and still sounds completely natural. Gathers all the info, schedules them in.`,
       'not_interested': `No worries. Can I send a 2-minute video so you have it if anything changes?`,
     },
     closingStrategy: 'Get their email to send a 2-minute demo video.',

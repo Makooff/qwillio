@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
@@ -7,6 +6,8 @@ import { storeError } from '../utils/error-store';
 import { clientCallService } from '../services/client-call.service';
 import { realtimeOrchestratorService, type VapiEvent } from '../services/voice/realtime-orchestrator.service';
 import { callSessionStore } from '../services/voice/call-session.store';
+import { voiceMetricsService } from '../services/voice/voice-metrics.service';
+import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
 
 /**
  * Streaming webhook surface for the receptionist (Phase 2.1).
@@ -25,18 +26,6 @@ import { callSessionStore } from '../services/voice/call-session.store';
 
 /** Event types that are pure telemetry — never worth a synchronous DB write. */
 const HOT_PATH_EVENTS = new Set(['transcript', 'speech-update', 'conversation-update', 'status-update']);
-
-function isVapiWebhookAuthorized(req: Request): boolean {
-  const expected = env.VAPI_WEBHOOK_SECRET;
-  if (!expected) {
-    return env.NODE_ENV !== 'production';
-  }
-  const provided = req.headers['x-vapi-secret'];
-  if (typeof provided !== 'string' || provided.length !== expected.length) {
-    return false;
-  }
-  return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
-}
 
 /**
  * Log the event without blocking the response. Hot-path events are dropped
@@ -189,6 +178,13 @@ export class VoiceWebhookController {
     const finalized = await realtimeOrchestratorService.finalizeCall(clientId, event);
     if (!finalized) return;
 
+    // Agrégation flotte avant tout court-circuit: un répondeur a quand même
+    // coûté de l'argent, et une latence mesurée est une latence comptée.
+    voiceMetricsService.record(
+      finalized.metrics as { latency?: Record<string, unknown> } | null,
+      finalized.billing as { costUsd?: number | null } | null,
+    );
+
     const vapiCallId = event.message?.call?.id || event.call?.id;
     const recordingUrl = event.message?.recordingUrl || event.recordingUrl;
     const endedReason = event.message?.endedReason || event.endedReason || '';
@@ -232,6 +228,8 @@ export class VoiceWebhookController {
       endpointingMs: env.VOICE_ENDPOINTING_MS,
       startWaitSeconds: env.VOICE_START_WAIT_SECONDS,
       bargeInBackoffSeconds: env.VOICE_BARGE_IN_BACKOFF_SECONDS,
+      // P50/P95/P99 par étage + coût moyen, fenêtre glissante depuis le boot.
+      fleetMetrics: voiceMetricsService.summary(),
     });
   }
 }

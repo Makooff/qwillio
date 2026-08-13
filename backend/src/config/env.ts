@@ -123,6 +123,39 @@ export const env = {
   VOICE_IDLE_NUDGE_SECONDS: parseFloat(process.env.VOICE_IDLE_NUDGE_SECONDS || '4'),
   /** How many times to nudge before letting the silence timeout end the call. */
   VOICE_IDLE_NUDGE_COUNT: parseInt(process.env.VOICE_IDLE_NUDGE_COUNT || '2', 10),
+  /* Conformité au décroché.
+   *
+   * L'AI Act (art. 50, applicable depuis le 02/08/2026) impose d'annoncer que
+   * l'appelant parle à une IA; le RGPD (et l'art. 314bis en Belgique) impose
+   * d'annoncer l'enregistrement avant qu'il ait lieu. Le premier message porte
+   * donc les deux, et « off » n'existe que pour un déploiement hors UE — le
+   * laisser actif est le seul réglage conforme sur le marché visé. */
+  VOICE_COMPLIANCE_GREETING: (process.env.VOICE_COMPLIANCE_GREETING || 'on').toLowerCase() !== 'off',
+  /* Le détecteur de fin de tour pour le FRANÇAIS.
+   *
+   * `vapi` est le choix documenté (le modèle LiveKit historique était
+   * anglophone, voir speech-plans.ts). LiveKit a depuis publié un modèle de
+   * tour multilingue: ce réglage permet de l'essayer sur de vrais appels sans
+   * redéploiement, et de revenir en un set d'env si le français y perd. */
+  VOICE_FR_ENDPOINTING_PROVIDER: (process.env.VOICE_FR_ENDPOINTING_PROVIDER === 'livekit' ? 'livekit' : 'vapi') as 'vapi' | 'livekit',
+  /* Fallbacks fournisseurs (STT et LLM), VIDES par défaut.
+   *
+   * Un champ que Vapi ne reconnaît pas rejette l'assistant ENTIER — l'appel
+   * test ET les vrais appels (déjà vécu avec backchannelPlan). Ces deux
+   * variables ne doivent donc être posées qu'après validation sur un appel
+   * réel. Vides, le comportement actuel est inchangé au bit près. */
+  /** Ex: 'gpt-4o-mini' — modèles de secours du même provider, ordre de préférence. */
+  VOICE_LLM_FALLBACK_MODELS: (process.env.VOICE_LLM_FALLBACK_MODELS || '')
+    .split(',').map(s => s.trim()).filter(Boolean),
+  /** Ex: 'google' — transcripteur de secours si Deepgram tombe. */
+  VOICE_STT_FALLBACK_PROVIDER: process.env.VOICE_STT_FALLBACK_PROVIDER || '',
+  /* Achat automatique d'un numéro entrant à l'onboarding quand la ligne
+   * partagée est prise. '1' strict, comme ALLOW_DEGRADED_BOOT: chaque
+   * activation ACHÈTE un numéro Twilio facturé au compte — c'est une décision
+   * d'exploitation, jamais un défaut de code. */
+  PHONE_AUTO_PROVISION: process.env.PHONE_AUTO_PROVISION || '',
+  /** Indicatif souhaité pour l'achat (dépend du pays du compte Twilio). */
+  PHONE_PROVISION_AREA_CODE: process.env.PHONE_PROVISION_AREA_CODE || '',
   /**
    * Custom-LLM path for every client. ON by default: it is what makes the
    * intent router actually skip the model instead of only counting the turns it
