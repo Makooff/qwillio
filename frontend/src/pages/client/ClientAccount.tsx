@@ -193,6 +193,18 @@ export default function ClientAccount() {
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
+  /* Le numéro de TVA vit ici, avec le nom et le métier (demande utilisateur):
+     c'est une donnée d'IDENTITÉ de l'entreprise, pas un état d'abonnement. Il
+     était sur la page Facturation, où on ne va que pour lire une facture, et
+     où personne ne pense à aller renseigner l'identité de sa société.
+     Le champ a QUITTÉ Facturation en même temps qu'il arrive ici: laisser les
+     deux aurait donné deux sources pour une valeur, dont la dernière
+     enregistrée gagne. */
+  const [vatNumber, setVatNumber] = useState('');
+  /* Le chargement a-t-il réussi, question distincte de « le champ est-il
+     vide ». Sans elle, un échec de `GET /settings` laisse le champ vide et le
+     bouton actif: un clic effacerait alors un numéro qu'on n'a jamais lu. */
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   /* Non modifiables ici: ils viennent du contrat, pas des préférences. */
   const [readOnly, setReadOnly] = useState<{ contactName?: string; contactEmail?: string; country?: string }>({});
   const [bizSaving, setBizSaving] = useState(false);
@@ -223,6 +235,8 @@ export default function ClientAccount() {
       setAddress(data?.address || '');
       setCity(data?.city || '');
       setPostalCode(data?.postalCode || '');
+      setVatNumber(data?.vatNumber || '');
+      setSettingsLoaded(true);
       setReadOnly({ contactName: data?.contactName, contactEmail: data?.contactEmail, country: data?.country });
     }).catch(() => { /* keep defaults */ });
   }, []);
@@ -246,6 +260,11 @@ export default function ClientAccount() {
       await api.put('/my-dashboard/settings', {
         agentLanguage, businessName, businessType,
         contactPhone, address, city, postalCode,
+        /* Le numéro de TVA n'est envoyé QUE si les réglages ont bien été lus.
+           Le PUT est partiel côté serveur (`if (body.x !== undefined)`), donc
+           l'omettre le laisse intact; l'envoyer vide après un chargement raté
+           l'effacerait. */
+        ...(settingsLoaded ? { vatNumber } : {}),
       });
       invalidateLive('/my-dashboard/');
       setBizSaved(true);
@@ -690,6 +709,34 @@ export default function ClientAccount() {
                       </select>
                       <p className="text-[11px] mt-1" style={{ color: C.textTer }}>La langue parlée à vos appelants.</p>
                     </div>
+                  </div>
+                  {/* Le numéro de TVA, avec le nom et le métier: c'est
+                      l'identité de la société, au même titre qu'eux. Il vivait
+                      sur Facturation, où l'on ne va que pour lire une facture.
+                      Sans lui, la facture Stripe sort sans mention de TVA: un
+                      client belge assujetti ne peut pas la porter en compte, et
+                      un client d'un autre État membre perd l'autoliquidation.
+                      C'est la première chose que son comptable réclame. */}
+                  <div>
+                    <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Numéro de TVA</label>
+                    <input
+                      type="text"
+                      value={vatNumber}
+                      onChange={e => setVatNumber(e.target.value)}
+                      disabled={!settingsLoaded}
+                      placeholder="BE0123456789"
+                      /* `characters` et non `words`: un numéro de TVA commence
+                         par deux lettres de pays, que la majuscule automatique
+                         d'iOS ne pose que sur la première. */
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      className={inputCls + ' mt-1.5 font-mono'}
+                      style={{ borderColor: C.border }}
+                    />
+                    <p className="text-[11px] mt-1" style={{ color: C.textTer }}>
+                      Il apparaît sur vos factures. Laissez vide si vous n'êtes pas assujetti.
+                    </p>
                   </div>
                   {bizError && <p className="text-[12px]" style={{ color: C.bad }}>{bizError}</p>}
                   <div className="flex items-center gap-3 pt-2">

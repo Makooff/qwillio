@@ -116,8 +116,13 @@ const OVERVIEW = {
   client: {
     id: 'demo', businessName: 'Clinique Dentaire Léopold', businessType: 'dentiste',
     planType: 'pro', subscriptionStatus: 'active', vapiPhoneNumber: '+32 2 588 14 90',
-    isTrial: false, trialEndDate: null, monthlyMinutesQuota: 500, totalCallsMade: 412,
-    monthlyFee: 249, setupFee: 0, transferNumber: '+32 2 512 44 11', currency: 'EUR',
+    isTrial: false, trialEndDate: null, monthlyMinutesQuota: 2000, totalCallsMade: 412,
+    /* Le forfait, son prix et son quota viennent du MÊME plan du catalogue
+       (`PLANS` dans ClientBilling): Pro, 599 € par mois, 2 000 minutes. Ils
+       divergeaient — « Plan Pro » annoncé à 249 € avec 500 minutes — et ces
+       chiffres partent en capture sur le site public, où deux lignes qui se
+       contredisent se remarquent plus qu'un chiffre rond. */
+    monthlyFee: 599, setupFee: 0, transferNumber: '+32 2 512 44 11', currency: 'EUR',
     activationDate: iso(120, 10, 0), cancellationDate: null,
     trialStartDate: null, trialConvertedAt: iso(113, 10, 0),
     contactName: 'Dr Élodie Vermeulen', contactEmail: 'elodie@clinique-leopold.be',
@@ -126,7 +131,7 @@ const OVERVIEW = {
     planFeatures: ['Appels illimités', 'Agenda connecté', 'SMS de confirmation', 'CRM'],
   },
   calls: { total: 412, thisMonth: 138, thisWeek: 34, today: 7, avgDuration: 152 },
-  minutes: { quota: 500, used: 341, percent: 68 },
+  minutes: { quota: 2000, used: 1362, percent: 68 },
   bookings: { total: 194, thisMonth: 61, upcoming: 12 },
   leads: { thisMonth: 47 },
   dailyCalls,
@@ -175,11 +180,31 @@ function mockFor(pathname, search) {
     return {
       businessName: 'Clinique Dentaire Léopold', businessType: 'dentiste',
       agentName: 'Camille', agentLanguage: 'fr', transferNumber: '+32 2 512 44 11',
+      /* Le numéro de TVA fait partie de l'identité de l'entreprise, et se règle
+         désormais sur la page Compte. */
+      vatNumber: 'BE0745123456',
       forwardingType: 'unconditional', googleCalendarId: 'agenda@clinique-leopold.be',
       items: [
         { id: 'i1', category: 'service', name: 'Détartrage', price: '75 €' },
         { id: 'i2', category: 'service', name: 'Blanchiment', price: '290 €' },
       ],
+    };
+  }
+  /* La page Facturation: l'aperçu de l'abonnement et l'historique des
+     paiements. Sans eux, elle partait sur ses valeurs par défaut. */
+  if (p === '/my-dashboard/billing') {
+    return {
+      plan: 'pro', status: 'active', renewalDate: iso(-18, 0, 0),
+      minutesUsed: 1362, minutesLimit: 2000, trialEndsAt: null, isTrial: false,
+      paymentMethod: { brand: 'visa', last4: '4242', expMonth: 7, expYear: 2029 },
+    };
+  }
+  if (p === '/my-dashboard/payments') {
+    return {
+      data: [0, 1, 2].map(i => ({
+        id: `pay_${i}`, amount: 599, currency: 'EUR', status: 'paid',
+        createdAt: iso(30 * i, 9, 0), description: 'Abonnement Pro',
+      })),
     };
   }
   if (p.startsWith('/my-dashboard/integrations/google-calendar/status')) {

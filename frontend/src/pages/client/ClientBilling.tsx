@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Check, AlertTriangle, Shield, Phone, FileText, Download, CreditCard } from '../../components/icons';
 import api from '../../services/api';
@@ -140,18 +141,6 @@ function StatusPill({ status }: { status: string }) {
 
 export default function ClientBilling() {
   const [overview, setOverview] = useState<BillingOverview | null>(null);
-  /* Le numéro de TVA vit dans les réglages du client, pas dans l'aperçu de
-     facturation: c'est une donnée d'identité, pas un état d'abonnement. La page
-     le lit donc à part, et l'écrit par le même PUT que le reste des réglages. */
-  const [vatNumber, setVatNumber] = useState('');
-  const [vatSaved, setVatSaved] = useState<string | null>(null);
-  /* Le CHARGEMENT a-t-il réussi, question distincte de « le numéro est-il
-     vide ». Sans elle, un échec de `GET /settings` laissait le champ vide et le
-     bouton actif: un clic effaçait alors un numéro de TVA qu'on n'avait jamais
-     réussi à lire. */
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
-  const [vatSaving, setVatSaving] = useState(false);
-  const [vatError, setVatError] = useState<string | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCancel, setShowCancel] = useState(false);
@@ -174,20 +163,19 @@ export default function ClientBilling() {
     Promise.allSettled([
       api.get('/my-dashboard/billing'),
       api.get('/my-dashboard/payments'),
-      api.get('/my-dashboard/settings'),
     ])
-      .then(([billingRes, paymentsRes, settingsRes]) => {
+      .then(([billingRes, paymentsRes]) => {
         if (billingRes.status === 'fulfilled') setOverview(billingRes.value.data);
         else setLoadError("Impossible de charger votre abonnement. Rechargez la page, ou contactez-nous si cela persiste.");
         if (paymentsRes.status === 'fulfilled') {
           const body = paymentsRes.value.data;
-          setPayments(body?.data || body || []);
-        }
-        if (settingsRes.status === 'fulfilled') {
-          const vat = settingsRes.value.data?.vatNumber || '';
-          setVatNumber(vat);
-          setVatSaved(vat);
-          setSettingsLoaded(true);
+          /* `Array.isArray` et non `|| []`: la route peut répondre un objet
+             (enveloppe, message d'erreur applicatif rendu en 200), et
+             `body?.data || body` le laissait passer tel quel. La page tombait
+             alors sur « payments.map is not a function », c'est-à-dire un écran
+             blanc pour une simple liste vide. */
+          const rows = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
+          setPayments(rows);
         }
       })
       .finally(() => setLoading(false));
@@ -221,22 +209,6 @@ export default function ClientBilling() {
      Un `window.open` serait bloqué par le navigateur: la réponse arrive après
      un aller-retour réseau, donc hors du geste de l'utilisateur, et le bloqueur
      de fenêtres ne fait pas la différence avec une publicité. */
-  /* L'enregistrement est explicite, pas automatique: un numéro de TVA
-     incomplet part chez Stripe à chaque frappe si on le sauve en continu, et
-     Stripe refuse alors la moitié des tentatives. */
-  const saveVatNumber = async () => {
-    setVatSaving(true);
-    setVatError(null);
-    try {
-      await api.put('/my-dashboard/settings', { vatNumber });
-      setVatSaved(vatNumber);
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setVatError(msg || 'Enregistrement impossible. Réessayez.');
-    } finally {
-      setVatSaving(false);
-    }
-  };
 
   const openBillingPortal = async () => {
     setOpeningPortal(true);
@@ -635,44 +607,19 @@ export default function ClientBilling() {
           {openingPortal ? 'Ouverture…' : 'Gérer mon moyen de paiement'}
         </button>
 
-        {/* NUMÉRO DE TVA. Il ne sert pas à nous: il sert à la facture, que le
-            comptable du client regarde. Sans lui, un assujetti belge ne peut
-            pas la porter en compte, et un client d'un autre État membre ne
-            bénéficie pas de l'autoliquidation. Le champ vit sous le moyen de
-            paiement parce que c'est la même question: à qui et comment on
-            facture. */}
-        <div className="mt-6 pt-6 border-t" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-          <label htmlFor="vat" className="block text-xs font-medium text-[#F5F5F7] mb-1">
-            Numéro de TVA
-          </label>
-          <p className="text-xs text-[#A1A1A8] mb-3">
-            Il apparaîtra sur vos factures. Laissez vide si vous n'êtes pas assujetti.
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              id="vat"
-              value={vatNumber}
-              onChange={(e) => setVatNumber(e.target.value)}
-              placeholder="BE 0123.456.789"
-              spellCheck={false}
-              className="px-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors w-[220px]"
-            />
-            <button
-              type="button"
-              onClick={saveVatNumber}
-              disabled={vatSaving || !settingsLoaded || vatNumber === vatSaved}
-              className="px-4 py-2 text-sm font-medium rounded-full border border-white/[0.12] text-[#F5F5F7] hover:bg-white/[0.06] disabled:opacity-40 transition-colors active:scale-[0.97]"
-            >
-              {vatSaving ? 'Enregistrement…' : vatNumber === vatSaved ? 'Enregistré' : 'Enregistrer'}
-            </button>
-          </div>
-          {!settingsLoaded && (
-            <p className="text-xs text-[#A1A1A8] mt-2">
-              Vos réglages n'ont pas pu être chargés. Rechargez la page avant de modifier ce champ.
-            </p>
-          )}
-          {vatError && <p className="text-xs text-red-400 mt-2">{vatError}</p>}
-        </div>
+        {/* Le NUMÉRO DE TVA a quitté cette page (demande utilisateur): il vit
+            désormais avec le nom et le métier, dans « Identité de l'entreprise »
+            sur la page Compte, parce que c'est une donnée d'identité de la
+            société et non un état d'abonnement. Il ne reste ici qu'un renvoi:
+            quelqu'un qui le cherchait sur Facturation doit savoir où il est
+            parti, sinon le champ a simplement disparu pour lui. */}
+        <p className="mt-6 pt-6 border-t text-xs text-[#A1A1A8]" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+          Votre numéro de TVA, qui apparaît sur ces factures, se renseigne dans{' '}
+          <Link to="/dashboard/account" className="text-[#7349fe] hover:underline">
+            Compte, Identité de l'entreprise
+          </Link>
+          .
+        </p>
       </motion.div>
 
       {/* Danger zone — cancel */}
