@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { stripe } from '../config/stripe';
@@ -17,27 +16,7 @@ import { closerAgentService } from '../services/closer-agent.service';
 import { callSessionStore } from '../services/voice/call-session.store';
 import { inboundRoutingService } from '../services/voice/inbound-routing.service';
 import { realtimeOrchestratorService } from '../services/voice/realtime-orchestrator.service';
-
-/**
- * Verify the shared secret on inbound VAPI webhooks.
- *
- * When VAPI_WEBHOOK_SECRET is set, the `x-vapi-secret` header must match it
- * (constant-time compare, so the check does not leak the secret byte by byte).
- * When it is NOT set we fail CLOSED in production: an unconfigured secret must
- * never leave the endpoint open to spoofed call events. In development we stay
- * permissive so local testing without the secret still works.
- */
-function isVapiWebhookAuthorized(req: Request): boolean {
-  const expected = env.VAPI_WEBHOOK_SECRET;
-  if (!expected) {
-    return env.NODE_ENV !== 'production';
-  }
-  const provided = req.headers['x-vapi-secret'];
-  if (typeof provided !== 'string' || provided.length !== expected.length) {
-    return false;
-  }
-  return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
-}
+import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
 
 export class WebhooksController {
   async stripeWebhook(req: Request, res: Response) {

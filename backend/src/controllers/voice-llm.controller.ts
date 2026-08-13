@@ -1,10 +1,9 @@
-import crypto from 'crypto';
 import { Request, Response } from 'express';
-import { env } from '../config/env';
 import { logger } from '../config/logger';
 import { llmStreamService, type ChatCompletionRequest } from '../services/voice/llm-stream.service';
 import { realtimeContextService } from '../services/voice/realtime-context.service';
 import { callSessionStore } from '../services/voice/call-session.store';
+import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
 
 /**
  * OpenAI-compatible streaming endpoint Vapi calls when a client is on the
@@ -15,17 +14,9 @@ import { callSessionStore } from '../services/voice/call-session.store';
  * service. Any buffering between here and Vapi would erase the entire point.
  */
 
-function isAuthorized(req: Request): boolean {
-  const expected = env.VAPI_WEBHOOK_SECRET;
-  if (!expected) return env.NODE_ENV !== 'production';
-  const provided = req.headers['x-vapi-secret'];
-  if (typeof provided !== 'string' || provided.length !== expected.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
-}
-
 export class VoiceLlmController {
   async chatCompletions(req: Request, res: Response) {
-    if (!isAuthorized(req)) {
+    if (!isVapiWebhookAuthorized(req)) {
       return res.status(401).json({ error: 'Invalid webhook secret' });
     }
 

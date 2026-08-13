@@ -36,7 +36,7 @@ Légende : ✅ PRÉSENT · 🟡 PARTIEL · ❌ ABSENT
 |---|---|---|---|---|
 | Évals + simulation d'appels + régression prompts | ❌ | Zéro harness d'éval, zéro corpus, zéro simulation (recherche exhaustive) ; seuls des tests unitaires de *construction* de prompt (`system-prompt.test.ts:33`) | Chaque modif de prompt part en prod à l'aveugle — le plus gros risque qualité du produit | M |
 | Observabilité/tracing (coût/appel, P50/P95/P99) | 🟡 | Sentry (traces 20 %) + winston (ring buffer mémoire, persistance DB désactivée) ; latence par appel non agrégée ; **coût LLM absent du breakdown** (`admin-analytics.service.ts:16-60`) ; pas d'OTel/Langfuse | Débogage prod difficile ; marge par client inconnue | S (agrégation) / M (tracing complet) |
-| Guardrails : isolation prompt, anti-hallucination, anti-injection | 🟡 | Une clause SÉCURITÉ (`system-prompt.ts:157-161`) mais : instructions client injectées **prioritaires** (`system-prompt.ts:76-81`), résumé du dernier appel = canal d'injection inter-appelants (`system-prompt.ts:141`), prompts outbound sans aucune garde, **endpoint custom-LLM non authentifié** (`webhooks.routes.ts:25`) | Détournement de l'agent par un appelant ou un client ; usurpation du LLM | S |
+| Guardrails : isolation prompt, anti-hallucination, anti-injection | 🟡 | Une clause SÉCURITÉ (`system-prompt.ts:157-161`) mais : instructions client injectées **prioritaires** (`system-prompt.ts:76-81`), résumé du dernier appel = canal d'injection inter-appelants (`system-prompt.ts:141`), prompts outbound sans aucune garde ; la vérif du secret Vapi existait en **trois copies** identiques (drift garanti) | Détournement de l'agent par un appelant ou un client | S |
 | Fallbacks multi-fournisseurs STT/LLM/TTS | ❌ | Voir A.1 — TTS fallback intra-ElevenLabs seulement | SPOF sur 3 fournisseurs | M |
 | Multi-tenant : isolation stricte, provisioning numéros, Stripe Meters, white-label | 🟡 | Isolation par convention applicative seulement (`auth.middleware.ts:174`) ; **1 numéro partagé, client #2 sans ligne** (`phone-allocation.service.ts:40-78`) ; overage par cron mensuel **sans idempotence** au lieu de Meters (`stripe.service.ts:393-424`) ; white-label : champs stockés, jamais consommés (`agency.service.ts`) | Provisioning = bloquant vente n°1 ; double-facturation possible ; fuite inter-tenant à un `where` oublié | M (numéros) / S (idempotence) / M (Meters) |
 
@@ -58,7 +58,7 @@ Légende : ✅ PRÉSENT · 🟡 PARTIEL · ❌ ABSENT
 | `Dockerfile` lance `prisma db push --accept-data-loss` | `backend/Dockerfile:16` | Perte de données si l'image tourne contre la prod |
 | `ADMIN_SECRET` header = bypass admin total non journalisé | `auth.middleware.ts:12-17` | Sécurité critique |
 | CORS `*.vercel.app` avec credentials | `server.ts:77` | N'importe quel site Vercel peut appeler l'API authentifiée |
-| Endpoint custom-LLM non authentifié | `webhooks.routes.ts:25` | Usurpation du cerveau de l'agent (quick win 4) |
+| Vérification du secret Vapi tripliquée (3 copies identiques, fail-open hors prod) | `webhooks.controller.ts`, `voice-webhook.controller.ts`, `voice-llm.controller.ts` | Divergence silencieuse d'une des copies (mutualisée au quick win 4) |
 | Twilio webhooks non vérifiés par défaut | `twilio.middleware.ts:16-19` | Forgeage de SMS entrants/STOP |
 | Clés API clients en clair en base | `api-key.middleware.ts:20-22` | Fuite DB = fuite credentials |
 | Overage sans clé d'idempotence | `stripe.service.ts:422-424` | Double facturation |

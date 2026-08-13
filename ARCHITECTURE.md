@@ -225,8 +225,9 @@ gardées par unicité `stripeInvoiceId`.
 - `ADMIN_SECRET` en header = bypass admin complet, statique, non journalisé
   (`auth.middleware.ts:12-17`).
 - CORS : allowlist + **regex `*.vercel.app` avec credentials** (`server.ts:77`).
-- Endpoint custom-LLM **non authentifié** (`webhooks.routes.ts:25`,
-  `voice-llm.controller.ts`) : quiconque connaît un `clientId` peut le piloter.
+- Vérification du secret Vapi en trois copies identiques (webhooks outbound,
+  webhook réceptionniste, endpoint custom-LLM), toutes fail-open hors
+  production : mutualisées depuis dans `utils/vapi-webhook-auth.ts`.
 - Twilio webhooks non vérifiés par défaut (`twilio.middleware.ts:16-19`).
 - Clés API clients stockées en clair (`api-key.middleware.ts:20-22`).
 - Aucun secret en dur détecté ; validation d'env au boot avec soupape

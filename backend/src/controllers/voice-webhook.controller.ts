@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
@@ -8,6 +7,7 @@ import { clientCallService } from '../services/client-call.service';
 import { realtimeOrchestratorService, type VapiEvent } from '../services/voice/realtime-orchestrator.service';
 import { callSessionStore } from '../services/voice/call-session.store';
 import { voiceMetricsService } from '../services/voice/voice-metrics.service';
+import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
 
 /**
  * Streaming webhook surface for the receptionist (Phase 2.1).
@@ -26,18 +26,6 @@ import { voiceMetricsService } from '../services/voice/voice-metrics.service';
 
 /** Event types that are pure telemetry — never worth a synchronous DB write. */
 const HOT_PATH_EVENTS = new Set(['transcript', 'speech-update', 'conversation-update', 'status-update']);
-
-function isVapiWebhookAuthorized(req: Request): boolean {
-  const expected = env.VAPI_WEBHOOK_SECRET;
-  if (!expected) {
-    return env.NODE_ENV !== 'production';
-  }
-  const provided = req.headers['x-vapi-secret'];
-  if (typeof provided !== 'string' || provided.length !== expected.length) {
-    return false;
-  }
-  return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
-}
 
 /**
  * Log the event without blocking the response. Hot-path events are dropped

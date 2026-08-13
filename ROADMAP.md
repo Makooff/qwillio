@@ -51,16 +51,21 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
 - **Done** : P50/P95/P99 par étage (STT/LLM/TTS/total) et coût moyen/appel consultables
   sur un endpoint ; tests unitaires sur l'agrégateur.
 
-### 1.4 Guardrail d'isolation du system prompt + auth du endpoint custom-LLM
+### 1.4 Guardrail d'isolation du system prompt
 - [x] **Fait le 13/08/2026**
+- **Correction d'audit** : le endpoint custom-LLM était déjà authentifié (constat
+  initial erroné) ; le vrai défaut était la vérification du secret Vapi copiée à
+  l'identique dans trois contrôleurs — mutualisée dans `utils/vapi-webhook-auth.ts`.
 - **Techno** : sanitisation des textes non fiables injectés au prompt (instructions
-  client, résumé d'appel précédent, nom appelant) ; la clause SÉCURITÉ devient finale
-  et explicitement supérieure aux instructions client ; secret Vapi exigé sur
-  `/vapi/llm/:clientId/chat/completions`.
-- **Impact** : ferme le canal d'injection inter-appelants et l'usurpation du LLM.
-- **Effort** : S. **Dépendances** : header secret côté config Vapi (custom-llm).
-- **Done** : endpoint LLM répond 401 sans secret ; textes non fiables délimités et
-  neutralisés ; tests d'injection unitaires verts.
+  client, bloc de connaissance, résumé d'appel précédent, nom appelant — y compris
+  dans le premier message) ; la clause SÉCURITÉ devient finale et explicitement
+  supérieure aux instructions client, dont le label dit désormais l'inverse de
+  « prioritaires » sur la sécurité.
+- **Impact** : ferme le canal d'injection inter-appelants (résumé du dernier appel)
+  et le désarmement de la sécurité par les consignes client.
+- **Effort** : S. **Dépendances** : aucune.
+- **Done** : tests d'injection unitaires verts (caractères de contrôle, fences,
+  fausses sections, nom forgé) ; clause SÉCURITÉ vérifiée en dernière position.
 
 ### 1.5 Correctifs de sécurité à coût nul (recommandé dans la foulée)
 - [ ] Retirer `--accept-data-loss` du `Dockerfile` (→ `migrate deploy`).
