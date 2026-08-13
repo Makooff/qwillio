@@ -87,7 +87,7 @@ export class OnboardingService {
           style: character.style,
         }),
         firstMessage: this.generateFirstMessage(client, isFrClient),
-        ...buildRealtimePlans(isFrClient ? 'fr' : 'en'),
+        ...buildRealtimePlans(client?.agentLanguage === 'nl' ? 'nl' : isFrClient ? 'fr' : 'en'),
         serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
         endCallFunctionEnabled: true,
         // Même règle que le runtime: refuser la notice, c'est refuser
@@ -368,6 +368,15 @@ export class OnboardingService {
        contraire à l'appelant lui-même. La version française n'en parlait déjà
        pas. */
     const noticeEn = 'This call is recorded.';
+    const noticeNl = 'Dit gesprek wordt opgenomen.';
+
+    // Le néerlandais est un opt-in explicite (agentLanguage), jamais déduit du
+    // pays: la Belgique reste francophone par défaut.
+    if (client?.agentLanguage === 'nl') {
+      const greeting = `Goeiedag, bedankt om ${businessName} te bellen. Ik ben ${agentName}, uw AI-assistent.`;
+      const notice = recordingDisabled ? '' : ` ${noticeNl}`;
+      return `${greeting}${notice} Waarmee kan ik u helpen?`;
+    }
 
     if (isFrClient) {
       const greeting = `Bonjour, merci d'appeler ${businessName}. Je suis ${agentName}, votre assistant IA.`;

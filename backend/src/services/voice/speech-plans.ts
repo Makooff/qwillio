@@ -22,10 +22,16 @@ import { buildIdleMessagePlan } from './conversational-repair';
  *   + TTS TTFB ~75 ms (ElevenLabs Flash v2.5, streaming).
  */
 
-export type VoiceLanguage = 'fr' | 'en';
+export type VoiceLanguage = 'fr' | 'en' | 'nl';
 
 /** Deepgram language codes we actually ship. */
-const DEEPGRAM_LANG: Record<VoiceLanguage, string> = { fr: 'fr', en: 'en-US' };
+const DEEPGRAM_LANG: Record<VoiceLanguage, string> = { fr: 'fr', en: 'en-US', nl: 'nl' };
+
+/* Le néerlandais tourne sur nova-2: nova-3 est documenté anglais d'abord
+ * (le multilingue passe par `language: 'multi'`, un mode différent), tandis
+ * que nova-2 supporte `nl` nommément. Un WER mesuré sur de vrais appels
+ * flamands décidera d'un éventuel passage à nova-3 multi. */
+const DEEPGRAM_MODEL: Record<VoiceLanguage, string> = { fr: 'nova-3', en: 'nova-3', nl: 'nova-2' };
 
 /**
  * Transcriber tuned for conversational endpointing rather than transcription
@@ -37,7 +43,7 @@ const DEEPGRAM_LANG: Record<VoiceLanguage, string> = { fr: 'fr', en: 'en-US' };
 export function buildTranscriber(lang: VoiceLanguage) {
   return {
     provider: 'deepgram',
-    model: 'nova-3',
+    model: DEEPGRAM_MODEL[lang],
     language: DEEPGRAM_LANG[lang],
     smartFormat: true,
     // Emit interim results so the orchestrator can react (barge-in bookkeeping,
@@ -78,9 +84,11 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
      * LiveKit a depuis publié un modèle de tour multilingue (français inclus).
      * `VOICE_FR_ENDPOINTING_PROVIDER=livekit` permet de le valider sur de
      * vrais appels; le défaut reste `vapi`, le choix documenté ci-dessus, et
-     * le retour arrière est un set d'env, pas un déploiement. */
+     * le retour arrière est un set d'env, pas un déploiement. Le néerlandais
+     * suit la même règle que le français: détecteur Vapi, seul documenté
+     * hors anglais. */
     smartEndpointingPlan:
-      lang === 'en' || env.VOICE_FR_ENDPOINTING_PROVIDER === 'livekit'
+      lang === 'en' || (lang === 'fr' && env.VOICE_FR_ENDPOINTING_PROVIDER === 'livekit')
         ? { provider: 'livekit', waitFunction: '2000 / (1 + exp(-10 * (x - 0.5)))' }
         : { provider: 'vapi' },
     transcriptionEndpointingPlan: {
@@ -113,13 +121,17 @@ export function buildStopSpeakingPlan() {
     acknowledgementPhrases: [
       'i understand', 'ok', 'okay', 'right', 'yeah', 'yes', 'uh-huh', 'mm-hmm',
       'd\'accord', 'ouais', 'oui', 'hm', 'mhm', 'je vois', 'très bien',
+      // NL — 'ja' et 'oké' sont les backchannels flamands les plus fréquents.
+      'ja', 'jaja', 'oké', 'begrepen', 'ik snap het',
     ],
     // Unique — Vapi rejects the whole assistant on a duplicate
     // ("stopSpeakingPlan.All interruptionPhrases's elements must be unique"),
-    // and 'stop' is the same word in both languages.
+    // and 'stop' is the same word in all three languages ('pardon' too:
+    // FR = NL, so it appears once and serves both).
     interruptionPhrases: [
       'stop', 'wait', 'hold on', 'excuse me', 'actually', 'no no',
       'attendez', 'attends', 'non non', 'pardon', 'en fait',
+      'wacht', 'wacht even', 'nee nee', 'eigenlijk', 'sorry hoor',
     ],
   };
 }

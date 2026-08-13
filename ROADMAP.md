@@ -81,14 +81,21 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
 ## Niveau 2 — Différenciation (1-4 semaines)
 
 ### 2.1 Néerlandais + détection de langue (marché belge)
-- **Techno** : étendre `VoiceLanguage` à `'nl'` ; Deepgram nova-3 `nl` ; voix
-  ElevenLabs NL ; prompts NL ; détection : choix par numéro appelé (ligne NL dédiée)
-  puis switch en cours d'appel (« Wilt u verder in het Nederlands? ») ; test
-  code-switching FR/NL/EN scripté.
-- **Impact** : ouvre la moitié flamande du marché BE — le plus gros levier commercial.
-- **Effort** : L. **Dépendances** : voix NL validée, numéro BE (déjà au backlog).
-- **Done** : appel de test NL complet (greeting → RDV → SMS) ; suite code-switching
-  passée ; WER NL mesuré sur 20 transcripts < 12 %.
+- [x] **Fait le 13/08/2026** (pipeline complet ; la détection dynamique de langue
+  reste à venir)
+- **Livré** : `VoiceLanguage` étendu à `'nl'` — le typage `Record<VoiceLanguage,…>`
+  a forcé la couverture de TOUTES les tables : system prompt intégral NL (identité,
+  règles, contrat outils, mémoire, clause VEILIGHEID), premiers messages NL avec
+  divulgation IA + « Dit gesprek wordt opgenomen », fillers d'outils, intents
+  (backchannels/adieux/présence flamands), marqueurs d'humeur et d'escalade,
+  détection de dates (maandag…), nudges de silence, phrases barge-in, transcriber
+  Deepgram `nova-2`/`nl` (nova-3 est anglais d'abord), détecteur de tour Vapi.
+  **Opt-in par client** (`agentLanguage: 'nl'`) — la Belgique reste FR par défaut,
+  ce choix appartient au client. Onboarding NL inclus.
+- **Reste** : voix ElevenLabs NL dédiée dans le catalogue de personnages (les voix
+  actuelles sont multilingues, acceptable), détection/switch en cours d'appel,
+  WER NL mesuré sur 20 vrais appels < 12 %.
+- **Done partiel** : 12 tests NL ; appel de test réel NL à passer avant vente.
 
 ### 2.2 Rétention configurable + purge automatique
 - [x] **Fait le 13/08/2026**

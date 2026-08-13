@@ -58,7 +58,7 @@ export interface ClientVoiceProfile {
   businessName: string;
   businessType: string;
   agentName: string;
-  language: 'fr' | 'en';
+  language: 'fr' | 'en' | 'nl';
   timezone: string;
   transferNumber: string | null;
   /** Free-text client instructions from onboarding ("never quote prices"). */
@@ -246,16 +246,22 @@ class RealtimeContextService {
 
     const onboarding = (client.onboardingData as Record<string, any> | null) || {};
     const vapiConfig = (client.vapiConfig as Record<string, any> | null) || {};
-    const language: 'fr' | 'en' =
-      client.agentLanguage === 'fr' || ['FR', 'BE', 'LU', 'CH', 'MC'].includes(client.country)
-        ? 'fr'
-        : 'en';
+    /* Le néerlandais est un OPT-IN explicite (`agentLanguage: 'nl'`), jamais
+       une déduction: la Belgique reste par défaut en français — la moitié des
+       clients belges attend l'inverse, et ce choix-là appartient au client,
+       pas à une règle par pays. */
+    const language: 'fr' | 'en' | 'nl' =
+      client.agentLanguage === 'nl'
+        ? 'nl'
+        : client.agentLanguage === 'fr' || ['FR', 'BE', 'LU', 'CH', 'MC'].includes(client.country)
+          ? 'fr'
+          : 'en';
 
     const profile: ClientVoiceProfile = {
       clientId: client.id,
       businessName: client.businessName,
       businessType: client.businessType,
-      agentName: client.agentName || (language === 'fr' ? 'Camille' : 'Ashley'),
+      agentName: client.agentName || (language === 'fr' ? 'Camille' : language === 'nl' ? 'Lotte' : 'Ashley'),
       language,
       timezone: onboarding.timezone || (language === 'fr' ? 'Europe/Paris' : 'America/New_York'),
       transferNumber: client.transferNumber,

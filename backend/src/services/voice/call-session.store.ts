@@ -1,5 +1,6 @@
 import { logger } from '../../config/logger';
 import { CallLatencyTracker } from './latency-tracker';
+import type { VoiceLanguage } from './speech-plans';
 import type { CallerMood } from './caller-mood';
 
 /**
@@ -33,7 +34,7 @@ export interface CallSession {
   clientId: string;
   callerNumber: string | null;
   startedAt: number;
-  language: 'fr' | 'en';
+  language: VoiceLanguage;
   /** Row id once the call has been persisted, for tools that link to it. */
   clientCallId: string | null;
   /** Rolling transcript, appended per final utterance. */
@@ -116,7 +117,7 @@ class CallSessionStore {
     vapiCallId: string;
     clientId: string;
     callerNumber: string | null;
-    language: 'fr' | 'en';
+    language: VoiceLanguage;
   }): CallSession {
     const session: CallSession = {
       vapiCallId: input.vapiCallId,

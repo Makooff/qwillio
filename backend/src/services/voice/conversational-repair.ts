@@ -19,12 +19,14 @@ import type { VoiceLanguage } from './speech-plans';
 const RECOVERY: Record<VoiceLanguage, string[]> = {
   fr: ['Pardon, allez-y.', 'Je vous en prie.', 'Oui, je vous écoute.'],
   en: ['Sorry, go ahead.', 'Please, go on.', 'Yes, I\'m listening.'],
+  nl: ['Sorry, gaat u verder.', 'Zegt u maar.', 'Ja, ik luister.'],
 };
 
 /** Said when the line has been quiet and the caller may think it dropped. */
 const SILENCE_NUDGE: Record<VoiceLanguage, string[]> = {
   fr: ['Vous êtes toujours là ?', 'Vous m\'entendez ?'],
   en: ['Are you still there?', 'Can you still hear me?'],
+  nl: ['Bent u er nog?', 'Hoort u mij nog?'],
 };
 
 /**

@@ -38,19 +38,22 @@ interface CachedSlots {
 const CACHE_TTL_MS = 30_000;
 const MAX_SPECULATIONS_PER_CALL = 4;
 
-/** Weekday names to a JS day index, both languages. */
+/** Weekday names to a JS day index, per language. */
 const WEEKDAYS: Record<VoiceLanguage, Record<string, number>> = {
   fr: { dimanche: 0, lundi: 1, mardi: 2, mercredi: 3, jeudi: 4, vendredi: 5, samedi: 6 },
   en: { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 },
+  nl: { zondag: 0, maandag: 1, dinsdag: 2, woensdag: 3, donderdag: 4, vrijdag: 5, zaterdag: 6 },
 };
 
 const TODAY_WORDS: Record<VoiceLanguage, string[]> = {
   fr: ["aujourd hui", 'ce soir', 'ce midi'],
   en: ['today', 'this evening', 'tonight'],
+  nl: ['vandaag', 'vanavond', 'vanmiddag'],
 };
 const TOMORROW_WORDS: Record<VoiceLanguage, string[]> = {
   fr: ['demain'],
   en: ['tomorrow'],
+  nl: ['morgen'],
 };
 
 function atNoon(date: Date): Date {
