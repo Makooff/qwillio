@@ -194,7 +194,7 @@ export default function Subscribe() {
         disabled={loading || !businessName.trim()}
         className={`${AUTH_SUBMIT} mt-8`}
       >
-        {loading && <Loader2 size={16} className="animate-spin" />}
+        {loading && <Loader2 size={16} />}
         {loading
           ? (isFr ? 'Redirection…' : 'Redirecting…')
           : (isFr ? 'Enregistrer ma carte' : 'Add my card')}

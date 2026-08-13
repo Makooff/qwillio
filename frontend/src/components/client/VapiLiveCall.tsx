@@ -408,7 +408,7 @@ export default function VapiLiveCall({
             : { background: '#fff', color: '#0B0B0D', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.10)' }}
         >
           {state === 'connecting'
-            ? <Loader2 size={18} className="animate-spin" />
+            ? <Loader2 size={18} />
             : active ? <PhoneOff size={18} /> : <PhoneCall size={18} />}
         </button>
       </span>

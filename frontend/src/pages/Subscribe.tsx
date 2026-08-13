@@ -202,7 +202,7 @@ export default function Subscribe() {
           disabled={loading || !businessName.trim()}
           className="mt-8 w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#1d1d1f] px-6 py-4 text-[15px] font-medium text-white transition-colors duration-300 hover:bg-[#7a5fff] disabled:opacity-40"
         >
-          {loading && <Loader2 size={16} className="animate-spin" />}
+          {loading && <Loader2 size={16} />}
           {loading
             ? (isFr ? 'Redirection…' : 'Redirecting…')
             : (isFr ? 'Enregistrer ma carte' : 'Add my card')}

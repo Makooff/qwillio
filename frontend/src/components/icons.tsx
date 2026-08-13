@@ -277,7 +277,14 @@ export const LineChart = icon(CiChartLine, 'LineChart');
 export const Link2 = icon(CiLink, 'Link2');
 export const List = icon(CiListUnordered, 'List');
 export const ListChecks = icon(CiListCheck, 'ListChecks');
-export const Loader2 = icon(CiLoading, 'Loader2');
+/* Le pictogramme d'attente est le SEUL de la façade qui ne soit pas le glyphe
+   brut: le `Loading` de coolicons est fait de trois points, et les appelants le
+   faisaient tourner avec `animate-spin`, ce qui pivote le bloc entier autour de
+   son centre au lieu d'animer les points (retour utilisateur). `LoadingDots`
+   garde la même géométrie et les fait rebondir l'un après l'autre.
+   Il reste exporté sous le nom `Loader2`: c'est ce que les cinquante-neuf
+   appels connaissent, et le renommer n'aurait rien appris à personne. */
+export { default as Loader2 } from './ui/LoadingDots';
 export const Lock = icon(CiLock, 'Lock');
 export const LogOut = icon(CiLogOut, 'LogOut');
 export const Mail = icon(CiMail, 'Mail');

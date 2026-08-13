@@ -166,7 +166,7 @@ export default function VoiceCloner({
             disabled={busy}
             className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-[rgba(255,255,255,0.12)] px-2.5 py-1.5 text-[12px] text-[#9A9AA5] transition-colors hover:text-[#e7bafd] disabled:opacity-50 active:scale-[0.97]"
           >
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+            {busy ? <Loader2 size={13} /> : <Trash2 size={13} />}
             Supprimer
           </button>
         </div>
@@ -203,7 +203,7 @@ export default function VoiceCloner({
             disabled={!consent || busy}
             className="inline-flex items-center gap-2 rounded-lg bg-[rgba(221,147,252,0.14)] px-3 py-2 text-[12px] font-semibold text-[#e7bafd] transition-opacity disabled:opacity-40 active:scale-[0.97]"
           >
-            {busy ? <Loader2 size={14} className="animate-spin" /> : <Mic size={14} />}
+            {busy ? <Loader2 size={14} /> : <Mic size={14} />}
             {busy ? 'Clonage en cours…' : 'Enregistrer ma voix'}
           </button>
         ) : (

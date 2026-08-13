@@ -173,7 +173,7 @@ export default function OnboardingPage() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <LangToggle className="fixed top-4 right-4 z-50" />
         <div className="text-center">
-          <Loader2 size={40} className="mx-auto text-[#7a5fff] animate-spin mb-4" />
+          <Loader2 size={40} className="mx-auto text-[#7a5fff] mb-4" />
           <p className="text-[#86868b]">{t('onboard.loading')}</p>
         </div>
       </div>
@@ -346,7 +346,7 @@ export default function OnboardingPage() {
                 onClick={handleSubmit}
               >
                 {submitting ? (
-                  <><Loader2 size={18} className="animate-spin" /> {t('onboard.submitting')}</>
+                  <><Loader2 size={18} /> {t('onboard.submitting')}</>
                 ) : (
                   <>{t('onboard.finish')} <Check size={18} /></>
                 )}

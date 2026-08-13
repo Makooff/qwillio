@@ -65,7 +65,7 @@ export default function ConfirmEmail() {
     <AuthShell title={title} subtitle={subtitle} headerRight={<LangToggle />}>
       {status === 'loading' && (
         <span className={AUTH_ICON_PLATE}>
-          <Loader2 size={20} className="text-q2-indigo animate-spin" aria-hidden="true" />
+          <Loader2 size={20} className="text-q2-indigo" aria-hidden="true" />
         </span>
       )}
 

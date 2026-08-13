@@ -165,7 +165,7 @@ export default function VoiceCloner({
           </div>
           <DangerBtn type="button" onClick={remove} disabled={busy} className="shrink-0">
             {busy
-              ? <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+              ? <Loader2 size={13} aria-hidden="true" />
               : <Trash2 size={13} aria-hidden="true" />}
             Supprimer
           </DangerBtn>
@@ -201,7 +201,7 @@ export default function VoiceCloner({
         {!recording ? (
           <PrimaryBtn type="button" onClick={start} disabled={!consent || busy}>
             {busy
-              ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+              ? <Loader2 size={14} aria-hidden="true" />
               : <Mic size={14} aria-hidden="true" />}
             {busy ? 'Clonage en cours…' : 'Enregistrer ma voix'}
           </PrimaryBtn>

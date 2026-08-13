@@ -94,7 +94,7 @@ export default function VerifyEmail() {
 
         <div className="flex flex-col gap-3">
           <button type="button" onClick={refresh} disabled={checking} className={AUTH_SUBMIT}>
-            {checking ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+            {checking ? <Loader2 size={15} /> : <RefreshCw size={15} />}
             {isFr ? "J'ai confirmé" : 'I confirmed'}
           </button>
           <button type="button" onClick={resend} disabled={resending} className={`${AUTH_OUTLINE} w-full`}>

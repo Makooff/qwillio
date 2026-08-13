@@ -130,7 +130,7 @@ export default function CrmActivities() {
       {/* Loading */}
       {loading ? (
         <div className="py-16 text-center">
-          <Loader2 size={24} className="mx-auto text-[#7349fe] animate-spin mb-3" />
+          <Loader2 size={24} className="mx-auto text-[#7349fe] mb-3" />
           <p className="text-sm text-[#A1A1A8]">Chargement de l’activité…</p>
         </div>
       ) : Object.keys(grouped).length === 0 ? (

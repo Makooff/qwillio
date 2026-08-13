@@ -181,7 +181,7 @@ export default function SelfOnboard() {
               disabled={loading}
               className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-[#1d1d1f] px-6 py-3.5 text-[15px] font-medium text-white transition-colors duration-300 hover:bg-[#7a5fff] disabled:opacity-40"
             >
-              {loading && <Loader2 size={16} className="animate-spin" />}
+              {loading && <Loader2 size={16} />}
               {isFr ? 'Terminer et ouvrir le dashboard' : 'Finish and open the dashboard'}
             </button>
             <p className="mt-2.5 text-[13px] text-[#86868b]">
@@ -307,7 +307,7 @@ export default function SelfOnboard() {
                   onClick={() => { void finish(); }}
                 >
                   {loading ? (
-                    <><Loader2 size={18} className="animate-spin flex-shrink-0" /> <span className="truncate">{isFr ? 'Finalisation…' : 'Finishing…'}</span></>
+                    <><Loader2 size={18} className=" flex-shrink-0" /> <span className="truncate">{isFr ? 'Finalisation…' : 'Finishing…'}</span></>
                   ) : (
                     <><Check size={18} className="flex-shrink-0" /> <span className="truncate">{isFr ? 'Ouvrir mon dashboard' : 'Open my dashboard'}</span></>
                   )}

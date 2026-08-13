@@ -441,7 +441,7 @@ export default function CrmDeals() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="animate-spin text-[#7349fe]" size={32} />
+        <Loader2 className=" text-[#7349fe]" size={32} />
       </div>
     );
   }
