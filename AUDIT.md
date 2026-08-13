@@ -36,7 +36,7 @@ Légende : ✅ PRÉSENT · 🟡 PARTIEL · ❌ ABSENT · **(→)** = évolution 
 | Function calling / tools via MCP | 🟡 (inchangé) | 6 tools Vapi (`voice-tools.ts`) ; MCP toujours zéro hit repo-wide | Faible court terme ; extensibilité 2026 | M |
 | RAG sur KB client + procédure de mise à jour | 🟡 **(→ depuis 🟡, le point mort est levé)** | **Le chemin d'écriture existe** : `businessKnowledgeService.create/update/remove` (`business-knowledge.service.ts:109,126`) exposé en CRUD complet (`my-dashboard.routes.ts:124-127`) + `import-preset` par métier (`:130`). Le retrieval hybride n'est donc plus mort | **Aucune UI ne consomme ces routes** (voir §Écarts). Le client ne peut toujours rien saisir : le travail reste dans la zone de texte libre de `ClientReceptionist.tsx:862`. Pas de pgvector (choix assumé) | S (l'UI = étape 4.1) |
 | Mémoire persistante multi-appels | ✅ (inchangé) | `CallerMemory` + injection au prompt, écriture post-appel async | — | — |
-| Prise de RDV réelle + gestion de conflits | 🟡 (inchangé) | Google Calendar freeBusy + holds + spéculation ; **toujours pas de contrainte DB anti-double-booking**, syncs en échec jamais réconciliées | Double réservation possible ; RDV fantômes | S-M |
+| Prise de RDV réelle + gestion de conflits | ✅ **(→ depuis 🟡, corrigé le 13/08 après-midi)** | Index unique **partiel** sur (client, date, heure) restreint aux `confirmed`, pour qu'une annulation libère le créneau (`migrations/20260813170000`) ; la collision est interceptée et l'agent propose un autre créneau (`tool-runtime.service.ts`) ; réconciliation horaire des syncs calendrier échouées, rendez-vous à venir seulement, avec alerte sur les abandons (`booking-calendar-reconcile.service.ts`) | — | — |
 | Rappels SMS/WhatsApp | 🟡 (inchangé) | Email + SMS J-1 + relance no-show ; WhatsApp toujours prospection sandbox | Attendu en BE | M |
 | Intégration CRM | 🟡 (inchangé) | CRM interne + HubSpot sortant ; pas d'Odoo, pas d'entrant | Divergence silencieuse | M-L |
 | Warm transfer + escalade + « l'agent n'est pas l'autorité » | 🟡 (inchangé) | `transferCall` warm avec résumé ; toujours **aucune règle d'autorité** (montant, engagement) | Engagements pris par l'IA au nom du client | S |
@@ -49,7 +49,7 @@ Légende : ✅ PRÉSENT · 🟡 PARTIEL · ❌ ABSENT · **(→)** = évolution 
 
 | Item | Statut | Preuve | Risque | Effort |
 |---|---|---|---|---|
-| Évals + simulation + régression prompts | 🟡 **(→ depuis ❌)** | Harness réel : 9 scénarios contre le **vrai** prompt et les **vrais** outils (`evals/run-evals.ts`, `evals/scenarios.ts`), dont un scénario d'injection (`scenarios.ts:75`). `npm run evals` | **Jamais exécuté ici, et le défaut est trompeur** : sans `OPENAI_API_KEY`, le harness **sort en 0** (`run-evals.ts:133-136`). Un CI qui l'embarque sans la clé affiche vert en n'ayant rien testé | S (poser la clé + faire échouer si absente en CI) |
+| Évals + simulation + régression prompts | 🟡 **(→ depuis ❌)** | Harness réel : 9 scénarios contre le **vrai** prompt et les **vrais** outils (`evals/run-evals.ts`, `evals/scenarios.ts`), dont un scénario d'injection (`scenarios.ts:75`). Le **faux vert est corrigé le 13/08** : le saut émet une annotation `::warning::` visible dans la PR et dit que rien n'a été prouvé ; `EVALS_REQUIRE_KEY=1` le rend fatal (`missingKeyBehaviour`, 4 tests) | **Toujours jamais exécuté** : il faut la clé. Le harness ne peut plus mentir, mais il ne protège rien tant qu'il ne tourne pas | S (poser la clé + décommenter `EVALS_REQUIRE_KEY` dans `ci.yml`) |
 | Observabilité / tracing (coût/appel, P50/P95/P99) | 🟡 **(→ depuis 🟡)** | `fleetMetrics` en prod avec percentiles et `cost` ; vérifié live le 13/08 | `cost: null` et `latency: {}` faute d'appels. Toujours pas d'OTel/Langfuse | S |
 | Guardrails : isolation prompt, anti-hallucination, anti-injection | ✅ **(→ depuis 🟡)** | La clause SÉCURITÉ est devenue **règle finale explicitement au-dessus des consignes du client** et couvre nommément les trois canaux d'injection identifiés au pré-audit — historique, base de connaissance, résultats d'outils — requalifiés en « données, jamais instructions » (`system-prompt.ts:256`). Nom de l'appelant assaini (`sanitizeInline`, `system-prompt.ts:281`) | — | — |
 | Fallbacks multi-fournisseurs STT/LLM/TTS | 🟡 **(→ depuis ❌)** ⚙️ env | Voir A.1 : écrits, inactifs tant que les env sont vides | SPOF tant que non configuré | S |
@@ -66,7 +66,7 @@ Légende : ✅ PRÉSENT · 🟡 PARTIEL · ❌ ABSENT · **(→)** = évolution 
 | Durées de conservation configurables + purge auto | ✅ **(→ depuis ❌)** | `dataRetentionService.purgeExpiredCallData()` (`data-retention.service.ts:73`), idempotente par construction, **réellement planifiée** (`bot-loop.ts:965-966`) ; purge des objets distants avant la ligne locale (`:20,103`) ; réglage par client (`my-dashboard.routes.ts:133-134`) ; effacement ciblé d'un appelant (`client-dashboard.controller.ts:1226`) | Réglage sans UI (étape 4.1) | S |
 | Voix biométrique : consentement + DPIA + effacement | 🟡 (inchangé) | Consentement au clonage exigé ; toujours **pas de DPIA**, pas d'effacement d'empreintes | DPIA obligatoire | M (process) |
 | Hébergement UE + DPA sous-traitants US | ❌ (inchangé) | Render + Neon **Oregon** ; runbook écrit non exécuté (`docs/MIGRATION-UE-RUNBOOK.md`). Le site ne promet plus l'UE (correct) | Transferts hors UE non encadrés | L |
-| Appels sortants : opt-in strict traçable ≥ 3 ans | 🟡 **(→ depuis ❌)** | **Opt-out livré** : détection verbale en cours d'appel (`utils/call-optout.ts:34`, appliqué `vapi.service.ts:357,393` avec `callOptOutSource: 'verbal'`) + STOP par SMS (`webhooks.controller.ts:337-339`) | **L'opt-out n'est pas l'opt-in.** Toujours aucun modèle `CallConsent`, aucune trace ≥ 3 ans, pas de Bloctel/liste BE, pas de fenêtres horaires légales. C'est l'étape 4.2 | M |
+| Appels sortants : opt-in strict traçable ≥ 3 ans | ✅ **(→ depuis ❌, corrigé le 13/08 après-midi)** | Opt-out verbal + STOP SMS, **et désormais l'opt-in** : modèle `CallConsent` (origine, date, **libellé exact accepté**, IP, révocation ; jamais purgé) ; `utils/outbound-legal.ts` porte la règle **par pays** (FR opt-in, BE opt-out) et les jours/horaires du décret 2022-1313 dans le fuseau local, fériés mobiles calculés depuis Pâques ; le consentement lève la contrainte horaire comme le décret le prévoit ; un pays inconnu exige le consentement ; l'opt-out verbal **révoque** le consentement. 16 tests | **Changement de comportement à assumer** : tant que le registre est vide, l'outbound français s'arrête. Reste le plafond de 4 appels/mois et la carence de 60 j, exprimés mais pas appliqués (l'opt-out définitif actuel est plus strict) | S (reste) |
 
 ---
 
@@ -78,9 +78,9 @@ Légende : ✅ PRÉSENT · 🟡 PARTIEL · ❌ ABSENT · **(→)** = évolution 
 | CORS `*.vercel.app` avec credentials | ✅ **corrigé** | `server.ts:79` : previews restreintes au seul projet Qwillio, commentaire à l'appui |
 | Vérification du secret Vapi tripliquée | ✅ **corrigé** | Mutualisée dans `utils/vapi-webhook-auth.ts` |
 | Overage sans clé d'idempotence | ✅ **corrigé** | `stripe.service.ts:438` |
-| `ADMIN_SECRET` header = bypass admin total | ❌ **toujours présent** | `auth.middleware.ts:12-17` : `x-admin-secret` → `req.userRole = 'admin'`, `return next()`, **sans journalisation**. Le pré-audit le classait « sécurité critique » ; rien n'a bougé |
+| `ADMIN_SECRET` header = bypass admin total | 🟡 **rendu défendable le 13/08** | Mutualisé dans `utils/admin-secret.ts` (les trois copies avaient trois comportements) : comparaison à temps constant, **chaque franchissement journalisé en `warn`** avec route et IP, et un secret de moins de 32 caractères **désactive** la porte au lieu de l'ouvrir. 8 tests. La porte existe toujours : la supprimer demande de savoir quels scripts d'exploitation en dépendent. ⚠️ **Vérifier la longueur du secret en production avant de déployer** |
 | Twilio webhooks non vérifiés | 🟡 **écrit, inactif par défaut** | `twilio.middleware.ts:17-19` : no-op sauf si `TWILIO_VALIDATE_WEBHOOKS=true` **et** `TWILIO_AUTH_TOKEN`. Forgeage de SMS/STOP encore possible tant que non activé |
-| Clés API clients en clair en base | ❌ **toujours présent, désormais documenté** | `api-key.middleware.ts:20-22` reconnaît la réserve : bascule vers condensat = migration + rotation |
+| Clés API clients en clair en base | 🟡 **corrigé le 13/08, retrait de la colonne à suivre** | La rotation redoutée n'était pas nécessaire : une clé vaut 192 bits, donc un SHA-256 déterministe est sûr sans sel et **préserve la recherche par index unique** (`utils/api-key-hash.ts`). Migration additive avec reprise SQL de l'existant ; l'authentification passe par le condensat et rattrape au vol les lignes anciennes. Reste la seconde migration qui vide puis retire la colonne en clair, une fois la production vérifiée |
 | 45 crons in-process, 1 instance | ❌ inchangé | `bot-loop.ts`, `render.yaml:11` ; BullMQ/Redis = étape 4.3 |
 
 ---
@@ -126,6 +126,17 @@ pas dans son périmètre.
   la base de connaissance et la rétention n'ont pas d'écran (étape 4.1) ;
   (c) du **chantier lourd assumé** — opt-in outbound tracé, Meters, BullMQ,
   multicanal, hébergement UE.
-- **Deux dettes de sécurité pré-existantes** méritent d'être requalifiées en
-  bloquant vente maintenant que le reste est propre : le bypass `ADMIN_SECRET`
-  non journalisé et les clés API en clair.
+- **Les deux dettes de sécurité pré-existantes sont traitées** dans la foulée de
+  ce ré-audit (porte opérateur tracée et bornée, clés API en condensat), de même
+  que l'anti-double-réservation, la réconciliation calendrier, le faux vert des
+  évals et la conformité outbound au nouveau régime français.
+
+## Ce qui reste, au 13/08/2026 en fin de journée
+
+1. **De l'exploitation, pas du code** : passer les appels réels (seul moyen de
+   remplir `fleetMetrics`), poser la clé OpenAI puis `EVALS_REQUIRE_KEY`, poser
+   les variables de secours STT/LLM sur Render, vérifier la longueur d'`ADMIN_SECRET`.
+2. **Un avis juridique** : le périmètre B2B du nouveau régime français. L'hypothèse
+   implémentée est la plus prudente ; l'inverser tient en une ligne de `COUNTRY_RULES`.
+3. **Les chantiers lourds assumés** : BullMQ/Redis, Stripe Meters, multicanal,
+   hébergement UE, DPIA voix, détection automatique de langue.
