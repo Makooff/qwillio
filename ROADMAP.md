@@ -26,14 +26,19 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
 
 ### 1.2 Endpointing sémantique FR (turn detection)
 - [x] **Fait le 13/08/2026**
-- **Techno** : `smartEndpointingPlan` LiveKit (Smart Turn) étendu au français dans
-  `speech-plans.ts`, derrière flag `VOICE_SEMANTIC_ENDPOINTING_FR` (repli `vapi` en un
-  set d'env).
-- **Impact** : moins de coupures de parole sur le marché principal (FR).
-- **Effort** : S. **Dépendances** : support LiveKit FR chez Vapi (validé en test réel).
-- **Done** : plan livekit actif en FR par défaut + flag de repli + tests. Métrique :
-  interruptions prématurées / appel en baisse sur 1 semaine (à lire dans les métriques
-  agrégées de 1.3).
+- **Découverte d'audit** : le FR utilise déjà un endpointing sémantique (provider
+  `vapi`), et c'est un correctif délibéré documenté dans `speech-plans.ts` — le
+  modèle LiveKit historique était anglophone et dégradait le tour de parole FR.
+  Rebasculer en LiveKit par défaut aurait réintroduit le bug diagnostiqué.
+- **Techno livrée** : flag `VOICE_FR_ENDPOINTING_PROVIDER` (`vapi` par défaut,
+  `livekit` en opt-in) pour valider le nouveau modèle de tour multilingue LiveKit
+  sur de vrais appels, sans déploiement, avec retour arrière en un set d'env.
+- **Impact** : A/B du turn detection FR possible en production.
+- **Effort** : S. **Dépendances** : validation sur vrais appels FR avant tout
+  passage du défaut à `livekit`.
+- **Done** : flag + tests (défaut `vapi` verrouillé par test, opt-in testé).
+  Métrique de décision : interruptions prématurées / appel, à lire dans les
+  métriques agrégées de 1.3 sur une semaine de test.
 
 ### 1.3 Observabilité : agrégation latence P50/P95/P99 + coût par appel
 - [x] **Fait le 13/08/2026**

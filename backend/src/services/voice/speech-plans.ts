@@ -73,10 +73,16 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
      * comme « robotique »: elle coupe la parole, ou elle laisse un blanc.
      *
      * Vapi documente son propre modèle comme celui à employer hors anglais.
-     * `waitFunction` reste réservée à LiveKit, dont elle module la courbe. */
-    smartEndpointingPlan: lang === 'en'
-      ? { provider: 'livekit', waitFunction: '2000 / (1 + exp(-10 * (x - 0.5)))' }
-      : { provider: 'vapi' },
+     * `waitFunction` reste réservée à LiveKit, dont elle module la courbe.
+     *
+     * LiveKit a depuis publié un modèle de tour multilingue (français inclus).
+     * `VOICE_FR_ENDPOINTING_PROVIDER=livekit` permet de le valider sur de
+     * vrais appels; le défaut reste `vapi`, le choix documenté ci-dessus, et
+     * le retour arrière est un set d'env, pas un déploiement. */
+    smartEndpointingPlan:
+      lang === 'en' || env.VOICE_FR_ENDPOINTING_PROVIDER === 'livekit'
+        ? { provider: 'livekit', waitFunction: '2000 / (1 + exp(-10 * (x - 0.5)))' }
+        : { provider: 'vapi' },
     transcriptionEndpointingPlan: {
       onPunctuationSeconds: 0.1,
       onNoPunctuationSeconds: 1.0,

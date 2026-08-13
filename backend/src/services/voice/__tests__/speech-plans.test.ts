@@ -57,6 +57,34 @@ describe('buildStartSpeakingPlan', () => {
       plan.transcriptionEndpointingPlan.onNoPunctuationSeconds
     );
   });
+
+  it('uses the LiveKit turn model for English, with its wait curve', () => {
+    const plan = buildStartSpeakingPlan('en');
+    expect(plan.smartEndpointingPlan.provider).toBe('livekit');
+    expect(plan.smartEndpointingPlan).toHaveProperty('waitFunction');
+  });
+
+  it('keeps the documented Vapi turn model for French by default', () => {
+    // The English-only LiveKit model degraded French turn-taking once already
+    // (see the comment in speech-plans.ts). Switching French back to LiveKit
+    // must stay an explicit env opt-in (VOICE_FR_ENDPOINTING_PROVIDER), never
+    // the silent default.
+    const plan = buildStartSpeakingPlan('fr');
+    expect(plan.smartEndpointingPlan.provider).toBe('vapi');
+  });
+
+  it('switches French to the LiveKit multilingual model on explicit env opt-in', async () => {
+    const { env } = await import('../../../config/env');
+    const previous = env.VOICE_FR_ENDPOINTING_PROVIDER;
+    (env as { VOICE_FR_ENDPOINTING_PROVIDER: string }).VOICE_FR_ENDPOINTING_PROVIDER = 'livekit';
+    try {
+      const plan = buildStartSpeakingPlan('fr');
+      expect(plan.smartEndpointingPlan.provider).toBe('livekit');
+      expect(plan.smartEndpointingPlan).toHaveProperty('waitFunction');
+    } finally {
+      (env as { VOICE_FR_ENDPOINTING_PROVIDER: string }).VOICE_FR_ENDPOINTING_PROVIDER = previous;
+    }
+  });
 });
 
 describe('buildVoice', () => {
