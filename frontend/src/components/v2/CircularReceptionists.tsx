@@ -140,9 +140,32 @@ function PersonaCard({
         </span>
         {preview}
       </div>
-      <p className="text-[15px] text-q2-body leading-relaxed q2-body-text mb-3">
-        {isFr ? preset.descFr : preset.descEn}
-      </p>
+      {/* LA CAUSE DU SAUT DE PAGE, et le seul endroit où il fallait la traiter.
+          Le carrousel avance tout seul toutes les quatre secondes et remplace
+          cette description. Les dix personnages n'ont pas des textes de la même
+          longueur: la carte passait de deux lignes à trois, sa hauteur changeait,
+          et TOUTE la page en dessous descendait puis remontait, en boucle
+          (retour utilisateur: « tout se décale et redescend toutes les 5 s »).
+          Réserver une hauteur en dur aurait été un chiffre à maintenir à chaque
+          texte modifié. Ici les DIX descriptions sont posées dans la même
+          cellule de grille: la carte fait donc toujours la hauteur de la plus
+          longue, quelle que soit celle qui est visible, et le jour où l'on
+          ajoute un personnage plus bavard la réserve s'ajuste seule.
+          Les inactives sont invisibles ET retirées de l'accessibilité: elles
+          occupent la place sans être lues ni annoncées. */}
+      <div className="grid mb-3">
+        {PRESETS.map((p) => (
+          <p
+            key={p.id}
+            aria-hidden={p.id !== preset.id}
+            className={`col-start-1 row-start-1 text-[15px] text-q2-body leading-relaxed q2-body-text transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              p.id === preset.id ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            {isFr ? p.descFr : p.descEn}
+          </p>
+        ))}
+      </div>
       <p className="text-[13px] text-q2-body q2-body-text">
         {isFr
           ? 'Voix dédiée, avec aperçu audio dans le dashboard. Français et anglais : la langue vient de vos appels, pas du personnage.'

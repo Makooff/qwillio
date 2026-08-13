@@ -86,20 +86,28 @@ const MOCKUP = {
    linéairement entre eux: l'oeil ne voit pas la rampe, il voit les CASSURES de
    pente à chaque palier, et c'est ce qui se lisait comme un dégradé « trop
    fort ». */
-/* LE SEUL FONDU, et il ne joue que sur le HAUT et le BAS (demande utilisateur).
-   Il y en avait trois qui se cumulaient: celui-ci, un fondu des deux flancs, et
-   une lentille elliptique qui eteignait les quatre coins. Empiles, ils ne
-   laissaient voir la video qu'au centre droit, et a une opacite basse par-dessus:
-   d'ou « pas assez visible ». Les deux autres sont supprimes, le decor va
-   maintenant d'un flanc a l'autre.
-   Plein a 100 % du haut jusqu'a la moitie, puis dissous vers le bas: il doit
-   rejoindre la suite de la page, et le haut est deja traite par le voile de flou
-   sous la nav.
-   La rampe est longue et elle s'eteint AVANT le bord: a 95 % il restait 12 %
-   d'opacite, assez pour que la decoupe arrondie du cadre se voie comme une
-   arete. Elle atteint zero a 99 %, donc la forme du cadre ne se lit plus. */
+/* UNE VIGNETTE, PAS UN DÉGRADÉ DANS LA MARGE (demande utilisateur).
+   C'était un fondu VERTICAL: la vidéo restait pleine du haut jusqu'à la moitié,
+   puis s'éteignait vers le bas sur presque la moitié de sa hauteur. Cette
+   longue rampe, vue depuis la page, ne se lit pas comme une vignette: elle se
+   lit comme une bande dégradée posée dans la marge, blanche en thème clair et
+   noire en sombre, et c'est bien ce qu'elle était.
+   Une vignette, elle, tient au CADRE: elle fait le tour de l'image, elle est
+   courte, et elle laisse le centre intact. D'où une ellipse plutôt qu'une
+   ligne. Elle est LARGE (86 % sur 78 %) et elle ne commence à mordre qu'à 62 %
+   de son rayon: c'est ce qui la distingue de la lentille qui existait ici
+   autrefois et qui avait été retirée à juste titre, celle-là éteignait les
+   quatre coins et ne laissait voir la vidéo qu'au centre.
+   Le centre optique est posé à 44 % de la hauteur, pas à 50: le cadre est plus
+   large que haut et le bas doit se dissoudre un peu plus tôt, puisque la
+   capture du tableau de bord vient s'y poser.
+   Elle atteint zéro AVANT le bord (à 99 %): à 95 % il restait assez d'opacité
+   pour que la découpe du cadre se voie comme une arête.
+   C'est un MASQUE, donc il ne peint rien: il rend la vidéo transparente sur son
+   pourtour, et c'est la page qui reparaît, exactement de sa couleur, dans les
+   deux thèmes. */
 const HERO_MASK_V =
-  'linear-gradient(to bottom, #000 0%, #000 56%, rgba(0,0,0,0.95) 64%, rgba(0,0,0,0.86) 71%, rgba(0,0,0,0.70) 78%, rgba(0,0,0,0.50) 84%, rgba(0,0,0,0.30) 89%, rgba(0,0,0,0.13) 93%, rgba(0,0,0,0.03) 97%, transparent 100%)';
+  'radial-gradient(ellipse 86% 78% at 50% 44%, #000 0%, #000 62%, rgba(0,0,0,0.92) 72%, rgba(0,0,0,0.74) 80%, rgba(0,0,0,0.50) 87%, rgba(0,0,0,0.26) 93%, rgba(0,0,0,0.08) 97%, transparent 99%)';
 /* PLUS AUCUNE TEINTE DE MARQUE SUR LA VIDÉO (demande utilisateur: « enlève
    les effets de couleurs sur la vidéo, garde l'effet lens vignette »).
    Il y avait ici deux couches PEINTES, indigo en haut et violet en bas, qui
@@ -993,44 +1001,69 @@ export default function Home() {
               contenu inégal se retrouvent forcés à la même hauteur. Chaque
               carte garde donc la sienne; ce sont les ÉCARTS qui sont réguliers,
               pas les hauteurs. */}
-          <ul className="grid sm:grid-cols-2 gap-5 items-start" role="list">
-            {naturally.map((feat, i) => (
-              <RevealV2
-                key={feat.title}
-                index={i}
-                className={feat.edge}
+          {/* DEUX COLONNES INDÉPENDANTES, et c'est le seul moyen d'obtenir ce
+              qui est demandé: le même écart entre les cartes de gauche
+              qu'entre les autres, et la colonne de gauche plus haute que celle
+              de droite.
+              En grille à deux colonnes, une RANGÉE prend la hauteur de sa plus
+              haute carte: la colonne aux cartes courtes hérite donc d'un trou
+              (mesuré: 76 px à gauche contre 20 à droite), et aucun réglage
+              d'écart ne le corrige, puisque le trou n'est pas un écart mais du
+              vide sous une carte trop courte. Deux piles distinctes n'ont pas de
+              rangée commune: chacune empile ses cartes à 20 px, point.
+              Le décalage passe alors sur la COLONNE, pas sur une carte sur deux:
+              la droite descend de 48 px, et la ligne d'horizon se brise sans que
+              l'espacement bouge.
+              Deux `<ul>` plutôt qu'un: une liste dont les éléments sont enfermés
+              dans des `<div>` cesse d'être une liste pour un lecteur d'écran.
+              Ici chaque colonne est une vraie liste, et l'ordre de lecture reste
+              celui de l'écran. */}
+          <div className="grid sm:grid-cols-2 gap-5 items-start">
+            {[0, 1].map(col => (
+              <ul
+                key={col}
+                role="list"
+                className={`flex flex-col gap-5 ${col === 1 ? 'sm:mt-12' : ''}`}
               >
-                <li className="list-none">
-                  <article
-                    className={`rounded-3xl flex flex-col ${feat.pad} ${feat.ring}`}
-                    style={{
-                      background: feat.bg,
-                      color: feat.fg,
-                      minHeight: feat.minH,
-                    }}
+                {naturally.filter((_, i) => i % 2 === col).map((feat, j) => (
+                  <RevealV2
+                    key={feat.title}
+                    index={j * 2 + col}
+                    className={feat.edge}
                   >
-                    <span
-                      className="w-11 h-11 rounded-2xl flex items-center justify-center mb-5"
-                      style={{
-                        background: feat.fg === 'white' ? 'rgba(255,255,255,0.10)' : 'rgba(122,95,255,0.10)',
-                      }}
-                    >
-                      <feat.icon size={18} style={{ color: feat.accent }} aria-hidden="true" />
-                    </span>
-                    <h3 className="text-[1.2rem] font-semibold tracking-[-0.015em] mb-2.5 leading-snug">
-                      {feat.title}
-                    </h3>
-                    <p
-                      className="text-[14.5px] leading-relaxed q2-body-text"
-                      style={{ color: feat.fg === 'white' ? 'rgba(255,255,255,0.72)' : '#525257' }}
-                    >
-                      {feat.body}
-                    </p>
-                  </article>
-                </li>
-              </RevealV2>
+                    <li className="list-none">
+                      <article
+                        className={`rounded-3xl flex flex-col ${feat.pad} ${feat.ring}`}
+                        style={{
+                          background: feat.bg,
+                          color: feat.fg,
+                          minHeight: feat.minH,
+                        }}
+                      >
+                        <span
+                          className="w-11 h-11 rounded-2xl flex items-center justify-center mb-5"
+                          style={{
+                            background: feat.fg === 'white' ? 'rgba(255,255,255,0.10)' : 'rgba(122,95,255,0.10)',
+                          }}
+                        >
+                          <feat.icon size={18} style={{ color: feat.accent }} aria-hidden="true" />
+                        </span>
+                        <h3 className="text-[1.2rem] font-semibold tracking-[-0.015em] mb-2.5 leading-snug">
+                          {feat.title}
+                        </h3>
+                        <p
+                          className="text-[14.5px] leading-relaxed q2-body-text"
+                          style={{ color: feat.fg === 'white' ? 'rgba(255,255,255,0.72)' : '#525257' }}
+                        >
+                          {feat.body}
+                        </p>
+                      </article>
+                    </li>
+                  </RevealV2>
+                ))}
+              </ul>
             ))}
-          </ul>
+          </div>
         </Container>
       </Section>
 
