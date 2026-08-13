@@ -86,18 +86,27 @@ const MOCKUP = {
    linéairement entre eux: l'oeil ne voit pas la rampe, il voit les CASSURES de
    pente à chaque palier, et c'est ce qui se lisait comme un dégradé « trop
    fort ». */
-/* LE FONDU DU BAS, et lui seul.
-   Il ne joue que sur le dernier quart de la hauteur: l'image y descend dans la
-   suite de la page au lieu de s'arrêter net juste au-dessus de la capture du
-   tableau de bord. Les flancs et le haut n'ont plus de fondu du tout, c'est la
-   découpe arrondie du cadre qui les termine (demande utilisateur: « enlève le
-   contour blanc »).
-   Il atteint zéro AVANT le bord, à 99 %: à 95 % il restait assez d'opacité pour
-   que l'arrondi du cadre se relise comme une arête pâle.
-   C'est un MASQUE: il ne peint rien, il rend l'image transparente, donc c'est la
-   page qui reparaît dessous, exactement de sa couleur dans les deux thèmes. */
+/* LE FONDU DU HAUT ET DU BAS, sur un seul axe (demande utilisateur: « aucune
+   marge, juste un dégradé, en haut et en bas, pas sur les côtés »).
+   Un `linear-gradient(to bottom, …)` ne varie QUE selon la verticale: chacune
+   de ses lignes est uniforme d'un flanc à l'autre. Les côtés ne peuvent donc
+   pas s'éteindre, quel que soit le réglage des paliers: c'est la géométrie du
+   dégradé qui l'interdit, pas une valeur qu'on aurait choisie et qu'un
+   changement futur pourrait défaire.
+   C'est un MASQUE: il ne peint rien, il rend l'image TRANSPARENTE à ses deux
+   extrémités, donc c'est la page qui reparaît dessous, exactement de sa
+   couleur (blanche en clair, noire en sombre, sans qu'aucune couleur ne soit
+   écrite ici). C'est ce qui remplace la marge: le bord n'est plus une bande de
+   page laissée vide, c'est l'image elle-même qui s'y dissout.
+   Le haut se ferme vite (8 %) pour dégager la barre de nav; le bas prend le
+   dernier quart, l'image y descend dans la suite de la page au lieu de
+   s'arrêter net au-dessus de la capture du tableau de bord. Les deux atteignent
+   zéro AVANT le bord même, sinon il reste assez d'opacité pour relire une arête
+   pâle. Les paliers suivent une courbe en S: un dégradé à trois paliers
+   s'interpole linéairement, et l'oeil voit alors les CASSURES de pente plutôt
+   que la rampe. */
 const HERO_MASK_BAS =
-  'linear-gradient(to bottom, #000 0%, #000 74%, rgba(0,0,0,0.92) 81%, rgba(0,0,0,0.72) 87%, rgba(0,0,0,0.44) 92%, rgba(0,0,0,0.18) 96%, transparent 99%)';
+  'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.18) 1.5%, rgba(0,0,0,0.44) 3%, rgba(0,0,0,0.72) 4.5%, rgba(0,0,0,0.92) 6%, #000 8%, #000 74%, rgba(0,0,0,0.92) 81%, rgba(0,0,0,0.72) 87%, rgba(0,0,0,0.44) 92%, rgba(0,0,0,0.18) 96%, transparent 99%)';
 /* PLUS AUCUNE TEINTE DE MARQUE SUR LA VIDÉO (demande utilisateur: « enlève
    les effets de couleurs sur la vidéo, garde l'effet lens vignette »).
    Il y avait ici deux couches PEINTES, indigo en haut et violet en bas, qui
@@ -149,24 +158,19 @@ function HeroBackdrop() {
          native (voir les `<source media>` plus bas): à sa largeur d'écran, chacun
          reçoit donc au moins autant de pixels qu'il en affiche, y compris un
          écran retina, et l'image n'est jamais agrandie. */
-      /* UN CADRE, PAS UN FOND À BORD PERDU (demande utilisateur: « enlève le
-         contour blanc sur mode clair, la marge en haut de la page doit être
-         blanche en clair et noire en sombre, de forme arrondie pour les
-         coins »).
-         La vidéo touchait les bords de la fenêtre, et la vignette l'y éteignait
-         en fondu: vu en thème clair, ce fondu EST le contour blanc dont il est
-         question, un halo laiteux sur les quatre côtés. Un cadre inséré règle
-         les deux d'un coup: la marge est du VIDE, donc elle prend la couleur de
-         la page — blanche en clair, noire en sombre, sans qu'aucune couleur ne
-         soit écrite ici — et la découpe arrondie remplace le fondu par une
-         arête nette.
-         `inset-x-3` puis `inset-x-5` à partir de `sm`: la marge suit la
-         respiration de la page au lieu d'une valeur fixe qui serait énorme sur
-         un téléphone. Le haut descend sous la barre de nav flottante, qui garde
-         ainsi son propre fond. */
-      className="absolute inset-x-3 sm:inset-x-5 top-3 sm:top-5 aspect-[3528/2348] overflow-hidden pointer-events-none rounded-[28px] sm:rounded-[36px]"
+      /* À BORD PERDU, ET LE DÉGRADÉ TIENT LIEU DE MARGE (demande utilisateur:
+         « aucune marge, juste un dégradé »).
+         L'étape précédente avait posé un cadre inséré et arrondi: la marge était
+         alors du vide, donc de la couleur de la page. Elle disparaît ici, et le
+         rôle qu'elle tenait passe au masque: le bord haut et le bord bas
+         s'éteignent en fondu jusqu'à la transparence, si bien que la page
+         reparaît dessous, blanche en clair et noire en sombre, exactement comme
+         le faisait la marge, mais sans arête, et sans un pixel de largeur perdu.
+         Les angles arrondis partent avec le cadre: un rayon n'a de sens que sur
+         une forme qui a des bords, et il n'en reste plus. */
+      className="absolute inset-x-0 top-0 aspect-[3528/2348] overflow-hidden pointer-events-none"
       aria-hidden="true"
-      /* VIGNETTE, en MASQUE et non en couche peinte par-dessus.
+      /* LE FONDU, en MASQUE et non en couche peinte par-dessus.
          Peindre la couleur du canvas au-dessus du décor, c'est poser un aplat
          qui doit tomber PILE sur le fond de la page: au moindre écart le
          raccord se voit, et il faudrait deux aplats, un par thème. Le masque ne
@@ -174,18 +178,11 @@ function HeroBackdrop() {
          page qui reparaît, exactement de sa couleur. Blanc en clair, noir en
          sombre, sans qu'aucune couleur ne soit écrite ici, et surtout aucune
          couleur de marque (demande utilisateur: « pas couleur Qwillio »).
-         Ce premier masque est le FONDU DU BAS, celui qui fait disparaître le
-         bord inférieur de la vidéo dans le dégradé de la page. Il est porté par
-         un conteneur distinct du masque de lentille: deux masques sur un seul
-         élément demanderaient `mask-composite`, mal soutenu par Safari. */
-      /* Plus de masque de vignette ici. Il rendait la vidéo transparente sur
-         tout son pourtour, et c'est précisément ce dégradé qui se lisait comme
-         un contour blanc en thème clair. La découpe arrondie du cadre fait
-         désormais le travail: elle sépare franchement l'image de la page.
-         Seul reste le fondu du BAS, posé plus bas sur son propre calque: il ne
-         touche pas les flancs, et il sert à autre chose — faire descendre
-         l'image dans la suite de la page plutôt que de la couper net au-dessus
-         de la capture du tableau de bord. */
+         Plus de VIGNETTE, et c'est la différence qui compte. Une vignette est un
+         dégradé RADIAL: elle éteint tout le pourtour, flancs compris, et c'est
+         ce halo latéral qui se lisait comme un contour blanc en thème clair. Le
+         masque posé ici est linéaire et vertical: il ne peut, par construction,
+         toucher que le haut et le bas. */
       style={{
         WebkitMaskImage: HERO_MASK_BAS,
         maskImage: HERO_MASK_BAS,
