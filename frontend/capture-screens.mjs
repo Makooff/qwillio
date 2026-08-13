@@ -175,11 +175,31 @@ function mockFor(pathname, search) {
     return {
       businessName: 'Clinique Dentaire Léopold', businessType: 'dentiste',
       agentName: 'Camille', agentLanguage: 'fr', transferNumber: '+32 2 512 44 11',
+      /* Le numéro de TVA fait partie de l'identité de l'entreprise, et se règle
+         désormais sur la page Compte. */
+      vatNumber: 'BE0745123456',
       forwardingType: 'unconditional', googleCalendarId: 'agenda@clinique-leopold.be',
       items: [
         { id: 'i1', category: 'service', name: 'Détartrage', price: '75 €' },
         { id: 'i2', category: 'service', name: 'Blanchiment', price: '290 €' },
       ],
+    };
+  }
+  /* La page Facturation: l'aperçu de l'abonnement et l'historique des
+     paiements. Sans eux, elle partait sur ses valeurs par défaut. */
+  if (p === '/my-dashboard/billing') {
+    return {
+      plan: 'pro', status: 'active', renewalDate: iso(-18, 0, 0),
+      minutesUsed: 341, minutesLimit: 500, trialEndsAt: null, isTrial: false,
+      paymentMethod: { brand: 'visa', last4: '4242', expMonth: 7, expYear: 2029 },
+    };
+  }
+  if (p === '/my-dashboard/payments') {
+    return {
+      data: [0, 1, 2].map(i => ({
+        id: `pay_${i}`, amount: 249, currency: 'EUR', status: 'paid',
+        createdAt: iso(30 * i, 9, 0), description: 'Abonnement Pro',
+      })),
     };
   }
   if (p.startsWith('/my-dashboard/integrations/google-calendar/status')) {
