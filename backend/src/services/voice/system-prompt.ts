@@ -189,11 +189,27 @@ export function buildSystemPrompt(
   }
 
   if (profile.transferNumber) {
+    /* La règle dit maintenant ce qu'il ne faut PAS faire, et pas seulement ce
+       qu'il faut faire.
+       Mesure: le scénario `fr-transfert-humain` (« Je veux parler à un humain,
+       un vrai ») échouait une fois sur deux, et il échouait toujours de la même
+       façon — l'agent prenait les coordonnées avec captureLead au lieu de
+       transférer. C'est logique: deux lignes plus haut, le prompt lui apprend
+       que la bonne réponse à une demande qu'il ne peut pas satisfaire est
+       justement captureLead. Face à deux instructions applicables, il en
+       choisissait une, au hasard des exécutions.
+       D'où l'interdiction NOMMÉE: « jamais captureLead ». Nommer l'outil à ne
+       pas prendre lève l'ambiguïté là où « transfère sans discuter » la
+       laissait entière. Un appelant qui réclame un humain et à qui l'on demande
+       son numéro de téléphone raccroche.
+       La ligne est plus COURTE que celle qu'elle remplace (99 caractères contre
+       107): le prompt est rejoué à chaque tour de modèle, et un test garde le
+       total sous 2 000 caractères. */
     lines.push(
       t(
-        'TRANSFERT: si on demande un humain, un responsable, ou en cas d\'urgence, utilise transferCall sans discuter.',
-        'TRANSFER: if the caller asks for a human, a manager, or it is an emergency, use transferCall without arguing.',
-        'DOORVERBINDEN: vraagt de beller naar een mens, een verantwoordelijke, of is het dringend, gebruik dan transferCall zonder discussie.',
+        'TRANSFERT: humain, responsable ou urgence demandés → transferCall tout de suite, jamais captureLead.',
+        'TRANSFER: human, manager or emergency requested → transferCall right away, never captureLead.',
+        'DOORVERBINDEN: mens, verantwoordelijke of nood gevraagd → meteen transferCall, nooit captureLead.',
       )
     );
   }
