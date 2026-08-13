@@ -77,9 +77,16 @@ Non joué : il faut un compte client réel sur la production pour se connecter.
 
 À couvrir une fois débloqué : login → dashboard → Appels / Leads /
 Réceptionniste / Facturation (**premier clic sur le portail Stripe en prod,
-jamais fait**), puis la démo vocale publique sur qwillio.com — elle doit se
-présenter comme assistant IA **sans** notice d'enregistrement, la démo n'étant
-pas enregistrée.
+jamais fait**).
+
+**Démo vocale publique — ✅ vérifiée dans le code, sans attendre le navigateur.**
+`public-demo.routes.ts:157` construit son premier message avec
+`firstMessageVariants`, c'est-à-dire **la même fonction que les appels réels** :
+la divulgation IA y est donc portée par construction, pas par recopie. Et
+`recordCalls: false` (`:139`) fait que la notice d'enregistrement ne se
+prononce pas, ce qui est correct puisque la démo n'est pas enregistrée. Il
+restera à confirmer à l'oreille, mais il n'y a pas de risque de dérive : les
+deux chemins ne peuvent pas diverger.
 
 ---
 

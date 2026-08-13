@@ -75,12 +75,22 @@ ses **lignes directrices définitives sur l'article 50 le 20 juillet 2026**
 (projet du 8 mai), accompagnées d'un **code de bonnes pratiques sur le marquage
 des contenus générés, finalisé le 10 juin 2026**.
 
-Le code de Qwillio satisfait l'exigence de fond : la divulgation est portée par
-la **première phrase**, avant toute collecte (`system-prompt.ts:297-318`), avec
-un défaut fail-safe (`env.ts:133`). **Rien à changer.** À faire, en revanche :
-relire les lignes directrices du 20/07 pour vérifier qu'aucune exigence de
-forme (formulation type, moment, traçabilité de la divulgation) n'appelle un
-ajustement. C'est une lecture, pas un chantier.
+**Relecture faite le 13/08. Conclusion : rien à changer, et sur un point nous
+dépassons l'exigence.** Confrontation point par point :
+
+| Exigence de l'article 50(1) | Ce que fait Qwillio |
+|---|---|
+| Divulgation **au plus tard lors de la première interaction** | Portée par la **première phrase** du décroché, avant toute collecte (`system-prompt.ts:297-318`). Plus strict que le texte |
+| **Manière claire et distinguable** ; les lignes directrices visent les mentions minuscules ou noyées dans les CGU | Phrase parlée, en clair, au même volume que le reste. L'équivalent vocal du défaut visé n'existe pas ici |
+| Exemption « évident pour une personne raisonnablement informée » | **Non invoquée**, et c'est heureux : les lignes directrices mettent en garde contre le fait de s'y fier |
+| Conservation d'une preuve de divulgation | **Aucune exigence** dans le texte. Rien à construire |
+
+Un point que la relecture a permis de vérifier et qui n'était pas acquis : la
+**démo publique du site est couverte elle aussi**, et elle est conforme **par
+construction**. `public-demo.routes.ts:157` appelle `firstMessageVariants`, la
+même fonction que les appels réels : les deux chemins ne peuvent pas diverger.
+Et `recordCalls: false` fait que la notice d'enregistrement ne s'y prononce
+pas, ce qui est correct puisque rien n'y est enregistré.
 
 ---
 
@@ -175,6 +185,37 @@ Lecture pour nous :
 
 ---
 
+## 4 bis. Détection automatique de langue — ce qu'il faut, et pourquoi je ne l'ai pas faite
+
+Le néerlandais est livré, mais **en opt-in par client** (`agentLanguage: 'nl'`).
+Un appelant flamand qui tombe sur un client configuré en français reste donc
+accueilli en français. C'est le dernier morceau du blocage belge.
+
+**Ce n'est pas un réglage, c'est une fonctionnalité**, et elle se heurte à un
+problème d'ordre : *on ne peut pas détecter la langue avant que l'appelant ait
+parlé*, or la première phrase est justement celle qui porte la divulgation IA.
+Il faut donc choisir la langue du décroché sans information, puis basculer.
+
+Trois décisions à prendre, dont **aucune ne se tranche sans appels réels** :
+
+1. **Quelle langue au décroché ?** Le français pour un client bruxellois, le
+   néerlandais pour un client anversois, ou un décroché bilingue ? Le bilingue
+   double la longueur de la première phrase, donc le temps avant que l'appelant
+   puisse parler.
+2. **Quel STT ?** Le code fait tourner le NL sur `nova-2` et documente pourquoi
+   (`speech-plans.ts:30-33`). Une détection multilingue supposerait `nova-3` en
+   mode multi, ou Scribe v2 (§3) — c'est-à-dire de **défaire un choix délibéré
+   sans la mesure qui le justifierait**.
+3. **Que faire à la bascule ?** Changer la langue change aussi la voix TTS et le
+   prompt. Une bascule au milieu d'une phrase s'entend.
+
+**Recommandation** : traiter ce point **après** les appels de test, et avec un
+locuteur néerlandophone au bout du fil. C'est le seul item de ce document que je
+range volontairement après la mesure : le faire maintenant serait exactement
+l'erreur contre laquelle ce document met en garde ailleurs.
+
+---
+
 ## 5. RAG voix — le choix « pas de pgvector » est confirmé, pas toléré
 
 L'audit classait l'absence de pgvector en réserve assumée. La recherche 2026 va
@@ -240,13 +281,13 @@ veut brancher **son** outillage (Odoo, HubSpot) sans qu'on écrive un connecteur
 
 | # | Action | Impact | Effort | Levier |
 |---|---|---|---|---|
-| 1 | Réécrire le lot outbound : supprimer Bloctel, `CallConsent` avec preuve (origine, date, libellé, révocation), règle **par pays** | **Critique** (légal FR depuis le 11/08) | S (roadmap) + M (modèle) | — |
-| 2 | Faire échouer les évals sans clé | Élevé (le filet est troué) | S | `EVALS_REQUIRE_KEY` |
+| ~~1~~ | ~~Réécrire le lot outbound~~ | **Fait le 13/08** : `CallConsent` avec preuve, règle par pays, jours/horaires du décret, plafond mensuel appliqué, registre ouvert par API d'administration. **Reste l'avis juridique B2B** | — | `COUNTRY_RULES` |
+| ~~2~~ | ~~Faire échouer les évals sans clé~~ | **Fait le 13/08** : le saut est visible et `EVALS_REQUIRE_KEY=1` le rend fatal. **Reste à poser la clé** | S | `EVALS_REQUIRE_KEY` |
 | 3 | Passer `VOICE_REALTIME_MODEL` en `gpt-realtime-2.1`, tester le `mini` | Élevé (qualité + 20 % de coût) | S | env, réversible |
 | 4 | Tester Scribe v2 Realtime en **secours** STT, mesurer le WER NL | Élevé sur le NL | S (déclarer) + M (mesurer) | `VOICE_STT_FALLBACK_PROVIDER` |
 | 5 | Confirmer auprès de Vapi ce que vaut `provider: 'livekit'`, puis tester le FR | Moyen (perception « robot ») | S | `VOICE_FR_ENDPOINTING_PROVIDER` |
 | 6 | Poser les variables de secours STT/LLM sur Render | Élevé (le SPOF est encore ouvert) | S | env |
-| 7 | Relire les lignes directrices art. 50 du 20/07 | Moyen (forme) | S | — |
+| ~~7~~ | ~~Relire les lignes directrices art. 50~~ | **Fait le 13/08 : conforme, rien à changer** | — | — |
 | 8 | `VAPI_MODEL` vers un modèle de classe GPT-5, **après** évals vertes | Moyen | S | env |
 | 9 | Cache sémantique + préchargement KB (pattern `availability-speculator`) | Moyen, **après** l'étape 4.1 | M | — |
 | 10 | MCP côté Vapi | Faible aujourd'hui | M | — |
