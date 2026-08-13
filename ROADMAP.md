@@ -105,14 +105,16 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   configurable publiquement.
 
 ### 2.3 KB/RAG : ouvrir le chemin d'écriture + présets par niche
-- **Techno** : CRUD `BusinessKnowledge` (routes + UI Paramètres) branché sur les
-  présets métier backend existants (`knowledge-presets.ts`) ; cron `generateMissing()`
-  pour les embeddings ; activation de `lookupKnowledge`.
-- **Impact** : réduit les hallucinations, débloque le chantier n°4 du CLAUDE.md sans
-  seconde liste de niches.
-- **Effort** : M. **Dépendances** : aucune (tout le retrieval existe déjà).
-- **Done** : un client crée 30 entrées, l'agent répond via `lookupKnowledge` (trace à
-  l'appui) ; recall vérifié sur un jeu de 20 questions.
+- [x] **Fait le 13/08/2026** (backend ; l'UI Paramètres reste à construire)
+- **Livré** : `business-knowledge.service.ts` (CRUD validé, plafond 500 entrées,
+  scoping tenant dans le WHERE) + routes `GET/POST/PUT/DELETE /my-dashboard/knowledge`
+  et `POST /my-dashboard/knowledge/import-preset` (FAQ pré-rédigée du métier via
+  `knowledge-presets.ts`, idempotent par titre, jamais d'écrasement). Chaque
+  écriture invalide le cache de profil (sinon `hasKnowledgeBase` reste faux
+  jusqu'au TTL) et relance `generateMissing()` hors du chemin d'appel ; une mise
+  à jour vide le vecteur périmé.
+- **Done partiel** : 8 tests ; reste : UI dans Paramètres (chantier n°2 du
+  CLAUDE.md), et le test de recall sur 20 questions (dépend du harness 2.5).
 
 ### 2.4 Provisioning automatique de numéros par client
 - **Techno** : achat Twilio/Vapi à l'onboarding (`buyPhoneNumber` existe déjà,

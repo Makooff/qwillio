@@ -1108,6 +1108,70 @@ export class ClientDashboardController {
     }
   }
 
+  // ═══ Base de connaissance (le chemin d'écriture du RAG) ═══
+
+  // GET /my-dashboard/knowledge
+  async listKnowledge(req: any, res: Response) {
+    try {
+      const { businessKnowledgeService } = await import('../services/business-knowledge.service');
+      res.json({ entries: await businessKnowledgeService.list(req.clientId) });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // POST /my-dashboard/knowledge
+  async createKnowledge(req: any, res: Response) {
+    try {
+      const { businessKnowledgeService } = await import('../services/business-knowledge.service');
+      const result = await businessKnowledgeService.create(req.clientId, req.body || {});
+      if ('error' in result) return res.status(400).json(result);
+      res.status(201).json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // PUT /my-dashboard/knowledge/:id
+  async updateKnowledge(req: any, res: Response) {
+    try {
+      const { businessKnowledgeService } = await import('../services/business-knowledge.service');
+      const result = await businessKnowledgeService.update(req.clientId, req.params.id, req.body || {});
+      if ('error' in result) {
+        return res.status(result.error === 'not_found' ? 404 : 400).json(result);
+      }
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // DELETE /my-dashboard/knowledge/:id
+  async deleteKnowledge(req: any, res: Response) {
+    try {
+      const { businessKnowledgeService } = await import('../services/business-knowledge.service');
+      const result = await businessKnowledgeService.remove(req.clientId, req.params.id);
+      if ('error' in result) return res.status(404).json(result);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // POST /my-dashboard/knowledge/import-preset — la FAQ du métier, pré-rédigée.
+  async importKnowledgePreset(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { businessType: true },
+      });
+      const { businessKnowledgeService } = await import('../services/business-knowledge.service');
+      res.json(await businessKnowledgeService.importPreset(req.clientId, client?.businessType));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // ═══ Rétention des données (RGPD) ═══
 
   // GET /my-dashboard/retention

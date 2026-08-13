@@ -120,6 +120,15 @@ router.post('/upgrade', billingLimiter, (req, res) => clientDashboardController.
    garde-fou que les autres routes de facturation. */
 router.post('/billing-portal', billingLimiter, (req, res) => clientDashboardController.createBillingPortal(req, res));
 
+// ─── Base de connaissance (chemin d'écriture du RAG) ────
+router.get('/knowledge', (req, res) => clientDashboardController.listKnowledge(req, res));
+router.post('/knowledge', (req, res) => clientDashboardController.createKnowledge(req, res));
+router.put('/knowledge/:id', (req, res) => clientDashboardController.updateKnowledge(req, res));
+router.delete('/knowledge/:id', (req, res) => clientDashboardController.deleteKnowledge(req, res));
+/* L'import de préset écrit jusqu'à ~10 entrées et déclenche une génération
+   d'embeddings: même budget que les autres fan-outs payants. */
+router.post('/knowledge/import-preset', extractLimiter, (req, res) => clientDashboardController.importKnowledgePreset(req, res));
+
 // ─── Rétention des données (RGPD) ───────────────────────
 router.get('/retention', (req, res) => clientDashboardController.getRetention(req, res));
 router.put('/retention', (req, res) => clientDashboardController.updateRetention(req, res));
