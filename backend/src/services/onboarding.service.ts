@@ -116,17 +116,33 @@ export class OnboardingService {
          appelant. Le reste de son installation (assistant, portail, sortant)
          fonctionne. */
       const allocation = await allocateInboundNumber(clientId);
-      const sharedPhoneNumber = allocation.kind === 'allocated' ? allocation.number : null;
-      const sharedPhoneNumberId = allocation.kind === 'allocated' ? allocation.numberId : null;
+      let sharedPhoneNumber = allocation.kind === 'allocated' ? allocation.number : null;
+      let sharedPhoneNumberId = allocation.kind === 'allocated' ? allocation.numberId : null;
+
+      /* Ligne partagée indisponible: tentative d'ACHAT automatique, derrière
+         PHONE_AUTO_PROVISION=1 (off par défaut — un achat est une dépense,
+         voir phone-provisioning.service). En échec ou flag off, on retombe
+         sur le chemin existant: alerte + achat manuel. */
+      if (allocation.kind === 'none') {
+        const { autoProvisionNumber } = await import('./voice/phone-provisioning.service');
+        const bought = await autoProvisionNumber(clientId, assistant.id);
+        if (bought) {
+          sharedPhoneNumber = bought.number;
+          sharedPhoneNumberId = bought.numberId;
+          await discordService.notify(
+            `📞 NUMÉRO PROVISIONNÉ AUTOMATIQUEMENT\n\nClient: ${client.businessName}\nNuméro: ${bought.number}`,
+          );
+        }
+      }
 
       /* Ce que le client A vraiment au bout du compte: la ligne attribuee, ou
          celle qu'un exploitant a deja posee a la main sur sa fiche. C'est cette
          valeur-la qui part dans l'email et dans l'alerte. */
       const effectivePhoneNumber = sharedPhoneNumber ?? client.vapiPhoneNumber ?? null;
 
-      if (allocation.kind === 'allocated') {
+      if (sharedPhoneNumber) {
         logger.info(`Ligne entrante attribuée: ${sharedPhoneNumber}`);
-      } else {
+      } else if (allocation.kind === 'none') {
         const why =
           allocation.reason === 'already_taken'
             ? `la ligne ${env.VAPI_PHONE_NUMBER} appartient déjà à « ${allocation.heldBy} »`

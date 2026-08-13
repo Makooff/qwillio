@@ -149,6 +149,13 @@ export const env = {
     .split(',').map(s => s.trim()).filter(Boolean),
   /** Ex: 'google' — transcripteur de secours si Deepgram tombe. */
   VOICE_STT_FALLBACK_PROVIDER: process.env.VOICE_STT_FALLBACK_PROVIDER || '',
+  /* Achat automatique d'un numéro entrant à l'onboarding quand la ligne
+   * partagée est prise. '1' strict, comme ALLOW_DEGRADED_BOOT: chaque
+   * activation ACHÈTE un numéro Twilio facturé au compte — c'est une décision
+   * d'exploitation, jamais un défaut de code. */
+  PHONE_AUTO_PROVISION: process.env.PHONE_AUTO_PROVISION || '',
+  /** Indicatif souhaité pour l'achat (dépend du pays du compte Twilio). */
+  PHONE_PROVISION_AREA_CODE: process.env.PHONE_PROVISION_AREA_CODE || '',
   /**
    * Custom-LLM path for every client. ON by default: it is what makes the
    * intent router actually skip the model instead of only counting the turns it
