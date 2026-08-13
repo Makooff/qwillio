@@ -3,6 +3,7 @@ import { logger } from '../config/logger';
 import { emailService } from './email.service';
 import { discordService } from './discord.service';
 import { smsService } from './sms.service';
+import { whatsAppService } from './whatsapp.service';
 
 export class BookingReminderService {
 
@@ -72,20 +73,45 @@ export class BookingReminderService {
           });
         }
 
-        // Send SMS reminder if phone available and not already sent
+        /* Rappel sur le téléphone: WhatsApp D'ABORD, SMS en repli.
+         *
+         * Les deux ne partent jamais ensemble. Un client qui reçoit le même
+         * rappel deux fois ne se dit pas qu'on est prévenant, il se dit qu'on
+         * bricole — et le SMS est facturé au segment.
+         *
+         * WhatsApp passe en premier parce qu'en Belgique c'est le canal du
+         * quotidien, qu'il affiche l'identité de l'expéditeur, et qu'il ne
+         * coûte rien à l'unité. Mais il ne remplace pas le SMS: un message
+         * WhatsApp n'arrive que si le destinataire a WhatsApp et a déjà une
+         * conversation ouverte avec nous. D'où le repli, silencieux et
+         * automatique.
+         *
+         * `smsReminderSent` garde son nom mais signifie désormais « rappel
+         * téléphone envoyé, quel qu'en soit le canal »; `reminderChannel` dit
+         * lequel, ce qui est la première question du support quand un client
+         * affirme n'avoir rien reçu. */
         if (booking.customerPhone && !booking.smsReminderSent) {
-          const smsSent = await smsService.sendBookingReminderSMS({
+          const payload = {
             customerPhone: booking.customerPhone,
             customerName: booking.customerName,
             businessName: booking.client.businessName,
             bookingDate: booking.bookingDate.toISOString(),
             bookingTime: booking.bookingTime || null,
             serviceType: booking.serviceType || null,
-          });
-          if (smsSent) {
+          };
+
+          let channel: 'whatsapp' | 'sms' | null = null;
+
+          if (await whatsAppService.sendBookingReminder(payload)) {
+            channel = 'whatsapp';
+          } else if (await smsService.sendBookingReminderSMS(payload)) {
+            channel = 'sms';
+          }
+
+          if (channel) {
             await prisma.clientBooking.update({
               where: { id: booking.id },
-              data: { smsReminderSent: true },
+              data: { smsReminderSent: true, reminderChannel: channel },
             });
           }
         }

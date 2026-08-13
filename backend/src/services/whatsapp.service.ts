@@ -209,6 +209,49 @@ export class WhatsAppService {
     if (sent > 0) logger.info(`[WhatsApp] Re-engagement sent: ${sent}`);
     return sent;
   }
+
+  /**
+   * Rappel de rendez-vous par WhatsApp (roadmap 3.2, étape intermédiaire).
+   *
+   * Ce service n'existait que pour la prospection sortante. Le rappel J-1 des
+   * rendez-vous partait en SMS, facturé au segment, depuis un numéro que le
+   * destinataire ne reconnaît pas. En Belgique WhatsApp est le canal du
+   * quotidien, et le message y arrive dans une conversation identifiée.
+   *
+   * **Le texte est exactement celui du SMS**, produit par le même
+   * `smsTemplates.bookingReminder`. Deux rédactions divergeraient dès la
+   * première correction, et le client entendrait deux voix selon le canal.
+   *
+   * Rend `false` sans bruit quand WhatsApp n'est pas configuré ou que le
+   * message ne passe pas: l'appelant retombe alors sur le SMS. C'est un repli
+   * prévu, pas une erreur à remonter.
+   */
+  async sendBookingReminder(booking: {
+    customerPhone: string;
+    customerName: string;
+    businessName: string;
+    bookingDate: string;
+    bookingTime: string | null;
+    serviceType: string | null;
+  }): Promise<boolean> {
+    if (!booking.customerPhone) return false;
+
+    const { detectLanguage } = await import('../config/vapi-templates');
+    const { smsTemplates } = await import('./sms-templates');
+
+    const lang = detectLanguage(booking.customerPhone);
+    const firstName = booking.customerName?.split(' ')[0] || (lang === 'fr' ? 'à vous' : 'there');
+
+    const body = smsTemplates.bookingReminder({
+      firstName,
+      businessName: booking.businessName,
+      time: booking.bookingTime,
+      service: booking.serviceType,
+      lang,
+    });
+
+    return this.sendMessage({ to: booking.customerPhone, body, messageType: 'booking_reminder' });
+  }
 }
 
 export const whatsAppService = new WhatsAppService();

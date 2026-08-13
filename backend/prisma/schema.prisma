@@ -679,7 +679,12 @@ model ClientBooking {
   createdAt           DateTime    @default(now()) @map("created_at")
   updatedAt           DateTime    @default(now()) @updatedAt @map("updated_at")
   smsConfirmationSent Boolean     @default(false) @map("sms_confirmation_sent")
+  /// Garde son nom pour ne pas casser l'existant, mais signifie désormais
+  /// « rappel téléphone envoyé, quel qu'en soit le canal ».
   smsReminderSent     Boolean     @default(false) @map("sms_reminder_sent")
+  /// Par quel canal le rappel est parti: 'whatsapp' ou 'sms'. C'est la
+  /// première question du support quand un client dit n'avoir rien reçu.
+  reminderChannel     String?     @map("reminder_channel") @db.VarChar(20)
   clientCall          ClientCall? @relation(fields: [clientCallId], references: [id])
   client              Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
 

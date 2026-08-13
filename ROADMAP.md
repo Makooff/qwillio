@@ -197,8 +197,10 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
 - **Effort** : L. **Dépendances** : compte WhatsApp Business vérifié.
 - **Done** : un client final commence sur le chat web, l'agent retrouve le contexte
   quand il rappelle.
-- **Étape intermédiaire livrable en 1 sem** : rappels de RDV WhatsApp (le service
-  Twilio existe) — impact immédiat BE.
+- [x] **Rappels de RDV WhatsApp faits le 13/08/2026** : WhatsApp d'abord, SMS en repli, jamais les deux (double rappel + SMS facturé au segment). Même texte pour les deux canaux, `reminderChannel` dit lequel a servi. 5 tests.
+- **Reste du multicanal** : le modèle `Conversation` partagé, qui donnerait un seul
+  cerveau à la voix, au texte et à l'email. Les rappels WhatsApp ci-dessus sont un
+  canal de sortie, pas encore une conversation.
 
 ### 3.3 Outbound conforme (si l'outbound FR/BE doit vivre)
 - [~] **Première brique faite le 13/08/2026** : opt-out d'appel.
