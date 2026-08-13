@@ -40,6 +40,9 @@ const DEEPGRAM_MODEL: Record<VoiceLanguage, string> = { fr: 'nova-3', en: 'nova-
  * latency. 150 ms is aggressive but safe when smart endpointing is on, because
  * the start-speaking plan re-checks whether the sentence sounded finished.
  */
+/** Codes BCP-47 pour les transcripteurs de secours non-Deepgram. */
+const FALLBACK_STT_LANG: Record<VoiceLanguage, string> = { fr: 'fr-FR', en: 'en-US', nl: 'nl-NL' };
+
 export function buildTranscriber(lang: VoiceLanguage) {
   return {
     provider: 'deepgram',
@@ -49,6 +52,19 @@ export function buildTranscriber(lang: VoiceLanguage) {
     // Emit interim results so the orchestrator can react (barge-in bookkeeping,
     // filler timing) before the final transcript lands.
     endpointing: env.VOICE_ENDPOINTING_MS,
+    /* Panne Deepgram = panne totale tant qu'aucun secours n'est déclaré.
+       Opt-in par env (voir le commentaire dans env.ts): le champ n'existe pas
+       du tout tant que la variable est vide, pour que le schéma envoyé à Vapi
+       reste identique à celui qui tourne aujourd'hui. */
+    ...(env.VOICE_STT_FALLBACK_PROVIDER
+      ? {
+          fallbackPlan: {
+            transcribers: [
+              { provider: env.VOICE_STT_FALLBACK_PROVIDER, language: FALLBACK_STT_LANG[lang] },
+            ],
+          },
+        }
+      : {}),
   };
 }
 
@@ -273,6 +289,12 @@ export function buildSpeech(opts: {
       maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
       messages: [{ role: 'system', content: opts.systemPrompt }],
       tools: opts.tools,
+      /* Modèles de secours, opt-in par env, et seulement sur le chemin où
+         Vapi tient lui-même la boucle: sur custom-llm c'est CE backend qui
+         est le fournisseur, un fallback déclaré ici n'aurait pas de sens. */
+      ...(!opts.customLlmUrl && env.VOICE_LLM_FALLBACK_MODELS.length
+        ? { fallbackModels: env.VOICE_LLM_FALLBACK_MODELS }
+        : {}),
     },
     voice: buildVoice({
       voiceId: opts.character.voiceId,

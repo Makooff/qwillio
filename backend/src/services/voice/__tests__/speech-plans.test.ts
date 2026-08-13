@@ -87,6 +87,27 @@ describe('buildStartSpeakingPlan', () => {
   });
 });
 
+describe('fallbacks fournisseurs — opt-in strict', () => {
+  // Un champ inconnu rejette l'assistant ENTIER chez Vapi: tant que les
+  // variables d'env sont vides, le schéma doit être identique à l'existant.
+  it('sans env, aucun champ de fallback ne part vers Vapi', () => {
+    const t = buildTranscriber('fr') as Record<string, unknown>;
+    expect(t.fallbackPlan).toBeUndefined();
+  });
+
+  it('avec env, le transcriber déclare son secours dans la bonne langue', async () => {
+    const { env } = await import('../../../config/env');
+    const prev = env.VOICE_STT_FALLBACK_PROVIDER;
+    (env as { VOICE_STT_FALLBACK_PROVIDER: string }).VOICE_STT_FALLBACK_PROVIDER = 'google';
+    try {
+      const t = buildTranscriber('nl') as { fallbackPlan?: { transcribers: Array<{ provider: string; language: string }> } };
+      expect(t.fallbackPlan?.transcribers).toEqual([{ provider: 'google', language: 'nl-NL' }]);
+    } finally {
+      (env as { VOICE_STT_FALLBACK_PROVIDER: string }).VOICE_STT_FALLBACK_PROVIDER = prev;
+    }
+  });
+});
+
 describe('buildVoice', () => {
   const voice = buildVoice({ voiceId: 'voice_x' });
 

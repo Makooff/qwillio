@@ -138,6 +138,17 @@ export const env = {
    * tour multilingue: ce réglage permet de l'essayer sur de vrais appels sans
    * redéploiement, et de revenir en un set d'env si le français y perd. */
   VOICE_FR_ENDPOINTING_PROVIDER: (process.env.VOICE_FR_ENDPOINTING_PROVIDER === 'livekit' ? 'livekit' : 'vapi') as 'vapi' | 'livekit',
+  /* Fallbacks fournisseurs (STT et LLM), VIDES par défaut.
+   *
+   * Un champ que Vapi ne reconnaît pas rejette l'assistant ENTIER — l'appel
+   * test ET les vrais appels (déjà vécu avec backchannelPlan). Ces deux
+   * variables ne doivent donc être posées qu'après validation sur un appel
+   * réel. Vides, le comportement actuel est inchangé au bit près. */
+  /** Ex: 'gpt-4o-mini' — modèles de secours du même provider, ordre de préférence. */
+  VOICE_LLM_FALLBACK_MODELS: (process.env.VOICE_LLM_FALLBACK_MODELS || '')
+    .split(',').map(s => s.trim()).filter(Boolean),
+  /** Ex: 'google' — transcripteur de secours si Deepgram tombe. */
+  VOICE_STT_FALLBACK_PROVIDER: process.env.VOICE_STT_FALLBACK_PROVIDER || '',
   /**
    * Custom-LLM path for every client. ON by default: it is what makes the
    * intent router actually skip the model instead of only counting the turns it
