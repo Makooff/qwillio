@@ -13,4 +13,7 @@ RUN npm run build
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm start"]
+# `migrate deploy` applique l'historique de migrations, comme render.yaml.
+# L'ancien `db push --accept-data-loss` pouvait SUPPRIMER des colonnes pour
+# forcer la convergence du schéma — jamais contre une base de production.
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]

@@ -74,7 +74,9 @@ app.use(cors({
     if (
       !origin ||
       allowedOrigins.has(origin) ||
-      /\.vercel\.app$/.test(origin) ||
+      // Previews Vercel du SEUL projet Qwillio. L'ancien /\.vercel\.app$/
+      // acceptait n'importe quel site hébergé chez Vercel, credentials inclus.
+      /^https:\/\/qwillio[a-z0-9.-]*-makooffs-projects\.vercel\.app$/.test(origin) ||
       /^https?:\/\/(www\.)?qwillio\.(com|app|io)$/.test(origin) ||
       /^https?:\/\/localhost(:\d+)?$/.test(origin)
     ) {

@@ -67,11 +67,14 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
 - **Done** : tests d'injection unitaires verts (caractères de contrôle, fences,
   fausses sections, nom forgé) ; clause SÉCURITÉ vérifiée en dernière position.
 
-### 1.5 Correctifs de sécurité à coût nul (recommandé dans la foulée)
-- [ ] Retirer `--accept-data-loss` du `Dockerfile` (→ `migrate deploy`).
-- [ ] Clé d'idempotence sur l'overage Stripe (`stripe.service.ts:422`).
-- [ ] Restreindre le CORS `*.vercel.app` aux previews du projet.
-- **Effort** : S. **Done** : revue + tests existants verts.
+### 1.5 Correctifs de sécurité à coût nul
+- [x] **Fait le 13/08/2026**
+- [x] `Dockerfile` : `migrate deploy` remplace `db push --accept-data-loss`.
+- [x] Overage Stripe : clé d'idempotence `overage-{client}-{mois}` **et correction
+  de la fenêtre** — le cron du 1er facturait le mois en cours (6 h d'appels),
+  donc ne facturait jamais rien ; il facture désormais le mois précédent entier.
+- [x] CORS : `*.vercel.app` restreint aux previews du projet
+  (`qwillio*-makooffs-projects.vercel.app`).
 
 ---
 

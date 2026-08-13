@@ -398,14 +398,23 @@ export class StripeService {
     const includedMinutes = client.monthlyMinutesQuota ?? plan.includedMinutes;
     if (!includedMinutes) return;
 
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
+    /* Fenêtre facturée: le mois PRÉCÉDENT, en entier.
+     *
+     * Le cron tourne le 1er à 06:00. L'ancienne version sommait depuis le 1er
+     * du mois COURANT, c'est-à-dire six heures d'appels: l'overage ne
+     * facturait jamais rien. On fige [1er du mois précédent, 1er du mois
+     * courant), et cette borne devient aussi la clé d'idempotence — un cron
+     * relancé (retry, double instance) ne peut plus produire deux lignes de
+     * facture pour le même mois. */
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const billedMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const billedMonth = `${billedMonthStart.getFullYear()}-${String(billedMonthStart.getMonth() + 1).padStart(2, '0')}`;
 
-    // Sum real call minutes this month (spam excluded — it never counts against
-    // the client). Duration is stored in seconds on ClientCall.
+    // Sum real call minutes for the billed month (spam excluded — it never
+    // counts against the client). Duration is stored in seconds on ClientCall.
     const agg = await prisma.clientCall.aggregate({
-      where: { clientId, isSpam: false, createdAt: { gte: monthStart } },
+      where: { clientId, isSpam: false, createdAt: { gte: billedMonthStart, lt: monthStart } },
       _sum: { durationSeconds: true },
     });
     const minutesUsed = Math.round((agg._sum.durationSeconds ?? 0) / 60);
@@ -414,17 +423,20 @@ export class StripeService {
     if (overage <= 0) return;
 
     const rate = plan.overagePerMinuteEur;
-    logger.info(`Overage for ${client.businessName}: ${overage} min x €${rate} = €${(overage * rate).toFixed(2)}`);
+    logger.info(`Overage for ${client.businessName} (${billedMonth}): ${overage} min x €${rate} = €${(overage * rate).toFixed(2)}`);
 
     // Create a one-time invoice item for the overage minutes.
     if (client.stripeCustomerId) {
       try {
-        await stripe.invoiceItems.create({
-          customer: client.stripeCustomerId,
-          amount: Math.round(overage * rate * 100), // cents
-          currency: 'eur',
-          description: `Dépassement : ${overage} minutes x €${rate}/min`,
-        });
+        await stripe.invoiceItems.create(
+          {
+            customer: client.stripeCustomerId,
+            amount: Math.round(overage * rate * 100), // cents
+            currency: 'eur',
+            description: `Dépassement ${billedMonth} : ${overage} minutes x €${rate}/min`,
+          },
+          { idempotencyKey: `overage-${clientId}-${billedMonth}` },
+        );
         logger.info(`Overage invoice item created for ${client.businessName}`);
       } catch (err) {
         logger.error(`Failed to create overage invoice for ${client.businessName}:`, err);
