@@ -1108,6 +1108,65 @@ export class ClientDashboardController {
     }
   }
 
+  // ═══ Rétention des données (RGPD) ═══
+
+  // GET /my-dashboard/retention
+  async getRetention(req: any, res: Response) {
+    try {
+      const { resolveRetentionDays, DEFAULT_RETENTION_DAYS, MIN_RETENTION_DAYS, MAX_RETENTION_DAYS } =
+        await import('../services/data-retention.service');
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { retentionDays: true },
+      });
+      res.json({
+        retentionDays: resolveRetentionDays(client?.retentionDays),
+        isDefault: client?.retentionDays == null,
+        defaultDays: DEFAULT_RETENTION_DAYS,
+        minDays: MIN_RETENTION_DAYS,
+        maxDays: MAX_RETENTION_DAYS,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // PUT /my-dashboard/retention { retentionDays: number | null }
+  async updateRetention(req: any, res: Response) {
+    try {
+      const { MIN_RETENTION_DAYS, MAX_RETENTION_DAYS } = await import('../services/data-retention.service');
+      const raw = req.body?.retentionDays;
+      // null = revenir au défaut de la plateforme.
+      if (raw !== null && (typeof raw !== 'number' || !Number.isFinite(raw))) {
+        return res.status(400).json({ error: 'retentionDays must be a number or null' });
+      }
+      if (typeof raw === 'number' && (raw < MIN_RETENTION_DAYS || raw > MAX_RETENTION_DAYS)) {
+        return res.status(400).json({ error: `retentionDays must be between ${MIN_RETENTION_DAYS} and ${MAX_RETENTION_DAYS}` });
+      }
+      await prisma.client.update({
+        where: { id: req.clientId },
+        data: { retentionDays: raw === null ? null : Math.round(raw) },
+      });
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // DELETE /my-dashboard/callers/:number — effacement d'un appelant (droit du
+  // sujet de données: l'appelant du client, pas le client lui-même).
+  async eraseCaller(req: any, res: Response) {
+    try {
+      const number = decodeURIComponent(String(req.params.number || '')).trim();
+      if (!number) return res.status(400).json({ error: 'Caller number required' });
+      const { dataRetentionService } = await import('../services/data-retention.service');
+      const result = await dataRetentionService.eraseCaller(req.clientId, number);
+      res.json({ success: true, ...result });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // ═══ Account ═══
 
   // PUT /my-dashboard/profile

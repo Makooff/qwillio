@@ -310,6 +310,11 @@ model Client {
   googleCalendarRefreshToken String?                   @map("google_calendar_refresh_token")
   agentLanguage              String                    @default("en") @map("agent_language") @db.VarChar(10)
   agentName                  String?                   @map("agent_name") @db.VarChar(100)
+  /// Durée de conservation des données d'appel (transcripts, enregistrements,
+  /// mémoire d'appelant), en jours. Null = défaut de la plateforme (90 j, la
+  /// durée promise par la politique de confidentialité). Bornée en service
+  /// entre 30 et 1825 j (5 ans, preuve).
+  retentionDays              Int?                      @map("retention_days")
   forwardingStatus           String?                   @map("forwarding_status") @db.VarChar(50)
   forwardingType             String?                   @map("forwarding_type") @db.VarChar(50)
   forwardingVerifiedAt       DateTime?                 @map("forwarding_verified_at")

@@ -80,6 +80,7 @@ class BotLoop {
   private overageJob: cron.ScheduledTask | null = null;
   private quotaAlertJob: cron.ScheduledTask | null = null;
   private backupJob: cron.ScheduledTask | null = null;
+  private dataRetentionJob: cron.ScheduledTask | null = null;
   // ─── LinkedIn Outreach ─────────────────────────────────
   private linkedInConnectionsJob: cron.ScheduledTask | null = null;
   private linkedInFollowUpsJob: cron.ScheduledTask | null = null;
@@ -953,6 +954,19 @@ class BotLoop {
         .catch(e => logger.error('[CRON] Call backup failed', e));
     }), { timezone: 'UTC' });
 
+    // ═══════════════════════════════════════════════════════════
+    // DATA RETENTION — Daily at 04:15 UTC. Applique la durée de
+    // conservation promise (90 j par défaut, configurable par client):
+    // purge transcripts / enregistrements (suppression Vapi incluse) /
+    // mémoire d'appelant au-delà de la rétention.
+    // ═══════════════════════════════════════════════════════════
+    this.dataRetentionJob = cron.schedule('15 4 * * *', () => jobGuard.run('data-retention', async () => {
+      logger.info('[CRON] Data retention purge → running');
+      const { dataRetentionService } = await import('../services/data-retention.service');
+      await dataRetentionService.purgeExpiredCallData()
+        .catch(e => logger.error('[CRON] Data retention purge failed', e));
+    }), { timezone: 'UTC' });
+
     this.keepAliveJob = cron.schedule('*/10 * * * *', () => jobGuard.run('keep-alive', async () => {
       try {
         const url = env.API_BASE_URL || `http://localhost:${env.PORT}`;
@@ -996,6 +1010,7 @@ class BotLoop {
     this.overageJob?.stop(); this.overageJob = null;
     this.quotaAlertJob?.stop(); this.quotaAlertJob = null;
     this.backupJob?.stop(); this.backupJob = null;
+    this.dataRetentionJob?.stop(); this.dataRetentionJob = null;
     // LinkedIn Outreach
     this.linkedInConnectionsJob?.stop(); this.linkedInConnectionsJob = null;
     this.linkedInFollowUpsJob?.stop(); this.linkedInFollowUpsJob = null;

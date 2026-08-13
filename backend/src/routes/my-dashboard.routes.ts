@@ -120,6 +120,13 @@ router.post('/upgrade', billingLimiter, (req, res) => clientDashboardController.
    garde-fou que les autres routes de facturation. */
 router.post('/billing-portal', billingLimiter, (req, res) => clientDashboardController.createBillingPortal(req, res));
 
+// ─── Rétention des données (RGPD) ───────────────────────
+router.get('/retention', (req, res) => clientDashboardController.getRetention(req, res));
+router.put('/retention', (req, res) => clientDashboardController.updateRetention(req, res));
+/* Effacement d'un appelant (droit du sujet de données). Sous le limiteur de
+   facturation: chaque appel peut déclencher des suppressions chez Vapi. */
+router.delete('/callers/:number', billingLimiter, (req, res) => clientDashboardController.eraseCaller(req, res));
+
 // ─── Agent modules ──────────────────────────────────────
 router.put('/agent-modules', (req, res) => clientDashboardController.updateAgentModules(req, res));
 

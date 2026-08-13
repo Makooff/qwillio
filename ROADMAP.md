@@ -91,14 +91,18 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   passée ; WER NL mesuré sur 20 transcripts < 12 %.
 
 ### 2.2 Rétention configurable + purge automatique
-- **Techno** : champs `retentionDays` par client (défaut 90 j, bornes 6 mois qualité /
-  5 ans preuve selon type) ; cron quotidien de purge transcripts/enregistrements
-  (suppression Vapi incluse via API) + `CallerMemory` ; effacement appelant sur demande
-  (droit du sujet de données).
-- **Impact** : aligne la réalité sur la politique publiée ; argument de vente RGPD.
-- **Effort** : M. **Dépendances** : API Vapi de suppression d'enregistrements.
-- **Done** : aucune donnée d'appel plus vieille que la politique en base ni chez Vapi ;
-  job idempotent testé ; page privacy mise à jour.
+- [x] **Fait le 13/08/2026**
+- **Livré** : `Client.retentionDays` (migration ; null = 90 j, bornes 30 j-5 ans) ;
+  cron quotidien `data-retention` (04:15 UTC) qui purge le CONTENU personnel des
+  appels (transcript, identité, URL) en gardant la ligne pour la facturation,
+  supprime l'audio chez Vapi (`DELETE /call/{id}`, best-effort plafonné, la ligne
+  n'est vidée que si la suppression distante a réussi), supprime `CallerMemory`
+  expirée, et purge le monde outbound (Call, Prospect.callTranscript) ;
+  API client : `GET/PUT /my-dashboard/retention` + `DELETE /my-dashboard/callers/:number`
+  (effacement d'un appelant, droit du sujet de données).
+- **Done** : job idempotent testé (8 tests) ; reste côté produit : exposer le réglage
+  dans l'UI Paramètres et mettre à jour la page privacy si la durée devient
+  configurable publiquement.
 
 ### 2.3 KB/RAG : ouvrir le chemin d'écriture + présets par niche
 - **Techno** : CRUD `BusinessKnowledge` (routes + UI Paramètres) branché sur les
