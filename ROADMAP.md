@@ -197,9 +197,27 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   (pas confiée au modèle : un opt-out raté est une infraction), gating du
   moteur sortant, preuve source+date conservée (jamais purgée). La divulgation
   IA d'ouverture est couverte par le quick win 1.
-- **Reste** : modèle `CallConsent` (opt-in positif tracé ≥ 3 ans), consultation
-  Bloctel/liste BE avant appel (dépendance externe : abonnement Bloctel),
-  position juridique B2B vs B2C. À défaut : geler l'outbound FR/BE.
+- ⚠️ **Le cadre légal a changé le 11/08/2026, ce lot est à réécrire** (détail et
+  sources : `docs/ETAT-DE-LART-2026.md` §1). **Bloctel a cessé son activité** en
+  application de la loi n° 2025-594 : le démarchage non sollicité est désormais
+  **interdit par défaut en France**, tous secteurs, sauf consentement préalable
+  ou contrat en cours. Le régime passe de l'opt-out à **l'opt-in**.
+- **Reste, version corrigée** :
+  - ~~consultation Bloctel avant appel~~ — **supprimé, la cible n'existe plus** ;
+  - modèle `CallConsent` : ce n'est plus une amélioration mais **le seul
+    mécanisme légal d'appel sortant en France**. La preuve incombant au
+    professionnel, il stocke l'**origine, la date, le libellé exact accepté et
+    la révocation** — pas un booléen. L'opt-out verbal déjà livré en est le
+    canal de révocation : nécessaire, pas suffisant ;
+  - **règle par pays** : la Belgique reste en opt-out (liste « Ne m'appelez
+    plus ! »). Une règle unique serait illégale en France ou inutilement bridée
+    en Belgique ;
+  - fenêtres horaires légales ;
+  - **position juridique B2B vs B2C — à trancher avec un juriste** : les textes
+    visent le « consommateur », notre ciblage est B2B, mais l'artisan en nom
+    propre a souvent une ligne personnelle. Hypothèse de travail retenue :
+    traiter l'outbound FR comme soumis à l'opt-in.
+  - À défaut de tout cela : **geler l'outbound FR**.
 - **Done** : aucun appel sortant sans consentement tracé ou base légale
   documentée ; opt-out verbal persisté et respecté ✅ (fait).
 
