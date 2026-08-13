@@ -244,10 +244,22 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   documentée ; opt-out verbal persisté et respecté ✅ (fait).
 
 ### 3.4 Industrialisation : queue + multi-instance + Stripe Meters + RLS
-- **Techno** : BullMQ + Redis (remplace 45 crons in-process), verrous distribués,
-  Stripe Meters pour l'overage, contrainte unique anti-double-booking, réconciliation
-  calendrier, RLS Postgres ou extension Prisma de scoping tenant, chiffrement des
-  clés API clients.
+- [x] **Trois briques faites le 13/08/2026**, celles qui ne dépendaient pas de Redis :
+  - **contrainte anti-double-réservation** : index unique PARTIEL sur
+    (client, date, heure) restreint aux réservations `confirmed`, pour qu'une
+    annulation libère le créneau. Les « holds » en mémoire ne couvraient qu'un
+    processus ; deux appels simultanés pouvaient confirmer le même horaire.
+    L'agent intercepte la collision et propose un autre créneau au lieu
+    d'annoncer une réservation qui n'existe pas ;
+  - **réconciliation calendrier** : le code annonçait qu'un échec de
+    synchronisation relevait « d'un travail de réconciliation » qui n'existait
+    pas. Job horaire, rendez-vous à venir seulement, 5 tentatives au plus,
+    et alerte explicite sur les abandons (jeton Google révoqué) ;
+  - **clés API en condensat** (voir aussi la dette sécurité) : SHA-256
+    déterministe, migration additive, aucune rotation nécessaire.
+- **Reste** : BullMQ + Redis (remplace 45 crons in-process), verrous distribués,
+  Stripe Meters pour l'overage, RLS Postgres ou extension Prisma de scoping tenant,
+  et la seconde migration qui retire la colonne de clé en clair.
 - **Impact** : scale > 1 instance sans double exécution ; facturation fiable.
 - **Effort** : L. **Dépendances** : Redis managé (externe).
 - **Done** : 2 instances worker sans double-run ; usage visible dans Stripe en continu ;

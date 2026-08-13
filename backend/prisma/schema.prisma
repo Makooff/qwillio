@@ -670,6 +670,11 @@ model ClientBooking {
   reminderSent        Boolean     @default(false) @map("reminder_sent")
   reminderSentAt      DateTime?   @map("reminder_sent_at")
   googleEventId       String?     @map("google_event_id") @db.VarChar(255)
+  /// Suivi de la synchronisation calendrier. `calendarSyncedAt` renseigné vaut
+  /// « réglé » (synchronisé, ou rien à synchroniser faute de calendrier lié) ;
+  /// nul avec des tentatives > 0 vaut « en échec, à reprendre ».
+  calendarSyncedAt    DateTime?   @map("calendar_synced_at")
+  calendarSyncAttempts Int        @default(0) @map("calendar_sync_attempts")
   notes               String?
   createdAt           DateTime    @default(now()) @map("created_at")
   updatedAt           DateTime    @default(now()) @updatedAt @map("updated_at")
