@@ -59,12 +59,32 @@ numéros portant un consentement enregistré. Comme le registre est vide,
 > propre dont la ligne est personnelle ? »
 
 **Selon la réponse :**
-- **« Oui, ça s'applique »** → rien à faire, le code est déjà conforme. Il faudra
-  construire un moyen de recueillir le consentement (formulaire web, rappel
-  demandé) avant de rallumer la France.
+
+- **« Oui, ça s'applique »** → le code est déjà conforme, et tu peux rallumer la
+  France prospect par prospect dès que tu as une preuve de consentement
+  (contrat, rappel demandé de vive voix, formulaire hébergé ailleurs). Consigne-la
+  avec ton `ADMIN_SECRET` :
+
+```bash
+curl -X POST https://qwillio.onrender.com/api/admin/call-consents \
+  -H "x-admin-secret: TON_SECRET" -H "Content-Type: application/json" \
+  -d '{"phone":"+33612345678","countryCode":"FR","source":"contract","statement":"J accepte d etre contacte par telephone par Qwillio a propos de ses services","evidenceUrl":"https://…/contrat.pdf"}'
+```
+
+  Le champ `statement` est **obligatoire et doit être le libellé exact accepté** :
+  c'est lui la preuve, pas la ligne en base. Pour vérifier ou révoquer :
+
+```bash
+curl https://qwillio.onrender.com/api/admin/call-consents/%2B33612345678 -H "x-admin-secret: TON_SECRET"
+```
+
 - **« Non, le B2B est hors champ »** → une ligne à changer dans
   `backend/src/utils/outbound-legal.ts` : passer `FR.requiresPriorConsent` à
   `false`. Dis-le-moi, je le fais et je le teste.
+
+**Dans les deux cas**, le plafond légal de **4 appels par mois et par prospect**
+et les horaires (lun-ven 10h-13h / 14h-20h, hors fériés) s'appliquent désormais
+tout seuls. Tu n'as rien à faire pour ça.
 
 **En attendant** : la Belgique continue de fonctionner normalement (elle est
 restée en opt-out, avec la liste « Ne m'appelez plus ! »).
