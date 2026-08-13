@@ -12,6 +12,7 @@ import { isHoliday, isWithinCallWindow, isPriorityDay, isBlackoutPeriod, getDayH
 import { INTERESTED_FOLLOWUP_SEQUENCE, CALLBACK_RETRY_DELAYS } from '../config/followup-sequence';
 import { emailService } from './email.service';
 import { normalizeEmail, isValidEmail } from '../utils/validators';
+import { detectCallOptOut } from '../utils/call-optout';
 import { nicheLearningService } from './niche-learning.service';
 import { callIntelligenceService } from './call-intelligence.service';
 import { buildVapiCallPayload } from './vapi-payload';
@@ -348,6 +349,16 @@ export class VapiService {
     const newStatus = analysis.interestLevel >= INTEREST_QUALIFIED ? 'qualified' :
                       analysis.interestLevel >= INTEREST_INTERESTED ? 'interested' : 'contacted';
 
+    /* Opt-out d'appel dit à voix haute. Détecté sur le transcript brut plutôt
+       que confié à l'analyse GPT: un « ne me rappelez plus » raté par le
+       modèle serait une infraction, pas une statistique. Définitif, tracé
+       (source + date, preuve à conserver), et il coupe aussi l'éligibilité
+       générale — l'engine a son propre filtre callOptedOut en ceinture. */
+    const optedOut = detectCallOptOut(transcript);
+    if (optedOut) {
+      logger.info(`[Vapi] opt-out d'appel exprimé par ${call.prospect.businessName} — plus jamais rappelé`);
+    }
+
     // ═══ EMAIL VALIDATION & NORMALIZATION ═══
     let validatedEmail = call.prospect.email;
     if (analysis.email) {
@@ -375,6 +386,16 @@ export class VapiService {
         nextActionDate: analysis.interestLevel >= INTEREST_QUALIFIED ? new Date() :
                         analysis.interestLevel >= INTEREST_INTERESTED ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) :
                         new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        ...(optedOut
+          ? {
+              callOptedOut: true,
+              callOptedOutAt: new Date(),
+              callOptOutSource: 'verbal',
+              eligibleForCall: false,
+              nextAction: 'none',
+              nextActionDate: null,
+            }
+          : {}),
       },
     });
 

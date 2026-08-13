@@ -259,6 +259,9 @@ export class OutboundEngineService {
         country: { in: ['US', 'FR', 'BE'] },
         phone: { not: null },
         eligibleForCall: true,
+        // Un « ne me rappelez plus » est définitif — jamais re-tenté, quel que
+        // soit le compteur de tentatives.
+        callOptedOut: false,
         // Skip phones explicitly flagged as personal mobile (Twilio LTI:
         // type=mobile + confidence>=0.9). Treat null as "unknown, callable" —
         // many small businesses use VoIP/landline reported as unclassified.
