@@ -68,6 +68,36 @@ class VapiClient {
     });
   }
 
+  /**
+   * Rattache un numéro que NOUS possédons déjà chez Twilio.
+   *
+   * `buyPhoneNumber` ci-dessus achète via le compte Twilio de Vapi, ce qui ne
+   * donne que des numéros du pays supporté par ce compte. Un numéro BELGE ne
+   * peut pas venir de là: les opérateurs belges exigent qu'il soit rattaché à
+   * une adresse belge dans un dossier réglementaire, et ce dossier se dépose
+   * dans NOTRE compte Twilio, pas dans celui de Vapi.
+   *
+   * D'où ce second chemin: on achète le numéro chez nous, dossier à l'appui,
+   * et on le confie ensuite à Vapi avec nos identifiants. C'est la seule voie
+   * possible pour la Belgique, et elle vaut pour tout pays à contrainte
+   * réglementaire (France, Pays-Bas, Allemagne…).
+   */
+  async importTwilioNumber(data: {
+    number: string;
+    twilioAccountSid: string;
+    twilioAuthToken: string;
+    assistantId: string;
+    name?: string;
+  }) {
+    return this.request('/phone-number', {
+      method: 'POST',
+      body: JSON.stringify({
+        provider: 'twilio',
+        ...data,
+      }),
+    });
+  }
+
   async listPhoneNumbers() {
     return this.request('/phone-number');
   }

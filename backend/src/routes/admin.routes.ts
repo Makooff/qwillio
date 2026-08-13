@@ -1039,6 +1039,30 @@ router.post('/test-activate-client', async (req: Request, res: Response) => {
  * s'auto-attribuer ne vaudrait rien.
  * ═══════════════════════════════════════════════════════════════════════════ */
 
+/**
+ * Rattacher un numéro qu'on possède déjà (Belgique, France…) à un client.
+ * POST /api/admin/attach-number { clientId, assistantId, number, label? }
+ */
+router.post('/attach-number', async (req: Request, res: Response) => {
+  try {
+    const { clientId, assistantId, number, label } = req.body || {};
+    if (!clientId || !assistantId || !number) {
+      return res.status(400).json({ error: 'clientId, assistantId et number sont requis' });
+    }
+    const { attachOwnedNumber } = await import('../services/voice/phone-provisioning.service');
+    const result = await attachOwnedNumber(
+      String(clientId), String(assistantId), String(number),
+      label ? String(label) : undefined,
+    );
+    if ('error' in result) return res.status(400).json(result);
+    logger.warn(`[admin] numéro ${result.number} rattaché au client ${clientId}`);
+    return res.status(201).json(result);
+  } catch (err) {
+    logger.error('[admin] attach-number failed:', err);
+    return res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 const CONSENT_SOURCES = ['web_form', 'inbound_call', 'contract', 'import'] as const;
 
 router.post('/call-consents', async (req: Request, res: Response) => {
