@@ -86,33 +86,23 @@ const MOCKUP = {
    linéairement entre eux: l'oeil ne voit pas la rampe, il voit les CASSURES de
    pente à chaque palier, et c'est ce qui se lisait comme un dégradé « trop
    fort ». */
-/* UNE VIGNETTE, PAS UN DÉGRADÉ DANS LA MARGE (demande utilisateur).
-   C'était un fondu VERTICAL: la vidéo restait pleine du haut jusqu'à la moitié,
-   puis s'éteignait vers le bas sur presque la moitié de sa hauteur. Cette
-   longue rampe, vue depuis la page, ne se lit pas comme une vignette: elle se
-   lit comme une bande dégradée posée dans la marge, blanche en thème clair et
-   noire en sombre, et c'est bien ce qu'elle était.
-   Une vignette, elle, tient au CADRE: elle fait le tour de l'image, elle est
-   courte, et elle laisse le centre intact. D'où une ellipse plutôt qu'une
-   ligne. Elle est LARGE (86 % sur 78 %) et elle ne commence à mordre qu'à 62 %
-   de son rayon: c'est ce qui la distingue de la lentille qui existait ici
-   autrefois et qui avait été retirée à juste titre, celle-là éteignait les
-   quatre coins et ne laissait voir la vidéo qu'au centre.
-   Le centre optique est posé à 44 % de la hauteur, pas à 50: le cadre est plus
-   large que haut et le bas doit se dissoudre un peu plus tôt, puisque la
-   capture du tableau de bord vient s'y poser.
-   Elle atteint zéro AVANT le bord (à 99 %): à 95 % il restait assez d'opacité
-   pour que la découpe du cadre se voie comme une arête.
-   C'est un MASQUE, donc il ne peint rien: il rend la vidéo transparente sur son
-   pourtour, et c'est la page qui reparaît, exactement de sa couleur, dans les
-   deux thèmes. */
-const HERO_MASK_V =
-  'radial-gradient(ellipse 86% 78% at 50% 44%, #000 0%, #000 62%, rgba(0,0,0,0.92) 72%, rgba(0,0,0,0.74) 80%, rgba(0,0,0,0.50) 87%, rgba(0,0,0,0.26) 93%, rgba(0,0,0,0.08) 97%, transparent 99%)';
+/* LE FONDU DU BAS, et lui seul.
+   Il ne joue que sur le dernier quart de la hauteur: l'image y descend dans la
+   suite de la page au lieu de s'arrêter net juste au-dessus de la capture du
+   tableau de bord. Les flancs et le haut n'ont plus de fondu du tout, c'est la
+   découpe arrondie du cadre qui les termine (demande utilisateur: « enlève le
+   contour blanc »).
+   Il atteint zéro AVANT le bord, à 99 %: à 95 % il restait assez d'opacité pour
+   que l'arrondi du cadre se relise comme une arête pâle.
+   C'est un MASQUE: il ne peint rien, il rend l'image transparente, donc c'est la
+   page qui reparaît dessous, exactement de sa couleur dans les deux thèmes. */
+const HERO_MASK_BAS =
+  'linear-gradient(to bottom, #000 0%, #000 74%, rgba(0,0,0,0.92) 81%, rgba(0,0,0,0.72) 87%, rgba(0,0,0,0.44) 92%, rgba(0,0,0,0.18) 96%, transparent 99%)';
 /* PLUS AUCUNE TEINTE DE MARQUE SUR LA VIDÉO (demande utilisateur: « enlève
    les effets de couleurs sur la vidéo, garde l'effet lens vignette »).
    Il y avait ici deux couches PEINTES, indigo en haut et violet en bas, qui
    coloraient la dissolution du décor. Elles partent toutes les deux; ce qui
-   reste est le MASQUE (`HERO_MASK_V`), c'est-à-dire la vignette elle-même: il
+   reste est le CADRE ARRONDI et son fondu du bas: ils ne peignent rien, ils
    ne peint rien, il rend le décor transparent sur ses bords, si bien que c'est
    la page qui reparaît, exactement de sa couleur, blanche en clair et noire en
    sombre. Le flou sous la nav reste aussi: il brouille, il ne colore pas.
@@ -159,7 +149,22 @@ function HeroBackdrop() {
          native (voir les `<source media>` plus bas): à sa largeur d'écran, chacun
          reçoit donc au moins autant de pixels qu'il en affiche, y compris un
          écran retina, et l'image n'est jamais agrandie. */
-      className="absolute inset-x-0 top-0 aspect-[3528/2348] overflow-hidden pointer-events-none"
+      /* UN CADRE, PAS UN FOND À BORD PERDU (demande utilisateur: « enlève le
+         contour blanc sur mode clair, la marge en haut de la page doit être
+         blanche en clair et noire en sombre, de forme arrondie pour les
+         coins »).
+         La vidéo touchait les bords de la fenêtre, et la vignette l'y éteignait
+         en fondu: vu en thème clair, ce fondu EST le contour blanc dont il est
+         question, un halo laiteux sur les quatre côtés. Un cadre inséré règle
+         les deux d'un coup: la marge est du VIDE, donc elle prend la couleur de
+         la page — blanche en clair, noire en sombre, sans qu'aucune couleur ne
+         soit écrite ici — et la découpe arrondie remplace le fondu par une
+         arête nette.
+         `inset-x-3` puis `inset-x-5` à partir de `sm`: la marge suit la
+         respiration de la page au lieu d'une valeur fixe qui serait énorme sur
+         un téléphone. Le haut descend sous la barre de nav flottante, qui garde
+         ainsi son propre fond. */
+      className="absolute inset-x-3 sm:inset-x-5 top-3 sm:top-5 aspect-[3528/2348] overflow-hidden pointer-events-none rounded-[28px] sm:rounded-[36px]"
       aria-hidden="true"
       /* VIGNETTE, en MASQUE et non en couche peinte par-dessus.
          Peindre la couleur du canvas au-dessus du décor, c'est poser un aplat
@@ -173,9 +178,17 @@ function HeroBackdrop() {
          bord inférieur de la vidéo dans le dégradé de la page. Il est porté par
          un conteneur distinct du masque de lentille: deux masques sur un seul
          élément demanderaient `mask-composite`, mal soutenu par Safari. */
+      /* Plus de masque de vignette ici. Il rendait la vidéo transparente sur
+         tout son pourtour, et c'est précisément ce dégradé qui se lisait comme
+         un contour blanc en thème clair. La découpe arrondie du cadre fait
+         désormais le travail: elle sépare franchement l'image de la page.
+         Seul reste le fondu du BAS, posé plus bas sur son propre calque: il ne
+         touche pas les flancs, et il sert à autre chose — faire descendre
+         l'image dans la suite de la page plutôt que de la couper net au-dessus
+         de la capture du tableau de bord. */
       style={{
-        WebkitMaskImage: HERO_MASK_V,
-        maskImage: HERO_MASK_V,
+        WebkitMaskImage: HERO_MASK_BAS,
+        maskImage: HERO_MASK_BAS,
       }}
     >
       {/* PLUS DE FONDU LATÉRAL NI DE LENTILLE (demande utilisateur: garder le
@@ -255,25 +268,40 @@ function HeroBackdrop() {
               qu'un moniteur de 1600 px non retina se contente du 1920. Sans le
               `min-resolution`, c'est précisément l'écran le plus fin qui aurait
               hérité de l'image la plus grossière. */}
+          {/* `-webkit-min-device-pixel-ratio` EN PLUS de `min-resolution`, et
+              c'est ce qui manquait (retour utilisateur: « la vidéo semble
+              toujours en low res », capture prise sous Safari).
+              `min-resolution` n'est comprise qu'à partir de Safari 16; avant,
+              la condition est simplement FAUSSE, jamais une erreur. Un Mac
+              retina de 1440 px ne remplissait donc ni « 2000 px de large » ni
+              « 1100 px et 2dppx »: il tombait sur la ligne suivante et
+              recevait le fichier de 1920 pour un cadre de 2880 pixels réels,
+              soit un agrandissement d'un tiers. C'est exactement l'aspect
+              « basse définition » constaté, et il ne se voyait pas sous
+              Chromium, qui comprend `min-resolution`.
+              La forme préfixée dit la même chose et Safari la comprend depuis
+              toujours. Les deux cohabitent: le navigateur ignore ce qu'il ne
+              connaît pas, et il suffit qu'UNE des conditions de la liste soit
+              vraie. */}
           <source
-            media="(min-width: 2000px), (min-width: 1100px) and (min-resolution: 2dppx)"
+            media="(min-width: 2000px), (min-width: 1100px) and (min-resolution: 2dppx), (min-width: 1100px) and (-webkit-min-device-pixel-ratio: 2)"
             src="/hero-lake-3528.webm"
             type="video/webm"
           />
           <source
-            media="(min-width: 2000px), (min-width: 1100px) and (min-resolution: 2dppx)"
+            media="(min-width: 2000px), (min-width: 1100px) and (min-resolution: 2dppx), (min-width: 1100px) and (-webkit-min-device-pixel-ratio: 2)"
             src="/hero-lake-3528.mp4"
             type="video/mp4"
           />
           <source media="(min-width: 1600px)" src="/hero-lake-2560.webm" type="video/webm" />
           <source media="(min-width: 1600px)" src="/hero-lake-2560.mp4" type="video/mp4" />
           <source
-            media="(min-width: 900px), (min-width: 450px) and (min-resolution: 2dppx)"
+            media="(min-width: 900px), (min-width: 450px) and (min-resolution: 2dppx), (min-width: 450px) and (-webkit-min-device-pixel-ratio: 2)"
             src="/hero-lake-1920.webm"
             type="video/webm"
           />
           <source
-            media="(min-width: 900px), (min-width: 450px) and (min-resolution: 2dppx)"
+            media="(min-width: 900px), (min-width: 450px) and (min-resolution: 2dppx), (min-width: 450px) and (-webkit-min-device-pixel-ratio: 2)"
             src="/hero-lake-1920.mp4"
             type="video/mp4"
           />
@@ -1071,7 +1099,14 @@ export default function Home() {
       <Section aria-labelledby="setup-heading" className="relative">
         <ShapeDrift
           className="hidden md:block"
-          shapes={[{ kind: 'twinMirror', x: '83%', y: '30%', size: 225, drift: -85, opacity: 0.26 },
+          /* La forme de droite change (demande utilisateur). `twinMirror` est
+             un disque plein fendu: à 225 px et posé au milieu des étapes, il
+             se lisait comme une tache, et sa fente tombait pile sur les filets
+             de la scène. `column` est une barre verticale, plus discrète et
+             plus haute que large: elle accompagne la colonne des étapes au
+             lieu de la traverser. Elle passe aussi plus bas et se rétrécit,
+             pour laisser les titres respirer. */
+          shapes={[{ kind: 'column', x: '88%', y: '44%', size: 130, drift: -85, opacity: 0.2 },
             { kind: 'pair', x: '-6%', y: '8%', size: 155, drift: 70, opacity: 0.2 }]}
         />
         {/* MÊME SCÈNE AU SCROLL que « Tout se passe en ligne » (demande
