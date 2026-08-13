@@ -90,6 +90,22 @@ export interface ClientVoiceProfile {
   voiceMode: 'auto' | 'realtime' | 'classic';
   /** Whether any active knowledge entry exists — gates the lookup tool. */
   hasKnowledgeBase: boolean;
+  /**
+   * L'appel est-il enregistré ? Historiquement `disableRecordingNotice`
+   * supprimait la notice tout en laissant l'enregistrement actif — c'est-à-dire
+   * un enregistrement sans information, illégal en UE. La sémantique est
+   * inversée: refuser la notice, c'est refuser l'enregistrement. Le choix reste
+   * au client; la légalité n'est plus une option.
+   */
+  recordCalls: boolean;
+}
+
+/**
+ * Un profil encore en cache d'avant ce champ vaut « enregistré » (et donc
+ * « notice prononcée »): le défaut sûr des deux côtés de la loi.
+ */
+export function shouldRecord(profile: Pick<ClientVoiceProfile, 'recordCalls'>): boolean {
+  return profile.recordCalls !== false;
 }
 
 interface CacheEntry<T> {
@@ -259,6 +275,7 @@ class RealtimeContextService {
       // pas décider en silence de la voix que l'appelant entend.
       voiceMode: ['realtime', 'classic'].includes(vapiConfig.voiceMode) ? vapiConfig.voiceMode : 'auto',
       hasKnowledgeBase: knowledgeCount > 0,
+      recordCalls: vapiConfig.disableRecordingNotice !== true && vapiConfig.recordCalls !== false,
     };
 
     await this.set(key, profile, PROFILE_TTL_MS);

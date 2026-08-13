@@ -17,9 +17,12 @@ const profile: ClientVoiceProfile = {
   calendarConnected: true,
   planType: 'pro',
   characterId: null,
+  customVoice: null,
   country: 'FR',
   customLlm: true,
+  voiceMode: 'auto',
   hasKnowledgeBase: false,
+  recordCalls: true,
 };
 
 const newCaller: CallerHistory = {
@@ -129,8 +132,10 @@ describe('firstMessageVariants', () => {
   });
 
   it('keeps openings short — this is the sentence the caller judges', () => {
+    // The ceiling includes the AI disclosure and the recording notice: the
+    // compliant greeting must still land in one breath.
     for (const v of firstMessageVariants(profile, null)) {
-      expect(v.length).toBeLessThan(120);
+      expect(v.length).toBeLessThan(170);
     }
   });
 

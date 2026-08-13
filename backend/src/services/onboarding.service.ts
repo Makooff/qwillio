@@ -90,7 +90,9 @@ export class OnboardingService {
         ...buildRealtimePlans(isFrClient ? 'fr' : 'en'),
         serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
         endCallFunctionEnabled: true,
-        recordingEnabled: true,
+        // Même règle que le runtime: refuser la notice, c'est refuser
+        // l'enregistrement — jamais un enregistrement silencieux.
+        recordingEnabled: ((client?.vapiConfig as any)?.disableRecordingNotice !== true),
         backgroundSound: 'office',
       };
 
@@ -349,29 +351,32 @@ export class OnboardingService {
 
   // Assemble the assistant's opening line so that:
   //  1. Callers hear a natural greeting in their language.
-  //  2. GDPR / consent notice on call recording is delivered at the start of
-  //     the call (mandatory in the EU, best-practice everywhere else).
-  //  3. The recording notice can be suppressed via vapiConfig.disableRecordingNotice
-  //     for jurisdictions where the client's own consent flow already covers it.
+  //  2. The AI disclosure (AI Act art. 50) and the GDPR recording notice are
+  //     delivered at the start of the call.
+  //  3. vapiConfig.disableRecordingNotice no longer suppresses the notice while
+  //     recording continues: it now disables recording itself (see the
+  //     `recordingEnabled` line above), so the notice disappears only when
+  //     there is nothing to announce. The AI disclosure is never optional.
   private generateFirstMessage(client: any, isFrClient: boolean): string {
     const cfg = (client?.vapiConfig as any) || {};
     const businessName = client?.businessName || (isFrClient ? 'notre entreprise' : 'our business');
-    const noticeSuppressed = cfg.disableRecordingNotice === true;
-    const noticeFr = 'Pour améliorer notre service, cet appel peut être enregistré.';
+    const agentName = client?.agentName || (isFrClient ? 'Camille' : 'Ashley');
+    const recordingDisabled = cfg.disableRecordingNotice === true;
+    const noticeFr = 'Cet appel est enregistré.';
     /* Plus de « training purposes »: le site promet que les données ne servent
        pas à entraîner un modèle externe sans accord, et l'annonce disait le
        contraire à l'appelant lui-même. La version française n'en parlait déjà
        pas. */
-    const noticeEn = 'To improve our service, this call may be recorded.';
+    const noticeEn = 'This call is recorded.';
 
     if (isFrClient) {
-      const greeting = `Bonjour, merci d'appeler ${businessName}.`;
-      const notice = noticeSuppressed ? '' : ` ${noticeFr}`;
+      const greeting = `Bonjour, merci d'appeler ${businessName}. Je suis ${agentName}, votre assistant IA.`;
+      const notice = recordingDisabled ? '' : ` ${noticeFr}`;
       return `${greeting}${notice} Comment puis-je vous aider ?`;
     }
 
-    const greeting = `Hello, thank you for calling ${businessName}.`;
-    const notice = noticeSuppressed ? '' : ` ${noticeEn}`;
+    const greeting = `Hello, thank you for calling ${businessName}. This is ${agentName}, your AI assistant.`;
+    const notice = recordingDisabled ? '' : ` ${noticeEn}`;
     return `${greeting}${notice} How can I help you today?`;
   }
 

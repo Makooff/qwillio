@@ -123,6 +123,21 @@ export const env = {
   VOICE_IDLE_NUDGE_SECONDS: parseFloat(process.env.VOICE_IDLE_NUDGE_SECONDS || '4'),
   /** How many times to nudge before letting the silence timeout end the call. */
   VOICE_IDLE_NUDGE_COUNT: parseInt(process.env.VOICE_IDLE_NUDGE_COUNT || '2', 10),
+  /* Conformité au décroché.
+   *
+   * L'AI Act (art. 50, applicable depuis le 02/08/2026) impose d'annoncer que
+   * l'appelant parle à une IA; le RGPD (et l'art. 314bis en Belgique) impose
+   * d'annoncer l'enregistrement avant qu'il ait lieu. Le premier message porte
+   * donc les deux, et « off » n'existe que pour un déploiement hors UE — le
+   * laisser actif est le seul réglage conforme sur le marché visé. */
+  VOICE_COMPLIANCE_GREETING: (process.env.VOICE_COMPLIANCE_GREETING || 'on').toLowerCase() !== 'off',
+  /* Le détecteur de fin de tour pour le FRANÇAIS.
+   *
+   * `vapi` est le choix documenté (le modèle LiveKit historique était
+   * anglophone, voir speech-plans.ts). LiveKit a depuis publié un modèle de
+   * tour multilingue: ce réglage permet de l'essayer sur de vrais appels sans
+   * redéploiement, et de revenir en un set d'env si le français y perd. */
+  VOICE_FR_ENDPOINTING_PROVIDER: (process.env.VOICE_FR_ENDPOINTING_PROVIDER === 'livekit' ? 'livekit' : 'vapi') as 'vapi' | 'livekit',
   /**
    * Custom-LLM path for every client. ON by default: it is what makes the
    * intent router actually skip the model instead of only counting the turns it

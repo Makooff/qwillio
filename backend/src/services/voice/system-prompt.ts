@@ -1,4 +1,5 @@
-import type { CallerHistory, ClientVoiceProfile } from './realtime-context.service';
+import { env } from '../../config/env';
+import { shouldRecord, type CallerHistory, type ClientVoiceProfile } from './realtime-context.service';
 
 /**
  * System prompt assembly (Phase 5.2).
@@ -39,6 +40,14 @@ export function buildSystemPrompt(
     fr
       ? `Tu es ${profile.agentName}, réceptionniste de ${profile.businessName} (${profile.businessType}). Tu réponds au téléphone.`
       : `You are ${profile.agentName}, the receptionist at ${profile.businessName} (${profile.businessType}). You are answering the phone.`
+  );
+
+  // AI Act art. 50: l'appelant a le droit de savoir. La divulgation vit dans le
+  // premier message; cette règle couvre la question posée en cours d'appel.
+  lines.push(
+    fr
+      ? 'Tu es un assistant vocal IA et tu ne t\'en caches pas: si on te demande si tu es une IA ou un robot, confirme-le simplement et poursuis.'
+      : 'You are an AI voice assistant and you never hide it: if asked whether you are an AI or a robot, confirm it plainly and carry on.'
   );
 
   // ── Voice rules: the ones that actually change how it sounds ──
@@ -177,6 +186,44 @@ export function buildSystemPrompt(
 export function firstMessageVariants(profile: ClientVoiceProfile, knownName: string | null): string[] {
   const fr = profile.language === 'fr';
   const { businessName, agentName } = profile;
+
+  /* Conformité UE, portée par la première phrase parce que c'est le seul
+   * moment garanti avant toute collecte:
+   *  - divulgation IA (AI Act art. 50) — l'appelant sait à qui il parle;
+   *  - notice d'enregistrement (RGPD / 314bis BE) — prononcée uniquement si
+   *    l'appel est réellement enregistré, jamais un « peut être » de confort.
+   * Le flag d'env n'existe que pour un déploiement hors UE. */
+  if (env.VOICE_COMPLIANCE_GREETING) {
+    const notice = shouldRecord(profile)
+      ? (fr ? ' Cet appel est enregistré.' : ' This call is recorded.')
+      : '';
+
+    if (knownName) {
+      return fr
+        ? [
+            `${businessName}, bonjour ${knownName}, c'est ${agentName}, votre assistant IA.${notice} Que puis-je faire pour vous ?`,
+            `${businessName}, bonjour ${knownName} ! ${agentName}, l'assistant IA de l'accueil.${notice} Je vous écoute.`,
+            `${businessName}, rebonjour ${knownName}, c'est ${agentName}, votre assistant IA.${notice} Qu'est-ce qui vous amène ?`,
+          ]
+        : [
+            `${businessName}, hi ${knownName}, it's ${agentName}, your AI assistant.${notice} What can I do for you?`,
+            `${businessName}, hi ${knownName}! ${agentName} here — I'm an AI assistant.${notice} Go ahead.`,
+            `${businessName}, welcome back ${knownName}, it's ${agentName}, your AI assistant.${notice} What can I help with?`,
+          ];
+    }
+
+    return fr
+      ? [
+          `${businessName}, bonjour ! Je suis ${agentName}, votre assistant IA.${notice} Que puis-je faire pour vous ?`,
+          `${businessName}, bonjour, ${agentName} à l'appareil — je suis un assistant IA.${notice} Je vous écoute.`,
+          `${businessName}, bonjour ! Ici ${agentName}, l'assistant IA de l'accueil.${notice} Qu'est-ce que je peux faire pour vous ?`,
+        ]
+      : [
+          `Thanks for calling ${businessName}! This is ${agentName}, the AI assistant.${notice} How can I help?`,
+          `${businessName}, good day — ${agentName} speaking, an AI assistant.${notice} What can I do for you?`,
+          `${businessName}, hi there! It's ${agentName}, your AI assistant.${notice} How can I help you today?`,
+        ];
+  }
 
   // A caller we recognise gets their name, which matters far more than variety.
   if (knownName) {
