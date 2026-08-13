@@ -209,22 +209,37 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   application de la loi n° 2025-594 : le démarchage non sollicité est désormais
   **interdit par défaut en France**, tous secteurs, sauf consentement préalable
   ou contrat en cours. Le régime passe de l'opt-out à **l'opt-in**.
-- **Reste, version corrigée** :
+- [x] **Deuxième brique faite le 13/08/2026** : mise en conformité au nouveau régime.
   - ~~consultation Bloctel avant appel~~ — **supprimé, la cible n'existe plus** ;
-  - modèle `CallConsent` : ce n'est plus une amélioration mais **le seul
-    mécanisme légal d'appel sortant en France**. La preuve incombant au
-    professionnel, il stocke l'**origine, la date, le libellé exact accepté et
-    la révocation** — pas un booléen. L'opt-out verbal déjà livré en est le
-    canal de révocation : nécessaire, pas suffisant ;
-  - **règle par pays** : la Belgique reste en opt-out (liste « Ne m'appelez
-    plus ! »). Une règle unique serait illégale en France ou inutilement bridée
-    en Belgique ;
-  - fenêtres horaires légales ;
+  - modèle **`CallConsent`** (migration additive) : la preuve incombant au
+    professionnel, il stocke l'**origine, la date, le libellé exact accepté,
+    l'IP et la révocation** — pas un booléen. Rien n'y est jamais purgé :
+    un consentement qu'on ne peut plus produire équivaut à son absence ;
+  - **`utils/outbound-legal.ts`** : règle **par pays**. FR exige le
+    consentement, BE reste en opt-out. Jours et horaires du décret 2022-1313
+    (lun-ven 10 h-13 h et 14 h-20 h, hors fériés), calculés dans le fuseau
+    local, fériés mobiles adossés à Pâques. Le consentement **lève** la
+    contrainte horaire, comme le prévoit le décret. Un pays inconnu est traité
+    comme exigeant le consentement ;
+  - le moteur sortant sélectionne désormais les pays appelables **à l'instant t**,
+    et les prospects français ne redeviennent éligibles qu'un par un, preuve à
+    l'appui. Tant que personne n'a consenti, la France sort du périmètre
+    d'elle-même : c'est l'état correct au lendemain de la loi ;
+  - l'opt-out verbal **révoque** le consentement, au lieu de laisser le registre
+    attester d'un accord retiré.
+  - 16 tests sur les règles légales.
+- **Reste** :
+  - le plafond de **4 sollicitations par mois** (FR) et la carence de **60 jours**
+    après refus sont exprimés dans `COUNTRY_RULES` mais **pas encore appliqués**
+    par le moteur ; l'opt-out actuel étant définitif, il est plus strict que la
+    carence, donc l'écart penche du bon côté ;
+  - une **UI de saisie du consentement** (aujourd'hui le registre ne se remplit
+    que par le code) ;
   - **position juridique B2B vs B2C — à trancher avec un juriste** : les textes
     visent le « consommateur », notre ciblage est B2B, mais l'artisan en nom
-    propre a souvent une ligne personnelle. Hypothèse de travail retenue :
-    traiter l'outbound FR comme soumis à l'opt-in.
-  - À défaut de tout cela : **geler l'outbound FR**.
+    propre a souvent une ligne personnelle. Hypothèse retenue et implémentée :
+    traiter l'outbound FR comme soumis à l'opt-in. Si le conseil dit l'inverse,
+    la bascule tient en une ligne de `COUNTRY_RULES`.
 - **Done** : aucun appel sortant sans consentement tracé ou base légale
   documentée ; opt-out verbal persisté et respecté ✅ (fait).
 

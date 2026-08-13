@@ -72,6 +72,41 @@ model LinkedInOutreach {
   @@map("linkedin_outreach")
 }
 
+/// Consentement préalable à être appelé (loi n° 2025-594, applicable depuis le
+/// 11/08/2026 en France). Ce n'est pas un booléen sur le prospect, et c'est
+/// délibéré: la loi met la charge de la PREUVE sur le professionnel, donc ce
+/// qu'il faut conserver est un acte daté, sourcé et rattaché à un libellé
+/// exact — pas l'état « oui » qu'on ne pourrait pas justifier.
+///
+/// Rien n'est jamais supprimé de cette table par la purge de rétention: un
+/// consentement qu'on ne peut plus produire équivaut à une absence de
+/// consentement. La révocation s'écrit ici aussi (`revokedAt`), pour que la
+/// preuve du refus survive au même titre que celle de l'accord.
+model CallConsent {
+  id            String    @id @default(uuid()) @db.Uuid
+  /// Numéro au format E.164: c'est lui le sujet du consentement, pas le
+  /// prospect, qui peut être recréé par un scraping ultérieur.
+  phone         String    @db.VarChar(50)
+  countryCode   String    @map("country_code") @db.VarChar(10)
+  /// D'où vient l'accord: 'web_form', 'inbound_call', 'contract', 'import'.
+  source        String    @db.VarChar(50)
+  /// Le libellé EXACT accepté, mot pour mot. Sans lui, on prouve qu'on a coché
+  /// une case, pas ce à quoi la personne a consenti.
+  statement     String
+  collectedAt   DateTime  @default(now()) @map("collected_at")
+  /// Éléments de preuve de la collecte, quand la source en fournit.
+  ipAddress     String?   @map("ip_address") @db.VarChar(64)
+  evidenceUrl   String?   @map("evidence_url") @db.VarChar(500)
+  /// Fin de validité. Un consentement sans terme se périme mal.
+  expiresAt     DateTime? @map("expires_at")
+  revokedAt     DateTime? @map("revoked_at")
+  revokedSource String?   @map("revoked_source") @db.VarChar(50)
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([phone])
+  @@map("call_consents")
+}
+
 model Prospect {
   id                    String                @id @default(uuid()) @db.Uuid
   businessName          String                @map("business_name") @db.VarChar(500)
