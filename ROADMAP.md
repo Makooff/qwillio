@@ -110,8 +110,11 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
 - [x] **UI livrée le 13/08/2026** : section « Données » de `ClientAccount.tsx`,
   raccourcis 30 j / 90 j / 1 an / 5 ans, champ libre borné, et retour explicite
   au défaut. Le tiroir ne charge son état qu'à l'ouverture.
-- **Done** : job idempotent testé (8 tests) ; reste : mettre à jour la page privacy,
-  qui annonce toujours 90 jours fermes alors que la durée est désormais réglable.
+- [x] **Page Confidentialité corrigée le 13/08/2026** : elle annonçait « 90 jours »
+  fermes alors que la durée est réglable de 30 jours à 5 ans. Elle décrit désormais
+  le défaut, le réglage, la purge quotidienne et son effet chez le fournisseur de
+  téléphonie, et ajoute la conservation de 3 ans des preuves de consentement.
+- **Done** : job idempotent testé (8 tests) ; promesse publique et code alignés.
 
 ### 2.3 KB/RAG : ouvrir le chemin d'écriture + présets par niche
 - [x] **Fait le 13/08/2026** (backend + UI)
@@ -228,13 +231,20 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   - l'opt-out verbal **révoque** le consentement, au lieu de laisser le registre
     attester d'un accord retiré.
   - 16 tests sur les règles légales.
+- [x] **Troisième brique, même jour** : le plafond de **4 sollicitations par mois**
+  (FR) est **appliqué**. Compté sur le mois calendaire et par prospect dans la
+  table `Call` (`callAttempts` est cumulatif depuis toujours, il ne pouvait pas
+  servir). Au plafond, le prospect est reporté au 1er du mois suivant plutôt
+  qu'ignoré, sinon il resterait en tête du tri par score et bloquerait le moteur
+  à chaque tick. La carence de **60 jours** après refus reste couverte par
+  l'opt-out définitif, plus strict qu'elle.
+- [x] **Registre exploitable** : trois routes d'administration
+  (`POST/GET/DELETE /api/admin/call-consents`) pour consigner un consentement
+  obtenu ailleurs (contrat, rappel demandé), produire l'historique en cas de
+  réclamation, et révoquer. Le modèle existait sans aucun moyen de le remplir.
 - **Reste** :
-  - le plafond de **4 sollicitations par mois** (FR) et la carence de **60 jours**
-    après refus sont exprimés dans `COUNTRY_RULES` mais **pas encore appliqués**
-    par le moteur ; l'opt-out actuel étant définitif, il est plus strict que la
-    carence, donc l'écart penche du bon côté ;
-  - une **UI de saisie du consentement** (aujourd'hui le registre ne se remplit
-    que par le code) ;
+  - un **formulaire public** de demande de rappel, qui alimenterait le registre
+    sans passer par l'administration ;
   - **position juridique B2B vs B2C — à trancher avec un juriste** : les textes
     visent le « consommateur », notre ciblage est B2B, mais l'artisan en nom
     propre a souvent une ligne personnelle. Hypothèse retenue et implémentée :

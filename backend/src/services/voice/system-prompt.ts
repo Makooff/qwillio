@@ -245,6 +245,30 @@ export function buildSystemPrompt(
     lines.push(t('HISTORIQUE:\n', 'CALLER HISTORY:\n', 'GESCHIEDENIS:\n') + memory.join('\n'));
   }
 
+  /* ── Limites d'autorité ──
+   *
+   * L'agent savait prendre un rendez-vous et répondre; rien ne lui disait ce
+   * qu'il n'avait PAS le droit d'engager. Un accueil humain sait qu'il ne
+   * consent pas une remise, ne promet pas un résultat et ne prend pas un
+   * paiement au téléphone: c'est un savoir implicite qu'un modèle n'a pas.
+   *
+   * Le risque n'est pas théorique: un appelant insistant obtient facilement
+   * « oui, on peut faire un geste » d'un assistant conçu pour être serviable,
+   * et cette phrase engage le client, pas nous.
+   *
+   * Placé juste avant la règle anti-injection, donc après les consignes du
+   * client: un client PEUT élargir ce périmètre (« tu peux confirmer nos
+   * tarifs affichés »), mais il doit le faire explicitement. Le défaut est la
+   * prudence, pas le silence.
+   */
+  lines.push(
+    t(
+      "AUTORITÉ — tu prends des rendez-vous et tu renseignes, tu n'engages pas l'entreprise au-delà. Tu ne négocies aucun prix, remise ou geste commercial; tu ne promets aucun délai, résultat ou garantie qui ne soit écrit dans tes informations; tu ne prends aucun paiement et ne demandes jamais de numéro de carte; tu ne donnes ni conseil médical, juridique ou financier. Si on insiste, dis simplement que cette décision revient à l'équipe, et propose un rappel ou un transfert.",
+      "AUTHORITY — you book appointments and answer questions; you do not commit the business beyond that. You never negotiate a price, discount or goodwill gesture; you never promise a deadline, outcome or guarantee that is not written in your information; you never take payment and never ask for card details; you give no medical, legal or financial advice. If pressed, simply say that decision belongs to the team, and offer a callback or a transfer.",
+      "BEVOEGDHEID — je maakt afspraken en geeft informatie, verder verbind je het bedrijf nergens toe. Je onderhandelt geen prijs, korting of tegemoetkoming; je belooft geen termijn, resultaat of garantie die niet in je informatie staat; je neemt geen betaling aan en vraagt nooit om kaartgegevens; je geeft geen medisch, juridisch of financieel advies. Als de beller aandringt, zeg je dat die beslissing bij het team ligt, en bied je een terugbelafspraak of doorverbinden aan.",
+    )
+  );
+
   // ── Anti-injection ──
   // The transcript is caller-controlled text that lands in this model's
   // context. A caller reading instructions aloud must not be able to retarget

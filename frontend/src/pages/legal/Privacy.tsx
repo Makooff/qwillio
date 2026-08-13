@@ -387,18 +387,25 @@ export default function Privacy() {
                   {isFr ? 'Conservation des données' : 'Data retention'}
                 </h2>
                 <ul className="space-y-3 pl-0 list-none">
+                  {/* La durée des enregistrements n'est plus une valeur fixe:
+                      chaque client la règle dans ses Paramètres, entre 30 jours
+                      et 5 ans, et une purge quotidienne l'applique réellement.
+                      Annoncer « 90 jours » tout court serait désormais faux
+                      dans les deux sens. */}
                   {(isFr
                     ? [
-                        "Enregistrements d'appels et transcriptions : 90 jours après la création.",
+                        "Enregistrements d'appels et transcriptions : 90 jours par défaut, réglable par chaque client entre 30 jours et 5 ans dans ses Paramètres. Une purge automatique quotidienne applique la durée choisie, y compris chez notre fournisseur de téléphonie.",
                         "Données de compte : durée de l'abonnement + 30 jours après résiliation.",
                         'Signaux de fraude : conservés indéfiniment sous forme hachée.',
                         'Journaux de facturation : 7 ans (obligation légale).',
+                        "Preuves de consentement à être appelé : 3 ans, y compris après révocation, parce que la loi nous impose de pouvoir les produire.",
                       ]
                     : [
-                        'Call recordings and transcripts: 90 days after creation.',
+                        'Call recordings and transcripts: 90 days by default, adjustable by each client between 30 days and 5 years in their Settings. A daily automatic purge enforces the chosen duration, including at our telephony provider.',
                         'Account data: subscription duration + 30 days after cancellation.',
                         'Fraud signals: retained indefinitely in hashed form.',
                         'Billing logs: 7 years (legal requirement).',
+                        'Proof of consent to be called: 3 years, including after revocation, because the law requires us to be able to produce it.',
                       ]
                   ).map((item, i) => (
                     <li key={i} className="flex gap-3">

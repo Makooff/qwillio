@@ -15,7 +15,7 @@ import { discordService } from './discord.service';
 import { abTestingService } from './ab-testing.service';
 import { followUpSequencesService } from './follow-up-sequences.service';
 import { isHoliday } from '../config/scheduling';
-import { requiresPriorConsent, isWithinCallingWindow } from '../utils/outbound-legal';
+import { requiresPriorConsent, isWithinCallingWindow, maxCallsPerMonth } from '../utils/outbound-legal';
 
 /**
  * Récupère les numéros portant un consentement valide, pour les pays qui
@@ -362,6 +362,37 @@ export class OutboundEngineService {
         `· quota=${botStatus.callsToday}/${botStatus.callsQuotaDaily}`
       );
       return false;
+    }
+
+    /* Plafond mensuel de sollicitations (4/mois en France, décret 2022-1313).
+     *
+     * Il se compte sur le MOIS CALENDAIRE et par prospect, pas sur une fenêtre
+     * glissante: c'est ainsi que le texte est rédigé. `callAttempts` ne peut pas
+     * servir, il est cumulatif depuis toujours; on compte donc les appels réels
+     * du mois dans `Call`.
+     *
+     * Quand le plafond est atteint, le prospect est repoussé au 1er du mois
+     * suivant plutôt qu'ignoré: sans cela il resterait en tête du tri par score
+     * et bloquerait le moteur à chaque tick. */
+    const monthlyCap = maxCallsPerMonth(prospect.country);
+    if (monthlyCap !== null) {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const callsThisMonth = await prisma.call.count({
+        where: { prospectId: prospect.id, startedAt: { gte: startOfMonth } },
+      });
+      if (callsThisMonth >= monthlyCap) {
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        await prisma.prospect.update({
+          where: { id: prospect.id },
+          data: { nextCallAt: nextMonth },
+        });
+        logger.info(
+          `[OutboundEngine][${tickId}] SKIP · plafond légal atteint ` +
+          `· ${prospect.businessName} (${prospect.country}): ${callsThisMonth}/${monthlyCap} ce mois-ci, ` +
+          `reporté au ${nextMonth.toISOString().slice(0, 10)}`
+        );
+        return false;
+      }
     }
 
     // Check call window for prospect timezone
