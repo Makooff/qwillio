@@ -9,9 +9,37 @@
 -- libérer le créneau. Une contrainte pleine l'aurait gelé définitivement.
 -- (Prisma ne sait pas exprimer un index partiel dans le schéma; il est donc
 -- déclaré ici, et le code intercepte la violation P2002.)
-CREATE UNIQUE INDEX IF NOT EXISTS "client_bookings_slot_unique"
-  ON "client_bookings" ("client_id", "booking_date", "booking_time")
-  WHERE "status" = 'confirmed' AND "booking_time" IS NOT NULL;
+--
+-- Enveloppé dans un bloc qui ne peut pas faire échouer le déploiement. Si la
+-- base contient DÉJÀ deux réservations confirmées sur le même créneau — le
+-- défaut même qu'on cherche à empêcher — la création de l'index échouerait, et
+-- comme le conteneur démarre sur `prisma migrate deploy && npm start`, un échec
+-- ici mettrait la production à terre pour corriger un doublon historique.
+--
+-- On préfère donc: tenter, et si des doublons existent, le DIRE très fort et
+-- laisser tourner. La protection ne s'applique pas tant qu'ils ne sont pas
+-- résolus, mais le service reste debout et le message dit quoi faire.
+DO $$
+DECLARE
+  duplicate_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO duplicate_count FROM (
+    SELECT 1 FROM "client_bookings"
+     WHERE "status" = 'confirmed' AND "booking_time" IS NOT NULL
+     GROUP BY "client_id", "booking_date", "booking_time"
+    HAVING COUNT(*) > 1
+  ) AS dupes;
+
+  IF duplicate_count > 0 THEN
+    RAISE WARNING
+      'client_bookings: % créneau(x) déjà réservé(s) en double. L''index unique anti-double-réservation N''A PAS été créé. Résolvez les doublons (annulez ou déplacez les réservations en trop), puis rejouez: CREATE UNIQUE INDEX CONCURRENTLY "client_bookings_slot_unique" ON "client_bookings" ("client_id", "booking_date", "booking_time") WHERE "status" = ''confirmed'' AND "booking_time" IS NOT NULL;',
+      duplicate_count;
+  ELSE
+    CREATE UNIQUE INDEX IF NOT EXISTS "client_bookings_slot_unique"
+      ON "client_bookings" ("client_id", "booking_date", "booking_time")
+      WHERE "status" = 'confirmed' AND "booking_time" IS NOT NULL;
+  END IF;
+END $$;
 
 -- 2. Réconciliation des synchronisations calendrier échouées.
 --

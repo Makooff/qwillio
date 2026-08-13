@@ -3,8 +3,13 @@
 -- `services/call-consent.service.ts`.
 --
 -- Table nouvelle, purement additive: aucune donnée existante n'est touchée.
+-- `id` sans défaut SQL, comme toutes les autres tables de ce schéma: c'est
+-- Prisma Client qui produit l'UUID (`@default(uuid())`). Un
+-- `DEFAULT gen_random_uuid()` aurait introduit une dépendance à pgcrypto /
+-- PostgreSQL 13 qui n'existe nulle part ailleurs dans ces migrations, pour un
+-- filet dont personne ne se sert.
 CREATE TABLE IF NOT EXISTS "call_consents" (
-  "id"             UUID         NOT NULL DEFAULT gen_random_uuid(),
+  "id"             UUID         NOT NULL,
   "phone"          VARCHAR(50)  NOT NULL,
   "country_code"   VARCHAR(10)  NOT NULL,
   "source"         VARCHAR(50)  NOT NULL,
