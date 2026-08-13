@@ -1,76 +1,142 @@
-# AUDIT.md — Gap analysis « état de l'art 2026 » (13/08/2026)
+# AUDIT.md — Gap analysis « état de l'art 2026 »
 
-Référence : checklist fournie (stack vocale, fonctionnalités réceptionniste, qualité/
-production, conformité UE). État réel documenté dans `ARCHITECTURE.md` ; plan d'action
-dans `ROADMAP.md`. Efforts : **S** < 2 j, **M** 2-7 j, **L** > 1 sem.
+**Ré-audit du 13/08/2026, contre `master` = `047c45b` (post-PR #133).**
+La version initiale (13/08, pré-PR) est conservée dans l'historique git.
+Toutes les preuves ci-dessous ont été relues dans le code, pas dans les
+documents. Efforts : **S** < 2 j, **M** 2-7 j, **L** > 1 sem.
 
-Légende : ✅ PRÉSENT · 🟡 PARTIEL · ❌ ABSENT
+Légende : ✅ PRÉSENT · 🟡 PARTIEL · ❌ ABSENT · **(→)** = évolution depuis le pré-audit
+
+> **Distinction capitale introduite par ce ré-audit.** La PR #133 livre
+> beaucoup de capacités **en opt-in par variable d'environnement**, avec un
+> parti pris explicite : tant que la variable est vide, *le champ n'est même pas
+> envoyé à Vapi*, pour que le schéma reste identique à l'existant. Conséquence :
+> **« présent dans le code » ≠ « actif en production »**. Les lignes concernées
+> sont marquées **⚙️ env** et listées en fin de document : elles demandent une
+> vérification dans le tableau de bord Render que je ne peux pas faire d'ici.
+
+---
 
 ## A. Stack vocale
 
 | Item | Statut | Preuve | Risque si non traité | Effort |
 |---|---|---|---|---|
-| Pipeline en cascade avec transcripts auditables et fallback par composant | 🟡 | Cascade Deepgram→GPT-4o→ElevenLabs existe (`speech-plans.ts:37-47,136-169,245-258`) mais le **défaut est speech-to-speech** OpenAI Realtime (`env.ts:96-97`) sans transcriber ; fallback TTS same-provider seulement (`speech-plans.ts:163-169`), **aucun** fallback STT/LLM | Technique : panne Deepgram/OpenAI/ElevenLabs = panne totale. Business : SLA intenable | M |
-| Endpointing sémantique / turn detection | 🟡 | `smartEndpointingEnabled: true` ; EN → LiveKit + waitFunction sigmoïde, **FR → provider `vapi` générique** (`speech-plans.ts:61-86`) | FR = marché principal ; coupures de parole = perception « robot » | S |
-| Barge-in + annulation d'écho + backchanneling | 🟡 | Barge-in fin (`speech-plans.ts:102-119`), denoising activé ; backchannel réduit à un booléen, le plan détaillé est mort (`speech-plans.ts:284-298,315-321`) | Faible : l'essentiel est là | S |
-| Latence voix-à-voix < 1,1 s instrumentée | 🟡 | `latency-tracker.ts` par appel (percentiles, croisement Vapi) mais **aucune agrégation flotte P50/P95/P99**, étage LLM vide sur le chemin par défaut (`latency-tracker.ts:18-21`) ; aucun objectif vérifié | On ne sait pas si l'objectif est tenu ; régressions invisibles | S |
-| Multilinguisme FR/NL/EN + détection de langue + code-switching | ❌ | Types `'fr'\|'en'` (`speech-plans.ts:25`) ; **BE forcée en français** (`realtime-context.service.ts:233-234`) ; zéro NL dans le code | **Bloquant marché belge** : un appelant flamand tombe sur un agent FR. Perte de ~60 % du marché BE | L |
+| Pipeline en cascade, transcripts auditables, fallback par composant | 🟡 **(→ depuis 🟡)** ⚙️ env | Fallback STT (`speech-plans.ts:59-67`) et fallback LLM (`speech-plans.ts:295-296`) désormais **écrits**, en plus du fallback TTS intra-ElevenLabs (`speech-plans.ts:197-201`). Mais les trois sont conditionnés à `VOICE_STT_FALLBACK_PROVIDER` / `VOICE_LLM_FALLBACK_MODELS` : **vides = aucun secours** | Le SPOF n'est levé qu'une fois les variables posées sur Render. Le code ne protège personne tout seul | S (poser les env) |
+| Endpointing sémantique / turn detection | ✅ **(→ depuis 🟡)** | Bug de fond corrigé : le FR tournait sur le modèle LiveKit **anglophone** (« il devinait », `speech-plans.ts:88-95`). Défaut FR/NL = `provider: 'vapi'`, seul documenté hors anglais ; LiveKit multilingue testable par `VOICE_FR_ENDPOINTING_PROVIDER=livekit` (`speech-plans.ts:106-109`) | — (le retour arrière est un set d'env, pas un déploiement) | — |
+| Barge-in + annulation d'écho + backchanneling | 🟡 (inchangé) | Barge-in `numWords: 0` + `voiceSeconds` anti-toux + backoff 1 s (`speech-plans.ts:131-140`) ; backchannel toujours un booléen | Faible : l'essentiel est là | S |
+| Latence voix-à-voix < 1,1 s instrumentée | 🟡 **(→ depuis 🟡, mais pas pour la raison attendue)** | Agrégation flotte livrée et **vérifiée en production** : `voiceMetricsService.summary()` exposé (`voice-webhook.controller.ts:232`), réponse live du 13/08 contenant `fleetMetrics` avec `voiceToVoiceObjectiveMs: 1100`. **Mais `calls: 0`, `latency: {}`, `meetsObjective: null`** | **L'objectif n'est ni tenu ni manqué : il n'est pas mesuré.** Aucun appel réel depuis le déploiement. Seule la section C du protocole peut lever cette ligne | S (passer les appels) |
+| Multilinguisme FR/NL/EN + détection + code-switching | 🟡 **(→ depuis ❌)** | NL de bout en bout : type (`speech-plans.ts:25`), Deepgram (`:28`), STT de secours (`:44`), greetings et notice NL (`system-prompt.ts:291`). Bascule **opt-in** par `agentLanguage: 'nl'` | Le blocage marché belge est levé côté code. Reste : **aucune détection automatique**, un appelant flamand sur un client configuré FR tombe toujours sur un agent FR | M (détection) |
+
+---
 
 ## B. Fonctionnalités réceptionniste
 
 | Item | Statut | Preuve | Risque | Effort |
 |---|---|---|---|---|
-| Function calling / tools via MCP | 🟡 | 6 tools Vapi bien faits (`voice-tools.ts:137-307`, runtime timeout 2,5 s + dégradation parlée) ; **MCP : zéro hit repo-wide** | Faible court terme ; MCP = extensibilité future (HubSpot MCP, etc.) | M |
-| RAG sur KB client (pgvector + hybride) + procédure de mise à jour | 🟡 | Retrieval hybride sémantique/lexical construit (`business-memory.service.ts:103-152`) mais **aucun chemin d'écriture** de `BusinessKnowledge` → mort ; le live est du prompt-stuffing 8000 c. (`onboarding.service.ts:438`) ; pas de pgvector (`Float[]`, cosinus en mémoire — assumé, `knowledge-embeddings.service.ts:20-22`) | Hallucinations sur les questions métier ; plafond de connaissance à 8000 c. ; travail client pénible (chantier n°4 du CLAUDE.md) | M |
-| Mémoire persistante multi-appels (écritures async) | ✅ | `CallerMemory` + `caller-memory.service.ts` (résumé roulant, merge sans écrasement, blocage), injectée au prompt (`system-prompt.ts:129-151`), écrite en post-appel async | — | — |
-| Prise de RDV réelle + gestion de conflits | 🟡 | Google Calendar freeBusy + booking réel + holds inter-appels + spéculation (`tool-runtime.service.ts`, `availability-speculator.ts`) ; **mais** holds en mémoire process, pas de contrainte DB anti-double-booking (`schema.prisma:609`), sync calendrier en échec jamais réconciliée (`tool-runtime.service.ts:255-257`), pas de Cal.com | Double réservation possible ; RDV fantômes (en base mais pas au calendrier) | S-M |
-| Rappels SMS/WhatsApp | 🟡 | Rappels email+SMS J-1 + relance no-show (`booking-reminder.service.ts`) ; **pas de WhatsApp client** (WhatsApp = prospection sandbox uniquement, `whatsapp.service.ts:39,106`) ; numéro d'envoi global unique | WhatsApp attendu en BE ; SMS depuis un numéro tiers = confiance moindre | M |
-| Intégration CRM (HubSpot MCP / Odoo) | 🟡 | CRM interne alimenté par appels + dédup (`crm-dedup.service.ts`) ; HubSpot sortant réel (`crm-sync.service.ts:157-182`) + webhook générique/Slack ; **pas d'Odoo, pas d'entrant, conflits jamais résolus, pas de tickets** | Sync unidirectionnelle = divergence silencieuse ; Odoo très demandé en BE | M-L |
-| Warm transfer + escalade + « l'agent n'est pas l'autorité » | 🟡 | `transferCall` warm avec résumé dynamique (`voice-tools.ts:285-303`, `warm-transfer.service.ts:137-155`) ; mais aucune règle explicite d'autorité (l'agent peut booker/annoncer sans limite de montant/engagement) | Engagements pris par l'IA au nom du client | S |
-| Multicanal sur un seul cerveau | ❌ | Voix, email (module Gmail séparé), WhatsApp (prospection) = 3 cerveaux, 3 contextes ; aucun modèle `Conversation` | Vision produit ; différenciateur clé 2026 | L |
-| Résumés, extraction structurée, scoring, analytique post-appel | ✅ | Extraction GPT-4o structurée (sentiment, outcome, leadScore, tags — `client-call.service.ts:295-319`), analytics quotidiennes, digest hebdo | (Coût doublé vs `analysisPlan` Vapi — optimisation possible) | — |
+| Function calling / tools via MCP | 🟡 (inchangé) | 6 tools Vapi (`voice-tools.ts`) ; MCP toujours zéro hit repo-wide | Faible court terme ; extensibilité 2026 | M |
+| RAG sur KB client + procédure de mise à jour | 🟡 **(→ depuis 🟡, le point mort est levé)** | **Le chemin d'écriture existe** : `businessKnowledgeService.create/update/remove` (`business-knowledge.service.ts:109,126`) exposé en CRUD complet (`my-dashboard.routes.ts:124-127`) + `import-preset` par métier (`:130`). Le retrieval hybride n'est donc plus mort | **Aucune UI ne consomme ces routes** (voir §Écarts). Le client ne peut toujours rien saisir : le travail reste dans la zone de texte libre de `ClientReceptionist.tsx:862`. Pas de pgvector (choix assumé) | S (l'UI = étape 4.1) |
+| Mémoire persistante multi-appels | ✅ (inchangé) | `CallerMemory` + injection au prompt, écriture post-appel async | — | — |
+| Prise de RDV réelle + gestion de conflits | ✅ **(→ depuis 🟡, corrigé le 13/08 après-midi)** | Index unique **partiel** sur (client, date, heure) restreint aux `confirmed`, pour qu'une annulation libère le créneau (`migrations/20260813170000`) ; la collision est interceptée et l'agent propose un autre créneau (`tool-runtime.service.ts`) ; réconciliation horaire des syncs calendrier échouées, rendez-vous à venir seulement, avec alerte sur les abandons (`booking-calendar-reconcile.service.ts`) | — | — |
+| Rappels SMS/WhatsApp | 🟡 (inchangé) | Email + SMS J-1 + relance no-show ; WhatsApp toujours prospection sandbox | Attendu en BE | M |
+| Intégration CRM | 🟡 (inchangé) | CRM interne + HubSpot sortant ; pas d'Odoo, pas d'entrant | Divergence silencieuse | M-L |
+| Warm transfer + escalade + « l'agent n'est pas l'autorité » | ✅ **(→ depuis 🟡, corrigé le 13/08 après-midi)** | `transferCall` warm avec résumé, **et une section AUTORITÉ explicite** dans le prompt FR/EN/NL (`system-prompt.ts`) : ni négociation de prix ou remise, ni promesse de délai ou de résultat non écrite, ni paiement ou numéro de carte, ni conseil médical/juridique/financier — avec une porte de sortie (rappel ou transfert) plutôt qu'un refus sec, qui ferait raccrocher. Placée **après** les consignes du client (donc élargissable explicitement) mais **avant** la clause anti-injection. 5 tests + 2 scénarios d'éval | — | — |
+| Multicanal sur un seul cerveau | ❌ (inchangé) | Aucun modèle `Conversation` | Vision produit | L |
+| Résumés, extraction structurée, scoring | ✅ (inchangé) | Extraction GPT-4o structurée + analytics | — | — |
+
+---
 
 ## D. Qualité / production
 
 | Item | Statut | Preuve | Risque | Effort |
 |---|---|---|---|---|
-| Évals + simulation d'appels + régression prompts | ❌ | Zéro harness d'éval, zéro corpus, zéro simulation (recherche exhaustive) ; seuls des tests unitaires de *construction* de prompt (`system-prompt.test.ts:33`) | Chaque modif de prompt part en prod à l'aveugle — le plus gros risque qualité du produit | M |
-| Observabilité/tracing (coût/appel, P50/P95/P99) | 🟡 | Sentry (traces 20 %) + winston (ring buffer mémoire, persistance DB désactivée) ; latence par appel non agrégée ; **coût LLM absent du breakdown** (`admin-analytics.service.ts:16-60`) ; pas d'OTel/Langfuse | Débogage prod difficile ; marge par client inconnue | S (agrégation) / M (tracing complet) |
-| Guardrails : isolation prompt, anti-hallucination, anti-injection | 🟡 | Une clause SÉCURITÉ (`system-prompt.ts:157-161`) mais : instructions client injectées **prioritaires** (`system-prompt.ts:76-81`), résumé du dernier appel = canal d'injection inter-appelants (`system-prompt.ts:141`), prompts outbound sans aucune garde ; la vérif du secret Vapi existait en **trois copies** identiques (drift garanti) | Détournement de l'agent par un appelant ou un client | S |
-| Fallbacks multi-fournisseurs STT/LLM/TTS | ❌ | Voir A.1 — TTS fallback intra-ElevenLabs seulement | SPOF sur 3 fournisseurs | M |
-| Multi-tenant : isolation stricte, provisioning numéros, Stripe Meters, white-label | 🟡 | Isolation par convention applicative seulement (`auth.middleware.ts:174`) ; **1 numéro partagé, client #2 sans ligne** (`phone-allocation.service.ts:40-78`) ; overage par cron mensuel **sans idempotence** au lieu de Meters (`stripe.service.ts:393-424`) ; white-label : champs stockés, jamais consommés (`agency.service.ts`) | Provisioning = bloquant vente n°1 ; double-facturation possible ; fuite inter-tenant à un `where` oublié | M (numéros) / S (idempotence) / M (Meters) |
+| Évals + simulation + régression prompts | 🟡 **(→ depuis ❌)** | Harness réel : 9 scénarios contre le **vrai** prompt et les **vrais** outils (`evals/run-evals.ts`, `evals/scenarios.ts`), dont un scénario d'injection (`scenarios.ts:75`). Le **faux vert est corrigé le 13/08** : le saut émet une annotation `::warning::` visible dans la PR et dit que rien n'a été prouvé ; `EVALS_REQUIRE_KEY=1` le rend fatal (`missingKeyBehaviour`, 4 tests) | **Toujours jamais exécuté** : il faut la clé. Le harness ne peut plus mentir, mais il ne protège rien tant qu'il ne tourne pas | S (poser la clé + décommenter `EVALS_REQUIRE_KEY` dans `ci.yml`) |
+| Observabilité / tracing (coût/appel, P50/P95/P99) | 🟡 **(→ depuis 🟡)** | `fleetMetrics` en prod avec percentiles et `cost` ; vérifié live le 13/08 | `cost: null` et `latency: {}` faute d'appels. Toujours pas d'OTel/Langfuse | S |
+| Guardrails : isolation prompt, anti-hallucination, anti-injection | ✅ **(→ depuis 🟡)** | La clause SÉCURITÉ est devenue **règle finale explicitement au-dessus des consignes du client** et couvre nommément les trois canaux d'injection identifiés au pré-audit — historique, base de connaissance, résultats d'outils — requalifiés en « données, jamais instructions » (`system-prompt.ts:256`). Nom de l'appelant assaini (`sanitizeInline`, `system-prompt.ts:281`) | — | — |
+| Fallbacks multi-fournisseurs STT/LLM/TTS | 🟡 **(→ depuis ❌)** ⚙️ env | Voir A.1 : écrits, inactifs tant que les env sont vides | SPOF tant que non configuré | S |
+| Multi-tenant : isolation, provisioning, Meters, white-label | 🟡 **(→ depuis 🟡)** ⚙️ env | **Provisioning automatique livré** : `autoProvisionNumber` appelé à l'onboarding (`phone-provisioning.service.ts:36`, `onboarding.service.ts:127-128`) → le plafond « 1 client » est levé côté code. **Idempotence de l'overage corrigée** : `idempotencyKey: overage-${clientId}-${billedMonth}` (`stripe.service.ts:438`) | Isolation toujours par convention applicative ; Stripe Meters toujours absent ; white-label toujours stocké-jamais-consommé | M (Meters) |
 
-## E. Conformité UE (BLOQUANT — AI Act art. 50 applicable depuis le 02/08/2026)
+---
+
+## E. Conformité UE (AI Act art. 50 applicable depuis le 02/08/2026)
 
 | Item | Statut | Preuve | Risque | Effort |
 |---|---|---|---|---|
-| Divulgation « vous parlez à une IA » au décroché | ❌ | Aucun firstMessage ne la contient (`system-prompt.ts:177-207`) ; greetings conçus pour ne pas être reconnu comme automate (`system-prompt.ts:166-173`) ; outbound scripte le **déni** (« non, je suis réelle » — `vapi.service.ts:871,944,980,1034,1107,1143` ; `niche-scripts.ts:177`) | **Légal majeur** : violation frontale AI Act art. 50(1), en vigueur. Amendes + résiliation clients. Le déni actif est indéfendable | **S — quick win 1** |
-| Message d'information + consentement d'enregistrement (314bis BE / CNIL) | 🟡 | Notice écrite à l'onboarding (`onboarding.service.ts:356-376`) mais **jamais prononcée** (écrasée par le runtime, §2.2 ARCHITECTURE) ; `recordingEnabled: true` inconditionnel (`realtime-orchestrator.service.ts:124`) ; suppressible par le client sans garde (`onboarding.service.ts:359`) ; FR/EN seulement | **Légal majeur** : enregistrement systématique sans information = 314bis/RGPD. Chaque appel accroît l'exposition | **S — quick win 1** |
-| Durées de conservation configurables + purge auto | ❌ | Politique publiée 90 j (`Privacy.tsx:288-306`) **non implémentée** : aucun job de purge (audit exhaustif des `deleteMany`) ; transcripts/enregistrements/CallerMemory éternels | Légal (promesse publique non tenue = déloyauté) + liabilité croissante | M |
-| Voix biométrique : consentement + DPIA + effacement | 🟡 | Le clonage de voix exige le consentement (`voice-clone.service.ts:54-58`, UI + test) ; **pas de DPIA, pas d'effacement d'empreintes, la voix des appelants est enregistrée sans base** | DPIA obligatoire pour traitement de voix à grande échelle | M (process + doc) |
-| Hébergement UE + DPA sous-traitants US | ❌ | Render + Neon **Oregon** (`render.yaml:5,68`) ; runbook UE écrit mais non exécuté (`docs/MIGRATION-UE-RUNBOOK.md`) ; privacy policy incomplète : 8+ sous-traitants non listés, pas d'adresse UE ni représentant art. 27 (`Privacy.tsx:66-71,150`) | Transferts hors UE sans encadrement réel ; argument commercial inverse (concurrents UE) | L (migration) / S (DPA+policy) |
-| Appels sortants B2C : opt-in strict traçable ≥ 3 ans | ❌ | Moteur outbound actif vers FR/BE (`outbound-engine.service.ts:256-275`) ; **aucun champ consentement/do-not-call** (`schema.prisma:122-127`), pas de Bloctel/liste BE, privacy policy promet une conformité DNC américaine (`Privacy.tsx:~447`) ; prospects scrapés Google Maps | **Légal majeur** pour l'outbound. NB : cibles = entreprises (B2B), ce qui atténue vs B2C, mais loi FR du 11/08/2026 + ePrivacy exigent un cadre. À défaut : geler l'outbound FR/BE | M |
+| Divulgation « vous parlez à une IA » au décroché | ✅ **(→ depuis ❌)** | Portée par la **première phrase**, « seul moment garanti avant toute collecte » : « je suis un assistant IA » dans tous les greetings FR/EN/NL (`system-prompt.ts:297-318`). Défaut **fail-safe** : `VOICE_COMPLIANCE_GREETING` vaut `on` sauf `=off` explicite (`env.ts:133`). Le **déni actif** (« non, je suis réelle ») a disparu du code : il ne survit plus que dans un test qui **interdit** son retour (`compliance-disclosure.test.ts:108-118`) | — | — |
+| Message d'information + consentement d'enregistrement | ✅ **(→ depuis 🟡)** | Notice prononcée **si et seulement si l'appel est réellement enregistré** : le greeting et le flag Vapi lisent le même prédicat `shouldRecord(profile)` (`system-prompt.ts:290` / `realtime-orchestrator.service.ts:126`). « Jamais un “peut-être” de confort. » FR/EN/NL | — | — |
+| Durées de conservation configurables + purge auto | ✅ **(→ depuis ❌)** | `dataRetentionService.purgeExpiredCallData()` (`data-retention.service.ts:73`), idempotente par construction, **réellement planifiée** (`bot-loop.ts:965-966`) ; purge des objets distants avant la ligne locale (`:20,103`) ; réglage par client (`my-dashboard.routes.ts:133-134`) ; effacement ciblé d'un appelant (`client-dashboard.controller.ts:1226`) | Réglage sans UI (étape 4.1) | S |
+| Voix biométrique : consentement + DPIA + effacement | 🟡 (inchangé) | Consentement au clonage exigé ; toujours **pas de DPIA**, pas d'effacement d'empreintes | DPIA obligatoire | M (process) |
+| Hébergement UE + DPA sous-traitants US | ❌ (inchangé) | Render + Neon **Oregon** ; runbook écrit non exécuté (`docs/MIGRATION-UE-RUNBOOK.md`). Le site ne promet plus l'UE (correct) | Transferts hors UE non encadrés | L |
+| Appels sortants : opt-in strict traçable ≥ 3 ans | ✅ **(→ depuis ❌, corrigé le 13/08 après-midi)** | Opt-out verbal + STOP SMS, **et désormais l'opt-in** : modèle `CallConsent` (origine, date, **libellé exact accepté**, IP, révocation ; jamais purgé) ; `utils/outbound-legal.ts` porte la règle **par pays** (FR opt-in, BE opt-out) et les jours/horaires du décret 2022-1313 dans le fuseau local, fériés mobiles calculés depuis Pâques ; le consentement lève la contrainte horaire comme le décret le prévoit ; un pays inconnu exige le consentement ; l'opt-out verbal **révoque** le consentement. 16 tests | **Changement de comportement à assumer** : tant que le registre est vide, l'outbound français s'arrête. Reste le plafond de 4 appels/mois et la carence de 60 j, exprimés mais pas appliqués (l'opt-out définitif actuel est plus strict) | S (reste) |
 
-## Hors checklist — trouvailles bloquantes à traiter
+---
 
-| Trouvaille | Preuve | Gravité |
+## Hors checklist — état des trouvailles bloquantes
+
+| Trouvaille | Statut | Preuve |
 |---|---|---|
-| `Dockerfile` lance `prisma db push --accept-data-loss` | `backend/Dockerfile:16` | Perte de données si l'image tourne contre la prod |
-| `ADMIN_SECRET` header = bypass admin total non journalisé | `auth.middleware.ts:12-17` | Sécurité critique |
-| CORS `*.vercel.app` avec credentials | `server.ts:77` | N'importe quel site Vercel peut appeler l'API authentifiée |
-| Vérification du secret Vapi tripliquée (3 copies identiques, fail-open hors prod) | `webhooks.controller.ts`, `voice-webhook.controller.ts`, `voice-llm.controller.ts` | Divergence silencieuse d'une des copies (mutualisée au quick win 4) |
-| Twilio webhooks non vérifiés par défaut | `twilio.middleware.ts:16-19` | Forgeage de SMS entrants/STOP |
-| Clés API clients en clair en base | `api-key.middleware.ts:20-22` | Fuite DB = fuite credentials |
-| Overage sans clé d'idempotence | `stripe.service.ts:422-424` | Double facturation |
-| 45 crons in-process, 1 instance, verrou mémoire | `bot-loop.ts`, `render.yaml:11` | Scale = double exécution (dont facturation) |
+| `Dockerfile` : `prisma db push --accept-data-loss` | ✅ **corrigé** | `backend/Dockerfile:19` → `npx prisma migrate deploy && npm start` |
+| CORS `*.vercel.app` avec credentials | ✅ **corrigé** | `server.ts:79` : previews restreintes au seul projet Qwillio, commentaire à l'appui |
+| Vérification du secret Vapi tripliquée | ✅ **corrigé** | Mutualisée dans `utils/vapi-webhook-auth.ts` |
+| Overage sans clé d'idempotence | ✅ **corrigé** | `stripe.service.ts:438` |
+| `ADMIN_SECRET` header = bypass admin total | 🟡 **rendu défendable le 13/08** | Mutualisé dans `utils/admin-secret.ts` (les trois copies avaient trois comportements) : comparaison à temps constant, **chaque franchissement journalisé en `warn`** avec route et IP, et un secret de moins de 32 caractères **désactive** la porte au lieu de l'ouvrir. 8 tests. La porte existe toujours : la supprimer demande de savoir quels scripts d'exploitation en dépendent. ⚠️ **Vérifier la longueur du secret en production avant de déployer** |
+| Twilio webhooks non vérifiés | 🟡 **écrit, inactif par défaut** | `twilio.middleware.ts:17-19` : no-op sauf si `TWILIO_VALIDATE_WEBHOOKS=true` **et** `TWILIO_AUTH_TOKEN`. Forgeage de SMS/STOP encore possible tant que non activé |
+| Clés API clients en clair en base | 🟡 **corrigé le 13/08, retrait de la colonne à suivre** | La rotation redoutée n'était pas nécessaire : une clé vaut 192 bits, donc un SHA-256 déterministe est sûr sans sel et **préserve la recherche par index unique** (`utils/api-key-hash.ts`). Migration additive avec reprise SQL de l'existant ; l'authentification passe par le condensat et rattrape au vol les lignes anciennes. Reste la seconde migration qui vide puis retire la colonne en clair, une fois la production vérifiée |
+| 45 crons in-process, 1 instance | ❌ inchangé | `bot-loop.ts`, `render.yaml:11` ; BullMQ/Redis = étape 4.3 |
 
-## Synthèse
+---
 
-- **Le socle vocal est bon** (turn-taking, barge-in, mémoire, tools, latence par appel,
-  dégradation gracieuse) : le travail « état de l'art » est un travail de **complétion**
-  (NL, fallbacks, agrégation, évals), pas de refonte.
-- **La conformité est le trou béant** : divulgation IA absente (et niée en outbound),
-  notice d'enregistrement court-circuitée, rétention promise non implémentée,
-  hébergement US. Les deux premiers se corrigent en jours : c'est le lot 1.
-- **Les bloquants business** ne sont pas dans la checklist : provisioning de numéros
-  (1 client max), KB sans écriture, pas de NL.
+## Écarts entre ce que la PR #133 annonce et ce que le code fait
+
+Aucun mensonge trouvé : les sept chantiers annoncés existent bel et bien dans le
+code, et les **676 tests annoncés sont exactement les 676 qui passent** (65
+fichiers, exit 0, relancé ici le 13/08). Quatre nuances, toutes vérifiées :
+
+1. **Les évals « 9/9 » n'ont jamais tourné sur ce poste**, et ne peuvent pas
+   mentir en rouge : sans clé, elles sortent en **0** en affichant qu'elles
+   sautent. À traiter : rendre l'absence de clé **fatale en CI**, sinon la
+   protection anti-régression de prompt est décorative.
+2. **Les fallbacks STT/LLM et le provisioning ne protègent rien tant que les
+   variables d'environnement ne sont pas posées sur Render.** C'est un choix
+   défendable (déploiement à schéma constant), mais il déplace la conformité du
+   code vers l'exploitation. À vérifier dans le tableau de bord.
+3. **L'objectif de latence < 1,1 s reste non mesuré** : `fleetMetrics` est vivant
+   mais vide (`calls: 0`). L'annonce « métriques livrées » est vraie ;
+   « latence tenue » n'a pas encore de sens.
+4. **La base de connaissance a un chemin d'écriture mais aucune porte d'entrée** :
+   les cinq routes existent, zéro composant du portail ne les appelle. Le client
+   reste devant sa zone de texte libre. C'est précisément l'étape 4.1.
+
+**Aucune régression détectée.** Les deux items encore rouges hors checklist
+(`ADMIN_SECRET`, clés API en clair) l'étaient déjà avant la PR : ils n'étaient
+pas dans son périmètre.
+
+---
+
+## Synthèse du ré-audit
+
+- **La conformité, qui était le trou béant, est bouchée** sur ses trois points
+  bloquants : divulgation IA, notice d'enregistrement liée au réel, rétention
+  purgée pour de bon. Le déni actif de l'IA, l'item le plus indéfendable du
+  pré-audit, est non seulement supprimé mais **verrouillé par un test**.
+- **Le socle vocal a gagné le NL et un vrai correctif d'endpointing FR** (le
+  français tournait sur un détecteur anglophone : c'est la cause racine du
+  « robotique » ressenti, pas un réglage).
+- **Ce qui reste tient en trois familles** : (a) de l'**exploitation** — poser
+  des variables d'env, passer de vrais appels, fournir une clé ; (b) de l'**UI** —
+  la base de connaissance et la rétention n'ont pas d'écran (étape 4.1) ;
+  (c) du **chantier lourd assumé** — opt-in outbound tracé, Meters, BullMQ,
+  multicanal, hébergement UE.
+- **Les deux dettes de sécurité pré-existantes sont traitées** dans la foulée de
+  ce ré-audit (porte opérateur tracée et bornée, clés API en condensat), de même
+  que l'anti-double-réservation, la réconciliation calendrier, le faux vert des
+  évals et la conformité outbound au nouveau régime français.
+
+## Ce qui reste, au 13/08/2026 en fin de journée
+
+1. **De l'exploitation, pas du code** : passer les appels réels (seul moyen de
+   remplir `fleetMetrics`), poser la clé OpenAI puis `EVALS_REQUIRE_KEY`, poser
+   les variables de secours STT/LLM sur Render, vérifier la longueur d'`ADMIN_SECRET`.
+2. **Un avis juridique** : le périmètre B2B du nouveau régime français. L'hypothèse
+   implémentée est la plus prudente ; l'inverser tient en une ligne de `COUNTRY_RULES`.
+3. **Les chantiers lourds assumés** : BullMQ/Redis, Stripe Meters, multicanal,
+   hébergement UE, DPIA voix, détection automatique de langue.

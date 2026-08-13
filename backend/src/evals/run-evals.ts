@@ -129,9 +129,56 @@ function checkAssertions(scenario: EvalScenario, answer: ModelAnswer): string[] 
   return failures;
 }
 
+/**
+ * Que faire quand la clé manque.
+ *
+ * Le harness sautait en sortant en **0**, et la CI affichait donc une étape
+ * « Évals réceptionniste » verte en n'ayant rien testé. Un filet de sécurité
+ * dont on ne peut pas distinguer « a tenu » de « n'existait pas » ne protège
+ * personne: c'est le seul défaut sérieux que le ré-audit a trouvé au harness.
+ *
+ * Le comportement par défaut reste non bloquant — exiger le secret de tous les
+ * contributeurs casserait les forks — mais le saut devient VISIBLE:
+ *  - en local, un avertissement explicite;
+ *  - dans GitHub Actions, une annotation `::warning::`, qui remonte dans
+ *    l'interface de la PR au lieu de se perdre dans les logs.
+ *
+ * `EVALS_REQUIRE_KEY=1` transforme l'absence de clé en échec: c'est le réglage
+ * à poser une fois le secret configuré sur le dépôt, pour que l'étape cesse
+ * d'être décorative.
+ */
+export function missingKeyBehaviour(opts: { requireKey: boolean; isCI: boolean }): {
+  fatal: boolean;
+  message: string;
+} {
+  if (opts.requireKey) {
+    return {
+      fatal: true,
+      message:
+        '[evals] ÉCHEC: OPENAI_API_KEY est absente alors que EVALS_REQUIRE_KEY est posé. ' +
+        'Les évals ne peuvent pas être considérées comme passées.',
+    };
+  }
+  const warning =
+    'OPENAI_API_KEY absente — évals NON EXÉCUTÉES. Cette étape ne prouve rien. ' +
+    'Posez le secret sur le dépôt, puis EVALS_REQUIRE_KEY=1 pour en faire un vrai garde-fou.';
+  return {
+    fatal: false,
+    message: opts.isCI ? `::warning::${warning}` : `[evals] ${warning}`,
+  };
+}
+
 async function main() {
   if (!env.OPENAI_API_KEY) {
-    console.log('[evals] OPENAI_API_KEY absent — évals sautées (exit 0).');
+    const { fatal, message } = missingKeyBehaviour({
+      requireKey: !!process.env.EVALS_REQUIRE_KEY && process.env.EVALS_REQUIRE_KEY !== '0',
+      isCI: !!process.env.GITHUB_ACTIONS,
+    });
+    if (fatal) {
+      console.error(message);
+      process.exit(1);
+    }
+    console.warn(message);
     return;
   }
 

@@ -81,6 +81,7 @@ class BotLoop {
   private quotaAlertJob: cron.ScheduledTask | null = null;
   private backupJob: cron.ScheduledTask | null = null;
   private dataRetentionJob: cron.ScheduledTask | null = null;
+  private calendarReconcileJob: cron.ScheduledTask | null = null;
   // ─── LinkedIn Outreach ─────────────────────────────────
   private linkedInConnectionsJob: cron.ScheduledTask | null = null;
   private linkedInFollowUpsJob: cron.ScheduledTask | null = null;
@@ -967,6 +968,18 @@ class BotLoop {
         .catch(e => logger.error('[CRON] Data retention purge failed', e));
     }), { timezone: 'UTC' });
 
+    // ═══════════════════════════════════════════════════════════
+    // RÉCONCILIATION CALENDRIER — toutes les heures, à la 25e minute.
+    // L'écriture Google se fait hors du chemin de l'appel; quand elle
+    // échoue, le rendez-vous existe en base mais pas dans l'agenda du
+    // client. Ce job reprend les rendez-vous À VENIR restés en attente.
+    // ═══════════════════════════════════════════════════════════
+    this.calendarReconcileJob = cron.schedule('25 * * * *', () => jobGuard.run('calendar-reconcile', async () => {
+      const { bookingCalendarReconcileService } = await import('../services/booking-calendar-reconcile.service');
+      await bookingCalendarReconcileService.reconcilePendingSyncs()
+        .catch(e => logger.error('[CRON] Calendar reconcile failed', e));
+    }), { timezone: 'UTC' });
+
     this.keepAliveJob = cron.schedule('*/10 * * * *', () => jobGuard.run('keep-alive', async () => {
       try {
         const url = env.API_BASE_URL || `http://localhost:${env.PORT}`;
@@ -1011,6 +1024,7 @@ class BotLoop {
     this.quotaAlertJob?.stop(); this.quotaAlertJob = null;
     this.backupJob?.stop(); this.backupJob = null;
     this.dataRetentionJob?.stop(); this.dataRetentionJob = null;
+    this.calendarReconcileJob?.stop(); this.calendarReconcileJob = null;
     // LinkedIn Outreach
     this.linkedInConnectionsJob?.stop(); this.linkedInConnectionsJob = null;
     this.linkedInFollowUpsJob?.stop(); this.linkedInFollowUpsJob = null;

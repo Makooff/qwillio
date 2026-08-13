@@ -212,22 +212,39 @@ class ToolRuntimeService {
     const session = callSessionStore.get(vapiCallId);
     const clientCallId = session?.clientCallId ?? null;
 
-    const booking = await prisma.clientBooking.create({
-      data: {
-        clientId: profile.clientId,
-        clientCallId,
-        customerName,
-        customerPhone: session?.callerNumber ?? null,
-        customerEmail: typeof args.customerEmail === 'string' ? args.customerEmail : null,
-        bookingDate: date,
-        bookingTime: args.time,
-        serviceType: typeof args.serviceType === 'string' ? args.serviceType : null,
-        partySize: Number.isFinite(args.partySize) ? Number(args.partySize) : null,
-        specialRequests: typeof args.specialRequests === 'string' ? args.specialRequests : null,
-        status: 'confirmed',
-        notes: 'Booked live during the call by the AI receptionist',
-      },
-    });
+    let booking;
+    try {
+      booking = await prisma.clientBooking.create({
+        data: {
+          clientId: profile.clientId,
+          clientCallId,
+          customerName,
+          customerPhone: session?.callerNumber ?? null,
+          customerEmail: typeof args.customerEmail === 'string' ? args.customerEmail : null,
+          bookingDate: date,
+          bookingTime: args.time,
+          serviceType: typeof args.serviceType === 'string' ? args.serviceType : null,
+          partySize: Number.isFinite(args.partySize) ? Number(args.partySize) : null,
+          specialRequests: typeof args.specialRequests === 'string' ? args.specialRequests : null,
+          status: 'confirmed',
+          notes: 'Booked live during the call by the AI receptionist',
+        },
+      });
+    } catch (error) {
+      /* P2002 = l'index unique partiel a parlé: quelqu'un d'autre a pris ce
+         créneau entre la vérification de disponibilité et cette écriture. Les
+         « holds » en mémoire ne couvrent qu'un processus, donc ce cas est réel
+         dès qu'il y a deux appels simultanés ou deux instances.
+         L'agent doit proposer autre chose, pas annoncer une réservation qui
+         n'existe pas. */
+      if ((error as { code?: string }).code === 'P2002') {
+        logger.info(`[VoiceTools] créneau déjà pris (${profile.clientId}, ${args.date} ${args.time})`);
+        return profile.language === 'fr'
+          ? "CRENEAU DEJA PRIS: quelqu'un vient de reserver cet horaire. Excuse-toi brievement et propose un autre creneau."
+          : 'SLOT TAKEN: someone just booked that time. Apologise briefly and offer another slot.';
+      }
+      throw error;
+    }
 
     callSessionStore.holdSlot(profile.clientId, date, String(args.time));
     callSessionStore.markBooked(vapiCallId, booking.id);
@@ -242,20 +259,45 @@ class ToolRuntimeService {
       : `BOOKED: ${customerName}, ${args.date} at ${args.time}. Confirm it out loud and ask if they need anything else.`;
   }
 
-  private async syncBookingToCalendar(clientId: string, bookingId: string): Promise<void> {
+  /**
+   * Écrit le rendez-vous au calendrier, et — c'est ce qui manquait — laisse une
+   * trace de l'issue.
+   *
+   * L'échec n'est toujours pas remonté à l'appelant: sa réservation existe, la
+   * ligne en base fait foi. Mais il n'est plus perdu non plus. Le compteur de
+   * tentatives et l'horodatage de succès sont ce qui permet au job de
+   * réconciliation (`bot-loop`) de reprendre les seules lignes qui le méritent.
+   */
+  async syncBookingToCalendar(clientId: string, bookingId: string): Promise<boolean> {
     try {
       const client = await prisma.client.findUnique({
         where: { id: clientId },
         select: { googleCalendarRefreshToken: true, googleCalendarId: true },
       });
-      if (!client?.googleCalendarRefreshToken) return;
+      if (!client?.googleCalendarRefreshToken) {
+        /* Pas de calendrier lié: il n'y a rien à synchroniser, et ce n'est pas
+           un échec. On marque la ligne comme réglée, sinon le job la
+           reprendrait indéfiniment. */
+        await this.markCalendarSynced(bookingId);
+        return true;
+      }
       const accessToken = await googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken);
       await googleCalendarService.createEventFromBooking(bookingId, accessToken, client.googleCalendarId || 'primary');
+      await this.markCalendarSynced(bookingId);
+      return true;
     } catch (error) {
-      // The booking exists either way; a failed sync is a reconciliation job,
-      // not a caller-facing failure.
       logger.warn(`[VoiceTools] Calendar sync failed for booking ${bookingId}: ${(error as Error).message}`);
+      await prisma.clientBooking
+        .update({ where: { id: bookingId }, data: { calendarSyncAttempts: { increment: 1 } } })
+        .catch(() => { /* la trace ne doit pas masquer l'erreur d'origine */ });
+      return false;
     }
+  }
+
+  private async markCalendarSynced(bookingId: string): Promise<void> {
+    await prisma.clientBooking
+      .update({ where: { id: bookingId }, data: { calendarSyncedAt: new Date() } })
+      .catch(() => { /* best-effort */ });
   }
 
   // ── lookupBooking ───────────────────────────────────────────────────────

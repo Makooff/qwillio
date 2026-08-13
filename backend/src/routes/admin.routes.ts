@@ -1004,16 +1004,95 @@ router.post('/test-activate-client', async (req: Request, res: Response) => {
 
     logger.warn(`[admin] Test-activated client ${email} (plan=${plan})`);
 
+    /* `/portal/<token>` n'existe pas: la route front est `/portal` et lit ses
+       deux paramètres dans la query (`?id=…&token=…`, `ClientPortal.tsx:42-44`).
+       Le lien renvoyé ici était donc mort à l'arrivée, et il lui manquait de
+       toute façon le clientId. On passe par `clientPortalUrl`, qui est le seul
+       endroit autorisé à fabriquer ce lien (règle du CLAUDE.md), et qui rend
+       une URL absolue directement ouvrable. */
+    const { clientPortalUrl } = await import('../utils/urls');
+
     return res.json({
       ok:           true,
       email,
       plan,
       clientId:     client.id,
-      dashboardUrl: `/portal/${dashboardToken}`,
+      dashboardUrl: clientPortalUrl(client.id, dashboardToken),
       dashboardToken,
     });
   } catch (err) {
     logger.error('[admin] test-activate-client failed:', err);
+    return res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+/* ═══ Registre des consentements à l'appel sortant ═══════════════════════════
+ *
+ * Le modèle `CallConsent` existait sans aucun moyen de le remplir: le registre
+ * ne pouvait s'écrire que depuis le code, donc la France restait muette pour
+ * toujours. Ces trois routes le rendent exploitable dès aujourd'hui, sans
+ * attendre un formulaire public: elles servent à consigner un consentement
+ * obtenu ailleurs (contrat signé, rappel demandé de vive voix, formulaire
+ * hébergé sur un autre outil), et à produire la preuve en cas de réclamation.
+ *
+ * Réservées à l'administration: un consentement que le prospect pourrait
+ * s'auto-attribuer ne vaudrait rien.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+const CONSENT_SOURCES = ['web_form', 'inbound_call', 'contract', 'import'] as const;
+
+router.post('/call-consents', async (req: Request, res: Response) => {
+  try {
+    const { phone, countryCode, source, statement, evidenceUrl, expiresAt } = req.body || {};
+    if (!CONSENT_SOURCES.includes(source)) {
+      return res.status(400).json({ error: `source must be one of: ${CONSENT_SOURCES.join(', ')}` });
+    }
+    const { callConsentService } = await import('../services/call-consent.service');
+    const result = await callConsentService.record({
+      phone: String(phone || ''),
+      countryCode: String(countryCode || ''),
+      source,
+      statement: String(statement || ''),
+      // L'IP est celle de l'administrateur qui consigne, pas celle du
+      // consentant: elle ne prouve donc rien du consentement lui-même. C'est
+      // `evidenceUrl` qui porte la preuve (contrat scanné, capture du formulaire).
+      ipAddress: null,
+      evidenceUrl: evidenceUrl ? String(evidenceUrl) : null,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+    });
+    if ('error' in result) return res.status(400).json(result);
+    logger.warn(`[admin] consentement d'appel consigné pour ${phone} (source: ${source})`);
+    return res.status(201).json(result);
+  } catch (err) {
+    logger.error('[admin] record consent failed:', err);
+    return res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.get('/call-consents/:phone', async (req: Request, res: Response) => {
+  try {
+    const { callConsentService } = await import('../services/call-consent.service');
+    const phone = decodeURIComponent(String(req.params.phone || ''));
+    const [history, valid] = await Promise.all([
+      callConsentService.history(phone),
+      callConsentService.hasValidConsent(phone),
+    ]);
+    return res.json({ phone, callable: valid, history });
+  } catch (err) {
+    return res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.delete('/call-consents/:phone', async (req: Request, res: Response) => {
+  try {
+    const { callConsentService } = await import('../services/call-consent.service');
+    const phone = decodeURIComponent(String(req.params.phone || ''));
+    // Révocation, pas suppression: la trace du retrait a la même valeur
+    // probante que celle de l'accord, et c'est elle qui justifie d'avoir cessé.
+    const result = await callConsentService.revoke(phone, String(req.body?.source || 'admin'));
+    logger.warn(`[admin] consentement révoqué pour ${phone}`);
+    return res.json(result);
+  } catch (err) {
     return res.status(500).json({ error: (err as Error).message });
   }
 });

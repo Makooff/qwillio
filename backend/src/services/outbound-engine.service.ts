@@ -15,6 +15,31 @@ import { discordService } from './discord.service';
 import { abTestingService } from './ab-testing.service';
 import { followUpSequencesService } from './follow-up-sequences.service';
 import { isHoliday } from '../config/scheduling';
+import { requiresPriorConsent, isWithinCallingWindow, maxCallsPerMonth } from '../utils/outbound-legal';
+
+/**
+ * Récupère les numéros portant un consentement valide, pour les pays qui
+ * l'exigent.
+ *
+ * Le sens de la requête compte: on part des consentements, pas des prospects.
+ * Tant que personne n'a consenti, l'ensemble est vide et la France sort
+ * naturellement du périmètre d'appel — c'est l'état correct au lendemain de la
+ * loi du 11/08/2026, et il s'obtient sans clause d'exclusion à maintenir.
+ *
+ * Le plafond borne la requête: au-delà, la sélection se ferait par lots, ce qui
+ * ne se pose pas avant plusieurs milliers de consentements.
+ */
+async function consentedPhonesForOptInCountries(now: Date): Promise<string[]> {
+  const consents = await prisma.callConsent.findMany({
+    where: {
+      revokedAt: null,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    },
+    select: { phone: true },
+    take: 5000,
+  });
+  return [...new Set(consents.map(c => c.phone))];
+}
 import { aiScriptGeneratorService } from './ai-script-generator.service';
 import { closerAgentService } from './closer-agent.service';
 
@@ -250,13 +275,56 @@ export class OutboundEngineService {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+    /* ── 2 bis. Ce que la loi autorise, PAYS PAR PAYS ────────────────────
+     *
+     * Le filtre `country: { in: ['US','FR','BE'] }` appliquait la même règle
+     * aux trois. Depuis le 11/08/2026 c'est faux: la France exige un
+     * consentement préalable prouvé, la Belgique reste en opt-out. Et les
+     * jours et horaires autorisés diffèrent, dans leur fuseau local.
+     *
+     * On calcule donc à chaque tick les pays réellement appelables MAINTENANT.
+     * Les pays à consentement en sont exclus ici et traités plus bas: leurs
+     * prospects ne deviennent éligibles qu'un par un, preuve à l'appui. */
+    const callableNow = (['US', 'FR', 'BE'] as const).filter(c => {
+      if (requiresPriorConsent(c)) return false;
+      const verdict = isWithinCallingWindow(c, now);
+      if (!verdict.allowed) {
+        logger.debug(`[OutboundEngine][${tickId}] ${c} hors fenêtre légale (${verdict.reason})`);
+      }
+      return verdict.allowed;
+    });
+
+    /* Les prospects d'un pays à opt-in, pour lesquels un consentement valide
+     * existe. La requête part des consentements et non des prospects: tant que
+     * personne n'a consenti, l'ensemble est vide et ne coûte rien. C'est
+     * l'état attendu au lendemain de la loi. */
+    const consentedPhones = await consentedPhonesForOptInCountries(now);
+
+    if (!callableNow.length && !consentedPhones.length) {
+      logger.info(`[OutboundEngine][${tickId}] SKIP · aucun pays appelable à cette heure`);
+      return false;
+    }
+
     // ── 3. Find eligible prospect ──────────────────────────
     // Skip prospects that a human closer has claimed — they'll be worked
     // manually and should NOT receive a bot call on top.
     const prospect = await prisma.prospect.findFirst({
       where: {
         status: 'new',
-        country: { in: ['US', 'FR', 'BE'] },
+        /* Soit le pays est appelable sans consentement et dans sa fenêtre,
+           soit le numéro porte un consentement valide — auquel cas le décret
+           français lève lui-même la contrainte horaire.
+           Dans un `AND` et non un second `OR`: la clause en porte déjà un pour
+           `nextCallAt`, et deux clés `OR` dans le même objet se remplaceraient
+           l'une l'autre en silence. */
+        AND: [
+          {
+            OR: [
+              { country: { in: [...callableNow] } },
+              ...(consentedPhones.length ? [{ phone: { in: consentedPhones } }] : []),
+            ],
+          },
+        ],
         phone: { not: null },
         eligibleForCall: true,
         // Un « ne me rappelez plus » est définitif — jamais re-tenté, quel que
@@ -294,6 +362,37 @@ export class OutboundEngineService {
         `· quota=${botStatus.callsToday}/${botStatus.callsQuotaDaily}`
       );
       return false;
+    }
+
+    /* Plafond mensuel de sollicitations (4/mois en France, décret 2022-1313).
+     *
+     * Il se compte sur le MOIS CALENDAIRE et par prospect, pas sur une fenêtre
+     * glissante: c'est ainsi que le texte est rédigé. `callAttempts` ne peut pas
+     * servir, il est cumulatif depuis toujours; on compte donc les appels réels
+     * du mois dans `Call`.
+     *
+     * Quand le plafond est atteint, le prospect est repoussé au 1er du mois
+     * suivant plutôt qu'ignoré: sans cela il resterait en tête du tri par score
+     * et bloquerait le moteur à chaque tick. */
+    const monthlyCap = maxCallsPerMonth(prospect.country);
+    if (monthlyCap !== null) {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const callsThisMonth = await prisma.call.count({
+        where: { prospectId: prospect.id, startedAt: { gte: startOfMonth } },
+      });
+      if (callsThisMonth >= monthlyCap) {
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        await prisma.prospect.update({
+          where: { id: prospect.id },
+          data: { nextCallAt: nextMonth },
+        });
+        logger.info(
+          `[OutboundEngine][${tickId}] SKIP · plafond légal atteint ` +
+          `· ${prospect.businessName} (${prospect.country}): ${callsThisMonth}/${monthlyCap} ce mois-ci, ` +
+          `reporté au ${nextMonth.toISOString().slice(0, 10)}`
+        );
+        return false;
+      }
     }
 
     // Check call window for prospect timezone

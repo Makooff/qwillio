@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Lock, Check, Bell, LogOut, Eye, EyeOff, ChevronRight,
   CreditCard, Bot, HelpCircle, Sparkles, Shield, Globe,
-  Building2, MapPin,
+  Building2, MapPin, BookOpen, Clock, Plus, Pencil, Trash2, X, AlertTriangle,
   LucideIcon,
 } from '../../components/icons';
 import { useAuthStore } from '../../stores/authStore';
@@ -134,6 +134,66 @@ const BUSINESS_TYPES: { value: string; label: string }[] = [
 const selectCls =
   'w-full px-3.5 py-2.5 text-[13px] rounded-xl border bg-white/[0.03] text-[#F5F5F7] focus:outline-none transition-colors appearance-none';
 
+/**
+ * Base de connaissance — ce que l'agent sait de l'entreprise.
+ *
+ * Les trois natures et les plafonds sont ceux du backend
+ * (`business-knowledge.service.ts`), recopiés ici pour que le formulaire
+ * refuse avant l'aller-retour réseau. Toute divergence se voit: le serveur
+ * revalide et renvoie son propre message, qu'on affiche tel quel.
+ */
+type KnowledgeKind = 'faq' | 'staff' | 'rule';
+
+interface KnowledgeEntry {
+  id: string;
+  kind: KnowledgeKind;
+  title: string;
+  content: string;
+  keywords: string[];
+  priority: number;
+  isActive: boolean;
+}
+
+const KIND_META: Record<KnowledgeKind, { label: string; hint: string; placeholder: string }> = {
+  faq: {
+    label: 'Question',
+    hint: 'Une question que vos clients posent, et la réponse à donner.',
+    placeholder: 'Ex. : Faites-vous les urgences le samedi ?',
+  },
+  staff: {
+    label: 'Personne',
+    hint: "Qui fait quoi, pour que l'agent oriente vers la bonne personne.",
+    placeholder: 'Ex. : Dr Lambert, orthodontie',
+  },
+  rule: {
+    label: 'Règle',
+    hint: "Une consigne à respecter: délai d'annulation, acompte, zone desservie.",
+    placeholder: 'Ex. : Annulation gratuite jusqu’à 24 h avant',
+  },
+};
+
+const KNOWLEDGE_MAX_ENTRIES = 500;
+const KNOWLEDGE_MAX_TITLE = 300;
+const KNOWLEDGE_MAX_CONTENT = 4000;
+
+/** Bornes du backend (`data-retention.service.ts`). */
+const RETENTION_MIN = 30;
+const RETENTION_MAX = 1825;
+
+/**
+ * Les durées proposées. Le champ libre reste accessible: ces valeurs ne sont
+ * qu'un raccourci vers les durées que les clients demandent réellement.
+ */
+const RETENTION_PRESETS: { days: number; label: string }[] = [
+  { days: 30,   label: '30 jours' },
+  { days: 90,   label: '90 jours' },
+  { days: 365,  label: '1 an' },
+  { days: 1825, label: '5 ans' },
+];
+
+const emptyDraft = (): { id: string | null; kind: KnowledgeKind; title: string; content: string; keywords: string } =>
+  ({ id: null, kind: 'faq', title: '', content: '', keywords: '' });
+
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function ClientAccount() {
@@ -210,6 +270,144 @@ export default function ClientAccount() {
   const [bizSaving, setBizSaving] = useState(false);
   const [bizSaved, setBizSaved] = useState(false);
   const [bizError, setBizError] = useState('');
+
+  // ── Base de connaissance ──────────────────────────────────────────────────
+  const [knowledge, setKnowledge] = useState<KnowledgeEntry[] | null>(null);
+  const [kbError, setKbError] = useState('');
+  const [kbBusy, setKbBusy] = useState(false);
+  const [draft, setDraft] = useState(emptyDraft());
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  // ── Rétention ─────────────────────────────────────────────────────────────
+  const [retentionDays, setRetentionDays] = useState<number | null>(null);
+  const [retentionIsDefault, setRetentionIsDefault] = useState(true);
+  const [retentionDefault, setRetentionDefault] = useState(90);
+  const [retentionSaving, setRetentionSaving] = useState(false);
+  const [retentionSaved, setRetentionSaved] = useState(false);
+  const [retentionError, setRetentionError] = useState('');
+
+  /**
+   * Les deux blocs ne se chargent qu'à l'ouverture de leur tiroir.
+   *
+   * La page Paramètres s'ouvre des dizaines de fois par jour pour changer un
+   * mot de passe; aller chercher 500 entrées de base de connaissance à chaque
+   * fois serait payer le prix fort pour un écran qu'on n'a pas déplié.
+   */
+  const loadKnowledge = useCallback(async () => {
+    if (knowledge !== null) return;
+    try {
+      const { data } = await api.get('/my-dashboard/knowledge');
+      setKnowledge(Array.isArray(data?.entries) ? data.entries : []);
+    } catch {
+      setKbError("La base de connaissance n'a pas pu être chargée.");
+      setKnowledge([]);
+    }
+  }, [knowledge]);
+
+  const loadRetention = useCallback(async () => {
+    try {
+      const { data } = await api.get('/my-dashboard/retention');
+      if (typeof data?.retentionDays === 'number') setRetentionDays(data.retentionDays);
+      if (typeof data?.defaultDays === 'number') setRetentionDefault(data.defaultDays);
+      setRetentionIsDefault(data?.isDefault !== false);
+    } catch {
+      setRetentionError("Le réglage de conservation n'a pas pu être chargé.");
+    }
+  }, []);
+
+  /** Le serveur revalide tout: son message prime sur le nôtre. */
+  const kbMessage = (e: any, fallback: string) =>
+    e?.response?.data?.error ? String(e.response.data.error) : fallback;
+
+  const submitDraft = async () => {
+    const title = draft.title.trim();
+    const content = draft.content.trim();
+    if (!title || !content) {
+      setKbError('Le titre et le contenu sont obligatoires.');
+      return;
+    }
+    setKbBusy(true);
+    setKbError('');
+    const payload = {
+      kind: draft.kind,
+      title,
+      content,
+      keywords: draft.keywords.split(',').map(k => k.trim()).filter(Boolean),
+    };
+    try {
+      if (draft.id) {
+        const { data } = await api.put(`/my-dashboard/knowledge/${draft.id}`, payload);
+        setKnowledge(list => (list ?? []).map(e => (e.id === draft.id ? { ...e, ...data } : e)));
+      } else {
+        const { data } = await api.post('/my-dashboard/knowledge', payload);
+        setKnowledge(list => [...(list ?? []), data]);
+      }
+      setDraft(emptyDraft());
+      setDraftOpen(false);
+      addToast(draft.id ? 'Entrée mise à jour' : 'Entrée ajoutée', 'success');
+    } catch (e: any) {
+      setKbError(kbMessage(e, "L'enregistrement a échoué. Réessayez dans un instant."));
+    } finally {
+      setKbBusy(false);
+    }
+  };
+
+  const removeEntry = async (id: string) => {
+    setKbBusy(true);
+    setKbError('');
+    try {
+      await api.delete(`/my-dashboard/knowledge/${id}`);
+      setKnowledge(list => (list ?? []).filter(e => e.id !== id));
+      setConfirmDelete(null);
+      addToast('Entrée supprimée', 'success');
+    } catch (e: any) {
+      setKbError(kbMessage(e, 'La suppression a échoué.'));
+    } finally {
+      setKbBusy(false);
+    }
+  };
+
+  /**
+   * Amorce la base avec la FAQ du métier. Le serveur est idempotent par titre:
+   * réimporter n'ajoute que ce qui manque et ne réécrit jamais une réponse que
+   * le client a retouchée. On peut donc laisser le bouton toujours cliquable.
+   */
+  const importPreset = async () => {
+    setKbBusy(true);
+    setKbError('');
+    try {
+      const { data } = await api.post('/my-dashboard/knowledge/import-preset');
+      const imported = Number(data?.imported ?? 0);
+      if (imported > 0) {
+        const { data: fresh } = await api.get('/my-dashboard/knowledge');
+        setKnowledge(Array.isArray(fresh?.entries) ? fresh.entries : []);
+        addToast(`${imported} question${imported > 1 ? 's' : ''} importée${imported > 1 ? 's' : ''}`, 'success');
+      } else {
+        addToast('Rien à importer : vos questions sont déjà là', 'info');
+      }
+    } catch (e: any) {
+      setKbError(kbMessage(e, "L'import a échoué."));
+    } finally {
+      setKbBusy(false);
+    }
+  };
+
+  const saveRetention = async (days: number | null) => {
+    setRetentionSaving(true);
+    setRetentionError('');
+    try {
+      await api.put('/my-dashboard/retention', { retentionDays: days });
+      setRetentionIsDefault(days === null);
+      if (days === null) setRetentionDays(retentionDefault);
+      setRetentionSaved(true);
+      setTimeout(() => setRetentionSaved(false), 2000);
+    } catch (e: any) {
+      setRetentionError(kbMessage(e, "L'enregistrement a échoué."));
+    } finally {
+      setRetentionSaving(false);
+    }
+  };
 
   useEffect(() => {
     // Same settings the Réceptionniste tab reads, warmed at launch: from the
@@ -803,6 +1001,360 @@ export default function ClientAccount() {
                     </button>
                     {bizSaved && <span className="text-[12px] flex items-center gap-1" style={{ color: C.ok }}><Check size={13} /> Sauvegardé</span>}
                   </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
+      </section>
+
+      {/* ─── Données ─── */}
+      <section>
+        <SectionHead title="Données" />
+        <Card>
+          {/* BASE DE CONNAISSANCE. Les routes existaient depuis la PR #133 sans
+              aucune porte d'entrée: le client restait devant la zone de texte
+              libre de Réceptionniste. Ici il saisit des entrées nommées, que
+              l'agent retrouve une par une au lieu d'avaler un bloc de 8000
+              caractères. */}
+          <Row
+            icon={BookOpen}
+            label="Base de connaissance"
+            hint={
+              knowledge === null
+                ? "Ce que l'agent sait répondre"
+                : knowledge.length === 0
+                  ? 'Vide, importez les questions de votre métier'
+                  : `${knowledge.length} entrée${knowledge.length > 1 ? 's' : ''}`
+            }
+            onClick={() => { toggle('knowledge'); void loadKnowledge(); }}
+          />
+          <AnimatePresence initial={false}>
+            {open === 'knowledge' && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18 }} className="overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
+                <div className="p-5 space-y-4">
+                  <p className="text-[12px] leading-relaxed" style={{ color: C.textTer }}>
+                    Chaque entrée est retrouvée séparément pendant l'appel. Mieux vaut dix entrées
+                    précises qu'un long paragraphe : l'agent cite ce qui répond à la question posée.
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={importPreset}
+                      disabled={kbBusy || !businessType}
+                      className="px-3.5 h-9 text-[12.5px] font-medium rounded-xl inline-flex items-center gap-2 disabled:opacity-40 transition-colors active:scale-[0.97]"
+                      style={{ background: C.text, color: '#0B0B0D' }}
+                    >
+                      <Sparkles size={13} />
+                      Importer les questions de mon métier
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setDraft(emptyDraft()); setDraftOpen(v => !v); setKbError(''); }}
+                      disabled={kbBusy || (knowledge?.length ?? 0) >= KNOWLEDGE_MAX_ENTRIES}
+                      className="px-3.5 h-9 text-[12.5px] font-medium rounded-xl border inline-flex items-center gap-2 disabled:opacity-40 transition-colors active:scale-[0.97]"
+                      style={{ borderColor: C.border, color: C.text }}
+                    >
+                      <Plus size={13} />
+                      Ajouter
+                    </button>
+                  </div>
+
+                  {!businessType && (
+                    <p className="text-[12px] flex items-start gap-1.5" style={{ color: C.textTer }}>
+                      <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" />
+                      <span>
+                        Choisissez d'abord votre métier dans « Identité de l'entreprise » :
+                        c'est lui qui détermine les questions proposées.
+                      </span>
+                    </p>
+                  )}
+
+                  {kbError && <p className="text-[12px]" style={{ color: C.bad }}>{kbError}</p>}
+
+                  {/* Formulaire d'ajout / d'édition. */}
+                  <AnimatePresence initial={false}>
+                    {draftOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                        className="rounded-xl border p-4 space-y-3"
+                        style={{ borderColor: C.borderHi, background: 'rgba(255,255,255,0.02)' }}
+                      >
+                        <div>
+                          <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Nature</label>
+                          <select
+                            value={draft.kind}
+                            onChange={e => setDraft(d => ({ ...d, kind: e.target.value as KnowledgeKind }))}
+                            className={selectCls + ' mt-1.5'} style={{ borderColor: C.border }}
+                          >
+                            {(Object.keys(KIND_META) as KnowledgeKind[]).map(k => (
+                              <option key={k} value={k} style={{ background: C.bg }}>{KIND_META[k].label}</option>
+                            ))}
+                          </select>
+                          <p className="text-[11.5px] mt-1.5" style={{ color: C.textTer }}>{KIND_META[draft.kind].hint}</p>
+                        </div>
+                        <div>
+                          <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Intitulé</label>
+                          <input
+                            type="text" value={draft.title} maxLength={KNOWLEDGE_MAX_TITLE}
+                            placeholder={KIND_META[draft.kind].placeholder}
+                            onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
+                            className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }}
+                            onFocus={e => e.currentTarget.style.borderColor = C.borderHi}
+                            onBlur={e => e.currentTarget.style.borderColor = C.border}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>
+                            {draft.kind === 'faq' ? 'Réponse' : 'Détail'}
+                          </label>
+                          <textarea
+                            value={draft.content} rows={3} maxLength={KNOWLEDGE_MAX_CONTENT}
+                            onChange={e => setDraft(d => ({ ...d, content: e.target.value }))}
+                            className={inputCls + ' mt-1.5 resize-y'} style={{ borderColor: C.border }}
+                            onFocus={e => e.currentTarget.style.borderColor = C.borderHi}
+                            onBlur={e => e.currentTarget.style.borderColor = C.border}
+                          />
+                          <p className="text-[11px] mt-1 text-right" style={{ color: C.textTer }}>
+                            {draft.content.length} / {KNOWLEDGE_MAX_CONTENT}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>
+                            Mots-clés <span className="normal-case tracking-normal">(séparés par des virgules, facultatif)</span>
+                          </label>
+                          <input
+                            type="text" value={draft.keywords}
+                            placeholder="urgence, samedi, week-end"
+                            onChange={e => setDraft(d => ({ ...d, keywords: e.target.value }))}
+                            className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }}
+                            onFocus={e => e.currentTarget.style.borderColor = C.borderHi}
+                            onBlur={e => e.currentTarget.style.borderColor = C.border}
+                          />
+                          <p className="text-[11.5px] mt-1.5" style={{ color: C.textTer }}>
+                            Les mots que l'appelant risque d'employer, s'ils ne figurent pas déjà dans l'intitulé.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button" onClick={submitDraft} disabled={kbBusy}
+                            className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors active:scale-[0.97]"
+                            style={{ background: C.text, color: '#0B0B0D' }}
+                          >
+                            {kbBusy ? 'Enregistrement…' : draft.id ? 'Mettre à jour' : 'Ajouter'}
+                          </button>
+                          <button
+                            type="button" onClick={() => { setDraftOpen(false); setDraft(emptyDraft()); setKbError(''); }}
+                            className="px-4 h-9 text-[12.5px] font-medium rounded-xl border transition-colors active:scale-[0.97]"
+                            style={{ borderColor: C.border, color: C.textSec }}
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* La liste. */}
+                  {knowledge === null ? (
+                    <p className="text-[12.5px]" style={{ color: C.textTer }}>Chargement…</p>
+                  ) : knowledge.length === 0 ? (
+                    <div className="rounded-xl border border-dashed p-5 text-center" style={{ borderColor: C.border }}>
+                      <p className="text-[12.5px]" style={{ color: C.textSec }}>Votre agent ne connaît encore rien de spécifique.</p>
+                      <p className="text-[12px] mt-1" style={{ color: C.textTer }}>
+                        L'import du métier est le plus rapide : vous corrigez des réponses déjà rédigées.
+                      </p>
+                    </div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {knowledge.map(entry => (
+                        <li
+                          key={entry.id}
+                          className="rounded-xl border p-3.5"
+                          style={{ borderColor: C.border, background: 'rgba(255,255,255,0.02)' }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span
+                                  className="text-[10.5px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded"
+                                  style={{ background: 'rgba(115,73,254,0.14)', color: '#B9A2FF' }}
+                                >
+                                  {KIND_META[entry.kind]?.label ?? entry.kind}
+                                </span>
+                                {!entry.isActive && (
+                                  <span className="text-[10.5px] uppercase tracking-wider" style={{ color: C.textTer }}>inactive</span>
+                                )}
+                              </div>
+                              <p className="text-[13px] font-medium mt-1.5 break-words" style={{ color: C.text }}>{entry.title}</p>
+                              <p className="text-[12px] mt-1 leading-relaxed break-words" style={{ color: C.textSec }}>{entry.content}</p>
+                              {entry.keywords?.length > 0 && (
+                                <p className="text-[11.5px] mt-1.5" style={{ color: C.textTer }}>
+                                  {entry.keywords.join(' · ')}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                type="button" aria-label="Modifier"
+                                onClick={() => {
+                                  setDraft({
+                                    id: entry.id, kind: entry.kind, title: entry.title,
+                                    content: entry.content, keywords: (entry.keywords ?? []).join(', '),
+                                  });
+                                  setDraftOpen(true);
+                                  setKbError('');
+                                }}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.06] transition-colors active:scale-[0.97]"
+                              >
+                                <Pencil size={13} style={{ color: C.textSec }} />
+                              </button>
+                              <button
+                                type="button" aria-label="Supprimer"
+                                onClick={() => setConfirmDelete(entry.id)}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-500/[0.10] transition-colors active:scale-[0.97]"
+                              >
+                                <Trash2 size={13} style={{ color: C.bad }} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Confirmation en place: une entrée effacée n'est pas
+                              récupérable, mais une modale pour trois lignes de
+                              FAQ serait disproportionnée. */}
+                          <AnimatePresence initial={false}>
+                            {confirmDelete === entry.id && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                                transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+                                className="flex items-center gap-2 mt-3 pt-3"
+                                style={{ borderTop: `1px solid ${C.border}` }}
+                              >
+                                <span className="text-[12px] flex-1" style={{ color: C.textSec }}>Supprimer définitivement ?</span>
+                                <button
+                                  type="button" onClick={() => removeEntry(entry.id)} disabled={kbBusy}
+                                  className="px-3 h-8 text-[12px] font-medium rounded-lg disabled:opacity-50 transition-colors active:scale-[0.97]"
+                                  style={{ background: C.bad, color: '#FFF' }}
+                                >
+                                  Supprimer
+                                </button>
+                                <button
+                                  type="button" onClick={() => setConfirmDelete(null)}
+                                  className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.06] transition-colors"
+                                  aria-label="Annuler"
+                                >
+                                  <X size={13} style={{ color: C.textSec }} />
+                                </button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {(knowledge?.length ?? 0) >= KNOWLEDGE_MAX_ENTRIES && (
+                    <p className="text-[12px]" style={{ color: C.textTer }}>
+                      Base pleine ({KNOWLEDGE_MAX_ENTRIES} entrées). Supprimez-en pour en ajouter.
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* CONSERVATION. La politique publiée annonçait 90 jours sans que rien
+              ne purge; la purge existe désormais et tourne chaque jour. Ce
+              réglage est ce qui la pilote, côté client. */}
+          <Row
+            icon={Clock}
+            label="Conservation des données"
+            hint={retentionIsDefault ? `${retentionDefault} jours (par défaut)` : `${retentionDays} jours`}
+            onClick={() => { toggle('retention'); void loadRetention(); }}
+          />
+          <AnimatePresence initial={false}>
+            {open === 'retention' && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18 }} className="overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
+                <div className="p-5 space-y-4">
+                  <p className="text-[12px] leading-relaxed" style={{ color: C.textTer }}>
+                    Passé ce délai, les enregistrements, transcriptions et résumés de vos appels sont
+                    effacés automatiquement, chez nous comme chez notre fournisseur de téléphonie.
+                    Les statistiques agrégées, elles, restent : elles ne contiennent plus personne.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {RETENTION_PRESETS.map(p => {
+                      const active = !retentionIsDefault && retentionDays === p.days;
+                      return (
+                        <button
+                          key={p.days}
+                          type="button"
+                          onClick={() => { setRetentionDays(p.days); void saveRetention(p.days); }}
+                          disabled={retentionSaving}
+                          className="px-3.5 h-9 text-[12.5px] font-medium rounded-xl border disabled:opacity-50 transition-colors active:scale-[0.97]"
+                          style={{
+                            borderColor: active ? C.accent : C.border,
+                            background: active ? 'rgba(115,73,254,0.14)' : 'transparent',
+                            color: active ? '#C4B2FF' : C.textSec,
+                          }}
+                        >
+                          {p.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div className="flex-1 min-w-[160px]">
+                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>
+                        Durée précise (jours)
+                      </label>
+                      <input
+                        type="number" min={RETENTION_MIN} max={RETENTION_MAX}
+                        value={retentionDays ?? retentionDefault}
+                        onChange={e => { setRetentionDays(Number(e.target.value)); setRetentionIsDefault(false); }}
+                        className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }}
+                        onFocus={e => e.currentTarget.style.borderColor = C.borderHi}
+                        onBlur={e => e.currentTarget.style.borderColor = C.border}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => saveRetention(retentionDays ?? retentionDefault)}
+                      disabled={retentionSaving}
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors active:scale-[0.97]"
+                      style={{ background: C.text, color: '#0B0B0D' }}
+                    >
+                      {retentionSaving ? 'Enregistrement…' : 'Appliquer'}
+                    </button>
+                    {retentionSaved && (
+                      <span className="text-[12px] flex items-center gap-1" style={{ color: C.ok }}><Check size={13} /> Enregistré</span>
+                    )}
+                  </div>
+
+                  <p className="text-[11.5px]" style={{ color: C.textTer }}>
+                    Entre {RETENTION_MIN} et {RETENTION_MAX} jours.
+                    {!retentionIsDefault && (
+                      <>
+                        {' '}
+                        <button
+                          type="button"
+                          onClick={() => saveRetention(null)}
+                          disabled={retentionSaving}
+                          className="underline underline-offset-2 disabled:opacity-50 transition-colors"
+                          style={{ color: C.textSec }}
+                        >
+                          Revenir au réglage par défaut ({retentionDefault} jours)
+                        </button>
+                      </>
+                    )}
+                  </p>
+
+                  {retentionError && <p className="text-[12px]" style={{ color: C.bad }}>{retentionError}</p>}
                 </div>
               </motion.div>
             )}

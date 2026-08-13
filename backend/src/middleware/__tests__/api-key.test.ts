@@ -23,6 +23,7 @@ vi.mock('../../config/logger', () => ({
 }));
 
 import { apiKeyAuth, requirePermission } from '../api-key.middleware';
+import { hashApiKey } from '../../utils/api-key-hash';
 
 function mockReq(headers: Record<string, string> = {}) {
   return {
@@ -66,7 +67,11 @@ describe('qui entre', () => {
     await apiKeyAuth(req, mockRes(), next);
 
     expect(next).toHaveBeenCalledOnce();
-    expect(keyFindUnique.mock.calls[0][0].where.key).toBe('qw_abc');
+    /* Ce que ce test vérifie reste le découpage du « Bearer ». Mais la
+       recherche se fait désormais par condensat, jamais par la clé en clair:
+       l'assertion porte donc sur le hachage de la valeur extraite. */
+    expect(keyFindUnique.mock.calls[0][0].where.keyHash).toBe(hashApiKey('qw_abc'));
+    expect(keyFindUnique.mock.calls[0][0].where.key).toBeUndefined();
   });
 
   it('note l’usage sans faire attendre la réponse', async () => {

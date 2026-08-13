@@ -107,12 +107,17 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   expirée, et purge le monde outbound (Call, Prospect.callTranscript) ;
   API client : `GET/PUT /my-dashboard/retention` + `DELETE /my-dashboard/callers/:number`
   (effacement d'un appelant, droit du sujet de données).
-- **Done** : job idempotent testé (8 tests) ; reste côté produit : exposer le réglage
-  dans l'UI Paramètres et mettre à jour la page privacy si la durée devient
-  configurable publiquement.
+- [x] **UI livrée le 13/08/2026** : section « Données » de `ClientAccount.tsx`,
+  raccourcis 30 j / 90 j / 1 an / 5 ans, champ libre borné, et retour explicite
+  au défaut. Le tiroir ne charge son état qu'à l'ouverture.
+- [x] **Page Confidentialité corrigée le 13/08/2026** : elle annonçait « 90 jours »
+  fermes alors que la durée est réglable de 30 jours à 5 ans. Elle décrit désormais
+  le défaut, le réglage, la purge quotidienne et son effet chez le fournisseur de
+  téléphonie, et ajoute la conservation de 3 ans des preuves de consentement.
+- **Done** : job idempotent testé (8 tests) ; promesse publique et code alignés.
 
 ### 2.3 KB/RAG : ouvrir le chemin d'écriture + présets par niche
-- [x] **Fait le 13/08/2026** (backend ; l'UI Paramètres reste à construire)
+- [x] **Fait le 13/08/2026** (backend + UI)
 - **Livré** : `business-knowledge.service.ts` (CRUD validé, plafond 500 entrées,
   scoping tenant dans le WHERE) + routes `GET/POST/PUT/DELETE /my-dashboard/knowledge`
   et `POST /my-dashboard/knowledge/import-preset` (FAQ pré-rédigée du métier via
@@ -120,8 +125,13 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   écriture invalide le cache de profil (sinon `hasKnowledgeBase` reste faux
   jusqu'au TTL) et relance `generateMissing()` hors du chemin d'appel ; une mise
   à jour vide le vecteur périmé.
-- **Done partiel** : 8 tests ; reste : UI dans Paramètres (chantier n°2 du
-  CLAUDE.md), et le test de recall sur 20 questions (dépend du harness 2.5).
+- [x] **UI livrée le 13/08/2026** : section « Données » de `ClientAccount.tsx`.
+  CRUD par entrée nommée (question / personne / règle), mots-clés, confirmation
+  de suppression en place, et le bouton « Importer les questions de mon métier »
+  câblé sur `import-preset`. Il est désactivé tant qu'aucun métier n'est choisi,
+  en le disant : c'est `businessType` qui détermine le préset.
+- **Done** : 8 tests backend ; reste : le test de recall sur 20 questions
+  (dépend du harness 2.5).
 
 ### 2.4 Provisioning automatique de numéros par client
 - [x] **Fait le 13/08/2026** (code ; activation = décision d'exploitation)
@@ -197,17 +207,69 @@ durable** (1-3 mois). Chaque tâche : techno, impact, effort, dépendances, crit
   (pas confiée au modèle : un opt-out raté est une infraction), gating du
   moteur sortant, preuve source+date conservée (jamais purgée). La divulgation
   IA d'ouverture est couverte par le quick win 1.
-- **Reste** : modèle `CallConsent` (opt-in positif tracé ≥ 3 ans), consultation
-  Bloctel/liste BE avant appel (dépendance externe : abonnement Bloctel),
-  position juridique B2B vs B2C. À défaut : geler l'outbound FR/BE.
+- ⚠️ **Le cadre légal a changé le 11/08/2026, ce lot est à réécrire** (détail et
+  sources : `docs/ETAT-DE-LART-2026.md` §1). **Bloctel a cessé son activité** en
+  application de la loi n° 2025-594 : le démarchage non sollicité est désormais
+  **interdit par défaut en France**, tous secteurs, sauf consentement préalable
+  ou contrat en cours. Le régime passe de l'opt-out à **l'opt-in**.
+- [x] **Deuxième brique faite le 13/08/2026** : mise en conformité au nouveau régime.
+  - ~~consultation Bloctel avant appel~~ — **supprimé, la cible n'existe plus** ;
+  - modèle **`CallConsent`** (migration additive) : la preuve incombant au
+    professionnel, il stocke l'**origine, la date, le libellé exact accepté,
+    l'IP et la révocation** — pas un booléen. Rien n'y est jamais purgé :
+    un consentement qu'on ne peut plus produire équivaut à son absence ;
+  - **`utils/outbound-legal.ts`** : règle **par pays**. FR exige le
+    consentement, BE reste en opt-out. Jours et horaires du décret 2022-1313
+    (lun-ven 10 h-13 h et 14 h-20 h, hors fériés), calculés dans le fuseau
+    local, fériés mobiles adossés à Pâques. Le consentement **lève** la
+    contrainte horaire, comme le prévoit le décret. Un pays inconnu est traité
+    comme exigeant le consentement ;
+  - le moteur sortant sélectionne désormais les pays appelables **à l'instant t**,
+    et les prospects français ne redeviennent éligibles qu'un par un, preuve à
+    l'appui. Tant que personne n'a consenti, la France sort du périmètre
+    d'elle-même : c'est l'état correct au lendemain de la loi ;
+  - l'opt-out verbal **révoque** le consentement, au lieu de laisser le registre
+    attester d'un accord retiré.
+  - 16 tests sur les règles légales.
+- [x] **Troisième brique, même jour** : le plafond de **4 sollicitations par mois**
+  (FR) est **appliqué**. Compté sur le mois calendaire et par prospect dans la
+  table `Call` (`callAttempts` est cumulatif depuis toujours, il ne pouvait pas
+  servir). Au plafond, le prospect est reporté au 1er du mois suivant plutôt
+  qu'ignoré, sinon il resterait en tête du tri par score et bloquerait le moteur
+  à chaque tick. La carence de **60 jours** après refus reste couverte par
+  l'opt-out définitif, plus strict qu'elle.
+- [x] **Registre exploitable** : trois routes d'administration
+  (`POST/GET/DELETE /api/admin/call-consents`) pour consigner un consentement
+  obtenu ailleurs (contrat, rappel demandé), produire l'historique en cas de
+  réclamation, et révoquer. Le modèle existait sans aucun moyen de le remplir.
+- **Reste** :
+  - un **formulaire public** de demande de rappel, qui alimenterait le registre
+    sans passer par l'administration ;
+  - **position juridique B2B vs B2C — à trancher avec un juriste** : les textes
+    visent le « consommateur », notre ciblage est B2B, mais l'artisan en nom
+    propre a souvent une ligne personnelle. Hypothèse retenue et implémentée :
+    traiter l'outbound FR comme soumis à l'opt-in. Si le conseil dit l'inverse,
+    la bascule tient en une ligne de `COUNTRY_RULES`.
 - **Done** : aucun appel sortant sans consentement tracé ou base légale
   documentée ; opt-out verbal persisté et respecté ✅ (fait).
 
 ### 3.4 Industrialisation : queue + multi-instance + Stripe Meters + RLS
-- **Techno** : BullMQ + Redis (remplace 45 crons in-process), verrous distribués,
-  Stripe Meters pour l'overage, contrainte unique anti-double-booking, réconciliation
-  calendrier, RLS Postgres ou extension Prisma de scoping tenant, chiffrement des
-  clés API clients.
+- [x] **Trois briques faites le 13/08/2026**, celles qui ne dépendaient pas de Redis :
+  - **contrainte anti-double-réservation** : index unique PARTIEL sur
+    (client, date, heure) restreint aux réservations `confirmed`, pour qu'une
+    annulation libère le créneau. Les « holds » en mémoire ne couvraient qu'un
+    processus ; deux appels simultanés pouvaient confirmer le même horaire.
+    L'agent intercepte la collision et propose un autre créneau au lieu
+    d'annoncer une réservation qui n'existe pas ;
+  - **réconciliation calendrier** : le code annonçait qu'un échec de
+    synchronisation relevait « d'un travail de réconciliation » qui n'existait
+    pas. Job horaire, rendez-vous à venir seulement, 5 tentatives au plus,
+    et alerte explicite sur les abandons (jeton Google révoqué) ;
+  - **clés API en condensat** (voir aussi la dette sécurité) : SHA-256
+    déterministe, migration additive, aucune rotation nécessaire.
+- **Reste** : BullMQ + Redis (remplace 45 crons in-process), verrous distribués,
+  Stripe Meters pour l'overage, RLS Postgres ou extension Prisma de scoping tenant,
+  et la seconde migration qui retire la colonne de clé en clair.
 - **Impact** : scale > 1 instance sans double exécution ; facturation fiable.
 - **Effort** : L. **Dépendances** : Redis managé (externe).
 - **Done** : 2 instances worker sans double-run ; usage visible dans Stripe en continu ;

@@ -357,6 +357,16 @@ export class VapiService {
     const optedOut = detectCallOptOut(transcript);
     if (optedOut) {
       logger.info(`[Vapi] opt-out d'appel exprimé par ${call.prospect.businessName} — plus jamais rappelé`);
+      /* Le refus doit aussi RÉVOQUER un éventuel consentement préalable, sinon
+         le registre continuerait d'attester d'un accord que la personne vient
+         de retirer, et le moteur rappellerait ce numéro au titre de l'opt-in.
+         Non bloquant: l'écriture du prospect ci-dessous reste la ceinture. */
+      if (call.prospect.phone) {
+        const { callConsentService } = await import('./call-consent.service');
+        await callConsentService
+          .revoke(call.prospect.phone, 'verbal')
+          .catch(err => logger.error(`[Vapi] révocation de consentement échouée: ${(err as Error).message}`));
+      }
     }
 
     // ═══ EMAIL VALIDATION & NORMALIZATION ═══

@@ -40,14 +40,22 @@ jobs:
         run: npm test
 
       # Évals de comportement du réceptionniste (prompt + contrat d'outils),
-      # jouées contre le vrai modèle. Le harness SKIPPE proprement (exit 0)
-      # quand le secret OPENAI_API_KEY n'est pas configuré sur le repo —
-      # l'étape est donc sans risque, et devient un garde-fou réel dès que le
-      # secret existe. Coût: quelques centimes par run.
+      # jouées contre le vrai modèle. Coût: quelques centimes par run.
+      #
+      # Sans le secret OPENAI_API_KEY, le harness ne s'exécute pas. Il ne le
+      # cache plus: il émet une annotation `::warning::` visible dans la PR, au
+      # lieu de sortir en 0 en silence et de laisser croire que la protection
+      # anti-régression de prompt a tourné.
+      #
+      # POUR EN FAIRE UN VRAI GARDE-FOU: configurer le secret sur le dépôt,
+      # puis décommenter EVALS_REQUIRE_KEY ci-dessous. L'absence de clé
+      # deviendra alors un échec, ce qui est le seul état où une étape verte
+      # signifie quelque chose.
       - name: Évals réceptionniste
         run: npm run evals
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # EVALS_REQUIRE_KEY: '1'
 
       - name: Lint (non-blocking)
         run: npm run lint
