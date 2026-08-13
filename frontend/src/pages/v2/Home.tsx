@@ -691,10 +691,44 @@ export default function Home() {
             bords, donc c'est la page qui reparaît, exactement de sa couleur.
             Aucun raccord à réussir, et rien à redéfinir par thème. */}
 
+        {/* LE VOILE NEUTRE DU TEXTE (demande utilisateur, après mesure).
+            Les teintes de marque retirées, le titre tombait à 1,50:1 et le
+            paragraphe à 1,54:1 sur la nouvelle séquence, très en dessous des
+            4,5:1 exigés: la brume claire passe juste derrière eux.
+            Ce voile est NEUTRE et il ne couvre que la zone du texte: un noir
+            translucide qui s'éteint vers la droite et vers le bas, donc la
+            moitié droite de l'image reste intacte, et le centre aussi.
+            En `rgba` noir plutôt qu'en jeton de thème: ce n'est pas une couleur
+            de la marque ni du fond, c'est une OMBRE, et elle doit rester la
+            même dans les deux thèmes puisque le texte, lui, ne change pas de
+            couleur sur cette image.
+            Sous le conteneur du texte (`z-0` contre `z-10`) et au-dessus du
+            décor: il assombrit l'image, jamais le texte. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-0"
+          style={{
+            background:
+              /* Deux dégradés superposés, et chacun a son rôle: l'oblique
+                 protège la colonne de texte et lâche la moitié droite de
+                 l'image; le vertical rattrape le HAUT, où le ciel est le plus
+                 clair et où se pose le surtitre — mesuré à 3,22:1 avec le seul
+                 oblique, sous le seuil. */
+              'linear-gradient(180deg, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0.16) 30%, transparent 55%),' +
+              'linear-gradient(105deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.52) 26%, rgba(0,0,0,0.28) 48%, rgba(0,0,0,0.06) 66%, transparent 80%)',
+          }}
+        />
+
         <Container className="relative z-10 [&>*]:min-w-0">
           <RevealV2>
             <div className="max-w-[1120px]">
-              <Eyebrow tone="indigo" className="mb-4 sm:mb-6">
+              {/* `onDark`: le surtitre se lit maintenant sur le voile, pas sur
+                  la page. L'indigo plein y tombait à 1,52:1; `q2-lift` est le
+                  cran clair du même mauve, prévu pour exactement ce cas, et il
+                  garde la couleur de marque au lieu de la remplacer par du
+                  blanc. La primitive portait déjà la variante, il n'y avait
+                  qu'à la demander. */}
+              <Eyebrow tone="indigo" onDark className="mb-4 sm:mb-6">
                 {isFr ? 'Réceptionniste IA nouvelle génération' : 'Next-generation AI receptionist'}
               </Eyebrow>
               {/* Taille BORNÉE pour ce titre, et pour lui seul (demande
@@ -708,8 +742,13 @@ export default function Home() {
                   dans v2.css, donc APRÈS les utilitaires Tailwind dans la
                   feuille finale. À spécificité égale, c'est elle qui gagnait, et
                   la taille écrite ici n'avait aucun effet. */}
+              {/* BLANC FIXE, et non un jeton de thème. Le texte se lit sur le
+                  voile neutre, qui est sombre dans les deux thèmes: un jeton
+                  suivrait le thème et deviendrait sombre sur sombre en clair,
+                  exactement le piège documenté dans CLAUDE.md. C'est le même
+                  raisonnement que le registre « drenched », noir partout. */}
               <Display
-                className="mb-5 sm:mb-7 !text-[clamp(2.2rem,4.6vw,4rem)]"
+                className="mb-5 sm:mb-7 !text-[clamp(2.2rem,4.6vw,4rem)] !text-white"
                 id="hero-heading"
               >
                 {/* UNE PHRASE PAR LIGNE, et la coupure est ÉCRITE, pas espérée
@@ -736,17 +775,14 @@ export default function Home() {
                   </>
                 )}
               </Display>
-              {/* Couleur RENFORCÉE pour ce paragraphe, et pour lui seul. Le
-                  fondu du décor commence maintenant à mi-hauteur de la fenêtre
-                  (demande utilisateur), donc cette phrase se lit par-dessus
-                  l'image à pleine intensité: mesurée à 3,82:1 en clair, soit
-                  au-dessous du seuil. Baisser l'opacité du décor n'y faisait
-                  presque rien (3,90 à 0,19 contre 3,82 à 0,26): le facteur
-                  limitant n'est pas le décor, c'est le gris clair du texte sur
-                  un ciel clair. `q2-graphite` est le cran plus foncé du barème,
-                  il vaut dans les deux thèmes, et il ne touche aucune autre
-                  page. */}
-              <Lead className="max-w-[500px] mb-7 sm:mb-10 q2-body-text !text-q2-graphite">
+              {/* Blanc retenu à 88 %: assez pour rester sous le titre dans la
+                  hiérarchie, assez pour tenir le seuil sur le voile. Fixe lui
+                  aussi, et pour la même raison que le titre.
+                  L'ancien réglage cherchait le contraste en FONÇANT le texte
+                  (`q2-graphite`), ce qui marchait tant que le fond restait
+                  clair. Le voile a inversé le problème: on ne fonce plus le
+                  texte, on éclaircit, et c'est le voile qui fait le noir. */}
+              <Lead className="max-w-[500px] mb-7 sm:mb-10 q2-body-text !text-white/[0.88]">
                 {isFr
                   ? 'Elle décroche 24/7, vérifie votre agenda pendant l’appel et confirme le rendez-vous par SMS. Dès 99 € par mois.'
                   : 'She answers 24/7, checks your calendar during the call and confirms the booking by SMS. From €99 a month.'}
