@@ -193,6 +193,12 @@ export default function VapiLiveCall({
      n'arrivent, rien ne ramenait le composant au repos: le bouton restait rouge
      indéfiniment, sans rien à lire ni rien à faire. */
   const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* L'identifiant de l'appel chez Vapi, rendu par `start()`.
+     Quand Vapi met fin à la session, le navigateur ne voit qu'une salle fermée
+     (« Meeting has ended »): c'est le symptôme, jamais la cause. La cause
+     n'existe que dans l'enregistrement d'appel, et cet identifiant est le seul
+     moyen d'aller la chercher. */
+  const callIdRef = useRef<string | null>(null);
 
   const onSite = tone === 'site';
 
@@ -300,6 +306,26 @@ export default function VapiLiveCall({
     if (connectTimeoutRef.current) { clearTimeout(connectTimeoutRef.current); connectTimeoutRef.current = null; }
   };
 
+  /**
+   * Compléter le message par la raison que SEUL Vapi connaît.
+   *
+   * Le navigateur reçoit « Meeting has ended » quel que soit le motif: voix
+   * indisponible, crédit épuisé, modèle refusé. Le motif vit dans
+   * l'enregistrement d'appel, sous `endedReason`, et il faut le demander.
+   *
+   * Silencieux en cas d'échec, et réservé au tableau de bord: la route est
+   * authentifiée côté client, et sur le site public le lecteur est un prospect
+   * à qui `pipeline-error-...` ne dirait rien.
+   */
+  const appendEndedReason = async (base: string) => {
+    const id = callIdRef.current;
+    if (!id || onSite || !endpoint.startsWith('/my-dashboard')) return;
+    try {
+      const { data } = await api.get(`/my-dashboard/voice/live-diagnosis/${id}`);
+      if (data?.endedReason) setError(`${base} (Vapi : ${data.endedReason})`);
+    } catch { /* le message de base reste, il vaut mieux que rien */ }
+  };
+
   const connectFailed = isFr
     ? "L'appel n'a pas pu s'établir. Autorisez le micro pour ce site, puis réessayez ; sur iPhone, ouvrez la page dans Safari plutôt que dans un navigateur intégré."
     : 'The call could not connect. Allow the microphone for this site, then try again; on iPhone, open the page in Safari rather than an in-app browser.';
@@ -308,6 +334,7 @@ export default function VapiLiveCall({
     setError(null);
     answeredRef.current = false;
     reportedRef.current = false;
+    callIdRef.current = null;
     setState('connecting');
     /* Le SDK peut ne JAMAIS rien émettre: sur iOS, une demande de micro qui
        arrive hors du geste est parfois refusée en silence. Sans ce garde-temps,
@@ -317,6 +344,7 @@ export default function VapiLiveCall({
       if (answeredRef.current) return;
       stop();
       settle(connectFailed);
+      void appendEndedReason(connectFailed);
     }, 25000);
     try {
       // Already resolved in the common case, so this await returns on a
@@ -373,7 +401,9 @@ export default function VapiLiveCall({
              s'efface sans laisser un mot à lire ni rien à corriger. */
           const answered = answeredRef.current;
           answeredRef.current = false;
-          settle(shouldReportConnectFailure(answered, reportedRef.current) ? connectFailed : null);
+          const report = shouldReportConnectFailure(answered, reportedRef.current);
+          settle(report ? connectFailed : null);
+          if (report) void appendEndedReason(connectFailed);
           if (answered) onEnded?.();
         });
         vapi.on('speech-start', () => setSpeaking(true));
@@ -393,16 +423,22 @@ export default function VapiLiveCall({
           // ajouté faute de devtools sur un téléphone. Sur le site public, le
           // lecteur est un prospect: il n'a rien à faire de notre charge JSON.
           const detail = onSite ? null : errorDetail(e);
-          settle(errorText(e) || [
+          const message = errorText(e) || [
             isFr
               ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
               : 'The call dropped. Check the microphone and connection, then try again.',
             detail,
-          ].filter(Boolean).join(' : '));
+          ].filter(Boolean).join(' : ');
+          settle(message);
+          void appendEndedReason(message);
         });
       }
 
-      await vapi.start(data.assistant);
+      /* `start()` rend l'appel créé chez Vapi. On le garde AVANT toute suite:
+         si la session est fermée dans la foulée, c'est le seul fil qui reste
+         pour en apprendre la raison. */
+      const call: any = await vapi.start(data.assistant);
+      if (typeof call?.id === 'string') callIdRef.current = call.id;
     } catch (e: any) {
       // A rejected config must not be cached: the next press would fail on the
       // stale rejection instead of retrying the request.
