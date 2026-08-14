@@ -659,11 +659,6 @@ export class ClientDashboardController {
    */
   async voiceLiveDiagnosis(req: any, res: Response) {
     try {
-      const { callId } = req.params;
-      if (!callId || !/^[a-zA-Z0-9-]{10,64}$/.test(callId)) {
-        return res.status(400).json({ error: 'invalid_call_id' });
-      }
-
       const client = await prisma.client.findUnique({
         where: { id: req.clientId },
         select: { businessName: true },
@@ -671,12 +666,38 @@ export class ClientDashboardController {
       if (!client) return res.status(404).json({ error: 'Client not found' });
 
       const { vapiClient } = await import('../config/vapi');
-      const call: any = await vapiClient.getCall(callId);
 
-      const name = typeof call?.assistant?.name === 'string' ? call.assistant.name : '';
-      if (call?.type !== 'webCall' || !name.includes(client.businessName)) {
-        return res.status(403).json({ error: 'not_your_call' });
+      /* L'appel se retrouve par le contenu, pas par un identifiant fourni.
+         Le SDK web ne rend le sien qu'une fois `start()` tenue, et l'echec le
+         devance: c'est ce qui rendait ce diagnostic muet a son premier essai.
+         On relit donc la liste des derniers appels du compte et on y cherche
+         CELUI de ce client.
+         Le filtre EST le cloisonnement, et il porte sur trois criteres a la
+         fois: appel web, nom d'assistant genere pour cette entreprise, et
+         recent. La liste couvre tout le compte, donc rien ne doit sortir
+         d'ici sans avoir passe ces trois-la. */
+      const callId = typeof req.params.callId === 'string' && /^[a-zA-Z0-9-]{10,64}$/.test(req.params.callId)
+        ? req.params.callId
+        : null;
+
+      const belongsHere = (c: any) =>
+        c?.type === 'webCall' &&
+        typeof c?.assistant?.name === 'string' &&
+        c.assistant.name.includes(client.businessName);
+
+      let call: any = null;
+      if (callId) {
+        const found: any = await vapiClient.getCall(callId);
+        if (!belongsHere(found)) return res.status(403).json({ error: 'not_your_call' });
+        call = found;
+      } else {
+        const recent: any = await vapiClient.listCalls(20);
+        const list: any[] = Array.isArray(recent) ? recent : (recent?.results ?? []);
+        const since = Date.now() - 15 * 60 * 1000;
+        call = list.find(c => belongsHere(c) && new Date(c.createdAt ?? 0).getTime() >= since) ?? null;
       }
+
+      if (!call) return res.status(404).json({ error: 'no_recent_call' });
 
       res.json({
         status: call.status ?? null,
