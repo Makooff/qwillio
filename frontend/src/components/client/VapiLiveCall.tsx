@@ -199,6 +199,10 @@ export default function VapiLiveCall({
      n'existe que dans l'enregistrement d'appel, et cet identifiant est le seul
      moyen d'aller la chercher. */
   const callIdRef = useRef<string | null>(null);
+  /* Le numéro de la tentative en cours. Le diagnostic revient en différé: sans
+     ce jeton, la raison d'un appel abandonné viendrait écraser l'écran d'un
+     appel relancé depuis. */
+  const attemptRef = useRef(0);
 
   const onSite = tone === 'site';
 
@@ -318,12 +322,31 @@ export default function VapiLiveCall({
    * à qui `pipeline-error-...` ne dirait rien.
    */
   const appendEndedReason = async (base: string) => {
-    const id = callIdRef.current;
-    if (!id || onSite || !endpoint.startsWith('/my-dashboard')) return;
-    try {
-      const { data } = await api.get(`/my-dashboard/voice/live-diagnosis/${id}`);
-      if (data?.endedReason) setError(`${base} (Vapi : ${data.endedReason})`);
-    } catch { /* le message de base reste, il vaut mieux que rien */ }
+    if (onSite || !endpoint.startsWith('/my-dashboard')) return;
+    /* Ne PAS exiger l'identifiant. C'est ce qui rendait ce diagnostic muet à
+       son premier essai: l'événement d'erreur devance la promesse de `start()`,
+       donc l'identifiant était encore nul et la requête était abandonnée.
+       Sans lui, le serveur retrouve l'appel dans les récents; avec lui, il va
+       droit au but. */
+    const attempt = attemptRef.current;
+    /* Et NE PAS interroger tout de suite: Vapi écrit `endedReason` après avoir
+       clos l'appel, si bien qu'une première lecture immédiate le trouve encore
+       « in-progress », sans raison à lire. Trois essais espacés, puis on
+       renonce en laissant le message de base. */
+    for (const wait of [900, 2500, 5000]) {
+      await new Promise(r => setTimeout(r, wait));
+      // L'utilisateur a relancé un appel entre-temps: ce diagnostic-ci parle
+      // d'un appel qui n'est plus à l'écran, il n'a plus rien à écrire.
+      if (attempt !== attemptRef.current) return;
+      try {
+        const id = callIdRef.current;
+        const { data } = await api.get(`/my-dashboard/voice/live-diagnosis${id ? `/${id}` : ''}`);
+        if (data?.endedReason && attempt === attemptRef.current) {
+          setError(`${base} (Vapi : ${data.endedReason})`);
+          return;
+        }
+      } catch { /* on retente; le message de base reste en attendant */ }
+    }
   };
 
   const connectFailed = isFr
@@ -335,6 +358,7 @@ export default function VapiLiveCall({
     answeredRef.current = false;
     reportedRef.current = false;
     callIdRef.current = null;
+    attemptRef.current += 1;
     setState('connecting');
     /* Le SDK peut ne JAMAIS rien émettre: sur iOS, une demande de micro qui
        arrive hors du geste est parfois refusée en silence. Sans ce garde-temps,

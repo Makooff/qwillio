@@ -92,6 +92,9 @@ router.get('/voice/live-config', (req, res) => clientDashboardController.voiceLi
 // Pourquoi l'appel de test vient-il de se couper ? Le SDK web ne le sait pas:
 // il voit une salle fermée (« Meeting has ended »), pas la raison. Seul
 // l'enregistrement d'appel chez Vapi porte `endedReason`.
+// Sans identifiant: le SDK ne le rend qu'une fois `start()` tenue, et l'echec
+// le devance. Le controleur retrouve alors l'appel dans les recents.
+router.get('/voice/live-diagnosis', (req, res) => clientDashboardController.voiceLiveDiagnosis(req, res));
 router.get('/voice/live-diagnosis/:callId', (req, res) => clientDashboardController.voiceLiveDiagnosis(req, res));
 // Talk to the SETUP assistant by voice. Same voice quality as the receptionist,
 // different job: it changes settings, it does not answer callers.

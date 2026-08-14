@@ -43,6 +43,19 @@ class VapiClient {
     return this.request(`/call/${callId}`);
   }
 
+  /**
+   * Les derniers appels du compte, du plus récent au plus ancien.
+   *
+   * Sert au diagnostic de l'appel de test: le SDK web ne rend son identifiant
+   * qu'une fois `start()` tenue, or l'échec le devance. Sans identifiant, le
+   * seul chemin qui reste est de relire la liste et d'y retrouver l'appel par
+   * son assistant et son horodatage. L'appelant DOIT filtrer: cette liste
+   * couvre tout le compte, donc tous les clients.
+   */
+  async listCalls(limit = 20) {
+    return this.request(`/call?limit=${Math.min(Math.max(limit, 1), 100)}`);
+  }
+
   async createAssistant(data: {
     name: string;
     model: Record<string, any>;
