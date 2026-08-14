@@ -43,6 +43,33 @@ const DEEPGRAM_MODEL: Record<VoiceLanguage, string> = { fr: 'nova-3', en: 'nova-
 /** Codes BCP-47 pour les transcripteurs de secours non-Deepgram. */
 const FALLBACK_STT_LANG: Record<VoiceLanguage, string> = { fr: 'fr-FR', en: 'en-US', nl: 'nl-NL' };
 
+/**
+ * Le secours, décrit dans le vocabulaire du FOURNISSEUR qu'il vise.
+ *
+ * Ce plan posait `fr-FR` / `nl-NL` quel que soit le fournisseur. Chez Deepgram,
+ * ces codes n'existent pas: il attend `fr` et `nl`, et il n'accepte de région
+ * que là où il en publie une (`en-US`, `fr-CA`). Vapi validait donc l'assistant
+ * ENTIER et le rejetait:
+ *
+ *   assistant.transcriber.fallbackPlan.each value in transcribers.language must
+ *   be one of the following values for the default nova-2 model: en, …
+ *
+ * Conséquence: aucun appel ne démarrait, et le message ne parlait ni de langue
+ * ni de secours. C'est le défaut signalé (« l'appel test ne marche pas »), et il
+ * ne se voyait que sur les comptes où `VOICE_STT_FALLBACK_PROVIDER` est posé,
+ * puisque sans elle le champ n'est pas envoyé du tout.
+ *
+ * Le modèle est déclaré explicitement plutôt que laissé au défaut de Vapi: le
+ * message d'erreur ci-dessus vient précisément de ce défaut implicite, et un
+ * jour où Vapi changera de modèle par défaut, ce plan changerait de langue
+ * acceptée sans que rien ici ne bouge.
+ */
+function fallbackTranscriber(provider: string, lang: VoiceLanguage) {
+  return provider === 'deepgram'
+    ? { provider, model: 'nova-2', language: DEEPGRAM_LANG[lang] }
+    : { provider, language: FALLBACK_STT_LANG[lang] };
+}
+
 export function buildTranscriber(lang: VoiceLanguage) {
   return {
     provider: 'deepgram',
@@ -59,9 +86,7 @@ export function buildTranscriber(lang: VoiceLanguage) {
     ...(env.VOICE_STT_FALLBACK_PROVIDER
       ? {
           fallbackPlan: {
-            transcribers: [
-              { provider: env.VOICE_STT_FALLBACK_PROVIDER, language: FALLBACK_STT_LANG[lang] },
-            ],
+            transcribers: [fallbackTranscriber(env.VOICE_STT_FALLBACK_PROVIDER, lang)],
           },
         }
       : {}),
