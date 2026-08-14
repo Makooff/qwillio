@@ -734,6 +734,14 @@ export class ClientDashboardController {
         characterId: profile.characterId,
         isFrench: profile.language === 'fr',
         country: profile.country,
+        /* La voix de remplacement était OUBLIÉE ici, et elle seule. L'appel
+           réel et l'appel de test l'appliquent, l'aperçu de la fiche aussi
+           désormais: cet assistant restait le dernier à parler avec la voix du
+           catalogue. Deux voix pour un seul réglage, c'est exactement ce que
+           l'utilisateur a rapporté (« l'assistant a la bonne voix », l'appel
+           non), et le seul moyen de le trancher est que les quatre endroits
+           lisent la MÊME résolution. */
+        customVoice: profile.customVoice,
       });
 
       const fr = profile.language === 'fr';

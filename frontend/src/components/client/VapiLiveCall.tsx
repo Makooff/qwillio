@@ -150,6 +150,59 @@ export function errorText(e: unknown): string | null {
   return null;
 }
 
+/* ────────────────────────────────────────────────────────────────────────
+   LE PRÉCHAUFFAGE, HORS DU COMPOSANT.
+
+   Le composant préchargeait déjà le SDK et la config « au montage ». Sauf
+   qu'il n'est monté qu'à l'OUVERTURE du panneau, et avec `autoStart`: le
+   montage et la pression sont donc le même instant. Les deux chargements
+   tombaient ainsi en plein sur le chemin critique, et c'est ce qui se voit
+   comme cinq à dix secondes avant que ça décroche: 764 ko de SDK WebRTC, plus
+   un aller-retour serveur qui construit le prompt (et qui paie le réveil du
+   serveur s'il dormait).
+
+   Sortis du composant, ces deux chargements peuvent commencer bien avant, dès
+   que la conversation est à l'écran. À la pression, il ne reste plus qu'à
+   ouvrir la salle.
+
+   Le cache de config est volontairement COURT. Cette réponse porte la voix et
+   le prompt: la garder longtemps ferait parler l'agent avec un réglage que
+   l'utilisateur vient de changer. Soixante secondes couvrent « j'ouvre le
+   panneau puis j'appelle », pas « je modifie ma voix puis j'appelle ». */
+const CONFIG_TTL_MS = 60_000;
+let sdkPromise: Promise<any> | null = null;
+const configCache = new Map<string, { at: number; promise: Promise<any> }>();
+
+export function loadVapiSdk(): Promise<any> {
+  if (!sdkPromise) {
+    sdkPromise = import('@vapi-ai/web').then(m => m.default);
+    // Un échec ne doit pas rester collé: la tentative suivante doit repartir.
+    sdkPromise.catch(() => { sdkPromise = null; });
+  }
+  return sdkPromise;
+}
+
+export function loadLiveConfig(endpoint: string): Promise<any> {
+  const hit = configCache.get(endpoint);
+  if (hit && Date.now() - hit.at < CONFIG_TTL_MS) return hit.promise;
+  const promise = api.get(endpoint).then(r => r.data);
+  promise.catch(() => configCache.delete(endpoint));
+  configCache.set(endpoint, { at: Date.now(), promise });
+  return promise;
+}
+
+/**
+ * À appeler dès que l'appel devient PLAUSIBLE, pas au moment où il est demandé.
+ *
+ * Sans argument, ne prépare que le SDK: c'est un fichier statique, il ne coûte
+ * rien au serveur. Avec un point d'accès, prépare aussi la config, ce qui
+ * absorbe le réveil éventuel du serveur.
+ */
+export function prewarmLiveCall(endpoint?: string) {
+  void loadVapiSdk();
+  if (endpoint) void loadLiveConfig(endpoint).catch(() => undefined);
+}
+
 /**
  * Live in-browser voice call with THIS client's receptionist (real ElevenLabs
  * voice + their config), via the Vapi Web SDK — the same tech as the public
@@ -303,15 +356,18 @@ export default function VapiLiveCall({
     // the reason where the user can see it. A red banner on a page nobody has
     // pressed anything on would be noise.
     configValueRef.current = null;
+    /* Le POST de la démo publique n'est pas mutualisable: son corps change avec
+       le personnage choisi. Le GET du tableau de bord, si, et c'est celui qui
+       peut avoir été préparé avant l'ouverture du panneau. */
     const load = bodyKey
       ? api.post(endpoint, JSON.parse(bodyKey)).then(r => r.data)
-      : api.get(endpoint).then(r => r.data);
+      : loadLiveConfig(endpoint);
     configRef.current = load;
     load.then(d => { configValueRef.current = d; }).catch(() => undefined);
   }, [endpoint, bodyKey]);
 
   useEffect(() => {
-    sdkRef.current = import('@vapi-ai/web').then(m => m.default);
+    sdkRef.current = loadVapiSdk();
     sdkRef.current.then(m => { sdkValueRef.current = m; }).catch(() => undefined);
   }, []);
 
@@ -415,9 +471,9 @@ export default function VapiLiveCall({
       if (!configRef.current) {
         configRef.current = bodyKey
           ? api.post(endpoint, JSON.parse(bodyKey)).then(r => r.data)
-          : api.get(endpoint).then(r => r.data);
+          : loadLiveConfig(endpoint);
       }
-      if (!sdkRef.current) sdkRef.current = import('@vapi-ai/web').then(m => m.default);
+      if (!sdkRef.current) sdkRef.current = loadVapiSdk();
       /* LE CAS COURANT NE PASSE PLUS PAR `await`. Les deux valeurs sont là
          depuis le montage: les lire dans les refs garde la pile synchrone du
          clic, donc le geste utilisateur est encore valide quand le SDK demande
@@ -514,7 +570,11 @@ export default function VapiLiveCall({
     } catch (e: any) {
       // A rejected config must not be cached: the next press would fail on the
       // stale rejection instead of retrying the request.
-      if (e?.response || e?.request) { configRef.current = null; configValueRef.current = null; }
+      if (e?.response || e?.request) {
+        configRef.current = null;
+        configValueRef.current = null;
+        configCache.delete(endpoint);
+      }
       settle(
         isMicDenied(e)
           ? (isFr

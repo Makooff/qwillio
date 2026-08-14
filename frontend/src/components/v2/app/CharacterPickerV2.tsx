@@ -30,8 +30,17 @@ const ACCENT_LABEL: Record<string, string> = { FR: 'FR', BE: 'Belgique', US: 'EN
  * que l'URL est aussi la clé de cache : le préchargement et la lecture doivent
  * tomber exactement sur la même.
  */
-export function previewUrl(characterId: string): string {
-  return `/my-dashboard/characters/${characterId}/preview`;
+export function previewUrl(characterId: string, override?: { voiceId: string } | null): string {
+  /* L'APERÇU DOIT JOUER CE QUE L'APPELANT ENTENDRA, voix de remplacement
+     comprise (retour utilisateur: « la voix de l'appel test n'est pas la voix
+     configurée dans le tableau de bord »).
+     Cette fonction avait perdu le paramètre que portait sa version V1, si bien
+     que la fiche auditionnait la voix du CATALOGUE pendant que l'appel, lui,
+     appliquait la voix de remplacement. Deux voix pour un seul réglage, et
+     aucun moyen de s'en apercevoir depuis l'écran: c'est le défaut signalé. */
+  return override?.voiceId
+    ? `/my-dashboard/characters/${characterId}/preview?voiceId=${encodeURIComponent(override.voiceId)}`
+    : `/my-dashboard/characters/${characterId}/preview`;
 }
 
 /**
