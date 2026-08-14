@@ -6,7 +6,7 @@ import {
   Loader2, Bot, Copy, Check, PhoneCall, X, Lightbulb,
 } from '../icons';
 import api, { apiBaseUrl } from '../../services/api';
-import VapiLiveCall from './VapiLiveCall';
+import VapiLiveCall, { prewarmLiveCall } from './VapiLiveCall';
 
 const cn = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
@@ -178,6 +178,18 @@ function VoiceViz({ isFr, analyser }: { isFr: boolean; analyser: AnalyserNode | 
   const BARS = 32;
   const [t, setT] = useState(0);
   const [levels, setLevels] = useState<number[]>(() => Array(BARS).fill(0));
+
+  /* Le SDK vocal et la config de l'appel, préparés dès que la conversation est
+     à l'écran, et non au moment où l'on presse le bouton.
+     Le panneau d'appel ne se monte qu'à l'ouverture, et il compose aussitôt:
+     son propre préchargement tombait donc en plein sur le chemin critique, et
+     l'utilisateur attendait cinq à dix secondes que 764 ko de SDK WebRTC et un
+     aller-retour serveur se terminent avant d'entendre quoi que ce soit.
+     Le coût est d'une requête par conversation ouverte, et c'est aussi ce qui
+     absorbe le réveil du serveur quand il dormait. */
+  useEffect(() => {
+    prewarmLiveCall('/my-dashboard/voice/live-config');
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setT(v => v + 1), 1000);

@@ -71,7 +71,7 @@ export default function CharacterCarousel({
   agentName, onAgentName,
   toneId, onTone, tones = [],
   children,
-  previewUrlFor = previewUrl,
+  previewUrlFor,
   warmEndpoint = '/my-dashboard/characters/warm',
 }: {
   characters: Character[];
@@ -109,6 +109,12 @@ export default function CharacterCarousel({
   /** Préchauffage serveur du catalogue. `null` quand la route n'est pas ouverte. */
   warmEndpoint?: string | null;
 }) {
+  /* Par défaut, l'aperçu porte la voix de remplacement. C'est la seule façon
+     que la fiche joue ce que l'appelant entendra: sans elle, on auditionne le
+     catalogue et l'agent parle avec autre chose. La page d'essai publique
+     passe sa propre fonction, elle n'a pas de voix de remplacement. */
+  const previewFor = previewUrlFor ?? ((id: string) => previewUrl(id, override));
+
   const reduce = useReducedMotion();
   const { playing, notice, line, toggle, prefetch } = useVoicePreview(isFr);
   const [dir, setDir] = useState(0);
@@ -152,7 +158,7 @@ export default function CharacterCarousel({
 
   // Le personnage affiché est celui qu'on écoutera : son clip est téléchargé
   // d'avance, la pression suivante ne coûte plus rien.
-  const currentUrl = current ? previewUrlFor(current.id) : null;
+  const currentUrl = current ? previewFor(current.id) : null;
   useEffect(() => {
     if (currentUrl) prefetch(currentUrl);
   }, [currentUrl, prefetch]);
@@ -333,7 +339,7 @@ export default function CharacterCarousel({
 
           <button
             type="button"
-            onClick={() => toggle(current.id, previewUrlFor(current.id), (isFr ? current.previewFr : current.previewEn) || undefined)}
+            onClick={() => toggle(current.id, previewFor(current.id), (isFr ? current.previewFr : current.previewEn) || undefined)}
             aria-label={isFr ? `Écouter ${current.name}` : `Preview ${current.name}`}
             className="w-7 h-7 shrink-0 rounded-full grid place-items-center bg-q2-indigo/15 text-q2-lift hover:bg-q2-indigo/25 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
           >
@@ -368,7 +374,7 @@ export default function CharacterCarousel({
                 onOverride={v => { onOverride?.(v); setMenuOpen(false); }}
                 playing={playing}
                 onToggle={toggle}
-                previewUrlFor={previewUrlFor}
+                previewUrlFor={previewFor}
                 isFr={isFr}
               />
             )}
