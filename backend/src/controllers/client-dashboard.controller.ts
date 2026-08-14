@@ -638,6 +638,58 @@ export class ClientDashboardController {
     }
   }
 
+  /**
+   * GET /my-dashboard/voice/live-diagnosis/:callId — pourquoi l'appel de test
+   * s'est-il coupé ?
+   *
+   * Le SDK web ne le sait pas. Quand Vapi met fin à la session, le navigateur
+   * ne voit qu'une salle fermée: `{"type":"ejected","msg":"Meeting has ended"}`,
+   * qui décrit le SYMPTÔME et jamais la cause (voix indisponible, crédit épuisé,
+   * modèle refusé…). La raison n'existe qu'à un seul endroit, l'enregistrement
+   * d'appel chez Vapi, sous `endedReason`.
+   *
+   * L'assistant de test est TRANSIENT (envoyé par le navigateur, sans
+   * `serverUrl`): aucun webhook de fin d'appel ne nous parvient, et c'est
+   * pourquoi rien de tout cela n'apparaissait dans nos journaux.
+   *
+   * Cloisonnement: un identifiant d'appel se devine, donc on vérifie que
+   * l'appel est bien un appel WEB portant le nom d'assistant que CE client
+   * génère, et on ne renvoie que l'état et la raison. Ni transcription, ni
+   * enregistrement, ni coût: le strict nécessaire pour afficher une phrase.
+   */
+  async voiceLiveDiagnosis(req: any, res: Response) {
+    try {
+      const { callId } = req.params;
+      if (!callId || !/^[a-zA-Z0-9-]{10,64}$/.test(callId)) {
+        return res.status(400).json({ error: 'invalid_call_id' });
+      }
+
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { businessName: true },
+      });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+
+      const { vapiClient } = await import('../config/vapi');
+      const call: any = await vapiClient.getCall(callId);
+
+      const name = typeof call?.assistant?.name === 'string' ? call.assistant.name : '';
+      if (call?.type !== 'webCall' || !name.includes(client.businessName)) {
+        return res.status(403).json({ error: 'not_your_call' });
+      }
+
+      res.json({
+        status: call.status ?? null,
+        endedReason: call.endedReason ?? null,
+      });
+    } catch (error: any) {
+      // Un diagnostic qui échoue ne doit pas empiler un second message par-dessus
+      // le premier: le composant affiche alors ce qu'il avait déjà.
+      logger.warn(`voiceLiveDiagnosis failed: ${error?.message}`);
+      res.status(502).json({ error: 'diagnosis_unavailable' });
+    }
+  }
+
   // GET /my-dashboard/assistant/voice-config — talk to the CONFIG assistant by
   // voice instead of typing.
   //

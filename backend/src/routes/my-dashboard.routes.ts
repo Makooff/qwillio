@@ -89,6 +89,10 @@ router.post('/assistant/transcribe', transcribeLimiter, (req, res) => clientDash
 // Vision costs more per call than transcription, hence the tighter budget.
 router.post('/assistant/extract-items', extractLimiter, (req, res) => clientDashboardController.assistantExtractItems(req, res));
 router.get('/voice/live-config', (req, res) => clientDashboardController.voiceLiveConfig(req, res));
+// Pourquoi l'appel de test vient-il de se couper ? Le SDK web ne le sait pas:
+// il voit une salle fermée (« Meeting has ended »), pas la raison. Seul
+// l'enregistrement d'appel chez Vapi porte `endedReason`.
+router.get('/voice/live-diagnosis/:callId', (req, res) => clientDashboardController.voiceLiveDiagnosis(req, res));
 // Talk to the SETUP assistant by voice. Same voice quality as the receptionist,
 // different job: it changes settings, it does not answer callers.
 router.get('/assistant/voice-config', (req, res) => clientDashboardController.assistantVoiceConfig(req, res));
