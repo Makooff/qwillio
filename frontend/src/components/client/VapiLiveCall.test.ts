@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { errorText, isMicDenied, isProviderFault } from './VapiLiveCall';
+import { errorText, isMicDenied, isProviderFault, shouldReportConnectFailure } from './VapiLiveCall';
 
 describe('isMicDenied', () => {
   it('recognises the DOMException the browser throws on refusal', () => {
@@ -95,5 +95,22 @@ describe('isProviderFault', () => {
     const loop: any = { a: 1 };
     loop.self = loop;
     expect(isProviderFault(loop)).toBe(false);
+  });
+});
+
+describe('shouldReportConnectFailure', () => {
+  it("dit l'echec quand l'appel n'a jamais decroche", () => {
+    // Le bug signale depuis un iPhone: `call-end` arrive sans `call-start`, et
+    // se taire laissait un bouton qui tourne puis s'efface, sans un mot a lire.
+    expect(shouldReportConnectFailure(false, false)).toBe(true);
+  });
+
+  it("se tait quand l'appel a bien eu lieu", () => {
+    expect(shouldReportConnectFailure(true, false)).toBe(false);
+  });
+
+  it("n'ecrase pas une raison deja affichee", () => {
+    // « Micro refuse » dit quoi faire; la phrase generique ne dit rien.
+    expect(shouldReportConnectFailure(false, true)).toBe(false);
   });
 });

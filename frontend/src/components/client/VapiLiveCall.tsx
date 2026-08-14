@@ -90,6 +90,23 @@ export function isProviderFault(e: unknown): boolean {
   return typeof e === 'string' && PROVIDER_FAULT.test(e);
 }
 
+/**
+ * À la réception de `call-end`, faut-il annoncer un échec de connexion ?
+ *
+ * Le même événement couvre deux situations opposées, et les confondre est le
+ * défaut signalé depuis un iPhone: « ça fait chargement puis ça disparaît ».
+ *  - `answered` (on a eu `call-start`): l'appel a bien eu lieu, sa fin est
+ *    normale, il n'y a rien à dire.
+ *  - sinon: l'appel n'a jamais décroché. Se taire laisse un bouton qui tourne
+ *    puis s'efface, sans un mot à lire ni rien à corriger.
+ *  - `reported`: une raison PRÉCISE vient déjà d'être affichée (« Micro
+ *    refusé »). L'écraser par une phrase générique retirerait à l'utilisateur
+ *    la seule ligne qui lui disait quoi faire.
+ */
+export function shouldReportConnectFailure(answered: boolean, reported: boolean): boolean {
+  return !answered && !reported;
+}
+
 export function errorText(e: unknown): string | null {
   if (typeof e === 'string') return e.trim() || null;
   if (!e || typeof e !== 'object') return null;
@@ -160,6 +177,22 @@ export default function VapiLiveCall({
 
   const vapiRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /* L'appel a-t-il DÉCROCHÉ ? Sans ce drapeau, `call-end` est traité de la même
+     façon qu'il arrive après une conversation ou à la place de celle-ci, et
+     c'est exactement le défaut signalé: « ça fait chargement puis ça disparaît »
+     (retour utilisateur, iPhone). Un `call-end` reçu alors qu'on n'a jamais eu
+     `call-start` n'est pas une fin d'appel, c'est un ÉCHEC de connexion, et il
+     doit se dire. */
+  const answeredRef = useRef(false);
+  /* Une raison PRÉCISE a-t-elle déjà été affichée pour cette tentative ?
+     `error` et `call-end` arrivent souvent l'un derrière l'autre pour un seul
+     échec. Sans ce drapeau, le second remplacerait « Micro refusé », qui dit
+     quoi faire, par la phrase générique, qui ne dit rien. */
+  const reportedRef = useRef(false);
+  /* Le garde-temps de la connexion. Si ni `call-start` ni `call-end` ni `error`
+     n'arrivent, rien ne ramenait le composant au repos: le bouton restait rouge
+     indéfiniment, sans rien à lire ni rien à faire. */
+  const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onSite = tone === 'site';
 
@@ -191,6 +224,16 @@ export default function VapiLiveCall({
    * keeps the stream for as long as the call lasts.
    */
   const configRef = useRef<Promise<any> | null>(null);
+  /* La VALEUR, une fois la promesse tenue, et pas seulement la promesse.
+     C'est ce qui permet à la pression de partir sans un seul `await`. Attendre
+     une promesse DÉJÀ tenue coûte quand même une microtâche, et Safari sur iOS
+     ne garantit le jeton de geste utilisateur que sur la pile synchrone du
+     `click`: passée cette microtâche, la demande de micro du SDK n'est plus
+     rattachée au geste et le navigateur peut la refuser sans rien afficher.
+     C'est la piste la plus probable du « ça charge puis ça disparaît » sur
+     iPhone, et de toute façon le chemin synchrone est le bon. */
+  const configValueRef = useRef<any>(null);
+  const sdkValueRef = useRef<any>(null);
 
   /**
    * Le SDK, importé à la demande et préchargé au montage.
@@ -216,22 +259,24 @@ export default function VapiLiveCall({
     // Failures are swallowed here: `start()` awaits the same promise and reports
     // the reason where the user can see it. A red banner on a page nobody has
     // pressed anything on would be noise.
+    configValueRef.current = null;
     const load = bodyKey
       ? api.post(endpoint, JSON.parse(bodyKey)).then(r => r.data)
       : api.get(endpoint).then(r => r.data);
     configRef.current = load;
-    load.catch(() => undefined);
+    load.then(d => { configValueRef.current = d; }).catch(() => undefined);
   }, [endpoint, bodyKey]);
 
   useEffect(() => {
     sdkRef.current = import('@vapi-ai/web').then(m => m.default);
-    sdkRef.current.catch(() => undefined);
+    sdkRef.current.then(m => { sdkValueRef.current = m; }).catch(() => undefined);
   }, []);
 
   useEffect(() => () => {
     // Cleanup on unmount: stop any active call.
     try { vapiRef.current?.stop?.(); } catch { /* noop */ }
     if (timerRef.current) clearInterval(timerRef.current);
+    if (connectTimeoutRef.current) clearTimeout(connectTimeoutRef.current);
   }, []);
 
   // Opened deliberately (the composer's voice button), so dial immediately
@@ -245,9 +290,34 @@ export default function VapiLiveCall({
     try { vapiRef.current?.stop?.(); } catch { /* noop */ }
   };
 
+  /* Retour au repos, d'où que vienne l'échec, avec le compteur et le garde-temps
+     arrêtés. Il y avait trois copies de ces lignes et chacune en oubliait une. */
+  const settle = (message?: string | null) => {
+    if (message) { setError(message); reportedRef.current = true; }
+    setState('idle');
+    setSpeaking(false);
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (connectTimeoutRef.current) { clearTimeout(connectTimeoutRef.current); connectTimeoutRef.current = null; }
+  };
+
+  const connectFailed = isFr
+    ? "L'appel n'a pas pu s'établir. Autorisez le micro pour ce site, puis réessayez ; sur iPhone, ouvrez la page dans Safari plutôt que dans un navigateur intégré."
+    : 'The call could not connect. Allow the microphone for this site, then try again; on iPhone, open the page in Safari rather than an in-app browser.';
+
   const start = async () => {
     setError(null);
+    answeredRef.current = false;
+    reportedRef.current = false;
     setState('connecting');
+    /* Le SDK peut ne JAMAIS rien émettre: sur iOS, une demande de micro qui
+       arrive hors du geste est parfois refusée en silence. Sans ce garde-temps,
+       le bouton tourne alors sans fin. */
+    if (connectTimeoutRef.current) clearTimeout(connectTimeoutRef.current);
+    connectTimeoutRef.current = setTimeout(() => {
+      if (answeredRef.current) return;
+      stop();
+      settle(connectFailed);
+    }, 25000);
     try {
       // Already resolved in the common case, so this await returns on a
       // microtask and the click is still the current gesture when `vapi.start()`
@@ -259,7 +329,15 @@ export default function VapiLiveCall({
           : api.get(endpoint).then(r => r.data);
       }
       if (!sdkRef.current) sdkRef.current = import('@vapi-ai/web').then(m => m.default);
-      const [data, Vapi] = await Promise.all([configRef.current, sdkRef.current]);
+      /* LE CAS COURANT NE PASSE PLUS PAR `await`. Les deux valeurs sont là
+         depuis le montage: les lire dans les refs garde la pile synchrone du
+         clic, donc le geste utilisateur est encore valide quand le SDK demande
+         le micro. Le `await` ne reste que pour la pression lancée dans les
+         toutes premières secondes de la page, quand il n'y a rien d'autre à
+         faire que d'attendre le réseau. */
+      const [data, Vapi] = (configValueRef.current && sdkValueRef.current)
+        ? [configValueRef.current, sdkValueRef.current]
+        : await Promise.all([configRef.current, sdkRef.current]);
       if (!data?.publicKey) throw new Error('missing key');
 
       /* UNE seule instance pour toute la vie du composant.
@@ -281,15 +359,22 @@ export default function VapiLiveCall({
 
       if (isNew) {
         vapi.on('call-start', () => {
+          answeredRef.current = true;
+          if (connectTimeoutRef.current) { clearTimeout(connectTimeoutRef.current); connectTimeoutRef.current = null; }
           setState('active');
           setSecs(0);
           timerRef.current = setInterval(() => setSecs(s => s + 1), 1000);
         });
         vapi.on('call-end', () => {
-          setState('idle');
-          setSpeaking(false);
-          if (timerRef.current) clearInterval(timerRef.current);
-          onEnded?.();
+          /* Deux événements portent le même nom et ne veulent pas dire la même
+             chose. Après `call-start`, c'est une fin d'appel: on retourne au
+             repos sans rien dire, c'est normal. AVANT `call-start`, l'appel n'a
+             jamais décroché: le taire, c'est le bug signalé, un chargement qui
+             s'efface sans laisser un mot à lire ni rien à corriger. */
+          const answered = answeredRef.current;
+          answeredRef.current = false;
+          settle(shouldReportConnectFailure(answered, reportedRef.current) ? connectFailed : null);
+          if (answered) onEnded?.();
         });
         vapi.on('speech-start', () => setSpeaking(true));
         vapi.on('speech-end', () => setSpeaking(false));
@@ -297,31 +382,23 @@ export default function VapiLiveCall({
         vapi.on('error', (e: any) => {
           // Vapi routinely emits errors with no message. Saying "Erreur appel"
           // and nothing else sends the user looking in the wrong place.
-          const stop = () => {
-            setState('idle');
-            if (timerRef.current) clearInterval(timerRef.current);
-          };
+          answeredRef.current = false;
           if (isMicDenied(e)) {
-            setError(isFr
+            return settle(isFr
               ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
               : 'Microphone denied. Allow the microphone for this site, then start again.');
-            return stop();
           }
-          if (isProviderFault(e)) {
-            setError(providerFaultMessage);
-            return stop();
-          }
+          if (isProviderFault(e)) return settle(providerFaultMessage);
           // Le détail brut n'a de sens que sur le tableau de bord, où il a été
           // ajouté faute de devtools sur un téléphone. Sur le site public, le
           // lecteur est un prospect: il n'a rien à faire de notre charge JSON.
           const detail = onSite ? null : errorDetail(e);
-          setError(errorText(e) || [
+          settle(errorText(e) || [
             isFr
               ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
               : 'The call dropped. Check the microphone and connection, then try again.',
             detail,
-          ].filter(Boolean).join(' — '));
-          stop();
+          ].filter(Boolean).join(' : '));
         });
       }
 
@@ -329,8 +406,8 @@ export default function VapiLiveCall({
     } catch (e: any) {
       // A rejected config must not be cached: the next press would fail on the
       // stale rejection instead of retrying the request.
-      if (e?.response || e?.request) configRef.current = null;
-      setError(
+      if (e?.response || e?.request) { configRef.current = null; configValueRef.current = null; }
+      settle(
         isMicDenied(e)
           ? (isFr
             ? 'Micro refusé. Autorisez le microphone pour ce site, puis relancez.'
@@ -351,7 +428,6 @@ export default function VapiLiveCall({
             ? (isFr ? 'Appel live non configuré (clé Vapi).' : 'Live call not configured (Vapi key).')
             : (errorText(e) || (isFr ? 'Impossible de démarrer l’appel.' : 'Could not start the call.')),
       );
-      setState('idle');
     }
   };
 
