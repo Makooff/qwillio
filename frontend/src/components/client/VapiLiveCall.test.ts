@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { errorText, isMicDenied, isProviderFault, shouldReportConnectFailure } from './VapiLiveCall';
+import { errorText, isMicDenied, isNormalTeardown, isProviderFault, shouldReportConnectFailure } from './VapiLiveCall';
 
 describe('isMicDenied', () => {
   it('recognises the DOMException the browser throws on refusal', () => {
@@ -112,5 +112,27 @@ describe('shouldReportConnectFailure', () => {
   it("n'ecrase pas une raison deja affichee", () => {
     // « Micro refuse » dit quoi faire; la phrase generique ne dit rien.
     expect(shouldReportConnectFailure(false, true)).toBe(false);
+  });
+});
+
+describe('isNormalTeardown', () => {
+  // La charge exacte relevee sur iPhone, apres un appel qui s'etait bien
+  // deroule: Daily annonce la fermeture de la salle par un evenement d'ERREUR.
+  const ejected = {
+    type: 'daily-error',
+    error: { message: { type: 'ejected', msg: 'Meeting has ended' }, action: 'error', errorMsg: 'Meeting has ended' },
+  };
+
+  it('reconnait le raccroche apres un appel qui a decroche', () => {
+    expect(isNormalTeardown(ejected, true)).toBe(true);
+  });
+
+  it("reste un echec quand l'appel n'avait jamais decroche", () => {
+    // Meme texte, sens inverse: la salle s'est fermee avant que l'appel commence.
+    expect(isNormalTeardown(ejected, false)).toBe(false);
+  });
+
+  it('ne blanchit pas une vraie panne survenue en cours d\'appel', () => {
+    expect(isNormalTeardown({ error: { message: 'pipeline-error-eleven-labs' } }, true)).toBe(false);
   });
 });

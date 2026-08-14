@@ -107,6 +107,39 @@ export function shouldReportConnectFailure(answered: boolean, reported: boolean)
   return !answered && !reported;
 }
 
+/**
+ * Cette « erreur » est-elle en fait la fin normale de l'appel ?
+ *
+ * Sur Vapi web, la couche Daily annonce la fermeture de la salle par un
+ * ÉVÉNEMENT D'ERREUR: `{"type":"ejected","msg":"Meeting has ended"}`. Elle
+ * l'émet aussi bien quand l'assistant raccroche que quand la connexion tombe:
+ * le texte est le même, seul le contexte les sépare.
+ *
+ * D'où le contexte: si l'appel avait DÉCROCHÉ (`call-start` reçu), cette
+ * fermeture est le raccroché, pas une panne. La peindre en rouge, c'est
+ * annoncer un échec à quelqu'un dont l'appel vient de se dérouler normalement,
+ * et c'est ce que l'écran faisait.
+ *
+ * Avant `call-start`, la même charge signifie l'inverse: la salle s'est fermée
+ * sans que l'appel ait commencé. Là, c'est bien un échec.
+ */
+export function isNormalTeardown(e: unknown, answered: boolean): boolean {
+  if (!answered) return false;
+  try {
+    const seen = new WeakSet();
+    const json = JSON.stringify(e, (_k, v) => {
+      if (typeof v === 'object' && v !== null) {
+        if (seen.has(v)) return '[circular]';
+        seen.add(v);
+      }
+      return v;
+    });
+    return !!json && /ejected|meeting has ended|meeting ended|left the meeting/i.test(json);
+  } catch {
+    return false;
+  }
+}
+
 export function errorText(e: unknown): string | null {
   if (typeof e === 'string') return e.trim() || null;
   if (!e || typeof e !== 'object') return null;
@@ -347,6 +380,10 @@ export default function VapiLiveCall({
         }
       } catch { /* on retente; le message de base reste en attendant */ }
     }
+    /* Après trois essais, le dire. Rester muet est ce qui a coûté deux
+       allers-retours: on ne savait pas distinguer « la raison n'est pas
+       arrivée » de « le code n'a même pas demandé ». */
+    if (attempt === attemptRef.current) setError(`${base} (Vapi : raison indisponible)`);
   };
 
   const connectFailed = isFr
@@ -436,6 +473,17 @@ export default function VapiLiveCall({
         vapi.on('error', (e: any) => {
           // Vapi routinely emits errors with no message. Saying "Erreur appel"
           // and nothing else sends the user looking in the wrong place.
+          /* Une fin normale ressemble à une erreur sur ce transport. Le tri se
+             fait AVANT tout le reste, sinon le raccroché d'un appel réussi
+             s'affiche en rouge comme une panne. */
+          if (isNormalTeardown(e, answeredRef.current)) {
+            /* On revient au repos, mais SANS retomber `answeredRef`: le
+               `call-end` qui suit cette éjection y lirait alors « l'appel n'a
+               jamais décroché » et repeindrait en rouge la fin qu'on vient
+               d'accepter. C'est lui qui préviendra le parent, une seule fois. */
+            settle(null);
+            return;
+          }
           answeredRef.current = false;
           if (isMicDenied(e)) {
             return settle(isFr
