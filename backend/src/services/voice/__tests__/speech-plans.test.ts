@@ -95,6 +95,27 @@ describe('fallbacks fournisseurs — opt-in strict', () => {
     expect(t.fallbackPlan).toBeUndefined();
   });
 
+  it('le secours Deepgram parle le vocabulaire de Deepgram, pas du BCP-47', async () => {
+    // Le defaut signale en production: `fr-FR` n'existe pas chez Deepgram, qui
+    // attend `fr`. Vapi rejetait alors l'assistant ENTIER, donc AUCUN appel ne
+    // demarrait, avec un message qui ne parlait ni de langue ni de secours.
+    const { env } = await import('../../../config/env');
+    const prev = env.VOICE_STT_FALLBACK_PROVIDER;
+    (env as { VOICE_STT_FALLBACK_PROVIDER: string }).VOICE_STT_FALLBACK_PROVIDER = 'deepgram';
+    try {
+      const t = buildTranscriber('fr') as { fallbackPlan?: { transcribers: Array<Record<string, string>> } };
+      expect(t.fallbackPlan?.transcribers).toEqual([
+        { provider: 'deepgram', model: 'nova-2', language: 'fr' },
+      ]);
+      // Le modele est DECLARE: sans lui, Vapi retombe sur son defaut, et c'est
+      // ce defaut implicite qui decidait des langues acceptees.
+      const nl = buildTranscriber('nl') as { fallbackPlan?: { transcribers: Array<Record<string, string>> } };
+      expect(nl.fallbackPlan?.transcribers[0].language).toBe('nl');
+    } finally {
+      (env as { VOICE_STT_FALLBACK_PROVIDER: string }).VOICE_STT_FALLBACK_PROVIDER = prev;
+    }
+  });
+
   it('avec env, le transcriber déclare son secours dans la bonne langue', async () => {
     const { env } = await import('../../../config/env');
     const prev = env.VOICE_STT_FALLBACK_PROVIDER;
