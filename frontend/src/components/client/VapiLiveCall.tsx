@@ -198,8 +198,37 @@ export function loadLiveConfig(endpoint: string): Promise<any> {
  * rien au serveur. Avec un point d'accès, prépare aussi la config, ce qui
  * absorbe le réveil éventuel du serveur.
  */
+/**
+ * Le moteur d'appel de Daily, mis en cache avant le clic.
+ *
+ * Mesure relevée sur iPhone: préparation 0,1 s, création 2,4 s, liaison 4,3 s.
+ * La liaison est la plus lourde, et une part en est à nous: daily-js ne
+ * contient pas son moteur, il le TÉLÉCHARGE depuis `c.daily.co` au moment
+ * d'ouvrir la salle. Ce téléchargement tombe donc en plein dans l'attente, à
+ * chaque cache vidé et à chaque premier appel d'un appareil.
+ *
+ * L'URL est déterministe et versionnée; la version est lue sur la
+ * bibliothèque elle-même plutôt qu'écrite ici, sinon une mise à jour de
+ * dépendance ferait précharger un fichier que personne n'utilise, sans que
+ * rien ne le signale.
+ *
+ * Échec silencieux et volontaire: ce n'est qu'une mise en cache. Si elle ne
+ * marche pas, l'appel se déroule exactement comme avant.
+ */
+async function prewarmDailyEngine() {
+  try {
+    const daily: any = await import('@daily-co/daily-js');
+    const version = daily?.default?.version?.();
+    if (typeof version !== 'string' || !version) return;
+    await fetch(
+      `https://c.daily.co/call-machine/versioned/${version}/static/call-machine-object-bundle.js`,
+      { credentials: 'omit', cache: 'force-cache' },
+    );
+  } catch { /* une mise en cache ratée ne coûte que son absence */ }
+}
+
 export function prewarmLiveCall(endpoint?: string) {
-  void loadVapiSdk();
+  void loadVapiSdk().then(prewarmDailyEngine).catch(() => undefined);
   if (endpoint) void loadLiveConfig(endpoint).catch(() => undefined);
 }
 
