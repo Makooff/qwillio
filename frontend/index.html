@@ -387,6 +387,15 @@
     </script>
 
     <!-- ═══ Fonts ═══ -->
+    <!-- Les hôtes de l'appel vocal. La poignée de main (DNS, TLS) se paie
+         sinon au moment du clic, sur un réseau mobile où elle coûte le plus
+         cher: `api.vapi.ai` crée l'appel, et `daily.co` porte le transport
+         WebRTC, dont le bundle n'est chargé qu'à la première salle ouverte.
+         Aucun octet n'est téléchargé ici, seulement la connexion préparée. -->
+    <link rel="preconnect" href="https://api.vapi.ai" crossorigin="anonymous" />
+    <link rel="preconnect" href="https://c.daily.co" crossorigin="anonymous" />
+    <link rel="dns-prefetch" href="https://api.vapi.ai" />
+    <link rel="dns-prefetch" href="https://c.daily.co" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
     <!-- La feuille Google Fonts BLOQUAIT le rendu. Tant qu'elle n'a pas

@@ -260,6 +260,12 @@ export default function VapiLiveCall({
   const [level, setLevel] = useState(0);
   const [secs, setSecs] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  /* L'étape en cours pendant la connexion, et le décompte une fois établie.
+     Trois choses très différentes se succèdent: préparer (SDK et config),
+     créer l'appel chez Vapi, puis ouvrir la liaison audio. Les nommer, c'est
+     déjà répondre à « pourquoi j'attends ». */
+  const [phase, setPhase] = useState<'prep' | 'creating' | 'joining' | null>(null);
+  const [timing, setTiming] = useState<string | null>(null);
 
   const vapiRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -289,6 +295,13 @@ export default function VapiLiveCall({
      ce jeton, la raison d'un appel abandonné viendrait écraser l'écran d'un
      appel relancé depuis. */
   const attemptRef = useRef(0);
+  /* OÙ PASSENT LES SECONDES.
+     « Toujours un chargement de 7 secondes »: trois étapes se cachent derrière
+     un unique « Connexion… », et rien ne disait laquelle coûte. Elles sont
+     donc marquées, affichées pendant l'attente, et récapitulées une fois en
+     ligne. Sans ces repères, on optimise au hasard, ce qui a déjà coûté un
+     aller-retour. */
+  const marksRef = useRef<{ t0: number; ready: number; created: number }>({ t0: 0, ready: 0, created: 0 });
 
   const onSite = tone === 'site';
 
@@ -393,6 +406,7 @@ export default function VapiLiveCall({
      arrêtés. Il y avait trois copies de ces lignes et chacune en oubliait une. */
   const settle = (message?: string | null) => {
     if (message) { setError(message); reportedRef.current = true; }
+    setPhase(null);
     setState('idle');
     setSpeaking(false);
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
@@ -448,6 +462,9 @@ export default function VapiLiveCall({
 
   const start = async () => {
     setError(null);
+    setTiming(null);
+    setPhase('prep');
+    marksRef.current = { t0: performance.now(), ready: 0, created: 0 };
     answeredRef.current = false;
     reportedRef.current = false;
     callIdRef.current = null;
@@ -484,6 +501,8 @@ export default function VapiLiveCall({
         ? [configValueRef.current, sdkValueRef.current]
         : await Promise.all([configRef.current, sdkRef.current]);
       if (!data?.publicKey) throw new Error('missing key');
+      marksRef.current.ready = performance.now();
+      setPhase('creating');
 
       /* UNE seule instance pour toute la vie du composant.
        *
@@ -504,6 +523,12 @@ export default function VapiLiveCall({
 
       if (isNew) {
         vapi.on('call-start', () => {
+          const { t0, ready, created } = marksRef.current;
+          if (t0) {
+            const s = (a: number, b: number) => `${Math.max(0, (b - a) / 1000).toFixed(1)}s`;
+            setTiming(`${isFr ? 'préparation' : 'prep'} ${s(t0, ready || t0)} · ${isFr ? 'création' : 'create'} ${s(ready || t0, created || ready || t0)} · ${isFr ? 'liaison' : 'link'} ${s(created || ready || t0, performance.now())}`);
+          }
+          setPhase(null);
           answeredRef.current = true;
           if (connectTimeoutRef.current) { clearTimeout(connectTimeoutRef.current); connectTimeoutRef.current = null; }
           setState('active');
@@ -567,6 +592,8 @@ export default function VapiLiveCall({
          pour en apprendre la raison. */
       const call: any = await vapi.start(data.assistant);
       if (typeof call?.id === 'string') callIdRef.current = call.id;
+      marksRef.current.created = performance.now();
+      setPhase('joining');
     } catch (e: any) {
       // A rejected config must not be cached: the next press would fail on the
       // stale rejection instead of retrying the request.
@@ -662,7 +689,14 @@ export default function VapiLiveCall({
           {active
             ? (isFr ? 'En ligne' : 'On the line')
             : state === 'connecting'
-              ? (isFr ? 'Connexion…' : 'Connecting…')
+              /* Trois étapes derrière un seul mot. Les nommer répond déjà à
+                 « pourquoi j'attends », et dit laquelle coûte quand elle
+                 traîne. */
+              ? (phase === 'creating'
+                  ? (isFr ? 'Création de l’appel…' : 'Creating the call…')
+                  : phase === 'joining'
+                    ? (isFr ? 'Liaison audio…' : 'Linking audio…')
+                    : (isFr ? 'Préparation…' : 'Preparing…'))
               /* Le tableau de bord parle au gérant de SON agent; la carte
                  publique s'adresse a un visiteur qui n'en a pas encore. */
               : onSite
@@ -682,6 +716,16 @@ export default function VapiLiveCall({
                 : (isFr ? 'Parlez à votre agent comme un client au téléphone.' : 'Talk to your agent like a caller.')}
         </p>
       </div>
+
+      {/* Le détail des étapes, une fois en ligne et sur le tableau de bord
+          seulement. C'est ce qui permet de dire OÙ passent les secondes au lieu
+          de le supposer: préparation (SDK et config, normalement nulle grâce au
+          préchauffage), création chez Vapi, puis ouverture de la liaison. */}
+      {active && timing && !onSite && (
+        <p className="text-[10px] tabular-nums shrink-0 hidden sm:block" style={{ color: '#6B6B84' }}>
+          {timing}
+        </p>
+      )}
 
       {active && showBars && (
         <div className="flex items-end gap-0.5 h-6 flex-shrink-0" aria-hidden="true">
