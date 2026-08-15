@@ -620,6 +620,13 @@ export class ClientDashboardController {
         // L'appel test suit le mode du client, sinon il teste autre chose que
         // ce que l'appelant entendra.
         voiceMode: profile.voiceMode,
+        /* Pas de secours SUR CET APPEL-CI. Ils font préparer un second
+           fournisseur avant que la salle réponde, et c'est du temps d'attente
+           que le gérant voit à l'écran. Sur un vrai appel entrant le calcul est
+           inverse (une ligne muette coûte un client), et les vrais appels les
+           gardent donc: c'est tout l'intérêt d'un drapeau ici plutôt que d'une
+           variable d'environnement. */
+        fallbacks: false,
       });
 
       res.json({
@@ -629,7 +636,7 @@ export class ClientDashboardController {
           model,
           voice,
           firstMessage: variants[Math.floor(Math.random() * variants.length)],
-          ...buildRealtimePlans(profile.language, speechToSpeech),
+          ...buildRealtimePlans(profile.language, speechToSpeech, { fallbacks: false }),
           backgroundSound: 'office',
         },
       });
@@ -784,7 +791,9 @@ export class ClientDashboardController {
           firstMessage: fr
             ? `Bonjour ! On configure votre standard ensemble. Qu'est-ce que vous voulez ajuster ?`
             : `Hi! Let's set up your receptionist together. What would you like to adjust?`,
-          ...buildRealtimePlans(profile.language),
+          // Même raison que l'appel test: cet assistant se lance depuis un
+          // navigateur, devant quelqu'un qui attend.
+          ...buildRealtimePlans(profile.language, false, { fallbacks: false }),
         },
       });
     } catch (error: any) {

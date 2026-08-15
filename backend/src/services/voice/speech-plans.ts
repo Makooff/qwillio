@@ -70,7 +70,28 @@ function fallbackTranscriber(provider: string, lang: VoiceLanguage) {
     : { provider, language: FALLBACK_STT_LANG[lang] };
 }
 
-export function buildTranscriber(lang: VoiceLanguage) {
+/**
+ * Les secours coûtent leur DÉMARRAGE, et tous les appels ne les valent pas.
+ *
+ * Un plan de secours déclare un second fournisseur que Vapi doit préparer avant
+ * de répondre. Sur un appel téléphonique, ce prix est juste: si Deepgram tombe
+ * pendant qu'un client appelle, personne ne décroche, et quelques centaines de
+ * millisecondes valent mieux qu'une ligne muette.
+ *
+ * Sur un appel NAVIGATEUR (le test du portail, la configuration à la voix), le
+ * calcul s'inverse: le gérant est devant son écran, il voit l'attente, et si ça
+ * échoue il rappuie. Mesure relevée sur iPhone: création 2,4 s, liaison 4,3 s,
+ * dont une part revient à ce démarrage-là.
+ *
+ * D'où ce drapeau, et non une variable d'environnement: le réglage global
+ * aurait retiré les secours aux VRAIS appels par la même occasion.
+ */
+export interface SpeechOptions {
+  /** `false` sur les appels navigateur: on paie l'attente, pas le risque. */
+  fallbacks?: boolean;
+}
+
+export function buildTranscriber(lang: VoiceLanguage, opts: SpeechOptions = {}) {
   return {
     provider: 'deepgram',
     model: DEEPGRAM_MODEL[lang],
@@ -83,7 +104,7 @@ export function buildTranscriber(lang: VoiceLanguage) {
        Opt-in par env (voir le commentaire dans env.ts): le champ n'existe pas
        du tout tant que la variable est vide, pour que le schéma envoyé à Vapi
        reste identique à celui qui tourne aujourd'hui. */
-    ...(env.VOICE_STT_FALLBACK_PROVIDER
+    ...(env.VOICE_STT_FALLBACK_PROVIDER && opts.fallbacks !== false
       ? {
           fallbackPlan: {
             transcribers: [fallbackTranscriber(env.VOICE_STT_FALLBACK_PROVIDER, lang)],
@@ -283,6 +304,8 @@ export function buildSpeech(opts: {
   /** L'option « LLM personnalisé » de l'appel entrant, qui ramène la boucle ici. */
   customLlmUrl?: string;
   temperature?: number;
+  /** Voir `SpeechOptions`: `false` sur les appels navigateur. */
+  fallbacks?: boolean;
 }): { model: any; voice: any; speechToSpeech: boolean } {
   const speechToSpeech = useSpeechToSpeech({ hasCustomVoice: opts.hasCustomVoice, voiceMode: opts.voiceMode });
 
@@ -317,7 +340,7 @@ export function buildSpeech(opts: {
       /* Modèles de secours, opt-in par env, et seulement sur le chemin où
          Vapi tient lui-même la boucle: sur custom-llm c'est CE backend qui
          est le fournisseur, un fallback déclaré ici n'aurait pas de sens. */
-      ...(!opts.customLlmUrl && env.VOICE_LLM_FALLBACK_MODELS.length
+      ...(!opts.customLlmUrl && opts.fallbacks !== false && env.VOICE_LLM_FALLBACK_MODELS.length
         ? { fallbackModels: env.VOICE_LLM_FALLBACK_MODELS }
         : {}),
     },
@@ -367,13 +390,13 @@ export function buildBackchannelPlan(lang: VoiceLanguage) {
  * outbound call overrides. Everything here is latency- or interruption-related;
  * business config (prompt, tools, first message) is layered on by the caller.
  */
-export function buildRealtimePlans(lang: VoiceLanguage, speechToSpeech = false) {
+export function buildRealtimePlans(lang: VoiceLanguage, speechToSpeech = false, opts: SpeechOptions = {}) {
   return {
     /* Le modèle parole-à-parole entend l'audio lui-même: lui adjoindre un
        transcripteur, c'est payer une étape dont plus personne ne lit la
        sortie, et fixer la latence sur elle. Vapi le documente comme inutile
        dans ce mode. */
-    ...(speechToSpeech ? {} : { transcriber: buildTranscriber(lang) }),
+    ...(speechToSpeech ? {} : { transcriber: buildTranscriber(lang, opts) }),
     startSpeakingPlan: buildStartSpeakingPlan(lang),
     stopSpeakingPlan: buildStopSpeakingPlan(),
     backchannelingEnabled: env.VOICE_BACKCHANNEL_ENABLED,
