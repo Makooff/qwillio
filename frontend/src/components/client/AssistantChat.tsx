@@ -188,7 +188,11 @@ function VoiceViz({ isFr, analyser }: { isFr: boolean; analyser: AnalyserNode | 
      Le coût est d'une requête par conversation ouverte, et c'est aussi ce qui
      absorbe le réveil du serveur quand il dormait. */
   useEffect(() => {
+    // Les DEUX voix joignables depuis cet écran: la réceptionniste (bouton du
+    // bandeau) et l'assistant de configuration (bouton du composeur). N'en
+    // préparer qu'une laissait l'autre payer l'attente entière.
     prewarmLiveCall('/my-dashboard/voice/live-config');
+    prewarmLiveCall('/my-dashboard/assistant/voice-config');
   }, []);
 
   useEffect(() => {
