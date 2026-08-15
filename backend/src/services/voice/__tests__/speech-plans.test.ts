@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildRealtimePlans,
+  buildSpeech,
   buildStartSpeakingPlan,
   buildStopSpeakingPlan,
   buildTranscriber,
@@ -163,5 +164,57 @@ describe('buildRealtimePlans', () => {
     expect(plans.interruptionsEnabled).toBeUndefined();
     expect(plans.numWordsToInterruptAssistant).toBeUndefined();
     expect(plans.responseDelaySeconds).toBeUndefined();
+  });
+});
+
+describe('secours desactivables par appel', () => {
+  // Les appels navigateur (test du portail, configuration a la voix) paient le
+  // demarrage des secours en attente visible. Les vrais appels entrants les
+  // gardent: une ligne muette coute un client. D'ou un drapeau par appel, et
+  // non une variable d'environnement qui aurait retire les deux a la fois.
+  it('le transcripteur n\'emporte plus son secours quand on le refuse', async () => {
+    const { env } = await import('../../../config/env');
+    const prevStt = env.VOICE_STT_FALLBACK_PROVIDER;
+    (env as { VOICE_STT_FALLBACK_PROVIDER: string }).VOICE_STT_FALLBACK_PROVIDER = 'deepgram';
+    try {
+      expect((buildTranscriber('fr') as Record<string, unknown>).fallbackPlan).toBeDefined();
+      expect((buildTranscriber('fr', { fallbacks: false }) as Record<string, unknown>).fallbackPlan).toBeUndefined();
+    } finally {
+      (env as { VOICE_STT_FALLBACK_PROVIDER: string }).VOICE_STT_FALLBACK_PROVIDER = prevStt;
+    }
+  });
+
+  it('les plans temps reel transmettent le refus au transcripteur', async () => {
+    const { env } = await import('../../../config/env');
+    const prevStt = env.VOICE_STT_FALLBACK_PROVIDER;
+    (env as { VOICE_STT_FALLBACK_PROVIDER: string }).VOICE_STT_FALLBACK_PROVIDER = 'deepgram';
+    try {
+      const plans = buildRealtimePlans('fr', false, { fallbacks: false }) as { transcriber?: Record<string, unknown> };
+      expect(plans.transcriber?.fallbackPlan).toBeUndefined();
+      // Sans le drapeau, rien ne change pour les vrais appels.
+      const real = buildRealtimePlans('fr', false) as { transcriber?: Record<string, unknown> };
+      expect(real.transcriber?.fallbackPlan).toBeDefined();
+    } finally {
+      (env as { VOICE_STT_FALLBACK_PROVIDER: string }).VOICE_STT_FALLBACK_PROVIDER = prevStt;
+    }
+  });
+
+  it('les modeles de secours suivent la meme regle', async () => {
+    const { env } = await import('../../../config/env');
+    const prev = env.VOICE_LLM_FALLBACK_MODELS;
+    (env as { VOICE_LLM_FALLBACK_MODELS: string[] }).VOICE_LLM_FALLBACK_MODELS = ['gpt-4o-mini'];
+    try {
+      // `classic` explicite: le mode parole-a-parole n'a pas de modeles de
+      // secours a declarer, il n'y aurait donc rien a mesurer ici.
+      const base = {
+        lang: 'fr' as const, systemPrompt: 'x', tools: [],
+        character: { voiceId: 'v', gender: 'f' as const },
+        voiceMode: 'classic' as const,
+      };
+      expect((buildSpeech(base).model as Record<string, unknown>).fallbackModels).toEqual(['gpt-4o-mini']);
+      expect((buildSpeech({ ...base, fallbacks: false }).model as Record<string, unknown>).fallbackModels).toBeUndefined();
+    } finally {
+      (env as { VOICE_LLM_FALLBACK_MODELS: string[] }).VOICE_LLM_FALLBACK_MODELS = prev;
+    }
   });
 });
