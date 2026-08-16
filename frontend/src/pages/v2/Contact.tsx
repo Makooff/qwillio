@@ -11,8 +11,9 @@ import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 import api from '../../services/api';
 
 /* Contact V2 « Papier & Signal », voir DA/v2-direction.md.
-   Le formulaire contrôlé et le fallback mailto sont portés tels quels de la V1
-   (pages/legal/Contact.tsx): aucun backend n'existe encore pour ce formulaire. */
+   Le formulaire poste réellement sur `POST /api/contact` (server.ts): la note
+   d'origine « aucun backend n'existe encore » n'est plus vraie, et un mailto
+   n'est plus le chemin nominal. */
 
 interface Method {
   icon: LucideIcon;

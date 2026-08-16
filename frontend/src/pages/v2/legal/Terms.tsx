@@ -15,7 +15,7 @@ import LegalShell, {
 } from '../../../components/v2/LegalShell';
 
 /* Conditions générales V2 « Papier & Signal ».
-   Contenu FR/EN porté à l'identique depuis pages/legal/Terms.tsx,
+   Seules conditions du site (la copie V1 a été supprimée le 16/08/2026),
    y compris la divulgation FTC de renouvellement automatique. */
 
 export default function Terms() {

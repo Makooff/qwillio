@@ -12,7 +12,7 @@ import LegalShell, {
 } from '../../../components/v2/LegalShell';
 
 /* SLA V2 « Papier & Signal ».
-   Contenu FR/EN porté à l'identique depuis pages/legal/Sla.tsx.
+   Seul SLA du site (la copie V1 a été supprimée le 16/08/2026).
    Le tableau des engagements reste une table sémantique: e2e/marketing.spec.ts
    vérifie les columnheaders Starter, Pro, Enterprise. */
 
