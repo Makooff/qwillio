@@ -4,6 +4,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
+import { FishAudioError, fishVoiceFor, synthesiseWithFish } from './fish-audio.service';
 
 /**
  * Preview clips, synthesised once and then read from a file.
@@ -16,6 +17,11 @@ import { logger } from '../../config/logger';
  *
  * A preview line is fixed text in a fixed voice. It only has to be produced
  * once. After that it is a file, and a file cannot be rate-limited.
+ *
+ * Deux fournisseurs depuis le 17/08/2026, choisis par `VOICE_PREVIEW_PROVIDER`:
+ * ElevenLabs par défaut, Fish Audio en option. Ces aperçus sont hors du chemin
+ * d'appel, ce qui en fait le seul endroit où l'on peut ENTENDRE une autre voix
+ * sur nos propres phrases sans rien risquer sur un appel réel.
  *
  * Two layers, both deliberate:
  *  - memory, so a warm instance answers without touching the disk;
@@ -43,10 +49,21 @@ export interface PreviewRequest {
   style: number;
 }
 
-/** Same voice, same words, same knobs — same audio. */
+/**
+ * Same voice, same words, same knobs — same audio.
+ *
+ * Le fournisseur et son modèle font partie de la clé, et ce n'est pas une
+ * précaution de style: sans eux, basculer sur Fish Audio servirait les clips
+ * ElevenLabs déjà en cache, et l'audition comparerait ElevenLabs à lui-même
+ * sans que rien ne le signale. Le seul symptôme serait « je n'entends aucune
+ * différence », c'est-à-dire la mauvaise conclusion.
+ */
 export function previewKey(req: PreviewRequest): string {
+  const provider = env.VOICE_PREVIEW_PROVIDER === 'fish'
+    ? `fish:${env.FISH_AUDIO_MODEL}:${fishVoiceFor(req.voiceId) ?? 'unmapped'}`
+    : '11labs';
   return createHash('sha1')
-    .update([req.voiceId, req.text, req.stability, req.similarityBoost, req.style].join('|'))
+    .update([provider, req.voiceId, req.text, req.stability, req.similarityBoost, req.style].join('|'))
     .digest('hex');
 }
 
@@ -84,7 +101,33 @@ async function writeDisk(key: string, audio: Buffer): Promise<void> {
   }
 }
 
+/**
+ * L'aperçu par Fish Audio, quand `VOICE_PREVIEW_PROVIDER=fish`.
+ *
+ * Les réglages ElevenLabs (`stability`, `similarityBoost`, `style`) n'ont pas
+ * d'équivalent ici et sont ignorés: ils restent dans la clé de cache parce
+ * qu'ils décrivent la demande, pas parce que Fish les honore.
+ */
+async function synthesiseWithFishProvider(req: PreviewRequest): Promise<Buffer> {
+  const referenceId = fishVoiceFor(req.voiceId);
+
+  try {
+    return await synthesiseWithFish({ referenceId: referenceId ?? '', text: req.text });
+  } catch (err) {
+    if (err instanceof FishAudioError) {
+      // `fish_key_missing` et `fish_voice_unmapped` sont des réglages absents,
+      // pas des pannes: 503 pour que l'écran le dise au lieu d'afficher une
+      // erreur serveur. Et surtout, aucun repli sur ElevenLabs — c'est
+      // précisément ce qui rendrait l'audition fausse.
+      const configMissing = err.message === 'fish_key_missing' || err.message === 'fish_voice_unmapped';
+      throw new PreviewAudioError(err.message, configMissing ? 503 : 502, err.upstream, err.reason);
+    }
+    throw err;
+  }
+}
+
 async function synthesise(req: PreviewRequest): Promise<Buffer> {
+  if (env.VOICE_PREVIEW_PROVIDER === 'fish') return synthesiseWithFishProvider(req);
   if (!env.ELEVENLABS_API_KEY) throw new PreviewAudioError('elevenlabs_key_missing', 503);
 
   // One retry, because the failure that actually happens here is a transient

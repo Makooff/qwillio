@@ -887,8 +887,14 @@ export class ClientDashboardController {
   // of the first press, so ▶ plays instantly instead of waiting on a paid API.
   async warmCharacterPreviews(req: any, res: Response) {
     // Answers immediately: this is a hint, and the page must not wait on it.
-    res.json({ started: !!env.ELEVENLABS_API_KEY });
-    if (!env.ELEVENLABS_API_KEY) return;
+    // La clé à vérifier est celle du fournisseur ACTIF: sous Fish Audio, exiger
+    // la clé ElevenLabs éteindrait le préchauffage sans raison, et les cartes
+    // repartiraient à attendre leur synthèse au premier clic.
+    const previewKeyPresent = env.VOICE_PREVIEW_PROVIDER === 'fish'
+      ? !!env.FISH_AUDIO_API_KEY
+      : !!env.ELEVENLABS_API_KEY;
+    res.json({ started: previewKeyPresent });
+    if (!previewKeyPresent) return;
 
     try {
       const client = await prisma.client.findUnique({
