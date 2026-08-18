@@ -24,11 +24,59 @@ Trois décisions attendent ce chiffre :
 
 ---
 
+## Deux pièges, à connaître avant de composer
+
+### 1. Basculer de moteur sans attendre le déploiement du sélecteur
+
+Tant que le sélecteur « Moteur vocal » n'est pas déployé, la bascule se fait par
+une variable, et c'est suffisant : tous les clients sont en `voiceMode: auto`, et
+`auto` suit le réglage global.
+
+| Appel | Sur Render | Moteur obtenu |
+|---|---|---|
+| 1 | `VOICE_SPEECH_TO_SPEECH=on` (ou absente) | Parole-à-parole |
+| 2 | `VOICE_SPEECH_TO_SPEECH=off` | Chaîne classique |
+
+Chaque changement redéploie (~3 min). **Attendre que le service repasse en
+`live` avant de composer**, sinon l'appel part avec l'ancien réglage.
+
+⚠️ Cette bascule cesse d'agir sur `auto` dès que `VOICE_REALTIME_SURCHARGE_EUR`
+est posé au-dessus de 0 : l'option devient alors payante, et `auto` résout en
+classique pour que personne ne soit facturé sans avoir choisi. Après cette
+bascule, le test se fait avec le sélecteur, par client.
+
+### 2. Le bouclier anti-spam peut avaler un appel de test
+
+`spam-detection.service.ts` : plus de **4 appels du même numéro en une heure**
+valent 40 points, et le seuil est 60. Seuls, ces 40 points ne suffisent pas.
+Mais ils se combinent :
+
+- appel de moins de 8 secondes : +30 → **70, classé spam** ;
+- transcript de moins de 15 caractères : +40 → **80, classé spam**.
+
+Un appel classé spam **saute l'analyse GPT** : ni résumé, ni lead, ni extraction.
+Le test ne montrerait rien.
+
+En pratique : deux vrais appels d'une minute au moins, en parlant normalement, et
+pas cinq essais avortés depuis le même téléphone. Si des essais ratés
+s'accumulent, attendre une heure ou changer de téléphone. La latence et le coût,
+eux, restent enregistrés même sur un appel classé spam : l'agrégation flotte
+passe avant le court-circuit.
+
+---
+
 ## Avant de commencer
 
-- Portail client → **Réceptionniste IA** → section voix → **Moteur vocal**.
-- Le mode se change par client, et prend effet au prochain appel (le cache de
-  profil est invalidé à l'enregistrement).
+- **Le numéro à composer** : Render → `VAPI_PHONE_NUMBER`. C'est la seule ligne
+  entrante configurée.
+- **Vérifier qu'elle est attribuée au compte de test.** L'attribution est
+  exclusive : le premier client `active` ou `trialing` prend la ligne et la garde
+  (`phone-allocation.service.ts`). Un compte de test ni actif ni en essai ne
+  recevra pas l'appel.
+- Une fois le sélecteur déployé : portail → **Réceptionniste IA** → section voix
+  → **Moteur vocal**. Le mode se change par client et prend effet au prochain
+  appel (le cache de profil est invalidé à l'enregistrement). D'ici là, voir la
+  bascule par variable ci-dessus.
 - ⚠️ **Une voix clonée l'emporte sur ce réglage** : si le compte de test en a
   une, elle force le mode classique et le test ne compare rien. La retirer
   d'abord.
@@ -66,9 +114,21 @@ est vendu.
 
 ## Ce qu'on lit après
 
+**Le coût, à la source la plus fiable** : tableau de bord Vapi → journal
+d'appels → coût de l'appel, avec son détail par fournisseur. C'est le montant
+réellement facturé.
+
+**Les percentiles de latence** :
+
 ```bash
 curl -s https://qwillio.onrender.com/api/webhooks/vapi/health | jq .fleetMetrics
 ```
+
+⚠️ Cette moyenne **mélange les deux moteurs** si les deux appels sont dans la
+fenêtre glissante. Relever la sortie **juste après le premier appel**, avant de
+lancer le second : le premier relevé donne le moteur 1 seul, et le coût du
+second se déduit du second relevé (`coût₂ = 2 × moyenne₂ − coût₁`). Le tableau
+de bord Vapi reste plus simple.
 
 Deux chiffres comptent :
 
