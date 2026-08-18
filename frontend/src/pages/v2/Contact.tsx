@@ -88,8 +88,14 @@ export default function Contact() {
       icon: Phone,
       tone: 'violet',
       label: isFr ? 'Téléphone' : 'Phone',
-      value: '+32 2 808 80 80',
-      href: 'tel:+3228088080',
+      /* Le numéro affiché jusqu'ici (+32 2 808 80 80) n'existait nulle part
+         ailleurs dans le code: ni variable d'environnement, ni ligne Vapi, ni
+         Twilio. Un prospect qui appelle une société d'accueil téléphonique et
+         tombe dans le vide, c'est la démonstration inverse de ce qu'on vend.
+         Écrit en international plutôt qu'en 0483…: la moitié du marché visé
+         est française, et le 0 national ne se compose pas depuis la France. */
+      value: '+32 483 62 09 80',
+      href: 'tel:+32483620980',
     },
     {
       icon: MapPin,
