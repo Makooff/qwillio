@@ -4,12 +4,19 @@ import {
 } from '../icons';
 import AiStatusPill from '../AiStatusPill';
 import DashboardShell, { NavItem } from './DashboardShell';
+import { useAuthStore } from '../../stores/authStore';
+import { planAllows, type PlanCapability } from '../../lib/planCapabilities';
 
-const PRIMARY_NAV: NavItem[] = [
+/* Une entrée peut appartenir à un forfait. Absente d'un menu, elle reste
+   défendue par le serveur: le filtrage ci-dessous évite d'offrir une porte qui
+   répondra 403, il ne remplace pas la serrure. */
+type PlanNavItem = NavItem & { capability?: PlanCapability };
+
+const PRIMARY_NAV: PlanNavItem[] = [
   { path: '/dashboard',              icon: LayoutDashboard, label: "Vue d'ensemble", exact: true },
   { path: '/dashboard/calls',        icon: Phone,           label: 'Appels' },
   { path: '/dashboard/leads',        icon: Users,           label: 'Leads' },
-  { path: '/dashboard/analytics',    icon: BarChart3,       label: 'Analytique' },
+  { path: '/dashboard/analytics',    icon: BarChart3,       label: 'Analytique', capability: 'advancedAnalytics' },
   /* « Contacts » a disparu du menu: les leads et les contacts sont les mêmes
      personnes, puisqu'un contact naît de l'appel qui a produit le lead. Deux
      entrées pour une réalité, avec deux vocabulaires d'état, faisaient croire
@@ -21,8 +28,8 @@ const PRIMARY_NAV: NavItem[] = [
      Ils ont désormais de quoi s'afficher: chaque appel crée un contact et
      l'activité qui va avec. Le pipeline, lui, se remplit à la main, ce qui est
      le propre d'un pipeline: c'est le client qui décide qu'une affaire existe. */
-  { path: '/dashboard/crm/deals',      icon: Target,          label: 'Pipeline' },
-  { path: '/dashboard/crm/activities', icon: Activity,        label: 'Activité' },
+  { path: '/dashboard/crm/deals',      icon: Target,          label: 'Pipeline', capability: 'crm' },
+  { path: '/dashboard/crm/activities', icon: Activity,        label: 'Activité', capability: 'crm' },
 ];
 
 const SETTINGS_SUB: NavItem[] = [
@@ -31,7 +38,7 @@ const SETTINGS_SUB: NavItem[] = [
   { path: '/dashboard/support',  icon: HelpCircle, label: 'Support' },
 ];
 
-const MOBILE_NAV: NavItem[] = [
+const MOBILE_NAV: PlanNavItem[] = [
   { icon: LayoutDashboard, label: 'Home',   path: '/dashboard',           exact: true },
   { icon: Phone,           label: 'Appels', path: '/dashboard/calls' },
   { icon: Users,           label: 'Leads',  path: '/dashboard/leads' },
@@ -42,7 +49,7 @@ const MOBILE_NAV: NavItem[] = [
      L'IA passe tout à droite, au bout de la barre: c'est là que le pouce
      tombe, et c'est la seule entrée où l'on va pour AGIR sur l'agent, les
      quatre autres ne font que regarder ce qu'il a produit. */
-  { icon: BarChart3,       label: 'Analytique', path: '/dashboard/analytics' },
+  { icon: BarChart3,       label: 'Analytique', path: '/dashboard/analytics', capability: 'advancedAnalytics' },
   /* Vers la PAGE, pas vers un panneau (demande utilisateur): on arrive sur le
      hub, donc sur le chat, qui est ce qu'on vient faire ici neuf fois sur dix.
      La machinerie de fragment reste en place côté page: un lien peut viser
@@ -66,13 +73,23 @@ const PAGE_TITLES: Record<string, string> = {
 };
 
 export default function ClientLayout() {
+  const { user } = useAuthStore();
+  const plan = (user as unknown as Record<string, unknown> | undefined)?.planType;
+
+  /* Le forfait n'est pas encore chargé au premier rendu: on affiche alors les
+     entrées ouvertes à tous, et les autres apparaissent dès qu'il arrive. Le
+     contraire — tout montrer puis retirer — ferait clignoter le menu et
+     laisserait cliquer sur une porte fermée. */
+  const visible = (items: PlanNavItem[]) =>
+    items.filter(item => !item.capability || planAllows(typeof plan === 'string' ? plan : null, item.capability));
+
   return (
     <DashboardShell
       scope="client"
-      primaryNav={PRIMARY_NAV}
+      primaryNav={visible(PRIMARY_NAV)}
       settingsSub={SETTINGS_SUB}
       pageTitles={PAGE_TITLES}
-      mobileNav={MOBILE_NAV}
+      mobileNav={visible(MOBILE_NAV)}
       userFallbackName="Client"
       userFallbackInitials="CL"
       topBarExtras={<AiStatusPill />}

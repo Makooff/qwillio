@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware, clientMiddleware } from '../middleware/auth.middleware';
+import { requireCapability } from '../middleware/plan.middleware';
 import { prisma } from '../config/database';
 import { agentPaymentsService } from '../services/agent-payments.service';
 import { agentAccountingService } from '../services/agent-accounting.service';
@@ -20,6 +21,10 @@ const router = Router();
 // All routes require JWT auth + client role (clientId is set by clientMiddleware)
 router.use(authMiddleware);
 router.use(clientMiddleware);
+/* Le module CRM IA suit la même règle que le CRM interne: vendu à partir de Pro.
+   Monté sur le préfixe et AVANT les routes, donc toute route `/crm/*` ajoutée
+   plus bas dans ce fichier hérite du contrôle sans qu'on y pense. */
+router.use('/crm', requireCapability('crm'));
 
 // ─── Agent Subscription ──────────────────────────────────
 

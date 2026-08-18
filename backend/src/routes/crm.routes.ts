@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware, clientMiddleware } from '../middleware/auth.middleware';
+import { requireCapability } from '../middleware/plan.middleware';
 import { prisma } from '../config/database';
 
 const router = Router();
@@ -7,6 +8,9 @@ const router = Router();
 // All routes require JWT auth + client role (clientId is set by clientMiddleware)
 router.use(authMiddleware);
 router.use(clientMiddleware);
+/* « Intégrations CRM natives », vendues à partir de Pro. Posé sur le routeur
+   entier: une route CRM ajoutée demain hérite du contrôle sans y penser. */
+router.use(requireCapability('crm'));
 
 // ─── Contacts ────────────────────────────────────────────
 

@@ -71,15 +71,19 @@ export default function Pricing() {
       name: 'Solo',
       flag: isFr ? 'Nouveau : Belgique & France' : 'New: Belgium & France',
       note: isFr
-        ? 'PME, artisans, professions libérales (français, conforme RGPD).'
-        : 'Small businesses, tradespeople, liberal professions (French, GDPR compliant).',
+        ? 'PME, artisans, professions libérales (conforme RGPD).'
+        : 'Small businesses, tradespeople, liberal professions (GDPR compliant).',
       monthly: 99,
       minutes: 250,
       overage: 0.45,
       description: isFr ? 'Pour un indépendant' : 'For a solo operator',
       features: isFr
-        ? ['250 minutes incluses par mois', 'IA 24/7 en français', 'Prise de RDV + agenda', 'Transfert des urgences', 'Bouclier anti-spam inclus', 'Conforme RGPD', 'Support email']
-        : ['250 minutes included per month', '24/7 AI in French', 'Booking + calendar sync', 'Urgency transfer', 'Spam shield included', 'GDPR compliant', 'Email support'],
+        /* Solo est bilingue comme les autres: la langue est un réglage du
+           client (`agentLanguage`), pas une capacité vendue par palier, et le
+           portail l'annonce déjà ainsi. La transcription et le sentiment
+           rejoignent la liste pour la même raison. */
+        ? ['250 minutes incluses par mois', 'IA 24/7 bilingue FR / EN', 'Prise de RDV + agenda', 'Transfert des urgences', 'Transcription + sentiment', 'Bouclier anti-spam inclus', 'Conforme RGPD', 'Support email']
+        : ['250 minutes included per month', '24/7 AI, bilingual FR / EN', 'Booking + calendar sync', 'Urgency transfer', 'Transcript + sentiment', 'Spam shield included', 'GDPR compliant', 'Email support'],
       cta: isFr ? 'Commencer' : 'Start',
       popular: false,
     },
@@ -180,11 +184,20 @@ export default function Pricing() {
         {
           label: 'Capacités',
           rows: [
-            ['IA 24/7', 'FR', 'FR + EN', 'FR + EN', 'FR + EN'],
+            /* Deux lignes disaient l'inverse du produit, et le client le
+               découvrait à sa PREMIÈRE connexion, puisque le portail annonce
+               le socle réel: Solo est bilingue, et la transcription avec
+               l'analyse de sentiment est incluse partout (elle alimente aussi
+               le scoring de lead, la couper en Solo dégraderait le socle).
+               Elles sont corrigées ici plutôt que bridées là-bas: une
+               restriction artificielle coûte plus qu'elle ne rapporte.
+               Les trois lignes qui restent réservées, elles, sont désormais
+               APPLIQUÉES par le serveur (`plan.middleware.ts`). */
+            ['IA 24/7 bilingue FR + EN', '✓', '✓', '✓', '✓'],
             ['Prise de RDV + agenda', '✓', '✓', '✓', '✓'],
             ['Transfert des urgences', '✓', '✓', '✓', '✓'],
             ['Bouclier anti-spam', '✓', '✓', '✓', '✓'],
-            ['Transcription + sentiment', '·', '✓', '✓', '✓'],
+            ['Transcription + sentiment', '✓', '✓', '✓', '✓'],
             ['Analytiques avancées', '·', '·', '✓', '✓'],
             ['Intégrations CRM natives', '·', '·', '✓', '✓'],
             ['Accès API complet', '·', '·', '·', '✓'],
@@ -193,7 +206,12 @@ export default function Pricing() {
         {
           label: 'Engagements et support',
           rows: [
-            ['SLA 99,5% uptime', '·', '·', '·', '✓'],
+            /* Un engagement de disponibilité chiffré n'existe qu'en
+               Enterprise, et il est contractuel. Voir la page SLA, qui dit la
+               même chose: promettre un pourcentage sur les autres paliers
+               reviendrait à devoir des crédits de service qu'une instance
+               unique sans astreinte ne peut pas honorer. */
+            ['SLA contractuel 99,5 %', '·', '·', '·', '✓'],
             ['Responsable dédié', '·', '·', '·', '✓'],
             ['Support', 'Email', 'Email', 'Prioritaire', 'Dédié'],
           ],
@@ -211,11 +229,11 @@ export default function Pricing() {
         {
           label: 'Capabilities',
           rows: [
-            ['24/7 AI', 'FR', 'FR + EN', 'FR + EN', 'FR + EN'],
+            ['24/7 bilingual AI, FR + EN', '✓', '✓', '✓', '✓'],
             ['Booking + calendar', '✓', '✓', '✓', '✓'],
             ['Urgency transfer', '✓', '✓', '✓', '✓'],
             ['Spam shield', '✓', '✓', '✓', '✓'],
-            ['Transcript + sentiment', '·', '✓', '✓', '✓'],
+            ['Transcript + sentiment', '✓', '✓', '✓', '✓'],
             ['Advanced analytics', '·', '·', '✓', '✓'],
             ['Native CRM integrations', '·', '·', '✓', '✓'],
             ['Full API access', '·', '·', '·', '✓'],
@@ -224,7 +242,7 @@ export default function Pricing() {
         {
           label: 'Commitments and support',
           rows: [
-            ['99.5% uptime SLA', '·', '·', '·', '✓'],
+            ['Contractual 99.5% uptime SLA', '·', '·', '·', '✓'],
             ['Dedicated manager', '·', '·', '·', '✓'],
             ['Support', 'Email', 'Email', 'Priority', 'Dedicated'],
           ],
