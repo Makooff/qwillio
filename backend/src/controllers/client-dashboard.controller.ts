@@ -263,6 +263,10 @@ export class ClientDashboardController {
         // Null rather than absent: the UI shows either the recorder or the
         // cloned-voice card, and "not loaded yet" must not look like "none".
         customVoice:       cfg.customVoice?.voiceId ? cfg.customVoice : null,
+        /* Le moteur vocal. `auto` suit le réglage global, les deux autres
+           l'emportent. Normalisé ici comme il l'est à l'écriture: une valeur
+           inconnue en base ne doit pas afficher un mode qui n'existe pas. */
+        voiceMode:         ['realtime', 'classic'].includes(cfg.voiceMode) ? cfg.voiceMode : 'auto',
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -323,7 +327,8 @@ export class ClientDashboardController {
         body.personalityPreset !== undefined ||
         body.personalityNotes !== undefined ||
         body.characterId !== undefined ||
-        body.customVoice !== undefined;
+        body.customVoice !== undefined ||
+        body.voiceMode !== undefined;
       if (hasKnowledgeUpdate) {
         const existing = await prisma.client.findUnique({
           where: { id: req.clientId },
@@ -340,6 +345,11 @@ export class ClientDashboardController {
           personalityNotes:  body.personalityNotes,
           characterId:       body.characterId,
           customVoice:       body.customVoice,
+          /* `buildVapiConfigPatch` savait valider `voiceMode` depuis toujours,
+             mais personne ne le lui passait: le réglage existait de bout en
+             bout SAUF ici, donc changer de moteur était impossible, y compris
+             en appelant l'API à la main. */
+          voiceMode:         body.voiceMode,
         });
       }
 
@@ -352,7 +362,11 @@ export class ClientDashboardController {
       // that is not invalidated keeps the old voice answering for the rest of
       // the TTL. The Vapi sync below invalidates too, but only when it succeeds
       // and only when an assistant exists.
-      if (body.characterId !== undefined || body.customVoice !== undefined) {
+      /* `voiceMode` rejoint la liste: le profil est relu depuis le cache à
+         chaque appel, donc sans invalidation l'ANCIEN moteur continue de
+         répondre pendant tout le TTL. Sur un réglage qu'on change précisément
+         pour comparer deux moteurs, l'oubli ferait juger le mauvais. */
+      if (body.characterId !== undefined || body.customVoice !== undefined || body.voiceMode !== undefined) {
         const { realtimeContextService } = await import('../services/voice/realtime-context.service');
         await realtimeContextService.invalidateClient(req.clientId);
       }
