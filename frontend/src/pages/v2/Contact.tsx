@@ -11,8 +11,9 @@ import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 import api from '../../services/api';
 
 /* Contact V2 « Papier & Signal », voir DA/v2-direction.md.
-   Le formulaire contrôlé et le fallback mailto sont portés tels quels de la V1
-   (pages/legal/Contact.tsx): aucun backend n'existe encore pour ce formulaire. */
+   Le formulaire poste réellement sur `POST /api/contact` (server.ts): la note
+   d'origine « aucun backend n'existe encore » n'est plus vraie, et un mailto
+   n'est plus le chemin nominal. */
 
 interface Method {
   icon: LucideIcon;
@@ -87,8 +88,14 @@ export default function Contact() {
       icon: Phone,
       tone: 'violet',
       label: isFr ? 'Téléphone' : 'Phone',
-      value: '+32 2 808 80 80',
-      href: 'tel:+3228088080',
+      /* Le numéro affiché jusqu'ici (+32 2 808 80 80) n'existait nulle part
+         ailleurs dans le code: ni variable d'environnement, ni ligne Vapi, ni
+         Twilio. Un prospect qui appelle une société d'accueil téléphonique et
+         tombe dans le vide, c'est la démonstration inverse de ce qu'on vend.
+         Écrit en international plutôt qu'en 0483…: la moitié du marché visé
+         est française, et le 0 national ne se compose pas depuis la France. */
+      value: '+32 483 62 09 80',
+      href: 'tel:+32483620980',
     },
     {
       icon: MapPin,

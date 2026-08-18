@@ -19,6 +19,10 @@ export class ClientCallService {
     duration: number,
     callerNumber?: string,
     recordingUrl?: string,
+    /* Le moteur réellement utilisé, décidé à la construction de l'assistant.
+       `undefined` reste `null` en base: un mode inventé serait un mode
+       facturé. */
+    voiceMode?: string | null,
   ) {
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client) {
@@ -53,6 +57,7 @@ export class ClientCallService {
         endedAt: new Date(),
         durationSeconds: duration,
         status: 'completed',
+        voiceMode: voiceMode ?? null,
         transcript,
         summary: analysis.summary,
         sentiment: analysis.sentiment,

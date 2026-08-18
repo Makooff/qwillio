@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
-    "@prisma/client": "^6.3.0",
+    "@prisma/client": "^6.19.3",
     "@sentry/node": "^10.43.0",
     "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
@@ -42,7 +42,7 @@
     "node-cron": "^3.0.3",
     "pdf-lib": "^1.17.1",
     "pg": "^8.18.0",
-    "prisma": "^6.3.0",
+    "prisma": "^6.19.3",
     "resend": "^4.1.2",
     "socket.io": "^4.8.3",
     "stripe": "^17.5.0",

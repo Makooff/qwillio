@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database';
+import { planAllows } from '../config/plan-features';
 import { logger } from '../config/logger';
 import { hashApiKey } from '../utils/api-key-hash';
 
@@ -28,8 +29,9 @@ export interface ApiKeyRequest extends Request {
   apiPermissions?: string[];
 }
 
-/** Le forfait qui donne droit à l'API, tel qu'annoncé sur la page tarifs. */
-const API_PLANS = ['enterprise'];
+/* Le droit à l'API vient désormais de `plan-features.ts`, avec les autres
+   capacités vendues par palier: deux tables pour une même promesse, c'est deux
+   occasions de diverger de la page tarifs. */
 
 function extractKey(req: Request): string | null {
   const header = req.header('x-api-key');
@@ -92,7 +94,7 @@ export async function apiKeyAuth(req: ApiKeyRequest, res: Response, next: NextFu
     if (!client) {
       return res.status(403).json({ error: 'no_client', message: 'This key is not attached to a Qwillio account.' });
     }
-    if (!API_PLANS.includes((client.planType || '').toLowerCase())) {
+    if (!planAllows(client.planType, 'api')) {
       return res.status(403).json({
         error: 'plan_required',
         message: 'The API is available on the Enterprise plan.',

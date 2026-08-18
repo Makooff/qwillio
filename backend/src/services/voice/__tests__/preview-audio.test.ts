@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const envState = vi.hoisted(() => ({ ELEVENLABS_API_KEY: 'test-key' }));
+// Le fournisseur est explicite ici: ces tests décrivent le chemin ElevenLabs,
+// et laisser le champ absent les ferait dépendre d'un `undefined` comparé à
+// 'fish' plutôt que d'un choix.
+const envState = vi.hoisted(() => ({
+  ELEVENLABS_API_KEY: 'test-key',
+  VOICE_PREVIEW_PROVIDER: '11labs' as '11labs' | 'fish',
+  FISH_AUDIO_API_KEY: '',
+  FISH_AUDIO_MODEL: 's2-pro',
+  FISH_AUDIO_VOICES: '',
+  FISH_AUDIO_DEFAULT_VOICE_ID: '',
+}));
 vi.mock('../../../config/env', () => ({ env: envState }));
 vi.mock('../../../config/logger', () => ({
   logger: { warn: vi.fn(), info: vi.fn(), debug: vi.fn(), error: vi.fn() },

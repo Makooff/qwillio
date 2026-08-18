@@ -43,6 +43,34 @@ export const env = {
   // Optional: direct ElevenLabs key for in-dashboard voice previews (real voice
   // instead of the browser's robotic TTS). Empty = frontend falls back to TTS.
   ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY || '',
+  /* Fish Audio, pour AUDITIONNER une autre voix, pas encore pour appeler.
+   *
+   * Le chemin d'appel passe par Vapi, qui ne connaît pas Fish Audio: l'y
+   * brancher demande un endpoint `custom-voice` chez nous, donc un aller-retour
+   * de plus DANS le chemin audio. Avant d'en payer le prix, il faut savoir si la
+   * voix est meilleure EN FRANÇAIS, et la seule façon de le savoir est de
+   * l'entendre. Ces variables servent exactement à ça: les aperçus du tableau
+   * de bord, qui sont hors du chemin d'appel.
+   *
+   * Vide = rien ne change, les aperçus restent sur ElevenLabs. */
+  FISH_AUDIO_API_KEY: process.env.FISH_AUDIO_API_KEY || '',
+  /** `s2-pro` (payant), `s2.1-pro-free`, ou `s1`. Envoyé dans l'en-tête `model`. */
+  FISH_AUDIO_MODEL: process.env.FISH_AUDIO_MODEL || 's2-pro',
+  /**
+   * Fournisseur des aperçus de voix. `fish` exige `FISH_AUDIO_API_KEY` et une
+   * voix Fish pour le personnage écouté: à défaut l'aperçu ÉCHOUE en le disant,
+   * il ne retombe pas sur ElevenLabs. Un repli silencieux transformerait
+   * l'audition en mensonge — on croirait juger Fish en écoutant ElevenLabs.
+   */
+  VOICE_PREVIEW_PROVIDER: (process.env.VOICE_PREVIEW_PROVIDER === 'fish' ? 'fish' : '11labs') as '11labs' | 'fish',
+  /**
+   * Correspondance voix ElevenLabs → voix Fish (`reference_id`), sous la forme
+   * `elevenId=fishId,elevenId=fishId`. Les deux catalogues sont étrangers l'un à
+   * l'autre: un id ElevenLabs n'a aucun sens chez Fish.
+   */
+  FISH_AUDIO_VOICES: process.env.FISH_AUDIO_VOICES || '',
+  /** Voix Fish utilisée pour tout personnage absent de la table ci-dessus. */
+  FISH_AUDIO_DEFAULT_VOICE_ID: process.env.FISH_AUDIO_DEFAULT_VOICE_ID || '',
   VAPI_VOICE_FALLBACK_1: process.env.VAPI_VOICE_FALLBACK_1 || 'MF3mGyEYCl7XYWbV9V6O', // Elli
   VAPI_VOICE_FALLBACK_2: process.env.VAPI_VOICE_FALLBACK_2 || 'EXAVITQu4vr4xnSDxMaL', // Bella
   VAPI_STABILITY: parseFloat(process.env.VAPI_STABILITY || '0.45'),
@@ -94,6 +122,20 @@ export const env = {
    * c'est le seul interrupteur à connaître si le rendu déplaît ou si la minute
    * coûte trop cher. */
   VOICE_SPEECH_TO_SPEECH: (process.env.VOICE_SPEECH_TO_SPEECH || 'on').toLowerCase() !== 'off',
+  /**
+   * Supplément facturé à la minute pour le mode parole-à-parole, en euros.
+   *
+   * 0 (défaut) = l'option n'est PAS vendue: rien ne change, `auto` suit le
+   * réglage global et aucune facture n'est produite.
+   *
+   * Dès qu'il est > 0, l'option devient payante, et une conséquence en
+   * découle: `auto` cesse de résoudre en temps réel. Sans cela, tous les
+   * clients existants — qui sont en `auto` — se retrouveraient facturés d'une
+   * option qu'ils n'ont jamais demandée, à la fin du mois, sans avertissement.
+   * Poser ce prix est donc l'unique interrupteur: il met l'option en vente ET
+   * la rend explicitement choisie.
+   */
+  VOICE_REALTIME_SURCHARGE_EUR: Math.max(0, parseFloat(process.env.VOICE_REALTIME_SURCHARGE_EUR || '0') || 0),
   VOICE_REALTIME_MODEL: process.env.VOICE_REALTIME_MODEL || 'gpt-realtime-2025-08-28',
   /** Cap on a single assistant turn; long completions are long silences. */
   VOICE_MAX_COMPLETION_TOKENS: parseInt(process.env.VOICE_MAX_COMPLETION_TOKENS || '120', 10),

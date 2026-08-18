@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { requireCapability } from '../middleware/plan.middleware';
 import { clientMiddleware } from '../middleware/auth.middleware';
 import { clientDashboardController } from '../controllers/client-dashboard.controller';
 
@@ -45,7 +46,9 @@ router.get('/overview', (req, res) => clientDashboardController.getMyOverview(re
 router.get('/calls', (req, res) => clientDashboardController.getMyCalls(req, res));
 router.get('/bookings', (req, res) => clientDashboardController.getMyBookings(req, res));
 router.get('/leads', (req, res) => clientDashboardController.getMyLeads(req, res));
-router.get('/analytics', (req, res) => clientDashboardController.getMyAnalytics(req, res));
+/* « Analytiques avancées » est vendue à partir de Pro sur la page tarifs. La
+   vue d'ensemble et la liste d'appels restent ouvertes à tous: c'est le socle. */
+router.get('/analytics', requireCapability('advancedAnalytics'), (req, res) => clientDashboardController.getMyAnalytics(req, res));
 
 // ─── Lead management ────────────────────────────────────
 router.put('/leads/:id/status', (req, res) => clientDashboardController.updateLeadStatus(req, res));

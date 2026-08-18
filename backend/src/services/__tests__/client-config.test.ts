@@ -173,3 +173,32 @@ describe('buildVapiConfigPatch — faqEntries and knowledge', () => {
     expect(buildVapiConfigPatch(existing, { faq: 'x' }).knowledge).toEqual(existing.knowledge);
   });
 });
+
+describe('buildVapiConfigPatch — moteur vocal', () => {
+  /* Ce réglage décide de ce que l'appelant entend: parole-à-parole (le modèle
+     entend et répond en audio) ou chaîne classique (transcription, modèle,
+     synthèse). Il était validé ici depuis toujours, mais le contrôleur ne le
+     relayait pas: le réglage existait de bout en bout SAUF au milieu, donc
+     changer de moteur était impossible, même en appelant l'API à la main. */
+
+  it('accepte les trois modes', () => {
+    expect(buildVapiConfigPatch(prev, { voiceMode: 'realtime' }).voiceMode).toBe('realtime');
+    expect(buildVapiConfigPatch(prev, { voiceMode: 'classic' }).voiceMode).toBe('classic');
+    expect(buildVapiConfigPatch(prev, { voiceMode: 'auto' }).voiceMode).toBe('auto');
+  });
+
+  it('ramène une valeur inconnue à `auto` au lieu de l’écrire', () => {
+    // Une faute de frappe ne doit pas décider en silence de ce que l'appelant
+    // entend, ni faire refuser l'assistant entier par Vapi.
+    expect(buildVapiConfigPatch(prev, { voiceMode: 'realtimee' as never }).voiceMode).toBe('auto');
+    expect(buildVapiConfigPatch(prev, { voiceMode: '' as never }).voiceMode).toBe('auto');
+  });
+
+  it('ne touche pas au mode quand la mise à jour porte sur autre chose', () => {
+    // L'auto-save de la page envoie tout son formulaire à chaque frappe: une
+    // modification de la FAQ ne doit pas réinitialiser le moteur.
+    const withMode = buildVapiConfigPatch(prev, { voiceMode: 'classic' });
+    const after = buildVapiConfigPatch(withMode, { faqEntries: [{ q: 'Ouvert ?', a: 'Oui' }] });
+    expect(after.voiceMode).toBe('classic');
+  });
+});

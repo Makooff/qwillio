@@ -140,3 +140,74 @@ pas dans son périmètre.
    implémentée est la plus prudente ; l'inverser tient en une ligne de `COUNTRY_RULES`.
 3. **Les chantiers lourds assumés** : BullMQ/Redis, Stripe Meters, multicanal,
    hébergement UE, DPIA voix, détection automatique de langue.
+
+---
+
+## Vérification du 16/08/2026 — « est-ce vendable ? »
+
+Contrôle indépendant du dépôt à `9ffa76d`, sans relire les documents pour eux-mêmes.
+Ce qui a été **exécuté** ici, pas déduit :
+
+| Contrôle | Résultat |
+|---|---|
+| `backend: tsc --noEmit` | vert |
+| `backend: vitest run` | **725 tests, 71 fichiers, 0 échec** |
+| `frontend: tsc -b && vite build` | vert |
+| `frontend: vitest run` | **134 tests, 0 échec** |
+| `npm run evals` | **impossible ici** : pas de clé OpenAI sur ce poste. Inchangé depuis le 13/08 |
+
+Aucune régression depuis le ré-audit. Les quinze commits livrés entre-temps
+(#137 → #150) portent sur la vidéo du hero et sur la fiabilité de l'appel dans
+le navigateur ; le chantier « micro iOS » décrit dans `CLAUDE.md` **est traité**
+dans le code actuel (`VapiLiveCall.tsx` : la sonde micro a disparu, le SDK
+demande l'autorisation lui-même à l'intérieur de la fenêtre de geste).
+
+### Ce que cette vérification a trouvé de neuf
+
+**Les pages légales existaient en double, et les corrections partaient dans la
+copie morte.** `frontend/src/pages/legal/` n'était importé par personne :
+`App.tsx` sert `pages/v2/legal/`. Conséquence concrète, vérifiée ligne à ligne :
+la correction de la durée de conservation livrée le 13/08 (« 90 jours par
+défaut, réglable de 30 jours à 5 ans ») a été écrite dans la page **non servie**.
+Le site en production annonçait donc toujours « 90 jours après la création »,
+c'est-à-dire une durée que le produit ne respecte plus dans les deux sens : un
+client réglé à 5 ans conserve plus longtemps que la politique ne l'annonce, un
+client réglé à 30 jours moins longtemps. Les six fichiers morts sont supprimés :
+il ne peut plus y avoir de « deuxième politique ».
+
+**La section « Démarchage téléphonique » décrivait le droit américain.** Elle
+invoquait le TCPA et les listes DNC fédérales et d'État sur un marché
+franco-belge, et ignorait la bascule française du 11/08/2026 que le moteur
+sortant applique pourtant depuis le 13/08 (`utils/outbound-legal.ts`). Elle
+décrit désormais la règle réellement exécutée, pays par pays : consentement
+préalable en France avec horaires du décret 2022-1313 et plafond de quatre
+sollicitations par mois, opt-out et liste « Ne m'appelez plus ! » en Belgique,
+TCPA pour les États-Unis, et la divulgation IA dès la première phrase partout.
+
+**Quatre sous-traitants manquaient à la table.** Deepgram entend le contenu de
+chaque appel, Sentry reçoit les rapports d'erreur des deux côtés, Google reçoit
+les créneaux dès qu'un agenda est connecté, Anthropic sert le module
+Comptabilité IA : aucun n'était listé. Une table de sous-traitants incomplète
+est une politique fausse, pas une politique perfectible.
+
+### Ce qui reste, et qui ne dépend toujours pas du code
+
+Rien n'a bougé sur ces points depuis le 13/08, et ce sont eux qui décident de la
+date de mise en vente, pas le dépôt :
+
+1. **Aucun appel réel n'a encore été passé** : `fleetMetrics` reste à `calls: 0`,
+   donc l'objectif de latence sous 1,1 s n'est ni tenu ni manqué. C'est le seul
+   trou qui empêche de dire que le réceptionniste est bon, plutôt que conforme.
+2. **Les secours STT et LLM restent inactifs** faute des deux variables sur
+   Render (le défaut vide est un choix documenté, pas un oubli : un champ
+   inconnu ferait rejeter l'assistant entier par Vapi).
+3. **Les évals n'ont jamais tourné**, faute de clé sur le dépôt.
+4. **Le numéro belge n'est pas acheté**, donc un deuxième client n'est pas
+   joignable, et la page Contact affiche un numéro (+32 2 808 80 80) qui
+   n'apparaît nulle part ailleurs dans le code : à confirmer ou à retirer.
+5. **Deux documents publics se contredisent sur le SLA** : la page Tarifs
+   n'accorde « SLA 99,5 % » qu'à Enterprise, la page SLA promet 99,0 % dès
+   Starter et 99,9 % en Enterprise, avec crédits de service, support 24/7
+   téléphonique et post-mortems. Le second est un engagement contractuel qu'une
+   instance Render unique sans astreinte ne peut pas honorer : c'est un
+   arbitrage commercial, à trancher avant la première signature.

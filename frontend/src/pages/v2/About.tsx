@@ -9,7 +9,7 @@ import RevealV2 from '../../components/v2/RevealV2';
 import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 
 /* About V2 « Papier & Signal », voir DA/v2-direction.md.
-   Copie FR/EN, useSEO et JSON-LD portés de la V1 (pages/legal/About.tsx). */
+   Seule page « À propos » du site (la copie V1 a été supprimée le 16/08/2026). */
 
 interface Value {
   num: string;

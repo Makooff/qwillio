@@ -313,6 +313,12 @@ export default function ClientReceptionist() {
   const [characterId, setCharacterId] = useState<string>('marie');
   const [characters, setCharacters] = useState<Character[]>([]);
   const [customVoice, setCustomVoice] = useState<CustomVoice | null>(null);
+  /* Le moteur vocal. `auto` suit le réglage global de la plateforme ;
+     `realtime` et `classic` l'emportent, par client. Existait dans le
+     backend sans aucun moyen de le changer. */
+  const [voiceMode, setVoiceMode] = useState<'auto' | 'realtime' | 'classic'>('auto');
+  /* Prix de l'option temps réel, à la minute. 0 = non vendue. */
+  const [realtimeSurcharge, setRealtimeSurcharge] = useState(0);
   /* Un seul panneau ouvert à la fois, et AUCUN à l'arrivée.
    *
    * Cet état était initialisé à `'identite'` et mémorisé dans `localStorage`:
@@ -389,6 +395,8 @@ export default function ClientReceptionist() {
       setPersonalityNotes(s?.personalityNotes || '');
       setCharacterId(s?.characterId || 'marie');
       setCustomVoice(s?.customVoice?.voiceId ? s.customVoice : null);
+      setVoiceMode(s?.voiceMode === 'realtime' || s?.voiceMode === 'classic' ? s.voiceMode : 'auto');
+      setRealtimeSurcharge(Number(s?.realtimeSurchargeEur) > 0 ? Number(s.realtimeSurchargeEur) : 0);
       // Values below come from the server → don't trigger an auto-save.
       hydrated.current = true;
       skipAutosave.current = true;
@@ -508,13 +516,14 @@ export default function ClientReceptionist() {
         personalityNotes,
         characterId,
         customVoice,
+        voiceMode,
       });
       // The dashboard is holding a copy of these settings, and it is wrong from
       // the instant this call returns.
       invalidateLive('/my-dashboard/');
     } catch { /* silent — the next edit retries */ }
   }, [transferNumber, agentName, forwardingType, googleCalendarId,
-      items, weekHours, faqEntries, knowledge, personalityPreset, personalityNotes, characterId, customVoice]);
+      items, weekHours, faqEntries, knowledge, personalityPreset, personalityNotes, characterId, customVoice, voiceMode]);
 
   // Auto-save: debounce after any edit. Skips the initial hydration from load()
   // so we never fire a redundant save on mount.
@@ -727,6 +736,68 @@ export default function ClientReceptionist() {
               // moves.
               onChange={v => setCustomVoice(v ? { ...v, cloned: true } : null)}
             />
+
+            {/* —— Moteur vocal ——
+                Deux architectures, pas deux réglages de confort. En temps réel
+                le modèle entend et répond en audio, sans passer par du texte :
+                latence plus basse, interruptions naturelles, il perçoit le ton.
+                En classique la parole est transcrite, un modèle répond, une
+                voix la prononce : c'est la seule chaîne qui utilise la voix
+                choisie ci-dessus, et la seule qui sache parler avec une voix
+                clonée.
+                Ce choix vivait dans le backend sans aucun moyen de le changer,
+                alors que c'est lui qui décide de ce que l'appelant entend. */}
+            <div className="mt-6 pt-6 border-t border-white/[0.06]">
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
+                Moteur vocal
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { id: 'auto', label: 'Automatique' },
+                  {
+                    id: 'realtime',
+                    label: realtimeSurcharge > 0
+                      ? `Temps réel · +${realtimeSurcharge.toFixed(2).replace('.', ',')} €/min`
+                      : 'Temps réel',
+                  },
+                  { id: 'classic', label: 'Classique' },
+                ] as const).map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setVoiceMode(m.id)}
+                    aria-pressed={voiceMode === m.id}
+                    className={`h-9 px-4 text-[13px] rounded-lg border transition-colors ${
+                      voiceMode === m.id
+                        ? 'border-[#7349fe] bg-[#7349fe]/15 text-[#F5F5F7]'
+                        : 'border-white/[0.08] bg-[#0A0A0C] text-[#9A9AA5] hover:text-[#F5F5F7]'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2.5 text-[12px] text-[#9A9AA5] leading-relaxed">
+                {voiceMode === 'realtime'
+                  ? realtimeSurcharge > 0
+                    ? `Temps réel : le plus fluide et le plus rapide, il perçoit le ton de l'appelant. La voix choisie ci-dessus n'est pas utilisée dans ce mode, le modèle parle avec la sienne. Option facturée ${realtimeSurcharge.toFixed(2).replace('.', ',')} € par minute réellement passée dans ce mode, en plus de votre forfait.`
+                    : "Temps réel : le plus fluide et le plus rapide, il perçoit le ton de l'appelant. La voix choisie ci-dessus n'est pas utilisée dans ce mode, le modèle parle avec la sienne."
+                  : voiceMode === 'classic'
+                    ? "Classique : la voix choisie ci-dessus est celle que l'appelant entend. Un peu plus de délai avant chaque réponse."
+                    : realtimeSurcharge > 0
+                      ? 'Automatique : mode classique, sans supplément. Le temps réel ne s’active que si vous le choisissez.'
+                      : 'Automatique : suit le réglage par défaut de la plateforme.'}
+              </p>
+              {customVoice && (
+                /* Dire la règle plutôt que la laisser surprendre: le client qui
+                   a enregistré sa voix l'entend TOUJOURS, parce que c'est ce
+                   qu'il est venu chercher. Sans cette ligne, choisir « temps
+                   réel » et n'entendre aucun changement passe pour une panne. */
+                <p className="mt-2 text-[12px] text-[#7349fe] leading-relaxed">
+                  Votre voix clonée l'emporte sur ce réglage : elle répond dans tous les cas.
+                </p>
+              )}
+            </div>
           </div>
         )}
 

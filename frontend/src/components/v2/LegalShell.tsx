@@ -7,7 +7,9 @@ import { useLang } from '../../stores/langStore';
 
 /* Shell des pages légales V2 « Papier & Signal », voir DA/v2-direction.md.
    Header éditorial (eyebrow, display whisper, date), puis grille [TOC sticky | mesure 680px].
-   Le scroll-spy reprend le mécanisme de la V1 (pages/legal/Privacy.tsx). */
+   Le scroll-spy reprend le mécanisme des pages légales de la V1, supprimées
+   depuis: ces pages étaient dupliquées et les corrections partaient dans la
+   copie morte. Il n'existe plus qu'une politique, celle-ci. */
 
 export interface LegalSectionRef {
   id: string;

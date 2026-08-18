@@ -15,7 +15,9 @@ import LegalShell, {
 } from '../../../components/v2/LegalShell';
 
 /* Politique de confidentialité V2 « Papier & Signal ».
-   Contenu FR/EN porté à l'identique depuis pages/legal/Privacy.tsx. */
+   Seule politique de confidentialité du site: la copie V1 a été supprimée le
+   16/08/2026, après qu'une correction de la durée de conservation eut atterri
+   dans cette copie morte au lieu de la page réellement servie. */
 
 export default function Privacy() {
   const { lang } = useLang();
@@ -62,16 +64,37 @@ export default function Privacy() {
     [isFr],
   );
 
+  /* Cette table est la liste des destinataires, pas une vitrine: un
+     sous-traitant qui traite des données et qui n'y figure pas rend la
+     politique fausse. Deepgram entend chaque appel, Sentry reçoit les
+     rapports d'erreur, Google reçoit les créneaux, Anthropic sert le module
+     Comptabilité: aucun des quatre n'était listé. */
   const subProcessors = [
     { name: 'Vapi', purpose: isFr ? 'Orchestration vocale IA' : 'AI voice orchestration', region: 'USA' },
     { name: 'Twilio', purpose: isFr ? 'Téléphonie et SMS' : 'Telephony and SMS', region: 'USA' },
+    { name: 'Deepgram', purpose: isFr ? "Transcription de la parole (contenu des appels)" : 'Speech transcription (call audio)', region: 'USA' },
     { name: 'ElevenLabs', purpose: isFr ? 'Synthèse vocale' : 'Voice synthesis', region: 'USA / EU' },
     { name: 'OpenAI', purpose: isFr ? 'Modèles de langage' : 'Language models', region: 'USA' },
+    {
+      name: 'Anthropic',
+      purpose: isFr ? 'Modèles de langage (module Comptabilité IA)' : 'Language models (Accounting AI module)',
+      region: 'USA',
+    },
+    {
+      name: 'Google',
+      purpose: isFr ? 'Agenda, si vous le connectez' : 'Calendar, if you connect it',
+      region: 'USA / EU',
+    },
     { name: 'Stripe', purpose: isFr ? 'Paiements' : 'Payments', region: 'USA / EU' },
     { name: 'Resend', purpose: isFr ? 'E-mails transactionnels' : 'Transactional emails', region: 'USA' },
     { name: 'Neon', purpose: isFr ? 'Base de données' : 'Database', region: 'USA / EU' },
     { name: 'Vercel', purpose: isFr ? 'Hébergement frontend' : 'Frontend hosting', region: 'USA / EU' },
     { name: 'Render', purpose: isFr ? 'Hébergement backend' : 'Backend hosting', region: 'USA' },
+    {
+      name: 'Sentry',
+      purpose: isFr ? "Rapports d'erreur technique" : 'Technical error reporting',
+      region: 'USA / EU',
+    },
   ];
 
   const rights = isFr
@@ -137,8 +160,8 @@ export default function Privacy() {
           ? "Comment nous collectons, utilisons et protégeons vos données. Sans détour."
           : 'How we collect, use, and protect your data. Plainly stated.'
       }
-      updatedISO="2026-03-01"
-      updatedLabel={isFr ? '1er mars 2026' : 'March 1, 2026'}
+      updatedISO="2026-08-16"
+      updatedLabel={isFr ? '16 août 2026' : 'August 16, 2026'}
       meta={isFr ? 'Conforme RGPD et CCPA' : 'GDPR and CCPA compliant'}
       sections={sections}
       asideExtra={asideExtra}
@@ -286,20 +309,26 @@ export default function Privacy() {
       </LegalSection>
 
       <LegalSection id="data-retention" title={isFr ? 'Conservation des données' : 'Data retention'}>
+        {/* La durée des enregistrements n'est plus une valeur fixe: chaque
+            client la règle entre 30 jours et 5 ans dans ses Paramètres, et la
+            purge quotidienne l'applique réellement, y compris chez Vapi.
+            Annoncer « 90 jours » tout court serait faux dans les deux sens. */}
         <LegalList
           items={
             isFr
               ? [
-                  "Enregistrements d'appels et transcriptions : 90 jours après la création.",
+                  "Enregistrements d'appels et transcriptions : 90 jours par défaut, réglable par chaque client entre 30 jours et 5 ans dans ses Paramètres. Une purge automatique quotidienne applique la durée choisie, y compris chez notre fournisseur de téléphonie.",
                   "Données de compte : durée de l'abonnement + 30 jours après résiliation.",
                   'Signaux de fraude : conservés indéfiniment sous forme hachée.',
                   'Journaux de facturation : 7 ans (obligation légale).',
+                  "Preuves de consentement à être appelé : 3 ans, y compris après révocation, parce que la loi nous impose de pouvoir les produire.",
                 ]
               : [
-                  'Call recordings and transcripts: 90 days after creation.',
+                  'Call recordings and transcripts: 90 days by default, adjustable by each client between 30 days and 5 years in their Settings. A daily automatic purge enforces the chosen duration, including at our telephony provider.',
                   'Account data: subscription duration + 30 days after cancellation.',
                   'Fraud signals: retained indefinitely in hashed form.',
                   'Billing logs: 7 years (legal requirement).',
+                  'Proof of consent to be called: 3 years, including after revocation, because the law requires us to be able to produce it.',
                 ]
           }
         />
@@ -320,11 +349,33 @@ export default function Privacy() {
         id="outbound-calling"
         title={isFr ? 'Démarchage téléphonique' : 'Outbound calling disclosure'}
       >
-        <LegalP>
+        {/* Cette section décrivait le régime AMÉRICAIN (TCPA, listes DNC
+            fédérales et d'État) sur un marché franco-belge, et elle ignorait
+            la bascule française du 11/08/2026. Le texte ci-dessous décrit ce
+            que le moteur sortant applique réellement, pays par pays:
+            `backend/src/utils/outbound-legal.ts`. */}
+        <LegalP className="mb-6">
           {isFr
-            ? "Qwillio peut effectuer des appels sortants vers des lignes fixes professionnelles pour le compte de nos clients, en conformité avec le TCPA (Telephone Consumer Protection Act). Nous ne contactons jamais de numéros de téléphone mobiles ou personnels sans consentement préalable exprimé par écrit. Tous les appels sortants respectent les listes DNC (Do Not Call) fédérales et des États."
-            : 'Qwillio may place outbound calls to business landlines on behalf of our clients in compliance with the TCPA (Telephone Consumer Protection Act). We never contact mobile or personal phone numbers without prior express written consent. All outbound calls comply with federal and state Do Not Call (DNC) lists.'}
+            ? "Qwillio peut effectuer des appels sortants pour le compte de ses clients. La règle appliquée dépend du pays du numéro appelé, et elle est vérifiée avant chaque appel, pas après."
+            : 'Qwillio may place outbound calls on behalf of its clients. The rule applied depends on the country of the number dialled, and it is checked before each call, not after.'}
         </LegalP>
+        <LegalList
+          items={
+            isFr
+              ? [
+                  "France : depuis la loi n° 2025-594, applicable au 11 août 2026, le démarchage téléphonique suppose un consentement préalable. Nous n'appelons un numéro français que si un consentement est enregistré à son nom, avec sa date, son origine et le libellé exact accepté. Les appels ont lieu du lundi au vendredi, de 10 h à 13 h et de 14 h à 20 h, hors jours fériés, et un même numéro n'est pas sollicité plus de quatre fois par mois.",
+                  "Belgique : le régime reste celui de l'opposition. Nous n'appelons pas les numéros inscrits sur la liste « Ne m'appelez plus ! », et nous respectons des plages horaires volontairement plus étroites que ce que la loi impose.",
+                  "États-Unis : appels vers des lignes professionnelles, conformément au TCPA et aux listes DNC fédérales et d'État.",
+                  "Partout : l'agent annonce qu'il est une intelligence artificielle dès sa première phrase, et un refus exprimé pendant l'appel (« ne me rappelez plus ») est enregistré définitivement, révoque tout consentement antérieur, et vaut pour tous nos clients. Le STOP par SMS produit le même effet.",
+                ]
+              : [
+                  'France: under law no. 2025-594, applicable from 11 August 2026, telephone canvassing requires prior consent. We call a French number only if a consent is on file for it, with its date, its origin and the exact wording accepted. Calls take place Monday to Friday, 10am to 1pm and 2pm to 8pm, excluding public holidays, and a given number is not solicited more than four times per month.',
+                  'Belgium: the opt-out regime still applies. We do not call numbers listed on the "Ne m\'appelez plus !" register, and we keep to time windows deliberately narrower than the law requires.',
+                  'United States: calls to business lines, in compliance with the TCPA and federal and state Do Not Call lists.',
+                  'Everywhere: the agent states that it is an artificial intelligence in its very first sentence, and a refusal expressed during a call ("do not call me again") is recorded permanently, revokes any earlier consent, and applies across all our clients. An SMS STOP has the same effect.',
+                ]
+          }
+        />
       </LegalSection>
 
       <LegalSection id="rights" title={isFr ? 'Vos droits' : 'Your rights'}>

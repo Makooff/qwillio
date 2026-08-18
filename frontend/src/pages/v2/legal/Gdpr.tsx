@@ -14,7 +14,7 @@ import LegalShell, {
 } from '../../../components/v2/LegalShell';
 
 /* Droits RGPD V2 « Papier & Signal ».
-   Contenu FR/EN porté à l'identique depuis pages/legal/Gdpr.tsx. */
+   Seule page RGPD du site (la copie V1 a été supprimée le 16/08/2026). */
 
 interface DataRight {
   article: string;
