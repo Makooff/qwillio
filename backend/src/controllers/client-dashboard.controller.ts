@@ -267,6 +267,11 @@ export class ClientDashboardController {
            l'emportent. Normalisé ici comme il l'est à l'écriture: une valeur
            inconnue en base ne doit pas afficher un mode qui n'existe pas. */
         voiceMode:         ['realtime', 'classic'].includes(cfg.voiceMode) ? cfg.voiceMode : 'auto',
+        /* Le prix de l'option temps réel, pour que l'écran l'ANNONCE. Un
+           supplément à la minute qui ne s'affiche pas là où on l'active se
+           découvre sur la facture, et c'est ainsi qu'on récolte un litige
+           plutôt qu'un client. 0 = option non vendue, l'écran n'en parle pas. */
+        realtimeSurchargeEur: env.VOICE_REALTIME_SURCHARGE_EUR,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

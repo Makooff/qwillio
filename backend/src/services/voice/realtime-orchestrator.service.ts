@@ -111,6 +111,12 @@ class RealtimeOrchestratorService {
         : undefined,
     });
 
+    /* Le mode retenu est consigné sur la session dès qu'il est connu: c'est
+       lui qui sera facturé, et non le réglage du client. L'écart entre les deux
+       est réel — une voix clonée ramène au classique un client réglé en temps
+       réel — et c'est précisément l'écart qui produirait une surfacturation. */
+    callSessionStore.setSpeechToSpeech(vapiCallId, speechToSpeech);
+
     // Après `buildSpeech`: l'accueil dépend du mode retenu.
     const firstMessage = await this.resolveFirstMessage(profile, caller.knownName, speechToSpeech);
 
@@ -397,18 +403,35 @@ class RealtimeOrchestratorService {
      * Le mode de voix l'accompagne, sinon les deux chaînes se mélangent dans
      * la moyenne et le chiffre ne répond plus à la seule question qui compte:
      * combien coûte la minute en parole-à-parole PLUTÔT qu'en classique. */
+    /* Le mode facturé vient de la SESSION, c'est-à-dire de la décision prise au
+       moment de construire l'assistant, et non d'une re-déduction du réglage à
+       la fin de l'appel. Les deux divergent pour de bon: une voix clonée ramène
+       au classique un client réglé en « temps réel », et un client qui change
+       de mode en cours de mois ferait recalculer ses appels passés au nouveau
+       tarif. Le temps réel se vendant au supplément, cet écart n'est plus une
+       imprécision, c'est une erreur de facture.
+
+       Le repli sur le profil ne sert qu'au cas où le processus a redémarré
+       pendant l'appel: la session vit en mémoire. Il reste juste dans
+       l'immense majorité des cas, et il vaut mieux qu'un `null`. */
     const profile = await realtimeContextService.getClientProfile(clientId).catch(() => null);
+    const decided = session?.speechToSpeech;
+    const voiceMode = typeof decided === 'boolean'
+      ? (decided ? 'realtime' : 'classic')
+      : profile
+        ? (useSpeechToSpeech({ hasCustomVoice: !!profile.customVoice, voiceMode: profile.voiceMode })
+            ? 'realtime' : 'classic')
+        : null;
     const billing = {
       costUsd: typeof msg.cost === 'number' ? msg.cost : null,
       costBreakdown: msg.costBreakdown ?? msg.costs ?? null,
       durationSeconds,
-      voiceMode: profile
-        ? (useSpeechToSpeech({ hasCustomVoice: !!profile.customVoice, voiceMode: profile.voiceMode })
-            ? 'realtime' : 'classic')
-        : null,
+      voiceMode,
+      /* D'où vient le mode: une facture contestée doit pouvoir se relire. */
+      voiceModeSource: typeof decided === 'boolean' ? 'session' : profile ? 'profile' : 'unknown',
     };
 
-    return { transcript, durationSeconds, callerNumber: callerNumberOf(event), metrics, billing };
+    return { transcript, durationSeconds, callerNumber: callerNumberOf(event), metrics, billing, voiceMode };
   }
 
   /**

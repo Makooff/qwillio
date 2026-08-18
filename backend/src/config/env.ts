@@ -122,6 +122,20 @@ export const env = {
    * c'est le seul interrupteur à connaître si le rendu déplaît ou si la minute
    * coûte trop cher. */
   VOICE_SPEECH_TO_SPEECH: (process.env.VOICE_SPEECH_TO_SPEECH || 'on').toLowerCase() !== 'off',
+  /**
+   * Supplément facturé à la minute pour le mode parole-à-parole, en euros.
+   *
+   * 0 (défaut) = l'option n'est PAS vendue: rien ne change, `auto` suit le
+   * réglage global et aucune facture n'est produite.
+   *
+   * Dès qu'il est > 0, l'option devient payante, et une conséquence en
+   * découle: `auto` cesse de résoudre en temps réel. Sans cela, tous les
+   * clients existants — qui sont en `auto` — se retrouveraient facturés d'une
+   * option qu'ils n'ont jamais demandée, à la fin du mois, sans avertissement.
+   * Poser ce prix est donc l'unique interrupteur: il met l'option en vente ET
+   * la rend explicitement choisie.
+   */
+  VOICE_REALTIME_SURCHARGE_EUR: Math.max(0, parseFloat(process.env.VOICE_REALTIME_SURCHARGE_EUR || '0') || 0),
   VOICE_REALTIME_MODEL: process.env.VOICE_REALTIME_MODEL || 'gpt-realtime-2025-08-28',
   /** Cap on a single assistant turn; long completions are long silences. */
   VOICE_MAX_COMPLETION_TOKENS: parseInt(process.env.VOICE_MAX_COMPLETION_TOKENS || '120', 10),

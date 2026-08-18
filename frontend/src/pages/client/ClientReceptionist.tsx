@@ -317,6 +317,8 @@ export default function ClientReceptionist() {
      `realtime` et `classic` l'emportent, par client. Existait dans le
      backend sans aucun moyen de le changer. */
   const [voiceMode, setVoiceMode] = useState<'auto' | 'realtime' | 'classic'>('auto');
+  /* Prix de l'option temps réel, à la minute. 0 = non vendue. */
+  const [realtimeSurcharge, setRealtimeSurcharge] = useState(0);
   /* Un seul panneau ouvert à la fois, et AUCUN à l'arrivée.
    *
    * Cet état était initialisé à `'identite'` et mémorisé dans `localStorage`:
@@ -394,6 +396,7 @@ export default function ClientReceptionist() {
       setCharacterId(s?.characterId || 'marie');
       setCustomVoice(s?.customVoice?.voiceId ? s.customVoice : null);
       setVoiceMode(s?.voiceMode === 'realtime' || s?.voiceMode === 'classic' ? s.voiceMode : 'auto');
+      setRealtimeSurcharge(Number(s?.realtimeSurchargeEur) > 0 ? Number(s.realtimeSurchargeEur) : 0);
       // Values below come from the server → don't trigger an auto-save.
       hydrated.current = true;
       skipAutosave.current = true;
@@ -751,7 +754,12 @@ export default function ClientReceptionist() {
               <div className="flex flex-wrap gap-2">
                 {([
                   { id: 'auto', label: 'Automatique' },
-                  { id: 'realtime', label: 'Temps réel' },
+                  {
+                    id: 'realtime',
+                    label: realtimeSurcharge > 0
+                      ? `Temps réel · +${realtimeSurcharge.toFixed(2).replace('.', ',')} €/min`
+                      : 'Temps réel',
+                  },
                   { id: 'classic', label: 'Classique' },
                 ] as const).map(m => (
                   <button
@@ -771,10 +779,14 @@ export default function ClientReceptionist() {
               </div>
               <p className="mt-2.5 text-[12px] text-[#9A9AA5] leading-relaxed">
                 {voiceMode === 'realtime'
-                  ? "Temps réel : le plus fluide et le plus rapide, il perçoit le ton de l'appelant. La voix choisie ci-dessus n'est pas utilisée dans ce mode, le modèle parle avec la sienne."
+                  ? realtimeSurcharge > 0
+                    ? `Temps réel : le plus fluide et le plus rapide, il perçoit le ton de l'appelant. La voix choisie ci-dessus n'est pas utilisée dans ce mode, le modèle parle avec la sienne. Option facturée ${realtimeSurcharge.toFixed(2).replace('.', ',')} € par minute réellement passée dans ce mode, en plus de votre forfait.`
+                    : "Temps réel : le plus fluide et le plus rapide, il perçoit le ton de l'appelant. La voix choisie ci-dessus n'est pas utilisée dans ce mode, le modèle parle avec la sienne."
                   : voiceMode === 'classic'
                     ? "Classique : la voix choisie ci-dessus est celle que l'appelant entend. Un peu plus de délai avant chaque réponse."
-                    : 'Automatique : suit le réglage par défaut de la plateforme.'}
+                    : realtimeSurcharge > 0
+                      ? 'Automatique : mode classique, sans supplément. Le temps réel ne s’active que si vous le choisissez.'
+                      : 'Automatique : suit le réglage par défaut de la plateforme.'}
               </p>
               {customVoice && (
                 /* Dire la règle plutôt que la laisser surprendre: le client qui

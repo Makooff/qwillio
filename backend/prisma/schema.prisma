@@ -20,10 +20,12 @@ model User {
   confirmationToken   String?              @unique @map("confirmation_token") @db.VarChar(255)
   resetToken          String?              @unique @map("reset_token") @db.VarChar(255)
   resetTokenExpiry    DateTime?            @map("reset_token_expiry")
-  /* Changement d'adresse en DEUX temps. La nouvelle adresse attend ici, avec
-     son jeton, tant que son propriétaire n'a pas cliqué le lien qu'elle a reçu.
-     Écrire directement dans `email` fermerait le compte à la première faute de
-     frappe, sans aucun retour possible. */
+  /**
+   * Changement d'adresse en DEUX temps. La nouvelle adresse attend ici, avec
+   * son jeton, tant que son propriétaire n'a pas cliqué le lien qu'elle a reçu.
+   * Écrire directement dans `email` fermerait le compte à la première faute de
+   * frappe, sans aucun retour possible.
+   */
   pendingEmail        String?              @map("pending_email") @db.VarChar(255)
   pendingEmailToken   String?              @unique @map("pending_email_token") @db.VarChar(255)
   pendingEmailExpiry  DateTime?            @map("pending_email_expiry")
@@ -304,12 +306,14 @@ model Client {
   contactEmail               String                    @map("contact_email") @db.VarChar(255)
   contactPhone               String?                   @map("contact_phone") @db.VarChar(50)
   address                    String?                   @db.VarChar(500)
-  /* Numéro de TVA intracommunautaire, tel que le client le déclare.
-     Sans lui, la facture Stripe sort sans mention de TVA: un client belge
-     assujetti ne peut pas la porter en compte, et un client d'un autre État
-     membre ne bénéficie pas de l'autoliquidation. C'est la première chose que
-     son comptable réclame. Stocké tel quel, sans espaces ni points, et poussé
-     chez Stripe en `tax_id` pour apparaître sur la facture elle-même. */
+  /**
+   * Numéro de TVA intracommunautaire, tel que le client le déclare.
+   * Sans lui, la facture Stripe sort sans mention de TVA: un client belge
+   * assujetti ne peut pas la porter en compte, et un client d'un autre État
+   * membre ne bénéficie pas de l'autoliquidation. C'est la première chose que
+   * son comptable réclame. Stocké tel quel, sans espaces ni points, et poussé
+   * chez Stripe en `tax_id` pour apparaître sur la facture elle-même.
+   */
   vatNumber                  String?                   @map("vat_number") @db.VarChar(32)
   city                       String?                   @db.VarChar(100)
   postalCode                 String?                   @map("postal_code") @db.VarChar(20)
@@ -603,6 +607,12 @@ model ClientCall {
   endedAt          DateTime?       @map("ended_at")
   durationSeconds  Int?            @map("duration_seconds")
   status           String          @default("in-progress") @db.VarChar(50)
+  /**
+   * Le moteur vocal RÉELLEMENT utilisé: 'realtime' ou 'classic'. Ce qui s'est
+   * produit, pas ce qui était réglé — une voix clonée force le classique même
+   * si le client a choisi le temps réel. Null = inconnu, donc jamais facturé.
+   */
+  voiceMode        String?         @map("voice_mode") @db.VarChar(20)
   transcript       String?
   summary          String?
   sentiment        String?         @db.VarChar(50)
@@ -630,6 +640,7 @@ model ClientCall {
   @@index([clientId])
   @@index([status])
   @@index([createdAt])
+  @@index([clientId, voiceMode, createdAt])
   @@index([clientId, createdAt])
   @@map("client_calls")
 }
@@ -655,33 +666,33 @@ model SpamNumber {
 }
 
 model ClientBooking {
-  id                  String      @id @default(uuid()) @db.Uuid
-  clientId            String      @map("client_id") @db.Uuid
-  clientCallId        String?     @map("client_call_id") @db.Uuid
-  customerName        String      @map("customer_name") @db.VarChar(255)
-  customerPhone       String?     @map("customer_phone") @db.VarChar(50)
-  customerEmail       String?     @map("customer_email") @db.VarChar(255)
-  bookingDate         DateTime    @map("booking_date")
-  bookingTime         String?     @map("booking_time") @db.VarChar(20)
-  serviceType         String?     @map("service_type") @db.VarChar(255)
-  partySize           Int?        @map("party_size")
-  specialRequests     String?     @map("special_requests")
-  status              String      @default("confirmed") @db.VarChar(50)
-  reminderSent        Boolean     @default(false) @map("reminder_sent")
-  reminderSentAt      DateTime?   @map("reminder_sent_at")
-  googleEventId       String?     @map("google_event_id") @db.VarChar(255)
+  id                   String      @id @default(uuid()) @db.Uuid
+  clientId             String      @map("client_id") @db.Uuid
+  clientCallId         String?     @map("client_call_id") @db.Uuid
+  customerName         String      @map("customer_name") @db.VarChar(255)
+  customerPhone        String?     @map("customer_phone") @db.VarChar(50)
+  customerEmail        String?     @map("customer_email") @db.VarChar(255)
+  bookingDate          DateTime    @map("booking_date")
+  bookingTime          String?     @map("booking_time") @db.VarChar(20)
+  serviceType          String?     @map("service_type") @db.VarChar(255)
+  partySize            Int?        @map("party_size")
+  specialRequests      String?     @map("special_requests")
+  status               String      @default("confirmed") @db.VarChar(50)
+  reminderSent         Boolean     @default(false) @map("reminder_sent")
+  reminderSentAt       DateTime?   @map("reminder_sent_at")
+  googleEventId        String?     @map("google_event_id") @db.VarChar(255)
   /// Suivi de la synchronisation calendrier. `calendarSyncedAt` renseigné vaut
   /// « réglé » (synchronisé, ou rien à synchroniser faute de calendrier lié) ;
   /// nul avec des tentatives > 0 vaut « en échec, à reprendre ».
-  calendarSyncedAt    DateTime?   @map("calendar_synced_at")
-  calendarSyncAttempts Int        @default(0) @map("calendar_sync_attempts")
-  notes               String?
-  createdAt           DateTime    @default(now()) @map("created_at")
-  updatedAt           DateTime    @default(now()) @updatedAt @map("updated_at")
-  smsConfirmationSent Boolean     @default(false) @map("sms_confirmation_sent")
-  smsReminderSent     Boolean     @default(false) @map("sms_reminder_sent")
-  clientCall          ClientCall? @relation(fields: [clientCallId], references: [id])
-  client              Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  calendarSyncedAt     DateTime?   @map("calendar_synced_at")
+  calendarSyncAttempts Int         @default(0) @map("calendar_sync_attempts")
+  notes                String?
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @default(now()) @updatedAt @map("updated_at")
+  smsConfirmationSent  Boolean     @default(false) @map("sms_confirmation_sent")
+  smsReminderSent      Boolean     @default(false) @map("sms_reminder_sent")
+  clientCall           ClientCall? @relation(fields: [clientCallId], references: [id])
+  client               Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([bookingDate])

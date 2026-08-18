@@ -37,6 +37,15 @@ export interface CallSession {
   language: VoiceLanguage;
   /** Row id once the call has been persisted, for tools that link to it. */
   clientCallId: string | null;
+  /**
+   * Le moteur RÉELLEMENT retenu pour cet appel, décidé par `buildSpeech`.
+   *
+   * C'est une donnée de facturation, pas un réglage: le temps réel se vend au
+   * supplément, et une voix clonée force le classique même quand le client a
+   * choisi le temps réel. Facturer le réglage surfacturerait donc tout client
+   * ayant enregistré sa voix. `null` tant que l'assistant n'est pas construit.
+   */
+  speechToSpeech: boolean | null;
   /** Rolling transcript, appended per final utterance. */
   transcript: string[];
   /** How many caller turns we have seen — drives first-turn intent rules. */
@@ -126,6 +135,7 @@ class CallSessionStore {
       startedAt: Date.now(),
       language: input.language,
       clientCallId: null,
+      speechToSpeech: null,
       transcript: [],
       callerTurns: 0,
       deflectedTurns: 0,
@@ -144,6 +154,18 @@ class CallSessionStore {
     };
     this.sessions.set(input.vapiCallId, session);
     return session;
+  }
+
+  /**
+   * Consigne le moteur retenu, une fois l'assistant construit.
+   *
+   * Séparé de `start()` parce que la session s'ouvre AVANT que le modèle et la
+   * voix soient choisis: c'est `buildSpeech` qui tranche, quelques lignes plus
+   * bas, et lui seul connaît l'effet de la voix clonée.
+   */
+  setSpeechToSpeech(vapiCallId: string | null, speechToSpeech: boolean): void {
+    const session = this.get(vapiCallId);
+    if (session) session.speechToSpeech = speechToSpeech;
   }
 
   get(vapiCallId: string | null): CallSession | null {

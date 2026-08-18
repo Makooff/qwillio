@@ -282,6 +282,12 @@ export function useSpeechToSpeech(opts: {
   if (opts.hasCustomVoice) return false;
   if (opts.voiceMode === 'realtime') return true;
   if (opts.voiceMode === 'classic') return false;
+  /* `auto` quand l'option est VENDUE (supplément posé) vaut « non ».
+     Le défaut global met tout le monde en temps réel; laisser `auto` y
+     résoudre reviendrait à facturer un supplément à des clients qui n'ont
+     jamais rien choisi, et à le leur apprendre par la facture. Un supplément
+     ne peut être dû que par un choix explicite. */
+  if (env.VOICE_REALTIME_SURCHARGE_EUR > 0) return false;
   return env.VOICE_SPEECH_TO_SPEECH;
 }
 

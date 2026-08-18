@@ -203,6 +203,7 @@ export class VoiceWebhookController {
       finalized.durationSeconds,
       finalized.callerNumber ?? undefined,
       recordingUrl,
+      finalized.voiceMode,
     );
 
     await realtimeOrchestratorService.persistMetrics(

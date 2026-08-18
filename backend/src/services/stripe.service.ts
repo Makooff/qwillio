@@ -390,6 +390,59 @@ export class StripeService {
   // OVERAGE BILLING — Reports excess call usage to Stripe
   // Creates a one-time invoice item for calls beyond quota
   // ═══════════════════════════════════════════════════════════
+  /**
+   * Le supplément du mode parole-à-parole, facturé à la minute réellement
+   * passée dans ce mode.
+   *
+   * Ne fait rien tant que `VOICE_REALTIME_SURCHARGE_EUR` vaut 0: l'option
+   * n'est alors pas vendue, et poser ce prix est le seul geste qui la met en
+   * vente. Le même réglage fait résoudre `auto` en classique, pour qu'aucun
+   * client ne découvre l'option sur sa facture.
+   */
+  private async reportRealtimeSurcharge(input: {
+    clientId: string;
+    customerId: string | null;
+    businessName: string;
+    billedMonth: string;
+    billedMonthStart: Date;
+    monthStart: Date;
+  }): Promise<void> {
+    const rate = env.VOICE_REALTIME_SURCHARGE_EUR;
+    if (rate <= 0 || !input.customerId) return;
+
+    const agg = await prisma.clientCall.aggregate({
+      where: {
+        clientId: input.clientId,
+        isSpam: false,
+        voiceMode: 'realtime',
+        createdAt: { gte: input.billedMonthStart, lt: input.monthStart },
+      },
+      _sum: { durationSeconds: true },
+    });
+    const minutes = Math.round((agg._sum.durationSeconds ?? 0) / 60);
+    if (minutes <= 0) return;
+
+    logger.info(
+      `Realtime surcharge for ${input.businessName} (${input.billedMonth}): ${minutes} min x €${rate} = €${(minutes * rate).toFixed(2)}`,
+    );
+
+    try {
+      await stripe.invoiceItems.create(
+        {
+          customer: input.customerId,
+          amount: Math.round(minutes * rate * 100), // centimes
+          currency: 'eur',
+          description: `Voix temps réel ${input.billedMonth} : ${minutes} minutes x €${rate}/min`,
+        },
+        // Distincte de celle du dépassement: les deux lignes coexistent sur la
+        // même facture, et un cron rejoué ne doit dupliquer ni l'une ni l'autre.
+        { idempotencyKey: `realtime-${input.clientId}-${input.billedMonth}` },
+      );
+    } catch (err) {
+      logger.error(`Failed to create realtime surcharge invoice for ${input.businessName}:`, err);
+    }
+  }
+
   async reportOverageUsage(clientId: string) {
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client || !client.stripeSubscriptionId) return;
@@ -418,6 +471,26 @@ export class StripeService {
       _sum: { durationSeconds: true },
     });
     const minutesUsed = Math.round((agg._sum.durationSeconds ?? 0) / 60);
+
+    /* Le supplément « temps réel », AVANT le retour anticipé du dépassement.
+     *
+     * C'est une option à la minute, pas un dépassement: un client qui reste
+     * sous son quota la doit quand même, sinon l'option ne serait facturée
+     * qu'aux gros consommateurs. Les deux lignes sont donc indépendantes, avec
+     * chacune sa clé d'idempotence.
+     *
+     * On somme `voiceMode: 'realtime'`, c'est-à-dire le moteur RÉELLEMENT
+     * utilisé, consigné appel par appel. Les appels antérieurs à cette colonne
+     * valent `null` et ne sont pas facturés: une facture ne se fonde pas sur
+     * une reconstitution. */
+    await this.reportRealtimeSurcharge({
+      clientId,
+      customerId: client.stripeCustomerId,
+      businessName: client.businessName,
+      billedMonth,
+      billedMonthStart,
+      monthStart,
+    });
 
     const overage = minutesUsed - includedMinutes;
     if (overage <= 0) return;
