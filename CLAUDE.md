@@ -228,21 +228,41 @@ No Co-Authored-By attribution (disabled globally).
 
 ---
 
-## Chantiers ouverts (dernière mise à jour : 2026-08-06)
+## Chantiers ouverts (dernière mise à jour : 2026-08-19)
 
 À reprendre en priorité. Chaque point porte son diagnostic pour ne pas le refaire.
+Les points réglés restent écrits, avec ce qui les a réglés : c'est ce qui évite
+de les rediagnostiquer, et deux d'entre eux avaient déjà coûté ce détour.
 
-### 1. Micro et audio (iOS) — le plus gênant
-- **L'autorisation micro ne persiste pas.** `VapiLiveCall.tsx` demande le micro puis coupe aussitôt les pistes (`getTracks().forEach(t => t.stop())`). Le commentaire affirme que l'autorisation survit à la page : vrai sur Chrome, **faux sur iOS Safari**, qui la relâche avec la piste. D'où une invite à chaque fois, et l'erreur « Micro indisponible » quand la sonde et le SDK se disputent le périphérique. Correctif : garder le flux ouvert pour la session, ou supprimer la sonde et laisser le SDK demander.
-- **Le diagramme ne réagit pas à l'audio.** `useVoicePreview` a deux chemins : `playDecoded` (Web Audio, avec analyseur) et `playElement` (un `<audio>` nu, **sans** analyseur), ce dernier servant de repli quand Web Audio échoue. Instrumenter le repli reviendrait à faire repasser un son qui marche par le sous-système qui vient de tomber. La vraie cause est l'échec du chemin Web Audio ; il faut la sortie console d'un aperçu depuis un iPhone.
-- Même racine probable pour les aperçus de voix qui « ne fonctionnent pas » sur Réceptionniste et Home.
+### 1. Micro et audio (iOS)
+- **L'autorisation micro : réglée le 19/08, et il faut savoir comment.** La
+  sonde ne vit plus dans l'en-tête mais dans `VapiLiveCall`, parce que c'est ce
+  composant qui possède le clic : sur Safari iOS, une demande de micro qui
+  arrive après la fin du geste est refusée **en silence**, et il ne reste qu'un
+  bouton qui tourne 25 secondes. Elle est donc la première chose attendue de
+  `start()` (tout ce qui la précède est synchrone) et le flux est **tenu** pour
+  la durée de l'appel, relâché dans `settle()` et au démontage. Les deux
+  variantes ont été essayées : « laisser le SDK demander seul » ne tient pas sur
+  iPhone, c'est la régression du 19/08.
+- **Le diagramme d'aperçu : la note précédente décrivait l'inverse du code.**
+  Ce n'est pas `playDecoded` qui est le chemin normal, c'est `playElement` : le
+  chemin décodé n'est que le repli quand l'élément est bloqué. `observeElement`
+  route donc déjà l'élément dans l'analyseur, sous deux gardes (contexte
+  `running`, lecture confirmée à l'horloge). Reste une **course** : la reprise
+  du contexte est lancée au clic sans être attendue (l'attendre ferait sortir la
+  lecture du geste), et un seul essai à 700 ms la perdait sur un téléphone qui
+  sort de veille. Trois essais espacés couvrent maintenant la fenêtre. Aucune
+  sortie console d'iPhone n'est nécessaire, contrairement à ce qui était écrit.
 
-### 2. Déplacer des champs vers Paramètres — trois étapes INDISSOCIABLES
-Langue, nom et type d'entreprise, et la section Coordonnées doivent quitter Réceptionniste pour Paramètres.
-Le PUT backend est **partiel** (`if (body.x !== undefined)`), donc Paramètres peut n'envoyer que ses champs. Mais :
-1. poser d'abord les champs dans Paramètres (sinon ils deviennent inéditables) ;
-2. retirer les clés correspondantes du payload de Réceptionniste **en même temps** que ses inputs, sinon son autosave réécrit par-dessus avec sa copie périmée ;
-3. ne jamais faire 2 sans 1 : le symptôme n'est pas visuel, c'est une perte de données silencieuse.
+### 2. Déplacer des champs vers Paramètres — FAIT, ne pas refaire
+Langue, nom et type d'entreprise et les coordonnées vivent dans
+`pages/client/ClientAccount.tsx`, et le payload de `ClientReceptionist` ne les
+porte plus (voir le commentaire de son `autoSave`). Les trois étapes
+indissociables ont bien été jouées dans l'ordre. Le piège reste vrai pour tout
+champ qu'on déplacerait à l'avenir : le PUT backend est **partiel**
+(`if (body.x !== undefined)`), donc une page qui poste encore sa copie périmée
+écrase silencieusement ce que l'autre vient d'enregistrer. Retirer les clés du
+payload **en même temps** que les inputs, jamais après.
 
 ### 3. Facturation : corrigé (ne pas re-diagnostiquer)
 Cette entrée décrivait un aperçu de facturation vide. **Ce n'est plus vrai** : la
@@ -253,15 +273,31 @@ passe désormais par la facture hébergée chez Stripe.
 ### 4. Personnalisation, base de connaissances et FAQ
 Aujourd'hui une zone de texte libre et des listes à plat : tout le travail retombe sur le client. Attendu : champs nommés, sous-catégories, et présets par niche. Les présets **existent déjà côté backend** sous une autre forme (prompts spécialisés par métier, scripts par verticale) : s'y brancher plutôt que créer une seconde liste de niches qui divergera.
 
-### 5. Divers
-- Renommage du nom de l'agent en ligne sur le carrousel (icône crayon à côté du nom).
+### 5. Interruption : un arbitrage, pas un réglage définitif
+`stopSpeakingPlan.numWords` valait 0, donc la seule activité vocale coupait la
+réceptionniste : une porte ou une radio la faisaient taire (« elle arrête de
+parler dès qu'elle entend un peu de bruit », 19/08). Elle attend maintenant
+**deux mots transcrits**, ce qui trie le bruit de la parole au prix de 200 à
+300 ms sur l'interruption volontaire. `VOICE_BARGE_IN_WORDS` règle le curseur
+sans déploiement : 1 pour l'intermédiaire, 0 pour l'ancien comportement.
+
+### 6. Divers
+- Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
+  `CharacterCarousel.tsx`).
 - Géométrie de l'arc du carrousel en 390 px : le compteur ne domine plus, mais l'anneau entier n'a pas été vu à cette largeur.
 - Le flou de la nav sur iOS est corrigé mais **ne peut être validé que sur un vrai iPhone**.
 - Vidéo de fond du hero (`/hero-loop.mp4`) : absente, le hero s'en passe proprement.
-- Région Render : Oregon. Soit la basculer en UE, soit retirer la mention « Hébergement UE » du site.
+- Région Render : Oregon. Le site ne promet plus d'hébergement UE ; soit basculer la région et rétablir la promesse, soit ne pas la réécrire.
 - CRM : **corrigé**, les appels remplissent bien les contacts, et les pages sont reliées au menu. Seul le **pipeline** reste alimenté à la main (« Nouvelle affaire ») : rien ne crée d'affaire automatiquement, et c'est assumé tant qu'on ne sait pas à quelle condition un lead en mérite une.
+- **RLS Postgres : toujours absente.** L'isolation entre clients est applicative,
+  75 `req.clientId` posés à la main dans les WHERE. C'est le point qui tombe au
+  premier questionnaire de sécurité d'un client entreprise.
 
----
+### 7. Ce qui bloque la mesure, et donc trois décisions
+`fleetMetrics` affiche toujours `calls: 0` : aucun appel entrant réel n'a été
+passé. Tant que c'est le cas, la latence, le coût par minute et le prix de
+l'option temps réel (`VOICE_REALTIME_SURCHARGE_EUR`, à 0) restent inconnus tous
+les trois. La marche à suivre est écrite dans `docs/PROTOCOLE-TEST-MOTEURS.md`.
 
 ## Audit « prêt à vendre » du 11/08/2026
 

@@ -420,6 +420,29 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
       setPlaying(null);
     };
 
+    /**
+     * Rattraper l'analyseur pendant que le clip joue.
+     *
+     * Le contexte peut devenir `running` après la première tentative: c'est une
+     * course, pas un échec définitif. Trois essais espacés couvrent la fenêtre
+     * où la reprise aboutit encore utilement; au delà, un clip d'aperçu est
+     * presque fini et brancher l'analyseur ne montrerait plus rien.
+     *
+     * S'arrête à la première réussite, au premier changement de jeton (un autre
+     * aperçu a été lancé), ou dès que la lecture s'arrête.
+     */
+    const attachWhilePlaying = async (el: HTMLAudioElement): Promise<void> => {
+      for (const delay of [400, 800, 1500]) {
+        await wait(delay);
+        if (tokenRef.current !== token || el.paused || elementSourceOwner === el) return;
+        observeElement(el);
+        if (elementSourceOwner === el) {
+          setDebug(`lecteur audio · analysé · ${el.currentTime.toFixed(1)} s`);
+          return;
+        }
+      }
+    };
+
     /** Element playback. Must stay synchronous to keep the gesture alive. */
     const playElement = (href: string, bytes: Uint8Array): Promise<boolean> => {
       const el = elementRef.current ?? new Audio();
@@ -454,6 +477,22 @@ export function useVoicePreview(isFr: boolean): VoicePreview {
             observeElement(el);
             setNotice(null);
             setDebug(`${Math.round(bytes.byteLength / 1024)} ko · lecteur audio${elementSourceOwner === el ? ' · analysé' : ''} · ${el.currentTime.toFixed(1)} s`);
+            /* UN SEUL ESSAI PERDAIT LA COURSE.
+             *
+             * `observeElement` exige un contexte déjà `running`. Or la reprise
+             * est lancée au clic sans être attendue (elle ne peut pas l'être:
+             * l'attendre ferait sortir la lecture du geste, et iOS la
+             * refuserait). Si elle prend plus de 700 ms — un téléphone qui
+             * sort de veille, une page fraîchement ouverte — la seule tentative
+             * tombait sur un contexte encore `suspended`, on renonçait à
+             * l'analyseur, et les barres restaient plates pendant toute la
+             * lecture alors que le son sortait. C'est le défaut signalé.
+             *
+             * On retente donc tant que le clip joue. Chaque essai repasse par
+             * les deux mêmes gardes, donc rien n'est tenté à l'aveugle, et
+             * `observeElement` est idempotent. Ne bloque pas: la lecture est
+             * déjà rendue bonne à l'appelant. */
+            if (elementSourceOwner !== el) void attachWhilePlaying(el);
             return true;
           }
           try { el.pause(); } catch { /* not playing */ }
