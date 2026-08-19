@@ -348,6 +348,16 @@ export default function VapiLiveCall({
    * rien ne bouge autour de lui.
    */
   variant = 'card',
+  /**
+   * L'échec, remonté au parent, et RÉSERVÉ à la variante pilule.
+   *
+   * Une pilule de 36 px de haut ne peut pas porter une phrase. Rendue à
+   * l'intérieur, l'erreur élargissait un bloc marqué « ne pas rétrécir » et
+   * poussait le titre de l'en-tête hors de l'écran sur un téléphone: l'échec
+   * cassait la page en plus de l'annoncer. Le parent la place donc où il a de
+   * la largeur, c'est-à-dire sur sa propre ligne.
+   */
+  onError,
   autoStart = false,
   onEnded,
 }: {
@@ -358,6 +368,7 @@ export default function VapiLiveCall({
   onLevel?: (level: number, speaking: boolean) => void;
   showBars?: boolean;
   variant?: 'card' | 'pill';
+  onError?: (message: string | null, detail: string | null) => void;
   autoStart?: boolean;
   onEnded?: () => void;
 }) {
@@ -380,6 +391,21 @@ export default function VapiLiveCall({
   const [timing, setTiming] = useState<string | null>(null);
 
   const vapiRef = useRef<any>(null);
+  /* LE FLUX MICRO, TENU POUR LA DURÉE DE L'APPEL.
+   *
+   * Safari iOS n'accorde le micro que DANS le geste de l'utilisateur, et il
+   * relâche l'autorisation avec la dernière piste vivante. Laisser le SDK la
+   * demander seul suffit sur Chrome; sur iPhone, la demande arrive parfois
+   * juste après la fin du geste, elle est alors refusée EN SILENCE, et il ne
+   * reste plus qu'un bouton qui tourne 25 secondes avant d'annoncer un échec
+   * de connexion sans cause. C'est le défaut constaté après le passage de
+   * l'appel dans le bouton, qui avait emporté cette sonde avec l'ancienne
+   * carte.
+   *
+   * Elle vit donc ICI plutôt que chez l'appelant: c'est ce composant qui
+   * possède le clic, donc lui seul peut garantir d'être encore dans le geste.
+   * Le flux reste ouvert tant que l'appel dure, et se relâche avec lui. */
+  const micHoldRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /* L'appel a-t-il DÉCROCHÉ ? Sans ce drapeau, `call-end` est traité de la même
      façon qu'il arrive après une conversation ou à la place de celle-ci, et
@@ -499,6 +525,10 @@ export default function VapiLiveCall({
   useEffect(() => () => {
     // Cleanup on unmount: stop any active call.
     try { vapiRef.current?.stop?.(); } catch { /* noop */ }
+    // Changer de page pendant un appel laisserait le micro ouvert pour toute
+    // la durée de la session.
+    micHoldRef.current?.getTracks().forEach(t => t.stop());
+    micHoldRef.current = null;
     if (timerRef.current) clearInterval(timerRef.current);
     if (connectTimeoutRef.current) clearTimeout(connectTimeoutRef.current);
   }, []);
@@ -518,6 +548,11 @@ export default function VapiLiveCall({
      arrêtés. Il y avait trois copies de ces lignes et chacune en oubliait une. */
   const settle = (message?: string | null, detail?: string | null) => {
     if (message) { setError(message); reportedRef.current = true; }
+    /* Le micro se rend AVEC l'appel. Une pastille d'enregistrement qui reste
+       allumée après un raccroché est, à juste titre, ce qui inquiète le plus
+       un utilisateur. */
+    micHoldRef.current?.getTracks().forEach(t => t.stop());
+    micHoldRef.current = null;
     /* Toujours posé, y compris à null: un détail laissé d'une tentative
        précédente se lirait comme celui de l'échec qu'on affiche. */
     setPayload(detail ?? null);
@@ -617,6 +652,18 @@ export default function VapiLiveCall({
       void applyEndedReason(connectFailed);
     }, 25000);
     try {
+      /* LE MICRO D'ABORD, avant toute autre attente.
+         Tout ce qui précède est synchrone, donc cet appel-ci part encore dans
+         le geste, ce qui est la seule condition que pose Safari iOS. Le flux
+         est gardé: le SDK trouvera l'autorisation déjà acquise au lieu de la
+         redemander une seconde fois.
+         Échec toléré: le SDK redemandera de son côté, et un refus se dira en
+         mots (« Micro refusé ») au lieu d'un bouton muet. */
+      if (!micHoldRef.current) {
+        try {
+          micHoldRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch { /* voir ci-dessus */ }
+      }
       // Already resolved in the common case, so this await returns on a
       // microtask and the click is still the current gesture when `vapi.start()`
       // asks for the microphone. Only a press during the very first seconds of
@@ -762,6 +809,11 @@ export default function VapiLiveCall({
   };
 
   useEffect(() => { onLevel?.(level, speaking); }, [level, speaking, onLevel]);
+  /* L'erreur suit le même chemin que le niveau: le composant la calcule, le
+     parent décide où elle s'affiche. `error` change aussi en différé, quand la
+     raison de Vapi arrive, donc c'est bien un effet et pas un appel dans le
+     gestionnaire. */
+  useEffect(() => { onError?.(error, payload); }, [error, payload, onError]);
 
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
@@ -789,71 +841,60 @@ export default function VapiLiveCall({
         : (isFr ? 'Appel test live' : 'Live test call');
 
     return (
-      <div className="flex flex-col items-end gap-1.5 min-w-0">
-        <button
-          type="button"
-          onClick={busy ? stop : start}
-          disabled={state === 'ending'}
-          aria-label={active
-            ? (isFr ? 'Raccrocher' : 'Hang up')
-            : (isFr ? 'Appeler ma réceptionniste' : 'Call my receptionist')}
-          className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-[12.5px] font-medium transition-colors duration-150 active:scale-[0.97] disabled:opacity-60"
-          style={busy
-            ? { background: 'rgba(220,38,38,0.16)', color: '#F5A5A5' }
-            : { background: 'rgba(122,95,255,0.16)', color: '#b9a8ff' }}
-        >
-          {state === 'connecting'
-            ? <Loader2 size={14} aria-hidden="true" />
-            : active
-              ? <PhoneOff size={14} aria-hidden="true" />
-              : <PhoneCall size={14} aria-hidden="true" />}
-          {/* L'étiquette seule change, jamais la pilule: une largeur qui saute
-              à chaque étape ferait bouger tout l'en-tête. `mode="popLayout"`
-              retire l'ancienne du flux pendant que la nouvelle entre, donc les
-              deux ne se chevauchent pas en largeur. */}
-          <span className="hidden sm:inline overflow-hidden">
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.span
-                key={label}
-                className="inline-block tabular-nums whitespace-nowrap"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
-              >
-                {label}
-              </motion.span>
-            </AnimatePresence>
-          </span>
-          {/* Qui parle, réduit à un point. Pendant un appel c'est la seule
-              chose qu'on cherche des yeux, et elle tient dans 6 px. */}
-          {active && (
-            <span
-              aria-hidden="true"
-              className="w-1.5 h-1.5 rounded-full"
-              style={{
-                background: speaking ? '#F5A5A5' : 'rgba(245,165,165,0.35)',
-                transform: `scale(${1 + Math.min(level, 1) * 0.6})`,
-                transition: 'transform 90ms linear, background-color 120ms linear',
-              }}
-            />
-          )}
-        </button>
-
-        {error && (
-          <div className="max-w-[min(20rem,70vw)] text-right">
-            <p className="text-[11px] leading-snug" style={{ color: '#dc2626' }}>{error}</p>
-            {payload && (
-              <details className="mt-0.5">
-                <summary className="text-[10.5px] cursor-pointer" style={{ color: '#8B8BA7' }}>
-                  {isFr ? 'Détails techniques' : 'Technical details'}
-                </summary>
-                <p className="mt-1 text-[10px] break-all" style={{ color: '#6E6E85' }}>{payload}</p>
-              </details>
-            )}
-          </div>
+      <button
+        type="button"
+        onClick={busy ? stop : start}
+        disabled={state === 'ending'}
+        aria-label={active
+          ? (isFr ? 'Raccrocher' : 'Hang up')
+          : (isFr ? 'Appeler ma réceptionniste' : 'Call my receptionist')}
+        className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-[12.5px] font-medium transition-colors duration-150 active:scale-[0.97] disabled:opacity-60"
+        style={busy
+          ? { background: 'rgba(220,38,38,0.16)', color: '#F5A5A5' }
+          : { background: 'rgba(122,95,255,0.16)', color: '#b9a8ff' }}
+      >
+        {state === 'connecting'
+          ? <Loader2 size={14} aria-hidden="true" />
+          : active
+            ? <PhoneOff size={14} aria-hidden="true" />
+            : <PhoneCall size={14} aria-hidden="true" />}
+        {/* L'étiquette seule change, jamais la pilule: une largeur qui saute
+            à chaque étape ferait bouger tout l'en-tête. `mode="popLayout"`
+            retire l'ancienne du flux pendant que la nouvelle entre, donc les
+            deux ne se chevauchent pas en largeur. */}
+        {/* Au repos, l'étiquette s'efface sur téléphone: l'en-tête y est déjà
+            plein, et une icône de combiné se comprend seule. PENDANT l'appel
+            elle revient, quelle que soit la largeur: le décompte et l'étape en
+            cours sont précisément ce qu'on regarde à ce moment-là, et les
+            cacher sur mobile reviendrait à ne rien montrer du tout. */}
+        <span className={`overflow-hidden ${busy ? 'inline' : 'hidden sm:inline'}`}>
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span
+              key={label}
+              className="inline-block tabular-nums whitespace-nowrap"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {label}
+            </motion.span>
+          </AnimatePresence>
+        </span>
+        {/* Qui parle, réduit à un point. Pendant un appel c'est la seule
+            chose qu'on cherche des yeux, et elle tient dans 6 px. */}
+        {active && (
+          <span
+            aria-hidden="true"
+            className="w-1.5 h-1.5 rounded-full"
+            style={{
+              background: speaking ? '#F5A5A5' : 'rgba(245,165,165,0.35)',
+              transform: `scale(${1 + Math.min(level, 1) * 0.6})`,
+              transition: 'transform 90ms linear, background-color 120ms linear',
+            }}
+          />
         )}
-      </div>
+      </button>
     );
   }
 
