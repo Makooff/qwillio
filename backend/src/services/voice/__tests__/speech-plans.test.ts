@@ -23,10 +23,14 @@ describe('buildTranscriber', () => {
 describe('buildStopSpeakingPlan — barge-in', () => {
   const plan = buildStopSpeakingPlan();
 
-  it('cuts on voice activity, not on a transcribed word', () => {
-    // numWords > 0 means waiting for the transcriber, which is what makes an
-    // interruption sound like stuttering.
-    expect(plan.numWords).toBe(0);
+  it('attend des MOTS, pour que le bruit ambiant ne la coupe pas', () => {
+    /* Ce test disait l'inverse (`numWords === 0`), au nom de l'instantanéité.
+       Le terrain a tranché: « elle arrête de parler dès qu'elle entend un peu
+       de bruit ». Une porte ou une radio valent une activité vocale, jamais un
+       mot transcrit, et c'est la seule frontière qui sépare les deux. */
+    expect(plan.numWords).toBeGreaterThan(0);
+    // Au delà de 3, l'interruption volontaire se fait attendre à l'oreille.
+    expect(plan.numWords).toBeLessThanOrEqual(3);
   });
 
   it('requires real voiced audio so a cough does not cut the assistant', () => {

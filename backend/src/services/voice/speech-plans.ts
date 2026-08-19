@@ -164,11 +164,19 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
 /**
  * When the assistant must STOP talking — the surgical barge-in.
  *
- * `numWords: 0` means we do not wait for a word to be transcribed at all: the
- * VAD alone cuts the audio, which is what makes an interruption feel instant
- * instead of stuttering over the caller. `voiceSeconds` is the guard against
- * that being too twitchy — the caller must actually produce ~200 ms of voiced
- * audio, so a cough or a "mhm" backchannel does not derail the assistant.
+ * `numWords` décide de CE QUI a le droit de la couper.
+ *
+ * À 0, la seule activité vocale suffit: l'interruption est instantanée, et
+ * c'était le réglage. Retour de terrain: « elle arrête de parler dès qu'elle
+ * entend un peu de bruit ». Une porte, une radio, une conversation à côté
+ * produisent tous de l'activité vocale, et 200 ms de garde ne les distinguent
+ * pas d'une syllabe. Sur un appel entrant, l'appelant est rarement au calme:
+ * la réceptionniste passait son temps à se taire.
+ *
+ * Attendre deux mots TRANSCRITS trie à la source: le bruit ne produit pas de
+ * mots, une phrase en produit. Le coût est de 200 à 300 ms sur l'interruption
+ * volontaire, sous le seuil où l'on se sent ignoré, et le gain est qu'elle
+ * finit ses phrases. `voiceSeconds` reste la garde du chemin sans transcript.
  *
  * `backoffSeconds` is the silence the assistant keeps after being cut off
  * before it may speak again. Too low and the two talk over each other in a
@@ -177,7 +185,7 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
  */
 export function buildStopSpeakingPlan() {
   return {
-    numWords: 0,
+    numWords: env.VOICE_BARGE_IN_WORDS,
     voiceSeconds: env.VOICE_BARGE_IN_VOICE_SECONDS,
     backoffSeconds: env.VOICE_BARGE_IN_BACKOFF_SECONDS,
     acknowledgementPhrases: [

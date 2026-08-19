@@ -106,6 +106,23 @@ export const env = {
   VOICE_START_WAIT_SECONDS: parseFloat(process.env.VOICE_START_WAIT_SECONDS || '0.12'),
   /** Voiced audio required from the caller before outbound audio is cut. */
   VOICE_BARGE_IN_VOICE_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_VOICE_SECONDS || '0.2'),
+  /**
+   * Mots TRANSCRITS exigés avant de couper la réceptionniste.
+   *
+   * 0 coupe sur la simple activité vocale, sans attendre un mot. C'était le
+   * réglage, et il rendait l'interruption instantanée: excellent au calme,
+   * intenable ailleurs. Retour de terrain: « elle arrête de parler dès qu'elle
+   * entend un peu de bruit ». Une porte, une radio, une conversation à côté
+   * valent tous une activité vocale, et la réceptionniste se taisait.
+   *
+   * 2 mots la font attendre le transcripteur: du BRUIT ne produit pas de mots,
+   * une PHRASE en produit. Le prix est de 200 à 300 ms sur l'interruption
+   * volontaire, ce qui reste sous le seuil où l'on se sent coupé.
+   *
+   * Remis à 0 par variable d'environnement si le lieu est silencieux et que
+   * l'instantanéité prime.
+   */
+  VOICE_BARGE_IN_WORDS: Math.max(0, parseInt(process.env.VOICE_BARGE_IN_WORDS || '2', 10) || 0),
   /** Silence the assistant keeps after being interrupted, before speaking again. */
   VOICE_BARGE_IN_BACKOFF_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_BACKOFF_SECONDS || '1.0'),
   /** First TTS chunk size — smaller means audio starts sooner. */
