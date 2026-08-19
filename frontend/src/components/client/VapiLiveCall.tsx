@@ -17,10 +17,11 @@ type CallState = 'idle' | 'connecting' | 'active' | 'ending';
  * wording the user can act on.
  */
 export function errorDetail(e: unknown): string | null {
-  // Last resort when the SDK gives no readable message: show the raw payload,
-  // trimmed. Without devtools on a phone there is no other way to learn why a
-  // call refuses to start, and a generic sentence has already proved useless
-  // twice. Ugly on purpose, and only ever shown when nothing better exists.
+  // The raw payload, trimmed. Without devtools on a phone there is no other way
+  // to learn why a call refuses to start, and a generic sentence has already
+  // proved useless twice. It no longer rides along in the sentence though: it
+  // sits behind a folded « Détails techniques », because 220 characters of JSON
+  // pushed the one useful line (Vapi's endedReason) off the card on iPhone.
   try {
     const seen = new WeakSet();
     const json = JSON.stringify(e, (_k, v) => {
@@ -146,6 +147,66 @@ export function errorText(e: unknown): string | null {
   const o = e as Record<string, unknown>;
   for (const candidate of [o.message, o.errorMsg, (o.error as Record<string, unknown> | undefined)?.message, o.error]) {
     if (typeof candidate === 'string' && candidate.trim()) return candidate;
+  }
+  return null;
+}
+
+/**
+ * La raison de Vapi, dite en français.
+ *
+ * `endedReason` est un identifiant machine (`pipeline-error-openai-voice-failed`),
+ * et c'est la SEULE information de valeur quand un appel se ferme: le navigateur,
+ * lui, ne connaît que « Meeting has ended ». Le montrer brut à un gérant ne lui
+ * dit pas s'il doit rappeler, changer un réglage, ou nous prévenir.
+ *
+ * La table est volontairement courte et ORDONNÉE du plus précis au plus général:
+ * `pipeline-error-openai-401-unauthorized` parle d'une clé refusée, pas d'un
+ * modèle en panne, et les deux motifs se croiseraient si l'ordre s'inversait.
+ *
+ * Une raison inconnue rend `null`, et l'appelant affiche alors l'identifiant tel
+ * quel. Une explication approximative serait pire que pas d'explication: elle
+ * enverrait chercher la panne au mauvais endroit.
+ */
+const ENDED_REASONS: Array<[RegExp, string, string]> = [
+  [/unauthorized|\b401\b|invalid[-_ ]?api[-_ ]?key/i,
+    "Une clé fournisseur a été refusée. C'est chez nous, pas chez vous.",
+    'A provider key was rejected. That is on our side, not yours.'],
+  [/quota|\b429\b|insufficient|wallet|balance|credit/i,
+    "Le crédit d'un fournisseur est épuisé. C'est chez nous, pas chez vous.",
+    'A provider ran out of credit. That is on our side, not yours.'],
+  [/voice[-_ ]?(not[-_ ]?found|failed|unavailable)/i,
+    "La voix n'a pas répondu. Choisissez-en une autre, ou réessayez dans une minute.",
+    'The voice did not respond. Pick another one, or try again in a minute.'],
+  [/deepgram|transcriber/i,
+    "La transcription n'a pas démarré. Elle ne sert qu'au mode classique.",
+    'Transcription failed to start. It is only used by classic mode.'],
+  [/eleven[-_ ]?labs|11labs/i,
+    "Le synthétiseur de voix n'a pas démarré.",
+    'The speech synthesiser failed to start.'],
+  [/openai|llm[-_ ]?failed|custom[-_ ]?llm/i,
+    "Le modèle vocal a refusé l'appel.",
+    'The voice model refused the call.'],
+  [/assistant[-_ ]?(not[-_ ]?valid|request)/i,
+    "La configuration de l'agent a été refusée par Vapi.",
+    'The agent configuration was rejected by Vapi.'],
+  [/microphone/i,
+    "Le micro n'a pas été autorisé.",
+    'The microphone was not allowed.'],
+  [/silence[-_ ]?timed[-_ ]?out/i,
+    "Personne n'a parlé: l'appel s'est fermé après le délai de silence.",
+    'Nobody spoke: the call closed after the silence timeout.'],
+  [/exceeded[-_ ]?max[-_ ]?duration/i,
+    "L'appel a atteint sa durée maximale.",
+    'The call reached its maximum duration.'],
+  [/(customer|assistant)[-_ ]?ended[-_ ]?call/i,
+    "L'appel a été raccroché normalement.",
+    'The call was hung up normally.'],
+];
+
+export function explainEndedReason(reason: unknown, isFr: boolean): string | null {
+  if (typeof reason !== 'string' || !reason.trim()) return null;
+  for (const [pattern, fr, en] of ENDED_REASONS) {
+    if (pattern.test(reason)) return isFr ? fr : en;
   }
   return null;
 }
@@ -289,6 +350,12 @@ export default function VapiLiveCall({
   const [level, setLevel] = useState(0);
   const [secs, setSecs] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  /* La charge brute de l'erreur, SÉPARÉE du message.
+     Elle était collée à la suite de la phrase, dans le même paragraphe de 11 px:
+     sur iPhone, 220 caractères de JSON poussaient hors de la carte la seule
+     ligne utile, la raison rendue par Vapi. Elle reste accessible (il n'y a pas
+     de devtools sur un téléphone), mais repliée, sous le message. */
+  const [payload, setPayload] = useState<string | null>(null);
   /* L'étape en cours pendant la connexion, et le décompte une fois établie.
      Trois choses très différentes se succèdent: préparer (SDK et config),
      créer l'appel chez Vapi, puis ouvrir la liaison audio. Les nommer, c'est
@@ -433,8 +500,11 @@ export default function VapiLiveCall({
 
   /* Retour au repos, d'où que vienne l'échec, avec le compteur et le garde-temps
      arrêtés. Il y avait trois copies de ces lignes et chacune en oubliait une. */
-  const settle = (message?: string | null) => {
+  const settle = (message?: string | null, detail?: string | null) => {
     if (message) { setError(message); reportedRef.current = true; }
+    /* Toujours posé, y compris à null: un détail laissé d'une tentative
+       précédente se lirait comme celui de l'échec qu'on affiche. */
+    setPayload(detail ?? null);
     setPhase(null);
     setState('idle');
     setSpeaking(false);
@@ -443,17 +513,24 @@ export default function VapiLiveCall({
   };
 
   /**
-   * Compléter le message par la raison que SEUL Vapi connaît.
+   * REMPLACER le message par la raison que SEUL Vapi connaît.
    *
    * Le navigateur reçoit « Meeting has ended » quel que soit le motif: voix
    * indisponible, crédit épuisé, modèle refusé. Le motif vit dans
    * l'enregistrement d'appel, sous `endedReason`, et il faut le demander.
    *
+   * Il était jusqu'ici AJOUTÉ à la fin d'une phrase générique elle-même suivie
+   * du JSON brut. Deux défauts, tous deux constatés sur iPhone: la ligne utile
+   * arrivait hors de la carte, et la phrase générique (« vérifiez le micro et la
+   * connexion ») envoyait chercher au mauvais endroit une panne dont on
+   * connaissait désormais la vraie cause. Dès qu'une raison est connue, elle
+   * prend donc toute la place.
+   *
    * Silencieux en cas d'échec, et réservé au tableau de bord: la route est
    * authentifiée côté client, et sur le site public le lecteur est un prospect
    * à qui `pipeline-error-...` ne dirait rien.
    */
-  const appendEndedReason = async (base: string) => {
+  const applyEndedReason = async (base: string) => {
     if (onSite || !endpoint.startsWith('/my-dashboard')) return;
     /* Ne PAS exiger l'identifiant. C'est ce qui rendait ce diagnostic muet à
        son premier essai: l'événement d'erreur devance la promesse de `start()`,
@@ -474,7 +551,20 @@ export default function VapiLiveCall({
         const id = callIdRef.current;
         const { data } = await api.get(`/my-dashboard/voice/live-diagnosis${id ? `/${id}` : ''}`);
         if (data?.endedReason && attempt === attemptRef.current) {
-          setError(`${base} (Vapi : ${data.endedReason})`);
+          const said = explainEndedReason(data.endedReason, isFr);
+          /* L'identifiant brut reste entre parenthèses même quand il est
+             traduit: c'est lui qu'on nous citera au support, et une phrase
+             française ne se recherche pas dans une documentation. */
+          const head = said ? `${said} (${data.endedReason})` : `Vapi : ${data.endedReason}`;
+          /* Le mode EFFECTIF vient du serveur, pas du réglage local: une voix
+             clonée force le classique par-dessus « direct », et proposer de
+             rebasculer un mode qui n'a jamais servi ferait perdre un essai. */
+          const hint = data.voiceMode === 'realtime'
+            ? (isFr
+              ? ' Le moteur est réglé sur Direct : repassez-le sur Classique dans Réceptionniste IA pour voir si le reste fonctionne.'
+              : ' The engine is set to Direct: switch it back to Classic in AI Receptionist to see whether the rest works.')
+            : '';
+          setError(`${head}${hint}`);
           return;
         }
       } catch { /* on retente; le message de base reste en attendant */ }
@@ -491,6 +581,7 @@ export default function VapiLiveCall({
 
   const start = async () => {
     setError(null);
+    setPayload(null);
     setTiming(null);
     setPhase('prep');
     marksRef.current = { t0: performance.now(), ready: 0, created: 0 };
@@ -507,7 +598,7 @@ export default function VapiLiveCall({
       if (answeredRef.current) return;
       stop();
       settle(connectFailed);
-      void appendEndedReason(connectFailed);
+      void applyEndedReason(connectFailed);
     }, 25000);
     try {
       // Already resolved in the common case, so this await returns on a
@@ -574,7 +665,7 @@ export default function VapiLiveCall({
           answeredRef.current = false;
           const report = shouldReportConnectFailure(answered, reportedRef.current);
           settle(report ? connectFailed : null);
-          if (report) void appendEndedReason(connectFailed);
+          if (report) void applyEndedReason(connectFailed);
           if (answered) onEnded?.();
         });
         vapi.on('speech-start', () => setSpeaking(true));
@@ -605,14 +696,13 @@ export default function VapiLiveCall({
           // ajouté faute de devtools sur un téléphone. Sur le site public, le
           // lecteur est un prospect: il n'a rien à faire de notre charge JSON.
           const detail = onSite ? null : errorDetail(e);
-          const message = errorText(e) || [
-            isFr
-              ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
-              : 'The call dropped. Check the microphone and connection, then try again.',
-            detail,
-          ].filter(Boolean).join(' : ');
-          settle(message);
-          void appendEndedReason(message);
+          const message = errorText(e) || (isFr
+            ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
+            : 'The call dropped. Check the microphone and connection, then try again.');
+          /* Le détail part dans son propre tiroir au lieu de rallonger la
+             phrase: c'est ce qui rendait la raison de Vapi illisible. */
+          settle(message, detail);
+          void applyEndedReason(message);
         });
       }
 
@@ -732,6 +822,9 @@ export default function VapiLiveCall({
                 ? (isFr ? 'Démarrer l’appel' : 'Start the call')
                 : (isFr ? 'Tester en live (vraie voix)' : 'Test live (real voice)')}
         </p>
+        {/* Le message d'abord, la charge brute seulement si on la demande.
+            Voir `payload`: les deux vivaient dans ce paragraphe, et le JSON y
+            poussait la raison de Vapi hors de l'écran sur un téléphone. */}
         <p
           className={`text-[11px] ${onSite && !error ? 'text-q2-body' : ''}`}
           style={error ? { color: '#dc2626' } : onSite ? undefined : { color: '#8B8BA7' }}
@@ -744,6 +837,22 @@ export default function VapiLiveCall({
                 ? (isFr ? 'Elle décroche, parlez-lui normalement.' : 'She picks up, just talk to her.')
                 : (isFr ? 'Parlez à votre agent comme un client au téléphone.' : 'Talk to your agent like a caller.')}
         </p>
+        {error && payload && (
+          <details className="mt-1">
+            <summary
+              className={`text-[11px] cursor-pointer ${onSite ? 'text-q2-faint' : ''}`}
+              style={onSite ? undefined : { color: '#8B8BA7' }}
+            >
+              {isFr ? 'Détails techniques' : 'Technical details'}
+            </summary>
+            <p
+              className={`mt-1 text-[10px] break-all ${onSite ? 'text-q2-faint' : ''}`}
+              style={onSite ? undefined : { color: '#6E6E85' }}
+            >
+              {payload}
+            </p>
+          </details>
+        )}
       </div>
 
       {/* Le détail des étapes, une fois en ligne et sur le tableau de bord

@@ -685,11 +685,24 @@ export class ClientDashboardController {
    */
   async voiceLiveDiagnosis(req: any, res: Response) {
     try {
-      const client = await prisma.client.findUnique({
-        where: { id: req.clientId },
-        select: { businessName: true },
-      });
-      if (!client) return res.status(404).json({ error: 'Client not found' });
+      /* Le PROFIL plutôt qu'une requête à part: il est en cache, il porte le
+         nom d'entreprise qui sert de cloisonnement, et il porte surtout la
+         voix clonée dont dépend le moteur réellement retenu. */
+      const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+      const { useSpeechToSpeech } = await import('../services/voice/speech-plans');
+
+      const profile = await realtimeContextService.getClientProfile(req.clientId);
+      if (!profile) return res.status(404).json({ error: 'Client not found' });
+
+      /* Le moteur EFFECTIF, décidé par la même fonction que l'appel lui-même.
+         Renvoyer le réglage brut mentirait dans le seul cas qui compte: une
+         voix clonée force le classique par-dessus un réglage « direct », et
+         l'écran conseillerait alors de rebasculer un mode qui n'a jamais
+         servi. */
+      const effectiveMode = useSpeechToSpeech({
+        hasCustomVoice: !!profile.customVoice,
+        voiceMode: profile.voiceMode,
+      }) ? 'realtime' : 'classic';
 
       const { vapiClient } = await import('../config/vapi');
 
@@ -709,7 +722,7 @@ export class ClientDashboardController {
       const belongsHere = (c: any) =>
         c?.type === 'webCall' &&
         typeof c?.assistant?.name === 'string' &&
-        c.assistant.name.includes(client.businessName);
+        c.assistant.name.includes(profile.businessName);
 
       let call: any = null;
       if (callId) {
@@ -725,9 +738,24 @@ export class ClientDashboardController {
 
       if (!call) return res.status(404).json({ error: 'no_recent_call' });
 
+      /* Écrit aussi dans NOS journaux. L'assistant de test est transient, donc
+         aucun webhook de fin d'appel ne nous parvient et cette raison ne laisse
+         sinon aucune trace: elle vit à l'écran du gérant, quelques secondes,
+         sur un téléphone. Une ligne ici la rend consultable après coup. */
+      if (call.endedReason) {
+        logger.warn(
+          `voiceLiveDiagnosis client=${req.clientId} mode=${effectiveMode} endedReason=${call.endedReason}`,
+        );
+      }
+
       res.json({
         status: call.status ?? null,
         endedReason: call.endedReason ?? null,
+        /* Le moteur réellement employé pour cet appel. L'écran s'en sert pour
+           proposer le seul geste qui isole la panne: rebasculer en classique.
+           Sans lui il devrait deviner, et il devinerait faux dès qu'une voix
+           clonée force le classique par-dessus le réglage. */
+        voiceMode: effectiveMode,
       });
     } catch (error: any) {
       // Un diagnostic qui échoue ne doit pas empiler un second message par-dessus

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { errorText, isMicDenied, isNormalTeardown, isProviderFault, shouldReportConnectFailure } from './VapiLiveCall';
+import { errorText, explainEndedReason, isMicDenied, isNormalTeardown, isProviderFault, shouldReportConnectFailure } from './VapiLiveCall';
 
 describe('isMicDenied', () => {
   it('recognises the DOMException the browser throws on refusal', () => {
@@ -134,5 +134,42 @@ describe('isNormalTeardown', () => {
 
   it('ne blanchit pas une vraie panne survenue en cours d\'appel', () => {
     expect(isNormalTeardown({ error: { message: 'pipeline-error-eleven-labs' } }, true)).toBe(false);
+  });
+});
+
+describe('explainEndedReason', () => {
+  it('traduit un motif connu', () => {
+    expect(explainEndedReason('pipeline-error-openai-llm-failed', true))
+      .toBe("Le modèle vocal a refusé l'appel.");
+  });
+
+  it('lit le motif le PLUS PRÉCIS quand plusieurs correspondent', () => {
+    // « openai » et « 401 » sont tous deux presents: c'est la cle qui a ete
+    // refusee, pas le modele qui est tombe, et l'ordre de la table le decide.
+    expect(explainEndedReason('pipeline-error-openai-401-unauthorized', true))
+      .toMatch(/clé fournisseur/);
+    // Meme piege pour la voix, qui doit passer avant le motif « openai ».
+    expect(explainEndedReason('pipeline-error-openai-voice-failed', true))
+      .toMatch(/voix/);
+  });
+
+  it('rend null sur un motif inconnu, pour que l\'appelant montre le brut', () => {
+    // Une explication approximative enverrait chercher au mauvais endroit:
+    // l'identifiant tel quel se recherche, une phrase inventee ne se recherche
+    // pas.
+    expect(explainEndedReason('some-reason-nobody-has-seen-yet', true)).toBeNull();
+  });
+
+  it('ne rend rien pour ce qui n\'est pas un motif', () => {
+    expect(explainEndedReason('', true)).toBeNull();
+    expect(explainEndedReason('   ', true)).toBeNull();
+    expect(explainEndedReason(null, true)).toBeNull();
+    expect(explainEndedReason(undefined, true)).toBeNull();
+    expect(explainEndedReason(42, true)).toBeNull();
+  });
+
+  it('parle anglais quand on le lui demande', () => {
+    expect(explainEndedReason('pipeline-error-deepgram-transcriber-failed', false))
+      .toMatch(/Transcription/);
   });
 });
