@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { PhoneCall, PhoneOff, Loader2 } from '../icons';
 import api from '../../services/api';
 
@@ -333,6 +334,20 @@ export default function VapiLiveCall({
   onLevel,
   /** Les petites barres n'ont pas lieu d'être quand le parent en dessine. */
   showBars = true,
+  /**
+   * La FORME du composant, pas son thème (c'est `tone` qui porte le thème).
+   *
+   * `card` est la carte historique: un rond de 44 px, un titre, un sous-titre.
+   * Elle a un défaut quand elle vit dans un en-tête déjà occupé: appuyer sur
+   * « Appel test live » faisait APPARAÎTRE une seconde carte qui redisait
+   * « Parlez à votre agent comme un client au téléphone », c'est-à-dire qui
+   * reposait la question à laquelle le clic venait de répondre.
+   *
+   * `pill` est le même composant réduit à un bouton: le bouton EST l'appel. Il
+   * change d'étiquette et de couleur au lieu d'ouvrir quoi que ce soit, donc
+   * rien ne bouge autour de lui.
+   */
+  variant = 'card',
   autoStart = false,
   onEnded,
 }: {
@@ -342,6 +357,7 @@ export default function VapiLiveCall({
   tone?: 'product' | 'site';
   onLevel?: (level: number, speaking: boolean) => void;
   showBars?: boolean;
+  variant?: 'card' | 'pill';
   autoStart?: boolean;
   onEnded?: () => void;
 }) {
@@ -750,6 +766,96 @@ export default function VapiLiveCall({
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
   const active = state === 'active';
+  const busy = active || state === 'connecting';
+
+  /* LA PILULE: le bouton EST l'appel.
+   *
+   * Rien ne s'ouvre, rien ne pousse le reste de la page vers le bas. L'étiquette
+   * traverse les états au même endroit (« Appel test live » → l'étape en cours →
+   * le décompte), et la couleur passe de l'indigo au rouge quand il y a quelque
+   * chose à raccrocher.
+   *
+   * L'erreur, elle, sort du bouton: un échec doit se lire en toutes lettres, et
+   * une pilule de 9 unités de haut ne peut pas porter une phrase. */
+  if (variant === 'pill') {
+    const label = active
+      ? `${mm}:${ss}`
+      : state === 'connecting'
+        ? (phase === 'creating'
+            ? (isFr ? 'Création…' : 'Creating…')
+            : phase === 'joining'
+              ? (isFr ? 'Liaison…' : 'Linking…')
+              : (isFr ? 'Préparation…' : 'Preparing…'))
+        : (isFr ? 'Appel test live' : 'Live test call');
+
+    return (
+      <div className="flex flex-col items-end gap-1.5 min-w-0">
+        <button
+          type="button"
+          onClick={busy ? stop : start}
+          disabled={state === 'ending'}
+          aria-label={active
+            ? (isFr ? 'Raccrocher' : 'Hang up')
+            : (isFr ? 'Appeler ma réceptionniste' : 'Call my receptionist')}
+          className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-[12.5px] font-medium transition-colors duration-150 active:scale-[0.97] disabled:opacity-60"
+          style={busy
+            ? { background: 'rgba(220,38,38,0.16)', color: '#F5A5A5' }
+            : { background: 'rgba(122,95,255,0.16)', color: '#b9a8ff' }}
+        >
+          {state === 'connecting'
+            ? <Loader2 size={14} aria-hidden="true" />
+            : active
+              ? <PhoneOff size={14} aria-hidden="true" />
+              : <PhoneCall size={14} aria-hidden="true" />}
+          {/* L'étiquette seule change, jamais la pilule: une largeur qui saute
+              à chaque étape ferait bouger tout l'en-tête. `mode="popLayout"`
+              retire l'ancienne du flux pendant que la nouvelle entre, donc les
+              deux ne se chevauchent pas en largeur. */}
+          <span className="hidden sm:inline overflow-hidden">
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={label}
+                className="inline-block tabular-nums whitespace-nowrap"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {label}
+              </motion.span>
+            </AnimatePresence>
+          </span>
+          {/* Qui parle, réduit à un point. Pendant un appel c'est la seule
+              chose qu'on cherche des yeux, et elle tient dans 6 px. */}
+          {active && (
+            <span
+              aria-hidden="true"
+              className="w-1.5 h-1.5 rounded-full"
+              style={{
+                background: speaking ? '#F5A5A5' : 'rgba(245,165,165,0.35)',
+                transform: `scale(${1 + Math.min(level, 1) * 0.6})`,
+                transition: 'transform 90ms linear, background-color 120ms linear',
+              }}
+            />
+          )}
+        </button>
+
+        {error && (
+          <div className="max-w-[min(20rem,70vw)] text-right">
+            <p className="text-[11px] leading-snug" style={{ color: '#dc2626' }}>{error}</p>
+            {payload && (
+              <details className="mt-0.5">
+                <summary className="text-[10.5px] cursor-pointer" style={{ color: '#8B8BA7' }}>
+                  {isFr ? 'Détails techniques' : 'Technical details'}
+                </summary>
+                <p className="mt-1 text-[10px] break-all" style={{ color: '#6E6E85' }}>{payload}</p>
+              </details>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div

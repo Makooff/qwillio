@@ -46,7 +46,9 @@ describe('buildVapiCallPayload', () => {
   it('drives barge-in from the stop-speaking plan, not the legacy flags', () => {
     const o = buildVapiCallPayload(input).assistantOverrides as Record<string, any>;
     // Outbound calls now share the inbound receptionist's turn-taking tuning.
-    expect(o.stopSpeakingPlan.numWords).toBe(0);
+    // Des mots, pas du bruit: voir `buildStopSpeakingPlan`. Les appels
+    // sortants partagent la tolérance au bruit des appels entrants.
+    expect(o.stopSpeakingPlan.numWords).toBeGreaterThan(0);
     expect(o.startSpeakingPlan.smartEndpointingEnabled).toBe(true);
     expect(o.transcriber.provider).toBe('deepgram');
     // The superseded trio must be gone: shipping both makes the behaviour

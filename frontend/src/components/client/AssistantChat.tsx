@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   ArrowUp, Mic, AudioLines, Plus,
-  Loader2, Bot, Copy, Check, PhoneCall, X, Lightbulb,
+  Loader2, Bot, Copy, Check, X, Lightbulb,
 } from '../icons';
 import api, { apiBaseUrl } from '../../services/api';
 import VapiLiveCall, { prewarmLiveCall } from './VapiLiveCall';
@@ -337,8 +337,6 @@ export default function AssistantChat({
     setShowIntro(false);
     try { localStorage.setItem('qw.chatIntroSeen', '1'); } catch { /* it reappears next time, harmless */ }
   };
-  // Live test call is driven from the header, independently of the chat mode.
-  const [liveCall, setLiveCall] = useState(false);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   /**
    * Language YOU dictate in. Deliberately separate from `isFr`, which is the
@@ -365,11 +363,6 @@ export default function AssistantChat({
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  /* Le flux de la sonde d'autorisation, gardé OUVERT pour la session.
-     Distinct de `streamRef`, qui est celui de la dictée: les deux peuvent
-     coexister, et confondre les deux ferait couper la dictée en fermant
-     l'appel. Relâché à la fermeture du panneau et au démontage. */
-  const micStreamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   // Set when the user cancels, so onstop discards instead of transcribing.
   const abortRef = useRef(false);
@@ -513,23 +506,6 @@ export default function AssistantChat({
   /** Surface a problem in the thread. Silence was the old behaviour and it read as "broken". */
   const notify = (fr: string, en: string) =>
     setMessages(m => [...m, { role: 'assistant', content: isFr ? fr : en }]);
-
-  /* Fermer l'appel relâche le micro tenu depuis le clic.
-     Sans ça, la pastille d'enregistrement du téléphone resterait allumée après
-     la fin de l'appel: une autorisation gardée sans raison visible est, à
-     juste titre, ce qui inquiète le plus un utilisateur. */
-  const closeLiveCall = () => {
-    micStreamRef.current?.getTracks().forEach(t => t.stop());
-    micStreamRef.current = null;
-    setLiveCall(false);
-  };
-
-  // Le démontage compte autant que la fermeture: changer de page pendant un
-  // appel laisserait le micro ouvert pour toute la durée de la session.
-  useEffect(() => () => {
-    micStreamRef.current?.getTracks().forEach(t => t.stop());
-    micStreamRef.current = null;
-  }, []);
 
   const releaseMic = () => {
     streamRef.current?.getTracks().forEach(t => t.stop());
@@ -819,45 +795,16 @@ export default function AssistantChat({
                   : <Copy size={13} className="text-[#9A9AA5]" aria-hidden="true" />}
               </button>
             )}
-            <button
-              type="button"
-              onClick={async () => {
-                if (liveCall) { closeLiveCall(); return; }
-                /* Le navigateur n'accorde le micro que depuis un geste de
-                 * l'utilisateur. Le panneau compose tout seul une fois ouvert,
-                 * et à ce moment-là le geste est consommé: l'autorisation se
-                 * demande donc ici, sur le clic.
-                 *
-                 * Ce qui a changé: on NE COUPE PLUS les pistes.
-                 *
-                 * Le commentaire précédent affirmait que « l'autorisation
-                 * survit aux pistes ». C'est vrai sur Chrome. C'est FAUX sur
-                 * Safari iOS, qui relâche l'autorisation avec la dernière
-                 * piste: la sonde rendait donc le micro juste avant que le SDK
-                 * le redemande, d'où l'invite à chaque appel et les « micro
-                 * indisponible » quand les deux se disputaient le périphérique.
-                 * Le flux reste ouvert pour la durée de la session et n'est
-                 * relâché qu'à la fermeture du panneau. */
-                try {
-                  micStreamRef.current?.getTracks().forEach(t => t.stop());
-                  micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
-                } catch {
-                  // Opening anyway: the panel asks again and reports the refusal
-                  // in words, which beats a button that silently does nothing.
-                }
-                setLiveCall(true);
-              }}
-              aria-pressed={liveCall}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-[12.5px] font-medium transition-colors active:scale-[0.97]"
-              style={liveCall
-                ? { background: 'rgba(255,255,255,0.08)', color: '#E5E5EA' }
-                : { background: 'rgba(122,95,255,0.16)', color: '#b9a8ff' }}
-            >
-              {liveCall ? <X size={14} aria-hidden="true" /> : <PhoneCall size={14} aria-hidden="true" />}
-              <span className="hidden sm:inline">
-                {liveCall ? (isFr ? 'Fermer' : 'Close') : (isFr ? 'Appel test live' : 'Live test call')}
-              </span>
-            </button>
+            {/* L'APPEL EST LE BOUTON (demande utilisateur).
+                Appuyer ouvrait une carte sous l'en-tête qui redisait « Parlez à
+                votre agent comme un client au téléphone »: elle reposait la
+                question à laquelle le clic venait de répondre, et elle poussait
+                toute la conversation vers le bas. La pilule change d'étiquette
+                et de couleur sur place, rien ne s'ouvre.
+                Le micro n'est plus demandé ici: c'est ce bouton-ci qui lance
+                l'appel, donc le SDK le demande lui-même à l'intérieur du geste,
+                sans qu'une sonde ait à tenir un flux à sa place. */}
+            <VapiLiveCall variant="pill" isFr={isFr} />
           </div>
         </div>
 
@@ -881,70 +828,27 @@ export default function AssistantChat({
 
         {/* Included-minutes gauge: the one figure that is specific to the
             receptionist and warns before an overage invoice. */}
+        {/* La barre a disparu (demande utilisateur), les chiffres restent.
+            À 0 / 2000 elle ne dessinait rien qu'un filet gris sur toute la
+            largeur: une jauge qui ne bouge jamais n'informe pas, elle décore.
+            La fraction et le pourcentage disent la même chose, exactement, et
+            en une ligne. La couleur d'alerte migre sur le pourcentage, qui est
+            le seul endroit où elle se remarque encore. */}
         {quota && quota.total > 0 && (() => {
           const pct = Math.round((quota.used / quota.total) * 100);
           return (
-            <div>
-              <div className="flex justify-between text-[10.5px] text-[#9A9AA5] mb-1">
-                <span>{isFr ? 'Minutes ce mois' : 'Minutes this month'}</span>
-                <span className="tabular-nums">{quota.used} / {quota.total} min ({pct}%)</span>
-              </div>
-              <div
-                className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden"
-                role="progressbar"
-                aria-valuenow={Math.min(pct, 100)}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={isFr ? 'Minutes consommées ce mois' : 'Minutes used this month'}
+            <div className="flex justify-between text-[10.5px] text-[#9A9AA5]">
+              <span>{isFr ? 'Minutes ce mois' : 'Minutes this month'}</span>
+              <span
+                className="tabular-nums"
+                style={pct > 90 ? { color: '#EF4444' } : pct > 70 ? { color: '#F59E0B' } : undefined}
               >
-                <div
-                  className="h-full rounded-full transition-[width] duration-500 ease-out"
-                  style={{
-                    width: `${Math.min(pct, 100)}%`,
-                    background: pct > 90 ? '#EF4444' : pct > 70 ? '#F59E0B' : '#E5E5EA',
-                  }}
-                />
-              </div>
+                {quota.used} / {quota.total} min ({pct}%)
+              </span>
             </div>
           );
         })()}
       </div>
-      )}
-
-      {/* Live voice call with the real receptionist, driven from the header.
-          The header button IS the intent to call, so it dials straight away —
-          landing on a card that says "call" after pressing a phone icon asks
-          the same question twice. Hanging up closes the panel for the same
-          reason: the call is over, there is nothing left to show. */}
-      {liveCall && (
-        <div className="px-3 pt-3">
-          <VapiLiveCall isFr={isFr} autoStart onEnded={closeLiveCall} />
-        </div>
-      )}
-
-      {/* First-run explainer. Deliberately an inline card and not a modal: a
-          dialog on open traps focus, has to be dismissed before anything can be
-          done, and comes back every visit. This reads in document order, is
-          dismissed once, and never returns. */}
-      {showIntro && !lockMode && (
-        <div className="px-3 pt-3">
-          <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-3">
-            <Lightbulb size={15} className="mt-0.5 flex-shrink-0" style={{ color: '#b9a8ff' }} aria-hidden="true" />
-            <p className="flex-1 text-[12.5px] leading-relaxed text-[#9A9AA5]">
-              {isFr
-                ? 'Dites ce que vous voulez changer et je le fais : horaires, services, tarifs, façon de répondre. Pour entendre le résultat, passez sur Test d’appel ou lancez un appel test live.'
-                : 'Tell me what you want to change and I do it: hours, services, prices, how it answers. To hear the result, switch to Call test or start a live test call.'}
-            </p>
-            <button
-              type="button"
-              onClick={dismissIntro}
-              aria-label={isFr ? 'Masquer cette explication' : 'Dismiss this note'}
-              className="flex-shrink-0 rounded-lg p-1 text-[#6B6B75] transition-colors hover:bg-white/[0.06] hover:text-[#E5E5EA] active:scale-[0.97]"
-            >
-              <X size={13} />
-            </button>
-          </div>
-        </div>
       )}
 
       {/* Messages */}
@@ -989,19 +893,26 @@ export default function AssistantChat({
               style={{ transformOrigin: mine ? 'bottom right' : 'bottom left' }}
             >
               <div
-                className="max-w-[82%] px-3.5 py-2.5 text-[15px] leading-[1.38] whitespace-pre-wrap"
+                className={cn(
+                  'max-w-[82%] text-[15px] leading-[1.38] whitespace-pre-wrap',
+                  /* ELLE N'A PLUS DE CARTE (demande utilisateur).
+                     Encadrer ses réponses revenait à encadrer la moitié de
+                     l'écran: une conversation faite de deux colonnes de cartes
+                     se lit comme un tableau. Son texte pose donc directement
+                     sur le fond du panneau, et la carte redevient ce qu'elle
+                     doit être, la marque de CE QUE VOUS avez écrit. Reste un
+                     retrait d'un demi-pas à gauche, pour que le texte nu ne
+                     colle pas au bord. */
+                  mine ? 'px-4 py-2.5' : 'pl-0.5 pr-2 py-1',
+                )}
                 style={{
-                  borderRadius: 16,
-                  /* Le gris est celui des rangées du hub, en dessous
-                     (« Identité de l'agent »), à la valeur près: le fil de la
-                     conversation et la liste des réglages sont deux fois le
-                     même objet, une carte posée sur la page. */
-                  background: mine ? '#EDEDF2' : 'rgba(255,255,255,0.03)',
+                  /* Le rayon de la carte de connexion (`rounded-[20px]`,
+                     `pages/v2/auth/AuthShell.tsx`), au pixel près: c'est la
+                     première carte que voit un client, elle donne la mesure. */
+                  borderRadius: mine ? 20 : 0,
+                  background: mine ? '#EDEDF2' : 'transparent',
                   color: mine ? '#141417' : '#E9E9EC',
-                  /* Le filet ne sert qu'à la carte sombre: sans lui elle se
-                     confondrait avec le fond du panneau, qui est presque la
-                     même valeur. La claire se détache toute seule. */
-                  border: mine ? 'none' : '1px solid rgba(255,255,255,0.07)',
+                  border: 'none',
                 }}
               >
                 {/* Rien à charger: la carte est déjà là, elle respire le temps
@@ -1089,14 +1000,62 @@ export default function AssistantChat({
 
       {/* Input box (redesigned) */}
       <div className={cn('p-3', voiceOpen && 'hidden')}>
+        {/* LA NOTE, GLISSÉE DERRIÈRE LA ZONE DE SAISIE (demande utilisateur).
+         *
+         * Elle vivait en haut du panneau, à l'autre bout de la page: elle
+         * décrivait ce qu'on peut taper, à l'endroit où l'on ne tape pas. Elle
+         * est maintenant une seconde carte, du même rayon, posée DERRIÈRE
+         * celle-ci et dépassant par le haut. La pile dit ce que la note dit:
+         * « voilà ce que tu peux écrire là-dessous ».
+         *
+         * Deux conditions pour que la pile se lise, et une seule les tient:
+         * la carte de saisie doit être OPAQUE (`#111` est exactement ce que
+         * `rgba(255,255,255,0.03)` donnait sur le fond du panneau, donc rien
+         * ne change à l'oeil), et elle doit passer au-dessus.
+         *
+         * En partant, la note glisse VERS LE BAS et disparaît sous la carte de
+         * saisie: c'est la même géométrie jouée à l'envers, et le geste dit où
+         * la note s'en va. 220 ms, `transform` et `opacity` seulement. */}
+        <AnimatePresence initial={false}>
+          {showIntro && !lockMode && (
+            <motion.div
+              key="chat-intro"
+              initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 26 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="relative z-0 -mb-6 flex items-start gap-3 rounded-3xl border px-3.5 pt-3 pb-9"
+              style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.07)' }}
+            >
+              <Lightbulb size={15} className="mt-0.5 flex-shrink-0" style={{ color: '#b9a8ff' }} aria-hidden="true" />
+              <p className="flex-1 text-[12.5px] leading-relaxed text-[#9A9AA5]">
+                {isFr
+                  ? 'Dites ce que vous voulez changer et je le fais : horaires, services, tarifs, façon de répondre. Pour entendre le résultat, passez sur Test d’appel ou lancez un appel test live.'
+                  : 'Tell me what you want to change and I do it: hours, services, prices, how it answers. To hear the result, switch to Call test or start a live test call.'}
+              </p>
+              <button
+                type="button"
+                onClick={dismissIntro}
+                aria-label={isFr ? 'Masquer cette explication' : 'Dismiss this note'}
+                className="flex-shrink-0 rounded-lg p-1 text-[#6B6B75] transition-colors hover:bg-white/[0.06] hover:text-[#E5E5EA] active:scale-[0.97]"
+              >
+                <X size={13} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div
           /* Le fond est celui des rangées du hub (« Identité de l'agent »),
              pas une valeur à lui: la zone de saisie est une carte posée sur la
              page comme les autres, et un gris propre en faisait un troisième
-             niveau de profondeur qui ne correspondait à rien. */
-          className={cn('rounded-3xl border p-2 transition-colors')}
+             niveau de profondeur qui ne correspondait à rien.
+             OPAQUE depuis qu'une note se glisse derrière: à 3 % de blanc, elle
+             se serait vue au travers, et la pile aurait ressemblé à un défaut
+             d'affichage. `#111` est la valeur exacte que ce 3 % donnait sur le
+             fond du panneau. */
+          className={cn('relative z-10 rounded-3xl border p-2 transition-colors')}
           style={{
-            background: 'rgba(255,255,255,0.03)',
+            background: '#111111',
             borderColor: listening ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.07)',
           }}
         >
