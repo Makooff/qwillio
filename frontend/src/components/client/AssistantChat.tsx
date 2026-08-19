@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
@@ -324,6 +324,16 @@ export default function AssistantChat({
   const [copied, setCopied] = useState(false);
   // Shown once per browser. localStorage can throw in a restricted webview,
   // and a crash here would take the panel down, so it is guarded.
+  /* L'échec de l'appel test, remonté par la pilule de l'en-tête.
+     Il vit ici et pas dans le bouton: rendu à l'intérieur, il élargissait un
+     bloc « ne pas rétrécir » et poussait le titre hors de l'écran sur un
+     téléphone. Sur sa propre ligne, il a toute la largeur du panneau. */
+  const [callError, setCallError] = useState<{ message: string; detail: string | null } | null>(null);
+  const handleCallError = useCallback(
+    (message: string | null, detail: string | null) =>
+      setCallError(message ? { message, detail } : null),
+    [],
+  );
   const [showIntro, setShowIntro] = useState(() => {
     try { return localStorage.getItem('qw.chatIntroSeen') !== '1'; } catch { return false; }
   });
@@ -804,7 +814,7 @@ export default function AssistantChat({
                 Le micro n'est plus demandé ici: c'est ce bouton-ci qui lance
                 l'appel, donc le SDK le demande lui-même à l'intérieur du geste,
                 sans qu'une sonde ait à tenir un flux à sa place. */}
-            <VapiLiveCall variant="pill" isFr={isFr} />
+            <VapiLiveCall variant="pill" isFr={isFr} onError={handleCallError} />
           </div>
         </div>
 
@@ -828,6 +838,23 @@ export default function AssistantChat({
 
         {/* Included-minutes gauge: the one figure that is specific to the
             receptionist and warns before an overage invoice. */}
+        {/* L'échec de l'appel, en toutes lettres et sur toute la largeur.
+            La raison rendue par Vapi arrive en différé et remplace le texte:
+            voir `applyEndedReason`. */}
+        {callError && (
+          <div role="alert">
+            <p className="text-[11.5px] leading-snug" style={{ color: '#F5A5A5' }}>{callError.message}</p>
+            {callError.detail && (
+              <details className="mt-1">
+                <summary className="text-[11px] cursor-pointer text-[#8B8BA7]">
+                  {isFr ? 'Détails techniques' : 'Technical details'}
+                </summary>
+                <p className="mt-1 text-[10px] break-all text-[#6E6E85]">{callError.detail}</p>
+              </details>
+            )}
+          </div>
+        )}
+
         {/* La barre a disparu (demande utilisateur), les chiffres restent.
             À 0 / 2000 elle ne dessinait rien qu'un filet gris sur toute la
             largeur: une jauge qui ne bouge jamais n'informe pas, elle décore.
