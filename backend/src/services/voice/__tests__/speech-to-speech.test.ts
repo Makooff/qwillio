@@ -47,6 +47,19 @@ describe('parole-à-parole', () => {
     expect(f.voice.voiceId).not.toBe(m.voice.voiceId);
   });
 
+  it('ne sort JAMAIS de la liste fermée des voix temps réel', async () => {
+    /* Vapi rejette l'assistant ENTIER sur une voix inconnue, et six voix
+       d'OpenAI (ash, ballad, coral, fable, onyx, nova) ne sont pas servies par
+       les modèles temps réel. L'appel meurt alors sans rien dire d'autre que
+       « Meeting has ended » côté navigateur: la panne la plus coûteuse à
+       diagnostiquer du chemin vocal. Ces deux valeurs se figent donc ici. */
+    const { buildSpeech } = await load({ VOICE_SPEECH_TO_SPEECH: 'on' });
+    const f = buildSpeech({ lang: 'fr', systemPrompt: 'p', tools: [], character: CHARACTER_F });
+    const m = buildSpeech({ lang: 'fr', systemPrompt: 'p', tools: [], character: CHARACTER_M });
+    expect(f.voice).toEqual({ provider: 'openai', voiceId: 'marin' });
+    expect(m.voice).toEqual({ provider: 'openai', voiceId: 'cedar' });
+  });
+
   /**
    * La règle qui protège la promesse produit: un client qui a enregistré SA
    * voix a demandé précisément celle-là. La remplacer par celle d'OpenAI, si
