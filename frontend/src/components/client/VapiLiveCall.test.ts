@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { errorText, explainEndedReason, isMicDenied, isNormalTeardown, isProviderFault, shouldReportConnectFailure } from './VapiLiveCall';
+import { errorDetail, errorText, explainEndedReason, isMicDenied, isNormalTeardown, isProviderFault, phaseLabel, shouldReportConnectFailure } from './VapiLiveCall';
 
 describe('isMicDenied', () => {
   it('recognises the DOMException the browser throws on refusal', () => {
@@ -171,5 +171,42 @@ describe('explainEndedReason', () => {
   it('parle anglais quand on le lui demande', () => {
     expect(explainEndedReason('pipeline-error-deepgram-transcriber-failed', false))
       .toMatch(/Transcription/);
+  });
+});
+
+describe('errorDetail', () => {
+  it('SÉRIALISE une Error, dont les champs ne sont pas énumérables', () => {
+    /* `JSON.stringify(new Error('boum'))` rend `{}`. On rendait donc null, et
+       l'écran n'affichait ni détail ni tiroir: le seul cas où le détail aurait
+       servi était celui où il disparaissait (captures du 21/08). */
+    const out = errorDetail(new Error('boum'));
+    expect(out).toContain('boum');
+    expect(out).toContain('Error');
+  });
+
+  it('garde les champs que le SDK accroche à son Error', () => {
+    const e = Object.assign(new Error('rejeté'), { code: 'PIPELINE' });
+    expect(errorDetail(e)).toContain('PIPELINE');
+  });
+
+  it('rend toujours null pour ce qui ne porte rien', () => {
+    expect(errorDetail({})).toBeNull();
+    expect(errorDetail(null)).toBeNull();
+  });
+});
+
+describe('phaseLabel', () => {
+  it("nomme l'étape, parce que « vérifiez le micro » n'oriente vers rien", () => {
+    expect(phaseLabel('joining', true)).toBe(' pendant la liaison audio');
+    expect(phaseLabel('creating', true)).toBe(' pendant la création de l’appel');
+    expect(phaseLabel('prep', true)).toBe(' pendant la préparation');
+  });
+
+  it("ne dit rien plutôt que d'inventer une étape", () => {
+    expect(phaseLabel(null, true)).toBe('');
+  });
+
+  it('parle anglais aussi', () => {
+    expect(phaseLabel('joining', false)).toBe(' while linking audio');
   });
 });
