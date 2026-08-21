@@ -145,7 +145,21 @@ export class WebhooksController {
           ?? event.message?.phoneNumber?.number
           ?? event.call?.phoneNumber?.number;
 
-        const routed = await inboundRoutingService.resolveClient(dialed);
+        /* L'origine d'un RENVOI, si elle voyage avec l'appel. Voir
+           `divertedNumber`: c'est ce qui déciderait si un client peut garder son
+           numéro et le renvoyer vers une ligne partagée, au lieu d'en acheter
+           un (et d'en faire valider l'adresse) chacun. */
+        const diverted = inboundRoutingService.divertedNumber(event);
+
+        /* Tracé À CHAQUE appel entrant, et pas seulement en cas d'échec.
+           La forme exacte du webhook n'a pas pu être vérifiée sur pièces (la
+           documentation Vapi est inaccessible depuis le poste de build), et
+           aucun appel entrant réel n'a encore eu lieu: cette ligne est ce qui
+           rendra la réponse certaine au PREMIER appel, sans avoir à rejouer
+           quoi que ce soit. */
+        logger.info(`[Voice] inbound composé=${dialed ?? '?'} renvoyé-de=${diverted ?? 'aucun'}`);
+
+        const routed = await inboundRoutingService.resolveClient(dialed, diverted);
         if (routed.kind !== 'resolved') {
           return res.json({ assistant: inboundRoutingService.unroutableAssistant() });
         }
@@ -154,7 +168,7 @@ export class WebhooksController {
         if (!assistant) {
           return res.json({ assistant: inboundRoutingService.unroutableAssistant() });
         }
-        logger.info(`[Voice] inbound routed to ${routed.businessName}`);
+        logger.info(`[Voice] inbound routed to ${routed.businessName} (par ${routed.via === 'diversion' ? 'origine de renvoi' : 'numéro composé'})`);
         return res.json({ assistant });
       }
 
