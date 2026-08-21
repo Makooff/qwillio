@@ -47,6 +47,15 @@ export interface VapiConfigPatch {
    * comparer les deux à l'oreille sans engager tous les clients d'un coup.
    */
   voiceMode?: 'auto' | 'realtime' | 'classic';
+  /**
+   * Par où partent les messages de la réceptionniste: SMS ou WhatsApp.
+   *
+   * `whatsapp` est une PRÉFÉRENCE, jamais une garantie: WhatsApp exige un
+   * modèle approuvé par Meta pour chaque type de message, et un type sans
+   * modèle retombe sur le SMS (voir `sms.service.ts`). Le client ne perd donc
+   * jamais un message parce qu'il a coché cette case.
+   */
+  notificationChannel?: 'sms' | 'whatsapp';
 }
 
 const PERSONA_KEYS = new Set(Object.keys(PERSONALITY_PROMPTS));
@@ -170,6 +179,11 @@ export function buildVapiConfigPatch(
     next.voiceMode = ['auto', 'realtime', 'classic'].includes(String(patch.voiceMode))
       ? patch.voiceMode
       : 'auto';
+  }
+  if (patch.notificationChannel !== undefined) {
+    // Même règle que `voiceMode`: une valeur inconnue vaut le défaut sûr plutôt
+    // que d'être écrite telle quelle.
+    next.notificationChannel = patch.notificationChannel === 'whatsapp' ? 'whatsapp' : 'sms';
   }
   if (patch.knowledge !== undefined) {
     const src = patch.knowledge && typeof patch.knowledge === 'object' && !Array.isArray(patch.knowledge)

@@ -98,6 +98,80 @@ export class WhatsAppService {
     }
   }
 
+  /**
+   * Envoyer un MODÈLE approuvé, seul chemin fiable vers un destinataire qui n'a
+   * pas écrit le premier.
+   *
+   * `sendMessage` ci-dessus envoie du texte libre: WhatsApp ne l'accepte que
+   * dans la fenêtre de 24 h ouverte par un message ENTRANT du destinataire, ou
+   * depuis le bac à sable. Or les messages de la réceptionniste sont presque
+   * tous business-initiated: une confirmation de rendez-vous part juste après
+   * un APPEL, et l'appelant n'a jamais écrit sur WhatsApp.
+   *
+   * D'où cette méthode, qui envoie un `ContentSid` plutôt qu'un corps, et qui
+   * REFUSE poliment quand le type n'a pas de modèle approuvé. Ce refus est la
+   * pièce importante: c'est lui qui permet à l'appelant de retomber sur le SMS
+   * au lieu de perdre le message en silence.
+   */
+  async sendTemplate(opts: {
+    to: string;
+    messageType: string;
+    /** Les variables du modèle, dans l'ordre où Meta les a approuvées: {"1":"…"} */
+    variables?: Record<string, string>;
+    clientId?: string;
+    /** Le texte SMS équivalent, journalisé pour qu'on sache ce qui a été dit. */
+    body?: string;
+  }): Promise<{ sent: boolean; reason?: 'disabled' | 'no_template' | 'send_failed' }> {
+    if (!this.enabled) return { sent: false, reason: 'disabled' };
+
+    const contentSid = env.WHATSAPP_TEMPLATE_SIDS[opts.messageType];
+    if (!contentSid) {
+      logger.warn(`[WhatsApp] aucun modèle approuvé pour « ${opts.messageType} », envoi SMS à la place`);
+      return { sent: false, reason: 'no_template' };
+    }
+
+    const waTo = opts.to.startsWith('whatsapp:') ? opts.to : `whatsapp:${opts.to}`;
+    try {
+      const accountSid = env.TWILIO_ACCOUNT_SID;
+      const auth = Buffer.from(`${accountSid}:${env.TWILIO_AUTH_TOKEN}`).toString('base64');
+      const form = new URLSearchParams({ From: this.fromNumber, To: waTo, ContentSid: contentSid });
+      if (opts.variables && Object.keys(opts.variables).length) {
+        form.set('ContentVariables', JSON.stringify(opts.variables));
+      }
+
+      const res = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: form.toString(),
+        },
+      );
+      const data = await res.json() as { sid?: string; error_code?: number; message?: string };
+      if (!res.ok) {
+        logger.error(`[WhatsApp] modèle ${opts.messageType} refusé: ${data.error_code} — ${data.message}`);
+        return { sent: false, reason: 'send_failed' };
+      }
+
+      await prisma.smsLog.create({
+        data: {
+          to: opts.to,
+          body: (opts.body ?? `[modèle ${opts.messageType}]`).substring(0, 1600),
+          messageType: `wa_${opts.messageType}`,
+          status: 'sent',
+          twilioSid: data.sid ?? null,
+          clientId: opts.clientId ?? null,
+        },
+      }).catch(() => { /* la journalisation ne doit jamais faire échouer un envoi */ });
+
+      logger.info(`[WhatsApp] modèle ${opts.messageType} envoyé à ${opts.to}`);
+      return { sent: true };
+    } catch (err) {
+      logger.error(`[WhatsApp] erreur d'envoi du modèle ${opts.messageType}:`, err);
+      return { sent: false, reason: 'send_failed' };
+    }
+  }
+
   getTemplate(type: keyof typeof WA_TEMPLATES, ...args: string[]): string {
     const fn = WA_TEMPLATES[type] as (...a: string[]) => string;
     return fn(...args);
