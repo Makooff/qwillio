@@ -247,6 +247,13 @@ export default function ClientAccount() {
    * donnée disparaîtrait simplement.
    */
   const [agentLanguage, setAgentLanguage] = useState('fr');
+  /* Par où partent les messages de la réceptionniste.
+     `whatsappAvailable` vient du SERVEUR et n'est pas décoratif: WhatsApp exige
+     un modèle approuvé par Meta pour chaque type de message, et sans expéditeur
+     ni modèle configurés, cocher la case n'enverrait jamais rien. Proposer un
+     canal muet est pire que ne pas le proposer. */
+  const [notificationChannel, setNotificationChannel] = useState<'sms' | 'whatsapp'>('sms');
+  const [whatsappAvailable, setWhatsappAvailable] = useState(false);
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -426,6 +433,10 @@ export default function ClientAccount() {
         if (typeof notif.notifLeads  === 'boolean') setNotifLeads(notif.notifLeads);
         if (typeof notif.notifQuota  === 'boolean') setNotifQuota(notif.notifQuota);
       }
+      if (data?.notificationChannel === 'whatsapp' || data?.notificationChannel === 'sms') {
+        setNotificationChannel(data.notificationChannel);
+      }
+      setWhatsappAvailable(!!data?.whatsappAvailable);
       if (data?.agentLanguage) setAgentLanguage(data.agentLanguage);
       setBusinessName(data?.businessName || '');
       setBusinessType(data?.businessType || '');
@@ -849,6 +860,58 @@ export default function ClientAccount() {
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.18 }} className="overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
                 <div className="p-5">
+                  {/* PAR OÙ partent les messages, avant de dire lesquels.
+                      Le canal se choisit une fois et vaut pour tous les envois;
+                      les interrupteurs en dessous décident du contenu. Les
+                      poser dans l'autre ordre ferait cocher des alertes sans
+                      savoir où elles arrivent. */}
+                  <div className="pb-4 mb-3" style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <p className="text-[13px] font-medium mb-1" style={{ color: C.text }}>Canal des messages</p>
+                    <p className="text-[11.5px] mb-3" style={{ color: C.textTer }}>
+                      Confirmations de rendez-vous aux appelants, et vos propres alertes.
+                    </p>
+                    <div className="flex gap-2">
+                      {([
+                        { key: 'sms' as const, label: 'SMS' },
+                        { key: 'whatsapp' as const, label: 'WhatsApp' },
+                      ]).map(opt => {
+                        const active = notificationChannel === opt.key;
+                        const blocked = opt.key === 'whatsapp' && !whatsappAvailable;
+                        return (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            disabled={blocked}
+                            onClick={() => {
+                              if (blocked) return;
+                              setNotificationChannel(opt.key);
+                              void api.put('/my-dashboard/settings', { notificationChannel: opt.key })
+                                .then(() => invalidateLive('/my-dashboard/'))
+                                .catch(() => setNotificationChannel(notificationChannel));
+                            }}
+                            className="h-9 px-4 rounded-xl text-[12.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                            style={active
+                              ? { background: 'rgba(122,95,255,0.16)', color: '#b9a8ff' }
+                              : { background: 'rgba(255,255,255,0.04)', color: C.textSec }}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!whatsappAvailable && (
+                      <p className="text-[11px] mt-2.5" style={{ color: C.textTer }}>
+                        WhatsApp n'est pas encore actif sur votre compte : il demande un expéditeur
+                        WhatsApp Business et des modèles de messages approuvés par Meta.
+                      </p>
+                    )}
+                    {whatsappAvailable && notificationChannel === 'whatsapp' && (
+                      <p className="text-[11px] mt-2.5" style={{ color: C.textTer }}>
+                        Un message dont le modèle n'a pas encore été approuvé part par SMS,
+                        pour qu'il ne se perde jamais.
+                      </p>
+                    )}
+                  </div>
                   {([
                     { label: 'Notifications email',  desc: 'Évènements importants',   checked: notifEmail,  set: (v: boolean) => { setNotifEmail(v);  saveNotifications({ notifEmail: v, notifWeekly, notifLeads, notifQuota }); } },
                     { label: 'Rapport hebdomadaire', desc: 'Résumé chaque lundi',     checked: notifWeekly, set: (v: boolean) => { setNotifWeekly(v); saveNotifications({ notifEmail, notifWeekly: v, notifLeads, notifQuota }); } },

@@ -272,6 +272,14 @@ export class ClientDashboardController {
            découvre sur la facture, et c'est ainsi qu'on récolte un litige
            plutôt qu'un client. 0 = option non vendue, l'écran n'en parle pas. */
         realtimeSurchargeEur: env.VOICE_REALTIME_SURCHARGE_EUR,
+        /* Par où partent les messages. `whatsapp` reste une PRÉFÉRENCE: un type
+           de message sans modèle approuvé par Meta repart en SMS plutôt que de
+           se perdre. L'écran doit donc le dire, pas le promettre. */
+        notificationChannel: cfg.notificationChannel === 'whatsapp' ? 'whatsapp' : 'sms',
+        /* Ce que le compte peut RÉELLEMENT faire aujourd'hui. Sans ce drapeau,
+           l'écran proposerait un canal qui n'enverra jamais rien, et le client
+           croirait avoir activé quelque chose. */
+        whatsappAvailable: !!env.TWILIO_WHATSAPP_NUMBER && Object.keys(env.WHATSAPP_TEMPLATE_SIDS).length > 0,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -333,7 +341,8 @@ export class ClientDashboardController {
         body.personalityNotes !== undefined ||
         body.characterId !== undefined ||
         body.customVoice !== undefined ||
-        body.voiceMode !== undefined;
+        body.voiceMode !== undefined ||
+        body.notificationChannel !== undefined;
       if (hasKnowledgeUpdate) {
         const existing = await prisma.client.findUnique({
           where: { id: req.clientId },
@@ -355,6 +364,7 @@ export class ClientDashboardController {
              bout SAUF ici, donc changer de moteur était impossible, y compris
              en appelant l'API à la main. */
           voiceMode:         body.voiceMode,
+          notificationChannel: body.notificationChannel,
         });
       }
 

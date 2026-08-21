@@ -297,6 +297,37 @@ export const env = {
   TWILIO_API_KEY_SECRET: process.env.TWILIO_API_KEY_SECRET || '',
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER || '',
   TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER,
+  /**
+   * Les MODÈLES WhatsApp approuvés, par type de message.
+   *
+   * Hors d'une fenêtre de 24 h ouverte par le destinataire, WhatsApp n'accepte
+   * pas de texte libre: il faut un modèle pré-approuvé par Meta, envoyé par son
+   * identifiant de contenu (`HX…`). Or nos messages sont presque tous
+   * business-initiated: une confirmation de rendez-vous part juste après un
+   * APPEL, et l'appelant n'a jamais écrit sur WhatsApp.
+   *
+   * D'où cette table plutôt qu'un simple interrupteur: un type sans modèle
+   * approuvé ne peut PAS partir sur WhatsApp, et le savoir avant d'essayer est
+   * ce qui permet de retomber sur le SMS au lieu de perdre le message.
+   *
+   * Forme: {"booking_confirmed":"HX…","call_notification":"HX…"}
+   * Une valeur illisible vaut table vide: aucun envoi WhatsApp, que du SMS.
+   */
+  WHATSAPP_TEMPLATE_SIDS: (() => {
+    const raw = process.env.WHATSAPP_TEMPLATE_SIDS;
+    if (!raw) return {} as Record<string, string>;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed)) {
+        if (typeof v === 'string' && v.trim()) out[k] = v.trim();
+      }
+      return out;
+    } catch {
+      return {} as Record<string, string>;
+    }
+  })(),
   SMS_ENABLED: process.env.SMS_ENABLED === 'true',
   // Opt-in signature verification for inbound Twilio webhooks. Leave false
   // until the public callback URL is confirmed, then set to 'true' on Render.

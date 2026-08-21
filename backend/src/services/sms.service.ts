@@ -38,12 +38,67 @@ export class SmsService {
   }
 
   /**
-   * Send an SMS via Twilio
+   * Le client a-t-il demandé WhatsApp plutôt que le SMS ?
+   *
+   * Lu à l'envoi et non mis en cache: le réglage change depuis le tableau de
+   * bord, et un message parti sur le mauvais canal se remarque tout de suite.
+   * Silencieux en cas d'échec: une base indisponible ne doit pas empêcher un
+   * SMS de partir.
    */
-  async sendSMS(to: string, body: string, metadata?: { messageType?: string; prospectId?: string; clientId?: string }): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  private async prefersWhatsApp(clientId?: string): Promise<boolean> {
+    if (!clientId) return false;
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { vapiConfig: true },
+      });
+      const cfg = (client?.vapiConfig ?? {}) as Record<string, unknown>;
+      return cfg.notificationChannel === 'whatsapp';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Send an SMS via Twilio — ou sur WhatsApp, si le client l'a demandé.
+   *
+   * Un seul point d'entrée pour les deux canaux, volontairement: les quinze
+   * appelants de cette méthode n'ont pas à savoir lequel est actif, et un
+   * second chemin d'envoi finirait par diverger de celui-ci.
+   *
+   * LA RÈGLE, et elle prime sur la préférence du client: **un message ne se
+   * perd jamais**. WhatsApp refuse un type sans modèle approuvé, et peut
+   * échouer pour dix raisons qui ne nous regardent pas. Dans tous ces cas on
+   * envoie le SMS. Une confirmation de rendez-vous qui n'arrive pas coûte un
+   * rendez-vous; la même arrivée par SMS plutôt que par WhatsApp ne coûte rien.
+   */
+  async sendSMS(
+    to: string,
+    body: string,
+    metadata?: {
+      messageType?: string;
+      prospectId?: string;
+      clientId?: string;
+      /** Variables du modèle WhatsApp, dans l'ordre approuvé par Meta. */
+      whatsappVariables?: Record<string, string>;
+    },
+  ): Promise<{ success: boolean; messageId?: string; error?: string; channel?: 'sms' | 'whatsapp' }> {
     if (!env.SMS_ENABLED) {
       logger.debug('SMS disabled, skipping send');
       return { success: false, error: 'SMS_ENABLED=false' };
+    }
+
+    if (metadata?.messageType && await this.prefersWhatsApp(metadata.clientId)) {
+      const { whatsAppService } = await import('./whatsapp.service');
+      const wa = await whatsAppService.sendTemplate({
+        to,
+        messageType: metadata.messageType,
+        variables: metadata.whatsappVariables,
+        clientId: metadata.clientId,
+        body,
+      });
+      if (wa.sent) return { success: true, channel: 'whatsapp' };
+      logger.info(`[SMS] WhatsApp indisponible (${wa.reason}) pour « ${metadata.messageType} »: envoi par SMS`);
     }
 
     const client = this.getTwilioClient();

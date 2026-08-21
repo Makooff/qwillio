@@ -19,8 +19,65 @@ import { normalizeNumber } from './phone-allocation.service';
  */
 
 export type InboundResolution =
-  | { kind: 'resolved'; clientId: string; businessName: string; lineLabel?: string }
+  | { kind: 'resolved'; clientId: string; businessName: string; lineLabel?: string; via: 'dialed' | 'diversion' }
   | { kind: 'unknown'; dialed: string | null };
+
+/**
+ * Le numéro que l'appelant a RÉELLEMENT composé, quand l'appel a été renvoyé.
+ *
+ * Pourquoi ça compte: aujourd'hui chaque client doit posséder sa propre ligne,
+ * parce que le numéro composé est la seule chose qui dise quelle entreprise on
+ * appelle. Un client qui renvoie simplement son numéro vers une ligne partagée
+ * serait indistinguable de tous les autres qui font pareil. C'est ce qui oblige
+ * à acheter, et à faire valider, un numéro par client.
+ *
+ * Or un renvoi transporte souvent son origine. En SIP c'est l'en-tête
+ * `Diversion`, dont la valeur ressemble à
+ * `<sip:+3225550011@operateur.be>;reason=unconditional`; côté Twilio le champ
+ * s'appelle `ForwardedFrom`. Quand l'un des deux arrive, on tient le numéro du
+ * CLIENT, et une seule ligne peut alors servir toute la flotte.
+ *
+ * Les chemins sont donc cherchés au pluriel, sans en privilégier un: la forme
+ * exacte du webhook Vapi n'a pas pu être vérifiée depuis ce poste (docs
+ * inaccessibles), et aucun appel entrant réel n'a encore été passé. Ne rien
+ * trouver n'est pas une panne: on retombe sur le numéro composé, c'est-à-dire
+ * exactement le comportement actuel.
+ */
+const DIVERSION_KEYS = ['diversion', 'x-original-called-number', 'x-diversion', 'forwardedfrom', 'forwarded-from'];
+
+/** `<sip:+3225550011@host>;reason=…`, `tel:+32…`, ou un numéro nu. */
+function numberFromHeader(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const uri = raw.match(/(?:sip|tel):\+?([0-9][0-9.\-() ]{6,})/i);
+  const candidate = uri ? uri[1] : raw;
+  return normalizeNumber(candidate);
+}
+
+export function divertedNumber(event: any): string | null {
+  const call = event?.message?.call ?? event?.call ?? event?.message ?? null;
+  if (!call || typeof call !== 'object') return null;
+
+  /* Plusieurs sacs possibles, tous parcourus: en-têtes SIP nommés, détails du
+     fournisseur téléphonique, en-têtes personnalisés. Le premier qui rend un
+     numéro exploitable gagne. */
+  const bags: any[] = [
+    call.sipHeaders,
+    call.customSipHeaders,
+    call.phoneCallProviderDetails,
+    call.phoneCallProviderDetails?.sipHeaders,
+    call.phoneCallProviderDetails?.headers,
+  ];
+
+  for (const bag of bags) {
+    if (!bag || typeof bag !== 'object') continue;
+    for (const [key, value] of Object.entries(bag)) {
+      if (!DIVERSION_KEYS.includes(key.toLowerCase())) continue;
+      const found = numberFromHeader(value);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 /* `normalizeNumber` vient de l'attribution, et non d'une copie locale: l'un
    decide de la PROPRIETE d'une ligne, l'autre de son ROUTAGE. Deux definitions
@@ -28,6 +85,12 @@ export type InboundResolution =
    le numero. */
 
 class InboundRoutingService {
+  /** Voir la fonction du même nom: exposée ici pour que le webhook n'ait qu'un
+      seul point d'entrée sur ce module. */
+  divertedNumber(event: unknown): string | null {
+    return divertedNumber(event);
+  }
+
   /**
    * Resolve the tenant for a call, from the number that was dialed.
    *
@@ -35,8 +98,28 @@ class InboundRoutingService {
    * numbers are not consistently formatted, and a `LIKE` on a formatted column
    * would miss the ones that are.
    */
-  async resolveClient(dialedRaw: unknown): Promise<InboundResolution> {
-    const dialed = normalizeNumber(dialedRaw);
+  async resolveClient(dialedRaw: unknown, divertedRaw?: unknown): Promise<InboundResolution> {
+    /* LE NUMÉRO D'ORIGINE PASSE DEVANT.
+     *
+     * Sur un appel renvoyé, le numéro composé est le NÔTRE et ne dit rien du
+     * client; celui d'origine est le SIEN. Chercher d'abord l'origine, c'est ce
+     * qui permettrait à plusieurs clients de renvoyer vers une seule ligne.
+     *
+     * Le risque, et il est assumé: cet en-tête vient du réseau, pas de nous.
+     * Quelqu'un qui saurait en poser un ne pourrait toutefois joindre que la
+     * réceptionniste d'un client DÉJÀ enregistré, jamais en inventer une, parce
+     * que la résolution ne retient que des numéros connus. À revoir le jour où
+     * une ligne partagée sera réellement mise en service. */
+    const diverted = normalizeNumber(divertedRaw);
+    if (diverted) {
+      const viaDiversion = await this.matchNumber(diverted, 'diversion');
+      if (viaDiversion.kind === 'resolved') return viaDiversion;
+      logger.warn(`[InboundRouting] origine de renvoi ${diverted} inconnue, on retombe sur le numéro composé`);
+    }
+    return this.matchNumber(normalizeNumber(dialedRaw), 'dialed');
+  }
+
+  private async matchNumber(dialed: string | null, via: 'dialed' | 'diversion'): Promise<InboundResolution> {
     if (!dialed) return { kind: 'unknown', dialed: null };
 
     /* Deux sources, et non plus une: le numéro principal du client, et ses
@@ -81,6 +164,7 @@ class InboundRoutingService {
         clientId: c.id,
         businessName: c.businessName,
         ...(line?.label ? { lineLabel: line.label } : {}),
+        via,
       };
     }
 
@@ -116,10 +200,11 @@ class InboundRoutingService {
         clientId: chosen.id,
         businessName: chosen.businessName,
         ...(line?.label ? { lineLabel: line.label } : {}),
+        via,
       };
     }
 
-    logger.warn(`[InboundRouting] no active client owns ${dialed}`);
+    if (via === 'dialed') logger.warn(`[InboundRouting] no active client owns ${dialed}`);
     return { kind: 'unknown', dialed };
   }
 

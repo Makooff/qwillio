@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import {
@@ -37,6 +37,22 @@ export default function SelfOnboard() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  /* Le canal des messages, proposé SEULEMENT s'il peut vraiment servir.
+     WhatsApp demande un expéditeur WhatsApp Business et un modèle approuvé par
+     Meta pour chaque type de message. Tant que le compte n'a ni l'un ni
+     l'autre, ce choix n'enverrait rien: on ne le montre pas du tout, plutôt que
+     d'ouvrir l'inscription sur une case morte. Le jour où WhatsApp est
+     configuré, le bloc apparaît de lui-même. */
+  const [notificationChannel, setNotificationChannel] = useState<'sms' | 'whatsapp'>('sms');
+  const [whatsappAvailable, setWhatsappAvailable] = useState(false);
+
+  useEffect(() => {
+    // Échec silencieux et volontaire: à ce stade le compte client peut ne pas
+    // encore exister, et un 404 signifie simplement « pas de choix à offrir ».
+    api.get('/my-dashboard/settings')
+      .then(r => setWhatsappAvailable(!!r.data?.whatsappAvailable))
+      .catch(() => setWhatsappAvailable(false));
+  }, []);
 
   const finish = async (payload: Record<string, unknown> = {}) => {
     setLoading(true);
@@ -52,6 +68,14 @@ export default function SelfOnboard() {
       });
       clearReferral();
       if (data.token) localStorage.setItem('token', data.token);
+      /* Posé après coup plutôt que dans `/auth/onboard`: le compte client
+         n'existe qu'une fois cet appel réussi, et faire traverser ce réglage à
+         toute la chaîne d'inscription pour un choix révocable en deux clics
+         coûterait plus cher que ça ne rapporte. Un échec ici laisse le SMS,
+         qui est le défaut. */
+      if (notificationChannel === 'whatsapp') {
+        void api.put('/my-dashboard/settings', { notificationChannel }).catch(() => undefined);
+      }
       if (data.user) useAuthStore.setState({ user: data.user, token: data.token, isLoading: false });
       navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err: unknown) {
@@ -279,6 +303,34 @@ export default function SelfOnboard() {
                     />
                     <p className="text-xs text-[#86868b] mt-2">{t('selfOnboard.phoneHint')}</p>
                   </div>
+
+                  {whatsappAvailable && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        {isFr ? 'Par où vous prévenir ?' : 'Where should we message you?'}
+                      </label>
+                      <div className="flex gap-2">
+                        {(['sms', 'whatsapp'] as const).map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setNotificationChannel(opt)}
+                            className="h-10 px-4 rounded-full text-sm font-medium border transition-colors"
+                            style={notificationChannel === opt
+                              ? { borderColor: '#7a5fff', background: 'rgba(122,95,255,0.08)', color: '#7a5fff' }
+                              : { borderColor: '#d2d2d7', background: '#fff', color: '#1d1d1f' }}
+                          >
+                            {opt === 'sms' ? 'SMS' : 'WhatsApp'}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-[#86868b] mt-2">
+                        {isFr
+                          ? 'Modifiable à tout moment dans Paramètres.'
+                          : 'You can change this any time in Settings.'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </>
             )}
