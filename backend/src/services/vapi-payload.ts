@@ -35,7 +35,7 @@ export function buildVapiCallPayload(input: VapiCallPayloadInput) {
       // `responseDelaySeconds` / `interruptionsEnabled` / `numWordsToInterrupt`
       // trio is superseded by the start- and stop-speaking plans.
       voice: buildVoice({ voiceId: input.voiceId }),
-      backgroundSound: 'office',
+      backgroundSound: env.VOICE_BACKGROUND_SOUND,
       ...buildRealtimePlans('en'),
       firstMessage: input.firstMessage,
       // ── Voicemail / answering machine detection ──

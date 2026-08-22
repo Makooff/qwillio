@@ -3,6 +3,7 @@
  * Ashley = English ONLY | Marie = French ONLY
  */
 import { buildRealtimePlans } from '../services/voice/speech-plans';
+import { env } from './env';
 import { toE164 } from '../utils/phone';
 
 export const VOICE_CONFIG = {
@@ -18,7 +19,6 @@ export const VOICE_CONFIG = {
     speakerBoost: true,
     latency: 4,
     endpointing: 200,
-    backgroundSound: 'office',
     fillerInjection: true,
     responseDelay: 0.1,
   },
@@ -34,7 +34,6 @@ export const VOICE_CONFIG = {
     speakerBoost: true,
     latency: 4,
     endpointing: 150,
-    backgroundSound: 'office',
     fillerInjection: true,
     responseDelay: 0.1,
   },
@@ -216,7 +215,11 @@ export function buildVapiAssistantConfig(params: {
     // that gets demoed and then feels wrong in production.
     ...buildRealtimePlans(params.language),
     maxDurationSeconds: params.maxDuration || 480,
-    backgroundSound: voice.backgroundSound,
+    /* Le RÉGLAGE GLOBAL, pas la fiche du personnage. Les deux personnages
+       portaient `backgroundSound: 'office'` en dur, si bien que couper le fond
+       sonore aurait demandé d'éditer chaque fiche, et qu'une fiche ajoutée
+       demain le rallumerait sans qu'on s'en aperçoive. */
+    backgroundSound: env.VOICE_BACKGROUND_SOUND,
     firstMessage: params.language === 'fr'
       ? (getMarieFormality(params.niche) === 'tu'
         ? `${params.businessName}, salut ! C'est Marie, comment je peux t'aider ?`
