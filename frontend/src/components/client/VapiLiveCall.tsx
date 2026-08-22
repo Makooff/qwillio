@@ -233,6 +233,20 @@ const ENDED_REASONS: Array<[RegExp, string, string]> = [
     'The call was hung up normally.'],
 ];
 
+/**
+ * Ce motif décrit-il une FIN NORMALE plutôt qu'une panne ?
+ *
+ * Le diagnostic est demandé sur les chemins d'échec, mais Vapi rend parfois un
+ * motif parfaitement banal: l'appelant a raccroché, l'assistant a raccroché.
+ * On l'affichait alors en rouge, avec « L'appel a été raccroché normalement »
+ * peint comme une erreur. Une phrase qui se contredit elle-même en dit long sur
+ * le sérieux de l'écran qui la porte.
+ */
+export function isBenignEndedReason(reason: unknown): boolean {
+  return typeof reason === 'string'
+    && /(customer|assistant)[-_ ]?ended[-_ ]?call/i.test(reason);
+}
+
 export function explainEndedReason(reason: unknown, isFr: boolean): string | null {
   if (typeof reason !== 'string' || !reason.trim()) return null;
   for (const [pattern, fr, en] of ENDED_REASONS) {
@@ -443,7 +457,22 @@ export default function VapiLiveCall({
    *
    * Elle vit donc ICI plutôt que chez l'appelant: c'est ce composant qui
    * possède le clic, donc lui seul peut garantir d'être encore dans le geste.
-   * Le flux reste ouvert tant que l'appel dure, et se relâche avec lui. */
+   *
+   * ⚠️ ELLE NE TIENT PLUS LE FLUX PENDANT L'APPEL, et c'est le correctif du
+   * 23/08. Le garder ouvert paraissait prudent; il rendait la réceptionniste
+   * SOURDE. Vapi le disait mot pour mot:
+   *
+   *     call.in-progress.error-assistant-did-not-receive-customer-audio
+   *
+   * Sur iOS, deux captures simultanées du même micro ne se partagent pas
+   * l'appareil: la seconde (celle du SDK, la seule dont l'audio part chez Vapi)
+   * rend une piste SILENCIEUSE. L'appel s'établissait, la réceptionniste
+   * parlait, n'entendait rien, et le délai de silence raccrochait. « Des fois
+   * ça va, des fois non » est la signature de cette course.
+   *
+   * Le flux est donc pris pour l'autorisation, PUIS relâché juste avant que le
+   * SDK demande la sienne. On garde ce qu'il fallait (la demande dans le
+   * geste) et on rend l'appareil à celui qui en a l'usage. */
   const micHoldRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /* L'appel a-t-il DÉCROCHÉ ? Sans ce drapeau, `call-end` est traité de la même
@@ -570,8 +599,7 @@ export default function VapiLiveCall({
   useEffect(() => () => {
     // Cleanup on unmount: stop any active call.
     try { vapiRef.current?.stop?.(); } catch { /* noop */ }
-    // Changer de page pendant un appel laisserait le micro ouvert pour toute
-    // la durée de la session.
+    // Même ceinture au démontage.
     micHoldRef.current?.getTracks().forEach(t => t.stop());
     micHoldRef.current = null;
     if (timerRef.current) clearInterval(timerRef.current);
@@ -589,15 +617,21 @@ export default function VapiLiveCall({
     try { vapiRef.current?.stop?.(); } catch { /* noop */ }
   };
 
+  /** Rendre l'appareil. Idempotent: appelé sur le chemin nominal ET en secours. */
+  const releaseMicHold = () => {
+    micHoldRef.current?.getTracks().forEach(t => t.stop());
+    micHoldRef.current = null;
+  };
+
   /* Retour au repos, d'où que vienne l'échec, avec le compteur et le garde-temps
      arrêtés. Il y avait trois copies de ces lignes et chacune en oubliait une. */
   const settle = (message?: string | null, detail?: string | null) => {
     if (message) { setError(message); reportedRef.current = true; }
-    /* Le micro se rend AVEC l'appel. Une pastille d'enregistrement qui reste
-       allumée après un raccroché est, à juste titre, ce qui inquiète le plus
-       un utilisateur. */
-    micHoldRef.current?.getTracks().forEach(t => t.stop());
-    micHoldRef.current = null;
+    /* Ceinture: en temps normal le flux est déjà rendu avant même que le SDK
+       démarre, mais un échec entre les deux le laisserait ouvert, et une
+       pastille d'enregistrement allumée après un raccroché est à juste titre
+       ce qui inquiète le plus un utilisateur. */
+    releaseMicHold();
     /* Toujours posé, y compris à null: un détail laissé d'une tentative
        précédente se lirait comme celui de l'échec qu'on affiche. */
     setPayload(detail ?? null);
@@ -655,6 +689,15 @@ export default function VapiLiveCall({
         const { data } = await api.get(`/my-dashboard/voice/live-diagnosis${id ? `/${id}` : ''}`);
         if (data?.endedReason) {
           if (attempt !== attemptRef.current) return; // journalisé côté serveur, plus rien à écrire ici
+          /* Une fin banale EFFACE le message au lieu de le remplacer. Le
+             composant a demandé le diagnostic parce qu'il croyait à un échec;
+             Vapi répond que l'appel s'est simplement terminé. C'est Vapi qui a
+             raison, et il n'y a alors rien à peindre en rouge. */
+          if (isBenignEndedReason(data.endedReason)) {
+            setError(null);
+            setPayload(null);
+            return;
+          }
           const said = explainEndedReason(data.endedReason, isFr);
           /* L'identifiant brut reste entre parenthèses même quand il est
              traduit: c'est lui qu'on nous citera au support, et une phrase
@@ -717,6 +760,12 @@ export default function VapiLiveCall({
           micHoldRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch { /* voir ci-dessus */ }
       }
+      /* ET ON REND L'APPAREIL, tout de suite.
+         L'autorisation vient d'être obtenue dans le geste, ce qui était le but;
+         la garder EN PLUS empêcherait le SDK d'obtenir un micro qui produit du
+         son. Voir `micHoldRef`: c'est la cause de
+         `error-assistant-did-not-receive-customer-audio`. */
+      releaseMicHold();
       // Already resolved in the common case, so this await returns on a
       // microtask and the click is still the current gesture when `vapi.start()`
       // asks for the microphone. Only a press during the very first seconds of
