@@ -666,7 +666,7 @@ export class ClientDashboardController {
           voice,
           firstMessage: variants[Math.floor(Math.random() * variants.length)],
           ...buildRealtimePlans(profile.language, speechToSpeech, { fallbacks: false }),
-          backgroundSound: 'office',
+          backgroundSound: env.VOICE_BACKGROUND_SOUND,
         },
       });
     } catch (error: any) {

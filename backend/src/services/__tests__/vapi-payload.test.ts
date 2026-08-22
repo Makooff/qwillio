@@ -43,7 +43,11 @@ describe('buildVapiCallPayload', () => {
     expect(o.voicemailDetection).toMatchObject({ provider: 'twilio', enabled: true, machineDetectionTimeout: 6 });
     expect(o.endCallFunctionEnabled).toBe(true);
     expect(o.endCallMessage).toBe('');
-    expect(o.backgroundSound).toBe('office');
+    /* Le fond sonore de bureau est COUPÉ par défaut (demande du propriétaire):
+       il fatigue, il masque les fins de mots, et sur un appel navigateur sans
+       casque il revient par le micro. `VOICE_BACKGROUND_SOUND=office` le
+       rallume pour toute la flotte, sans toucher au code. */
+    expect(o.backgroundSound).toBe('off');
   });
 
   it('drives barge-in from the stop-speaking plan, not the legacy flags', () => {

@@ -131,7 +131,7 @@ class RealtimeOrchestratorService {
       // annoncé comme tel, et réciproquement. Voir `shouldRecord`.
       recordingEnabled: shouldRecord(profile),
       endCallFunctionEnabled: true,
-      backgroundSound: 'office',
+      backgroundSound: env.VOICE_BACKGROUND_SOUND,
     };
 
     logger.info(

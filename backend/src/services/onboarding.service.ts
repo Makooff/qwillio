@@ -93,7 +93,7 @@ export class OnboardingService {
         // Même règle que le runtime: refuser la notice, c'est refuser
         // l'enregistrement — jamais un enregistrement silencieux.
         recordingEnabled: ((client?.vapiConfig as any)?.disableRecordingNotice !== true),
-        backgroundSound: 'office',
+        backgroundSound: env.VOICE_BACKGROUND_SOUND,
       };
 
       // Only add tools if we have any

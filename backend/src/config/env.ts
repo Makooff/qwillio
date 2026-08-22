@@ -93,7 +93,32 @@ export const env = {
    */
   VAPI_OPTIMIZE_LATENCY: Math.min(2, parseInt(process.env.VAPI_OPTIMIZE_LATENCY || '2', 10)),
   VAPI_INTERRUPTION_THRESHOLD: parseInt(process.env.VAPI_INTERRUPTION_THRESHOLD || '200', 10),
-  VAPI_SILENCE_TIMEOUT: Math.max(10, parseInt(process.env.VAPI_SILENCE_TIMEOUT || '10', 10)),
+  /**
+   * Silence avant que la réceptionniste RACCROCHE.
+   *
+   * 10 secondes, et c'était trop court au point de ressembler à une panne. Le
+   * message d'accueil en prend cinq ou six à lui seul (le prénom, l'entreprise,
+   * l'annonce d'IA), et il ne reste alors que quelques secondes à l'appelant
+   * pour trouver ses mots. Retour de terrain: « il s'arrête tout seul après
+   * avoir dit son prénom et que c'est un assistant IA ».
+   *
+   * Un vrai standard laisse le temps de chercher une référence ou de faire
+   * taire quelqu'un à côté. Trente secondes est ce qui se pratique, et ça reste
+   * loin des huit minutes de durée maximale.
+   */
+  VAPI_SILENCE_TIMEOUT: Math.max(10, parseInt(process.env.VAPI_SILENCE_TIMEOUT || '30', 10)),
+  /**
+   * Le fond sonore de bureau, joué SOUS la voix.
+   *
+   * Il était posé en dur à six endroits, et censé rendre la scène crédible. En
+   * pratique il fatigue, il masque les fins de mots, et sur un appel NAVIGATEUR
+   * sans casque il sort du haut-parleur, revient par le micro, et la
+   * réceptionniste s'entend elle-même. Demande explicite du propriétaire de le
+   * retirer.
+   *
+   * 'off' coupe. Les valeurs que Vapi accepte par ailleurs: 'office'.
+   */
+  VOICE_BACKGROUND_SOUND: process.env.VOICE_BACKGROUND_SOUND || 'off',
   VAPI_MAX_DURATION: parseInt(process.env.VAPI_MAX_DURATION || '480', 10), // 8 minutes
   VAPI_WEBHOOK_SECRET: process.env.VAPI_WEBHOOK_SECRET || '',
 
@@ -206,11 +231,14 @@ export const env = {
   /** Minimum gap between two acknowledgements. Lower sounds like a parrot. */
   VOICE_BACKCHANNEL_FREQUENCY_SECONDS: parseFloat(process.env.VOICE_BACKCHANNEL_FREQUENCY_SECONDS || '4'),
   /**
-   * Silence before the agent asks whether the caller is still there. Distinct
-   * from VAPI_SILENCE_TIMEOUT, which is the hang-up deadline: by ten seconds the
-   * caller has already decided the line dropped.
+   * Silence avant que l'agent demande si l'appelant est toujours là. Distinct
+   * de VAPI_SILENCE_TIMEOUT, qui est l'échéance du raccroché.
+   *
+   * Quatre secondes relançaient quelqu'un qui réfléchissait encore: un silence
+   * de quatre secondes est NORMAL au téléphone, on y cherche un papier. Huit
+   * laissent respirer, et il en reste largement avant le raccroché.
    */
-  VOICE_IDLE_NUDGE_SECONDS: parseFloat(process.env.VOICE_IDLE_NUDGE_SECONDS || '4'),
+  VOICE_IDLE_NUDGE_SECONDS: parseFloat(process.env.VOICE_IDLE_NUDGE_SECONDS || '8'),
   /** How many times to nudge before letting the silence timeout end the call. */
   VOICE_IDLE_NUDGE_COUNT: parseInt(process.env.VOICE_IDLE_NUDGE_COUNT || '2', 10),
   /* Conformité au décroché.
