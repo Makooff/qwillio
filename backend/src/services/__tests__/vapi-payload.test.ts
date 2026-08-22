@@ -30,7 +30,10 @@ describe('buildVapiCallPayload', () => {
        (voir `speech-plans.buildVoice`). */
     expect(v.stability).toBe(0.45);
     expect(v.similarityBoost).toBe(0.65);
-    expect(v.style).toBe(0.70);
+    /* 0,70 rendait la diction théâtrale et instable d'un tour à l'autre. Le
+       style est désormais PLAFONNÉ pour toute la flotte d'un seul réglage,
+       `VOICE_TTS_STYLE_CAP` (voir `speech-plans.buildVoice`). */
+    expect(v.style).toBeLessThanOrEqual(0.45);
     expect(v.useSpeakerBoost).toBe(true);
     expect(v.fallbackPlan.voices).toHaveLength(2);
   });

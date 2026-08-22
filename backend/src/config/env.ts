@@ -126,7 +126,38 @@ export const env = {
   /** Silence the assistant keeps after being interrupted, before speaking again. */
   VOICE_BARGE_IN_BACKOFF_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_BACKOFF_SECONDS || '1.0'),
   /** First TTS chunk size — smaller means audio starts sooner. */
-  VOICE_TTS_MIN_CHUNK_CHARS: parseInt(process.env.VOICE_TTS_MIN_CHUNK_CHARS || '20', 10),
+  /**
+   * Taille du PREMIER morceau de texte envoyé au synthétiseur.
+   *
+   * 20 caractères faisaient partir le son très tôt, et c'était l'objectif
+   * affiché. Le prix, jugé « marginal » dans le commentaire d'origine, ne l'est
+   * pas: le synthétiseur reçoit des bouts de phrase sans contexte, donc il ne
+   * sait pas où poser l'accent ni comment finir sa courbe. Retour de terrain:
+   * « les agents parlent trop haché, articulent trop, sonnent pas naturel ».
+   *
+   * 60 caractères, c'est à peu près une proposition: assez pour que la phrase
+   * ait une forme. Coût: quelques dizaines de millisecondes sur le premier son,
+   * une seule fois par tour de parole.
+   */
+  VOICE_TTS_MIN_CHUNK_CHARS: parseInt(process.env.VOICE_TTS_MIN_CHUNK_CHARS || '60', 10),
+  /**
+   * Débit de la voix. 1 = le débit naturel du modèle.
+   *
+   * « Ils sont lents » revient dans les retours. Un cran au-dessus se remarque
+   * à peine à l'oreille mais raccourcit chaque phrase; au delà de ~1,15 le
+   * modèle Flash commence à manger des syllabes.
+   */
+  VOICE_SPEECH_SPEED: Math.min(1.2, Math.max(0.8, parseFloat(process.env.VOICE_SPEECH_SPEED || '1.05') || 1.05)),
+  /**
+   * Plafond de l'exagération de style d'ElevenLabs.
+   *
+   * Les personnages portent des valeurs allant jusqu'à 0,7. C'est beaucoup: le
+   * style élevé rend la diction théâtrale (le « articule trop » du retour),
+   * ajoute de l'instabilité d'un tour à l'autre, et coûte de la latence. On
+   * plafonne plutôt que d'éditer chaque personnage, pour qu'un seul réglage
+   * décide du rendu de toute la flotte.
+   */
+  VOICE_TTS_STYLE_CAP: Math.min(1, Math.max(0, parseFloat(process.env.VOICE_TTS_STYLE_CAP || '0.4') || 0.4)),
   /* Parole-à-parole (le mode « voix de ChatGPT »).
    *
    * La chaîne classique transcrit, puis fait écrire un modèle, puis synthétise:
