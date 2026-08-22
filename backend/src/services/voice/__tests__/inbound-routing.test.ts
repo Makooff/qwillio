@@ -5,7 +5,7 @@ vi.mock('../../../config/database', () => ({
   prisma: { client: { findMany: (...a: unknown[]) => findMany(...a) } },
 }));
 
-const { inboundRoutingService } = await import('../inbound-routing.service');
+const { inboundRoutingService, divertedNumber } = await import('../inbound-routing.service');
 
 const client = (
   id: string,
@@ -141,5 +141,73 @@ describe('multi-sites', () => {
        base et le meme appelant pouvait tomber ailleurs a l'appel suivant. */
     expect(await inboundRoutingService.resolveClient('+3223334455'))
       .toMatchObject({ kind: 'resolved', clientId: 'c1' });
+  });
+});
+
+/**
+ * Le renvoi d'appel, qui déciderait s'il faut UN numéro par client.
+ *
+ * Aujourd'hui le numéro composé est la seule clé de routage, donc chaque client
+ * doit posséder sa ligne, l'acheter, et en faire valider l'adresse. Si le
+ * renvoi transporte son origine, une seule ligne peut servir toute la flotte.
+ *
+ * La forme exacte du webhook Vapi n'a pas pu être vérifiée sur pièces: les
+ * variantes couvertes ici sont donc celles que les opérateurs et Twilio
+ * emploient, et le code n'en privilégie aucune. Ne rien trouver retombe sur le
+ * comportement actuel, ce que le dernier cas vérifie.
+ */
+describe('divertedNumber — le numéro réellement composé par l\'appelant', () => {
+  it("lit un en-tête SIP Diversion tel qu'un opérateur l'écrit", () => {
+    expect(divertedNumber({
+      message: { call: { sipHeaders: { Diversion: '<sip:+3225550011@operateur.be>;reason=unconditional' } } },
+    })).toBe('3225550011');
+  });
+
+  it('se moque de la casse et de la place du sac', () => {
+    expect(divertedNumber({
+      call: { phoneCallProviderDetails: { sipHeaders: { 'X-Original-Called-Number': 'tel:+32 2 555 00 11' } } },
+    })).toBe('3225550011');
+  });
+
+  it('lit le champ ForwardedFrom de Twilio', () => {
+    expect(divertedNumber({
+      message: { call: { phoneCallProviderDetails: { forwardedFrom: '+3225550011' } } },
+    })).toBe('3225550011');
+  });
+
+  it("ne rend rien quand l'appel n'a pas été renvoyé", () => {
+    // Le cas NORMAL aujourd'hui: aucun en-tête, et le routage doit se comporter
+    // exactement comme avant.
+    expect(divertedNumber({ message: { call: { phoneNumber: { number: '+3225550011' } } } })).toBeNull();
+    expect(divertedNumber({})).toBeNull();
+    expect(divertedNumber(null)).toBeNull();
+  });
+
+  it('ignore un en-tête présent mais inexploitable', () => {
+    expect(divertedNumber({ call: { sipHeaders: { Diversion: 'anonymous' } } })).toBeNull();
+  });
+});
+
+describe('resolveClient — priorité au numéro renvoyé', () => {
+  beforeEach(() => findMany.mockReset());
+
+  it("route sur le numéro d'origine, pas sur la ligne partagée", async () => {
+    // Deux clients renvoient vers LA MÊME ligne. Sans l'origine, ce cas est
+    // précisément celui qui rendait les deux injoignables.
+    findMany.mockResolvedValue([client('c1', '+3225550011'), client('c2', '+3225550022')]);
+    const r = await inboundRoutingService.resolveClient('+3280000000', '<sip:+3225550022@op.be>');
+    expect(r).toMatchObject({ kind: 'resolved', clientId: 'c2', via: 'diversion' });
+  });
+
+  it('retombe sur le numéro composé quand l\'origine est inconnue', async () => {
+    findMany.mockResolvedValue([client('c1', '+3225550011')]);
+    const r = await inboundRoutingService.resolveClient('+3225550011', '+32999999999');
+    expect(r).toMatchObject({ kind: 'resolved', clientId: 'c1', via: 'dialed' });
+  });
+
+  it("se comporte comme avant quand rien n'est renvoyé", async () => {
+    findMany.mockResolvedValue([client('c1', '+3225550011')]);
+    const r = await inboundRoutingService.resolveClient('+3225550011');
+    expect(r).toMatchObject({ kind: 'resolved', clientId: 'c1', via: 'dialed' });
   });
 });

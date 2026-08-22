@@ -24,8 +24,21 @@ export function errorDetail(e: unknown): string | null {
   // sits behind a folded « Détails techniques », because 220 characters of JSON
   // pushed the one useful line (Vapi's endedReason) off the card on iPhone.
   try {
+    /* UNE `Error` NE SE SÉRIALISE PAS.
+     *
+     * `JSON.stringify(new Error('boum'))` rend `{}`, parce que `name`, `message`
+     * et `stack` ne sont pas énumérables. On rendait donc `null`, et l'écran
+     * n'affichait ni détail ni tiroir: exactement ce qu'on voit sur les captures
+     * du 21/08, une phrase générique et rien derrière. Le seul cas où le détail
+     * aurait servi était donc celui où il disparaissait.
+     *
+     * On les recopie à la main avant de sérialiser. Les autres propriétés de
+     * l'objet sont conservées: le SDK y range parfois le vrai motif. */
+    const subject = e instanceof Error
+      ? { name: e.name, message: e.message, ...(e as unknown as Record<string, unknown>) }
+      : e;
     const seen = new WeakSet();
-    const json = JSON.stringify(e, (_k, v) => {
+    const json = JSON.stringify(subject, (_k, v) => {
       if (typeof v === 'object' && v !== null) {
         if (seen.has(v)) return '[circular]';
         seen.add(v);
@@ -37,6 +50,22 @@ export function errorDetail(e: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * OÙ l'appel s'est cassé, dit en français.
+ *
+ * « L'appel s'est interrompu, vérifiez le micro et la connexion » est vrai et
+ * inutile: ça n'oriente vers rien. L'étape en cours au moment de l'échec, elle,
+ * partage le champ des causes en trois, et elle est déjà connue du composant.
+ * Ça ne coûte rien et ça vaut mieux que la raison de Vapi quand celle-ci
+ * n'arrive pas (une relance annule sa demande).
+ */
+export function phaseLabel(phase: 'prep' | 'creating' | 'joining' | null, isFr: boolean): string {
+  if (phase === 'creating') return isFr ? ' pendant la création de l’appel' : ' while creating the call';
+  if (phase === 'joining') return isFr ? ' pendant la liaison audio' : ' while linking audio';
+  if (phase === 'prep') return isFr ? ' pendant la préparation' : ' while preparing';
+  return '';
 }
 
 /**
@@ -387,7 +416,17 @@ export default function VapiLiveCall({
      Trois choses très différentes se succèdent: préparer (SDK et config),
      créer l'appel chez Vapi, puis ouvrir la liaison audio. Les nommer, c'est
      déjà répondre à « pourquoi j'attends ». */
-  const [phase, setPhase] = useState<'prep' | 'creating' | 'joining' | null>(null);
+  const [phase, setPhaseState] = useState<'prep' | 'creating' | 'joining' | null>(null);
+  /* La MÊME étape, lisible tout de suite.
+     Les gestionnaires du SDK sont enregistrés une fois et capturent l'état de ce
+     rendu-là: `phase` y serait toujours celui du montage. La référence, elle,
+     dit l'étape au moment où l'erreur tombe, ce qui est précisément ce qu'on
+     veut nommer dans le message. */
+  const phaseRef = useRef<'prep' | 'creating' | 'joining' | null>(null);
+  const setPhase = (p: 'prep' | 'creating' | 'joining' | null) => {
+    phaseRef.current = p;
+    setPhaseState(p);
+  };
   const [timing, setTiming] = useState<string | null>(null);
 
   const vapiRef = useRef<any>(null);
@@ -429,6 +468,12 @@ export default function VapiLiveCall({
      n'existe que dans l'enregistrement d'appel, et cet identifiant est le seul
      moyen d'aller la chercher. */
   const callIdRef = useRef<string | null>(null);
+  /* L'identifiant, RANGÉ PAR TENTATIVE.
+     Le diagnostic d'une tentative continue maintenant après une relance, et
+     sans ça il demanderait « le dernier appel web récent », c'est-à-dire le
+     NOUVEL appel: on journaliserait la raison du mauvais. La carte garde donc
+     l'identifiant de chaque tentative, et chacune interroge le sien. */
+  const attemptCallIds = useRef<Map<number, string>>(new Map());
   /* Le numéro de la tentative en cours. Le diagnostic revient en différé: sans
      ce jeton, la raison d'un appel abandonné viendrait écraser l'écran d'un
      appel relancé depuis. */
@@ -589,19 +634,27 @@ export default function VapiLiveCall({
        Sans lui, le serveur retrouve l'appel dans les récents; avec lui, il va
        droit au but. */
     const attempt = attemptRef.current;
+    /* La demande VA JUSQU'AU BOUT même si l'utilisateur relance entre-temps.
+       Avant, une relance l'abandonnait: on ne voulait pas afficher le message
+       d'un appel qui n'est plus à l'écran, ce qui est juste. Mais l'effet de
+       bord était que sur un défaut INTERMITTENT, celui qu'on relance aussitôt
+       par réflexe, la raison n'était ni montrée ni ENREGISTRÉE. Le serveur la
+       journalise à chaque appel de cette route: aller au bout, c'est la garder
+       quelque part même quand l'écran a tourné la page. Seul l'affichage reste
+       conditionné à la tentative en cours. */
     /* Et NE PAS interroger tout de suite: Vapi écrit `endedReason` après avoir
        clos l'appel, si bien qu'une première lecture immédiate le trouve encore
        « in-progress », sans raison à lire. Trois essais espacés, puis on
        renonce en laissant le message de base. */
     for (const wait of [900, 2500, 5000]) {
       await new Promise(r => setTimeout(r, wait));
-      // L'utilisateur a relancé un appel entre-temps: ce diagnostic-ci parle
-      // d'un appel qui n'est plus à l'écran, il n'a plus rien à écrire.
-      if (attempt !== attemptRef.current) return;
       try {
-        const id = callIdRef.current;
+        // Relu à chaque essai: `start()` peut ne rendre l'identifiant qu'après
+        // le premier tour de boucle.
+        const id = attemptCallIds.current.get(attempt) ?? null;
         const { data } = await api.get(`/my-dashboard/voice/live-diagnosis${id ? `/${id}` : ''}`);
-        if (data?.endedReason && attempt === attemptRef.current) {
+        if (data?.endedReason) {
+          if (attempt !== attemptRef.current) return; // journalisé côté serveur, plus rien à écrire ici
           const said = explainEndedReason(data.endedReason, isFr);
           /* L'identifiant brut reste entre parenthèses même quand il est
              traduit: c'est lui qu'on nous citera au support, et une phrase
@@ -759,9 +812,15 @@ export default function VapiLiveCall({
           // ajouté faute de devtools sur un téléphone. Sur le site public, le
           // lecteur est un prospect: il n'a rien à faire de notre charge JSON.
           const detail = onSite ? null : errorDetail(e);
+          /* L'ÉTAPE entre dans la phrase. « L'appel s'est interrompu, vérifiez
+             le micro et la connexion » n'oriente vers rien; « interrompu pendant
+             la liaison audio » partage les causes en trois et se lit d'un coup
+             d'oeil sur un téléphone. Elle est lue AVANT `settle`, qui la
+             remet à null. */
+          const where = phaseLabel(phaseRef.current, isFr);
           const message = errorText(e) || (isFr
-            ? "L'appel s'est interrompu. Vérifiez le micro et la connexion, puis réessayez."
-            : 'The call dropped. Check the microphone and connection, then try again.');
+            ? `L'appel s'est interrompu${where}. Vérifiez le micro et la connexion, puis réessayez.`
+            : `The call dropped${where}. Check the microphone and connection, then try again.`);
           /* Le détail part dans son propre tiroir au lieu de rallonger la
              phrase: c'est ce qui rendait la raison de Vapi illisible. */
           settle(message, detail);
@@ -773,7 +832,15 @@ export default function VapiLiveCall({
          si la session est fermée dans la foulée, c'est le seul fil qui reste
          pour en apprendre la raison. */
       const call: any = await vapi.start(data.assistant);
-      if (typeof call?.id === 'string') callIdRef.current = call.id;
+      if (typeof call?.id === 'string') {
+        callIdRef.current = call.id;
+        attemptCallIds.current.set(attemptRef.current, call.id);
+        // La carte ne grandit pas indéfiniment sur une page laissée ouverte.
+        if (attemptCallIds.current.size > 8) {
+          const oldest = Math.min(...attemptCallIds.current.keys());
+          attemptCallIds.current.delete(oldest);
+        }
+      }
       marksRef.current.created = performance.now();
       setPhase('joining');
     } catch (e: any) {
