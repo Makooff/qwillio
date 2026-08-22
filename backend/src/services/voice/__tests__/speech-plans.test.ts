@@ -141,9 +141,25 @@ describe('buildVoice', () => {
     expect(voice.model).toBe('eleven_flash_v2_5');
   });
 
-  it('streams the first chunk small so audio starts before the sentence ends', () => {
+  it('rend au synthétiseur de quoi faire une PHRASE', () => {
+    /* Ce test exigeait l'inverse (≤ 30 caractères), au nom du premier son.
+       Le terrain a tranché: « ça parle trop haché, ça articule trop ». Un
+       fragment sans contexte ne peut pas être prononcé naturellement, quelle
+       que soit la vitesse à laquelle il part. */
     expect(voice.chunkPlan.enabled).toBe(true);
-    expect(voice.chunkPlan.minCharacters).toBeLessThanOrEqual(30);
+    expect(voice.chunkPlan.minCharacters).toBeGreaterThanOrEqual(40);
+    // Au delà d'une phrase entière, on attendrait le point pour rien.
+    expect(voice.chunkPlan.minCharacters).toBeLessThanOrEqual(120);
+  });
+
+  it('ne coupe qu\'aux FINS DE PHRASE', () => {
+    // La virgule était une frontière: une phrase de trois virgules partait en
+    // quatre morceaux, chacun terminé comme une fin. C'est le « haché ».
+    expect(voice.chunkPlan.punctuationBoundaries).toEqual(['.', '!', '?']);
+  });
+
+  it('plafonne le style, qui rendait la diction théâtrale', () => {
+    expect(voice.style).toBeLessThanOrEqual(0.45);
   });
 
   it('keeps the fallback voices on the same fast model', () => {
@@ -168,6 +184,36 @@ describe('buildRealtimePlans', () => {
     expect(plans.interruptionsEnabled).toBeUndefined();
     expect(plans.numWordsToInterruptAssistant).toBeUndefined();
     expect(plans.responseDelaySeconds).toBeUndefined();
+  });
+
+  /**
+   * LE DÉFAUT LE PLUS COÛTEUX DE CE FICHIER, et il ne se voyait pas.
+   *
+   * En parole-à-parole le transcripteur est retiré, à raison. Mais les deux
+   * plans de parole étaient TOUJOURS envoyés, alors qu'ils comptent des mots:
+   * `numWords`, `acknowledgementPhrases`, `interruptionPhrases`, et un plan
+   * nommé `transcriptionEndpointingPlan`. Sans transcripteur, aucune de ces
+   * conditions ne peut être remplie: la réceptionniste n'entend rien, ne
+   * répond pas, et le délai de silence raccroche.
+   *
+   * Symptôme rapporté en mode Direct: « il ne m'entend pas quand je parle, et
+   * ça raccroche vite ».
+   */
+  it("N'ENVOIE PAS de plan de parole en parole-à-parole", () => {
+    const plans = buildRealtimePlans('fr', true) as Record<string, unknown>;
+    expect(plans.transcriber).toBeUndefined();
+    expect(plans.startSpeakingPlan).toBeUndefined();
+    expect(plans.stopSpeakingPlan).toBeUndefined();
+  });
+
+  it('garde tout ce qui ne dépend PAS du transcripteur', () => {
+    // Les repères de temps, eux, restent valables: ils se comptent en
+    // secondes, pas en mots.
+    const plans = buildRealtimePlans('fr', true) as Record<string, unknown>;
+    expect(plans.silenceTimeoutSeconds).toBeDefined();
+    expect(plans.maxDurationSeconds).toBeDefined();
+    expect(plans.messagePlan).toBeDefined();
+    expect(plans.firstMessageMode).toBe('assistant-speaks-first');
   });
 });
 

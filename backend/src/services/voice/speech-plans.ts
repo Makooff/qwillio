@@ -209,11 +209,21 @@ export function buildStopSpeakingPlan() {
 /**
  * Voice config optimised for time-to-first-audio-byte.
  *
- * ElevenLabs Flash v2.5 is the ~75 ms TTFB model. `chunkPlan` controls how
- * early we hand text to the synthesiser: a 20-character first chunk means the
- * caller hears audio while the LLM is still streaming the rest of the sentence.
- * Keeping the minimum small is the whole point — raising it trades perceived
- * latency for marginally better prosody.
+ * ElevenLabs Flash v2.5 est le modèle à ~75 ms de premier octet. `chunkPlan`
+ * décide de la quantité de texte remise au synthétiseur d'un coup.
+ *
+ * CE COMMENTAIRE DISAIT L'INVERSE, et il se trompait sur le prix. Il défendait
+ * un premier morceau de 20 caractères, en jugeant la perte de prosodie
+ * « marginale ». Elle ne l'est pas: à 20 caractères, coupés en plus à chaque
+ * virgule, le synthétiseur reçoit des fragments sans contexte. Il ne sait ni où
+ * poser l'accent, ni comment terminer sa courbe mélodique, et il sur-articule
+ * pour compenser. Retour de terrain, sur toutes les voix: « ça parle trop
+ * haché, ça articule trop, ça sonne pas naturel ».
+ *
+ * On rend donc au synthétiseur de quoi faire une phrase, et on ne coupe plus
+ * qu'aux fins de phrase. Le coût est de quelques dizaines de millisecondes sur
+ * le premier son, une fois par tour de parole; le gain est qu'on entend une
+ * personne plutôt qu'un enchaînement de morceaux.
  */
 export function buildVoice(opts: {
   voiceId: string;
@@ -234,10 +244,12 @@ export function buildVoice(opts: {
      * aucun de ses rôles. */
     stability: Math.max(0.35, opts.stability ?? 0.45),
     similarityBoost: opts.similarityBoost ?? 0.65,
-    style: opts.style ?? 0.7,
+    /* Plafonné, pas remplacé: un personnage reste plus expressif qu'un autre,
+       mais aucun ne monte au niveau théâtral. Voir `VOICE_TTS_STYLE_CAP`. */
+    style: Math.min(env.VOICE_TTS_STYLE_CAP, opts.style ?? 0.4),
     useSpeakerBoost: true,
     optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
-    speed: 1.0,
+    speed: env.VOICE_SPEECH_SPEED,
     chunkPlan: {
       enabled: true,
       minCharacters: env.VOICE_TTS_MIN_CHUNK_CHARS,
@@ -245,7 +257,12 @@ export function buildVoice(opts: {
       // obvious sentence breaks and are not on the list, and one unknown value
       // rejects the entire assistant:
       // "voice.chunkPlan.each value in punctuationBoundaries must be one of…".
-      punctuationBoundaries: ['.', '!', '?', ',', ';', ':'],
+      /* FINS DE PHRASE SEULEMENT. La virgule, le point-virgule et les deux
+         points étaient dans cette liste: une phrase de trois virgules partait
+         donc en quatre morceaux synthétisés séparément, chacun terminé comme
+         s'il était la fin de quelque chose. C'est précisément ce qui s'entend
+         comme « haché ». */
+      punctuationBoundaries: ['.', '!', '?'],
       formatPlan: { enabled: true, numberToDigitsCutoff: 2025 },
     },
     fallbackPlan: {
@@ -411,8 +428,26 @@ export function buildRealtimePlans(lang: VoiceLanguage, speechToSpeech = false, 
        sortie, et fixer la latence sur elle. Vapi le documente comme inutile
        dans ce mode. */
     ...(speechToSpeech ? {} : { transcriber: buildTranscriber(lang, opts) }),
-    startSpeakingPlan: buildStartSpeakingPlan(lang),
-    stopSpeakingPlan: buildStopSpeakingPlan(),
+    /* LES DEUX PLANS DE PAROLE SUPPOSENT UN TRANSCRIPTEUR. Sans lui, ils ne
+       peuvent pas être satisfaits, et c'est une panne, pas une dégradation.
+       Regardez de quoi ils sont faits: `numWords`, `acknowledgementPhrases`,
+       `interruptionPhrases`, et un plan littéralement nommé
+       `transcriptionEndpointingPlan`. Tout cela compte des MOTS.
+       En parole-à-parole le transcripteur est retiré, à raison: le modèle
+       entend l'audio lui-même. Mais on continuait d'envoyer les deux plans.
+       La réceptionniste attendait donc des mots qui n'arrivaient jamais, ne
+       répondait pas, et le délai de silence raccrochait. Retour de terrain, en
+       mode Direct: « il ne m'entend pas quand je parle, et ça raccroche vite ».
+       Le passage de `numWords` de 0 à 2, fait pour la protéger du bruit, a
+       aggravé ce cas précis: à 0, la seule activité vocale pouvait encore
+       l'interrompre sans transcript.
+       En parole-à-parole, le tour de parole appartient donc au modèle et à la
+       couche d'orchestration de Vapi, qui le documente ainsi. On n'envoie
+       rien. */
+    ...(speechToSpeech ? {} : {
+      startSpeakingPlan: buildStartSpeakingPlan(lang),
+      stopSpeakingPlan: buildStopSpeakingPlan(),
+    }),
     backchannelingEnabled: env.VOICE_BACKCHANNEL_ENABLED,
     // No backchannelPlan here. Vapi rejects the whole assistant with
     // "assistant.property backchannelPlan should not exist", which took down
