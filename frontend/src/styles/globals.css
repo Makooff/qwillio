@@ -64,7 +64,62 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* ─── LES BARRES DE DÉFILEMENT, LES MÊMES PARTOUT ───────────────────────────
+ *
+ * Chaque zone défilante affichait la barre du système: épaisse sur Windows,
+ * grise, avec sa gouttière et parfois ses flèches. Le portail, l'admin et le
+ * site n'avaient donc pas la même, et aucun n'avait la nôtre.
+ *
+ * Une seule règle, un filet fin à bouts ronds, sans gouttière ni flèches.
+ *
+ * Le gris translucide est un choix, pas une facilité: ces feuilles servent
+ * DEUX registres (le portail sombre et le site qui suit le thème), et une
+ * couleur tirée des jetons de l'un serait invisible chez l'autre. À 32 % de
+ * gris moyen, le pouce se détache aussi bien sur le crème que sur le noir,
+ * sans jamais devenir un élément d'interface à part entière.
+ *
+ * La bordure transparente avec `background-clip: content-box` est ce qui donne
+ * une barre FINE dans une zone de clic large: on garde 10 px attrapables à la
+ * souris et on n'en peint que 4. Sans elle, il faut choisir entre une barre
+ * épaisse et une cible impossible à saisir.
+ */
+* {
+  scrollbar-width: thin;                              /* Firefox */
+  scrollbar-color: rgba(128, 128, 128, 0.32) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(128, 128, 128, 0.32);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  transition: background-color 150ms var(--ease-out);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(128, 128, 128, 0.55);
+}
+/* Le survol n'existe pas au doigt: sur un écran tactile la barre reste
+   discrète, et le système la fait de toute façon disparaître au repos. */
+@media (hover: none) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    border-width: 2px;
+  }
+}
+
 /* ─── Scrollbar Hide ─── */
+/* Passe APRÈS la règle générale, et gagne par sa classe: certaines zones
+   (carrousels, rangées d'onglets) défilent sans devoir l'annoncer. */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
