@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { errorDetail, errorText, explainEndedReason, isMicDenied, isNormalTeardown, isProviderFault, phaseLabel, shouldReportConnectFailure } from './VapiLiveCall';
+import { errorDetail, errorText, explainEndedReason, isBenignEndedReason, isMicDenied, isNormalTeardown, isProviderFault, phaseLabel, shouldReportConnectFailure } from './VapiLiveCall';
 
 describe('isMicDenied', () => {
   it('recognises the DOMException the browser throws on refusal', () => {
@@ -208,5 +208,22 @@ describe('phaseLabel', () => {
 
   it('parle anglais aussi', () => {
     expect(phaseLabel('joining', false)).toBe(' while linking audio');
+  });
+});
+
+describe('isBenignEndedReason', () => {
+  it('reconnait un raccroché, des deux côtés', () => {
+    /* On affichait « L'appel a été raccroché normalement » EN ROUGE, comme une
+       panne. Une phrase qui se contredit elle-même en dit long sur le sérieux
+       de l'écran qui la porte. */
+    expect(isBenignEndedReason('customer-ended-call')).toBe(true);
+    expect(isBenignEndedReason('assistant-ended-call')).toBe(true);
+  });
+
+  it('ne blanchit aucune vraie panne', () => {
+    expect(isBenignEndedReason('call.in-progress.error-assistant-did-not-receive-customer-audio')).toBe(false);
+    expect(isBenignEndedReason('pipeline-error-openai-llm-failed')).toBe(false);
+    expect(isBenignEndedReason('silence-timed-out')).toBe(false);
+    expect(isBenignEndedReason(null)).toBe(false);
   });
 });
