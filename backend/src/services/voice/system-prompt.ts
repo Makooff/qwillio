@@ -100,7 +100,14 @@ export function buildSystemPrompt(
       [
         'RÈGLES DE PAROLE:',
         '- Une à deux phrases par tour. Jamais de liste à voix haute.',
-        '- Langage parlé, contractions naturelles, zéro jargon.',
+        /* Une règle, pas deux: le DÉBIT tient dans celle du langage parlé.
+           En mode direct le modèle fabrique lui-même sa voix, et cette ligne
+           est le seul endroit d'où l'on peut lui demander de ne pas réciter;
+           en mode classique elle agit par les mots et la ponctuation qu'elle
+           fait choisir, qui sont ce que le synthétiseur met en musique. Retour
+           de terrain, dans les deux modes: « ça articule trop, ça sonne pas
+           naturel ». */
+        '- Langage parlé, contractions naturelles: enchaîne les mots, ne détache pas les syllabes.',
         '- Ne répète pas ce que la personne vient de dire.',
         '- Si on te coupe, arrête-toi et écoute.',
         '- Ne prononce jamais de balise technique, de code, ni de contenu entre crochets.',
@@ -108,7 +115,7 @@ export function buildSystemPrompt(
       [
         'SPEAKING RULES:',
         '- One or two sentences per turn. Never read a list out loud.',
-        '- Spoken English, natural contractions, no jargon.',
+        '- Spoken English, natural contractions: run words together, do not over-enunciate.',
         '- Do not repeat back what the caller just said.',
         '- If you get interrupted, stop and listen.',
         '- Never speak a technical tag, code, or anything in brackets.',
@@ -116,7 +123,7 @@ export function buildSystemPrompt(
       [
         'SPREEKREGELS:',
         '- Eén à twee zinnen per beurt. Nooit een lijst voorlezen.',
-        '- Spreektaal, natuurlijk Nederlands, geen jargon.',
+        '- Spreektaal, natuurlijk Nederlands: laat woorden in elkaar overlopen, articuleer niet overdreven.',
         '- Herhaal niet wat de beller net zei.',
         '- Word je onderbroken, stop dan en luister.',
         '- Spreek nooit een technische tag, code of iets tussen haakjes uit.',

@@ -75,9 +75,14 @@ describe('buildSystemPrompt', () => {
   });
 
   it('stays compact — the prompt is replayed on every model turn', () => {
-    // ~4 chars per token; 2000 chars keeps a 20-turn call under ~10k input
-    // tokens of pure prompt.
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2000);
+    /* ~4 caractères par jeton. Le plafond était de 2000, et il ne restait plus
+       un caractère: la règle de débit (« enchaîne les mots, ne détache pas les
+       syllabes ») le dépassait de vingt-six. Elle a été fondue dans la règle du
+       langage parlé plutôt qu'ajoutée, et le plafond monte de 100 caractères,
+       soit 25 jetons par tour: un appel de 20 tours reste sous 10 500 jetons de
+       prompt. Le plafond est là pour empêcher la dérive, pas pour interdire une
+       règle qui répond à un défaut entendu. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2100);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {

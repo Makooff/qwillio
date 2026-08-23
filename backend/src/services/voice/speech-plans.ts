@@ -183,6 +183,31 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
  * loop (the "saturation" failure mode); 1 s is the smallest value that reliably
  * yields the floor.
  */
+/**
+ * Le même plan, mais SANS un seul mot dedans.
+ *
+ * En parole-à-parole il n'y a pas de transcripteur, donc plus rien ne compte
+ * les mots: `numWords`, `acknowledgementPhrases` et `interruptionPhrases`
+ * attendent une sortie qui n'existe pas. C'est pour cette raison que le plan
+ * entier avait été retiré de ce mode, et le tour de parole revenait alors à la
+ * détection d'énergie seule, réglée par le défaut de Vapi. D'où le défaut qui
+ * revient: elle se tait au moindre bruit.
+ *
+ * `voiceSeconds` et `backoffSeconds`, eux, ne lisent aucun transcript: ils se
+ * mesurent sur l'audio. Les envoyer seuls rend donc le seuil de bruit réglable
+ * en temps réel aussi, sans réintroduire l'attente de mots qui rendait la
+ * réceptionniste sourde.
+ */
+export function buildRealtimeStopSpeakingPlan() {
+  return {
+    /* 0 explicitement: c'est le chemin « énergie seule », le seul disponible
+       sans transcripteur. Ce n'est pas un oubli de `VOICE_BARGE_IN_WORDS`. */
+    numWords: 0,
+    voiceSeconds: env.VOICE_BARGE_IN_VOICE_SECONDS,
+    backoffSeconds: env.VOICE_BARGE_IN_BACKOFF_SECONDS,
+  };
+}
+
 export function buildStopSpeakingPlan() {
   return {
     numWords: env.VOICE_BARGE_IN_WORDS,
@@ -234,7 +259,7 @@ export function buildVoice(opts: {
   return {
     provider: '11labs',
     voiceId: opts.voiceId,
-    model: 'eleven_flash_v2_5',
+    model: env.VOICE_TTS_MODEL,
     /* Plancher de stabilité.
      *
      * 0,22 était le défaut, et sous ~0,35 le modèle Flash articule mal: il
@@ -267,8 +292,8 @@ export function buildVoice(opts: {
     },
     fallbackPlan: {
       voices: [
-        { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1, model: 'eleven_flash_v2_5' },
-        { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2, model: 'eleven_flash_v2_5' },
+        { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1, model: env.VOICE_TTS_MODEL },
+        { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2, model: env.VOICE_TTS_MODEL },
       ],
     },
   };
@@ -441,13 +466,27 @@ export function buildRealtimePlans(lang: VoiceLanguage, speechToSpeech = false, 
        Le passage de `numWords` de 0 à 2, fait pour la protéger du bruit, a
        aggravé ce cas précis: à 0, la seule activité vocale pouvait encore
        l'interrompre sans transcript.
-       En parole-à-parole, le tour de parole appartient donc au modèle et à la
-       couche d'orchestration de Vapi, qui le documente ainsi. On n'envoie
-       rien. */
-    ...(speechToSpeech ? {} : {
-      startSpeakingPlan: buildStartSpeakingPlan(lang),
-      stopSpeakingPlan: buildStopSpeakingPlan(),
-    }),
+       La correction d'alors retirait les deux plans, et elle allait trop loin.
+       Un plan sur deux est fait de mots, l'autre pas: `voiceSeconds` et
+       `backoffSeconds` se mesurent sur l'audio et n'ont jamais eu besoin d'un
+       transcripteur. Les retirer laissait le seuil de bruit au défaut de Vapi,
+       0,2 s, et c'est le défaut qui revient: « il s'arrête de parler alors que
+       je ne parle pas ». On envoie donc, en parole-à-parole, la partie du plan
+       qui s'entend, et rien de ce qui se compte. */
+    ...(speechToSpeech
+      ? {
+          /* Ce qui reste envoyable sans transcripteur: le seuil de bruit.
+             `startSpeakingPlan` n'a pas d'équivalent, il est fait de règles de
+             ponctuation et de fin de phrase; en parole-à-parole, le moment de
+             répondre appartient au modèle. Le moment de SE TAIRE, lui, se
+             mesure sur l'audio, et le laisser au défaut de Vapi (0,2 s) est
+             précisément ce qui la fait taire au moindre bruit. */
+          stopSpeakingPlan: buildRealtimeStopSpeakingPlan(),
+        }
+      : {
+          startSpeakingPlan: buildStartSpeakingPlan(lang),
+          stopSpeakingPlan: buildStopSpeakingPlan(),
+        }),
     backchannelingEnabled: env.VOICE_BACKCHANNEL_ENABLED,
     // No backchannelPlan here. Vapi rejects the whole assistant with
     // "assistant.property backchannelPlan should not exist", which took down

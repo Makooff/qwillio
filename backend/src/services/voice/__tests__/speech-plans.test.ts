@@ -33,8 +33,15 @@ describe('buildStopSpeakingPlan — barge-in', () => {
     expect(plan.numWords).toBeLessThanOrEqual(3);
   });
 
-  it('requires real voiced audio so a cough does not cut the assistant', () => {
-    expect(plan.voiceSeconds).toBeGreaterThan(0);
+  it("exige assez d'audio voisé pour qu'une porte ne la coupe pas", () => {
+    /* Ce test se contentait de « > 0 », et il passait au vert avec le défaut
+       de Vapi, 0,2 s, qui coupait sur une toux. Les deux règles ne sont PAS en
+       série: celle-ci agit seule, sur l'énergie, sans passer par le
+       transcripteur, donc `numWords` ne la couvre pas. C'est le déclencheur
+       qui restait ouvert après la correction précédente. */
+    expect(plan.voiceSeconds).toBeGreaterThan(0.2);
+    // Au delà d'une demi-seconde, l'interruption volontaire s'entend traîner.
+    expect(plan.voiceSeconds).toBeLessThanOrEqual(0.6);
   });
 
   it('backs off long enough to avoid both parties talking over each other', () => {
@@ -199,11 +206,32 @@ describe('buildRealtimePlans', () => {
    * Symptôme rapporté en mode Direct: « il ne m'entend pas quand je parle, et
    * ça raccroche vite ».
    */
-  it("N'ENVOIE PAS de plan de parole en parole-à-parole", () => {
+  it("N'ENVOIE AUCUNE CONDITION EN MOTS en parole-à-parole", () => {
     const plans = buildRealtimePlans('fr', true) as Record<string, unknown>;
     expect(plans.transcriber).toBeUndefined();
     expect(plans.startSpeakingPlan).toBeUndefined();
-    expect(plans.stopSpeakingPlan).toBeUndefined();
+  });
+
+  /**
+   * La correction ci-dessus retirait les DEUX plans, et elle allait trop loin.
+   *
+   * Un plan sur deux est fait de mots, l'autre pas. `voiceSeconds` et
+   * `backoffSeconds` se mesurent sur l'audio: ils n'ont jamais eu besoin d'un
+   * transcripteur. Les retirer laissait le seuil de bruit au défaut de Vapi,
+   * 0,2 s, d'où le défaut suivant, rapporté en mode Direct: « il s'arrête de
+   * parler alors que je ne parle pas ».
+   */
+  it('règle quand même le seuil de BRUIT, qui lui ne compte pas de mots', () => {
+    const plans = buildRealtimePlans('fr', true) as Record<string, unknown>;
+    const stop = plans.stopSpeakingPlan as Record<string, unknown>;
+    expect(stop).toBeDefined();
+    expect(stop.voiceSeconds).toBeGreaterThan(0.2);
+    expect(stop.backoffSeconds).toBeGreaterThanOrEqual(1);
+    // Rien qui attende un transcript: c'est ce qui rendait la réceptionniste
+    // sourde. Le zéro est donc délibéré, et il doit le rester.
+    expect(stop.numWords).toBe(0);
+    expect(stop.acknowledgementPhrases).toBeUndefined();
+    expect(stop.interruptionPhrases).toBeUndefined();
   });
 
   it('garde tout ce qui ne dépend PAS du transcripteur', () => {

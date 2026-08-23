@@ -143,7 +143,10 @@ class GreetingAudioService {
           text,
           // Same model as the live pipeline: a greeting that sounds different
           // from the rest of the call is worse than a slower one.
-          model_id: 'eleven_flash_v2_5',
+          /* Le même modèle que l'appel: l'accueil est le premier son que
+             l'appelant entend, et l'entendre changer de grain à la deuxième
+             phrase est pire que les deux grains pris séparément. */
+          model_id: env.VOICE_TTS_MODEL,
           voice_settings: { stability: 0.22, similarity_boost: 0.65, style: 0.7, use_speaker_boost: true },
         }),
       });
