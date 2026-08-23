@@ -129,8 +129,27 @@ export const env = {
   VOICE_ENDPOINTING_MS: parseInt(process.env.VOICE_ENDPOINTING_MS || '150', 10),
   /** Hard floor before the assistant may answer. Smart endpointing sits on top. */
   VOICE_START_WAIT_SECONDS: parseFloat(process.env.VOICE_START_WAIT_SECONDS || '0.12'),
-  /** Voiced audio required from the caller before outbound audio is cut. */
-  VOICE_BARGE_IN_VOICE_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_VOICE_SECONDS || '0.2'),
+  /**
+   * Audio VOISÉ exigé de l'appelant avant de couper la réceptionniste.
+   *
+   * C'est le seuil de BRUIT, et c'est le déclencheur qui restait ouvert.
+   * `VOICE_BARGE_IN_WORDS` a été porté à 2 pour qu'il faille des mots
+   * transcrits, mais les deux règles ne sont pas en série: celle-ci coupe
+   * toute seule, sur l'énergie, sans passer par le transcripteur. À 0,2 s,
+   * une porte, une toux ou une voix à côté suffisaient encore, et le défaut
+   * signalé n'a donc pas disparu: « il s'arrête de parler alors que je ne
+   * parle pas ».
+   *
+   * Vapi documente exactement ce curseur pour ce cas: monter `voiceSeconds`
+   * « évite les interruptions causées par des bruits de fond, au prix d'un
+   * léger retard sur la détection du début de parole ». 0,4 s est le premier
+   * palier qui trie une syllabe d'un bruit, et le retard qu'il ajoute ne se
+   * paie que sur l'interruption volontaire.
+   *
+   * À redescendre par variable d'environnement pour un lieu silencieux où
+   * l'instantanéité prime.
+   */
+  VOICE_BARGE_IN_VOICE_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_VOICE_SECONDS || '0.4'),
   /**
    * Mots TRANSCRITS exigés avant de couper la réceptionniste.
    *
@@ -182,6 +201,27 @@ export const env = {
    * plafonne plutôt que d'éditer chaque personnage, pour qu'un seul réglage
    * décide du rendu de toute la flotte.
    */
+  /**
+   * Le modèle de synthèse d'ElevenLabs, en mode classique.
+   *
+   * `eleven_flash_v2_5` est le plus rapide (~75 ms avant le premier octet) et
+   * c'est ce qui l'a fait choisir. C'est aussi le moins expressif de la
+   * famille: il pose les mots proprement et sans relief, ce qui s'entend comme
+   * « ça articule trop ». Les trois curseurs voisins (morceau, vitesse, style)
+   * travaillent AUTOUR de ce défaut sans pouvoir le corriger, parce qu'il
+   * tient au modèle.
+   *
+   * `eleven_turbo_v2_5` est le palier au dessus: nettement plus naturel, à
+   * 200 à 300 ms de plus sur le premier son, une fois par tour de parole.
+   * `eleven_multilingual_v2` est le plus naturel des trois et le plus lent, à
+   * réserver à un essai.
+   *
+   * Le défaut ne bouge pas: la lenteur a déjà été signalée une fois, et
+   * l'échanger contre le naturel est un arbitrage qui se juge à l'oreille sur
+   * un vrai appel, pas dans ce fichier. La variable est là pour que cet essai
+   * soit un set d'environnement, pas un déploiement.
+   */
+  VOICE_TTS_MODEL: process.env.VOICE_TTS_MODEL || 'eleven_flash_v2_5',
   VOICE_TTS_STYLE_CAP: Math.min(1, Math.max(0, parseFloat(process.env.VOICE_TTS_STYLE_CAP || '0.4') || 0.4)),
   /* Parole-à-parole (le mode « voix de ChatGPT »).
    *

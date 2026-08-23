@@ -22,6 +22,7 @@ const envState = vi.hoisted(() => ({
   VAPI_VOICE_ID: 'v1',
   VAPI_VOICE_ID_FR: 'v-fr',
   VAPI_VOICE_ID_BE: '',
+  VOICE_TTS_MODEL: 'eleven_flash_v2_5',
 }));
 vi.mock('../../../config/env', () => ({ env: envState }));
 
@@ -104,8 +105,10 @@ describe('greetingAudioService.generate', () => {
     await greetingAudioService.generate(profile);
     const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
     // A greeting that sounds different from the rest of the call is worse than
-    // a slower one.
-    expect(body.model_id).toBe('eleven_flash_v2_5');
+    // a slower one. Le modèle est réglable (`VOICE_TTS_MODEL`, posé pour juger
+    // le naturel à l'oreille): c'est l'ÉGALITÉ avec le pipeline qui compte ici,
+    // pas la valeur, sinon changer de modèle laisserait l'accueil derrière.
+    expect(body.model_id).toBe(envState.VOICE_TTS_MODEL);
   });
 });
 
