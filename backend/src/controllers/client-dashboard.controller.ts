@@ -203,6 +203,7 @@ export class ClientDashboardController {
   // GET /my-dashboard/settings
   async getMySettings(req: any, res: Response) {
     try {
+      const { useSpeechToSpeech } = await import('../services/voice/speech-plans');
       const client = await prisma.client.findUnique({
         where: { id: req.clientId },
         select: {
@@ -272,6 +273,11 @@ export class ClientDashboardController {
            découvre sur la facture, et c'est ainsi qu'on récolte un litige
            plutôt qu'un client. 0 = option non vendue, l'écran n'en parle pas. */
         realtimeSurchargeEur: env.VOICE_REALTIME_SURCHARGE_EUR,
+        /* Ce que « Automatique » vaut RÉELLEMENT aujourd'hui, calculé par la
+           règle qui sert les appels et non recopié dans l'écran. Sans lui,
+           l'interface devrait deviner le réglage global du serveur, et
+           afficherait « temps réel » là où la plateforme fait du classique. */
+        autoResolvesTo: useSpeechToSpeech({ voiceMode: 'auto' }) ? 'realtime' : 'classic',
         /* Par où partent les messages. `whatsapp` reste une PRÉFÉRENCE: un type
            de message sans modèle approuvé par Meta repart en SMS plutôt que de
            se perdre. L'écran doit donc le dire, pas le promettre. */
@@ -896,7 +902,10 @@ export class ClientDashboardController {
         // Checked against the account's own voices so this route cannot be used
         // as an open text-to-speech proxy on our ElevenLabs quota.
         const { voiceCatalogService } = await import('../services/voice/voice-catalog.service');
-        const voices = await voiceCatalogService.list().catch(() => []);
+        /* Filtré par client ici AUSSI, et pas seulement à l'affichage: sans
+           ça, un identifiant de voix deviné donnerait à écouter le clone d'un
+           autre client par cette route d'aperçu. */
+        const voices = await voiceCatalogService.list(req.clientId).catch(() => []);
         const match = voices.find(v => v.voiceId === overrideId);
         if (!match) return res.status(404).json({ error: 'unknown_voice' });
         character = { ...character, voiceId: match.voiceId, ...(match.cloned ? { style: 0, similarityBoost: 0.85 } : {}) };
@@ -1111,10 +1120,12 @@ export class ClientDashboardController {
 
   // GET /my-dashboard/voices — the voices available on the ElevenLabs account,
   // so a voice is chosen after being heard instead of pasted as an opaque id.
-  async listVoices(_req: any, res: Response) {
+  async listVoices(req: any, res: Response) {
     try {
       const { voiceCatalogService } = await import('../services/voice/voice-catalog.service');
-      res.json({ voices: await voiceCatalogService.list() });
+      // L'identifiant FILTRE les clones: sans lui, ce client verrait les voix
+      // clonées de tous les autres. Voir `cloneBelongsTo`.
+      res.json({ voices: await voiceCatalogService.list(req.clientId) });
     } catch (error: any) {
       // 503 rather than 500 for a missing key: the UI shows "not configured",
       // which is actionable, instead of "server error", which is not.
@@ -1229,6 +1240,71 @@ export class ClientDashboardController {
     } catch (error: any) {
       logger.error('deleteVoiceClone failed:', error);
       res.status(500).json({ error: 'voice_clone_delete_failed' });
+    }
+  }
+
+  /**
+   * DELETE /my-dashboard/voices/:voiceId — supprimer une voix clonée.
+   *
+   * `deleteVoiceClone` ne sait retirer qu'UNE voix: celle qui est enregistrée
+   * dans `vapiConfig.customVoice`. Un client qui ré-enregistre, puis change
+   * d'avis et reprend une voix de la bibliothèque, laisse derrière lui un clone
+   * que plus rien ne référence: il reste dans la liste, il ne peut plus en
+   * sortir, et c'est l'enregistrement de sa propre voix. D'où cette route.
+   *
+   * La propriété se vérifie contre le catalogue filtré par client, jamais
+   * contre le paramètre reçu: le compte ElevenLabs est partagé, et un
+   * identifiant deviné supprimerait la voix d'un autre.
+   */
+  async deleteCatalogVoice(req: any, res: Response) {
+    try {
+      const voiceId = String(req.params.voiceId || '');
+      if (!voiceId) return res.status(400).json({ error: 'voice_id_required' });
+
+      const { voiceCatalogService } = await import('../services/voice/voice-catalog.service');
+      const mine = await voiceCatalogService.list(req.clientId);
+      const match = mine.find(v => v.voiceId === voiceId);
+      // Absente de SA liste: soit elle n'existe pas, soit elle appartient à
+      // quelqu'un d'autre. Les deux se répondent pareil, pour ne pas confirmer
+      // l'existence d'un identifiant deviné.
+      if (!match) return res.status(404).json({ error: 'voice_not_found' });
+      // Les voix de bibliothèque n'appartiennent à personne: les effacer les
+      // retirerait à toute la flotte.
+      if (!match.cloned) return res.status(403).json({ error: 'voice_not_deletable' });
+
+      const client = await prisma.client.findUnique({ where: { id: req.clientId } });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+
+      const { voiceCloneService } = await import('../services/voice/voice-clone.service');
+      await voiceCloneService.remove(voiceId);
+
+      // Si c'était la voix en service, la configuration doit lâcher prise en
+      // même temps, sinon la réceptionniste pointe vers une voix effacée et se
+      // tait au prochain appel.
+      const current = (client.vapiConfig as Record<string, unknown>) ?? {};
+      const selected = current.customVoice as { voiceId?: string } | undefined;
+      let characterId = typeof current.characterId === 'string' ? current.characterId : null;
+      if (selected?.voiceId === voiceId) {
+        const { customVoice: _removed, ...rest } = current;
+        characterId = current.characterId === CUSTOM_CHARACTER_ID
+          ? (client.agentLanguage?.startsWith('fr') ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN)
+          : characterId;
+        await prisma.client.update({
+          where: { id: req.clientId },
+          data: { vapiConfig: { ...rest, characterId } },
+        });
+        const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+        await realtimeContextService.invalidateClient(req.clientId);
+      }
+
+      voiceCatalogService.invalidate();
+      res.json({ success: true, cleared: selected?.voiceId === voiceId, characterId });
+    } catch (error: any) {
+      if (error.message === 'elevenlabs_key_missing') {
+        return res.status(503).json({ error: 'elevenlabs_key_missing' });
+      }
+      logger.error('deleteCatalogVoice failed:', error);
+      res.status(500).json({ error: 'voice_delete_failed' });
     }
   }
 

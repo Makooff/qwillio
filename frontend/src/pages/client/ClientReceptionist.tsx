@@ -319,6 +319,10 @@ export default function ClientReceptionist() {
   const [voiceMode, setVoiceMode] = useState<'auto' | 'realtime' | 'classic'>('auto');
   /* Prix de l'option temps réel, à la minute. 0 = non vendue. */
   const [realtimeSurcharge, setRealtimeSurcharge] = useState(0);
+  /* Ce que « Automatique » vaut sur CE serveur. Calculé côté backend par la
+     règle qui sert les appels: recopier la précédence ici la ferait diverger
+     au premier changement de réglage global. */
+  const [autoResolvesTo, setAutoResolvesTo] = useState<'realtime' | 'classic'>('classic');
   /* Un seul panneau ouvert à la fois, et AUCUN à l'arrivée.
    *
    * Cet état était initialisé à `'identite'` et mémorisé dans `localStorage`:
@@ -397,6 +401,7 @@ export default function ClientReceptionist() {
       setCustomVoice(s?.customVoice?.voiceId ? s.customVoice : null);
       setVoiceMode(s?.voiceMode === 'realtime' || s?.voiceMode === 'classic' ? s.voiceMode : 'auto');
       setRealtimeSurcharge(Number(s?.realtimeSurchargeEur) > 0 ? Number(s.realtimeSurchargeEur) : 0);
+      setAutoResolvesTo(s?.autoResolvesTo === 'realtime' ? 'realtime' : 'classic');
       // Values below come from the server → don't trigger an auto-save.
       hydrated.current = true;
       skipAutosave.current = true;
@@ -565,6 +570,19 @@ export default function ClientReceptionist() {
   // Per-minute billing: the gauge is rendered by AssistantChat's header.
   const quota = overview?.minutes?.quota || settings?.monthlyMinutesQuota || 0;
   const used = overview?.minutes?.used || 0;
+  /* La précédence des moteurs, telle que `useSpeechToSpeech` l'applique côté
+     serveur: une voix clonée passe avant TOUT (le classique est la seule chaîne
+     qui sache la prononcer), puis le choix explicite, puis ce que vaut
+     « Automatique » sur ce serveur. Recalculé à chaque rendu pour que le
+     sélecteur réponde AVANT l'enregistrement, sinon le client change de mode et
+     ne voit rien bouger. */
+  const effectiveEngine: 'realtime' | 'classic' =
+    customVoice ? 'classic' : voiceMode === 'auto' ? autoResolvesTo : voiceMode;
+  const engineReason =
+    customVoice ? 'votre voix clonée, qui passe avant ce réglage'
+    : voiceMode === 'auto' ? 'réglage automatique'
+    : null;
+
   // `planType` is a lowercase key ('starter'); shown to a customer it becomes
   // a name. One formatting, used by both the header and the Abonnement row.
   const planName = (() => {
@@ -788,15 +806,20 @@ export default function ClientReceptionist() {
                       ? 'Automatique : mode classique, sans supplément. Le temps réel ne s’active que si vous le choisissez.'
                       : 'Automatique : suit le réglage par défaut de la plateforme.'}
               </p>
-              {customVoice && (
-                /* Dire la règle plutôt que la laisser surprendre: le client qui
-                   a enregistré sa voix l'entend TOUJOURS, parce que c'est ce
-                   qu'il est venu chercher. Sans cette ligne, choisir « temps
-                   réel » et n'entendre aucun changement passe pour une panne. */
-                <p className="mt-2 text-[12px] text-[#7349fe] leading-relaxed">
-                  Votre voix clonée l'emporte sur ce réglage : elle répond dans tous les cas.
-                </p>
-              )}
+              {/* —— Le moteur RÉELLEMENT utilisé ——
+                  Le bouton dit ce qu'on a choisi, pas ce qui se passe. Une voix
+                  clonée l'emporte sur « Temps réel », et « Automatique » ne
+                  résout pas au même moteur selon le serveur : dans les deux cas
+                  l'écran affichait un mode et l'appel en jouait un autre, ce
+                  qui se vit comme une panne (« j'entends pas de différence
+                  quand je change de mode »). La règle est donc dite. */}
+              <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] leading-relaxed">
+                <span className="text-[#9A9AA5]">Moteur utilisé pour vos appels :</span>
+                <span className="font-semibold text-[#7349fe]">
+                  {effectiveEngine === 'realtime' ? 'Temps réel' : 'Classique'}
+                </span>
+                {engineReason && <span className="text-[#8B8BA7]">({engineReason})</span>}
+              </p>
             </div>
           </div>
         )}
