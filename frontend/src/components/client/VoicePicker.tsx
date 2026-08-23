@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Play, Square, Check, Loader2 } from '../icons';
+import { Play, Square, Check, Loader2, Trash2 } from '../icons';
 import api from '../../services/api';
 import { useVoicePreview } from './useVoicePreview';
 import { previewUrl } from './CharacterPicker';
@@ -45,6 +45,13 @@ export default function VoicePicker({
   const [voices, setVoices] = useState<CatalogVoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /* Suppression d'un clone : une confirmation en ligne plutôt qu'une fenêtre.
+     Un clic arme, le second efface, et cliquer ailleurs désarme. */
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+  /* Séparé de `error`, qui remplace la liste entière: un échec de suppression
+     ne doit pas faire disparaître les voix qu'on peut encore choisir. */
+  const [removeError, setRemoveError] = useState<string | null>(null);
   const { playing, notice, toggle, debug } = useVoicePreview(isFr);
 
   useEffect(() => {
@@ -60,6 +67,32 @@ export default function VoicePicker({
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, []);
+
+  /**
+   * Effacer une voix clonée pour de bon.
+   *
+   * Le serveur ne sert au client que SES clones, donc toute ligne clonée
+   * affichée ici lui appartient ; il revérifie quand même la propriété, le
+   * compte ElevenLabs étant partagé. Si la voix effacée était celle en service,
+   * la sélection retombe sur la voix d'origine du personnage : laisser pointer
+   * vers une voix supprimée ferait taire la réceptionniste au prochain appel.
+   */
+  const remove = async (voiceId: string) => {
+    setRemoving(voiceId);
+    setRemoveError(null);
+    try {
+      await api.delete(`/my-dashboard/voices/${voiceId}`);
+      setVoices(list => list.filter(v => v.voiceId !== voiceId));
+      if (value?.voiceId === voiceId) onChange(null);
+      setConfirming(null);
+    } catch {
+      setRemoveError(isFr
+        ? "Impossible de supprimer cette voix. Réessayez dans un instant."
+        : 'Could not delete this voice. Try again in a moment.');
+    } finally {
+      setRemoving(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -107,6 +140,9 @@ export default function VoicePicker({
           {notice}
         </p>
       )}
+      {removeError && (
+        <p role="status" className="mb-2 text-[11px] text-[#f0a0a0]">{removeError}</p>
+      )}
       <div className="rounded-xl border border-[rgba(255,255,255,0.08)] divide-y divide-[rgba(255,255,255,0.06)]">
         {rows.map(r => {
           const sel = (value?.voiceId ?? null) === (r.voice?.voiceId ?? null);
@@ -147,6 +183,35 @@ export default function VoicePicker({
               >
                 {playing === `v:${r.key}` ? <Square size={13} /> : <Play size={13} />}
               </button>
+              {/* Seules les voix clonées se suppriment : celles de la
+                  bibliothèque sont communes à toute la flotte. */}
+              {r.cloned && (
+                confirming === r.key ? (
+                  <button
+                    type="button"
+                    onClick={() => remove(r.key)}
+                    onBlur={() => setConfirming(c => (c === r.key ? null : c))}
+                    disabled={removing === r.key}
+                    autoFocus
+                    className="flex-shrink-0 h-8 px-2.5 rounded-full text-[11px] font-semibold transition-colors"
+                    style={{ background: 'rgba(240,160,160,0.16)', color: '#f0a0a0' }}
+                  >
+                    {removing === r.key
+                      ? (isFr ? 'Suppression…' : 'Deleting…')
+                      : (isFr ? 'Confirmer' : 'Confirm')}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(r.key)}
+                    aria-label={isFr ? `Supprimer ${r.label}` : `Delete ${r.label}`}
+                    className="flex-shrink-0 w-8 h-8 rounded-full grid place-items-center transition-colors"
+                    style={{ background: 'rgba(255,255,255,0.05)', color: '#8B8BA7' }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )
+              )}
             </div>
           );
         })}

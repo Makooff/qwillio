@@ -30,6 +30,23 @@ export interface CatalogVoice {
 const TTL_MS = 10 * 60 * 1000;
 let cache: { at: number; voices: CatalogVoice[] } | null = null;
 
+/**
+ * Cette voix clonée appartient-elle à CE client ?
+ *
+ * Le compte ElevenLabs est partagé par toute la flotte, et `voice-clone.service`
+ * le sait: il préfixe chaque clone du début de l'identifiant client
+ * (`45b6d8c7 — Ma voix`) précisément pour qu'on puisse l'attribuer. Le catalogue,
+ * lui, ne s'en servait pas: chaque client voyait donc, et pouvait écouter, les
+ * voix clonées de TOUS les autres.
+ *
+ * Ce n'est pas de l'encombrement, c'est la voix d'une personne servie à
+ * quelqu'un d'autre. Les voix de bibliothèque, elles, n'appartiennent à
+ * personne et restent visibles par tous.
+ */
+export function cloneBelongsTo(name: string, clientId: string): boolean {
+  return name.startsWith(`${clientId.slice(0, 8)} `);
+}
+
 class VoiceCatalogService {
   /**
    * List the account's voices, newest clones first.
@@ -37,11 +54,16 @@ class VoiceCatalogService {
    * Cached for ten minutes: the list changes only when someone adds or removes
    * a voice, and the settings screen would otherwise hit ElevenLabs on every
    * render.
+   *
+   * `clientId` FILTRE les clones (voir `cloneBelongsTo`). Le cache reste
+   * commun: il porte la réponse brute d'ElevenLabs, le tri par client se fait
+   * après, donc deux clients ne peuvent pas se servir la liste l'un de l'autre
+   * depuis le cache.
    */
-  async list(): Promise<CatalogVoice[]> {
+  async list(clientId?: string): Promise<CatalogVoice[]> {
     if (!env.ELEVENLABS_API_KEY) throw new Error('elevenlabs_key_missing');
 
-    if (cache && Date.now() - cache.at < TTL_MS) return cache.voices;
+    if (cache && Date.now() - cache.at < TTL_MS) return this.forClient(cache.voices, clientId);
 
     const r = await fetch('https://api.elevenlabs.io/v1/voices', {
       headers: { 'xi-api-key': env.ELEVENLABS_API_KEY },
@@ -61,7 +83,16 @@ class VoiceCatalogService {
     voices.sort((a, b) => Number(b.cloned) - Number(a.cloned) || a.name.localeCompare(b.name));
 
     cache = { at: Date.now(), voices };
-    return voices;
+    return this.forClient(voices, clientId);
+  }
+
+  /** Le tri par propriétaire, appliqué APRÈS le cache. */
+  private forClient(voices: CatalogVoice[], clientId?: string): CatalogVoice[] {
+    /* Sans identifiant, on ne sert AUCUN clone. C'est le cas des appelants
+       internes qui n'ont pas de client sous la main: mieux vaut une liste
+       incomplète qu'une liste qui fuit. */
+    if (!clientId) return voices.filter(v => !v.cloned);
+    return voices.filter(v => !v.cloned || cloneBelongsTo(v.name, clientId));
   }
 
   /** Drops the cache so a freshly cloned voice shows up without a ten-minute wait. */

@@ -70,6 +70,10 @@ router.get('/characters/:id/preview', (req, res) => clientDashboardController.ch
 // the catalog over and over.
 router.post('/characters/warm', extractLimiter, (req, res) => clientDashboardController.warmCharacterPreviews(req, res));
 router.get('/voices', (req, res) => clientDashboardController.listVoices(req, res));
+/* Supprimer une voix clonée qui n'est plus la voix en service: sans cette
+   route, un clone abandonné restait dans la liste sans moyen d'en sortir. La
+   propriété est vérifiée côté serveur, le compte ElevenLabs étant partagé. */
+router.delete('/voices/:voiceId', (req, res) => clientDashboardController.deleteCatalogVoice(req, res));
 
 /* Clés d'API, réservées au forfait qui les annonce. La clé complète n'est
    renvoyée qu'à la création: la liste ne montre que le nom et l'usage. */
