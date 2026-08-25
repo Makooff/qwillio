@@ -1,0 +1,118 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+/**
+ * La bascule vers Cartesia, et surtout ce qui l'EMPÊCHE.
+ *
+ * Une voix ratée sur un appel entrant coûte un client, et un champ inconnu fait
+ * rejeter l'assistant entier par Vapi (ça s'est produit deux fois: sur
+ * `backchannelPlan`, puis sur les codes de langue du plan de secours). Ces
+ * tests portent donc moins sur ce que le bloc contient que sur les trois cas
+ * où il ne doit PAS exister.
+ */
+
+const { envMock } = vi.hoisted(() => ({
+  envMock: {
+    VOICE_TTS_PROVIDER: '11labs',
+    CARTESIA_MODEL: 'sonic-3.5',
+    CARTESIA_VOICES: 'el_marie:ca_marie,el_lucas:ca_lucas',
+    CARTESIA_DEFAULT_VOICE_ID: '',
+    CARTESIA_API_KEY: '',
+    VOICE_TTS_MODEL: 'eleven_turbo_v2_5',
+    VOICE_TTS_MIN_CHUNK_CHARS: 60,
+    VOICE_TTS_STYLE_CAP: 0.4,
+    VOICE_SPEECH_SPEED: 1.0,
+    VAPI_OPTIMIZE_LATENCY: 3,
+    VAPI_VOICE_FALLBACK_1: 'el_fallback_1',
+    VAPI_VOICE_FALLBACK_2: 'el_fallback_2',
+  } as Record<string, unknown>,
+}));
+vi.mock('../../../config/env', () => ({ env: envMock }));
+vi.mock('../../../config/logger', () => ({ logger: { warn: vi.fn(), info: vi.fn() } }));
+
+const { buildVoice, useCartesia } = await import('../speech-plans');
+
+beforeEach(() => {
+  envMock.VOICE_TTS_PROVIDER = 'cartesia';
+  envMock.CARTESIA_DEFAULT_VOICE_ID = '';
+});
+
+describe('useCartesia — les trois garde-fous', () => {
+  it('ne fait rien tant que le fournisseur n\'est pas demandé', () => {
+    // Le défaut est `11labs`: poser le code ne doit rien changer avant qu'on
+    // pose la variable. C'est ce qui rend cette branche essayable.
+    envMock.VOICE_TTS_PROVIDER = '11labs';
+    expect(useCartesia({ voiceId: 'el_marie' })).toBeNull();
+  });
+
+  it('laisse une voix CLONÉE chez ElevenLabs', () => {
+    /* Un clone n'existe que chez ElevenLabs. Le servir par Cartesia ne
+       donnerait pas une voix approchante: ça donnerait la voix de quelqu'un
+       d'autre, au client qui a justement enregistré la sienne. */
+    expect(useCartesia({ voiceId: 'el_marie', cloned: true })).toBeNull();
+  });
+
+  it('garde ElevenLabs pour un timbre sans correspondance', () => {
+    /* Sans table, pas de bascule: on ne devine pas un timbre. C'est ce qui
+       permet de basculer voix par voix, à l'oreille, plutôt que de découvrir
+       sur un appel réel qu'un personnage sonne faux. */
+    expect(useCartesia({ voiceId: 'el_inconnu' })).toBeNull();
+  });
+
+  it('accepte un timbre par défaut quand il est explicitement posé', () => {
+    envMock.CARTESIA_DEFAULT_VOICE_ID = 'ca_defaut';
+    expect(useCartesia({ voiceId: 'el_inconnu' })).toBe('ca_defaut');
+  });
+
+  it('traduit un timbre connu', () => {
+    expect(useCartesia({ voiceId: 'el_lucas' })).toBe('ca_lucas');
+  });
+});
+
+describe('buildVoice — le bloc Cartesia', () => {
+  const voice = () => buildVoice({ voiceId: 'el_marie', lang: 'fr', style: 0.6, stability: 0.3 }) as any;
+
+  it('décrit la voix dans le vocabulaire de Cartesia', () => {
+    const v = voice();
+    expect(v.provider).toBe('cartesia');
+    expect(v.voiceId).toBe('ca_marie');
+    expect(v.model).toBe('sonic-3.5');
+    expect(v.language).toBe('fr');
+  });
+
+  it("N'ENVOIE AUCUN champ ElevenLabs", () => {
+    /* `stability`, `style`, `similarityBoost`, `speed` et `useSpeakerBoost`
+       n'existent pas sur `CartesiaVoice`, et Vapi rejette l'assistant ENTIER
+       sur un champ inconnu, pas seulement la voix. Ce n'est donc pas une perte
+       de réglage, c'est la condition pour que l'appel démarre. */
+    const v = voice();
+    for (const banned of ['stability', 'style', 'similarityBoost', 'speed', 'useSpeakerBoost']) {
+      expect(v[banned]).toBeUndefined();
+    }
+  });
+
+  it('garde la découpe en phrases, qui elle est acceptée des deux côtés', () => {
+    // C'est le réglage qui a corrigé le « ça parle haché »: il ne doit pas se
+    // perdre en changeant de fournisseur.
+    expect(voice().chunkPlan.punctuationBoundaries).toEqual(['.', '!', '?']);
+  });
+
+  it('retombe sur la voix ElevenLabs D\'ORIGINE si Cartesia ne répond pas', () => {
+    /* Le filet, et il est précis: la première voix de secours est le timbre
+       ElevenLabs que ce personnage avait, pas une voix générique. Une panne
+       Cartesia doit s'entendre comme « la même réceptionniste, un autre
+       grain », jamais comme une ligne muette ni comme un inconnu. */
+    const fallbacks = voice().fallbackPlan.voices;
+    expect(fallbacks[0]).toMatchObject({ provider: '11labs', voiceId: 'el_marie' });
+    expect(fallbacks[1].provider).toBe('11labs');
+  });
+
+  it('revient au bloc ElevenLabs complet dès que la bascule ne s\'applique pas', () => {
+    envMock.VOICE_TTS_PROVIDER = '11labs';
+    const v = voice();
+    expect(v.provider).toBe('11labs');
+    expect(v.voiceId).toBe('el_marie');
+    // Les réglages de rendu reviennent avec, plafond de style compris.
+    expect(v.style).toBe(0.4);
+    expect(v.stability).toBe(0.35);
+  });
+});

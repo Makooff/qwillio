@@ -1,5 +1,6 @@
 import { env } from '../../config/env';
 import { buildIdleMessagePlan } from './conversational-repair';
+import { CARTESIA_LANG, cartesiaVoiceFor } from './cartesia.service';
 
 /**
  * Real-time speech plans for the Vapi pipeline.
@@ -277,12 +278,90 @@ export function resolveVoiceTuning(opts: {
   };
 }
 
+/**
+ * La découpe du texte remise au synthétiseur, commune aux deux fournisseurs.
+ *
+ * Extraite de `buildVoice` quand Cartesia est arrivé: c'est le seul réglage de
+ * rendu que les deux acceptent, et le laisser en double aurait fait diverger
+ * deux copies de la même décision.
+ */
+function buildChunkPlan() {
+  return {
+    enabled: true,
+    minCharacters: env.VOICE_TTS_MIN_CHUNK_CHARS,
+    // Only the boundaries Vapi accepts. An em dash and an ellipsis look like
+    // obvious sentence breaks and are not on the list, and one unknown value
+    // rejects the entire assistant:
+    // "voice.chunkPlan.each value in punctuationBoundaries must be one of…".
+    /* FINS DE PHRASE SEULEMENT. La virgule, le point-virgule et les deux
+       points étaient dans cette liste: une phrase de trois virgules partait
+       donc en quatre morceaux synthétisés séparément, chacun terminé comme
+       s'il était la fin de quelque chose. C'est précisément ce qui s'entend
+       comme « haché ». */
+    punctuationBoundaries: ['.', '!', '?'],
+    formatPlan: { enabled: true, numberToDigitsCutoff: 2025 },
+  };
+}
+
+/**
+ * Cartesia doit-il servir CETTE voix-ci ?
+ *
+ * Trois conditions, et chacune évite une panne différente:
+ *
+ *  - le fournisseur est demandé (`VOICE_TTS_PROVIDER=cartesia`);
+ *  - la voix n'est pas un CLONE. Un clone existe chez ElevenLabs et nulle part
+ *    ailleurs: le servir par Cartesia ne donnerait pas une voix approchante,
+ *    il donnerait la voix de quelqu'un d'autre;
+ *  - le timbre a une correspondance chez Cartesia. Sans elle, on garde
+ *    ElevenLabs plutôt que de servir un timbre au hasard, et la bascule peut
+ *    donc se faire voix par voix, à l'oreille.
+ *
+ * Exportée parce que l'aperçu du sélecteur pose exactement la même question, et
+ * doit y répondre pareil: sinon on auditionne une voix et l'appelant en entend
+ * une autre.
+ */
+export function useCartesia(opts: { voiceId: string; cloned?: boolean }): string | null {
+  if (env.VOICE_TTS_PROVIDER !== 'cartesia') return null;
+  if (opts.cloned) return null;
+  return cartesiaVoiceFor(opts.voiceId);
+}
+
 export function buildVoice(opts: {
   voiceId: string;
   stability?: number;
   similarityBoost?: number;
   style?: number;
+  /** La langue de l'appel: Cartesia la veut sur le bloc voix. */
+  lang?: VoiceLanguage;
+  /** Une voix clonée ne quitte jamais ElevenLabs. Voir `useCartesia`. */
+  cloned?: boolean;
 }) {
+  const cartesiaVoiceId = useCartesia(opts);
+  if (cartesiaVoiceId) {
+    return {
+      provider: 'cartesia',
+      voiceId: cartesiaVoiceId,
+      model: env.CARTESIA_MODEL,
+      language: CARTESIA_LANG[opts.lang ?? 'fr'],
+      /* Les champs ElevenLabs (stability, style, similarityBoost, speed,
+         useSpeakerBoost) N'EXISTENT PAS sur ce bloc, et Vapi rejette
+         l'assistant entier sur un champ inconnu. Ce n'est pas un oubli: le
+         timbre de Sonic se choisit en choisissant la voix.
+         `chunkPlan` est accepté des deux côtés et sert la même chose: rendre
+         une PHRASE au synthétiseur plutôt que des fragments. */
+      chunkPlan: buildChunkPlan(),
+      /* Le filet. Si Cartesia ne répond pas, la ligne repart sur la voix
+         ElevenLabs d'origine plutôt que de rester muette. C'est ce qui rend la
+         bascule essayable sur de vrais appels entrants. */
+      fallbackPlan: {
+        voices: [
+          { provider: '11labs', voiceId: opts.voiceId, model: env.VOICE_TTS_MODEL },
+          { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1, model: env.VOICE_TTS_MODEL },
+        ],
+      },
+    };
+  }
+
   return {
     provider: '11labs',
     voiceId: opts.voiceId,
@@ -291,21 +370,7 @@ export function buildVoice(opts: {
     useSpeakerBoost: true,
     optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
     speed: env.VOICE_SPEECH_SPEED,
-    chunkPlan: {
-      enabled: true,
-      minCharacters: env.VOICE_TTS_MIN_CHUNK_CHARS,
-      // Only the boundaries Vapi accepts. An em dash and an ellipsis look like
-      // obvious sentence breaks and are not on the list, and one unknown value
-      // rejects the entire assistant:
-      // "voice.chunkPlan.each value in punctuationBoundaries must be one of…".
-      /* FINS DE PHRASE SEULEMENT. La virgule, le point-virgule et les deux
-         points étaient dans cette liste: une phrase de trois virgules partait
-         donc en quatre morceaux synthétisés séparément, chacun terminé comme
-         s'il était la fin de quelque chose. C'est précisément ce qui s'entend
-         comme « haché ». */
-      punctuationBoundaries: ['.', '!', '?'],
-      formatPlan: { enabled: true, numberToDigitsCutoff: 2025 },
-    },
+    chunkPlan: buildChunkPlan(),
     fallbackPlan: {
       voices: [
         { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1, model: env.VOICE_TTS_MODEL },
@@ -421,6 +486,10 @@ export function buildSpeech(opts: {
       stability: opts.character.stability,
       similarityBoost: opts.character.similarityBoost,
       style: opts.character.style,
+      lang: opts.lang,
+      /* Une voix clonée ne quitte pas ElevenLabs, et c'est ici qu'on le sait:
+         `hasCustomVoice` est déjà ce qui décide du moteur juste au dessus. */
+      cloned: opts.hasCustomVoice,
     }),
   };
 }

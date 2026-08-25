@@ -850,6 +850,7 @@ export class ClientDashboardController {
             stability: character.stability,
             similarityBoost: character.similarityBoost,
             style: character.style,
+            lang: fr ? 'fr' : 'en',
           }),
           firstMessage: fr
             ? `Bonjour ! On configure votre standard ensemble. Qu'est-ce que vous voulez ajuster ?`
@@ -889,9 +890,15 @@ export class ClientDashboardController {
       // before the override model still name it. It resolves to whatever voice
       // the client chose, over the default character.
       let character = isCustom ? null : CHARACTERS[id];
+      /* Une voix CLONÉE ne quitte pas ElevenLabs, et l'aperçu doit le savoir:
+         sinon il auditionnerait un timbre Cartesia là où l'appel servira le
+         clone. Voir `useCartesia`. */
+      let cloned = false;
       if (isCustom) {
-        const voiceId = ((previewClient?.vapiConfig as any)?.customVoice?.voiceId ?? '') as string;
+        const custom = (previewClient?.vapiConfig as any)?.customVoice;
+        const voiceId = (custom?.voiceId ?? '') as string;
         if (!voiceId) return res.status(404).json({ error: 'no_custom_voice' });
+        cloned = custom?.cloned === true;
         const base = CHARACTERS[previewClient?.agentLanguage?.startsWith('fr') ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
         character = { ...base, voiceId, style: 0, similarityBoost: 0.85 };
       }
@@ -909,6 +916,7 @@ export class ClientDashboardController {
         const match = voices.find(v => v.voiceId === overrideId);
         if (!match) return res.status(404).json({ error: 'unknown_voice' });
         character = { ...character, voiceId: match.voiceId, ...(match.cloned ? { style: 0, similarityBoost: 0.85 } : {}) };
+        cloned = match.cloned;
       }
 
       const previewFrench = previewClient?.agentLanguage?.startsWith('fr')
@@ -926,6 +934,8 @@ export class ClientDashboardController {
         stability: character.stability,
         similarityBoost: character.similarityBoost,
         style: character.style,
+        lang: previewFrench ? 'fr' : 'en',
+        cloned,
       });
 
       res.setHeader('Content-Type', 'audio/mpeg');
@@ -980,6 +990,7 @@ export class ClientDashboardController {
         stability: c.stability,
         similarityBoost: c.similarityBoost,
         style: c.style,
+        lang: (isFrench ? 'fr' : 'en') as 'fr' | 'en',
       })));
     } catch (error: any) {
       logger.debug(`warmCharacterPreviews failed: ${error.message}`);
