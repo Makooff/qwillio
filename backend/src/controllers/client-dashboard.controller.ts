@@ -717,6 +717,7 @@ export class ClientDashboardController {
          servi. */
       const effectiveMode = useSpeechToSpeech({
         hasCustomVoice: !!profile.customVoice,
+        clonedVoice: profile.customVoice?.cloned,
         voiceMode: profile.voiceMode,
       }) ? 'realtime' : 'classic';
 
