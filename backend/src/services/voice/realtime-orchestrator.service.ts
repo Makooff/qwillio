@@ -419,7 +419,11 @@ class RealtimeOrchestratorService {
     const voiceMode = typeof decided === 'boolean'
       ? (decided ? 'realtime' : 'classic')
       : profile
-        ? (useSpeechToSpeech({ hasCustomVoice: !!profile.customVoice, voiceMode: profile.voiceMode })
+        ? (useSpeechToSpeech({
+            hasCustomVoice: !!profile.customVoice,
+            clonedVoice: profile.customVoice?.cloned,
+            voiceMode: profile.voiceMode,
+          })
             ? 'realtime' : 'classic')
         : null;
     const billing = {

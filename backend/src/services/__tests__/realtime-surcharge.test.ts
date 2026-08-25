@@ -101,7 +101,15 @@ describe('dès que le prix est posé', () => {
   it('une voix clonée ramène au classique, donc ne se facture pas', () => {
     // Facturer le RÉGLAGE plutôt que le mode réellement utilisé
     // surfacturerait tout client ayant enregistré sa voix.
-    expect(useSpeechToSpeech({ hasCustomVoice: true, voiceMode: 'realtime' })).toBe(false);
+    expect(useSpeechToSpeech({ clonedVoice: true, voiceMode: 'realtime' })).toBe(false);
+  });
+
+  it("une voix de bibliothèque, elle, n'annule pas un temps réel demandé", () => {
+    /* Ce test disait l'inverse, en passant `hasCustomVoice` pour dire « clone ».
+       Les deux se confondaient, et le sélecteur de mode en devenait inopérant
+       dès qu'un client choisissait une voix. La facture suit: si le temps réel
+       est réellement servi, il se facture. */
+    expect(useSpeechToSpeech({ hasCustomVoice: true, voiceMode: 'realtime' })).toBe(true);
   });
 
   it('facture les minutes réellement passées en temps réel', async () => {

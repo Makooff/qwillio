@@ -102,14 +102,50 @@ describe('parole-à-parole', () => {
 
   /* La voix clonée passe avant un `realtime` explicite. Sinon un réglage posé
      une fois retirerait sans bruit la voix que le client a enregistrée. */
-  it('fait passer la voix clonée avant un realtime explicite', async () => {
+  it('fait passer la voix CLONÉE avant un realtime explicite', async () => {
+    const { buildSpeech } = await load({ VOICE_SPEECH_TO_SPEECH: 'on' });
+    const { speechToSpeech, voice } = buildSpeech({
+      lang: 'fr', systemPrompt: 'p', tools: [],
+      character: { ...CHARACTER_F, voiceCloned: true },
+      voiceMode: 'realtime', hasCustomVoice: true,
+    });
+    expect(speechToSpeech).toBe(false);
+    expect(voice.provider).toBe('11labs');
+  });
+
+  /**
+   * Et une voix de BIBLIOTHÈQUE, elle, ne bloque plus le temps réel.
+   *
+   * Ce test épingle la correction d'un défaut qui rendait le sélecteur de mode
+   * inopérant: `hasCustomVoice` vaut vrai pour n'importe quelle voix choisie,
+   * pas seulement pour un enregistrement. Dès qu'un client passait par le
+   * sélecteur de voix, le mode Direct ne s'activait donc plus jamais, quoi
+   * qu'affiche le bouton. Symptôme rapporté deux fois: « je n'entends aucune
+   * différence quand je change de mode ».
+   *
+   * Une voix de bibliothèque est une préférence, pas un enregistrement: un
+   * choix explicite de temps réel l'emporte, et cette voix n'est simplement pas
+   * utilisée. Ce qui ne peut pas être remplacé, c'est la voix du client.
+   */
+  it("laisse un realtime explicite l'emporter sur une voix de bibliothèque", async () => {
     const { buildSpeech } = await load({ VOICE_SPEECH_TO_SPEECH: 'on' });
     const { speechToSpeech, voice } = buildSpeech({
       lang: 'fr', systemPrompt: 'p', tools: [], character: CHARACTER_F,
       voiceMode: 'realtime', hasCustomVoice: true,
     });
+    expect(speechToSpeech).toBe(true);
+    expect(voice.provider).toBe('openai');
+  });
+
+  it("en `auto`, une voix choisie continue de faire pencher vers le classique", async () => {
+    // Elle n'a pas été demandée pour rien, et le classique est le seul mode
+    // qui la serve.
+    const { buildSpeech } = await load({ VOICE_SPEECH_TO_SPEECH: 'on' });
+    const { speechToSpeech } = buildSpeech({
+      lang: 'fr', systemPrompt: 'p', tools: [], character: CHARACTER_F,
+      voiceMode: 'auto', hasCustomVoice: true,
+    });
     expect(speechToSpeech).toBe(false);
-    expect(voice.provider).toBe('11labs');
   });
 
   it('se coupe entièrement depuis Render, sans redéploiement', async () => {

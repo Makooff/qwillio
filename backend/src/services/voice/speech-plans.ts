@@ -427,13 +427,26 @@ const REALTIME_VOICE: Record<'f' | 'm', string> = { f: 'marin', m: 'cedar' };
  */
 export function useSpeechToSpeech(opts: {
   hasCustomVoice?: boolean;
+  /** VRAI clone, par opposition à « une voix a été choisie ». */
+  clonedVoice?: boolean;
   /** `auto` suit le réglage global; les deux autres l'emportent. */
   voiceMode?: 'auto' | 'realtime' | 'classic';
 }): boolean {
-  // La voix clonée passe avant TOUT, y compris un `realtime` explicite: le
-  // client a enregistré cette voix-là, la lui retirer n'est pas un réglage.
-  if (opts.hasCustomVoice) return false;
+  /* La voix CLONÉE passe avant tout, y compris un `realtime` explicite: le
+     client a enregistré cette voix-là, la lui retirer n'est pas un réglage.
+     Ça, c'est ce que le commentaire disait déjà. Ce que le CODE faisait était
+     plus large: `hasCustomVoice` vaut vrai pour n'importe quelle voix choisie,
+     bibliothèque comprise. Conséquence, et elle est lourde: dès qu'un client
+     choisissait une voix dans le sélecteur, le mode Direct ne s'activait plus
+     JAMAIS, quoi qu'affiche le bouton. C'est l'explication du « je n'entends
+     aucune différence quand je change de mode », signalé deux fois.
+     Une voix de bibliothèque est une préférence, pas un enregistrement: si le
+     client demande explicitement le temps réel, il l'obtient, et cette voix-là
+     n'est simplement pas utilisée. En `auto`, elle continue de faire pencher
+     vers le classique, qui est le seul mode à la servir. */
+  if (opts.clonedVoice) return false;
   if (opts.voiceMode === 'realtime') return true;
+  if (opts.hasCustomVoice) return false;
   if (opts.voiceMode === 'classic') return false;
   /* `auto` quand l'option est VENDUE (supplément posé) vaut « non ».
      Le défaut global met tout le monde en temps réel; laisser `auto` y
@@ -476,7 +489,11 @@ export function buildSpeech(opts: {
   /** Voir `SpeechOptions`: `false` sur les appels navigateur. */
   fallbacks?: boolean;
 }): { model: any; voice: any; speechToSpeech: boolean } {
-  const speechToSpeech = useSpeechToSpeech({ hasCustomVoice: opts.hasCustomVoice, voiceMode: opts.voiceMode });
+  const speechToSpeech = useSpeechToSpeech({
+    hasCustomVoice: opts.hasCustomVoice,
+    clonedVoice: opts.character.voiceCloned,
+    voiceMode: opts.voiceMode,
+  });
 
   if (speechToSpeech) {
     return {

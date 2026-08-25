@@ -571,15 +571,27 @@ export default function ClientReceptionist() {
   const quota = overview?.minutes?.quota || settings?.monthlyMinutesQuota || 0;
   const used = overview?.minutes?.used || 0;
   /* La précédence des moteurs, telle que `useSpeechToSpeech` l'applique côté
-     serveur: une voix clonée passe avant TOUT (le classique est la seule chaîne
-     qui sache la prononcer), puis le choix explicite, puis ce que vaut
-     « Automatique » sur ce serveur. Recalculé à chaque rendu pour que le
-     sélecteur réponde AVANT l'enregistrement, sinon le client change de mode et
-     ne voit rien bouger. */
+     serveur, et elle vient d'être corrigée des deux côtés à la fois:
+       1. une voix ENREGISTRÉE passe avant tout, le classique étant la seule
+          chaîne qui sache la prononcer;
+       2. puis un « temps réel » explicitement demandé, qui l'emporte désormais
+          sur une voix de bibliothèque. Avant, n'importe quelle voix choisie
+          bloquait le temps réel, et le sélecteur de mode ne servait plus à
+          rien sans que rien ne le dise;
+       3. puis une voix choisie, qui fait pencher vers le classique en `auto`;
+       4. puis ce que vaut « Automatique » sur ce serveur.
+     Recalculé à chaque rendu pour que le sélecteur réponde AVANT
+     l'enregistrement, sinon le client change de mode et ne voit rien bouger. */
   const effectiveEngine: 'realtime' | 'classic' =
-    customVoice ? 'classic' : voiceMode === 'auto' ? autoResolvesTo : voiceMode;
+    customVoice?.cloned ? 'classic'
+    : voiceMode === 'realtime' ? 'realtime'
+    : customVoice ? 'classic'
+    : voiceMode === 'auto' ? autoResolvesTo
+    : voiceMode;
   const engineReason =
-    customVoice ? 'votre voix clonée, qui passe avant ce réglage'
+    customVoice?.cloned ? 'votre voix enregistrée, qui passe avant ce réglage'
+    : voiceMode === 'realtime' ? null
+    : customVoice ? 'la voix choisie ci-dessus, que seul le classique sait dire'
     : voiceMode === 'auto' ? 'réglage automatique'
     : null;
 
