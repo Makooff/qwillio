@@ -180,3 +180,34 @@ describe('buildVoice — le bloc Cartesia', () => {
     expect(v.stability).toBe(0.35);
   });
 });
+
+/**
+ * Le choix PAR CLIENT, qui est ce qui rend la comparaison possible.
+ *
+ * « Lequel des trois sonne le mieux en français » se tranche à l'oreille, sur
+ * le même compte, entre deux appels. La trancher en basculant toute la flotte
+ * et en redéployant entre chaque essai, c'est ne pas la trancher: on compare
+ * alors deux souvenirs séparés d'un quart d'heure.
+ */
+describe('useCartesia — la synthèse choisie par client', () => {
+  it("l'emporte sur le réglage global, dans les deux sens", () => {
+    envMock.VOICE_TTS_PROVIDER = '11labs';
+    expect(useCartesia({ voiceId: 'el_marie', ttsProvider: 'cartesia' })).toBe('ca_marie');
+
+    envMock.VOICE_TTS_PROVIDER = 'cartesia';
+    expect(useCartesia({ voiceId: 'el_marie', ttsProvider: '11labs' })).toBeNull();
+  });
+
+  it('suit le réglage global quand le client ne choisit rien', () => {
+    // C'est l'état de tous les comptes aujourd'hui: ne rien choisir doit
+    // continuer de vouloir dire « comme la plateforme ».
+    envMock.VOICE_TTS_PROVIDER = 'cartesia';
+    expect(useCartesia({ voiceId: 'el_marie' })).toBe('ca_marie');
+  });
+
+  it('ne laisse pas un choix de client déménager une voix clonée', () => {
+    // La règle qui protège l'enregistrement du client ne connaît toujours pas
+    // d'exception, y compris quand c'est lui qui a demandé Cartesia.
+    expect(useCartesia({ voiceId: 'el_marie', cloned: true, ttsProvider: 'cartesia' })).toBeNull();
+  });
+});

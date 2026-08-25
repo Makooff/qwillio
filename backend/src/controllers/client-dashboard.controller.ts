@@ -278,6 +278,11 @@ export class ClientDashboardController {
            l'interface devrait deviner le réglage global du serveur, et
            afficherait « temps réel » là où la plateforme fait du classique. */
         autoResolvesTo: useSpeechToSpeech({ voiceMode: 'auto' }) ? 'realtime' : 'classic',
+        /* La synthèse servie à CE client, et celle que la plateforme sert par
+           défaut. Les deux, parce que l'écran doit pouvoir afficher « suit le
+           réglage global (ElevenLabs) » plutôt qu'un bouton vide. */
+        ttsProvider: ['11labs', 'cartesia'].includes(cfg.ttsProvider) ? cfg.ttsProvider : null,
+        ttsProviderDefault: env.VOICE_TTS_PROVIDER,
         /* Par où partent les messages. `whatsapp` reste une PRÉFÉRENCE: un type
            de message sans modèle approuvé par Meta repart en SMS plutôt que de
            se perdre. L'écran doit donc le dire, pas le promettre. */
@@ -348,6 +353,7 @@ export class ClientDashboardController {
         body.characterId !== undefined ||
         body.customVoice !== undefined ||
         body.voiceMode !== undefined ||
+        body.ttsProvider !== undefined ||
         body.notificationChannel !== undefined;
       if (hasKnowledgeUpdate) {
         const existing = await prisma.client.findUnique({
@@ -370,6 +376,7 @@ export class ClientDashboardController {
              bout SAUF ici, donc changer de moteur était impossible, y compris
              en appelant l'API à la main. */
           voiceMode:         body.voiceMode,
+          ttsProvider:       body.ttsProvider,
           notificationChannel: body.notificationChannel,
         });
       }
@@ -387,7 +394,8 @@ export class ClientDashboardController {
          chaque appel, donc sans invalidation l'ANCIEN moteur continue de
          répondre pendant tout le TTL. Sur un réglage qu'on change précisément
          pour comparer deux moteurs, l'oubli ferait juger le mauvais. */
-      if (body.characterId !== undefined || body.customVoice !== undefined || body.voiceMode !== undefined) {
+      if (body.characterId !== undefined || body.customVoice !== undefined
+          || body.voiceMode !== undefined || body.ttsProvider !== undefined) {
         const { realtimeContextService } = await import('../services/voice/realtime-context.service');
         await realtimeContextService.invalidateClient(req.clientId);
       }
@@ -655,6 +663,8 @@ export class ClientDashboardController {
         // L'appel test suit le mode du client, sinon il teste autre chose que
         // ce que l'appelant entendra.
         voiceMode: profile.voiceMode,
+        // L'appel test doit sonner comme l'appel réel, synthèse comprise.
+        ttsProvider: profile.ttsProvider,
         /* Pas de secours SUR CET APPEL-CI. Ils font préparer un second
            fournisseur avant que la salle réponde, et c'est du temps d'attente
            que le gérant voit à l'écran. Sur un vrai appel entrant le calcul est
@@ -912,6 +922,12 @@ export class ClientDashboardController {
       if (!character) return res.status(404).json({ error: 'Unknown character' });
 
       const overrideId = String(req.query.voiceId || '').trim();
+      /* Remonté AU DESSUS du bloc `overrideId`: la langue sert maintenant à
+         choisir le catalogue à interroger, pas seulement le texte de la
+         phrase, et elle était déclarée après. */
+      const previewFrench = previewClient?.agentLanguage?.startsWith('fr')
+        || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String(previewClient?.country || '').toUpperCase());
+
       if (overrideId) {
         // Checked against the account's own voices so this route cannot be used
         // as an open text-to-speech proxy on our ElevenLabs quota.
@@ -919,7 +935,11 @@ export class ClientDashboardController {
         /* Filtré par client ici AUSSI, et pas seulement à l'affichage: sans
            ça, un identifiant de voix deviné donnerait à écouter le clone d'un
            autre client par cette route d'aperçu. */
-        const voices = await voiceCatalogService.list(req.clientId).catch(() => []);
+        const tts = (previewClient?.vapiConfig as any)?.ttsProvider;
+        const voices = await voiceCatalogService
+          .list(req.clientId, previewFrench ? 'fr' : 'en',
+                tts === 'cartesia' || tts === '11labs' ? tts : undefined)
+          .catch(() => []);
         const match = voices.find(v => v.voiceId === overrideId);
         if (!match) return res.status(404).json({ error: 'unknown_voice' });
         character = {
@@ -931,8 +951,6 @@ export class ClientDashboardController {
         cloned = match.cloned;
       }
 
-      const previewFrench = previewClient?.agentLanguage?.startsWith('fr')
-        || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String(previewClient?.country || '').toUpperCase());
       const text = previewFrench ? character.previewFr : character.previewEn;
 
       // Synthesised once, then read from the cache. The line never changes, so
@@ -953,6 +971,7 @@ export class ClientDashboardController {
            la voix par défaut: on auditionnerait autre chose que ce qu'on
            croit choisir. */
         voiceProvider: character.voiceProvider,
+        ttsProvider: (previewClient?.vapiConfig as any)?.ttsProvider,
       });
 
       res.setHeader('Content-Type', 'audio/mpeg');
@@ -1157,10 +1176,16 @@ export class ClientDashboardController {
          quoi un gérant francophone choisirait parmi des voix anglaises. */
       const c = await prisma.client.findUnique({
         where: { id: req.clientId },
-        select: { agentLanguage: true },
+        select: { agentLanguage: true, vapiConfig: true },
       });
       const lang = c?.agentLanguage === 'nl' ? 'nl' : c?.agentLanguage === 'en' ? 'en' : 'fr';
-      res.json({ voices: await voiceCatalogService.list(req.clientId, lang) });
+      const tts = (c?.vapiConfig as any)?.ttsProvider;
+      res.json({
+        voices: await voiceCatalogService.list(
+          req.clientId, lang,
+          tts === 'cartesia' || tts === '11labs' ? tts : undefined,
+        ),
+      });
     } catch (error: any) {
       // 503 rather than 500 for a missing key: the UI shows "not configured",
       // which is actionable, instead of "server error", which is not.

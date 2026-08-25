@@ -70,14 +70,22 @@ class VoiceCatalogService {
    * après, donc deux clients ne peuvent pas se servir la liste l'un de l'autre
    * depuis le cache.
    */
-  async list(clientId?: string, lang: 'fr' | 'en' | 'nl' = 'fr'): Promise<CatalogVoice[]> {
+  async list(
+    clientId?: string,
+    lang: 'fr' | 'en' | 'nl' = 'fr',
+    /* La synthèse de CE client. Le sélecteur doit proposer le catalogue qui le
+       servira LUI, pas celui de la plateforme: depuis que chaque compte peut
+       choisir, les deux peuvent différer, et proposer l'autre ferait choisir
+       dans une liste qui ne sert pas. */
+    ttsProvider?: '11labs' | 'cartesia',
+  ): Promise<CatalogVoice[]> {
     /* Quand les appels passent par Cartesia, le sélecteur doit proposer des
        voix CARTESIA. Proposer les voix ElevenLabs reviendrait à faire choisir
        dans un catalogue qui ne sert plus, ce qui est la version la plus
        coûteuse du mensonge qu'on a passé la semaine à retirer de cet écran.
        Les clones du client restent servis avec: ils vivent chez ElevenLabs, ils
        continuent de fonctionner, et ce sont les seuls à porter sa propre voix. */
-    if (env.VOICE_TTS_PROVIDER === 'cartesia') return this.cartesiaList(clientId, lang);
+    if ((ttsProvider ?? env.VOICE_TTS_PROVIDER) === 'cartesia') return this.cartesiaList(clientId, lang);
     return this.elevenLabsList(clientId);
   }
 

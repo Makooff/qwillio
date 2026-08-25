@@ -325,6 +325,15 @@ export function useCartesia(opts: {
   cloned?: boolean;
   /** Posé quand l'identifiant vient DÉJÀ du catalogue Cartesia. */
   voiceProvider?: 'cartesia';
+  /**
+   * La synthèse choisie POUR CE CLIENT. Absente, on suit le réglage global.
+   *
+   * Par client et pas seulement par plateforme, parce que la question « lequel
+   * sonne le mieux en français » se tranche à l'oreille, sur le même compte,
+   * entre deux appels: la trancher en basculant toute la flotte et en
+   * redéployant, c'est ne pas la trancher.
+   */
+  ttsProvider?: '11labs' | 'cartesia';
 }): string | null {
   /* Une voix choisie CHEZ Cartesia par le client se sert telle quelle, et elle
      court-circuite tout le reste: ni le réglage global (il a pu changer après
@@ -334,7 +343,7 @@ export function useCartesia(opts: {
      voix par défaut au lieu de celle qu'il a choisie. */
   if (opts.voiceProvider === 'cartesia') return opts.voiceId;
 
-  if (env.VOICE_TTS_PROVIDER !== 'cartesia') return null;
+  if ((opts.ttsProvider ?? env.VOICE_TTS_PROVIDER) !== 'cartesia') return null;
   if (opts.cloned) return null;
   return cartesiaVoiceFor(opts.voiceId);
 }
@@ -350,6 +359,8 @@ export function buildVoice(opts: {
   cloned?: boolean;
   /** Posé quand l'identifiant vient déjà du catalogue Cartesia. */
   voiceProvider?: 'cartesia';
+  /** La synthèse choisie pour ce client. Absente, on suit le réglage global. */
+  ttsProvider?: '11labs' | 'cartesia';
 }) {
   const cartesiaVoiceId = useCartesia(opts);
   if (cartesiaVoiceId) {
@@ -483,6 +494,8 @@ export function buildSpeech(opts: {
   hasCustomVoice?: boolean;
   /** Le mode choisi pour ce client; `auto` suit le réglage global. */
   voiceMode?: 'auto' | 'realtime' | 'classic';
+  /** La synthèse choisie pour ce client; absente, elle suit le réglage global. */
+  ttsProvider?: '11labs' | 'cartesia';
   /** L'option « LLM personnalisé » de l'appel entrant, qui ramène la boucle ici. */
   customLlmUrl?: string;
   temperature?: number;
@@ -544,6 +557,7 @@ export function buildSpeech(opts: {
          pas déménager, c'est l'enregistrement du client. */
       cloned: opts.character.voiceCloned,
       voiceProvider: opts.character.voiceProvider,
+      ttsProvider: opts.ttsProvider,
     }),
   };
 }
