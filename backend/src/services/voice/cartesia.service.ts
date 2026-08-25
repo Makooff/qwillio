@@ -38,20 +38,45 @@ export class CartesiaError extends Error {
  * La voix Cartesia correspondant à une voix ElevenLabs.
  *
  * Les deux catalogues sont étrangers l'un à l'autre: un identifiant ElevenLabs
- * ne désigne rien chez Cartesia. La table est donc obligatoire, et son absence
- * n'est PAS une erreur: elle veut dire « ce timbre-là n'a pas encore été
- * choisi chez Cartesia », et l'appel repart sur ElevenLabs. C'est ce qui permet
- * de basculer voix par voix, à l'oreille, au lieu de tout basculer d'un coup et
- * de découvrir sur un appel réel qu'un personnage sonne faux.
+ * ne désigne rien chez Cartesia. D'où une table, qui permet de basculer voix
+ * par voix, à l'oreille, au lieu de tout basculer d'un coup et de découvrir sur
+ * un appel réel qu'un personnage sonne faux.
  *
- * Format: `voixEleven:voixCartesia,voixEleven:voixCartesia`.
+ * DEUX ÉCRITURES SONT ACCEPTÉES, et la seconde existe pour une raison précise:
+ *
+ *   - `voixEleven:voixCartesia,…` — la correspondance fine, personnage par
+ *     personnage;
+ *   - `voixCartesia` seule, sans deux-points — « celle-là, pour tout le monde ».
+ *
+ * La première version n'acceptait que la forme à deux-points, et une entrée
+ * sans deux-points ne produisait RIEN: pas d'erreur, pas de journal, la
+ * réceptionniste restait simplement chez ElevenLabs. Or « je colle
+ * l'identifiant de la voix que j'aime » est le geste naturel, et il tombait
+ * exactement dans ce trou. Une configuration qui ne marche pas doit se voir;
+ * celle-ci se comprend maintenant toute seule.
+ *
+ * Précédence: correspondance explicite, puis voix unique, puis
+ * `CARTESIA_DEFAULT_VOICE_ID`.
  */
 export function cartesiaVoiceFor(elevenVoiceId: string): string | null {
-  for (const pair of env.CARTESIA_VOICES.split(',')) {
-    const [from, to] = pair.split(':').map(s => s.trim());
+  let blanket: string | null = null;
+
+  for (const raw of env.CARTESIA_VOICES.split(',')) {
+    const entry = raw.trim();
+    if (!entry) continue;
+
+    if (!entry.includes(':')) {
+      // Une voix seule: elle sert tout le monde, à moins qu'une correspondance
+      // explicite ne la contredise, d'où le fait qu'on continue à lire.
+      blanket = blanket ?? entry;
+      continue;
+    }
+
+    const [from, to] = entry.split(':').map(s => s.trim());
     if (from && to && from === elevenVoiceId) return to;
   }
-  return env.CARTESIA_DEFAULT_VOICE_ID || null;
+
+  return blanket || env.CARTESIA_DEFAULT_VOICE_ID || null;
 }
 
 /**

@@ -34,6 +34,7 @@ const { buildVoice, useCartesia } = await import('../speech-plans');
 beforeEach(() => {
   envMock.VOICE_TTS_PROVIDER = 'cartesia';
   envMock.CARTESIA_DEFAULT_VOICE_ID = '';
+  envMock.CARTESIA_VOICES = 'el_marie:ca_marie,el_lucas:ca_lucas';
 });
 
 describe('useCartesia — les trois garde-fous', () => {
@@ -65,6 +66,35 @@ describe('useCartesia — les trois garde-fous', () => {
 
   it('traduit un timbre connu', () => {
     expect(useCartesia({ voiceId: 'el_lucas' })).toBe('ca_lucas');
+  });
+
+  /**
+   * « J'ai mis l'identifiant d'une voix que j'aime. »
+   *
+   * C'est le geste naturel, et la première version le laissait sans effet: une
+   * entrée sans deux-points ne produisait rien, ni erreur ni journal, et la
+   * réceptionniste restait chez ElevenLabs sans que rien ne l'explique. Une
+   * configuration qui ne marche pas doit se voir; celle-ci se comprend
+   * maintenant toute seule.
+   */
+  it('accepte une voix SEULE, sans deux-points: celle-là, pour tout le monde', () => {
+    envMock.CARTESIA_VOICES = 'ca_preferee';
+    expect(useCartesia({ voiceId: 'el_marie' })).toBe('ca_preferee');
+    expect(useCartesia({ voiceId: 'el_inconnu' })).toBe('ca_preferee');
+  });
+
+  it('laisse une correspondance explicite l\'emporter sur la voix unique', () => {
+    // Les deux écritures cohabitent: « tout le monde en X, sauf Marie en Y ».
+    envMock.CARTESIA_VOICES = 'ca_preferee,el_marie:ca_marie';
+    expect(useCartesia({ voiceId: 'el_marie' })).toBe('ca_marie');
+    expect(useCartesia({ voiceId: 'el_lucas' })).toBe('ca_preferee');
+  });
+
+  it('ne bascule toujours PAS un clone, même avec une voix unique', () => {
+    // La règle qui protège la voix enregistrée du client ne connaît pas
+    // d'exception, et surtout pas celle qui ratisse le plus large.
+    envMock.CARTESIA_VOICES = 'ca_preferee';
+    expect(useCartesia({ voiceId: 'el_marie', cloned: true })).toBeNull();
   });
 });
 
