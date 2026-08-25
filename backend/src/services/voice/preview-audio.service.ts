@@ -60,6 +60,8 @@ export interface PreviewRequest {
   cloned?: boolean;
   /** Posé quand l'identifiant vient déjà du catalogue Cartesia. */
   voiceProvider?: 'cartesia';
+  /** La synthèse de CE client; absente, on suit le réglage global. */
+  ttsProvider?: '11labs' | 'cartesia';
 }
 
 /**

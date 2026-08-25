@@ -39,6 +39,8 @@ export interface VapiConfigPatch {
    * character's own voice".
    */
   customVoice?: { voiceId?: string; name?: string; cloned?: boolean; provider?: string } | null;
+  /** `11labs` ou `cartesia`; vide rend le client au réglage global. */
+  ttsProvider?: string;
   /**
    * Quelle chaîne vocale sert cet agent.
    *
@@ -216,6 +218,15 @@ export function buildVapiConfigPatch(
     // The cloned voice is a valid selection but is not in the catalog: it has
     // no fixed voiceId, it lives per-tenant in the client's own config.
     if (isValidCharacterId(v) || v === CUSTOM_CHARACTER_ID) next.characterId = v;
+  }
+  if (patch.ttsProvider !== undefined) {
+    /* Le fournisseur de synthèse, par client. Sert à comparer ElevenLabs et
+       Cartesia sur le même compte, à l'oreille, sans redéployer entre deux
+       appels. Une valeur vide efface le réglage et rend le client au défaut de
+       la plateforme, ce qui doit rester possible en un clic. */
+    const v = String(patch.ttsProvider || '');
+    if (v === '11labs' || v === 'cartesia') next.ttsProvider = v;
+    else delete next.ttsProvider;
   }
   if (patch.customVoice !== undefined) {
     const voiceId = String(patch.customVoice?.voiceId || '').trim();

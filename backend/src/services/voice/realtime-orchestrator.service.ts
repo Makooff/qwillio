@@ -106,6 +106,7 @@ class RealtimeOrchestratorService {
       character,
       hasCustomVoice: !!profile.customVoice,
       voiceMode: profile.voiceMode,
+      ttsProvider: profile.ttsProvider,
       customLlmUrl: profile.customLlm
         ? `${env.API_BASE_URL}/api/webhooks/vapi/llm/${clientId}`
         : undefined,

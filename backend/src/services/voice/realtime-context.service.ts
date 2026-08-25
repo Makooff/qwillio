@@ -91,6 +91,14 @@ export interface ClientVoiceProfile {
    * entière, et plus tard d'attacher le mode au plan payé.
    */
   voiceMode: 'auto' | 'realtime' | 'classic';
+  /**
+   * Quelle SYNTHÈSE sert ce client, en mode classique.
+   *
+   * Absent = le réglage global de la plateforme. Posé par client pour pouvoir
+   * comparer ElevenLabs et Cartesia à l'oreille, sur le même compte, sans
+   * basculer toute la flotte ni redéployer entre deux appels.
+   */
+  ttsProvider?: '11labs' | 'cartesia';
   /** Whether any active knowledge entry exists — gates the lookup tool. */
   hasKnowledgeBase: boolean;
   /**
@@ -283,6 +291,9 @@ class RealtimeContextService {
       // Toute valeur inconnue vaut `auto`: un réglage mal orthographié ne doit
       // pas décider en silence de la voix que l'appelant entend.
       voiceMode: ['realtime', 'classic'].includes(vapiConfig.voiceMode) ? vapiConfig.voiceMode : 'auto',
+      // Liste fermée: une valeur inconnue retombe sur le réglage global plutôt
+      // que de décider en silence de ce que l'appelant entend.
+      ttsProvider: ['11labs', 'cartesia'].includes(vapiConfig.ttsProvider) ? vapiConfig.ttsProvider : undefined,
       hasKnowledgeBase: knowledgeCount > 0,
       recordCalls: vapiConfig.disableRecordingNotice !== true && vapiConfig.recordCalls !== false,
     };

@@ -323,6 +323,11 @@ export default function ClientReceptionist() {
      règle qui sert les appels: recopier la précédence ici la ferait diverger
      au premier changement de réglage global. */
   const [autoResolvesTo, setAutoResolvesTo] = useState<'realtime' | 'classic'>('classic');
+  /* La SYNTHÈSE, par client. `null` suit le réglage de la plateforme. Posée
+     ici pour pouvoir comparer les trois moteurs à l'oreille sur le même
+     compte, entre deux appels, sans redéployer. */
+  const [ttsProvider, setTtsProvider] = useState<'11labs' | 'cartesia' | null>(null);
+  const [ttsProviderDefault, setTtsProviderDefault] = useState<'11labs' | 'cartesia'>('11labs');
   /* Un seul panneau ouvert à la fois, et AUCUN à l'arrivée.
    *
    * Cet état était initialisé à `'identite'` et mémorisé dans `localStorage`:
@@ -402,6 +407,8 @@ export default function ClientReceptionist() {
       setVoiceMode(s?.voiceMode === 'realtime' || s?.voiceMode === 'classic' ? s.voiceMode : 'auto');
       setRealtimeSurcharge(Number(s?.realtimeSurchargeEur) > 0 ? Number(s.realtimeSurchargeEur) : 0);
       setAutoResolvesTo(s?.autoResolvesTo === 'realtime' ? 'realtime' : 'classic');
+      setTtsProvider(s?.ttsProvider === 'cartesia' || s?.ttsProvider === '11labs' ? s.ttsProvider : null);
+      setTtsProviderDefault(s?.ttsProviderDefault === 'cartesia' ? 'cartesia' : '11labs');
       // Values below come from the server → don't trigger an auto-save.
       hydrated.current = true;
       skipAutosave.current = true;
@@ -522,13 +529,16 @@ export default function ClientReceptionist() {
         characterId,
         customVoice,
         voiceMode,
+        // Chaîne vide plutôt que `null`: c'est ce que le backend lit comme
+        // « rends-moi au réglage global ».
+        ttsProvider: ttsProvider ?? '',
       });
       // The dashboard is holding a copy of these settings, and it is wrong from
       // the instant this call returns.
       invalidateLive('/my-dashboard/');
     } catch { /* silent — the next edit retries */ }
   }, [transferNumber, agentName, forwardingType, googleCalendarId,
-      items, weekHours, faqEntries, knowledge, personalityPreset, personalityNotes, characterId, customVoice, voiceMode]);
+      items, weekHours, faqEntries, knowledge, personalityPreset, personalityNotes, characterId, customVoice, voiceMode, ttsProvider]);
 
   // Auto-save: debounce after any edit. Skips the initial hydration from load()
   // so we never fire a redundant save on mount.
@@ -593,6 +603,9 @@ export default function ClientReceptionist() {
     : voiceMode === 'realtime' ? null
     : customVoice ? 'la voix choisie ci-dessus, que seul le classique sait dire'
     : voiceMode === 'auto' ? 'réglage automatique'
+    // « Automatique » ne dit pas quelle synthèse il retient: la ligne ci-dessus
+    // la nomme, cette raison-ci dit d'où elle vient.
+    : ttsProvider === null ? 'synthèse par défaut de la plateforme'
     : null;
 
   // `planType` is a lowercase key ('starter'); shown to a customer it becomes
@@ -781,31 +794,44 @@ export default function ClientReceptionist() {
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
                 Moteur vocal
               </label>
+              {/* UN seul choix, quatre entrées, alors que le réglage en porte
+                  deux (le mode et la synthèse). C'est délibéré: « lequel des
+                  trois sonne le mieux » est une question, pas deux, et deux
+                  rangées de boutons obligeraient à savoir que le fournisseur
+                  de synthèse n'existe qu'en mode classique. La combinaison est
+                  faite ici, une fois. */}
               <div className="flex flex-wrap gap-2">
                 {([
-                  { id: 'auto', label: 'Automatique' },
+                  { id: 'auto', label: 'Automatique', mode: 'auto', tts: null },
+                  { id: '11labs', label: 'Classique · ElevenLabs', mode: 'classic', tts: '11labs' },
+                  { id: 'cartesia', label: 'Classique · Cartesia', mode: 'classic', tts: 'cartesia' },
                   {
                     id: 'realtime',
                     label: realtimeSurcharge > 0
-                      ? `Temps réel · +${realtimeSurcharge.toFixed(2).replace('.', ',')} €/min`
-                      : 'Temps réel',
+                      ? `Temps réel · OpenAI · +${realtimeSurcharge.toFixed(2).replace('.', ',')} €/min`
+                      : 'Temps réel · OpenAI',
+                    mode: 'realtime',
+                    tts: null,
                   },
-                  { id: 'classic', label: 'Classique' },
-                ] as const).map(m => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setVoiceMode(m.id)}
-                    aria-pressed={voiceMode === m.id}
-                    className={`h-9 px-4 text-[13px] rounded-lg border transition-colors ${
-                      voiceMode === m.id
-                        ? 'border-[#7349fe] bg-[#7349fe]/15 text-[#F5F5F7]'
-                        : 'border-white/[0.08] bg-[#0A0A0C] text-[#9A9AA5] hover:text-[#F5F5F7]'
-                    }`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
+                ] as const).map(m => {
+                  const active = m.mode === voiceMode
+                    && (m.mode !== 'classic' || m.tts === ttsProvider);
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => { setVoiceMode(m.mode); setTtsProvider(m.tts); }}
+                      aria-pressed={active}
+                      className={`h-9 px-4 text-[13px] rounded-lg border transition-colors ${
+                        active
+                          ? 'border-[#7349fe] bg-[#7349fe]/15 text-[#F5F5F7]'
+                          : 'border-white/[0.08] bg-[#0A0A0C] text-[#9A9AA5] hover:text-[#F5F5F7]'
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  );
+                })}
               </div>
               <p className="mt-2.5 text-[12px] text-[#9A9AA5] leading-relaxed">
                 {voiceMode === 'realtime'
@@ -813,7 +839,9 @@ export default function ClientReceptionist() {
                     ? `Temps réel : le plus fluide et le plus rapide, il perçoit le ton de l'appelant. La voix choisie ci-dessus n'est pas utilisée dans ce mode, le modèle parle avec la sienne. Option facturée ${realtimeSurcharge.toFixed(2).replace('.', ',')} € par minute réellement passée dans ce mode, en plus de votre forfait.`
                     : "Temps réel : le plus fluide et le plus rapide, il perçoit le ton de l'appelant. La voix choisie ci-dessus n'est pas utilisée dans ce mode, le modèle parle avec la sienne."
                   : voiceMode === 'classic'
-                    ? "Classique : la voix choisie ci-dessus est celle que l'appelant entend. Un peu plus de délai avant chaque réponse."
+                    ? ttsProvider === 'cartesia'
+                      ? "Classique par Cartesia : la voix choisie ci-dessus est celle que l'appelant entend. Sonic produit des respirations et des hésitations, et démarre plus vite qu'ElevenLabs."
+                      : "Classique par ElevenLabs : la voix choisie ci-dessus est celle que l'appelant entend. Un peu plus de délai avant chaque réponse."
                     : realtimeSurcharge > 0
                       ? 'Automatique : mode classique, sans supplément. Le temps réel ne s’active que si vous le choisissez.'
                       : 'Automatique : suit le réglage par défaut de la plateforme.'}
@@ -828,7 +856,9 @@ export default function ClientReceptionist() {
               <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] leading-relaxed">
                 <span className="text-[#9A9AA5]">Moteur utilisé pour vos appels :</span>
                 <span className="font-semibold text-[#7349fe]">
-                  {effectiveEngine === 'realtime' ? 'Temps réel' : 'Classique'}
+                  {effectiveEngine === 'realtime'
+                    ? 'Temps réel · OpenAI'
+                    : `Classique · ${(ttsProvider ?? ttsProviderDefault) === 'cartesia' ? 'Cartesia' : 'ElevenLabs'}`}
                 </span>
                 {engineReason && <span className="text-[#8B8BA7]">({engineReason})</span>}
               </p>
